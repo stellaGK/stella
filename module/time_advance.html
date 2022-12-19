@@ -81,133 +81,170 @@
   <div class="row">
     <h1>time_advance 
     <small>Module</small>
+    
     </h1>
-    <div class="row">
-  <div class="col-lg-12">
-<div class="well well-sm">
-  <ul class="list-inline" style="margin-bottom:0px;display:inline">
-     <li><i class="fa fa-list-ol"></i>
-       <a data-toggle="tooltip"
-    data-placement="bottom" data-html="true"
-    title=" 4.8% of total for modules and submodules.">1911 statements</a>
-     </li> 
-    <li><i class="fa fa-code"></i><a href="../src/time_advance.f90"> Source File</a></li>
-  </ul>
-  <ol class="breadcrumb in-well text-right">
-     <li><a href='../sourcefile/time_advance.f90.html'>time_advance.f90</a></li>
-     <li class="active">time_advance</li>
-  </ol>
-</div>
-</div>
-</div>
-<script>
-  $(function () {
-  $('[data-toggle="tooltip"]').tooltip()
-  })
-</script>
+      <div class="row" id="info-bar">
+    <div class="col-lg-12">
+      <div class="well well-sm">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+          <li id="statements"><i class="fa fa-list-ol"></i>
+            <a data-toggle="tooltip"
+               data-placement="bottom" data-html="true"
+               title=" 4.8% of total for modules and submodules.">1915 statements</a>
+          </li>
+
+            <li id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/time_advance.f90"> Source File</a>
+            </li>
+        </ul>
+        <ol class="breadcrumb in-well text-right">
+              <li><a href='../sourcefile/time_advance.f90.html'>time_advance.f90</a></li>
+          <li class="active">time_advance</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(function () {
+    $('[data-toggle="tooltip"]').tooltip()
+    })
+  </script>
 
   </div>
   
   <div class="row">
     <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
-    <div id="sidebar">
-  <h3>Contents</h3>
- 
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-0">Variables</a></h3></div>
-  <div id="vars-0" class="panel-collapse collapse">
-    <div class="list-group">
-      <a class="list-group-item" href="../module/time_advance.html#variable-time_advance_initialized">time_advance_initialized</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-wdriftinit">wdriftinit</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-wstarinit">wstarinit</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-parnlinit">parnlinit</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-readinit">readinit</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-radialinit">radialinit</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-driftimpinit">driftimpinit</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_switch">explicit_option_switch</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_rk3">explicit_option_rk3</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_rk2">explicit_option_rk2</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_rk4">explicit_option_rk4</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-xdriftknob">xdriftknob</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-ydriftknob">ydriftknob</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-wstarknob">wstarknob</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-flip_flop">flip_flop</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-gamtot_drifts">gamtot_drifts</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-gamtot3_drifts">gamtot3_drifts</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_fac">par_nl_fac</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_fac_dr">d_par_nl_fac_dr</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_curv">par_nl_curv</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_curv_dr">d_par_nl_curv_dr</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_driftx">par_nl_driftx</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_drifty">par_nl_drifty</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_driftx_dr">d_par_nl_driftx_dr</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_drifty_dr">d_par_nl_drifty_dr</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-time_gke">time_gke</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-time_parallel_nl">time_parallel_nl</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-debug~4">debug</a>
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+      <div class="panel panel-primary">
+      <div class="panel-heading text-left">
+        <h3 class="panel-title">
+          <a data-toggle="collapse" href="#vars-0">Variables</a>
+        </h3>
+      </div>
+      <div id="vars-0" class="panel-collapse collapse">
+        <div class="list-group">
+            <a class="list-group-item" href="../module/time_advance.html#variable-time_advance_initialized">time_advance_initialized</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-wdriftinit">wdriftinit</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-wstarinit">wstarinit</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-parnlinit">parnlinit</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-readinit">readinit</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-radialinit">radialinit</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-driftimpinit">driftimpinit</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_switch">explicit_option_switch</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_rk3">explicit_option_rk3</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_rk2">explicit_option_rk2</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_rk4">explicit_option_rk4</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-xdriftknob">xdriftknob</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-ydriftknob">ydriftknob</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-wstarknob">wstarknob</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-flip_flop">flip_flop</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-gamtot_drifts">gamtot_drifts</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-gamtot3_drifts">gamtot3_drifts</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_fac">par_nl_fac</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_fac_dr">d_par_nl_fac_dr</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_curv">par_nl_curv</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_curv_dr">d_par_nl_curv_dr</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_driftx">par_nl_driftx</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_drifty">par_nl_drifty</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_driftx_dr">d_par_nl_driftx_dr</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_drifty_dr">d_par_nl_drifty_dr</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-time_gke">time_gke</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-time_parallel_nl">time_parallel_nl</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-debug~2">debug</a>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#inters-0">Interfaces</a></h3></div>
-  <div id="inters-0" class="panel-collapse collapse">
-    <div class="list-group">
-      <a class="list-group-item" href="../module/time_advance.html#interface-get_dgdy">get_dgdy</a>
-      <a class="list-group-item" href="../module/time_advance.html#interface-get_dgdx">get_dgdx</a>
-      <a class="list-group-item" href="../module/time_advance.html#interface-checksum">checksum</a>
-    </div>
-  </div>
-</div>
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-0">Subroutines</a></h3></div>
-  <div class="list-group">
-    <div id="subs-0" class="panel-collapse collapse">
-      <a class="list-group-item" href="../module/time_advance.html#proc-init_time_advance">init_time_advance</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-read_parameters~6">read_parameters</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-init_wdrift">init_wdrift</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-init_wstar">init_wstar</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-init_drifts_implicit">init_drifts_implicit</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-init_parallel_nonlinearity">init_parallel_nonlinearity</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-init_radial_variation">init_radial_variation</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-allocate_arrays~3">allocate_arrays</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-init_cfl">init_cfl</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-reset_dt">reset_dt</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_stella">advance_stella</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit">advance_explicit</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_rk2">advance_explicit_rk2</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_rk3">advance_explicit_rk3</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_rk4">advance_explicit_rk4</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-solve_gke">solve_gke</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_wstar_explicit">advance_wstar_explicit</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_wdrifty_explicit">advance_wdrifty_explicit</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_wdriftx_explicit">advance_wdriftx_explicit</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_exb_nonlinearity">advance_ExB_nonlinearity</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_parallel_nonlinearity">advance_parallel_nonlinearity</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_radial_variation">advance_radial_variation</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdy_2d">get_dgdy_2d</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdy_3d">get_dgdy_3d</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdy_4d">get_dgdy_4d</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_2d">get_dgdx_2d</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_3d">get_dgdx_3d</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_4d">get_dgdx_4d</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-add_explicit_term">add_explicit_term</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-add_explicit_term_ffs">add_explicit_term_ffs</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_implicit">advance_implicit</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_drifts_implicit">advance_drifts_implicit</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-mb_communicate">mb_communicate</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-checksum_field">checksum_field</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-checksum_dist">checksum_dist</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-finish_time_advance">finish_time_advance</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-finish_parallel_nonlinearity">finish_parallel_nonlinearity</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-finish_wdrift">finish_wdrift</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-finish_wstar">finish_wstar</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-finish_drifts_implicit">finish_drifts_implicit</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-deallocate_arrays">deallocate_arrays</a>
-    </div>
-  </div>
-</div>
 
-</div>
+  
+  
+  
+  
+  
+  
+      <div class="panel panel-primary">
+      <div class="panel-heading text-left">
+        <h3 class="panel-title">
+          <a data-toggle="collapse" href="#inters-0">Interfaces</a>
+        </h3>
+      </div>
+      <div id="inters-0" class="panel-collapse collapse">
+        <div class="list-group">
+            <a class="list-group-item" href="../module/time_advance.html#interface-get_dgdy">get_dgdy</a>
+            <a class="list-group-item" href="../module/time_advance.html#interface-get_dgdx">get_dgdx</a>
+            <a class="list-group-item" href="../module/time_advance.html#interface-checksum">checksum</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+      <div class="panel panel-primary">
+      <div class="panel-heading text-left">
+        <h3 class="panel-title">
+          <a data-toggle="collapse" href="#subs-0">Subroutines</a>
+        </h3>
+      </div>
+      <div id="subs-0" class="panel-collapse collapse">
+        <div class="list-group">
+            <a class="list-group-item" href="../module/time_advance.html#proc-init_time_advance">init_time_advance</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-read_parameters~5">read_parameters</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-init_wdrift">init_wdrift</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-init_wstar">init_wstar</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-init_drifts_implicit">init_drifts_implicit</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-init_parallel_nonlinearity">init_parallel_nonlinearity</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-init_radial_variation">init_radial_variation</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-allocate_arrays~2">allocate_arrays</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-init_cfl">init_cfl</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-reset_dt">reset_dt</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_stella">advance_stella</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit">advance_explicit</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_rk2">advance_explicit_rk2</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_rk3">advance_explicit_rk3</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_rk4">advance_explicit_rk4</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-solve_gke">solve_gke</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_wstar_explicit">advance_wstar_explicit</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_wdrifty_explicit">advance_wdrifty_explicit</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_wdriftx_explicit">advance_wdriftx_explicit</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_exb_nonlinearity">advance_ExB_nonlinearity</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_parallel_nonlinearity">advance_parallel_nonlinearity</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_radial_variation">advance_radial_variation</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdy_2d">get_dgdy_2d</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdy_3d">get_dgdy_3d</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdy_4d">get_dgdy_4d</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_2d">get_dgdx_2d</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_3d">get_dgdx_3d</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_4d">get_dgdx_4d</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-add_explicit_term">add_explicit_term</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-add_explicit_term_ffs">add_explicit_term_ffs</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_implicit">advance_implicit</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_drifts_implicit">advance_drifts_implicit</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-mb_communicate">mb_communicate</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-checksum_field">checksum_field</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-checksum_dist">checksum_dist</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-finish_time_advance">finish_time_advance</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-finish_parallel_nonlinearity">finish_parallel_nonlinearity</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-finish_wdrift">finish_wdrift</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-finish_wstar">finish_wstar</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-finish_drifts_implicit">finish_drifts_implicit</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-deallocate_arrays">deallocate_arrays</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+
+
+  </div>
 
     </div>
     
@@ -218,101 +255,132 @@
     <br>
 
     <section class="visible-xs visible-sm hidden-md">
-      <h3>Contents</h3>
- 
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-1">Variables</a></h3></div>
-  <div id="vars-1" class="panel-collapse collapse">
-    <div class="list-group">
-      <a class="list-group-item" href="../module/time_advance.html#variable-time_advance_initialized">time_advance_initialized</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-wdriftinit">wdriftinit</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-wstarinit">wstarinit</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-parnlinit">parnlinit</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-readinit">readinit</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-radialinit">radialinit</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-driftimpinit">driftimpinit</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_switch">explicit_option_switch</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_rk3">explicit_option_rk3</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_rk2">explicit_option_rk2</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_rk4">explicit_option_rk4</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-xdriftknob">xdriftknob</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-ydriftknob">ydriftknob</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-wstarknob">wstarknob</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-flip_flop">flip_flop</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-gamtot_drifts">gamtot_drifts</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-gamtot3_drifts">gamtot3_drifts</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_fac">par_nl_fac</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_fac_dr">d_par_nl_fac_dr</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_curv">par_nl_curv</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_curv_dr">d_par_nl_curv_dr</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_driftx">par_nl_driftx</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_drifty">par_nl_drifty</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_driftx_dr">d_par_nl_driftx_dr</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_drifty_dr">d_par_nl_drifty_dr</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-time_gke">time_gke</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-time_parallel_nl">time_parallel_nl</a>
-      <a class="list-group-item" href="../module/time_advance.html#variable-debug~4">debug</a>
+        <h3>Contents</h3>
+  
+      <div class="panel panel-primary">
+      <div class="panel-heading text-left">
+        <h3 class="panel-title">
+          <a data-toggle="collapse" href="#vars-1">Variables</a>
+        </h3>
+      </div>
+      <div id="vars-1" class="panel-collapse collapse">
+        <div class="list-group">
+            <a class="list-group-item" href="../module/time_advance.html#variable-time_advance_initialized">time_advance_initialized</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-wdriftinit">wdriftinit</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-wstarinit">wstarinit</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-parnlinit">parnlinit</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-readinit">readinit</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-radialinit">radialinit</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-driftimpinit">driftimpinit</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_switch">explicit_option_switch</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_rk3">explicit_option_rk3</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_rk2">explicit_option_rk2</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_rk4">explicit_option_rk4</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-xdriftknob">xdriftknob</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-ydriftknob">ydriftknob</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-wstarknob">wstarknob</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-flip_flop">flip_flop</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-gamtot_drifts">gamtot_drifts</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-gamtot3_drifts">gamtot3_drifts</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_fac">par_nl_fac</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_fac_dr">d_par_nl_fac_dr</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_curv">par_nl_curv</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_curv_dr">d_par_nl_curv_dr</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_driftx">par_nl_driftx</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_drifty">par_nl_drifty</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_driftx_dr">d_par_nl_driftx_dr</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_drifty_dr">d_par_nl_drifty_dr</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-time_gke">time_gke</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-time_parallel_nl">time_parallel_nl</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-debug~2">debug</a>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#inters-1">Interfaces</a></h3></div>
-  <div id="inters-1" class="panel-collapse collapse">
-    <div class="list-group">
-      <a class="list-group-item" href="../module/time_advance.html#interface-get_dgdy">get_dgdy</a>
-      <a class="list-group-item" href="../module/time_advance.html#interface-get_dgdx">get_dgdx</a>
-      <a class="list-group-item" href="../module/time_advance.html#interface-checksum">checksum</a>
+
+  
+  
+  
+  
+  
+  
+      <div class="panel panel-primary">
+      <div class="panel-heading text-left">
+        <h3 class="panel-title">
+          <a data-toggle="collapse" href="#inters-1">Interfaces</a>
+        </h3>
+      </div>
+      <div id="inters-1" class="panel-collapse collapse">
+        <div class="list-group">
+            <a class="list-group-item" href="../module/time_advance.html#interface-get_dgdy">get_dgdy</a>
+            <a class="list-group-item" href="../module/time_advance.html#interface-get_dgdx">get_dgdx</a>
+            <a class="list-group-item" href="../module/time_advance.html#interface-checksum">checksum</a>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-1">Subroutines</a></h3></div>
-  <div class="list-group">
-    <div id="subs-1" class="panel-collapse collapse">
-      <a class="list-group-item" href="../module/time_advance.html#proc-init_time_advance">init_time_advance</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-read_parameters~6">read_parameters</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-init_wdrift">init_wdrift</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-init_wstar">init_wstar</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-init_drifts_implicit">init_drifts_implicit</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-init_parallel_nonlinearity">init_parallel_nonlinearity</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-init_radial_variation">init_radial_variation</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-allocate_arrays~3">allocate_arrays</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-init_cfl">init_cfl</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-reset_dt">reset_dt</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_stella">advance_stella</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit">advance_explicit</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_rk2">advance_explicit_rk2</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_rk3">advance_explicit_rk3</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_rk4">advance_explicit_rk4</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-solve_gke">solve_gke</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_wstar_explicit">advance_wstar_explicit</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_wdrifty_explicit">advance_wdrifty_explicit</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_wdriftx_explicit">advance_wdriftx_explicit</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_exb_nonlinearity">advance_ExB_nonlinearity</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_parallel_nonlinearity">advance_parallel_nonlinearity</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_radial_variation">advance_radial_variation</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdy_2d">get_dgdy_2d</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdy_3d">get_dgdy_3d</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdy_4d">get_dgdy_4d</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_2d">get_dgdx_2d</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_3d">get_dgdx_3d</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_4d">get_dgdx_4d</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-add_explicit_term">add_explicit_term</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-add_explicit_term_ffs">add_explicit_term_ffs</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_implicit">advance_implicit</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-advance_drifts_implicit">advance_drifts_implicit</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-mb_communicate">mb_communicate</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-checksum_field">checksum_field</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-checksum_dist">checksum_dist</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-finish_time_advance">finish_time_advance</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-finish_parallel_nonlinearity">finish_parallel_nonlinearity</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-finish_wdrift">finish_wdrift</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-finish_wstar">finish_wstar</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-finish_drifts_implicit">finish_drifts_implicit</a>
-      <a class="list-group-item" href="../module/time_advance.html#proc-deallocate_arrays">deallocate_arrays</a>
+
+  
+  
+  
+      <div class="panel panel-primary">
+      <div class="panel-heading text-left">
+        <h3 class="panel-title">
+          <a data-toggle="collapse" href="#subs-1">Subroutines</a>
+        </h3>
+      </div>
+      <div id="subs-1" class="panel-collapse collapse">
+        <div class="list-group">
+            <a class="list-group-item" href="../module/time_advance.html#proc-init_time_advance">init_time_advance</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-read_parameters~5">read_parameters</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-init_wdrift">init_wdrift</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-init_wstar">init_wstar</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-init_drifts_implicit">init_drifts_implicit</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-init_parallel_nonlinearity">init_parallel_nonlinearity</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-init_radial_variation">init_radial_variation</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-allocate_arrays~2">allocate_arrays</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-init_cfl">init_cfl</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-reset_dt">reset_dt</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_stella">advance_stella</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit">advance_explicit</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_rk2">advance_explicit_rk2</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_rk3">advance_explicit_rk3</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_rk4">advance_explicit_rk4</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-solve_gke">solve_gke</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_wstar_explicit">advance_wstar_explicit</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_wdrifty_explicit">advance_wdrifty_explicit</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_wdriftx_explicit">advance_wdriftx_explicit</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_exb_nonlinearity">advance_ExB_nonlinearity</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_parallel_nonlinearity">advance_parallel_nonlinearity</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_radial_variation">advance_radial_variation</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdy_2d">get_dgdy_2d</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdy_3d">get_dgdy_3d</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdy_4d">get_dgdy_4d</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_2d">get_dgdx_2d</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_3d">get_dgdx_3d</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_4d">get_dgdx_4d</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-add_explicit_term">add_explicit_term</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-add_explicit_term_ffs">add_explicit_term_ffs</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_implicit">advance_implicit</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_drifts_implicit">advance_drifts_implicit</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-mb_communicate">mb_communicate</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-checksum_field">checksum_field</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-checksum_dist">checksum_dist</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-finish_time_advance">finish_time_advance</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-finish_parallel_nonlinearity">finish_parallel_nonlinearity</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-finish_wdrift">finish_wdrift</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-finish_wstar">finish_wstar</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-finish_drifts_implicit">finish_drifts_implicit</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-deallocate_arrays">deallocate_arrays</a>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
+
+  
+  
+  
+  
+  
+  
+
 
     </section>
     <br class="visible-xs visible-sm hidden-md">
@@ -320,151 +388,494 @@
 
     <section>
     <h2>Variables</h2>
-    <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Visibility</th><th>Attributes</th><th></th><th>Name</th><th></th><th>Initial</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" id="variable-time_advance_initialized"></span>logical,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>time_advance_initialized</strong></td><td> =</td><td>.false.</td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-wdriftinit"></span>logical,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>wdriftinit</strong></td><td> =</td><td>.false.</td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-wstarinit"></span>logical,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>wstarinit</strong></td><td> =</td><td>.false.</td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-parnlinit"></span>logical,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>parnlinit</strong></td><td> =</td><td>.false.</td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-readinit"></span>logical,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>readinit</strong></td><td> =</td><td>.false.</td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-radialinit"></span>logical,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>radialinit</strong></td><td> =</td><td>.false.</td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-driftimpinit"></span>logical,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>driftimpinit</strong></td><td> =</td><td>.false.</td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-explicit_option_switch"></span>integer,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>explicit_option_switch</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-explicit_option_rk3"></span>integer,</td>
-<td>private,</td>  <td>parameter</td><td>::</td>
-  <td><strong>explicit_option_rk3</strong></td><td> =</td><td>1</td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-explicit_option_rk2"></span>integer,</td>
-<td>private,</td>  <td>parameter</td><td>::</td>
-  <td><strong>explicit_option_rk2</strong></td><td> =</td><td>2</td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-explicit_option_rk4"></span>integer,</td>
-<td>private,</td>  <td>parameter</td><td>::</td>
-  <td><strong>explicit_option_rk4</strong></td><td> =</td><td>3</td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-xdriftknob"></span>real,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>xdriftknob</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-ydriftknob"></span>real,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>ydriftknob</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-wstarknob"></span>real,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>wstarknob</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-flip_flop"></span>logical,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>flip_flop</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-gamtot_drifts"></span>complex,</td>
-<td>private,</td>  <td>dimension(:, :, :), allocatable</td><td>::</td>
-  <td><strong>gamtot_drifts</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-gamtot3_drifts"></span>complex,</td>
-<td>private,</td>  <td>dimension(:, :), allocatable</td><td>::</td>
-  <td><strong>gamtot3_drifts</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-par_nl_fac"></span>real,</td>
-<td>private,</td>  <td>dimension(:, :), allocatable</td><td>::</td>
-  <td><strong>par_nl_fac</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-d_par_nl_fac_dr"></span>real,</td>
-<td>private,</td>  <td>dimension(:, :), allocatable</td><td>::</td>
-  <td><strong>d_par_nl_fac_dr</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-par_nl_curv"></span>real,</td>
-<td>private,</td>  <td>dimension(:, :), allocatable</td><td>::</td>
-  <td><strong>par_nl_curv</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-d_par_nl_curv_dr"></span>real,</td>
-<td>private,</td>  <td>dimension(:, :), allocatable</td><td>::</td>
-  <td><strong>d_par_nl_curv_dr</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-par_nl_driftx"></span>real,</td>
-<td>private,</td>  <td>dimension(:), allocatable</td><td>::</td>
-  <td><strong>par_nl_driftx</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-par_nl_drifty"></span>real,</td>
-<td>private,</td>  <td>dimension(:), allocatable</td><td>::</td>
-  <td><strong>par_nl_drifty</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-d_par_nl_driftx_dr"></span>real,</td>
-<td>private,</td>  <td>dimension(:), allocatable</td><td>::</td>
-  <td><strong>d_par_nl_driftx_dr</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-d_par_nl_drifty_dr"></span>real,</td>
-<td>private,</td>  <td>dimension(:), allocatable</td><td>::</td>
-  <td><strong>d_par_nl_drifty_dr</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-time_gke"></span>real,</td>
-<td>public,</td>  <td>dimension(2, 10)</td><td>::</td>
-  <td><strong>time_gke</strong></td><td> =</td><td>0.</td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-time_parallel_nl"></span>real,</td>
-<td>public,</td>  <td>dimension(2, 2)</td><td>::</td>
-  <td><strong>time_parallel_nl</strong></td><td> =</td><td>0.</td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-debug~4"></span>logical,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>debug</strong></td><td> =</td><td>.false.</td><td></td>
-</tr>
-</tbody>
-</table>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Visibility</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+<th></th><th>Initial</th>        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-time_advance_initialized"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>time_advance_initialized</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-wdriftinit"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>wdriftinit</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-wstarinit"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>wstarinit</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-parnlinit"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>parnlinit</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-readinit"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>readinit</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-radialinit"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>radialinit</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-driftimpinit"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>driftimpinit</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-explicit_option_switch"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>explicit_option_switch</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-explicit_option_rk3"></span>
+              integer,
+            </td>
+              <td>private,</td>
+            <td>
+parameter               
+            </td>
+            <td>::</td>
+            <td><strong>explicit_option_rk3</strong></td>
+<td> =</td>
+                <td>1</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-explicit_option_rk2"></span>
+              integer,
+            </td>
+              <td>private,</td>
+            <td>
+parameter               
+            </td>
+            <td>::</td>
+            <td><strong>explicit_option_rk2</strong></td>
+<td> =</td>
+                <td>2</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-explicit_option_rk4"></span>
+              integer,
+            </td>
+              <td>private,</td>
+            <td>
+parameter               
+            </td>
+            <td>::</td>
+            <td><strong>explicit_option_rk4</strong></td>
+<td> =</td>
+                <td>3</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-xdriftknob"></span>
+              real,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>xdriftknob</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ydriftknob"></span>
+              real,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ydriftknob</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-wstarknob"></span>
+              real,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>wstarknob</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-flip_flop"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>flip_flop</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gamtot_drifts"></span>
+              complex,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>gamtot_drifts</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gamtot3_drifts"></span>
+              complex,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>gamtot3_drifts</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-par_nl_fac"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>par_nl_fac</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-d_par_nl_fac_dr"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>d_par_nl_fac_dr</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-par_nl_curv"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>par_nl_curv</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-d_par_nl_curv_dr"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>d_par_nl_curv_dr</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-par_nl_driftx"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>par_nl_driftx</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-par_nl_drifty"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>par_nl_drifty</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-d_par_nl_driftx_dr"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>d_par_nl_driftx_dr</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-d_par_nl_drifty_dr"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>d_par_nl_drifty_dr</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-time_gke"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              dimension(2, 10)
+            </td>
+            <td>::</td>
+            <td><strong>time_gke</strong></td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-time_parallel_nl"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              dimension(2, 2)
+            </td>
+            <td>::</td>
+            <td><strong>time_parallel_nl</strong></td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-debug~2"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>debug</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
     </section>
     <br>
@@ -472,223 +883,488 @@
     
     <section>
    <h2>Interfaces</h2>
-     <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="interface-get_dgdy"></span><h3>private interface <a href='../interface/get_dgdy.html'>get_dgdy</a>  </h3></div>
-  <ul class="list-group">
-    <li class="list-group-item">
-    <h3>private subroutine <a href='../proc/get_dgdy_2d.html'>get_dgdy_2d</a>(g, dgdy)</h3>
-<p>compute dg/dy in k-space
+       <div class="panel panel-default">
+    <div class="panel-heading codesum">
+      <span class="anchor" id="interface-get_dgdy"></span>
+      <h3>private        interface <a href='../interface/get_dgdy.html'>get_dgdy</a> 
+      </h3>
+    </div>
+    <ul class="list-group">
+          <li class="list-group-item">
+                <h3>
+    private  subroutine <a href='../proc/get_dgdy_2d.html'>get_dgdy_2d</a>(g, dgdy)  
+
+    </h3>
+    
+  <p>compute dg/dy in k-space
 accepts g(ky,kx)</p>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, :)</td><td>::</td>
-  <td><strong>dgdy</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :)
+            </td>
+            <td>::</td>
+            <td><strong>dgdy</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-    </li>
-    <li class="list-group-item">
-    <h3>private subroutine <a href='../proc/get_dgdy_3d.html'>get_dgdy_3d</a>(g, dgdy)</h3>
-<p>compute dg/dy in k-space
+          </li>
+          <li class="list-group-item">
+                <h3>
+    private  subroutine <a href='../proc/get_dgdy_3d.html'>get_dgdy_3d</a>(g, dgdy)  
+
+    </h3>
+    
+  <p>compute dg/dy in k-space
 accepts g(ky,kx,z,tube)</p>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>dgdy</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>dgdy</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-    </li>
-    <li class="list-group-item">
-    <h3>private subroutine <a href='../proc/get_dgdy_4d.html'>get_dgdy_4d</a>(g, dgdy)</h3>
-<p>compute dg/dy in k-space
+          </li>
+          <li class="list-group-item">
+                <h3>
+    private  subroutine <a href='../proc/get_dgdy_4d.html'>get_dgdy_4d</a>(g, dgdy)  
+
+    </h3>
+    
+  <p>compute dg/dy in k-space
 accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>dgdy</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>dgdy</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-    </li>
-  </ul>
-</div>
+          </li>
+    </ul>
+  </div>
 
-     <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="interface-get_dgdx"></span><h3>private interface <a href='../interface/get_dgdx.html'>get_dgdx</a>  </h3></div>
-  <ul class="list-group">
-    <li class="list-group-item">
-    <h3>private subroutine <a href='../proc/get_dgdx_2d.html'>get_dgdx_2d</a>(g, dgdx)</h3>
-<p>compute dg/dx in k-space
+       <div class="panel panel-default">
+    <div class="panel-heading codesum">
+      <span class="anchor" id="interface-get_dgdx"></span>
+      <h3>private        interface <a href='../interface/get_dgdx.html'>get_dgdx</a> 
+      </h3>
+    </div>
+    <ul class="list-group">
+          <li class="list-group-item">
+                <h3>
+    private  subroutine <a href='../proc/get_dgdx_2d.html'>get_dgdx_2d</a>(g, dgdx)  
+
+    </h3>
+    
+  <p>compute dg/dx in k-space
 accepts g(ky,kx)</p>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, :)</td><td>::</td>
-  <td><strong>dgdx</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :)
+            </td>
+            <td>::</td>
+            <td><strong>dgdx</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-    </li>
-    <li class="list-group-item">
-    <h3>private subroutine <a href='../proc/get_dgdx_3d.html'>get_dgdx_3d</a>(g, dgdx)</h3>
-<p>compute dg/dx in k-space
+          </li>
+          <li class="list-group-item">
+                <h3>
+    private  subroutine <a href='../proc/get_dgdx_3d.html'>get_dgdx_3d</a>(g, dgdx)  
+
+    </h3>
+    
+  <p>compute dg/dx in k-space
 accepts g(ky,kx,z,tube)</p>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>dgdx</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>dgdx</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-    </li>
-    <li class="list-group-item">
-    <h3>private subroutine <a href='../proc/get_dgdx_4d.html'>get_dgdx_4d</a>(g, dgdx)</h3>
-<p>compute dg/dx in k-space
+          </li>
+          <li class="list-group-item">
+                <h3>
+    private  subroutine <a href='../proc/get_dgdx_4d.html'>get_dgdx_4d</a>(g, dgdx)  
+
+    </h3>
+    
+  <p>compute dg/dx in k-space
 accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>dgdx</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>dgdx</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-    </li>
-  </ul>
-</div>
+          </li>
+    </ul>
+  </div>
 
-     <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="interface-checksum"></span><h3>public interface <a href='../interface/checksum.html'>checksum</a>  </h3></div>
-  <ul class="list-group">
-    <li class="list-group-item">
-    <h3>private subroutine <a href='../proc/checksum_field.html'>checksum_field</a>(field, total)</h3>    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+       <div class="panel panel-default">
+    <div class="panel-heading codesum">
+      <span class="anchor" id="interface-checksum"></span>
+      <h3>public        interface <a href='../interface/checksum.html'>checksum</a> 
+      </h3>
+    </div>
+    <ul class="list-group">
+          <li class="list-group-item">
+                <h3>
+    private  subroutine <a href='../proc/checksum_field.html'>checksum_field</a>(field, total)  
+
+    </h3>
+    
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>field</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>real,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>field</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              real,
+            </td>
 <td>intent(out)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>total</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>total</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-    </li>
-    <li class="list-group-item">
-    <h3>private subroutine <a href='../proc/checksum_dist.html'>checksum_dist</a>(dist, total, norm)</h3>    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+          </li>
+          <li class="list-group-item">
+                <h3>
+    private  subroutine <a href='../proc/checksum_dist.html'>checksum_dist</a>(dist, total, norm)  
+
+    </h3>
+    
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>dist</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>real,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>dist</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              real,
+            </td>
 <td>intent(out)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>total</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>total</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              logical,
+            </td>
 <td>intent(in),</td>
-  <td>optional</td>  <td></td><td>::</td>
-  <td><strong>norm</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td>optional</td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>norm</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-    </li>
-  </ul>
-</div>
+          </li>
+    </ul>
+  </div>
 
     </section>
   <br>
@@ -699,10 +1375,11 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <section>
     <h2>Subroutines</h2>
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-init_time_advance"></span><h3>public subroutine <a href='../proc/init_time_advance.html'>init_time_advance</a>()</h3></div>
-  <div class="panel-body">
-       
-<p>read time_advance_knobs namelist from the input file;
+    <div class="panel-heading codesum"><span class="anchor" id="proc-init_time_advance"></span><h3>public  subroutine <a href='../proc/init_time_advance.html'>init_time_advance</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>read time_advance_knobs namelist from the input file;
 sets the explicit time advance option, as well as allows for scaling of
 the x and y components of the magnetic drifts and of the drive term
 allocate distribution function sized arrays needed, e.g., for Runge-Kutta time advance
@@ -716,26 +1393,32 @@ and set up the tridiagonal matrix to be inverted if solving implicitly
 allocate and calculate the factors multiplying dg/dx, dg/dy, dphi/dx and dphi/dy
 in the magnetic drift terms
 allocate and calculate the factor multiplying dphi/dy in the gradient drive term</p>
-    
-<h4>Arguments</h4>      <em>None</em>
 
-  </div>
-  </div>
+  <h4>Arguments</h4>
+    <em>None</em>
 
-      <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-read_parameters~6"></span><h3>private subroutine <a href='../proc/read_parameters~6.html'>read_parameters</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
-
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-init_wdrift"></span><h3>private subroutine <a href='../proc/init_wdrift.html'>init_wdrift</a>()</h3></div>
-  <div class="panel-body">
-       
-<p>allocate wdriftx_phi, the factor multiplying dphi/dx in the magnetic drift term
+    <div class="panel-heading codesum"><span class="anchor" id="proc-read_parameters~5"></span><h3>private  subroutine <a href='../proc/read_parameters~5.html'>read_parameters</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+      <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-init_wdrift"></span><h3>private  subroutine <a href='../proc/init_wdrift.html'>init_wdrift</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>allocate wdriftx_phi, the factor multiplying dphi/dx in the magnetic drift term
 allocate wdrifty_phi, the factor multiplying dphi/dy in the magnetic drift term
 allocate wdriftx_g, the factor multiplying dg/dx in the magnetic drift term
 allocate wdrifty_g, the factor multiplying dg/dy in the magnetic drift term
@@ -766,332 +1449,585 @@ and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
 and v_E . grad alpha dF^{nc}/dalpha (dphi/dx part of v_E)
 NB: the below neoclassical correction needs to be divided by an equilibrium Maxwellian
 if running in full flux surface mode</p>
-    
-<h4>Arguments</h4>      <em>None</em>
 
-  </div>
-  </div>
+  <h4>Arguments</h4>
+    <em>None</em>
 
-      <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-init_wstar"></span><h3>private subroutine <a href='../proc/init_wstar.html'>init_wstar</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
-
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-init_drifts_implicit"></span><h3>private subroutine <a href='../proc/init_drifts_implicit.html'>init_drifts_implicit</a>()</h3></div>
-  <div class="panel-body">
-       
-<p></p><a href="../proc/init_drifts_implicit.html" class="pull-right"><emph>Read more&hellip;</emph></a>
-    
-<h4>Arguments</h4>      <em>None</em>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-init_wstar"></span><h3>private  subroutine <a href='../proc/init_wstar.html'>init_wstar</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
 
-  </div>
-  </div>
+  <h4>Arguments</h4>
+    <em>None</em>
 
-      <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-init_parallel_nonlinearity"></span><h3>private subroutine <a href='../proc/init_parallel_nonlinearity.html'>init_parallel_nonlinearity</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
-
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-init_radial_variation"></span><h3>private subroutine <a href='../proc/init_radial_variation.html'>init_radial_variation</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-init_drifts_implicit"></span><h3>private  subroutine <a href='../proc/init_drifts_implicit.html'>init_drifts_implicit</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  <p></p><a href="../proc/init_drifts_implicit.html" class="pull-right"><emph>Read more&hellip;</emph></a>
 
-  </div>
-  </div>
+  <h4>Arguments</h4>
+    <em>None</em>
 
-      <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-allocate_arrays~3"></span><h3>private subroutine <a href='../proc/allocate_arrays~3.html'>allocate_arrays</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
-
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-init_cfl"></span><h3>private subroutine <a href='../proc/init_cfl.html'>init_cfl</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-init_parallel_nonlinearity"></span><h3>private  subroutine <a href='../proc/init_parallel_nonlinearity.html'>init_parallel_nonlinearity</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
 
-  </div>
-  </div>
+  <h4>Arguments</h4>
+    <em>None</em>
 
-      <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-reset_dt"></span><h3>private subroutine <a href='../proc/reset_dt.html'>reset_dt</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
-
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_stella"></span><h3>public subroutine <a href='../proc/advance_stella.html'>advance_stella</a>(istep)</h3></div>
-  <div class="panel-body">
-       
-<p>unless running in multibox mode, no need to worry about
+    <div class="panel-heading codesum"><span class="anchor" id="proc-init_radial_variation"></span><h3>private  subroutine <a href='../proc/init_radial_variation.html'>init_radial_variation</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+      <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-allocate_arrays~2"></span><h3>private  subroutine <a href='../proc/allocate_arrays~2.html'>allocate_arrays</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+      <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-init_cfl"></span><h3>private  subroutine <a href='../proc/init_cfl.html'>init_cfl</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+      <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-reset_dt"></span><h3>private  subroutine <a href='../proc/reset_dt.html'>reset_dt</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+      <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_stella"></span><h3>public  subroutine <a href='../proc/advance_stella.html'>advance_stella</a>(istep)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>unless running in multibox mode, no need to worry about
 mb_communicate calls as the subroutine is immediately exited
 if not in multibox mode.
 save value of phi
 for use in diagnostics (to obtain frequency)</p><a href="../proc/advance_stella.html" class="pull-right"><emph>Read more&hellip;</emph></a>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>integer,</td>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
 <td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>istep</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>istep</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_explicit"></span><h3>private subroutine <a href='../proc/advance_explicit.html'>advance_explicit</a>(g)</h3></div>
-  <div class="panel-body">
-       
-<p>advance_explicit takes as input the guiding centre distribution function
+    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_explicit"></span><h3>private  subroutine <a href='../proc/advance_explicit.html'>advance_explicit</a>(g)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>advance_explicit takes as input the guiding centre distribution function
 in k-space and updates it to account for all of the terms in the GKE that
 are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_explicit_rk2"></span><h3>private subroutine <a href='../proc/advance_explicit_rk2.html'>advance_explicit_rk2</a>(g)</h3></div>
-  <div class="panel-body">
-       
-<p>advance_expliciit_rk2 uses strong stability-preserving RK2 to advance one time step</p><a href="../proc/advance_explicit_rk2.html" class="pull-right"><emph>Read more&hellip;</emph></a>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_explicit_rk2"></span><h3>private  subroutine <a href='../proc/advance_explicit_rk2.html'>advance_explicit_rk2</a>(g)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>advance_expliciit_rk2 uses strong stability-preserving RK2 to advance one time step</p><a href="../proc/advance_explicit_rk2.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_explicit_rk3"></span><h3>private subroutine <a href='../proc/advance_explicit_rk3.html'>advance_explicit_rk3</a>(g)</h3></div>
-  <div class="panel-body">
-       
-<p>strong stability-preserving RK3</p><a href="../proc/advance_explicit_rk3.html" class="pull-right"><emph>Read more&hellip;</emph></a>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_explicit_rk3"></span><h3>private  subroutine <a href='../proc/advance_explicit_rk3.html'>advance_explicit_rk3</a>(g)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>strong stability-preserving RK3</p><a href="../proc/advance_explicit_rk3.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_explicit_rk4"></span><h3>private subroutine <a href='../proc/advance_explicit_rk4.html'>advance_explicit_rk4</a>(g)</h3></div>
-  <div class="panel-body">
-       
-<p>standard RK4</p><a href="../proc/advance_explicit_rk4.html" class="pull-right"><emph>Read more&hellip;</emph></a>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_explicit_rk4"></span><h3>private  subroutine <a href='../proc/advance_explicit_rk4.html'>advance_explicit_rk4</a>(g)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>standard RK4</p><a href="../proc/advance_explicit_rk4.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-solve_gke"></span><h3>private subroutine <a href='../proc/solve_gke.html'>solve_gke</a>(gin, rhs_ky, restart_time_step)</h3></div>
-  <div class="panel-body">
-       
-<p>solve_gke accepts as argument gin, the guiding centre distribution function in k-space,
+    <div class="panel-heading codesum"><span class="anchor" id="proc-solve_gke"></span><h3>private  subroutine <a href='../proc/solve_gke.html'>solve_gke</a>(gin, rhs_ky, restart_time_step)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>solve_gke accepts as argument gin, the guiding centre distribution function in k-space,
 and returns rhs_ky, the right-hand side of the gyrokinetic equation in k-space;
 i.e., if dg/dt = r, then rhs_ky = r*dt</p><a href="../proc/solve_gke.html" class="pull-right"><emph>Read more&hellip;</emph></a>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>gin</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>gin</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), target</td><td>::</td>
-  <td><strong>rhs_ky</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), target
+            </td>
+            <td>::</td>
+            <td><strong>rhs_ky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              logical,
+            </td>
 <td>intent(out)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>restart_time_step</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>restart_time_step</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_wstar_explicit"></span><h3>private subroutine <a href='../proc/advance_wstar_explicit.html'>advance_wstar_explicit</a>(phi, gout)</h3></div>
-  <div class="panel-body">
-       
-<p>start timing the time advance due to the driving gradients</p><a href="../proc/advance_wstar_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_wstar_explicit"></span><h3>private  subroutine <a href='../proc/advance_wstar_explicit.html'>advance_wstar_explicit</a>(phi, gout)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>start timing the time advance due to the driving gradients</p><a href="../proc/advance_wstar_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>phi</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>gout</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>gout</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_wdrifty_explicit"></span><h3>private subroutine <a href='../proc/advance_wdrifty_explicit.html'>advance_wdrifty_explicit</a>(g, phi, gout)</h3></div>
-  <div class="panel-body">
-       
-<p>advance_wdrifty_explicit subroutine calculates and adds the y-component of the
+    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_wdrifty_explicit"></span><h3>private  subroutine <a href='../proc/advance_wdrifty_explicit.html'>advance_wdrifty_explicit</a>(g, phi, gout)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>advance_wdrifty_explicit subroutine calculates and adds the y-component of the
 magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wdrifty_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>phi</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>gout</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>gout</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_wdriftx_explicit"></span><h3>private subroutine <a href='../proc/advance_wdriftx_explicit.html'>advance_wdriftx_explicit</a>(g, phi, gout)</h3></div>
-  <div class="panel-body">
-       
-<p>advance_wdriftx_explicit subroutine calculates and adds the x-component of the
+    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_wdriftx_explicit"></span><h3>private  subroutine <a href='../proc/advance_wdriftx_explicit.html'>advance_wdriftx_explicit</a>(g, phi, gout)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>advance_wdriftx_explicit subroutine calculates and adds the x-component of the
 magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wdriftx_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>phi</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>gout</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>gout</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_exb_nonlinearity"></span><h3>private subroutine <a href='../proc/advance_exb_nonlinearity.html'>advance_ExB_nonlinearity</a>(g, gout, restart_time_step)</h3></div>
-  <div class="panel-body">
-       
-<p>compute phase factor needed when running with equilibrium flow shear
+    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_exb_nonlinearity"></span><h3>private  subroutine <a href='../proc/advance_exb_nonlinearity.html'>advance_ExB_nonlinearity</a>(g, gout, restart_time_step)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>compute phase factor needed when running with equilibrium flow shear
 compute i<em>ky</em>g
 FFT to get dg/dy in (y,x) space
 compute i<em>kx</em><chi>
@@ -1101,538 +2037,1074 @@ FFT to get d<chi>/dx in (y,x) space
 multiply by the geometric factor appearing in the Poisson bracket;
 i.e., (dx/dpsi<em>dy/dalpha)</em>0.5
 compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href="../proc/advance_exb_nonlinearity.html" class="pull-right"><emph>Read more&hellip;</emph></a>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>gout</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>gout</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              logical,
+            </td>
 <td>intent(out)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>restart_time_step</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>restart_time_step</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_parallel_nonlinearity"></span><h3>private subroutine <a href='../proc/advance_parallel_nonlinearity.html'>advance_parallel_nonlinearity</a>(g, gout, restart_time_step)</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_parallel_nonlinearity"></span><h3>private  subroutine <a href='../proc/advance_parallel_nonlinearity.html'>advance_parallel_nonlinearity</a>(g, gout, restart_time_step)  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>gout</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>gout</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              logical,
+            </td>
 <td>intent(out)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>restart_time_step</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>restart_time_step</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_radial_variation"></span><h3>private subroutine <a href='../proc/advance_radial_variation.html'>advance_radial_variation</a>(g, gout)</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_radial_variation"></span><h3>private  subroutine <a href='../proc/advance_radial_variation.html'>advance_radial_variation</a>(g, gout)  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>gout</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>gout</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdy_2d"></span><h3>private subroutine <a href='../proc/get_dgdy_2d.html'>get_dgdy_2d</a>(g, dgdy)</h3></div>
-  <div class="panel-body">
-       
-<p>compute dg/dy in k-space
+    <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdy_2d"></span><h3>private  subroutine <a href='../proc/get_dgdy_2d.html'>get_dgdy_2d</a>(g, dgdy)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>compute dg/dy in k-space
 accepts g(ky,kx)</p>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, :)</td><td>::</td>
-  <td><strong>dgdy</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :)
+            </td>
+            <td>::</td>
+            <td><strong>dgdy</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdy_3d"></span><h3>private subroutine <a href='../proc/get_dgdy_3d.html'>get_dgdy_3d</a>(g, dgdy)</h3></div>
-  <div class="panel-body">
-       
-<p>compute dg/dy in k-space
+    <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdy_3d"></span><h3>private  subroutine <a href='../proc/get_dgdy_3d.html'>get_dgdy_3d</a>(g, dgdy)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>compute dg/dy in k-space
 accepts g(ky,kx,z,tube)</p>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>dgdy</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>dgdy</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdy_4d"></span><h3>private subroutine <a href='../proc/get_dgdy_4d.html'>get_dgdy_4d</a>(g, dgdy)</h3></div>
-  <div class="panel-body">
-       
-<p>compute dg/dy in k-space
+    <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdy_4d"></span><h3>private  subroutine <a href='../proc/get_dgdy_4d.html'>get_dgdy_4d</a>(g, dgdy)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>compute dg/dy in k-space
 accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>dgdy</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>dgdy</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdx_2d"></span><h3>private subroutine <a href='../proc/get_dgdx_2d.html'>get_dgdx_2d</a>(g, dgdx)</h3></div>
-  <div class="panel-body">
-       
-<p>compute dg/dx in k-space
+    <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdx_2d"></span><h3>private  subroutine <a href='../proc/get_dgdx_2d.html'>get_dgdx_2d</a>(g, dgdx)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>compute dg/dx in k-space
 accepts g(ky,kx)</p>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, :)</td><td>::</td>
-  <td><strong>dgdx</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :)
+            </td>
+            <td>::</td>
+            <td><strong>dgdx</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdx_3d"></span><h3>private subroutine <a href='../proc/get_dgdx_3d.html'>get_dgdx_3d</a>(g, dgdx)</h3></div>
-  <div class="panel-body">
-       
-<p>compute dg/dx in k-space
+    <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdx_3d"></span><h3>private  subroutine <a href='../proc/get_dgdx_3d.html'>get_dgdx_3d</a>(g, dgdx)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>compute dg/dx in k-space
 accepts g(ky,kx,z,tube)</p>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>dgdx</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>dgdx</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdx_4d"></span><h3>private subroutine <a href='../proc/get_dgdx_4d.html'>get_dgdx_4d</a>(g, dgdx)</h3></div>
-  <div class="panel-body">
-       
-<p>compute dg/dx in k-space
+    <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdx_4d"></span><h3>private  subroutine <a href='../proc/get_dgdx_4d.html'>get_dgdx_4d</a>(g, dgdx)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>compute dg/dx in k-space
 accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>dgdx</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>dgdx</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-add_explicit_term"></span><h3>private subroutine <a href='../proc/add_explicit_term.html'>add_explicit_term</a>(g, pre_factor, src)</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-add_explicit_term"></span><h3>private  subroutine <a href='../proc/add_explicit_term.html'>add_explicit_term</a>(g, pre_factor, src)  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>real,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              real,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(-nzgrid:, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>pre_factor</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(-nzgrid:, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>pre_factor</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>src</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>src</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-add_explicit_term_ffs"></span><h3>private subroutine <a href='../proc/add_explicit_term_ffs.html'>add_explicit_term_ffs</a>(g, pre_factor, src)</h3></div>
-  <div class="panel-body">
-       
-<p>add vM . grad y d<phi>/dy or vM . grad x d<phi>/dx (or equivalents with g) or omega_* * d<phi>/dy term to RHS of GK equation</p>
-    
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-add_explicit_term_ffs"></span><h3>private  subroutine <a href='../proc/add_explicit_term_ffs.html'>add_explicit_term_ffs</a>(g, pre_factor, src)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>add vM . grad y d<phi>/dy or vM . grad x d<phi>/dx (or equivalents with g) or omega_* * d<phi>/dy term to RHS of GK equation</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>real,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              real,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, -nzgrid:, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>pre_factor</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>pre_factor</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>src</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>src</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_implicit"></span><h3>private subroutine <a href='../proc/advance_implicit.html'>advance_implicit</a>(istep, phi, apar, g)</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>integer,</td>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_implicit"></span><h3>private  subroutine <a href='../proc/advance_implicit.html'>advance_implicit</a>(istep, phi, apar, g)  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
 <td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>istep</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>istep</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>phi</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>apar</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
-  </div>
-
-      <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-advance_drifts_implicit"></span><h3>private subroutine <a href='../proc/advance_drifts_implicit.html'>advance_drifts_implicit</a>(g, phi, apar)</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
-<td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
-<td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>phi</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
-<td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>apar</strong></td><td></td>
-</tr>
-</tbody>
-</table>
-
-
-  </div>
-  </div>
-
-      <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-mb_communicate"></span><h3>private subroutine <a href='../proc/mb_communicate.html'>mb_communicate</a>(g_in)</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
-<td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g_in</strong></td><td></td>
-</tr>
-</tbody>
-</table>
-
-
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-checksum_field"></span><h3>private subroutine <a href='../proc/checksum_field.html'>checksum_field</a>(field, total)</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_drifts_implicit"></span><h3>private  subroutine <a href='../proc/advance_drifts_implicit.html'>advance_drifts_implicit</a>(g, phi, apar)  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+      <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-mb_communicate"></span><h3>private  subroutine <a href='../proc/mb_communicate.html'>mb_communicate</a>(g_in)  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g_in</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+      <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-checksum_field"></span><h3>private  subroutine <a href='../proc/checksum_field.html'>checksum_field</a>(field, total)  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :)</td><td>::</td>
-  <td><strong>field</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>real,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>field</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              real,
+            </td>
 <td>intent(out)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>total</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>total</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-checksum_dist"></span><h3>private subroutine <a href='../proc/checksum_dist.html'>checksum_dist</a>(dist, total, norm)</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-checksum_dist"></span><h3>private  subroutine <a href='../proc/checksum_dist.html'>checksum_dist</a>(dist, total, norm)  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>dist</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>real,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>dist</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              real,
+            </td>
 <td>intent(out)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>total</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>logical,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>total</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              logical,
+            </td>
 <td>intent(in),</td>
-  <td>optional</td>  <td></td><td>::</td>
-  <td><strong>norm</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td>optional</td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>norm</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
-  </div>
-
-      <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-finish_time_advance"></span><h3>public subroutine <a href='../proc/finish_time_advance.html'>finish_time_advance</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
-
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-finish_parallel_nonlinearity"></span><h3>private subroutine <a href='../proc/finish_parallel_nonlinearity.html'>finish_parallel_nonlinearity</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-finish_time_advance"></span><h3>public  subroutine <a href='../proc/finish_time_advance.html'>finish_time_advance</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
 
-  </div>
-  </div>
+  <h4>Arguments</h4>
+    <em>None</em>
 
-      <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-finish_wdrift"></span><h3>private subroutine <a href='../proc/finish_wdrift.html'>finish_wdrift</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
-
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-finish_wstar"></span><h3>private subroutine <a href='../proc/finish_wstar.html'>finish_wstar</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-finish_parallel_nonlinearity"></span><h3>private  subroutine <a href='../proc/finish_parallel_nonlinearity.html'>finish_parallel_nonlinearity</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
 
-  </div>
-  </div>
+  <h4>Arguments</h4>
+    <em>None</em>
 
-      <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-finish_drifts_implicit"></span><h3>private subroutine <a href='../proc/finish_drifts_implicit.html'>finish_drifts_implicit</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
-
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-deallocate_arrays"></span><h3>private subroutine <a href='../proc/deallocate_arrays.html'>deallocate_arrays</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-finish_wdrift"></span><h3>private  subroutine <a href='../proc/finish_wdrift.html'>finish_wdrift</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
 
-  </div>
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
   </div>
 
-    </section>    
+      <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-finish_wstar"></span><h3>private  subroutine <a href='../proc/finish_wstar.html'>finish_wstar</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+      <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-finish_drifts_implicit"></span><h3>private  subroutine <a href='../proc/finish_drifts_implicit.html'>finish_drifts_implicit</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+      <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-deallocate_arrays"></span><h3>private  subroutine <a href='../proc/deallocate_arrays.html'>deallocate_arrays</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+    </section>
     <br>
-    
+
+
+
     </div>
   </div>
 
@@ -1642,13 +3114,13 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-158-g126b599cd</small></p>
+<br /><small>v0.5.1-161-g90c600bfb</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-10-31T02:53:11.364912           </p>
+ on 2022-12-19T10:21:00.411644           </p>
         </div>
       </div>
       <br>

@@ -81,117 +81,230 @@
   <div class="row">
     <h1>init_fill
       <small>Subroutine</small>
+      
     </h1>
-    <div class="row">
-  <div class="col-lg-12">
-<div class="well well-sm">
-  <ul class="list-inline" style="margin-bottom:0px;display:inline">
-     <li><i class="fa fa-list-ol"></i>
-       <a data-toggle="tooltip"
-    data-placement="bottom" data-html="true"
-    title=" 0.2% of total for procedures.">88 statements</a>
-     </li> 
-    <li><i class="fa fa-code"></i><a href="../src/redistribute.f90"> Source File</a></li>
-  </ul>
-  <ol class="breadcrumb in-well text-right">
-     <li><a href='../sourcefile/redistribute.f90.html'>redistribute.f90</a></li>
-     <li><a href='../module/redistribute.html'>redistribute</a></li>
-     <li class="active">init_fill</li>
-  </ol>
-</div>
-</div>
-</div>
-<script>
-  $(function () {
-  $('[data-toggle="tooltip"]').tooltip()
-  })
-</script>
+      <div class="row" id="info-bar">
+    <div class="col-lg-12">
+      <div class="well well-sm">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+          <li id="statements"><i class="fa fa-list-ol"></i>
+            <a data-toggle="tooltip"
+               data-placement="bottom" data-html="true"
+               title=" 0.2% of total for procedures.">88 statements</a>
+          </li>
+
+            <li id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/redistribute.f90"> Source File</a>
+            </li>
+        </ul>
+        <ol class="breadcrumb in-well text-right">
+              <li><a href='../sourcefile/redistribute.f90.html'>redistribute.f90</a></li>
+              <li><a href='../module/redistribute.html'>redistribute</a></li>
+          <li class="active">init_fill</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(function () {
+    $('[data-toggle="tooltip"]').tooltip()
+    })
+  </script>
 
   </div>
   
   <div class="row">
     <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
-    <div id="sidebar">
-  <h3>Contents</h3>
- 
-<em>None</em>
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
-</div>
+
+  </div>
 
     </div>
     
     <div class="col-md-9" id='text'>
-    <h2>public subroutine init_fill(f, char, to_low, to_list, from_low, from_list, ierr)</h2>
+    <h2>public  subroutine init_fill(f, char, to_low, to_list, from_low, from_list, ierr)  
+</h2>
         <div class="panel panel-default">
       <div class="panel-heading">
-  <h3 class="panel-title">Uses</h3>
+        <h3 class="panel-title">Uses</h3>
       </div>
       <ul class="list-group">
-      <li class="list-group-item">
-  <ul class="list-inline">
-    <li><a href='../module/mp.html'>mp</a></li>
-  </ul>
-      </li>
+          <li class="list-group-item">
+            <ul class="list-inline">
+                <li><a href='../module/mp.html'>mp</a></li>
+            </ul>
+          </li>
       </ul>
     </div>
 
 
 
     <h3>Arguments</h3>
-      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" id="variable-f~36"></span>type(<a href='../type/redist_type.html'>redist_type</a>),</td>
+        <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-f~31"></span>
+              type(<a href='../type/redist_type.html'>redist_type</a>),
+            </td>
 <td>intent(out)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>f</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-char~3"></span>character(len=1),</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>f</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-char~4"></span>
+              character(len=1),
+            </td>
 <td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>char</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-to_low~3"></span>integer,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>char</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-to_low~3"></span>
+              integer,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:)</td><td>::</td>
-  <td><strong>to_low</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-to_list~2"></span>type(<a href='../type/index_list_type.html'>index_list_type</a>),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>to_low</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-to_list~2"></span>
+              type(<a href='../type/index_list_type.html'>index_list_type</a>),
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(0:nproc - 1)</td><td>::</td>
-  <td><strong>to_list</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-from_low~3"></span>integer,</td>
+              <td></td>            <td>
+              dimension(0:nproc - 1)
+            </td>
+            <td>::</td>
+            <td><strong>to_list</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-from_low~3"></span>
+              integer,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:)</td><td>::</td>
-  <td><strong>from_low</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-from_list~2"></span>type(<a href='../type/index_list_type.html'>index_list_type</a>),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>from_low</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-from_list~2"></span>
+              type(<a href='../type/index_list_type.html'>index_list_type</a>),
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(0:nproc - 1)</td><td>::</td>
-  <td><strong>from_list</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-ierr~14"></span>integer,</td>
+              <td></td>            <td>
+              dimension(0:nproc - 1)
+            </td>
+            <td>::</td>
+            <td><strong>from_list</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ierr~27"></span>
+              integer,
+            </td>
 <td>intent(out),</td>
-  <td>optional</td>  <td></td><td>::</td>
-  <td><strong>ierr</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td>optional</td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ierr</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
     <br>
 
     <section class="visible-xs visible-sm hidden-md">
-      <h3>Contents</h3>
- 
-<em>None</em>
+        <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
 
     </section>
     <br class="visible-xs visible-sm hidden-md">
@@ -215,13 +328,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-158-g126b599cd</small></p>
+<br /><small>v0.5.1-161-g90c600bfb</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-10-31T02:53:11.364912           </p>
+ on 2022-12-19T10:21:00.411644           </p>
         </div>
       </div>
       <br>

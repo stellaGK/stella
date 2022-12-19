@@ -81,84 +81,117 @@
   <div class="row">
     <h1>sources 
     <small>Module</small>
+    
     </h1>
-    <div class="row">
-  <div class="col-lg-12">
-<div class="well well-sm">
-  <ul class="list-inline" style="margin-bottom:0px;display:inline">
-     <li><i class="fa fa-list-ol"></i>
-       <a data-toggle="tooltip"
-    data-placement="bottom" data-html="true"
-    title=" 1.5% of total for modules and submodules.">605 statements</a>
-     </li> 
-    <li><i class="fa fa-code"></i><a href="../src/sources.fpp"> Source File</a></li>
-  </ul>
-  <ol class="breadcrumb in-well text-right">
-     <li><a href='../sourcefile/sources.fpp.html'>sources.fpp</a></li>
-     <li class="active">sources</li>
-  </ol>
-</div>
-</div>
-</div>
-<script>
-  $(function () {
-  $('[data-toggle="tooltip"]').tooltip()
-  })
-</script>
+      <div class="row" id="info-bar">
+    <div class="col-lg-12">
+      <div class="well well-sm">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+          <li id="statements"><i class="fa fa-list-ol"></i>
+            <a data-toggle="tooltip"
+               data-placement="bottom" data-html="true"
+               title=" 1.5% of total for modules and submodules.">605 statements</a>
+          </li>
+
+            <li id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/sources.fpp"> Source File</a>
+            </li>
+        </ul>
+        <ol class="breadcrumb in-well text-right">
+              <li><a href='../sourcefile/sources.fpp.html'>sources.fpp</a></li>
+          <li class="active">sources</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(function () {
+    $('[data-toggle="tooltip"]').tooltip()
+    })
+  </script>
 
   </div>
   
   <div class="row">
     <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
-    <div id="sidebar">
-  <h3>Contents</h3>
- 
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-0">Variables</a></h3></div>
-  <div id="vars-0" class="panel-collapse collapse">
-    <div class="list-group">
-      <a class="list-group-item" href="../module/sources.html#variable-krook_odd">krook_odd</a>
-      <a class="list-group-item" href="../module/sources.html#variable-exclude_boundary_regions">exclude_boundary_regions</a>
-      <a class="list-group-item" href="../module/sources.html#variable-from_zero">from_zero</a>
-      <a class="list-group-item" href="../module/sources.html#variable-conserve_momentum">conserve_momentum</a>
-      <a class="list-group-item" href="../module/sources.html#variable-conserve_density">conserve_density</a>
-      <a class="list-group-item" href="../module/sources.html#variable-ikxmax_source">ikxmax_source</a>
-      <a class="list-group-item" href="../module/sources.html#variable-nu_krook">nu_krook</a>
-      <a class="list-group-item" href="../module/sources.html#variable-tcorr_source">tcorr_source</a>
-      <a class="list-group-item" href="../module/sources.html#variable-int_krook">int_krook</a>
-      <a class="list-group-item" href="../module/sources.html#variable-int_proj">int_proj</a>
-      <a class="list-group-item" href="../module/sources.html#variable-exp_fac">exp_fac</a>
-      <a class="list-group-item" href="../module/sources.html#variable-qn_source_initialized">qn_source_initialized</a>
-      <a class="list-group-item" href="../module/sources.html#variable-include_qn_source">include_qn_source</a>
-      <a class="list-group-item" href="../module/sources.html#variable-debug">debug</a>
-      <a class="list-group-item" href="../module/sources.html#variable-time_sources">time_sources</a>
-      <a class="list-group-item" href="../module/sources.html#variable-source_option_switch">source_option_switch</a>
-      <a class="list-group-item" href="../module/sources.html#variable-source_option_none">source_option_none</a>
-      <a class="list-group-item" href="../module/sources.html#variable-source_option_krook">source_option_krook</a>
-      <a class="list-group-item" href="../module/sources.html#variable-source_option_projection">source_option_projection</a>
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+      <div class="panel panel-primary">
+      <div class="panel-heading text-left">
+        <h3 class="panel-title">
+          <a data-toggle="collapse" href="#vars-0">Variables</a>
+        </h3>
+      </div>
+      <div id="vars-0" class="panel-collapse collapse">
+        <div class="list-group">
+            <a class="list-group-item" href="../module/sources.html#variable-krook_odd">krook_odd</a>
+            <a class="list-group-item" href="../module/sources.html#variable-exclude_boundary_regions">exclude_boundary_regions</a>
+            <a class="list-group-item" href="../module/sources.html#variable-from_zero">from_zero</a>
+            <a class="list-group-item" href="../module/sources.html#variable-conserve_momentum">conserve_momentum</a>
+            <a class="list-group-item" href="../module/sources.html#variable-conserve_density">conserve_density</a>
+            <a class="list-group-item" href="../module/sources.html#variable-ikxmax_source">ikxmax_source</a>
+            <a class="list-group-item" href="../module/sources.html#variable-nu_krook">nu_krook</a>
+            <a class="list-group-item" href="../module/sources.html#variable-tcorr_source">tcorr_source</a>
+            <a class="list-group-item" href="../module/sources.html#variable-int_krook">int_krook</a>
+            <a class="list-group-item" href="../module/sources.html#variable-int_proj">int_proj</a>
+            <a class="list-group-item" href="../module/sources.html#variable-exp_fac">exp_fac</a>
+            <a class="list-group-item" href="../module/sources.html#variable-qn_source_initialized">qn_source_initialized</a>
+            <a class="list-group-item" href="../module/sources.html#variable-include_qn_source">include_qn_source</a>
+            <a class="list-group-item" href="../module/sources.html#variable-debug~4">debug</a>
+            <a class="list-group-item" href="../module/sources.html#variable-time_sources">time_sources</a>
+            <a class="list-group-item" href="../module/sources.html#variable-source_option_switch">source_option_switch</a>
+            <a class="list-group-item" href="../module/sources.html#variable-source_option_none">source_option_none</a>
+            <a class="list-group-item" href="../module/sources.html#variable-source_option_krook">source_option_krook</a>
+            <a class="list-group-item" href="../module/sources.html#variable-source_option_projection">source_option_projection</a>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-0">Subroutines</a></h3></div>
-  <div class="list-group">
-    <div id="subs-0" class="panel-collapse collapse">
-      <a class="list-group-item" href="../module/sources.html#proc-init_sources">init_sources</a>
-      <a class="list-group-item" href="../module/sources.html#proc-read_parameters~3">read_parameters</a>
-      <a class="list-group-item" href="../module/sources.html#proc-init_source_timeaverage">init_source_timeaverage</a>
-      <a class="list-group-item" href="../module/sources.html#proc-finish_sources">finish_sources</a>
-      <a class="list-group-item" href="../module/sources.html#proc-add_krook_operator">add_krook_operator</a>
-      <a class="list-group-item" href="../module/sources.html#proc-update_tcorr_krook">update_tcorr_krook</a>
-      <a class="list-group-item" href="../module/sources.html#proc-enforce_momentum_conservation">enforce_momentum_conservation</a>
-      <a class="list-group-item" href="../module/sources.html#proc-enforce_density_conservation">enforce_density_conservation</a>
-      <a class="list-group-item" href="../module/sources.html#proc-project_out_zero">project_out_zero</a>
-      <a class="list-group-item" href="../module/sources.html#proc-init_quasineutrality_source">init_quasineutrality_source</a>
-      <a class="list-group-item" href="../module/sources.html#proc-update_quasineutrality_source">update_quasineutrality_source</a>
-    </div>
-  </div>
-</div>
 
-</div>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+      <div class="panel panel-primary">
+      <div class="panel-heading text-left">
+        <h3 class="panel-title">
+          <a data-toggle="collapse" href="#subs-0">Subroutines</a>
+        </h3>
+      </div>
+      <div id="subs-0" class="panel-collapse collapse">
+        <div class="list-group">
+            <a class="list-group-item" href="../module/sources.html#proc-init_sources">init_sources</a>
+            <a class="list-group-item" href="../module/sources.html#proc-read_parameters~7">read_parameters</a>
+            <a class="list-group-item" href="../module/sources.html#proc-init_source_timeaverage">init_source_timeaverage</a>
+            <a class="list-group-item" href="../module/sources.html#proc-finish_sources">finish_sources</a>
+            <a class="list-group-item" href="../module/sources.html#proc-add_krook_operator">add_krook_operator</a>
+            <a class="list-group-item" href="../module/sources.html#proc-update_tcorr_krook">update_tcorr_krook</a>
+            <a class="list-group-item" href="../module/sources.html#proc-enforce_momentum_conservation">enforce_momentum_conservation</a>
+            <a class="list-group-item" href="../module/sources.html#proc-enforce_density_conservation">enforce_density_conservation</a>
+            <a class="list-group-item" href="../module/sources.html#proc-project_out_zero">project_out_zero</a>
+            <a class="list-group-item" href="../module/sources.html#proc-init_quasineutrality_source">init_quasineutrality_source</a>
+            <a class="list-group-item" href="../module/sources.html#proc-update_quasineutrality_source">update_quasineutrality_source</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+
+
+  </div>
 
     </div>
     
@@ -169,52 +202,79 @@
     <br>
 
     <section class="visible-xs visible-sm hidden-md">
-      <h3>Contents</h3>
- 
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-1">Variables</a></h3></div>
-  <div id="vars-1" class="panel-collapse collapse">
-    <div class="list-group">
-      <a class="list-group-item" href="../module/sources.html#variable-krook_odd">krook_odd</a>
-      <a class="list-group-item" href="../module/sources.html#variable-exclude_boundary_regions">exclude_boundary_regions</a>
-      <a class="list-group-item" href="../module/sources.html#variable-from_zero">from_zero</a>
-      <a class="list-group-item" href="../module/sources.html#variable-conserve_momentum">conserve_momentum</a>
-      <a class="list-group-item" href="../module/sources.html#variable-conserve_density">conserve_density</a>
-      <a class="list-group-item" href="../module/sources.html#variable-ikxmax_source">ikxmax_source</a>
-      <a class="list-group-item" href="../module/sources.html#variable-nu_krook">nu_krook</a>
-      <a class="list-group-item" href="../module/sources.html#variable-tcorr_source">tcorr_source</a>
-      <a class="list-group-item" href="../module/sources.html#variable-int_krook">int_krook</a>
-      <a class="list-group-item" href="../module/sources.html#variable-int_proj">int_proj</a>
-      <a class="list-group-item" href="../module/sources.html#variable-exp_fac">exp_fac</a>
-      <a class="list-group-item" href="../module/sources.html#variable-qn_source_initialized">qn_source_initialized</a>
-      <a class="list-group-item" href="../module/sources.html#variable-include_qn_source">include_qn_source</a>
-      <a class="list-group-item" href="../module/sources.html#variable-debug">debug</a>
-      <a class="list-group-item" href="../module/sources.html#variable-time_sources">time_sources</a>
-      <a class="list-group-item" href="../module/sources.html#variable-source_option_switch">source_option_switch</a>
-      <a class="list-group-item" href="../module/sources.html#variable-source_option_none">source_option_none</a>
-      <a class="list-group-item" href="../module/sources.html#variable-source_option_krook">source_option_krook</a>
-      <a class="list-group-item" href="../module/sources.html#variable-source_option_projection">source_option_projection</a>
+        <h3>Contents</h3>
+  
+      <div class="panel panel-primary">
+      <div class="panel-heading text-left">
+        <h3 class="panel-title">
+          <a data-toggle="collapse" href="#vars-1">Variables</a>
+        </h3>
+      </div>
+      <div id="vars-1" class="panel-collapse collapse">
+        <div class="list-group">
+            <a class="list-group-item" href="../module/sources.html#variable-krook_odd">krook_odd</a>
+            <a class="list-group-item" href="../module/sources.html#variable-exclude_boundary_regions">exclude_boundary_regions</a>
+            <a class="list-group-item" href="../module/sources.html#variable-from_zero">from_zero</a>
+            <a class="list-group-item" href="../module/sources.html#variable-conserve_momentum">conserve_momentum</a>
+            <a class="list-group-item" href="../module/sources.html#variable-conserve_density">conserve_density</a>
+            <a class="list-group-item" href="../module/sources.html#variable-ikxmax_source">ikxmax_source</a>
+            <a class="list-group-item" href="../module/sources.html#variable-nu_krook">nu_krook</a>
+            <a class="list-group-item" href="../module/sources.html#variable-tcorr_source">tcorr_source</a>
+            <a class="list-group-item" href="../module/sources.html#variable-int_krook">int_krook</a>
+            <a class="list-group-item" href="../module/sources.html#variable-int_proj">int_proj</a>
+            <a class="list-group-item" href="../module/sources.html#variable-exp_fac">exp_fac</a>
+            <a class="list-group-item" href="../module/sources.html#variable-qn_source_initialized">qn_source_initialized</a>
+            <a class="list-group-item" href="../module/sources.html#variable-include_qn_source">include_qn_source</a>
+            <a class="list-group-item" href="../module/sources.html#variable-debug~4">debug</a>
+            <a class="list-group-item" href="../module/sources.html#variable-time_sources">time_sources</a>
+            <a class="list-group-item" href="../module/sources.html#variable-source_option_switch">source_option_switch</a>
+            <a class="list-group-item" href="../module/sources.html#variable-source_option_none">source_option_none</a>
+            <a class="list-group-item" href="../module/sources.html#variable-source_option_krook">source_option_krook</a>
+            <a class="list-group-item" href="../module/sources.html#variable-source_option_projection">source_option_projection</a>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-1">Subroutines</a></h3></div>
-  <div class="list-group">
-    <div id="subs-1" class="panel-collapse collapse">
-      <a class="list-group-item" href="../module/sources.html#proc-init_sources">init_sources</a>
-      <a class="list-group-item" href="../module/sources.html#proc-read_parameters~3">read_parameters</a>
-      <a class="list-group-item" href="../module/sources.html#proc-init_source_timeaverage">init_source_timeaverage</a>
-      <a class="list-group-item" href="../module/sources.html#proc-finish_sources">finish_sources</a>
-      <a class="list-group-item" href="../module/sources.html#proc-add_krook_operator">add_krook_operator</a>
-      <a class="list-group-item" href="../module/sources.html#proc-update_tcorr_krook">update_tcorr_krook</a>
-      <a class="list-group-item" href="../module/sources.html#proc-enforce_momentum_conservation">enforce_momentum_conservation</a>
-      <a class="list-group-item" href="../module/sources.html#proc-enforce_density_conservation">enforce_density_conservation</a>
-      <a class="list-group-item" href="../module/sources.html#proc-project_out_zero">project_out_zero</a>
-      <a class="list-group-item" href="../module/sources.html#proc-init_quasineutrality_source">init_quasineutrality_source</a>
-      <a class="list-group-item" href="../module/sources.html#proc-update_quasineutrality_source">update_quasineutrality_source</a>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+      <div class="panel panel-primary">
+      <div class="panel-heading text-left">
+        <h3 class="panel-title">
+          <a data-toggle="collapse" href="#subs-1">Subroutines</a>
+        </h3>
+      </div>
+      <div id="subs-1" class="panel-collapse collapse">
+        <div class="list-group">
+            <a class="list-group-item" href="../module/sources.html#proc-init_sources">init_sources</a>
+            <a class="list-group-item" href="../module/sources.html#proc-read_parameters~7">read_parameters</a>
+            <a class="list-group-item" href="../module/sources.html#proc-init_source_timeaverage">init_source_timeaverage</a>
+            <a class="list-group-item" href="../module/sources.html#proc-finish_sources">finish_sources</a>
+            <a class="list-group-item" href="../module/sources.html#proc-add_krook_operator">add_krook_operator</a>
+            <a class="list-group-item" href="../module/sources.html#proc-update_tcorr_krook">update_tcorr_krook</a>
+            <a class="list-group-item" href="../module/sources.html#proc-enforce_momentum_conservation">enforce_momentum_conservation</a>
+            <a class="list-group-item" href="../module/sources.html#proc-enforce_density_conservation">enforce_density_conservation</a>
+            <a class="list-group-item" href="../module/sources.html#proc-project_out_zero">project_out_zero</a>
+            <a class="list-group-item" href="../module/sources.html#proc-init_quasineutrality_source">init_quasineutrality_source</a>
+            <a class="list-group-item" href="../module/sources.html#proc-update_quasineutrality_source">update_quasineutrality_source</a>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
+
+  
+  
+  
+  
+  
+  
+
 
     </section>
     <br class="visible-xs visible-sm hidden-md">
@@ -222,106 +282,341 @@
 
     <section>
     <h2>Variables</h2>
-    <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Visibility</th><th>Attributes</th><th></th><th>Name</th><th></th><th>Initial</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" id="variable-krook_odd"></span>logical,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>krook_odd</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-exclude_boundary_regions"></span>logical,</td>
-<td>public</td>  <td></td><td>::</td>
-  <td><strong>exclude_boundary_regions</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-from_zero"></span>logical,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>from_zero</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-conserve_momentum"></span>logical,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>conserve_momentum</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-conserve_density"></span>logical,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>conserve_density</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-ikxmax_source"></span>integer,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>ikxmax_source</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-nu_krook"></span>real,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>nu_krook</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-tcorr_source"></span>real,</td>
-<td>public</td>  <td></td><td>::</td>
-  <td><strong>tcorr_source</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-int_krook"></span>real,</td>
-<td>public</td>  <td></td><td>::</td>
-  <td><strong>int_krook</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-int_proj"></span>real,</td>
-<td>public</td>  <td></td><td>::</td>
-  <td><strong>int_proj</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-exp_fac"></span>real,</td>
-<td>public</td>  <td></td><td>::</td>
-  <td><strong>exp_fac</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-qn_source_initialized"></span>logical,</td>
-<td>public</td>  <td></td><td>::</td>
-  <td><strong>qn_source_initialized</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-include_qn_source"></span>logical,</td>
-<td>public</td>  <td></td><td>::</td>
-  <td><strong>include_qn_source</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-debug"></span>logical,</td>
-<td>private</td>  <td></td><td>::</td>
-  <td><strong>debug</strong></td><td> =</td><td>.false.</td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-time_sources"></span>real,</td>
-<td>public,</td>  <td>dimension(2, 2)</td><td>::</td>
-  <td><strong>time_sources</strong></td><td> =</td><td>0.</td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-source_option_switch"></span>integer,</td>
-<td>public</td>  <td></td><td>::</td>
-  <td><strong>source_option_switch</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-source_option_none"></span>integer,</td>
-<td>public,</td>  <td>parameter</td><td>::</td>
-  <td><strong>source_option_none</strong></td><td> =</td><td>1</td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-source_option_krook"></span>integer,</td>
-<td>public,</td>  <td>parameter</td><td>::</td>
-  <td><strong>source_option_krook</strong></td><td> =</td><td>2</td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-source_option_projection"></span>integer,</td>
-<td>public,</td>  <td>parameter</td><td>::</td>
-  <td><strong>source_option_projection</strong></td><td> =</td><td>3</td><td></td>
-</tr>
-</tbody>
-</table>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Visibility</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+<th></th><th>Initial</th>        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-krook_odd"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>krook_odd</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-exclude_boundary_regions"></span>
+              logical,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>exclude_boundary_regions</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-from_zero"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>from_zero</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-conserve_momentum"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>conserve_momentum</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-conserve_density"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>conserve_density</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ikxmax_source"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ikxmax_source</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nu_krook"></span>
+              real,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nu_krook</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-tcorr_source"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>tcorr_source</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-int_krook"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>int_krook</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-int_proj"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>int_proj</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-exp_fac"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>exp_fac</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-qn_source_initialized"></span>
+              logical,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>qn_source_initialized</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-include_qn_source"></span>
+              logical,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>include_qn_source</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-debug~4"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>debug</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-time_sources"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              dimension(2, 2)
+            </td>
+            <td>::</td>
+            <td><strong>time_sources</strong></td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-source_option_switch"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>source_option_switch</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-source_option_none"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+parameter               
+            </td>
+            <td>::</td>
+            <td><strong>source_option_none</strong></td>
+<td> =</td>
+                <td>1</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-source_option_krook"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+parameter               
+            </td>
+            <td>::</td>
+            <td><strong>source_option_krook</strong></td>
+<td> =</td>
+                <td>2</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-source_option_projection"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+parameter               
+            </td>
+            <td>::</td>
+            <td><strong>source_option_projection</strong></td>
+<td> =</td>
+                <td>3</td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
     </section>
     <br>
@@ -334,174 +629,318 @@
     <section>
     <h2>Subroutines</h2>
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-init_sources"></span><h3>public subroutine <a href='../proc/init_sources.html'>init_sources</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-init_sources"></span><h3>public  subroutine <a href='../proc/init_sources.html'>init_sources</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
 
-  </div>
-  </div>
+  <h4>Arguments</h4>
+    <em>None</em>
 
-      <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-read_parameters~3"></span><h3>private subroutine <a href='../proc/read_parameters~3.html'>read_parameters</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
-
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-init_source_timeaverage"></span><h3>public subroutine <a href='../proc/init_source_timeaverage.html'>init_source_timeaverage</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-read_parameters~7"></span><h3>private  subroutine <a href='../proc/read_parameters~7.html'>read_parameters</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
 
-  </div>
-  </div>
+  <h4>Arguments</h4>
+    <em>None</em>
 
-      <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-finish_sources"></span><h3>public subroutine <a href='../proc/finish_sources.html'>finish_sources</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
-
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-add_krook_operator"></span><h3>public subroutine <a href='../proc/add_krook_operator.html'>add_krook_operator</a>(g, gke_rhs)</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-init_source_timeaverage"></span><h3>public  subroutine <a href='../proc/init_source_timeaverage.html'>init_source_timeaverage</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+      <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-finish_sources"></span><h3>public  subroutine <a href='../proc/finish_sources.html'>finish_sources</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+      <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-add_krook_operator"></span><h3>public  subroutine <a href='../proc/add_krook_operator.html'>add_krook_operator</a>(g, gke_rhs)  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), target</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), target
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>gke_rhs</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>gke_rhs</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-update_tcorr_krook"></span><h3>public subroutine <a href='../proc/update_tcorr_krook.html'>update_tcorr_krook</a>(g)</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-update_tcorr_krook"></span><h3>public  subroutine <a href='../proc/update_tcorr_krook.html'>update_tcorr_krook</a>(g)  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), target</td><td>::</td>
-  <td><strong>g</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), target
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-enforce_momentum_conservation"></span><h3>private subroutine <a href='../proc/enforce_momentum_conservation.html'>enforce_momentum_conservation</a>(g_work)</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-enforce_momentum_conservation"></span><h3>private  subroutine <a href='../proc/enforce_momentum_conservation.html'>enforce_momentum_conservation</a>(g_work)  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g_work</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g_work</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-enforce_density_conservation"></span><h3>private subroutine <a href='../proc/enforce_density_conservation.html'>enforce_density_conservation</a>(g_work)</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-enforce_density_conservation"></span><h3>private  subroutine <a href='../proc/enforce_density_conservation.html'>enforce_density_conservation</a>(g_work)  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>g_work</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g_work</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-project_out_zero"></span><h3>public subroutine <a href='../proc/project_out_zero.html'>project_out_zero</a>(gold, gnew)</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-project_out_zero"></span><h3>public  subroutine <a href='../proc/project_out_zero.html'>project_out_zero</a>(gold, gnew)  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>gold</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>complex,</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>gold</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
 <td>intent(inout),</td>
-  <td></td>  <td>dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)</td><td>::</td>
-  <td><strong>gnew</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>gnew</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
-  </div>
-
-      <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-init_quasineutrality_source"></span><h3>public subroutine <a href='../proc/init_quasineutrality_source.html'>init_quasineutrality_source</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
-
-  </div>
+    </div>
   </div>
 
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-update_quasineutrality_source"></span><h3>public subroutine <a href='../proc/update_quasineutrality_source.html'>update_quasineutrality_source</a>()</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <em>None</em>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-init_quasineutrality_source"></span><h3>public  subroutine <a href='../proc/init_quasineutrality_source.html'>init_quasineutrality_source</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
 
-  </div>
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
   </div>
 
-    </section>    
+      <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-update_quasineutrality_source"></span><h3>public  subroutine <a href='../proc/update_quasineutrality_source.html'>update_quasineutrality_source</a>()  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+    </section>
     <br>
-    
+
+
+
     </div>
   </div>
 
@@ -511,13 +950,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-158-g126b599cd</small></p>
+<br /><small>v0.5.1-161-g90c600bfb</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-10-31T02:53:11.364912           </p>
+ on 2022-12-19T10:21:00.411644           </p>
         </div>
       </div>
       <br>

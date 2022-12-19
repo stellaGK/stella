@@ -81,57 +81,82 @@
   <div class="row">
     <h1>vmec_to_stella_geometry_interface
       <small>Subroutine</small>
+      
     </h1>
-    <div class="row">
-  <div class="col-lg-12">
-<div class="well well-sm">
-  <ul class="list-inline" style="margin-bottom:0px;display:inline">
-     <li><i class="fa fa-list-ol"></i>
-       <a data-toggle="tooltip"
-    data-placement="bottom" data-html="true"
-    title=" 2.0% of total for procedures.">754 statements</a>
-     </li> 
-    <li><i class="fa fa-code"></i><a href="../src/vmec_to_stella_geometry_interface.f90"> Source File</a></li>
-  </ul>
-  <ol class="breadcrumb in-well text-right">
-     <li><a href='../sourcefile/vmec_to_stella_geometry_interface.f90.html'>vmec_to_stella_geometry_interface.f90</a></li>
-     <li><a href='../module/vmec_to_stella_geometry_interface_mod.html'>vmec_to_stella_geometry_interface_mod</a></li>
-     <li class="active">vmec_to_stella_geometry_interface</li>
-  </ol>
-</div>
-</div>
-</div>
-<script>
-  $(function () {
-  $('[data-toggle="tooltip"]').tooltip()
-  })
-</script>
+      <div class="row" id="info-bar">
+    <div class="col-lg-12">
+      <div class="well well-sm">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+          <li id="statements"><i class="fa fa-list-ol"></i>
+            <a data-toggle="tooltip"
+               data-placement="bottom" data-html="true"
+               title=" 2.0% of total for procedures.">754 statements</a>
+          </li>
+
+            <li id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/vmec_to_stella_geometry_interface.f90"> Source File</a>
+            </li>
+        </ul>
+        <ol class="breadcrumb in-well text-right">
+              <li><a href='../sourcefile/vmec_to_stella_geometry_interface.f90.html'>vmec_to_stella_geometry_interface.f90</a></li>
+              <li><a href='../module/vmec_to_stella_geometry_interface_mod.html'>vmec_to_stella_geometry_interface_mod</a></li>
+          <li class="active">vmec_to_stella_geometry_interface</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(function () {
+    $('[data-toggle="tooltip"]').tooltip()
+    })
+  </script>
 
   </div>
   
   <div class="row">
     <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
-    <div id="sidebar">
-  <h3>Contents</h3>
- 
-<em>None</em>
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
-</div>
+
+  </div>
 
     </div>
     
     <div class="col-md-9" id='text'>
-    <h2>public subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta_center, number_of_field_periods_to_include, desired_normalized_toroidal_flux, vmec_surface_option, verbose, normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp_out, sign_toroidal_flux, alpha, zeta, bmag, gradpar_zeta, grad_alpha_grad_alpha, grad_alpha_grad_psi, grad_psi_grad_psi, gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, theta_vmec, B_sub_zeta, B_sub_theta_vmec, x_displacement_fac, gradpar_zeta_prefac)</h2>
+    <h2>public  subroutine vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta_center, number_of_field_periods_to_include, desired_normalized_toroidal_flux, vmec_surface_option, verbose, normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp_out, sign_toroidal_flux, alpha, zeta, bmag, gradpar_zeta, grad_alpha_grad_alpha, grad_alpha_grad_psi, grad_psi_grad_psi, gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, theta_vmec, B_sub_zeta, B_sub_theta_vmec, x_displacement_fac, gradpar_zeta_prefac)  
+</h2>
         <div class="panel panel-default">
       <div class="panel-heading">
-  <h3 class="panel-title">Uses</h3>
+        <h3 class="panel-title">Uses</h3>
       </div>
       <ul class="list-group">
-      <li class="list-group-item">
-  <ul class="list-inline">
-    <li><a href='../module/fzero_mod.html'>fzero_mod</a></li>
-  </ul>
-      </li>
+          <li class="list-group-item">
+            <ul class="list-inline">
+                <li><a href='../module/fzero_mod.html'>fzero_mod</a></li>
+            </ul>
+          </li>
       </ul>
     </div>
 
@@ -197,232 +222,572 @@
 <hr>
 
     <h3>Arguments</h3>
-      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" id="variable-nalpha~8"></span>integer,</td>
+        <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nalpha~8"></span>
+              integer,
+            </td>
 <td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>nalpha</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-alpha0"></span>real,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nalpha</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-alpha0"></span>
+              real,
+            </td>
 <td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>alpha0</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-nzgrid~15"></span>integer,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>alpha0</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nzgrid~15"></span>
+              integer,
+            </td>
 <td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>nzgrid</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-zeta_center~2"></span>real,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nzgrid</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-zeta_center~2"></span>
+              real,
+            </td>
 <td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>zeta_center</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-number_of_field_periods_to_include"></span>real,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>zeta_center</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-number_of_field_periods_to_include"></span>
+              real,
+            </td>
 <td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>number_of_field_periods_to_include</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-desired_normalized_toroidal_flux"></span>real,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>number_of_field_periods_to_include</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-desired_normalized_toroidal_flux"></span>
+              real,
+            </td>
 <td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>desired_normalized_toroidal_flux</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-vmec_surface_option"></span>integer,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>desired_normalized_toroidal_flux</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vmec_surface_option"></span>
+              integer,
+            </td>
 <td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>vmec_surface_option</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-verbose~2"></span>logical,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>vmec_surface_option</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-verbose~2"></span>
+              logical,
+            </td>
 <td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>verbose</strong></td><td><hr>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>verbose</strong></td>
+            <td>
+                <hr>
 <p>Output quantities</p>
-<hr></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-normalized_toroidal_flux_used"></span>real,</td>
+<hr>
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-normalized_toroidal_flux_used"></span>
+              real,
+            </td>
 <td>intent(out)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>normalized_toroidal_flux_used</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-safety_factor_q"></span>real,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>normalized_toroidal_flux_used</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-safety_factor_q"></span>
+              real,
+            </td>
 <td>intent(out)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>safety_factor_q</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-shat~2"></span>real,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>safety_factor_q</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-shat~2"></span>
+              real,
+            </td>
 <td>intent(out)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>shat</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-l_reference~2"></span>real,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>shat</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-l_reference~2"></span>
+              real,
+            </td>
 <td>intent(out)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>L_reference</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-b_reference~2"></span>real,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>L_reference</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-b_reference~2"></span>
+              real,
+            </td>
 <td>intent(out)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>B_reference</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-nfp_out"></span>real,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>B_reference</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nfp_out"></span>
+              real,
+            </td>
 <td>intent(out)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>nfp_out</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-sign_toroidal_flux"></span>integer,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nfp_out</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-sign_toroidal_flux"></span>
+              integer,
+            </td>
 <td>intent(out)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>sign_toroidal_flux</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-alpha~3"></span>real,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>sign_toroidal_flux</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-alpha~2"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:)</td><td>::</td>
-  <td><strong>alpha</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-zeta~3"></span>real,</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>alpha</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-zeta~3"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(-nzgrid:)</td><td>::</td>
-  <td><strong>zeta</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-bmag~4"></span>real,</td>
+              <td></td>            <td>
+              dimension(-nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>zeta</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bmag~4"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
-  <td><strong>bmag</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-gradpar_zeta"></span>real,</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>bmag</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gradpar_zeta"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
-  <td><strong>gradpar_zeta</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-grad_alpha_grad_alpha~2"></span>real,</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gradpar_zeta</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-grad_alpha_grad_alpha~2"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
-  <td><strong>grad_alpha_grad_alpha</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-grad_alpha_grad_psi~2"></span>real,</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>grad_alpha_grad_alpha</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-grad_alpha_grad_psi~2"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
-  <td><strong>grad_alpha_grad_psi</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-grad_psi_grad_psi~2"></span>real,</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>grad_alpha_grad_psi</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-grad_psi_grad_psi~2"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
-  <td><strong>grad_psi_grad_psi</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-gds23~3"></span>real,</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>grad_psi_grad_psi</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gds23~3"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
-  <td><strong>gds23</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-gds24~3"></span>real,</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gds23</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gds24~3"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
-  <td><strong>gds24</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-gds25~2"></span>real,</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gds24</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gds25~2"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
-  <td><strong>gds25</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-gds26~2"></span>real,</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gds25</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gds26~2"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
-  <td><strong>gds26</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-gbdrift_alpha~2"></span>real,</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gds26</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gbdrift_alpha~2"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
-  <td><strong>gbdrift_alpha</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-gbdrift0_psi~2"></span>real,</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gbdrift_alpha</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gbdrift0_psi~2"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
-  <td><strong>gbdrift0_psi</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-cvdrift_alpha~2"></span>real,</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gbdrift0_psi</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-cvdrift_alpha~2"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
-  <td><strong>cvdrift_alpha</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-cvdrift0_psi~2"></span>real,</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>cvdrift_alpha</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-cvdrift0_psi~2"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
-  <td><strong>cvdrift0_psi</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-theta_vmec~2"></span>real,</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>cvdrift0_psi</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-theta_vmec~2"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
-  <td><strong>theta_vmec</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-b_sub_zeta"></span>real,</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>theta_vmec</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-b_sub_zeta~2"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
-  <td><strong>B_sub_zeta</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-b_sub_theta_vmec"></span>real,</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>B_sub_zeta</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-b_sub_theta_vmec~2"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
-  <td><strong>B_sub_theta_vmec</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-x_displacement_fac~2"></span>real,</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>B_sub_theta_vmec</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-x_displacement_fac"></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:, -nzgrid:)</td><td>::</td>
-  <td><strong>x_displacement_fac</strong></td><td><hr>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>x_displacement_fac</strong></td>
+            <td>
+                <hr>
 <p>Variables used internally by this subroutine</p>
-<hr></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-gradpar_zeta_prefac"></span>real,</td>
+<hr>
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gradpar_zeta_prefac"></span>
+              real,
+            </td>
 <td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>gradpar_zeta_prefac</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>gradpar_zeta_prefac</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
     <br>
 
     <section class="visible-xs visible-sm hidden-md">
-      <h3>Contents</h3>
- 
-<em>None</em>
+        <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
 
     </section>
     <br class="visible-xs visible-sm hidden-md">
@@ -446,13 +811,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-158-g126b599cd</small></p>
+<br /><small>v0.5.1-161-g90c600bfb</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-10-31T02:53:11.364912           </p>
+ on 2022-12-19T10:21:00.411644           </p>
         </div>
       </div>
       <br>

@@ -79,74 +79,107 @@
 
     <div class="container">
   <div class="row">
-    <h1>fluxes    <small>Program</small>
+    <h1>fluxes      <small>Program</small>
+      
     </h1>
-    <div class="row">
-  <div class="col-lg-12">
-<div class="well well-sm">
-  <ul class="list-inline" style="margin-bottom:0px;display:inline">
-     <li><i class="fa fa-list-ol"></i>
-       <a data-toggle="tooltip"
-    data-placement="bottom" data-html="true"
-    title=" 9.7% of total for programs.">70 statements</a>
-     </li> 
-    <li><i class="fa fa-code"></i><a href="../src/fluxes.f90"> Source File</a></li>
-  </ul>
-  <ol class="breadcrumb in-well text-right">
-     <li><a href='../sourcefile/fluxes.f90.html'>fluxes.f90</a></li>
-     <li class="active">fluxes</li>
-  </ol>
-</div>
-</div>
-</div>
-<script>
-  $(function () {
-  $('[data-toggle="tooltip"]').tooltip()
-  })
-</script>
+      <div class="row" id="info-bar">
+    <div class="col-lg-12">
+      <div class="well well-sm">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+          <li id="statements"><i class="fa fa-list-ol"></i>
+            <a data-toggle="tooltip"
+               data-placement="bottom" data-html="true"
+               title=" 9.6% of total for programs.">70 statements</a>
+          </li>
+
+            <li id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/fluxes.f90"> Source File</a>
+            </li>
+        </ul>
+        <ol class="breadcrumb in-well text-right">
+              <li><a href='../sourcefile/fluxes.f90.html'>fluxes.f90</a></li>
+          <li class="active">fluxes</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(function () {
+    $('[data-toggle="tooltip"]').tooltip()
+    })
+  </script>
 
   </div>
   
   <div class="row">
     <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
-    <div id="sidebar">
-  <h3>Contents</h3>
- 
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-0">Variables</a></h3></div>
-  <div id="vars-0" class="panel-collapse collapse">
-    <div class="list-group">
-      <a class="list-group-item" href="../program/fluxes.html#variable-iargc">iargc</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-flxunit">flxunit</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-it~14">it</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-nstep~3">nstep</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-nspec~14">nspec</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-target_it">target_it</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-tstart~6">tstart</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-tstart_flag">tstart_flag</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-line~2">line</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-flxfile">flxfile</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-time~2">time</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-pflx~5">pflx</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-vflx~5">vflx</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-qflx~5">qflx</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-pflxavg">pflxavg</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-vflxavg">vflxavg</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-qflxavg">qflxavg</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-pi_over_q">pi_over_q</a>
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+      <div class="panel panel-primary">
+      <div class="panel-heading text-left">
+        <h3 class="panel-title">
+          <a data-toggle="collapse" href="#vars-0">Variables</a>
+        </h3>
+      </div>
+      <div id="vars-0" class="panel-collapse collapse">
+        <div class="list-group">
+            <a class="list-group-item" href="../program/fluxes.html#variable-iargc">iargc</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-flxunit">flxunit</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-it~14">it</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-nstep~3">nstep</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-nspec~14">nspec</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-target_it">target_it</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-tstart~6">tstart</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-tstart_flag">tstart_flag</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-line~2">line</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-flxfile">flxfile</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-time~2">time</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-pflx~5">pflx</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-vflx~5">vflx</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-qflx~5">qflx</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-pflxavg">pflxavg</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-vflxavg">vflxavg</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-qflxavg">qflxavg</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-pi_over_q">pi_over_q</a>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-0">Subroutines</a></h3></div>
-  <div class="list-group">
-    <div id="subs-0" class="panel-collapse collapse">
-      <a class="list-group-item" href="../program/fluxes.html#proc-time_average">time_average</a>
-    </div>
-  </div>
-</div>
 
-</div>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+      <div class="panel panel-primary">
+      <div class="panel-heading text-left">
+        <h3 class="panel-title">
+          <a data-toggle="collapse" href="#subs-0">Subroutines</a>
+        </h3>
+      </div>
+      <div id="subs-0" class="panel-collapse collapse">
+        <div class="list-group">
+            <a class="list-group-item" href="../program/fluxes.html#proc-time_average">time_average</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+
+
+  </div>
 
     </div>
     
@@ -155,41 +188,68 @@
     
 
      <section class="visible-xs visible-sm hidden-md">
-       <h3>Contents</h3>
- 
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-1">Variables</a></h3></div>
-  <div id="vars-1" class="panel-collapse collapse">
-    <div class="list-group">
-      <a class="list-group-item" href="../program/fluxes.html#variable-iargc">iargc</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-flxunit">flxunit</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-it~14">it</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-nstep~3">nstep</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-nspec~14">nspec</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-target_it">target_it</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-tstart~6">tstart</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-tstart_flag">tstart_flag</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-line~2">line</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-flxfile">flxfile</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-time~2">time</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-pflx~5">pflx</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-vflx~5">vflx</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-qflx~5">qflx</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-pflxavg">pflxavg</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-vflxavg">vflxavg</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-qflxavg">qflxavg</a>
-      <a class="list-group-item" href="../program/fluxes.html#variable-pi_over_q">pi_over_q</a>
+         <h3>Contents</h3>
+  
+      <div class="panel panel-primary">
+      <div class="panel-heading text-left">
+        <h3 class="panel-title">
+          <a data-toggle="collapse" href="#vars-1">Variables</a>
+        </h3>
+      </div>
+      <div id="vars-1" class="panel-collapse collapse">
+        <div class="list-group">
+            <a class="list-group-item" href="../program/fluxes.html#variable-iargc">iargc</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-flxunit">flxunit</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-it~14">it</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-nstep~3">nstep</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-nspec~14">nspec</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-target_it">target_it</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-tstart~6">tstart</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-tstart_flag">tstart_flag</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-line~2">line</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-flxfile">flxfile</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-time~2">time</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-pflx~5">pflx</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-vflx~5">vflx</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-qflx~5">qflx</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-pflxavg">pflxavg</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-vflxavg">vflxavg</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-qflxavg">qflxavg</a>
+            <a class="list-group-item" href="../program/fluxes.html#variable-pi_over_q">pi_over_q</a>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-1">Subroutines</a></h3></div>
-  <div class="list-group">
-    <div id="subs-1" class="panel-collapse collapse">
-      <a class="list-group-item" href="../program/fluxes.html#proc-time_average">time_average</a>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+      <div class="panel panel-primary">
+      <div class="panel-heading text-left">
+        <h3 class="panel-title">
+          <a data-toggle="collapse" href="#subs-1">Subroutines</a>
+        </h3>
+      </div>
+      <div id="subs-1" class="panel-collapse collapse">
+        <div class="list-group">
+            <a class="list-group-item" href="../program/fluxes.html#proc-time_average">time_average</a>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
+
+  
+  
+  
+  
+  
+  
+
 
      </section>
      <br class="visible-xs visible-sm hidden-md">
@@ -197,101 +257,306 @@
 
     <section>
     <h2>Variables</h2>
-    <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Attributes</th><th></th><th>Name</th><th></th><th>Initial</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" id="variable-iargc"></span>integer</td>
-  <td></td><td>::</td>
-  <td><strong>iargc</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-flxunit"></span>integer</td>
-  <td></td><td>::</td>
-  <td><strong>flxunit</strong></td><td> =</td><td>101</td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-it~14"></span>integer</td>
-  <td></td><td>::</td>
-  <td><strong>it</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-nstep~3"></span>integer</td>
-  <td></td><td>::</td>
-  <td><strong>nstep</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-nspec~14"></span>integer</td>
-  <td></td><td>::</td>
-  <td><strong>nspec</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-target_it"></span>integer</td>
-  <td></td><td>::</td>
-  <td><strong>target_it</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-tstart~6"></span>real</td>
-  <td></td><td>::</td>
-  <td><strong>tstart</strong></td><td> =</td><td>0.0</td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-tstart_flag"></span>logical</td>
-  <td></td><td>::</td>
-  <td><strong>tstart_flag</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-line~2"></span>character(len=500)</td>
-  <td></td><td>::</td>
-  <td><strong>line</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-flxfile"></span>character(len=500)</td>
-  <td></td><td>::</td>
-  <td><strong>flxfile</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-time~2"></span>real,</td>
-  <td>dimension(:), allocatable</td><td>::</td>
-  <td><strong>time</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-pflx~5"></span>real,</td>
-  <td>dimension(:, :), allocatable</td><td>::</td>
-  <td><strong>pflx</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-vflx~5"></span>real,</td>
-  <td>dimension(:, :), allocatable</td><td>::</td>
-  <td><strong>vflx</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-qflx~5"></span>real,</td>
-  <td>dimension(:, :), allocatable</td><td>::</td>
-  <td><strong>qflx</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-pflxavg"></span>real,</td>
-  <td>dimension(:), allocatable</td><td>::</td>
-  <td><strong>pflxavg</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-vflxavg"></span>real,</td>
-  <td>dimension(:), allocatable</td><td>::</td>
-  <td><strong>vflxavg</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-qflxavg"></span>real,</td>
-  <td>dimension(:), allocatable</td><td>::</td>
-  <td><strong>qflxavg</strong></td><td></td><td></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" id="variable-pi_over_q"></span>real,</td>
-  <td>dimension(:), allocatable</td><td>::</td>
-  <td><strong>pi_over_q</strong></td><td></td><td></td><td></td>
-</tr>
-</tbody>
-</table>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+<th></th><th>Initial</th>        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iargc"></span>
+              integer
+            </td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iargc</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-flxunit"></span>
+              integer
+            </td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>flxunit</strong></td>
+<td> =</td>
+                <td>101</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-it~14"></span>
+              integer
+            </td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>it</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nstep~3"></span>
+              integer
+            </td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nstep</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nspec~14"></span>
+              integer
+            </td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nspec</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-target_it"></span>
+              integer
+            </td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>target_it</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-tstart~6"></span>
+              real
+            </td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>tstart</strong></td>
+<td> =</td>
+                <td>0.0</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-tstart_flag"></span>
+              logical
+            </td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>tstart_flag</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-line~2"></span>
+              character(len=500)
+            </td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>line</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-flxfile"></span>
+              character(len=500)
+            </td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>flxfile</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-time~2"></span>
+              real,
+            </td>
+            <td>
+              dimension(:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>time</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-pflx~5"></span>
+              real,
+            </td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>pflx</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vflx~5"></span>
+              real,
+            </td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>vflx</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-qflx~5"></span>
+              real,
+            </td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>qflx</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-pflxavg"></span>
+              real,
+            </td>
+            <td>
+              dimension(:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>pflxavg</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vflxavg"></span>
+              real,
+            </td>
+            <td>
+              dimension(:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>vflxavg</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-qflxavg"></span>
+              real,
+            </td>
+            <td>
+              dimension(:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>qflxavg</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-pi_over_q"></span>
+              real,
+            </td>
+            <td>
+              dimension(:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>pi_over_q</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
     </section>
     <br>
@@ -305,41 +570,88 @@
     <section>
     <h2>Subroutines</h2>
       <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-time_average"></span><h3>subroutine <a href='../proc/time_average.html'>time_average</a>(t, it, flx, flxavg)</h3></div>
-  <div class="panel-body">
-           
-<h4>Arguments</h4>      <table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Intent</th><th>Optional</th><th>Attributes</th><th></th><th>Name</th><th></th></thead>
-<tbody>
-<tr>
-  <td><span class="anchor" ></span>real,</td>
+    <div class="panel-heading codesum"><span class="anchor" id="proc-time_average"></span><h3> subroutine <a href='../proc/time_average.html'>time_average</a>(t, it, flx, flxavg)  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              real,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:)</td><td>::</td>
-  <td><strong>t</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>integer,</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>t</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
 <td>intent(in)</td>
-  <td></td>  <td></td><td>::</td>
-  <td><strong>it</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>real,</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>it</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              real,
+            </td>
 <td>intent(in),</td>
-  <td></td>  <td>dimension(:, :)</td><td>::</td>
-  <td><strong>flx</strong></td><td></td>
-</tr>
-<tr>
-  <td><span class="anchor" ></span>real,</td>
+              <td></td>            <td>
+              dimension(:, :)
+            </td>
+            <td>::</td>
+            <td><strong>flx</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              real,
+            </td>
 <td>intent(out),</td>
-  <td></td>  <td>dimension(:)</td><td>::</td>
-  <td><strong>flxavg</strong></td><td></td>
-</tr>
-</tbody>
-</table>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>flxavg</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
 
 
-  </div>
+    </div>
   </div>
 
     </section>    
@@ -354,13 +666,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-158-g126b599cd</small></p>
+<br /><small>v0.5.1-161-g90c600bfb</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-10-31T02:53:11.364912           </p>
+ on 2022-12-19T10:21:00.411644           </p>
         </div>
       </div>
       <br>
