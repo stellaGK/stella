@@ -468,9 +468,9 @@ contains
       use fields_arrays, only: gamtot
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
-
+      
       use gyro_averages, only: aj0v
-
+      
       use species, only: spec
       use zgrid, only: nzgrid
       use vpamu_grids, only: nvpa, nmu, mu, vperp2
@@ -481,49 +481,49 @@ contains
       use dist_fn_arrays, only: kperp2
       use stella_geometry, only: bmag
       use spfunc, only: j0
-
- !     use mp, only: proc0
+      
+      use mp, only: proc0
       implicit none
 
-      integer :: ikxkyz, iz, it, ikx, iky, is, ia
-      integer :: imu
-      real :: tmp, wgt
-      real :: arg
-      real, dimension(:, :), allocatable :: g0
-      real, dimension(:), allocatable :: bessel
+     integer :: ikxkyz, iz, it, ikx, iky, is, ia
+     integer :: imu
+     real :: tmp, wgt
+     real :: arg
+     real, dimension(:, :), allocatable :: g0
+     real, dimension(:), allocatable :: bessel
 
-      ! if(driftkinetic_implicit) then 
-      !    ia = 1
+      if(driftkinetic_implicit) then 
+         ia = 1
 
-      !    if (.not. allocated(bessel)) then
-      !       allocate (bessel(nmu))
-      !       bessel = 0.
-      !    end if
+         if (.not. allocated(bessel)) then
+            allocate (bessel(nmu))
+            bessel = 0.
+         end if
 
-      !    if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
-      !    allocate (g0(nvpa, nmu))
-      !    do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-      !       it = it_idx(kxkyz_lo, ikxkyz)
-      !       if (it /= 1) cycle
-      !       iky = iky_idx(kxkyz_lo, ikxkyz)
-      !       ikx = ikx_idx(kxkyz_lo, ikxkyz)
-      !       iz = iz_idx(kxkyz_lo, ikxkyz)
-      !       is = is_idx(kxkyz_lo, ikxkyz)
+         if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
+         allocate (g0(nvpa, nmu))
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            it = it_idx(kxkyz_lo, ikxkyz)
+            if (it /= 1) cycle
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
 
-      !       do imu = 1, nmu
-      !          arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
-      !          bessel(imu) = j0(arg)
-      !       end do
+            do imu = 1, nmu
+               arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
+               bessel(imu) = j0(arg)
+            end do
 
-      !       g0 = spread((1.0 - bessel(:)**2), 1, nvpa) &
-      !            * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
-      !       wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp
-      !       call integrate_vmu(g0, iz, tmp)
-      !       gamtot(iky, ikx, iz) = gamtot(iky, ikx, iz) + tmp * wgt
-      !    end do
-      !    call sum_allreduce(gamtot)
-      ! end if
-!      if(proc0) write(*,*) 'gamtot from fluxtube', gamtot
+            g0 = spread((1.0 - bessel(:)**2), 1, nvpa) &
+                 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+            wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp
+            call integrate_vmu(g0, iz, tmp)
+            gamtot(iky, ikx, iz) = gamtot(iky, ikx, iz) + tmp * wgt
+         end do
+         call sum_allreduce(gamtot)
+      end if
+
       !> allocate arrays such as phi that are needed
       !> throughout the simulation
       call allocate_arrays
@@ -652,9 +652,9 @@ contains
 !                  gam0_alpha_modsave(iky,ikx,ia) = gam0_alpha(ia) - gam0_alpha(1)
                end do
 
-               if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
-               call alpha_average_ffs_realspace (gam0_alpha, gamtot(iky, ikx, iz), iz) 
-!               if(proc0) write(*,*) 'gamtot1', gamtot1(iky, ikx, iz), 'gmtot- fluxtube version', gamtot(iky,ikx,iz) , 'gam_alpha', gam0_alpha(1)
+!               if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
+!               call alpha_average_ffs_realspace (gam0_alpha, gamtot(iky, ikx, iz), iz) 
+
  !              deallocate(gamtot1) 
 !               gam0_alpha_mod = gam0_alpha - gam0_alpha(1)
 !!               gam0_alpha_modsave(iky,ikx,:) = gam0_alpha_mod
