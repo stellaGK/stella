@@ -15,6 +15,7 @@ module parallel_streaming
    public :: stream_rad_var2
 
    public :: stream_correction
+   public :: gradpar_fac
 
    private
 
@@ -38,6 +39,7 @@ module parallel_streaming
    real, dimension(2, 3) :: time_parallel_streaming = 0.
 
    real, dimension(:, :, :, :), allocatable :: stream_correction
+   real, dimension(:), allocatable :: gradpar_fac
 
 contains
 
@@ -78,6 +80,10 @@ contains
          if (.not. allocated(stream_correction)) allocate (stream_correction(nalpha, -nzgrid:nzgrid, nvpa, nspec)); stream_correction = 0.
          if (.not. allocated(stream_store)) allocate (stream_store(-nzgrid:nzgrid, nvpa, nspec)); stream_store = 0.
       end if
+      
+      if(stream_implicit .or. driftkinetic_implicit) then 
+         if(.not. allocated(gradpar_fac)) allocate(gradpar_fac(-nzgrid:nzgrid)); gradpar_fac = 0.
+      end if
 
       ! sign of stream corresponds to appearing on RHS of GK equation
       ! i.e., this is the factor multiplying dg/dz on RHS of equation
@@ -96,6 +102,14 @@ contains
          end do
       else
          stream = 0.0
+      end if
+      
+      if(driftkinetic_implicit) then
+         do iz = -nzgrid, nzgrid
+            call alpha_average_ffs_realspace (b_dot_grad_z(:, iz), gradpar_fac(iz), iz)
+         end do
+      else
+         gradpar_fac = gradpar
       end if
 
       !! GA get correction term [ (b.grad z) - (b.grad z)_0 ]
@@ -1303,7 +1317,7 @@ contains
       if (allocated(stream_rad_var2)) deallocate (stream_rad_var2)
 
       if (stream_implicit .or. driftkinetic_implicit) call finish_invert_stream_operator
-
+      
       parallel_streaming_initialized = .false.
 
    end subroutine finish_parallel_streaming
@@ -1322,6 +1336,8 @@ contains
       end if
 
       if (allocated(stream_correction)) deallocate (stream_correction)
+      if (allocated(gradpar_fac)) deallocate(gradpar_fac)
+
    end subroutine finish_invert_stream_operator
 
 end module parallel_streaming

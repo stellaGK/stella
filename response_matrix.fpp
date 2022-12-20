@@ -1,4 +1,4 @@
-Module response_matrix
+module response_matrix
 
    use netcdf
    use mpi
@@ -474,6 +474,9 @@ contains
       use parallel_streaming, only: stream_sign
       use run_parameters, only: zed_upwind, time_upwind
       use kt_grids, only: nalpha
+      
+      use parallel_streaming, only: gradpar_fac
+      
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
@@ -490,6 +493,7 @@ contains
       real :: fac, fac0, fac1, gyro_fac
       real :: maxwell_vpa_s
       real, dimension(:, :), allocatable :: maxwell_zed
+
       ia = 1
 
       allocate (maxwell_zed(nalpha, -nzgrid:nzgrid))
