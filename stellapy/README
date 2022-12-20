@@ -26,27 +26,26 @@ For questions or bugs you can email Hanne.Thienpondt@outlook.com.
 #===============================================================================
 - EXPORT commands are used, hence it is important to work in bash.
 - It is crucial that the folder is named "stellapy".
-- Before plotting, use "write_dataFiles" to make sure all files are present.
-- The linear part of stellapy assumes naky = nakx = 1 for most scripts.
+- Before plotting, use "write_dataFiles" to make sure all files are present. 
 
 
 #===============================================================================
 #                       Stellapy installation on local PC                      #
 #===============================================================================
 
-1. Edit the "stellapy/stellapy.ini" and the "stellapy/source.sh" files, make 
+1a. Edit the "stellapy/stellapy.ini" and the "stellapy/source.sh" files, make 
 sure all paths are set correctly, when updating stellapy in the future, do not
 overwrite these files. These two files are unique for each user, it would be wise
 to make a back-up of them in case they are accidently overwritten in the future.
 When installing stellapy on a supercomputer, these files need to be editted again.
 
-2. To your ~/.bashrc file, add the following line:
+1b. To your ~/.bashrc file, add the following line:
         source ~/.alias 
 
-3. To your ~/.alias file, add the following line:
+1c. To your ~/.alias file, add the following line:
         source /home/user/STELLA/stella/stellapy/source.sh
 
-4. The stellapy diagnostics package should now be installed.
+1d. The stellapy diagnostics package should now be installed.
     - An overview of the bash commands is given through >>> stellapy
     - The GUI can be opened through >>> stellaplotter
     - The stellapy package is automatically loaded >>> python3
@@ -56,7 +55,7 @@ When installing stellapy on a supercomputer, these files need to be editted agai
 #                       Stellapy installation on Marconi                       #
 #===============================================================================
 
-1. Add the following lines to the ~/.bashrc file on marconi, this file is read 
+2a. Add the following lines to the ~/.bashrc file on marconi, this file is read 
 automatically every time a terminal is opened:
     export GK_SYSTEM='marconi'
     export SFINCS_SYSTEM='marconi'
@@ -67,19 +66,19 @@ automatically every time a terminal is opened:
     module load python/3.6.4
     source ~/.alias
 
-2. Follow the python installation guide.
+2b. Follow the python installation guide.
 
-3. Add the following lines to the ~/.alias file on marconi, to automatically 
+2c. Add the following lines to the ~/.alias file on marconi, to automatically 
 load the python virtual environment and the stellapy package:
     source ~/my_pyth/bin/activate
     source /marconi/home/userexternal/user/stella/stellapy/source.sh
 
-4. Edit the "stellapy/stellapy.ini" and the "stellapy/source.sh" files on marconi.
+2d. Edit the "stellapy/stellapy.ini" and the "stellapy/source.sh" files on marconi.
     
-5. Perform ">>> source ~/.alias" in the command prompt. The stellapy package should 
+2e. Perform ">>> source ~/.alias" in the command prompt. The stellapy package should 
 now be working, the GUI does not work on marconi since the TCL version is outdated.
 
-6. If you see the error "ImportError: Cannot load backend 'TkAgg' which requires the 
+2f. If you see the error "ImportError: Cannot load backend 'TkAgg' which requires the 
 'tk' interactive framework, as 'headless' is currently running" then add the flag "-Y"
 to your ssh command e.g. "ssh -Y user@login.marconi.cineca.it" which seems to be 
 a macOS problem. Also make sure matplotlib is version 3.3.4. 
@@ -89,19 +88,19 @@ a macOS problem. Also make sure matplotlib is version 3.3.4.
 #                             Python installation                              #
 #===============================================================================
 
-On the local computer it is assumed that python 3.6 or higher is already installed.
+3a. On the local computer it is assumed that python 3.6 or higher is already installed.
 It is important to upgrade pip, otherwise the matplotlib installation will fail.
     >>> pip install --upgrade pip
 
-On the supercomputer Marconi, first complete the ~/.bashrc as explained in "Stellapy
-installation on Marconi", and restart the terminal to make sure it is loaded. Next, 
-it is required to install a virtual python environment through: 
+3b. On the supercomputer Marconi, first complete the ~/.bashrc as explained in (2a) 
+"Stellapy installation on Marconi", and restart the terminal to make sure it is loaded. 
+Next, it is required to install a virtual python environment through: 
     >>> cd ~
     >>> python3.6 -m venv my_pyth
     >>> source my_pyth/bin/activate
     >>> ~/my_pyth/bin/python3 -m pip install --upgrade pip
 
-On both the local computer and Marconi, the python packages can now be installed:
+3c. On both the local computer and Marconi, the python packages can now be installed:
     >>> pip3 install numpy
     >>> pip3 install matplotlib
     >>> pip3 install h5py
@@ -110,7 +109,7 @@ On both the local computer and Marconi, the python packages can now be installed
     >>> pip3 install screeninfo
     >>> pip3 install babel 
     
-If you get the error "no module named '_tkinter'" then try
+3d. If you get the error "no module named '_tkinter'" then try
     >>> sudo apt-get install python3-tk
     >>> brew install python-tk
 
@@ -118,7 +117,7 @@ If you get the error "no module named '_tkinter'" then try
 #                                 Stellapy GUI                                 #
 #===============================================================================
 
-The GUI can be added to the applications of your computer by creating a 
+4a. The GUI can be added to the applications of your computer by creating a 
 "stellaplotter.desktop" file in "~/.local/share/applications" which reads: 
 
     [Desktop Entry]
@@ -131,7 +130,7 @@ The GUI can be added to the applications of your computer by creating a
     Categories=Application
     StartupNotify=true
 
-The errors and outputs from the GUI are printed to "stellapy/GUI/stella_GUI.log".
+4B. The errors and outputs from the GUI are printed to "stellapy/GUI/stella_GUI.log".
 Alternatively, the GUI can be executed from the command prompt through:
     >>> stellaplotter
     >>> stellaplotter_linear           
