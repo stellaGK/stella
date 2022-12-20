@@ -29,37 +29,6 @@ For questions or bugs you can email Hanne.Thienpondt@outlook.com.
 - Before plotting, use "write_dataFiles" to make sure all files are present.
 - The linear part of stellapy assumes naky = nakx = 1 for most scripts.
 
-
-#===============================================================================
-#                             Python installation                              #
-#===============================================================================
-
-On the local computer it is assumed that python 3.6 or higher is already installed.
-It is important to upgrade pip, otherwise the matplotlib installation will fail.
-    >>> pip install --upgrade pip
-
-On the supercomputer Marconi, first complete the ~/.bashrc as explained in "Stellapy
-installation on Marconi", and restart the terminal to make sure it is loaded. Next, 
-it is required to install a virtual python environment through: 
-    >>> cd ~
-    >>> python3.6 -m venv my_pyth
-    >>> source my_pyth/bin/activate
-    >>> ~/my_pyth/bin/python3 -m pip install --upgrade pip
-
-On both the local computer and Marconi, the python packages can now be installed:
-    >>> pip3 install numpy
-    >>> pip3 install matplotlib
-    >>> pip3 install h5py
-    >>> pip3 install scipy
-    >>> pip3 install netCDF4
-    >>> pip3 install screeninfo
-    >>> pip3 install babel 
-    
-If you get the error "no module named '_tkinter'" then try
-    >>> sudo apt-get install python3-tk
-    >>> brew install python-tk
-
-
 #===============================================================================
 #                            Stellapy installation                             #
 #===============================================================================
@@ -114,6 +83,35 @@ now be working, the GUI does not work on marconi since the TCL version is outdat
 to your ssh command e.g. "ssh -Y user@login.marconi.cineca.it" which seems to be 
 a macOS problem. Also make sure matplotlib is version 3.3.4. 
 
+
+#===============================================================================
+#                             Python installation                              #
+#===============================================================================
+
+On the local computer it is assumed that python 3.6 or higher is already installed.
+It is important to upgrade pip, otherwise the matplotlib installation will fail.
+    >>> pip install --upgrade pip
+
+On the supercomputer Marconi, first complete the ~/.bashrc as explained in "Stellapy
+installation on Marconi", and restart the terminal to make sure it is loaded. Next, 
+it is required to install a virtual python environment through: 
+    >>> cd ~
+    >>> python3.6 -m venv my_pyth
+    >>> source my_pyth/bin/activate
+    >>> ~/my_pyth/bin/python3 -m pip install --upgrade pip
+
+On both the local computer and Marconi, the python packages can now be installed:
+    >>> pip3 install numpy
+    >>> pip3 install matplotlib
+    >>> pip3 install h5py
+    >>> pip3 install scipy
+    >>> pip3 install netCDF4
+    >>> pip3 install screeninfo
+    >>> pip3 install babel 
+    
+If you get the error "no module named '_tkinter'" then try
+    >>> sudo apt-get install python3-tk
+    >>> brew install python-tk
 
 #===============================================================================
 #                                 Stellapy GUI                                 #
