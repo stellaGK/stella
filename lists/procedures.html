@@ -100,7 +100,6 @@ This actually entails solving for the whole ky = 0 slice of phi at once (not rea
 <g>, needed for radially global simulations</p></td></tr>
 			   <tr><td><a href='../proc/add_stream_term.html'>add_stream_term</a></td><td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/add_stream_term_ffs.html'>add_stream_term_ffs</a></td><td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/add_stream_term_ffs_correction.html'>add_stream_term_ffs_correction</a></td><td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/advance_collisions_dougherty_explicit.html'>advance_collisions_dougherty_explicit</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/advance_collisions_dougherty_implicit.html'>advance_collisions_dougherty_implicit</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/advance_collisions_explicit.html'>advance_collisions_explicit</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
@@ -172,7 +171,6 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
 			   <tr><td><a href='../proc/allocate_arrays~7.html'>allocate_arrays</a></td><td><a href='../module/stella_geometry.html'>stella_geometry</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/allocate_arrays_geo.html'>allocate_arrays_geo</a></td><td><a href='../module/inputprofiles_interface.html'>inputprofiles_interface</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/allocate_arrays_spec.html'>allocate_arrays_spec</a></td><td><a href='../module/inputprofiles_interface.html'>inputprofiles_interface</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/alpha_average_ffs_realspace.html'>alpha_average_ffs_realspace</a></td><td><a href='../module/volume_averages.html'>volume_averages</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/alpha_numeric.html'>alpha_numeric</a></td><td><a href='../module/ezcdf_inqvar.html'>ezcdf_inqvar</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/apply_radial_boundary_conditions.html'>apply_radial_boundary_conditions</a></td><td><a href='../module/multibox.html'>multibox</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../interface/assert.html'>assert</a></td><td><a href='../module/v3_utilities.html'>v3_utilities</a></td><td>Interface</td><td></td></tr>
@@ -598,7 +596,7 @@ f = g + (Ze/T)*(<phi>_R - phi)</p><a href="../proc/g_to_f.html" class="pull-righ
 			   <tr><td><a href='../proc/get_dfneo_drho.html'>get_dfneo_drho</a></td><td><a href='../module/neoclassical_terms.html'>neoclassical_terms</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/get_dfneo_dvpa.html'>get_dfneo_dvpa</a></td><td><a href='../module/neoclassical_terms.html'>neoclassical_terms</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/get_dfneo_dzed.html'>get_dfneo_dzed</a></td><td><a href='../module/neoclassical_terms.html'>neoclassical_terms</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/get_dgdphi_matrix_column.html'>get_dgdphi_matrix_column</a></td><td><a href='../module/response_matrix.html'>response_matrix</a></td><td>Subroutine</td><td><p>maxwell_vpa(iv, is) * maxwell_fac(is)</p></td></tr>
+			   <tr><td><a href='../proc/get_dgdphi_matrix_column.html'>get_dgdphi_matrix_column</a></td><td><a href='../module/response_matrix.html'>response_matrix</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/get_dgdvpa_explicit.html'>get_dgdvpa_explicit</a></td><td><a href='../module/mirror_terms.html'>mirror_terms</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/get_dgdvpa_ffs.html'>get_dgdvpa_ffs</a></td><td><a href='../module/mirror_terms.html'>mirror_terms</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../interface/get_dgdx.html'>get_dgdx</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Interface</td><td></td></tr>
@@ -799,11 +797,11 @@ is stored in adiabatic_response_factor</p><a href="../proc/init_adiabatic_respon
 			   <tr><td><a href='../proc/init_alpha_fft.html'>init_alpha_fft</a></td><td><a href='../module/stella_transforms.html'>stella_transforms</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_bessel.html'>init_bessel</a></td><td><a href='../module/gyro_averages.html'>gyro_averages</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_bessel_ffs.html'>init_bessel_ffs</a></td><td><a href='../module/gyro_averages.html'>gyro_averages</a></td><td>Subroutine</td><td><p>aj0_alpha will contain J_0 as a function of k_alpha and alpha
- j0_B_maxwell will contain J_0<em>B</em>exp(-v^2) as a function of k_alpha and alpha
- for each value of alpha, take kperp^2 calculated on domain kx = [-kx_max, kx_max] and ky = [0, ky_max]
- and use symmetry to obtain kperp^2 on domain kx = [0, kx_max] and ky = [-ky_max, ky_max]
- this makes later convolutions involving sums over all ky more straightforward
- calculate the argument of the Bessel function, which depends on both alpha and k_alpha</p><a href="../proc/init_bessel_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
+j0_B_maxwell will contain J_0<em>B</em>exp(-v^2) as a function of k_alpha and alpha
+for each value of alpha, take kperp^2 calculated on domain kx = [-kx_max, kx_max] and ky = [0, ky_max]
+and use symmetry to obtain kperp^2 on domain kx = [0, kx_max] and ky = [-ky_max, ky_max]
+this makes later convolutions involving sums over all ky more straightforward
+calculate the argument of the Bessel function, which depends on both alpha and k_alpha</p><a href="../proc/init_bessel_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			   <tr><td><a href='../proc/init_bessel_fn.html'>init_bessel_fn</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_ccfftw.html'>init_ccfftw</a></td><td><a href='../module/fft_work.html'>fft_work</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_cfl.html'>init_cfl</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
@@ -1452,13 +1450,13 @@ creating them if necessary</p></td></tr>
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-165-g9050c7205</small></p>
+<br /><small>v0.5.1-166-g886ce8f60</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-12-20T13:06:45.226219           </p>
+ on 2022-12-20T13:52:27.334459           </p>
         </div>
       </div>
       <br>

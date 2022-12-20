@@ -1,3 +1,4 @@
+
 module time_advance
 
    public :: init_time_advance, finish_time_advance
@@ -1261,8 +1262,6 @@ contains
       use flow_shear, only: advance_parallel_flow_shear
       use multibox, only: include_multibox_krook, add_multibox_krook
 
-      use run_parameters, only: driftkinetic_implicit
-      use mp, only: proc0
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
@@ -1292,13 +1291,11 @@ contains
          !> for flux tube it should point to rhs_ky
          rhs => rhs_ky
       end if
-!!>      if(proc0) write(*,*) 'entering explicit', maxval(real(gin))
 
       !> start with gbar in k-space and (ky,kx,z) local
       !> obtain fields corresponding to gbar
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_fields'
       call advance_fields(gin, phi, apar, dist='gbar')
-!!>      if(proc0) write(*,*) 'after advance fields1', maxval(real(phi))
 
       if (radial_variation) call get_radial_correction(gin, phi, dist='gbar')
 
@@ -1325,36 +1322,31 @@ contains
          if (include_mirror .and. .not. mirror_implicit) then
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_mirror_explicit'
             call advance_mirror_explicit(gin, rhs)
-!!>            if(proc0) write(*,*) 'after mirror explicit', maxval(real(rhs))
          end if
 
          if (.not. drifts_implicit) then
             !> calculate and add alpha-component of magnetic drift term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdrifty_explicit'
             call advance_wdrifty_explicit(gin, phi, rhs)
-!!>            if(proc0) write(*,*) 'after wdrifty explicit', maxval(real(rhs))
+
             !> calculate and add psi-component of magnetic drift term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdriftx_explicit'
             call advance_wdriftx_explicit(gin, phi, rhs)
-!!>            if(proc0) write(*,*) 'after wdriftx explicit', maxval(real(rhs))
+
             !> calculate and add omega_* term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wstar_explicit'
             call advance_wstar_explicit(phi, rhs)
-!!>            if(proc0) write(*,*) 'after wstar explicit', maxval(real(rhs))
          end if
 
          !> calculate and add contribution from collisions to RHS of GK eqn
          if (include_collisions .and. .not. collisions_implicit) call advance_collisions_explicit(gin, phi, rhs)
 
          !> calculate and add parallel streaming term to RHS of GK eqn
-         if (include_parallel_streaming) then
-            if (.not. (stream_implicit) .or. driftkinetic_implicit) then
-               if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
-               call advance_parallel_streaming_explicit(gin, phi, rhs)
-!!>               if(proc0) write(*,*) 'after parallel streaming explicit', maxval(real(rhs))
-            end if
+         if (include_parallel_streaming .and. (.not. stream_implicit)) then
+            if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
+            call advance_parallel_streaming_explicit(gin, phi, rhs)
          end if
-!         if(proc0) write(*,*) 'end of explicit befpre swap', maxval(real(rhs))
+
          !> if simulating a full flux surface (flux annulus), all terms to this point have been calculated
          !> in real-space in alpha (y); transform to kalpha (ky) space before adding to RHS of GKE.
          !> NB: it may be that for fully explicit calculation, this transform can be eliminated with additional code changes
@@ -1378,7 +1370,6 @@ contains
          if (include_multibox_krook) call add_multibox_krook(gin, rhs)
 
       end if
-!!>      if(proc0) write(*,*) 'after explicit after swap', maxval(real(rhs))
 
       fields_updated = .false.
 
@@ -2606,7 +2597,7 @@ contains
 
       ! start the timer for the implicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 9), ' implicit')
-!!>      if(proc0) write(*,*) 'entering implicit' , maxval(real(g))
+
       ! reverse the order of operations every time step
       ! as part of alternating direction operator splitting
       ! this is needed to ensure 2nd order accuracy in time
@@ -2644,7 +2635,6 @@ contains
 !             g_mirror => g
 !          end if
             call advance_mirror_implicit(collisions_implicit, g)
-!!>            if(proc0) write(*,*) 'after mirror implicit' , maxval(real(g))
             fields_updated = .false.
          end if
 
@@ -2657,12 +2647,12 @@ contains
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
             call advance_parallel_streaming_implicit(g, phi, apar)
-!!>            if(proc0) write(*,*) 'after streaming implicit' , maxval(real(g))
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
 
          call advance_fields(g, phi, apar, dist='gbar')
          if (drifts_implicit) call advance_drifts_implicit(g, phi, apar)
+
       else
 
          ! get updated fields corresponding to advanced g
@@ -2670,17 +2660,16 @@ contains
          ! depended only on g and so did not need field update
          call advance_fields(g, phi, apar, dist='gbar')
          if (drifts_implicit) call advance_drifts_implicit(g, phi, apar)
+
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
             call advance_parallel_streaming_implicit(g, phi, apar)
-!!>            if(proc0) write(*,*) 'after streaming implicit' , maxval(real(g))
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
 
          if (mirror_implicit .and. include_mirror) then
             call advance_mirror_implicit(collisions_implicit, g)
-!!>            if(proc0) write(*,*) 'after mirror implicit' , maxval(real(g))
             fields_updated = .false.
          end if
 
@@ -2699,11 +2688,12 @@ contains
             call advance_perp_flow_shear(g)
             fields_updated = .false.
          end if
+
       end if
 
       ! stop the timer for the implict part of the solve
       if (proc0) call time_message(.false., time_gke(:, 9), ' implicit')
-!!>      if(proc0) write(*,*) 'end of implicit' , maxval(real(g))
+
    end subroutine advance_implicit
 
    subroutine advance_drifts_implicit(g, phi, apar)

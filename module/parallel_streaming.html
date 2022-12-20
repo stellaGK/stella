@@ -91,7 +91,7 @@
           <li id="statements"><i class="fa fa-list-ol"></i>
             <a data-toggle="tooltip"
                data-placement="bottom" data-html="true"
-               title=" 2.2% of total for modules and submodules.">877 statements</a>
+               title=" 2.0% of total for modules and submodules.">795 statements</a>
           </li>
 
             <li id="source-file">
@@ -141,7 +141,6 @@
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_tri_c2">stream_tri_c2</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-gradpar_c">gradpar_c</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-time_parallel_streaming">time_parallel_streaming</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_correction">stream_correction</a>
         </div>
       </div>
     </div>
@@ -184,7 +183,6 @@
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-get_dgdz_centered">get_dgdz_centered</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-add_stream_term">add_stream_term</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-add_stream_term_ffs">add_stream_term_ffs</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#proc-add_stream_term_ffs_correction">add_stream_term_ffs_correction</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-advance_parallel_streaming_implicit">advance_parallel_streaming_implicit</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-get_gke_rhs">get_gke_rhs</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-invert_parstream">invert_parstream</a>
@@ -245,7 +243,6 @@
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_tri_c2">stream_tri_c2</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-gradpar_c">gradpar_c</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-time_parallel_streaming">time_parallel_streaming</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_correction">stream_correction</a>
         </div>
       </div>
     </div>
@@ -288,7 +285,6 @@
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-get_dgdz_centered">get_dgdz_centered</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-add_stream_term">add_stream_term</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-add_stream_term_ffs">add_stream_term_ffs</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#proc-add_stream_term_ffs_correction">add_stream_term_ffs_correction</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-advance_parallel_streaming_implicit">advance_parallel_streaming_implicit</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-get_gke_rhs">get_gke_rhs</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-invert_parstream">invert_parstream</a>
@@ -564,23 +560,6 @@
             <td><strong>time_parallel_streaming</strong></td>
 <td> =</td>
                 <td>0.</td>
-            <td>
-                
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-stream_correction"></span>
-              real,
-            </td>
-              <td>public,</td>
-            <td>
-              dimension(:, :, :, :), allocatable
-            </td>
-            <td>::</td>
-            <td><strong>stream_correction</strong></td>
-                <td></td>
-                <td></td>
             <td>
                 
             </td>
@@ -1105,76 +1084,6 @@ start the timer for the parallel streaming part of the time advance</p><a href="
 
       <div class="panel panel-default">
     <div class="panel-heading codesum"><span class="anchor" id="proc-add_stream_term_ffs"></span><h3>private  subroutine <a href='../proc/add_stream_term_ffs.html'>add_stream_term_ffs</a>(g, ivmu, src)  
-</h3></div>
-    <div class="panel-body">
-          
-  
-
-  <h4>Arguments</h4>
-      <table class="table table-striped varlist">
-    <thead>
-      <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(in),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :)
-            </td>
-            <td>::</td>
-            <td><strong>g</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              integer,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>ivmu</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(inout),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :)
-            </td>
-            <td>::</td>
-            <td><strong>src</strong></td>
-            <td>
-
-            </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-    </div>
-  </div>
-
-      <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-add_stream_term_ffs_correction"></span><h3>private  subroutine <a href='../proc/add_stream_term_ffs_correction.html'>add_stream_term_ffs_correction</a>(g, ivmu, src)  
 </h3></div>
     <div class="panel-body">
           
@@ -2053,13 +1962,13 @@ start the timer for the parallel streaming part of the time advance</p><a href="
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-165-g9050c7205</small></p>
+<br /><small>v0.5.1-166-g886ce8f60</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-12-20T13:06:45.226219           </p>
+ on 2022-12-20T13:52:27.334459           </p>
         </div>
       </div>
       <br>

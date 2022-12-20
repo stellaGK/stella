@@ -155,16 +155,16 @@
       <ul class="list-group">
           <li class="list-group-item">
             <ul class="list-inline">
-                <li><a href='../module/dist_fn_arrays.html'>dist_fn_arrays</a></li>
                 <li><a href='../module/species.html'>species</a></li>
-                <li><a href='../module/zgrid.html'>zgrid</a></li>
                 <li><a href='../module/stella_geometry.html'>stella_geometry</a></li>
                 <li><a href='../module/spfunc.html'>spfunc</a></li>
-                <li><a href='../module/stella_layouts.html'>stella_layouts</a></li>
+                <li><a href='../module/zgrid.html'>zgrid</a></li>
                 <li><a href='../module/vpamu_grids.html'>vpamu_grids</a></li>
+                <li><a href='../module/stella_layouts.html'>stella_layouts</a></li>
                 <li><a href='../module/stella_transforms.html'>stella_transforms</a></li>
-                <li><a href='../module/kt_grids.html'>kt_grids</a></li>
                 <li><a href='../module/mp.html'>mp</a></li>
+                <li><a href='../module/kt_grids.html'>kt_grids</a></li>
+                <li><a href='../module/dist_fn_arrays.html'>dist_fn_arrays</a></li>
             </ul>
           </li>
       </ul>
@@ -172,43 +172,28 @@
 
 
     <p>aj0_alpha will contain J_0 as a function of k_alpha and alpha
- j0_B_maxwell will contain J_0<em>B</em>exp(-v^2) as a function of k_alpha and alpha
- for each value of alpha, take kperp^2 calculated on domain kx = [-kx_max, kx_max] and ky = [0, ky_max]
- and use symmetry to obtain kperp^2 on domain kx = [0, kx_max] and ky = [-ky_max, ky_max]
- this makes later convolutions involving sums over all ky more straightforward
- calculate the argument of the Bessel function, which depends on both alpha and k_alpha</p>
+j0_B_maxwell will contain J_0<em>B</em>exp(-v^2) as a function of k_alpha and alpha
+for each value of alpha, take kperp^2 calculated on domain kx = [-kx_max, kx_max] and ky = [0, ky_max]
+and use symmetry to obtain kperp^2 on domain kx = [0, kx_max] and ky = [-ky_max, ky_max]
+this makes later convolutions involving sums over all ky more straightforward
+calculate the argument of the Bessel function, which depends on both alpha and k_alpha</p>
 <p>compute J_0<em>B</em>exp(-v^2), needed when integrating g over v-space in Maxwell's equations,
- due to B in v-space Jacobian and Maxwellian factor hidden in normalisation of g</p>
-<blockquote>
-<div class="codehilite"><pre><span></span><code>                B_maxwell(ia) = bmag(ia, iz) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
-</code></pre></div>
-
-<p>fourier transform aj0_alpha and j0_B_maxwell.
- note that fourier coefficients aj0_kalpha and j0_B_maxwell_kalpha have
- been filtered to avoid aliasing
-                 call transform_alpha2kalpha(B_maxwell, B_maxwell_kalpha)
- given the Fourier coefficients aj0_kalpha, calculate the minimum number of coefficients needed,
- called j0_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
-                 B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx = naky
- given the Fourier coefficients j0_B_maxwell_kalpha, calculate the minimum number of coefficients needed,
- called j0_B_maxwell_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
- keep track of the total number of coefficients that must be retained across different phase space points
- keep track of the total number of coefficients that must be retained across different phase space points
- allocate array to hold the reduced number of Fourier coefficients
- fill the array with the requisite coefficients</p>
-<div class="codehilite"><pre><span></span><code>             <span class="k">if</span> <span class="ss">(</span>.<span class="nv">not</span>. <span class="nv">associated</span><span class="ss">(</span><span class="nv">B_maxwell_ffs</span><span class="ss">(</span><span class="nv">iky</span>, <span class="nv">ikx</span>, <span class="nv">iz</span>, <span class="nv">ivmu</span><span class="ss">)</span><span class="o">%</span><span class="nv">fourier</span><span class="ss">))</span> <span class="o">&amp;</span>
-                <span class="nv">allocate</span> <span class="ss">(</span><span class="nv">B_maxwell_ffs</span><span class="ss">(</span><span class="nv">iky</span>, <span class="nv">ikx</span>, <span class="nv">iz</span>, <span class="nv">ivmu</span><span class="ss">)</span><span class="o">%</span><span class="nv">fourier</span><span class="ss">(</span><span class="nv">B_maxwell_ffs</span><span class="ss">(</span><span class="nv">iky</span>, <span class="nv">ikx</span>, <span class="nv">iz</span>, <span class="nv">ivmu</span><span class="ss">)</span><span class="o">%</span><span class="nv">max_idx</span><span class="ss">))</span>
-</code></pre></div>
-
+due to B in v-space Jacobian and Maxwellian factor hidden in normalisation of g
+fourier transform aj0_alpha and j0_B_maxwell.
+note that fourier coefficients aj0_kalpha and j0_B_maxwell_kalpha have
+been filtered to avoid aliasing
+given the Fourier coefficients aj0_kalpha, calculate the minimum number of coefficients needed,
+called j0_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
+given the Fourier coefficients j0_B_maxwell_kalpha, calculate the minimum number of coefficients needed,
+called j0_B_maxwell_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
+keep track of the total number of coefficients that must be retained across different phase space points
+keep track of the total number of coefficients that must be retained across different phase space points
+allocate array to hold the reduced number of Fourier coefficients
+fill the array with the requisite coefficients</p>
 <p>fill the array with the requisite coefficients</p>
-<div class="codehilite"><pre><span></span><code>             B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier = B_maxwell_kalpha(:B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx)
- deallocate(B_maxwell, B_maxwell_kalpha)
-</code></pre></div>
-
 <p>calculate the reduction factor of Fourier modes
- used to represent J0
- avoid overflow by converting integers to reals before multiplying</p>
-</blockquote>
+used to represent J0
+avoid overflow by converting integers to reals before multiplying</p>
 
     <h3>Arguments</h3>
     <em>None</em>
@@ -261,13 +246,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-165-g9050c7205</small></p>
+<br /><small>v0.5.1-166-g886ce8f60</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-12-20T13:06:45.226219           </p>
+ on 2022-12-20T13:52:27.334459           </p>
         </div>
       </div>
       <br>
