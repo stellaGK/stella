@@ -136,8 +136,8 @@ contains
       !> only need to consider ia=1, iz=0 and is=1 because alpha, z and species dependences
       !> do not lead to change in sign of the streaming pre-factor
       do iv = 1, nvpa
-         if(driftkinetic_implicit) then 
-            stream_sign(iv) = int(sign(1.0, stream_store(0,iv,1)))
+         if (driftkinetic_implicit) then
+            stream_sign(iv) = int(sign(1.0, stream_store(0, iv, 1)))
          else
             stream_sign(iv) = int(sign(1.0, stream(1, 0, iv, 1)))
          end if
@@ -146,7 +146,7 @@ contains
       if (stream_implicit .or. driftkinetic_implicit) then
          call init_invert_stream_operator
          if (.not. allocated(stream_c)) allocate (stream_c(-nzgrid:nzgrid, nvpa, nspec))
-         if(driftkinetic_implicit) then 
+         if (driftkinetic_implicit) then
             stream_c = stream_store
             deallocate (stream_store)
          else
@@ -240,12 +240,12 @@ contains
       complex, dimension(:, :, :, :), allocatable :: g0y, g1y
       complex, dimension(:, :), allocatable :: g0_swap
 
-      !! GA 
+      !! GA
       complex, dimension(:, :, :, :), allocatable :: dgphi_dz_correction
       complex, dimension(:, :, :, :), allocatable :: g1y_correction
       complex, dimension(:, :), allocatable :: g0_swap_correction
       complex, dimension(:, :, :, :), allocatable :: phi1
-      logical :: const_in_alpha =.True. 
+      logical :: const_in_alpha = .True.
 
       !> if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
       !> if full flux surface (flux annulus), will need to calculate in y space

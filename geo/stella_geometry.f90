@@ -353,8 +353,8 @@ contains
             end if
             !!GA
 !            do iz = -nzgrid, nzgrid
- !              call alpha_average_ffs_realspace(b_dot_grad_z(:,iz), gradpar(iz), iz) 
-  !          end do
+            !              call alpha_average_ffs_realspace(b_dot_grad_z(:,iz), gradpar(iz), iz)
+            !          end do
             !> Bref = 2*abs(psi_tor_LCFS)/a^2
             !> a*Bref*dx/dpsi_tor = sign(psi_tor)/rhotor
             !> psi = -psi_tor

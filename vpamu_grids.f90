@@ -698,8 +698,8 @@ contains
 
       integer :: imu
       real :: mu_max
-      
-      integer :: iz,is
+
+      integer :: iz, is
 
       !> allocate arrays and initialize to zero
       if (.not. allocated(mu)) then
@@ -748,11 +748,11 @@ contains
       !> maxwell_mu is the mu part of the v-space Maxwellian
       maxwell_mu = exp(-2.*spread(spread(spread(mu, 1, nalpha), 2, nztot) * spread(bmag, 3, nmu), 4, nspec) &
                        * spread(spread(spread(spec%temp_psi0 / spec%temp, 1, nalpha), 2, nztot), 3, nmu))
-      !!GA 
+      !!GA
       do is = 1, nspec
-         do imu = 1, nmu 
+         do imu = 1, nmu
             do iz = -nzgrid, nzgrid
-               call alpha_average_ffs_realspace (maxwell_mu(:,iz,imu,is), maxwell_mu_avg(iz,imu,is),iz)
+               call alpha_average_ffs_realspace(maxwell_mu(:, iz, imu, is), maxwell_mu_avg(iz, imu, is), iz)
             end do
          end do
       end do

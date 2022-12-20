@@ -490,11 +490,11 @@ contains
       real :: fac, fac0, fac1, gyro_fac
       real :: maxwell_vpa_s
       real, dimension(:, :), allocatable :: maxwell_zed
-      
+
       real :: gradpar_fac
 
       ia = 1
-      
+
       allocate (maxwell_zed(nalpha, -nzgrid:nzgrid))
       if (.not. maxwellian_inside_zed_derivative) then
          ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi

@@ -503,15 +503,15 @@ contains
       use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use vpamu_grids, only: nvpa, nmu, mu
       use vpamu_grids, only: integrate_vmu
-      use kt_grids, only:  akx
+      use kt_grids, only: akx
       use species, only: has_electron_species
       use kt_grids, only: zonal_mode
 
       use mp, only: proc0
 
       implicit none
-      
-      integer :: ikxkyz,it
+
+      integer :: ikxkyz, it
       real :: tmp, wgt
 
       integer :: iky, ikx, iz, ia
@@ -523,7 +523,7 @@ contains
       real, dimension(:), allocatable :: wgts
       complex, dimension(:), allocatable :: gam0_kalpha
 
-      real, dimension(:,:,:,:), allocatable :: gamtot_alpha
+      real, dimension(:, :, :, :), allocatable :: gamtot_alpha
       real, dimension(:, :), allocatable :: g0
       real, dimension(:), allocatable :: bessel
 
@@ -541,7 +541,7 @@ contains
       if (.not. allocated(gam0_ffs)) then
          allocate (gam0_ffs(naky_all, ikx_max, -nzgrid:nzgrid))
       end if
-      
+
       !! GA
       if (driftkinetic_implicit) then
          if (.not. allocated(bessel)) then
@@ -561,21 +561,21 @@ contains
                do imu = 1, nmu
                   arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
                   bessel(imu) = j0(arg)
-               end do 
+               end do
                g0 = spread((1.0 - bessel(:)**2), 1, nvpa) &
                     * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
                wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp
                call integrate_vmu(g0, iz, tmp)
-               gamtot_alpha(iky, ikx, iz,ia) = gamtot_alpha(iky, ikx, iz,ia) + tmp * wgt
+               gamtot_alpha(iky, ikx, iz, ia) = gamtot_alpha(iky, ikx, iz, ia) + tmp * wgt
             end do
          end do
-         deallocate(g0, bessel)
+         deallocate (g0, bessel)
          call sum_allreduce(gamtot_alpha)
          if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
          do iz = -nzgrid, nzgrid
-            do iky = 1, naky 
+            do iky = 1, naky
                do ikx = 1, nakx
-                  call alpha_average_ffs_realspace (gamtot_alpha(iky,ikx,iz,:), gamtot(iky, ikx, iz), iz)
+                  call alpha_average_ffs_realspace(gamtot_alpha(iky, ikx, iz, :), gamtot(iky, ikx, iz), iz)
                end do
             end do
          end do
@@ -592,7 +592,7 @@ contains
          !> so that inner loop is over ivmu super-index;
          !> this is done because we must integrate over v-space and sum over species,
          !> and we want to minimise memory usage where possible (so, e.g., aj0_alpha need
-         !> only be a function of ivmu and can be over-written for each (ia,iky,ikx)).            
+         !> only be a function of ivmu and can be over-written for each (ia,iky,ikx)).
          do ia = 1, nalpha
             call swap_kxky_ordered(kperp2(:, :, ia, iz), kperp2_swap(:, :, ia))
          end do
@@ -631,7 +631,7 @@ contains
 
                !> fourier transform Gamma_0(alpha) from alpha to k_alpha space
                call transform_alpha2kalpha(gam0_alpha, gam0_kalpha)
-              
+
                gam0_ffs(iky, ikx, iz)%max_idx = naky
 
                !> allocate array to hold the Fourier coefficients
