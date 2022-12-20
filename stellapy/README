@@ -29,8 +29,9 @@ For questions or bugs you can email Hanne.Thienpondt@outlook.com.
 - Before plotting, use "write_dataFiles" to make sure all files are present.
 - The linear part of stellapy assumes naky = nakx = 1 for most scripts.
 
+
 #===============================================================================
-#                            Stellapy installation                             #
+#                       Stellapy installation on local PC                      #
 #===============================================================================
 
 1. Edit the "stellapy/stellapy.ini" and the "stellapy/source.sh" files, make 
