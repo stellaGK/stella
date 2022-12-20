@@ -20,8 +20,6 @@ module fields
    public :: get_dchidy, get_dchidx
    public :: efac, efacp
 
-!   public :: gam0_alpha_modsave
-
    private
 
    real, dimension(:, :, :), allocatable ::  apar_denom
@@ -30,10 +28,6 @@ module fields
    !> arrays allocated/used if simulating a full flux surface
    type(coupled_alpha_type), dimension(:, :, :), allocatable :: gam0_ffs
    type(gam0_ffs_type), dimension(:, :), allocatable :: lu_gam0_ffs
-
-!   type(coupled_alpha_type), dimension(:, :, :), allocatable :: gam0_ffs_mod
-!   type(gam0_ffs_type), dimension(:, :), allocatable :: lu_gam0_ffs_mod
-
    complex, dimension(:), allocatable :: adiabatic_response_factor
 
    logical :: fields_updated = .false.
@@ -46,8 +40,6 @@ module fields
    integer :: zm
 
    real, dimension(2, 5) :: time_field_solve = 0.
-
-!!   real, dimension(:,:,:), allocatable :: gam0_alpha_modsave
 
    interface get_dchidy
       module procedure get_dchidy_4d
@@ -463,66 +455,7 @@ contains
 
       use species, only: modified_adiabatic_electrons
 
-      use mp, only: sum_allreduce
-      use run_parameters, only: driftkinetic_implicit
-      use fields_arrays, only: gamtot
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
-
-      use gyro_averages, only: aj0v
-
-      use species, only: spec
-      use zgrid, only: nzgrid
-      use vpamu_grids, only: nvpa, nmu, mu, vperp2
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use vpamu_grids, only: integrate_vmu
-      use species, only: spec
-      use kt_grids, only: naky, nakx, akx
-      use dist_fn_arrays, only: kperp2
-      use stella_geometry, only: bmag
-      use spfunc, only: j0
-
-      use mp, only: proc0
       implicit none
-
-      integer :: ikxkyz, iz, it, ikx, iky, is, ia
-      integer :: imu
-      real :: tmp, wgt
-      real :: arg
-      real, dimension(:, :), allocatable :: g0
-      real, dimension(:), allocatable :: bessel
-
-      if (driftkinetic_implicit) then
-         ia = 1
-
-         if (.not. allocated(bessel)) then
-            allocate (bessel(nmu))
-            bessel = 0.
-         end if
-
-         if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
-         allocate (g0(nvpa, nmu))
-         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            it = it_idx(kxkyz_lo, ikxkyz)
-            if (it /= 1) cycle
-            iky = iky_idx(kxkyz_lo, ikxkyz)
-            ikx = ikx_idx(kxkyz_lo, ikxkyz)
-            iz = iz_idx(kxkyz_lo, ikxkyz)
-            is = is_idx(kxkyz_lo, ikxkyz)
-
-            do imu = 1, nmu
-               arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
-               bessel(imu) = j0(arg)
-            end do
-
-            g0 = spread((1.0 - bessel(:)**2), 1, nvpa) &
-                 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
-            wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp
-            call integrate_vmu(g0, iz, tmp)
-            gamtot(iky, ikx, iz) = gamtot(iky, ikx, iz) + tmp * wgt
-         end do
-         call sum_allreduce(gamtot)
-      end if
 
       !> allocate arrays such as phi that are needed
       !> throughout the simulation
@@ -564,9 +497,22 @@ contains
       use fields_arrays, only: gamtot
       use volume_averages, only: alpha_average_ffs_realspace
 
+      use run_parameters, only: driftkinetic_implicit
+      use mp, only: sum_allreduce
+      use stella_layouts, only: kxkyz_lo
+      use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
+      use vpamu_grids, only: nvpa, nmu, mu
+      use vpamu_grids, only: integrate_vmu
+      use kt_grids, only:  akx
+      use species, only: has_electron_species
+      use kt_grids, only: zonal_mode
+
       use mp, only: proc0
 
       implicit none
+      
+      integer :: ikxkyz,it
+      real :: tmp, wgt
 
       integer :: iky, ikx, iz, ia
       integer :: ivmu, iv, imu, is
@@ -577,11 +523,9 @@ contains
       real, dimension(:), allocatable :: wgts
       complex, dimension(:), allocatable :: gam0_kalpha
 
-!      complex, dimension(:), allocatable :: gam0_kalpha_mod
-!      real, dimension(:), allocatable :: gam0_alpha_mod
-      real :: test
-
-!      real, dimension (:,:,:), allocatable :: gamtot1
+      real, dimension(:,:,:,:), allocatable :: gamtot_alpha
+      real, dimension(:, :), allocatable :: g0
+      real, dimension(:), allocatable :: bessel
 
       if (debug) write (*, *) 'fields::init_fields::init_gamm0_factor_ffs'
 
@@ -589,12 +533,6 @@ contains
       allocate (aj0_alpha(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       allocate (gam0_alpha(nalpha))
       allocate (gam0_kalpha(naky))
-
-      !! GA -- check
-      ! if(.not.allocated(gam0_alpha_modsave)) allocate(gam0_alpha_modsave(naky_all, ikx_max, nalpha)) ; gam0_alpha_modsave = 0.0
-      ! allocate (gam0_alpha_mod(nalpha))
-      ! allocate (gam0_kalpha_mod(naky))
-
       !> wgts are species-dependent factors appearing in Gamma0 factor
       allocate (wgts(nspec))
       wgts = spec%dens * spec%z**2 / spec%temp
@@ -603,18 +541,58 @@ contains
       if (.not. allocated(gam0_ffs)) then
          allocate (gam0_ffs(naky_all, ikx_max, -nzgrid:nzgrid))
       end if
+      
+      !! GA
+      if (driftkinetic_implicit) then
+         if (.not. allocated(bessel)) then
+            allocate (bessel(nmu))
+            bessel = 0.
+         end if
+         if (.not. allocated(gamtot_alpha)) allocate (gamtot_alpha(naky, nakx, -nzgrid:nzgrid, nalpha)); gamtot_alpha = 0.
+         allocate (g0(nvpa, nmu))
+         do ia = 1, nalpha
+            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+               it = it_idx(kxkyz_lo, ikxkyz)
+               if (it /= 1) cycle
+               iky = iky_idx(kxkyz_lo, ikxkyz)
+               ikx = ikx_idx(kxkyz_lo, ikxkyz)
+               iz = iz_idx(kxkyz_lo, ikxkyz)
+               is = is_idx(kxkyz_lo, ikxkyz)
+               do imu = 1, nmu
+                  arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
+                  bessel(imu) = j0(arg)
+               end do 
+               g0 = spread((1.0 - bessel(:)**2), 1, nvpa) &
+                    * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+               wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp
+               call integrate_vmu(g0, iz, tmp)
+               gamtot_alpha(iky, ikx, iz,ia) = gamtot_alpha(iky, ikx, iz,ia) + tmp * wgt
+            end do
+         end do
+         deallocate(g0, bessel)
+         call sum_allreduce(gamtot_alpha)
+         if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
+         do iz = -nzgrid, nzgrid
+            do iky = 1, naky 
+               do ikx = 1, nakx
+                  call alpha_average_ffs_realspace (gamtot_alpha(iky,ikx,iz,:), gamtot(iky, ikx, iz), iz)
+               end do
+            end do
+         end do
+         deallocate (gamtot_alpha)
 
-      ! !! GA -- check
-      ! if (.not. allocated(gam0_ffs_mod)) then
-      !    allocate (gam0_ffs_mod(naky_all, ikx_max, -nzgrid:nzgrid))
-      ! end if
+         if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then
+            gamtot(1, 1, :) = 0.0
+            zm = 1
+         end if
+      end if
 
       do iz = -nzgrid, nzgrid
          !> in calculating the Fourier coefficients for Gamma_0, change loop orders
          !> so that inner loop is over ivmu super-index;
          !> this is done because we must integrate over v-space and sum over species,
          !> and we want to minimise memory usage where possible (so, e.g., aj0_alpha need
-         !> only be a function of ivmu and can be over-written for each (ia,iky,ikx)).
+         !> only be a function of ivmu and can be over-written for each (ia,iky,ikx)).            
          do ia = 1, nalpha
             call swap_kxky_ordered(kperp2(:, :, ia, iz), kperp2_swap(:, :, ia))
          end do
@@ -649,39 +627,19 @@ contains
                      !> to avoid singular inversion, set gam0_alpha = 1.0
                      gam0_alpha(ia) = 1.0
                   end if
-!                  gam0_alpha_modsave(iky,ikx,ia) = gam0_alpha(ia) - gam0_alpha(1)
                end do
-
-!               if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
-!               call alpha_average_ffs_realspace (gam0_alpha, gamtot(iky, ikx, iz), iz)
-
-               !              deallocate(gamtot1)
-!               gam0_alpha_mod = gam0_alpha - gam0_alpha(1)
-!!               gam0_alpha_modsave(iky,ikx,:) = gam0_alpha_mod
 
                !> fourier transform Gamma_0(alpha) from alpha to k_alpha space
                call transform_alpha2kalpha(gam0_alpha, gam0_kalpha)
-               !! GA -- check
-!               call transform_alpha2kalpha(gam0_alpha_mod, gam0_kalpha_mod)
-
+              
                gam0_ffs(iky, ikx, iz)%max_idx = naky
-               !! GA -- check
-!               gam0_ffs_mod(iky, ikx, iz)%max_idx = naky
 
                !> allocate array to hold the Fourier coefficients
                if (.not. associated(gam0_ffs(iky, ikx, iz)%fourier)) &
                   allocate (gam0_ffs(iky, ikx, iz)%fourier(gam0_ffs(iky, ikx, iz)%max_idx))
 
-               !! GA -- check
-!               if (.not. associated(gam0_ffs_mod(iky, ikx, iz)%fourier)) &
-!                  allocate (gam0_ffs_mod(iky, ikx, iz)%fourier(gam0_ffs_mod(iky, ikx, iz)%max_idx))
-
                !> fill the array with the requisite coefficients
                gam0_ffs(iky, ikx, iz)%fourier = gam0_kalpha(:gam0_ffs(iky, ikx, iz)%max_idx)
-
-               !!GA -- check
-!               gam0_ffs_mod(iky, ikx, iz)%fourier = gam0_kalpha_mod(:gam0_ffs_mod(iky, ikx, iz)%max_idx)
-!                call test_ffs_bessel_coefs (gam0_ffs(iky,ikx,iz)%fourier, gam0_alpha, iky, ikx, iz, gam0_ffs_unit)
             end do
          end do
       end do
@@ -693,19 +651,10 @@ contains
          call band_lu_factorisation_ffs(gam0_ffs, lu_gam0_ffs)
       end if
 
-      ! !! GA
-      ! if (.not. allocated(lu_gam0_ffs_mod)) then
-      !    allocate (lu_gam0_ffs_mod(ikx_max, -nzgrid:nzgrid))
-      !    call band_lu_factorisation_ffs(gam0_ffs_mod, lu_gam0_ffs_mod)
-      ! end if
-
       deallocate (wgts)
       deallocate (kperp2_swap)
       deallocate (aj0_alpha, gam0_alpha)
       deallocate (gam0_kalpha)
-
-!      deallocate (gam0_kalpha_mod)
-!      deallocate (gam0_alpha_mod)
 
    end subroutine init_gamma0_factor_ffs
 
@@ -1087,58 +1036,18 @@ contains
 
       if (present(const_in_alpha)) then
          call get_g_integral_contribution(g, avg_intg, const_in_alpha=const_in_alpha)
-         !! GA Now need to average over alpha
-         !    do iz = -nzgrid, nzgrid
-!             do iky = 1, naky
-!                do ikx = 1, nakx
-!                   call alpha_average_ffs (source(iky,ikx,iz,:), avg_intg(iky,ikx,iz))
-!                end do
-!             end do
-!          end do
-!         if(proc0) write(*,*) 'avg_intg', avg_intg
-!         if(proc0) write(*,*) 'gamtot', gamtot
          where (gamtot_t < epsilon(0.0))
             phi = 0.0
          elsewhere
             phi = spread(avg_intg, 4, ntubes) / gamtot_t
          end where
          if (any(gamtot(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
-!         if(proc0) write(*,*) 'phi after fields', phi
       else
          if (fphi > epsilon(0.0)) then
             allocate (source(naky, nakx, -nzgrid:nzgrid))
             !> calculate the contribution to quasineutrality coming from the velocity space
             !> integration of the guiding centre distribution function g;
             !> the sign is consistent with phi appearing on the RHS of the eqn and int g appearing on the LHS.
-            !> this is returned in source
-
-!             if(present(modify_for_par)) then
-!                call get_g_integral_contribution(g, avg_intg, const_in_alpha = .true.)
-!                where (gamtot < epsilon(0.0))
-!                   phi_avg = 0.0
-!                elsewhere
-!                   phi_avg =  avg_intg / gamtot
-!                end where
-!                if (any(gamtot(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
-
-!                if(.not. allocated(phiy)) allocate (phiy(ny,nakx))
-!                if(.not. allocated(phi_swap)) allocate (phi_swap(naky_all, ikx_max, -nzgrid:nzgrid))
-!                do iz = -nzgrid, nzgrid
-!                   call swap_kxky_ordered(phi_avg(:, :, iz), phi_swap(:,:,iz))
-!                   call transform_ky2y(phi_swap(:,:,iz), phiy)
-!                   phiy = phiy *gam0_alpha_modsave(:,:,iz)
-!                   call transform_y2ky(phiy, phi_swap(:,:,iz))
-!                   call swap_kxky_back_ordered(phi_swap(:,:,iz), phi_avg(:, :, iz))
-!                end do
-!                deallocate(phiy, phi_swap)
-
-!                call get_g_integral_contribution(g, source, modify_for_par = .true. )
-!                source = source -  phi_avg
-!                call get_phi_ffs(source, phi(:, :, :, 1) )
-!                phi = phi !+ spread(phi_avg,4,ntubes)
-! !               call get_g_integral_contribution(g, source, modify_for_par)
-! !               call get_phi_ffs(source, phi(:, :, :, 1), modify_for_par)
-!             else
             if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::get_g_integral_contribution'
             call get_g_integral_contribution(g, source)
             !> use sum_s int d3v <g> and QN to solve for phi
@@ -1202,7 +1111,7 @@ contains
          use gyro_averages, only: gyro_average, j0_B_maxwell_ffs
 !         use gyro_averages, only: B_maxwell_ffs
 
-         use vpamu_grids, only: maxwell_vpa, maxwell_mu
+         use vpamu_grids, only: maxwell_vpa, maxwell_mu_avg
          use stella_layouts, only: iv_idx, imu_idx, is_idx
          use vpamu_grids, only: integrate_species
          implicit none
@@ -1241,7 +1150,7 @@ contains
                !! GA - Multiply g by B*maxwellian - this is for the implicit treatment where we have a constant in
                !! alpha term
                !! GA check!! -- Just multiply by maxwellian, but maxwellian is constant in alpha
-               g0(:, :, ivmu) = g(:, :, iz, it, ivmu) * maxwell_mu(ia, iz, imu, is) * maxwell_vpa(iv, is)
+               g0(:, :, ivmu) = g(:, :, iz, it, ivmu) * maxwell_mu_avg(iz, imu, is) * maxwell_vpa(iv, is)
 !               call gyro_average(g(:, :, iz, it, ivmu), g0(:, :, ivmu), B_maxwell_ffs(:, :, iz, ivmu))
 !               g0(:,:,ivmu) = g(:,:,iz,it,ivmu) * maxwell_mu(ia, iz, imu, is) * maxwell_vpa(iv, is)
             end do
@@ -1253,7 +1162,6 @@ contains
                !! GA need to ingrate g and then average the result in alpha
                !! GA check!! -- This is now integrating correct g but with constant B*Maxwellian
                call integrate_species(g0, iz, spec%z * spec%dens_psi0, intg(:, :, iz), reduce_in=.false.)
-               !! to do - need to include ia index and then averge over alpha
             end if
          end do
 
@@ -2199,8 +2107,6 @@ contains
       if (allocated(gam0_ffs)) deallocate (gam0_ffs)
       if (allocated(lu_gam0_ffs)) deallocate (lu_gam0_ffs)
       if (allocated(adiabatic_response_factor)) deallocate (adiabatic_response_factor)
-
-!      if(allocated(gam0_alpha_modsave)) deallocate(gam0_alpha_modsave)
 
       fields_initialized = .false.
 

@@ -790,7 +790,7 @@ contains
 
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use run_parameters, only: driftkinetic_implicit
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu_avg
       implicit none
 
       complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
@@ -822,7 +822,7 @@ contains
                iv = iv_idx(vmu_lo, ivmu)
                imu = imu_idx(vmu_lo, ivmu)
                is = is_idx(vmu_lo, ivmu)
-               g0(ivmu) = g(idx, ivmu) * maxwell_mu(ia, iz, imu, is) * maxwell_vpa(iv, is)
+               g0(ivmu) = g(idx, ivmu) * maxwell_mu_avg(iz, imu, is) * maxwell_vpa(iv, is)
             end do
             call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
          end if
@@ -841,7 +841,7 @@ contains
                      iv = iv_idx(vmu_lo, ivmu)
                      imu = imu_idx(vmu_lo, ivmu)
                      is = is_idx(vmu_lo, ivmu)
-                     g0(ivmu) = g(idx, ivmu) * maxwell_mu(ia, iz, imu, is) * maxwell_vpa(iv, is)
+                     g0(ivmu) = g(idx, ivmu) * maxwell_mu_avg(iz, imu, is) * maxwell_vpa(iv, is)
                   end do
                   call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
                end if

@@ -110,6 +110,9 @@ contains
       use file_utils, only: get_unused_unit
       use physics_flags, only: include_geometric_variation, const_alpha_geo
 
+      !!GA
+      use volume_averages, only: alpha_average_ffs_realspace
+
       implicit none
 
       logical, parameter :: debug = .false.
@@ -348,6 +351,10 @@ contains
                ! Restart the variable twist_and_shift_geo_fac_full
                twist_and_shift_geo_fac_full = 0
             end if
+            !!GA
+!            do iz = -nzgrid, nzgrid
+ !              call alpha_average_ffs_realspace(b_dot_grad_z(:,iz), gradpar(iz), iz) 
+  !          end do
             !> Bref = 2*abs(psi_tor_LCFS)/a^2
             !> a*Bref*dx/dpsi_tor = sign(psi_tor)/rhotor
             !> psi = -psi_tor

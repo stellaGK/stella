@@ -101,7 +101,7 @@ contains
       !! GA get correction term [ (b.grad z) - (b.grad z)_0 ]
       if (driftkinetic_implicit) then
          stream_correction = stream - spread(stream_store, 1, nalpha)
-         deallocate (stream_store)
+!         deallocate (stream_store)
       end if
 
       if (radial_variation) then
@@ -136,13 +136,22 @@ contains
       !> only need to consider ia=1, iz=0 and is=1 because alpha, z and species dependences
       !> do not lead to change in sign of the streaming pre-factor
       do iv = 1, nvpa
-         stream_sign(iv) = int(sign(1.0, stream(1, 0, iv, 1)))
+         if(driftkinetic_implicit) then 
+            stream_sign(iv) = int(sign(1.0, stream_store(0,iv,1)))
+         else
+            stream_sign(iv) = int(sign(1.0, stream(1, 0, iv, 1)))
+         end if
       end do
 
       if (stream_implicit .or. driftkinetic_implicit) then
          call init_invert_stream_operator
          if (.not. allocated(stream_c)) allocate (stream_c(-nzgrid:nzgrid, nvpa, nspec))
-         stream_c = stream(1, :, :, :)
+         if(driftkinetic_implicit) then 
+            stream_c = stream_store
+            deallocate (stream_store)
+         else
+            stream_c = stream(1, :, :, :)
+         end if
          do is = 1, nspec
             do iv = 1, nvpa
                call center_zed(iv, stream_c(:, iv, is))
@@ -231,11 +240,12 @@ contains
       complex, dimension(:, :, :, :), allocatable :: g0y, g1y
       complex, dimension(:, :), allocatable :: g0_swap
 
+      !! GA 
       complex, dimension(:, :, :, :), allocatable :: dgphi_dz_correction
       complex, dimension(:, :, :, :), allocatable :: g1y_correction
       complex, dimension(:, :), allocatable :: g0_swap_correction
       complex, dimension(:, :, :, :), allocatable :: phi1
-      logical :: const_in_alpha
+      logical :: const_in_alpha =.True. 
 
       !> if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
       !> if full flux surface (flux annulus), will need to calculate in y space
@@ -278,11 +288,12 @@ contains
             !! GA get d(avgphi)/dz
             call get_dgdz_centered(phi1, ivmu, dgphi_dz_correction)
             !! GA get <phi>
-            call gyro_average(phi, ivmu, g0(:, :, :, :))
-         else
-            call gyro_average(phi, ivmu, g0(:, :, :, :))
+!            call gyro_average(phi, ivmu, g0(:, :, :, :))
+!         else
+!            call gyro_average(phi, ivmu, g0(:, :, :, :))
          end if
 
+         call gyro_average(phi, ivmu, g0(:, :, :, :))
          !> get d<phi>/dz, with z the parallel coordinate and store in dgphi_dz
          !> note that this should be a centered difference to avoid numerical
          !> unpleasantness to do with inexact cancellations in later velocity integration

@@ -490,8 +490,11 @@ contains
       real :: fac, fac0, fac1, gyro_fac
       real :: maxwell_vpa_s
       real, dimension(:, :), allocatable :: maxwell_zed
-      ia = 1
+      
+      real :: gradpar_fac
 
+      ia = 1
+      
       allocate (maxwell_zed(nalpha, -nzgrid:nzgrid))
       if (.not. maxwellian_inside_zed_derivative) then
          ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi
@@ -790,9 +793,7 @@ contains
 
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use run_parameters, only: driftkinetic_implicit
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu
-
-      use gyro_averages, only: B_maxwell_ffs
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu_avg
       implicit none
 
       complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
@@ -820,13 +821,12 @@ contains
             call gyro_average(g(idx, :), iky, ikx, iz, g0)
             call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
          else
-            ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            !    iv = iv_idx(vmu_lo, ivmu)
-            !    imu = imu_idx(vmu_lo, ivmu)
-            !    is = is_idx(vmu_lo,ivmu)
-            !    g0(ivmu) = g(idx,ivmu) * maxwell_mu(ia, iz, imu, is) * maxwell_vpa(iv, is)
-            ! end do
-            call gyro_average(g(idx, iv), g0(:, :, ivmu), B_maxwell_ffs(:, :, iz, ivmu))
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               iv = iv_idx(vmu_lo, ivmu)
+               imu = imu_idx(vmu_lo, ivmu)
+               is = is_idx(vmu_lo, ivmu)
+               g0(ivmu) = g(idx, ivmu) * maxwell_mu_avg(iz, imu, is) * maxwell_vpa(iv, is)
+            end do
             call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
          end if
       end do
@@ -844,7 +844,7 @@ contains
                      iv = iv_idx(vmu_lo, ivmu)
                      imu = imu_idx(vmu_lo, ivmu)
                      is = is_idx(vmu_lo, ivmu)
-                     g0(ivmu) = g(idx, ivmu) * maxwell_mu(ia, iz, imu, is) * maxwell_vpa(iv, is)
+                     g0(ivmu) = g(idx, ivmu) * maxwell_mu_avg(iz, imu, is) * maxwell_vpa(iv, is)
                   end do
                   call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
                end if

@@ -19,6 +19,8 @@ module vpamu_grids
    public :: equally_spaced_mu_grid
    public :: set_vpa_weights
 
+   public :: maxwell_mu_avg
+
    logical :: vpamu_initialized = .false.
 
    integer :: nvgrid, nvpa
@@ -43,6 +45,7 @@ module vpamu_grids
    ! but allocated and filled elsewhere because they depend on z, etc.
    real, dimension(:, :, :), allocatable :: vperp2
 
+   real, dimension(:, :, :), allocatable :: maxwell_mu_avg
    interface integrate_species
       module procedure integrate_species_vmu
       module procedure integrate_species_vmu_single
@@ -690,11 +693,13 @@ contains
       use kt_grids, only: nalpha
       use species, only: spec, nspec
       use stella_geometry, only: bmag, bmag_psi0
-
+      use volume_averages, only: alpha_average_ffs_realspace
       implicit none
 
       integer :: imu
       real :: mu_max
+      
+      integer :: iz,is
 
       !> allocate arrays and initialize to zero
       if (.not. allocated(mu)) then
@@ -706,6 +711,8 @@ contains
          allocate (dmu_ghost(nmu))
          allocate (mu_cell(nmu))
          allocate (dmu_cell(nmu))
+
+         allocate (maxwell_mu_avg(-nzgrid:nzgrid, nmu, nspec)); maxwell_mu_avg = 0.0
       end if
 
       !> dvpe * vpe = d(2*mu*B0) * B/2B0
@@ -741,7 +748,14 @@ contains
       !> maxwell_mu is the mu part of the v-space Maxwellian
       maxwell_mu = exp(-2.*spread(spread(spread(mu, 1, nalpha), 2, nztot) * spread(bmag, 3, nmu), 4, nspec) &
                        * spread(spread(spread(spec%temp_psi0 / spec%temp, 1, nalpha), 2, nztot), 3, nmu))
-
+      !!GA 
+      do is = 1, nspec
+         do imu = 1, nmu 
+            do iz = -nzgrid, nzgrid
+               call alpha_average_ffs_realspace (maxwell_mu(:,iz,imu,is), maxwell_mu_avg(iz,imu,is),iz)
+            end do
+         end do
+      end do
       !> factor of 2. necessary to account for 2pi from
       !> integration over gyro-angle and 1/pi^(3/2) normalization
       !> of velocity space Jacobian
@@ -773,6 +787,7 @@ contains
       if (allocated(dmu_cell)) deallocate (dmu_cell)
       if (allocated(dmu_ghost)) deallocate (dmu_ghost)
       if (allocated(rbuffer)) deallocate (rbuffer)
+      if (allocated(maxwell_mu_avg)) deallocate (maxwell_mu_avg)
 
    end subroutine finish_mu_grid
 
