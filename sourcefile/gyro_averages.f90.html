@@ -482,7 +482,7 @@
 <a id="ln-272" name="ln-272" href="#ln-272"></a><span class="w">      </span><span class="kt">complex</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(:),</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">aj0_kalpha</span><span class="p">,</span><span class="w"> </span><span class="n">j0_B_maxwell_kalpha</span><span class="w"></span>
 <a id="ln-273" name="ln-273" href="#ln-273"></a>
 <a id="ln-274" name="ln-274" href="#ln-274"></a><span class="w">      </span><span class="c">!! GA</span>
-<a id="ln-275" name="ln-275" href="#ln-275"></a><span class="c">!      real, dimension(:), allocatable :: B_maxwell </span>
+<a id="ln-275" name="ln-275" href="#ln-275"></a><span class="c">!      real, dimension(:), allocatable :: B_maxwell</span>
 <a id="ln-276" name="ln-276" href="#ln-276"></a><span class="c">!      complex, dimension(:), allocatable :: B_maxwell_kalpha</span>
 <a id="ln-277" name="ln-277" href="#ln-277"></a>
 <a id="ln-278" name="ln-278" href="#ln-278"></a><span class="w">      </span><span class="c">!       call open_output_file (j0_ffs_unit, &#39;.j0_ffs&#39;)</span>
@@ -506,7 +506,7 @@
 <a id="ln-296" name="ln-296" href="#ln-296"></a><span class="k">      if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="nb">allocated</span><span class="p">(</span><span class="n">j0_B_maxwell_ffs</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
 <a id="ln-297" name="ln-297" href="#ln-297"></a><span class="k">         allocate</span><span class="w"> </span><span class="p">(</span><span class="n">j0_B_maxwell_ffs</span><span class="p">(</span><span class="n">naky_all</span><span class="p">,</span><span class="w"> </span><span class="n">ikx_max</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">,</span><span class="w"> </span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">ulim_alloc</span><span class="p">))</span><span class="w"></span>
 <a id="ln-298" name="ln-298" href="#ln-298"></a><span class="w">      </span><span class="k">end if</span><span class="w"></span>
-<a id="ln-299" name="ln-299" href="#ln-299"></a><span class="w">      </span>
+<a id="ln-299" name="ln-299" href="#ln-299"></a>
 <a id="ln-300" name="ln-300" href="#ln-300"></a><span class="w">      </span><span class="c">!! GA</span>
 <a id="ln-301" name="ln-301" href="#ln-301"></a><span class="w">      </span><span class="c">! allocate (B_maxwell(nalpha))</span>
 <a id="ln-302" name="ln-302" href="#ln-302"></a><span class="w">      </span><span class="c">! allocate (B_maxwell_kalpha(naky))</span>
@@ -553,8 +553,8 @@
 <a id="ln-343" name="ln-343" href="#ln-343"></a><span class="w">                  </span><span class="c">!if (debug) write (*,*) &#39;gyro_averages::init_bessel::full_flux_surface::find_max_required_kalpha_index&#39;</span>
 <a id="ln-344" name="ln-344" href="#ln-344"></a><span class="w">                  </span><span class="c">!                ! TMP FOR TESTING</span>
 <a id="ln-345" name="ln-345" href="#ln-345"></a><span class="w">                  </span><span class="c">!!!!!!!!!!!!!!!!!!!!</span>
-<a id="ln-346" name="ln-346" href="#ln-346"></a><span class="w">                  </span><span class="n">j0_ffs</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="n">ikx</span><span class="p">,</span><span class="n">iz</span><span class="p">,</span><span class="n">ivmu</span><span class="p">)%</span><span class="n">max_idx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">naky</span><span class="w"></span>
-<a id="ln-347" name="ln-347" href="#ln-347"></a><span class="w">                  </span><span class="n">j0_B_maxwell_ffs</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="w"> </span><span class="n">ikx</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span><span class="p">)%</span><span class="n">max_idx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">naky</span><span class="w"> </span>
+<a id="ln-346" name="ln-346" href="#ln-346"></a><span class="w">                  </span><span class="n">j0_ffs</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="w"> </span><span class="n">ikx</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span><span class="p">)%</span><span class="n">max_idx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">naky</span><span class="w"></span>
+<a id="ln-347" name="ln-347" href="#ln-347"></a><span class="w">                  </span><span class="n">j0_B_maxwell_ffs</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="w"> </span><span class="n">ikx</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span><span class="p">)%</span><span class="n">max_idx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">naky</span><span class="w"></span>
 <a id="ln-348" name="ln-348" href="#ln-348"></a><span class="w">                  </span><span class="c">!! GA</span>
 <a id="ln-349" name="ln-349" href="#ln-349"></a><span class="c">!&gt;&gt;                  B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx = naky</span>
 <a id="ln-350" name="ln-350" href="#ln-350"></a><span class="c">!                  call find_max_required_kalpha_index(aj0_kalpha, j0_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)</span>
@@ -579,7 +579,7 @@
 <a id="ln-369" name="ln-369" href="#ln-369"></a><span class="w">                  </span><span class="c">!&gt; fill the array with the requisite coefficients</span>
 <a id="ln-370" name="ln-370" href="#ln-370"></a><span class="w">                  </span><span class="n">j0_B_maxwell_ffs</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="w"> </span><span class="n">ikx</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span><span class="p">)%</span><span class="n">fourier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j0_B_maxwell_kalpha</span><span class="p">(:</span><span class="n">j0_B_maxwell_ffs</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="w"> </span><span class="n">ikx</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span><span class="p">)%</span><span class="n">max_idx</span><span class="p">)</span><span class="w"></span>
 <a id="ln-371" name="ln-371" href="#ln-371"></a><span class="w">                  </span><span class="c">!                   call test_ffs_bessel_coefs (j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier, j0_B_maxwell, iky, ikx, iz, j0_B_maxwell_ffs_unit, ivmu)</span>
-<a id="ln-372" name="ln-372" href="#ln-372"></a><span class="w">                  </span><span class="c">!! GA </span>
+<a id="ln-372" name="ln-372" href="#ln-372"></a><span class="w">                  </span><span class="c">!! GA</span>
 <a id="ln-373" name="ln-373" href="#ln-373"></a><span class="c">!&gt;&gt;                  B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier = B_maxwell_kalpha(:B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx)</span>
 <a id="ln-374" name="ln-374" href="#ln-374"></a><span class="w">               </span><span class="k">end do</span>
 <a id="ln-375" name="ln-375" href="#ln-375"></a><span class="k">            end do</span>
@@ -1221,13 +1221,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-161-g90c600bfb</small></p>
+<br /><small>v0.5.1-163-g3f1387c30</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-12-19T10:21:00.411644           </p>
+ on 2022-12-20T11:16:38.673186           </p>
         </div>
       </div>
       <br>

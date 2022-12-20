@@ -1557,14 +1557,14 @@
 <a id="ln-1347" name="ln-1347" href="#ln-1347"></a><span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">include_collisions</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="p">.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">collisions_implicit</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">advance_collisions_explicit</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span><span class="w"> </span><span class="n">phi</span><span class="p">,</span><span class="w"> </span><span class="n">rhs</span><span class="p">)</span><span class="w"></span>
 <a id="ln-1348" name="ln-1348" href="#ln-1348"></a>
 <a id="ln-1349" name="ln-1349" href="#ln-1349"></a><span class="w">         </span><span class="c">!&gt; calculate and add parallel streaming term to RHS of GK eqn</span>
-<a id="ln-1350" name="ln-1350" href="#ln-1350"></a><span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">include_parallel_streaming</span><span class="p">)</span><span class="w"> </span><span class="k">then </span>
-<a id="ln-1351" name="ln-1351" href="#ln-1351"></a><span class="k">            if</span><span class="p">(.</span><span class="nb">not</span><span class="p">.(</span><span class="w"> </span><span class="n">stream_implicit</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">driftkinetic_implicit</span><span class="p">)</span><span class="w"> </span><span class="k">then </span>
+<a id="ln-1350" name="ln-1350" href="#ln-1350"></a><span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">include_parallel_streaming</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<a id="ln-1351" name="ln-1351" href="#ln-1351"></a><span class="k">            if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">stream_implicit</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">driftkinetic_implicit</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
 <a id="ln-1352" name="ln-1352" href="#ln-1352"></a><span class="k">               if</span><span class="w"> </span><span class="p">(</span><span class="n">debug</span><span class="p">)</span><span class="w"> </span><span class="k">write</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit&#39;</span><span class="w"></span>
 <a id="ln-1353" name="ln-1353" href="#ln-1353"></a><span class="w">               </span><span class="k">call </span><span class="n">advance_parallel_streaming_explicit</span><span class="p">(</span><span class="n">gin</span><span class="p">,</span><span class="w"> </span><span class="n">phi</span><span class="p">,</span><span class="w"> </span><span class="n">rhs</span><span class="p">)</span><span class="w"></span>
 <a id="ln-1354" name="ln-1354" href="#ln-1354"></a><span class="c">!!&gt;               if(proc0) write(*,*) &#39;after parallel streaming explicit&#39;, maxval(real(rhs))</span>
 <a id="ln-1355" name="ln-1355" href="#ln-1355"></a><span class="w">            </span><span class="k">end if</span>
 <a id="ln-1356" name="ln-1356" href="#ln-1356"></a><span class="k">         end if</span><span class="w"></span>
-<a id="ln-1357" name="ln-1357" href="#ln-1357"></a><span class="c">!         if(proc0) write(*,*) &#39;end of explicit befpre swap&#39;, maxval(real(rhs)) </span>
+<a id="ln-1357" name="ln-1357" href="#ln-1357"></a><span class="c">!         if(proc0) write(*,*) &#39;end of explicit befpre swap&#39;, maxval(real(rhs))</span>
 <a id="ln-1358" name="ln-1358" href="#ln-1358"></a><span class="w">         </span><span class="c">!&gt; if simulating a full flux surface (flux annulus), all terms to this point have been calculated</span>
 <a id="ln-1359" name="ln-1359" href="#ln-1359"></a><span class="w">         </span><span class="c">!&gt; in real-space in alpha (y); transform to kalpha (ky) space before adding to RHS of GKE.</span>
 <a id="ln-1360" name="ln-1360" href="#ln-1360"></a><span class="w">         </span><span class="c">!&gt; NB: it may be that for fully explicit calculation, this transform can be eliminated with additional code changes</span>
@@ -2845,7 +2845,7 @@
 <a id="ln-2635" name="ln-2635" href="#ln-2635"></a><span class="w">            </span><span class="k">call </span><span class="n">advance_collisions_implicit</span><span class="p">(</span><span class="n">mirror_implicit</span><span class="p">,</span><span class="w"> </span><span class="n">phi</span><span class="p">,</span><span class="w"> </span><span class="n">apar</span><span class="p">,</span><span class="w"> </span><span class="n">g</span><span class="p">)</span><span class="w"></span>
 <a id="ln-2636" name="ln-2636" href="#ln-2636"></a><span class="w">            </span><span class="n">fields_updated</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span><span class="w"></span>
 <a id="ln-2637" name="ln-2637" href="#ln-2637"></a><span class="w">         </span><span class="k">end if</span>
-<a id="ln-2638" name="ln-2638" href="#ln-2638"></a><span class="k">         </span>
+<a id="ln-2638" name="ln-2638" href="#ln-2638"></a>
 <a id="ln-2639" name="ln-2639" href="#ln-2639"></a><span class="k">         if</span><span class="w"> </span><span class="p">(</span><span class="n">mirror_implicit</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">include_mirror</span><span class="p">)</span><span class="w"> </span><span class="k">then</span><span class="w"></span>
 <a id="ln-2640" name="ln-2640" href="#ln-2640"></a><span class="c">!          if (full_flux_surface) then</span>
 <a id="ln-2641" name="ln-2641" href="#ln-2641"></a><span class="c">!             allocate (gy(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))</span>
@@ -2913,7 +2913,7 @@
 <a id="ln-2703" name="ln-2703" href="#ln-2703"></a>
 <a id="ln-2704" name="ln-2704" href="#ln-2704"></a><span class="w">      </span><span class="c">! stop the timer for the implict part of the solve</span>
 <a id="ln-2705" name="ln-2705" href="#ln-2705"></a><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">proc0</span><span class="p">)</span><span class="w"> </span><span class="k">call </span><span class="n">time_message</span><span class="p">(.</span><span class="n">false</span><span class="p">.,</span><span class="w"> </span><span class="n">time_gke</span><span class="p">(:,</span><span class="w"> </span><span class="mi">9</span><span class="p">),</span><span class="w"> </span><span class="s1">&#39; implicit&#39;</span><span class="p">)</span><span class="w"></span>
-<a id="ln-2706" name="ln-2706" href="#ln-2706"></a><span class="c">!!&gt;      if(proc0) write(*,*) &#39;end of implicit&#39; , maxval(real(g))  </span>
+<a id="ln-2706" name="ln-2706" href="#ln-2706"></a><span class="c">!!&gt;      if(proc0) write(*,*) &#39;end of implicit&#39; , maxval(real(g))</span>
 <a id="ln-2707" name="ln-2707" href="#ln-2707"></a><span class="w">   </span><span class="k">end subroutine </span><span class="n">advance_implicit</span><span class="w"></span>
 <a id="ln-2708" name="ln-2708" href="#ln-2708"></a>
 <a id="ln-2709" name="ln-2709" href="#ln-2709"></a><span class="w">   </span><span class="k">subroutine </span><span class="n">advance_drifts_implicit</span><span class="p">(</span><span class="n">g</span><span class="p">,</span><span class="w"> </span><span class="n">phi</span><span class="p">,</span><span class="w"> </span><span class="n">apar</span><span class="p">)</span><span class="w"></span>
@@ -3264,13 +3264,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-161-g90c600bfb</small></p>
+<br /><small>v0.5.1-163-g3f1387c30</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-12-19T10:21:00.411644           </p>
+ on 2022-12-20T11:16:38.673186           </p>
         </div>
       </div>
       <br>
