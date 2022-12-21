@@ -112,6 +112,11 @@ Next, it is required to install a virtual python environment through:
 3d. If you get the error "no module named '_tkinter'" then try
     >>> sudo apt-get install python3-tk
     >>> brew install python-tk
+    
+3e. If you get any Latex related errors try
+    >>> sudo apt install texlive-latex-extra
+    >>> sudo apt install cm-super
+    >>> sudo apt-get install dvipng 
 
 #===============================================================================
 #                                 Stellapy GUI                                 #
