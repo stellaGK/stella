@@ -20,6 +20,7 @@ module run_parameters
    public :: zed_upwind, vpa_upwind, time_upwind
    public :: fields_kxkyz, mat_gen, mat_read
    public :: rng_seed
+   public :: use_deltaphi_for_response_matrix
 
    private
 
@@ -35,6 +36,7 @@ module run_parameters
    logical :: mirror_semi_lagrange, mirror_linear_interp
    logical :: fields_kxkyz, mat_gen, mat_read
    logical :: ky_solve_real
+   logical :: use_deltaphi_for_response_matrix
    real :: avail_cpu_time
    integer :: nstep, ky_solve_radial
    integer :: rng_seed
@@ -86,7 +88,7 @@ contains
          delt_option, lu_option, &
          avail_cpu_time, cfl_cushion, delt_adjust, delt_max, &
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
-         drifts_implicit, &
+         drifts_implicit, use_deltaphi_for_response_matrix, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
@@ -106,6 +108,7 @@ contains
          mirror_semi_lagrange = .true.
          mirror_linear_interp = .false.
          stream_matrix_inversion = .false.
+         use_deltaphi_for_response_matrix = .false.
          delt_option = 'default'
          lu_option = 'default'
          zed_upwind = 0.02
@@ -166,6 +169,7 @@ contains
       call broadcast(mirror_semi_lagrange)
       call broadcast(mirror_linear_interp)
       call broadcast(stream_matrix_inversion)
+      call broadcast(use_deltaphi_for_response_matrix)
       call broadcast(zed_upwind)
       call broadcast(vpa_upwind)
       call broadcast(time_upwind)
