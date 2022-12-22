@@ -572,6 +572,7 @@ contains
       use kt_grids, only: naky, nakx
       use dist_fn_arrays, only: g1
       use run_parameters, only: stream_matrix_inversion
+      use run_parameters, only: use_deltaphi_for_response_matrix
       use fields, only: advance_fields, fields_updated
 
       implicit none
@@ -580,15 +581,19 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
 
       integer :: ivmu
-      complex, dimension(:, :, :, :), allocatable :: phi1
+      complex, dimension(:, :, :, :), allocatable :: phi_save
 
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
-      allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (phi_save(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       ! save the incoming g and phi, as they will be needed later
       g1 = g
-      phi1 = phi
+      phi_save = phi
+      ! if using delaphi formulation for response matrix, then phi = phi^n replaces
+      ! phi^{n+1} in the inhomogeneous GKE; else set phi = 0 in place of phi^{n+1}
+      ! in inhomogeneous GKE
+      if (.not.use_deltaphi_for_response_matrix) phi = 0.0
 
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -596,7 +601,7 @@ contains
          ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g_{inh}^{n+1}
          ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
          ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
-         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi1, phi, g(:, :, :, :, ivmu), eqn='inhomogeneous')
+         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi_save, phi, g(:, :, :, :, ivmu))
 
          if (stream_matrix_inversion) then
             ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
@@ -614,12 +619,16 @@ contains
       ! calculate associated fields (phi_{inh}^{n+1})
       call advance_fields(g, phi, apar, dist='gbar')
 
-      ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
-      ! phi = phi_{inh}^{n+1} is input and overwritten by phi = phi^{n+1}
+      ! solve response_matrix*(phi^{n+1}-phi^{n*}) = phi_{inh}^{n+1}-phi^{n*}
+      ! phi = phi_{inh}^{n+1}-phi^{n*} is input and overwritten by phi = phi^{n+1}-phi^{n*}
+      phi = phi - phi_save
       if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
       call invert_parstream_response(phi)
       if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
 
+      ! redefine phi = phi^{n+1}-phi^{n*} to be phi = phi^{n+1}
+      phi = phi + phi_save
+      
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! now have phi^{n+1} for non-negative kx
@@ -627,7 +636,7 @@ contains
          ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1}
          ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
          ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>)
-         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi1, phi, g(:, :, :, :, ivmu), eqn='full')
+         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi_save, phi, g(:, :, :, :, ivmu))
 
          if (stream_matrix_inversion) then
             ! solve (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} = RHS
@@ -639,13 +648,13 @@ contains
       end do
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
 
-      deallocate (phi1)
+      deallocate (phi_save)
 
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
    end subroutine advance_parallel_streaming_implicit
 
-   subroutine get_gke_rhs(ivmu, gold, phiold, phi, g, eqn)
+   subroutine get_gke_rhs(ivmu, gold, phiold, phi, g)
 
       use stella_time, only: code_dt
       use zgrid, only: nzgrid, ntubes
@@ -669,7 +678,6 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: gold
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phiold, phi
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: g
-      character(*), intent(in) :: eqn
 
       integer :: iv, imu, is, iz, ia
       real :: tupwnd1, tupwnd2, fac
@@ -686,11 +694,7 @@ contains
       ia = 1
 
       tupwnd1 = 0.5 * (1.0 - time_upwind)
-      if (eqn == 'full') then
-         tupwnd2 = 0.5 * (1.0 + time_upwind)
-      else
-         tupwnd2 = 0.0
-      end if
+      tupwnd2 = 0.5 * (1.0 + time_upwind)
 
       ! now have phi^{n+1} for non-negative kx
       ! obtain RHS of GK eqn;
