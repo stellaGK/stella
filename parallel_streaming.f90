@@ -593,7 +593,7 @@ contains
       ! if using delaphi formulation for response matrix, then phi = phi^n replaces
       ! phi^{n+1} in the inhomogeneous GKE; else set phi = 0 in place of phi^{n+1}
       ! in inhomogeneous GKE
-      if (.not.use_deltaphi_for_response_matrix) phi = 0.0
+      if (.not. use_deltaphi_for_response_matrix) phi = 0.0
 
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -628,7 +628,7 @@ contains
 
       ! redefine phi = phi^{n+1}-phi^{n*} to be phi = phi^{n+1}
       phi = phi + phi_save
-      
+
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! now have phi^{n+1} for non-negative kx
