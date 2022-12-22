@@ -621,13 +621,13 @@ contains
 
       ! solve response_matrix*(phi^{n+1}-phi^{n*}) = phi_{inh}^{n+1}-phi^{n*}
       ! phi = phi_{inh}^{n+1}-phi^{n*} is input and overwritten by phi = phi^{n+1}-phi^{n*}
-      phi = phi - phi_save
+      if (use_deltaphi_for_response_matrix) phi = phi - phi_save
       if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
       call invert_parstream_response(phi)
       if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
 
       ! redefine phi = phi^{n+1}-phi^{n*} to be phi = phi^{n+1}
-      phi = phi + phi_save
+      if (use_deltaphi_for_response_matrix) phi = phi + phi_save
       
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
