@@ -880,10 +880,10 @@ contains
          !    ! ! construct d(<phi>*exp(-mu*B/T))/dz + 2*mu*<phi>*exp(-mu*B/T)*dB/dz
          !    ! ! = d<phi>/dz * exp(-mu*B/T)
          !    ! dchidz = dchidz + 2.0 * mu(imu) * g
-      else
+      ! else
          ! center Maxwellian factor in mu
-         maxwell_mu_centered = maxwell_mu(ia, :, imu, is)
-         call center_zed_midpoint(iv, maxwell_mu_centered)
+         ! maxwell_mu_centered = maxwell_mu(ia, :, imu, is)
+         !call center_zed_midpoint(iv, maxwell_mu_centered)
       end if
 
       ! ! NB: could do this once at beginning of simulation to speed things up
@@ -902,6 +902,9 @@ contains
 
       ! Center h and delta chi in zed.
       h = hold
+      do iz = -nzgrid, nzgrid 
+         deltachi(:,:,iz,:) = deltachi(:,:,iz,:)*maxwell_mu(ia,iz,imu,is) * maxwell_fac(is)
+      end do
       call center_zed(iv, h)
       call center_zed(iv, deltachi)
 
@@ -956,7 +959,7 @@ contains
       fac = code_dt * spec(is)%stm_psi0
       do iz = -nzgrid, nzgrid
          h(:, :, iz, :) = inhomogeneous_fac * h(:, :, iz, :) &
-                          + homogeneous_fac * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu_centered(iz) * maxwell_fac(is) * deltachi(:, :, iz, :) &
+                          + homogeneous_fac * spec(is)%zt * maxwell_vpa(iv, is) *  deltachi(:, :, iz, :) &
                           - inhomogeneous_fac * fac * gp(iz) * tupwnd1 * vpa(iv) * dhdz(:, :, iz, :)
 
          if (stream_drifts_implicit) then
