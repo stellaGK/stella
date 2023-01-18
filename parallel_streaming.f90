@@ -14,7 +14,7 @@ module parallel_streaming
    public :: stream_rad_var1
    public :: stream_rad_var2
 
-   public :: stream_correction
+   public :: stream_correction, stream_full
    public :: gradpar_fac
 
    private
@@ -38,7 +38,7 @@ module parallel_streaming
 
    real, dimension(2, 3) :: time_parallel_streaming = 0.
 
-   real, dimension(:, :, :, :), allocatable :: stream_correction
+   real, dimension(:, :, :, :), allocatable :: stream_correction, stream_full
    real, dimension(:), allocatable :: gradpar_fac
 
 contains
@@ -78,6 +78,7 @@ contains
 
       if (driftkinetic_implicit) then
          if (.not. allocated(stream_correction)) allocate (stream_correction(nalpha, -nzgrid:nzgrid, nvpa, nspec)); stream_correction = 0.
+         if (.not. allocated(stream_full)) allocate (stream_full(nalpha, -nzgrid:nzgrid, nvpa, nspec)); stream_full = 0.
          if (.not. allocated(stream_store)) allocate (stream_store(-nzgrid:nzgrid, nvpa, nspec)); stream_store = 0.
       end if
       
@@ -94,28 +95,29 @@ contains
                   stream(ia, iz, iv, :) = -code_dt * b_dot_grad_z(ia, iz) * vpa(iv) * spec%stm_psi0
                end do
                if (driftkinetic_implicit) then
-                  do is = 1, nspec
-                     call alpha_average_ffs_realspace(stream(:, iz, iv, is), stream_store(iz, iv, is), iz)
-                  end do
+                  stream_store(iz,iv, :) = -code_dt *gradpar(iz) * vpa(iv) * spec%stm_psi0
+!                  do is = 1, nspec
+!                     call alpha_average_ffs_realspace(stream(:, iz, iv, is), stream_store(iz, iv, is), iz)
+!                  end do
                end if
             end do
          end do
       else
          stream = 0.0
+         if(driftkinetic_implicit) stream_store = 0.0
       end if
       
       if(driftkinetic_implicit) then
-         do iz = -nzgrid, nzgrid
-            call alpha_average_ffs_realspace (b_dot_grad_z(:, iz), gradpar_fac(iz), iz)
-         end do
+         gradpar_fac = gradpar 
       else
          gradpar_fac = gradpar
       end if
 
       !! GA get correction term [ (b.grad z) - (b.grad z)_0 ]
       if (driftkinetic_implicit) then
+         stream_full = stream 
          stream_correction = stream - spread(stream_store, 1, nalpha)
-!         deallocate (stream_store)
+         stream = spread(stream_store, 1, nalpha)
       end if
 
       if (radial_variation) then
@@ -150,22 +152,22 @@ contains
       !> only need to consider ia=1, iz=0 and is=1 because alpha, z and species dependences
       !> do not lead to change in sign of the streaming pre-factor
       do iv = 1, nvpa
-         if (driftkinetic_implicit) then
-            stream_sign(iv) = int(sign(1.0, stream_store(0, iv, 1)))
-         else
-            stream_sign(iv) = int(sign(1.0, stream(1, 0, iv, 1)))
-         end if
+!         if (driftkinetic_implicit) then
+!            stream_sign(iv) = int(sign(1.0, stream_store(0, iv, 1)))
+!         else
+         stream_sign(iv) = int(sign(1.0, stream(1, 0, iv, 1)))
+!         end if
       end do
 
       if (stream_implicit .or. driftkinetic_implicit) then
          call init_invert_stream_operator
          if (.not. allocated(stream_c)) allocate (stream_c(-nzgrid:nzgrid, nvpa, nspec))
-         if (driftkinetic_implicit) then
-            stream_c = stream_store
-            deallocate (stream_store)
-         else
-            stream_c = stream(1, :, :, :)
-         end if
+ !        if (driftkinetic_implicit) then
+ !           stream_c = stream_store
+ !           deallocate (stream_store)
+ !        else
+         stream_c = stream(1, :, :, :)
+!         end if
          do is = 1, nspec
             do iv = 1, nvpa
                call center_zed(iv, stream_c(:, iv, is))
@@ -301,10 +303,6 @@ contains
          if (driftkinetic_implicit) then
             !! GA get d(avgphi)/dz
             call get_dgdz_centered(phi1, ivmu, dgphi_dz_correction)
-            !! GA get <phi>
-!            call gyro_average(phi, ivmu, g0(:, :, :, :))
-!         else
-!            call gyro_average(phi, ivmu, g0(:, :, :, :))
          end if
 
          call gyro_average(phi, ivmu, g0(:, :, :, :))
@@ -369,7 +367,7 @@ contains
                !! GA Add stream contribution with (b . grad z) constant in alpha
                !! this multiplies Z/T * d/dz( <phi> - avg(phi) )
                g1y = (g1y - g1y_correction) * spec(is)%zt
-               call add_stream_term_ffs(g1y, ivmu, gout(:, :, :, :, ivmu))
+               call add_stream_term_ffs_full(g1y, ivmu, gout(:, :, :, :, ivmu))
             else
                !> over-write g0y with d/dz (g/F) + Ze/T * d<phi>/dz (or <phi>-phi for driftkinetic_implicit).
                g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt
@@ -654,6 +652,31 @@ contains
 
    end subroutine add_stream_term_ffs
 
+   subroutine add_stream_term_ffs_full (g, ivmu, src)
+
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: iv_idx, is_idx
+      use zgrid, only: nzgrid
+      use kt_grids, only: ny
+
+      implicit none 
+      
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: src
+      integer, intent(in) :: ivmu
+
+      integer :: iz, iy, iv, is
+
+      iv = iv_idx(vmu_lo, ivmu)
+      is = is_idx(vmu_lo, ivmu)
+      do iz = -nzgrid, nzgrid
+         do iy = 1, ny
+            src(iy, :, iz, :) = src(iy, :, iz, :) + stream_full(iy, iz, iv, is) * g(iy, :, iz, :)
+         end do
+      end do
+
+    end subroutine add_stream_term_ffs_full
+
    subroutine add_stream_term_ffs_correction(g, ivmu, src)
 
       use stella_layouts, only: vmu_lo
@@ -874,7 +897,7 @@ contains
       else
          !! GA - no maxwellian when doing FFS
          call get_dzed(iv, g, dphidz)
-         call center_zed(iv, g)
+         !call center_zed(iv, g)
          vpadf0dE_fac = vpa(iv) * spec(is)%zt
       end if
 
@@ -1336,6 +1359,7 @@ contains
       end if
 
       if (allocated(stream_correction)) deallocate (stream_correction)
+      if (allocated(stream_full)) deallocate (stream_full)
       if (allocated(gradpar_fac)) deallocate(gradpar_fac)
 
    end subroutine finish_invert_stream_operator

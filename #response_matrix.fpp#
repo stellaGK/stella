@@ -540,8 +540,8 @@ contains
                   ! fac0 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at this zed index
                   fac0 = fac * ((1.+zed_upwind) * gradpar_fac(iz) &
-                                + (1.-zed_upwind) * gradpar_fac(iz - 1)) &
-                         * (maxwell_zed(ia, iz) + maxwell_zed(ia, iz - 1))
+                       + (1.-zed_upwind) * gradpar_fac(iz - 1)) &
+                       * (maxwell_zed(ia, iz) + maxwell_zed(ia, iz - 1))
 !                         * (maxwell_mu(ia, iz, imu, is) + maxwell_mu(ia, iz - 1, imu, is))
                   ! fac1 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at the zed index to the right of

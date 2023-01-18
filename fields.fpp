@@ -1109,11 +1109,10 @@ contains
          use kt_grids, only: naky, nakx
          use vpamu_grids, only: integrate_species_ffs
          use gyro_averages, only: gyro_average, j0_B_maxwell_ffs
-!         use gyro_averages, only: B_maxwell_ffs
-
          use vpamu_grids, only: maxwell_vpa, maxwell_mu_avg
          use stella_layouts, only: iv_idx, imu_idx, is_idx
          use vpamu_grids, only: integrate_species
+         !use gyro_averages, only: j0Bmaxwell_avg
          implicit none
 
          complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1129,6 +1128,7 @@ contains
          real :: maxwellian
          real, dimension(:, :), allocatable :: out
          integer :: ia, imu, iv, is
+         integer :: iky,ikx 
 
          !> assume there is only a single flux surface being simulated
          it = 1
@@ -1150,7 +1150,7 @@ contains
                !! GA - Multiply g by B*maxwellian - this is for the implicit treatment where we have a constant in
                !! alpha term
                !! GA check!! -- Just multiply by maxwellian, but maxwellian is constant in alpha
-               g0(:, :, ivmu) = g(:, :, iz, it, ivmu) * maxwell_mu_avg(iz, imu, is) * maxwell_vpa(iv, is)
+               g0(:,:, ivmu) = g(:,:, iz, it, ivmu) * maxwell_mu_avg(iz, imu, is) * maxwell_vpa(iv, is)
 !               call gyro_average(g(:, :, iz, it, ivmu), g0(:, :, ivmu), B_maxwell_ffs(:, :, iz, ivmu))
 !               g0(:,:,ivmu) = g(:,:,iz,it,ivmu) * maxwell_mu(ia, iz, imu, is) * maxwell_vpa(iv, is)
             end do
@@ -1162,6 +1162,7 @@ contains
                !! GA need to ingrate g and then average the result in alpha
                !! GA check!! -- This is now integrating correct g but with constant B*Maxwellian
                call integrate_species(g0, iz, spec%z * spec%dens_psi0, intg(:, :, iz), reduce_in=.false.)
+!               call integrate_species(g0, iz, spec%z * spec%dens_psi0, intg(:, :, iz), reduce_in=.false.)
             end if
          end do
 

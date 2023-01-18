@@ -392,6 +392,7 @@ parallel_streaming.o: \
 	 stella_layouts.o \
 	 stella_time.o \
 	 stella_transforms.o \
+	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 physics_flags.o: \
@@ -636,6 +637,7 @@ vmec_to_stella_geometry_interface.o: \
 	 fzero.o 
 volume_averages.o: \
 	 kt_grids.o \
+	 mp.o \
 	 physics_flags.o \
 	 stella_geometry.o \
 	 stella_transforms.o \
@@ -649,6 +651,7 @@ vpamu_grids.o: \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
+	 volume_averages.o \
 	 zgrid.o 
 zgrid.o: \
 	 constants.o \

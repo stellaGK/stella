@@ -6,7 +6,6 @@ module volume_averages
    public :: flux_surface_average_ffs
 
    public :: mode_fac
-
    public :: alpha_average_ffs_realspace
 
    private
@@ -15,12 +14,6 @@ module volume_averages
       module procedure fieldline_average_real
       module procedure fieldline_average_complex
    end interface
-
-!   interface alpha_average_ffs
-!      module procedure alpha_average_ffs_nonlocal
-!      module procedure alpha_average_ffs_local
-!      module procedure alpha_average_ffs_realspace
-!   end interface alpha_average_ffs
 
    real, dimension(:), allocatable :: mode_fac
    !> Fourier coefficients in y of the Jacobian;
@@ -341,13 +334,15 @@ contains
       integer :: ia
 
       avg = 0.0
-      norm = sum(jacob(:, iz) * dy)
+      norm = sum(dy * jacob(:,iz))
+      !  sum(jacob(:, iz) * dy)
 
-      do ia = 1, nalpha
-         avg = avg + no_avg(ia) * jacob(ia, iz) * dy
-      end do
+      ! do ia = 1, nalpha
+      !    avg = avg + no_avg(ia) * jacob(ia, iz) * dy
+      ! end do
 
-      avg = avg / norm
+      avg = sum ( no_avg * dy* jacob(:,iz) ) / norm
+      !sum(no_avg, 1) / size(no_avg, 1)
 
    end subroutine alpha_average_ffs_realspace
 

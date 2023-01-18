@@ -9,6 +9,9 @@ module gyro_averages
    public :: j0_B_maxwell_ffs, j0_ffs
    public :: band_lu_solve_ffs, band_lu_factorisation_ffs
    public :: B_maxwell_ffs
+!   public :: j0Bmaxwell_avg 
+!   public :: j0Bmaxwell_avg_ext
+
    private
 
    interface gyro_average
@@ -43,6 +46,7 @@ module gyro_averages
 
    logical :: debug = .false.
 
+!   real, dimension (:,:,:,:), allocatable :: j0Bmaxwell_avg, j0Bmaxwell_avg_ext
 contains
 
    subroutine init_bessel
@@ -258,6 +262,8 @@ contains
       use kt_grids, only: swap_kxky_ordered
       use dist_fn_arrays, only: kperp2
 
+      use kt_grids, only: nakx
+
       implicit none
 
       !    integer :: j0_ffs_unit, j0_B_maxwell_ffs_unit
@@ -271,12 +277,8 @@ contains
       real, dimension(:, :, :), allocatable :: kperp2_swap
       complex, dimension(:), allocatable :: aj0_kalpha, j0_B_maxwell_kalpha
 
-      !! GA
-!      real, dimension(:), allocatable :: B_maxwell
-!      complex, dimension(:), allocatable :: B_maxwell_kalpha
-
-      !       call open_output_file (j0_ffs_unit, '.j0_ffs')
-      !       call open_output_file (j0_B_maxwell_ffs_unit, '.j0_over_B_ffs')
+!      real, dimension (:,:,:,:), allocatable :: jbmaxwell_avg
+!      real, dimension (:,:,:,:), allocatable :: j0Bmaxwell_avg_ext
 
       ! wgts are species-dependent factors appearing in Gamma0 factor
       allocate (wgts(nspec))
@@ -296,8 +298,15 @@ contains
       if (.not. allocated(j0_B_maxwell_ffs)) then
          allocate (j0_B_maxwell_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       end if
-
       !! GA
+      ! if(.not. allocated(j0Bmaxwell_avg)) then 
+      !    allocate( j0Bmaxwell_avg(naky,nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      ! end if
+
+      ! if(.not. allocated(j0Bmaxwell_avg_ext)) then
+      !    allocate( j0Bmaxwell_avg_ext(naky_all , ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      !    j0Bmaxwell_avg_ext = 0.0
+      ! end if
       ! allocate (B_maxwell(nalpha))
       ! allocate (B_maxwell_kalpha(naky))
       ! if (.not. allocated(B_maxwell_ffs)) then
@@ -330,6 +339,7 @@ contains
                      !> due to B in v-space Jacobian and Maxwellian factor hidden in normalisation of g
                      j0_B_maxwell(ia) = aj0_alpha(ia) * bmag(ia, iz) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
 !>>                     B_maxwell(ia) = bmag(ia, iz) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
+!                     j0Bmaxwell_avg_ext(iky,ikx,iz,ivmu) = j0Bmaxwell_avg_ext(iky,ikx,iz,ivmu) + j0_B_maxwell(ia)
                   end do
                   !> fourier transform aj0_alpha and j0_B_maxwell.
                   !> note that fourier coefficients aj0_kalpha and j0_B_maxwell_kalpha have
@@ -375,12 +385,34 @@ contains
             end do
          end do
       end do
-      deallocate (aj0_alpha, j0_B_maxwell, j0_B_maxwell_kalpha)
-      !! GA
-!>>      deallocate(B_maxwell, B_maxwell_kalpha)
-      !> calculate the reduction factor of Fourier modes
-      !> used to represent J0
-      !> avoid overflow by converting integers to reals before multiplying
+
+!       if (proc0) write(*,*) 'finito' 
+!       j0Bmaxwell_avg = 0.0
+
+!       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+!          is = is_idx(vmu_lo, ivmu)
+!          imu = imu_idx(vmu_lo, ivmu)
+!          do iz = -nzgrid, nzgrid
+!             do ikx = 1, nakx
+!                do iky = 1, naky
+!                   do ia = 1, nalpha 
+!                      arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
+!                      j0Bmaxwell_avg(iky,ikx,iz,ivmu) = j0Bmaxwell_avg(iky,ikx,iz,ivmu) + & 
+!                           j0(arg) * bmag(ia, iz) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
+!                   end do
+!                end do
+!             end do
+!          end do
+!       end do
+
+!       call sum_allreduce (j0Bmaxwell_avg)
+!       j0Bmaxwell_avg = j0Bmaxwell_avg /nalpha 
+!       call sum_allreduce (j0Bmaxwell_avg_ext)
+!       j0Bmaxwell_avg_ext = j0Bmaxwell_avg_ext/nalpha 
+! !      j0_B_maxwell_store = j0_B_maxwell_store / nalpha
+      
+!       if(proc0) write(*,*) 'jobmaxwell' 
+
       rtmp = real(naky) * real(naky_all) * real(ikx_max) * real(nztot) * real(nmu) * real(nvpa) * real(nspec)
       call sum_allreduce(ia_max_j0_count)
       ia_max_j0_reduction_factor = real(ia_max_j0_count) / rtmp

@@ -251,9 +251,9 @@ contains
             sgn = mirror_sign(iy, iz)
             do imu = 1, nmu
                do iv = 1, nvpa
-                  mirror_tri_a(iv, imu, ikxyz) = -a(iv, sgn) * mirror(iy, iz, imu, is)
+                  mirror_tri_a(iv, imu, ikxyz) =  -a(iv, sgn) * mirror(iy, iz, imu, is)
                   mirror_tri_b(iv, imu, ikxyz) = 1.0 - b(iv, sgn) * mirror(iy, iz, imu, is) * tupwndfac
-                  mirror_tri_c(iv, imu, ikxyz) = -c(iv, sgn) * mirror(iy, iz, imu, is)
+                  mirror_tri_c(iv, imu, ikxyz) = 0.0 !-c(iv, sgn) * mirror(iy, iz, imu, is)
                end do
             end do
          end do
@@ -581,6 +581,9 @@ contains
       use run_parameters, only: mirror_semi_lagrange
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
 
+!      use kt_grids, only: swap_kxky, swap_kxky_back
+!      use kt_grids, only: naky_all, ikx_max
+
       implicit none
 
       logical, intent(in) :: collisions_implicit
@@ -591,6 +594,8 @@ contains
       real :: tupwnd
       complex, dimension(:, :, :), allocatable :: g0v
       complex, dimension(:, :, :, :, :), allocatable :: g0x
+
+!      complex, dimension(:, :), allocatable :: g_swap
 
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
@@ -618,7 +623,17 @@ contains
          allocate (g0x(ny, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          ! for upwinding, need to evaluate dg^{*}/dvpa in y-space
          ! first must take g^{*}(ky) and transform to g^{*}(y)
-         call transform_ky2y(g, g0x)
+         !! allocate (g_swap(naky_all, ikx_max))
+
+         ! it = 1
+         ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         !    do iz = -nzgrid, nzgrid
+         !       call swap_kxky(g(:, :, iz, it, ivmu), g_swap)
+         !       call transform_ky2y(g_swap, g0x(:, :, iz, it, ivmu))
+         !    end do
+         ! end do
+
+         call transform_ky2y(g, g0x) 
 
 !         write (*, *) 'WARNING: full_flux_surface not working in implicit_mirror advance!'
 
@@ -675,8 +690,17 @@ contains
                g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) / maxwell_vpa(iv, is)
             end do
          end if
+        
+         ! it = 1
+         ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         !    do iz = -nzgrid, nzgrid
+         !       call transform_y2ky(g0x(:, :, iz, it, ivmu), g_swap)
+         !       call swap_kxky_back(g_swap, g(:, :, iz, it, ivmu))
+         !    end do
+         ! end do
+         ! deallocate(g_swap) 
 
-         ! finally transform back from y to ky space
+         !! finally transform back from y to ky space
          call transform_y2ky(g0x, g)
       else
          ! if implicit treatment of collisions, then already have updated gvmu in kxkyz_lo
