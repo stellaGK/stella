@@ -81,9 +81,9 @@ contains
          if (.not. allocated(stream_full)) allocate (stream_full(nalpha, -nzgrid:nzgrid, nvpa, nspec)); stream_full = 0.
          if (.not. allocated(stream_store)) allocate (stream_store(-nzgrid:nzgrid, nvpa, nspec)); stream_store = 0.
       end if
-      
-      if(stream_implicit .or. driftkinetic_implicit) then 
-         if(.not. allocated(gradpar_fac)) allocate(gradpar_fac(-nzgrid:nzgrid)); gradpar_fac = 0.
+
+      if (stream_implicit .or. driftkinetic_implicit) then
+         if (.not. allocated(gradpar_fac)) allocate (gradpar_fac(-nzgrid:nzgrid)); gradpar_fac = 0.
       end if
 
       ! sign of stream corresponds to appearing on RHS of GK equation
@@ -95,7 +95,7 @@ contains
                   stream(ia, iz, iv, :) = -code_dt * b_dot_grad_z(ia, iz) * vpa(iv) * spec%stm_psi0
                end do
                if (driftkinetic_implicit) then
-                  stream_store(iz,iv, :) = -code_dt *gradpar(iz) * vpa(iv) * spec%stm_psi0
+                  stream_store(iz, iv, :) = -code_dt * gradpar(iz) * vpa(iv) * spec%stm_psi0
 !                  do is = 1, nspec
 !                     call alpha_average_ffs_realspace(stream(:, iz, iv, is), stream_store(iz, iv, is), iz)
 !                  end do
@@ -104,18 +104,18 @@ contains
          end do
       else
          stream = 0.0
-         if(driftkinetic_implicit) stream_store = 0.0
+         if (driftkinetic_implicit) stream_store = 0.0
       end if
-      
-      if(driftkinetic_implicit) then
-         gradpar_fac = gradpar 
+
+      if (driftkinetic_implicit) then
+         gradpar_fac = gradpar
       else
          gradpar_fac = gradpar
       end if
 
       !! GA get correction term [ (b.grad z) - (b.grad z)_0 ]
       if (driftkinetic_implicit) then
-         stream_full = stream 
+         stream_full = stream
          stream_correction = stream - spread(stream_store, 1, nalpha)
          stream = spread(stream_store, 1, nalpha)
       end if
@@ -162,10 +162,10 @@ contains
       if (stream_implicit .or. driftkinetic_implicit) then
          call init_invert_stream_operator
          if (.not. allocated(stream_c)) allocate (stream_c(-nzgrid:nzgrid, nvpa, nspec))
- !        if (driftkinetic_implicit) then
- !           stream_c = stream_store
- !           deallocate (stream_store)
- !        else
+         !        if (driftkinetic_implicit) then
+         !           stream_c = stream_store
+         !           deallocate (stream_store)
+         !        else
          stream_c = stream(1, :, :, :)
 !         end if
          do is = 1, nspec
@@ -652,15 +652,15 @@ contains
 
    end subroutine add_stream_term_ffs
 
-   subroutine add_stream_term_ffs_full (g, ivmu, src)
+   subroutine add_stream_term_ffs_full(g, ivmu, src)
 
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
       use zgrid, only: nzgrid
       use kt_grids, only: ny
 
-      implicit none 
-      
+      implicit none
+
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: src
       integer, intent(in) :: ivmu
@@ -675,7 +675,7 @@ contains
          end do
       end do
 
-    end subroutine add_stream_term_ffs_full
+   end subroutine add_stream_term_ffs_full
 
    subroutine add_stream_term_ffs_correction(g, ivmu, src)
 
@@ -1340,7 +1340,7 @@ contains
       if (allocated(stream_rad_var2)) deallocate (stream_rad_var2)
 
       if (stream_implicit .or. driftkinetic_implicit) call finish_invert_stream_operator
-      
+
       parallel_streaming_initialized = .false.
 
    end subroutine finish_parallel_streaming
@@ -1360,7 +1360,7 @@ contains
 
       if (allocated(stream_correction)) deallocate (stream_correction)
       if (allocated(stream_full)) deallocate (stream_full)
-      if (allocated(gradpar_fac)) deallocate(gradpar_fac)
+      if (allocated(gradpar_fac)) deallocate (gradpar_fac)
 
    end subroutine finish_invert_stream_operator
 

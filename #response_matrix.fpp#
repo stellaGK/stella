@@ -474,9 +474,9 @@ contains
       use parallel_streaming, only: stream_sign
       use run_parameters, only: zed_upwind, time_upwind
       use kt_grids, only: nalpha
-      
+
       use parallel_streaming, only: gradpar_fac
-      
+
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
@@ -493,10 +493,10 @@ contains
       real :: fac, fac0, fac1, gyro_fac
       real :: maxwell_vpa_s
       real, dimension(:, :), allocatable :: maxwell_zed
-      real, dimension (:), allocatable :: dbdzed_avg 
+      real, dimension(:), allocatable :: dbdzed_avg
 
       ia = 1
-      if(.not. allocated(dbdzed_avg)) allocate(dbdzed_avg(-nzgrid:nzgrid)) 
+      if (.not. allocated(dbdzed_avg)) allocate (dbdzed_avg(-nzgrid:nzgrid))
 
       dbdzed_avg = sum(dbdzed, 1) / size(dbdzed, 1)
 
@@ -540,8 +540,8 @@ contains
                   ! fac0 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at this zed index
                   fac0 = fac * ((1.+zed_upwind) * gradpar_fac(iz) &
-                       + (1.-zed_upwind) * gradpar_fac(iz - 1)) &
-                       * (maxwell_zed(ia, iz) + maxwell_zed(ia, iz - 1))
+                                + (1.-zed_upwind) * gradpar_fac(iz - 1)) &
+                         * (maxwell_zed(ia, iz) + maxwell_zed(ia, iz - 1))
 !                         * (maxwell_mu(ia, iz, imu, is) + maxwell_mu(ia, iz - 1, imu, is))
                   ! fac1 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at the zed index to the right of
@@ -645,7 +645,7 @@ contains
          end do
       else
          !! GA -- no maxwellian inside derivatives for DKI
-         if(.not. driftkinetic_implicit ) then 
+         if (.not. driftkinetic_implicit) then
             ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                ! initialize g to zero everywhere along extended zed domain
@@ -653,10 +653,10 @@ contains
                iv = iv_idx(vmu_lo, ivmu)
                imu = imu_idx(vmu_lo, ivmu)
                is = is_idx(vmu_lo, ivmu)
-               
+
                ! give unit impulse to phi at this zed location
                ! and compute -vpa*b.gradz*Ze/T*d<phi>/dz*F0 (RHS of streaming part of GKE)
-               
+
                ! NB:  assuming equal spacing in zed below
                ! here, fac = -dt*(1+alph_t)/2*vpa*Ze/T*F0*J0/dz
                ! b.gradz left out because needs to be centred in zed
@@ -672,22 +672,22 @@ contains
                !end if
 
                fac = -0.25 * (1.+time_upwind) * code_dt * vpa(iv) * spec(is)%stm_psi0 &
-                    * gyro_fac * spec(is)%zt * maxwell_vpa_s * maxwell_zed(ia, iz)
+                     * gyro_fac * spec(is)%zt * maxwell_vpa_s * maxwell_zed(ia, iz)
                !maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-               
+
                !! GA
                mu_dbdzed_p = 1./delzed(0) + mu(imu) * dbdzed_avg(iz) * (1.+zed_upwind)
                mu_dbdzed_m = 1./delzed(0) + mu(imu) * dbdzed_avg(iz) * (1.-zed_upwind)
                !            mu_dbdzed_p = 1./delzed(0) + mu(imu) * dbdzed(ia, iz) * (1.+zed_upwind)
                !            mu_dbdzed_m = 1./delzed(0) + mu(imu) * dbdzed(ia, iz) * (1.-zed_upwind)
-               
+
                ! stream_sign < 0 corresponds to positive advection speed
                if (stream_sign(iv) < 0) then
                   if (iz > -nzgrid) then
                      ! fac0 is the factor multiplying delphi on the RHS
                      ! of the homogeneous GKE at this zed index
                      fac0 = fac * ((1.+zed_upwind) * gradpar_fac(iz) &
-                          + (1.-zed_upwind) * gradpar_fac(iz - 1)) * mu_dbdzed_p
+                                   + (1.-zed_upwind) * gradpar_fac(iz - 1)) * mu_dbdzed_p
                      ! fac1 is the factor multiplying delphi on the RHS
                      ! of the homogeneous GKE at the zed index to the right of
                      ! this one
@@ -697,17 +697,17 @@ contains
                         izp = -nzgrid + 1
                      end if
                      fac1 = fac * ((1.+zed_upwind) * gradpar_fac(izp) &
-                          + (1.-zed_upwind) * gradpar_fac(iz)) * mu_dbdzed_m
+                                   + (1.-zed_upwind) * gradpar_fac(iz)) * mu_dbdzed_m
                   else
                      ! fac0 is the factor multiplying delphi on the RHS
                      ! of the homogeneous GKE at this zed index
                      fac0 = fac * ((1.+zed_upwind) * gradpar_fac(iz) &
-                          + (1.-zed_upwind) * gradpar_fac(nzgrid - 1)) * mu_dbdzed_p
+                                   + (1.-zed_upwind) * gradpar_fac(nzgrid - 1)) * mu_dbdzed_p
                      ! fac1 is the factor multiplying delphi on the RHS
                      ! of the homogeneous GKE at the zed index to the right of
                      ! this one
                      fac1 = fac * ((1.+zed_upwind) * gradpar_fac(iz + 1) &
-                          + (1.-zed_upwind) * gradpar_fac(iz)) * mu_dbdzed_m
+                                   + (1.-zed_upwind) * gradpar_fac(iz)) * mu_dbdzed_m
                   end if
                   gext(idx, ivmu) = fac0
                   if (idx < nz_ext) gext(idx + 1, ivmu) = -fac1
@@ -725,7 +725,7 @@ contains
                      ! fac0 is the factor multiplying delphi on the RHS
                      ! of the homogeneous GKE at this zed index
                      fac0 = fac * ((1.+zed_upwind) * gradpar_fac(iz) &
-                          + (1.-zed_upwind) * gradpar_fac(iz + 1)) * mu_dbdzed_p
+                                   + (1.-zed_upwind) * gradpar_fac(iz + 1)) * mu_dbdzed_p
                      ! fac1 is the factor multiplying delphi on the RHS
                      ! of the homogeneous GKE at the zed index to the left of
                      ! this one
@@ -735,17 +735,17 @@ contains
                         izm = nzgrid - 1
                      end if
                      fac1 = fac * ((1.+zed_upwind) * gradpar_fac(izm) &
-                          + (1.-zed_upwind) * gradpar_fac(iz)) * mu_dbdzed_m
+                                   + (1.-zed_upwind) * gradpar_fac(iz)) * mu_dbdzed_m
                   else
                      ! fac0 is the factor multiplying delphi on the RHS
                      ! of the homogeneous GKE at this zed index
                      fac0 = fac * ((1.+zed_upwind) * gradpar_fac(iz) &
-                          + (1.-zed_upwind) * gradpar_fac(-nzgrid + 1)) * mu_dbdzed_p
+                                   + (1.-zed_upwind) * gradpar_fac(-nzgrid + 1)) * mu_dbdzed_p
                      ! fac1 is the factor multiplying delphi on the RHS
                      ! of the homogeneous GKE at the zed index to the left of
                      ! this one
                      fac1 = fac * ((1.+zed_upwind) * gradpar_fac(iz - 1) &
-                          + (1.-zed_upwind) * gradpar_fac(iz)) * mu_dbdzed_m
+                                   + (1.-zed_upwind) * gradpar_fac(iz)) * mu_dbdzed_m
                   end if
                   gext(idx, ivmu) = -fac0
                   if (idx > 1) gext(idx - 1, ivmu) = fac1
@@ -760,7 +760,7 @@ contains
                      end if
                   end if
                end if
-               
+
                if (periodic(iky)) then
                   call sweep_zed_zonal(iky, iv, is, stream_sign(iv), gext(:, ivmu))
                else
@@ -768,12 +768,12 @@ contains
                   ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
                   call stream_tridiagonal_solve(iky, ie, iv, is, gext(:, ivmu))
                end if
-            
+
             end do
          end if
       end if
-      
-      deallocate(dbdzed_avg)
+
+      deallocate (dbdzed_avg)
       deallocate (maxwell_zed)
       ! we now have g on the extended zed domain at this ky and set of connected kx values
       ! corresponding to a unit impulse in phi at this location

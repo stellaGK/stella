@@ -1348,7 +1348,7 @@ contains
 
          !> calculate and add parallel streaming term to RHS of GK eqn
          if (include_parallel_streaming) then
-            if (.not. (stream_implicit) .or. driftkinetic_implicit)  then
+            if (.not. (stream_implicit) .or. driftkinetic_implicit) then
                if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
                call advance_parallel_streaming_explicit(gin, phi, rhs)
 !!>               if(proc0) write(*,*) 'after parallel streaming explicit', maxval(real(rhs))

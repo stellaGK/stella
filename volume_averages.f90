@@ -334,14 +334,14 @@ contains
       integer :: ia
 
       avg = 0.0
-      norm = sum(dy * jacob(:,iz))
+      norm = sum(dy * jacob(:, iz))
       !  sum(jacob(:, iz) * dy)
 
       ! do ia = 1, nalpha
       !    avg = avg + no_avg(ia) * jacob(ia, iz) * dy
       ! end do
 
-      avg = sum ( no_avg * dy* jacob(:,iz) ) / norm
+      avg = sum(no_avg * dy * jacob(:, iz)) / norm
       !sum(no_avg, 1) / size(no_avg, 1)
 
    end subroutine alpha_average_ffs_realspace

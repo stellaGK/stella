@@ -837,9 +837,9 @@ contains
       integer :: ikx, ikxneg
       integer :: iky, ikyneg
 
-      ! first set arrays equal for ky >= 0 and kx >= 0                                                                                                                                                                                                                                                                                                                      
+      ! first set arrays equal for ky >= 0 and kx >= 0
       gout(:, :ikx_max) = gin(naky:, :)
-      ! next fill in kx < 0, ky >= 0 elements of array using reality                                                                                                                                                                                                                                                                                                        
+      ! next fill in kx < 0, ky >= 0 elements of array using reality
       do ikx = ikx_max + 1, nakx
          ikxneg = nakx - ikx + 2
          do iky = 1, naky

@@ -9,7 +9,7 @@ module gyro_averages
    public :: j0_B_maxwell_ffs, j0_ffs
    public :: band_lu_solve_ffs, band_lu_factorisation_ffs
    public :: B_maxwell_ffs
-!   public :: j0Bmaxwell_avg 
+!   public :: j0Bmaxwell_avg
 !   public :: j0Bmaxwell_avg_ext
 
    private
@@ -299,7 +299,7 @@ contains
          allocate (j0_B_maxwell_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       end if
       !! GA
-      ! if(.not. allocated(j0Bmaxwell_avg)) then 
+      ! if(.not. allocated(j0Bmaxwell_avg)) then
       !    allocate( j0Bmaxwell_avg(naky,nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       ! end if
 
@@ -386,7 +386,7 @@ contains
          end do
       end do
 
-!       if (proc0) write(*,*) 'finito' 
+!       if (proc0) write(*,*) 'finito'
 !       j0Bmaxwell_avg = 0.0
 
 !       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -395,9 +395,9 @@ contains
 !          do iz = -nzgrid, nzgrid
 !             do ikx = 1, nakx
 !                do iky = 1, naky
-!                   do ia = 1, nalpha 
+!                   do ia = 1, nalpha
 !                      arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
-!                      j0Bmaxwell_avg(iky,ikx,iz,ivmu) = j0Bmaxwell_avg(iky,ikx,iz,ivmu) + & 
+!                      j0Bmaxwell_avg(iky,ikx,iz,ivmu) = j0Bmaxwell_avg(iky,ikx,iz,ivmu) + &
 !                           j0(arg) * bmag(ia, iz) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
 !                   end do
 !                end do
@@ -406,12 +406,12 @@ contains
 !       end do
 
 !       call sum_allreduce (j0Bmaxwell_avg)
-!       j0Bmaxwell_avg = j0Bmaxwell_avg /nalpha 
+!       j0Bmaxwell_avg = j0Bmaxwell_avg /nalpha
 !       call sum_allreduce (j0Bmaxwell_avg_ext)
-!       j0Bmaxwell_avg_ext = j0Bmaxwell_avg_ext/nalpha 
+!       j0Bmaxwell_avg_ext = j0Bmaxwell_avg_ext/nalpha
 ! !      j0_B_maxwell_store = j0_B_maxwell_store / nalpha
-      
-!       if(proc0) write(*,*) 'jobmaxwell' 
+
+!       if(proc0) write(*,*) 'jobmaxwell'
 
       rtmp = real(naky) * real(naky_all) * real(ikx_max) * real(nztot) * real(nmu) * real(nvpa) * real(nspec)
       call sum_allreduce(ia_max_j0_count)

@@ -67,7 +67,7 @@ module vpamu_grids
    end interface
 
    ! interface integrate_species_ffs
-   !    module procedure integrate_species_ffs_local 
+   !    module procedure integrate_species_ffs_local
    !    module procedure integrate_species_ffs_nonlocal
    ! end interface integrate_species_ffs
 
@@ -606,7 +606,7 @@ contains
 
    end subroutine integrate_species_vmu_block_real
 
-   subroutine integrate_species_ffs (g, weights, pout, reduce_in)
+   subroutine integrate_species_ffs(g, weights, pout, reduce_in)
 
       use mp, only: sum_allreduce
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -638,14 +638,14 @@ contains
 
       if (reduce) call sum_allreduce(pout)
 
-    end subroutine integrate_species_ffs
+   end subroutine integrate_species_ffs
 !!GA
-   ! subroutine integrate_species_ffs_local (g, weights, pout, reduce_in)  
+   ! subroutine integrate_species_ffs_local (g, weights, pout, reduce_in)
    !   use mp, only: sum_allreduce
-   !   use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx 
-     
-   !   implicit none 
-   !   integer :: ivmu, iv, is, imu       
+   !   use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+
+   !   implicit none
+   !   integer :: ivmu, iv, is, imu
    !   logical :: reduce
 
    !    complex, dimension(vmu_lo%llim_proc:), intent(in) :: g
@@ -671,7 +671,7 @@ contains
    !    if (reduce) call sum_allreduce(pout)
 
    !  end subroutine integrate_species_ffs_local
-     
+
    subroutine integrate_vmu_ffs(g, weights, ia, iz, pout, reduce_in)
 
       use mp, only: sum_allreduce

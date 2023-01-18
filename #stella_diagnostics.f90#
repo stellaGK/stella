@@ -771,11 +771,11 @@ contains
 
                   if (radial_variation) then
                      g0k = g1(:, :, iz, it, ivmu) &
-                          * (-0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
-                          * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
-                          * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
-                          + dBdrho(iz) / bmag(ia, iz) &
-                          + 2.0 * mu(imu) * dBdrho(iz) / (vpa(iv)**2 + vperp2(ia, iz, imu)))
+                           * (-0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                              * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
+                              * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
+                              + dBdrho(iz) / bmag(ia, iz) &
+                              + 2.0 * mu(imu) * dBdrho(iz) / (vpa(iv)**2 + vperp2(ia, iz, imu)))
 
                      call multiply_by_rho(g0k)
 

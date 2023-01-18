@@ -251,7 +251,7 @@ contains
             sgn = mirror_sign(iy, iz)
             do imu = 1, nmu
                do iv = 1, nvpa
-                  mirror_tri_a(iv, imu, ikxyz) =  -a(iv, sgn) * mirror(iy, iz, imu, is)
+                  mirror_tri_a(iv, imu, ikxyz) = -a(iv, sgn) * mirror(iy, iz, imu, is)
                   mirror_tri_b(iv, imu, ikxyz) = 1.0 - b(iv, sgn) * mirror(iy, iz, imu, is) * tupwndfac
                   mirror_tri_c(iv, imu, ikxyz) = 0.0 !-c(iv, sgn) * mirror(iy, iz, imu, is)
                end do
@@ -633,7 +633,7 @@ contains
          !    end do
          ! end do
 
-         call transform_ky2y(g, g0x) 
+         call transform_ky2y(g, g0x)
 
 !         write (*, *) 'WARNING: full_flux_surface not working in implicit_mirror advance!'
 
@@ -690,7 +690,7 @@ contains
                g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) / maxwell_vpa(iv, is)
             end do
          end if
-        
+
          ! it = 1
          ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          !    do iz = -nzgrid, nzgrid
@@ -698,7 +698,7 @@ contains
          !       call swap_kxky_back(g_swap, g(:, :, iz, it, ivmu))
          !    end do
          ! end do
-         ! deallocate(g_swap) 
+         ! deallocate(g_swap)
 
          !! finally transform back from y to ky space
          call transform_y2ky(g0x, g)
