@@ -126,9 +126,8 @@ contains
 
    subroutine read_kt_grids_box
 
-      use file_utils, only: input_unit_exist, error_unit
+      use file_utils, only: input_unit_exist
       use physics_flags, only: full_flux_surface
-      use text_options, only: text_option, get_option_value
       
       implicit none
 
@@ -178,9 +177,10 @@ contains
    subroutine read_kt_grids_range
 
       use mp, only: mp_abort, proc0
-      use file_utils, only: input_unit, input_unit_exist
+      use file_utils, only: input_unit, error_unit, input_unit_exist
       use physics_flags, only: full_flux_surface
-
+      use text_options, only: text_option, get_option_value
+      
       implicit none
 
       type (text_option), dimension (3), parameter :: kyspacingopts = &
