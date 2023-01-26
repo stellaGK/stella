@@ -6,13 +6,14 @@ import numpy.matlib
 
 
 tave = 900
+br = 10
 
 basedir = '/marconi_work/FUA34_MULTEI/stonge0_FUA34/rad_test/2nd_deriv/T1/'
 basedir = '/marconi_work/FUA34_MULTEI/stonge0_FUA34/rad_test/2nd_deriv/rho_scan2/r0.001/'
 basedir = '/marconi_work/FUA34_MULTEI/stonge0_FUA34/rad_test/fg_drive/rhoscan_hr/0.002/'
-basedir = '/marconi_work/FUA34_MULTEI/stonge0_FUA34/rad_test/fg_drive/0.001d/'
-basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/0.001d_aht/'
-#basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/0.001t_2/'
+basedir = '/marconi_work/FUA34_MULTEI/stonge0_FUA34/rad_test/fg_drive/0.001d_b/'
+#basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/source_test/krook2/'
+basedir = '/marconi_work/FUA35_OXGK/stonge0/rad_scan/source_test/tcorr/proj3/'
 right_file  = basedir + 'left.out.nc'
 center_file = basedir + 'center.out.nc'
 left_file   = basedir + 'right.out.nc'
@@ -148,6 +149,18 @@ tempr_zf = np.real(np.sum(dobr[:,:,0]*tempr_xky[:,:,:,0],1))
 dens_zero = np.mean(dens_zf,1)
 upar_zero = np.mean(upar_zf,1)
 temp_zero = np.mean(temp_zf,1)
+
+dens_br_zero = np.mean(dens_zf[:,br:(nakxc-br-1)],1)
+upar_br_zero = np.mean(upar_zf[:,br:(nakxc-br-1)],1)
+temp_br_zero = np.mean(temp_zf[:,br:(nakxc-br-1)],1)
+
+deri1 = np.arange(1,nakxc-2*br,1)
+deri1 = deri1 - np.mean(deri1)
+deri1 = deri1/np.sqrt(np.sum(deri1**2))
+
+dens_br_d1 = np.sum(deri1*dens_zf[:,br:(nakxc-br-1)],1)
+upar_br_d1 = np.sum(deri1*upar_zf[:,br:(nakxc-br-1)],1)
+temp_br_d1 = np.sum(deri1*temp_zf[:,br:(nakxc-br-1)],1)
 
 print('4')
 
@@ -346,6 +359,12 @@ cout.write('[1] t    ')
 cout.write('[2] dens ')
 cout.write('[3] upar ')
 cout.write('[4] temp ')
+cout.write('[5] dens phys')
+cout.write('[6] upar phys ')
+cout.write('[7] temp phys ')
+cout.write('[8] ddens/dr phys')
+cout.write('[9] dupar/dr phys ')
+cout.write('[10] dtemp/dr phys ')
 cout.write('\n')
 print('4')
 for i in range (0, nt):
@@ -353,6 +372,12 @@ for i in range (0, nt):
   cout.write('%e ' % dens_zero[i]) 
   cout.write('%e ' % upar_zero[i])
   cout.write('%e ' % temp_zero[i]) 
+  cout.write('%e ' % dens_br_zero[i]) 
+  cout.write('%e ' % upar_br_zero[i])
+  cout.write('%e ' % temp_br_zero[i]) 
+  cout.write('%e ' % dens_br_d1[i]) 
+  cout.write('%e ' % upar_br_d1[i])
+  cout.write('%e ' % temp_br_d1[i]) 
   cout.write('\n')
 cout.close()
 exit()

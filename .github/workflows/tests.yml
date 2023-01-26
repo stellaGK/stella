@@ -11,6 +11,14 @@ jobs:
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
       MPIRUN: mpiexec -np
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - name: "Makefiles"
+          - name: "Makefiles, debug"
+            gk_system: gnu_ubuntu_debug
+          - name: "CMake"
     steps:
       - name: Install dependencies
         run: sudo apt update &&
@@ -31,8 +39,15 @@ jobs:
           cat /etc/*release
           gfortran --version
           nf-config --all
-
       - uses: actions/checkout@v2
 
-      - name: Build stella
-        run: ./scripts/ci_build_and_run.sh
+      - name: Install integrated test dependencies
+        run: pip3 install --user -r tests/integrated/requirements.txt
+
+      - name: Build stella (Makefile)
+        if: ${{ contains(matrix.config.name, 'Makefile') }}
+        run: ./scripts/ci_build_and_run.sh ${{ matrix.config.gk_system }}
+
+      - name: Build stella (CMake)
+        if: ${{ contains(matrix.config.name, 'CMake') }}
+        run: ./scripts/ci_cmake_build_and_run.sh

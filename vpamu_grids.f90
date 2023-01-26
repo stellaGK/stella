@@ -1,731 +1,833 @@
 module vpamu_grids
 
-  implicit none
+   implicit none
 
-  public :: init_vpamu_grids, finish_vpamu_grids
-  public :: read_vpamu_grids_parameters
-  public :: integrate_vmu, integrate_species
-  public :: integrate_mu
-  public :: vpa, nvgrid, nvpa
-  public :: wgts_vpa, dvpa
-  public :: mu, nmu, wgts_mu, dmu
-  public :: maxwell_vpa, maxwell_mu, ztmax
-  public :: maxwell_fac
-  public :: vperp2
-  public :: equally_spaced_mu_grid
-  public :: set_vpa_weights
+   public :: init_vpamu_grids, finish_vpamu_grids
+   public :: read_vpamu_grids_parameters
+   public :: calculate_velocity_integrals
+   public :: integrate_vmu, integrate_species
+   public :: integrate_species_ffs, integrate_vmu_ffs
+   public :: integrate_mu
+   public :: vpa, nvgrid, nvpa
+   public :: wgts_vpa, dvpa
+   public :: mu, nmu, wgts_mu, wgts_mu_bare, dmu
+   public :: dmu_ghost, dmu_cell, mu_cell
+   public :: maxwell_vpa, maxwell_mu, ztmax
+   public :: maxwell_fac
+   public :: int_unit, int_vpa2, int_vperp2, int_vfrth
+   public :: vperp2
+   public :: equally_spaced_mu_grid
+   public :: set_vpa_weights
 
-  logical :: vpamu_initialized = .false.
-  
-  integer :: nvgrid, nvpa
-  integer :: nmu
-  real :: vpa_max, vperp_max
+   logical :: vpamu_initialized = .false.
 
-  ! arrays that are filled in vpamu_grids
-  real, dimension (:), allocatable :: vpa, wgts_vpa, wgts_vpa_default
-  real, dimension (:,:), allocatable :: maxwell_vpa
-  real, dimension (:), allocatable :: mu, maxwell_fac
-  real, dimension (:,:,:), allocatable :: wgts_mu
-  real, dimension (:,:,:,:), allocatable :: maxwell_mu
-  real, dimension (:,:), allocatable :: ztmax
-  real :: dvpa
-  real, dimension (:), allocatable :: dmu
-  complex, dimension (:), allocatable :: rbuffer
-  logical :: equally_spaced_mu_grid
+   integer :: nvgrid, nvpa
+   integer :: nmu
+   real :: vpa_max, vperp_max
 
-  ! vpa-mu related arrays that are declared here
-  ! but allocated and filled elsewhere because they depend on z, etc.
-  real, dimension (:,:,:), allocatable :: vperp2
+   ! arrays that are filled in vpamu_grids
+   real, dimension(:), allocatable :: vpa, wgts_vpa, wgts_vpa_default, wgts_mu_bare
+   real, dimension(:), allocatable :: mu, maxwell_fac
+   real, dimension(:, :), allocatable :: maxwell_vpa
+   real, dimension(:, :, :), allocatable :: int_unit, int_vpa2, int_vperp2, int_vfrth
+   real, dimension(:, :, :), allocatable :: wgts_mu
+   real, dimension(:, :, :, :), allocatable :: maxwell_mu
+   real, dimension(:, :), allocatable :: ztmax
+   real :: dvpa
+   real, dimension(:), allocatable :: dmu
+   real, dimension(:), allocatable :: dmu_ghost, dmu_cell, mu_cell
+   complex, dimension(:), allocatable :: rbuffer
+   logical :: equally_spaced_mu_grid, conservative_wgts_vpa
 
-  interface integrate_species
-!     module procedure integrate_species_vmu
-     module procedure integrate_species_vmu_single
-     module procedure integrate_species_vmu_single_real
-     module procedure integrate_species_vmu_block_complex
-     module procedure integrate_species_vmu_block_real
-!     module procedure integrate_species_local_complex
-!     module procedure integrate_species_local_real
-  end interface
+   ! vpa-mu related arrays that are declared here
+   ! but allocated and filled elsewhere because they depend on z, etc.
+   real, dimension(:, :, :), allocatable :: vperp2
 
-  interface integrate_vmu
-     module procedure integrate_vmu_local_real
-     module procedure integrate_vmu_local_complex
-     module procedure integrate_vmu_vmulo_complex
-     module procedure integrate_vmu_vmulo_ivmu_only_real
-  end interface
+   interface integrate_species
+      module procedure integrate_species_vmu
+      module procedure integrate_species_vmu_single
+      module procedure integrate_species_vmu_single_real
+      module procedure integrate_species_vmu_block_complex
+      module procedure integrate_species_vmu_block_real
+   end interface
 
-  interface integrate_mu
-     module procedure integrate_mu_local
-     module procedure integrate_mu_nonlocal
-  end interface
+   interface integrate_vmu
+      module procedure integrate_vmu_local_real
+      module procedure integrate_vmu_local_complex
+      module procedure integrate_vmu_vmulo_complex
+      module procedure integrate_vmu_vmulo_ivmu_only_real
+   end interface
+
+   interface integrate_mu
+      module procedure integrate_mu_local
+      module procedure integrate_mu_nonlocal
+   end interface
 
 contains
 
-  subroutine read_vpamu_grids_parameters
+   subroutine read_vpamu_grids_parameters
 
-    use file_utils, only: input_unit_exist
-    use mp, only: proc0, broadcast
+      use file_utils, only: input_unit_exist
+      use mp, only: proc0, broadcast
 
-    implicit none
+      implicit none
 
-    namelist /vpamu_grids_parameters/ nvgrid, nmu, vpa_max, vperp_max, &
-         equally_spaced_mu_grid
+      namelist /vpamu_grids_parameters/ nvgrid, nmu, vpa_max, vperp_max, &
+         equally_spaced_mu_grid, conservative_wgts_vpa
 
-    integer :: in_file
-    logical :: exist
+      integer :: in_file
+      logical :: exist
 
-    if (proc0) then
+      if (proc0) then
 
-       nvgrid = 24
-       vpa_max = 3.0
-       nmu = 12
-       vperp_max = 3.0
-       equally_spaced_mu_grid = .false.
+         nvgrid = 24
+         vpa_max = 3.0
+         nmu = 12
+         vperp_max = 3.0
+         equally_spaced_mu_grid = .false.
+         conservative_wgts_vpa = .false.
 
-       in_file = input_unit_exist("vpamu_grids_parameters", exist)
-       if (exist) read (unit=in_file, nml=vpamu_grids_parameters)
+         in_file = input_unit_exist("vpamu_grids_parameters", exist)
+         if (exist) read (unit=in_file, nml=vpamu_grids_parameters)
 
-    end if
+      end if
+
+      call broadcast(nvgrid)
+      call broadcast(vpa_max)
+      call broadcast(nmu)
+      call broadcast(vperp_max)
+      call broadcast(equally_spaced_mu_grid)
+      call broadcast(conservative_wgts_vpa)
+
+      nvpa = 2 * nvgrid
+
+   end subroutine read_vpamu_grids_parameters
+
+   subroutine init_vpamu_grids
+
+      use species, only: spec, nspec
+
+      implicit none
+
+      if (vpamu_initialized) return
+      vpamu_initialized = .true.
+
+      !> set up the vpa grid points and integration weights
+      call init_vpa_grid
+      !> set up the mu grid points and integration weights
+      call init_mu_grid
+
+      if (.not. allocated(maxwell_fac)) then
+         allocate (maxwell_fac(nspec)); maxwell_fac = 1.0
+      end if
+
+      !> maxwell_fac = 1 unless radially global
+      maxwell_fac = spec%dens / spec%dens_psi0 * (spec%temp_psi0 / spec%temp)**1.5
+
+   end subroutine init_vpamu_grids
+
+   subroutine init_vpa_grid
+
+      use mp, only: mp_abort
+      use constants, only: pi
+      use species, only: spec, nspec
+
+      implicit none
+
+      integer :: iv, idx, iseg, nvpa_seg
+      real :: del
+
+      if (.not. allocated(vpa)) then
+         !> vpa is the parallel velocity at grid points
+         allocate (vpa(nvpa)); vpa = 0.0
+         !> wgts_vpa are the integration weights assigned
+         !> to the parallel velocity grid points
+         allocate (wgts_vpa(nvpa)); wgts_vpa = 0.0
+         allocate (wgts_vpa_default(nvpa)); wgts_vpa_default = 0.0
+         !> this is the Maxwellian in vpa
+         allocate (maxwell_vpa(nvpa, nspec)); maxwell_vpa = 0.0
+         allocate (ztmax(nvpa, nspec)); ztmax = 0.0
+      end if
 
-    call broadcast (nvgrid)
-    call broadcast (vpa_max)
-    call broadcast (nmu)
-    call broadcast (vperp_max)
-    call broadcast (equally_spaced_mu_grid)
+      !> parallel velocity grid goes from -vpa_max to vpa_max,
+      !> with no point at vpa = 0;
+      !> the lack of a point at vpa=0 avoids treating
+      !> the vpa=z=0 phase space location, which
+      !> is isolated from all other phase space points
+      !> in the absence of collisions
 
-    nvpa = 2*nvgrid
-
-  end subroutine read_vpamu_grids_parameters
-
-  subroutine init_vpamu_grids
-
-    use species, only: spec, nspec
+      !> equal grid spacing in vpa
+      dvpa = 2.*vpa_max / (nvpa - 1)
 
-    implicit none
+      !> obtain vpa grid for vpa > 0
+      do iv = nvgrid + 1, nvpa
+         vpa(iv) = real(iv - nvgrid - 0.5) * dvpa
+      end do
+      !> fill in vpa grid for vpa < 0
+      vpa(:nvgrid) = -vpa(nvpa:nvgrid + 1:-1)
 
-    if (vpamu_initialized) return
-    vpamu_initialized = .true.
+      !> maxwell_vpa is the equilibrium Maxwellian in vpa
+      maxwell_vpa = exp(-spread(vpa * vpa, 2, nspec) * spread(spec%temp_psi0 / spec%temp, 1, nvpa))
+      !> ztmax is the Maxwellian in vpa, multipliedd by charge number over normalized temperature
+      ztmax = spread(spec%zt, 1, nvpa) * maxwell_vpa
+
+      !> get integration weights corresponding to vpa grid points
+      !> for now use Simpson's rule;
+      !> i.e. subdivide grid into 3-point segments, with each segment spanning vpa_low to vpa_up
+      !> then the contribution of each segment to the integral is
+      !> (vpa_up - vpa_low) * (f1 + 4*f2 + f3) / 6
+      !> inner boundary points are used in two segments, so they get double the weight
 
-    call init_vpa_grid
-    call init_mu_grid
+      if (nvpa < 6) &
+         call mp_abort('stella does not currently support nvgrid < 3.  aborting.')
 
-    if(.not.allocated(maxwell_fac)) then
-      allocate(maxwell_fac(nspec)) ; maxwell_fac = 1.0
-    endif
+      !> use simpson 3/8 rule at lower boundary and composite Simpson elsewhere
+      del = 0.375 * dvpa
+      wgts_vpa(1) = del
+      wgts_vpa(2:3) = 3.*del
+      wgts_vpa(4) = del
+      !> composite simpson
+      nvpa_seg = (nvpa - 4) / 2
+      del = dvpa / 3.
+      do iseg = 1, nvpa_seg
+         idx = 2 * (iseg - 1) + 4
+         wgts_vpa(idx) = wgts_vpa(idx) + del
+         wgts_vpa(idx + 1) = wgts_vpa(idx + 1) + 4.*del
+         wgts_vpa(idx + 2) = wgts_vpa(idx + 2) + del
+      end do
 
-    maxwell_fac = spec%dens/spec%dens_psi0*(spec%temp_psi0/spec%temp)**1.5
+      !> for the sake of symmetry, do the same thing with 3/8 rule at upper boundary
+      !> and composite elsewhere.
+      del = 0.375 * dvpa
+      wgts_vpa(nvpa - 3) = wgts_vpa(nvpa - 3) + del
+      wgts_vpa(nvpa - 2:nvpa - 1) = wgts_vpa(nvpa - 2:nvpa - 1) + 3.*del
+      wgts_vpa(nvpa) = wgts_vpa(nvpa) + del
+      nvpa_seg = (nvpa - 4) / 2
+      del = dvpa / 3.
+      do iseg = 1, nvpa_seg
+         idx = 2 * (iseg - 1) + 1
+         wgts_vpa(idx) = wgts_vpa(idx) + del
+         wgts_vpa(idx + 1) = wgts_vpa(idx + 1) + 4.*del
+         wgts_vpa(idx + 2) = wgts_vpa(idx + 2) + del
+      end do
 
+      !> divide by 2 to account for double-counting
+      wgts_vpa = 0.5 * wgts_vpa / sqrt(pi)
 
-  end subroutine init_vpamu_grids
+      wgts_vpa_default = wgts_vpa
 
-  subroutine init_vpa_grid
+   end subroutine init_vpa_grid
 
-    use mp, only: mp_abort
-    use species, only: spec, nspec
+   subroutine set_vpa_weights(conservative)
 
-    implicit none
+      use constants, only: pi
 
-    integer :: iv, idx, iseg, nvpa_seg
-    real :: del
+      implicit none
 
-    if (.not. allocated(vpa)) then
-       ! vpa is the parallel velocity at grid points
-       allocate (vpa(nvpa)) ; vpa = 0.0
-       ! wgts_vpa are the integration weights assigned
-       ! to the parallel velocity grid points
-       allocate (wgts_vpa(nvpa)) ; wgts_vpa = 0.0
-       allocate (wgts_vpa_default(nvpa)) ; wgts_vpa_default = 0.0
-       ! this is the Maxwellian in vpa
-       allocate (maxwell_vpa(nvpa,nspec)) ; maxwell_vpa = 0.0
-       allocate (ztmax(nvpa,nspec)) ; ztmax = 0.0
-    end if
+      logical, intent(in) :: conservative
 
-    ! velocity grid goes from -vpa_max to vpa_max
-    ! with a point at vpa = 0
+      if (conservative) then
+         wgts_vpa = dvpa / sqrt(pi)
+      else if (conservative_wgts_vpa) then ! AVB: added option for density conserving form of collision operator
+         wgts_vpa = dvpa / sqrt(pi)
+      else if ((.not. conservative_wgts_vpa) .and. (.not. conservative)) then
+         wgts_vpa = wgts_vpa_default
+      end if
 
-    ! equal grid spacing in vpa
-    dvpa = 2.*vpa_max/(nvpa-1)
+   end subroutine set_vpa_weights
 
-    ! obtain vpa grid for vpa > 0
-    do iv = nvgrid+1, nvpa
-       vpa(iv) = real(iv-nvgrid-0.5)*dvpa
-    end do
-    ! fill in vpa grid for vpa < 0
-    vpa(:nvgrid) = -vpa(nvpa:nvgrid+1:-1)
+   subroutine integrate_mu_local(iz, g, total)
 
-    ! this is the equilibrium Maxwellian in vpa
-    maxwell_vpa = exp(-spread(vpa*vpa,2,nspec)*spread(spec%temp_psi0/spec%temp,1,nvpa))
-    ztmax = spread(spec%zt,1,nvpa)*maxwell_vpa
+      use species, only: nspec
 
-    ! get integration weights corresponding to vpa grid points
-    ! for now use Simpson's rule; 
-    ! i.e. subdivide grid into 3-point segments, with each segment spanning vpa_low to vpa_up
-    ! then the contribution of each segment to the integral is
-    ! (vpa_up - vpa_low) * (f1 + 4*f2 + f3) / 6
-    ! inner boundary points are used in two segments, so they get double the weight
-
-    if (nvpa < 6) &
-         call mp_abort ('stella does not currently support nvgrid < 3.  aborting.')
-
-    ! use simpson 3/8 rule at lower boundary and composite Simpson elsewhere
-    del=0.375*dvpa
-    wgts_vpa(1) = del
-    wgts_vpa(2:3) = 3.*del
-    wgts_vpa(4) = del
-    ! composite simpson
-    nvpa_seg = (nvpa-4)/2
-    del = dvpa/3.
-    do iseg = 1, nvpa_seg
-       idx = 2*(iseg-1)+4
-       wgts_vpa(idx) = wgts_vpa(idx) + del
-       wgts_vpa(idx+1) = wgts_vpa(idx+1) +4.*del
-       wgts_vpa(idx+2) = wgts_vpa(idx+2) + del
-    end do
+      implicit none
 
-    ! for the sake of symmetry, do the same thing with 3/8 rule at upper boundary
-    ! and composite elsewhere.
-    del = 0.375*dvpa
-    wgts_vpa(nvpa-3) = wgts_vpa(nvpa-3) + del
-    wgts_vpa(nvpa-2:nvpa-1) = wgts_vpa(nvpa-2:nvpa-1) + 3.*del
-    wgts_vpa(nvpa) = wgts_vpa(nvpa) + del
-    nvpa_seg = (nvpa-4)/2
-    del = dvpa/3.
-    do iseg = 1, nvpa_seg
-       idx = 2*(iseg-1)+1
-       wgts_vpa(idx) = wgts_vpa(idx) + del
-       wgts_vpa(idx+1) = wgts_vpa(idx+1) +4.*del
-       wgts_vpa(idx+2) = wgts_vpa(idx+2) + del
-    end do
+      integer, intent(in) :: iz
+      real, dimension(:, :), intent(in) :: g
+      real, dimension(:), intent(out) :: total
 
-    ! divide by 2 to account for double-counting
-    wgts_vpa = 0.5*wgts_vpa
+      integer :: is, imu, ia
 
-    wgts_vpa_default = wgts_vpa
+      total = 0.
 
-  end subroutine init_vpa_grid
+      ia = 1
+      do is = 1, nspec
+         ! sum over mu
+         do imu = 1, nmu
+            total(is) = total(is) + wgts_mu(ia, iz, imu) * g(imu, is)
+         end do
+      end do
 
-  subroutine set_vpa_weights (conservative)
+   end subroutine integrate_mu_local
 
-    implicit none
+   subroutine integrate_mu_nonlocal(iz, g, total)
 
-    logical, intent (in) :: conservative
+      use mp, only: nproc, sum_reduce
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: is_idx, imu_idx, iv_idx
 
-    if (conservative) then
-       wgts_vpa = dvpa
-    else
-       wgts_vpa = wgts_vpa_default
-    end if
+      implicit none
 
-  end subroutine set_vpa_weights
+      integer, intent(in) :: iz
+      real, dimension(vmu_lo%llim_proc:), intent(in) :: g
+      real, dimension(:, :), intent(out) :: total
 
-  subroutine integrate_mu_local (iz, g, total)
+      integer :: is, imu, iv, ivmu, ia
 
-    use species, only: nspec
+      total = 0.
 
-    implicit none
+      ia = 1
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         is = is_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         iv = iv_idx(vmu_lo, ivmu)
+         total(iv, is) = total(iv, is) + wgts_mu(ia, iz, imu) * g(ivmu)
+      end do
 
-    integer, intent (in) :: iz
-    real, dimension (:,:), intent (in) :: g
-    real, dimension (:), intent (out) :: total
+      if (nproc > 1) call sum_reduce(total, 0)
 
-    integer :: is, imu, ia
+   end subroutine integrate_mu_nonlocal
 
-    total = 0.
+   subroutine integrate_vmu_local_real(g, iz, total)
 
-    ia = 1
-    do is = 1, nspec
-       ! sum over mu
-       do imu = 1, nmu
-          total(is) = total(is) + wgts_mu(ia,iz,imu)*g(imu,is)
-       end do
-    end do
+      implicit none
 
-  end subroutine integrate_mu_local
+      real, dimension(:, :), intent(in) :: g
+      integer, intent(in) :: iz
+      real, intent(out) :: total
 
-  subroutine integrate_mu_nonlocal (iz, g, total)
+      integer :: iv, imu, ia
 
-    use mp, only: nproc, sum_reduce
-    use stella_layouts, only: vmu_lo
-    use stella_layouts, only: is_idx, imu_idx, iv_idx
+      total = 0.
 
-    implicit none
+      ia = 1
+      do imu = 1, nmu
+         do iv = 1, nvpa
+            total = total + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(iv, imu)
+         end do
+      end do
 
-    integer, intent (in) :: iz
-    real, dimension (vmu_lo%llim_proc:), intent (in) :: g
-    real, dimension (:,:), intent (out) :: total
+   end subroutine integrate_vmu_local_real
 
-    integer :: is, imu, iv, ivmu, ia
+   subroutine integrate_vmu_local_complex(g, iz, total)
 
-    total = 0.
-    
-    ia = 1
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       is = is_idx(vmu_lo,ivmu)
-       imu = imu_idx(vmu_lo,ivmu)
-       iv = iv_idx(vmu_lo,ivmu)
-       total(iv,is) = total(iv,is) + wgts_mu(ia,iz,imu)*g(ivmu)
-    end do
+      implicit none
 
-    if (nproc > 1) call sum_reduce (total,0)
+      complex, dimension(:, :), intent(in) :: g
+      integer, intent(in) :: iz
+      complex, intent(out) :: total
 
-  end subroutine integrate_mu_nonlocal
+      integer :: iv, imu, ia
 
-  subroutine integrate_vmu_local_real (g, iz, total)
+      total = 0.
 
-    implicit none
+      ia = 1
+      do imu = 1, nmu
+         do iv = 1, nvpa
+            total = total + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(iv, imu)
+         end do
+      end do
 
-    real, dimension (:,:), intent (in) :: g
-    integer, intent (in) :: iz
-    real, intent (out) :: total
+   end subroutine integrate_vmu_local_complex
 
-    integer :: iv, imu, ia
+   ! integrave over v-space in vmu_lo
+   subroutine integrate_vmu_vmulo_complex(g, weights, total)
 
-    total = 0.
-    
-    ia = 1
-    do imu = 1, nmu
-       do iv = 1, nvpa
-          total = total + wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(iv,imu)
-       end do
-    end do
+      use mp, only: sum_allreduce
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use zgrid, only: nzgrid
 
-  end subroutine integrate_vmu_local_real
+      implicit none
 
-  subroutine integrate_vmu_local_complex (g, iz, total)
+      integer :: ivmu, iv, iz, is, imu, ia
 
-    implicit none
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+      real, dimension(:), intent(in) :: weights
+      complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: total
 
-    complex, dimension (:,:), intent (in) :: g
-    integer, intent (in) :: iz
-    complex, intent (out) :: total
+      total = 0.
 
-    integer :: iv, imu, ia
+      ia = 1
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         do iz = -nzgrid, nzgrid
+            total(:, :, iz, :, is) = total(:, :, iz, :, is) + &
+                                     wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(:, :, iz, :, ivmu) * weights(is)
+         end do
+      end do
 
-    total = 0.
-    
-    ia = 1
-    do imu = 1, nmu
-       do iv = 1, nvpa
-          total = total + wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(iv,imu)
-       end do
-    end do
+      call sum_allreduce(total)
 
-  end subroutine integrate_vmu_local_complex
+   end subroutine integrate_vmu_vmulo_complex
 
-  ! integrave over v-space in vmu_lo
-  subroutine integrate_vmu_vmulo_complex (g, weights, total)
+   ! integrave over v-space in vmu_lo
+   subroutine integrate_vmu_vmulo_ivmu_only_real(g, ia, iz, total)
 
-    use mp, only: sum_allreduce
-    use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-    use zgrid, only: nzgrid
+      use mp, only: sum_allreduce
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
-    implicit none
+      implicit none
 
-    integer :: ivmu, iv, iz, is, imu, ia
+      integer :: ivmu, iv, is, imu
 
-    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: g
-    real, dimension (:), intent (in) :: weights
-    complex, dimension (:,:,-nzgrid:,:,:), intent (out) :: total
+      real, dimension(vmu_lo%llim_proc:), intent(in) :: g
+      integer, intent(in) :: ia, iz
+      real, dimension(:), intent(out) :: total
 
-    total = 0.
+      total = 0.
 
-    ia = 1
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
-       imu = imu_idx(vmu_lo,ivmu)
-       is = is_idx(vmu_lo,ivmu)
-       do iz = -nzgrid, nzgrid
-          total(:,:,iz,:,is) = total(:,:,iz,:,is) + &
-               wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(:,:,iz,:,ivmu)*weights(is)
-       end do
-    end do
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         total(is) = total(is) + &
+                     wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(ivmu)
+      end do
 
-    call sum_allreduce (total)
+      call sum_allreduce(total)
 
-  end subroutine integrate_vmu_vmulo_complex
+   end subroutine integrate_vmu_vmulo_ivmu_only_real
 
-  ! integrave over v-space in vmu_lo
-  subroutine integrate_vmu_vmulo_ivmu_only_real (g, ia, iz, total)
+   ! integrave over v-space and sum over species
+   subroutine integrate_species_vmu(g, weights, total, ia_in)
 
-    use mp, only: sum_allreduce
-    use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use mp, only: sum_allreduce
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use zgrid, only: nzgrid, ntubes
 
-    implicit none
+      implicit none
 
-    integer :: ivmu, iv, is, imu
+      integer :: ivmu, iv, it, iz, is, imu, ia
 
-    real, dimension (vmu_lo%llim_proc:), intent (in) :: g
-    integer, intent (in) :: ia, iz
-    real, dimension (:), intent (out) :: total
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+      real, dimension(:), intent(in) :: weights
+      integer, intent(in), optional :: ia_in
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: total
 
-    total = 0.
+      if (present(ia_in)) then
+         ia = ia_in
+      else
+         ia = 1
+      end if
 
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
-       imu = imu_idx(vmu_lo,ivmu)
-       is = is_idx(vmu_lo,ivmu)
-       total(is) = total(is) + &
-               wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(ivmu)
-    end do
+      total = 0.
 
-    call sum_allreduce (total)
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               total(:, :, iz, it) = total(:, :, iz, it) + &
+                                     wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(:, :, iz, it, ivmu) * weights(is)
+            end do
+         end do
+      end do
 
-  end subroutine integrate_vmu_vmulo_ivmu_only_real
+      call sum_allreduce(total)
 
-!   subroutine integrate_species_local_real (g, weights, iz, total)
+   end subroutine integrate_species_vmu
 
-!     use species, only: nspec
-!     use stella_geometry, only: bmag
+   ! integrave over v-space and sum over species for given (ky,kx,z) point
+   subroutine integrate_species_vmu_single(g, iz, weights, total, ia_in, reduce_in)
 
-!     implicit none
+      use mp, only: sum_allreduce
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
-!     real, dimension (:,:,:), intent (in) :: g
-!     real, dimension (:), intent (in) :: weights
-!     integer, intent (in) :: iz
-!     real, intent (out) :: total
+      implicit none
 
-!     integer :: iv, imu, is
+      integer :: ivmu, iv, is, imu, ia
+      logical :: reduce
 
-!     total = 0.
+      complex, dimension(vmu_lo%llim_proc:), intent(in) :: g
+      integer, intent(in) :: iz
+      real, dimension(:), intent(in) :: weights
+      complex, intent(out) :: total
+      integer, intent(in), optional :: ia_in
+      logical, intent(in), optional :: reduce_in
 
-!     do is = 1, nspec
-!        do imu = 1, nmu
-!           do iv = 1, nvpa
-!              total = total + wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu,is)*weights(is)
-!           end do
-!        end do
-!     end do
+      total = 0.
 
-!   end subroutine integrate_species_local_real
+      if (present(ia_in)) then
+         ia = ia_in
+      else
+         ia = 1
+      end if
+      if (present(reduce_in)) then
+         reduce = reduce_in
+      else
+         reduce = .true.
+      end if
 
-!   subroutine integrate_species_local_complex (g, weights, iz, total)
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         total = total + &
+                 wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(ivmu) * weights(is)
+      end do
 
-!     use species, only: nspec
-!     use stella_geometry, only: bmag
+      if (reduce) call sum_allreduce(total)
 
-!     implicit none
+   end subroutine integrate_species_vmu_single
 
-!     complex, dimension (:,:,:), intent (in) :: g
-!     real, dimension (:), intent (in) :: weights
-!     integer, intent (in) :: iz
-!     complex, intent (out) :: total
+   ! integrave over v-space and sum over species for given (ky,kx,z) point
+   subroutine integrate_species_vmu_single_real(g, iz, weights, total, ia_in, reduce_in)
 
-!     integer :: iv, imu, is
+      use mp, only: sum_allreduce
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
-!     total = 0.
+      implicit none
 
-!     do is = 1, nspec
-!        do imu = 1, nmu
-!           do iv = 1, nvpa
-!              total = total + wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(iv,imu,is)*weights(is)
-!           end do
-!        end do
-!     end do
+      integer :: ivmu, iv, is, imu, ia
+      logical :: reduce
 
-!   end subroutine integrate_species_local_complex
+      real, dimension(vmu_lo%llim_proc:), intent(in) :: g
+      integer, intent(in) :: iz
+      real, dimension(:), intent(in) :: weights
+      real, intent(out) :: total
+      integer, intent(in), optional :: ia_in
+      logical, intent(in), optional :: reduce_in
 
-!   ! integrave over v-space and sum over species
-!   subroutine integrate_species_vmu (g, weights, total)
+      total = 0.
 
-!     use mp, only: sum_allreduce
-!     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-!     use zgrid, only: nzgrid
-!     use stella_geometry, only: bmag
+      if (present(ia_in)) then
+         ia = ia_in
+      else
+         ia = 1
+      end if
+      if (present(reduce_in)) then
+         reduce = reduce_in
+      else
+         reduce = .true.
+      end if
 
-!     implicit none
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         total = total + &
+                 wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(ivmu) * weights(is)
+      end do
 
-!     integer :: ivmu, iv, iz, is, imu
+      if (reduce) call sum_allreduce(total)
 
-!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in) :: g
-!     real, dimension (:), intent (in) :: weights
-!     complex, dimension (:,:,-nzgrid:), intent (out) :: total
+   end subroutine integrate_species_vmu_single_real
 
-!     total = 0.
+   subroutine integrate_species_vmu_block_complex(g, iz, weights, pout, ia_in, reduce_in)
 
-!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-!        iv = iv_idx(vmu_lo,ivmu)
-!        imu = imu_idx(vmu_lo,ivmu)
-!        is = is_idx(vmu_lo,ivmu)
-!        do iz = -nzgrid, nzgrid
-!           total(:,:,iz) = total(:,:,iz) + &
-!                wgts_mu(imu)*wgts_vpa(iv)*bmag(1,iz)*g(:,:,iz,ivmu)*weights(is)
-!        end do
-!     end do
+      use mp, only: sum_allreduce
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
-!     call sum_allreduce (total)
+      implicit none
 
-!   end subroutine integrate_species_vmu
+      integer :: ivmu, iv, is, imu, ia
+      logical :: reduce
 
-  ! integrave over v-space and sum over species for given (ky,kx,z) point
-  subroutine integrate_species_vmu_single (g, iz, weights, total, ia_in, reduce_in)
+      complex, dimension(:, :, vmu_lo%llim_proc:), intent(in) :: g
+      integer, intent(in) :: iz
+      integer, intent(in), optional :: ia_in
+      logical, intent(in), optional :: reduce_in
+      real, dimension(:), intent(in) :: weights
+      complex, dimension(:, :), intent(out) :: pout
 
-    use mp, only: sum_allreduce
-    use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      pout = 0.
 
-    implicit none
+      if (present(ia_in)) then
+         ia = ia_in
+      else
+         ia = 1
+      end if
+      if (present(reduce_in)) then
+         reduce = reduce_in
+      else
+         reduce = .true.
+      end if
 
-    integer :: ivmu, iv, is, imu, ia
-    logical :: reduce
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         pout = pout + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(:, :, ivmu) * weights(is)
+      end do
 
-    complex, dimension (vmu_lo%llim_proc:), intent (in) :: g
-    integer, intent (in) :: iz
-    real, dimension (:), intent (in) :: weights
-    complex, intent (out) :: total
-    integer, intent (in), optional :: ia_in
-    logical, intent (in), optional :: reduce_in
+      if (reduce) call sum_allreduce(pout)
 
-    total = 0.
-    
-    if (present(ia_in)) then
-       ia = ia_in
-    else
-       ia = 1
-    end if
-    if (present(reduce_in)) then
-       reduce = reduce_in
-    else
-       reduce = .true.
-    end if
+   end subroutine integrate_species_vmu_block_complex
 
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
-       imu = imu_idx(vmu_lo,ivmu)
-       is = is_idx(vmu_lo,ivmu)
-       total = total + &
-            wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(ivmu)*weights(is)
-    end do
+   subroutine integrate_species_vmu_block_real(g, iz, weights, pout, ia_in, reduce_in)
 
-    if (reduce) call sum_allreduce (total)
+      use mp, only: sum_allreduce
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
-  end subroutine integrate_species_vmu_single
+      implicit none
 
-  ! integrave over v-space and sum over species for given (ky,kx,z) point
-  subroutine integrate_species_vmu_single_real (g, iz, weights, total, ia_in,reduce_in)
+      integer :: ivmu, iv, is, imu, ia
+      logical :: reduce
 
-    use mp, only: sum_allreduce
-    use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      real, dimension(:, :, vmu_lo%llim_proc:), intent(in) :: g
+      integer, intent(in) :: iz
+      integer, intent(in), optional :: ia_in
+      logical, intent(in), optional :: reduce_in
+      real, dimension(:), intent(in) :: weights
+      real, dimension(:, :), intent(out) :: pout
 
-    implicit none
+      pout = 0.
 
-    integer :: ivmu, iv, is, imu, ia
-    logical :: reduce
+      if (present(ia_in)) then
+         ia = ia_in
+      else
+         ia = 1
+      end if
+      if (present(reduce_in)) then
+         reduce = reduce_in
+      else
+         reduce = .true.
+      end if
 
-    real, dimension (vmu_lo%llim_proc:), intent (in) :: g
-    integer, intent (in) :: iz
-    real, dimension (:), intent (in) :: weights
-    real, intent (out) :: total
-    integer, intent (in), optional :: ia_in
-    logical, intent (in), optional :: reduce_in
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         pout = pout + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(:, :, ivmu) * weights(is)
+      end do
 
-    total = 0.
-    
-    if (present(ia_in)) then
-       ia = ia_in
-    else
-       ia = 1
-    end if
-    if (present(reduce_in)) then
-       reduce = reduce_in
-    else
-       reduce = .true.
-    end if
+      if (reduce) call sum_allreduce(pout)
 
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
-       imu = imu_idx(vmu_lo,ivmu)
-       is = is_idx(vmu_lo,ivmu)
-       total = total + &
-            wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(ivmu)*weights(is)
-    end do
+   end subroutine integrate_species_vmu_block_real
 
-    if (reduce) call sum_allreduce (total)
+   subroutine integrate_species_ffs(g, weights, pout, reduce_in)
 
-  end subroutine integrate_species_vmu_single_real
+      use mp, only: sum_allreduce
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
-  subroutine integrate_species_vmu_block_complex (g, iz, weights, pout, ia_in, reduce_in)
+      implicit none
 
-    use mp, only: sum_allreduce
-    use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      integer :: ivmu, iv, is, imu
+      logical :: reduce
 
-    implicit none
+      complex, dimension(:, :, vmu_lo%llim_proc:), intent(in) :: g
+      logical, intent(in), optional :: reduce_in
+      real, dimension(:), intent(in) :: weights
+      complex, dimension(:, :), intent(out) :: pout
 
-    integer :: ivmu, iv, is, imu, ia
-    logical :: reduce
+      pout = 0.
 
-    complex, dimension (:,:,vmu_lo%llim_proc:), intent (in) :: g
-    integer, intent (in) :: iz
-    integer, intent (in), optional :: ia_in
-    logical, intent (in), optional :: reduce_in
-    real, dimension (:), intent (in) :: weights
-    complex, dimension (:,:), intent (out) :: pout
+      if (present(reduce_in)) then
+         reduce = reduce_in
+      else
+         reduce = .true.
+      end if
 
-    pout =0.
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         pout = pout + 2.0 * wgts_mu_bare(imu) * wgts_vpa(iv) * g(:, :, ivmu) * weights(is)
+      end do
 
-    if (present(ia_in)) then
-       ia = ia_in
-    else
-       ia = 1
-    end if
-    if (present(reduce_in)) then
-       reduce = reduce_in
-    else
-       reduce = .true.
-    end if
+      if (reduce) call sum_allreduce(pout)
 
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
-       imu = imu_idx(vmu_lo,ivmu)
-       is = is_idx(vmu_lo,ivmu)
-       pout = pout + wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(:,:,ivmu)*weights(is)
-    end do
+   end subroutine integrate_species_ffs
 
-    if (reduce) call sum_allreduce (pout)
+   subroutine integrate_vmu_ffs(g, weights, ia, iz, pout, reduce_in)
 
-  end subroutine integrate_species_vmu_block_complex
-
-  subroutine integrate_species_vmu_block_real (g, iz, weights, pout, ia_in,reduce_in)
-
-    use mp, only: sum_allreduce
-    use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-
-    implicit none
-
-    integer :: ivmu, iv, is, imu, ia
-    logical :: reduce
-
-    real, dimension (:,:,vmu_lo%llim_proc:), intent (in) :: g
-    integer, intent (in) :: iz
-    integer, intent (in), optional :: ia_in
-    logical, intent (in), optional :: reduce_in
-    real, dimension (:), intent (in) :: weights
-    real, dimension (:,:), intent (out) :: pout
-
-    pout =0.
-
-    if (present(ia_in)) then
-       ia = ia_in
-    else
-       ia = 1
-    end if
-    if (present(reduce_in)) then
-       reduce = reduce_in
-    else
-       reduce = .true.
-    end if
-
-    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-       iv = iv_idx(vmu_lo,ivmu)
-       imu = imu_idx(vmu_lo,ivmu)
-       is = is_idx(vmu_lo,ivmu)
-       pout = pout + wgts_mu(ia,iz,imu)*wgts_vpa(iv)*g(:,:,ivmu)*weights(is)
-    end do
+      use mp, only: sum_allreduce
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
-    if (reduce) call sum_allreduce (pout)
+      implicit none
 
-  end subroutine integrate_species_vmu_block_real
+      complex, dimension(vmu_lo%llim_proc:), intent(in) :: g
+      real, dimension(:), intent(in) :: weights
+      integer, intent(in) :: ia, iz
+      complex, dimension(:), intent(out) :: pout
+      logical, intent(in), optional :: reduce_in
 
-  subroutine finish_vpa_grid
+      integer :: ivmu, iv, is, imu
+      logical :: reduce
 
-    implicit none
+      pout = 0.
 
-    if (allocated(vpa)) deallocate (vpa)
-    if (allocated(wgts_vpa)) deallocate (wgts_vpa)
-    if (allocated(wgts_vpa_default)) deallocate (wgts_vpa_default)
-    if (allocated(maxwell_vpa)) deallocate (maxwell_vpa)
-    if (allocated(ztmax)) deallocate (ztmax)
+      if (present(reduce_in)) then
+         reduce = reduce_in
+      else
+         reduce = .true.
+      end if
 
-  end subroutine finish_vpa_grid
+      !> NB: for FFS, assume that there is only one flux annulus
+      !> the inclusion of the Maxwellian term below is due to the fact that
+      !> g/F is evolved for FFS
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         pout(is) = pout(is) + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(ivmu) * weights(is) &
+                    * maxwell_mu(ia, iz, imu, is) * maxwell_vpa(iv, is)
+      end do
 
-  subroutine init_mu_grid
+      if (reduce) call sum_allreduce(pout)
 
-    use constants, only: pi
-    use gauss_quad, only: get_laguerre_grids
-    use zgrid, only: nzgrid, nztot
-    use kt_grids, only: nalpha
-    use species, only: spec, nspec
-    use stella_geometry, only: bmag, bmag_psi0
-    
-    implicit none
+   end subroutine integrate_vmu_ffs
 
-    integer :: imu
-    real :: mu_max
-    real, dimension (:), allocatable :: wgts_mu_tmp
+   subroutine finish_vpa_grid
 
-    ! allocate arrays and initialize to zero
-    if (.not. allocated(mu)) then
-       allocate (mu(nmu)) ; mu = 0.0
-       allocate (wgts_mu(nalpha,-nzgrid:nzgrid,nmu)) ; wgts_mu = 0.0
-       allocate (maxwell_mu(nalpha,-nzgrid:nzgrid,nmu,nspec)) ; maxwell_mu = 0.0
-       allocate (dmu(nmu-1))
-    end if
+      implicit none
 
-    allocate (wgts_mu_tmp(nmu)) ; wgts_mu_tmp = 0.0
+      if (allocated(vpa)) deallocate (vpa)
+      if (allocated(wgts_vpa)) deallocate (wgts_vpa)
+      if (allocated(wgts_vpa_default)) deallocate (wgts_vpa_default)
+      if (allocated(maxwell_vpa)) deallocate (maxwell_vpa)
+      if (allocated(ztmax)) deallocate (ztmax)
 
-    ! dvpe * vpe = d(2*mu*B0) * B/2B0
-    if (equally_spaced_mu_grid) then
-       ! first get equally spaced grid in mu with max value
-       ! mu_max = vperp_max**2/(2*max(bmag))
-       mu_max = vperp_max**2/(2.*maxval(bmag_psi0))
-       ! want first grid point at dmu/2 to avoid mu=0 special point
-       ! dmu/2 + (nmu-1)*dmu = mu_max
-       ! so dmu = mu_max/(nmu-1/2)
-       dmu = mu_max/(nmu-0.5)
-       mu(1) = 0.5*dmu(1)
-       do imu = 2, nmu
-          mu(imu) = mu(1)+(imu-1)*dmu(1)
-       end do
-       ! do simplest thing to start
-       wgts_mu_tmp = dmu(1)
-    else
-       !    ! use Gauss-Laguerre quadrature in 2*mu*bmag(z=0)
-       ! use Gauss-Laguerre quadrature in 2*mu*min(bmag)*max(
-       call get_laguerre_grids (mu, wgts_mu_tmp)
-       wgts_mu_tmp = wgts_mu_tmp*exp(mu)/(2.*minval(bmag_psi0)*mu(nmu)/vperp_max**2)
-    
-       !    mu = mu/(2.*bmag(1,0))
-       mu = mu/(2.*minval(bmag_psi0)*mu(nmu)/vperp_max**2)
+   end subroutine finish_vpa_grid
 
-       dmu(:nmu-1) = mu(2:)-mu(:nmu-1)
-       ! leave dmu(nmu) uninitialized. should never be used, so want 
-       ! valgrind or similar to return error if it is
-    end if
+   subroutine init_mu_grid
 
-    ! this is the mu part of the v-space Maxwellian
-    maxwell_mu = exp(-2.*spread(spread(spread(mu,1,nalpha),2,nztot)*spread(bmag,3,nmu),4,nspec) &
-                       *spread(spread(spread(spec%temp_psi0/spec%temp,1,nalpha),2,nztot),3,nmu))
-       
-    ! factor of 2./sqrt(pi) necessary to account for 2pi from 
-    ! integration over gyro-angle and 1/pi^(3/2) normalization
-    ! of velocity space Jacobian
-    wgts_mu = 2./sqrt(pi)*spread(spread(wgts_mu_tmp,1,nalpha),2,nztot)*spread(bmag,3,nmu)
+      use gauss_quad, only: get_laguerre_grids
+      use zgrid, only: nzgrid, nztot
+      use kt_grids, only: nalpha
+      use species, only: spec, nspec
+      use stella_geometry, only: bmag, bmag_psi0
 
-    deallocate (wgts_mu_tmp)
+      implicit none
 
-  end subroutine init_mu_grid
+      integer :: imu
+      real :: mu_max
 
-  subroutine finish_mu_grid
+      !> allocate arrays and initialize to zero
+      if (.not. allocated(mu)) then
+         allocate (mu(nmu)); mu = 0.0
+         allocate (wgts_mu(nalpha, -nzgrid:nzgrid, nmu)); wgts_mu = 0.0
+         allocate (wgts_mu_bare(nmu)); wgts_mu_bare = 0.0
+         allocate (maxwell_mu(nalpha, -nzgrid:nzgrid, nmu, nspec)); maxwell_mu = 0.0
+         allocate (dmu(nmu - 1))
+         allocate (dmu_ghost(nmu))
+         allocate (mu_cell(nmu))
+         allocate (dmu_cell(nmu))
+      end if
 
-    implicit none
+      !> dvpe * vpe = d(2*mu*B0) * B/2B0
+      if (equally_spaced_mu_grid) then
+         !> first get equally spaced grid in mu with max value
+         !> mu_max = vperp_max**2/(2*max(bmag))
+         mu_max = vperp_max**2 / (2.*maxval(bmag_psi0))
+         !> want first grid point at dmu/2 to avoid mu=0 special point
+         !> dmu/2 + (nmu-1)*dmu = mu_max
+         !> so dmu = mu_max/(nmu-1/2)
+         dmu = mu_max / (nmu - 0.5)
+         mu(1) = 0.5 * dmu(1)
+         do imu = 2, nmu
+            mu(imu) = mu(1) + (imu - 1) * dmu(1)
+         end do
+         !> do simplest thing to start
+         wgts_mu_bare = dmu(1)
+      else
+         !    ! use Gauss-Laguerre quadrature in 2*mu*bmag(z=0)
+         ! use Gauss-Laguerre quadrature in 2*mu*min(bmag)*max(
+         call get_laguerre_grids(mu, wgts_mu_bare)
+         if (vperp_max < 0) vperp_max = sqrt(mu(nmu))
+         wgts_mu_bare = wgts_mu_bare * exp(mu) / (2.*minval(bmag_psi0) * mu(nmu) / vperp_max**2)
 
-    if (allocated(mu)) deallocate (mu)
-    if (allocated(wgts_mu)) deallocate (wgts_mu)
-    if (allocated(maxwell_mu)) deallocate (maxwell_mu)
-    if (allocated(dmu)) deallocate (dmu)
-    if (allocated(rbuffer)) deallocate (rbuffer)
+         !    mu = mu/(2.*bmag(1,0))
+         mu = mu / (2.*minval(bmag_psi0) * mu(nmu) / vperp_max**2)
 
-  end subroutine finish_mu_grid
+         dmu(:nmu - 1) = mu(2:) - mu(:nmu - 1)
+         !> leave dmu(nmu) uninitialized. should never be used, so want
+         !> valgrind or similar to return error if it is
+      end if
 
-  subroutine finish_vpamu_grids
+      !> maxwell_mu is the mu part of the v-space Maxwellian
+      maxwell_mu = exp(-2.*spread(spread(spread(mu, 1, nalpha), 2, nztot) * spread(bmag, 3, nmu), 4, nspec) &
+                       * spread(spread(spread(spec%temp_psi0 / spec%temp, 1, nalpha), 2, nztot), 3, nmu))
 
-    implicit none
-    
-    call finish_vpa_grid
-    call finish_mu_grid
+      !> factor of 2. necessary to account for 2pi from
+      !> integration over gyro-angle and 1/pi^(3/2) normalization
+      !> of velocity space Jacobian
+      wgts_mu = 2.*spread(spread(wgts_mu_bare, 1, nalpha), 2, nztot) * spread(bmag, 3, nmu)
 
-    if(allocated(maxwell_fac)) deallocate(maxwell_fac)
+      !> add ghost cell at mu=0 and beyond mu_max for purposes of differentiation
+      !> note assuming here that grid spacing for ghost cell is equal to
+      !> grid spacing for last non-ghost cell
+      dmu_ghost(:nmu - 1) = dmu; dmu_ghost(nmu) = dmu(nmu - 1)
+      !> this is mu at cell centres (including to left and right of mu grid boundary points)
+      mu_cell(:nmu - 1) = 0.5 * (mu(:nmu - 1) + mu(2:))
+      mu_cell(nmu) = mu(nmu) + 0.5 * dmu(nmu - 1)
+      !> this is mu_{j+1/2} - mu_{j-1/2}
+      dmu_cell(1) = mu_cell(1)
+      dmu_cell(2:) = mu_cell(2:) - mu_cell(:nmu - 1)
 
-    vpamu_initialized = .false.
+   end subroutine init_mu_grid
 
-  end subroutine finish_vpamu_grids
+   subroutine finish_mu_grid
+
+      implicit none
+
+      if (allocated(mu)) deallocate (mu)
+      if (allocated(mu_cell)) deallocate (mu_cell)
+      if (allocated(wgts_mu)) deallocate (wgts_mu)
+      if (allocated(wgts_mu_bare)) deallocate (wgts_mu_bare)
+      if (allocated(maxwell_mu)) deallocate (maxwell_mu)
+      if (allocated(dmu)) deallocate (dmu)
+      if (allocated(dmu_cell)) deallocate (dmu_cell)
+      if (allocated(dmu_ghost)) deallocate (dmu_ghost)
+      if (allocated(rbuffer)) deallocate (rbuffer)
+
+   end subroutine finish_mu_grid
+
+   subroutine calculate_velocity_integrals
+
+      use zgrid, only: nzgrid
+      use species, only: nspec
+
+      implicit none
+
+      real, dimension(nvpa, nmu) :: moment
+      integer :: ia, is, iz
+
+      ia = 1
+      is = 1
+
+      if (.not. allocated(int_unit)) allocate (int_unit(1, -nzgrid:nzgrid, nspec))
+      if (.not. allocated(int_vpa2)) allocate (int_vpa2(1, -nzgrid:nzgrid, nspec))
+      if (.not. allocated(int_vperp2)) allocate (int_vperp2(1, -nzgrid:nzgrid, nspec))
+      if (.not. allocated(int_vfrth)) allocate (int_vfrth(1, -nzgrid:nzgrid, nspec))
+
+      do is = 1, nspec
+         do iz = -nzgrid, nzgrid
+            moment = spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu)
+            call integrate_vmu(moment, iz, int_unit(ia, iz, is))
+
+            moment = spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(vpa(:)**2 * maxwell_vpa(:, is), 2, nmu)
+            call integrate_vmu(moment, iz, int_vpa2(ia, iz, is))
+
+            moment = spread(vperp2(ia, iz, :) * maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu)
+            call integrate_vmu(moment, iz, int_vperp2(ia, iz, is))
+
+            moment = spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu)
+            moment = moment * (spread(vpa**2, 2, nmu) + spread(vperp2(ia, iz, :), 1, nvpa))**2
+            call integrate_vmu(moment, iz, int_vfrth(ia, iz, is))
+         end do
+      end do
+
+   end subroutine calculate_velocity_integrals
+
+   subroutine finish_vpamu_grids
+
+      implicit none
+
+      call finish_vpa_grid
+      call finish_mu_grid
+
+      if (allocated(maxwell_fac)) deallocate (maxwell_fac)
+      if (allocated(int_unit)) deallocate (int_unit)
+      if (allocated(int_vpa2)) deallocate (int_vpa2)
+      if (allocated(int_vperp2)) deallocate (int_vperp2)
+      if (allocated(int_vfrth)) deallocate (int_vfrth)
+
+      vpamu_initialized = .false.
+
+   end subroutine finish_vpamu_grids
 
 end module vpamu_grids

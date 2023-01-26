@@ -10,11 +10,9 @@ endif
 
 include Makefile.$(COMPILER)
 
-ifdef USE_MPI
 ifdef USE_MIC
 	MPIFC = mpiifort
 	MPICC = mpiicc
-endif
 endif
 
 USE_HDF5=on
