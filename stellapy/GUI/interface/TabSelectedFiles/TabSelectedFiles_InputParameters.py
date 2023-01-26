@@ -1,6 +1,12 @@
-###################################################################
-#            CLASS FOR THE FRAMES "INPUT PARAMETERS"
-###################################################################
+
+import tkinter as tk
+from tkinter import ttk
+from stellapy.GUI.widgets.ToolTip import ToolTip 
+from stellapy.data.stella import load_defaultInputParameters
+
+################################################################################
+#                    CLASS FOR THE FRAME "INPUT PARAMETERS"                    #
+################################################################################
 ''' SUBFRAME INPUTPARAMETERS ON TAB 1
 
 Manage the "Input parameters" LabelFrame in the middle and right column of the tab 
@@ -11,60 +17,23 @@ in red to emphasize that they are different.
 
 In the frame "All parameters" it is possible to toggle between the knobs from 
 the stella code in order to look at the values of all the possible stella inputs.
-
-
-Absolute path of class InputParameters:
-----------------------------------------
-root.tab3.class_inputParameters
-
 '''
-
-import tkinter as tk
-from tkinter import ttk
-from stellapy.GUI.graph_tools.ToolTip import ToolTip 
-from stellapy.data import load_defaultInputParameters
 
 class InputParameters():
     '''
     Calling this class initiates frame_inputs, frame_wavenumber, frame_geometry, 
     frame_resolution, frame_species, and frame_allParam on the tab "Simulations".
     See module "TabSelectedFiles" in the TabSelectedFiles package for their creation.
-    
-    
-    Attributes
-    ----------
-    defaultParameters : dict[
-    
-    Parent widgets
-    --------------
-    root:               Tk()
-    tabheader:          ttk.Notebook(root)
-    tab1:               ttk.Frame(tabheader)          
-    frame_left:         ttk.Frame(tab1)
-    frame_inputs:       ttk.LabelFrame(frame_middle)  
-    frame_wavenumber:   ttk.LabelFrame(frame_middle) 
-    frame_geometry:     ttk.LabelFrame(frame_middle) 
-    frame_species:      ttk.LabelFrame(frame_right) 
-    frame_allParam:     ttk.LabelFrame(frame_right)    
-    
-    
-    Widgets
-    -------
     '''
     
 
-#################################################################
-#                          WIDGETS
-#################################################################
+################################################################################
+#                                   WIDGETS                                    #
+################################################################################
 
     def __init__(self,tab3):
-        '''
-        Initialize the frames that will display the input parameters of the simulations
-            - 
-        
-        Initialize the class variables that will be used by the class methods.
-            -
-        '''
+        ''' Initialize the frames that will display the input parameters of the simulations
+        Initialize the class variables that will be used by the class methods. '''
 
         #====================================================================
         # Safe info from the root so that it can be passed on or used locally
@@ -123,11 +92,11 @@ class InputParameters():
         tk.Grid.columnconfigure(frame, 0, weight=1)  
         tk.Grid.columnconfigure(frame, 1, weight=1)  
         tk.Grid.rowconfigure(frame,    0, weight=0) 
-        tk.Grid.rowconfigure(frame,    1, weight=1) # For the parameter list
+        tk.Grid.rowconfigure(frame,    1, weight=1)  
         self.popupMenu_knob.grid(row=0, column=0, sticky="nsew", columnspan=2)
-        def change_dropdown(*args): # on change dropdown value
+        def change_dropdown(*_):  
             self.update_allParameters()
-        self.option_knob.trace('w', change_dropdown) # link function to change dropdown
+        self.option_knob.trace('w', change_dropdown)  
 
         # Initiate the other 5 data frames
         self.initiate_data()
@@ -141,9 +110,9 @@ class InputParameters():
         # Prevent indentation
         if True: return
 
-#================================================================
+#===============================================================================
 # Template to initiate the data frames
-#================================================================
+#===============================================================================
 
     def initiate_dataFrame(self, frame_id, frame):
 
@@ -188,9 +157,9 @@ class InputParameters():
         # Prevent indentation
         if True: return
         
-#================================================================
+#===============================================================================
 # Initiate the data frames with corresponding data
-#================================================================
+#===============================================================================
 
     def initiate_speciesTab(self, tab_id, title):
         ''' Each time this is called, a new species tab is added '''
@@ -207,7 +176,6 @@ class InputParameters():
 
         # Fill the tab with data
         self.initiate_dataFrame(tab_id, frame)
-
 
     #-------------------------
     def initiate_data(self):
@@ -250,13 +218,9 @@ class InputParameters():
         # Prevent indentation
         if True: return
         
-#################################################################
-#                          METHODS
-#################################################################
-
-#================================================================
-# Update the frames
-#================================================================
+################################################################################
+#                                   METHODS                                    #
+################################################################################ 
 
     def update_frame(self):
         self.update_simulations() 
@@ -270,19 +234,17 @@ class InputParameters():
         self.data_GUI = {}
         for experiment in self.root.Research.experiments:
             for simulation in experiment.simulations:
-                for input_file in simulation.input_files + ["everything"]:
-                    if input_file=="everything": data_simulation = simulation.inputParameters
-                    if input_file!="everything": data_simulation = simulation.inputs[input_file]
-                    for knob in data_simulation.keys():
-                        for key, value in data_simulation[knob].items():
-                            if knob in self.data_GUI.keys():
-                                if key in self.data_GUI[knob].keys():
-                                    self.data_GUI[knob][key].append(data_simulation[knob][key])
-                                else: 
-                                    self.data_GUI[knob][key] = [data_simulation[knob][key]]
-                            else:
-                                self.data_GUI[knob] = {}
+                data_simulation = simulation.input.inputParameters 
+                for knob in data_simulation.keys():
+                    for key, value in data_simulation[knob].items():
+                        if knob in self.data_GUI.keys():
+                            if key in self.data_GUI[knob].keys():
+                                self.data_GUI[knob][key].append(data_simulation[knob][key])
+                            else: 
                                 self.data_GUI[knob][key] = [data_simulation[knob][key]]
+                        else:
+                            self.data_GUI[knob] = {}
+                            self.data_GUI[knob][key] = [data_simulation[knob][key]]
                                 
         # If no simulations are selected, show the default values
         if self.data_GUI == {}: 

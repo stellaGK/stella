@@ -17,7 +17,7 @@ input: reads the ".in" file
                                     nfield_periods; geo_option; boundary_option; adiabatic_option; vmec_filename}
                                     
 fluxes: read the ".fluxes" file
-    read.fluxes             -->     dict[/;shot][/;rho][time; q_flux; p_flux; v_flux]
+    read.fluxes             -->     dict[/;shot][/;rho][time; qflux; pflux; vflux]
 
 
 vmecgeo: reads the ".vmecgeo" file
@@ -40,7 +40,7 @@ profile:
 
 lineardata:         
     read.lineardata[0]      -->     linear_data[shot][rho][kx]['<quantity>'] if nesteddict = True;  else    linear_data['<quantity>']
-                                    <quantity> = {'ky', 'omega', 'gamma', 'omega_full', 'gamma_full', 'phi2', 'p_flux', 'q_flux', 'v_flux}
+                                    <quantity> = {'ky', 'omega', 'gamma', 'omega_full', 'gamma_full', 'phi2', 'pflux', 'qflux', 'vflux}
 
     read.lineardata[1]      -->     input_values[shot][rho]['<quantity>'] if nesteddict = True;     else    input_values['<quantity>']     
                                     <quantity> = {'ns', 'rho', 'tite', 'ref_a', 'ref_B', 's1_z', 's1_mass', 
@@ -68,13 +68,17 @@ divider = '\\' if (os.name == 'nt') else '/'
 mod_list = [file_name.split(divider)[-1].split('.')[0] for file_name in glob.glob(__path__[0]+'/[!_]*.py')]
 sub_pack_list = [folder_name.split(divider)[-2] for folder_name in glob.glob(__path__[0]+'/[!_]*/')]
 
+# Make sure we read the input package first to avoid circular dependecies
+sub_pack_list.remove('input')
+sub_pack_list = ['input'] + sub_pack_list
+
 # Import all functions from the modules
 for mod in mod_list:
     exec('from . import ' + mod)
     exec('from .' + mod + ' import *')
 
-# Import all subpackages
-for pack in sub_pack_list:
+# Import all subpackages 
+for pack in sub_pack_list: 
     exec('from . import ' + pack)
 
 # Clean up

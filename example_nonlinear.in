@@ -1,0 +1,148 @@
+&zgrid_parameters
+ nzed = 12
+ ntubes = 1
+ nperiod = 1
+ boundary_option="linked"
+/
+
+&geo_knobs
+ geo_option = 'miller'
+/
+
+&millergeo_parameters
+ nzed_local = 128
+ rhoc = 0.5
+ shat = 0.796
+ qinp = 1.4
+ rmaj = 2.77778
+ rgeo = 2.77778
+ shift = 0.0
+ kappa = 1.0
+ kapprim = 0.0
+ tri = 0.0
+ triprim = 0.0
+ betaprim = 0.0
+
+ d2qdr2 = 0.0
+ d2psidr2 = 0.0
+ betadbprim = 0.0
+/
+
+&physics_flags
+ full_flux_surface = .false.
+ radial_variation = .false.
+ nonlinear = .true.
+ adiabatic_option="field-line-average-term"
+/
+
+&dissipation
+  hyper_dissipation = .true.
+  include_collisions = .true.
+/
+&hyper
+  D_hyper = 0.1
+/
+&collisions_dougherty
+   momentum_conservation = .true.
+/
+
+&parameters
+ zeff = 1.0
+ beta = 0.0
+ vnew_ref = 0.0
+ rhostar = 0.0
+/
+
+&vpamu_grids_parameters
+ nvgrid = 12
+ nmu = 6
+ vpa_max = 3.0
+/
+
+&time_advance_knobs
+ explicit_option="rk3"
+/
+
+&kt_grids_knobs
+ grid_option='box'
+/
+&kt_grids_box_parameters
+ nx = 32
+ ny = 32
+ y0 = 10
+/
+
+
+&init_g_knobs
+ chop_side = F
+ phiinit=   0.01
+ scale_to_phiinit= T
+ restart_file = "example_l.nc"
+ restart_dir = "nc"
+ ginit_option= "noise"
+ zf_init = 1.0
+/
+
+&knobs
+ fphi =   1.0
+ fapar =  0.0
+ fbpar = 0.0
+ zed_upwind = 0.02
+ time_upwind = 0.02
+ vpa_upwind = 0.02
+ delt = 0.05
+ nstep = 2000
+ rng_seed = 1234
+/
+&species_knobs
+ nspec= 1
+ species_option = 'stella'
+/
+&species_parameters_1
+ z=   1.0
+ mass=   1.0
+ dens=   1.0
+ temp=   1.0
+ tprim=  2.48
+ fprim=  0.79
+ type='ion'
+/
+
+&species_parameters_2
+ z=     -1.0
+ mass=   2.7e-4
+ dens=   1.0
+ temp=   1.0
+ tprim=  2.48
+ fprim=  0.79
+ type='electron'
+/
+
+&stella_diagnostics_knobs
+ nwrite = 10
+ nsave = 1000
+ save_for_restart = .false.
+ write_omega = .false.
+ write_phi_vs_time = .false.
+ write_gvmus = .false.
+ write_gzvs = .false.
+/
+
+&reinit_knobs
+ delt_adj = 2.0
+ delt_minimum = 1.e-4
+/
+&layouts_knobs
+ xyzs_layout = 'yxzs'
+ vms_layout = 'vms'
+/
+
+&neoclassical_input
+ include_neoclassical_terms = .false.
+ neo_option = 'sfincs'
+/
+&sfincs_input
+ nproc_sfincs = 2
+ nxi = 16
+ nx = 5
+/

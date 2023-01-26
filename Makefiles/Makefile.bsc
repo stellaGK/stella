@@ -28,10 +28,8 @@ include Makefile.$(COMPILER)
 
 FC=f90
 CC=icc
-ifdef USE_MPI
-	MPIFC=mpiifort
-	MPICC=mpiicc
-endif
+MPIFC=mpiifort
+MPICC=mpiicc
 
 ifeq ($(USE_FFT),fftw3)	
 	FFT_INC = 

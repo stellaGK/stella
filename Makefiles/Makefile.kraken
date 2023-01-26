@@ -74,10 +74,8 @@ include Makefile.$(COMPILER)
 
 FC=ftn
 CC=cc
-ifdef USE_MPI
-	MPIFC = ftn
-	MPICC = cc
-endif
+MPIFC = ftn
+MPICC = cc
 
 ifdef CRAY_HDF5
 	H5FC = ftn

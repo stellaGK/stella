@@ -2,7 +2,7 @@ module fzero_mod
 
 contains
 
-  SUBROUTINE FZERO (F, B, C, R, RE, AE, IFLAG)
+   SUBROUTINE FZERO(F, B, C, R, RE, AE, IFLAG)
 !***BEGIN PROLOGUE  FZERO
 !***PURPOSE  Search for a zero of a function F(X) in a given interval
 !            (B,C).  It is designed primarily for problems where F(B)
@@ -96,142 +96,142 @@ contains
 !   920501  Reformatted the REFERENCES section.  (WRB)
 !***END PROLOGUE  FZERO
 !      USE stel_kinds
-    IMPLICIT NONE
+      IMPLICIT NONE
 !      REAL(RPREC), PARAMETER :: ZERO = 0, ONE = 1
 !      REAL(RPREC) :: A,ACBS,ACMB,AE,AW,B,C,CMB,ER,FA,FB,FC,FX,FZ,P,Q,R,
 !     +     RE,RW,T,TOL,Z,F
-    REAL, PARAMETER :: ZERO = 0, ONE = 1
-    REAL :: A,ACBS,ACMB,AE,AW,B,C,CMB,ER,FA,FB,FC,FX,FZ,P,Q,R, &
-         RE,RW,T,TOL,Z,F
-    INTEGER :: IC,IFLAG,KOUNT
-    EXTERNAL F
+      REAL, PARAMETER :: ZERO = 0, ONE = 1
+      REAL :: A, ACBS, ACMB, AE, AW, B, C, CMB, ER, FA, FB, FC, FX, FZ, P, Q, R, &
+              RE, RW, T, TOL, Z, F
+      INTEGER :: IC, IFLAG, KOUNT
+      EXTERNAL F
 !***FIRST EXECUTABLE STATEMENT  FZERO
 !
 !   ER is two times the computer unit roundoff value which is defined
 !   here by the function EPSILON.
 !
-    ER = 2 * EPSILON(ER)
+      ER = 2 * EPSILON(ER)
 !
 !   Initialize.
 !
-    Z = R
-    IF (R .LE. MIN(B,C)  .OR.  R .GE. MAX(B,C)) Z = C
-    RW = MAX(RE,ER)
-    AW = MAX(AE,ZERO)
-    IC = 0
-    T = Z
-    FZ = F(T)
-    FC = FZ
-    T = B
-    FB = F(T)
-    KOUNT = 2
-    IF (SIGN(ONE,FZ) .EQ. SIGN(ONE,FB)) GO TO 1
-    C = Z
-    GO TO 2
-1   IF (Z .EQ. C) GO TO 2
-    T = C
-    FC = F(T)
-    KOUNT = 3
-    IF (SIGN(ONE,FZ) .EQ. SIGN(ONE,FC)) GO TO 2
-    B = Z
-    FB = FZ
-2   A = C
-    FA = FC
-    ACBS = ABS(B-C)
-    FX = MAX(ABS(FB),ABS(FC))
+      Z = R
+      IF (R <= MIN(B, C) .OR. R >= MAX(B, C)) Z = C
+      RW = MAX(RE, ER)
+      AW = MAX(AE, ZERO)
+      IC = 0
+      T = Z
+      FZ = F(T)
+      FC = FZ
+      T = B
+      FB = F(T)
+      KOUNT = 2
+      IF (SIGN(ONE, FZ) == SIGN(ONE, FB)) GO TO 1
+      C = Z
+      GO TO 2
+1     IF (Z == C) GO TO 2
+      T = C
+      FC = F(T)
+      KOUNT = 3
+      IF (SIGN(ONE, FZ) == SIGN(ONE, FC)) GO TO 2
+      B = Z
+      FB = FZ
+2     A = C
+      FA = FC
+      ACBS = ABS(B - C)
+      FX = MAX(ABS(FB), ABS(FC))
 !
-3   IF (ABS(FC) .GE. ABS(FB)) GO TO 4
+3     IF (ABS(FC) >= ABS(FB)) GO TO 4
 !
 !   Perform interchange.
 !
-    A = B
-    FA = FB
-    B = C
-    FB = FC
-    C = A
-    FC = FA
+      A = B
+      FA = FB
+      B = C
+      FB = FC
+      C = A
+      FC = FA
 !
 !    4 CMB = 0.5_DP*(C-B)
-4   CMB = 0.5d+0*(C-B)
-    ACMB = ABS(CMB)
-    TOL = RW*ABS(B) + AW
+4     CMB = 0.5d+0 * (C - B)
+      ACMB = ABS(CMB)
+      TOL = RW * ABS(B) + AW
 !
 !   Test stopping criterion and function count.
 !
-    IF (ACMB .LE. TOL) GO TO 10
-    IF (FB .EQ. ZERO) GO TO 11
-    IF (KOUNT .GE. 500) GO TO 14
+      IF (ACMB <= TOL) GO TO 10
+      IF (FB == ZERO) GO TO 11
+      IF (KOUNT >= 500) GO TO 14
 !
 !   Calculate new iterate implicitly as B+P/Q, where we arrange
 !   P .GE. 0.  The implicit form is used to prevent overflow.
 !
-    P = (B-A)*FB
-    Q = FA - FB
-    IF (P .GE. ZERO) GO TO 5
-    P = -P
-    Q = -Q
+      P = (B - A) * FB
+      Q = FA - FB
+      IF (P >= ZERO) GO TO 5
+      P = -P
+      Q = -Q
 !
 !   Update A and check for satisfactory reduction in the size of the
 !   bracketing interval.  If not, perform bisection.
 !
-5   A = B
-    FA = FB
-    IC = IC + 1
-    IF (IC .LT. 4) GO TO 6
-    IF (8*ACMB .GE. ACBS) GO TO 8
-    IC = 0
-    ACBS = ACMB
+5     A = B
+      FA = FB
+      IC = IC + 1
+      IF (IC < 4) GO TO 6
+      IF (8 * ACMB >= ACBS) GO TO 8
+      IC = 0
+      ACBS = ACMB
 !
 !   Test for too small a change.
 !
-6   IF (P .GT. ABS(Q)*TOL) GO TO 7
+6     IF (P > ABS(Q) * TOL) GO TO 7
 !
 !   Increment by TOLerance.
 !
-    B = B + SIGN(TOL,CMB)
-    GO TO 9
+      B = B + SIGN(TOL, CMB)
+      GO TO 9
 !
 !   Root ought to be between B and (C+B)/2.
 !
-7   IF (P .GE. CMB*Q) GO TO 8
+7     IF (P >= CMB * Q) GO TO 8
 !
 !   Use secant rule.
 !
-    B = B + P/Q
-    GO TO 9
+      B = B + P / Q
+      GO TO 9
 !
 !   Use bisection (C+B)/2.
 !
-8   B = B + CMB
+8     B = B + CMB
 !
 !   Have completed computation for new iterate B.
 !
-9   T = B
-    FB = F(T)
-    KOUNT = KOUNT + 1
+9     T = B
+      FB = F(T)
+      KOUNT = KOUNT + 1
 !
 !   Decide whether next step is interpolation or extrapolation.
 !
-    IF (SIGN(ONE,FB) .NE. SIGN(ONE,FC)) GO TO 3
-    C = A
-    FC = FA
-    GO TO 3
+      IF (SIGN(ONE, FB) /= SIGN(ONE, FC)) GO TO 3
+      C = A
+      FC = FA
+      GO TO 3
 !
 !   Finished.  Process results for proper setting of IFLAG.
 !
-10  IF (SIGN(ONE,FB) .EQ. SIGN(ONE,FC)) GO TO 13
-    IF (ABS(FB) .GT. FX) GO TO 12
-    IFLAG = 1
-    RETURN
-11  IFLAG = 2
-    RETURN
-12  IFLAG = 3
-    RETURN
-13  IFLAG = 4
-    RETURN
-14  IFLAG = 5
-    
-  END SUBROUTINE FZERO
+10    IF (SIGN(ONE, FB) == SIGN(ONE, FC)) GO TO 13
+      IF (ABS(FB) > FX) GO TO 12
+      IFLAG = 1
+      RETURN
+11    IFLAG = 2
+      RETURN
+12    IFLAG = 3
+      RETURN
+13    IFLAG = 4
+      RETURN
+14    IFLAG = 5
+
+   END SUBROUTINE FZERO
 
 end module fzero_mod
 

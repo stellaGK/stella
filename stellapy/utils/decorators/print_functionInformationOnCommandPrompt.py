@@ -21,7 +21,7 @@ def print_functionInformationOnCommandPrompt(function, default_arguments, argume
         if value==None:  value="None"
         if value==True:  value="True"
         if value==False: value="False"
-        print('     ', '{0:20}'.format(name+":") + '{:<40}'.format(value))
+        print('     ', '{0:20}'.format(name+":") + '{:<40}'.format(str(value)))
     
     # If some arguments were defined through the bash command, show them
     if arguments is not None: 

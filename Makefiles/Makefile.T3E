@@ -1,5 +1,4 @@
 # T3E (is this still used?)
-USE_MPI = on
 FC = f90
 #USE_SHMEM = on
 override USE_POSIX = on
@@ -8,10 +7,8 @@ override USE_POSIX = on
 F90FLAGS = -M1110,7212
 CPPFLAGS += -DFCOMPILER=_CRAY_
 
-ifdef USE_MPI
-	MPI_INC = -I$$MPTDIR/include 
-	MPI_LIB = -lmpi
-endif
+MPI_INC = -I$$MPTDIR/include 
+MPI_LIB = -lmpi
 
 NETCDF_LIB = $$NETCDF -Wl"-D permok=yes"
 

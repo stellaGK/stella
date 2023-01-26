@@ -53,6 +53,7 @@ def phi_vs_t(infile,var,ny,nx):
 
 naky  = center_nc.dimensions['ky']
 nakxc = center_nc.dimensions['kx']
+ny = 2 * naky - 1
 
 ky  = np.copy(center_nc.variables['ky'][:])
 kxc  = np.copy(center_nc.variables['kx'][:])
@@ -79,7 +80,7 @@ dl_over_bc = dl_over_bc/sum(dl_over_bc)
 
 dobc = np.transpose(np.matlib.tile(dl_over_bc,(naky,nakxc,1)))
 
-phic_kxky = phi_vs_t(center_nc,'phi_vs_t',naky,nakxc)
+phic_kxky = phi_vs_t(center_nc,'phi_vs_t',ny,nakxc)
 phiZF_kxky= np.sum(dobc[:,:,0]*phic_kxky[:,:,:,0],1)
 
 #print(phic_kxky[nt-1,omp,:,0])
