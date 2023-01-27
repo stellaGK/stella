@@ -6,6 +6,8 @@ module volume_averages
    public :: flux_surface_average_ffs
 
    public :: mode_fac
+   
+   public :: alpha_average_ffs_realspace
 
    private
 
@@ -233,5 +235,29 @@ contains
       fsa = fsa / area
 
    end subroutine flux_surface_average_ffs
+
+   subroutine alpha_average_ffs_realspace(no_avg, avg, iz)
+
+      use zgrid, only: nzgrid, ntubes
+      use kt_grids, only: naky, naky_all, nalpha
+      use stella_geometry, only: jacob
+      use kt_grids, only: dy, nakx
+
+      use mp, only: proc0
+
+      implicit none
+      
+      real, dimension(nalpha), intent(in) :: no_avg
+      integer, intent(in) :: iz
+      real, intent(out) :: avg
+      real :: norm
+      integer :: ia
+
+      avg = 0.0
+      norm = sum(dy * jacob(:,iz))
+      
+      avg = sum(no_avg, 1) / size(no_avg, 1)
+
+    end subroutine alpha_average_ffs_realspace
 
 end module volume_averages

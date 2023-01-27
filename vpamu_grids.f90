@@ -18,6 +18,8 @@ module vpamu_grids
    public :: vperp2
    public :: equally_spaced_mu_grid
    public :: set_vpa_weights
+   
+   public :: integrate_species_ffs_rm
 
    logical :: vpamu_initialized = .false.
 
@@ -631,6 +633,36 @@ contains
       if (reduce) call sum_allreduce(pout)
 
    end subroutine integrate_species_ffs
+   
+   subroutine integrate_species_ffs_rm (g, weights, pout, reduce_in)
+     use mp, only: sum_allreduce
+     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+
+     implicit none 
+     integer :: ivmu, iv, is, imu       
+     logical :: reduce
+     
+     complex, dimension(vmu_lo%llim_proc:), intent(in) :: g
+     logical, intent(in), optional :: reduce_in
+     real, dimension(:), intent(in) :: weights
+     complex, intent(out) :: pout
+     
+     if (present(reduce_in)) then
+        reduce = reduce_in
+     else
+        reduce = .true.
+     end if
+     
+     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        iv = iv_idx(vmu_lo, ivmu)
+        imu = imu_idx(vmu_lo, ivmu)
+        is = is_idx(vmu_lo, ivmu)
+        pout = pout + 2.0 * wgts_mu_bare(imu) * wgts_vpa(iv) * g(ivmu) * weights(is)
+     end do
+     
+     if (reduce) call sum_allreduce(pout)
+     
+   end subroutine integrate_species_ffs_rm
 
    subroutine integrate_vmu_ffs(g, weights, ia, iz, pout, reduce_in)
 

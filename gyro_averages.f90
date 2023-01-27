@@ -9,6 +9,8 @@ module gyro_averages
    public :: j0_B_maxwell_ffs, j0_ffs
    public :: band_lu_solve_ffs, band_lu_factorisation_ffs
 
+   public :: j0bmaxwell_avg
+
    private
 
    interface gyro_average
@@ -39,6 +41,9 @@ module gyro_averages
    logical :: bessinit = .false.
 
    logical :: debug = .false.
+   
+   !!GA
+   real, dimension(:, :, :, :), allocatable :: j0bmaxwell_avg
 
 contains
 
@@ -255,6 +260,8 @@ contains
       use kt_grids, only: swap_kxky_ordered
       use dist_fn_arrays, only: kperp2
 
+      use kt_grids, only: nakx
+
       implicit none
 
       !    integer :: j0_ffs_unit, j0_B_maxwell_ffs_unit
@@ -267,9 +274,6 @@ contains
       real, dimension(:), allocatable :: aj0_alpha, j0_B_maxwell
       real, dimension(:, :, :), allocatable :: kperp2_swap
       complex, dimension(:), allocatable :: aj0_kalpha, j0_B_maxwell_kalpha
-
-      !       call open_output_file (j0_ffs_unit, '.j0_ffs')
-      !       call open_output_file (j0_B_maxwell_ffs_unit, '.j0_over_B_ffs')
 
       ! wgts are species-dependent factors appearing in Gamma0 factor
       allocate (wgts(nspec))
@@ -288,6 +292,12 @@ contains
       end if
       if (.not. allocated(j0_B_maxwell_ffs)) then
          allocate (j0_B_maxwell_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      end if
+      
+      !!GA 
+      if(.not. allocated(j0bmaxwell_avg)) then
+         allocate (j0bmaxwell_avg(naky,nakx,-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         j0bmaxwell_avg = 0.0
       end if
 
       ia_max_j0_count = 0; ia_max_j0_B_maxwell_count = 0
@@ -325,11 +335,10 @@ contains
                   !> called j0_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
                   !if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::find_max_required_kalpha_index'
                   !                ! TMP FOR TESTING
-                  !                j0_ffs(iky,ikx,iz,ivmu)%max_idx = naky
                   call find_max_required_kalpha_index(aj0_kalpha, j0_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
+                  call find_max_required_kalpha_index(j0_B_maxwell_kalpha, j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
                   !> given the Fourier coefficients j0_B_maxwell_kalpha, calculate the minimum number of coefficients needed,
                   !> called j0_B_maxwell_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
-                  call find_max_required_kalpha_index(j0_B_maxwell_kalpha, j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
                   !> keep track of the total number of coefficients that must be retained across different phase space points
                   ia_max_j0_count = ia_max_j0_count + j0_ffs(iky, ikx, iz, ivmu)%max_idx
                   !> keep track of the total number of coefficients that must be retained across different phase space points
@@ -349,7 +358,26 @@ contains
             end do
          end do
       end do
-      deallocate (aj0_alpha, j0_B_maxwell, j0_B_maxwell_kalpha)
+      deallocate (j0_B_maxwell, j0_B_maxwell_kalpha)
+      
+      !!GA
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         do iz = -nzgrid, nzgrid
+            do ikx = 1, nakx
+               do iky = 1, naky
+                  do ia = 1, nalpha
+                     arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
+                     aj0_alpha (ia) = j0(arg) * bmag(ia, iz) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
+                  end do
+                  j0bmaxwell_avg(iky,ikx,iz,ivmu) = sum(aj0_alpha)/size(aj0_alpha)
+               end do
+            end do
+         end do
+      end do
+      deallocate (aj0_alpha)
 
       !> calculate the reduction factor of Fourier modes
       !> used to represent J0

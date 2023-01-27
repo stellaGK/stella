@@ -481,6 +481,7 @@ contains
       use parallel_streaming, only: stream_tridiagonal_solve, sweep_zed_zonal
       use parallel_streaming, only: stream_sign
       use run_parameters, only: zed_upwind, time_upwind
+      use kt_grids, only: nalpha
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
@@ -495,10 +496,16 @@ contains
       integer :: izp, izm
       real :: mu_dbdzed_p, mu_dbdzed_m
       real :: fac, fac0, fac1, gyro_fac
+      
+      !!GA
+      real :: maxwell_vpa_s
+      real, dimension(:, :), allocatable :: maxwell_zed
 
       ia = 1
-
-      if (.not. maxwellian_inside_zed_derivative) then
+      
+      allocate (maxwell_zed(nalpha, -nzgrid:nzgrid))
+      
+      if ((.not. maxwellian_inside_zed_derivative) .or. driftkinetic_implicit) then
          ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             ! initialize g to zero everywhere along extended zed domain
@@ -513,15 +520,21 @@ contains
             ! NB:  assuming equal spacing in zed below
             ! here, fac = -dt*(1+alph_t)/2*vpa*Ze/T*F0*J0/dz
             ! b.gradz left out because needs to be centred in zed
+            
             if (driftkinetic_implicit) then
                gyro_fac = 1.0
+               !!GA- no maxwellian for drift kinetic implicit
+               maxwell_zed = 1.0
+               maxwell_vpa_s = 1.0
             else
                gyro_fac = aj0x(iky, ikx, iz, ivmu)
+               maxwell_zed = maxwell_mu(:, :, imu, is)
+               maxwell_vpa_s = maxwell_vpa(iv, is) * maxwell_fac(is)
             end if
 
             ! 0.125 to account for two linear interpolations
             fac = -0.125 * (1.+time_upwind) * code_dt * vpa(iv) * spec(is)%stm_psi0 &
-                  * gyro_fac * spec(is)%zt / delzed(0) * maxwell_vpa(iv, is) * maxwell_fac(is)
+                  * gyro_fac * spec(is)%zt / delzed(0) * maxwell_vpa_s * maxwell_fac(is)
 
             ! In the following, gradpar and maxwell_mu are interpolated separately
             ! to ensure consistency to what is done in parallel_streaming.f90
@@ -533,31 +546,31 @@ contains
                   ! of the homogeneous GKE at this zed index
                   fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
                                 + (1.-zed_upwind) * gradpar(iz - 1)) &
-                         * (maxwell_mu(ia, iz, imu, is) + maxwell_mu(ia, iz - 1, imu, is))
+                         * (maxwell_zed(ia, iz) + maxwell_zed(ia, iz - 1))
                   ! fac1 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at the zed index to the right of
                   ! this one
                   if (iz < nzgrid) then
                      fac1 = fac * ((1.+zed_upwind) * gradpar(iz + 1) &
                                    + (1.-zed_upwind) * gradpar(iz)) &
-                            * (maxwell_mu(ia, iz + 1, imu, is) + maxwell_mu(ia, iz, imu, is))
+                            * (maxwell_zed(ia, iz + 1) + maxwell_zed(ia, iz))
                   else
                      fac1 = fac * ((1.+zed_upwind) * gradpar(-nzgrid + 1) &
                                    + (1.-zed_upwind) * gradpar(nzgrid)) &
-                            * (maxwell_mu(ia, -nzgrid + 1, imu, is) + maxwell_mu(ia, nzgrid, imu, is))
+                            * (maxwell_zed(ia, -nzgrid + 1) + maxwell_zed(ia, nzgrid))
                   end if
                else
                   ! fac0 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at this zed index
                   fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
                                 + (1.-zed_upwind) * gradpar(nzgrid - 1)) &
-                         * (maxwell_mu(ia, iz, imu, is) + maxwell_mu(ia, nzgrid - 1, imu, is))
+                         * (maxwell_zed(ia, iz) + maxwell_zed(ia, nzgrid - 1))
                   ! fac1 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at the zed index to the right of
                   ! this one
                   fac1 = fac * ((1.+zed_upwind) * gradpar(iz + 1) &
                                 + (1.-zed_upwind) * gradpar(iz)) &
-                         * (maxwell_mu(ia, iz + 1, imu, is) + maxwell_mu(ia, iz, imu, is))
+                         * (maxwell_zed(ia, iz + 1) + maxwell_zed(ia, iz))
                end if
                gext(idx, ivmu) = fac0
                if (idx < nz_ext) gext(idx + 1, ivmu) = -fac1
@@ -576,31 +589,31 @@ contains
                   ! of the homogeneous GKE at this zed index
                   fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
                                 + (1.-zed_upwind) * gradpar(iz + 1)) &
-                         * (maxwell_mu(ia, iz, imu, is) + maxwell_mu(ia, iz + 1, imu, is))
+                         * (maxwell_zed(ia, iz) + maxwell_zed(ia, iz + 1))
                   ! fac1 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at the zed index to the left of
                   ! this one
                   if (iz > -nzgrid) then
                      fac1 = fac * ((1.+zed_upwind) * gradpar(iz - 1) &
                                    + (1.-zed_upwind) * gradpar(iz)) &
-                            * (maxwell_mu(ia, iz - 1, imu, is) + maxwell_mu(ia, iz, imu, is))
+                            * (maxwell_zed(ia, iz - 1) + maxwell_zed(ia, iz))
                   else
                      fac1 = fac * ((1.+zed_upwind) * gradpar(nzgrid - 1) &
                                    + (1.-zed_upwind) * gradpar(iz)) &
-                            * (maxwell_mu(ia, nzgrid - 1, imu, is) + maxwell_mu(ia, iz, imu, is))
+                            * (maxwell_zed(ia, nzgrid - 1) + maxwell_zed(ia, iz))
                   end if
                else
                   ! fac0 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at this zed index
                   fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
                                 + (1.-zed_upwind) * gradpar(-nzgrid + 1)) &
-                         * (maxwell_mu(ia, iz, imu, is) + maxwell_mu(ia, -nzgrid + 1, imu, is))
+                         * (maxwell_zed(ia, iz) + maxwell_zed(ia, -nzgrid + 1))
                   ! fac1 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at the zed index to the left of
                   ! this one
                   fac1 = fac * ((1.+zed_upwind) * gradpar(iz - 1) &
                                 + (1.-zed_upwind) * gradpar(iz)) &
-                         * (maxwell_mu(ia, iz - 1, imu, is) + maxwell_mu(ia, iz, imu, is))
+                         * (maxwell_zed(ia, iz - 1) + maxwell_zed(ia, iz))
                end if
                gext(idx, ivmu) = -fac0
                if (idx > 1) gext(idx - 1, ivmu) = fac1
@@ -641,24 +654,30 @@ contains
             ! here, fac = -dt*(1+alph_t)/2*vpa*Ze/T*F0*J0/dz
             ! b.gradz left out because needs to be centred in zed
             if (driftkinetic_implicit) then
+               !!GA-for safety- should not be in here if dki = true
                gyro_fac = 1.0
-            else
+               maxwell_zed = 1.0
+               maxwell_vpa_s = 1.0
+               mu_dbdzed_p = 0.0
+               mu_dbdzed_m = 0.0 
+            else 
+               ia = 1
                gyro_fac = aj0x(iky, ikx, iz, ivmu)
+               maxwell_zed = maxwell_mu(:, :, imu, is)
+               maxwell_vpa_s = maxwell_vpa(iv, is) * maxwell_fac(is)
+               mu_dbdzed_p = 1./delzed(0) + mu(imu) * dbdzed(ia, iz) * (1.+zed_upwind)
+               mu_dbdzed_m = 1./delzed(0) + mu(imu) * dbdzed(ia, iz) * (1.-zed_upwind)
             end if
 
             fac = -0.25 * (1.+time_upwind) * code_dt * vpa(iv) * spec(is)%stm_psi0 &
-                  * gyro_fac * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-
-            mu_dbdzed_p = 1./delzed(0) + mu(imu) * dbdzed(ia, iz) * (1.+zed_upwind)
-            mu_dbdzed_m = 1./delzed(0) + mu(imu) * dbdzed(ia, iz) * (1.-zed_upwind)
-
+                  * gyro_fac * spec(is)%zt * maxwell_vpa_s * maxwell_zed(ia, iz) * maxwell_fac(is)
             ! stream_sign < 0 corresponds to positive advection speed
             if (stream_sign(iv) < 0) then
                if (iz > -nzgrid) then
                   ! fac0 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at this zed index
                   fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
-                                + (1.-zed_upwind) * gradpar(iz - 1)) * mu_dbdzed_p
+                       + (1.-zed_upwind) * gradpar(iz - 1)) * mu_dbdzed_p
                   ! fac1 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at the zed index to the right of
                   ! this one
@@ -742,7 +761,7 @@ contains
 
          end do
       end if
-
+      deallocate (maxwell_zed)
       ! we now have g on the extended zed domain at this ky and set of connected kx values
       ! corresponding to a unit impulse in phi at this location
       ! now integrate over velocities to get a square response matrix
@@ -771,6 +790,11 @@ contains
       use vpamu_grids, only: integrate_species
       use gyro_averages, only: gyro_average
       use mp, only: sum_allreduce
+      
+      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use run_parameters, only: driftkinetic_implicit
+      use vpamu_grids, only: integrate_species_ffs_rm
+      use gyro_averages, only: j0bmaxwell_avg
 
       implicit none
 
@@ -782,7 +806,7 @@ contains
       integer :: izl_offset
       real, dimension(nspec) :: wgt
       complex, dimension(:), allocatable :: g0
-
+      integer :: ivmu, imu, iv, is
       ia = 1
 
       allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -795,17 +819,38 @@ contains
       ikx = ikxmod(iseg, ie, iky)
       do iz = iz_low(iseg), iz_up(iseg)
          idx = idx + 1
-         call gyro_average(g(idx, :), iky, ikx, iz, g0)
-         call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
+         if (.not. driftkinetic_implicit) then
+            call gyro_average(g(idx, :), iky, ikx, iz, g0)
+            call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
+         else
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               iv = iv_idx(vmu_lo, ivmu)
+               imu = imu_idx(vmu_lo, ivmu)
+               is = is_idx(vmu_lo, ivmu)
+               g0(ivmu) = g(idx, ivmu) *  j0bmaxwell_avg(iky,ikx,iz,ivmu)
+            end do
+            call integrate_species_ffs_rm (g0, wgt, phi(idx), reduce_in=.false.)
+         end if
       end do
+      
       izl_offset = 1
       if (nsegments(ie, iky) > 1) then
          do iseg = 2, nsegments(ie, iky)
             ikx = ikxmod(iseg, ie, iky)
             do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                idx = idx + 1
-               call gyro_average(g(idx, :), iky, ikx, iz, g0)
-               call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
+               if (.not. driftkinetic_implicit) then
+                  call gyro_average(g(idx, :), iky, ikx, iz, g0)
+                  call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
+               else
+                  do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                     iv = iv_idx(vmu_lo, ivmu)
+                     imu = imu_idx(vmu_lo, ivmu)
+                     is = is_idx(vmu_lo, ivmu)
+                     g0(ivmu) = g(idx, ivmu) *  j0bmaxwell_avg(iky,ikx,iz,ivmu)
+                  end do
+                  call integrate_species_ffs_rm (g0, wgt, phi(idx), reduce_in=.false.)
+               end if
             end do
             if (izl_offset == 0) izl_offset = 1
          end do
