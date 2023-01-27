@@ -55,7 +55,7 @@ contains
       use stella_geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
       use run_parameters, only: stream_implicit, driftkinetic_implicit
       use physics_flags, only: include_parallel_streaming, radial_variation
-      
+
       use run_parameters, only: driftkinetic_implicit
       use mp, only: proc0
       use volume_averages, only: alpha_average_ffs_realspace
@@ -90,19 +90,19 @@ contains
                end do
                !!GA
                if (driftkinetic_implicit) then
-                  stream_store(iz,iv, :) = -code_dt *gradpar(iz) * vpa(iv) * spec%stm_psi0
+                  stream_store(iz, iv, :) = -code_dt * gradpar(iz) * vpa(iv) * spec%stm_psi0
                end if
             end do
          end do
       else
          stream = 0.0
       end if
-      
-      !!GA 
+
+      !!GA
       if (driftkinetic_implicit) then
          stream_correction = stream - spread(stream_store, 1, nalpha)
          stream = spread(stream_store, 1, nalpha)
-         deallocate(stream_store)
+         deallocate (stream_store)
       end if
 
       if (radial_variation) then
@@ -231,7 +231,7 @@ contains
       complex, dimension(:, :, :, :), allocatable :: g0, dgphi_dz
       complex, dimension(:, :, :, :), allocatable :: g0y, g1y
       complex, dimension(:, :), allocatable :: g0_swap
-      
+
       !!GA
       complex, dimension(:, :, :, :), allocatable :: dgphi_dz_correction
       complex, dimension(:, :, :, :), allocatable :: g1y_correction
@@ -260,7 +260,7 @@ contains
             allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes))
          end if
       end if
-      
+
       !!GA
       if (driftkinetic_implicit) then
          fields_updated = .false.
@@ -284,7 +284,7 @@ contains
 
          !!GA -- d phi0/dz
          if (driftkinetic_implicit) call get_dgdz_centered(phi1, ivmu, dgphi_dz_correction)
-        
+
          !> compute dg/dz in k-space and store in g0
          call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
 
@@ -315,7 +315,7 @@ contains
                call add_stream_term_ffs_correction(g0y, ivmu, gout(:, :, :, :, ivmu))
                !!GA- this is Z/T d(<phi> - phi0)/dz
                g1y = (g1y - g1y_correction) * spec(is)%zt
-               !!GA- this is (b.gradz0)*(Z/T d(<phi> - phi0)/dz) 
+               !!GA- this is (b.gradz0)*(Z/T d(<phi> - phi0)/dz)
                !!GA the final term b.gradz0*(dg/dz + Z/T d phi0/dz) is treated implicitly
                call add_stream_term_ffs(g1y, ivmu, gout(:, :, :, :, ivmu))
             else
@@ -333,7 +333,7 @@ contains
          end if
 
       end do
-      
+
       !> deallocate intermediate arrays used in this subroutine
       deallocate (g0, dgphi_dz)
       if (full_flux_surface) deallocate (g0y, g1y, g0_swap)
@@ -345,7 +345,7 @@ contains
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
    end subroutine advance_parallel_streaming_explicit
-   
+
    subroutine add_parallel_streaming_radial_variation(g, gout, rhs)
 
       use stella_layouts, only: vmu_lo
@@ -597,14 +597,14 @@ contains
       end do
 
    end subroutine add_stream_term_ffs
-   
+
    subroutine add_stream_term_ffs_correction(g, ivmu, src)
 
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
       use zgrid, only: nzgrid
       use kt_grids, only: ny
-      
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
@@ -621,7 +621,7 @@ contains
          end do
       end do
 
-    end subroutine add_stream_term_ffs_correction
+   end subroutine add_stream_term_ffs_correction
 
    subroutine advance_parallel_streaming_implicit(g, phi, apar)
 
@@ -633,7 +633,7 @@ contains
       use dist_fn_arrays, only: g1
       use run_parameters, only: stream_matrix_inversion
       use fields, only: advance_fields, fields_updated
-      
+
       use run_parameters, only: driftkinetic_implicit
 
       implicit none
@@ -652,13 +652,13 @@ contains
       ! save the incoming g and phi, as they will be needed later
       g1 = g
       phi1 = phi
-      
+
       if (driftkinetic_implicit) then
          const_in_alpha = .true.
          fields_updated = .false.
          call advance_fields(g, phi1, apar, dist='gbar', const_in_alpha=.true.)
       end if
-         
+
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! obtain RHS of inhomogeneous GK eqn;
@@ -823,7 +823,7 @@ contains
          !call center_zed(iv, dphidz)
          vpadf0dE_fac = vpa(iv) * spec(is)%zt
       end if
-      
+
       ! if including neoclassical correction to equilibrium distribution function
       ! then must also account for -vpa*dF_neo/dvpa*Z/T
       ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!
@@ -1280,7 +1280,7 @@ contains
          deallocate (stream_tri_c1)
          deallocate (stream_tri_c2)
       end if
-      
+
       if (allocated(stream_correction)) deallocate (stream_correction)
    end subroutine finish_invert_stream_operator
 

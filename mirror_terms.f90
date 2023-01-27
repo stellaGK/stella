@@ -596,7 +596,7 @@ contains
       real :: tupwnd
       complex, dimension(:, :, :), allocatable :: g0v
       complex, dimension(:, :, :, :, :), allocatable :: g0x
-      
+
       !!GA
       complex, dimension(:, :, :), allocatable :: dgdvpa
       integer :: iy
@@ -665,22 +665,22 @@ contains
          ! second, remap g so velocities are local
          call scatter(kxyz2vmu, g0x, g0v)
          !!GA
-         allocate(dgdvpa(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
+         allocate (dgdvpa(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
          do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
             iz = iz_idx(kxyz_lo, ikxyz)
             is = is_idx(kxyz_lo, ikxyz)
             iy = iy_idx(kxyz_lo, ikxyz)
             do imu = 1, nmu
                call fd_variable_upwinding_vpa(1, g0v(:, imu, ikxyz), dvpa, &
-                    mirror_sign(iy, iz), vpa_upwind, dgdvpa(:, imu, ikxyz))
-               dgdvpa(:, imu, ikxyz) = g0v(:, imu, ikxyz) + tupwnd * mirror(iy, iz, imu, is) *&
-                    (dgdvpa(:, imu, ikxyz) + 2 * vpa * g0v(:,imu, ikxyz))
+                                              mirror_sign(iy, iz), vpa_upwind, dgdvpa(:, imu, ikxyz))
+               dgdvpa(:, imu, ikxyz) = g0v(:, imu, ikxyz) + tupwnd * mirror(iy, iz, imu, is) * &
+                                       (dgdvpa(:, imu, ikxyz) + 2 * vpa * g0v(:, imu, ikxyz))
                call invert_mirror_operator(imu, ikxyz, dgdvpa(:, imu, ikxyz))
 !               call invert_mirror_operator(imu, ikxyz, g0v(:, imu, ikxyz))
             end do
          end do
          g0v = dgdvpa
-         deallocate(dgdvpa)
+         deallocate (dgdvpa)
          ! then take the results and remap again so y,kx,z local.
          call gather(kxyz2vmu, g0v, g0x)
 
@@ -713,7 +713,7 @@ contains
                call swap_kxky_back(g_swap, g(:, :, iz, it, ivmu))
             end do
          end do
-         deallocate(g_swap)
+         deallocate (g_swap)
          !call transform_y2ky(g0x, g)
       else
          ! if implicit treatment of collisions, then already have updated gvmu in kxkyz_lo

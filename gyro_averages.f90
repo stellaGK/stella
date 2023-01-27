@@ -41,7 +41,7 @@ module gyro_averages
    logical :: bessinit = .false.
 
    logical :: debug = .false.
-   
+
    !!GA
    real, dimension(:, :, :, :), allocatable :: j0bmaxwell_avg
 
@@ -293,10 +293,10 @@ contains
       if (.not. allocated(j0_B_maxwell_ffs)) then
          allocate (j0_B_maxwell_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       end if
-      
-      !!GA 
-      if(.not. allocated(j0bmaxwell_avg)) then
-         allocate (j0bmaxwell_avg(naky,nakx,-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+      !!GA
+      if (.not. allocated(j0bmaxwell_avg)) then
+         allocate (j0bmaxwell_avg(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          j0bmaxwell_avg = 0.0
       end if
 
@@ -359,7 +359,7 @@ contains
          end do
       end do
       deallocate (j0_B_maxwell, j0_B_maxwell_kalpha)
-      
+
       !!GA
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          iv = iv_idx(vmu_lo, ivmu)
@@ -370,9 +370,9 @@ contains
                do iky = 1, naky
                   do ia = 1, nalpha
                      arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
-                     aj0_alpha (ia) = j0(arg) * bmag(ia, iz) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
+                     aj0_alpha(ia) = j0(arg) * bmag(ia, iz) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
                   end do
-                  j0bmaxwell_avg(iky,ikx,iz,ivmu) = sum(aj0_alpha)/size(aj0_alpha)
+                  j0bmaxwell_avg(iky, ikx, iz, ivmu) = sum(aj0_alpha) / size(aj0_alpha)
                end do
             end do
          end do

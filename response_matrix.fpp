@@ -496,15 +496,15 @@ contains
       integer :: izp, izm
       real :: mu_dbdzed_p, mu_dbdzed_m
       real :: fac, fac0, fac1, gyro_fac
-      
+
       !!GA
       real :: maxwell_vpa_s
       real, dimension(:, :), allocatable :: maxwell_zed
 
       ia = 1
-      
+
       allocate (maxwell_zed(nalpha, -nzgrid:nzgrid))
-      
+
       if ((.not. maxwellian_inside_zed_derivative) .or. driftkinetic_implicit) then
          ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -520,7 +520,7 @@ contains
             ! NB:  assuming equal spacing in zed below
             ! here, fac = -dt*(1+alph_t)/2*vpa*Ze/T*F0*J0/dz
             ! b.gradz left out because needs to be centred in zed
-            
+
             if (driftkinetic_implicit) then
                gyro_fac = 1.0
                !!GA- no maxwellian for drift kinetic implicit
@@ -659,8 +659,8 @@ contains
                maxwell_zed = 1.0
                maxwell_vpa_s = 1.0
                mu_dbdzed_p = 0.0
-               mu_dbdzed_m = 0.0 
-            else 
+               mu_dbdzed_m = 0.0
+            else
                ia = 1
                gyro_fac = aj0x(iky, ikx, iz, ivmu)
                maxwell_zed = maxwell_mu(:, :, imu, is)
@@ -677,7 +677,7 @@ contains
                   ! fac0 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at this zed index
                   fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
-                       + (1.-zed_upwind) * gradpar(iz - 1)) * mu_dbdzed_p
+                                + (1.-zed_upwind) * gradpar(iz - 1)) * mu_dbdzed_p
                   ! fac1 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at the zed index to the right of
                   ! this one
@@ -790,7 +790,7 @@ contains
       use vpamu_grids, only: integrate_species
       use gyro_averages, only: gyro_average
       use mp, only: sum_allreduce
-      
+
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use run_parameters, only: driftkinetic_implicit
       use vpamu_grids, only: integrate_species_ffs_rm
@@ -827,12 +827,12 @@ contains
                iv = iv_idx(vmu_lo, ivmu)
                imu = imu_idx(vmu_lo, ivmu)
                is = is_idx(vmu_lo, ivmu)
-               g0(ivmu) = g(idx, ivmu) *  j0bmaxwell_avg(iky,ikx,iz,ivmu)
+               g0(ivmu) = g(idx, ivmu) * j0bmaxwell_avg(iky, ikx, iz, ivmu)
             end do
-            call integrate_species_ffs_rm (g0, wgt, phi(idx), reduce_in=.false.)
+            call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
          end if
       end do
-      
+
       izl_offset = 1
       if (nsegments(ie, iky) > 1) then
          do iseg = 2, nsegments(ie, iky)
@@ -847,9 +847,9 @@ contains
                      iv = iv_idx(vmu_lo, ivmu)
                      imu = imu_idx(vmu_lo, ivmu)
                      is = is_idx(vmu_lo, ivmu)
-                     g0(ivmu) = g(idx, ivmu) *  j0bmaxwell_avg(iky,ikx,iz,ivmu)
+                     g0(ivmu) = g(idx, ivmu) * j0bmaxwell_avg(iky, ikx, iz, ivmu)
                   end do
-                  call integrate_species_ffs_rm (g0, wgt, phi(idx), reduce_in=.false.)
+                  call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
                end if
             end do
             if (izl_offset == 0) izl_offset = 1

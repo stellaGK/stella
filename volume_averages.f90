@@ -6,7 +6,7 @@ module volume_averages
    public :: flux_surface_average_ffs
 
    public :: mode_fac
-   
+
    public :: alpha_average_ffs_realspace
 
    private
@@ -246,7 +246,7 @@ contains
       use mp, only: proc0
 
       implicit none
-      
+
       real, dimension(nalpha), intent(in) :: no_avg
       integer, intent(in) :: iz
       real, intent(out) :: avg
@@ -254,10 +254,10 @@ contains
       integer :: ia
 
       avg = 0.0
-      norm = sum(dy * jacob(:,iz))
-      
+      norm = sum(dy * jacob(:, iz))
+
       avg = sum(no_avg, 1) / size(no_avg, 1)
 
-    end subroutine alpha_average_ffs_realspace
+   end subroutine alpha_average_ffs_realspace
 
 end module volume_averages

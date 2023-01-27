@@ -494,7 +494,7 @@ contains
       use vpamu_grids, only: vperp2, maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: integrate_species
       use gyro_averages, only: band_lu_factorisation_ffs
-      
+
       use kt_grids, only: nakx
       use fields_arrays, only: gamtot
       use volume_averages, only: alpha_average_ffs_realspace
@@ -519,7 +519,7 @@ contains
       real, dimension(:), allocatable :: aj0_alpha, gam0_alpha
       real, dimension(:), allocatable :: wgts
       complex, dimension(:), allocatable :: gam0_kalpha
-      
+
       !!GA
       integer :: ikxkyz, it
       real :: tmp, wgt
@@ -541,14 +541,14 @@ contains
       if (.not. allocated(gam0_ffs)) then
          allocate (gam0_ffs(naky_all, ikx_max, -nzgrid:nzgrid))
       end if
-      
+
       !!GA
       if (driftkinetic_implicit) then
          if (.not. allocated(bessel)) then
             allocate (bessel(nmu))
             bessel = 0.
          end if
-          if (.not. allocated(gamtot_alpha)) allocate (gamtot_alpha(naky, nakx, -nzgrid:nzgrid, nalpha)); gamtot_alpha = 0.
+         if (.not. allocated(gamtot_alpha)) allocate (gamtot_alpha(naky, nakx, -nzgrid:nzgrid, nalpha)); gamtot_alpha = 0.
          allocate (g0(nvpa, nmu))
          do ia = 1, nalpha
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -781,7 +781,7 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
       character(*), intent(in) :: dist
-      
+
       !!GA
       logical, optional, intent(in) :: const_in_alpha
 
@@ -1006,7 +1006,7 @@ contains
       use kt_grids, only: nakx, ikx_max, naky, naky_all
       use kt_grids, only: swap_kxky_ordered
       use volume_averages, only: flux_surface_average_ffs
-      
+
       use fields_arrays, only: gamtot
       use stella_transforms, only: transform_y2ky, transform_ky2y
       use kt_grids, only: swap_kxky_back_ordered, ny
@@ -1018,20 +1018,20 @@ contains
       integer :: iz, ikx
       complex, dimension(:), allocatable :: phi_fsa
       complex, dimension(:, :, :), allocatable :: phi_swap, source
-      
+
       !!GA
       logical, optional, intent(in) :: const_in_alpha
       real, dimension(:, :, :, :), allocatable :: gamtot_t
       integer:: iky
       complex, dimension(:, :), allocatable :: phiy
-      
+
       if (.not. allocated(source)) allocate (source(naky, nakx, -nzgrid:nzgrid)); source = 0.0
-      
+
       if (fphi > epsilon(0.0)) then
          !!GA
          if (present(const_in_alpha)) then
             allocate (gamtot_t(naky, nakx, -nzgrid:nzgrid, ntubes))
-            
+
             gamtot_t = spread(gamtot, 4, ntubes)
             call get_g_integral_contribution(g, source, const_in_alpha=.true.)
 
@@ -1043,7 +1043,7 @@ contains
             if (any(gamtot(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
             deallocate (gamtot_t)
          else
-            
+
             !> calculate the contribution to quasineutrality coming from the velocity space
             !> integration of the guiding centre distribution function g;
             !> the sign is consistent with phi appearing on the RHS of the eqn and int g appearing on the LHS.
@@ -1089,7 +1089,7 @@ contains
          !> hack for now is to set it equal to zero.
          phi(1, 1, :, :) = 0.
       end if
-      
+
       apar = 0.
       if (fapar > epsilon(0.0)) then
          call mp_abort('apar not yet supported for full_flux_surface = T. aborting.')
@@ -1106,9 +1106,9 @@ contains
          use kt_grids, only: naky, nakx
          use vpamu_grids, only: integrate_species_ffs
          use gyro_averages, only: gyro_average, j0_B_maxwell_ffs
-         
+
          use gyro_averages, only: j0bmaxwell_avg
-         
+
          implicit none
 
          complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1116,8 +1116,8 @@ contains
 
          integer :: it, iz, ivmu
          complex, dimension(:, :, :), allocatable :: gyro_g
-         
-         !!GA 
+
+         !!GA
          logical, optional, intent(in) :: const_in_alpha
 
          !> assume there is only a single flux surface being simulated
@@ -1128,9 +1128,9 @@ contains
          do iz = -nzgrid, nzgrid
             !> loop over super-index ivmu, which include vpa, mu and spec
             !!GA
-            if(present(const_in_alpha)) then
+            if (present(const_in_alpha)) then
                do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                  gyro_g(:,:, ivmu) = g(:,:, iz, it, ivmu) * j0bmaxwell_avg(:,:,iz,ivmu)
+                  gyro_g(:, :, ivmu) = g(:, :, iz, it, ivmu) * j0bmaxwell_avg(:, :, iz, ivmu)
                end do
             else
                do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc

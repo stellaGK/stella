@@ -2649,7 +2649,7 @@ contains
             call advance_parallel_streaming_implicit(g, phi, apar)
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
-         
+
          call advance_fields(g, phi, apar, dist='gbar')
          if (drifts_implicit) call advance_drifts_implicit(g, phi, apar)
 
