@@ -91,7 +91,7 @@
           <li id="statements"><i class="fa fa-list-ol"></i>
             <a data-toggle="tooltip"
                data-placement="bottom" data-html="true"
-               title=" 1.5% of total for modules and submodules.">599 statements</a>
+               title=" 1.5% of total for modules and submodules.">617 statements</a>
           </li>
 
             <li id="source-file">
@@ -169,6 +169,9 @@
             <a class="list-group-item" href="../module/kt_grids.html#variable-gridopt_switch">gridopt_switch</a>
             <a class="list-group-item" href="../module/kt_grids.html#variable-gridopt_range">gridopt_range</a>
             <a class="list-group-item" href="../module/kt_grids.html#variable-gridopt_box">gridopt_box</a>
+            <a class="list-group-item" href="../module/kt_grids.html#variable-kyspacing_option_switch">kyspacing_option_switch</a>
+            <a class="list-group-item" href="../module/kt_grids.html#variable-kyspacing_linear">kyspacing_linear</a>
+            <a class="list-group-item" href="../module/kt_grids.html#variable-kyspacing_exponential">kyspacing_exponential</a>
             <a class="list-group-item" href="../module/kt_grids.html#variable-aky_min">aky_min</a>
             <a class="list-group-item" href="../module/kt_grids.html#variable-aky_max">aky_max</a>
             <a class="list-group-item" href="../module/kt_grids.html#variable-akx_min">akx_min</a>
@@ -224,7 +227,7 @@
             <a class="list-group-item" href="../module/kt_grids.html#proc-init_kt_grids_range">init_kt_grids_range</a>
             <a class="list-group-item" href="../module/kt_grids.html#proc-broadcast_input">broadcast_input</a>
             <a class="list-group-item" href="../module/kt_grids.html#proc-dump_radial_grid">dump_radial_grid</a>
-            <a class="list-group-item" href="../module/kt_grids.html#proc-allocate_arrays~5">allocate_arrays</a>
+            <a class="list-group-item" href="../module/kt_grids.html#proc-allocate_arrays~3">allocate_arrays</a>
             <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_complex">swap_kxky_complex</a>
             <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_real">swap_kxky_real</a>
             <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_ordered_real">swap_kxky_ordered_real</a>
@@ -309,6 +312,9 @@
             <a class="list-group-item" href="../module/kt_grids.html#variable-gridopt_switch">gridopt_switch</a>
             <a class="list-group-item" href="../module/kt_grids.html#variable-gridopt_range">gridopt_range</a>
             <a class="list-group-item" href="../module/kt_grids.html#variable-gridopt_box">gridopt_box</a>
+            <a class="list-group-item" href="../module/kt_grids.html#variable-kyspacing_option_switch">kyspacing_option_switch</a>
+            <a class="list-group-item" href="../module/kt_grids.html#variable-kyspacing_linear">kyspacing_linear</a>
+            <a class="list-group-item" href="../module/kt_grids.html#variable-kyspacing_exponential">kyspacing_exponential</a>
             <a class="list-group-item" href="../module/kt_grids.html#variable-aky_min">aky_min</a>
             <a class="list-group-item" href="../module/kt_grids.html#variable-aky_max">aky_max</a>
             <a class="list-group-item" href="../module/kt_grids.html#variable-akx_min">akx_min</a>
@@ -364,7 +370,7 @@
             <a class="list-group-item" href="../module/kt_grids.html#proc-init_kt_grids_range">init_kt_grids_range</a>
             <a class="list-group-item" href="../module/kt_grids.html#proc-broadcast_input">broadcast_input</a>
             <a class="list-group-item" href="../module/kt_grids.html#proc-dump_radial_grid">dump_radial_grid</a>
-            <a class="list-group-item" href="../module/kt_grids.html#proc-allocate_arrays~5">allocate_arrays</a>
+            <a class="list-group-item" href="../module/kt_grids.html#proc-allocate_arrays~3">allocate_arrays</a>
             <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_complex">swap_kxky_complex</a>
             <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_real">swap_kxky_real</a>
             <a class="list-group-item" href="../module/kt_grids.html#proc-swap_kxky_ordered_real">swap_kxky_ordered_real</a>
@@ -1118,6 +1124,57 @@ parameter
         </tr>
         <tr>
             <td>
+              <span class="anchor" id="variable-kyspacing_option_switch"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>kyspacing_option_switch</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-kyspacing_linear"></span>
+              integer,
+            </td>
+              <td>private,</td>
+            <td>
+parameter               
+            </td>
+            <td>::</td>
+            <td><strong>kyspacing_linear</strong></td>
+<td> =</td>
+                <td>1</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-kyspacing_exponential"></span>
+              integer,
+            </td>
+              <td>private,</td>
+            <td>
+parameter               
+            </td>
+            <td>::</td>
+            <td><strong>kyspacing_exponential</strong></td>
+<td> =</td>
+                <td>2</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
               <span class="anchor" id="variable-aky_min"></span>
               real,
             </td>
@@ -1676,7 +1733,7 @@ signed version of jtwist, with sign determined by, e.g., magnetic shear</p><a hr
   </div>
 
       <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-allocate_arrays~5"></span><h3>private  subroutine <a href='../proc/allocate_arrays~5.html'>allocate_arrays</a>()  
+    <div class="panel-heading codesum"><span class="anchor" id="proc-allocate_arrays~3"></span><h3>private  subroutine <a href='../proc/allocate_arrays~3.html'>allocate_arrays</a>()  
 </h3></div>
     <div class="panel-body">
           
@@ -2097,14 +2154,14 @@ signed version of jtwist, with sign determined by, e.g., magnetic shear</p><a hr
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2022 
-<br /><small>v0.5.1-167-gdcc6aa426</small></p>
+        <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2023 
+<br /><small>v0.5.1-174-gc04ec6ae7</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2022-12-21T12:01:59.337392           </p>
+ on 2023-01-27T14:46:51.004894           </p>
         </div>
       </div>
       <br>
