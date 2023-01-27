@@ -1,7 +1,6 @@
 ! Set up the perpendicular wavenumbers by calling the appropriate sub-modules.
 module kt_grids
 
-
    implicit none
 
    public :: init_kt_grids, finish_kt_grids
@@ -59,8 +58,7 @@ module kt_grids
 
    integer :: kyspacing_option_switch
    integer, parameter :: kyspacing_linear = 1, kyspacing_exponential = 2
-  
-   
+
    real :: aky_min, aky_max
    real :: akx_min, akx_max
    real :: theta0_min, theta0_max
@@ -128,7 +126,7 @@ contains
 
       use file_utils, only: input_unit_exist
       use physics_flags, only: full_flux_surface
-      
+
       implicit none
 
       integer :: in_file
@@ -180,16 +178,16 @@ contains
       use file_utils, only: input_unit, error_unit, input_unit_exist
       use physics_flags, only: full_flux_surface
       use text_options, only: text_option, get_option_value
-      
+
       implicit none
 
-      type (text_option), dimension (3), parameter :: kyspacingopts = &
-         (/ text_option('default', kyspacing_linear), &
-         text_option('linear', kyspacing_linear), &
-         text_option('exponential', kyspacing_exponential) /)
-    
+      type(text_option), dimension(3), parameter :: kyspacingopts = &
+                                                    (/text_option('default', kyspacing_linear), &
+                                                      text_option('linear', kyspacing_linear), &
+                                                      text_option('exponential', kyspacing_exponential)/)
+
       character(20) :: kyspacing_option = 'default'
-    
+
       integer :: ierr, in_file
       logical :: exist
 
@@ -223,11 +221,9 @@ contains
 
       naky_all = naky
 
-      
-    ierr = error_unit()
-    call get_option_value (kyspacing_option, kyspacingopts, kyspacing_option_switch, &
-         ierr, "kyspacing_option in kt_grids_range_parameters", .true.)
-
+      ierr = error_unit()
+      call get_option_value(kyspacing_option, kyspacingopts, kyspacing_option_switch, &
+                            ierr, "kyspacing_option in kt_grids_range_parameters", .true.)
 
    end subroutine read_kt_grids_range
 
@@ -490,15 +486,15 @@ contains
       if (naky > 1) then
          select case (kyspacing_option_switch)
          case (kyspacing_linear)
-            dky = (aky_max - aky_min)/real(naky - 1)
-            aky = (/ (aky_min + dky*real(i), i = 0,naky-1) /)
+            dky = (aky_max - aky_min) / real(naky - 1)
+            aky = (/(aky_min + dky * real(i), i=0, naky - 1)/)
          case (kyspacing_exponential)
-            dky = (log(aky_max) - log(aky_min))/real(naky - 1)
-            aky = (/ (exp(log(aky_min) + dky*real(i)), i = 0,naky-1) /)
+            dky = (log(aky_max) - log(aky_min)) / real(naky - 1)
+            aky = (/(exp(log(aky_min) + dky * real(i)), i=0, naky - 1)/)
          end select
       else
-         aky = (/ (aky_min, i = 0,naky-1) /)
-      endif
+         aky = (/(aky_min, i=0, naky - 1)/)
+      end if
 
       ! set default akx and theta0 to 0
       akx = 0.0; theta0 = 0.0
@@ -605,8 +601,8 @@ contains
       call broadcast(theta0_max)
       call broadcast(randomize_phase_shift)
       call broadcast(phase_shift_angle)
-      call broadcast (kyspacing_option_switch)
-      
+      call broadcast(kyspacing_option_switch)
+
    end subroutine broadcast_input
 
    subroutine dump_radial_grid
