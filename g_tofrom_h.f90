@@ -20,7 +20,8 @@ module g_tofrom_h
    interface g_to_h
       module procedure g_to_h_kxkyz
       module procedure g_to_h_vmu
-!     module procedure g_to_h_vmu_zext
+      module procedure g_to_h_vmu_single
+      !     module procedure g_to_h_vmu_zext
    end interface
 
 contains
@@ -165,17 +166,8 @@ contains
 
    subroutine g_to_h_vmu(g, phi, facphi, phi_corr)
 
-      use species, only: spec
-      use zgrid, only: nzgrid, ntubes
+      use zgrid, only: nzgrid
       use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use stella_geometry, only: bmag, dBdrho
-      use dist_fn_arrays, only: kperp2, dkperp2dr
-      use kt_grids, only: naky, nakx, multiply_by_rho
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, vperp2, mu, vpa
-      use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
-      use gyro_averages, only: gyro_average, aj0x, aj1x
-      use physics_flags, only: radial_variation
 
       implicit none
 
@@ -184,48 +176,78 @@ contains
       complex, dimension(:, :, -nzgrid:, :), optional, intent(in) :: phi_corr
       real, intent(in) :: facphi
 
-      integer :: ivmu, iz, it, is, imu, iv, ia
-      complex, dimension(:, :), allocatable :: field, adjust, g0k
+      integer :: ivmu
 
-      allocate (field(naky, nakx))
-      allocate (adjust(naky, nakx))
-      if (radial_variation) then
-         allocate (g0k(naky, nakx))
-      end if
-
-      ia = 1
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         iv = iv_idx(vmu_lo, ivmu)
-         imu = imu_idx(vmu_lo, ivmu)
-         is = is_idx(vmu_lo, ivmu)
-         do it = 1, ntubes
-            do iz = -nzgrid, nzgrid
-               field = spec(is)%zt * facphi * phi(:, :, iz, it) &
-                       * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-               if (radial_variation .and. present(phi_corr)) then
-                  g0k = field * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
-                                 - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
-                                 - 0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
-                                 * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
-                                 * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)))
-
-                  call multiply_by_rho(g0k)
-
-                  field = field + g0k &
-                          + phi_corr(:, :, iz, it) * spec(is)%zt * facphi &
-                          * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-               end if
-               call gyro_average(field, iz, ivmu, adjust)
-               g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + adjust
-            end do
-         end do
+         call g_to_h_vmu (ivmu, g(:,:,:,:,ivmu), phi, facphi, phi_corr)
       end do
-
-      deallocate (field, adjust)
-      if (allocated(g0k)) deallocate (g0k)
 
    end subroutine g_to_h_vmu
 
+   subroutine g_to_h_vmu_single (ivmu, g0, phi, facphi, phi_corr)
+
+     use species, only: spec
+     use zgrid, only: nzgrid, ntubes
+     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+     use stella_geometry, only: bmag, dBdrho
+     use dist_fn_arrays, only: kperp2, dkperp2dr
+     use kt_grids, only: naky, nakx
+     use kt_grids, only: multiply_by_rho
+     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+     use vpamu_grids, only: vpa, vperp2, mu
+     use gyro_averages, only: gyro_average, aj0x, aj1x
+     use physics_flags, only: radial_variation
+     
+     implicit none
+
+     integer, intent(in) :: ivmu
+     complex, dimension(:, :, -nzgrid:, :), intent(in out) :: g0
+     complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+     real, intent(in) :: facphi
+     complex, dimension(:, :, -nzgrid:, :), optional, intent(in) :: phi_corr
+
+     integer :: iv, imu, is
+     integer :: it, iz, ia
+     complex, dimension(:,:), allocatable :: field, adjust, g0k
+     
+     iv = iv_idx(vmu_lo, ivmu)
+     imu = imu_idx(vmu_lo, ivmu)
+     is = is_idx(vmu_lo, ivmu)
+
+     allocate (field(naky, nakx))
+     allocate (adjust(naky, nakx))
+     if (radial_variation) then
+        allocate (g0k(naky, nakx))
+     end if
+
+     ia = 1
+     do it = 1, ntubes
+        do iz = -nzgrid, nzgrid
+           field = spec(is)%zt * facphi * phi(:, :, iz, it) &
+                * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+           if (radial_variation .and. present(phi_corr)) then
+              g0k = field * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
+                   - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
+                   - 0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                   * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
+                   * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)))
+              
+              call multiply_by_rho(g0k)
+              
+              field = field + g0k &
+                   + phi_corr(:, :, iz, it) * spec(is)%zt * facphi &
+                   * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+           end if
+           call gyro_average(field, iz, ivmu, adjust)
+           g0(:, :, iz, it) = g0(:, :, iz, it) + adjust
+        end do
+     end do
+
+     deallocate (field, adjust)
+     if (allocated(g0k)) deallocate (g0k)
+     
+   end subroutine g_to_h_vmu_single
+   
 !   subroutine g_to_h_vmu_zext (gext, phiext, facphi, iky, ie)
 
 !     use species, only: spec
