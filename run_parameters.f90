@@ -21,7 +21,8 @@ module run_parameters
    public :: fields_kxkyz, mat_gen, mat_read
    public :: rng_seed
    public :: use_deltaphi_for_response_matrix
-
+   public :: use_h_for_parallel_streaming
+   
    private
 
    real :: cfl_cushion, delt_adjust
@@ -37,6 +38,7 @@ module run_parameters
    logical :: fields_kxkyz, mat_gen, mat_read
    logical :: ky_solve_real
    logical :: use_deltaphi_for_response_matrix
+   logical :: use_h_for_parallel_streaming
    real :: avail_cpu_time
    integer :: nstep, ky_solve_radial
    integer :: rng_seed
@@ -89,6 +91,7 @@ contains
          avail_cpu_time, cfl_cushion, delt_adjust, delt_max, &
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
          drifts_implicit, use_deltaphi_for_response_matrix, &
+         use_h_for_parallel_streaming, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
@@ -109,6 +112,7 @@ contains
          mirror_linear_interp = .false.
          stream_matrix_inversion = .false.
          use_deltaphi_for_response_matrix = .false.
+         use_h_for_parallel_streaming = .false.
          delt_option = 'default'
          lu_option = 'default'
          zed_upwind = 0.02
@@ -149,6 +153,14 @@ contains
             stop
          end if
 
+         if (use_h_for_parallel_streaming .and. .not.use_delphi_for_response_matrix) then
+            write (*, *) '!!!WARNING!!!'
+            write (*, *) 'use_h_for_parallel_streaming is only developed for use_delphi_for_response_matrix=T.'
+            write (*, *) 'Forcing use_delphi_for_response_matrix=T.'
+            write (*, *) '!!!WARNING!!!'
+            use_delphi_for_response_matrix = .true.
+         end if
+
       end if
 
       call broadcast(fields_kxkyz)
@@ -170,6 +182,7 @@ contains
       call broadcast(mirror_linear_interp)
       call broadcast(stream_matrix_inversion)
       call broadcast(use_deltaphi_for_response_matrix)
+      call broadcast(use_h_for_parallel_streaming)
       call broadcast(zed_upwind)
       call broadcast(vpa_upwind)
       call broadcast(time_upwind)
@@ -220,6 +233,7 @@ contains
             write (*, *) 'The option mirror_semi_lagrange=T is not consistent with full_flux_surface=T.'
             write (*, *) 'Forcing mirror_semi_lagrange=F.'
             write (*, *) '!!!WARNING!!!'
+            mirror_semi_lagrange = .false.
          end if
       end if
 
