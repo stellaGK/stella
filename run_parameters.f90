@@ -153,12 +153,12 @@ contains
             stop
          end if
 
-         if (use_h_for_parallel_streaming .and. .not.use_delphi_for_response_matrix) then
+         if (use_h_for_parallel_streaming .and. .not.use_deltaphi_for_response_matrix) then
             write (*, *) '!!!WARNING!!!'
-            write (*, *) 'use_h_for_parallel_streaming is only developed for use_delphi_for_response_matrix=T.'
-            write (*, *) 'Forcing use_delphi_for_response_matrix=T.'
+            write (*, *) 'use_h_for_parallel_streaming is only developed for use_deltaphi_for_response_matrix=T.'
+            write (*, *) 'Forcing use_deltaphi_for_response_matrix=T.'
             write (*, *) '!!!WARNING!!!'
-            use_delphi_for_response_matrix = .true.
+            use_deltaphi_for_response_matrix = .true.
          end if
 
       end if

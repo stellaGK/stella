@@ -179,7 +179,7 @@ contains
       integer :: ivmu
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         call g_to_h_vmu (ivmu, g(:,:,:,:,ivmu), phi, facphi, phi_corr)
+         call g_to_h_vmu_single (ivmu, g(:,:,:,:,ivmu), phi, facphi, phi_corr)
       end do
 
    end subroutine g_to_h_vmu
