@@ -695,9 +695,9 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: gold
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: rhs
-      
+
       complex, dimension(:, :, :, :), allocatable :: rhs_phi
-      
+
       ! now have phi^{n+1} for non-negative kx
       ! obtain RHS of GK eqn;
       ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1}
@@ -705,7 +705,7 @@ contains
       ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>
 
       allocate (rhs_phi(naky, nakx, -nzgrid:nzgrid, ntubes))
-      
+
       ! NB: rhs is used as a scratch array in get_contributions_from_phi
       ! so be careful not to move get_contributions_from_pdf before it, or rhs will be over-written
       if (use_h_for_parallel_streaming) then
@@ -719,7 +719,7 @@ contains
       rhs = rhs + rhs_phi
 
       deallocate (rhs_phi)
-      
+
    end subroutine get_gke_rhs
 
    !> get_contributions_from_phi takes as input the appropriately averaged
@@ -727,132 +727,132 @@ contains
    !> involving phi that appear on the RHS of the GK equation
    subroutine get_contributions_from_phi_g(phi, ivmu, scratch, rhs)
 
-     use stella_time, only: code_dt
-     use stella_geometry, only: dbdzed
-     use species, only: spec
-     use zgrid, only: nzgrid, ntubes
-     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-     use vpamu_grids, only: vpa, mu
-     use kt_grids, only: naky, nakx
-     use run_parameters, only: driftkinetic_implicit
-     use run_parameters, only: maxwellian_inside_zed_derivative
-     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-     use gyro_averages, only: gyro_average
-     use neoclassical_terms, only: include_neoclassical_terms
-     use neoclassical_terms, only: dfneo_dvpa
-     
-     implicit none
+      use stella_time, only: code_dt
+      use stella_geometry, only: dbdzed
+      use species, only: spec
+      use zgrid, only: nzgrid, ntubes
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use vpamu_grids, only: vpa, mu
+      use kt_grids, only: naky, nakx
+      use run_parameters, only: driftkinetic_implicit
+      use run_parameters, only: maxwellian_inside_zed_derivative
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use gyro_averages, only: gyro_average
+      use neoclassical_terms, only: include_neoclassical_terms
+      use neoclassical_terms, only: dfneo_dvpa
 
-     complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
-     integer, intent(in) :: ivmu
-     complex, dimension(:, :, -nzgrid:, :), intent(in out) :: scratch, rhs
+      implicit none
 
-     real, dimension(:), allocatable :: z_scratch
-     integer :: ia, iz, iv, imu, is
-     
-     ia = 1
-     iv = iv_idx(vmu_lo, ivmu)
-     imu = imu_idx(vmu_lo, ivmu)
-     is = is_idx(vmu_lo, ivmu)
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+      integer, intent(in) :: ivmu
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: scratch, rhs
 
-     ! allocate a 1d array in zed for use as a scratch array
-     allocate (z_scratch(-nzgrid:nzgrid))
-     
-     ! set rhs to be phi or <phi> depending on whether parallel streaming is
-     ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
-     if (driftkinetic_implicit) then
-        scratch = phi
-     else
-        call gyro_average(phi, ivmu, scratch)
-     end if
+      real, dimension(:), allocatable :: z_scratch
+      integer :: ia, iz, iv, imu, is
 
-     ! NB: maxwellian_inside_zed_derivative = .false. by default;
-     ! perhaps worth eliminating this option, as not sure it is ever used (MAB)
-     if (maxwellian_inside_zed_derivative) then
-        ! obtain d(exp(-mu*B/T)*<phi>)/dz and store in dphidz
-        scratch = scratch * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
-        call get_dzed(iv, scratch, rhs)
-        ! get <phi>*exp(-mu*B/T)*dB/dz at cell centres
-        scratch = scratch * spread(spread(spread(dbdzed(ia, :), 1, naky), 2, nakx), 4, ntubes)
-        call center_zed(iv, scratch)
-        ! construct d(<phi>*exp(-mu*B/T))/dz + 2*mu*<phi>*exp(-mu*B/T)*dB/dz
-        ! = d<phi>/dz * exp(-mu*B/T)
-        rhs = rhs + 2.0 * mu(imu) * scratch
-     else
-        ! obtain d<phi>/dz and store in dphidz
-        call get_dzed(iv, scratch, rhs)
-        ! center Maxwellian factor in mu
-        ! and store in dummy variable z_scratch
-        z_scratch = maxwell_mu(ia, :, imu, is)
-        call center_zed_midpoint(iv, z_scratch)
-        ! multiply by Maxwellian factor
-        rhs = rhs * spread(spread(spread(z_scratch, 1, naky), 2, nakx), 4, ntubes)
-     end if
+      ia = 1
+      iv = iv_idx(vmu_lo, ivmu)
+      imu = imu_idx(vmu_lo, ivmu)
+      is = is_idx(vmu_lo, ivmu)
 
-     ! NB: could do this once at beginning of simulation to speed things up
-     ! this is vpa*Z/T*exp(-vpa^2)
-     z_scratch = vpa(iv) * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is)
-     ! if including neoclassical correction to equilibrium distribution function
-     ! then must also account for -vpa*dF_neo/dvpa*Z/T
-     ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!
-     if (include_neoclassical_terms) then
-        do iz = -nzgrid, nzgrid
-           z_scratch(iz) = z_scratch(iz) - 0.5 * dfneo_dvpa(ia, iz, ivmu) * spec(is)%zt
-        end do
-        call center_zed(iv, z_scratch)
-     end if
+      ! allocate a 1d array in zed for use as a scratch array
+      allocate (z_scratch(-nzgrid:nzgrid))
 
-     if (stream_sign(iv) > 0) then
-        z_scratch = z_scratch * gradpar_c(:, -1) * code_dt * spec(is)%stm_psi0
-     else
-        z_scratch = z_scratch * gradpar_c(:, 1) * code_dt * spec(is)%stm_psi0
-     end if
+      ! set rhs to be phi or <phi> depending on whether parallel streaming is
+      ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
+      if (driftkinetic_implicit) then
+         scratch = phi
+      else
+         call gyro_average(phi, ivmu, scratch)
+      end if
 
-     do iz = -nzgrid, nzgrid
-        rhs(:, :, iz, :) = -z_scratch(iz) * rhs(:, :, iz, :)
-     end do
+      ! NB: maxwellian_inside_zed_derivative = .false. by default;
+      ! perhaps worth eliminating this option, as not sure it is ever used (MAB)
+      if (maxwellian_inside_zed_derivative) then
+         ! obtain d(exp(-mu*B/T)*<phi>)/dz and store in dphidz
+         scratch = scratch * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
+         call get_dzed(iv, scratch, rhs)
+         ! get <phi>*exp(-mu*B/T)*dB/dz at cell centres
+         scratch = scratch * spread(spread(spread(dbdzed(ia, :), 1, naky), 2, nakx), 4, ntubes)
+         call center_zed(iv, scratch)
+         ! construct d(<phi>*exp(-mu*B/T))/dz + 2*mu*<phi>*exp(-mu*B/T)*dB/dz
+         ! = d<phi>/dz * exp(-mu*B/T)
+         rhs = rhs + 2.0 * mu(imu) * scratch
+      else
+         ! obtain d<phi>/dz and store in dphidz
+         call get_dzed(iv, scratch, rhs)
+         ! center Maxwellian factor in mu
+         ! and store in dummy variable z_scratch
+         z_scratch = maxwell_mu(ia, :, imu, is)
+         call center_zed_midpoint(iv, z_scratch)
+         ! multiply by Maxwellian factor
+         rhs = rhs * spread(spread(spread(z_scratch, 1, naky), 2, nakx), 4, ntubes)
+      end if
 
-     deallocate (z_scratch)
-     
+      ! NB: could do this once at beginning of simulation to speed things up
+      ! this is vpa*Z/T*exp(-vpa^2)
+      z_scratch = vpa(iv) * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is)
+      ! if including neoclassical correction to equilibrium distribution function
+      ! then must also account for -vpa*dF_neo/dvpa*Z/T
+      ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!
+      if (include_neoclassical_terms) then
+         do iz = -nzgrid, nzgrid
+            z_scratch(iz) = z_scratch(iz) - 0.5 * dfneo_dvpa(ia, iz, ivmu) * spec(is)%zt
+         end do
+         call center_zed(iv, z_scratch)
+      end if
+
+      if (stream_sign(iv) > 0) then
+         z_scratch = z_scratch * gradpar_c(:, -1) * code_dt * spec(is)%stm_psi0
+      else
+         z_scratch = z_scratch * gradpar_c(:, 1) * code_dt * spec(is)%stm_psi0
+      end if
+
+      do iz = -nzgrid, nzgrid
+         rhs(:, :, iz, :) = -z_scratch(iz) * rhs(:, :, iz, :)
+      end do
+
+      deallocate (z_scratch)
+
    end subroutine get_contributions_from_phi_g
 
    subroutine get_contributions_from_phi_h(phi, ivmu, scratch, rhs)
 
-     use zgrid, only: nzgrid
-     use species, only: spec
-     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-     use gyro_averages, only: gyro_average
-     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-     use run_parameters, only: driftkinetic_implicit
-     
-     implicit none
+      use zgrid, only: nzgrid
+      use species, only: spec
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use gyro_averages, only: gyro_average
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use run_parameters, only: driftkinetic_implicit
 
-     complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
-     integer, intent(in) :: ivmu
-     complex, dimension(:, :, -nzgrid:, :), intent(in out) :: scratch, rhs
+      implicit none
 
-     integer :: iv, imu, is, iz, ia
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+      integer, intent(in) :: ivmu
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: scratch, rhs
 
-     ia = 1
-     iv = iv_idx(vmu_lo, ivmu)
-     imu = imu_idx(vmu_lo, ivmu)
-     is = is_idx(vmu_lo, ivmu)
+      integer :: iv, imu, is, iz, ia
 
-     ! set rhs to be phi or <phi> depending on whether parallel streaming is
-     ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
-     if (driftkinetic_implicit) then
-        scratch = phi
-     else
-        call gyro_average(phi, ivmu, scratch)
-     end if
+      ia = 1
+      iv = iv_idx(vmu_lo, ivmu)
+      imu = imu_idx(vmu_lo, ivmu)
+      is = is_idx(vmu_lo, ivmu)
 
-     do iz = -nzgrid, nzgrid
-        rhs(:, :, iz, :) = spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) * scratch(:, :, iz, :)
-     end do
-     call center_zed(iv, rhs)
-     
+      ! set rhs to be phi or <phi> depending on whether parallel streaming is
+      ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
+      if (driftkinetic_implicit) then
+         scratch = phi
+      else
+         call gyro_average(phi, ivmu, scratch)
+      end if
+
+      do iz = -nzgrid, nzgrid
+         rhs(:, :, iz, :) = spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) * scratch(:, :, iz, :)
+      end do
+      call center_zed(iv, rhs)
+
    end subroutine get_contributions_from_phi_h
-   
+
    !> get_contributions_from_pdf takes as an argument the evolved pdf
    !> (either guiding centre distribution g=<f> or non-Boltzmann distribution h=f+(Ze*phi/T)*F0)
    !> and the scratch array rhs, and returns the source terms that depend on the pdf in rhs
