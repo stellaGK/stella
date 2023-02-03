@@ -56,6 +56,9 @@ module kt_grids
    integer :: gridopt_switch
    integer, parameter :: gridopt_range = 1, gridopt_box = 2
 
+   integer :: kyspacing_option_switch
+   integer, parameter :: kyspacing_linear = 1, kyspacing_exponential = 2
+
    real :: aky_min, aky_max
    real :: akx_min, akx_max
    real :: theta0_min, theta0_max
@@ -172,16 +175,24 @@ contains
    subroutine read_kt_grids_range
 
       use mp, only: mp_abort, proc0
-      use file_utils, only: input_unit, input_unit_exist
+      use file_utils, only: input_unit, error_unit, input_unit_exist
       use physics_flags, only: full_flux_surface
+      use text_options, only: text_option, get_option_value
 
       implicit none
 
-      integer :: in_file
+      type(text_option), dimension(3), parameter :: kyspacingopts = &
+                                                    (/text_option('default', kyspacing_linear), &
+                                                      text_option('linear', kyspacing_linear), &
+                                                      text_option('exponential', kyspacing_exponential)/)
+
+      character(20) :: kyspacing_option = 'default'
+
+      integer :: ierr, in_file
       logical :: exist
 
       namelist /kt_grids_range_parameters/ naky, nakx, &
-         aky_min, aky_max, theta0_min, theta0_max, akx_min, akx_max
+         aky_min, aky_max, theta0_min, theta0_max, akx_min, akx_max, kyspacing_option
 
       nalpha = 1
       naky = 1
@@ -209,6 +220,10 @@ contains
       end if
 
       naky_all = naky
+
+      ierr = error_unit()
+      call get_option_value(kyspacing_option, kyspacingopts, kyspacing_option_switch, &
+                            ierr, "kyspacing_option in kt_grids_range_parameters", .true.)
 
    end subroutine read_kt_grids_range
 
@@ -468,8 +483,18 @@ contains
       ! NB: we are assuming here that all ky are positive
       ! when running in range mode
       dky = 0.0
-      if (naky > 1) dky = (aky_max - aky_min) / real(naky - 1)
-      aky = (/(aky_min + dky * real(i), i=0, naky - 1)/)
+      if (naky > 1) then
+         select case (kyspacing_option_switch)
+         case (kyspacing_linear)
+            dky = (aky_max - aky_min) / real(naky - 1)
+            aky = (/(aky_min + dky * real(i), i=0, naky - 1)/)
+         case (kyspacing_exponential)
+            dky = (log(aky_max) - log(aky_min)) / real(naky - 1)
+            aky = (/(exp(log(aky_min) + dky * real(i)), i=0, naky - 1)/)
+         end select
+      else
+         aky = (/(aky_min, i=0, naky - 1)/)
+      end if
 
       ! set default akx and theta0 to 0
       akx = 0.0; theta0 = 0.0
@@ -576,6 +601,7 @@ contains
       call broadcast(theta0_max)
       call broadcast(randomize_phase_shift)
       call broadcast(phase_shift_angle)
+      call broadcast(kyspacing_option_switch)
 
    end subroutine broadcast_input
 
