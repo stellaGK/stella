@@ -22,7 +22,7 @@ module run_parameters
    public :: rng_seed
    public :: use_deltaphi_for_response_matrix
    public :: use_h_for_parallel_streaming
-   
+
    private
 
    real :: cfl_cushion, delt_adjust
@@ -153,7 +153,7 @@ contains
             stop
          end if
 
-         if (use_h_for_parallel_streaming .and. .not.use_deltaphi_for_response_matrix) then
+         if (use_h_for_parallel_streaming .and. .not. use_deltaphi_for_response_matrix) then
             write (*, *) '!!!WARNING!!!'
             write (*, *) 'use_h_for_parallel_streaming is only developed for use_deltaphi_for_response_matrix=T.'
             write (*, *) 'Forcing use_deltaphi_for_response_matrix=T.'
