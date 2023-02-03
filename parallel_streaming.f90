@@ -585,8 +585,8 @@ contains
       integer :: ivmu
       real :: tupwnd1, tupwnd2
       complex, dimension(:, :, :, :), allocatable :: phi_old, phi_source
-      character (5) :: dist_choice
-      
+      character(5) :: dist_choice
+
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
       ! save the incoming pdf and phi, as they will be needed later
@@ -598,7 +598,7 @@ contains
       ! these factors will multiply phi^{n} and phi^{n+1}, respectively
       tupwnd1 = 0.5 * (1.0 - time_upwind)
       tupwnd2 = 0.5 * (1.0 + time_upwind)
-      
+
       !> dist_choice indicates whether the non-Boltzmann part of the pdf (h) is evolved
       !> in parallel streaming or if the guiding centre distribution (g = <f>) is evolved
       allocate (phi_source(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -657,7 +657,7 @@ contains
          if (use_deltaphi_for_response_matrix) phi = phi + phi_old
          phi_source = tupwnd1 * phi_old + tupwnd2 * phi
       end if
-      
+
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! now have phi^{n+1} for non-negative kx
@@ -702,7 +702,7 @@ contains
       use run_parameters, only: maxwellian_inside_zed_derivative
       use run_parameters, only: fphi
       use g_tofrom_h, only: g_to_h
-      
+
       implicit none
 
       integer, intent(in) :: ivmu
@@ -780,7 +780,7 @@ contains
       end if
 
       call get_contributions_from_pdf(gold, ivmu, rhs)
-      
+
       ! construct RHS of GK eqn
       fac = code_dt * spec(is)%stm_psi0
       do iz = -nzgrid, nzgrid
@@ -797,58 +797,58 @@ contains
    !> and the scratch array rhs, and returns the source terms that depend on the pdf in rhs
    subroutine get_contributions_from_pdf(pdf, ivmu, rhs)
 
-     use stella_time, only: code_dt
-     use species, only: spec
-     use zgrid, only: nzgrid, ntubes
-     use kt_grids, only: naky, nakx
-     use vpamu_grids, only: vpa
-     use stella_layouts, only: vmu_lo, iv_idx, is_idx
-     use run_parameters, only: time_upwind
-     
-     implicit none
+      use stella_time, only: code_dt
+      use species, only: spec
+      use zgrid, only: nzgrid, ntubes
+      use kt_grids, only: naky, nakx
+      use vpamu_grids, only: vpa
+      use stella_layouts, only: vmu_lo, iv_idx, is_idx
+      use run_parameters, only: time_upwind
 
-     complex, dimension(:, :, -nzgrid:, :), intent(in) :: pdf
-     integer, intent(in) :: ivmu
-     complex, dimension(:, :, -nzgrid:, :), intent(in out) :: rhs
+      implicit none
 
-     real, dimension(:), allocatable :: gradpar_fac
-     complex, dimension(:, :, :, :), allocatable :: df_dz
-     real :: constant_factor
-     integer :: iv, is, iz
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: pdf
+      integer, intent(in) :: ivmu
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: rhs
 
-     iv = iv_idx(vmu_lo, ivmu)
-     is = is_idx(vmu_lo, ivmu)
+      real, dimension(:), allocatable :: gradpar_fac
+      complex, dimension(:, :, :, :), allocatable :: df_dz
+      real :: constant_factor
+      integer :: iv, is, iz
 
-     allocate (gradpar_fac(-nzgrid:nzgrid))
-     allocate (df_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
-     
-     ! obtain d(pdf^{n})/dz and store in df_dz
-     call get_dzed(iv, pdf, df_dz)
+      iv = iv_idx(vmu_lo, ivmu)
+      is = is_idx(vmu_lo, ivmu)
 
-     ! obtain the cell-centred pdf
-     rhs = pdf
-     call center_zed(iv, rhs)
+      allocate (gradpar_fac(-nzgrid:nzgrid))
+      allocate (df_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
 
-     ! compute the z-independent factor appearing in front of the d(pdf)/dz term on the RHS of the Gk equation
-     constant_factor = code_dt * spec(is)%stm_psi0 * vpa(iv) * 0.5 * (time_upwind - 1.0)
-     ! use the correctly centred (b . grad z) pre-factor for this sign of vpa
-     if (stream_sign(iv) > 0) then
-        gradpar_fac = gradpar_c(:, -1) * constant_factor
-     else
-        gradpar_fac = gradpar_c(:, 1) * constant_factor
-     end if
+      ! obtain d(pdf^{n})/dz and store in df_dz
+      call get_dzed(iv, pdf, df_dz)
 
-     ! construct the source term on the RHS of the GK equation coming from
-     ! the pdf evaluated at the previous time level
-     do iz = -nzgrid, nzgrid
-        rhs(:, :, iz, :) = rhs(:, :, iz, :) + gradpar_fac(iz) * df_dz(:, :, iz, :)
-     end do
-     
-     deallocate (df_dz)
-     deallocate (gradpar_fac)
-     
+      ! obtain the cell-centred pdf
+      rhs = pdf
+      call center_zed(iv, rhs)
+
+      ! compute the z-independent factor appearing in front of the d(pdf)/dz term on the RHS of the Gk equation
+      constant_factor = code_dt * spec(is)%stm_psi0 * vpa(iv) * 0.5 * (time_upwind - 1.0)
+      ! use the correctly centred (b . grad z) pre-factor for this sign of vpa
+      if (stream_sign(iv) > 0) then
+         gradpar_fac = gradpar_c(:, -1) * constant_factor
+      else
+         gradpar_fac = gradpar_c(:, 1) * constant_factor
+      end if
+
+      ! construct the source term on the RHS of the GK equation coming from
+      ! the pdf evaluated at the previous time level
+      do iz = -nzgrid, nzgrid
+         rhs(:, :, iz, :) = rhs(:, :, iz, :) + gradpar_fac(iz) * df_dz(:, :, iz, :)
+      end do
+
+      deallocate (df_dz)
+      deallocate (gradpar_fac)
+
    end subroutine get_contributions_from_pdf
-   
+
    ! solve (I + (1+alph)/2*dt*vpa . grad)g^{n+1} = RHS
    ! g = RHS is input and overwritten by g = g^{n+1}
    subroutine invert_parstream(ivmu, g)
