@@ -551,46 +551,46 @@ contains
       end do
    end subroutine get_dgdz_centered
 
-! subroutine get_dgdz_variable (g, ivmu, dgdz)
+   subroutine get_dgdz_variable_implicit (g, ivmu, dgdz)
 
-!    use finite_differences, only: fd_variable_upwinding_zed
-!    use stella_layouts, only: vmu_lo
-!    use stella_layouts, only: iv_idx
-!    use zgrid, only: nzgrid, delzed, ntubes
-!    use extended_zgrid, only: neigen, nsegments
-!    use extended_zgrid, only: iz_low, iz_up
-!    use extended_zgrid, only: ikxmod
-!    use extended_zgrid, only: fill_zed_ghost_zones
-!    use extended_zgrid, only: periodic
-!    use run_parameters, only: zed_upwind
-!    use kt_grids, only: naky
+      use finite_differences, only: fd_variable_upwinding_zed
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: iv_idx
+      use zgrid, only: nzgrid, delzed, ntubes
+      use extended_zgrid, only: neigen, nsegments
+      use extended_zgrid, only: iz_low, iz_up
+      use extended_zgrid, only: ikxmod
+      use extended_zgrid, only: fill_zed_ghost_zones
+      use extended_zgrid, only: periodic
+      use run_parameters, only: zed_upwind
+      use kt_grids, only: naky
 
-!    implicit none
+      implicit none
 
-!    complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
-!    complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdz
-!    integer, intent (in) :: ivmu
+      complex, dimension (:,:,-nzgrid:,:), intent (in) :: g
+      complex, dimension (:,:,-nzgrid:,:), intent (out) :: dgdz
+      integer, intent (in) :: ivmu
 
-!    integer :: iseg, ie, iky, iv, it
-!    complex, dimension (2) :: gleft, gright
-!    ! FLAG -- assuming delta zed is equally spaced below!
-!     iv = iv_idx(vmu_lo,ivmu)
-!     do iky = 1, naky
-!       do it = 1, ntubes
-!         do ie = 1, neigen(iky)
-!           do iseg = 1, nsegments(ie,iky)
-!              ! first fill in ghost zones at boundaries in g(z)
-!              call fill_zed_ghost_zones (it, iseg, ie, iky, g(:,:,:,:), gleft, gright)
-   ! now get dg/dz
-!              call fd_variable_upwinding_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
-!                   g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
-!                   delzed(0), stream_sign(iv), zed_upwind,gleft, gright, periodic(iky), &
-!                   dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
-!           end do
-!         end do
-!       enddo
-!     end do
-! end subroutine get_dgdz_variable
+      integer :: iseg, ie, iky, iv, it
+      complex, dimension (2) :: gleft, gright
+      ! FLAG -- assuming delta zed is equally spaced below!
+      iv = iv_idx(vmu_lo,ivmu)
+      do iky = 1, naky
+         do it = 1, ntubes
+            do ie = 1, neigen(iky)
+               do iseg = 1, nsegments(ie,iky)
+                  ! first fill in ghost zones at boundaries in g(z)
+                  call fill_zed_ghost_zones (it, iseg, ie, iky, g(:,:,:,:), gleft, gright)
+                  !now get dg/dz
+                  call fd_variable_upwinding_zed (iz_low(iseg), iseg, nsegments(ie,iky), &
+                     g(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it), &
+                     delzed(0), stream_sign(iv), zed_upwind,gleft, gright, periodic(iky), &
+                     dgdz(iky,ikxmod(iseg,ie,iky),iz_low(iseg):iz_up(iseg),it))
+               end do
+            end do
+         enddo
+      end do
+   end subroutine get_dgdz_variable_implicit
 
    subroutine add_stream_term(g, ivmu, src)
 
@@ -804,14 +804,14 @@ contains
       real :: tupwnd1, tupwnd2, inhomogeneous_fac, homogeneous_fac, fac
       ! real, dimension(:), allocatable :: vpadf0dE_fac
       real, dimension(:), allocatable :: gp
-      real, dimension(:), allocatable :: maxwell_mu_centered
+      ! real, dimension(:), allocatable :: maxwell_mu_centered
       real, dimension(:), allocatable :: wdrifty_g_centered_tmp, wdriftx_g_centered_tmp, wstar_centered_tmp
       complex, dimension(:, :, :, :), allocatable :: dhdz
       complex, dimension(:, :, :, :), allocatable :: deltachi
       complex, dimension(:, :, :, :), allocatable :: dhdy, dhdx, dchiolddy, ddeltachidy
 
       ! allocate (vpadf0dE_fac(-nzgrid:nzgrid))
-      allocate (maxwell_mu_centered(-nzgrid:nzgrid))
+      ! allocate (maxwell_mu_centered(-nzgrid:nzgrid))
       allocate (gp(-nzgrid:nzgrid))
       allocate (dhdz(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (deltachi(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -857,7 +857,7 @@ contains
       ! obtain dh^{n}/dz and store in dhdz
       ! NB: could eliminate this calculation at the expense of memory
       ! as this was calculated previously
-      call get_dzed(iv, hold, dhdz)
+      call get_dgdz_variable_implicit(hold, ivmu, dhdz)
 
       ! set g to be chi or <chi> depending on whether parallel streaming is
       ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
@@ -905,8 +905,9 @@ contains
       do iz = -nzgrid, nzgrid
          deltachi(:, :, iz, :) = deltachi(:, :, iz, :) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
       end do
-      call center_zed(iv, h)
-      call center_zed(iv, deltachi)
+      ! New approach - no centering
+      !call center_zed(iv, h)
+      !call center_zed(iv, deltachi)
 
       if (stream_sign(iv) > 0) then
          gp = gradpar_c(:, -1)
@@ -935,27 +936,27 @@ contains
          allocate (dchiolddy(naky, nakx, -nzgrid:nzgrid, ntubes))
          allocate (ddeltachidy(naky, nakx, -nzgrid:nzgrid, ntubes))
 
-         ! Center the variables in z.
+         ! DON'T Center the variables in z.
          wdrifty_g_centered_tmp = wdrifty_g(1, :, ivmu)
-         call center_zed(iv, wdrifty_g_centered_tmp)
+         ! call center_zed(iv, wdrifty_g_centered_tmp)
          wdriftx_g_centered_tmp = wdriftx_g(1, :, ivmu)
-         call center_zed(iv, wdriftx_g_centered_tmp)
+         ! call center_zed(iv, wdriftx_g_centered_tmp)
          wstar_centered_tmp = wstar(1, :, ivmu)
-         call center_zed(iv, wstar_centered_tmp)
+         ! call center_zed(iv, wstar_centered_tmp)
 
          call get_dgdy(hold, dhdy)
-         call center_zed(iv, dhdy)
+         ! call center_zed(iv, dhdy)
          call get_dgdx(hold, dhdx)
-         call center_zed(iv, dhdx)
+         ! call center_zed(iv, dhdx)
          call get_dchidy(ivmu, phiold, aparold, bparold, dchiolddy)
-         call center_zed(iv, dchiolddy)
+         ! call center_zed(iv, dchiolddy)
          call get_dchidy(ivmu, deltaphi, deltaapar, deltabpar, ddeltachidy)
-         call center_zed(iv, ddeltachidy)
+         ! call center_zed(iv, ddeltachidy)
 
       end if
       ! construct RHS of GK eqn
       ! RHS = h^{n} - Z/T exp(-v^2) <delta chi^{n+1}> - dt*vpa*gradpar*((1-alph)/2)*dh^{n}/dz
-      ! where h^{n} and <delta chi> are centered in zed
+      ! where h^{n} and <delta chi> are NO LONGER centered in zed
       fac = code_dt * spec(is)%stm_psi0
       do iz = -nzgrid, nzgrid
          h(:, :, iz, :) = inhomogeneous_fac * h(:, :, iz, :) &
@@ -971,7 +972,7 @@ contains
          end if
       end do
 
-      deallocate (maxwell_mu_centered)
+      !deallocate (maxwell_mu_centered)
       deallocate (gp)
       deallocate (dhdz)
       deallocate (deltachi)
