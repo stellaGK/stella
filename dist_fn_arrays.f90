@@ -15,7 +15,7 @@ module dist_fn_arrays
    public :: wdriftpx_g, wdriftpy_g
    public :: wdriftpx_phi, wdriftpy_phi
    public :: star_ad_field
-   
+
    ! dist fn
    complex, dimension(:, :, :, :, :), allocatable :: gnew, gold, g_gyro
    ! (naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)

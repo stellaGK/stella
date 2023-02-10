@@ -17,18 +17,18 @@ contains
 
    subroutine init_adjoint(np)
 
-     use adjoint_convergence, only: init_convergence
-     use adjoint_p_derivatives, only: allocate_unpert
+      use adjoint_convergence, only: init_convergence
+      use adjoint_p_derivatives, only: allocate_unpert
 
-     implicit none
-     
-     integer, intent(in) :: np
+      implicit none
 
-     call init_convergence
-     call allocate_adjoint_variables
-     call allocate_unpert
-     call allocate_derivative_terms(np)
-     
+      integer, intent(in) :: np
+
+      call init_convergence
+      call allocate_adjoint_variables
+      call allocate_unpert
+      call allocate_derivative_terms(np)
+
    end subroutine init_adjoint
 
 !   subroutine method_manufactured_solutions
@@ -264,8 +264,8 @@ contains
       use constants, only: zi
 
       use zgrid, only: nzgrid
-      
-      use mp, only: broadcast, proc0 
+
+      use mp, only: broadcast, proc0
       implicit none
 
       integer :: iky, ikx
@@ -274,8 +274,8 @@ contains
     !! Adjoint - Store frequency: omega_g = gamma + i*omega
       omega_g = -zi * sum(omega_vs_time, dim=1) / real(navg)
 
-      call broadcast(omega_g) 
-      if(proc0) write (*, *) 'omega_g', omega_g(1, 1)
+      call broadcast(omega_g)
+      if (proc0) write (*, *) 'omega_g', omega_g(1, 1)
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          do iky = 1, naky
@@ -378,15 +378,15 @@ contains
 
    subroutine finish_adjoint
 
-     use adjoint_p_derivatives, only: deallocate_p_derivatives
-     use adjoint_convergence, only: deallocate_convergence
+      use adjoint_p_derivatives, only: deallocate_p_derivatives
+      use adjoint_convergence, only: deallocate_convergence
 
-     implicit none
-     
-     call finish_pert_terms
-     call deallocate_p_derivatives
-     call deallocate_adjoint_variables
-     call deallocate_convergence
+      implicit none
+
+      call finish_pert_terms
+      call deallocate_p_derivatives
+      call deallocate_adjoint_variables
+      call deallocate_convergence
 
    end subroutine finish_adjoint
 

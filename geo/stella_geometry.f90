@@ -130,7 +130,7 @@ contains
       real, dimension(:, :), allocatable :: gbdrift0_psi, cvdrift0_psi
 
       integer, optional, intent(in) :: adjoint_var
-      
+
       if (geoinit) return
       geoinit = .true.
 

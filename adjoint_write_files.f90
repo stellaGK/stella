@@ -97,7 +97,7 @@ contains
 
       real, intent(in) :: istep_final
 
-      if(proc0) then 
+      if (proc0) then
          open (16, file="adjoint_files/adjoint_final_time.dat", status="replace", action="write")
          write (16, *) istep_final - 1
          write (16, *) nstep
@@ -115,7 +115,7 @@ contains
 
       real, intent(in) :: istep_final
 
-      if(proc0) then 
+      if (proc0) then
          open (13, file="adjoint_files/adjoint_omega.dat", status="replace", action="write")
          write (13, *) real(omega_g)
          close (13)
@@ -139,13 +139,13 @@ contains
       logical, intent(in) :: new_file
 
       if (new_file) then
-         if(proc0) then 
+         if (proc0) then
             open (12, file="adjoint_files/adjoint_derivatives.dat", status="replace", action="write")!,position="replace")
             write (12, *) real(derivative(1, 1))
             close (12)
          end if
       else
-         if(proc0) then 
+         if (proc0) then
             open (12, file="adjoint_files/adjoint_derivatives.dat", status="unknown", action="write", position="append")
             write (12, *) real(derivative(1, 1))
             close (12)

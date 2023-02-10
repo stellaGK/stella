@@ -21,7 +21,7 @@ module vpamu_grids
 
    public :: mu0
    public :: wgts_bare0
-   
+
    logical :: vpamu_initialized = .false.
 
    integer :: nvgrid, nvpa
@@ -48,7 +48,7 @@ module vpamu_grids
 
    real, dimension(:), allocatable :: mu0
    real, dimension(:), allocatable :: wgts_bare0
-   
+
    interface integrate_species
       module procedure integrate_species_vmu
       module procedure integrate_species_vmu_single
@@ -151,7 +151,7 @@ contains
       real :: del
 
       logical, optional, intent(in) :: adjoint
-      
+
       if (.not. allocated(vpa)) then
          !> vpa is the parallel velocity at grid points
          allocate (vpa(nvpa)); vpa = 0.0
@@ -198,7 +198,7 @@ contains
 
       if (.not. present(adjoint)) then
          if (nvpa < 6) &
-              call mp_abort('stella does not currently support nvgrid < 3.  aborting.')
+            call mp_abort('stella does not currently support nvgrid < 3.  aborting.')
 
          !> use simpson 3/8 rule at lower boundary and composite Simpson elsewhere
          del = 0.375 * dvpa
@@ -214,7 +214,7 @@ contains
             wgts_vpa(idx + 1) = wgts_vpa(idx + 1) + 4.*del
             wgts_vpa(idx + 2) = wgts_vpa(idx + 2) + del
          end do
-         
+
          !> for the sake of symmetry, do the same thing with 3/8 rule at upper boundary
          !> and composite elsewhere.
          del = 0.375 * dvpa
@@ -229,14 +229,14 @@ contains
             wgts_vpa(idx + 1) = wgts_vpa(idx + 1) + 4.*del
             wgts_vpa(idx + 2) = wgts_vpa(idx + 2) + del
          end do
-         
+
          !> divide by 2 to account for double-counting
          wgts_vpa = 0.5 * wgts_vpa / sqrt(pi)
-         
+
          wgts_vpa_default = wgts_vpa
-         
+
       end if
-      
+
    end subroutine init_vpa_grid
 
    subroutine set_vpa_weights(conservative)
@@ -764,7 +764,7 @@ contains
          wgts_mu_bare = 0.0
          wgts_mu_bare = wgts_bare0 / minval(bmag_psi0)
          mu = mu0 / minval(bmag_psi0)
-         
+
          dmu(:nmu - 1) = mu(2:) - mu(:nmu - 1)
          !> leave dmu(nmu) uninitialized. should never be used, so want
          !> valgrind or similar to return error if it is
@@ -808,7 +808,7 @@ contains
 
       if (allocated(wgts_bare0)) deallocate (wgts_bare0)
       if (allocated(mu0)) deallocate (mu0)
-      
+
    end subroutine finish_mu_grid
 
    subroutine calculate_velocity_integrals

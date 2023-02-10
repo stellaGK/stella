@@ -717,7 +717,7 @@ contains
       character(*), intent(in) :: dist
 
       logical, optional, intent(in) :: adjoint
-      
+
       if (fields_updated) return
 
       !> time the communications + field solve
@@ -928,92 +928,92 @@ contains
 
    !!GA-Adjoint
    subroutine get_adjoint_fields_vmulo(g, phi)
-     
-     use stella_layouts, only: vmu_lo
-     use stella_layouts, only: imu_idx, is_idx, iv_idx
-     use stella_layouts, only: kxkyz_lo
-     use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx
-     
-     use zgrid, only: nzgrid, ntubes
-     use kt_grids, only: nakx, naky, aky, nalpha
-     use vpamu_grids, only: nmu, nvpa
-     use constants, only: zi
 
-     use gyro_averages, only: gyro_average
-     use vpamu_grids, only: maxwell_mu, maxwell_vpa, maxwell_fac
-     
-     use dist_fn_arrays, only: star_ad_field
-     use adjoint_field_arrays, only: omega_g
-     use vpamu_grids, only: integrate_species, integrate_vmu
-     use species, only: spec
-     
-     use stella_time, only: code_dt
-     use mp, only: sum_allreduce
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: imu_idx, is_idx, iv_idx
+      use stella_layouts, only: kxkyz_lo
+      use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx
 
-     implicit none
+      use zgrid, only: nzgrid, ntubes
+      use kt_grids, only: nakx, naky, aky, nalpha
+      use vpamu_grids, only: nmu, nvpa
+      use constants, only: zi
 
-     complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-     complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi
+      use gyro_averages, only: gyro_average
+      use vpamu_grids, only: maxwell_mu, maxwell_vpa, maxwell_fac
 
-     complex, dimension(:, :), allocatable :: multg
-     complex, dimension(:, :, :), allocatable :: gyro
-     
-     real, dimension(:, :, :), allocatable :: eta
-     real, dimension(:, :), allocatable :: g0
-     real :: wgt, tmp
-     
-     integer :: ivmu, iv, imu, iz, it, ia, is
-     integer :: iky, ikx, ikxkyz
+      use dist_fn_arrays, only: star_ad_field
+      use adjoint_field_arrays, only: omega_g
+      use vpamu_grids, only: integrate_species, integrate_vmu
+      use species, only: spec
 
-     allocate (eta(naky, nakx, -nzgrid:nzgrid)); eta = 0.
+      use stella_time, only: code_dt
+      use mp, only: sum_allreduce
 
-     ia = 1
-     allocate (g0(nvpa, nmu))
-     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-        it = it_idx(kxkyz_lo, ikxkyz)
-        if (it /= 1) cycle
-        iky = iky_idx(kxkyz_lo, ikxkyz)
-        ikx = ikx_idx(kxkyz_lo, ikxkyz)
-        iz = iz_idx(kxkyz_lo, ikxkyz)
-        is = is_idx(kxkyz_lo, ikxkyz)
-        g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
-        wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp
-        call integrate_vmu(g0, iz, tmp)
-        eta(iky, ikx, iz) = eta(iky, ikx, iz) + tmp * wgt
-     end do
-     call sum_allreduce(eta)
-     
-     allocate (gyro(naky, nakx, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-     allocate (multg(naky, nakx))
-     
-     ia = 1
-     do it = 1, ntubes
-        do iz = -nzgrid, nzgrid
-           do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-              is = is_idx(vmu_lo, ivmu)
-              imu = imu_idx(vmu_lo, ivmu)
-              iv = iv_idx(vmu_lo, ivmu)
-              multg = conjg(zi * spread(aky, 2, nakx) * star_ad_field(ia, iz, ivmu) / spec(is)%zt &
-                   - omega_g(:, :)) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) &
-                   * maxwell_fac(is)
-              call gyro_average(g(:, :, iz, it, ivmu), iz, ivmu, gyro(:, :, ivmu))
-              
-              gyro(:, :, ivmu) = gyro(:, :, ivmu) * multg(:, :)
-           end do
-           call integrate_species(gyro, iz, spec%zt, phi(:, :, iz, it), reduce_in=.false.)
-        end do
-     end do
-     deallocate (gyro)
-     call sum_allreduce(phi)
+      implicit none
 
-     phi = phi / spread(eta, 4, ntubes)
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi
 
-     deallocate (multg)
-     deallocate (g0)
-     deallocate (eta)
-     
+      complex, dimension(:, :), allocatable :: multg
+      complex, dimension(:, :, :), allocatable :: gyro
+
+      real, dimension(:, :, :), allocatable :: eta
+      real, dimension(:, :), allocatable :: g0
+      real :: wgt, tmp
+
+      integer :: ivmu, iv, imu, iz, it, ia, is
+      integer :: iky, ikx, ikxkyz
+
+      allocate (eta(naky, nakx, -nzgrid:nzgrid)); eta = 0.
+
+      ia = 1
+      allocate (g0(nvpa, nmu))
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         it = it_idx(kxkyz_lo, ikxkyz)
+         if (it /= 1) cycle
+         iky = iky_idx(kxkyz_lo, ikxkyz)
+         ikx = ikx_idx(kxkyz_lo, ikxkyz)
+         iz = iz_idx(kxkyz_lo, ikxkyz)
+         is = is_idx(kxkyz_lo, ikxkyz)
+         g0 = spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+         wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp
+         call integrate_vmu(g0, iz, tmp)
+         eta(iky, ikx, iz) = eta(iky, ikx, iz) + tmp * wgt
+      end do
+      call sum_allreduce(eta)
+
+      allocate (gyro(naky, nakx, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (multg(naky, nakx))
+
+      ia = 1
+      do it = 1, ntubes
+         do iz = -nzgrid, nzgrid
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               is = is_idx(vmu_lo, ivmu)
+               imu = imu_idx(vmu_lo, ivmu)
+               iv = iv_idx(vmu_lo, ivmu)
+               multg = conjg(zi * spread(aky, 2, nakx) * star_ad_field(ia, iz, ivmu) / spec(is)%zt &
+                             - omega_g(:, :)) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) &
+                       * maxwell_fac(is)
+               call gyro_average(g(:, :, iz, it, ivmu), iz, ivmu, gyro(:, :, ivmu))
+
+               gyro(:, :, ivmu) = gyro(:, :, ivmu) * multg(:, :)
+            end do
+            call integrate_species(gyro, iz, spec%zt, phi(:, :, iz, it), reduce_in=.false.)
+         end do
+      end do
+      deallocate (gyro)
+      call sum_allreduce(phi)
+
+      phi = phi / spread(eta, 4, ntubes)
+
+      deallocate (multg)
+      deallocate (g0)
+      deallocate (eta)
+
    end subroutine get_adjoint_fields_vmulo
-     !> get_fields_ffs accepts as input the guiding centre distribution function g
+   !> get_fields_ffs accepts as input the guiding centre distribution function g
    !> and calculates/returns the electronstatic potential phi for full_flux_surface simulations
    subroutine get_fields_ffs(g, phi, apar)
 

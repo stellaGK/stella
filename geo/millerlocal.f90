@@ -12,7 +12,7 @@ module millerlocal
    public :: local
 
    public :: del, np0
-   
+
    private
 
    integer :: nzed_local
@@ -62,8 +62,8 @@ module millerlocal
    logical :: defaults_initialized = .false.
 
    real :: del = 1E-006
-   integer :: np0 = 11 
-   
+   integer :: np0 = 11
+
 contains
 
    subroutine init_local_defaults
@@ -119,7 +119,7 @@ contains
 
       real, dimension(:), allocatable:: local_values
       integer, optional, intent(in) :: adjoint_var
-      
+
       namelist /millergeo_parameters/ rhoc, rmaj, shift, qinp, shat, &
          kappa, kapprim, tri, triprim, rgeo, betaprim, &
          betadbprim, d2qdr2, d2psidr2, &
@@ -169,7 +169,7 @@ contains
       local%betadbprim = local_values(12)
       local%d2qdr2 = local_values(13)
       local%d2psidr2 = local_values(14)
-      
+
       local%zed0_fac = 1.0
 
       ! following two variables are not inputs

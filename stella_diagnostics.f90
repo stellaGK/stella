@@ -11,7 +11,7 @@ module stella_diagnostics
    !!GA-Adjoint
    public :: omega_vs_time, navg
    public :: omega_vs_time_short
-   
+
    private
 
    integer :: ntg_out
@@ -44,7 +44,7 @@ module stella_diagnostics
    !> Debugging
    logical :: debug = .false.
    real :: halfnavg
-   
+
    interface get_one_flux_vmulo
       module procedure get_one_flux_vmulo_int
       module procedure get_one_flux_vmulo_kxkyz
@@ -180,8 +180,8 @@ contains
 
          if (.not. save_for_restart) nsave = -1
       end if
-      
-      halfnavg = navg/2
+
+      halfnavg = navg / 2
    end subroutine read_parameters
 
    !> Allocate the module-level arrays
@@ -211,16 +211,16 @@ contains
       end if
 
       !!GA-Adjoint
-      if(.not.allocated(omega_vs_time_short)) then
+      if (.not. allocated(omega_vs_time_short)) then
          if (write_omega) then
-            allocate(omega_vs_time_short(nint(halfnavg),naky,nakx))
+            allocate (omega_vs_time_short(nint(halfnavg), naky, nakx))
             omega_vs_time_short = 0.
          else
-            allocate (omega_vs_time_short(1,1,1))
+            allocate (omega_vs_time_short(1, 1, 1))
             halfnavg = 1
          end if
       end if
-      
+
    end subroutine allocate_arrays
 
    !> Open the '.out' and the '.fluxes' file.
@@ -348,10 +348,10 @@ contains
             call fieldline_average(phi_old, phioldavg)
             where (abs(phiavg) < zero .or. abs(phioldavg) < zero)
                omega_vs_time(mod(istep, navg) + 1, :, :) = 0.0
-               omega_vs_time_short(mod(istep,nint(halfnavg))+1,:,:) = 0.0
+               omega_vs_time_short(mod(istep, nint(halfnavg)) + 1, :, :) = 0.0
             elsewhere
                omega_vs_time(mod(istep, navg) + 1, :, :) = log(phiavg / phioldavg) * zi / code_dt
-               omega_vs_time_short(mod(istep,nint(halfnavg))+1,:,:) = log(phiavg/phioldavg)*zi/code_dt
+               omega_vs_time_short(mod(istep, nint(halfnavg)) + 1, :, :) = log(phiavg / phioldavg) * zi / code_dt
             end where
             deallocate (phiavg, phioldavg)
          end if
@@ -1879,8 +1879,8 @@ contains
       if (allocated(heat_avg)) deallocate (heat_avg)
       if (allocated(omega_vs_time)) deallocate (omega_vs_time)
 
-      if (allocated(omega_vs_time_short)) deallocate(omega_vs_time_short)
-      
+      if (allocated(omega_vs_time_short)) deallocate (omega_vs_time_short)
+
    end subroutine deallocate_arrays
 
 end module stella_diagnostics
