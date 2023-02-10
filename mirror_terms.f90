@@ -9,6 +9,7 @@ module mirror_terms
    public :: add_mirror_radial_variation
    public :: time_mirror
 
+   public :: get_dgdvpa_explicit
    private
 
 !  interface checksum

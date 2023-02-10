@@ -14,6 +14,8 @@ module parallel_streaming
    public :: stream_rad_var1
    public :: stream_rad_var2
 
+   public :: get_dgdz_centered
+   
    private
 
    interface center_zed
@@ -178,7 +180,7 @@ contains
 
    end subroutine init_invert_stream_operator
 
-   subroutine advance_parallel_streaming_explicit(g, phi, gout)
+   subroutine advance_parallel_streaming_explicit(g, phi, gout, adjoint)
 
       use mp, only: proc0
       use stella_layouts, only: vmu_lo
@@ -205,6 +207,8 @@ contains
       complex, dimension(:, :, :, :), allocatable :: g0y, g1y
       complex, dimension(:, :), allocatable :: g0_swap
 
+      logical, optional, intent (in) :: adjoint
+      
       !> if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
       !> if full flux surface (flux annulus), will need to calculate in y space
 
@@ -227,17 +231,19 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
+         if(.not. present(adjoint)) then
+            !> obtain <phi> (or <phi>-phi if driftkinetic_implicit=T)
+            call gyro_average(phi, ivmu, g0(:, :, :, :))
+            if (driftkinetic_implicit) g0(:, :, :, :) = g0(:, :, :, :) - phi
 
-         !> obtain <phi> (or <phi>-phi if driftkinetic_implicit=T)
-         call gyro_average(phi, ivmu, g0(:, :, :, :))
-         if (driftkinetic_implicit) g0(:, :, :, :) = g0(:, :, :, :) - phi
-
-         !> get d<phi>/dz, with z the parallel coordinate and store in dgphi_dz
-         !> note that this should be a centered difference to avoid numerical
-         !> unpleasantness to do with inexact cancellations in later velocity integration
-         !> see appendix of the stella JCP 2019 for details
-         call get_dgdz_centered(g0, ivmu, dgphi_dz)
-
+            !> get d<phi>/dz, with z the parallel coordinate and store in dgphi_dz
+            !> note that this should be a centered difference to avoid numerical
+            !> unpleasantness to do with inexact cancellations in later velocity integration
+            !> see appendix of the stella JCP 2019 for details
+            call get_dgdz_centered(g0, ivmu, dgphi_dz)
+         else
+            dgphi_dz = 0.0
+         end if
          !> if driftkinetic_implicit=T, then only want to treat vpar . grad (<phi>-phi)*F0 term explicitly;
          !> in this case, zero out dg/dz term (or d(g/F)/dz for full-flux-surface)
          if (driftkinetic_implicit) then
@@ -293,9 +299,10 @@ contains
             call add_stream_term_ffs(g0y, ivmu, gout(:, :, :, :, ivmu))
          else
             ia = 1
-            g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
-                             * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
-
+            if(.not. present(adjoint)) then
+               g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
+                    * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
+            end if
             ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
             call add_stream_term(g0, ivmu, gout(:, :, :, :, ivmu))
          end if
@@ -563,7 +570,7 @@ contains
 
    end subroutine add_stream_term_ffs
 
-   subroutine advance_parallel_streaming_implicit(g, phi, apar)
+   subroutine advance_parallel_streaming_implicit(g, phi, apar, adjoint)
 
       use mp, only: proc0
       use job_manage, only: time_message
@@ -582,12 +589,17 @@ contains
       integer :: ivmu
       complex, dimension(:, :, :, :), allocatable :: phi1
 
+      logical, optional, intent(in) :: adjoint
+      
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
       allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       ! save the incoming g and phi, as they will be needed later
       g1 = g
+      if (present(adjoint)) then
+         phi = 0.0
+      end if
       phi1 = phi
 
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
@@ -596,8 +608,13 @@ contains
          ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g_{inh}^{n+1}
          ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
          ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
-         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi1, phi, g(:, :, :, :, ivmu), eqn='inhomogeneous')
-
+         if (present(adjoint)) then
+            call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi1, phi, g(:, :, :, :, ivmu), eqn='inhomogeneous' &
+                 , adjoint=adjoint)
+         else
+            call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi1, phi, g(:, :, :, :, ivmu), eqn='inhomogeneous')
+         end if
+         
          if (stream_matrix_inversion) then
             ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
             ! g = RHS is input and overwritten by g = g_{inh}^{n+1}
@@ -608,44 +625,46 @@ contains
       end do
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
 
-      fields_updated = .false.
-
-      ! we now have g_{inh}^{n+1}
-      ! calculate associated fields (phi_{inh}^{n+1})
-      call advance_fields(g, phi, apar, dist='gbar')
-
-      ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
-      ! phi = phi_{inh}^{n+1} is input and overwritten by phi = phi^{n+1}
-      if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
-      call invert_parstream_response(phi)
-      if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
-
-      if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         ! now have phi^{n+1} for non-negative kx
-         ! obtain RHS of GK eqn;
-         ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1}
-         ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
-         ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>)
-         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi1, phi, g(:, :, :, :, ivmu), eqn='full')
-
-         if (stream_matrix_inversion) then
-            ! solve (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} = RHS
-            ! g = RHS is input and overwritten by g = g^{n+1}
-            call invert_parstream(ivmu, g(:, :, :, :, ivmu))
-         else
-            call sweep_g_zed(ivmu, g(:, :, :, :, ivmu))
-         end if
-      end do
-      if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
-
+      if (.not. present(adjoint)) then
+         fields_updated = .false.
+         
+         ! we now have g_{inh}^{n+1}
+         ! calculate associated fields (phi_{inh}^{n+1})
+         call advance_fields(g, phi, apar, dist='gbar')
+         
+         ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
+         ! phi = phi_{inh}^{n+1} is input and overwritten by phi = phi^{n+1}
+         if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
+         call invert_parstream_response(phi)
+         if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
+         
+         if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            ! now have phi^{n+1} for non-negative kx
+            ! obtain RHS of GK eqn;
+            ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1}
+            ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
+            ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>)
+            call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi1, phi, g(:, :, :, :, ivmu), eqn='full')
+            
+            if (stream_matrix_inversion) then
+               ! solve (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} = RHS
+               ! g = RHS is input and overwritten by g = g^{n+1}
+               call invert_parstream(ivmu, g(:, :, :, :, ivmu))
+            else
+               call sweep_g_zed(ivmu, g(:, :, :, :, ivmu))
+            end if
+         end do
+         if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
+      end if
+         
       deallocate (phi1)
 
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
    end subroutine advance_parallel_streaming_implicit
 
-   subroutine get_gke_rhs(ivmu, gold, phiold, phi, g, eqn)
+   subroutine get_gke_rhs(ivmu, gold, phiold, phi, g, eqn, adjoint)
 
       use stella_time, only: code_dt
       use zgrid, only: nzgrid, ntubes
@@ -678,6 +697,8 @@ contains
       complex, dimension(:, :, :, :), allocatable :: dgdz, dphidz
       complex, dimension(:, :, :, :), allocatable :: field
 
+      logical, optional, intent(in) :: adjoint
+
       allocate (vpadf0dE_fac(-nzgrid:nzgrid))
       allocate (gp(-nzgrid:nzgrid))
       allocate (dgdz(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -706,37 +727,39 @@ contains
       ! as this was calculated previously
       call get_dzed(iv, gold, dgdz)
 
-      allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
-      ! get <phi> = (1+alph)/2*<phi^{n+1}> + (1-alph)/2*<phi^{n}>
-      field = tupwnd1 * phiold + tupwnd2 * phi
-      ! set g to be phi or <phi> depending on whether parallel streaming is
-      ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
-      if (driftkinetic_implicit) then
-         g = field
-      else
-         call gyro_average(field, ivmu, g)
-      end if
-      deallocate (field)
-
-      if (maxwellian_inside_zed_derivative) then
-         ! obtain d(exp(-mu*B/T)*<phi>)/dz and store in dphidz
-         g = g * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
-         call get_dzed(iv, g, dphidz)
-         ! get <phi>*exp(-mu*B/T)*dB/dz at cell centres
-         g = g * spread(spread(spread(dbdzed(ia, :), 1, naky), 2, nakx), 4, ntubes)
-         call center_zed(iv, g)
-         ! construct d(<phi>*exp(-mu*B/T))/dz + 2*mu*<phi>*exp(-mu*B/T)*dB/dz
-         ! = d<phi>/dz * exp(-mu*B/T)
-         dphidz = dphidz + 2.0 * mu(imu) * g
-      else
-         ! obtain d<phi>/dz and store in dphidz
-         call get_dzed(iv, g, dphidz)
-         ! center Maxwellian factor in mu
-         ! and store in dummy variable gp
-         gp = maxwell_mu(ia, :, imu, is)
-         call center_zed_midpoint(iv, gp)
-         ! multiply by Maxwellian factor
-         dphidz = dphidz * spread(spread(spread(gp, 1, naky), 2, nakx), 4, ntubes)
+      if (.not. present(adjoint)) then
+         allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
+         ! get <phi> = (1+alph)/2*<phi^{n+1}> + (1-alph)/2*<phi^{n}>
+         field = tupwnd1 * phiold + tupwnd2 * phi
+         ! set g to be phi or <phi> depending on whether parallel streaming is
+         ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
+         if (driftkinetic_implicit) then
+            g = field
+         else
+            call gyro_average(field, ivmu, g)
+         end if
+         deallocate (field)
+         
+         if (maxwellian_inside_zed_derivative) then
+            ! obtain d(exp(-mu*B/T)*<phi>)/dz and store in dphidz
+            g = g * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
+            call get_dzed(iv, g, dphidz)
+            ! get <phi>*exp(-mu*B/T)*dB/dz at cell centres
+            g = g * spread(spread(spread(dbdzed(ia, :), 1, naky), 2, nakx), 4, ntubes)
+            call center_zed(iv, g)
+            ! construct d(<phi>*exp(-mu*B/T))/dz + 2*mu*<phi>*exp(-mu*B/T)*dB/dz
+            ! = d<phi>/dz * exp(-mu*B/T)
+            dphidz = dphidz + 2.0 * mu(imu) * g
+         else
+            ! obtain d<phi>/dz and store in dphidz
+            call get_dzed(iv, g, dphidz)
+            ! center Maxwellian factor in mu
+            ! and store in dummy variable gp
+            gp = maxwell_mu(ia, :, imu, is)
+            call center_zed_midpoint(iv, gp)
+            ! multiply by Maxwellian factor
+            dphidz = dphidz * spread(spread(spread(gp, 1, naky), 2, nakx), 4, ntubes)
+         end if
       end if
 
       ! NB: could do this once at beginning of simulation to speed things up
@@ -763,11 +786,17 @@ contains
 
       ! construct RHS of GK eqn
       fac = code_dt * spec(is)%stm_psi0
-      do iz = -nzgrid, nzgrid
-         g(:, :, iz, :) = g(:, :, iz, :) - fac * gp(iz) &
-                          * (tupwnd1 * vpa(iv) * dgdz(:, :, iz, :) + vpadf0dE_fac(iz) * dphidz(:, :, iz, :))
-      end do
-
+      if (present(adjoint)) then
+         do iz = -nzgrid, nzgrid
+            g(:, :, iz, :) = g(:, :, iz, :) - fac * gp(iz) * tupwnd1 * vpa(iv) * dgdz(:, :, iz, :)
+         end do
+      else
+         do iz = -nzgrid, nzgrid
+            g(:, :, iz, :) = g(:, :, iz, :) - fac * gp(iz) &
+                 * (tupwnd1 * vpa(iv) * dgdz(:, :, iz, :) + vpadf0dE_fac(iz) * dphidz(:, :, iz, :))
+         end do
+      end if
+      
       deallocate (vpadf0dE_fac, gp)
       deallocate (dgdz, dphidz)
 

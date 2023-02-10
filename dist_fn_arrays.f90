@@ -14,7 +14,8 @@ module dist_fn_arrays
    public :: wdriftx_phi, wdrifty_phi
    public :: wdriftpx_g, wdriftpy_g
    public :: wdriftpx_phi, wdriftpy_phi
-
+   public :: star_ad_field
+   
    ! dist fn
    complex, dimension(:, :, :, :, :), allocatable :: gnew, gold, g_gyro
    ! (naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
@@ -36,7 +37,7 @@ module dist_fn_arrays
    complex, dimension(:, :, :), allocatable :: gvmu
    ! (nvpa, nmu, -kxkyz-layout-)
 
-   real, dimension(:, :, :), allocatable :: wstar, wstarp
+   real, dimension(:, :, :), allocatable :: wstar, wstarp, star_ad_field
    ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
 
    real, dimension(:, :, :), allocatable :: wdriftx_g, wdrifty_g

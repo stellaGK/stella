@@ -11,6 +11,8 @@ module millerlocal
    public :: finish_local_geo
    public :: local
 
+   public :: del, np0
+   
    private
 
    integer :: nzed_local
@@ -59,6 +61,9 @@ module millerlocal
 
    logical :: defaults_initialized = .false.
 
+   real :: del = 1E-006
+   integer :: np0 = 11 
+   
 contains
 
    subroutine init_local_defaults
@@ -98,7 +103,7 @@ contains
 
    end subroutine init_local_defaults
 
-   subroutine read_local_parameters(nzed, nzgrid, local_out)
+   subroutine read_local_parameters(nzed, nzgrid, local_out, adjoint_var)
 
       use file_utils, only: input_unit_exist
       use common_types, only: flux_surface_type
@@ -112,30 +117,59 @@ contains
       integer :: in_file, np, j
       logical :: exist
 
+      real, dimension(:), allocatable:: local_values
+      integer, optional, intent(in) :: adjoint_var
+      
       namelist /millergeo_parameters/ rhoc, rmaj, shift, qinp, shat, &
          kappa, kapprim, tri, triprim, rgeo, betaprim, &
          betadbprim, d2qdr2, d2psidr2, &
-         nzed_local, read_profile_variation, write_profile_variation
+         nzed_local, read_profile_variation, write_profile_variation, np0, del
 
       call init_local_defaults
 
       in_file = input_unit_exist("millergeo_parameters", exist)
       if (exist) read (unit=in_file, nml=millergeo_parameters)
 
-      local%rhoc = rhoc
-      local%rmaj = rmaj
-      local%rgeo = rgeo
-      local%shift = shift
-      local%kappa = kappa
-      local%kapprim = kapprim
-      local%qinp = qinp
-      local%shat = shat
-      local%tri = tri
-      local%triprim = triprim
-      local%betaprim = betaprim
-      local%betadbprim = betadbprim
-      local%d2qdr2 = d2qdr2
-      local%d2psidr2 = d2psidr2
+      !!GA-Adjoint
+      allocate (local_values(14))
+      local_values(1) = rhoc
+      local_values(2) = rmaj
+      local_values(3) = rgeo
+      local_values(4) = shift
+      local_values(5) = kappa
+      local_values(6) = kapprim
+      local_values(7) = qinp
+      local_values(8) = shat
+      local_values(9) = tri
+      local_values(10) = triprim
+      local_values(11) = betaprim
+      local_values(12) = betadbprim
+      local_values(13) = d2qdr2
+      local_values(14) = d2psidr2
+
+      !rhoc0 = rhoc
+
+      if (present(adjoint_var)) then
+         if (adjoint_var /= 0) then
+            local_values(adjoint_var) = local_values(adjoint_var) + del
+         end if
+      end if
+
+      local%rhoc = local_values(1)
+      local%rmaj = local_values(2)
+      local%rgeo = local_values(3)
+      local%shift = local_values(4)
+      local%kappa = local_values(5)
+      local%kapprim = local_values(6)
+      local%qinp = local_values(7)
+      local%shat = local_values(8)
+      local%tri = local_values(9)
+      local%triprim = local_values(10)
+      local%betaprim = local_values(11)
+      local%betadbprim = local_values(12)
+      local%d2qdr2 = local_values(13)
+      local%d2psidr2 = local_values(14)
+      
       local%zed0_fac = 1.0
 
       ! following two variables are not inputs
@@ -148,9 +182,9 @@ contains
 
       ! the next three variablaes are for multibox simulations
       ! with radial variation
-      local%rhoc_psi0 = rhoc
-      local%qinp_psi0 = qinp
-      local%shat_psi0 = shat
+      local%rhoc_psi0 = local%rhoc
+      local%qinp_psi0 = local%qinp
+      local%shat_psi0 = local%shat
 
       ! first get nperiod corresponding to input number of grid points
       nz2pi = nzed / 2

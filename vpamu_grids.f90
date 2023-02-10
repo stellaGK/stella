@@ -19,6 +19,9 @@ module vpamu_grids
    public :: equally_spaced_mu_grid
    public :: set_vpa_weights
 
+   public :: mu0
+   public :: wgts_bare0
+   
    logical :: vpamu_initialized = .false.
 
    integer :: nvgrid, nvpa
@@ -43,6 +46,9 @@ module vpamu_grids
    ! but allocated and filled elsewhere because they depend on z, etc.
    real, dimension(:, :, :), allocatable :: vperp2
 
+   real, dimension(:), allocatable :: mu0
+   real, dimension(:), allocatable :: wgts_bare0
+   
    interface integrate_species
       module procedure integrate_species_vmu
       module procedure integrate_species_vmu_single
@@ -103,19 +109,26 @@ contains
 
    end subroutine read_vpamu_grids_parameters
 
-   subroutine init_vpamu_grids
+   subroutine init_vpamu_grids(adjoint)
 
       use species, only: spec, nspec
 
       implicit none
 
+      logical, intent(in), optional :: adjoint
+
       if (vpamu_initialized) return
       vpamu_initialized = .true.
 
-      !> set up the vpa grid points and integration weights
-      call init_vpa_grid
-      !> set up the mu grid points and integration weights
-      call init_mu_grid
+      if (present(adjoint)) then
+         call init_vpa_grid(adjoint)
+         call init_mu_grid(adjoint)
+      else
+         !> set up the vpa grid points and integration weights
+         call init_vpa_grid
+         !> set up the mu grid points and integration weights
+         call init_mu_grid
+      end if
 
       if (.not. allocated(maxwell_fac)) then
          allocate (maxwell_fac(nspec)); maxwell_fac = 1.0
@@ -126,7 +139,7 @@ contains
 
    end subroutine init_vpamu_grids
 
-   subroutine init_vpa_grid
+   subroutine init_vpa_grid(adjoint)
 
       use mp, only: mp_abort
       use constants, only: pi
@@ -137,6 +150,8 @@ contains
       integer :: iv, idx, iseg, nvpa_seg
       real :: del
 
+      logical, optional, intent(in) :: adjoint
+      
       if (.not. allocated(vpa)) then
          !> vpa is the parallel velocity at grid points
          allocate (vpa(nvpa)); vpa = 0.0
@@ -178,44 +193,50 @@ contains
       !> (vpa_up - vpa_low) * (f1 + 4*f2 + f3) / 6
       !> inner boundary points are used in two segments, so they get double the weight
 
-      if (nvpa < 6) &
-         call mp_abort('stella does not currently support nvgrid < 3.  aborting.')
+      !!GA-Adjoint - only initialise vpa variables once. Do not repeat for subsquent initialisations
+      !!             in adjoint calculation
 
-      !> use simpson 3/8 rule at lower boundary and composite Simpson elsewhere
-      del = 0.375 * dvpa
-      wgts_vpa(1) = del
-      wgts_vpa(2:3) = 3.*del
-      wgts_vpa(4) = del
-      !> composite simpson
-      nvpa_seg = (nvpa - 4) / 2
-      del = dvpa / 3.
-      do iseg = 1, nvpa_seg
-         idx = 2 * (iseg - 1) + 4
-         wgts_vpa(idx) = wgts_vpa(idx) + del
-         wgts_vpa(idx + 1) = wgts_vpa(idx + 1) + 4.*del
-         wgts_vpa(idx + 2) = wgts_vpa(idx + 2) + del
-      end do
+      if (.not. present(adjoint)) then
+         if (nvpa < 6) &
+              call mp_abort('stella does not currently support nvgrid < 3.  aborting.')
 
-      !> for the sake of symmetry, do the same thing with 3/8 rule at upper boundary
-      !> and composite elsewhere.
-      del = 0.375 * dvpa
-      wgts_vpa(nvpa - 3) = wgts_vpa(nvpa - 3) + del
-      wgts_vpa(nvpa - 2:nvpa - 1) = wgts_vpa(nvpa - 2:nvpa - 1) + 3.*del
-      wgts_vpa(nvpa) = wgts_vpa(nvpa) + del
-      nvpa_seg = (nvpa - 4) / 2
-      del = dvpa / 3.
-      do iseg = 1, nvpa_seg
-         idx = 2 * (iseg - 1) + 1
-         wgts_vpa(idx) = wgts_vpa(idx) + del
-         wgts_vpa(idx + 1) = wgts_vpa(idx + 1) + 4.*del
-         wgts_vpa(idx + 2) = wgts_vpa(idx + 2) + del
-      end do
-
-      !> divide by 2 to account for double-counting
-      wgts_vpa = 0.5 * wgts_vpa / sqrt(pi)
-
-      wgts_vpa_default = wgts_vpa
-
+         !> use simpson 3/8 rule at lower boundary and composite Simpson elsewhere
+         del = 0.375 * dvpa
+         wgts_vpa(1) = del
+         wgts_vpa(2:3) = 3.*del
+         wgts_vpa(4) = del
+         !> composite simpson
+         nvpa_seg = (nvpa - 4) / 2
+         del = dvpa / 3.
+         do iseg = 1, nvpa_seg
+            idx = 2 * (iseg - 1) + 4
+            wgts_vpa(idx) = wgts_vpa(idx) + del
+            wgts_vpa(idx + 1) = wgts_vpa(idx + 1) + 4.*del
+            wgts_vpa(idx + 2) = wgts_vpa(idx + 2) + del
+         end do
+         
+         !> for the sake of symmetry, do the same thing with 3/8 rule at upper boundary
+         !> and composite elsewhere.
+         del = 0.375 * dvpa
+         wgts_vpa(nvpa - 3) = wgts_vpa(nvpa - 3) + del
+         wgts_vpa(nvpa - 2:nvpa - 1) = wgts_vpa(nvpa - 2:nvpa - 1) + 3.*del
+         wgts_vpa(nvpa) = wgts_vpa(nvpa) + del
+         nvpa_seg = (nvpa - 4) / 2
+         del = dvpa / 3.
+         do iseg = 1, nvpa_seg
+            idx = 2 * (iseg - 1) + 1
+            wgts_vpa(idx) = wgts_vpa(idx) + del
+            wgts_vpa(idx + 1) = wgts_vpa(idx + 1) + 4.*del
+            wgts_vpa(idx + 2) = wgts_vpa(idx + 2) + del
+         end do
+         
+         !> divide by 2 to account for double-counting
+         wgts_vpa = 0.5 * wgts_vpa / sqrt(pi)
+         
+         wgts_vpa_default = wgts_vpa
+         
+      end if
+      
    end subroutine init_vpa_grid
 
    subroutine set_vpa_weights(conservative)
@@ -683,7 +704,7 @@ contains
 
    end subroutine finish_vpa_grid
 
-   subroutine init_mu_grid
+   subroutine init_mu_grid(adjoint)
 
       use gauss_quad, only: get_laguerre_grids
       use zgrid, only: nzgrid, nztot
@@ -695,6 +716,8 @@ contains
 
       integer :: imu
       real :: mu_max
+
+      logical, optional, intent(in) :: adjoint
 
       !> allocate arrays and initialize to zero
       if (.not. allocated(mu)) then
@@ -726,13 +749,22 @@ contains
       else
          !    ! use Gauss-Laguerre quadrature in 2*mu*bmag(z=0)
          ! use Gauss-Laguerre quadrature in 2*mu*min(bmag)*max(
-         call get_laguerre_grids(mu, wgts_mu_bare)
-         if (vperp_max < 0) vperp_max = sqrt(mu(nmu))
-         wgts_mu_bare = wgts_mu_bare * exp(mu) / (2.*minval(bmag_psi0) * mu(nmu) / vperp_max**2)
+         if (.not. present(adjoint)) then
+            call get_laguerre_grids(mu, wgts_mu_bare)
+            if (vperp_max < 0) vperp_max = sqrt(mu(nmu))
+            wgts_mu_bare = wgts_mu_bare * exp(mu) / (2.*mu(nmu) / vperp_max**2)
+!            wgts_mu_bare = wgts_mu_bare * exp(mu) / (2.*minval(bmag_psi0) * mu(nmu) / vperp_max**2)
+            wgts_bare0 = wgts_mu_bare
 
-         !    mu = mu/(2.*bmag(1,0))
-         mu = mu / (2.*minval(bmag_psi0) * mu(nmu) / vperp_max**2)
+            !mu = mu / (2.*minval(bmag_psi0) * mu(nmu) / vperp_max**2)
+            mu = mu / (2.*mu(nmu) / vperp_max**2)
+            mu0 = mu
+         end if
 
+         wgts_mu_bare = 0.0
+         wgts_mu_bare = wgts_bare0 / minval(bmag_psi0)
+         mu = mu0 / minval(bmag_psi0)
+         
          dmu(:nmu - 1) = mu(2:) - mu(:nmu - 1)
          !> leave dmu(nmu) uninitialized. should never be used, so want
          !> valgrind or similar to return error if it is
@@ -774,6 +806,9 @@ contains
       if (allocated(dmu_ghost)) deallocate (dmu_ghost)
       if (allocated(rbuffer)) deallocate (rbuffer)
 
+      if (allocated(wgts_bare0)) deallocate (wgts_bare0)
+      if (allocated(mu0)) deallocate (mu0)
+      
    end subroutine finish_mu_grid
 
    subroutine calculate_velocity_integrals

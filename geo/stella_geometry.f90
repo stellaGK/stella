@@ -91,7 +91,7 @@ module stella_geometry
 
 contains
 
-   subroutine init_geometry(nalpha, naky)
+   subroutine init_geometry(nalpha, naky, adjoint_var)
 
       use constants, only: pi
       use mp, only: proc0
@@ -129,6 +129,8 @@ contains
       real, dimension(:, :), allocatable :: gbdrift_alpha, cvdrift_alpha
       real, dimension(:, :), allocatable :: gbdrift0_psi, cvdrift0_psi
 
+      integer, optional, intent(in) :: adjoint_var
+      
       if (geoinit) return
       geoinit = .true.
 
@@ -146,7 +148,11 @@ contains
          select case (geo_option_switch)
          case (geo_option_local)
             ! read in Miller local parameters
-            call read_local_parameters(nzed, nzgrid, geo_surf)
+            if (present(adjoint_var)) then
+               call read_local_parameters(nzed, nzgrid, geo_surf, adjoint_var)
+            else
+               call read_local_parameters(nzed, nzgrid, geo_surf)
+            end if
             ! allocate geometry arrays
             call allocate_arrays(nalpha, nzgrid)
             ! use Miller local parameters to get
@@ -195,7 +201,11 @@ contains
             zeta(1, :) = zed * geo_surf%qinp
          case (geo_option_multibox)
             ! read in Miller local parameters
-            call read_local_parameters(nzed, nzgrid, geo_surf)
+            if (present(adjoint_var)) then
+               call read_local_parameters(nzed, nzgrid, geo_surf, adjoint_var)
+            else
+               call read_local_parameters(nzed, nzgrid, geo_surf)
+            end if
 
             ! allocate geometry arrays
             call allocate_arrays(nalpha, nzgrid)
@@ -250,7 +260,11 @@ contains
          case (geo_option_inputprof)
             ! first read in some local parameters
             ! only thing needed really is rhoc
-            call read_local_parameters(nzed, nzgrid, geo_surf)
+            if (present(adjoint_var)) then
+               call read_local_parameters(nzed, nzgrid, geo_surf, adjoint_var)
+            else
+               call read_local_parameters(nzed, nzgrid, geo_surf)
+            end if
             ! allocate geometry arrays
             call allocate_arrays(nalpha, nzgrid)
             ! now overwrite local parameters

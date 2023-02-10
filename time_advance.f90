@@ -1,4 +1,3 @@
-
 module time_advance
 
    public :: init_time_advance, finish_time_advance
@@ -6,6 +5,8 @@ module time_advance
    public :: time_gke, time_parallel_nl
    public :: checksum
 
+   public :: get_dgdy, get_dgdx
+   
    private
 
    interface get_dgdy
@@ -380,7 +381,7 @@ contains
       use stella_geometry, only: dydalpha, drhodpsi
       use vpamu_grids, only: vperp2, vpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use dist_fn_arrays, only: wstar
+      use dist_fn_arrays, only: wstar, star_ad_field
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_drho
       use physics_flags, only: full_flux_surface
@@ -395,6 +396,9 @@ contains
 
       if (.not. allocated(wstar)) &
          allocate (wstar(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar = 0.0
+
+      if (.not. allocated(star_ad_field)) &
+         allocate (star_ad_field(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); star_ad_field = 0.0
 
       allocate (energy(nalpha, -nzgrid:nzgrid))
 
@@ -419,6 +423,9 @@ contains
             wstar(:, :, ivmu) = dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
                                 * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))
          end if
+         !!GA-Adjoint
+         star_ad_field(:, :, ivmu) = -dydalpha * drhodpsi * wstarknob * 0.5 &
+              * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))
          if (.not. full_flux_surface) then
             wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          end if
@@ -946,7 +953,7 @@ contains
 
    end subroutine reset_dt
 
-   subroutine advance_stella(istep)
+   subroutine advance_stella(istep, adjoint)
 
       use dist_fn_arrays, only: gold, gnew
       use fields_arrays, only: phi, apar
@@ -959,10 +966,13 @@ contains
       use sources, only: source_option_krook
       use sources, only: update_tcorr_krook, project_out_zero
 
+      use adjoint_distfn_arrays, only: g_omega, g_omega2
+      
       implicit none
 
       integer, intent(in) :: istep
-
+      logical, optional, intent(in) :: adjoint
+      
       !> unless running in multibox mode, no need to worry about
       !> mb_communicate calls as the subroutine is immediately exited
       !> if not in multibox mode.
@@ -975,20 +985,35 @@ contains
       !> for use in diagnostics (to obtain frequency)
       phi_old = phi
 
-      !> reverse the order of operations every time step
-      !> as part of alternating direction operator splitting
-      !> this is needed to ensure 2nd order accuracy in time
-      if (mod(istep, 2) == 1 .or. .not. flip_flop) then
-         !> advance the explicit parts of the GKE
-         if (debug) write (*, *) 'time_advance::advance_explicit'
-         call advance_explicit(gnew)
-
-         !> use operator splitting to separately evolve
-         !> all terms treated implicitly
-         if (.not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
+      if (present(adjoint)) then
+         !!GA-Adjoint -- adjoint stella
+         if (mod(istep, 2) == 1 .or. .not. flip_flop) then
+            if (debug) write (*, *) 'time_advance adjoint::advance_explicit'
+            call advance_explicit(gnew, adjoint)
+            if (debug) write (*, *) 'time_advance adjoint::advance_implicit'
+            if (.not. fully_explicit) call advance_implicit(istep, phi, apar, gnew, adjoint)
+         else
+            if (debug) write (*, *) 'time_advance adjoint::advance_implicit'
+            if (.not. fully_explicit) call advance_implicit(istep, phi, apar, gnew, adjoint)
+            if (debug) write (*, *) 'time_advance adjoint::advance_explicit'
+            call advance_explicit(gnew, adjoint)
+         end if
       else
-         if (.not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
-         call advance_explicit(gnew)
+         !!GA-Adjoint -- normal stella
+         !> reverse the order of operations every time step
+         !> as part of alternating direction operator splitting
+         !> this is needed to ensure 2nd order accuracy in time
+         if (mod(istep, 2) == 1 .or. .not. flip_flop) then
+            !> advance the explicit parts of the GKE
+            if (debug) write (*, *) 'time_advance::advance_explicit'
+            call advance_explicit(gnew)
+            !> use operator splitting to separately evolve
+            !> all terms treated implicitly
+            if (.not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
+         else
+            if (.not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
+            call advance_explicit(gnew)
+         end if
       end if
 
       ! presumably this is to do with the radially global version of the code?
@@ -999,11 +1024,21 @@ contains
          call project_out_zero(gold, gnew)
          fields_updated = .false.
       end if
-
+      
+      !!GA-Adjount 
+      if (present(adjoint)) then
+         g_omega2 = g_omega
+         g_omega = gold
+      end if
       gold = gnew
 
       !> Ensure fields are updated so that omega calculation is correct.
-      call advance_fields(gnew, phi, apar, dist='gbar')
+      if (present(adjoint)) then
+         !!GA-Adjoint
+         call advance_fields(gnew, phi, apar, dist='gbar', adjoint=adjoint)
+      else
+         call advance_fields(gnew, phi, apar, dist='gbar')
+      end if
 
       !update the delay parameters for the Krook operator
       if (source_option_switch == source_option_krook) call update_tcorr_krook(gnew)
@@ -1015,7 +1050,7 @@ contains
    !> advance_explicit takes as input the guiding centre distribution function
    !> in k-space and updates it to account for all of the terms in the GKE that
    !> are advanced explicitly in time
-   subroutine advance_explicit(g)
+   subroutine advance_explicit(g, adjoint)
 
       use mp, only: proc0
       use job_manage, only: time_message
@@ -1031,22 +1066,38 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
 
       integer :: ivmu, iv, sgn, iky
-
+      logical, optional, intent(in) :: adjoint
+      
       !> start the timer for the explicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 8), ' explicit')
 
       select case (explicit_option_switch)
       case (explicit_option_rk2)
          !> SSP RK2
-         call advance_explicit_rk2(g)
+         if (present(adjoint)) then
+            !!GA-Adjoint
+            call advance_explicit_rk2(g, adjoint)
+         else
+            call advance_explicit_rk2(g)
+         end if
       case (explicit_option_rk3)
          !> default is SSP RK3
-         call advance_explicit_rk3(g)
+         if (present(adjoint)) then
+            !!GA-Adjoint
+            call advance_explicit_rk3(g, adjoint)
+         else
+            call advance_explicit_rk3(g)
+         end if
       case (explicit_option_rk4)
          !> RK4
-         call advance_explicit_rk4(g)
+         if (present(adjoint)) then
+            !!GA-Adjoint
+            call advance_explicit_rk4(g, adjoint)
+         else
+            call advance_explicit_rk4(g)
+         end if
       end select
-
+      
       !> enforce periodicity for periodic (including zonal) modes
       do iky = 1, naky
          if (periodic(iky)) then
@@ -1059,14 +1110,14 @@ contains
             end do
          end if
       end do
-
+      
       !> stop the timer for the explicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 8), ' explicit')
 
    end subroutine advance_explicit
 
    !> advance_expliciit_rk2 uses strong stability-preserving RK2 to advance one time step
-   subroutine advance_explicit_rk2(g)
+   subroutine advance_explicit_rk2(g, adjoint)
 
       use dist_fn_arrays, only: g0, g1
       use zgrid, only: nzgrid
@@ -1080,6 +1131,8 @@ contains
       integer :: icnt
       logical :: restart_time_step
 
+      logical, optional, intent(in) :: adjoint
+      
       !> if CFL condition is violated by nonlinear term
       !> then must modify time step size and restart time step
       !> assume false and test
@@ -1097,11 +1150,21 @@ contains
       do while (icnt <= 2)
          select case (icnt)
          case (1)
-            call solve_gke(g0, g1, restart_time_step)
+            if (present(adjoint)) then
+               !!GA-Adjoint
+               call solve_adjoint(g0, g1, restart_time_step)
+            else
+               call solve_gke(g0, g1, restart_time_step)
+            end if
          case (2)
             g1 = g0 + g1
             if (RK_step) call mb_communicate(g1)
-            call solve_gke(g1, g, restart_time_step)
+            if (present(adjoint)) then
+               !!GA-Adjoint
+               call solve_adjoint(g1, g, restart_time_step)
+            else
+               call solve_gke(g1, g, restart_time_step)
+            end if
          end select
          if (restart_time_step) then
             icnt = 1
@@ -1116,7 +1179,7 @@ contains
    end subroutine advance_explicit_rk2
 
    !> strong stability-preserving RK3
-   subroutine advance_explicit_rk3(g)
+   subroutine advance_explicit_rk3(g, adjoint)
 
       use dist_fn_arrays, only: g0, g1, g2
       use zgrid, only: nzgrid
@@ -1129,6 +1192,7 @@ contains
 
       integer :: icnt
       logical :: restart_time_step
+      logical, optional, intent(in) :: adjoint
 
       !> if CFL condition is violated by nonlinear term
       !> then must modify time step size and restart time step
@@ -1147,15 +1211,30 @@ contains
       do while (icnt <= 3)
          select case (icnt)
          case (1)
-            call solve_gke(g0, g1, restart_time_step)
+            if (present(adjoint)) then
+               !!GA-Adjoint
+               call solve_adjoint(g0, g1, restart_time_step)
+            else
+               call solve_gke(g0, g1, restart_time_step)
+            end if
          case (2)
             g1 = g0 + g1
             if (RK_step) call mb_communicate(g1)
-            call solve_gke(g1, g2, restart_time_step)
+            if (present(adjoint)) then
+               !!GA-Adjoint
+               call solve_adjoint(g1, g2, restart_time_step)
+            else
+               call solve_gke(g1, g2, restart_time_step)
+            end if
          case (3)
             g2 = g1 + g2
             if (RK_step) call mb_communicate(g2)
-            call solve_gke(g2, g, restart_time_step)
+            if (present(adjoint)) then
+               !!GA-Adjoint
+               call solve_adjoint(g2, g, restart_time_step)
+            else
+               call solve_gke(g2, g, restart_time_step)
+            end if
          end select
          if (restart_time_step) then
             icnt = 1
@@ -1170,7 +1249,7 @@ contains
    end subroutine advance_explicit_rk3
 
    !> standard RK4
-   subroutine advance_explicit_rk4(g)
+   subroutine advance_explicit_rk4(g, adjoint)
 
       use dist_fn_arrays, only: g0, g1, g2, g3
       use zgrid, only: nzgrid
@@ -1183,6 +1262,7 @@ contains
 
       integer :: icnt
       logical :: restart_time_step
+      logical, optional, intent(in) :: adjoint
 
       !> if CFL condition is violated by nonlinear term
       !> then must modify time step size and restart time step
@@ -1201,24 +1281,43 @@ contains
       do while (icnt <= 4)
          select case (icnt)
          case (1)
-            call solve_gke(g0, g1, restart_time_step)
+            if (present(adjoint)) then
+               !!GA-Adjoint
+               call solve_adjoint(g0, g1, restart_time_step)
+            else
+               call solve_gke(g0, g1, restart_time_step)
+            end if
          case (2)
             ! g1 is h*k1
             g3 = g0 + 0.5 * g1
             if (RK_step) call mb_communicate(g3)
-            call solve_gke(g3, g2, restart_time_step)
+            if (present(adjoint)) then
+               !!GA-Adjoint
+               call solve_adjoint(g3, g2, restart_time_step)
+            else
+               call solve_gke(g3, g2, restart_time_step)
+            end if
             g1 = g1 + 2.*g2
          case (3)
             ! g2 is h*k2
             g2 = g0 + 0.5 * g2
             if (RK_step) call mb_communicate(g2)
-            call solve_gke(g2, g3, restart_time_step)
+            if (present(adjoint)) then
+               !!GA-Adjoint
+               call solve_adjoint(g2, g3, restart_time_step)
+            else
+               call solve_gke(g2, g3, restart_time_step)
+            end if
             g1 = g1 + 2.*g3
          case (4)
             ! g3 is h*k3
             g3 = g0 + g3
             if (RK_step) call mb_communicate(g3)
-            call solve_gke(g3, g, restart_time_step)
+            if (present(adjoint)) then
+               call solve_adjoint(g3, g, restart_time_step)
+            else
+               call solve_gke(g3, g, restart_time_step)
+            end if
             g1 = g1 + g
          end select
          if (restart_time_step) then
@@ -1378,6 +1477,119 @@ contains
 
    end subroutine solve_gke
 
+   !! GA-Adjoint -- Advance adjoint 
+   subroutine solve_adjoint(gin, rhs, restart_time_step)
+
+      use stella_layouts, only: vmu_lo
+      use zgrid, only: nzgrid
+
+      use mirror_terms, only: advance_mirror_explicit
+      use physics_flags, only: include_mirror
+      use run_parameters, only: mirror_implicit
+      use fields_arrays, only: phi
+
+      use kt_grids, only: naky, nakx
+
+      use parallel_streaming, only: advance_parallel_streaming_explicit
+      use physics_flags, only: include_parallel_streaming
+      use run_parameters, only: stream_implicit
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: rhs
+
+      logical, intent(out) :: restart_time_step
+
+      logical :: adjoint = .True.
+
+      rhs = 0.
+      restart_time_step = .false.
+
+      !!GA-Adjoint - Advance mirror, wdrift terms, wstar terms, omega term
+      !!           and field terms explicitly (in Runge Kutta) 
+
+      if (.not. restart_time_step) then
+         if (include_mirror .and. mirror_implicit) call advance_mirror_explicit(gin, rhs)
+         !!GA-Adjoint -- For wdrift terms we pass a logical such that for the adjoint equation only
+         !!           wdrift_g terms are included
+         phi = 0.0
+         if (include_parallel_streaming .and. (.not. stream_implicit)) then
+            call advance_parallel_streaming_explicit(gin, phi, rhs, adjoint)
+         end if
+         call advance_wdrifty_explicit(gin, phi, rhs, adjoint)
+         call advance_wdriftx_explicit(gin, phi, rhs, adjoint)
+         call add_omega_term(gin, rhs)
+         call add_adjoint_field(gin, rhs)
+      end if
+      
+    end subroutine solve_adjoint
+
+    subroutine add_omega_term(gin, src)
+
+      use stella_layouts, only: vmu_lo
+      use zgrid, only: nzgrid, ntubes, nztot
+      use stella_time, only: code_dt
+      use adjoint_field_arrays, only: omega_g
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: src
+      
+      integer :: ivmu
+      
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         src(:, :, :, :, ivmu) = src(:, :, :, :, ivmu) &
+              - spread(spread(conjg(omega_g), 3, nztot), 4, ntubes) * gin(:, :, :, :, ivmu) * code_dt
+      end do
+      
+    end subroutine add_omega_term
+
+    subroutine add_adjoint_field(gin, src)
+
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: is_idx, iv_idx, imu_idx
+      use zgrid, only: nzgrid, ntubes
+      use kt_grids, only: nakx, naky
+      use gyro_averages, only: gyro_average
+      use stella_time, only: code_dt
+      use species, only: spec
+      use fields_arrays, only: apar, phi
+      use fields, only: advance_fields, fields_updated
+      use vpamu_grids, only: maxwell_mu, maxwell_vpa, maxwell_fac
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: src
+
+      complex, dimension(:, :, :, :, :), allocatable :: gyro_phi
+      integer :: ivmu, is, iv, imu
+      logical :: adjoint = .True.
+
+      allocate (gyro_phi(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      gyro_phi = 0.0
+      gyro_phi = gin
+
+      phi = 0.0
+      fields_updated = .false.
+      call advance_fields(gyro_phi, phi, apar, dist='gbar', adjoint=adjoint)
+      apar = 0.
+
+      gyro_phi = 0.0
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         imu = imu_idx(vmu_lo, ivmu)
+         iv = iv_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         call gyro_average(phi, ivmu, gyro_phi(:, :, :, :, ivmu))
+         src(:, :, :, :, ivmu) = src(:, :, :, :, ivmu) - spec(is)%z * spec(is)%dens_psi0 * gyro_phi(:, :, :, :, ivmu) * code_dt
+      end do
+      
+      deallocate (gyro_phi)
+      
+    end subroutine add_adjoint_field
+      
    subroutine advance_wstar_explicit(phi, gout)
 
       use mp, only: proc0, mp_abort
@@ -1443,7 +1655,7 @@ contains
 
    !> advance_wdrifty_explicit subroutine calculates and adds the y-component of the
    !> magnetic drift term to the RHS of the GK equation
-   subroutine advance_wdrifty_explicit(g, phi, gout)
+   subroutine advance_wdrifty_explicit(g, phi, gout, adjoint)
 
       use mp, only: proc0
       use stella_layouts, only: vmu_lo
@@ -1467,6 +1679,8 @@ contains
       complex, dimension(:, :, :, :, :), allocatable :: g0k, g0y
       complex, dimension(:, :), allocatable :: g0k_swap
 
+      logical, optional, intent(in) :: adjoint
+      
       !> start the timing of the y component of the magnetic drift advance
       if (proc0) call time_message(.false., time_gke(:, 4), ' dgdy advance')
 
@@ -1477,7 +1691,12 @@ contains
       !> calculate dg/dy in (ky,kx) space
       call get_dgdy(g, g0k)
       !> calculate dphi/dy in (ky,kx) space
-      call get_dgdy(phi, dphidy)
+      !!GA-Adjoint
+      if (present(adjoint)) then
+         g0k = -g0k
+      else
+         call get_dgdy(phi, dphidy)
+      end if
 
       if (full_flux_surface) then
          !> assume only a single flux surface simulated
@@ -1494,35 +1713,40 @@ contains
          !> add vM . grad y dg/dy term to equation
          call add_explicit_term_ffs(g0y, wdrifty_g, gout)
 
-         !> get <dphi/dy> in k-space
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            call gyro_average(dphidy, ivmu, g0k(:, :, :, :, ivmu))
-         end do
-
-         !> transform d<phi>/dy from k-space to y-space
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            do iz = -nzgrid, nzgrid
-               call swap_kxky(g0k(:, :, iz, it, ivmu), g0k_swap)
-               call transform_ky2y(g0k_swap, g0y(:, :, iz, it, ivmu))
+         !!GA-Adjoint
+         if (.not. present(adjoint)) then
+            !> get <dphi/dy> in k-space
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               call gyro_average(dphidy, ivmu, g0k(:, :, :, :, ivmu))
             end do
-         end do
 
-         !> add vM . grad y d<phi>/dy term to equation
-         call add_explicit_term_ffs(g0y, wdrifty_phi, gout)
-
+            !> transform d<phi>/dy from k-space to y-space
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               do iz = -nzgrid, nzgrid
+                  call swap_kxky(g0k(:, :, iz, it, ivmu), g0k_swap)
+                  call transform_ky2y(g0k_swap, g0y(:, :, iz, it, ivmu))
+               end do
+            end do
+            
+            !> add vM . grad y d<phi>/dy term to equation
+            call add_explicit_term_ffs(g0y, wdrifty_phi, gout)
+         end if
          deallocate (g0y, g0k_swap)
       else
          if (debug) write (*, *) 'time_advance::solve_gke::add_dgdy_term'
          ! add vM . grad y dg/dy term to equation
          call add_explicit_term(g0k, wdrifty_g(1, :, :), gout)
-
-         ! get <dphi/dy> in k-space
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            call gyro_average(dphidy, ivmu, g0k(:, :, :, :, ivmu))
-         end do
-
-         ! add vM . grad y d<phi>/dy term to equation
-         call add_explicit_term(g0k, wdrifty_phi(1, :, :), gout)
+         
+         !!GA-Adjoint
+         if (.not. present(adjoint)) then
+            ! get <dphi/dy> in k-space
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               call gyro_average(dphidy, ivmu, g0k(:, :, :, :, ivmu))
+            end do
+            
+            ! add vM . grad y d<phi>/dy term to equation
+            call add_explicit_term(g0k, wdrifty_phi(1, :, :), gout)
+         end if
       end if
       deallocate (g0k, dphidy)
 
@@ -1533,7 +1757,7 @@ contains
 
    !> advance_wdriftx_explicit subroutine calculates and adds the x-component of the
    !> magnetic drift term to the RHS of the GK equation
-   subroutine advance_wdriftx_explicit(g, phi, gout)
+   subroutine advance_wdriftx_explicit(g, phi, gout, adjoint)
 
       use mp, only: proc0
       use stella_layouts, only: vmu_lo
@@ -1557,6 +1781,8 @@ contains
       complex, dimension(:, :, :, :, :), allocatable :: g0k, g0y
       complex, dimension(:, :), allocatable :: g0k_swap
 
+      logical, optional, intent(in) :: adjoint
+      
       !> start the timing of the x component of the magnetic drift advance
       if (proc0) call time_message(.false., time_gke(:, 5), ' dgdx advance')
 
@@ -1572,8 +1798,13 @@ contains
       if (debug) write (*, *) 'time_advance::solve_gke::get_dgdx'
       !> calculate dg/dx in (ky,kx) space
       call get_dgdx(g, g0k)
-      !> calculate dphi/dx in (ky,kx) space
-      call get_dgdx(phi, dphidx)
+      !!GA-Adjoint
+      if (present(adjoint)) then
+         g0k = -g0k
+      else
+         !> calculate dphi/dx in (ky,kx) space
+         call get_dgdx(phi, dphidx)
+      end if
 
       if (full_flux_surface) then
          !> assume a single flux surface is simulated
@@ -1589,30 +1820,38 @@ contains
          end do
          !> add vM . grad x dg/dx term to equation
          call add_explicit_term_ffs(g0y, wdriftx_g, gout)
-         !> get <dphi/dx> in k-space
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            call gyro_average(dphidx, ivmu, g0k(:, :, :, :, ivmu))
-         end do
-         !> transform d<phi>/dx from k-space to y-space
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            do iz = -nzgrid, nzgrid
-               call swap_kxky(g0k(:, :, iz, it, ivmu), g0k_swap)
-               call transform_ky2y(g0k_swap, g0y(:, :, iz, it, ivmu))
+         
+         !!GA-Adjoint
+         if (.not. present(adjoint)) then
+            !> get <dphi/dx> in k-space
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               call gyro_average(dphidx, ivmu, g0k(:, :, :, :, ivmu))
             end do
-         end do
-         !> add vM . grad x d<phi>/dx term to equation
-         call add_explicit_term_ffs(g0y, wdriftx_phi, gout)
+            !> transform d<phi>/dx from k-space to y-space
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               do iz = -nzgrid, nzgrid
+                  call swap_kxky(g0k(:, :, iz, it, ivmu), g0k_swap)
+                  call transform_ky2y(g0k_swap, g0y(:, :, iz, it, ivmu))
+               end do
+            end do
+            !> add vM . grad x d<phi>/dx term to equation
+            call add_explicit_term_ffs(g0y, wdriftx_phi, gout)
+         end if
          deallocate (g0y, g0k_swap)
       else
          if (debug) write (*, *) 'time_advance::solve_gke::add_dgdx_term'
          !> add vM . grad x dg/dx term to equation
          call add_explicit_term(g0k, wdriftx_g(1, :, :), gout)
-         !> get <dphi/dx> in k-space
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            call gyro_average(dphidx, ivmu, g0k(:, :, :, :, ivmu))
-         end do
-         !> add vM . grad x d<phi>/dx term to equation
-         call add_explicit_term(g0k, wdriftx_phi(1, :, :), gout)
+
+         !!GA-Adjoint
+         if (.not. present(adjoint)) then
+            !> get <dphi/dx> in k-space
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               call gyro_average(dphidx, ivmu, g0k(:, :, :, :, ivmu))
+            end do
+            !> add vM . grad x d<phi>/dx term to equation
+            call add_explicit_term(g0k, wdriftx_phi(1, :, :), gout)
+         end if
       end if
       deallocate (g0k, dphidx)
 
@@ -2547,7 +2786,7 @@ contains
 
    ! end subroutine add_wstar_term_ffs
 
-   subroutine advance_implicit(istep, phi, apar, g)
+   subroutine advance_implicit(istep, phi, apar, g, adjoint)
 !  subroutine advance_implicit (phi, apar, g)
 
       use mp, only: proc0
@@ -2574,6 +2813,8 @@ contains
       integer, intent(in) :: istep
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+
+      logical, optional, intent(in) :: adjoint
 !    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out), target :: g
 
 !    complex, dimension (:,:,:,:,:), pointer :: gk, gy
@@ -2604,11 +2845,10 @@ contains
 !    if (mod(istep,2)==0) then
       ! g^{*} (coming from explicit solve) is input
       ! get g^{**}, with g^{**}-g^{*} due to mirror term
-
+      
       if (RK_step) call mb_communicate(g)
 
       if (mod(istep, 2) == 1 .or. .not. flip_flop) then
-
          if (prp_shear_enabled) then
             call advance_perp_flow_shear(g)
             fields_updated = .false.
@@ -2626,7 +2866,7 @@ contains
             call advance_collisions_implicit(mirror_implicit, phi, apar, g)
             fields_updated = .false.
          end if
-
+         
          if (mirror_implicit .and. include_mirror) then
 !          if (full_flux_surface) then
 !             allocate (gy(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -2642,17 +2882,27 @@ contains
          ! note that hyper-dissipation and mirror advances
          ! depended only on g and so did not need field update
          call advance_fields(g, phi, apar, dist='gbar')
-
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-         if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
-            call advance_parallel_streaming_implicit(g, phi, apar)
-            if (radial_variation .or. full_flux_surface) fields_updated = .false.
+         !!GA-Adjoint
+         if (present(adjoint)) then
+            phi = 0.
+            apar = 0.
+            if (stream_implicit .and. include_parallel_streaming) then
+               call advance_parallel_streaming_implicit(g, phi, apar, adjoint)
+               fields_updated = .false.
+               call advance_fields(g, phi, apar, dist='gbar', adjoint=adjoint)
+            end if
+         else
+            if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
+               call advance_parallel_streaming_implicit(g, phi, apar)
+               if (radial_variation .or. full_flux_surface) fields_updated = .false.
+            end if
+            fields_updated = .false.
+            call advance_fields(g, phi, apar, dist='gbar')
          end if
 
-         call advance_fields(g, phi, apar, dist='gbar')
          if (drifts_implicit) call advance_drifts_implicit(g, phi, apar)
-
       else
 
          ! get updated fields corresponding to advanced g
@@ -2663,9 +2913,19 @@ contains
 
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-         if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
-            call advance_parallel_streaming_implicit(g, phi, apar)
-            if (radial_variation .or. full_flux_surface) fields_updated = .false.
+         if (present(adjoint)) then
+            phi = 0.
+            apar = 0.
+            if (stream_implicit .and. include_parallel_streaming) then
+               call advance_parallel_streaming_implicit(g, phi, apar, adjoint)
+               fields_updated = .false.
+               call advance_fields(g, phi, apar, dist='gbar', adjoint=adjoint)
+            end if
+         else
+            if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
+               call advance_parallel_streaming_implicit(g, phi, apar)
+               if (radial_variation .or. full_flux_surface) fields_updated = .false.
+            end if
          end if
 
          if (mirror_implicit .and. include_mirror) then
@@ -2997,12 +3257,15 @@ contains
    subroutine finish_wstar
 
       use dist_fn_arrays, only: wstar, wstarp
-
+      use dist_fn_arrays, only: star_ad_field
+      
       implicit none
 
       if (allocated(wstar)) deallocate (wstar)
       if (allocated(wstarp)) deallocate (wstarp)
 
+      if (allocated(star_ad_field)) deallocate (star_ad_field)
+      
       wstarinit = .false.
 
    end subroutine finish_wstar
