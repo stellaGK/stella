@@ -104,7 +104,7 @@ contains
    subroutine ginit(restarted, istep0)
 
       use stella_save, only: init_tstart
-      use physics_flags, only: full_flux_surface
+      use run_parameters, only: maxwellian_normalization
 
       logical, intent(out) :: restarted
       integer, intent(out) :: istep0
@@ -134,9 +134,9 @@ contains
 !       call ginit_kxtest
       end select
 
-      !> if simulating a full flux surface, g is normalized by F0 (which is not the case otherwise)
+      !> if maxwwellian_normalization = .true., the pdf is normalized by F0 (which is not the case otherwise)
       !> unless reading in g from a restart file, normalise g by F0 for a full flux surface simulation
-      if (full_flux_surface .and. ginitopt_switch /= ginitopt_restart_many) then
+      if (maxwellian_normalization .and. ginitopt_switch /= ginitopt_restart_many) then
          call normalize_by_maxwellian
       end if
 

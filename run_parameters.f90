@@ -22,7 +22,8 @@ module run_parameters
    public :: rng_seed
    public :: use_deltaphi_for_response_matrix
    public :: use_h_for_parallel_streaming
-
+   public :: maxwellian_normalization
+   
    private
 
    real :: cfl_cushion, delt_adjust
@@ -39,6 +40,7 @@ module run_parameters
    logical :: ky_solve_real
    logical :: use_deltaphi_for_response_matrix
    logical :: use_h_for_parallel_streaming
+   logical :: maxwellian_normalization
    real :: avail_cpu_time
    integer :: nstep, ky_solve_radial
    integer :: rng_seed
@@ -68,7 +70,7 @@ contains
       use file_utils, only: input_unit, error_unit, input_unit_exist
       use mp, only: proc0, broadcast
       use text_options, only: text_option, get_option_value
-      use physics_flags, only: include_mirror, full_flux_surface
+      use physics_flags, only: include_mirror, full_flux_surface, radial_variation
 
       implicit none
 
@@ -91,7 +93,7 @@ contains
          avail_cpu_time, cfl_cushion, delt_adjust, delt_max, &
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
          drifts_implicit, use_deltaphi_for_response_matrix, &
-         use_h_for_parallel_streaming, &
+         use_h_for_parallel_streaming, maxwellian_normalization, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
@@ -113,6 +115,7 @@ contains
          stream_matrix_inversion = .false.
          use_deltaphi_for_response_matrix = .false.
          use_h_for_parallel_streaming = .false.
+         maxwellian_normalization = .false.
          delt_option = 'default'
          lu_option = 'default'
          zed_upwind = 0.02
@@ -153,14 +156,39 @@ contains
             stop
          end if
 
-         if (use_h_for_parallel_streaming .and. .not. use_deltaphi_for_response_matrix) then
-            write (*, *) '!!!WARNING!!!'
-            write (*, *) 'use_h_for_parallel_streaming is only developed for use_deltaphi_for_response_matrix=T.'
-            write (*, *) 'Forcing use_deltaphi_for_response_matrix=T.'
-            write (*, *) '!!!WARNING!!!'
-            use_deltaphi_for_response_matrix = .true.
+         if (use_h_for_parallel_streaming) then
+            if (.not. use_deltaphi_for_response_matrix) then
+               write (*, *) '!!!WARNING!!!'
+               write (*, *) 'use_h_for_parallel_streaming is only developed for use_deltaphi_for_response_matrix=T.'
+               write (*, *) 'Forcing use_deltaphi_for_response_matrix=T.'
+               write (*, *) '!!!WARNING!!!'
+               use_deltaphi_for_response_matrix = .true.
+            end if
+            if (.not. maxwellian_normalization) then
+               write (*, *) '!!!WARNING!!!'
+               write (*, *) 'use_h_for_parallel_streaming is only developed for maxwellian_normalization=T.'
+               write (*, *) 'Forcing maxwellian_normalization = .true.'
+               write (*, *) '!!!WARNING!!!'
+               maxwellian_normalization = .true.
+            end if
          end if
 
+         if (radial_variation .and. maxwellian_normalization) then
+            write (*, *) '!!!WARNING!!!'
+            write (*, *) 'maxwellian_normalization is not currently supported for use with radial_variation.'
+            write (*, *) 'forcing maxwellian_normalization = F.'
+            write (*, *) '!!!WARNING!!!'
+            maxwellian_normalization = .false.
+         end if
+
+         if (maxwellian_normalization .and. mirror_semi_lagrange) then
+            write (*, *) '!!!WARNING!!!'
+            write (*, *) 'maxwellian_normalization is not consistent with mirror_semi_lagrange = T.'
+            write (*, *) 'forcing mirror_semi_lagrange = F.'
+            write (*, *) '!!!WARNING!!!'
+            mirror_semi_lagrange = .false.
+         end if
+         
       end if
 
       call broadcast(fields_kxkyz)
@@ -183,6 +211,7 @@ contains
       call broadcast(stream_matrix_inversion)
       call broadcast(use_deltaphi_for_response_matrix)
       call broadcast(use_h_for_parallel_streaming)
+      call broadcast(maxwellian_normalization)
       call broadcast(zed_upwind)
       call broadcast(vpa_upwind)
       call broadcast(time_upwind)
@@ -235,8 +264,14 @@ contains
             write (*, *) '!!!WARNING!!!'
             mirror_semi_lagrange = .false.
          end if
+         ! the full flux surface implementation relies on the use of gnorm = g / F_Maxwellian
+         ! as the evolved pdf
+         if (full_flux_surface) then
+            maxwellian_normalization = .true.
+         end if
       end if
 
+      
    end subroutine read_parameters
 
    subroutine finish_run_parameters
