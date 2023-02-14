@@ -13,7 +13,8 @@ module parallel_streaming
    public :: time_parallel_streaming
    public :: stream_rad_var1
    public :: stream_rad_var2
-
+   public :: center_zed
+   
    private
 
    interface center_zed
@@ -192,7 +193,7 @@ contains
       use species, only: spec
       use physics_flags, only: full_flux_surface
       use gyro_averages, only: gyro_average
-      use run_parameters, only: driftkinetic_implicit
+      use run_parameters, only: driftkinetic_implicit, maxwellian_normalization
 
       implicit none
 
@@ -293,9 +294,15 @@ contains
             call add_stream_term_ffs(g0y, ivmu, gout(:, :, :, :, ivmu))
          else
             ia = 1
-            g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
-                             * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
-
+!            g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
+!                             * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
+            if (maxwellian_normalization) then
+               g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt
+            else
+               g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
+                    * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
+            end if
+               
             ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
             call add_stream_term(g0, ivmu, gout(:, :, :, :, ivmu))
          end if
@@ -575,8 +582,17 @@ contains
       use run_parameters, only: use_deltaphi_for_response_matrix
       use run_parameters, only: use_h_for_parallel_streaming
       use run_parameters, only: time_upwind
+      use run_parameters, only: fphi
       use fields, only: advance_fields, fields_updated
+      use g_tofrom_h, only: g_to_h
 
+      ! TMP FOR TESTING -- MAB
+      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use vpamu_grids, only: vpa
+      use zgrid, only: zed
+      use stella_time, only: code_time
+!      use dist_fn, only: checksum
+      
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
@@ -587,12 +603,11 @@ contains
       complex, dimension(:, :, :, :), allocatable :: phi_old, phi_source
       character(5) :: dist_choice
 
-      if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
+      ! TMP FOR TESTING -- MAB
+      integer :: iv, imu, is, iz, iv0
+      real :: phisum, gsum
 
-      ! save the incoming pdf and phi, as they will be needed later
-      g1 = g
-      allocate (phi_old(naky, nakx, -nzgrid:nzgrid, ntubes))
-      phi_old = phi
+      if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
       ! calculate factors accounting for centering/de-centering in time;
       ! these factors will multiply phi^{n} and phi^{n+1}, respectively
@@ -607,6 +622,8 @@ contains
          !> when dist_choice = 'h', use_deltaphi_for_response_matrix = .true.
          !> and there is no contribution to the inhomogeneous equation from phi
          phi_source = 0.0
+         !> convert the incoming pdf from guiding centre (g) to non-Boltzmann (h)
+         call g_to_h(g, phi, fphi)
       else
          dist_choice = 'gbar'
          !> if using delphi formulation for response matrix, then phi = phi^n replaces
@@ -618,6 +635,15 @@ contains
          end if
       end if
 
+      ! save the incoming pdf and phi, as they will be needed later
+      g1 = g
+      allocate (phi_old(naky, nakx, -nzgrid:nzgrid, ntubes))
+      phi_old = phi
+
+!      call checksum(g, gsum)
+!      call checksum(phi, phisum)
+!      write (*,*) 'init: ', phisum, gsum
+      
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! obtain RHS of inhomogeneous GK eqn;
@@ -625,7 +651,7 @@ contains
          ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
          ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
          call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi_source, g(:, :, :, :, ivmu))
-
+         
          if (stream_matrix_inversion) then
             ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
             ! g = RHS is input and overwritten by g = g_{inh}^{n+1}
@@ -635,13 +661,19 @@ contains
          end if
       end do
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
-
+      
       fields_updated = .false.
 
       ! we now have g_{inh}^{n+1}
       ! calculate associated fields (phi_{inh}^{n+1})
       call advance_fields(g, phi, apar, dist=trim(dist_choice))
 
+!      call checksum(g, gsum)
+!      call checksum(phi, phisum)
+!      write (*,*) 'advance_fields: ', phisum, gsum
+      
+      !>>>>>>> TMP FOR TESTING -- MAB
+      
       ! solve response_matrix*(phi^{n+1}-phi^{n*}) = phi_{inh}^{n+1}-phi^{n*}
       ! phi = phi_{inh}^{n+1}-phi^{n*} is input and overwritten by phi = phi^{n+1}-phi^{n*}
       if (use_deltaphi_for_response_matrix) phi = phi - phi_old
@@ -649,8 +681,13 @@ contains
       call invert_parstream_response(phi)
       if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
 
+!      call checksum(phi, phisum)
+!      write (*,*) 'invert_parstream_response: ', phisum
+      
       if (use_h_for_parallel_streaming) then
          phi_source = phi
+         !> construct phi^{n+1} = (phi^{n+1}-phi^{n*}) + phi^{n*}
+         phi = phi + phi_old
       else
          !> If using deltaphi formulation, must account for fact that phi = phi^{n+1}-phi^{n*}, but
          !> tupwnd2 should multiply phi^{n+1}
@@ -677,8 +714,29 @@ contains
       end do
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
 
-      deallocate (phi_old, phi_source)
+!      call checksum(g, gsum)
+!      call checksum(phi, phisum)
+!      write (*,*) 'final: ', phisum, gsum
 
+      
+      ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      !    iv0 = 32
+      !    iv = iv_idx(vmu_lo, ivmu) ; if (iv /= iv0) cycle
+      !    imu = imu_idx(vmu_lo, ivmu) ; if (imu /= 1) cycle
+      !    is = is_idx(vmu_lo, ivmu) ; if (is /= 1) cycle
+      !    do iz = -nzgrid, nzgrid
+      !       write (*,*) 'time: ', code_time, 'vpa: ', vpa(iv0), 'z: ', zed(iz), 'h: ', real(g(1,1,iz,1,ivmu))
+      !    end do
+      !    write (*,*)
+      ! end do
+
+      !<<<<< end TMP FOR TESTING -- MAB
+      
+      deallocate (phi_old, phi_source)
+         
+      !> if using non-Boltzmannn pdf (h) for parallel streaming, convert back to guiding centre pdf (g)
+      if (use_h_for_parallel_streaming) call g_to_h(g, phi, -fphi)
+      
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
    end subroutine advance_parallel_streaming_implicit
@@ -734,7 +792,7 @@ contains
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: vpa, mu
       use kt_grids, only: naky, nakx
-      use run_parameters, only: driftkinetic_implicit
+      use run_parameters, only: driftkinetic_implicit, maxwellian_normalization
       use run_parameters, only: maxwellian_inside_zed_derivative
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use gyro_averages, only: gyro_average
@@ -781,17 +839,21 @@ contains
       else
          ! obtain d<phi>/dz and store in dphidz
          call get_dzed(iv, scratch, rhs)
-         ! center Maxwellian factor in mu
-         ! and store in dummy variable z_scratch
-         z_scratch = maxwell_mu(ia, :, imu, is)
-         call center_zed_midpoint(iv, z_scratch)
-         ! multiply by Maxwellian factor
-         rhs = rhs * spread(spread(spread(z_scratch, 1, naky), 2, nakx), 4, ntubes)
+         if (.not.maxwellian_normalization) then
+            ! center Maxwellian factor in mu
+            ! and store in dummy variable z_scratch
+            z_scratch = maxwell_mu(ia, :, imu, is)
+            call center_zed(iv, z_scratch)
+            !         call center_zed_midpoint(iv, z_scratch)
+            ! multiply by Maxwellian factor
+            rhs = rhs * spread(spread(spread(z_scratch, 1, naky), 2, nakx), 4, ntubes)
+         end if
       end if
 
       ! NB: could do this once at beginning of simulation to speed things up
       ! this is vpa*Z/T*exp(-vpa^2)
-      z_scratch = vpa(iv) * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is)
+      z_scratch = vpa(iv) * spec(is)%zt
+      if (.not.maxwellian_normalization) z_scratch = z_scratch * maxwell_vpa(iv, is) * maxwell_fac(is)
       ! if including neoclassical correction to equilibrium distribution function
       ! then must also account for -vpa*dF_neo/dvpa*Z/T
       ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!
@@ -823,7 +885,7 @@ contains
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use gyro_averages, only: gyro_average
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use run_parameters, only: driftkinetic_implicit
+      use run_parameters, only: driftkinetic_implicit, maxwellian_normalization
 
       implicit none
 
@@ -847,7 +909,8 @@ contains
       end if
 
       do iz = -nzgrid, nzgrid
-         rhs(:, :, iz, :) = spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) * scratch(:, :, iz, :)
+         rhs(:, :, iz, :) = spec(is)%zt * scratch(:, :, iz, :)
+         if (.not.maxwellian_normalization) rhs(:, :, iz, :) = rhs(:, :, iz, :) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
       end do
       call center_zed(iv, rhs)
 

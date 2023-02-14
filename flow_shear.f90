@@ -41,7 +41,8 @@ contains
       use file_utils, only: runtype_option_switch, runtype_multibox
       use job_manage, only: njobs
       use mp, only: job, send, receive, crossdomprocs, subprocs, scope
-
+      use run_parameters, only: maxwellian_normalization
+      
       implicit none
 
       integer :: is, imu, iv, ivmu, iz, ia
@@ -90,12 +91,22 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          do iz = -nzgrid, nzgrid
+            ! prl_shear(ia, iz, ivmu) = -omprimfac * g_exb * code_dt * vpa(iv) * spec(is)%stm_psi0 &
+            !                           * dydalpha * drhodpsi &
+            !                           * (geo_surf%qinp_psi0 / geo_surf%rhoc_psi0) &
+            !                           * (btor(iz) * rmajor(iz) / bmag(ia, iz)) * (spec(is)%mass / spec(is)%temp) &
+            !                           * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
             prl_shear(ia, iz, ivmu) = -omprimfac * g_exb * code_dt * vpa(iv) * spec(is)%stm_psi0 &
                                       * dydalpha * drhodpsi &
                                       * (geo_surf%qinp_psi0 / geo_surf%rhoc_psi0) &
-                                      * (btor(iz) * rmajor(iz) / bmag(ia, iz)) * (spec(is)%mass / spec(is)%temp) &
-                                      * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                                      * (btor(iz) * rmajor(iz) / bmag(ia, iz)) * (spec(is)%mass / spec(is)%temp)
          end do
+         if (.not.maxwellian_normalization) then
+            do iz = -nzgrid, nzgrid
+               prl_shear(ia, iz, ivmu) = prl_shear(ia, iz, ivmu) &
+                    * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+            end do
+         end if
          if (radial_variation) then
             energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
             prl_shear_p(:, :, ivmu) = prl_shear(:, :, ivmu) * (dIdrho / spread(rmajor * btor, 1, nalpha) &

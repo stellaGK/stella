@@ -225,7 +225,6 @@ contains
    subroutine init_wdrift
 
       use mp, only: mp_abort
-      use physics_flags, only: full_flux_surface
       use dist_fn_arrays, only: wdriftx_g, wdrifty_g
       use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
       use stella_layouts, only: vmu_lo
@@ -244,7 +243,8 @@ contains
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
       use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
-
+      use run_parameters, only: maxwellian_normalization
+      
       implicit none
 
       integer :: ivmu, iv, imu, is
@@ -304,9 +304,9 @@ contains
 
          wdrifty_phi(:, :, ivmu) = spec(is)%zt * (wgbdrifty + wcvdrifty * vpa(iv))
 
-         !> if full_flux_surface, evolved distribution function is normalised by a Maxwellian
+         !> if maxwwellian_normalization = .true., evolved distribution function is normalised by a Maxwellian
          !> otherwise, it is not; a Maxwellian weighting factor must thus be included
-         if (.not. full_flux_surface) then
+         if (.not. maxwellian_normalization) then
             wdrifty_phi(:, :, ivmu) = wdrifty_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          end if
          !> if including neoclassical corrections to equilibrium,
@@ -314,9 +314,9 @@ contains
          !> and v_E . grad z dF^{nc}/dz (here get the dphi/dy part of v_E)
          if (include_neoclassical_terms) then
             !> NB: the below neoclassical correction needs to be divided by an equilibrium Maxwellian
-            !> if running in full flux surface mode
-            if (full_flux_surface) then
-               call mp_abort("include_neoclassical_terms=T not currently supported for full_flux_surface=T.  aborting")
+            !> if maxwellian_normalization = .true.
+            if (maxwellian_normalization) then
+               call mp_abort("include_neoclassical_terms=T not currently supported for maxwellian_normalization=T.  aborting")
             end if
             wdrifty_phi(:, :, ivmu) = wdrifty_phi(:, :, ivmu) &
                                       - 0.5 * spec(is)%zt * dfneo_dvpa(:, :, ivmu) * wcvdrifty &
@@ -342,9 +342,9 @@ contains
                                                                              - dxdXcoord * dphineo_dalpha)
          end if
          wdriftx_phi(:, :, ivmu) = spec(is)%zt * (wgbdriftx + wcvdriftx * vpa(iv))
-         !> if full_flux_surface, evolved distribution function is normalised by a Maxwellian
+         !> if maxwellian_normalizatiion = .true., evolved distribution function is normalised by a Maxwellian
          !> otherwise, it is not; a Maxwellian weighting factor must thus be included
-         if (.not. full_flux_surface) then
+         if (.not. maxwellian_normalization) then
             wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          end if
          !> if including neoclassical corrections to equilibrium,
@@ -353,9 +353,9 @@ contains
          !> and v_E . grad alpha dF^{nc}/dalpha (dphi/dx part of v_E)
          if (include_neoclassical_terms) then
             !> NB: the below neoclassical correction needs to be divided by an equilibrium Maxwellian
-            !> if running in full flux surface mode
-            if (full_flux_surface) then
-               call mp_abort("include_neoclassical_terms=T not currently supported for full_flux_surface=T.  aborting")
+            !> if running with maxwellian_normalzation = .true.
+            if (maxwellian_normalization) then
+               call mp_abort("include_neoclassical_terms=T not currently supported for maxwellian_normalization=T.  aborting")
             end if
             wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) &
                                       - 0.5 * spec(is)%zt * dfneo_dvpa(:, :, ivmu) * wcvdriftx &
@@ -383,8 +383,8 @@ contains
       use dist_fn_arrays, only: wstar
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_drho
-      use physics_flags, only: full_flux_surface
-
+      use run_parameters, only: maxwellian_normalization
+      
       implicit none
 
       integer :: is, imu, iv, ivmu
@@ -404,8 +404,8 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
          if (include_neoclassical_terms) then
-            if (full_flux_surface) then
-               call mp_abort("include_neoclassical_terms = T not yet supported for full_flux_surface = T. Aborting.")
+            if (maxwellian_normalization) then
+               call mp_abort("include_neoclassical_terms = T not yet supported for maxwellian_normalization = T. Aborting.")
             else
                wstar(:, :, ivmu) = dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
                                    * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
@@ -413,13 +413,10 @@ contains
                                       - dfneo_drho(:, :, ivmu))
             end if
          else
-!          wstar(:,:,ivmu) = dydalpha*drhodpsi*wstarknob*0.5*code_dt &
-!               * maxwell_vpa(iv,is)*maxwell_mu(:,:,imu,is)*maxwell_fac(is) &
-!               * (spec(is)%fprim+spec(is)%tprim*(energy-1.5))
             wstar(:, :, ivmu) = dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
                                 * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))
          end if
-         if (.not. full_flux_surface) then
+         if (.not. maxwellian_normalization) then
             wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          end if
       end do
