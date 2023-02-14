@@ -244,7 +244,7 @@ contains
       use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
       use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
       use run_parameters, only: maxwellian_normalization
-      
+
       implicit none
 
       integer :: ivmu, iv, imu, is
@@ -384,7 +384,7 @@ contains
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_drho
       use run_parameters, only: maxwellian_normalization
-      
+
       implicit none
 
       integer :: is, imu, iv, ivmu

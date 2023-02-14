@@ -151,7 +151,7 @@ contains
 !            g0 = spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) &
 !                 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
             g0 = spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa)
-            if (.not.maxwellian_normalization) then
+            if (.not. maxwellian_normalization) then
                g0 = g0 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
             end if
             wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp

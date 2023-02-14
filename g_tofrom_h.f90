@@ -198,7 +198,7 @@ contains
       use gyro_averages, only: gyro_average, aj0x, aj1x
       use physics_flags, only: radial_variation
       use run_parameters, only: maxwellian_normalization
-      
+
       implicit none
 
       integer, intent(in) :: ivmu
@@ -227,7 +227,7 @@ contains
 !            field = spec(is)%zt * facphi * phi(:, :, iz, it) &
 !                    * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
             field = spec(is)%zt * facphi * phi(:, :, iz, it)
-            if (.not.maxwellian_normalization) then
+            if (.not. maxwellian_normalization) then
                field = field * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
             end if
             if (radial_variation .and. present(phi_corr)) then
@@ -313,7 +313,7 @@ contains
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use gyro_averages, only: gyro_average
       use run_parameters, only: maxwellian_normalization
-      
+
       implicit none
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
@@ -335,7 +335,7 @@ contains
 !         field = facphi * phi(iky, ikx, iz, it) * spec(is)%zt &
 !                 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
          field = facphi * phi(iky, ikx, iz, it) * spec(is)%zt
-         if (.not.maxwellian_normalization) then
+         if (.not. maxwellian_normalization) then
             field = field * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
          end if
          call gyro_average(field, ikxkyz, adjust)

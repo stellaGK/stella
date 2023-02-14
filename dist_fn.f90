@@ -5,7 +5,7 @@ module dist_fn
    public :: init_gxyz
    public :: init_dist_fn, finish_dist_fn
    public :: checksum
-   
+
    private
 
    interface checksum
@@ -441,5 +441,5 @@ contains
       call sum_allreduce(total)
 
    end subroutine checksum_dist
-   
+
 end module dist_fn
