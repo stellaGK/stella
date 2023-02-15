@@ -65,9 +65,6 @@ contains
       real, dimension(2) :: time_response_matrix_QN
       real, dimension(2) :: time_response_matrix_lu
 
-!      real :: phisum = 0.0
-!      real :: gsum = 0.0
-
       ! Related to the saving of the the matrices in netcdf format
       character(len=15) :: fmt, job_str
       character(len=100) :: file_name
@@ -228,9 +225,6 @@ contains
                   call get_dhdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
                else
                   call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-!                  phisum = phisum + sum(cabs(phiext))
-!                  gsum = gsum + sum(cabs(gext))
-!                  write (*,*) 'idx: ', phisum, gsum
                end if
             end do
             ! once we have used one segments, remaining segments
@@ -245,10 +239,6 @@ contains
                         call get_dhdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
                      else
                         call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-!                        phisum = phisum + sum(cabs(phiext))
-!                        gsum = gsum + sum(cabs(gext))
-!                        write (*,*) 'idx: ', phisum, gsum
-
                      end if
                   end do
                   if (izl_offset == 0) izl_offset = 1
@@ -301,15 +291,10 @@ contains
 
                allocate (phiext(nz_ext))
 
-!               phisum = 0.0
-               
                do idx = 1, nresponse
                   phiext(nz_ext) = 0.0
                   phiext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:, idx)
                   call get_fields_for_response_matrix(phiext, iky, ie, dist)
-
-!                  phisum = phisum + sum(cabs(phiext))
-!                  write (*,*) 'fields idx: ', idx, phisum
 
                   ! next need to create column in response matrix from phiext
                   ! negative sign because matrix to be inverted in streaming equation
@@ -317,7 +302,6 @@ contains
                   ! add in contribution from identity matrix
                   phiext(idx) = phiext(idx) - 1.0
                   response_matrix(iky)%eigen(ie)%zloc(:, idx) = -phiext(:nresponse)
-
                end do
                deallocate (phiext)
 #ifdef ISO_C_BINDING
@@ -597,7 +581,6 @@ contains
                if (periodic(iky)) then
                   if (idx == 1) then
                      gext(nz_ext, ivmu) = fac0 / phase_shift(iky)
-                     gext(nz_ext - 1, ivmu) = -fac1 * phase_shift(iky)
                   else if (idx == nz_ext - 1) then
                      gext(1, ivmu) = -fac1 * phase_shift(iky)
                   end if
@@ -633,9 +616,12 @@ contains
                if (periodic(iky)) then
                   if (idx == 1) then
                      gext(nz_ext, ivmu) = -fac0 / phase_shift(iky)
-                     gext(nz_ext - 1, ivmu) = fac1 * phase_shift(iky)
+                     gext(nz_ext - 1, ivmu) = fac1 / phase_shift(iky)
+                     !                     gext(nz_ext - 1, ivmu) = fac1 * phase_shift(iky)
+                     
                   else if (idx == 2) then
-                     gext(nz_ext, ivmu) = fac1 * phase_shift(iky)
+                     gext(nz_ext, ivmu) = fac1 / phase_shift(iky)
+                     !                     gext(nz_ext, ivmu) = fac1 * phase_shift(iky)
                   end if
                end if
             end if
@@ -869,16 +855,14 @@ contains
          else
             hext(idx, ivmu) = zupwnd_p * phi_prefac
             if (idx > 1) hext(idx - 1, ivmu) = zupwnd_m * phi_prefac
-!            hext(idx, ivmu) = zupwnd_m * phi_prefac
-!            if (idx > 1) hext(idx - 1, ivmu) = zupwnd_p * phi_prefac
             ! zonal mode BC is periodic instead of zero, so must
             ! treat specially
             if (periodic(iky)) then
                if (idx == 1) then
                   hext(nz_ext, ivmu) = hext(1, ivmu) / phase_shift(iky)
-                  hext(nz_ext - 1, ivmu) = zupwnd_p * phi_prefac * phase_shift(iky)
+                  hext(nz_ext - 1, ivmu) = zupwnd_m * phi_prefac * phase_shift(iky)
                else if (idx == 2) then
-                  hext(nz_ext, ivmu) = zupwnd_p * phi_prefac * phase_shift(iky)
+                  hext(nz_ext, ivmu) = hext(1, ivmu) * phase_shift(iky)
                end if
             end if
          end if

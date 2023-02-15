@@ -91,11 +91,6 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          do iz = -nzgrid, nzgrid
-            ! prl_shear(ia, iz, ivmu) = -omprimfac * g_exb * code_dt * vpa(iv) * spec(is)%stm_psi0 &
-            !                           * dydalpha * drhodpsi &
-            !                           * (geo_surf%qinp_psi0 / geo_surf%rhoc_psi0) &
-            !                           * (btor(iz) * rmajor(iz) / bmag(ia, iz)) * (spec(is)%mass / spec(is)%temp) &
-            !                           * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
             prl_shear(ia, iz, ivmu) = -omprimfac * g_exb * code_dt * vpa(iv) * spec(is)%stm_psi0 &
                                       * dydalpha * drhodpsi &
                                       * (geo_surf%qinp_psi0 / geo_surf%rhoc_psi0) &

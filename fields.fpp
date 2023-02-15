@@ -148,8 +148,6 @@ contains
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
             iz = iz_idx(kxkyz_lo, ikxkyz)
             is = is_idx(kxkyz_lo, ikxkyz)
-!            g0 = spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa) &
-!                 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
             g0 = spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa)
             if (.not.maxwellian_normalization) then
                g0 = g0 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
@@ -548,8 +546,6 @@ contains
                      !> compute J0 corresponding to the given argument arg
                      aj0_alpha(ivmu) = j0(arg)
                      !> form coefficient needed to calculate 1-Gamma_0
-!                     aj0_alpha(ivmu) = (1.0 - aj0_alpha(ivmu)**2) &
-!                                       * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
                      aj0_alpha(ivmu) = (1.0 - aj0_alpha(ivmu)**2)
                   end do
 
