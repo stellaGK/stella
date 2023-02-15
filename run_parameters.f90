@@ -23,7 +23,7 @@ module run_parameters
    public :: use_deltaphi_for_response_matrix
    public :: use_h_for_parallel_streaming
    public :: maxwellian_normalization
-   
+
    private
 
    real :: cfl_cushion, delt_adjust
@@ -188,7 +188,7 @@ contains
             write (*, *) '!!!WARNING!!!'
             mirror_semi_lagrange = .false.
          end if
-         
+
       end if
 
       call broadcast(fields_kxkyz)
@@ -271,7 +271,6 @@ contains
          end if
       end if
 
-      
    end subroutine read_parameters
 
    subroutine finish_run_parameters

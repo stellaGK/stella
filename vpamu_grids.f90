@@ -223,8 +223,8 @@ contains
       ! version of the code and would otherwise add a species index to wgts_vpa,
       ! so currently maxwellian_normalization is not supported for the radially global
       ! version of the code.
-      if (maxwellian_normalization) wgts_vpa = wgts_vpa * maxwell_vpa(:,1)
-      
+      if (maxwellian_normalization) wgts_vpa = wgts_vpa * maxwell_vpa(:, 1)
+
       wgts_vpa_default = wgts_vpa
 
    end subroutine init_vpa_grid
@@ -701,7 +701,7 @@ contains
       use species, only: spec, nspec
       use stella_geometry, only: bmag, bmag_psi0
       use run_parameters, only: maxwellian_normalization
-      
+
       implicit none
 
       integer :: imu
@@ -752,7 +752,7 @@ contains
       !> maxwell_mu is the mu part of the v-space Maxwellian
       maxwell_mu = exp(-2.*spread(spread(spread(mu, 1, nalpha), 2, nztot) * spread(bmag, 3, nmu), 4, nspec) &
                        * spread(spread(spread(spec%temp_psi0 / spec%temp, 1, nalpha), 2, nztot), 3, nmu))
-      
+
       !> factor of 2. necessary to account for 2pi from
       !> integration over gyro-angle and 1/pi^(3/2) normalization
       !> of velocity space Jacobian
