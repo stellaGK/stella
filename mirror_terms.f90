@@ -221,7 +221,7 @@ contains
       !> assumes fully upwinded at outgoing boundary
       b(1, 1) = -1.0 / dvpa
       c(1, 1) = 1.0 / dvpa
-         
+
       !> corresponds to sign of mirror term negative on RHS of equation
       a(2:nvpa - 1, -1) = -0.5 * (1.0 + vpa_upwind) / dvpa
       b(:nvpa - 1, -1) = vpa_upwind / dvpa
@@ -230,7 +230,7 @@ contains
       !> assumes fully upwinded at outgoing boundary
       a(nvpa, -1) = -1.0 / dvpa
       b(nvpa, -1) = 1.0 / dvpa
-         
+
       !> time_upwind = 0.0 corresponds to centered in time
       !> time_upwind = 1.0 corresponds to fully implicit (upwinded)
       tupwndfac = 0.5 * (1.0 + time_upwind)
@@ -242,7 +242,7 @@ contains
          !> we solve for gnorm*exp(-vpa^2) and later multiply by exp(vpa^2) to get gnorm
          b = b + spread(2.0 * vpa, 2, 3)
       end if
-         
+
       if (full_flux_surface) then
          do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
             iy = iy_idx(kxyz_lo, ikxyz)
@@ -721,11 +721,11 @@ contains
                   ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n}
                   if (maxwellian_normalization) then
                      g0v(:, imu, ikxkyz) = gvmu(:, imu, ikxkyz) + tupwnd * mirror(1, iz, imu, is) * (g0v(:, imu, ikxkyz) &
-                          + 2.0 * vpa * gvmu(:, imu, ikxkyz))
+                                                                                                     + 2.0 * vpa * gvmu(:, imu, ikxkyz))
                   else
                      g0v(:, imu, ikxkyz) = gvmu(:, imu, ikxkyz) + tupwnd * mirror(1, iz, imu, is) * g0v(:, imu, ikxkyz)
                   end if
-                  
+
                   ! invert_mirror_operator takes rhs of equation and
                   ! returns g^{n+1}
                   call invert_mirror_operator(imu, ikxkyz, g0v(:, imu, ikxkyz))

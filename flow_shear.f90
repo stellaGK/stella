@@ -42,7 +42,7 @@ contains
       use job_manage, only: njobs
       use mp, only: job, send, receive, crossdomprocs, subprocs, scope
       use run_parameters, only: maxwellian_normalization
-      
+
       implicit none
 
       integer :: is, imu, iv, ivmu, iz, ia
@@ -96,10 +96,10 @@ contains
                                       * (geo_surf%qinp_psi0 / geo_surf%rhoc_psi0) &
                                       * (btor(iz) * rmajor(iz) / bmag(ia, iz)) * (spec(is)%mass / spec(is)%temp)
          end do
-         if (.not.maxwellian_normalization) then
+         if (.not. maxwellian_normalization) then
             do iz = -nzgrid, nzgrid
                prl_shear(ia, iz, ivmu) = prl_shear(ia, iz, ivmu) &
-                    * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                                         * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
             end do
          end if
          if (radial_variation) then

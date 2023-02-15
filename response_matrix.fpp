@@ -56,7 +56,7 @@ contains
       type(c_ptr) :: cptr
 #endif
       real :: dum
-      character (5) :: dist
+      character(5) :: dist
       complex, dimension(:), allocatable :: phiext
       complex, dimension(:, :), allocatable :: gext
       logical :: debug = .false.
@@ -70,7 +70,7 @@ contains
       character(len=100) :: file_name
       integer :: istatus
       istatus = 0
-      
+
       if (proc0 .and. debug) then
          write (*, *) " "
          write (*, '(A)') "    ############################################################"
@@ -272,7 +272,7 @@ contains
          else
             dist = 'gbar'
          end if
-         
+
          ! loop over the sets of connected kx values
          do ie = 1, neigen(iky)
 #ifdef ISO_C_BINDING
@@ -513,10 +513,10 @@ contains
       real :: mu_dbdzed_p, mu_dbdzed_m
       real :: fac, fac0, fac1, gyro_fac
       real, dimension(:), allocatable :: z_scratch
-      
+
       ia = 1
       allocate (z_scratch(-nzgrid:nzgrid))
-      
+
       if (.not. maxwellian_inside_zed_derivative) then
          ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -540,15 +540,14 @@ contains
                gyro_fac = aj0x(iky, ikx, iz, ivmu)
             end if
 
-            
             fac = -0.5 * (1.+time_upwind) * code_dt * vpa(iv) * spec(is)%stm_psi0 &
-                 * gyro_fac * spec(is)%zt / delzed(0)
-            if (.not.maxwellian_normalization) fac = fac * maxwell_vpa(iv, is) * maxwell_fac(is)
+                  * gyro_fac * spec(is)%zt / delzed(0)
+            if (.not. maxwellian_normalization) fac = fac * maxwell_vpa(iv, is) * maxwell_fac(is)
 
             z_scratch = gradpar * fac
-            if (.not.maxwellian_normalization) z_scratch = z_scratch * maxwell_mu(ia, :, imu, is)
+            if (.not. maxwellian_normalization) z_scratch = z_scratch * maxwell_mu(ia, :, imu, is)
             call center_zed(iv, z_scratch)
-               
+
             ! stream_sign < 0 corresponds to positive advection speed
             if (stream_sign(iv) < 0) then
                if (iz > -nzgrid) then
@@ -560,9 +559,9 @@ contains
                   ! of the homogeneous GKE at the zed index to the right of
                   ! this one
                   if (iz < nzgrid) then
-                     fac1 = z_scratch(iz+1)
+                     fac1 = z_scratch(iz + 1)
                   else
-                     fac1 = z_scratch(-nzgrid+1)
+                     fac1 = z_scratch(-nzgrid + 1)
                   end if
                else
                   ! fac0 is the factor multiplying delphi on the RHS
@@ -572,7 +571,7 @@ contains
                   ! fac1 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at the zed index to the right of
                   ! this one
-                  fac1 = z_scratch(iz+1)
+                  fac1 = z_scratch(iz + 1)
                end if
                gext(idx, ivmu) = fac0
                if (idx < nz_ext) gext(idx + 1, ivmu) = -fac1
@@ -590,24 +589,24 @@ contains
                   ! fac0 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at this zed index
                   fac0 = z_scratch(iz)
-                  
+
                   ! fac1 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at the zed index to the left of
                   ! this one
                   if (iz > -nzgrid) then
-                     fac1 = z_scratch(iz-1)
+                     fac1 = z_scratch(iz - 1)
                   else
-                     fac1 = z_scratch(nzgrid-1)
+                     fac1 = z_scratch(nzgrid - 1)
                   end if
                else
                   ! fac0 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at this zed index
                   fac0 = z_scratch(-nzgrid)
-                  
+
                   ! fac1 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at the zed index to the left of
                   ! this one
-                  fac1 = z_scratch(iz-1)
+                  fac1 = z_scratch(iz - 1)
                end if
                gext(idx, ivmu) = -fac0
                if (idx > 1) gext(idx - 1, ivmu) = fac1
@@ -761,7 +760,7 @@ contains
       call integrate_over_velocity(gext, phiext, iky, ie)
 
       deallocate (z_scratch)
-      
+
 #ifdef ISO_C_BINDING
       if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, idx) = phiext(:nresponse)
 #else
@@ -803,19 +802,19 @@ contains
       integer :: ivmu, iv, imu, is, ia
       real :: phi_prefac, gyro_fac
       real :: zupwnd_p, zupwnd_m
-      
+
       ia = 1
-      
+
       ! get RHS of GKE corresponding to unit impulse in phi
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! initialize h to zero everywhere along extended zed domain
          hext(:, ivmu) = 0.0
-         
+
          ! obtain vpa, mu and species indices from the super-index ivmu
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         
+
          ! give unit impulse to phi at this zed location (specified by idx)
          ! and compute RHS of streaming part of GKE
 
@@ -829,7 +828,7 @@ contains
 
          ! this is the common pre-factor multiplying phi in both terms on the RHS of the GKE
          phi_prefac = 0.5 * spec(is)%zt_psi0 * gyro_fac
-         if (.not.maxwellian_normalization) then
+         if (.not. maxwellian_normalization) then
             phi_prefac = phi_prefac * maxwell_vpa(iv, is) * maxwell_fac(is) * maxwell_mu(ia, iz, imu, is)
          end if
 
@@ -866,7 +865,7 @@ contains
                end if
             end if
          end if
-         
+
          if (periodic(iky)) then
             call sweep_zed_zonal(iky, iv, is, stream_sign(iv), hext(:, ivmu))
          else
@@ -874,7 +873,7 @@ contains
             ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = hext
             call stream_tridiagonal_solve(iky, ie, iv, is, hext(:, ivmu))
          end if
-         
+
       end do
 
       ! we now have h on the extended zed domain at this ky and set of connected kx values
@@ -969,19 +968,19 @@ contains
 
       complex, dimension(:), intent(inout) :: phi
       integer, intent(in) :: iky, ie
-      character(*), intent (in) :: dist
+      character(*), intent(in) :: dist
 
       integer :: idx, iseg, ikx, iz, ia
       integer :: izl_offset
       complex, dimension(:), allocatable :: g0
       complex :: tmp
       real, dimension(:), allocatable :: gamma_fac
-      
+
       ia = 1
 
       allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       allocate (gamma_fac(-nzgrid:nzgrid))
-      
+
       idx = 0; izl_offset = 0
       iseg = 1
       ikx = ikxmod(iseg, ie, iky)

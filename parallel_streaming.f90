@@ -14,7 +14,7 @@ module parallel_streaming
    public :: stream_rad_var1
    public :: stream_rad_var2
    public :: center_zed
-   
+
    private
 
    interface center_zed
@@ -298,9 +298,9 @@ contains
                g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt
             else
                g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
-                    * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
+                                * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
             end if
-               
+
             ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
             call add_stream_term(g0, ivmu, gout(:, :, :, :, ivmu))
          end if
@@ -634,7 +634,7 @@ contains
          ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
          ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
          call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi_source, g(:, :, :, :, ivmu))
-         
+
          if (stream_matrix_inversion) then
             ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
             ! g = RHS is input and overwritten by g = g_{inh}^{n+1}
@@ -644,7 +644,7 @@ contains
          end if
       end do
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
-      
+
       fields_updated = .false.
 
       ! we now have g_{inh}^{n+1}
@@ -689,10 +689,10 @@ contains
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
 
       deallocate (phi_old, phi_source)
-         
+
       !> if using non-Boltzmannn pdf (h) for parallel streaming, convert back to guiding centre pdf (g)
       if (use_h_for_parallel_streaming) call g_to_h(g, phi, -fphi)
-      
+
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
    end subroutine advance_parallel_streaming_implicit
@@ -795,7 +795,7 @@ contains
       else
          ! obtain d<phi>/dz and store in dphidz
          call get_dzed(iv, scratch, rhs)
-         if (.not.maxwellian_normalization) then
+         if (.not. maxwellian_normalization) then
             ! center Maxwellian factor in mu
             ! and store in dummy variable z_scratch
             z_scratch = maxwell_mu(ia, :, imu, is)
@@ -809,7 +809,7 @@ contains
       ! NB: could do this once at beginning of simulation to speed things up
       ! this is vpa*Z/T*exp(-vpa^2)
       z_scratch = vpa(iv) * spec(is)%zt
-      if (.not.maxwellian_normalization) z_scratch = z_scratch * maxwell_vpa(iv, is) * maxwell_fac(is)
+      if (.not. maxwellian_normalization) z_scratch = z_scratch * maxwell_vpa(iv, is) * maxwell_fac(is)
       ! if including neoclassical correction to equilibrium distribution function
       ! then must also account for -vpa*dF_neo/dvpa*Z/T
       ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!
@@ -866,7 +866,7 @@ contains
 
       do iz = -nzgrid, nzgrid
          rhs(:, :, iz, :) = spec(is)%zt * scratch(:, :, iz, :)
-         if (.not.maxwellian_normalization) rhs(:, :, iz, :) = rhs(:, :, iz, :) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+         if (.not. maxwellian_normalization) rhs(:, :, iz, :) = rhs(:, :, iz, :) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
       end do
       call center_zed(iv, rhs)
 
