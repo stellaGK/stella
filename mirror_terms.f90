@@ -218,30 +218,18 @@ contains
       b(2:, 1) = -vpa_upwind / dvpa
       c(2:nvpa - 1, 1) = 0.5 * (1.0 + vpa_upwind) / dvpa
       !> must treat boundary carefully
-      !> treatment of boundary seems inconsistent
-      !> implicit piece below is pure upwind, while
-      !> explicit piece in fd_variable_upwind_vpa is mixed
-      !> with assumed zero BC at extremes in both +/- vpa
-!      if (upwind_at_vpa_outgoing_boundary) then
+      !> assumes fully upwinded at outgoing boundary
       b(1, 1) = -1.0 / dvpa
       c(1, 1) = 1.0 / dvpa
-!      else
-!         b(1, 1) = -vpa_upwind / dvpa
-!         c(1, 1) = 0.5 * (1.0 + vpa_upwind) / dvpa
-!      end if
          
       !> corresponds to sign of mirror term negative on RHS of equation
       a(2:nvpa - 1, -1) = -0.5 * (1.0 + vpa_upwind) / dvpa
       b(:nvpa - 1, -1) = vpa_upwind / dvpa
       c(:nvpa - 1, -1) = 0.5 * (1.0 - vpa_upwind) / dvpa
       !> must treat boundary carefully
-!      if (upwind_at_vpa_outgoing_boundary) then
+      !> assumes fully upwinded at outgoing boundary
       a(nvpa, -1) = -1.0 / dvpa
       b(nvpa, -1) = 1.0 / dvpa
-!      else
-!         a(nvpa, -1) = -0.5 * (1.0 + vpa_upwind) / dvpa
-!         b(nvpa, -1) = vpa_upwind / dvpa
-!      end if
          
       !> time_upwind = 0.0 corresponds to centered in time
       !> time_upwind = 1.0 corresponds to fully implicit (upwinded)
@@ -256,10 +244,6 @@ contains
       end if
          
       if (full_flux_surface) then
-!         !> account for fact that we have expanded d(gnorm)/dvpa, where gnorm = g/exp(-v^s);
-!         !> this gives rise to d(gnorm*exp(-vpa^2))/dvpa + 2*vpa*gnorm*exp(-vpa^2) term
-!         !> we solve for gnorm*exp(-vpa^2) and later multiply by exp(vpa^2) to get gnorm
-!         b = b + spread(2.0 * vpa, 2, 3)
          do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
             iy = iy_idx(kxyz_lo, ikxyz)
             iz = iz_idx(kxyz_lo, ikxyz)

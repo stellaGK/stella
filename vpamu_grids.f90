@@ -674,8 +674,6 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-!         pout(is) = pout(is) + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(ivmu) * weights(is) &
-!                    * maxwell_mu(ia, iz, imu, is) * maxwell_vpa(iv, is)
          pout(is) = pout(is) + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(ivmu) * weights(is)
       end do
 

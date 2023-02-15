@@ -294,8 +294,6 @@ contains
             call add_stream_term_ffs(g0y, ivmu, gout(:, :, :, :, ivmu))
          else
             ia = 1
-!            g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
-!                             * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
             if (maxwellian_normalization) then
                g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt
             else
@@ -586,13 +584,6 @@ contains
       use fields, only: advance_fields, fields_updated
       use g_tofrom_h, only: g_to_h
 
-      ! TMP FOR TESTING -- MAB
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use vpamu_grids, only: vpa
-      use zgrid, only: zed
-      use stella_time, only: code_time
-!      use dist_fn, only: checksum
-      
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
@@ -602,10 +593,6 @@ contains
       real :: tupwnd1, tupwnd2
       complex, dimension(:, :, :, :), allocatable :: phi_old, phi_source
       character(5) :: dist_choice
-
-      ! TMP FOR TESTING -- MAB
-      integer :: iv, imu, is, iz, iv0
-      real :: phisum, gsum
 
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
@@ -640,10 +627,6 @@ contains
       allocate (phi_old(naky, nakx, -nzgrid:nzgrid, ntubes))
       phi_old = phi
 
-!      call checksum(g, gsum)
-!      call checksum(phi, phisum)
-!      write (*,*) 'init: ', phisum, gsum
-      
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! obtain RHS of inhomogeneous GK eqn;
@@ -668,12 +651,6 @@ contains
       ! calculate associated fields (phi_{inh}^{n+1})
       call advance_fields(g, phi, apar, dist=trim(dist_choice))
 
-!      call checksum(g, gsum)
-!      call checksum(phi, phisum)
-!      write (*,*) 'advance_fields: ', phisum, gsum
-      
-      !>>>>>>> TMP FOR TESTING -- MAB
-      
       ! solve response_matrix*(phi^{n+1}-phi^{n*}) = phi_{inh}^{n+1}-phi^{n*}
       ! phi = phi_{inh}^{n+1}-phi^{n*} is input and overwritten by phi = phi^{n+1}-phi^{n*}
       if (use_deltaphi_for_response_matrix) phi = phi - phi_old
@@ -681,9 +658,6 @@ contains
       call invert_parstream_response(phi)
       if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
 
-!      call checksum(phi, phisum)
-!      write (*,*) 'invert_parstream_response: ', phisum
-      
       if (use_h_for_parallel_streaming) then
          phi_source = phi
          !> construct phi^{n+1} = (phi^{n+1}-phi^{n*}) + phi^{n*}
@@ -714,24 +688,6 @@ contains
       end do
       if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
 
-!      call checksum(g, gsum)
-!      call checksum(phi, phisum)
-!      write (*,*) 'final: ', phisum, gsum
-
-      
-      ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-      !    iv0 = 32
-      !    iv = iv_idx(vmu_lo, ivmu) ; if (iv /= iv0) cycle
-      !    imu = imu_idx(vmu_lo, ivmu) ; if (imu /= 1) cycle
-      !    is = is_idx(vmu_lo, ivmu) ; if (is /= 1) cycle
-      !    do iz = -nzgrid, nzgrid
-      !       write (*,*) 'time: ', code_time, 'vpa: ', vpa(iv0), 'z: ', zed(iz), 'h: ', real(g(1,1,iz,1,ivmu))
-      !    end do
-      !    write (*,*)
-      ! end do
-
-      !<<<<< end TMP FOR TESTING -- MAB
-      
       deallocate (phi_old, phi_source)
          
       !> if using non-Boltzmannn pdf (h) for parallel streaming, convert back to guiding centre pdf (g)
