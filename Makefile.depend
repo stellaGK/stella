@@ -578,7 +578,8 @@ stella_save.o: \
 	 stella_layouts.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-stella_time.o: 
+stella_time.o: \
+         mp.o 
 stella_transforms.o: \
 	 fft_work.o \
 	 physics_flags.o \
