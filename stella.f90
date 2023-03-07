@@ -639,8 +639,8 @@ contains
          write (*, fmt=101) 'radial var:', time_gke(1, 10) / 60., 'min'
          write (*, fmt=101) 'multibox comm:', time_multibox(1, 1) / 60., 'min'
          write (*, fmt=101) 'multibox krook:', time_multibox(1, 2) / 60., 'min'
-         write (*, fmt=101) 'total implicit: ', time_gke(1, 9) / 60., 'min'
-         write (*, fmt=101) 'total explicit: ', time_gke(1, 8) / 60., 'min'
+         write (*, fmt=101) 'total implicit:', time_gke(1, 9) / 60., 'min'
+         write (*, fmt=101) 'total explicit:', time_gke(1, 8) / 60., 'min'
          write (*, fmt=101) 'total:', time_total(1) / 60., 'min'
          write (*, *)
       end if
