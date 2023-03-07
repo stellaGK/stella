@@ -46,7 +46,8 @@ program stella
          call checkcodedt(stop_stella)
       end if
       if (stop_stella) exit
-      call advance_stella(istep)
+      call advance_stella(istep, stop_stella)
+      if (stop_stella) exit
       call update_time
       if (nsave > 0 .and. mod(istep, nsave) == 0) then
          call scatter(kxkyz2vmu, gnew, gvmu)
@@ -488,8 +489,8 @@ contains
          write (*, '(A)') "                OVERVIEW OF THE SIMULATION"
          write (*, '(A)') "############################################################"
          write (*, '(A)') " "
-         write (*, '(A)') "    istep       time           dt         |phi|^2"
-         write (*, '(A)') "------------------------------------------------------------"
+         write (*, '(A)') "    istep       time          dt          CFL ExB       |phi|^2"
+         write (*, '(A)') "-----------------------------------------------------------------"
       end if
 
    end subroutine print_header
