@@ -566,7 +566,7 @@ contains
       gyro_field = aj0x(iky, ikx, iz, ivmu) * field
 
    end subroutine gyro_average_local
-   
+
    subroutine gyro_average_kxky_local(field, iz, ivmu, gyro_field)
 
       use physics_flags, only: full_flux_surface
