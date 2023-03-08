@@ -86,7 +86,7 @@ contains
       namelist /knobs/ fphi, fapar, fbpar, delt, nstep, tend, &
          delt_option, lu_option, &
          avail_cpu_time, delt_max, delt_min, &
-	 cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, &
+         cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, &
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
          drifts_implicit, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
@@ -121,7 +121,7 @@ contains
          ! Stella runs until t*v_{th,i}/a=tend or until istep=nstep
          tend = -1.0
          nstep = -1
-        
+
          ! Set the available wall time in seconds, 5 minutes before the wall, stella will make a clean exit
          avail_cpu_time = 1.e10
 
@@ -163,9 +163,9 @@ contains
          end if
 
          ! Abort if cfl_cushion_lower>cfl_cushion_upper or if cfl_cushion_lower==cfl_cushion_upper
-         if ((cfl_cushion_lower > cfl_cushion_upper-0.001) &
-         .or. (cfl_cushion_middle > cfl_cushion_upper-0.001) & 
-         .or. (cfl_cushion_middle < cfl_cushion_lower+0.001)) then
+         if ((cfl_cushion_lower > cfl_cushion_upper - 0.001) &
+             .or. (cfl_cushion_middle > cfl_cushion_upper - 0.001) &
+             .or. (cfl_cushion_middle < cfl_cushion_lower + 0.001)) then
             ierr = error_unit()
             write (ierr, *) ''
             write (ierr, *) 'Please make sure that <cfl_cushion_upper> is bigger than <cfl_cushion_lower>,'
@@ -184,7 +184,7 @@ contains
       call broadcast(delt_option_switch)
       call broadcast(delt)
       call broadcast(lu_option_switch)
-      call broadcast(cfl_cushion_upper) 
+      call broadcast(cfl_cushion_upper)
       call broadcast(cfl_cushion_middle)
       call broadcast(cfl_cushion_lower)
       call broadcast(delt_max)

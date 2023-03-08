@@ -873,7 +873,7 @@ contains
             write (*, '(A22, ES10.2E2)') "   cfl_cushion_lower:"//REPEAT(' ', 50), cfl_cushion_lower
             write (*, '(A70)') '     ==> User-specified delt is larger than cfl_dt*cfl_cushion_upper.'//REPEAT(' ', 50)
             write (*, '(A55,ES12.4)') '     ==> Changing code_dt to cfl_dt*cfl_cushion_upper ='//REPEAT(' ', 50), cfl_dt_linear * cfl_cushion_upper
-            write (*, *) 
+            write (*, *)
          end if
          code_dt = sign(1.0, code_dt) * cfl_dt_linear * cfl_cushion_upper
          call reset_dt
@@ -967,7 +967,7 @@ contains
       implicit none
 
       integer, intent(in) :: istep
-      logical, intent(in out) :: stop_stella  
+      logical, intent(in out) :: stop_stella
 
       logical :: restart_time_step, time_advance_successful
       integer :: count_restarts
@@ -990,7 +990,7 @@ contains
 
       ! If cfl_cushion_lower is chosen too close to cfl_cushion_upper, then
       ! we might get stuck restarting the time step over and over, so exit stella
-      count_restarts = 1  
+      count_restarts = 1
 
       ! Attempt the Lie or flip-flop time advance until we've done it without the
       ! timestep changing.
@@ -1019,10 +1019,10 @@ contains
          else
             if (.not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
             call advance_explicit(gnew, restart_time_step, istep)
-         end if   
+         end if
 
-         ! If the time step has not been restarted, the time advance was succesfull 
-         ! Otherwise, discard changes to gnew and start the time step again, fields 
+         ! If the time step has not been restarted, the time advance was succesfull
+         ! Otherwise, discard changes to gnew and start the time step again, fields
          ! will have to be recalculated
          if (.not. restart_time_step) then
             time_advance_successful = .true.
@@ -1031,20 +1031,20 @@ contains
             fields_updated = .false.
          end if
 
-        ! At some point, give up on restarting the time step
-        if (count_restarts > 5) then
-           stop_stella = .true.
-           call broadcast(stop_stella)
-           gnew = gold   
-           fields_updated = .false.
-           if (proc0) then
-              write (*, *)
-              write (*, *) 'EXITING STELLA BECAUSE WE ALREADY RESTARTED THE TIME STEP 5 TIMES.'
-              write (*, *) 'CHANGE CFL_CUSHION_UPPER AND CFL_CUSHION_LOWER AND RESTART THE SIMULATION.'
-              write (*, *)
-           end if
-           exit      
-        end if
+         ! At some point, give up on restarting the time step
+         if (count_restarts > 5) then
+            stop_stella = .true.
+            call broadcast(stop_stella)
+            gnew = gold
+            fields_updated = .false.
+            if (proc0) then
+               write (*, *)
+               write (*, *) 'EXITING STELLA BECAUSE WE ALREADY RESTARTED THE TIME STEP 5 TIMES.'
+               write (*, *) 'CHANGE CFL_CUSHION_UPPER AND CFL_CUSHION_LOWER AND RESTART THE SIMULATION.'
+               write (*, *)
+            end if
+            exit
+         end if
 
       end do
 
@@ -1083,11 +1083,11 @@ contains
       use parallel_streaming, only: stream_sign
 
       implicit none
- 
+
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
       logical, intent(in out) :: restart_time_step
       integer, intent(in) :: istep
-    
+
       integer :: ivmu, iv, sgn, iky
 
       !> start the timer for the explicit part of the solve
@@ -1134,10 +1134,10 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
-      logical, intent(in out) :: restart_time_step 
+      logical, intent(in out) :: restart_time_step
       integer, intent(in) :: istep
 
-      integer :: icnt 
+      integer :: icnt
 
       !> RK_step only true if running in multibox mode
       if (RK_step) call mb_communicate(g)
@@ -1181,10 +1181,10 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
-      logical, intent(in out) :: restart_time_step 
+      logical, intent(in out) :: restart_time_step
       integer, intent(in) :: istep
 
-      integer :: icnt 
+      integer :: icnt
 
       !> RK_STEP = false unless in multibox mode
       if (RK_step) call mb_communicate(g)
@@ -1232,10 +1232,10 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
-      logical, intent(in out) :: restart_time_step 
+      logical, intent(in out) :: restart_time_step
       integer, intent(in) :: istep
 
-      integer :: icnt 
+      integer :: icnt
 
       !> RK_step is false unless in multibox mode
       if (RK_step) call mb_communicate(g)
@@ -1721,7 +1721,7 @@ contains
       zero = 100.*epsilon(0.)
 
       ! Initialize cfl_dt_ExB
-      cfl_dt_ExB = 10000000.  
+      cfl_dt_ExB = 10000000.
 
       restart_time_step = .false.
       ! this statement seems to imply that flow shear is not compatible with FFS
@@ -1985,7 +1985,7 @@ contains
       if (proc0) call time_message(.false., time_parallel_nl(:, 1), ' parallel nonlinearity advance')
 
       ! Initialize cfl_dt_parallel
-      cfl_dt_parallel = 10000000.   
+      cfl_dt_parallel = 10000000.
 
       restart_time_step = .false.
 
@@ -2177,7 +2177,7 @@ contains
       cfl_dt = min(cfl_dt_parallel, cfl_dt_linear)
       if (code_dt > cfl_dt * cfl_cushion_upper) then
          if (proc0) then
-            write (*, *) ' '  
+            write (*, *) ' '
             write (*, *) 'CHANGING TIME STEP:'
             write (*, '(A22, ES10.2E2)') "   code_dt:"//REPEAT(' ', 50), code_dt
             write (*, '(A22, ES10.2E2)') "   cfl_dt_parallel:"//REPEAT(' ', 50), cfl_dt_parallel
