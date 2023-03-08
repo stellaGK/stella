@@ -3,7 +3,7 @@ module stella_time
    implicit none
 
    private
- 
+
    real :: cfl_dt_linear = -1.
    real :: cfl_dt_ExB = -1.
    real :: cfl_dt_parallel = -1.
@@ -71,21 +71,19 @@ contains
 
       if (proc0) then
          if (code_dt < code_dt_min) then
-             stop_stella = .true.
-         end if 
+            stop_stella = .true.
+         end if
       end if
 
       if (proc0 .and. (code_dt < code_dt_min)) then
          write (*, *)
          write (*, *) 'EXITING STELLA BECAUSE CODE_DT<CODE_DT_MIN:'
          write (*, '(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ', 50), code_dt
-         write (*, '(A16, ES10.2E2)') "   code_dt_min:"//REPEAT(' ', 50), code_dt_min 
+         write (*, '(A16, ES10.2E2)') "   code_dt_min:"//REPEAT(' ', 50), code_dt_min
       end if
 
       call broadcast(stop_stella)
 
    end subroutine checkcodedt
-
-
 
 end module stella_time
