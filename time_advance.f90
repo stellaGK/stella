@@ -121,7 +121,8 @@ contains
       if (debug) write (6, *) 'time_advance::init_time_advance::init_radial_variation'
       if (radial_variation) call init_radial_variation
       if (debug) write (6, *) 'time_advance::init_time_advance::init_drifts_implicit'
-      if (drifts_implicit) call init_drifts_implicit
+      ! TMP FOR TESTING -- MAB
+      !      if (drifts_implicit) call init_drifts_implicit
       if (include_collisions) then
          if (debug) write (6, *) 'time_advance::init_time_advance::init_collisions'
          call init_collisions
@@ -883,8 +884,9 @@ contains
       use parallel_streaming, only: init_parallel_streaming
       use dissipation, only: init_collisions, collisions_initialized, include_collisions
       use run_parameters, only: stream_implicit, driftkinetic_implicit, drifts_implicit
+      use run_parameters, only: reuse_implicit_sweep_for_response_matrix
       use response_matrix, only: response_matrix_initialized
-      use response_matrix, only: init_response_matrix
+      use response_matrix, only: init_response_matrix, init_response_matrix_ext
       use mirror_terms, only: mirror_initialized
       use mirror_terms, only: init_mirror
       use flow_shear, only: flow_shear_initialized
@@ -924,10 +926,10 @@ contains
          if (debug) write (6, *) 'time_advance::reset_dt::init_radial_variation'
          call init_radial_variation
       end if
-      if (drifts_implicit) then
-         if (debug) write (6, *) 'time_advance::reset_dt::init_drifts_implicit'
-         call init_drifts_implicit
-      end if
+!      if (drifts_implicit) then
+!         if (debug) write (6, *) 'time_advance::reset_dt::init_drifts_implicit'
+!         call init_drifts_implicit
+!      end if
       if (include_collisions) then
          if (debug) write (6, *) 'time_advance::reset_dt::init_collisions'
          collisions_initialized = .false.
@@ -938,7 +940,11 @@ contains
       if ((stream_implicit .or. driftkinetic_implicit) .and. response_matrix_initialized) then
          response_matrix_initialized = .false.
          if (debug) write (6, *) 'time_advance::reset_dt::init_response_matrix'
-         call init_response_matrix
+         if (reuse_implicit_sweep_for_response_matrix) then
+            call init_response_matrix_ext
+         else
+            call init_response_matrix
+         end if
       end if
 
    end subroutine reset_dt
@@ -2557,7 +2563,8 @@ contains
       use physics_flags, only: radial_variation, full_flux_surface
       use physics_flags, only: include_mirror, prp_shear_enabled
       use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
-      use parallel_streaming, only: advance_parallel_streaming_implicit
+!      use parallel_streaming, only: advance_parallel_streaming_implicit
+      use implicit_solve, only: advance_implicit_terms, advance_implicit_terms_ext
       use fields, only: advance_fields, fields_updated
       use mirror_terms, only: advance_mirror_implicit
       use dissipation, only: collisions_implicit, include_collisions
@@ -2565,7 +2572,8 @@ contains
       use run_parameters, only: driftkinetic_implicit
       use flow_shear, only: advance_perp_flow_shear
       use multibox, only: RK_step
-
+      use run_parameters, only: use_extended_domain_for_implicit_solve
+      
       implicit none
 
       integer, intent(in) :: istep
@@ -2643,12 +2651,17 @@ contains
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
-            call advance_parallel_streaming_implicit(g, phi, apar)
+!            call advance_parallel_streaming_implicit(g, phi, apar)
+            if (use_extended_domain_for_implicit_solve) then
+               call advance_implicit_terms_ext(g, phi, apar)
+            else
+               call advance_implicit_terms(g, phi, apar)
+            end if
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
 
          call advance_fields(g, phi, apar, dist='gbar')
-         if (drifts_implicit) call advance_drifts_implicit(g, phi, apar)
+!         if (drifts_implicit) call advance_drifts_implicit(g, phi, apar)
 
       else
 
@@ -2656,12 +2669,17 @@ contains
          ! note that hyper-dissipation and mirror advances
          ! depended only on g and so did not need field update
          call advance_fields(g, phi, apar, dist='gbar')
-         if (drifts_implicit) call advance_drifts_implicit(g, phi, apar)
+!         if (drifts_implicit) call advance_drifts_implicit(g, phi, apar)
 
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
-            call advance_parallel_streaming_implicit(g, phi, apar)
+!            call advance_parallel_streaming_implicit(g, phi, apar)
+            if (use_extended_domain_for_implicit_solve) then
+               call advance_implicit_terms_ext(g, phi, apar)
+            else
+               call advance_implicit_terms(g, phi, apar)
+            end if
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
 

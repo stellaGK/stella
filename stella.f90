@@ -85,6 +85,7 @@ contains
       use run_parameters, only: stream_implicit, driftkinetic_implicit
       use run_parameters, only: delt_option_switch, delt_option_auto
       use run_parameters, only: mat_gen, mat_read
+      use run_parameters, only: reuse_implicit_sweep_for_response_matrix
       use species, only: init_species, read_species_knobs
       use species, only: nspec
       use zgrid, only: init_zgrid
@@ -92,7 +93,7 @@ contains
       use stella_geometry, only: init_geometry
       use stella_geometry, only: finish_init_geometry
       use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
-      use response_matrix, only: init_response_matrix, read_response_matrix
+      use response_matrix, only: init_response_matrix, init_response_matrix_ext, read_response_matrix
       use init_g, only: ginit, init_init_g, phiinit, scale_to_phiinit
       use init_g, only: tstart
       use fields, only: init_fields, advance_fields, get_radial_correction, fields_updated
@@ -306,7 +307,11 @@ contains
             call read_response_matrix
          else
             if (debug) write (6, *) "stella::init_stella::init_response_matrix"
-            call init_response_matrix
+            if (reuse_implicit_sweep_for_response_matrix) then
+               call init_response_matrix_ext
+            else
+               call init_response_matrix
+            end if
          end if
       end if
 
@@ -559,8 +564,9 @@ contains
       use kt_grids, only: finish_kt_grids
       use volume_averages, only: finish_volume_averages
       use multibox, only: finish_multibox, time_multibox
-      use run_parameters, only: stream_implicit, driftkinetic_implicit
-
+      use run_parameters, only: stream_implicit, driftkinetic_implicit, drifts_implicit
+      use implicit_solve, only: time_implicit_advance
+      
       implicit none
 
       logical, intent(in), optional :: last_call
@@ -620,14 +626,18 @@ contains
          write (*, fmt=101) '(phi_adia_elec):', time_field_solve(1, 5) / 60., 'min'
          write (*, fmt=101) 'mirror:', time_mirror(1, 1) / 60., 'min'
          write (*, fmt=101) '(redistribute):', time_mirror(1, 2) / 60., 'min'
-         write (*, fmt=101) 'stream:', time_parallel_streaming(1, 1) / 60., 'min'
          if (stream_implicit) then
+            write (*, fmt=101) 'implicit advance: ', time_implicit_advance(1, 1) / 60., 'min'
             write (*, fmt=101) '(bidiagonal)', time_parallel_streaming(1, 2) / 60., 'min'
             write (*, fmt=101) '(backwards sub)', time_parallel_streaming(1, 3) / 60., 'min'
+         else
+            write (*, fmt=101) 'stream:', time_parallel_streaming(1, 1) / 60., 'min'
          end if
-         write (*, fmt=101) 'dgdx:', time_gke(1, 5) / 60., 'min'
-         write (*, fmt=101) 'dgdy:', time_gke(1, 4) / 60., 'min'
-         write (*, fmt=101) 'wstar:', time_gke(1, 6) / 60., 'min'
+         if (.not. drifts_implicit) then
+            write (*, fmt=101) 'dgdx:', time_gke(1, 5) / 60., 'min'
+            write (*, fmt=101) 'dgdy:', time_gke(1, 4) / 60., 'min'
+            write (*, fmt=101) 'wstar:', time_gke(1, 6) / 60., 'min'
+         end if
          write (*, fmt=101) 'collisions:', time_collisions(1, 1) / 60., 'min'
          write (*, fmt=101) '(redistribute):', time_collisions(1, 2) / 60., 'min'
          write (*, fmt=101) 'sources:', time_sources(1, 1) / 60., 'min'
