@@ -6,13 +6,18 @@ module extended_zgrid
    public :: neigen
    public :: ikxmod
    public :: iz_low, iz_mid, iz_up
+   public :: it_right
    public :: periodic
+   public :: phase_shift
    public :: nzed_segment
-   public :: fill_zed_ghost_zones
+   public :: fill_zed_ghost_zones, fill_zext_ghost_zones
    public :: init_extended_zgrid, finish_extended_zgrid
    public :: map_to_extended_zgrid
    public :: map_from_extended_zgrid
+   public :: map_to_iz_ikx_from_izext
 
+   private
+   
    !> these arrays needed to keep track of connections between different
    !> 2pi segments
    integer :: nzed_segment
@@ -205,9 +210,9 @@ contains
             allocate (iz_mid(nseg_max)); iz_mid = 0
             allocate (iz_up(nseg_max)); iz_up = nzgrid
          end if
-
+         
       else
-
+         
          neigen = nakx; neigen_max = nakx
 
          if (.not. allocated(ikx_shift_end)) then
@@ -333,6 +338,32 @@ contains
 
    end subroutine fill_zed_ghost_zones
 
+   subroutine fill_zext_ghost_zones(iky, pdf_ext, pdf_left, pdf_right)
+
+      implicit none
+
+      integer, intent(in) :: iky
+      complex, dimension(:), intent(in) :: pdf_ext
+      complex, intent(out) :: pdf_left, pdf_right
+
+      integer :: nz_ext
+
+      ! n_zext is the number of grid points in this extended zed domain
+      nz_ext = size(pdf_ext)
+
+      ! if periodic BCs are applied in zed, then ghost zones at ends of extended domain
+      ! should be filled using periodicity (with any appropriate phase shift)
+      ! otherwise, zero incoming BC is used
+      if (periodic(iky)) then
+         pdf_left = pdf_ext(nz_ext - 1) * phase_shift(iky)
+         pdf_right = pdf_ext(2) / phase_shift(iky)
+      else
+         pdf_left = 0.0
+         pdf_right = 0.0
+      end if
+
+   end subroutine fill_zext_ghost_zones
+   
    subroutine map_to_extended_zgrid(it, ie, iky, g, gext, ulim)
 
       use zgrid, only: nzgrid
@@ -402,6 +433,36 @@ contains
 
    end subroutine map_from_extended_zgrid
 
+   subroutine map_to_iz_ikx_from_izext(iky, ie, iz_from_izext, ikx_from_izext)
+
+     implicit none
+
+     integer, intent(in) :: iky, ie
+     integer, dimension(:), intent(out) :: iz_from_izext, ikx_from_izext
+     
+     integer :: iseg
+     integer :: llim, ulim
+     integer :: izext
+     
+     iseg = 1
+     llim = 1 ; ulim = nzed_segment + 1
+     ikx_from_izext(llim:ulim) = ikxmod(iseg, ie, iky)
+     do izext = llim, ulim
+        iz_from_izext(izext) = izext - llim + iz_low(iseg)
+     end do
+     if (nsegments(ie, iky) > 1) then
+        do iseg = 2, nsegments(ie, iky)
+           llim = ulim + 1
+           ulim = llim + nzed_segment - 1
+           ikx_from_izext(llim:ulim) = ikxmod(iseg, ie, iky)
+           do izext = llim, ulim
+              iz_from_izext(izext) = izext - llim + iz_low(iseg) + 1
+           end do
+        end do
+     end if
+     
+   end subroutine map_to_iz_ikx_from_izext
+   
    subroutine finish_extended_zgrid
 
       implicit none

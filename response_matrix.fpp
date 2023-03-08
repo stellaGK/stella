@@ -5,7 +5,7 @@ module response_matrix
 
    implicit none
 
-   public :: init_response_matrix, finish_response_matrix
+   public :: init_response_matrix, init_response_matrix_ext, finish_response_matrix
    public :: read_response_matrix
    public :: response_matrix_initialized
 
@@ -221,6 +221,7 @@ contains
             ! no need to obtain response to impulses at negative kx values
             do iz = iz_low(iseg), izup
                idx = idx + 1
+!               call get_dpdf_dphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
                if (use_h_for_parallel_streaming) then
                   call get_dhdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
                else
@@ -235,11 +236,12 @@ contains
                   ikx = ikxmod(iseg, ie, iky)
                   do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                      idx = idx + 1
-                     if (use_h_for_parallel_streaming) then
-                        call get_dhdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-                     else
-                        call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-                     end if
+!                    call get_dpdf_dphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+                    if (use_h_for_parallel_streaming) then
+                       call get_dhdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+                    else
+                       call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+                    end if
                   end do
                   if (izl_offset == 0) izl_offset = 1
                end do
@@ -377,6 +379,369 @@ contains
 
    end subroutine init_response_matrix
 
+   subroutine init_response_matrix_ext
+
+      use linear_solve, only: lu_decomposition
+      use fields_arrays, only: response_matrix
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: iv_idx, is_idx
+      use kt_grids, only: naky
+      use extended_zgrid, only: iz_low, iz_up
+      use extended_zgrid, only: neigen, ikxmod
+      use extended_zgrid, only: nsegments
+      use extended_zgrid, only: nzed_segment
+      use extended_zgrid, only: periodic
+      use job_manage, only: time_message
+      use mp, only: proc0, job, mp_abort
+      use run_parameters, only: mat_gen, lu_option_switch
+      use run_parameters, only: lu_option_none, lu_option_local, lu_option_global
+      use run_parameters, only: use_h_for_parallel_streaming
+      use system_fortran, only: systemf
+#ifdef ISO_C_BINDING
+      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
+      use mp, only: sgproc0, create_shared_memory_window
+      use mp, only: real_size, nbytes_real
+      use fields_arrays, only: response_window
+      use mpi
+#endif
+
+      implicit none
+
+      integer :: iky, ie, iseg, iz
+      integer :: ikx
+      integer :: nz_ext, nresponse
+      integer :: idx
+      integer :: izl_offset, izup
+#ifdef ISO_C_BINDING
+      integer :: ierr
+      integer(kind=MPI_ADDRESS_KIND) :: win_size
+      integer(c_intptr_t) :: cur_pos
+      type(c_ptr) :: cptr
+#endif
+      real :: dum
+      character(5) :: dist
+      complex, dimension(:), allocatable :: phiext
+      complex, dimension(:, :), allocatable :: gext
+      logical :: debug = .false.
+      character(100) :: message_dgdphi, message_QN, message_lu
+      real, dimension(2) :: time_response_matrix_dgdphi
+      real, dimension(2) :: time_response_matrix_QN
+      real, dimension(2) :: time_response_matrix_lu
+
+      ! Related to the saving of the the matrices in netcdf format
+      character(len=15) :: fmt, job_str
+      character(len=100) :: file_name
+      integer :: istatus
+      istatus = 0
+
+      if (proc0 .and. debug) then
+         write (*, *) " "
+         write (*, '(A)') "    ############################################################"
+         write (*, '(A)') "                         RESPONSE MATRIX"
+         write (*, '(A)') "    ############################################################"
+      end if
+      message_dgdphi = '     calculate dgdphi: '
+      message_QN = '     calculate QN:     '
+      message_lu = '     calculate LU:     '
+      time_response_matrix_dgdphi = 0
+      time_response_matrix_QN = 0
+      time_response_matrix_lu = 0
+
+!   All matrices handled by processor i_proc and job are stored
+!   on a single file named: response_mat_job.iproc
+      fmt = '(I5.5)'
+      if (proc0 .and. mat_gen) then
+
+         call systemf('mkdir -p mat')
+
+         write (job_str, '(I1.1)') job
+         file_name = './mat/response_mat_'//trim(job_str)
+
+         open (unit=mat_unit, status='replace', file=file_name, &
+               position='rewind', action='write', form='unformatted')
+         write (unit=mat_unit) naky
+      end if
+
+      if (response_matrix_initialized) return
+      response_matrix_initialized = .true.
+
+      if (.not. allocated(response_matrix)) allocate (response_matrix(naky))
+
+#ifdef ISO_C_BINDING
+
+!   Create a single shared memory window for all the response matrices and
+!   permutation arrays.
+!   Creating a window for each matrix/array would lead to performance
+!   degradation on some clusters
+      if (response_window == MPI_WIN_NULL) then
+         win_size = 0
+         if (sgproc0) then
+            do iky = 1, naky
+               do ie = 1, neigen(iky)
+                  if (periodic(iky)) then
+                     nresponse = nsegments(ie, iky) * nzed_segment
+                  else
+                     nresponse = nsegments(ie, iky) * nzed_segment + 1
+                  end if
+                  win_size = win_size &
+                             + int(nresponse, MPI_ADDRESS_KIND) * 4_MPI_ADDRESS_KIND &
+                             + int(nresponse**2, MPI_ADDRESS_KIND) * 2 * real_size
+               end do
+            end do
+         end if
+
+         call create_shared_memory_window(win_size, response_window, cur_pos)
+      end if
+#endif
+
+      ! for a given ky and set of connected kx values
+      ! give a unit impulse to phi at each zed location
+      ! in the extended domain and solve for h(zed_extended,(vpa,mu,s))
+
+      do iky = 1, naky
+
+         if (proc0 .and. mat_gen) THEN
+            write (unit=mat_unit) iky, neigen(iky)
+         end if
+
+         ! the response matrix for each ky has neigen(ky)
+         ! independent sets of connected kx values
+         if (.not. associated(response_matrix(iky)%eigen)) &
+            allocate (response_matrix(iky)%eigen(neigen(iky)))
+
+         if (proc0 .and. debug) then
+            call time_message(.false., time_response_matrix_dgdphi, message_dgdphi)
+         end if
+
+         ! loop over the sets of connected kx values
+         do ie = 1, neigen(iky)
+
+            ! number of zeds x number of segments
+            nz_ext = nsegments(ie, iky) * nzed_segment + 1
+
+            ! treat zonal mode specially to avoid double counting
+            ! as it is periodic
+            if (periodic(iky)) then
+               nresponse = nz_ext - 1
+            else
+               nresponse = nz_ext
+            end if
+
+            if (proc0 .and. mat_gen) then
+               write (unit=mat_unit) ie, nresponse
+            end if
+
+#ifdef ISO_C_BINDING
+            !exploit MPIs shared memory framework to reduce memory consumption of
+            !response matrices
+
+            if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) then
+               cptr = transfer(cur_pos, cptr)
+               call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%zloc, (/nresponse, nresponse/))
+               cur_pos = cur_pos + nresponse**2 * 2 * nbytes_real
+            end if
+
+            if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) then
+               cptr = transfer(cur_pos, cptr)
+               call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%idx, (/nresponse/))
+               cur_pos = cur_pos + nresponse * 4
+            end if
+#else
+            ! for each ky and set of connected kx values,
+            ! must have a response matrix that is N x N
+            ! with N = number of zeds per 2pi segment x number of 2pi segments
+            if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) &
+               allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse, nresponse))
+
+            ! response_matrix%idx is needed to keep track of permutations
+            ! to the response matrix made during LU decomposition
+            ! it will be input to LU back substitution during linear solve
+            if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) &
+               allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
+#endif
+
+            allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+            allocate (phiext(nz_ext))
+            ! idx is the index in the extended zed domain
+            ! that we are giving a unit impulse
+            idx = 0
+
+            ! loop over segments, starting with 1
+            ! first segment is special because it has
+            ! one more unique zed value than all others
+            ! since domain is [z0-pi:z0+pi], including both endpoints
+            ! i.e., one endpoint is shared with the previous segment
+            iseg = 1
+            ! ikxmod gives the kx corresponding to iseg,ie,iky
+            ikx = ikxmod(iseg, ie, iky)
+            izl_offset = 0
+            ! avoid double-counting of periodic points for zonal mode (and other periodic modes)
+            if (periodic(iky)) then
+               izup = iz_up(iseg) - 1
+            else
+               izup = iz_up(iseg)
+            end if
+            ! no need to obtain response to impulses at negative kx values
+            do iz = iz_low(iseg), izup
+               idx = idx + 1
+               call get_dpdf_dphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+!               if (use_h_for_parallel_streaming) then
+!                  call get_dhdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+!               else
+!                  call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+!               end if
+            end do
+            ! once we have used one segments, remaining segments
+            ! have one fewer unique zed point
+            izl_offset = 1
+            if (nsegments(ie, iky) > 1) then
+               do iseg = 2, nsegments(ie, iky)
+                  ikx = ikxmod(iseg, ie, iky)
+                  do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
+                     idx = idx + 1
+                     call get_dpdf_dphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+!                     if (use_h_for_parallel_streaming) then
+!                        call get_dhdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+!                     else
+!                        call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+!                     end if
+                  end do
+                  if (izl_offset == 0) izl_offset = 1
+               end do
+            end if
+            deallocate (gext, phiext)
+         end do
+         !DSO - This ends parallelization over velocity space.
+         !      At this point every processor has int dv dgdphi for a given ky
+         !      and so the quasineutrality solve and LU decomposition can be
+         !      parallelized locally if need be.
+         !      This is preferable to parallelization over ky as the LU
+         !      decomposition (and perhaps QN) will be dominated by the
+         !      ky with the most connections
+
+         if (proc0 .and. debug) then
+            call time_message(.true., time_response_matrix_dgdphi, message_dgdphi)
+            call time_message(.false., time_response_matrix_QN, message_QN)
+         end if
+
+#ifdef ISO_C_BINDING
+         call mpi_win_fence(0, response_window, ierr)
+#endif
+
+         ! solve quasineutrality
+         ! for local stella, this is a diagonal process, but global stella
+         ! may require something more sophisticated
+
+         if (use_h_for_parallel_streaming) then
+            dist = 'h'
+         else
+            dist = 'gbar'
+         end if
+
+         ! loop over the sets of connected kx values
+         do ie = 1, neigen(iky)
+#ifdef ISO_C_BINDING
+            if (sgproc0) then
+#endif
+               ! number of zeds x number of segments
+               nz_ext = nsegments(ie, iky) * nzed_segment + 1
+
+               ! treat zonal mode specially to avoid double counting
+               ! as it is periodic
+               if (periodic(iky)) then
+                  nresponse = nz_ext - 1
+               else
+                  nresponse = nz_ext
+               end if
+
+               allocate (phiext(nz_ext))
+
+               do idx = 1, nresponse
+                  phiext(nz_ext) = 0.0
+                  phiext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:, idx)
+                  call get_fields_for_response_matrix(phiext, iky, ie, dist)
+
+                  ! next need to create column in response matrix from phiext
+                  ! negative sign because matrix to be inverted in streaming equation
+                  ! is identity matrix - response matrix
+                  ! add in contribution from identity matrix
+                  phiext(idx) = phiext(idx) - 1.0
+                  response_matrix(iky)%eigen(ie)%zloc(:, idx) = -phiext(:nresponse)
+               end do
+               deallocate (phiext)
+#ifdef ISO_C_BINDING
+            end if
+#endif
+         end do
+
+#ifdef ISO_C_BINDING
+         call mpi_win_fence(0, response_window, ierr)
+#endif
+
+         if (proc0 .and. debug) then
+            call time_message(.true., time_response_matrix_QN, message_QN)
+            call time_message(.false., time_response_matrix_lu, message_lu)
+         end if
+
+         !now we have the full response matrix. Finally, perform its LU decomposition
+         select case (lu_option_switch)
+         case (lu_option_global)
+            call parallel_LU_decomposition_global(iky)
+         case (lu_option_local)
+#ifdef ISO_C_BINDING
+            call parallel_LU_decomposition_local(iky)
+#else
+            call mp_abort('Stella must be built with HAS_ISO_BINDING in order to use local parallel LU decomposition.')
+#endif
+         case default
+            do ie = 1, neigen(iky)
+#ifdef ISO_C_BINDING
+               if (sgproc0) then
+#endif
+                  ! now that we have the reponse matrix for this ky and set of connected kx values
+                  !get the LU decomposition so we are ready to solve the linear system
+                  call lu_decomposition(response_matrix(iky)%eigen(ie)%zloc, &
+                                        response_matrix(iky)%eigen(ie)%idx, dum)
+
+#ifdef ISO_C_BINDING
+               end if
+#endif
+            end do
+         end select
+
+         if (proc0 .and. debug) then
+            call time_message(.true., time_response_matrix_lu, message_lu)
+         end if
+
+         time_response_matrix_dgdphi = 0
+         time_response_matrix_QN = 0
+         time_response_matrix_lu = 0
+
+         do ie = 1, neigen(iky)
+            if (proc0 .and. mat_gen) then
+               write (unit=mat_unit) response_matrix(iky)%eigen(ie)%idx
+               write (unit=mat_unit) response_matrix(iky)%eigen(ie)%zloc
+            end if
+         end do
+
+         !if(proc0)  write (*,*) 'job', iky, iproc, response_matrix(iky)%eigen(1)%zloc(5,:)
+      end do
+
+#ifdef ISO_C_BINDING
+      call mpi_win_fence(0, response_window, ierr)
+#endif
+
+      if (proc0 .and. mat_gen) then
+         close (unit=mat_unit)
+      end if
+
+      if (proc0 .and. debug) then
+         write (*, '(A)') "    ############################################################"
+         write (*, '(A)') " "
+      end if
+
+   end subroutine init_response_matrix_ext
+
    subroutine read_response_matrix
 
       use fields_arrays, only: response_matrix
@@ -478,6 +843,72 @@ contains
       end if
    end subroutine read_response_matrix
 
+   subroutine get_dpdf_dphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phi_ext, pdf_ext)
+
+     use stella_layouts, only: vmu_lo
+     use run_parameters, only: time_upwind
+     use run_parameters, only: use_h_for_parallel_streaming
+     use implicit_solve, only: get_gke_rhs_ext, sweep_g_zext
+     use fields_arrays, only: response_matrix
+#ifdef ISO_C_BINDING
+     use mp, only: sgproc0
+#endif
+     
+     implicit none
+
+     integer, intent(in) :: iky, ikx, iz, ie, idx, nz_ext, nresponse
+     complex, dimension(:), intent(out) :: phi_ext
+     complex, dimension(:, vmu_lo%llim_proc:), intent(out) :: pdf_ext
+
+     complex, dimension(:), allocatable :: dum
+     integer :: ivmu, it
+
+     ! provide a unit impulse to phi^{n+1} (or Delta phi^{n+1}) at the location
+     ! in the extended zed domain corresponding to index 'idx'
+     phi_ext = 0.0
+     ! how phi^{n+1} enters the GKE depends on whether we are solving for the
+     ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
+     if (use_h_for_parallel_streaming) then
+        phi_ext(idx) = 1.0
+     else
+        phi_ext(idx) = 0.5 * (1.0 + time_upwind)
+     end if
+
+     ! dum is a scratch array that takes the place of the pdf at the previous time level,
+     ! which is set to zero for the response matrix approach
+     allocate (dum(nz_ext)) ; dum = 0.0
+
+     ! set the flux tube index to one
+     ! need to check, but think this is okay as the homogeneous equation solved here for the
+     ! response matrix construction is the same for all flux tubes in the flux tube train
+     it = 1
+     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        ! calculate the RHS of the GK equation (using dum=0 as the pdf at the previous time level,
+        ! and phi_ext as the potential) and store it in pdf_ext
+        call get_gke_rhs_ext(ivmu, iky, ie, dum, phi_ext, pdf_ext(:, ivmu))
+        ! given the RHS of the GK equation (pdf_ext), solve for the pdf at the
+        ! new time level by sweeping in zed on the extended domain;
+        ! the rhs is input as 'pdfext' and over-written with the updated solution for the pdf
+        call sweep_g_zext(iky, ie, it, ivmu, pdf_ext(:, ivmu))
+     end do
+
+     deallocate (dum)
+
+     ! we now have the pdf on the extended zed domain at this ky and set of connected kx values
+     ! corresponding to a unit impulse in phi at this location
+     ! now integrate over velocities to get a square response matrix
+     ! (this ends the parallelization over velocity space, so every core should have a
+     ! copy of phi_ext)
+     call integrate_over_velocity(pdf_ext, phi_ext, iky, ie)
+
+#ifdef ISO_C_BINDING
+     if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, idx) = phi_ext(:nresponse)
+#else
+     response_matrix(iky)%eigen(ie)%zloc(:, idx) = phi_ext(:nresponse)
+#endif
+     
+   end subroutine get_dpdf_dphi_matrix_column
+   
    subroutine get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
 
       use stella_layouts, only: vmu_lo
@@ -495,8 +926,10 @@ contains
       use run_parameters, only: maxwellian_inside_zed_derivative
       use run_parameters, only: use_h_for_parallel_streaming
       use run_parameters, only: maxwellian_normalization
-      use parallel_streaming, only: stream_tridiagonal_solve, sweep_zed_zonal
+!      use run_parameters, only: drifts_implicit
+      use parallel_streaming, only: stream_tridiagonal_solve
       use parallel_streaming, only: stream_sign, center_zed
+      use implicit_solve, only: sweep_zed_zonal, sweep_g_zext
       use run_parameters, only: zed_upwind, time_upwind
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
@@ -512,11 +945,23 @@ contains
       integer :: izp, izm
       real :: mu_dbdzed_p, mu_dbdzed_m
       real :: fac, fac0, fac1, gyro_fac
+      real :: tupwnd_p, zupwnd_p, zupwnd_m
+      real :: constant_pre_factor
+      real :: stream_factor, wdrift_factor
       real, dimension(:), allocatable :: z_scratch
 
       ia = 1
       allocate (z_scratch(-nzgrid:nzgrid))
 
+      tupwnd_p = 0.5 * (1.0 + time_upwind)
+      zupwnd_p = 0.5 * (1.0 + zed_upwind)
+      zupwnd_m = 0.5 * (1.0 - zed_upwind)
+      ! this is a pre-factor multiplying all terms proportional to phi^{n+1};
+      ! it does not depend on z, vpa, mu or species so can be computed once
+      constant_pre_factor = code_dt * tupwnd_p
+
+      wdrift_factor = 0.0
+      
       if (.not. maxwellian_inside_zed_derivative) then
          ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -541,15 +986,28 @@ contains
             end if
 
             fac = -0.5 * (1.+time_upwind) * code_dt * vpa(iv) * spec(is)%stm_psi0 &
-                  * gyro_fac * spec(is)%zt / delzed(0)
+                 * gyro_fac * spec(is)%zt / delzed(0)
+!            stream_factor = gyro_fac * vpa(iv) * spec(is)%stm_psi0 * spec(is)%zt / delzed(0)
+!            if (drifts_implicit) then
+!               wdrift_factor = gyro_fac * (akx(ikx) * wdriftx_phi(ia, iz, ivmu) &
+!                    + aky(iky) * (wdrifty_phi(ia, iz, ivmu) + wstar(ia, iz, ivmu)))
+!               if (.not. maxwellian_normalization) then
+!                  wdrift_factor = wdrift_factor * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+!               end if
+!            end if
+            
+!            fac = -constant_pre_factor * stream_factor
             if (.not. maxwellian_normalization) fac = fac * maxwell_vpa(iv, is) * maxwell_fac(is)
 
             z_scratch = gradpar * fac
             if (.not. maxwellian_normalization) z_scratch = z_scratch * maxwell_mu(ia, :, imu, is)
-            call center_zed(iv, z_scratch)
+            call center_zed(iv, z_scratch, -nzgrid)
+
+!            -constant_pre_factor * (stream_factor + zi * wdrift_factor)
 
             ! stream_sign < 0 corresponds to positive advection speed
             if (stream_sign(iv) < 0) then
+!               fac0 = constant_pre_factor * (stream_factor + zi * zupwnd_p * wdrift_factor)
                if (iz > -nzgrid) then
                   ! fac0 is the factor multiplying delphi on the RHS
                   ! of the homogeneous GKE at this zed index
@@ -630,6 +1088,7 @@ contains
             else
                ! invert parallel streaming equation to get g^{n+1} on extended zed grid
                ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
+!               call sweep_g_zext(iky, ie, 1, ivmu, gext(:, ivmu))
                call stream_tridiagonal_solve(iky, ie, iv, is, gext(:, ivmu))
             end if
 
@@ -786,8 +1245,9 @@ contains
       use run_parameters, only: maxwellian_inside_zed_derivative
       use run_parameters, only: use_h_for_parallel_streaming
       use run_parameters, only: maxwellian_normalization
-      use parallel_streaming, only: stream_tridiagonal_solve, sweep_zed_zonal
-      use parallel_streaming, only: stream_sign, center_zed
+      use parallel_streaming, only: stream_tridiagonal_solve
+      use parallel_streaming, only: stream_sign
+      use implicit_solve, only: sweep_zed_zonal
       use run_parameters, only: zed_upwind, time_upwind
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
