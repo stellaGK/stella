@@ -13,7 +13,7 @@ module parallel_streaming
    public :: stream_rad_var2
    public :: center_zed, get_dzed
    public :: get_zed_derivative_extended_domain
-   
+
    private
 
    interface center_zed
@@ -834,22 +834,22 @@ contains
    end subroutine get_dzed
 
    subroutine get_zed_derivative_extended_domain(iv, gext, dgext_dz)
-     
-     use zgrid, only: delzed
-     use finite_differences, only: fd_cell_centres_zed
-     
-     implicit none
-     
-     integer, intent(in) :: iv
-     complex, dimension(:), intent(in) :: gext
-     complex, dimension(:), intent(out) :: dgext_dz
 
-     complex :: zero
+      use zgrid, only: delzed
+      use finite_differences, only: fd_cell_centres_zed
 
-     zero = 0.0
-     
-     call fd_cell_centres_zed(1, gext, delzed(0), stream_sign(iv), zero, zero, dgext_dz)
-     
+      implicit none
+
+      integer, intent(in) :: iv
+      complex, dimension(:), intent(in) :: gext
+      complex, dimension(:), intent(out) :: dgext_dz
+
+      complex :: zero
+
+      zero = 0.0
+
+      call fd_cell_centres_zed(1, gext, delzed(0), stream_sign(iv), zero, zero, dgext_dz)
+
    end subroutine get_zed_derivative_extended_domain
 
    subroutine center_zed_extended(iv, g)
@@ -909,7 +909,7 @@ contains
       integer :: ulim
 
       ulim = llim + size(f) - 1
-      
+
       if (stream_sign(iv) > 0) then
          f(:ulim - 1) = 0.5 * ((1.0 + zed_upwind) * f(:ulim - 1) + (1.0 - zed_upwind) * f(llim + 1:))
          f(ulim) = f(llim)
@@ -934,7 +934,7 @@ contains
 
       integer :: ulim
       real :: zupwnd_p, zupwnd_m
-      
+
       ulim = llim + size(f) - 1
 
       zupwnd_p = 0.5 * (1.0 + zed_upwind)
@@ -949,7 +949,7 @@ contains
          f(llim) = zupwnd_p * f(llim)
       end if
 
-    end subroutine center_zed_segment_complex
+   end subroutine center_zed_segment_complex
 
    subroutine center_zed_midpoint(iv, g)
 

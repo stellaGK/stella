@@ -17,7 +17,7 @@ module extended_zgrid
    public :: map_to_iz_ikx_from_izext
 
    private
-   
+
    !> these arrays needed to keep track of connections between different
    !> 2pi segments
    integer :: nzed_segment
@@ -210,9 +210,9 @@ contains
             allocate (iz_mid(nseg_max)); iz_mid = 0
             allocate (iz_up(nseg_max)); iz_up = nzgrid
          end if
-         
+
       else
-         
+
          neigen = nakx; neigen_max = nakx
 
          if (.not. allocated(ikx_shift_end)) then
@@ -363,7 +363,7 @@ contains
       end if
 
    end subroutine fill_zext_ghost_zones
-   
+
    subroutine map_to_extended_zgrid(it, ie, iky, g, gext, ulim)
 
       use zgrid, only: nzgrid
@@ -435,34 +435,34 @@ contains
 
    subroutine map_to_iz_ikx_from_izext(iky, ie, iz_from_izext, ikx_from_izext)
 
-     implicit none
+      implicit none
 
-     integer, intent(in) :: iky, ie
-     integer, dimension(:), intent(out) :: iz_from_izext, ikx_from_izext
-     
-     integer :: iseg
-     integer :: llim, ulim
-     integer :: izext
-     
-     iseg = 1
-     llim = 1 ; ulim = nzed_segment + 1
-     ikx_from_izext(llim:ulim) = ikxmod(iseg, ie, iky)
-     do izext = llim, ulim
-        iz_from_izext(izext) = izext - llim + iz_low(iseg)
-     end do
-     if (nsegments(ie, iky) > 1) then
-        do iseg = 2, nsegments(ie, iky)
-           llim = ulim + 1
-           ulim = llim + nzed_segment - 1
-           ikx_from_izext(llim:ulim) = ikxmod(iseg, ie, iky)
-           do izext = llim, ulim
-              iz_from_izext(izext) = izext - llim + iz_low(iseg) + 1
-           end do
-        end do
-     end if
-     
+      integer, intent(in) :: iky, ie
+      integer, dimension(:), intent(out) :: iz_from_izext, ikx_from_izext
+
+      integer :: iseg
+      integer :: llim, ulim
+      integer :: izext
+
+      iseg = 1
+      llim = 1; ulim = nzed_segment + 1
+      ikx_from_izext(llim:ulim) = ikxmod(iseg, ie, iky)
+      do izext = llim, ulim
+         iz_from_izext(izext) = izext - llim + iz_low(iseg)
+      end do
+      if (nsegments(ie, iky) > 1) then
+         do iseg = 2, nsegments(ie, iky)
+            llim = ulim + 1
+            ulim = llim + nzed_segment - 1
+            ikx_from_izext(llim:ulim) = ikxmod(iseg, ie, iky)
+            do izext = llim, ulim
+               iz_from_izext(izext) = izext - llim + iz_low(iseg) + 1
+            end do
+         end do
+      end if
+
    end subroutine map_to_iz_ikx_from_izext
-   
+
    subroutine finish_extended_zgrid
 
       implicit none

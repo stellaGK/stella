@@ -25,7 +25,7 @@ module run_parameters
    public :: maxwellian_normalization
    public :: use_extended_domain_for_implicit_solve
    public :: reuse_implicit_sweep_for_response_matrix
-   
+
    private
 
    real :: cfl_cushion, delt_adjust

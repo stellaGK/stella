@@ -237,11 +237,11 @@ contains
                   do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                      idx = idx + 1
 !                    call get_dpdf_dphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-                    if (use_h_for_parallel_streaming) then
-                       call get_dhdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-                    else
-                       call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-                    end if
+                     if (use_h_for_parallel_streaming) then
+                        call get_dhdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+                     else
+                        call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+                     end if
                   end do
                   if (izl_offset == 0) izl_offset = 1
                end do
@@ -845,70 +845,70 @@ contains
 
    subroutine get_dpdf_dphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phi_ext, pdf_ext)
 
-     use stella_layouts, only: vmu_lo
-     use run_parameters, only: time_upwind
-     use run_parameters, only: use_h_for_parallel_streaming
-     use implicit_solve, only: get_gke_rhs_ext, sweep_g_zext
-     use fields_arrays, only: response_matrix
+      use stella_layouts, only: vmu_lo
+      use run_parameters, only: time_upwind
+      use run_parameters, only: use_h_for_parallel_streaming
+      use implicit_solve, only: get_gke_rhs_ext, sweep_g_zext
+      use fields_arrays, only: response_matrix
 #ifdef ISO_C_BINDING
-     use mp, only: sgproc0
+      use mp, only: sgproc0
 #endif
-     
-     implicit none
 
-     integer, intent(in) :: iky, ikx, iz, ie, idx, nz_ext, nresponse
-     complex, dimension(:), intent(out) :: phi_ext
-     complex, dimension(:, vmu_lo%llim_proc:), intent(out) :: pdf_ext
+      implicit none
 
-     complex, dimension(:), allocatable :: dum
-     integer :: ivmu, it
+      integer, intent(in) :: iky, ikx, iz, ie, idx, nz_ext, nresponse
+      complex, dimension(:), intent(out) :: phi_ext
+      complex, dimension(:, vmu_lo%llim_proc:), intent(out) :: pdf_ext
 
-     ! provide a unit impulse to phi^{n+1} (or Delta phi^{n+1}) at the location
-     ! in the extended zed domain corresponding to index 'idx'
-     phi_ext = 0.0
-     ! how phi^{n+1} enters the GKE depends on whether we are solving for the
-     ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
-     if (use_h_for_parallel_streaming) then
-        phi_ext(idx) = 1.0
-     else
-        phi_ext(idx) = 0.5 * (1.0 + time_upwind)
-     end if
+      complex, dimension(:), allocatable :: dum
+      integer :: ivmu, it
 
-     ! dum is a scratch array that takes the place of the pdf at the previous time level,
-     ! which is set to zero for the response matrix approach
-     allocate (dum(nz_ext)) ; dum = 0.0
+      ! provide a unit impulse to phi^{n+1} (or Delta phi^{n+1}) at the location
+      ! in the extended zed domain corresponding to index 'idx'
+      phi_ext = 0.0
+      ! how phi^{n+1} enters the GKE depends on whether we are solving for the
+      ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
+      if (use_h_for_parallel_streaming) then
+         phi_ext(idx) = 1.0
+      else
+         phi_ext(idx) = 0.5 * (1.0 + time_upwind)
+      end if
 
-     ! set the flux tube index to one
-     ! need to check, but think this is okay as the homogeneous equation solved here for the
-     ! response matrix construction is the same for all flux tubes in the flux tube train
-     it = 1
-     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-        ! calculate the RHS of the GK equation (using dum=0 as the pdf at the previous time level,
-        ! and phi_ext as the potential) and store it in pdf_ext
-        call get_gke_rhs_ext(ivmu, iky, ie, dum, phi_ext, pdf_ext(:, ivmu))
-        ! given the RHS of the GK equation (pdf_ext), solve for the pdf at the
-        ! new time level by sweeping in zed on the extended domain;
-        ! the rhs is input as 'pdfext' and over-written with the updated solution for the pdf
-        call sweep_g_zext(iky, ie, it, ivmu, pdf_ext(:, ivmu))
-     end do
+      ! dum is a scratch array that takes the place of the pdf at the previous time level,
+      ! which is set to zero for the response matrix approach
+      allocate (dum(nz_ext)); dum = 0.0
 
-     deallocate (dum)
+      ! set the flux tube index to one
+      ! need to check, but think this is okay as the homogeneous equation solved here for the
+      ! response matrix construction is the same for all flux tubes in the flux tube train
+      it = 1
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         ! calculate the RHS of the GK equation (using dum=0 as the pdf at the previous time level,
+         ! and phi_ext as the potential) and store it in pdf_ext
+         call get_gke_rhs_ext(ivmu, iky, ie, dum, phi_ext, pdf_ext(:, ivmu))
+         ! given the RHS of the GK equation (pdf_ext), solve for the pdf at the
+         ! new time level by sweeping in zed on the extended domain;
+         ! the rhs is input as 'pdfext' and over-written with the updated solution for the pdf
+         call sweep_g_zext(iky, ie, it, ivmu, pdf_ext(:, ivmu))
+      end do
 
-     ! we now have the pdf on the extended zed domain at this ky and set of connected kx values
-     ! corresponding to a unit impulse in phi at this location
-     ! now integrate over velocities to get a square response matrix
-     ! (this ends the parallelization over velocity space, so every core should have a
-     ! copy of phi_ext)
-     call integrate_over_velocity(pdf_ext, phi_ext, iky, ie)
+      deallocate (dum)
+
+      ! we now have the pdf on the extended zed domain at this ky and set of connected kx values
+      ! corresponding to a unit impulse in phi at this location
+      ! now integrate over velocities to get a square response matrix
+      ! (this ends the parallelization over velocity space, so every core should have a
+      ! copy of phi_ext)
+      call integrate_over_velocity(pdf_ext, phi_ext, iky, ie)
 
 #ifdef ISO_C_BINDING
-     if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, idx) = phi_ext(:nresponse)
+      if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, idx) = phi_ext(:nresponse)
 #else
-     response_matrix(iky)%eigen(ie)%zloc(:, idx) = phi_ext(:nresponse)
+      response_matrix(iky)%eigen(ie)%zloc(:, idx) = phi_ext(:nresponse)
 #endif
-     
+
    end subroutine get_dpdf_dphi_matrix_column
-   
+
    subroutine get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
 
       use stella_layouts, only: vmu_lo
@@ -961,7 +961,7 @@ contains
       constant_pre_factor = code_dt * tupwnd_p
 
       wdrift_factor = 0.0
-      
+
       if (.not. maxwellian_inside_zed_derivative) then
          ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -986,7 +986,7 @@ contains
             end if
 
             fac = -0.5 * (1.+time_upwind) * code_dt * vpa(iv) * spec(is)%stm_psi0 &
-                 * gyro_fac * spec(is)%zt / delzed(0)
+                  * gyro_fac * spec(is)%zt / delzed(0)
 !            stream_factor = gyro_fac * vpa(iv) * spec(is)%stm_psi0 * spec(is)%zt / delzed(0)
 !            if (drifts_implicit) then
 !               wdrift_factor = gyro_fac * (akx(ikx) * wdriftx_phi(ia, iz, ivmu) &
@@ -995,7 +995,7 @@ contains
 !                  wdrift_factor = wdrift_factor * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
 !               end if
 !            end if
-            
+
 !            fac = -constant_pre_factor * stream_factor
             if (.not. maxwellian_normalization) fac = fac * maxwell_vpa(iv, is) * maxwell_fac(is)
 
