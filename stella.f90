@@ -566,7 +566,7 @@ contains
       use multibox, only: finish_multibox, time_multibox
       use run_parameters, only: stream_implicit, driftkinetic_implicit, drifts_implicit
       use implicit_solve, only: time_implicit_advance
-      
+
       implicit none
 
       logical, intent(in), optional :: last_call

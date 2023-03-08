@@ -2573,7 +2573,7 @@ contains
       use flow_shear, only: advance_perp_flow_shear
       use multibox, only: RK_step
       use run_parameters, only: use_extended_domain_for_implicit_solve
-      
+
       implicit none
 
       integer, intent(in) :: istep
