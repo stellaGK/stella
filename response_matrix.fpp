@@ -1075,7 +1075,7 @@ contains
                      gext(nz_ext, ivmu) = -fac0 / phase_shift(iky)
                      gext(nz_ext - 1, ivmu) = fac1 / phase_shift(iky)
                      !                     gext(nz_ext - 1, ivmu) = fac1 * phase_shift(iky)
-                     
+
                   else if (idx == 2) then
                      gext(nz_ext, ivmu) = fac1 / phase_shift(iky)
                      !                     gext(nz_ext, ivmu) = fac1 * phase_shift(iky)
