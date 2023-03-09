@@ -35,6 +35,14 @@ standardParameters["nfield"] = {"knob" : "vmec_parameters",         "key" : "nfi
 standardParameters["pol.turns"] = {"knob" : "vmec_parameters",      "key" : "poloidal_turns"}
 standardParameters["nperiod"]= {"knob" : "zgrid_parameters",        "key" : "nperiod"}
 standardParameters["D_hyper"]= {"knob" : "dissipation",             "key" : "D_hyper"}
+standardParameters["alpha0"] = {"knob" : "vmec_parameters",         "key" : "alpha0"}
+standardParameters["tri"]    = {"knob" : "millergeo_parameters",    "key" : "tri"}
+standardParameters["kappa"]  = {"knob" : "millergeo_parameters",    "key" : "kappa"}
+standardParameters["d_hyper"]= {"knob" : "hyper",                   "key" : "d_hyper"}
+standardParameters["explicit_option"]= {"knob" : "time_advance_knobs", "key" : "explicit_option"}
+standardParameters["cfl_cushion"] = {"knob" : "knobs",              "key" : "cfl_cushion"}
+standardParameters["cfl_cushion_upper"] = {"knob" : "knobs",        "key" : "cfl_cushion_upper"}
+standardParameters["cfl_cushion_lower"] = {"knob" : "knobs",        "key" : "cfl_cushion_lower"}
 standardParameters["-"]      = {"knob" : "-",                       "key" : "-"}
 standardParameters["-----"]  = {"knob" : "-",                       "key" : "-"} 
 

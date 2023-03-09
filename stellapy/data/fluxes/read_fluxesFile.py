@@ -4,7 +4,7 @@ import numpy as np
 from datetime import datetime
 from stellapy.data.utils import Data
 from stellapy.utils.decorators.exit_program import exit_program
-from stellapy.GUI.widgets.Progress import show_progressWhenReadingFiles
+from stellapy.data.utils.show_progressWhenReadingFiles import show_progressWhenReadingFiles
  
 #===============================================================================
 #                             READ THE FLUXES FILE
@@ -30,7 +30,7 @@ def read_fluxesFile(path, dim_species, sign_B, fluxes={}):
         exit_reason += "    "+str(path.fluxes_stella)
         exit_program(exit_reason, read_fluxesFile, sys._getframe().f_lineno)  
 
-    # Store the data {time, qflux, pflux, vflux} in a dictionary 
+    # Store the data {time, qflux, pflux, vflux} in a dictionary  
     fluxes['time'] = flux_data[:,0]   
     for specie in range(dim_species): 
         fluxes['pflux_'+str(specie)] = flux_data[:,0*dim_species+specie+1]*sign_B
@@ -68,7 +68,7 @@ def get_fluxes(self):
         qflux_vs_ts[:,i] = fluxes['qflux_'+str(i)][:]
         vflux_vs_ts[:,i] = fluxes['vflux_'+str(i)][:] 
 
-    # Save the data
+    # Save the data 
     self.pflux_vs_ts = Data(["pflux", "t", "s"], pflux_vs_ts, vec_time, range(self.dim.species))
     self.qflux_vs_ts = Data(["qflux", "t", "s"], qflux_vs_ts, self.pflux_vs_ts.t, range(self.dim.species))
     self.vflux_vs_ts = Data(["vflux", "t", "s"], vflux_vs_ts, self.pflux_vs_ts.t, range(self.dim.species)) 

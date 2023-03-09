@@ -4,10 +4,9 @@ from itertools import takewhile
 from stellapy.simulations.Simulation import create_simulations
 from stellapy.utils.files.sort_listByNumbers import sort_listByNumbers
 from stellapy.utils.commandprompt.print_progressbar import print_progressbar
-from stellapy.plot.utils.style.get_styleForLinesAndMarkers import load_labelsLinesMarkers
 from stellapy.simulations.utils.get_differenceInDictionaries import get_differenceInDictionaries 
-from stellapy.plot.utils.labels.change_stellaParametersForLabels import change_stellaParametersForLabels
 from stellapy.simulations.utils.calculate_attributeWhenReadFirstTime import calculate_attributeWhenReadFirstTime
+from stellapy.data.input.read_inputFile import read_inputParameters
 
 ################################################################################
 #                             CREATE EXPERIMENTS                               #
@@ -20,9 +19,18 @@ def create_experiments(folders, input_files, creationDetails):
     is defined by its unique VMEC, while we have multiple simulations for each shot, 
     which correspond to the different radial position. '''
     
-    # First create the simulations 
-    simulations = create_simulations(folders, input_files, creationDetails.ignoreResolution, creationDetails.variables, creationDetails.folderIsExperiment, progress_start=creationDetails.progress_start, progress_stop=creationDetails.progress_stop1)
- 
+    # First create the simulations   
+    simulations = create_simulations(folders, input_files, creationDetails.ignore_resolution, creationDetails.include_knobs) 
+    
+    # Put all simulations into the same experiment
+    if creationDetails.folderIsSimulation:
+        experiment = Experiment(simulations[0])
+        for simulation in simulations[1:]:
+            experiment.simulations.append(simulation) 
+            experiment.variedVariables.append("vmec_parameter: torflux")
+            experiment.variedValues.append(simulation.input_file.name) 
+        experiments = [experiment]
+    
     # Create the experiments based on how many varied values there are
     if not creationDetails.resolutionScan: 
         experiments = create_experimentsBasedOnVariedValuesOrKnobKey(simulations, creationDetails) 
@@ -41,6 +49,11 @@ def create_experiments(folders, input_files, creationDetails):
         sort_listByNumbers(experiment, source="variedValues")   
         experiment.set_labelsLinesMarkers()   
         
+    # Make sure the input parameters are loaded
+    for experiment in experiments: 
+        for simulation in simulations:
+            simulation.input_parameters = simulation.inputParameters = read_inputParameters(simulation.path.input)     
+        
     # Return the experiments
     return experiments
 
@@ -58,6 +71,7 @@ def create_experimentsBasedOnVariedValuesOrKnobKey(simulations, creationDetails)
     knob1 = creationDetails.knob1 
     knob2 = creationDetails.knob2
     knob3 = creationDetails.knob3 
+    ignore_resolution = creationDetails.ignore_resolution
     folderIsExperiment = creationDetails.folderIsExperiment
     number_variedVariables = creationDetails.variables 
     
@@ -77,7 +91,7 @@ def create_experimentsBasedOnVariedValuesOrKnobKey(simulations, creationDetails)
             if not (folderIsExperiment==True and simulation.path.input.parent != experiment.simulations[0].path.input.parent):
                  
                 # Look at the difference in the input parameters of the experiment and the simulation
-                dict_difference, numberOfDifferences = get_differenceInDictionaries(experiment.inputParameters, simulation.inputParameters)
+                dict_difference, numberOfDifferences = get_differenceInDictionaries(experiment.inputParameters, simulation.inputParameters, ignore_resolution)
                 
                 # Sometimes we rerun the exact same simulation with different modes: we have the same experiment
                 # However if we want this simulation to be a new simulation, force this with number_variedValues=-1
@@ -151,6 +165,9 @@ def create_experimentsBasedOnVariedValuesOrKnobKey(simulations, creationDetails)
 
 #--------------------------------------------- 
 def create_listOfVariedValues(experiments, knob1, key1, knob2, key2, variedVariables=[]):
+    
+    # Prevent the loading of the plotting module if we don't need it
+    from stellapy.plot.utils.labels.change_stellaParametersForLabels import change_stellaParametersForLabels
 
     # If experiment.variedVariables==[], try to take the value of the other experiments 
     for experiment in experiments: 
@@ -198,8 +215,7 @@ def create_listOfVariedValues(experiments, knob1, key1, knob2, key2, variedVaria
                           
             # If nothing was different because we only have one experiment, use the radial position as the label 
             if varied_values==[]: 
-                if simulation.linear: varied_values = ["$\\rho$" + "$\,=\,$" +  str(simulation.modes[0].input.rho)] 
-                if simulation.nonlinear: varied_values = ["$\\rho$" + "$\,=\,$" +  str(simulation.input.rho)] 
+                varied_values = ["$\\rho$" + "$\,=\,$" +  str(simulation.input.rho)] 
              
             # Sort the varied values and then join them in a string 
             varied_values.sort()
@@ -377,15 +393,18 @@ class Experiment:
 #=============================================================================== 
 
     def set_labelsLinesMarkers(self, line_label=None, marker_label=None, line_style=None, line_color=None, marker_style=None, marker_color=None):
-        
+    
+        # Prevent the loading of the plotting module if we don't need it
+        from stellapy.plot.utils.style.get_styleForLinesAndMarkers import load_labelsLinesMarkers
+
         # If the styles are given, save them 
-        if line_label is not None:
+        if line_label is not None: 
             self.line_label   = line_label[self.id]
             self.marker_label = marker_label[self.id]
             self.line_style   = line_style[self.id]
             self.line_color   = line_color[self.id]
             self.marker_style = marker_style[self.id]
-            self.marker_color = marker_color[self.id] 
+            self.marker_color = marker_color[self.id]  
         
         # Otherise load some basic styles
         else: 
@@ -399,7 +418,7 @@ class Experiment:
 
         # Change the lines/markers of the underlying simulation objects based on self.variedValues
         for simulation in self.simulations:
-            variedValue = self.variedValues[self.simulations.index(simulation)] 
+            variedValue = self.variedValues[self.simulations.index(simulation)]   
             simulation.set_labelsLinesMarkers(line_label[variedValue], marker_label[variedValue], line_style[variedValue], \
                                               line_color[variedValue], marker_style[variedValue], marker_color[variedValue]) 
         

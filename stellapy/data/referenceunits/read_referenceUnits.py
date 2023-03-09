@@ -1,13 +1,11 @@
 
 import numpy as np
 import scipy.constants as sc
-from stellapy.utils.decorators import verbose
 
 #===========================
 # GET THE REFERENCE UNITS
 #===========================
 
-@verbose  
 def read_referenceUnits(inputParameters, ref_a, ref_B, prof_n, prof_T, nspec, verbose=False):
     ''' Return the reference values used to normalize all the stella data.
     

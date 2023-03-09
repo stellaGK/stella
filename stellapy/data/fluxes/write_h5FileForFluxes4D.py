@@ -149,8 +149,7 @@ def read_fluxes4D(dt, netcdf_file, input_file, z_dimension):
         
         # Read the geometry data in the output file
         vmec_filename = read_vmecFileNameFromInputFile(input_file)
-        nonlinear = read_linearNonlinearFromInputFile(input_file)[1]
-        path = create_dummyPathObject(input_file, vmec_filename, nonlinear)
+        path = create_dummyPathObject(input_file, vmec_filename)
         geometry = read_outputFileForGeometry(path)  
         dl_over_B = geometry["dl_over_B"]  
         

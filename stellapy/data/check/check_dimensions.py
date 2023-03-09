@@ -4,8 +4,8 @@ import netCDF4 as nc4
 import sys, os, pathlib, copy 
 
 # Stellapy package
-sys.path.append(os.path.dirname(os.path.abspath(__file__)).split("stellapy/")[0])
-from stellapy.data.dimensions.get_dimensionsAndVectors import read_dimensionsFromNcFile
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)
+from stellapy.data.dimensions.read_dimensionsAndVectors import read_dimensionsFromNcFile
 from stellapy.utils.decorators.verbose import indent
 from stellapy.utils.files import get_filesInFolder
 if __name__ == "__main__":
@@ -59,14 +59,14 @@ if __name__ == "__main__":
                         Lx = np.max(vec_kx)
                         dkx = np.min(vec_kx) 
                         step = "dkx ="+str("{:9.5f}".format(dkx))
-                        max = "Lx ="+str("{:6.2f}".format(Lx)) 
+                        max = "Lkx ="+str("{:6.2f}".format(Lx)) 
                     if variable=="vec_ky": 
                         vec_ky = copy.deepcopy(np.copy(dimensions[variable]))
                         vec_ky = np.abs(vec_ky[np.nonzero(vec_ky)])
                         Ly = np.max(vec_ky)
                         dky = np.min(vec_ky) 
                         step = "dky ="+str("{:9.5f}".format(dky))
-                        max = "Ly ="+str("{:6.2f}".format(Ly))  
+                        max = "Lky ="+str("{:6.2f}".format(Ly))  
                     print(indent, '  ', '{0:17}'.format(variable+':'), '{0:10}'.format(length), '{0:60}'.format(value), '{0:16}'.format(max), '{0:16}'.format(step))
                 print()
                 
@@ -102,7 +102,7 @@ if __name__ == "__main__":
                             vec_kx = np.abs(vec_kx[np.nonzero(vec_kx)])
                             Lx = np.max(vec_kx)
                             dkx = np.min(vec_kx) 
-                            value = value + "   dkx ="+str("{:9.5f}".format(dkx)) + "   Lx ="+str("{:9.5f}".format(Lx))
+                            value = value + "   dkx ="+str("{:9.5f}".format(dkx)) + "   Lkx ="+str("{:9.5f}".format(Lx))
                         except: pass
                     if variable=="ky" or variable=="vec_ky":
                         try:
@@ -110,7 +110,7 @@ if __name__ == "__main__":
                             vec_ky = np.abs(vec_ky[np.nonzero(vec_ky)])
                             Ly = np.max(vec_ky)
                             dky = np.min(vec_ky) 
-                            value = value + "   dky ="+str("{:9.5f}".format(dky)) + "   Ly ="+str("{:9.5f}".format(Ly))
+                            value = value + "   dky ="+str("{:9.5f}".format(dky)) + "   Lky ="+str("{:9.5f}".format(Ly))
                         except: pass
                          
                     # Print the dimensions
