@@ -25,7 +25,7 @@ For questions or bugs you can email Hanne.Thienpondt@outlook.com.
 #                                     Notes                                    #
 #===============================================================================
 - EXPORT commands are used, hence it is important to work in bash.
-- It is crucial that the folder is named "stellapy".
+- Make sure that stellapy/source.sh and stellapy/stellapy.ini are filled in.
 - Before plotting, use "write_dataFiles" to make sure all files are present. 
 
 
@@ -33,19 +33,24 @@ For questions or bugs you can email Hanne.Thienpondt@outlook.com.
 #                       Stellapy installation on local PC                      #
 #===============================================================================
 
-1a. Edit the "stellapy/stellapy.ini" and the "stellapy/source.sh" files, make 
-sure all paths are set correctly, when updating stellapy in the future, do not
-overwrite these files. These two files are unique for each user, it would be wise
-to make a back-up of them in case they are accidently overwritten in the future.
-When installing stellapy on a supercomputer, these files need to be editted again.
+1a. Rename "source_template.sh" to "source.sh" and rename "stellapy_template.ini"
+to "stellapy.ini", this is to prevent these files to be overwritten in future git
+pulls. Edit the "stellapy.ini" and the "source.sh" files: fill in the mandatory
+fields and uncomment the desired commands and options. When installing stellapy 
+on a supercomputer, these files need to be filled in again, and they are different 
+on the local pc, make sure to not overwrite them.
 
 1b. To your ~/.bashrc file, add the following line:
         source ~/.alias 
 
 1c. To your ~/.alias file, add the following line:
         source /home/user/STELLA/stella/stellapy/source.sh
+        
+1d. Source (load) the .alias file in the command prompt.
+		>> source ~/.alias 
 
-1d. The stellapy diagnostics package should now be installed.
+1e. The stellapy diagnostics package should now be installed. If python errors 
+show up, follow the Python installation guide (3a-3e).
     - An overview of the bash commands is given through >>> stellapy
     - The GUI can be opened through >>> stellaplotter
     - The stellapy package is automatically loaded >>> python3
@@ -108,6 +113,7 @@ Next, it is required to install a virtual python environment through:
     >>> pip3 install netCDF4
     >>> pip3 install screeninfo
     >>> pip3 install babel 
+    >>> pip3 install f90nml
     
 3d. If you get the error "no module named '_tkinter'" then try
     >>> sudo apt-get install python3-tk
@@ -135,9 +141,27 @@ Next, it is required to install a virtual python environment through:
     Categories=Application
     StartupNotify=true
 
-4B. The errors and outputs from the GUI are printed to "stellapy/GUI/stella_GUI.log".
+4b. The errors and outputs from the GUI are printed to "stellapy/GUI/stella_GUI.log".
 Alternatively, the GUI can be executed from the command prompt through:
     >>> stellaplotter
     >>> stellaplotter_linear           
-    >>> stellaplotter_nonlinear     
+    >>> stellaplotter_nonlinear  
 
+
+#===============================================================================
+#                                   Eclipse                                    #
+#===============================================================================
+
+5a. The recommended python editor is Eclipse PyDev. 
+
+5b. TODO: Can someone add an installation guide?
+
+5c. Make the $STELLAPY environment variable visible to the PyDev interpreter
+        - Go to "Window" --> "Preferences" --> "PyDev" --> "Interpreters" --> "Python Interpreter"
+        - In the bottom window go to the "Environment" tab and add the $STELLAPY variable.
+
+
+
+
+
+   
