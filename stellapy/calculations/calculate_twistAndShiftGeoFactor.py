@@ -21,11 +21,12 @@ Hanne Thienpondt
 
 #!/usr/bin/python3 
 import os, sys 
+import pathlib
 import numpy as np 
 from scipy.interpolate import interp1d
 
 # Stellapy package
-sys.path.append(os.path.dirname(os.path.abspath(__file__)).split("stellapy/")[0]) 
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep) 
 from stellapy.data.geometry.calculate_geometricQuantities import calculate_geometricQuantities  
  
 #===============================================================================
@@ -35,7 +36,7 @@ from stellapy.data.geometry.calculate_geometricQuantities import calculate_geome
 def calculate_twistAndShiftGeoFactor(
         vmec_path=None,\
         poloidal_turns=None,\
-        nfield_periods=9.47408308356441,\
+        nfield_periods=None,\
         nzed=128,\
         rho=0.25,\
         verbose=True): 
@@ -87,6 +88,7 @@ def print_placesWhereTwistAndShiftEqualsZeroAndOne(zeta, twist_and_shift_geo_fac
     print('                     ======================\n ') 
     print("{0:>30}".format("nfield_periods"), " ", "{0:<10}".format(nfield_periods))
     print("{0:>30}".format("poloidal_turns"), " ", "{0:<10}".format(poloidal_turns))
+    print("{0:>30}".format("twist and shift at edge"), " ", "{0:<10}".format(twist_and_shift_geo_factor[-1]))
     print()
     print('                     ====================== ')
     print('                           Crossing Zero     ')
@@ -115,14 +117,16 @@ def print_placesWhereTwistAndShiftEqualsZeroAndOne(zeta, twist_and_shift_geo_fac
     for idx in idx_one:
         if zeta_new[idx]>=0:
             print("{0:>30}".format("nfield_periods: "), " ", "{0:<10}".format(zeta_new[idx]/zeta_new[-1]*nfield_periods))  
-    print()
-    print('                     ====================== ')
-    print('                     Maximum outside 1 turn     ')
-    print('                     ======================\n ') 
-    factor_outside = factor_new[zeta_new>zeta_right_oneturn]
-    zeta_outside = zeta_new[zeta_new>zeta_right_oneturn]
-    print("{0:>30}".format("zeta: "), " ", "{0:<10}".format(zeta_outside[np.argmax(np.abs(factor_outside))]))  
-    print("{0:>30}".format("nfield_periods: "), " ", "{0:<10}".format(zeta_outside[np.argmax(np.abs(factor_outside))]/zeta_new[-1]*nfield_periods))  
+    try:
+        print()
+        print('                     ====================== ')
+        print('                     Maximum outside 1 turn     ')
+        print('                     ======================\n ') 
+        factor_outside = factor_new[zeta_new>zeta_right_oneturn]
+        zeta_outside = zeta_new[zeta_new>zeta_right_oneturn]
+        print("{0:>30}".format("zeta: "), " ", "{0:<10}".format(zeta_outside[np.argmax(np.abs(factor_outside))]))  
+        print("{0:>30}".format("nfield_periods: "), " ", "{0:<10}".format(zeta_outside[np.argmax(np.abs(factor_outside))]/zeta_new[-1]*nfield_periods))  
+    except: pass
     return
  
 #===============================================================================

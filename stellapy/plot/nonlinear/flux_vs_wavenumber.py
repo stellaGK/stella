@@ -16,69 +16,86 @@ Choose between {kx, ky}.
 
 y_quantity
 ----------
-Choose between {qflux, pflux, vflux, phi2}.
-    >> plot_flux_spectra --qflux (or --pflux or --vflux or --phi2) 
+Choose between {qflux, pflux, vflux}.
+    >> plot_flux_spectra --qflux (or --pflux or --vflux) 
     
 folderIsExperiment
 ------------------
 To ignore the automatic sorting of experiment and simulation, you can force stellapy
 to create an <experiment> for each <subfolder>, the folder name will be the label
-    >> plot_flux_vs_ky -f (or --folderIsExperiment) 
+    >> plot_qflux_spectra -f (or --folderIsExperiment) 
 
 Hanne Thienpondt 
-07/09/2022
+15/12/2022
 
 """
 
 #!/usr/bin/python3  
 import sys, os
+import pathlib
 import numpy as np
 import matplotlib as mpl 
 import matplotlib.pyplot as plt 
 import matplotlib.gridspec as gridspec
 
 # Personal modules
-sys.path.append(os.path.dirname(os.path.abspath(__file__)).split("stellapy/")[0])   
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)   
 from stellapy.plot.utils.style.get_styleForLinesAndMarkers import get_styleForLinesAndMarkers
 from stellapy.plot.utils.labels.get_timeFrameString import get_timeFrameString
 from stellapy.plot.utils.species.recognize_species import recognize_species
 from stellapy.plot.utils.style.create_figure import update_figure_style
 from stellapy.plot.utils.labels.standardLabels import standardLabels  
+from stellapy.utils.decorators.exit_program import exit_program
 from stellapy.simulations.Research import create_research   
-from stellapy.GUI.plot.utils import Axis, Legend, Plot 
+from stellapy.plot.utils.style import Axis, Legend, Plot 
 from stellapy.utils.commandprompt.bash import Bash 
 
 #===============================================================================
 #               Plot flux_s(ky) and flux_s(kx) for each species s              #
 #===============================================================================
 
-def plot_flux_vs_wavenumber_both(folder, y_quantity="qflux", log=False, folderIsExperiment=False, normalize_to_one=False): 
+def plot_flux_vs_wavenumber(
+        folder, 
+        # Quantities to be plotted
+        x_quantity="both",
+        y_quantity="qflux", 
+        specie=None, 
+        # Plotting options
+        log=False, 
+        folderIsExperiment=False, 
+        normalize_to_one=False, ): 
     
     # Create a <research> based on the given <folder>
     try: research = create_research(folders=folder, folderIsExperiment=folderIsExperiment)
     except: research = create_research(folders=folder, folderIsExperiment=True)
     simulation = research.experiments[0].simulations[0]
     
+    # Get the species and the x-quantity
+    nspec = simulation.input.nspec if specie==None else 1
+    species = range(simulation.input.nspec) if specie==None else [specie]
+    nk = 2 if x_quantity=="both" else 1
+    x1_quantity = "kx" if x_quantity=="both" else x_quantity
+    
     # Create a figure
     if y_quantity=="qflux": title = "Heat flux spectra"
     if y_quantity=="pflux": title = "Particle flux spectra"
     if y_quantity=="vflux": title = "Momentum flux spectra"
-    if y_quantity=="phi2":  title = "Potential squared spectra"
     fig = plt.figure(figsize=(18, 9)); axes = []
-    grid_specifications = gridspec.GridSpec(2, simulation.input.nspec)
-    if simulation.input.nspec==2: grid_specifications.update(top=0.93, left=0.08, right=0.97, bottom=0.1, wspace=0.2, hspace=0.3)
-    if simulation.input.nspec==3: grid_specifications.update(top=0.92, left=0.08, right=0.97, bottom=0.1, wspace=0.3, hspace=0.3)
-    for i in range(simulation.input.nspec*2): axes.append(plt.subplot(grid_specifications[i]))
+    grid_specifications = gridspec.GridSpec(nk, nspec)
+    if nspec==1: grid_specifications.update(top=0.93, left=0.08, right=0.97, bottom=0.1, wspace=0.2, hspace=0.3)
+    if nspec==2: grid_specifications.update(top=0.93, left=0.08, right=0.97, bottom=0.1, wspace=0.2, hspace=0.3)
+    if nspec==3: grid_specifications.update(top=0.92, left=0.08, right=0.97, bottom=0.1, wspace=0.3, hspace=0.3)
+    for i in range(nspec*nk): axes.append(plt.subplot(grid_specifications[i]))
     update_figure_style(fig, axes)  
     fig.suptitle(title)
     
     # Add the data to the plot
-    for i in range(simulation.input.nspec):
-        subplot_flux_vs_wavenumber(axes[i], research, "kx", y_quantity, specie=i, log=log, normalize_to_one=normalize_to_one)
-        subplot_flux_vs_wavenumber(axes[i+simulation.input.nspec], research, "ky", y_quantity, specie=i, log=log, normalize_to_one=normalize_to_one)
+    for i, specie in enumerate(species):
+        subplot_flux_vs_wavenumber(axes[i], research, x1_quantity, y_quantity, specie=specie, log=log, normalize_to_one=normalize_to_one)
+        if nk==2: subplot_flux_vs_wavenumber(axes[i+nspec], research, "ky", y_quantity, specie=specie, log=log, normalize_to_one=normalize_to_one)
     
     # Appearance  
-    for ax in axes: ax.ticklabel_format(style='plain', useOffset=False) if (axes[0].get_ylim()[1]<1000) else ax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
+    for ax in axes: (ax.ticklabel_format(style='plain', useOffset=False) if (axes[0].get_ylim()[1]<1000) else ax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))) if not log else ""
     for ax in axes: ax.xaxis.labelpad = 10
     for ax in axes: ax.yaxis.labelpad = 15
     
@@ -88,55 +105,32 @@ def plot_flux_vs_wavenumber_both(folder, y_quantity="qflux", log=False, folderIs
     return
 
 #===============================================================================
-#                Plot flux_s(ky) or flux_s(kx) for each species s              #
-#===============================================================================
-
-def plot_flux_vs_wavenumber(folder, x_quantity="ky", y_quantity="qflux", log=False, folderIsExperiment=False, normalize_to_one=False): 
-    
-    # Create a <research> based on the given <folder>
-    try: research = create_research(folders=folder, folderIsExperiment=folderIsExperiment)
-    except: research = create_research(folders=folder, folderIsExperiment=True)
-    simulation = research.experiments[0].simulations[0]
-    
-    # Create a figure
-    if y_quantity=="qflux": title = "Heat flux spectra"
-    if y_quantity=="pflux": title = "Particle flux spectra"
-    if y_quantity=="vflux": title = "Momentum flux spectra"
-    if y_quantity=="phi2":  title = "Potential squared spectra"
-    fig = plt.figure(figsize=(18, 9)); axes = []
-    grid_specifications = gridspec.GridSpec(1, simulation.input.nspec)
-    if simulation.input.nspec==2: grid_specifications.update(top=0.93, left=0.08, right=0.97, bottom=0.1, wspace=0.2, hspace=0.3)
-    if simulation.input.nspec==3: grid_specifications.update(top=0.92, left=0.08, right=0.97, bottom=0.1, wspace=0.3, hspace=0.3)
-    for i in range(simulation.input.nspec): axes.append(plt.subplot(grid_specifications[i]))
-    update_figure_style(fig, axes)  
-    fig.suptitle(title)
-    
-    # Add the data to the plot
-    for i in range(simulation.input.nspec):
-        subplot_flux_vs_wavenumber(axes[i], research, x_quantity, y_quantity, specie=i, log=log, normalize_to_one=normalize_to_one)
-    
-    # Appearance
-    for ax in axes: ax.ticklabel_format(style='plain', useOffset=False) 
-    for ax in axes: ax.xaxis.labelpad = 10
-    for ax in axes: ax.yaxis.labelpad = 15
-    
-    # Show the figure 
-    mpl.rcParams["savefig.directory"] = folder
-    plt.show()
-    return 
-
-#===============================================================================
 #                  Plot flux_s(ky) or flux_s(kx) for a specie s                #
 #===============================================================================
 
-def subplot_flux_vs_wavenumber(ax, research, x_quantity="ky", y_quantity="qflux", specie=0, log=True, normalize_to_one=False):
+def subplot_flux_vs_wavenumber(
+        ax, research, 
+        # Quantities to be plotted
+        x_quantity="ky", 
+        y_quantity="qflux", 
+        specie=0, 
+        # Plotting options
+        log=False, 
+        normalize_to_one=False):
     
     # Automate the axis limits and legend
     plot = Plot(); legend = Legend(ax, plot) 
-    axis = Axis(ax, plot, xbot_pos=0, ytop_neg=0, overshoot_y=1.1) 
+    axis = Axis(ax, plot, xbot_pos=0, ytop_neg=0, overshoot_y=1.1, logy=log) 
     plot.process_plottingVariables(research)
     tstart = [np.nan,np.nan]; tend = [np.nan,np.nan] 
-        
+    
+    # Check whether <specie> is a valid choice 
+    if specie >= research.experiments[0].simulations[0].dim.species:
+        dim_species = research.experiments[0].simulations[0].dim.species
+        exit_reason = "Error: specie = "+str(specie)+" was selected but only "+str(dim_species)+" species are present in the simulation.\n"
+        exit_reason += "Please choose specie from {"+", ".join([str(s) for s in range(dim_species)])+"} instead.\n"
+        exit_program(exit_reason, subplot_flux_vs_wavenumber, sys._getframe().f_lineno)
+    
     # Iterate over the experiments and simulations
     for experiment in research.experiments:
         for simulation in experiment.simulations:
@@ -150,7 +144,7 @@ def subplot_flux_vs_wavenumber(ax, research, x_quantity="ky", y_quantity="qflux"
             if np.any(y<0): log = False
             
             # Plot qflux(kx) or qflux(ky) or pflux(kx) or vflux(kx) or ...
-            ax.plot(x, y, marker="o", **style) 
+            ax.plot(x, y, marker="o", **style)  
         
             # Keep track of the axis limits
             axis.update_axisLimits(x, y)
@@ -180,10 +174,10 @@ def get_quantity_data(simulation, x_quantity, y_quantity, specie, tstart, tend):
     if x_quantity=="kx": x = simulation.vec.kx 
     if x_quantity=="ky": x = simulation.vec.ky 
     
-    # Get the data for the y-axis 
+    # Get the data for the y-axis  
     try: y, t0, t1 = get_quantity_data_from3DFiles(simulation, x_quantity, y_quantity, specie)
     except: y, t0, t1 = get_quantity_data_fromSaturatedFiles(simulation, x_quantity, y_quantity, specie)
-    
+
     # Keep track of the time frames
     tstart[0] = np.nanmin([tstart[0], t0]) 
     tstart[1] = np.nanmax([tstart[1], t0]) 
@@ -194,26 +188,22 @@ def get_quantity_data(simulation, x_quantity, y_quantity, specie, tstart, tend):
 #-------------------------------
 def get_quantity_data_from3DFiles(simulation, x_quantity, y_quantity, specie): 
     if x_quantity=="kx": 
-        if y_quantity=="phi2":  y = simulation.potential.phi2_vs_tkx.phi2[:,:]; t = simulation.potential.phi2_vs_tkx.t
         if y_quantity=="qflux": y = simulation.fluxes.qflux_vs_tskx.qflux[:,specie,:]; t = simulation.fluxes.qflux_vs_tskx.t
         if y_quantity=="pflux": y = simulation.fluxes.pflux_vs_tskx.pflux[:,specie,:]; t = simulation.fluxes.pflux_vs_tskx.t
         if y_quantity=="vflux": y = simulation.fluxes.vflux_vs_tskx.vflux[:,specie,:]; t = simulation.fluxes.vflux_vs_tskx.t
     if x_quantity=="ky": 
-        if y_quantity=="phi2":  y = simulation.potential.phi2_vs_tky.phi2[:,:]; t = simulation.potential.phi2_vs_tky.t
         if y_quantity=="qflux": y = simulation.fluxes.qflux_vs_tsky.qflux[:,specie,:]; t = simulation.fluxes.qflux_vs_tsky.t
         if y_quantity=="pflux": y = simulation.fluxes.pflux_vs_tsky.pflux[:,specie,:]; t = simulation.fluxes.pflux_vs_tsky.t
         if y_quantity=="vflux": y = simulation.fluxes.vflux_vs_tsky.vflux[:,specie,:]; t = simulation.fluxes.vflux_vs_tsky.t
-    y = np.mean(y[t>simulation.time.tstart,:],axis=0) 
+    y = np.nanmean(y[t>simulation.time.tstart,:],axis=0) 
     return y, simulation.time.tstart, t[-1]
         
 #-------------------------------
 def get_quantity_data_fromSaturatedFiles(simulation, x_quantity, y_quantity, specie):
     trange = simulation.saturated.trange
-    if y_quantity=="phi2":  y = simulation.saturated.phi2_vs_kxky.phi2[:,:]
     if y_quantity=="qflux": y = simulation.saturated.qflux_vs_szkxky.qflux[specie,:,:,:]
     if y_quantity=="pflux": y = simulation.saturated.pflux_vs_szkxky.pflux[specie,:,:,:]
     if y_quantity=="vflux": y = simulation.saturated.vflux_vs_szkxky.vflux[specie,:,:,:]
-    if y_quantity!="phi2":  y = np.sum(y[:,:,:]*simulation.geometry.dl_over_B[:,np.newaxis,np.newaxis], axis=0)
     if x_quantity=="kx": y = y[:,0] + 2*np.sum(y[:,1:],axis=1) 
     if x_quantity=="ky": y = np.sum(y[:,:],axis=0)
     return y, trange[0], trange[1]
@@ -225,33 +215,44 @@ def get_quantity_data_fromSaturatedFiles(simulation, x_quantity, y_quantity, spe
 if __name__ == "__main__":
     
     # Create a bash interface
-    bash = Bash(plot_flux_vs_wavenumber_both, __doc__)    
+    # Toggles are defined through (name, value, shortoption, longoption, explanation)
+    # Options are defined through (name, datatype, shortoption, longoption, explanation)
+    bash = Bash(plot_flux_vs_wavenumber, __doc__)     
     
-    # Data options
-    bash.add_option('specie', 'int', 's', 'Select the species as "-s 0" for ions and "-s 1" for electrons.') 
+    # Data toggles for the x-quantities
+    bash.add_toggleheader("x-quantity")
+    bash.add_toggle('x_quantity', 'kx', '', '', 'Plot the kx-spectra.') 
+    bash.add_toggle('x_quantity', 'ky', '', '', 'Plot the ky-spectra.') 
+    bash.add_toggle('x_quantity', 'both', '', '', 'Plot the kx- and ky-spectra.') 
+    bash.add_togglespace()
     
-    # Data toggles for the x- and y-quantities
-    bash.add_toggle('x_quantity', 'kx', 'Plot the kx-spectra.') 
-    bash.add_toggle('x_quantity', 'ky', 'Plot the ky-spectra.') 
-    bash.add_toggle('y_quantity', 'qflux', 'Plot the kx- and ky-spectra of the heat flux.') 
-    bash.add_toggle('y_quantity', 'pflux', 'Plot the kx- and ky-spectra  of the particle flux.') 
-    bash.add_toggle('y_quantity', 'vflux', 'Plot the kx- and ky-spectra  of the momentum flux.') 
-    bash.add_toggle('y_quantity', 'phi2', 'Plot the kx- and ky-spectra  of the potential squared.') 
+    # Data toggles for the y-quantities
+    bash.add_toggleheader("y-quantity")
+    bash.add_toggle('y_quantity', 'qflux', '', '', 'Plot the kx- and ky-spectra of the heat flux.') 
+    bash.add_toggle('y_quantity', 'pflux', '', '', 'Plot the kx- and ky-spectra of the particle flux.') 
+    bash.add_toggle('y_quantity', 'vflux', '', '', 'Plot the kx- and ky-spectra of the momentum flux.') 
+    bash.add_togglespace()
+    
+    # Species
+    bash.add_toggleheader("specie")
+    bash.add_option('specie', 'int', 's', '', 'Select the species as "-s 0" for ions and "-s 1" for electrons.') 
+    bash.add_toggle('specie', 0, '', 'ions', 'Plot the fluxes for the ions.') 
+    bash.add_toggle('specie', 1, '', 'electrons', 'Plot the fluxes for the electrons (assuming s=1 for electrons).') 
+    bash.add_toggle('specie', 2, '', 'impurity', 'Plot the fluxes for the impurities (assuming s=2 for impurities).')
+    bash.add_togglespace() 
     
     # Research options      
-    bash.add_option('folderIsExperiment', 'True', 'f', 'Each folder is an experiment.')    
+    bash.add_toggleheader("other")
+    bash.add_toggle('folderIsExperiment', True, 'f', 'folderIsExperiment', 'Each folder is an experiment.')    
     
-    # Plot options 
-    bash.add_option('log', 'True', 'l', 'Use logaritmic scales.') 
-    bash.add_option('normalize_to_one', 'True', 'n', 'Rescale the data to have the maximum at one.')  
+    # Plot options  
+    bash.add_toggle('normalize_to_one', True, 'n', 'normalize_to_one', 'Rescale the data to have the maximum at one.')  
+    bash.add_toggle('log', True, 'l', 'log', 'Use logaritmic scales.')  
     
     # Get the arguments and extract <x_quantity>
-    args = bash.get_arguments()
-    x_quantity = args['x_quantity'] if 'x_quantity' in args else None 
+    args = bash.get_arguments() 
     
     # Launch the script
-    if not x_quantity: plot_flux_vs_wavenumber_both(**args)   
-    if x_quantity=="kx": plot_flux_vs_wavenumber(**args)   
-    if x_quantity=="ky": plot_flux_vs_wavenumber(**args)   
+    plot_flux_vs_wavenumber(**args)    
 
 

@@ -28,9 +28,10 @@ def read_woutFile(path):
     if path.vmec_filename=='wout*.nc':   
         return read_millerParameters(path)
 
-    # Critical error if we didn't find any data  
+    # Critical error if we didn't find any data   
     exit_reason = "The wout data can not be found.\n"
-    exit_reason += "The vmec file: '"+path.vmec_filename+"' was not found in "+CONFIG['PATHS']['VMEC']+".\n"
+    exit_reason += "The path "+str(path.vmec)+" does not exist and, \n"
+    exit_reason += "the vmec file: '"+path.vmec_filename+"' was not found in "+CONFIG['PATHS']['VMEC']+".\n"
     exit_reason += "Please make sure that the vmec file is available."
     exit_program(exit_reason, read_woutFile, sys._getframe().f_lineno)   
     return
@@ -53,12 +54,12 @@ def read_woutFromH5File(path):
     
     # Read the wout data from the "*.geo.h5" file
     with h5py.File(path, 'r') as f: 
-        for key in ["iota", "nfp", "sign_B", "b0", "aminor", "rmajor", "volume", "vmec_path"]:
+        for key in ["iota", "nfp", "sign_B", "b0", "aminor", "rmajor", "volume", "vmec_path", "source"]:
             if key in f.keys(): wout_variables[key] = f[key][()]
         for key in ["P", "Lx", "Ly", "dkx", "dky", "shat", "iota", "jtwist", "diotaOverds", "twist_and_shift_geo_fac"]:
             if key in f.keys(): wout_variables[key] = f[key][()]
             
-    # Return the wout variables
+    # Return the wout variables 
     return wout_variables
 
 #-------------------------------------
@@ -132,10 +133,11 @@ def get_woutData(self):
     # Read the wout parameters
     woutParameters = read_woutFile(self.path)
     
-    # For miller, make sure we can set sign(B)
-    if woutParameters["source"]=="Miller coordinates": woutParameters["b0"] = 1; woutParameters["nfp"] = 1 # 
-    if "nfp" not in woutParameters: woutParameters["b0"] = 1; woutParameters["nfp"] = 1 # 
-        
+    # For miller, make sure we can set sign(B)  
+    if woutParameters["source"]=="Miller coordinates": woutParameters["b0"] = 1; woutParameters["nfp"] = 1  
+    if np.isnan(woutParameters["b0"]): woutParameters["b0"] = 1; woutParameters["nfp"] = 1 
+    if "nfp" not in woutParameters: woutParameters["b0"] = 1; woutParameters["nfp"] = 1 
+
     # Vmec data
     self.nfp = woutParameters['nfp']  
     self.sign_B = np.sign(woutParameters['b0'])  
@@ -154,11 +156,11 @@ def get_woutDataExtra(self):
         woutParameters.update(calculate_gridDivisionsAndSize(self.y0, self.nfield_periods, woutParameters, self.svalue))
     
     # For miller, set the parameters to nan
-    if woutParameters["source"]=="Miller coordinates":
+    if woutParameters["source"]=="Miller coordinates" or np.isnan(woutParameters["b0"]):
         woutParameters['vmec_path'] = "Miller coordinates"
         for key in ["b0", "aminor", "rmajor", "volume"]: woutParameters[key] = np.nan
         woutParameters["b0"] = 1 # This is not correct, but b0 is needed for sign(B)
-      
+
     # Vmec data  
     self.b0 = woutParameters['b0']
     self.nfp = woutParameters['nfp'] 
@@ -167,7 +169,7 @@ def get_woutDataExtra(self):
     self.volume = woutParameters['volume'] 
     self.sign_B = np.sign(woutParameters['b0'])  
     self.vmec_path = str(woutParameters['vmec_path'])
-    
+
     # Stella woutParameters
     self.P    = woutParameters['P']
     self.Lx   = woutParameters['Lx']
@@ -181,19 +183,4 @@ def get_woutDataExtra(self):
     self.twist_and_shift_geo_fac = woutParameters['twist_and_shift_geo_fac'] 
     return
  
-################################################################################
-#                     USE THESE FUNCTIONS AS A MAIN SCRIPT                     #
-################################################################################
-if __name__ == "__main__": 
-    import timeit; start = timeit.timeit()
-    from stellapy.data.input.read_inputFile import read_vmecFileNameFromInputFile
-    input_file = pathlib.Path("/home/hanne/CIEMAT/RUNS/TEST_GEOMETRY_OBJECT/input_ky3.3125.in")
-    vmec_filename = read_vmecFileNameFromInputFile(input_file) 
-    wout_variables = read_woutFile(input_file, vmec_filename)
-    print("\n"+"  "+"-"*30+"\n"+" "*12+"WOUT DATA"+"\n"+"  "+"-"*30+"\n")
-    for key, value in wout_variables.items():
-        print('{:15}'.format("  "+key), value)
-    print("\n"+"  Elapsed time: "+str((start-timeit.timeit())*1000)+" ms")
-
-            
 

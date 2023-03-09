@@ -75,7 +75,7 @@ import numpy as np
 import sys, os, pathlib, pickle
 
 # Stellapy package
-sys.path.append(os.path.dirname(os.path.abspath(__file__)).split("stellapy/")[0])
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)
 from stellapy.data.geometry.calculate_geometricQuantitiesSTELLA import stella 
 from stellapy.data.geometry.calculate_geometricQuantitiesKGRID import kgrid 
 from stellapy.data.geometry.calculate_geometricQuantitiesVMEC import vmec

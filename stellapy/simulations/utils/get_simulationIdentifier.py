@@ -17,15 +17,10 @@ def get_simulationsIdentifier(input_file):
         if last_folder_str.replace("run","").isdigit():
             folder = folder.parent
             upfolder = folder.parent 
-            last_folder_str = str(folder.name)
-
-    # Remove "_ky*" and "input_" from the input_file
-    #name_inputFile = input_file_str if '_ky_' not in input_file_str else input_file_str.split('_ky')[0]
-    #name_inputFile = name_inputFile if 'input_' not in name_inputFile else name_inputFile.split('input_')[-1]
-    name_inputFile = input_file_str
+            last_folder_str = str(folder.name) 
     
     # Add the parent folder to distinguish between input_files with the same name in a different folder
-    simulation_id = str(upupfolder.name) +"/" + str(upfolder.name) + "/" + str(folder.name) + "/" + name_inputFile
+    simulation_id = str(upupfolder.name) +"/" + str(upfolder.name) + "/" + str(folder.name) + "/" + input_file_str
     
     # Make sure the string doesn't start with a slash
     if simulation_id.startswith('/'): simulation_id = simulation_id[1:]

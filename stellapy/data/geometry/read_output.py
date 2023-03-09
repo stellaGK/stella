@@ -6,7 +6,7 @@ from stellapy.utils.decorators.exit_program import exit_program
 from stellapy.data.output.read_outputFile import read_netcdfVariables
 from stellapy.data.output.read_outputFile import read_outputFile as read_outputFileFromNetcdf
 from stellapy.data.geometry.calculate_gridDivisionsAndSize import calculate_muWeights, calculate_vpaWeights
-from stellapy.data.dimensions.get_dimensionsAndVectors import read_dimensions
+from stellapy.data.dimensions.read_dimensionsAndVectors import read_dimensions
  
 #===============================================================================
 #                    READ THE *.OUT.NC OR *.OUT.H5 FILE
@@ -26,15 +26,18 @@ def read_outputFile(path):
     elif os.path.isfile(path.output): 
         return read_outFromH5File(path.output, path.input_file)
     
-    # Return nans if we didn't find any data
+    # Critical error if we didn't find any data
+    exit_reason = "The output data can not be found to read the geometry data.\n"
+    exit_reason += "For linear simulations with 1 mode per simulation, make sure \n"
+    exit_reason += "the geometry data for the dummy input is written by doing: \n" 
+    exit_reason += ">>> write_dataFiles"
+    exit_program(exit_reason, read_outputFile, sys._getframe().f_lineno)    
+
+    # Return nans if we didn't find any data 
     dim = read_dimensions(path); z = dim["dim_z"]; mu = dim["dim_mu"]; vpa = dim["dim_vpa"] 
     return {"jacob" : np.ones((z))*np.nan, "bmag" : np.ones((z))*np.nan,\
             "dl_over_B" : np.ones((z))*np.nan, "mu_weights" : np.ones((z,mu))*np.nan,\
             "vpa_weights" : np.ones((vpa))*np.nan, "dim_z" : z, "vec_z" : np.ones((z))*np.nan}
-    
-    # Critical error if we didn't find any data
-    exit_reason = "The output data can not be found." 
-    exit_program(exit_reason, read_outputFile, sys._getframe().f_lineno)    
     return 
 
 #-------------------------------------
@@ -83,9 +86,9 @@ def read_outFromNcFile(path, input_file):
     out_data = {"source" : path.name}
     
     # Read the stella variables
-    out_data['jacob'] = read_netcdfVariables('jacob', netcdf_file)
-    out_data['bmag']  = read_netcdfVariables('bmag', netcdf_file)
-    out_data['vec_z'] = read_netcdfVariables('vec_z', netcdf_file)
+    out_data['jacob'] = read_netcdfVariables('jacob', netcdf_file)  # jacob(zed,alpha)
+    out_data['bmag']  = read_netcdfVariables('bmag', netcdf_file)   # bmag(zed,alpha)
+    out_data['vec_z'] = read_netcdfVariables('vec_z', netcdf_file)  # zed(zed)
     out_data['dim_z'] = len(out_data['vec_z'])
     
     # Close the netcdf file
@@ -103,7 +106,7 @@ def read_outFromNcFile(path, input_file):
 #-------------------------------------
 def calculate_dlOverB(dim_z, vec_z, jacobian):
     ''' Get the integration weights for z. ''' 
-    
+
     # Calculate the step in <z>
     delzed = np.zeros((int(dim_z))) 
     for i in range(dim_z-1): delzed[i] = vec_z[i+1]-vec_z[i] 
@@ -131,7 +134,7 @@ def get_outputData(self):
 
     # Read the output file
     out_data = read_outputFile(self.path)
-    
+
     # Attach the data   
     self.bmag = out_data['bmag']
     self.jacob = out_data['jacob']
