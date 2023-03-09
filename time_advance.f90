@@ -959,7 +959,7 @@ contains
       use fields_arrays, only: phi, apar
       use fields_arrays, only: phi_old
       use fields, only: advance_fields, fields_updated
-      use run_parameters, only: fully_explicit
+      use run_parameters, only: fully_explicit, fully_implicit
       use multibox, only: RK_step
       use sources, only: include_qn_source, update_quasineutrality_source
       use sources, only: source_option_switch, source_option_projection
@@ -1015,13 +1015,13 @@ contains
 
             !> Advance the explicit parts of the GKE
             if (debug) write (*, *) 'time_advance::advance_explicit'
-            call advance_explicit(gnew, restart_time_step, istep)
+            if (.not. fully_implicit) call advance_explicit(gnew, restart_time_step, istep)
 
             !> Use operator splitting to separately evolve all terms treated implicitly
             if (.not. restart_time_step .and. .not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
          else
             if (.not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
-            call advance_explicit(gnew, restart_time_step, istep)
+            if (.not. fully_implicit) call advance_explicit(gnew, restart_time_step, istep)
          end if
 
          ! If the time step has not been restarted, the time advance was succesfull
