@@ -4,9 +4,10 @@ module stella_time
 
    private
 
-   real :: code_dt
-   real :: cfl_dt = -1.
-   real :: code_dt_min, code_dt_max
+   real :: cfl_dt_linear = -1.
+   real :: cfl_dt_ExB = -1.
+   real :: cfl_dt_parallel = -1.
+   real :: code_dt, code_dt_min, code_dt_max
 
    ! added May 18, 2009 to take care of problems
    ! in exb_shear calculation after change in time step size
@@ -15,9 +16,9 @@ module stella_time
 
    public :: code_dt, update_time, code_dt_old
    public :: code_time
-   public :: save_dt_min, save_dt, save_dt_cfl, write_dt
-   public :: init_tstart, init_delt
-   public :: cfl_dt
+   public :: write_dt
+   public :: init_tstart, init_delt, checkcodedt
+   public :: cfl_dt_linear, cfl_dt_ExB, cfl_dt_parallel
    public :: code_dt_min, code_dt_max
 
 contains
@@ -30,10 +31,11 @@ contains
 
    end subroutine init_tstart
 
-   subroutine init_delt(delt, delt_max)
-      real, intent(in) :: delt, delt_max
+   subroutine init_delt(delt, delt_max, delt_min)
+      real, intent(in) :: delt, delt_max, delt_min
 
       code_dt = delt
+      code_dt_min = delt_min
 
       ! Do not allow code_dt to increase beyond the input value
       ! Unless we specified delt_max in the input file
@@ -53,37 +55,35 @@ contains
 
    end subroutine update_time
 
-   subroutine save_dt_cfl(delt_cfl)
-
-      real, intent(in) :: delt_cfl
-
-      cfl_dt = delt_cfl
-
-   end subroutine save_dt_cfl
-
-   subroutine save_dt_min(dt_min)
-
-      real, intent(in) :: dt_min
-
-      code_dt_min = dt_min
-
-   end subroutine save_dt_min
-
-   subroutine save_dt(delt)
-
-      real, intent(in) :: delt
-
-      code_dt = delt
-
-   end subroutine save_dt
-
    subroutine write_dt
 
-      if (cfl_dt > 0. .and. cfl_dt < 1.e7) &
+      if (cfl_dt_linear > 0. .and. cfl_dt_linear < 1.e7) &
          write (*, *) 'TIME STEP:'
-      write (*, '(A12, ES10.2E2)') "   cfl_dt:"//repeat(' ', 50), cfl_dt
+      write (*, '(A12, ES10.2E2)') "   cfl_dt:"//repeat(' ', 50), cfl_dt_linear
       write (*, '(A12, ES10.2E2)') "   code_dt:"//repeat(' ', 50), code_dt
 
    end subroutine write_dt
+
+   subroutine checkcodedt(stop_stella)
+
+      use mp, only: proc0, broadcast
+      logical, intent(in out) :: stop_stella
+
+      if (proc0) then
+         if (code_dt < code_dt_min) then
+            stop_stella = .true.
+         end if
+      end if
+
+      if (proc0 .and. (code_dt < code_dt_min)) then
+         write (*, *)
+         write (*, *) 'EXITING STELLA BECAUSE CODE_DT<CODE_DT_MIN:'
+         write (*, '(A16, ES10.2E2)') "   code_dt:"//REPEAT(' ', 50), code_dt
+         write (*, '(A16, ES10.2E2)') "   code_dt_min:"//REPEAT(' ', 50), code_dt_min
+      end if
+
+      call broadcast(stop_stella)
+
+   end subroutine checkcodedt
 
 end module stella_time
