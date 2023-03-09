@@ -1,7 +1,6 @@
 
 import copy
 import numpy as np
-from stellapy.plot.utils.labels import standardLabels
 
 #===============================================================================
 #                     STANDARD CLASS FOR EACH PIECE OF DATA                    #
@@ -27,6 +26,7 @@ class Data():
     #--------------------
     def get_labels(self):
         if len(self.dimensions)==2:
+            from stellapy.plot.utils.labels import standardLabels
             xlabel = standardLabels[self.dimensions[0]]
             ylabel = standardLabels[self.quantity]
             return xlabel, ylabel
@@ -43,6 +43,5 @@ class Data():
             y = getattr(self, self.quantity)
             return x, y
         print("SOMETHING IS WRONG: stellapy.data.get_dataForPlots.get_xyData")
- 
-
+  
 

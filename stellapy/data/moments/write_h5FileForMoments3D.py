@@ -1,11 +1,8 @@
 
-import copy
 import os, h5py
 import numpy as np
 import time as timer  
-from scipy.io import netcdf as scnetcdf  
 from datetime import datetime, timedelta 
-from stellapy.utils.decorators.verbose import noverbose 
 from stellapy.utils.files.get_filesInFolder import get_filesInFolder     
 from stellapy.data.geometry.read_output import read_outputFile as read_outputFileForGeometry  
 from stellapy.data.output.read_outputFile import read_outputFile, read_netcdfVariables 
@@ -13,13 +10,11 @@ from stellapy.data.utils.get_indicesAtFixedStep import get_indicesAtFixedStep
 from stellapy.data.paths.load_pathObject import create_dummyPathObject
 from stellapy.data.input.read_inputFile import read_vmecFileNameFromInputFile, read_modeFromInputFile  
 from stellapy.data.input.read_inputFile import read_linearNonlinearFromInputFile
-from stellapy.data.stella.load_stellaVariables import stella_variables
 
 ################################################################################
 #                       WRITE THE DIMENSIONS TO AN H5 FILE
 ################################################################################
 
-@noverbose
 def write_h5FileForMoments3D(folder, dt=10, automatic=False):     
      
     # Time step
@@ -188,23 +183,19 @@ def write_h5FileForMoments3D(folder, dt=10, automatic=False):
 
 #---------------------------------------------
 def get_integrationWeightsAlongZ(input_file):
-    vmec_filename = read_vmecFileNameFromInputFile(input_file)
-    nonlinear = read_linearNonlinearFromInputFile(input_file)[1]
-    path = create_dummyPathObject(input_file, vmec_filename, nonlinear)
+    vmec_filename = read_vmecFileNameFromInputFile(input_file) 
+    path = create_dummyPathObject(input_file, vmec_filename)
     geometry = read_outputFileForGeometry(path)  
     dl_over_B = geometry["dl_over_B"]   
     return dl_over_B
 
 #---------------------------------------------
-def read_moments3D(netcdf_path, variable, time_indices, dl_over_B, input_file):    
-     
-    # Get the dimensions and the stella key of the variable 
-    key = stella_variables[variable][0]
+def read_moments3D(netcdf_path, variable, time_indices, dl_over_B, input_file):     
      
     # Open the netcdf file
-    netcdf_file = scnetcdf.netcdf_file(netcdf_path,'r') 
-    variable_vs_tszkxkyri = copy.deepcopy(netcdf_file.variables[key][time_indices,:,0,:,:,:,:])
-    netcdf_file.close()  
+    netcdf_data = read_outputFile(netcdf_path)  
+    variable_vs_tszkxkyri = read_netcdfVariables(variable, netcdf_data, time_indices)   
+    netcdf_data.close()    
  
     # Sum away the (kx,ky) dimensions
     variable_vs_tszri = np.sum(variable_vs_tszkxkyri[:,:,:,:,0,:],axis=3) + 2*np.sum(variable_vs_tszkxkyri[:,:,:,:,1:,:],axis=(3,4))  
@@ -247,5 +238,8 @@ def read_moments3D(netcdf_path, variable, time_indices, dl_over_B, input_file):
     
     # Return the data 
     return variable_vs_tsz, variable2_vs_tsz, variable_vs_tsky, variable_vs_tskx
+
+
+  
 
     

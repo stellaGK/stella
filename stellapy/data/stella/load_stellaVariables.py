@@ -79,9 +79,10 @@ stella_variables = {
     "grho"     : ["grho",       ["z", "alpha"]], 
     "jacob"    : ["jacob",      ["z", "alpha"]], 
     
-    
     # VECTORS versus (t,theta0,ky)
     "phi2_vs_tkxky"   : ["phi2_vs_kxky",    ["t", "kx", "ky"]], 
+    # VECTORS versus (t,theta0,ky,ri)
+    "omega_vs_tkxky"  : ["omega",           ["t", "kx", "ky", "ri"]], 
     # VECTORS versus (zed,alpha,theta0,ky)
     "kperp2"          : ["kperp2",          ["z", "tube", "kx", "ky"]], 
     # VECTORS versus (t,species,mu,vpa)

@@ -1,11 +1,49 @@
-  
-from stellapy.data.dimensions.get_dimensionsAndVectors import get_extraZVectors
-from stellapy.data.dimensions.get_dimensionsAndVectors import get_dimensionsAndVectors as get_vectors 
-from stellapy.data.utils.calculate_attributeWhenReadFirstTime import calculate_attributeWhenReadFirstTime 
+""" 
 
 #===============================================================================
-#                      CREATE THE VECTORS OBJECT
+#                          Create the <vectors> object                         #
+#===============================================================================   
+
+Attach the dimensions of the simulation to a <dimension> object.
+
+Thanks to the "calculate_attributeWhenReadFirstTime" wrapper, the <vector> 
+attributes will not be loaded/read/calculated until they have been requested. 
+
+Attributes
+----------
+    vec_x = simulation.vec.x
+    vec_y = simulation.vec.y
+    vec_z = simulation.vec.z
+    vec_kx = simulation.vec.kx
+    vec_ky = simulation.vec.ky
+    vec_mu = simulation.vec.mu
+    vec_vpa = simulation.vec.vpa
+    vec_time = simulation.vec.time
+    vec_species = simulation.vec.species
+    vec_kx_stella = simulation.vec.kx_stella
+    vec_pol = simulation.vec.pol
+    vec_tor = simulation.vec.tor
+    vec_zeta = simulation.vec.zeta
+
+Hanne Thienpondt
+20/01/2023
+
+"""  
+
+#!/usr/bin/python3
+import os, sys
+import pathlib
+
+# Stellapy package
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)  
+from stellapy.data.utils.calculate_attributeWhenReadFirstTime import calculate_attributeWhenReadFirstTime 
+from stellapy.data.dimensions.read_dimensionsAndVectors import get_dimensionsAndVectors as get_vectors 
+from stellapy.data.dimensions.read_dimensionsAndVectors import get_extraZVectors
+from stellapy.data.dimensions.calculate_xyGrid import get_xyGrid
+
 #===============================================================================
+#                          Create the <vectors> object                         #
+#=============================================================================== 
  
 class Vectors:
      
@@ -17,10 +55,8 @@ class Vectors:
         self.vec = self  
         
         # Be able to show the reading progress
-        self.simulation = simulation if simulation.object=="Simulation" else simulation.simulation
-        self.mode = None if simulation.object=="Simulation" else simulation 
-        self.Progress = simulation.Progress
-        self.object = simulation.object
+        self.simulation = simulation   
+        self.Progress = simulation.Progress 
         return
     
     # The dimension and vector objects are filled at the same time    
@@ -50,41 +86,19 @@ class Vectors:
     def tor(self):          get_extraZVectors(self);        return self.tor
     @calculate_attributeWhenReadFirstTime 
     def zeta(self):         get_extraZVectors(self);        return self.zeta 
+    
+    # Read the real space dimensions
+    @calculate_attributeWhenReadFirstTime 
+    def x(self):            get_xyGrid(self);         return self.x
+    @calculate_attributeWhenReadFirstTime 
+    def y(self):            get_xyGrid(self);         return self.y
             
 #-------------------------- 
-def load_vectorsObject(self):  
-    
-    # Add the dimensions for a simulation
-    if self.object=="Simulation": 
-        self.vec = Vectors(self)
-        self.vec.linkToDimension(self)
-        return 
-    
-    # For a linear simulation, add the input per mode. Since most inputs are
-    # identical, only read each unique input once
-    if self.object=="Mode":
-        load_onlyReferenceVectors(self)
-        return 
-    
-#-------------------------- 
-def load_onlyReferenceVectors(self):
- 
-    # Initialize 
-    loaded_list=[]
-    loaded_vectors={}
-    
-    # Only read sets of vectors/dimensions per unique input
-    for imode, mode in enumerate(self.simulation.modes): 
-        
-        # If the input is already read, create a reference to the existing input
-        if mode.path.input in loaded_list: 
-            mode.vec = self.simulation.modes[loaded_vectors[mode.path.input]].vec
-        if mode.path.input not in loaded_list:
-            loaded_list.append(mode.path.input) 
-            loaded_vectors[mode.path.input] = imode
-            mode.vec = Vectors(mode) 
-            mode.vec.linkToDimension(mode)
-            
+def load_vectorsObject(self):   
+    self.vec = Vectors(self)
+    self.vec.linkToDimension(self)
+    return  
+     
             
             
             

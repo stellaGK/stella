@@ -26,21 +26,22 @@ Hanne Thienpondt
 
 #!/usr/bin/python3 
 import sys, os
+import pathlib
 import numpy as np
 
 # Stellapy package
-sys.path.append(os.path.dirname(os.path.abspath(__file__)).split("stellapy/")[0])
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)
 from stellapy.calculations.calculate_twistAndShiftGeoFactor import calculate_twistAndShiftGeoFactor
 from stellapy.data.geometry.calculate_gridDivisionsAndSize import calculate_gridDivisionsAndSize 
 from stellapy.data.geometry.calculate_gridDivisionsAndSize import calculate_ny, calculate_nx 
-from stellapy.data.geometry.calculate_gridDivisionsAndSize import calculate_iota 
-from stellapy.plot.utils.devices.recognize_device import recognize_device
+from stellapy.data.geometry.calculate_gridDivisionsAndSize import calculate_iota  
+from stellapy.data.geometry.recognize_device import recognize_device
 from stellapy.data.geometry.read_wout import read_woutFile
         
 #===============================================================================
 #                      Calculate (nx, ny, nfield_periods)                      #
 #===============================================================================
-        
+         
 def calculate_NxNyNfieldperiods(
         # Option 1: Give a vmec path
         vmec=None,
@@ -75,13 +76,13 @@ def calculate_NxNyNfieldperiods(
         # Calculate the box size
         args = calculate_gridDivisionsAndSize(y0, nfield_periods, wout_variables, svalue=svalue, nperiod=nperiod, jtwist=jtwist_overwrite)
         twist_and_shift_geo_factor = args["twist_and_shift_geo_fac"]
-        dky = args["dky"]; dkx = args["dkx"]  
+        dky = args["dky"]; dkx = args["dkx"]; jtwist = args["jtwist"]
         
         # For the stellarator symmetric boundary conditions, dkx depends on nfield_periods
         if boundary_option=="stellarator":
-            _, twist_and_shift_geo_factor = calculate_twistAndShiftGeoFactor(vmec, nfield_periods=nfield_periods, rho=rho, verbose=False)
+            _, twist_and_shift_geo_factor, _ = calculate_twistAndShiftGeoFactor(vmec, nfield_periods=nfield_periods, rho=rho, verbose=False)
             twist_and_shift_geo_factor = np.abs(twist_and_shift_geo_factor[-1])
-            dkx = twist_and_shift_geo_factor*dky
+            dkx = twist_and_shift_geo_factor*dky/jtwist
             
         # Calculate ny
         nky = round(kymax/dky,0)+1

@@ -2,13 +2,15 @@
 #!/usr/bin/python3 
 import copy
 import os, sys
+import pathlib
 import numpy as np
 import netCDF4 as nc4  
 from scipy.io import netcdf as scnetcdf     
 
 # Stellapy package
-sys.path.append(os.path.dirname(os.path.abspath(__file__)).split("stellapy/")[0])  
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)  
 from stellapy.data.stella.load_stellaVariables import stella_variables 
+from stellapy.utils.decorators.exit_program import exit_program
  
 #===============================================================================
 #                               READ THE OUT.NC FILE
@@ -17,10 +19,20 @@ from stellapy.data.stella.load_stellaVariables import stella_variables
 def read_outputFile(netcdf_path):
     ''' Since a stella update around summer 2022, there are two unlimited variables  
     in the netcdf file and <scnetcdf> will no longer work.'''
-    try: netcdf_file = nc4.Dataset(netcdf_path)  
-    except: netcdf_file = scnetcdf.netcdf_file(netcdf_path,'r') 
+    try:
+        try: netcdf_file = nc4.Dataset(netcdf_path)  
+        except: netcdf_file = scnetcdf.netcdf_file(netcdf_path,'r') 
+    except:
+        if not os.path.isfile(netcdf_path):
+            exit_reason = "The netcdf file could not be found:\n"
+            exit_reason += "     "+str(netcdf_path)+"\n"
+            exit_program(exit_reason, read_outputFile, sys._getframe().f_lineno)
+        if os.path.isfile(netcdf_path):
+            exit_reason = "The netcdf file could not be read with nc4 or scnetcdf,\n"
+            exit_reason += "there must be something wrong with it, please delete it and rerun:\n"
+            exit_reason += "     "+str(netcdf_path)+"\n"
+            exit_program(exit_reason, read_outputFile, sys._getframe().f_lineno)
     return netcdf_file
-
 
 #===============================================================================
 #                 READ STELLA VARIABLES FROM THE NETCDF FILE
@@ -53,8 +65,13 @@ def read_netcdfVariables(key, netcdf_file, time_indices=None, netcdf_path=None):
     
     # Make sure we have time indices
     if not time_indices: 
-        time_indices = range(len(netcdf_file.variables["t"][:]))
-        
+        try: time_indices = range(len(netcdf_file.variables["t"][:]))
+        except:
+            exit_reason = "No time dimension was found in the following netcdf file,\n"
+            exit_reason += "something went wrong with the simulation, relaunch it:\n"
+            exit_reason += "     "+str(netcdf_file.filepath())+"\n"
+            exit_program(exit_reason, read_netcdfVariables, sys._getframe().f_lineno)
+    
     # Read values
     if len(dim)==1 and dim[0]=="-":
         variable = copy.deepcopy(netcdf_file.variables[key][:])
@@ -107,3 +124,5 @@ def read_netcdfVariables(key, netcdf_file, time_indices=None, netcdf_path=None):
     
     # Return the variable 
     return variable
+
+ 

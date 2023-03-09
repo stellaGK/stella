@@ -10,8 +10,8 @@ def calculate_inverseFourierTransform(self, quantity_kxky, axis_kx=2, axis_ky=3)
     iterate_dimensions = list(range(len(dimensions)))
     
     # The (nakx,naky) dimensions become (nx,ny)
-    dimensions[axis_kx] = self.nx
-    dimensions[axis_ky] = self.ny  
+    dimensions[axis_kx] = self.dim.x
+    dimensions[axis_ky] = self.dim.y  
     
     # Don't iterate over (kx,ky)
     if axis_ky < axis_kx:
@@ -47,8 +47,8 @@ def calculate_inverseFourierTransform(self, quantity_kxky, axis_kx=2, axis_ky=3)
         if axis_kx==4: quantity_kxky = quantity_kxky[:, :, :, :, sorted_indexes]  
 
     # Get the number of modes in real space and Fourier space
-    nx = self.nx;  nakx = self.nakx
-    ny = self.ny;  naky = self.naky
+    nx = self.dim.x;  nakx = self.dim.kx
+    ny = self.dim.y;  naky = self.dim.ky
     
     # Initiate the quantity in real space (x,y)
     quantity_xy = np.ones(dimensions)*np.NaN
@@ -148,10 +148,16 @@ def calculate_IFFT(self, quantity_kxky, nx, ny, nakx, naky):
     # Take the inverse Fourier transform along (kx,ky) of the given quantity_kxky
     quantity_xy = np.real(fftpack.ifft2(quantity_kxky))
     
-    # Check parsevals theorem 
+    # Python performs the inverse fourier transform defined as g_xy = 1/NxNy sum_kxky hat{G}_kxky*e^{ikx*x+iky*y}
+    # However, in stella the Fourier components are defined as hat{G}_stella = hat{G}/NxNy
+    # Therefore g_xy = NxNy * (1/NxNy sum_kxky hat{G}_{stella,kxky}*e^{ikx*x+iky*y})
+    quantity_xy = quantity_xy*(nx*ny)
+    
+    # Check parsevals theorem with hat{G}_stella = hat{G}/NxNy
+    # Thus sum_xy |g(x,y)|^2 = 1/NxNy sum_kxky |hat{G}(kx,ky)|^2 = NxNy sum_kxky |hat{G}_stella(kx,ky)|^2
     #print("------ PLANCHERAL -----------")  
-    #print("SUM IN FOURIER:  ", np.sum(np.abs(quantity_kxky)**2.0))
-    #print("SUM IN REAL:     ", np.sum(np.abs(quantity_xy)**2.0)*nx*ny)
+    #print("SUM IN FOURIER:  ", np.sum(np.abs(quantity_kxky)**2.0)*nx*ny)
+    #print("SUM IN REAL:     ", np.sum(np.abs(quantity_xy)**2.0))
     
     # Return the quantity in real space (x,y)
     return quantity_xy

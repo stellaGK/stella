@@ -1,5 +1,7 @@
 import os
+import matplotlib
 import matplotlib.pyplot as plt 
+from stellapy.utils.config.read_configurationFile import CONFIG
 
 def load_styleFigures():
 
@@ -12,13 +14,10 @@ def load_styleFigures():
 
     # Set the grid
     plt.rcParams['axes.grid'] = True
-    plt.rcParams['grid.color'] = "lightgray"
-
-    # Try to implement this
-    #ax.xaxis.grid(color='grey', linestyle='-', linewidth=0.3)
-    #ax.yaxis.grid(color='grey', linestyle='-', linewidth=0.3) 
-    #ax.yaxis.set_minor_locator(AutoMinorLocator(10))
-    #ax.xaxis.set_minor_locator(AutoMinorLocator(10)) 
+    plt.rcParams['grid.color'] = "lightgray" 
+    
+    # TkAgg puts the toolbar on the bottom
+    matplotlib.use(CONFIG['PLOTS']['MatplotlibBackend']) 
     
     # Marconi does not support the fancy latex font
     divider = '\\' if (os.name == 'nt') else '/'

@@ -12,7 +12,7 @@ from stellapy.data.output.read_outputFile import read_outputFile, read_netcdfVar
 ################################################################################
 
 @noverbose
-def write_h5FileForMoments5D(folder, dt=10):   
+def write_h5FileForMoments5D(folder, dt=100):   
      
     # Time step
     dt = int(dt) if int(dt)==dt else dt     
