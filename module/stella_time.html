@@ -91,7 +91,7 @@
           <li id="statements"><i class="fa fa-list-ol"></i>
             <a data-toggle="tooltip"
                data-placement="bottom" data-html="true"
-               title=" 0.1% of total for modules and submodules.">50 statements</a>
+               title=" 0.1% of total for modules and submodules.">56 statements</a>
           </li>
 
             <li id="source-file">
@@ -127,8 +127,10 @@
       </div>
       <div id="vars-0" class="panel-collapse collapse">
         <div class="list-group">
+            <a class="list-group-item" href="../module/stella_time.html#variable-cfl_dt_linear">cfl_dt_linear</a>
+            <a class="list-group-item" href="../module/stella_time.html#variable-cfl_dt_exb">cfl_dt_ExB</a>
+            <a class="list-group-item" href="../module/stella_time.html#variable-cfl_dt_parallel">cfl_dt_parallel</a>
             <a class="list-group-item" href="../module/stella_time.html#variable-code_dt">code_dt</a>
-            <a class="list-group-item" href="../module/stella_time.html#variable-cfl_dt">cfl_dt</a>
             <a class="list-group-item" href="../module/stella_time.html#variable-code_dt_min">code_dt_min</a>
             <a class="list-group-item" href="../module/stella_time.html#variable-code_dt_max">code_dt_max</a>
             <a class="list-group-item" href="../module/stella_time.html#variable-code_dt_old">code_dt_old</a>
@@ -155,13 +157,11 @@
       </div>
       <div id="subs-0" class="panel-collapse collapse">
         <div class="list-group">
-            <a class="list-group-item" href="../module/stella_time.html#proc-init_tstart~2">init_tstart</a>
+            <a class="list-group-item" href="../module/stella_time.html#proc-init_tstart">init_tstart</a>
             <a class="list-group-item" href="../module/stella_time.html#proc-init_delt">init_delt</a>
             <a class="list-group-item" href="../module/stella_time.html#proc-update_time">update_time</a>
-            <a class="list-group-item" href="../module/stella_time.html#proc-save_dt_cfl">save_dt_cfl</a>
-            <a class="list-group-item" href="../module/stella_time.html#proc-save_dt_min">save_dt_min</a>
-            <a class="list-group-item" href="../module/stella_time.html#proc-save_dt">save_dt</a>
             <a class="list-group-item" href="../module/stella_time.html#proc-write_dt">write_dt</a>
+            <a class="list-group-item" href="../module/stella_time.html#proc-checkcodedt">checkcodedt</a>
         </div>
       </div>
     </div>
@@ -195,8 +195,10 @@
       </div>
       <div id="vars-1" class="panel-collapse collapse">
         <div class="list-group">
+            <a class="list-group-item" href="../module/stella_time.html#variable-cfl_dt_linear">cfl_dt_linear</a>
+            <a class="list-group-item" href="../module/stella_time.html#variable-cfl_dt_exb">cfl_dt_ExB</a>
+            <a class="list-group-item" href="../module/stella_time.html#variable-cfl_dt_parallel">cfl_dt_parallel</a>
             <a class="list-group-item" href="../module/stella_time.html#variable-code_dt">code_dt</a>
-            <a class="list-group-item" href="../module/stella_time.html#variable-cfl_dt">cfl_dt</a>
             <a class="list-group-item" href="../module/stella_time.html#variable-code_dt_min">code_dt_min</a>
             <a class="list-group-item" href="../module/stella_time.html#variable-code_dt_max">code_dt_max</a>
             <a class="list-group-item" href="../module/stella_time.html#variable-code_dt_old">code_dt_old</a>
@@ -223,13 +225,11 @@
       </div>
       <div id="subs-1" class="panel-collapse collapse">
         <div class="list-group">
-            <a class="list-group-item" href="../module/stella_time.html#proc-init_tstart~2">init_tstart</a>
+            <a class="list-group-item" href="../module/stella_time.html#proc-init_tstart">init_tstart</a>
             <a class="list-group-item" href="../module/stella_time.html#proc-init_delt">init_delt</a>
             <a class="list-group-item" href="../module/stella_time.html#proc-update_time">update_time</a>
-            <a class="list-group-item" href="../module/stella_time.html#proc-save_dt_cfl">save_dt_cfl</a>
-            <a class="list-group-item" href="../module/stella_time.html#proc-save_dt_min">save_dt_min</a>
-            <a class="list-group-item" href="../module/stella_time.html#proc-save_dt">save_dt</a>
             <a class="list-group-item" href="../module/stella_time.html#proc-write_dt">write_dt</a>
+            <a class="list-group-item" href="../module/stella_time.html#proc-checkcodedt">checkcodedt</a>
         </div>
       </div>
     </div>
@@ -260,6 +260,57 @@
     <tbody>
         <tr>
             <td>
+              <span class="anchor" id="variable-cfl_dt_linear"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>cfl_dt_linear</strong></td>
+<td> =</td>
+                <td>-1.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-cfl_dt_exb"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>cfl_dt_ExB</strong></td>
+<td> =</td>
+                <td>-1.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-cfl_dt_parallel"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>cfl_dt_parallel</strong></td>
+<td> =</td>
+                <td>-1.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
               <span class="anchor" id="variable-code_dt"></span>
               real,
             </td>
@@ -271,23 +322,6 @@
             <td><strong>code_dt</strong></td>
                 <td></td>
                 <td></td>
-            <td>
-                
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-cfl_dt"></span>
-              real,
-            </td>
-              <td>public</td>
-            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>cfl_dt</strong></td>
-<td> =</td>
-                <td>-1.</td>
             <td>
                 
             </td>
@@ -374,7 +408,7 @@
     <section>
     <h2>Subroutines</h2>
       <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-init_tstart~2"></span><h3>public  subroutine <a href='../proc/init_tstart~2.html'>init_tstart</a>(tstart)  
+    <div class="panel-heading codesum"><span class="anchor" id="proc-init_tstart"></span><h3>public  subroutine <a href='../proc/init_tstart.html'>init_tstart</a>(tstart)  
 </h3></div>
     <div class="panel-body">
           
@@ -414,7 +448,7 @@
   </div>
 
       <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-init_delt"></span><h3>public  subroutine <a href='../proc/init_delt.html'>init_delt</a>(delt, delt_max)  
+    <div class="panel-heading codesum"><span class="anchor" id="proc-init_delt"></span><h3>public  subroutine <a href='../proc/init_delt.html'>init_delt</a>(delt, delt_max, delt_min)  
 </h3></div>
     <div class="panel-body">
           
@@ -461,6 +495,21 @@
 
             </td>
         </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>delt_min</strong></td>
+            <td>
+
+            </td>
+        </tr>
     </tbody>
   </table>
 
@@ -482,126 +531,6 @@
   </div>
 
       <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-save_dt_cfl"></span><h3>public  subroutine <a href='../proc/save_dt_cfl.html'>save_dt_cfl</a>(delt_cfl)  
-</h3></div>
-    <div class="panel-body">
-          
-  
-
-  <h4>Arguments</h4>
-      <table class="table table-striped varlist">
-    <thead>
-      <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              real,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>delt_cfl</strong></td>
-            <td>
-
-            </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-    </div>
-  </div>
-
-      <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-save_dt_min"></span><h3>public  subroutine <a href='../proc/save_dt_min.html'>save_dt_min</a>(dt_min)  
-</h3></div>
-    <div class="panel-body">
-          
-  
-
-  <h4>Arguments</h4>
-      <table class="table table-striped varlist">
-    <thead>
-      <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              real,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>dt_min</strong></td>
-            <td>
-
-            </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-    </div>
-  </div>
-
-      <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-save_dt"></span><h3>public  subroutine <a href='../proc/save_dt.html'>save_dt</a>(delt)  
-</h3></div>
-    <div class="panel-body">
-          
-  
-
-  <h4>Arguments</h4>
-      <table class="table table-striped varlist">
-    <thead>
-      <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              real,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>delt</strong></td>
-            <td>
-
-            </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-    </div>
-  </div>
-
-      <div class="panel panel-default">
     <div class="panel-heading codesum"><span class="anchor" id="proc-write_dt"></span><h3>public  subroutine <a href='../proc/write_dt.html'>write_dt</a>()  
 </h3></div>
     <div class="panel-body">
@@ -610,6 +539,46 @@
 
   <h4>Arguments</h4>
     <em>None</em>
+
+    </div>
+  </div>
+
+      <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-checkcodedt"></span><h3>public  subroutine <a href='../proc/checkcodedt.html'>checkcodedt</a>(stop_stella)  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              logical,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>stop_stella</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
 
     </div>
   </div>
@@ -628,13 +597,13 @@
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2023 
-<br /><small>v0.5.1-174-gc04ec6ae7</small></p>
+<br /><small>v0.5.1-181-gda1f40a36</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2023-01-27T14:46:51.004894           </p>
+ on 2023-03-09T09:38:47.251102           </p>
         </div>
       </div>
       <br>

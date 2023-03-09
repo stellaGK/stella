@@ -141,7 +141,7 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
 			   <tr><td><a href='../proc/advance_mirror_implicit.html'>advance_mirror_implicit</a></td><td><a href='../module/mirror_terms.html'>mirror_terms</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/advance_mudiff_implicit.html'>advance_mudiff_implicit</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/advance_parallel_flow_shear.html'>advance_parallel_flow_shear</a></td><td><a href='../module/flow_shear.html'>flow_shear</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/advance_parallel_nonlinearity.html'>advance_parallel_nonlinearity</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/advance_parallel_nonlinearity.html'>advance_parallel_nonlinearity</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td><p>check estimated cfl_dt to see if the time step size needs to be changed</p></td></tr>
 			   <tr><td><a href='../proc/advance_parallel_streaming_explicit.html'>advance_parallel_streaming_explicit</a></td><td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td><td>Subroutine</td><td><p>if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
 if full flux surface (flux annulus), will need to calculate in y space
 start the timer for the parallel streaming part of the time advance</p><a href="../proc/advance_parallel_streaming_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
@@ -162,11 +162,11 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
 			   <tr><td><a href='../interface/all_to_group.html'>all_to_group</a></td><td><a href='../module/mp.html'>mp</a></td><td>Interface</td><td></td></tr>
 			   <tr><td><a href='../proc/all_to_group_real.html'>all_to_group_real</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/all_to_group_real_array.html'>all_to_group_real_array</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/allocate_arrays.html'>allocate_arrays</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td><p>Allocate the module-level arrays</p></td></tr>
 			   <tr><td><a href='../proc/allocate_arrays~2.html'>allocate_arrays</a></td><td><a href='../module/dist_fn.html'>dist_fn</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/allocate_arrays~3.html'>allocate_arrays</a></td><td><a href='../module/kt_grids.html'>kt_grids</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/allocate_arrays.html'>allocate_arrays</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td><p>Allocate the module-level arrays</p></td></tr>
+			   <tr><td><a href='../proc/allocate_arrays~3.html'>allocate_arrays</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/allocate_arrays~4.html'>allocate_arrays</a></td><td><a href='../module/fields.html'>fields</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/allocate_arrays~5.html'>allocate_arrays</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/allocate_arrays~5.html'>allocate_arrays</a></td><td><a href='../module/kt_grids.html'>kt_grids</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/allocate_arrays~6.html'>allocate_arrays</a></td><td><a href='../module/stella_geometry.html'>stella_geometry</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/allocate_arrays~7.html'>allocate_arrays</a></td><td><a href='../module/millerlocal.html'>millerlocal</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/allocate_arrays_geo.html'>allocate_arrays_geo</a></td><td><a href='../module/inputprofiles_interface.html'>inputprofiles_interface</a></td><td>Subroutine</td><td></td></tr>
@@ -374,6 +374,7 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
 			   <tr><td><a href='../proc/check_netcdf_file_precision.html'>check_netcdf_file_precision</a></td><td><a href='../module/netcdf_utils.html'>netcdf_utils</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/check_transforms.html'>check_transforms</a></td><td><a href='../program/stella.html'>stella</a></td><td>Subroutine</td><td><p>check_transforms checks the various physics flag choices
 to determine if FFTs are needed for the simulation</p><a href="../proc/check_transforms.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
+			   <tr><td><a href='../proc/checkcodedt.html'>checkcodedt</a></td><td><a href='../module/stella_time.html'>stella_time</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/checkstop.html'>checkstop</a></td><td><a href='../module/job_manage.html'>job_manage</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../interface/checksum.html'>checksum</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Interface</td><td></td></tr>
 			   <tr><td><a href='../proc/checksum_dist.html'>checksum_dist</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
@@ -409,8 +410,8 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
 			   <tr><td><a href='../interface/d2_3pt.html'>d2_3pt</a></td><td><a href='../module/finite_differences.html'>finite_differences</a></td><td>Interface</td><td></td></tr>
 			   <tr><td><a href='../proc/d2_3pt_complex.html'>d2_3pt_complex</a></td><td><a href='../module/finite_differences.html'>finite_differences</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/d2_3pt_real.html'>d2_3pt_real</a></td><td><a href='../module/finite_differences.html'>finite_differences</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/deallocate_arrays.html'>deallocate_arrays</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/deallocate_arrays~2.html'>deallocate_arrays</a></td><td><a href='../module/dist_fn.html'>dist_fn</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/deallocate_arrays.html'>deallocate_arrays</a></td><td><a href='../module/dist_fn.html'>dist_fn</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/deallocate_arrays~2.html'>deallocate_arrays</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/deallocate_arrays~3.html'>deallocate_arrays</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/deallocate_arrays~4.html'>deallocate_arrays</a></td><td><a href='../module/millerlocal.html'>millerlocal</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/deallocate_arrays_geo.html'>deallocate_arrays_geo</a></td><td><a href='../module/inputprofiles_interface.html'>inputprofiles_interface</a></td><td>Subroutine</td><td></td></tr>
@@ -953,8 +954,8 @@ allocate and calculate the factors multiplying dg/dx, dg/dy, dphi/dx and dphi/dy
 in the magnetic drift terms
 allocate and calculate the factor multiplying dphi/dy in the gradient drive term</p></td></tr>
 			   <tr><td><a href='../proc/init_transforms.html'>init_transforms</a></td><td><a href='../module/stella_transforms.html'>stella_transforms</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/init_tstart.html'>init_tstart</a></td><td><a href='../module/stella_save.html'>stella_save</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/init_tstart~2.html'>init_tstart</a></td><td><a href='../module/stella_time.html'>stella_time</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/init_tstart.html'>init_tstart</a></td><td><a href='../module/stella_time.html'>stella_time</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/init_tstart~2.html'>init_tstart</a></td><td><a href='../module/stella_save.html'>stella_save</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_unpadded_x_fft.html'>init_unpadded_x_fft</a></td><td><a href='../module/stella_transforms.html'>stella_transforms</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_unpadded_y_fft.html'>init_unpadded_y_fft</a></td><td><a href='../module/stella_transforms.html'>stella_transforms</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_vgrid.html'>init_vgrid</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
@@ -1202,17 +1203,17 @@ we are undoing that weighting here, so also need to use ia = 1</p></td></tr>
 			   <tr><td><a href='../proc/read_mse_namelist.html'>read_mse_namelist</a></td><td><a href='../module/vmec_input.html'>vmec_input</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/read_multibox_parameters.html'>read_multibox_parameters</a></td><td><a href='../module/multibox.html'>multibox</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/read_parameters~3.html'>read_parameters</a></td><td><a href='../module/physics_flags.html'>physics_flags</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/read_parameters~4.html'>read_parameters</a></td><td><a href='../module/zgrid.html'>zgrid</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/read_parameters~5.html'>read_parameters</a></td><td><a href='../module/physics_parameters.html'>physics_parameters</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/read_parameters.html'>read_parameters</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td><p>Read the diagnostic input parameters from the input file</p><a href="../proc/read_parameters.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
+			   <tr><td><a href='../proc/read_parameters~4.html'>read_parameters</a></td><td><a href='../module/stella_layouts.html'>stella_layouts</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/read_parameters~5.html'>read_parameters</a></td><td><a href='../module/neoclassical_terms.html'>neoclassical_terms</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/read_parameters~6.html'>read_parameters</a></td><td><a href='../module/init_g.html'>init_g</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/read_parameters~7.html'>read_parameters</a></td><td><a href='../module/physics_parameters.html'>physics_parameters</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/read_parameters.html'>read_parameters</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td><p>Read the diagnostic input parameters from the input file</p><a href="../proc/read_parameters.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
+			   <tr><td><a href='../proc/read_parameters~8.html'>read_parameters</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/read_parameters~9.html'>read_parameters</a></td><td><a href='../module/zgrid.html'>zgrid</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/read_parameters~2.html'>read_parameters</a></td><td><a href='../module/run_parameters.html'>run_parameters</a></td><td>Subroutine</td><td><p>print warning messages and override inconsistent or unsupported options for full_flux_surface = T</p></td></tr>
-			   <tr><td><a href='../proc/read_parameters~7.html'>read_parameters</a></td><td><a href='../module/neoclassical_terms.html'>neoclassical_terms</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/read_parameters~8.html'>read_parameters</a></td><td><a href='../module/stella_layouts.html'>stella_layouts</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/read_parameters~9.html'>read_parameters</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/read_parameters~10.html'>read_parameters</a></td><td><a href='../module/sources.html'>sources</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/read_parameters~11.html'>read_parameters</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/read_parameters~12.html'>read_parameters</a></td><td><a href='../module/stella_geometry.html'>stella_geometry</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/read_parameters~11.html'>read_parameters</a></td><td><a href='../module/stella_geometry.html'>stella_geometry</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/read_parameters~12.html'>read_parameters</a></td><td><a href='../module/dissipation.html'>dissipation</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/read_parameters_dougherty.html'>read_parameters_dougherty</a></td><td><a href='../module/coll_dougherty.html'>coll_dougherty</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/read_parameters_fp.html'>read_parameters_fp</a></td><td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/read_parameters_hyper.html'>read_parameters_hyper</a></td><td><a href='../module/hyper.html'>hyper</a></td><td>Subroutine</td><td></td></tr>
@@ -1250,9 +1251,6 @@ we are undoing that weighting here, so also need to use ia = 1</p></td></tr>
 			   <tr><td><a href='../proc/rpos.html'>Rpos</a></td><td><a href='../module/millerlocal.html'>millerlocal</a></td><td>Function</td><td></td></tr>
 			   <tr><td><a href='../proc/run_type.html'>run_type</a></td><td><a href='../module/file_utils.html'>file_utils</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/safe_open.html'>safe_open</a></td><td><a href='../module/safe_open_mod.html'>safe_open_mod</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/save_dt.html'>save_dt</a></td><td><a href='../module/stella_time.html'>stella_time</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/save_dt_cfl.html'>save_dt_cfl</a></td><td><a href='../module/stella_time.html'>stella_time</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/save_dt_min.html'>save_dt_min</a></td><td><a href='../module/stella_time.html'>stella_time</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/save_input.html'>save_input</a></td><td><a href='../module/stella_io.html'>stella_io</a></td><td>Subroutine</td><td><p>Save the input file in the NetCDF file</p></td></tr>
 			   <tr><td><a href='../interface/scatter.html'>scatter</a></td><td><a href='../module/redistribute.html'>redistribute</a></td><td>Interface</td><td></td></tr>
 			   <tr><td><a href='../proc/scope.html'>scope</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
@@ -1450,13 +1448,13 @@ creating them if necessary</p></td></tr>
       <div class="container">
       <div class="row">
         <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2023 
-<br /><small>v0.5.1-174-gc04ec6ae7</small></p>
+<br /><small>v0.5.1-181-gda1f40a36</small></p>
         </div>
         <div class="col-xs-6 col-md-6">
           <p class="text-right">
             Documentation generated by 
             <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2023-01-27T14:46:51.004894           </p>
+ on 2023-03-09T09:38:47.251102           </p>
         </div>
       </div>
       <br>
