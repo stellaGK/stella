@@ -7,7 +7,7 @@ from stellapy.data.paths.load_pathObject import get_potential5DPath
 from stellapy.data.potential.write_h5FileForPotential5D import write_h5FileForPotential5D
 
 #===============================================================================
-#                        ATTACH THE POTENTIAL DATA
+#                        READ THE 5D POTENTIAL DATA
 #===============================================================================
 
 def read_potential5D(path): 

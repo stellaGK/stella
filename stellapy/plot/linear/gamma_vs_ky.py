@@ -35,7 +35,7 @@ from stellapy.plot.utils.data.get_rangesKxKy import get_rangesKxKy
 from stellapy.plot.utils.style.create_figure import create_figure
 from stellapy.utils.decorators.exit_program import exit_program
 from stellapy.simulations.Research import create_research   
-from stellapy.GUI.plot.utils import Axis, Legend, Plot
+from stellapy.plot.utils.style import Axis, Plot, Legend
 from stellapy.utils.commandprompt.bash import Bash 
 
 #===============================================================================

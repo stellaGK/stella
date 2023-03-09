@@ -1,7 +1,44 @@
 
+"""
+
+#===============================================================================
+#                           Bash to Python interface                           #
+#===============================================================================
+
+Interface to allow python scripts to be called from the command prompt in the 
+same way that bash commands would be called. A list of commands is given through:
+    >> stellapy
+    
+To see the available options of a command, ask for help.
+    >> stellapy --help (-h)
+
+The bash commands are defined in "stellapy/commands.sh", and an overview of commands
+is given in "stellapy/utils/commandprompt/list_commands.py", which can be accessed
+through the bash command ">> stellapy".
+
+Bash options (manually input a value) and toggles (preset values) are defined through:
+    bash.add_option(argument name, datatype, bash short option, bash long option, explanation) 
+    bash.add_toggle(argument name, argument value, bash short option, bash long option, explanation)  
+    
+Examples: 
+    bash.add_option('kymax', 'float', 'k', 'kymax', 'Maximum ky.')  
+    bash.add_toggle('modes_id', 'stable', 's', 'stable', 'Plot the stable or unconverged modes.') 
+        >> plot_gamma_vs_time --kymax 2 --stable
+        >> plot_gamma_vs_time -k 2 -s 
+
+Hanne Thienpondt 
+20/01/2023
+
+"""
+
+import glob
 import inspect
+import numpy as np
 import os, sys, getopt, pathlib  
 
+#===============================================================================
+#                           Bash to Python interface                           #
+#===============================================================================
 
 class Bash(): 
     
@@ -14,64 +51,137 @@ class Bash():
         
         # Create bash like options
         self.short_options = ""
-        self.long_options = []
+        self.long_options = [] 
         self.options = []
         self.toggles = []
         
         # Get the default arguments of the given function
+        explanation = "Select the folders that contain simulations, default is the current working directory.\n"
+        explanation += "Can be a string or list of strings e.g. '/home/path' or ['path1', 'path2']. \n"
+        explanation += "Can be folder names in the current directory e.g. '[rho*, lowresolution]'."
         self.arguments = get_default_args(function)  
         self.arguments['folder'] = pathlib.Path(os.getcwd()) 
-        self.add_option('folder', 'pathlib', '', 'Choose the folder where the command needs to be executed.')
+        self.add_option('folder', 'pathlib', '', '', explanation)
         pass
     
     #---------------------   
-    def add_option(self, name, datatype, shortname, explanation): 
-        self.options.append(Option(name, datatype, shortname, explanation)) 
+    def add_option(self, name, datatype, shortoption, longoption, explanation): 
+        if longoption=="": longoption = name 
+        self.options.append(Option(name, datatype, shortoption, longoption, explanation)) 
         get_argument_short = ":" if datatype not in ["True", "False", "help"] else ""
         get_argument_long = "=" if datatype not in ["True", "False", "help"] else "" 
-        self.short_options += shortname+get_argument_short if shortname!="" else ""
-        self.long_options += [name+get_argument_long]  
+        self.short_options += shortoption+get_argument_short if shortoption!="" else ""
+        self.long_options += [longoption+get_argument_long]  
+        return 
+    
+    #---------------------   
+    def add_toggle(self, name, value, shortoption, longoption, explanation): 
+        if longoption=="": longoption = value
+        self.toggles.append(Toggle(name, value, shortoption, longoption, explanation)) 
+        self.short_options += shortoption
+        self.long_options += [longoption]
         return
     
     #---------------------   
-    def add_toggle(self, name, longname, explanation): 
-        self.toggles.append(Toggle(name, longname, explanation)) 
-        self.long_options += [longname]
+    def add_toggleheader(self, header):  
+        self.toggles.append(Toggle("HEADER", " ", " ", header, " "))  
+        return
+    
+    #---------------------   
+    def add_togglespace(self):  
+        self.toggles.append(Toggle("SPACE", " ", " ", " ", " "))  
+        return
+    
+    #---------------------   
+    def add_optionheader(self, header):  
+        self.options.append(Option("HEADER", " ", " ", header, " "))  
+        return
+    
+    #---------------------   
+    def add_optionspace(self):  
+        self.options.append(Option("SPACE", " ", " ", " ", " "))  
         return
 
     #---------------------       
     def get_arguments(self):  
         
-        # Add the help option last
-        self.add_option('help', 'help', 'h', 'Print information about the command.')  
+        # Avoid circular import
+        from stellapy.utils.decorators.exit_program import exit_program 
         
-        # Get bash like arguments from the command prompt 
+        # Check the option lists
+        short_options_temp = [i for i in self.short_options if i!=':'] 
+        if (len(list(set(short_options_temp)))<len(short_options_temp)) or (len(list(set(self.long_options)))<len(self.long_options)):
+            exit_reason = "One of the short of long options is used twice, please correct the script.\n"
+            exit_reason += f"   Short options: {self.short_options}\n"
+            exit_reason += f"   Long options: {self.long_options}\n"
+            exit_program(exit_reason, Bash, sys._getframe().f_lineno)  
+        
+        # Add the help option last
+        self.add_toggle('help', 'help', 'h', 'help', 'Print information about the command.')  
+        
+        # Get bash like arguments from the command prompt  
         try: opts_args = getopt.getopt(sys.argv[1:],self.short_options,self.long_options)[0] 
-        except getopt.GetoptError: self.print_help(error=True); sys.exit(2) 
+        except Exception as error_message: self.print_help(error=True, error_message=error_message); sys.exit()
     
         # Asign the options and arguments to variables  
         for opt, arg in opts_args:  
-            
+             
             # Initiate the arg_type
             arg_type = "undefined"
             
             # Find out whether <opt> is an option or a toggle 
             if arg_type=="undefined":
                 for option in self.options:
-                    if "--"+option.name==opt or "-"+option.shortname==opt:
-                        arg_type = "option"
+                    if "--"+option.longoption==opt or "-"+option.shortoption==opt:
+                        arg_type = "option" 
                         break
             if arg_type=="undefined":
-                for toggle in self.toggles:
-                    if "--"+toggle.longname==opt:
+                for toggle in self.toggles: 
+                    if "--"+toggle.longoption==opt or "-"+toggle.shortoption==opt:
                         arg_type = "toggle"
-                        break
-            if arg_type=="undefined":
+                        break 
+            if arg_type=="undefined" or opt=="--help":
                 self.print_help()
-                sys.exit()
+                sys.exit() 
+            if arg_type=="toggle" and opt=="-h":
+                if toggle.longoption=="help":
+                    self.print_help()
+                    sys.exit()  
+                    
+            # Special treatment of the 'folder' option
+            if arg_type=="option" and option.name=='folder': 
+                 
+                # Get the folder where the script is launched
+                cwd = pathlib.Path(os.getcwd())
+                found_folders = []
+                 
+                # <folder> can be e.g. ['nmu*', 'lowresolution'] or '/home/path'
+                if '[' not in arg: given_folders = [arg]
+                if '[' in arg: given_folders = [i.replace(' ','') for i in arg.split('[')[-1].split(']')[0].split(',')]
+                for i, path in enumerate(given_folders): 
+                    if '*' in path and '/' not in path: 
+                        matching_files = [pathlib.Path(i) for i in glob.glob(str(cwd/path))]
+                        found_folders += matching_files
+                        if len(matching_files)==0:
+                            exit_reason = f'The <folder> = {arg} could not be found.'
+                            exit_program(exit_reason, Bash, sys._getframe().f_lineno)  
+                    elif '*' in path and '/' in path: 
+                        matching_files = [pathlib.Path(i) for i in glob.glob(path)]
+                        found_folders += matching_files
+                        if len(matching_files)==0:
+                            exit_reason = f'The <folder> = {arg} could not be found.'
+                            exit_program(exit_reason, Bash, sys._getframe().f_lineno)  
+                    elif os.path.isdir('/'+path) or os.path.isfile('/'+path): 
+                        found_folders.append(pathlib.Path(path))
+                    elif os.path.isdir(cwd/path) or os.path.isfile(pathlib.Path(cwd/path)):
+                        found_folders.append(cwd/path)
+                    else: 
+                        exit_reason = f'The <folder> = {arg} could not be found.'
+                        exit_program(exit_reason, Bash, sys._getframe().f_lineno)  
+                self.arguments[option.name] = found_folders
 
             # Get the arguments for an option
-            if arg_type=="option":
+            elif arg_type=="option":
                 if option.datatype=='str':
                     self.arguments[option.name] = str(arg)
                 if option.datatype=='int':
@@ -96,34 +206,47 @@ class Bash():
                     if "default" in arg:
                         self.arguments[option.name] = "default" 
                     elif "[" in arg:  
-                        a = arg.split("[")[-1].split(",")[0]
-                        b = arg.split("]")[0].split(",")[-1]
+                        a = float(arg.split("[")[-1].split(",")[0])
+                        b = float(arg.split("]")[0].split(",")[-1])
                         self.arguments[option.name] = [a,b]
                     elif "(" in arg:  
-                        a = arg.split("(")[-1].split(",")[0]
-                        b = arg.split(")")[0].split(",")[-1]
+                        a = float(arg.split("(")[-1].split(",")[0])
+                        b = float(arg.split(")")[0].split(",")[-1])
                         self.arguments[option.name] = [a,b]
                     elif "[" not in arg:
-                        a = arg.split(" ")[0]
-                        b = arg.split(" ")[-1]
+                        a = float(arg.split(" ")[0])
+                        b = float(arg.split(" ")[-1])
                         self.arguments[option.name] = [a,b]
+                elif option.datatype=='vector':
+                    arg = arg.split("[")[-1].split("]")[0]
+                    arg = [float(i) for i in arg.split(",")]
+                    self.arguments[option.name] = arg
+                elif option.datatype=='vector_of_tuples':
+                    arg = arg.split("[")[-1].split("]")[0] 
+                    arg = [i.split("(")[-1].split(")")[0] for i in arg.split(";")]
+                    arg = [[float(i.split(",")[0]),float(i.split(",")[-1])] for i in arg]
+                    self.arguments[option.name] = arg
+                elif option.datatype=='vector_of_strings':
+                    arg = arg.split("[")[-1].split("]")[0]
+                    arg = [str(i).replace(' ','') for i in arg.split(",")]
+                    self.arguments[option.name] = arg
                 elif option.datatype=='help': 
                     self.print_help()
                     sys.exit()
                     
             # Get the arguments for a toggle
-            if arg_type=="toggle": 
-                self.arguments[toggle.name] = toggle.longname
+            elif arg_type=="toggle":  
+                self.arguments[toggle.name] = toggle.value
      
-        # Show the parameters
+        # Show the parameters  
         return self.arguments 
          
     #---------------------    
-    def print_help(self, error=False, width=100):
+    def print_help(self, error=False, width=100, error_message=""):
         ''' When a bash command is called, print the function name, its descriptions and its arguments.''' 
     
         # Get the function path and name 
-        path = "stellapy" + self.function_path.split("stellapy/")[-1].replace("//","/").replace("/",".").replace(".py","")
+        path = "stellapy." + self.function_path.split("stellapy/")[-1].replace("//","/").replace("/",".").replace(".py","")
         name = self.function_name
         
         # Print the function name
@@ -157,66 +280,90 @@ class Bash():
             if isinstance(value, str): value="'"+value+"'"
             if isinstance(value, list): value = "["+', '.join([str(i) for i in value])+"]"
             if value==None:  value="None"
-            if value==True:  value="True"
-            if value==False: value="False"
-            if name!=keys[-1]: print('       ', name+" = "+ str(value))
+            if isinstance(value, (bool)):
+                if value==True:  value="True"
+                if value==False: value="False"
+            if name!=keys[-1]: print('       ', name+" = "+ str(value)+", ")
             if name==keys[-1]: print('       ', name+" = "+ str(value) + ")")
         print()
         
-        # List the bash options
+        # List the bash options and toggles
+        long_option_length = 10
+        for option in self.options: long_option_length = np.max([long_option_length, len(option.longoption)])
+        for toggle in self.toggles: long_option_length = np.max([long_option_length, len(toggle.longoption)])
         if len(self.options)!=0:
             print("\033[1m BASH OPTIONS \033[0m")
             print("\033[1m ------------ \033[0m", "\n") 
-            for option in self.options:
-                long = "--"+option.name if option.name!="" else ""
-                short = "-"+option.shortname if option.shortname!="" else ""
-                if "\n" in option.explanation:
-                    parts = option.explanation.split('\n')  
-                    print(" ","{0:>5}".format(short), " ", "{0:<15}".format(long), "{0:<40}".format(parts[0])) 
-                    for i in range(len(parts)-1):
-                        print("  ","{0:>5}".format(""), " ", "{0:<15}".format(""), "{0:<40}".format(parts[i+1]))
-                else: 
-                    if len(long)>15: long = long[:15]
-                    print(" ","{0:>5}".format(short), " ", "{0:<15}".format(long), "{0:<40}".format(option.explanation))  
-            print()
-            
+            self.options = self.options[1:] + [self.options[0]]
+            for option in self.options: self.print_option(option, long_option_length)
+            print() 
         if len(self.toggles)!=0:
             print("\033[1m BASH TOGGLES \033[0m")
             print("\033[1m ------------ \033[0m", "\n") 
-            for toggle in self.toggles: 
-                if "\n" in toggle.explanation:
-                    parts = toggle.explanation.split('\n')  
-                    print("  ", "{0:6}".format(""), "{0:<15}".format("--"+toggle.longname), "{0:<40}".format(parts[0])) 
-                    for i in range(len(parts)-1):
-                        print("  ", "{0:6}".format(""), "{0:<15}".format(""), "{0:<40}".format(parts[i+1]))
-                else: 
-                    print("  ", "{0:6}".format(""), "{0:<15}".format("--"+toggle.longname), "{0:<40}".format(toggle.explanation))  
+            for toggle in self.toggles: self.print_option(toggle, long_option_length)
             print()
             
         # Mention that we had an error
         if error:
+            short_options_temp = self.short_options+"h"
+            short_toggles = [short_options_temp[i] for i in range(len(short_options_temp)-1) if short_options_temp[i+1]!=":" and short_options_temp[i]!=":"]
+            short_options = [short_options_temp[i] for i in range(len(short_options_temp)-1) if short_options_temp[i+1]==":"]
+            long_toggles = [i for i in self.long_options if i[-1]!="="]
+            long_options = [i[:-1] for i in self.long_options if i[-1]=="="]
             print("\033[1m ERROR \033[0m")
             print("\033[1m ----- \033[0m", "\n") 
             print("    One of the bash options was not defined or an argument was missing or mistakinly given. ")
-            print("         Possible short arguments: ", self.short_options)
-            print("         Possible long arguments:  ", self.long_options)
+            print("         Possible short toggles: ", short_toggles) 
+            print("         Possible short options: ", short_options) 
+            print("         Possible long toggles:  ", long_toggles)
+            print("         Possible long options:  ", long_options)                    
             print() 
+            if error_message!="": print("    \033[1mERROR\033[0m: "+str(error_message)+".\n")
         return 
+    
+    #-------------
+    def print_option(self, option, long_option_length):
+        
+        # Sort options in sections with a certain header, and leave an empty space below
+        if option.name=="HEADER": print("    \033[1m"+(option.longoption)+"\033[0m"); print(("    "+"-"*len(option.longoption))); return;
+        if option.name=="HEADER": print("\033[1m"+(option.longoption).center(50)+"\033[0m"); print(("-"*len(option.longoption)).center(50)); return;
+        if option.name=="SPACE": print(); return;
+        
+        # Turn the short and long option into a string
+        long = "--"+option.longoption if option.longoption!="" else ""
+        short = "-"+option.shortoption if option.shortoption!="" else ""
+        long_format = "{0:<"+str(long_option_length+4)+"."+str(long_option_length+2)+"}"
+        options = " "+"{0:>5}".format(short)+", "+long_format.format(long) if short!="" else " "*8+long_format.format(long)
+        
+        # If we have a long explanation, split it up into multiple lines
+        if "\n" in option.explanation:
+            parts = option.explanation.split('\n')  
+            print(options, "{0:<40}".format(parts[0])) 
+            for i in range(len(parts)-1):
+                print(" "*(long_option_length+12), "{0:<40}".format(parts[i+1]))
+                
+        # If we have a short explanation, print it in one line
+        else: 
+            print(options, "{0:<40}".format(option.explanation))   
+        return
         
 #-------------
 class Option():
-    def __init__(self, name, datatype, shortname, explanation):
+    def __init__(self, name, datatype, shortoption, longoption, explanation):
         self.explanation = explanation
-        self.shortname = shortname
+        self.shortoption = shortoption
+        self.longoption = longoption
         self.datatype = datatype
         self.name = name
-        return
+        return 
     
 #-------------
 class Toggle():
-    def __init__(self, name, longname, explanation):
+    def __init__(self, name, value, shortoption, longoption, explanation):
         self.explanation = explanation
-        self.longname = longname 
+        self.shortoption = shortoption 
+        self.longoption = longoption 
+        self.value = value 
         self.name = name
         return
         

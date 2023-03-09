@@ -14,6 +14,7 @@ def get_basicParameters(self):
     # Linear or nonlinear simulations
     self.linear = True if (self.inputParameters["physics_flags"]["nonlinear"]!=True) else False
     self.nonlinear = True if (self.inputParameters["physics_flags"]["nonlinear"]==True) else False
+    self.full_flux_surface = True if (self.inputParameters["physics_flags"]["full_flux_surface"]==True) else False
     
     # Read the number of periods or field periods
     self.nperiod = self.inputParameters['zgrid_parameters']['nperiod']

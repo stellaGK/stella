@@ -1,77 +1,91 @@
 
 import numpy as np
 from stellapy.data.utils import Data
-from stellapy.data.lineardata.read_removedModes import get_removedModes
-from stellapy.data.lineardata.read_linearDataPerMode import get_linearDataPerMode
+from stellapy.data.lineardata.read_removedModes import read_removedModes 
 from stellapy.data.utils.calculate_attributeWhenReadFirstTime import calculate_attributeWhenReadFirstTime  
+from stellapy.data.lineardata.read_linearDataForFFS import get_linearDataForFFS
+from stellapy.data.lineardata.read_linearDataPerMode import get_linearDataPerMode
 
 #===============================================================================
 #                        CREATE THE LINEARDATA OBJECT
 #===============================================================================  
-
 class LinearData:
     
-    # Copy the data from <simulation> that is needed to construct <distribution>
-    def __init__(self, mode):
+    # Copy the data from <simulation> that is needed to construct <lineardata>
+    def __init__(self, simulation):
         
         # Calculate (omega; gamma) over the following last percentage of (time)
         self.percentage = 0.85
         
-        # Remember the file paths and the progress
-        self.object = mode.object 
-        self.path = mode.path
+        # Calculate (gamma_ffs) after the first converged simulation 
+        self.error_max = 0.01
         
-        # To get the removed modes, attach them to the simulation
-        if self.object=="Simulation":
-            self.modes = mode.modes 
-            self.path = mode.path 
-            self.kx_range = None
-            self.ky_range = None
-            
-        # To decide whether a mode needs to be removed, access the simulation
-        if self.object=="Mode":
-            self.kx = mode.kx
-            self.ky = mode.ky 
-            self.dim = mode.dim 
-            self.vec = mode.vec  
-            self.omega = mode.omega
-            self.Progress = mode.Progress
-            self.input_file = mode.input_file 
-            self.simulation = mode.simulation
-            self.sign_B = mode.geometry.sign_B 
+        # Remember the file paths and the progress 
+        self.full_flux_surface = simulation.full_flux_surface 
+        self.path = simulation.path
+        
+        # We need the following data to calculate the linear data for e.g. gamma(ky) 
+        self.input_file = simulation.input_file 
+        self.simulation = simulation
+        self.input = simulation.input
+        self.path = simulation.path  
+        self.dim = simulation.dim 
+        self.vec = simulation.vec  
+        self.omega = simulation.omega
+        self.Progress = simulation.Progress
+        self.input_file = simulation.input_file  
+        self.sign_B = simulation.geometry.sign_B  
+        self.kx_range = None
+        self.ky_range = None
         return    
     
     # To the <simulation> attach the vector of removed modes
     @calculate_attributeWhenReadFirstTime 
-    def removedKxModes(self):  get_removedModes(self);              return self.removedKxModes
+    def removedKxModes(self):          read_removedModes(self);             return self.removedKxModes
     @calculate_attributeWhenReadFirstTime 
-    def removedKyModes(self):  get_removedModes(self);              return self.removedKyModes
+    def removedKyModes(self):          read_removedModes(self);             return self.removedKyModes
+    
+    # Get (stable; unstable; converged)  
     @calculate_attributeWhenReadFirstTime 
-    def removeMode(self):      get_removedModes(self);              return self.removeMode 
+    def stable_vs_kxky(self):          get_linearDataPerMode(self);         return self.stable_vs_kxky
+    @calculate_attributeWhenReadFirstTime 
+    def unstable_vs_kxky(self):        get_linearDataPerMode(self);         return self.unstable_vs_kxky
+    @calculate_attributeWhenReadFirstTime 
+    def converged_vs_kxky(self):       get_linearDataPerMode(self);         return self.converged_vs_kxky
     
     # Calculate (stable; omega_last; gamma_last) when it's asked for 
     @calculate_attributeWhenReadFirstTime 
-    def stable(self):          get_linearDataPerMode(self);         return self.stable
+    def omega_last_vs_kxky(self):      get_linearDataPerMode(self);         return self.omega_last_vs_kxky
     @calculate_attributeWhenReadFirstTime 
-    def unstable(self):        get_linearDataPerMode(self);         return self.unstable
+    def omega_avg_vs_kxky(self):       get_linearDataPerMode(self);         return self.omega_avg_vs_kxky
     @calculate_attributeWhenReadFirstTime 
-    def converged(self):       get_linearDataPerMode(self);         return self.converged
+    def omega_min_vs_kxky(self):       get_linearDataPerMode(self);         return self.omega_min_vs_kxky
     @calculate_attributeWhenReadFirstTime 
-    def omega_last(self):      get_linearDataPerMode(self);         return self.omega_last
+    def omega_max_vs_kxky(self):       get_linearDataPerMode(self);         return self.omega_max_vs_kxky
     @calculate_attributeWhenReadFirstTime 
-    def omega_avg(self):       get_linearDataPerMode(self);         return self.omega_avg
+    def gamma_last_vs_kxky(self):      get_linearDataPerMode(self);         return self.gamma_last_vs_kxky
     @calculate_attributeWhenReadFirstTime 
-    def omega_min(self):       get_linearDataPerMode(self);         return self.omega_min
+    def gamma_avg_vs_kxky(self):       get_linearDataPerMode(self);         return self.gamma_avg_vs_kxky
     @calculate_attributeWhenReadFirstTime 
-    def omega_max(self):       get_linearDataPerMode(self);         return self.omega_max
+    def gamma_min_vs_kxky(self):       get_linearDataPerMode(self);         return self.gamma_min_vs_kxky
     @calculate_attributeWhenReadFirstTime 
-    def gamma_last(self):      get_linearDataPerMode(self);         return self.gamma_last
+    def gamma_max_vs_kxky(self):       get_linearDataPerMode(self);         return self.gamma_max_vs_kxky
+    
+    # Calculate (gamma, omega) for a full flux surface simulation
     @calculate_attributeWhenReadFirstTime 
-    def gamma_avg(self):       get_linearDataPerMode(self);         return self.gamma_avg
+    def ffs_gamma(self):               get_linearDataForFFS(self);          return self.ffs_gamma
     @calculate_attributeWhenReadFirstTime 
-    def gamma_min(self):       get_linearDataPerMode(self);         return self.gamma_min
+    def ffs_omega(self):               get_linearDataForFFS(self);          return self.ffs_omega
     @calculate_attributeWhenReadFirstTime 
-    def gamma_max(self):       get_linearDataPerMode(self);         return self.gamma_max
+    def ffs_kymin(self):               get_linearDataForFFS(self);          return self.ffs_kymin
+    @calculate_attributeWhenReadFirstTime 
+    def ffs_gamma_min(self):           get_linearDataForFFS(self);          return self.ffs_gamma_min
+    @calculate_attributeWhenReadFirstTime 
+    def ffs_gamma_max(self):           get_linearDataForFFS(self);          return self.ffs_gamma_max
+    @calculate_attributeWhenReadFirstTime 
+    def ffs_omega_min(self):           get_linearDataForFFS(self);          return self.ffs_omega_min
+    @calculate_attributeWhenReadFirstTime 
+    def ffs_omega_max(self):           get_linearDataForFFS(self);          return self.ffs_omega_max
     
     #----------------------   
     def get_linearDataPerSimulation(self, modes, plot):
@@ -105,32 +119,6 @@ class LinearData:
 def load_linearDataObject(self):
     self.lineardata = LinearData(self)
     return
-    
-    
-    
-################################################################################
-#                     USE THESE FUNCTIONS AS A MAIN SCRIPT                     #
-################################################################################
-if __name__ == "__main__":  
-    
-    from stellapy.simulations.Simulation import create_simulations
-    import timeit, pathlib; start = timeit.timeit()
-    
-    folder = pathlib.Path("/home/hanne/CIEMAT/PREVIOUSRUNS/LINEARMAPS/W7Xstandard_rho0.7_aLTe0/LinearMap/fprim4tprim4")   
-    folder = pathlib.Path("/home/hanne/CIEMAT/RUNS/TEST_NEW_GUI")    
-    simulations = create_simulations(folders=folder, input_files=None, ignore_resolution=True, number_variedVariables=5) 
-    print("\nWe have "+str(len(simulations))+" simulations.") 
-    print("Test the LinearData class.\n")
-    for simulation in simulations: 
-        for mode in simulation.modes:   
-            name = "("+str(mode.kx)+", "+str(mode.ky)+")"   
-            gamma = mode.lineardata.gamma_avg
-            unstable = mode.lineardata.unstable
-            removeMode = mode.lineardata.removeMode
-            print("{:<15}".format(name), gamma, unstable, removeMode) 
-    
-    
-    
     
     
     

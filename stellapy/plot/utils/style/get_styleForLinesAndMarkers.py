@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from itertools import takewhile
 from stellapy.utils.files import initiate_nesteddict
 from stellapy.plot.utils.devices.get_colorsPerDevice import replaceWithCustomLineColors 
-from stellapy.plot.utils.devices.recognize_device import recognize_device
+from stellapy.data.geometry.recognize_device import recognize_device
 
 #----------------------------------
 def get_styleForLinesAndMarkers(plot, legend, research, experiment, simulation=None, mode=None): 
@@ -47,9 +47,9 @@ def get_labels(plot, legend, research, experiment, simulation=None, mode=None):
     label_exp = experiment.line_label 
     
     # For each simulation, add a label to show what is varied between the simulations
-    label_sim = simulation.marker_label if simulation!=None else ""
+    label_sim = simulation.marker_label if simulation!=None else "" 
     label_sim = label_sim.replace("_"," ") if "$" not in label_sim else label_sim
-    
+
     # Linearly we add the (kx,ky) mode in the label 
     if mode!=None: 
         if research.numberOfPlottedModes!=research.numberOfPlottedSimulations or research.numberOfPlottedModes!=research.numberOfPlottedExperiments:        
@@ -136,7 +136,7 @@ def load_labelsLinesMarkers(experiments, varied_values, return_dictionaries=True
     -------
     line_style, line_color, marker_color, marker_style : dictionaries with keys [simlutation] and [groups]
     """
- 
+
     # Initiate the dictionaries
     line_label   = initiate_nesteddict()
     marker_label = initiate_nesteddict()
@@ -171,13 +171,21 @@ def load_labelsLinesMarkers(experiments, varied_values, return_dictionaries=True
         marker_style[experiment] = m_styles[experiments.index(experiment)]  
 
     # Add lines/marker styles and colors for each simulation
-    for variation in varied_values:  
-        line_label[variation]    = str(variation)
-        marker_label[variation]  = str(variation)
-        line_color[variation]    = m_colors[varied_values.index(variation)]  
+    varied_values_with_common_prefixes = copy.deepcopy(varied_values)
+    common_prefix_simulation = "".join(c[0] for c in takewhile(lambda x:  all(x[0] == y for y in x), zip(*varied_values))) 
+    if ";" in common_prefix_simulation: 
+        common_prefix_simulation = "; ".join(common_prefix_simulation.split('; ')[:-1])+"; "
+        for i in range(len(varied_values)): varied_values_with_common_prefixes[i] = varied_values[i].replace(common_prefix_simulation, "");  
+    for i, variation in enumerate(varied_values):  
+        line_label[variation]    = str(varied_values_with_common_prefixes[i])
+        marker_label[variation]  = str(varied_values_with_common_prefixes[i]) 
+        line_color[variation]    = m_colors[i]  
         line_style[variation]    = "-"
-        marker_color[variation]  = m_colors[varied_values.index(variation)]   
-        marker_style[variation]  = m_styles[varied_values.index(variation)]  
+        marker_color[variation]  = m_colors[i]   
+        marker_style[variation]  = m_styles[i] 
+        marker_label[variation] = marker_label[variation].replace("_"," ") if "$" not in marker_label[variation] else marker_label[variation]
+        line_label[variation] = line_label[variation].replace("_"," ") if "$" not in line_label[variation] else line_label[variation]
+
 
     # Edit the line/marker labels for the experiments/simulations
     for experiment in experiments:
@@ -186,9 +194,8 @@ def load_labelsLinesMarkers(experiments, varied_values, return_dictionaries=True
         if "=" in common_prefix:
             line_label[experiment] = str(experiment)
         else:
-            try: line_label[experiment] = str(experiment).replace("_", " ")
-            except: line_label[experiment] = str(experiment).replace("_", " ")
-        marker_label[experiment] = str(experiment).replace("__", ": ").replace("_", " ")
+            line_label[experiment] = str(experiment).replace("_", " ")
+        marker_label[experiment] = str(experiment).replace("__", ": ").replace("_", " ") 
 
     # Replace some custom line colors  
     label = line_label[list(line_label.keys())[0]]

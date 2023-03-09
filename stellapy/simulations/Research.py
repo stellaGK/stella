@@ -3,9 +3,7 @@ import os, pathlib
 from stellapy.simulations.Experiment import create_experiments 
 from stellapy.utils.files.sort_listByNumbers import sort_listByLabel 
 from stellapy.utils.files.sort_listByNumbers import sort_listByNumbers 
-from stellapy.plot.utils.devices.recognize_device import recognize_device 
-from stellapy.plot.utils.style.get_styleForLinesAndMarkers import get_plottingOption, load_labelsLinesMarkers
-from stellapy.plot.utils.labels.change_stellaParametersForLabels import change_stellaParametersForLabels
+from stellapy.data.geometry.recognize_device import recognize_device 
 
 ################################################################################
 #                              CREATE RESEARCH                                 #
@@ -16,7 +14,9 @@ def create_research(\
     folders=None, input_files=None, 
     # To group by experiments and simulations we need the following data
     variables=10, knob1="-", key1="-", knob2="-", key2="-", knob3="-", key3="-",
-    ignoreResolution=True, folderIsExperiment=False, resolutionScan=False, verbose=False, 
+    folderIsExperiment=False, folderIsSimulation=False, resolutionScan=False, verbose=False, 
+    # Merge linear simulations with similar input parameters into one simulation
+    ignore_resolution=True, include_knobs=[],
     # Print a progress bar on the terminal
     progress_start=None, progress_stop=None):
     ''' Group multiple experiments so they can be saved as a pickly object and handed to plotting functions. '''
@@ -25,11 +25,12 @@ def create_research(\
     start = time.time()
     
     # Collect the details that define how the research is constructed
-    creationDetails = CreationDetails(variables, knob1, key1, knob2, key2, knob3, key3, ignoreResolution, folderIsExperiment, resolutionScan, progress_start, progress_stop)
+    creationDetails = CreationDetails(variables, knob1, key1, knob2, key2, knob3, key3, folderIsExperiment, folderIsSimulation, resolutionScan, ignore_resolution, include_knobs, progress_start, progress_stop)
 
     # Create the experiments 
-    experiments = create_experiments(folders, input_files, creationDetails)
-    
+    if verbose: print("Create experiments")
+    experiments = create_experiments(folders, input_files, creationDetails) 
+ 
     # Look for the total amount of varied values throughout the experiments
     variedValues=[]
     for experiment in experiments: 
@@ -47,7 +48,7 @@ def create_research(\
 #-------------------
 class CreationDetails:
 
-    def __init__(self, variables, knob1, key1, knob2, key2, knob3, key3, ignoreResolution, folderIsExperiment, resolutionScan, progress_start, progress_stop):
+    def __init__(self, variables, knob1, key1, knob2, key2, knob3, key3, folderIsExperiment, folderIsSimulation, resolutionScan, ignore_resolution, include_knobs, progress_start, progress_stop):
         self.key1 = key1
         self.key2 = key2
         self.key3 = key3
@@ -56,8 +57,10 @@ class CreationDetails:
         self.knob3 = knob3
         self.variables = variables
         self.resolutionScan = resolutionScan
-        self.ignoreResolution = ignoreResolution
         self.folderIsExperiment = folderIsExperiment
+        self.folderIsSimulation = folderIsSimulation
+        self.ignore_resolution = ignore_resolution
+        self.include_knobs = include_knobs
         self.progress_start = progress_start
         self.progress_stop = progress_stop
         self.progress_stop1 = progress_start + (progress_stop-progress_start)*1/2 if progress_start!=None else None 
@@ -85,8 +88,8 @@ class Research:
         # Sort the experiments
         self.experiments = sort_listByNumbers(self.experiments, source="id") if not self.creationDetails.resolutionScan else sort_listByLabel(self.experiments)
      
-        
         # Get some default values for the markers and lines for each experiment/simulation
+        from stellapy.plot.utils.style.get_styleForLinesAndMarkers import get_plottingOption
         self.set_labelsLinesMarkers()       
         self.plotting_option = get_plottingOption(self.experiments)  
         if True: return
@@ -95,6 +98,18 @@ class Research:
 #                                METHODS                                       #
 ################################################################################
 
+    #-----------------------------------   
+    def update_timeFrame(self, trange):
+        if trange!=None: 
+            for experiment in self.experiments:
+                for simulation in experiment.simulations: 
+                    if trange=="default": simulation.time.update_timeFrame(["50%%", "100%%"])
+                    if trange!="default":
+                        if trange[0]==trange[1]: trange[1] = "100%%"
+                        simulation.time.update_timeFrame(trange) 
+        return
+        
+    #-----------------------------------   
     def save_numberOfExperimentsAndSimulations(self):
         self.numberOfExperiments = 0
         self.numberOfSimulations = 0
@@ -110,8 +125,7 @@ class Research:
         self.input_files = []
         for experiment in self.experiments:
             for simulation in experiment.simulations: 
-                if simulation.nonlinear: self.input_files += [simulation.input_file]
-                if simulation.linear: self.input_files += [mode.input_file for mode in simulation.modes]
+                self.input_files.append(simulation.input_file)
         self.input_files = sorted(self.input_files)
         
         # Split the input files in folder/input_file pairs
@@ -135,16 +149,10 @@ class Research:
             
             # Add the experiment and simulation id to the files
             for experiment in self.experiments:
-                for simulation in experiment.simulations:
-                    if simulation.nonlinear:  
-                        index_i = self.input_files.index(simulation.input_file)
-                        self.e_id[index_i] = experiment.id
-                        self.s_id[index_i] = simulation.marker_label.replace("$","").replace("\,"," ")
-                    if simulation.linear: 
-                        for mode in simulation.modes:
-                            index_i = self.input_files.index(mode.input_file)
-                            self.e_id[index_i] = experiment.id
-                            self.s_id[index_i] = simulation.marker_label.replace("$","").replace("\,"," ")
+                for simulation in experiment.simulations:  
+                    index_i = self.input_files.index(simulation.input_file)
+                    self.e_id[index_i] = experiment.id
+                    self.s_id[index_i] = simulation.marker_label.replace("$","").replace("\,"," ") 
                         
         # Now get the unique folders
         self.unique_folders = list(set(self.folders))
@@ -152,6 +160,9 @@ class Research:
                   
     #-----------------------------------   
     def update_experimentLabels(self):
+        
+        # Prevent the loading of the plotting module if we don't need it
+        from stellapy.plot.utils.labels.change_stellaParametersForLabels import change_stellaParametersForLabels
         
         # Initiate the new experiment id's
         experiment_ids = []
@@ -162,8 +173,7 @@ class Research:
                 
                 # Get the first simulation and its input parameters
                 simulation = experiment.simulations[0]
-                if simulation.linear: inputobject = simulation.modes[0].input
-                if simulation.nonlinear: inputobject = simulation.input
+                inputobject = simulation.input 
                     
                 # Update the experiment key and value to a math notation for the line labels for each experiment 
                 if self.creationDetails.key1!='vmec_filename':
@@ -199,10 +209,7 @@ class Research:
         else:
             experiment_ids = []
             for experiment in self.experiments:
-                if experiment.simulations[0].nonlinear:
-                    experiment_ids.append(str(experiment.simulations[0].input_file).split("/")[-2]) 
-                if experiment.simulations[0].linear:
-                    experiment_ids.append(str(experiment.simulations[0].modes[0].input_file).split("/")[-2]) 
+                experiment_ids.append(str(experiment.simulations[0].input_file).split("/")[-2]) 
             if len(experiment_ids) != 0 and len(experiment_ids)==len(list(set(experiment_ids))): 
                 for experiment in self.experiments:
                     experiment.id = experiment_ids[self.experiments.index(experiment)]
@@ -240,12 +247,15 @@ class Research:
 
     def set_labelsLinesMarkers(self):
         
+        # Prevent the loading of the plotting module if we don't need it
+        from stellapy.plot.utils.style.get_styleForLinesAndMarkers import load_labelsLinesMarkers
+        
         # Get the ids of the experiments
         experiment_ids = [experiment.id for experiment in self.experiments]
-               
+
         # Load the default style ased on the experiment ids and varied values
         line_label, marker_label, line_style, line_color, marker_style, marker_color = load_labelsLinesMarkers(experiment_ids, self.variedValues)
-        
+    
         # Change the lines/markers of the underlying experiment objects based on self.variedValues
         for experiment in self.experiments: experiment.set_labelsLinesMarkers(line_label, marker_label, line_style, line_color, marker_style, marker_color)
         if True: return

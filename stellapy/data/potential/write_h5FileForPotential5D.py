@@ -95,8 +95,8 @@ def write_h5FileForPotential5D(folder, dt=100):
                 h5_file.create_dataset("phi_vs_tzkxky_tavg", data=phi_vs_tzkxky_tavg)  
                                      
             # Notify that we finished creating the file
-            if outputFileHasChanged: print(status+"   ---> The 4D potential file is updated as " +  potential_file.parent.name+"/"+potential_file.name)   
-            if not outputFileHasChanged:  print(status+"   ---> The 4D potential file is saved as " +  potential_file.parent.name+"/"+potential_file.name)  
+            if outputFileHasChanged: print(status+"   ---> The 5D potential file is updated as " +  potential_file.parent.name+"/"+potential_file.name)   
+            if not outputFileHasChanged:  print(status+"   ---> The 5D potential file is saved as " +  potential_file.parent.name+"/"+potential_file.name)  
 
     return 
 

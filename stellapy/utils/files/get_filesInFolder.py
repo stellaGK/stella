@@ -1,8 +1,7 @@
 
-import os, pathlib   
-from stellapy.utils.files.remove_simulationsWithoutOutncFile import remove_simulationsWithoutOutncFile
+import os, pathlib    
 
-def get_filesInFolder(folders=None, name_inputFile=None, start=None, end=None, subfolder=False):
+def get_filesInFolder(folders=None, name_inputFile=None, start=None, end=None, search_in_subfolders=True):
     ''' Returns all files inside <folder> that starts with <start> and end with <end>. 
 
     If <input_file> is given, look for corresponding output files.
@@ -13,9 +12,13 @@ def get_filesInFolder(folders=None, name_inputFile=None, start=None, end=None, s
     files_inside = [] 
     
     # Make sure we have a list of folders
+    if isinstance(folders, str):
+        folders = [folders]
     if isinstance(folders, pathlib.PurePath):
         folders = [folders]
-    
+    if isinstance(folders, list):
+        folders = [pathlib.Path(f) for f in folders]
+
     # Go through the folders to find the required files
     for folder in folders: 
         
@@ -32,7 +35,7 @@ def get_filesInFolder(folders=None, name_inputFile=None, start=None, end=None, s
         # Read the files in <folder> that start with <start> and end with <end> 
         for file_name in os.listdir(folder):
             
-            if not file_name.startswith('.'):
+            if not file_name.startswith('.') and not file_name.endswith('~'):
                 
                 # If the <file_name> starts with <start> and ends with <end>, add it to files_inside.
                 if end and start:
@@ -63,24 +66,19 @@ def get_filesInFolder(folders=None, name_inputFile=None, start=None, end=None, s
                                     files_inside_folder.append(folder / file_name / file_name_run) 
                                     
                 # If their are more folders, look into these as well
-                if os.path.isdir(folder / file_name):
-                    files = get_filesInFolder(folder / file_name, name_inputFile, start, end, subfolder=True)
+                if os.path.isdir(folder/file_name) and search_in_subfolders:
+                    files = get_filesInFolder(folder / file_name, name_inputFile, start, end)
                     if files:
                         files_inside_folder += files
 
         # Add these files to the big list
         files_inside += files_inside_folder
     
-    # If we asked for input files, remove the files without an output file  
-    if end=="in" and not subfolder:  files_inside = remove_simulationsWithoutOutncFile(files_inside)  
-    if end==".in" and not subfolder: files_inside = remove_simulationsWithoutOutncFile(files_inside)   
-    
     # Don't return duplicates
     files_inside = list(set(files_inside))
     
     # If no files were identified, return None 
-    if files_inside == []: return None
-    else:                  return files_inside 
+    return files_inside 
     
 
 

@@ -1,12 +1,13 @@
 #!/usr/bin/python3
 import pickle
 import os, sys
+import pathlib
 import datetime
 import time as timer
 import netCDF4 as nc
 
 # Personal modules
-sys.path.append(os.path.dirname(os.path.abspath(__file__)).split("stellapy/")[0]) 
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep) 
 from stellapy.utils.files.get_filesInFolder import get_filesInFolder 
 from stellapy.utils.commandprompt.bash import Bash
 
@@ -59,7 +60,7 @@ def reduce_sizeNetcdfBigFiles(folder, dt=1, verbose=True):
                 print("=======================================================") 
     
                 # Constuct a new netcdf file with less data
-                with nc.Dataset(old_file, 'r') as src, nc.Dataset(new_file, "w", format="NETCDF3_CLASSIC") as dst:
+                with nc.Dataset(old_file, 'r') as src, nc.Dataset(new_file, "w", format="NETCDF4") as dst:
                      
                     # Save the chosen time step
                     dst.createVariable('dt', 'f8', ())
@@ -476,5 +477,5 @@ def reduce_sizeNetcdfBigFiles(folder, dt=1, verbose=True):
  
 if __name__ == "__main__":
     bash = Bash(reduce_sizeNetcdfBigFiles, __doc__) 
-    bash.add_option('dt', 'float', 't', 'Only keep the time values [0, dt, 2*dt, 3*dt, ...]') 
+    bash.add_option('dt', 'float', 't', '', 'Only keep the time values [0, dt, 2*dt, 3*dt, ...]') 
     reduce_sizeNetcdfBigFiles(**bash.get_arguments())
