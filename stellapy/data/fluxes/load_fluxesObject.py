@@ -16,7 +16,7 @@ class Fluxes:
         # Remember the file paths and the progress
         self.path = simulation.path 
         self.Progress = simulation.Progress
-        self.simulation = simulation if simulation.object=="Simulation" else simulation.simulation
+        self.simulation = simulation  
         
         # Remember the dimensions and vectors
         self.dim = simulation.dim 

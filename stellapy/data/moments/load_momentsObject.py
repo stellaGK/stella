@@ -1,4 +1,5 @@
- 
+  
+from stellapy.data.moments.read_moments2D import get_moments2D
 from stellapy.data.moments.read_moments3D import get_moments3D
 from stellapy.data.moments.read_moments4D import get_moments4D 
 from stellapy.data.moments.read_moments5D import get_moments5D 
@@ -16,6 +17,20 @@ class Moments:
         self.path = simulation.path  
         self.vec = simulation.vec
         return
+ 
+    # Get the 2D moments 
+    @calculate_attributeWhenReadFirstTime 
+    def upar_vs_ts(self):           get_moments2D(self);     return self.upar_vs_ts
+    @calculate_attributeWhenReadFirstTime 
+    def dens_vs_ts(self):           get_moments2D(self);     return self.dens_vs_ts
+    @calculate_attributeWhenReadFirstTime 
+    def temp_vs_ts(self):           get_moments2D(self);     return self.temp_vs_ts
+    @calculate_attributeWhenReadFirstTime 
+    def upar2_vs_ts(self):          get_moments2D(self);     return self.upar2_vs_ts
+    @calculate_attributeWhenReadFirstTime 
+    def dens2_vs_ts(self):          get_moments2D(self);     return self.dens2_vs_ts
+    @calculate_attributeWhenReadFirstTime 
+    def temp2_vs_ts(self):          get_moments2D(self);     return self.temp2_vs_ts
  
     # Get the 3D moments 
     @calculate_attributeWhenReadFirstTime 

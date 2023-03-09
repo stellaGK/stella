@@ -5,7 +5,7 @@ def load_defaultInputParameters():
     
     Returns
     -------
-    inputParameters = dict[knobs][variable]
+    input_parameters = dict[knobs][variable]
         Returns the namelists from the stella code with their default values.
         
     Knobs and variables
@@ -83,9 +83,9 @@ def load_defaultInputParameters():
     '''
 
     # Initiate dictionaries
-    inputParameters = {} 
+    input_parameters = {} 
 
-    inputParameters["zgrid_parameters"] = { 
+    input_parameters["zgrid_parameters"] = { 
             "nzed"              : 24        ,\
             "nperiod"           : 1         ,\
             "ntubes"            : 1         ,\
@@ -96,7 +96,7 @@ def load_defaultInputParameters():
             "dkx_over_dky"      : -1        ,\
             "nzgrid"            : "nzed/2 + (nperiod-1)*nzed"} # Derived input variable
 
-    inputParameters["geo_knobs"] = {
+    input_parameters["geo_knobs"] = {
             "geo_option"        : 'local'   ,\
             "overwrite_bmag"    : False     ,\
             "overwrite_gradpar" : False     ,\
@@ -111,7 +111,7 @@ def load_defaultInputParameters():
             "geo_file"          :'input.geometry',\
             "q_as_x"            :'radial_variation'} # New parameter 17/12/2020; True by default in radial variation runs
 
-    inputParameters["parameters"] = {
+    input_parameters["parameters"] = {
             "beta"              : 0.0       ,\
             "vnew_ref"          : -1.0      ,   # various input options will override this value if it is negative
             "rhostar"           : -1.0      ,   # = m_ref * vt_ref / (e * B_ref * a_ref), with refs in SI
@@ -120,29 +120,29 @@ def load_defaultInputParameters():
             "nine"              : 1.0       ,\
             "g_exb"             : 0.0       ,   # New parameter 17/12/2020
             "g_exbfac"          : 1.0       ,   # New parameter 17/12/2020      
-            "omprimfac"         : 1.0}          # New parameter 17/12/2020
+            "omprimfac"         : 1.0}          # New parameter 17/12/2020 
 
-    inputParameters["vpamu_grids_parameters"] = {
+    input_parameters["vpamu_grids_parameters"] = {
            "nvgrid"             : 24        ,\
            "vpa_max"            : 3.0       ,\
            "nmu"                : 12        ,\
            "vperp_max"          : 3.0       ,\
            "equally_spaced_mu_grid" : False  }
 
-    inputParameters["dist_fn_knobs"] = {
+    input_parameters["dist_fn_knobs"] = {
            "adiabatic_option"   : 'default'}
 
-    inputParameters["time_advance_knobs"] = {
+    input_parameters["time_advance_knobs"] = {
            "explicit_option"    : 'default' ,\
            "xdriftknob"         : 1.0       ,\
            "ydriftknob"         : 1.0       ,\
            "wstarknob"          : 1.0       ,\
            "flip_flop"          : False     }
 
-    inputParameters["kt_grids_knobs"] = {
+    input_parameters["kt_grids_knobs"] = {
            "grid_option" : 'default'}
 
-    inputParameters["kt_grids_box_parameters"] = {
+    input_parameters["kt_grids_box_parameters"] = {
             "nx"                : 1         ,\
             "ny"                : 1         ,\
             "dkx"               : -1.0      ,           # Derived input variable
@@ -160,7 +160,7 @@ def load_defaultInputParameters():
             "naky"              : "(ny-1)/3 + 1",       # Derived input variable: get the number of de-aliased modes in y and x
             "nakx"              : "2*((nx-1)/3) +  1"}  # Derived input variable: get the number of de-aliased modes in y and x
 
-    inputParameters["kt_grids_range_parameters"] = {
+    input_parameters["kt_grids_range_parameters"] = {
             "nalpha"            : 1         ,\
             "naky"              : 1         ,\
             "nakx"              : 1         ,\
@@ -171,7 +171,7 @@ def load_defaultInputParameters():
             "theta0_min"        : 0.0       ,           # set these to be nonsense values so can check later if they've been set
             "theta0_max"        : -1.0      }           # set these to be nonsense values so can check later if they've been set
 
-    inputParameters["physics_flags"] = {
+    input_parameters["physics_flags"] = {
            "full_flux_surface"  :  False    ,\
            "include_mirror"     :  True     ,\
            "nonlinear"          :  False    ,\
@@ -181,7 +181,7 @@ def load_defaultInputParameters():
            "include_pressure_variation" : True,  # New parameter 17/12/2020
            "include_geometric_variation" : True} # New parameter 17/12/2020
 
-    inputParameters["init_g_knobs"] = { #28
+    input_parameters["init_g_knobs"] = { #28
             "tstart"            : 0.        ,\
             "scale"             : 1.0       ,\
             "ginit_option"      : "default" ,\
@@ -211,10 +211,10 @@ def load_defaultInputParameters():
             "kx_min"            : 0.        ,   # New parameter 17/12/2020
             "kx_max"            : 1.e100     }  # New parameter 17/12/2020
 
-    inputParameters["knobs"] = { #22
+    input_parameters["knobs"] = { #22
            "tend"               : None      ,\
            "nstep"              : None      ,\
-           "delt"               : None      ,\
+           "delt"               : 0.1       ,\
            "fphi"               : 1.0       ,\
            "fapar"              : 1.0       ,\
            "fbpar"              : -1.0      ,\
@@ -224,6 +224,9 @@ def load_defaultInputParameters():
            "time_upwind"        : 0.02      ,\
            "avail_cpu_time"     : 1.e10     ,\
            "cfl_cushion"        : 0.5       ,\
+           "cfl_cushion_upper"  : 0.5       ,\
+           "cfl_cushion_middle" : 0.25      ,\
+           "cfl_cushion_lower"  : 0.1       ,\
            "delt_adjust"        : 2.0       ,\
            "delt_min"           : 1.e-100   ,\
            "delt_max"           : -1.0      ,\
@@ -243,13 +246,13 @@ def load_defaultInputParameters():
            "ky_solve_real"      : False}      # New parameter 17/12/2020
 
 
-    inputParameters["species_knobs"] = {
+    input_parameters["species_knobs"] = {
            "nspec"              : 2         ,\
            "species_option"     : 'stella'  ,\
            "read_profile_variation" : False , # New parameter 17/12/2020
            "write_profile_variation" : False} # New parameter 17/12/2020
 
-    inputParameters["species_parameters_1"] = {
+    input_parameters["species_parameters_1"] = {
            "z"                  : 1.0       ,\
            "mass"               : 1.0       ,\
            "dens"               : 1.0       ,\
@@ -260,17 +263,17 @@ def load_defaultInputParameters():
            "d2Tdr2"             : 0.0       ,       # This is (1/T_s)*d^2 T_s / drho^2
            "type"               : "default" }
 
-    inputParameters["species_parameters_2"] = inputParameters["species_parameters_1"].copy()
-    inputParameters["species_parameters_3"] = inputParameters["species_parameters_1"].copy()
-    inputParameters["species_parameters_4"] = inputParameters["species_parameters_1"].copy()
-    inputParameters["species_parameters_5"] = inputParameters["species_parameters_1"].copy()
-    inputParameters["species_parameters_6"] = inputParameters["species_parameters_1"].copy()
-    inputParameters["species_parameters_7"] = inputParameters["species_parameters_1"].copy()
-    inputParameters["species_parameters_8"] = inputParameters["species_parameters_1"].copy()
-    inputParameters["species_parameters_9"] = inputParameters["species_parameters_1"].copy()
-    inputParameters["species_parameters_10"] = inputParameters["species_parameters_1"].copy()
+    input_parameters["species_parameters_2"] = input_parameters["species_parameters_1"].copy()
+    input_parameters["species_parameters_3"] = input_parameters["species_parameters_1"].copy()
+    input_parameters["species_parameters_4"] = input_parameters["species_parameters_1"].copy()
+    input_parameters["species_parameters_5"] = input_parameters["species_parameters_1"].copy()
+    input_parameters["species_parameters_6"] = input_parameters["species_parameters_1"].copy()
+    input_parameters["species_parameters_7"] = input_parameters["species_parameters_1"].copy()
+    input_parameters["species_parameters_8"] = input_parameters["species_parameters_1"].copy()
+    input_parameters["species_parameters_9"] = input_parameters["species_parameters_1"].copy()
+    input_parameters["species_parameters_10"] = input_parameters["species_parameters_1"].copy()
 
-    inputParameters["species_parameters_a"] = { # Custom knob for the adiabtic electrons
+    input_parameters["species_parameters_a"] = { # Custom knob for the adiabatic electrons
            "z"                  : -1.0      ,\
            "mass"               : 5.43867E-4,\
            "dens"               : 1.0       ,\
@@ -281,7 +284,7 @@ def load_defaultInputParameters():
            "fprim"              : -999.9    ,\
            "type"               : "adiabatic" }
 
-    inputParameters["stella_diagnostics_knobs"] = {
+    input_parameters["stella_diagnostics_knobs"] = {
            "nwrite"             : 50        ,\
            "navg"               : 50        ,\
            "nmovie"             : 10000     ,\
@@ -298,7 +301,7 @@ def load_defaultInputParameters():
            "write_fluxes_kxkyz" : False}        # Old parameter: has been removed! should be readded!
 
 
-    inputParameters["vmec_parameters"] = { #9
+    input_parameters["vmec_parameters"] = { #9
             "vmec_filename"     : 'wout*.nc',\
             "alpha0"            : 0.0       ,\
             "zeta_center"       : 0.0       ,\
@@ -309,7 +312,7 @@ def load_defaultInputParameters():
             "zgrid_scalefac"    : "2.0 if zed_equal_arc else 1.0",\
             "zgrid_refinement_factor" : "4 if zed_equal_arc else 1"}
     
-    inputParameters["millergeo_parameters"] = { #17
+    input_parameters["millergeo_parameters"] = { #17
            "rhoc"               : None      ,\
            "rmaj"               : None      ,\
            "shift"              : None      ,\
@@ -328,17 +331,17 @@ def load_defaultInputParameters():
            "read_profile_variation" : None  ,\
            "write_profile_variation": None  }
 
-    inputParameters["layouts_knobs"] = {
+    input_parameters["layouts_knobs"] = {
            "xyzs_layout"        : 'xyzs'    ,\
            "vms_layout"         : 'vms'     }
 
-    inputParameters["neoclassical_input"] = {
+    input_parameters["neoclassical_input"] = {
            "include_neoclassical_terms" : False,    # Set to .true. to include neoclassical terms in GK equation
            "nradii"             : 5         ,       # Number of radial points used for radial derivatives of neoclassical quantities
            "drho"               : 0.01      ,       # Spacing in rhoc between points used for radial derivatives
            "neo_option"         : 'sfincs'  }       # Option for obtaining neoclassical distribution function and potential
 
-    inputParameters["sfincs_input"] = { # 26
+    input_parameters["sfincs_input"] = { # 26
             "read_sfincs_output_from_file" : False,  # If True will try to read in Phi1Hat and delta_f from pre-saved file named sfincs.output
                                                      # otherwise, run sfincs to compute these quantities on the fly
             "nproc_sfincs"      :  1        ,        # Number of processors to use for sfincs calculation
@@ -356,25 +359,25 @@ def load_defaultInputParameters():
                                                      # to using radial interpolation to get desired surface 1 corresponds to using nearest surface on
                                                      # VMEC HALF grid 2 corresponds to using nearest surface on VMEC FULL grid should not change this
                                                      # unless self-consistently change in the vmec input namelist 
-            "equilibriumFile"   : 'wout_161s1.nc',   # Path of vmec equilibrium file
+            "equilibriumfile"   : 'wout_161s1.nc',   # Path of vmec equilibrium file
             "coordinateSystem"  : 3         ,        # Seems to be a nonsensical option
-            "inputRadialCoordinate" : 3     ,        # Option 3: using sqrt of toroidal flux normalized by toroidal flux enclosed by the LCFS
-            "inputRadialCoordinateForGradients" :3,  # Option 3: same choice when calculating gradients of density, temperature, and potential
+            "inputradialcoordinate" : 3     ,        # Option 3: using sqrt of toroidal flux normalized by toroidal flux enclosed by the LCFS
+            "inputradialcoordinateforgradients" :3,  # Option 3: same choice when calculating gradients of density, temperature, and potential
             "aHat"              : 1.0       ,        # Dorresponds to r_LCFS as reference length in sfincs  only used in sfincs when geometryScheme=1
-            "psiAHat"           : "geo_surf%psitor_lcfs",   # psitor_LCFS / (B_ref * a_ref^2)
-            "Delta"             : -1.0      ,        # Delta is rho* = mref*vt_ref/(e*Bref*aref), with reference quantities given in SI units unless
+            "psiahat"           : "geo_surf%psitor_lcfs",   # psitor_LCFS / (B_ref * a_ref^2)
+            "delta"             : -1.0      ,        # Delta is rho* = mref*vt_ref/(e*Bref*aref), with reference quantities given in SI units unless
                                                      # geometryScheme = 5, in which case Bref=1T and aref = 1m (these are hardwired in sfincs) set
                                                      # negative to allow check later to see if any value given in input file
             "nu_n"              : -1.0      ,        # nu_n = nu_ref * aref/vt_ref; nu_ref = 4*sqrt(2*pi)*nref*e**4*loglam/(3*sqrt(mref)*Tref**3/2);
                                                      # (with nref, Tref, and mref in Gaussian units) set negative to check later for input file
-            "dPhiHatdrN"        : -9999.9   ,        # Radial derivative of normalized phi
-            "Er_window"         : 0.3       ,\
+            "dphihatdrn"        : -9999.9   ,        # Radial derivative of normalized phi
+            "er_window"         : 0.3       ,\
             "nxi"               : 48        ,        # Number of spectral coefficients in pitch angle
             "nx"                : 12        ,        # Number of speeds
             "Ntheta"            : 65        ,        # Number of poloidal angles
             "Nzeta"             : 1         }        # Number of toroidal angles, 1 is appropriate for tokamak
 
-    inputParameters["multibox_parameters"] = { # New namelist 17/12/2020
+    input_parameters["multibox_parameters"] = { # New namelist 17/12/2020
             "boundary_size"     : 4         ,\
             "krook_size"        : 0         ,\
             "phi_bound"         : 0         ,\
@@ -387,9 +390,9 @@ def load_defaultInputParameters():
             "RK_step"           : False     ,\
             "zf_option"         : 'default' ,\
             "krook_option"      : 'default' ,\
-            "LR_debug_option"   : 'default'}
+            "lr_debug_option"   : 'default'}
 
-    inputParameters["dissipation"] = { # New namelist 17/12/2020
+    input_parameters["dissipation"] = { # New namelist 17/12/2020
            "include_collisions" : False     ,\
            "include_krook_operator" : False ,\
            "collisions_implicit": True      ,\
@@ -400,29 +403,38 @@ def load_defaultInputParameters():
            "mu_operator"        : True      ,\
            "hyper_dissipation"  : False     ,\
            "remove_zero_projection" : False ,\
-           "D_hyper"            : 0.05      ,\
            "nu_krook"           : 0.05      ,\
            "delay_krook"        : 0.02      ,\
            "ikxmax_source"      : 2         ,       # kx:0 and kx:1
            "krook_odd"          : True      ,       # damp only the odd mode that can affect profiles
            "cfac"               : 1}
+    
+    input_parameters["hyper"] = { # New namelist 12/2022
+           "d_hyper"            : 0.05      ,\
+           "use_physical_ksqr"  : ".not. (full_flux_surface .or. radial_variation)"   ,\
+           "scale_to_outboard"  : False     ,\
+        }
         
-    inputParameters[" "] = {
+    input_parameters[" "] = {
             " "                 : " "       }        # To display empty labels on the GUI
     
     # Extra variables to sort the simulations in the GUI
-    inputParameters["vmec_parameters"]["rho"]            = "GUI_VARIABLE"
-    inputParameters["vmec_parameters"]["poloidal_turns"] = "GUI_VARIABLE"
-    inputParameters["zgrid_parameters"]["nz"]            = "GUI_VARIABLE"
-    inputParameters["vpamu_grids_parameters"]["dmu"]     = "GUI_VARIABLE"
-    inputParameters["vpamu_grids_parameters"]["dvpa"]    = "GUI_VARIABLE"
-    inputParameters["kt_grids_box_parameters"]["Lx"]     = "GUI_VARIABLE"
-    inputParameters["kt_grids_box_parameters"]["Ly"]     = "GUI_VARIABLE"
-    inputParameters["kt_grids_box_parameters"]["dkx"]    = "GUI_VARIABLE"
-    inputParameters["kt_grids_box_parameters"]["dky"]    = "GUI_VARIABLE"
-    inputParameters["kt_grids_box_parameters"]["shat"]   = "GUI_VARIABLE" 
-    inputParameters["vpamu_grids_parameters"]["vpa max"] = "GUI_VARIABLE"
-    inputParameters["vpamu_grids_parameters"]["mu max"]  = "GUI_VARIABLE"
-    inputParameters["vpamu_grids_parameters"]["dvpa"]    = "GUI_VARIABLE"
-    inputParameters["vpamu_grids_parameters"]["dmu"]     = "GUI_VARIABLE"
-    return inputParameters
+    input_parameters["vmec_parameters"]["rho"]            = -1.0
+    input_parameters["vmec_parameters"]["poloidal_turns"] = -1.0
+    input_parameters["zgrid_parameters"]["nz"]            = -1
+    input_parameters["vpamu_grids_parameters"]["dmu"]     = -1.0
+    input_parameters["vpamu_grids_parameters"]["dvpa"]    = -1.0
+    input_parameters["kt_grids_box_parameters"]["Lx"]     = -1.0
+    input_parameters["kt_grids_box_parameters"]["Ly"]     = -1.0
+    input_parameters["kt_grids_box_parameters"]["dkx"]    = -1.0
+    input_parameters["kt_grids_box_parameters"]["dky"]    = -1.0
+    input_parameters["kt_grids_box_parameters"]["shat"]   = -1.0
+    input_parameters["vpamu_grids_parameters"]["vpa max"] = -1.0
+    input_parameters["vpamu_grids_parameters"]["mu max"]  = -1.0 
+    
+    # Extra variables for stellapy 
+    input_parameters["input_files"] = {}
+    input_parameters["parameters"]["teti"] = -1.0
+    input_parameters["kt_grids_box_parameters"]["lx"] = -1.0
+    input_parameters["kt_grids_box_parameters"]["ly"] = -1.0
+    return input_parameters

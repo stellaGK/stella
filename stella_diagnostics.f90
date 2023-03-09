@@ -285,7 +285,7 @@ contains
       use stella_io, only: write_radial_moments_nc
       use stella_io, only: write_fluxes_kxkyz_nc
       use stella_io, only: sync_nc
-      use stella_time, only: code_time, code_dt
+      use stella_time, only: code_time, code_dt, cfl_dt_ExB
       use zgrid, only: nztot, nzgrid, ntubes
       use vpamu_grids, only: nmu, nvpa
       use species, only: nspec
@@ -411,7 +411,8 @@ contains
          call volume_average(phi_out, phi2)
          call volume_average(apar, apar2)
          ! Print information to stella.out, the header is printed in stella.f90
-         write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4)') " ", istep, " ", code_time, " ", code_dt, " ", phi2
+         write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4)') &
+            " ", istep, " ", code_time, " ", code_dt, " ", cfl_dt_ExB, " ", phi2
          call write_loop_ascii_files(istep, phi2, apar2, part_flux, mom_flux, heat_flux, &
                                      omega_vs_time(mod(istep, navg) + 1, :, :), omega_avg)
 

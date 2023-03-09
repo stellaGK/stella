@@ -1,12 +1,13 @@
 
 #!/usr/bin/python3  
+import pathlib
 import sys, os
 import numpy as np
 import configparser
 from datetime import datetime   
 
 # Stellapy package
-sys.path.append(os.path.dirname(os.path.abspath(__file__)).split("stellapy/")[0])   
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)   
 from stellapy.utils.decorators.exit_program import exit_program
 
 #===============================================================================

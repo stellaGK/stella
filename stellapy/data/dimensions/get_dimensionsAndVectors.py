@@ -4,7 +4,6 @@ import copy, h5py
 import numpy as np
 from stellapy.utils.decorators.exit_program import exit_program
 from stellapy.data.input.read_inputFile import read_nspecFromInputFile
-from stellapy.GUI.widgets.Progress import show_progressWhenReadingFiles
 from stellapy.utils.decorators.printWhichFileWeRead import printWhichFileWeRead
 from stellapy.data.output.read_outputFile import read_outputFile, read_netcdfVariables
 from stellapy.data.dimensions.write_h5FileForDimensions import write_h5FileForDimensions 
@@ -127,9 +126,6 @@ def get_dimensionsAndVectors(self):
     # Initiate the attributes  
     vec.z, vec.kx, vec.ky, vec.kx_stella, vec.mu, vec.vpa, vec.time = [], [], [], [], [], [], []
     dim.species, dim.z, dim.kx, dim.ky, dim.mu, dim.vpa, dim.time= 0, 0, 0, 0, 0, 0, 0
-        
-    # Show the reading progress in the GUI 
-    show_progressWhenReadingFiles(self, "Reading dimensions")
     
     # Read the netcdf data to determine the dimensions of the input files
     dimensions = read_dimensions(self.path)   

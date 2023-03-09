@@ -1,6 +1,5 @@
 
 import numpy, sys
-from stellapy.plot.utils.style.load_styleFigures import load_styleFigures
 from stellapy.data.geometry.calculate_geometricQuantitiesSTELLA import geo_spline
 
 #===============================================================================
@@ -931,6 +930,7 @@ def test_calculateGoemetricQuantitiesMiller(device="CBC", rho=0.7):
     # Create the figure
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec 
+    from stellapy.plot.utils.style.load_styleFigures import load_styleFigures
     fig = plt.figure(figsize=(18,9)); load_styleFigures(); axes = []
     grid_specifications = gridspec.GridSpec(2, 6, figure=fig)
     grid_specifications.update(top=0.93, left=0.05, right=0.98, bottom=0.07, wspace=0.4)

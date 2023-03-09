@@ -25,9 +25,9 @@ spfunc.f90
 stella_io.f90
 stella_save.f90
 system_fortran.f90
-*.ini
-*.pickle
-*.py~
+
+# Stellapy
+!stellapy/data/stella
 
 externals/pFUnit_build
 unit_tests
@@ -83,6 +83,8 @@ response_mat_*
 *.scratch
 .*.in
 *.species.input
+!tests/integrated/simple/GOLDEN_ANSWER.out.nc
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt

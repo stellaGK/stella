@@ -1,8 +1,4 @@
-
-#=====================================================================
-# Make function avaliable as package.func instead of package.mod.func
-#=====================================================================
-
+ 
 # Global variables
 standardHeaders = {}
 standardLabels = {}

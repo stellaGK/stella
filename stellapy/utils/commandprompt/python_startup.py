@@ -1,5 +1,5 @@
 #===============================================================================
-#          Load the stellapy package in the python interavtive prompt          #
+#          Load the stellapy package in the python interactive prompt          #
 #===============================================================================
 # The python interactive prompt is opened by typing in the command prompt:     #
 #      >>> python3                                                             #
@@ -11,8 +11,8 @@ print("Loaded the stellapy package.")
 
 # Python imports work by searching the directories listed in sys.path.
 # Manually add the path where the modules for stella are stored.
-import sys, os 
-sys.path.append(os.environ['STELLA'])  
+import sys, os, pathlib
+sys.path.append(str(pathlib.Path(os.environ['STELLAPY']).parent)+"/")   
 
 # Import the modules for stella to the python environment
 # This way of reading allows to use help(stella_dirs) in python

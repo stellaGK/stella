@@ -2,14 +2,14 @@
 import numpy as np
 from stellapy.utils.files import initiate_nesteddict
 
-def get_differenceInDictionaries(dict1, dict2):
+def get_differenceInDictionaries(dict1, dict2, ignore_resolution=False):
     ''' Returns the difference in keys between two dictionaries. '''
-    
+
     # Initiate the different dictionary
     dict_difference = initiate_nesteddict() 
     
     # The following two vmec files are the same (linearly)
-    ignore = ["wout_tj20.nc", "wout_tjii_edi.nc"] 
+    ignore = ["wout_tj20.nc", "wout_tjii_edi.nc"]  
     
     # Get the difference of a two layered dictionary
     if isinstance(dict1[list(dict1.keys())[0]], dict):
@@ -38,53 +38,47 @@ def get_differenceInDictionaries(dict1, dict2):
                                 dict_difference[knob].append(key)
     
     # Some keys present the same thing  
-    if "zgrid_parameters" in dict_difference.keys():
-        if "nzgrid" in dict_difference["zgrid_parameters"]:
-            if "nzed" in dict_difference["zgrid_parameters"]:
-                dict_difference["zgrid_parameters"].remove("nzgrid")
-    if "kt_grids_box_parameters" in dict_difference.keys():
-        if "nx" in dict_difference["kt_grids_box_parameters"]:
-            if "nakx" in dict_difference["kt_grids_box_parameters"]:
-                dict_difference["kt_grids_box_parameters"].remove("nakx")
-    if "kt_grids_box_parameters" in dict_difference.keys():
-        if "ny" in dict_difference["kt_grids_box_parameters"]:
-            if "naky" in dict_difference["kt_grids_box_parameters"]:
-                dict_difference["kt_grids_box_parameters"].remove("naky")
-    if "kt_grids_box_parameters" in dict_difference.keys():
-        if "kx max" in dict_difference["kt_grids_box_parameters"]:
-            if "nx" in dict_difference["kt_grids_box_parameters"]:
-                dict_difference["kt_grids_box_parameters"].remove("nx")  
-    if "kt_grids_box_parameters" in dict_difference.keys():
-        if "ky max" in dict_difference["kt_grids_box_parameters"]:
-            if "ny" in dict_difference["kt_grids_box_parameters"]:
-                dict_difference["kt_grids_box_parameters"].remove("ny")  
-    if "kt_grids_box_parameters" in dict_difference.keys():
-        if "y0" in dict_difference["kt_grids_box_parameters"]:
-            if "dkx" in dict_difference["kt_grids_box_parameters"]:
-                    dict_difference["kt_grids_box_parameters"].remove("dkx")
-            if "dky" in dict_difference["kt_grids_box_parameters"]:
-                dict_difference["kt_grids_box_parameters"].remove("dky")
-            if "Lx" in dict_difference["kt_grids_box_parameters"]:
-                dict_difference["kt_grids_box_parameters"].remove("Lx")
-            if "Ly" in dict_difference["kt_grids_box_parameters"]:
-                dict_difference["kt_grids_box_parameters"].remove("Ly")
-    if "vpamu_grids_parameters" in dict_difference.keys():
-        if "nvgrid" in dict_difference["vpamu_grids_parameters"]:
-            if "dvpa" in dict_difference["vpamu_grids_parameters"]:
-                dict_difference["vpamu_grids_parameters"].remove("dvpa")
-        if "vpa_max" in dict_difference["vpamu_grids_parameters"]:
-            if "dvpa" in dict_difference["vpamu_grids_parameters"]:
-                dict_difference["vpamu_grids_parameters"].remove("dvpa")
-    if "vpamu_grids_parameters" in dict_difference.keys():
-        if "nmu" in dict_difference["vpamu_grids_parameters"]:
-            if "dmu" in dict_difference["vpamu_grids_parameters"]:
-                dict_difference["vpamu_grids_parameters"].remove("dmu")
-        if "vperp_max" in dict_difference["vpamu_grids_parameters"]:
-            if "dmu" in dict_difference["vpamu_grids_parameters"]:
-                dict_difference["vpamu_grids_parameters"].remove("dmu")  
+    dict_difference = remove_repetitionsFromDictionary(dict_difference, 'zgrid_parameters', 'nzed', 'nzgrid')
+    dict_difference = remove_repetitionsFromDictionary(dict_difference, 'zgrid_parameters', 'nzed', 'nz') 
+    dict_difference = remove_repetitionsFromDictionary(dict_difference, 'kt_grids_box_parameters', 'nx', 'nakx') 
+    dict_difference = remove_repetitionsFromDictionary(dict_difference, 'kt_grids_box_parameters', 'ny', 'naky') 
+    dict_difference = remove_repetitionsFromDictionary(dict_difference, 'kt_grids_box_parameters', 'kx max', 'nx') 
+    dict_difference = remove_repetitionsFromDictionary(dict_difference, 'kt_grids_box_parameters', 'ky max', 'ny')    
+    dict_difference = remove_repetitionsFromDictionary(dict_difference, 'kt_grids_box_parameters', 'y0', 'dkx')    
+    dict_difference = remove_repetitionsFromDictionary(dict_difference, 'kt_grids_box_parameters', 'y0', 'dky')   
+    dict_difference = remove_repetitionsFromDictionary(dict_difference, 'kt_grids_box_parameters', 'y0', 'Lx')   
+    dict_difference = remove_repetitionsFromDictionary(dict_difference, 'kt_grids_box_parameters', 'y0', 'Ly')     
+    dict_difference = remove_repetitionsFromDictionary(dict_difference, 'vpamu_grids_parameters', 'nvgrid', 'dvpa')     
+    dict_difference = remove_repetitionsFromDictionary(dict_difference, 'vpamu_grids_parameters', 'vpa_max', 'dvpa') 
+    dict_difference = remove_repetitionsFromDictionary(dict_difference, 'vpamu_grids_parameters', 'nmu', 'dmu')     
+    dict_difference = remove_repetitionsFromDictionary(dict_difference, 'vpamu_grids_parameters', 'vperp_max', 'dmu')     
+                
+    # For a linear simulations (nakx, naky) do not matter
+    if dict1["physics_flags"]["nonlinear"]==False: 
+        dict_difference = remove_keyKnobFromDictionary(dict_difference, 'kt_grids_box_parameters', 'nakx')
+        dict_difference = remove_keyKnobFromDictionary(dict_difference, 'kt_grids_box_parameters', 'naky') 
+    
+    # Do not take into account resolution
+    if ignore_resolution==True:
+        dict_difference = remove_keyKnobFromDictionary(dict_difference, 'knobs', 'delt')   
                 
     # Count the number of differences
     numberOfDifferences = 0
     for knob in dict_difference.keys():
-        numberOfDifferences += len(dict_difference[knob])
+        numberOfDifferences += len(dict_difference[knob])  
     return dict_difference, numberOfDifferences
+
+#-------------------------------------
+def remove_repetitionsFromDictionary(dictionary, knob, key1, key2): 
+    if knob in dictionary.keys():
+        if key1 in dictionary[knob]:
+            if key2 in dictionary[knob]:
+                dictionary[knob].remove(key2) 
+    return dictionary
+            
+#-------------------------------------
+def remove_keyKnobFromDictionary(dictionary, knob, key): 
+    if knob in dictionary.keys():
+        if key in dictionary[knob]:
+            dictionary[knob].remove(key)  
+    return dictionary

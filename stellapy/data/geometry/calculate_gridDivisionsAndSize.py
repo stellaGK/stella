@@ -150,8 +150,8 @@ the grad psi direction need the projections on grad x
 '''
  
 import numpy as np 
-from stellapy.data.input.read_inputFile import calculate_stellaVariables
 from stellapy.data.output.read_outputFile import read_netcdfVariables
+from stellapy.data.input.read_inputFile import calculate_stellaVariables
 
 #################################################################
 #                        ARGUMENTS
@@ -652,7 +652,8 @@ def calculate_vpaWeights(input_file, nvgrid=None, vpa_max=None):
     return wgts_vpa
 
 #------------------------------------
-def calculate_muWeights(input_file, nalpha=1, bmag_psi0=[None], equally_spaced_mu_grid=None):
+def calculate_muWeights(input_file, nalpha=1, bmag_psi0=[[None]], equally_spaced_mu_grid=None):
+    """ Bmag_psi has dimension (nz, nalpha=naky). """
         
     # Read the input file 
     from stellapy.data.input.read_inputFile import read_inFile
@@ -663,9 +664,9 @@ def calculate_muWeights(input_file, nalpha=1, bmag_psi0=[None], equally_spaced_m
     nmu = inputs["vpamu_grids_parameters"]["nmu"] 
     vperp_max = inputs["vpamu_grids_parameters"]["vperp_max"]
     nzgrid = int(inputs["zgrid_parameters"]["nzgrid"]) 
-        
+
     # For the vmec option we have bmag_psi0 = bmag(zed,alpha)  
-    if bmag_psi0[0]==None: 
+    if bmag_psi0[0,0]==None: 
         from stellapy.data.output.read_outputFile import read_outputFile
         netcdf_file = read_outputFile(input_file.with_suffix(".out.nc")) 
         bmag_psi0 = read_netcdfVariables('bmag', netcdf_file)   

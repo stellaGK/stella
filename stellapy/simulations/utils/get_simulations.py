@@ -1,5 +1,5 @@
 
-def get_simulations(experiment, simulation_id):
+def get_simulations(experiment, simulation_id="All simulations"):
     ''' If the simulation id is known, get the simulation objects. '''
     
     # Initialize the experiment objects

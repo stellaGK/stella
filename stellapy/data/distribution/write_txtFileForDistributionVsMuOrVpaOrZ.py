@@ -1,18 +1,19 @@
 
 
 import os
+import pathlib
 import numpy as np
 from datetime import datetime, timedelta
 from stellapy.utils.files.get_filesInFolder import get_filesInFolder  
 from stellapy.data.input.read_inputFile import read_vmecFileNameFromInputFile
-from stellapy.data.input.read_inputFile import read_linearNonlinearFromInputFile
+from stellapy.data.input.read_inputFile import read_linearNonlinearFromInputFile 
 from stellapy.data.geometry.read_output import read_outputFile as read_outputFileForGeometry
 from stellapy.data.paths.load_pathObject import create_dummyPathObject
 from stellapy.data.output.read_outputFile import read_outputFile, read_netcdfVariables
 
-################################################################################
+#===============================================================================
 #                       DISTRIBUTION OF THE GUIDING CENTERS
-################################################################################
+#===============================================================================
 
 def write_txtFileForDistributionVsMuOrVpaOrZ(folder):   
     
@@ -22,8 +23,12 @@ def write_txtFileForDistributionVsMuOrVpaOrZ(folder):
     if input_files==[]: return 
 
     # Iterate through the input files 
-    for input_file in input_files:
-            
+    for input_file in input_files: 
+        
+        # Only write the distribution at the final time step for linear simulations  
+        nonlinear = read_linearNonlinearFromInputFile(input_file)[1]
+        if nonlinear: continue
+        
         # Processing status
         status = "    ("+str(input_files.index(input_file)+1)+"/"+str(len(input_files))+")  " if len(input_files)>1 else "   "
         
@@ -53,8 +58,7 @@ def write_txtFileForDistributionVsMuOrVpaOrZ(folder):
             
             # Read the geometry data in the output file
             vmec_filename = read_vmecFileNameFromInputFile(input_file)
-            nonlinear = read_linearNonlinearFromInputFile(input_file)[1]
-            path = create_dummyPathObject(input_file, vmec_filename, nonlinear)
+            path = create_dummyPathObject(input_file, vmec_filename)
             geometry = read_outputFileForGeometry(path) 
             vpa_weights = geometry["vpa_weights"] 
             mu_weights = geometry["mu_weights"] 
@@ -123,12 +127,4 @@ def write_txtFileForDistributionVsMuOrVpaOrZ(folder):
             print(status+"The g(z), g(mu) and g(vpa) files already exist:", file_pathz.parent.name+"/"+file_pathz.name)
             
     return  
-
-################################################################################
-#                     USE THESE FUNCTIONS AS A MAIN SCRIPT                     #
-################################################################################
-if __name__ == "__main__":  
-    import pathlib
-    folder = pathlib.Path("/home/hanne/CIEMAT/RUNS/TEST_NEW_GUI")
-    write_txtFileForDistributionVsMuOrVpaOrZ(folder)
-    
+ 

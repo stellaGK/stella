@@ -27,7 +27,9 @@ def read_fluxes3D(path):
         return read_fromH5File(path)
     
     # Critical error if we didn't find any data 
-    exit_reason = "The fluxes data could not be found."
+    exit_reason = "The 3D fluxes data could not be found. \n"
+    exit_reason += "Execute the following command in the folder of the *.out.nc file:\n"
+    exit_reason += "      >> write_dataFiles -s flux3D"
     exit_program(exit_reason, read_fluxes3D, sys._getframe().f_lineno)   
     return
 
@@ -57,7 +59,7 @@ def read_fromH5File(path, fluxes={}):
     return fluxes
       
 #===============================================================================
-#                  ATTACH THE fluxes TO THE SIMULATION OBJECT                 #
+#                  ATTACH THE FLUXES TO THE SIMULATION OBJECT                 #
 #===============================================================================
 
 def get_fluxes3D(self): 

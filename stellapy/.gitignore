@@ -1,0 +1,12 @@
+
+##################################################
+#      Special git ignore file for stellapy      #
+##################################################
+
+# Do not upload a User's personal stellapy.ini and source.sh
+stellapy.ini
+source.sh
+
+# Ignore Eclipse PyDev files
+.project
+.pydevproject
