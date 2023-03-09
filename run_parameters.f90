@@ -77,7 +77,7 @@ contains
       use text_options, only: text_option, get_option_value
       use physics_flags, only: include_mirror, full_flux_surface, radial_variation
       use physics_flags, only: nonlinear
-      
+
       implicit none
 
       type(text_option), dimension(3), parameter :: deltopts = &
@@ -289,12 +289,12 @@ contains
          fully_explicit = .true.
       end if
 
-      if (mirror_implicit .and. stream_implicit .and. drifts_implicit .and. .not.nonlinear) then
+      if (mirror_implicit .and. stream_implicit .and. drifts_implicit .and. .not. nonlinear) then
          fully_implicit = .true.
       else
          fully_implicit = .false.
       end if
-      
+
       !> print warning messages and override inconsistent or unsupported options for full_flux_surface = T
       if (full_flux_surface) then
          if (fields_kxkyz) then
