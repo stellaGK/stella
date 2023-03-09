@@ -13,7 +13,7 @@ module run_parameters
    public :: stream_implicit, mirror_implicit
    public :: drifts_implicit
    public :: driftkinetic_implicit
-   public :: fully_explicit
+   public :: fully_explicit, fully_implicit
    public :: ky_solve_radial, ky_solve_real
    public :: maxwellian_inside_zed_derivative
    public :: stream_matrix_inversion
@@ -33,9 +33,9 @@ module run_parameters
    real :: fphi, fapar, fbpar
    real :: delt, tend, delt_max, delt_min
    real :: zed_upwind, vpa_upwind, time_upwind
-   logical :: stream_implicit, mirror_implicit
+   logical :: stream_implicit, mirror_implicit, drifts_implicit
    logical :: driftkinetic_implicit
-   logical :: fully_explicit, drifts_implicit
+   logical :: fully_explicit, fully_implicit
    logical :: maxwellian_inside_zed_derivative
    logical :: stream_matrix_inversion
    logical :: mirror_semi_lagrange, mirror_linear_interp
@@ -76,7 +76,8 @@ contains
       use mp, only: proc0, broadcast
       use text_options, only: text_option, get_option_value
       use physics_flags, only: include_mirror, full_flux_surface, radial_variation
-
+      use physics_flags, only: nonlinear
+      
       implicit none
 
       type(text_option), dimension(3), parameter :: deltopts = &
@@ -288,6 +289,12 @@ contains
          fully_explicit = .true.
       end if
 
+      if (mirror_implicit .and. stream_implicit .and. drifts_implicit .and. .not.nonlinear) then
+         fully_implicit = .true.
+      else
+         fully_implicit = .false.
+      end if
+      
       !> print warning messages and override inconsistent or unsupported options for full_flux_surface = T
       if (full_flux_surface) then
          if (fields_kxkyz) then
