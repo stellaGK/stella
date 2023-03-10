@@ -96,7 +96,7 @@ contains
          ky_solve_radial, ky_solve_real
 
       if (proc0) then
-      
+
          ! Default parameters in namelist <knobs>
          fphi = 1.0
          fapar = 1.0
@@ -180,7 +180,7 @@ contains
          end if
 
       end if
-      
+
       ! Exit stella if we ran into an error
       call broadcast(error)
       if (error) call mp_abort('Aborting in run_parameters.f90')
