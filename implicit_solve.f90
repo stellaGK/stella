@@ -170,7 +170,7 @@ contains
 
       integer :: ivmu
       integer :: nz_ext
-      real :: tupwnd1, tupwnd2
+      real :: tupwnd_m, tupwnd_p
       complex, dimension(:, :, :, :), allocatable :: phi_old, phi_source
       character(5) :: dist_choice
 
@@ -178,8 +178,8 @@ contains
 
       ! calculate factors accounting for centering/de-centering in time;
       ! these factors will multiply phi^{n} and phi^{n+1}, respectively
-      tupwnd1 = 0.5 * (1.0 - time_upwind)
-      tupwnd2 = 0.5 * (1.0 + time_upwind)
+      tupwnd_m = 0.5 * (1.0 - time_upwind)
+      tupwnd_p = 0.5 * (1.0 + time_upwind)
 
       !> dist_choice indicates whether the non-Boltzmann part of the pdf (h) is evolved
       !> in parallel streaming or if the guiding centre distribution (g = <f>) is evolved
@@ -187,7 +187,7 @@ contains
       if (use_h_for_parallel_streaming) then
          dist_choice = 'h'
          !> when dist_choice = 'h', use_deltaphi_for_response_matrix = .true.
-         !> and there is no contribution to the inhomogeneous equation from phi
+         !> and there is no contribution to the inhomogeneous equation from phi_new
          phi_source = 0.0
          !> convert the incoming pdf from guiding centre (g) to non-Boltzmann (h)
          call g_to_h(g, phi, fphi)
@@ -198,7 +198,7 @@ contains
          if (use_deltaphi_for_response_matrix) then
             phi_source = phi
          else
-            phi_source = tupwnd1 * phi
+            phi_source = tupwnd_m * phi
          end if
       end if
 
@@ -229,9 +229,9 @@ contains
          phi = phi + phi_old
       else
          !> If using deltaphi formulation, must account for fact that phi = phi^{n+1}-phi^{n*}, but
-         !> tupwnd2 should multiply phi^{n+1}
+         !> tupwnd_p should multiply phi^{n+1}
          if (use_deltaphi_for_response_matrix) phi = phi + phi_old
-         phi_source = tupwnd1 * phi_old + tupwnd2 * phi
+         phi_source = tupwnd_m * phi_old + tupwnd_p * phi
       end if
 
       ! solve for the final, updated pdf now that we have phi^{n+1}.
@@ -252,7 +252,7 @@ contains
 
          integer :: ie, it, iky
          integer :: ulim
-         complex, dimension(:), allocatable :: pdf1, pdf2, phiext
+         complex, dimension(:), allocatable :: pdf1, pdf2, phiext, phiext_old
 
          ! start the timer for the pdf update
          if (proc0) call time_message(.false., time_implicit_advance(:, 2), ' (bidiagonal solve)')
@@ -267,14 +267,18 @@ contains
                      nz_ext = nsegments(ie, iky) * nzed_segment + 1
                      ! pdf1 and pdf2 will be scratch arrays needed to compute the pdf itself,
                      ! as well as contributions to the GK equation
-                     allocate (pdf1(nz_ext), pdf2(nz_ext), phiext(nz_ext))
+                     allocate (pdf1(nz_ext), pdf2(nz_ext), phiext(nz_ext), phiext_old(nz_ext))
                      ! map the incoming pdf 'g1' onto the extended zed domain and call it 'pdf1'
                      call map_to_extended_zgrid(it, ie, iky, g1(iky, :, :, :, ivmu), pdf1, ulim)
-                     ! map the incoming potential 'phiext' onto the extended zed domain and call it 'phiext'
+                     ! map the incoming potential 'phi_source' onto the extended zed domain and call it 'phiext'
                      call map_to_extended_zgrid(it, ie, iky, phi_source(iky, :, :, :), phiext, ulim)
+                     if (use_h_for_parallel_streaming) then
+                        ! map the potential 'phi_old' onto the extended zed domain and call it 'phiext_old'
+                        call map_to_extended_zgrid(it, ie, iky, phi_old(iky, :, :, :), phiext_old, ulim)
+                     end if
                      ! calculate the RHS of the GK equation (using pdf1 and phi_source as the
                      ! pdf and potential, respectively) and store it in pdf2
-                     call get_gke_rhs_ext(ivmu, iky, ie, pdf1, phiext, pdf2)
+                     call get_gke_rhs_ext(ivmu, iky, ie, pdf1, phiext, phiext_old, pdf2)
 
                      ! NEED TO UPDATE
                      !       if (stream_matrix_inversion) then
@@ -290,7 +294,7 @@ contains
                      ! map the pdf 'pdf2' from the extended zed domain
                      ! to the standard zed domain; the mapped pdf is called 'g'
                      call map_from_extended_zgrid(it, ie, iky, pdf2, g(iky, :, :, :, ivmu))
-                     deallocate (pdf1, pdf2, phiext)
+                     deallocate (pdf1, pdf2, phiext, phiext_old)
                   end do
                end do
             end do
@@ -303,7 +307,7 @@ contains
 
    end subroutine advance_implicit_terms_ext
 
-   subroutine get_gke_rhs_ext(ivmu, iky, ie, pdf, phi, rhs)
+   subroutine get_gke_rhs_ext(ivmu, iky, ie, pdf, phi, phi_old, rhs)
 
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
@@ -314,7 +318,7 @@ contains
 
       integer, intent(in) :: ivmu, iky, ie
       complex, dimension(:), intent(in) :: pdf
-      complex, dimension(:), intent(in) :: phi
+      complex, dimension(:), intent(in) :: phi, phi_old
       complex, dimension(:), intent(out) :: rhs
 
       integer :: nz_ext
@@ -330,7 +334,7 @@ contains
       ! NB: rhs is used as a scratch array in get_contributions_from_phi
       ! so be careful not to move get_contributions_from_pdf before it, or rhs will be over-written
       if (use_h_for_parallel_streaming) then
-!       call get_contributions_from_phi_h(phi, ivmu, iky, rhs, rhs_phi)
+         call get_contributions_from_phi_h_ext(phi, phi_old, ivmu, iky, ie, rhs, rhs_phi)
       else
          call get_contributions_from_phi_g_ext(phi, ivmu, iky, ie, rhs, rhs_phi)
       end if
@@ -503,9 +507,9 @@ contains
 
    end subroutine get_contributions_from_phi_g
 
-   !> get_contributions_from_phi takes as input the appropriately averaged
+   !> get_contributions_from_phi_g_ext takes as input the appropriately averaged
    !> electrostatic potential phi and returns in rhs the sum off the source terms
-   !> involving phi that appear on the RHS of the GK equation
+   !> involving phi that appear on the RHS of the GK equation when g is the pdf
    subroutine get_contributions_from_phi_g_ext(phi, ivmu, iky, ie, scratch, rhs)
 
       use stella_time, only: code_dt
@@ -707,6 +711,93 @@ contains
 
    end subroutine get_contributions_from_phi_h
 
+   !> get_contributions_from_phi_h_ext takes as input the appropriately averaged
+   !> electrostatic potential phi and returns in rhs the sum of the source terms
+   !> involving phi that appear on the RHS of the GK equation when h is the pdf
+   subroutine get_contributions_from_phi_h_ext(phi, phi_old, ivmu, iky, ie, scratch, rhs)
+
+      use constants, only: zi
+      use zgrid, only: nzgrid
+      use species, only: spec
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use gyro_averages, only: gyro_average
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use run_parameters, only: driftkinetic_implicit, drifts_implicit
+      use run_parameters, only: maxwellian_normalization
+      use run_parameters, only: time_upwind
+      use kt_grids, only: aky
+      use parallel_streaming, only: center_zed
+      use extended_zgrid, only: map_to_iz_ikx_from_izext
+      use dist_fn_arrays, only: wstar
+      
+      implicit none
+
+      complex, dimension(:), intent(in) :: phi, phi_old
+      integer, intent(in) :: ivmu, iky, ie
+      complex, dimension(:), intent(out) :: scratch, rhs
+
+      integer, dimension(:), allocatable :: iz_from_izext, ikx_from_izext
+      real :: tupwnd_p
+      integer :: iv, imu, is, iz, ia
+      integer :: nz_ext, izext
+      
+      ia = 1
+      iv = iv_idx(vmu_lo, ivmu)
+      imu = imu_idx(vmu_lo, ivmu)
+      is = is_idx(vmu_lo, ivmu)
+
+      tupwnd_p = 0.5 * (1.0 + time_upwind)
+      
+      ! nz_ext is the number of grid points in the extended zed domain
+      nz_ext = size(phi)
+
+      ! determine the mapping from the extended domain zed index (izext) to the
+      ! zed and kx domain indices (iz, ikx)
+      allocate (iz_from_izext(nz_ext))
+      allocate (ikx_from_izext(nz_ext))
+      call map_to_iz_ikx_from_izext(iky, ie, iz_from_izext, ikx_from_izext)
+
+      ! set rhs to be phi or <phi> depending on whether parallel streaming is
+      ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
+      if (driftkinetic_implicit) then
+         scratch = phi
+      else
+         call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, phi, scratch)
+      end if
+
+      do izext = 1, nz_ext
+         rhs(izext) = spec(is)%zt
+         if (.not. maxwellian_normalization) then
+            iz = iz_from_izext(izext)
+            rhs(izext) = rhs(izext) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+         end if
+      end do
+      if (drifts_implicit) then
+         do izext = 1, nz_ext
+            iz = iz_from_izext(izext)
+            rhs(izext) = rhs(izext) - zi * aky(iky) * wstar(ia, iz, ivmu) * tupwnd_p
+         end do
+      end if
+      rhs = rhs * scratch
+      call center_zed(iv, rhs, 1)
+
+      ! set scratch to be phi or <phi> depending on whether parallel streaming is
+      ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
+      if (driftkinetic_implicit) then
+         scratch = phi_old
+      else
+         call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, phi_old, scratch)
+      end if
+
+      do izext = 1, nz_ext
+         iz = iz_from_izext(izext)
+         rhs(izext) = rhs(izext) - zi * aky(iky) * wstar(ia, iz, ivmu) * scratch(izext)
+      end do
+
+      deallocate (iz_from_izext, ikx_from_izext)
+
+   end subroutine get_contributions_from_phi_h_ext
+
    !> get_contributions_from_pdf takes as an argument the evolved pdf
    !> (either guiding centre distribution g=<f> or maxwellian-normlized, non-Boltzmann distribution h/F0=f/F0+(Ze*phi/T))
    !> and the scratch array rhs, and returns the source terms that depend on the pdf in rhs
@@ -808,7 +899,7 @@ contains
 
       complex, dimension(:), intent(in) :: pdf
       integer, intent(in) :: ivmu, iky, ie
-      complex, dimension(:), intent(in out) :: rhs
+      complex, dimension(:), intent(out) :: rhs
 
       real, dimension(:), allocatable :: gradpar_fac
       complex, dimension(:), allocatable :: dpdf_dz

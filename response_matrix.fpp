@@ -221,7 +221,6 @@ contains
             ! no need to obtain response to impulses at negative kx values
             do iz = iz_low(iseg), izup
                idx = idx + 1
-!               call get_dpdf_dphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
                if (use_h_for_parallel_streaming) then
                   call get_dhdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
                else
@@ -236,7 +235,6 @@ contains
                   ikx = ikxmod(iseg, ie, iky)
                   do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                      idx = idx + 1
-!                    call get_dpdf_dphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
                      if (use_h_for_parallel_streaming) then
                         call get_dhdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
                      else
@@ -361,7 +359,6 @@ contains
             end if
          end do
 
-         !if(proc0)  write (*,*) 'job', iky, iproc, response_matrix(iky)%eigen(1)%zloc(5,:)
       end do
 
 #ifdef ISO_C_BINDING
@@ -447,11 +444,10 @@ contains
       time_response_matrix_QN = 0
       time_response_matrix_lu = 0
 
-!   All matrices handled by processor i_proc and job are stored
-!   on a single file named: response_mat_job.iproc
+      ! All matrices handled by processor i_proc and job are stored
+      ! on a single file named: response_mat_job.iproc
       fmt = '(I5.5)'
       if (proc0 .and. mat_gen) then
-
          call systemf('mkdir -p mat')
 
          write (job_str, '(I1.1)') job
@@ -469,10 +465,10 @@ contains
 
 #ifdef ISO_C_BINDING
 
-!   Create a single shared memory window for all the response matrices and
-!   permutation arrays.
-!   Creating a window for each matrix/array would lead to performance
-!   degradation on some clusters
+      ! Create a single shared memory window for all the response matrices and
+      ! permutation arrays.
+      ! Creating a window for each matrix/array would lead to performance
+      ! degradation on some clusters
       if (response_window == MPI_WIN_NULL) then
          win_size = 0
          if (sgproc0) then
@@ -500,7 +496,7 @@ contains
 
       do iky = 1, naky
 
-         if (proc0 .and. mat_gen) THEN
+         if (proc0 .and. mat_gen) then
             write (unit=mat_unit) iky, neigen(iky)
          end if
 
@@ -585,13 +581,8 @@ contains
             do iz = iz_low(iseg), izup
                idx = idx + 1
                call get_dpdf_dphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-!               if (use_h_for_parallel_streaming) then
-!                  call get_dhdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-!               else
-!                  call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-!               end if
             end do
-            ! once we have used one segments, remaining segments
+            ! once we have used one segment, remaining segments
             ! have one fewer unique zed point
             izl_offset = 1
             if (nsegments(ie, iky) > 1) then
@@ -600,11 +591,6 @@ contains
                   do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                      idx = idx + 1
                      call get_dpdf_dphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-!                     if (use_h_for_parallel_streaming) then
-!                        call get_dhdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-!                     else
-!                        call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-!                     end if
                   end do
                   if (izl_offset == 0) izl_offset = 1
                end do
@@ -724,7 +710,6 @@ contains
             end if
          end do
 
-         !if(proc0)  write (*,*) 'job', iky, iproc, response_matrix(iky)%eigen(1)%zloc(5,:)
       end do
 
 #ifdef ISO_C_BINDING
@@ -865,6 +850,12 @@ contains
 
       ! provide a unit impulse to phi^{n+1} (or Delta phi^{n+1}) at the location
       ! in the extended zed domain corresponding to index 'idx'
+      ! note that it is sufficient to give a unit real impulse (as opposed to
+      ! separately giving real and imaginary impulse) for the following reason:
+      ! split homogeneous GKE, L[f] = R[phi], into L[f1] = R[phir] and L[f2] = i*R[phii],
+      ! with f = f1 + f2; then phi = df1/dphir * phir + df2/dphii * phii.
+      ! however, we see that if phir = phii = 1, L[f1] = R[1] = L[-i*f2],
+      ! and thus f2 = i * f1.  This gives phi = df1/dphir * (phir + i * phii) = df1/dphir * phi
       phi_ext = 0.0
       ! how phi^{n+1} enters the GKE depends on whether we are solving for the
       ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
@@ -874,7 +865,8 @@ contains
          phi_ext(idx) = 0.5 * (1.0 + time_upwind)
       end if
 
-      ! dum is a scratch array that takes the place of the pdf at the previous time level,
+      ! dum is a scratch array that takes the place of the pdf and phi
+      ! at the previous time level,
       ! which is set to zero for the response matrix approach
       allocate (dum(nz_ext)); dum = 0.0
 
@@ -885,10 +877,10 @@ contains
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! calculate the RHS of the GK equation (using dum=0 as the pdf at the previous time level,
          ! and phi_ext as the potential) and store it in pdf_ext
-         call get_gke_rhs_ext(ivmu, iky, ie, dum, phi_ext, pdf_ext(:, ivmu))
+         call get_gke_rhs_ext(ivmu, iky, ie, dum, phi_ext, dum, pdf_ext(:, ivmu))
          ! given the RHS of the GK equation (pdf_ext), solve for the pdf at the
          ! new time level by sweeping in zed on the extended domain;
-         ! the rhs is input as 'pdfext' and over-written with the updated solution for the pdf
+         ! the rhs is input as 'pdf_ext' and over-written with the updated solution for the pdf
          call sweep_g_zext(iky, ie, it, ivmu, pdf_ext(:, ivmu))
       end do
 
@@ -924,7 +916,6 @@ contains
       use gyro_averages, only: aj0x
       use run_parameters, only: driftkinetic_implicit
       use run_parameters, only: maxwellian_inside_zed_derivative
-      use run_parameters, only: use_h_for_parallel_streaming
       use run_parameters, only: maxwellian_normalization
 !      use run_parameters, only: drifts_implicit
       use parallel_streaming, only: stream_tridiagonal_solve
@@ -1243,7 +1234,6 @@ contains
       use gyro_averages, only: aj0x
       use run_parameters, only: driftkinetic_implicit
       use run_parameters, only: maxwellian_inside_zed_derivative
-      use run_parameters, only: use_h_for_parallel_streaming
       use run_parameters, only: maxwellian_normalization
       use parallel_streaming, only: stream_tridiagonal_solve
       use parallel_streaming, only: stream_sign
