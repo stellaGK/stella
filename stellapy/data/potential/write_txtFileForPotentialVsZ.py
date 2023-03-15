@@ -16,7 +16,7 @@ from stellapy.utils.files.get_filesInFolder import get_filesInFolder
 #                  PARALLEL MODE STRUCTURE OF THE POTENTIAL
 #===============================================================================
 
-def write_txtFileForPotentialVsZ(folder):  
+def write_txtFileForPotentialVsZ(folder, verbose=False):  
     
     # Get the input files
     input_files = get_filesInFolder(folder, end=".in")
@@ -45,7 +45,7 @@ def write_txtFileForPotentialVsZ(folder):
     
         # Notify that the file already existed   
         if os.path.isfile(potential_path) and not outputFileHasChanged:
-            print(status+"The phi(z) file already exists:", potential_path.parent.name+"/"+potential_path.name)
+            if verbose: print(status+"The phi(z) file already exists:", potential_path.parent.name+"/"+potential_path.name)
             continue 
     
         # Read the number of modes simulated in the input file
