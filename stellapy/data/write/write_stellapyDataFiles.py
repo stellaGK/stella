@@ -103,6 +103,7 @@ from stellapy.data.input.write_listOfMatchingInputFiles import write_listOfMatch
 from stellapy.data.distribution.write_h5FileForDistribution3D import write_h5FileForDistribution3D
 from stellapy.data.distribution.write_h5FileForDistribution4D import write_h5FileForDistribution4D
 from stellapy.data.potential.write_txtFileForPotentialVsTime import write_txtFileForPotentialVsTime
+from stellapy.data.fluxes.write_txtFileForQuasiLinearFluxes import write_txtFileForQuasiLinearFluxes
 from stellapy.data.saturated.write_netcdfFileOverSaturatedPhase import write_netcdfFileOverSaturatedPhase
 from stellapy.data.distribution.write_txtFileForDistributionVsTime import write_txtFileForDistributionVsTime
 from stellapy.data.distribution.write_txtFileForDistributionVsMuOrVpaOrZ import write_txtFileForDistributionVsMuOrVpaOrZ
@@ -128,6 +129,9 @@ def write_stellapyDataFiles(folder, dt=None, specific=None, skip=None, dimension
              
             # Save the dimensions to an h5 file
             write_h5FileForDimensions(folder)    
+            
+            # Quasi-linear fluxes
+            write_txtFileForQuasiLinearFluxes(folder)
         
         # Only write 2D files
         if dimensions in ["2D", "all", "small", "quick", "restart"]: 
@@ -192,6 +196,7 @@ def write_stellapyDataFiles(folder, dt=None, specific=None, skip=None, dimension
         elif specific=="mom3D":     write_h5FileForMoments3D(**args)
         elif specific=="mom4D":     write_h5FileForMoments4D(**args)
         elif specific=="mom5D":     write_h5FileForMoments5D(**args)
+        elif specific=="QL":        write_txtFileForQuasiLinearFluxes(**args)
         elif specific=="flux":      write_txtFileForFluxesVsTime(**args)
         elif specific=="flux3D":    write_h5FileForFluxes3D(**args)
         elif specific=="flux4D":    write_h5FileForFluxes4D(**args)
@@ -220,7 +225,7 @@ def write_stellapyDataFiles(folder, dt=None, specific=None, skip=None, dimension
  
 if __name__ == "__main__":
     bash = Bash(write_stellapyDataFiles, __doc__)  
-    bash.add_option('specific', 'str', 's', '', '{ini, geo, dim, omega, jump, flux, flux3D, pot, \npot2D, pot3D, pot4D, pot5D, g, g2D, g3D, g4D\nmom3D, mom4D, mom5D, sat, phases, freq}') 
+    bash.add_option('specific', 'str', 's', '', '{ini, geo, dim, omega, jump, QL, flux, flux3D, flux4D, pot, \npot2D, pot3D, pot4D, pot5D, g, g2D, g3D, g4D\nmom3D, mom4D, mom5D, sat, phases, freq}') 
     bash.add_option('dt', 'float', 't', '', 'Time step dt to write data.')  
     bash.add_option('skip', 'int', 'i', '', 'Skip every <skip> time steps.')  
     bash.add_toggle('dimensions', 'restart', '', '', 'Only write quantities needed to restart unconverged modess.')  
