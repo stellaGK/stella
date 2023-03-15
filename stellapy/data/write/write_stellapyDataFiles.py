@@ -150,8 +150,8 @@ def write_stellapyDataFiles(folder, dt=None, specific=None, skip=None, dimension
         if dimensions in ["2D", "all", "small", "quick"]: 
              
             # Write data files for the distribution
-            write_txtFileForDistributionVsTime(folder)       
             write_txtFileForDistributionVsMuOrVpaOrZ(folder)
+            write_txtFileForDistributionVsTime(folder)       
             
             # Write data files for the moments
             write_h5FileForMoments2D(folder)
