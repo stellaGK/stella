@@ -141,6 +141,7 @@ def read_relevantInputParameters(input_file):
     del input_parameters['knobs']['delt_option']
     del input_parameters['knobs']['delt_max']
     del input_parameters['knobs']['delt_min']
+    del input_parameters['knobs']['avail_cpu_time']
     del input_parameters['init_g_knobs']['phiinit']
     del input_parameters['init_g_knobs']['restart_file']
     del input_parameters['init_g_knobs']['restart_dir']
