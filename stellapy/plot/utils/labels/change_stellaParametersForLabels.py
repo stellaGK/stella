@@ -20,8 +20,7 @@ def change_stellaParametersForLabels(simulation, knob, variable, value):
     
     # Show the number of poloidal turns 
     if variable=="nfield_periods":
-        if simulation.linear: geometry = simulation.modes[0].geometry
-        if simulation.nonlinear: geometry = simulation.geometry
+        geometry = simulation.geometry
         value = np.round(value/geometry.nfp*abs(geometry.iota),1)
         variable = "Poloidal turns" 
 

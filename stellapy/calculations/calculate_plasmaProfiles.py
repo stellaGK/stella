@@ -1,14 +1,10 @@
 #!/usr/bin/python3 
-import h5py
-import sys, os 
+import h5py 
 import pathlib
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import scipy.interpolate as interpolate
+import scipy.interpolate as interpolate 
 
-# Stellapy package
-sys.path.append(os.path.dirname(os.path.abspath(__file__)).split("stellapy/")[0]) 
-from stellapy.plot.utils.style.load_styleFigures import load_styleFigures
 
 #===============================================================================
 #                            READ A PROFILES FILE                              #
@@ -134,13 +130,14 @@ def print_overviewDataAtChosenRadialLocation(rho0, verbose, nine, tite, ni, Ti, 
 def interpolate_toChosenRadialLocation(x, y, x0, der=0): 
     tck = interpolate.splrep(x, y, s=0)
     value_y = interpolate.splev(x0,tck,der=der)
-    return round(float(value_y),14)
+    return value_y
 
 #------------------------   
 def plot_profiles(plot, h5_file):
     if plot == True: 
         
         # Figure 
+        from stellapy.plot.utils.style.load_styleFigures import load_styleFigures
         load_styleFigures() 
         fig = plt.figure(figsize=(18, 5))
         grid_specifications = gridspec.GridSpec(1, 3)
@@ -203,6 +200,6 @@ def plot_profiles(plot, h5_file):
 #===============================================================================
  
 if __name__ == "__main__": 
-    file = "/home/hanne/CIEMAT/RESEARCH/MAINRESULTS/PARTICLEFLUXES/Profiles/Profiles_20180920.017_from_2.00_to_6.00s.h5"
-    calculate_plasmaProfiles(file, rho0=0.2)
+    file = "/home/hanne/CIEMAT/RESEARCH/PARTICLE_FLUXES_PPT/Profiles/Profiles_20180920.017_from_2.00_to_6.00s.h5"
+    calculate_plasmaProfiles(file, rho0=0.7, verbose=True, plot=False)
     

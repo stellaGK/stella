@@ -143,9 +143,8 @@ def write_h5FileForMoments4D(folder, dt=10):
 def read_moments4D(dt, netcdf_file, input_file):              
 
     # Read the geometry data in the output file
-    vmec_filename = read_vmecFileNameFromInputFile(input_file)
-    nonlinear = read_linearNonlinearFromInputFile(input_file)[1]
-    path = create_dummyPathObject(input_file, vmec_filename, nonlinear)
+    vmec_filename = read_vmecFileNameFromInputFile(input_file) 
+    path = create_dummyPathObject(input_file, vmec_filename)
     geometry = read_outputFileForGeometry(path)  
     dl_over_B = geometry["dl_over_B"]   
     

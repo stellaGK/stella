@@ -86,7 +86,15 @@ standardNames = {
     "Lx"            : "Box size along x (Lx)",\
     "Ly"            : "Box size along y (Ly)",\
     "D_hyper"       : "Hyper-dissipation",\
+    "alpha0"        : "Alpha",\
+    "kappa"         : "Kappa",\
+    "tri"           : "Triangularity",\
     "boundary_option" : "Boundary option",\
+    "d_hyper"       : "D hyper",\
+    "explicit_option" : "Runge Kutta",\
+    "cfl_cushion"   : "CFL cushion",\
+    "cfl_cushion_upper"   : "CFL cushion up",\
+    "cfl_cushion_lower"   : "CFL cushion down",\
     # EMPTY
     None            : None,\
     "-----"         : None,\

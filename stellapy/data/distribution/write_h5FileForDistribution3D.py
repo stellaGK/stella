@@ -4,7 +4,7 @@ import os, h5py, pathlib
 from stellapy.utils.decorators.verbose import noverbose 
 from stellapy.utils.files.get_filesInFolder import get_filesInFolder  
 from stellapy.data.input.read_inputFile import read_vmecFileNameFromInputFile
-from stellapy.data.input.read_inputFile import read_linearNonlinearFromInputFile
+from stellapy.data.input.read_inputFile import read_linearNonlinearFromInputFile, read_fullFluxSurfaceFromInputFile
 from stellapy.data.geometry.read_output import read_outputFile as read_outputFileForGeometry
 from stellapy.data.paths.load_pathObject import create_dummyPathObject   
 from stellapy.data.output.read_outputFile import read_outputFile, read_netcdfVariables 
@@ -115,9 +115,8 @@ def write_h5FileForDistribution3D(folder, dt=10):
 def read_distribution3D(dt, netcdf_file, input_file):
     
     # Read the geometry data in the output file
-    vmec_filename = read_vmecFileNameFromInputFile(input_file)
-    nonlinear = read_linearNonlinearFromInputFile(input_file)[1]
-    path = create_dummyPathObject(input_file, vmec_filename, nonlinear)
+    vmec_filename = read_vmecFileNameFromInputFile(input_file) 
+    path = create_dummyPathObject(input_file, vmec_filename)
     geometry = read_outputFileForGeometry(path) 
     vpa_weights = geometry["vpa_weights"] 
     mu_weights = geometry["mu_weights"] 

@@ -1,9 +1,10 @@
 #!/usr/bin/python3
 import os, sys
+import pathlib
 import netCDF4 as nc
 
 # Personal modules
-sys.path.append(os.path.dirname(os.path.abspath(__file__)).split("stellapy/")[0]) 
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep) 
 from stellapy.utils.files.get_filesInFolder import get_filesInFolder 
 from stellapy.utils.commandprompt.bash import Bash
 

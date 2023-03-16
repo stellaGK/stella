@@ -1,15 +1,13 @@
 import functools
 
 class calculate_attributeWhenReadFirstTime(object):
-    '''
-    meant to be used for lazy evaluation of an object attribute.
-    property should represent non-mutable data, as it replaces itself.
-    '''
+    ''' Meant to be used for lazy evaluation of an object attribute.
+    Property should represent non-mutable data, as it replaces itself. '''
 
     def __init__(self, fget):
         self.fget = fget
 
-        # copy the getter function's docstring and other attributes
+        # Copy the getter function's docstring and other attributes
         functools.update_wrapper(self, fget)
 
     def __get__(self, obj, cls):
@@ -20,3 +18,4 @@ class calculate_attributeWhenReadFirstTime(object):
         value = self.fget(obj)
         setattr(obj, self.fget.__name__, value)
         return value
+

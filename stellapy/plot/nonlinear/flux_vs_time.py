@@ -35,22 +35,24 @@ to create an <experiment> for each <subfolder>, the folder name will be the labe
     >> plot_flux_vs_time -f (or --folderIsExperiment)
 
 Hanne Thienpondt 
-01/09/2022
+15/12/2022
 
 """
 
 #!/usr/bin/python3  
 import sys, os
+import pathlib
 import numpy as np
 import matplotlib as mpl 
 import matplotlib.pyplot as plt  
 
 # Stellapy package
-sys.path.append(os.path.dirname(os.path.abspath(__file__)).split("stellapy/")[0])   
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)   
 from stellapy.plot.utils.labels.standardParameters import standardParameters
 from stellapy.plot.utils.species.recognize_species import recognize_species
 from stellapy.plot.utils.labels.standardLabels import standardLabels
 from stellapy.plot.utils.style.create_figure import create_figure
+from stellapy.utils.decorators.exit_program import exit_program
 from stellapy.simulations.Research import create_research
 from stellapy.utils.commandprompt.bash import Bash
 
@@ -58,47 +60,72 @@ from stellapy.utils.commandprompt.bash import Bash
 #                    Plot qflux(t) or pflux(t) or vflux(t)                     #
 #===============================================================================
 
-def plot_flux_vs_time(folder, y_quantity="qflux", specie=0, trange=None, 
-        folderIsExperiment=False, parameter="-", logy=False):  
-    
-    # Create <experiments> and <simulations> based on the given <folder>
-    knob = standardParameters[parameter]["knob"]; key = standardParameters[parameter]["key"]
-    try: research = create_research(folders=folder, knob1=knob, key1=key, resolutionScan=False, ignoreResolution=True, folderIsExperiment=folderIsExperiment)
-    except: research = create_research(folders=folder, knob1=knob, key1=key, resolutionScan=False, ignoreResolution=True, folderIsExperiment=True)
+def plot_flux_vs_time(
+        folder, 
+        # Quantities to be plotted
+        y_quantity="qflux", 
+        specie=0, 
+        # Time frame to calculate saturated quantities 
+        trange=None, 
+        # Research
+        folderIsExperiment=False, 
+        folderIsSimulation=False,
+        experiment_parameter="-", 
+        # Plotting
+        xrange=None,
+        yrange=None,
+        logy=False):  
 
-    # Update the time frame
-    if trange!=None:    
-        for experiment in research.experiments:
-            for simulation in experiment.simulations: 
-                if trange=="default": simulation.time.update_timeFrame(["50%%", "100%%"])
-                if trange!="default": simulation.time.update_timeFrame(trange) 
+    # Create <experiments> and <simulations> based on the given <folder>
+    knob = standardParameters[experiment_parameter]["knob"]; key = standardParameters[experiment_parameter]["key"]
+    research = create_research(folders=folder, knob1=knob, key1=key, resolutionScan=False, ignore_resolution=True, folderIsExperiment=folderIsExperiment, folderIsSimulation=folderIsSimulation)
+    research.update_timeFrame(trange); experiments = research.experiments
+    
+    # Create a figure for each experiment
+    for experiment in experiments: 
      
-    # Create a figure 
-    if y_quantity=="qflux": title = "Time evolution of the heat flux"
-    if y_quantity=="pflux": title = "Time evolution of the particle flux"
-    if y_quantity=="vflux": title = "Time evolution of the momentum flux"
-    ax = create_figure(title=title)   
-    
-    # Plot qflux(time)
-    if research.numberOfSimulations==1: subplot_flux_vs_time_bothspecies(ax, research, y_quantity)
-    if research.numberOfSimulations!=1: subplot_flux_vs_time(ax, research, y_quantity, specie)
-    
-    # Appearance    
-    ax.yaxis.labelpad = 15; ax.xaxis.labelpad = 10
-    if logy: ax.set_yscale("log"); ax.set_ylim([10e-12, 100])
+        # Create a figure 
+        if y_quantity=="qflux": title = "Time evolution of the heat flux"
+        if y_quantity=="pflux": title = "Time evolution of the particle flux"
+        if y_quantity=="vflux": title = "Time evolution of the momentum flux"
+        if research.numberOfExperiments>1: title += ": "+experiment.line_label
+        ax = create_figure(title=title)   
         
+        # Plot qflux(time)
+        research.experiments = [experiment]; research.numberOfSimulations = len(experiment.simulations)
+        if research.numberOfSimulations==1: subplot_flux_vs_time_bothspecies(ax, research, y_quantity)
+        if research.numberOfSimulations!=1: subplot_flux_vs_time(ax, research, y_quantity=y_quantity, specie=specie)
+        
+        # Appearance    
+        ax.yaxis.labelpad = 15; ax.xaxis.labelpad = 10
+        if logy: ax.set_yscale("log"); ax.set_ylim([10e-12, 100])  
+        if xrange: ax.set_xlim(xrange)    
+        if yrange: ax.set_ylim(yrange)  
+            
     # Show the figure 
     mpl.rcParams["savefig.directory"] = folder
-    plt.show()
+    if len(ax.get_lines())!=0:  plt.show()
     return
 
 #----------------------------------------
-def subplot_flux_vs_time(ax, research, y_quantity="qflux", specie=0):
+def subplot_flux_vs_time(
+        ax, 
+        research, 
+        # Quantities to be plotted
+        y_quantity="qflux", 
+        specie=0):
     
     # Colors based on the number of simulations
     colors = plt.cm.get_cmap('jet')(np.linspace(0,1,research.numberOfSimulations)) 
     max_time = 0; min_flux = 0; max_flux = 0; count = 0
- 
+    
+    # Check whether <specie> is a valid choice 
+    if specie >= research.experiments[0].simulations[0].dim.species:
+        dim_species = research.experiments[0].simulations[0].dim.species
+        exit_reason = "Error: specie = "+str(specie)+" was selected but only "+str(dim_species)+" species are present in the simulation.\n"
+        exit_reason += "Please choose specie from {"+", ".join([str(s) for s in range(dim_species)])+"} instead.\n"
+        exit_program(exit_reason, subplot_flux_vs_time, sys._getframe().f_lineno)
+        
     # Plot qflux(t) for one of the species
     for experiment in research.experiments:
         for simulation in experiment.simulations: 
@@ -117,7 +144,7 @@ def subplot_flux_vs_time(ax, research, y_quantity="qflux", specie=0):
             # Get the label
             s = recognize_species(research, specie)
             label = "Q" if y_quantity=="qflux" else ("\\Gamma" if y_quantity=="pflux" else "\\Pi")
-            label = "$"+label+"_{\\text{sat},"+s+"}/"+label+"_{\\text{gB},i} = "+str("{:.2f}".format(satflux))+"$"
+            label = "$"+label+"_{\\text{sat,}"+s+"}/"+label+"_{\\text{gB},i} = "+str("{:.2f}".format(satflux))+"$"
             label = simulation.line_label+"; "+label if research.numberOfSimulations!=research.numberOfExperiments else experiment.line_label+"; "+label  
             
             # Plot the time evolution and the saturated value
@@ -134,6 +161,8 @@ def subplot_flux_vs_time(ax, research, y_quantity="qflux", specie=0):
     s = recognize_species(research, specie) 
     ax.set_xlabel(standardLabels["normalized"]["t"])
     ax.set_ylabel(standardLabels["normalized"][y_quantity].replace("_{s}", "_{"+s+"}"))
+    
+    # Add the legend
     ax.legend(labelspacing=0.0, prop={'size':20}, handlelength=0.8, handletextpad=0.5)
     
     # Axis limits
@@ -169,7 +198,7 @@ def subplot_flux_vs_time_bothspecies(ax, research, y_quantity="qflux"):
         # Get the label
         s = recognize_species(research, specie) 
         label = "Q" if y_quantity=="qflux" else ("\\Gamma" if y_quantity=="pflux" else "\\Pi")
-        label = "$"+label+"_{\\text{sat},"+s+"}/"+label+"_{\\text{gB},i} = "+str("{:.2f}".format(satflux[specie]))+"$"
+        label = "$"+label+"_{\\text{sat,}"+s+"}/"+label+"_{\\text{gB},i} = "+str("{:.2f}".format(satflux[specie]))+"$"
         
         # Plot the time evolution and saturated value
         ax.plot(time, flux[:,specie], color=colors[ispecie])  
@@ -180,32 +209,67 @@ def subplot_flux_vs_time_bothspecies(ax, research, y_quantity="qflux"):
     ax.set_ylabel(standardLabels["normalized"][y_quantity])
 
     # Axis limits
-    ax.set_xlim(left=0, right=np.max(time))  
-    ax.set_ylim(bottom=np.min([0, 1.2*np.min(flux[time>tstart,:])]), top=np.max([0, 1.2*np.max(flux[time>tstart,:])]))
+    ax.set_xlim(left=0, right=np.max(time))   
+    ax.set_ylim(bottom=np.min([0, 1.2*np.nanmin(flux[time>tstart,:])]), top=np.max([0, 1.2*np.nanmax(flux[time>tstart,:])]))
+    
+    # Add the legend
+    ax.legend(labelspacing=0.0, prop={'size':20}, handlelength=0.8, handletextpad=0.5)
     return
 
 #===============================================================================
 #                             RUN AS BASH COMMAND                              #
 #===============================================================================
  
-if __name__ == "__main__":
+if __name__ == "__main__":  
     
     # Create a bash-like interface
+    # Toggles are defined through (name, value, shortoption, longoption, explanation)
+    # Options are defined through (name, datatype, shortoption, longoption, explanation)
     bash = Bash(plot_flux_vs_time, __doc__)  
     
-    # Data options
-    bash.add_option('specie', 'int', 's', 'Select the species as "-s 0" for ions and "-s 1" for electrons.') 
-    bash.add_toggle('y_quantity', 'qflux', 'Plot the time evolution of the heat flux.') 
-    bash.add_toggle('y_quantity', 'pflux', 'Plot the time evolution of the particle flux.') 
-    bash.add_toggle('y_quantity', 'vflux', 'Plot the time evolution of the momentum flux.') 
+    # Quantities to be plotted
+    bash.add_toggleheader("y-quantity")
+    bash.add_toggle('y_quantity', 'qflux', '', '', 'Plot the time evolution of the heat flux.') 
+    bash.add_toggle('y_quantity', 'pflux', '', '', 'Plot the time evolution of the particle flux.') 
+    bash.add_toggle('y_quantity', 'vflux', '', '', 'Plot the time evolution of the momentum flux.') 
+    bash.add_togglespace()
     
-    # Research options      
-    bash.add_option('folderIsExperiment', 'True', 'f', 'Each folder is an experiment.')  
-    bash.add_option('parameter', 'str', 'p', 'Create an <experiment> for each unique value of <parameter>.') 
-    bash.add_option('trange', 'range', 't', 'Select the time frame for the simulations.') 
+    # Species
+    bash.add_toggleheader("specie")
+    bash.add_toggle('specie', 0, '', 'ions', 'Plot the fluxes for the ions.') 
+    bash.add_toggle('specie', 1, '', 'electrons', 'Plot the fluxes for the electrons (assuming s=1 for electrons).') 
+    bash.add_toggle('specie', 2, '', 'impurity', 'Plot the fluxes for the impurities (assuming s=2 for impurities).') 
+    bash.add_togglespace()
     
-    # Plotting options
-    bash.add_option('logy', 'True', 'y', 'Logarithmic scale for the y-axis.') 
+    # Manipulate the data
+    bash.add_optionheader("simulation") 
+    bash.add_toggleheader("simulation")
+    bash.add_option('y_quantity', 'str', 'y', '', 'Choose the y-quantity from {qflux, pflux, vflux}.') 
+    bash.add_option('specie', 'int', 's', '', 'Select the species as "-s 0" for ions and "-s 1" for electrons.') 
+    bash.add_toggle('folderIsExperiment', True, 'f', 'folderIsExp', 'Each folder is an experiment.') 
+    bash.add_toggle('folderIsSimulation', True, '', 'all', 'Each folder is a simulation.')  
+    bash.add_option('trange', 'range', 't', '', "Select the time frame for the saturated state of the simulations, e.g. '-t [500, 1000]' or -t 500.") 
+    bash.add_optionspace()
+    bash.add_togglespace()  
+    
+    # Change the appearance of the figure
+    bash.add_optionheader("figure") 
+    bash.add_toggleheader("figure") 
+    bash.add_toggle('logy', True, 'l', 'log', 'Use a logarithmic y-axis.')     
+    bash.add_option('xrange', 'range', '', 'xrange', "Select the xrange for the figure, e.g. '[0,1000]'.") 
+    bash.add_option('yrange', 'range', '', 'yrange', "Select the yrange for the figure, e.g. '[0,10]'.") 
+    bash.add_optionspace()
+    bash.add_togglespace()
+    
+    # Other options 
+    bash.add_toggleheader("other")
+    bash.add_optionheader("other") 
+    
+    # Research       
+    bash.add_option('experiment_parameter', 'str', 'e', 'para', """Create an <experiment> for each unique value of <experiment_parameter1> in 
+    {rho, tiprim, teprim, fprim, tite, delt, nmu, nvgrid, rk, \n\
+    dvpa, dmu, nz, nzed, nzgrid, nx, ny, y0, kx max, ky max\n\
+    dkx, dky, Lx, Ly, nfield, pol.turns, nperiod, D_hyper}""") 
     
     # Launch the script
     plot_flux_vs_time(**bash.get_arguments())   

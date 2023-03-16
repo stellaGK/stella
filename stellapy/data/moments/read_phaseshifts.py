@@ -33,8 +33,8 @@ def read_fromMomentsFile(path):
     try:
         with h5py.File(path, 'r') as f:  
             if "Finished" not in f.keys():   
-                print("Remove this phase shift file: ")
-                print(path)
+                print("The phase shift file is not finished being written yet. ")
+                print("     ",path,"\n")
                 sys.exit()
             for key in ["vec_time", "tstarts", "tends"]: 
                 if key in f.keys():   
