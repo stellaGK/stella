@@ -1,49 +1,9 @@
 
-#=====================================================================
-# Make function avaliable as package.func instead of package.mod.func
-#=====================================================================
-''' CONFIGURATION FILE
-
-This module is also a script which will automatically read the configuration file 
-when the module is loaded. This assures that the constant CONFIG can be imported 
-in other modules and that the corresponding configuration file will already exist 
-and is read in.
-
-
-Constants
----------
-CONFIG: configparser.ConfigParser()   
-    Configuration dictionary that will hold the configuration of the GUI.
-'''
-
 # Global variables
 CONFIG = {} 
 NAME_CONFIGURATIONFILE = "ShouldBeSetALongTheWay"
 
-# Import the current modules and sub-package list in the package folder
-import os, glob
-
-divider = '\\' if (os.name == 'nt') else '/'
-mod_list = [file_name.split(divider)[-1].split('.')[0] for file_name in glob.glob(__path__[0]+'/[!_]*.py')]
-sub_pack_list = [folder_name.split(divider)[-2] for folder_name in glob.glob(__path__[0]+'/[!_]*/')]
-
-# Import all functions from the modules
-for mod in mod_list:
-    exec('from . import ' + mod)
-    exec('from .' + mod + ' import *')
-
-# Import all subpackages
-for pack in sub_pack_list:
-    exec('from . import ' + pack)
-
-# Clean up
-del glob
-try:
-    del mod
-except:
-    pass
-try:
-    del pack
-except:
-    pass
+# Make every function avaliable as package.func instead of package.mod.func
+from stellapy import enforce_one_function_one_file
+enforce_one_function_one_file(__path__, globals(), locals())
  

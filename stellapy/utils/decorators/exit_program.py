@@ -7,22 +7,21 @@ def exit_program(reason, function, code_line):
     Example
     -------
     exit_program(reason, function_name, sys._getframe().f_lineno) 
-     '''
-
-    from stellapy.utils.decorators.verbose import indent
+     ''' 
  
     reasons = reason.split("\n") 
     
-    width = 60
+    width = 80
     print()
-    print(indent, "".center(width,"="))
-    print(indent, "EXIT PROGRAM".center(width," ")); 
-    print(indent, "".center(width,"="))
+    print("", "".center(width,"="))
+    print("", "EXIT PROGRAM".center(width," ")); 
+    print("", "".center(width,"="))
     for i in range(len(reasons)):
-        print(indent, "", reasons[i]); 
-    print(indent, "     --->  ", function.__module__);
-    print(indent, "     --->  ", function.__name__);
-    print(indent, "     --->   line", code_line);
-    print(indent, "".center(width,"="))
+        print(" ", reasons[i]); 
+    print("", "".center(width,"="))
+    print("", " script:    ", function.__module__);
+    print("", " function:  ", function.__name__);
+    print("", " line:      ", code_line);
+    print("", "".center(width,"="))
     print()
     sys.exit(2)

@@ -7,7 +7,8 @@ module run_parameters
    public :: init_run_parameters, finish_run_parameters
    public :: fphi, fapar, fbpar
    public :: nstep, tend, delt
-   public :: cfl_cushion, delt_adjust, delt_max
+   public :: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
+   public :: delt_max, delt_min
    public :: avail_cpu_time
    public :: stream_implicit, mirror_implicit
    public :: drifts_implicit
@@ -23,9 +24,9 @@ module run_parameters
 
    private
 
-   real :: cfl_cushion, delt_adjust
+   real :: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
    real :: fphi, fapar, fbpar
-   real :: delt, tend, delt_max
+   real :: delt, tend, delt_max, delt_min
    real :: zed_upwind, vpa_upwind, time_upwind
    logical :: stream_implicit, mirror_implicit
    logical :: driftkinetic_implicit
@@ -62,7 +63,7 @@ contains
    subroutine read_parameters
 
       use file_utils, only: input_unit, error_unit, input_unit_exist
-      use mp, only: proc0, broadcast, mp_abort
+      use mp, only: mp_abort, proc0, broadcast
       use text_options, only: text_option, get_option_value
       use physics_flags, only: include_mirror, full_flux_surface
 
@@ -79,12 +80,13 @@ contains
                                                       text_option('global', lu_option_global)/)
 
       character(20) :: delt_option, lu_option
-
+      logical :: error = .false.
       integer :: ierr, in_file
 
       namelist /knobs/ fphi, fapar, fbpar, delt, nstep, tend, &
          delt_option, lu_option, &
-         avail_cpu_time, cfl_cushion, delt_adjust, delt_max, &
+         avail_cpu_time, delt_max, delt_min, &
+         cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, &
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
          drifts_implicit, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
@@ -94,6 +96,8 @@ contains
          ky_solve_radial, ky_solve_real
 
       if (proc0) then
+
+         ! Default parameters in namelist <knobs>
          fphi = 1.0
          fapar = 1.0
          fbpar = -1.0
@@ -107,22 +111,35 @@ contains
          mirror_linear_interp = .false.
          stream_matrix_inversion = .false.
          delt_option = 'default'
-         lu_option = 'default'
          zed_upwind = 0.02
          vpa_upwind = 0.02
          time_upwind = 0.02
-         avail_cpu_time = 1.e10
-         cfl_cushion = 0.5
-         delt_adjust = 2.0
-         delt_max = -1
          rng_seed = -1 !negative values use current time as seed
          ky_solve_radial = 0
          ky_solve_real = .false.
          mat_gen = .false.
          mat_read = .false.
+
+         ! Stella runs until t*v_{th,i}/a=tend or until istep=nstep
          tend = -1.0
          nstep = -1
 
+         ! Set the available wall time in seconds, 5 minutes before the wall, stella will make a clean exit
+         avail_cpu_time = 1.e10
+
+         ! code_dt needs to stay within [cfl_dt*cfl_cushion_upper, cfl_dt*cfl_cushion_lower]
+         ! code_dt can be increased if cfl_dt increases, however, never increase above delt_max (=delt by default)
+         ! Exit stella if code_dt < delt_min (e.g. when the code blows up)
+         cfl_cushion_upper = 0.5       ! Stay a factor of 2 under the CFL condition, otherwise it might run out of control
+         cfl_cushion_middle = 0.25     ! If code_dt>cfl_dt/2 or code_dt<cfl_dt/100000, set code_dt to cfl_dt/4
+         cfl_cushion_lower = 0.00001   ! Default is very low to not trigger it.
+         delt_max = -1
+         delt_min = 1.e-10
+
+         ! The response matrix is solved with a none, local or global scheme, local seems to be the most efficient
+         lu_option = 'default'
+
+         ! Overwrite the default input parameters by those specified in the input file
          in_file = input_unit_exist("knobs", knexist)
          if (knexist) read (unit=in_file, nml=knobs)
 
@@ -130,11 +147,11 @@ contains
          call get_option_value &
             (delt_option, deltopts, delt_option_switch, ierr, &
              "delt_option in knobs")
-
          call get_option_value &
             (lu_option, lu_opts, lu_option_switch, ierr, &
              "lu_option in knobs")
 
+         ! Abort if neither tend nor nstep are set
          if (tend < 0 .and. nstep < 0) then
             ierr = error_unit()
             write (ierr, *) ''
@@ -143,19 +160,40 @@ contains
             write (*, *) ''
             write (*, *) 'Please specify either <nstep> or <tend> in the <knobs> namelist.'
             write (*, *) 'Aborting.'
-            call mp_abort('Please specify either <nstep> or <tend> in the <knobs> namelist.')
-            !stop
+            error = .true.
+         end if
+
+         ! Abort if cfl_cushion_lower>cfl_cushion_upper or if cfl_cushion_lower==cfl_cushion_upper
+         if ((cfl_cushion_lower > cfl_cushion_upper - 0.001) &
+             .or. (cfl_cushion_middle > cfl_cushion_upper - 0.001) &
+             .or. (cfl_cushion_middle < cfl_cushion_lower + 0.001)) then
+            ierr = error_unit()
+            write (ierr, *) ''
+            write (ierr, *) 'Please make sure that <cfl_cushion_upper> is bigger than <cfl_cushion_lower>,'
+            write (ierr, *) 'and that <cfl_cushion_middle> lies in between <cfl_cushion_upper> and <cfl_cushion_lower>.'
+            write (ierr, *) 'Aborting.'
+            write (*, *) ''
+            write (*, *) 'Please make sure that <cfl_cushion_upper> is bigger than <cfl_cushion_lower>,'
+            write (*, *) 'and that <cfl_cushion_middle> lies in between <cfl_cushion_upper> and <cfl_cushion_lower>.'
+            write (*, *) 'Aborting.'
+            error = .true.
          end if
 
       end if
+
+      ! Exit stella if we ran into an error
+      call broadcast(error)
+      if (error) call mp_abort('Aborting in run_parameters.f90')
 
       call broadcast(fields_kxkyz)
       call broadcast(delt_option_switch)
       call broadcast(delt)
       call broadcast(lu_option_switch)
-      call broadcast(cfl_cushion)
-      call broadcast(delt_adjust)
+      call broadcast(cfl_cushion_upper)
+      call broadcast(cfl_cushion_middle)
+      call broadcast(cfl_cushion_lower)
       call broadcast(delt_max)
+      call broadcast(delt_min)
       call broadcast(fphi)
       call broadcast(fapar)
       call broadcast(fbpar)

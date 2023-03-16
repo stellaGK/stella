@@ -2,7 +2,7 @@
 import os, h5py
 from stellapy.utils.decorators.verbose import noverbose      
 from stellapy.utils.files.get_filesInFolder import get_filesInFolder
-from stellapy.utils.files import remove_simulationsWithoutOutncFile
+from stellapy.utils.files.keep_simulationsWithNetcdfFile import keep_simulationsWithNetcdfFile
 from stellapy.data.output.read_outputFile import read_netcdfVariables, read_outputFile 
  
 #===============================================================================
@@ -16,7 +16,7 @@ def write_h5FileForKperp2(folder):
 
     # Get the input_files
     input_files = get_filesInFolder(folder, end=".in")
-    input_files = remove_simulationsWithoutOutncFile(input_files)   
+    input_files = keep_simulationsWithNetcdfFile(input_files)   
     for input_file in input_files:
         
         # Processing status

@@ -1,6 +1,5 @@
-from stellapy.plot.utils.devices.recognize_device import recognize_device
-
-
+from stellapy.data.geometry.recognize_device import recognize_device
+  
 #----------------------
 def get_colorsPerDevice(device): 
     """Give each device a fixed color."""
