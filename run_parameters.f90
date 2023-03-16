@@ -62,7 +62,7 @@ contains
    subroutine read_parameters
 
       use file_utils, only: input_unit, error_unit, input_unit_exist
-      use mp, only: proc0, broadcast
+      use mp, only: proc0, broadcast, mp_abort
       use text_options, only: text_option, get_option_value
       use physics_flags, only: include_mirror, full_flux_surface
 
@@ -143,7 +143,8 @@ contains
             write (*, *) ''
             write (*, *) 'Please specify either <nstep> or <tend> in the <knobs> namelist.'
             write (*, *) 'Aborting.'
-            stop
+            call mp_abort('Please specify either <nstep> or <tend> in the <knobs> namelist.')
+            !stop
          end if
 
       end if
