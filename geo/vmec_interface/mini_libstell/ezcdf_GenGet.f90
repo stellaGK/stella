@@ -56,8 +56,8 @@ CONTAINS
       integer, dimension(:, :, :), intent(inout) :: varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(3)   :: st, cnt, ldim
-      integer                 :: varid, status, j, k
+      integer, dimension(3)   :: ldim
+      integer                 :: varid, status
       integer, dimension(3)   :: dimlens
 
       integer, dimension(:, :, :), allocatable :: temp
@@ -119,7 +119,6 @@ CONTAINS
       logical, dimension(:, :, :), intent(inout) :: varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer                                :: status
       integer, dimension(:, :, :), allocatable :: varval_i
       character*11, parameter :: logical_name = '__logical__'
 
@@ -144,8 +143,8 @@ CONTAINS
       REAL(KIND=r8), dimension(:, :, :), intent(inout) ::  varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(3)   :: st, cnt, ldim
-      integer                 :: varid, status, j, k
+      integer, dimension(3)   :: ldim
+      integer                 :: varid, status
       integer, dimension(3)   :: dimlens
 
       real(r8), dimension(:, :, :), allocatable :: temp
@@ -207,8 +206,8 @@ CONTAINS
       COMPLEX(KIND=r8), dimension(:, :, :), intent(inout) ::  varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(3)   :: st, cnt, ldim
-      integer                 :: varid, status, j, k, i
+      integer, dimension(3)   :: ldim
+      integer                 :: varid, status, i
       integer, dimension(3)   :: dimlens
 
       real(r8), dimension(:, :, :), allocatable :: temp
@@ -272,8 +271,8 @@ CONTAINS
       REAL(KIND=r4), dimension(:, :, :), intent(inout) ::  varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(3)   :: st, cnt, ldim
-      integer                 :: varid, status, j, k
+      integer, dimension(3)   :: ldim
+      integer                 :: varid, status
       integer, dimension(3)   :: dimlens
 
       real, dimension(:, :, :), allocatable :: temp
@@ -333,8 +332,8 @@ CONTAINS
       COMPLEX(KIND=r4), dimension(:, :, :), intent(inout) ::  varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(3)   :: st, cnt, ldim
-      integer                 :: varid, status, j, k
+      integer, dimension(3)   :: ldim
+      integer                 :: varid, status
       integer, dimension(3)   :: dimlens
 
       real, dimension(:, :, :), allocatable :: temp
@@ -400,8 +399,8 @@ CONTAINS
       integer, dimension(:, :), intent(inout) :: varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(2)   :: st, cnt, ldim
-      integer                 :: varid, status, j
+      integer, dimension(2)   :: ldim
+      integer                 :: varid, status
       integer, dimension(2)   :: dimlens
 
       integer, dimension(:, :), allocatable :: temp
@@ -458,7 +457,6 @@ CONTAINS
       logical, dimension(:, :), intent(inout) :: varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer                              :: status
       integer, dimension(:, :), allocatable :: varval_i
       character*11, parameter :: logical_name = '__logical__'
 
@@ -483,8 +481,8 @@ CONTAINS
       REAL(KIND=r8), dimension(:, :), intent(inout) ::  varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(2)   :: st, cnt, ldim
-      integer                 :: varid, status, j
+      integer, dimension(2)   :: ldim
+      integer                 :: varid, status
       integer, dimension(2)   :: dimlens
 
       real(r8), dimension(:, :), allocatable :: temp
@@ -539,8 +537,8 @@ CONTAINS
       COMPLEX(KIND=r8), dimension(:, :), intent(inout) ::  varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(2)   :: st, cnt, ldim
-      integer                 :: varid, status, j, i
+      integer, dimension(2)   :: ldim
+      integer                 :: varid, status, i
       integer, dimension(2)   :: dimlens
 
       real(r8), dimension(:, :), allocatable :: temp
@@ -598,8 +596,8 @@ CONTAINS
       REAL(KIND=r4), dimension(:, :), intent(inout) ::  varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(2)   :: st, cnt, ldim
-      integer                 :: varid, status, j
+      integer, dimension(2)   :: ldim
+      integer                 :: varid, status
       integer, dimension(2)   :: dimlens
 
       real, dimension(:, :), allocatable :: temp
@@ -654,8 +652,8 @@ CONTAINS
       COMPLEX(KIND=r4), dimension(:, :), intent(inout) ::  varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(2)   :: st, cnt, ldim
-      integer                 :: varid, status, j, i
+      integer, dimension(2)   :: ldim
+      integer                 :: varid, status, i
       integer, dimension(2)   :: dimlens
 
       real(r8), dimension(:, :), allocatable :: temp
@@ -714,7 +712,7 @@ CONTAINS
       integer, optional, intent(out) :: ier
       ! Local
       integer, dimension(2)   :: st, cnt, ldim
-      integer                 :: varid, status, charlen, j
+      integer                 :: varid, status, j
       integer, dimension(2)   :: dimlens
       if (PRESENT(ier)) ier = 1
       ldim(1) = len(varval)
@@ -769,7 +767,6 @@ CONTAINS
       logical, dimension(:), intent(inout) :: varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer                            :: status
       integer, dimension(:), allocatable :: varval_i
       character*11, parameter :: logical_name = '__logical__'
 
