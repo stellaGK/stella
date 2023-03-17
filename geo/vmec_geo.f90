@@ -36,7 +36,7 @@ contains
 
       in_file = input_unit_exist("vmec_parameters", exist)
       if (exist) read (unit=in_file, nml=vmec_parameters)
-
+      
       if (zgrid_scalefac < 1.0 - epsilon(0.)) then
          write (*, *) 'zgrid_scalefac = ', zgrid_scalefac
          call mp_abort('zgrid_scalefac should always be >= 1.0.  aborting')
@@ -51,6 +51,13 @@ contains
             zgrid_refinement_factor = 1
          end if
       end if
+      
+      if (n_tolerated_test_arrays_inconsistencies < 0) then
+         write (*, *) 'n_tolerated_test_arrays_inconsistencies = ', n_tolerated_test_arrays_inconsistencies
+         call mp_abort('n_tolerated_test_arrays_inconsistencies should always be >= 0.  aborting')
+      end if
+      
+
 
    end subroutine read_vmec_parameters
 
