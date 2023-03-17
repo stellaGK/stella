@@ -17,16 +17,20 @@
 !     mse_pitch           user-callable function to compute mse pitch angle
 !                         for the computed equilibrium
 !
+
       USE stel_kinds
-      USE vmec_input, ONLY: lrfp
-      USE mgrid_mod
+      USE vsvd0, ONLY: nigroup, nparts, npfcoil, nbcoilsp, nfloops,
+     1                 nbctotp, nbsetsp
+      USE ezcdf_inqvar
+      USE ezcdf_GenGet
 
       IMPLICIT NONE
 #if defined(NETCDF)
 C-----------------------------------------------
 C   L O C A L   P A R A M E T E R S
 C-----------------------------------------------
-! Variable names (vn_...) : put eventually into library, used by read_wout too...
+
+! Variables naturally occuring here      
       CHARACTER(LEN=*), PARAMETER ::
      1  vn_version = 'version_',
      2  vn_extension = 'input_extension', vn_mgrid = 'mgrid_file',
@@ -221,6 +225,68 @@ C-----------------------------------------------
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
+      ! Variable names (vn_...) : put eventually into library, used by read_wout too...
+      INTEGER, PARAMETER :: fatal_error = 666
+
+! Variables with types previously defined in mgrid_mod
+      LOGICAL :: lnverror=.true.
+      INTEGER, PARAMETER :: nlimset = 2       !number of different limiters
+      CHARACTER(LEN=*), PARAMETER :: 
+     1   vn_br0 = 'br', vn_bp0 = 'bp', vn_bz0 = 'bz',
+     3   vn_ir = 'ir', vn_jz = 'jz',
+     4   vn_kp = 'kp', vn_nfp = 'nfp',
+     5   vn_rmin='rmin', vn_rmax='rmax', vn_zmin='zmin', 
+     6   vn_zmax='zmax', vn_coilgrp='coil_group' 
+      CHARACTER(LEN=*), PARAMETER ::
+     1  vn_nextcur = 'nextcur',  vn_mgmode='mgrid_mode', 
+     2  vn_coilcur = 'raw_coil_cur',
+     3  vn_flp = 'nobser', vn_nobd = 'nobd', vn_nbset = 'nbsets', 
+     4  vn_nbfld = 'nbfld',
+     2  ln_flp = 'flux loops', ln_nobd = 'Connected flux loops',
+     3  ln_nbset = 'B-coil loops', ln_next = 'External currents',
+     4  ln_nbfld = 'B-coil measurements'
+      
+      INTEGER :: nr0b, np0b, nfper0, nz0b
+      INTEGER :: nobd, nobser, nextcur, nbfldn, nbsets, nbcoilsn
+      INTEGER :: nbvac, nbcoil_max, nlim, nlim_max, nsets,
+     1           nrgrid, nzgrid
+      INTEGER, DIMENSION(:), ALLOCATABLE :: needflx, nbcoils
+      INTEGER, DIMENSION(:), ALLOCATABLE :: limitr, nsetsn
+      INTEGER, DIMENSION(:,:), ALLOCATABLE :: iconnect, needbfld
+      REAL(rprec) :: rminb, zminb, rmaxb, zmaxb, delrb, delzb
+      REAL(rprec) ::rx1, rx2, zy1, zy2, condif
+      REAL(rprec), DIMENSION(:,:), ALLOCATABLE, TARGET :: bvac
+      REAL(rprec), DIMENSION(:,:,:), POINTER :: brvac, bzvac, bpvac
+      REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: unpsiext, 
+     1   plbfld, rbcoil, zbcoil, abcoil, bcoil, rbcoilsqr
+      REAL(rprec), DIMENSION(:), ALLOCATABLE :: raw_coil_current
+      REAL(rprec), DIMENSION(:), ALLOCATABLE :: xobser, zobser,
+     1   xobsqr, dsiext, psiext, plflux, b_chi
+      CHARACTER(LEN=300) :: mgrid_path
+      CHARACTER(LEN=300) :: mgrid_path_old = " "
+      CHARACTER(LEN=30), DIMENSION(:), ALLOCATABLE :: curlabel
+      CHARACTER(LEN=15), DIMENSION(:), ALLOCATABLE :: 
+     1                                           dsilabel, bloopnames
+      CHARACTER(LEN=30) :: tokid
+      REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE :: dbcoil, pfcspec
+      REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: 
+     1    rlim, zlim, reslim, seplim
+      CHARACTER(LEN=1) :: mgrid_mode
+
+! Variables previously declared in vmec_input.f90
+      INTEGER, DIMENSION(nbsetsp) :: nbfld
+      LOGICAL :: lpofr, lmac, lfreeb, lrecon, loldout, ledge_dump,
+     1           lforbal, lmovie,  lmove_axis,
+     2           lwouttxt, ldiagno,       ! J.Geiger: for txt- and diagno-output
+     3           lmoreiter,               ! J.Geiger: if force residuals are not fulfilled add more iterations.
+     4           lfull3d1out,             ! J.Geiger: to force full 3D1-output
+     5           l_v3fit=.false.,
+     6           lspectrum_dump, loptim           !!Obsolete
+      LOGICAL :: lgiveup                  ! inserted M.Drevlak
+      REAL(rprec) :: fgiveup              ! inserted M.Drevlak, giveup-factor for ftolv
+      LOGICAL :: lbsubs                   ! J Hanson See jxbforce coding
+      
+! Variables that naturally occur here
       INTEGER :: nfp, ns, mpol, ntor, mnmax, mnmax_nyq, itfsq, niter, 
      1    iasym, ireconstruct, ierr_vmec, imse, itse, nstore_seq, 
      2    isnodes, ipnodes, imatch_phiedge, isigng, mnyq, nnyq, ntmax,
@@ -258,7 +324,7 @@ C-----------------------------------------------
       REAL(rprec), DIMENSION(:), ALLOCATABLE ::
      1   pmap, omega, tpotb ! SAL -FLOW
       
-      LOGICAL :: lasym, lthreed, lwout_opened=.false.
+      LOGICAL :: lasym, lthreed, lwout_opened=.false., lrfp = .false.
       CHARACTER :: mgrid_file*200, input_extension*100
       CHARACTER :: pmass_type*20, pcurr_type*20, piota_type*20
 
@@ -312,6 +378,9 @@ C-----------------------------------------------
       IF (isnc) THEN
 #if defined(NETCDF)
          CALL read_wout_nc(filename, ierr)
+         IF (ierr .eq. fatal_error) THEN
+            RETURN
+         END IF
 #else
          PRINT *, "NETCDF wout file can not be opened on this platform"
          ierr = -100
@@ -320,6 +389,9 @@ C-----------------------------------------------
          iunit = iunit_init
          CALL safe_open (iunit, ierr, filename, 'old', 'formatted')
          IF (ierr .eq. 0) CALL read_wout_text(iunit, ierr)
+         IF (ierr .eq. fatal_error) THEN
+            RETURN
+         END IF
          CLOSE(unit=iunit)
       END IF
       
@@ -370,6 +442,9 @@ C-----------------------------------------------
       END IF
 
       CALL read_wout_text(iunit, ierr)
+      IF (ierr .eq. fatal_error) THEN
+         RETURN
+      END IF
       lwout_opened = (ierr .eq. 0)
       lthreed = ANY(NINT(xn) .ne. 0)
 
@@ -476,7 +551,12 @@ C-----------------------------------------------
 
       IF (nextcur .gt. nigroup) istat(15) = -1
 
-      IF (ALLOCATED(xm)) CALL read_wout_deallocate
+      IF (ALLOCATED(xm)) CALL read_wout_deallocate(ierr)
+
+      IF (ierr .ne. 0) THEN
+         ierr = fatal_error
+         RETURN
+      END IF
 
       ALLOCATE (xm(mnmax), xn(mnmax), xm_nyq(mnmax_nyq), 
      1  xn_nyq(mnmax_nyq),rmnc(mnmax,ns), zmns(mnmax,ns),
@@ -883,7 +963,13 @@ C-----------------------------------------------
       END IF
 
 ! Be sure all arrays are deallocated
-      CALL read_wout_deallocate
+      CALL read_wout_deallocate(ierr)
+      IF (ierr .ne. 0) THEN
+         ierr = fatal_error
+         PRINT *,' Error deallocating wout .nc file'
+         RETURN
+      END IF
+
 
       ! ANIMEC/FLOW -SAL
       i_animec = 0
@@ -1230,8 +1316,11 @@ C-----------------------------------------------
       CALL cdf_read(nwout, vn_racc, raxis_cc)
       CALL cdf_read(nwout, vn_zacs, zaxis_cs) 
 
-      IF (SIZE(raxis_cc) .ne. ntor+1) 
-     1   STOP 'WRONG SIZE(raxis_cc) in READ_WOUT_NC'
+      IF (SIZE(raxis_cc) .ne. ntor+1) THEN 
+         PRINT *, 'WRONG SIZE(raxis_cc) in READ_WOUT_NC'
+         ierr = fatal_error
+         RETURN
+      END IF
       ALLOCATE (raxis(0:ntor,2), zaxis(0:ntor,2), stat=ierror)
       raxis(:,1) = raxis_cc(0:ntor);   zaxis(:,1) = zaxis_cs(0:ntor)
       raxis(:,2) = 0;                  zaxis(:,2) = 0
@@ -1378,7 +1467,6 @@ C-----------------------------------------------
 #endif
 
       SUBROUTINE write_wout_text(filename, ierr)
-      USE v3_utilities
       USE vsvd0, ONLY: nparts
       USE safe_open_mod
       USE stel_constants, ONLY: mu0
@@ -1410,8 +1498,12 @@ C-----------------------------------------------
      &               'wout_' // TRIM(filename) // '.txt',                      &
      &               'replace', 'formatted')
 
-      CALL assert_eq(0, ierr, 'Error opening text wout file in ' //            &
-     &               'write_wout_text of read_wout_mod.')
+      IF (ierr .ne. 0) then
+         PRINT *,'Error opening text wout file in ' //                         &
+     &               'write_wout_text of read_wout_mod.'
+         ierr = fatal_error
+         RETURN
+      END IF
 
 
 !  Write version info
@@ -1667,8 +1759,13 @@ C-----------------------------------------------
   730 FORMAT(5e20.13)
 
       CLOSE (iounit, iostat = ierr)
-      CALL assert_eq(0, ierr, 'Error closing text wout file in ' //            &
-     &               'write_wout_text of read_wout_mod.')
+      IF (ierr .ne. 0) then
+         PRINT *,'Error closing text wout file in ' //                           &
+     &               'write_wout_text of read_wout_mod.'
+         ierr = fatal_error
+         RETURN
+      END IF
+
 
       END SUBROUTINE
 
@@ -1772,8 +1869,13 @@ C-----------------------------------------------
 
       END SUBROUTINE Compute_Currents
 
-      SUBROUTINE read_wout_deallocate
+      SUBROUTINE read_wout_deallocate(ierr)
       IMPLICIT NONE
+C-----------------------------------------------
+C   D u m m y   A r g u m e n t s
+C-----------------------------------------------
+      INTEGER, INTENT(out) :: ierr
+
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -1825,331 +1927,12 @@ C-----------------------------------------------
 
       IF (ANY(istat .ne. 0)) THEN
         PRINT *,istat
-        STOP 'Deallocation error in read_wout_deallocate'
+        PRINT *,'Deallocation error in read_wout_deallocate'
+        ierr = fatal_error
+        RETURN
       END IF
 
       END SUBROUTINE read_wout_deallocate
-
-      SUBROUTINE tosuvspace (s_in, u_in, v_in, gsqrt,
-     1     bsupu, bsupv, jsupu, jsupv, lam)
-      USE stel_constants, ONLY: zero, one
-      IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
-      REAL(rprec), INTENT(in) :: s_in, u_in, v_in
-      REAL(rprec), INTENT(out), OPTIONAL :: gsqrt, bsupu, bsupv,
-     1    jsupu, jsupv, lam
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
-      REAL(rprec), PARAMETER :: c1p5 = 1.5_dp
-      INTEGER :: m, n, n1, mn, ipresent, jslo, jshi
-      REAL(rprec) :: hs1, wlo, whi, wlo_odd, whi_odd
-      REAL(rprec), DIMENSION(mnmax_nyq) :: gmnc1, gmns1, bsupumnc1,
-     1   bsupumns1, bsupvmnc1, bsupvmns1, jsupumnc1, jsupumns1,
-     2   jsupvmnc1, jsupvmns1, wmins, wplus, lammns1, lammnc1
-      REAL(rprec) :: cosu, sinu, cosv, sinv, tcosmn, tsinmn, sgn
-      REAL(rprec) :: cosmu(0:mnyq), sinmu(0:mnyq),
-     1               cosnv(0:nnyq), sinnv(0:nnyq)
-      LOGICAL :: lgsqrt, lbsupu, lbsupv, ljsupu, ljsupv, llam
-C-----------------------------------------------
-!
-!     COMPUTE VARIOUS HALF/FULL-RADIAL GRID QUANTITIES AT THE INPUT POINT
-!     (S, U, V) , WHERE 
-!        S = normalized toroidal flux (0 - 1),
-!        U = poloidal angle 
-!        V = N*phi = toroidal angle * no. field periods
-!
-!     HALF-RADIAL GRID QUANTITIES
-!     gsqrt, bsupu, bsupv
-!   
-!     FULL-RADIAL GRID QUANTITIES
-!     dbsubuds, dbsubvds, dbsubsdu, dbsubsdv
-!
-C-----------------------------------------------
-      IF (s_in.lt.zero .or. s_in.gt.one) THEN
-         WRITE(6, *)
-     1   ' In tosuvspace, s(flux) must be between 0 and 1'
-         RETURN
-      END IF
-
-      IF (.not.lwout_opened) THEN
-         WRITE(6, *)
-     1   ' tosuvspace can only be called AFTER opening wout file!'
-         RETURN
-      END IF
-
-!
-!     SETUP TRIG ARRAYS
-!
-      cosu = COS(u_in);   sinu = SIN(u_in)
-      cosv = COS(v_in);   sinv = SIN(v_in)
-
-      cosmu(0) = 1;    sinmu(0) = 0
-      cosnv(0) = 1;    sinnv(0) = 0
-      DO m = 1, mnyq
-         cosmu(m) = cosmu(m-1)*cosu - sinmu(m-1)*sinu
-         sinmu(m) = sinmu(m-1)*cosu + cosmu(m-1)*sinu
-      END DO
-
-      DO n = 1, nnyq
-         cosnv(n) = cosnv(n-1)*cosv - sinnv(n-1)*sinv
-         sinnv(n) = sinnv(n-1)*cosv + cosnv(n-1)*sinv
-      END DO
-
-
-!
-!     FIND INTERPOLATED s VALUE AND COMPUTE INTERPOLATION WEIGHTS wlo, whi
-!     RECALL THAT THESE QUANTITIES ARE ON THE HALF-RADIAL GRID...
-!     s-half(j) = (j-1.5)*hs, for j = 2,...ns
-!
-      hs1 = one/(ns-1)
-      jslo = INT(c1p5 + s_in/hs1)
-      jshi = jslo+1
-      wlo = (hs1*(jshi-c1p5) - s_in)/hs1
-      whi = 1 - wlo
-      IF (jslo .eq. ns) THEN
-!        USE Xhalf(ns+1) = 2*Xhalf(ns) - Xhalf(ns-1) FOR "GHOST" POINT VALUE 1/2hs OUTSIDE EDGE
-!        THEN, X = wlo*Xhalf(ns) + whi*Xhalf(ns+1) == Xhalf(ns) + whi*(Xhalf(ns) - Xhalf(ns-1)) 
-         jshi = jslo-1
-         wlo = 1+whi; whi = -whi
-      ELSE IF (jslo .eq. 1) THEN
-         jslo = 2
-      END IF
-
-!
-!     FOR ODD-m MODES X ~ SQRT(s), SO INTERPOLATE Xmn/SQRT(s)
-! 
-      whi_odd = whi*SQRT(s_in/(hs1*(jshi-c1p5)))
-      IF (jslo .ne. 1) THEN
-         wlo_odd = wlo*SQRT(s_in/(hs1*(jslo-c1p5)))
-      ELSE
-         wlo_odd = 0
-         whi_odd = SQRT(s_in/(hs1*(jshi-c1p5)))
-      END IF
-
-      WHERE (MOD(NINT(xm_nyq(:)),2) .eq. 0)
-         wmins = wlo
-         wplus = whi
-      ELSEWHERE
-         wmins = wlo_odd
-         wplus = whi_odd
-      END WHERE
-
-      ipresent = 0
-      lgsqrt = PRESENT(gsqrt)
-      IF (lgsqrt) THEN
-         gsqrt = 0 ;  ipresent = ipresent+1
-         gmnc1 = wmins*gmnc(:,jslo) + wplus*gmnc(:,jshi)
-         IF (lasym)
-     1   gmns1 = wmins*gmns(:,jslo) + wplus*gmns(:,jshi)
-      END IF
-      lbsupu = PRESENT(bsupu)
-      IF (lbsupu) THEN
-         bsupu = 0 ;  ipresent = ipresent+1
-         bsupumnc1 = wmins*bsupumnc(:,jslo) + wplus*bsupumnc(:,jshi)
-         IF (lasym)
-     1   bsupumns1 = wmins*bsupumns(:,jslo) + wplus*bsupumns(:,jshi)
-      END IF
-      lbsupv = PRESENT(bsupv)
-      IF (lbsupv) THEN
-         bsupv = 0 ;  ipresent = ipresent+1
-         bsupvmnc1 = wmins*bsupvmnc(:,jslo) + wplus*bsupvmnc(:,jshi)
-         IF (lasym)
-     1   bsupvmns1 = wmins*bsupvmns(:,jslo) + wplus*bsupvmns(:,jshi)
-      END IF
-      llam = PRESENT(lam)
-      IF (llam) THEN
-         lam = 0 ;  ipresent = ipresent+1
-         lammns1 = wmins*lmns(:,jslo) + wplus*lmns(:,jshi)
-         IF (lasym)
-     1   lammnc1 = wmins*lmnc(:,jslo) + wplus*lmnc(:,jshi)
-      END IF
-
-      IF (ipresent .eq. 0) GOTO 1000
-
-!
-!     COMPUTE GSQRT, ... IN REAL SPACE
-!     tcosmn = cos(mu - nv);  tsinmn = sin(mu - nv)
-!
-      DO mn = 1, mnmax_nyq
-         m = NINT(xm_nyq(mn));  n = NINT(xn_nyq(mn))/nfp
-         n1 = ABS(n);   sgn = SIGN(1,n)
-         tcosmn = cosmu(m)*cosnv(n1) + sgn*sinmu(m)*sinnv(n1)
-         tsinmn = sinmu(m)*cosnv(n1) - sgn*cosmu(m)*sinnv(n1)   
-         IF (lgsqrt) gsqrt = gsqrt + gmnc1(mn)*tcosmn
-         IF (lbsupu) bsupu = bsupu + bsupumnc1(mn)*tcosmn
-         IF (lbsupv) bsupv = bsupv + bsupvmnc1(mn)*tcosmn
-         IF (llam)   lam = lam + lammns1(mn)*tsinmn
-      END DO
-
-      IF (.not.lasym) GOTO 1000
-
-      DO mn = 1, mnmax_nyq
-         m = NINT(xm_nyq(mn));  n = NINT(xn_nyq(mn))/nfp
-         n1 = ABS(n);   sgn = SIGN(1,n)
-         tcosmn = cosmu(m)*cosnv(n1) + sgn*sinmu(m)*sinnv(n1)
-         tsinmn = sinmu(m)*cosnv(n1) - sgn*cosmu(m)*sinnv(n1)
-         IF (lgsqrt) gsqrt = gsqrt + gmns1(mn)*tsinmn
-         IF (lbsupu) bsupu = bsupu + bsupumns1(mn)*tsinmn
-         IF (lbsupv) bsupv = bsupv + bsupvmns1(mn)*tsinmn
-         IF (llam)   lam = lam + lammnc1(mn)*tcosmn
-      END DO
-
- 1000 CONTINUE
-
-!     FULL-MESH QUANTITIES
-!
-!     FIND INTERPOLATED s VALUE AND COMPUTE INTERPOLATION WEIGHTS wlo, whi
-!     RECALL THAT THESE QUANTITIES ARE ON THE FULL-RADIAL GRID...
-!     s-full(j) = (j-1)*hs, for j = 1,...ns
-!
-      hs1 = one/(ns-1)
-      jslo = 1+INT(s_in/hs1)
-      jshi = jslo+1
-      IF (jslo .eq. ns) jshi = ns
-      wlo = (hs1*(jshi-1) - s_in)/hs1
-      whi = 1 - wlo
-!
-!     FOR ODD-m MODES X ~ SQRT(s), SO INTERPOLATE Xmn/SQRT(s)
-! 
-      whi_odd = whi*SQRT(s_in/(hs1*(jshi-1)))
-      IF (jslo .ne. 1) THEN
-         wlo_odd = wlo*SQRT(s_in/(hs1*(jslo-1)))
-      ELSE
-         wlo_odd = 0
-         whi_odd = SQRT(s_in/(hs1*(jshi-1)))
-      END IF
-
-      WHERE (MOD(NINT(xm_nyq(:)),2) .eq. 0)
-         wmins = wlo
-         wplus = whi
-      ELSEWHERE
-         wmins = wlo_odd
-         wplus = whi_odd
-      END WHERE
-
-      ipresent = 0
-      ljsupu = PRESENT(jsupu)
-      IF (ljsupu) THEN
-         IF (.not.lgsqrt) STOP 'MUST compute gsqrt for jsupu'
-         jsupu = 0 ;  ipresent = ipresent+1
-         jsupumnc1 = wmins*currumnc(:,jslo) + wplus*currumnc(:,jshi)
-         IF (lasym)
-     1   jsupumns1 = wmins*currumns(:,jslo) + wplus*currumns(:,jshi)
-      END IF
-
-      ljsupv = PRESENT(jsupv)
-      IF (ljsupv) THEN
-         IF (.not.lgsqrt) STOP 'MUST compute gsqrt for jsupv'
-         jsupv = 0 ;  ipresent = ipresent+1
-         jsupvmnc1 = wmins*currvmnc(:,jslo) + wplus*currvmnc(:,jshi)
-         IF (lasym)
-     1   jsupvmns1 = wmins*currvmns(:,jslo) + wplus*currvmns(:,jshi)
-      END IF
-
-      IF (ipresent .eq. 0) RETURN
-
-      DO mn = 1, mnmax_nyq
-         m = NINT(xm_nyq(mn));  n = NINT(xn_nyq(mn))/nfp
-         n1 = ABS(n);   sgn = SIGN(1,n)
-         tcosmn = cosmu(m)*cosnv(n1) + sgn*sinmu(m)*sinnv(n1)   
-         IF (ljsupu) jsupu = jsupu + jsupumnc1(mn)*tcosmn
-         IF (ljsupv) jsupv = jsupv + jsupvmnc1(mn)*tcosmn
-      END DO
-
-      IF (.not.lasym) GOTO 2000
-
-      DO mn = 1, mnmax_nyq
-         m = NINT(xm_nyq(mn));  n = NINT(xn_nyq(mn))/nfp
-         n1 = ABS(n);   sgn = SIGN(1,n)
-         tsinmn = sinmu(m)*cosnv(n1) - sgn*cosmu(m)*sinnv(n1)
-         IF (ljsupu) jsupu = jsupu + jsupumns1(mn)*tsinmn
-         IF (ljsupv) jsupv = jsupv + jsupvmns1(mn)*tsinmn
-      END DO
-
- 2000 CONTINUE
-
-      IF (ljsupu) jsupu = jsupu/gsqrt
-      IF (ljsupv) jsupv = jsupv/gsqrt
-
-      END SUBROUTINE tosuvspace
-
-      SUBROUTINE LoadRZL
-      IMPLICIT NONE
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
-      INTEGER     :: rcc, rss, zsc, zcs, rsc, rcs, zcc, zss
-      INTEGER     :: mpol1, mn, m, n, n1
-      REAL(rprec) :: sgn
-C-----------------------------------------------
-!
-!     Arrays must be stacked (and ns,ntor,mpol ordering imposed)
-!     as coefficients of cos(mu)*cos(nv), etc
-!     Only need R, Z components(not lambda, for now anyhow)
-!      
-      IF (ALLOCATED(rzl_local)) RETURN
-
-      mpol1 = mpol-1
-      rcc = 1;  zsc = 1
-      IF (.not.lasym) THEN
-         IF (lthreed) THEN
-            ntmax = 2
-            rss = 2;  zcs = 2
-         ELSE
-            ntmax = 1
-         END IF
-      ELSE
-         IF (lthreed) THEN
-            ntmax = 4
-            rss = 2;  rsc = 3;  rcs = 4
-            zcs = 2;  zcc = 3;  zss = 4
-         ELSE
-            ntmax = 2
-            rsc = 2;  zcc = 2
-         END IF
-      END IF
-
-!     only ALLOCATE 2*ntmax, don't need lambdas
-      zsc = 1+ntmax; zcs = zcs+ntmax; zcc = zcc+ntmax; zss = zss+ntmax
-      ALLOCATE(rzl_local(ns,0:ntor,0:mpol1,2*ntmax), stat=n)
-      IF (n .ne. 0) STOP 'Allocation error in LoadRZL'
-      rzl_local = 0
-
-      DO mn = 1, mnmax
-         m = NINT(xm(mn));  n = NINT(xn(mn))/nfp; n1 = ABS(n)
-         sgn = SIGN(1, n)
-         rzl_local(:,n1,m,rcc) = rzl_local(:,n1,m,rcc) + rmnc(mn,:)
-         rzl_local(:,n1,m,zsc) = rzl_local(:,n1,m,zsc) + zmns(mn,:)
-         IF (lthreed) THEN
-            rzl_local(:,n1,m,rss) = rzl_local(:,n1,m,rss) 
-     1                            + sgn*rmnc(mn,:)
-            rzl_local(:,n1,m,zcs) = rzl_local(:,n1,m,zcs)
-     1                            - sgn*zmns(mn,:)
-         END IF
-         IF (lasym) THEN
-            rzl_local(:,n1,m,rsc) = rzl_local(:,n1,m,rsc) 
-     1                            + rmns(mn,:)
-            rzl_local(:,n1,m,zcc) = rzl_local(:,n1,m,zcc) 
-     1                            + zmnc(mn,:)
-            IF (lthreed) THEN
-                rzl_local(:,n1,m,rcs) = rzl_local(:,n1,m,rcs)
-     1                                - sgn*rmns(mn,:)
-                rzl_local(:,n1,m,zss) = rzl_local(:,n1,m,zss) 
-     1                                + sgn*zmnc(mn,:)
-            END IF
-         END IF
-      END DO
-
-!     ADDED by SAL for Vecpot calc
-      IF (.not. ALLOCATED(chi))  ALLOCATE(chi(1:ns))
-      DO mn = 1, ns
-        chi(mn) = SUM(iotaf(1:mn)*phipf(1:mn))
-      END DO
-
-      END SUBROUTINE LoadRZL
 
       END MODULE read_wout_mod
 

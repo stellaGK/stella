@@ -168,7 +168,10 @@ contains
       end if
 
       ! deallocate all arrays opened externally in read_wout_mod
-      call read_wout_deallocate
+      call read_wout_deallocate(ierr)
+      if (ierr /= 0) then
+         print *, "Warning: error returned when deallocating wout arrays. ", ierr
+      end if
       ierr = 0
 
    end subroutine read_vmec_equilibrium
