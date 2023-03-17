@@ -13,6 +13,7 @@ module vmec_geo
    real :: zeta_center, torflux
    logical :: verbose
    character(2000) :: vmec_filename
+   integer :: n_tolerated_test_arrays_inconsistencies
 
 contains
 
@@ -28,7 +29,8 @@ contains
       logical :: exist
 
       namelist /vmec_parameters/ alpha0, zeta_center, nfield_periods, &
-         torflux, zgrid_scalefac, zgrid_refinement_factor, surface_option, verbose, vmec_filename, gradpar_zeta_prefac
+         torflux, zgrid_scalefac, zgrid_refinement_factor, surface_option, & 
+         verbose, vmec_filename, gradpar_zeta_prefac, n_tolerated_test_arrays_inconsistencies
 
       call init_vmec_defaults
 
@@ -79,6 +81,7 @@ contains
       else
          zgrid_refinement_factor = 1
       end if
+      n_tolerated_test_arrays_inconsistencies = 0
 
    end subroutine init_vmec_defaults
 
@@ -147,9 +150,7 @@ contains
       real, dimension(nalpha, -nzgrid:nzgrid) :: theta
 
       integer :: ierr
-      integer :: n_tolerated_fuzzy_errors
-
-       n_tolerated_fuzzy_errors = 1
+      
       !> To avoid writting twice in the output file when recomputing zeta.
       if (stellarator_symmetric_BC) verbose = .false.
       !> first read in equilibrium information from vmec file
@@ -215,7 +216,7 @@ contains
                                              x_displacement_fac_vmec, gradpar_zeta_prefac, ierr)
       
       if (ierr /= 0) then
-         if (ierr > n_tolerated_fuzzy_errors .or. ierr < 0) then
+         if (ierr > n_tolerated_test_arrays_inconsistencies .or. ierr < 0) then
             call mp_abort('vmec_to_stella_geometry_interface returned error.')
          end if
       end if
