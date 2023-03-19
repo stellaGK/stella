@@ -831,10 +831,11 @@ contains
    subroutine get_dpdf_dphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phi_ext, pdf_ext)
 
       use stella_layouts, only: vmu_lo
-      use run_parameters, only: time_upwind
+      use run_parameters, only: time_upwind_plus
       use run_parameters, only: use_h_for_parallel_streaming
       use implicit_solve, only: get_gke_rhs_ext, sweep_g_zext
       use fields_arrays, only: response_matrix
+      use extended_zgrid, only: periodic
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
@@ -862,8 +863,10 @@ contains
       if (use_h_for_parallel_streaming) then
          phi_ext(idx) = 1.0
       else
-         phi_ext(idx) = 0.5 * (1.0 + time_upwind)
+         phi_ext(idx) = time_upwind_plus
       end if
+
+      if (periodic(iky) .and. idx == 1) phi_ext(nz_ext) = phi_ext(1)
 
       ! dum is a scratch array that takes the place of the pdf and phi
       ! at the previous time level,
@@ -921,7 +924,10 @@ contains
       use parallel_streaming, only: stream_tridiagonal_solve
       use parallel_streaming, only: stream_sign, center_zed
       use implicit_solve, only: sweep_zed_zonal, sweep_g_zext
-      use run_parameters, only: zed_upwind, time_upwind
+      use run_parameters, only: zupwnd_p => zed_upwind_plus
+      use run_parameters, only: zupwnd_m => zed_upwind_minus
+      use run_parameters, only: tupwnd_p => time_upwind_plus
+      use run_parameters, only: time_upwind, zed_upwind
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
@@ -936,7 +942,7 @@ contains
       integer :: izp, izm
       real :: mu_dbdzed_p, mu_dbdzed_m
       real :: fac, fac0, fac1, gyro_fac
-      real :: tupwnd_p, zupwnd_p, zupwnd_m
+!      real :: tupwnd_p, zupwnd_p, zupwnd_m
       real :: constant_pre_factor
       real :: stream_factor, wdrift_factor
       real, dimension(:), allocatable :: z_scratch
@@ -944,9 +950,6 @@ contains
       ia = 1
       allocate (z_scratch(-nzgrid:nzgrid))
 
-      tupwnd_p = 0.5 * (1.0 + time_upwind)
-      zupwnd_p = 0.5 * (1.0 + zed_upwind)
-      zupwnd_m = 0.5 * (1.0 - zed_upwind)
       ! this is a pre-factor multiplying all terms proportional to phi^{n+1};
       ! it does not depend on z, vpa, mu or species so can be computed once
       constant_pre_factor = code_dt * tupwnd_p
@@ -1075,7 +1078,7 @@ contains
             end if
 
             if (periodic(iky)) then
-               call sweep_zed_zonal(iky, iv, is, stream_sign(iv), gext(:, ivmu))
+               call sweep_zed_zonal(iky, iv, is, stream_sign(iv), gext(:, ivmu), 1)
             else
                ! invert parallel streaming equation to get g^{n+1} on extended zed grid
                ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
@@ -1192,7 +1195,7 @@ contains
             end if
 
             if (periodic(iky)) then
-               call sweep_zed_zonal(iky, iv, is, stream_sign(iv), gext(:, ivmu))
+               call sweep_zed_zonal(iky, iv, is, stream_sign(iv), gext(:, ivmu), 1)
             else
                ! invert parallel streaming equation to get g^{n+1} on extended zed grid
                ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
@@ -1317,7 +1320,7 @@ contains
          end if
 
          if (periodic(iky)) then
-            call sweep_zed_zonal(iky, iv, is, stream_sign(iv), hext(:, ivmu))
+            call sweep_zed_zonal(iky, iv, is, stream_sign(iv), hext(:, ivmu), 1)
          else
             ! invert parallel streaming equation to get g^{n+1} on extended zed grid
             ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = hext

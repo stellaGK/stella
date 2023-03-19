@@ -27,7 +27,8 @@ contains
       use run_parameters, only: stream_matrix_inversion
       use run_parameters, only: use_deltaphi_for_response_matrix
       use run_parameters, only: use_h_for_parallel_streaming
-      use run_parameters, only: time_upwind
+      use run_parameters, only: tupwnd1 => time_upwind_minus
+      use run_parameters, only: tupwnd2 => time_upwind_plus
       use run_parameters, only: fphi
       use fields, only: advance_fields, fields_updated
       use g_tofrom_h, only: g_to_h
@@ -38,16 +39,10 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
 
       integer :: ivmu
-      real :: tupwnd1, tupwnd2
       complex, dimension(:, :, :, :), allocatable :: phi_old, phi_source
       character(5) :: dist_choice
 
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Implicit time advance')
-
-      ! calculate factors accounting for centering/de-centering in time;
-      ! these factors will multiply phi^{n} and phi^{n+1}, respectively
-      tupwnd1 = 0.5 * (1.0 - time_upwind)
-      tupwnd2 = 0.5 * (1.0 + time_upwind)
 
       !> dist_choice indicates whether the non-Boltzmann part of the pdf (h) is evolved
       !> in parallel streaming or if the guiding centre distribution (g = <f>) is evolved
@@ -91,6 +86,7 @@ contains
          call sweep_g_zed(ivmu, g(:, :, :, :, ivmu))
 !       end if
       end do
+
       if (proc0) call time_message(.false., time_implicit_advance(:, 2), ' (bidiagonal solve)')
 
       fields_updated = .false.
@@ -156,7 +152,8 @@ contains
       use run_parameters, only: stream_matrix_inversion
       use run_parameters, only: use_deltaphi_for_response_matrix
       use run_parameters, only: use_h_for_parallel_streaming
-      use run_parameters, only: time_upwind
+      use run_parameters, only: tupwnd_p => time_upwind_plus
+      use run_parameters, only: tupwnd_m => time_upwind_minus
       use run_parameters, only: fphi
       use fields, only: advance_fields, fields_updated
       use g_tofrom_h, only: g_to_h
@@ -168,18 +165,11 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
 
-      integer :: ivmu
       integer :: nz_ext
-      real :: tupwnd_m, tupwnd_p
       complex, dimension(:, :, :, :), allocatable :: phi_old, phi_source
       character(5) :: dist_choice
 
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Implicit time advance')
-
-      ! calculate factors accounting for centering/de-centering in time;
-      ! these factors will multiply phi^{n} and phi^{n+1}, respectively
-      tupwnd_m = 0.5 * (1.0 - time_upwind)
-      tupwnd_p = 0.5 * (1.0 + time_upwind)
 
       !> dist_choice indicates whether the non-Boltzmann part of the pdf (h) is evolved
       !> in parallel streaming or if the guiding centre distribution (g = <f>) is evolved
@@ -250,7 +240,7 @@ contains
 
          use extended_zgrid, only: neigen
 
-         integer :: ie, it, iky
+         integer :: ie, it, iky, ivmu
          integer :: ulim
          complex, dimension(:), allocatable :: pdf1, pdf2, phiext, phiext_old
 
@@ -279,18 +269,10 @@ contains
                      ! calculate the RHS of the GK equation (using pdf1 and phi_source as the
                      ! pdf and potential, respectively) and store it in pdf2
                      call get_gke_rhs_ext(ivmu, iky, ie, pdf1, phiext, phiext_old, pdf2)
-
-                     ! NEED TO UPDATE
-                     !       if (stream_matrix_inversion) then
-                     !          ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
-                     !          ! g = RHS is input and overwritten by g = g_{inh}^{n+1}
-                     !          call invert_parstream(ivmu, g(:, :, :, :, ivmu))
-                     !       else
                      ! given the RHS of the GK equation (pdf2), solve for the pdf at the
                      ! new time level by sweeping in zed on the extended domain;
                      ! the rhs is input as 'pdf2' and over-written with the updated solution for the pdf
                      call sweep_g_zext(iky, ie, it, ivmu, pdf2)
-                     !       end if
                      ! map the pdf 'pdf2' from the extended zed domain
                      ! to the standard zed domain; the mapped pdf is called 'g'
                      call map_from_extended_zgrid(it, ie, iky, pdf2, g(iky, :, :, :, ivmu))
@@ -588,7 +570,7 @@ contains
          call fill_zext_ghost_zones(iky, scratch, scratch_left, scratch_right)
 
          ! obtain the zed derivative of <phi> (stored in scratch) and store in rhs
-         call get_zed_derivative_extended_domain(iv, scratch, rhs)
+         call get_zed_derivative_extended_domain(iv, scratch, scratch_left, scratch_right, rhs)
 
          if (.not. maxwellian_normalization) then
             ! center Maxwellian factor in mu
@@ -634,18 +616,20 @@ contains
          use kt_grids, only: aky, akx
          use dist_fn_arrays, only: wstar, wdriftx_phi, wdrifty_phi
          use parallel_streaming, only: center_zed
-
+         use extended_zgrid, only: periodic
+         
          integer :: izext, iz, ikx
 
+         ! 'scratch' starts out as the gyro-average of phi, evaluated at zed grid points
          do izext = 1, nz_ext
             ikx = ikx_from_izext(izext)
             iz = iz_from_izext(izext)
             scratch(izext) = zi * scratch(izext) * (akx(ikx) * wdriftx_phi(ia, iz, ivmu) &
                                                     + aky(iky) * (wdrifty_phi(ia, iz, ivmu) + wstar(ia, iz, ivmu)))
          end do
-         call center_zed(iv, scratch, 1)
+         call center_zed(iv, scratch, 1, periodic(iky))
 
-         rhs = rhs - scratch
+         rhs = rhs + scratch
 
       end subroutine add_drifts_contribution
 
@@ -724,10 +708,11 @@ contains
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use run_parameters, only: driftkinetic_implicit, drifts_implicit
       use run_parameters, only: maxwellian_normalization
-      use run_parameters, only: time_upwind
+      use run_parameters, only: tupwnd_p => time_upwind_plus
       use kt_grids, only: aky
       use parallel_streaming, only: center_zed
       use extended_zgrid, only: map_to_iz_ikx_from_izext
+      use extended_zgrid, only: periodic
       use dist_fn_arrays, only: wstar
       
       implicit none
@@ -737,7 +722,6 @@ contains
       complex, dimension(:), intent(out) :: scratch, rhs
 
       integer, dimension(:), allocatable :: iz_from_izext, ikx_from_izext
-      real :: tupwnd_p
       integer :: iv, imu, is, iz, ia
       integer :: nz_ext, izext
       
@@ -746,8 +730,6 @@ contains
       imu = imu_idx(vmu_lo, ivmu)
       is = is_idx(vmu_lo, ivmu)
 
-      tupwnd_p = 0.5 * (1.0 + time_upwind)
-      
       ! nz_ext is the number of grid points in the extended zed domain
       nz_ext = size(phi)
 
@@ -775,11 +757,11 @@ contains
       if (drifts_implicit) then
          do izext = 1, nz_ext
             iz = iz_from_izext(izext)
-            rhs(izext) = rhs(izext) - zi * aky(iky) * wstar(ia, iz, ivmu) * tupwnd_p
+            rhs(izext) = rhs(izext) + zi * aky(iky) * wstar(ia, iz, ivmu) * tupwnd_p
          end do
       end if
       rhs = rhs * scratch
-      call center_zed(iv, rhs, 1)
+      call center_zed(iv, rhs, 1, periodic(iky))
 
       ! set scratch to be phi or <phi> depending on whether parallel streaming is
       ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
@@ -791,7 +773,7 @@ contains
 
       do izext = 1, nz_ext
          iz = iz_from_izext(izext)
-         rhs(izext) = rhs(izext) - zi * aky(iky) * wstar(ia, iz, ivmu) * scratch(izext)
+         rhs(izext) = rhs(izext) + zi * aky(iky) * wstar(ia, iz, ivmu) * scratch(izext)
       end do
 
       deallocate (iz_from_izext, ikx_from_izext)
@@ -811,7 +793,7 @@ contains
       use kt_grids, only: aky, akx
       use vpamu_grids, only: vpa
       use stella_layouts, only: vmu_lo, iv_idx, is_idx
-      use run_parameters, only: time_upwind
+      use run_parameters, only: time_upwind_minus
       use run_parameters, only: drifts_implicit
       use parallel_streaming, only: get_dzed, center_zed
       use parallel_streaming, only: gradpar_c, stream_sign
@@ -844,7 +826,7 @@ contains
       call center_zed(iv, rhs)
 
       ! compute the z-independent factor appearing in front of the d(pdf)/dz term on the RHS of the Gk equation
-      constant_factor = code_dt * spec(is)%stm_psi0 * vpa(iv) * 0.5 * (time_upwind - 1.0)
+      constant_factor = -code_dt * spec(is)%stm_psi0 * vpa(iv) * time_upwind_minus
       ! use the correctly centred (b . grad z) pre-factor for this sign of vpa
       if (stream_sign(iv) > 0) then
          gradpar_fac = gradpar_c(:, -1) * constant_factor
@@ -856,7 +838,7 @@ contains
          do iz = -nzgrid, nzgrid
             do ikx = 1, nakx
                do iky = 1, naky
-                  rhs(iky, ikx, iz, :) = rhs(iky, ikx, iz, :) * (1.0 - zi * 0.5 * (1.0 - time_upwind) &
+                  rhs(iky, ikx, iz, :) = rhs(iky, ikx, iz, :) * (1.0 - zi * time_upwind_minus &
                                                                  * (wdriftx_g(ia, iz, ivmu) * akx(ikx) + wdrifty_g(ia, iz, ivmu) * aky(iky)))
                end do
             end do
@@ -887,14 +869,15 @@ contains
       use kt_grids, only: aky, akx
       use vpamu_grids, only: vpa
       use stella_layouts, only: vmu_lo, iv_idx, is_idx
-      use run_parameters, only: time_upwind
+      use run_parameters, only: time_upwind_minus
       use run_parameters, only: drifts_implicit
       use parallel_streaming, only: get_zed_derivative_extended_domain, center_zed
       use parallel_streaming, only: gradpar_c, stream_sign
       use dist_fn_arrays, only: wdriftx_g, wdrifty_g
       use extended_zgrid, only: fill_zext_ghost_zones
       use extended_zgrid, only: map_to_iz_ikx_from_izext
-
+      use extended_zgrid, only: periodic
+      
       implicit none
 
       complex, dimension(:), intent(in) :: pdf
@@ -930,10 +913,10 @@ contains
 
       ! obtain the zed derivative of <phi> (stored in scratch) and store in rhs
       allocate (dpdf_dz(nz_ext))
-      call get_zed_derivative_extended_domain(iv, pdf, dpdf_dz)
+      call get_zed_derivative_extended_domain(iv, pdf, pdf_left, pdf_right, dpdf_dz)
 
       ! compute the z-independent factor appearing in front of the d(pdf)/dz term on the RHS of the Gk equation
-      constant_factor = code_dt * spec(is)%stm_psi0 * vpa(iv) * 0.5 * (time_upwind - 1.0)
+      constant_factor = -code_dt * spec(is)%stm_psi0 * vpa(iv) * time_upwind_minus
       ! use the correctly centred (b . grad z) pre-factor for this sign of vpa
       allocate (gradpar_fac(-nzgrid:nzgrid))
       if (stream_sign(iv) > 0) then
@@ -947,13 +930,13 @@ contains
          do izext = 1, nz_ext
             ikx = ikx_from_izext(izext)
             iz = iz_from_izext(izext)
-            rhs(izext) = rhs(izext) * (1.0 - zi * 0.5 * (1.0 - time_upwind) &
+            rhs(izext) = rhs(izext) * (1.0 + zi * time_upwind_minus &
                                        * (wdriftx_g(ia, iz, ivmu) * akx(ikx) + wdrifty_g(ia, iz, ivmu) * aky(iky)))
          end do
       end if
 
       ! cell-center the terms involving the pdf
-      call center_zed(iv, rhs, 1)
+      call center_zed(iv, rhs, 1, periodic(iky))
 
       ! construct the source term on the RHS of the GK equation coming from
       ! the pdf evaluated at the previous time level
@@ -980,7 +963,6 @@ contains
       use kt_grids, only: naky, nakx, aky, akx
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
-      use run_parameters, only: zed_upwind, time_upwind
       use parallel_streaming, only: stream_sign
 
       implicit none
@@ -1004,7 +986,7 @@ contains
          if (periodic(iky)) then
             do it = 1, ntubes
                do ie = 1, neigen(iky)
-                  call sweep_zed_zonal(iky, iv, is, sgn, g(iky, ie, :, it))
+                  call sweep_zed_zonal(iky, iv, is, sgn, g(iky, ie, :, it), -nzgrid)
                end do
             end do
          else
@@ -1025,68 +1007,134 @@ contains
 
    end subroutine sweep_g_zed
 
-   subroutine sweep_g_zext(iky, ie, it, ivmu, gext)
+   subroutine sweep_g_zext(iky, ie, it, ivmu, pdf)
 
       use constants, only: zi
       use zgrid, only: nzgrid, ntubes, delzed
       use run_parameters, only: drifts_implicit
-      use run_parameters, only: zed_upwind, time_upwind
+      use run_parameters, only: zed_upwind_plus, zed_upwind_minus
+      use run_parameters, only: time_upwind_plus
       use kt_grids, only: nakx, akx, aky
       use dist_fn_arrays, only: wdriftx_g, wdrifty_g
       use extended_zgrid, only: map_to_extended_zgrid
+      use extended_zgrid, only: periodic, phase_shift
       use parallel_streaming, only: stream_sign, stream_c
+      use parallel_streaming, only: center_zed
       use stella_layouts, only: vmu_lo, iv_idx, is_idx
-
+      
       implicit none
 
       integer, intent(in) :: iky, ie, it, ivmu
-      complex, dimension(:), intent(in out) :: gext
+      complex, dimension(:), intent(in out) :: pdf
 
-      complex, dimension(:), allocatable :: wdrift_ext
+      complex, dimension(:), allocatable :: wdrift_ext, pdf_cf
       complex, dimension(:, :), allocatable :: wdrift
-      complex :: wd_factor, fac1, fac2
+      complex :: wd_factor, fac1, phase_factor
       real :: zupwnd_p, zupwnd_m, tupwnd_p
       real :: stream_term
       integer :: iz, ikx, ia
       integer :: iv, is
-      integer :: iz1, iz2, izext, ulim
-      integer :: sgn
+      integer :: ulim, sgn, iz1, iz2
 
       iv = iv_idx(vmu_lo, ivmu)
       is = is_idx(vmu_lo, ivmu)
 
       sgn = stream_sign(iv)
       ! avoid repeated calculation of constants
-      zupwnd_p = 1.0 + zed_upwind
-      zupwnd_m = 1.0 - zed_upwind
-      tupwnd_p = 1.0 + time_upwind
+      zupwnd_p = 2.0 * zed_upwind_plus
+      zupwnd_m = 2.0 * zed_upwind_minus
+      tupwnd_p = 2.0 * time_upwind_plus
 
-      wd_factor = 1.0
+      ! if treating magentic drifts implicitly in time,
+      ! get the drift frequency on the extended zed grid
       if (drifts_implicit) then
          allocate (wdrift(nakx, -nzgrid:nzgrid))
          ia = 1
          ! sum up the kx and ky contributions to the magnetic drift frequency
          do iz = -nzgrid, nzgrid
             do ikx = 1, nakx
-               wdrift(ikx, iz) = zi * (wdriftx_g(ia, iz, ivmu) * akx(ikx) + wdrifty_g(ia, iz, ivmu) * aky(iky))
+               wdrift(ikx, iz) = -zi * (wdriftx_g(ia, iz, ivmu) * akx(ikx) + wdrifty_g(ia, iz, ivmu) * aky(iky))
             end do
          end do
          ! obtain the drift frequency on the extended zed domain
-         allocate (wdrift_ext(size(gext)))
+         allocate (wdrift_ext(size(pdf)))
          call map_to_extended_zgrid(it, ie, iky, spread(wdrift, 3, ntubes), wdrift_ext, ulim)
+         ! NB: need to check if passing periodic(iky) is the right thing to do here
+         call center_zed(iv, wdrift_ext, 1, periodic(iky))
       else
-         ulim = size(gext)
+         ulim = size(pdf)
       end if
+      ! determine the starting and ending indices for sweep over the extended zed grid.
+      ! as we are using a zero-incoming BC, these indices depend on the sign of the advection velocity
+      ! note that sgn < 0 actually corresponds to positive advection velocity
       if (sgn < 0) then
          iz1 = 1; iz2 = ulim
       else
          iz1 = ulim; iz2 = 1
       end if
-      izext = iz1; iz = sgn * nzgrid
-      if (drifts_implicit) wd_factor = 1.0 + 0.5 * tupwnd_p * wdrift_ext(izext)
-      stream_term = tupwnd_p * stream_c(iz, iv, is) / delzed(0)
-      fac1 = zupwnd_p * wd_factor + sgn * stream_term
-      gext(izext) = gext(izext) * 2.0 / fac1
+      ! the case of periodic BC must be treated separately from the zero-incoming-BC case
+      if (periodic(iky)) then
+         ! to enforce periodicity, decompose the pdf into a particular integral
+         ! and complementary function.
+         
+         ! calculate the particular integral, with zero BC, and store in pdf
+         iz = sgn * nzgrid
+         pdf(iz1) = 0.0
+         call get_updated_pdf(iz, iv, is, sgn, ulim, iz1, iz2, wdrift_ext, pdf)
+         ! calculate the complementary function, with unit BC, and store in pdf_cf
+         allocate(pdf_cf(ulim))
+         iz = sgn * nzgrid
+         pdf_cf = 0.0 ; pdf_cf(iz1) = 1.0
+         call get_updated_pdf(iz, iv, is, sgn, ulim, iz1, iz2, wdrift_ext, pdf_cf)
+         ! construct pdf = pdf_PI + (pdf_PI(zend)/(1-pdf_CF(zend))) * pdf_CF
+         phase_factor = phase_shift(iky)**(-sgn)
+         pdf = pdf + (phase_factor * pdf(iz2) / (1.0 - phase_factor * pdf_cf(iz2))) * pdf_cf
+         deallocate(pdf_cf)
+      else
+         ! specially treat the most upwind grid point
+         iz = sgn * nzgrid
+         wd_factor = 1.0
+         if (drifts_implicit) wd_factor = 1.0 + 0.5 * tupwnd_p * wdrift_ext(iz1)
+         stream_term = tupwnd_p * stream_c(iz, iv, is) / delzed(0)
+         fac1 = zupwnd_p * wd_factor + sgn * stream_term
+         pdf(iz1) = pdf(iz1) * 2.0 / fac1
+         ! now that we have the pdf at the most upwind point, sweep over the
+         ! rest of the extended zed domain to obtain the pdf(z)
+         call get_updated_pdf(iz, iv, is, sgn, ulim, iz1, iz2, wdrift_ext, pdf)
+      end if
+
+      if (drifts_implicit) deallocate (wdrift, wdrift_ext)
+
+   end subroutine sweep_g_zext
+
+   subroutine get_updated_pdf(iz, iv, is, sgn, ulim, iz1, iz2, wdrift_ext, pdf)
+
+      use zgrid, only: nzgrid, delzed
+      use run_parameters, only: drifts_implicit
+      use run_parameters, only: zed_upwind_plus, zed_upwind_minus
+      use run_parameters, only: time_upwind_plus
+      use parallel_streaming, only: stream_c
+      
+      implicit none
+
+      integer, intent(in out) :: iz
+      integer, intent(in) :: iv, is, sgn, ulim, iz1, iz2
+      complex, dimension(:), intent(in) :: wdrift_ext
+      complex, dimension(:), intent(in out) :: pdf
+      
+      integer :: izext
+      real :: stream_term
+      real :: tupwnd_p, zupwnd_p, zupwnd_m
+      complex :: wd_factor, fac1, fac2
+
+      tupwnd_p = 2.0 * time_upwind_plus
+      zupwnd_p = 2.0 * zed_upwind_plus
+      zupwnd_m = 2.0 * zed_upwind_minus
+      
+      ! wd_factor will be modified from below unity to account for magnetic drifts
+      ! if the drifts are treated implicitly
+      wd_factor = 1.0
+
       do izext = iz1 - sgn, iz2, -sgn
          if (iz == -sgn * nzgrid) then
             iz = sgn * nzgrid - sgn
@@ -1097,13 +1145,12 @@ contains
          stream_term = tupwnd_p * stream_c(iz, iv, is) / delzed(0)
          fac1 = zupwnd_p * wd_factor + sgn * stream_term
          fac2 = zupwnd_m * wd_factor - sgn * stream_term
-         gext(izext) = (-gext(izext + sgn) * fac2 + 2.0 * gext(izext)) / fac1
+         pdf(izext) = (-pdf(izext + sgn) * fac2 + 2.0 * pdf(izext)) / fac1
       end do
-      if (drifts_implicit) deallocate (wdrift, wdrift_ext)
-
-   end subroutine sweep_g_zext
-
-   subroutine sweep_zed_zonal(iky, iv, is, sgn, g)
+     
+   end subroutine get_updated_pdf
+   
+   subroutine sweep_zed_zonal(iky, iv, is, sgn, g, llim)
 
       use zgrid, only: nzgrid, delzed
       use extended_zgrid, only: phase_shift
@@ -1112,32 +1159,41 @@ contains
 
       implicit none
 
-      integer, intent(in) :: iky, iv, is, sgn
-      complex, dimension(-nzgrid:), intent(in out) :: g
+      integer, intent(in) :: iky, iv, is, sgn, llim
+      complex, dimension(llim:), intent(in out) :: g
 
-      integer :: iz, iz1, iz2
+      integer :: iz, izext, iz1, iz2, npts, ulim
       real :: fac1, fac2
       complex :: pf
       complex, dimension(:), allocatable :: gcf, gpi
 
-      allocate (gpi(-nzgrid:nzgrid))
-      allocate (gcf(-nzgrid:nzgrid))
+      npts = size(g)
+      ulim = llim + npts - 1
+      
+      allocate (gpi(llim:ulim))
+      allocate (gcf(llim:ulim))
       ! ky=0 is 2pi periodic (no extended zgrid)
       ! decompose into complementary function + particular integral
       ! zero BC for particular integral
       ! unit BC for complementary function (no source)
       if (sgn < 0) then
-         iz1 = -nzgrid; iz2 = nzgrid
+         iz1 = llim; iz2 = ulim
       else
-         iz1 = nzgrid; iz2 = -nzgrid
+         iz1 = ulim; iz2 = llim
       end if
       pf = phase_shift(iky)**(-sgn)
       gpi(iz1) = 0.; gcf(iz1) = 1.
-      do iz = iz1 - sgn, iz2, -sgn
+      iz = sgn * nzgrid
+      do izext = iz1 - sgn, iz2, -sgn
+         if (iz == -sgn * nzgrid) then
+            iz = sgn * nzgrid - sgn
+         else
+            iz = iz - sgn
+         end if
          fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
          fac2 = 1.0 - zed_upwind - sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-         gpi(iz) = (-gpi(iz + sgn) * fac2 + 2.0 * g(iz)) / fac1
-         gcf(iz) = -gcf(iz + sgn) * fac2 / fac1
+         gpi(izext) = (-gpi(izext + sgn) * fac2 + 2.0 * g(izext)) / fac1
+         gcf(izext) = -gcf(izext + sgn) * fac2 / fac1
       end do
       ! g = g_PI + (g_PI(pi)/(1-g_CF(pi))) * g_CF
       g = gpi + (pf * gpi(iz2) / (1.0 - pf * gcf(iz2))) * gcf

@@ -141,7 +141,7 @@ contains
       use zgrid, only: delzed
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: nsegments
-      use run_parameters, only: zed_upwind, time_upwind
+      use run_parameters, only: zed_upwind_plus, zed_upwind_minus, time_upwind_plus
 
       implicit none
 
@@ -162,20 +162,20 @@ contains
       ! corresponds to sign of stream term positive on RHS of equation
       ! i.e., negative parallel advection speed
       ! NB: assumes equal spacing in zed
-      stream_tri_b1(:, 1) = 0.5 * (1.0 + zed_upwind)
+      stream_tri_b1(:, 1) = zed_upwind_plus
       stream_tri_b2(:, 1) = -1.0 / delzed(0)
-      stream_tri_c1(:nz * nseg_max, 1) = 0.5 * (1.0 - zed_upwind)
+      stream_tri_c1(:nz * nseg_max, 1) = zed_upwind_minus
       stream_tri_c2(:nz * nseg_max, 1) = 1.0 / delzed(0)
       ! corresponds to sign of stream term negative on RHS of equation
       ! NB: assumes equal spacing in zed
-      stream_tri_b1(:, -1) = 0.5 * (1.0 + zed_upwind)
+      stream_tri_b1(:, -1) = zed_upwind_plus
       stream_tri_b2(:, -1) = 1.0 / delzed(0)
-      stream_tri_a1(2:, -1) = 0.5 * (1.0 - zed_upwind)
+      stream_tri_a1(2:, -1) = zed_upwind_minus
       stream_tri_a2(2:, -1) = -1.0 / delzed(0)
 
-      stream_tri_a2 = 0.5 * (1.0 + time_upwind) * stream_tri_a2
-      stream_tri_b2 = 0.5 * (1.0 + time_upwind) * stream_tri_b2
-      stream_tri_c2 = 0.5 * (1.0 + time_upwind) * stream_tri_c2
+      stream_tri_a2 = time_upwind_plus * stream_tri_a2
+      stream_tri_b2 = time_upwind_plus * stream_tri_b2
+      stream_tri_c2 = time_upwind_plus * stream_tri_c2
 
    end subroutine init_invert_stream_operator
 
@@ -833,7 +833,7 @@ contains
 
    end subroutine get_dzed
 
-   subroutine get_zed_derivative_extended_domain(iv, gext, dgext_dz)
+   subroutine get_zed_derivative_extended_domain(iv, f, f_left, f_right, df_dz)
 
       use zgrid, only: delzed
       use finite_differences, only: fd_cell_centres_zed
@@ -841,14 +841,11 @@ contains
       implicit none
 
       integer, intent(in) :: iv
-      complex, dimension(:), intent(in) :: gext
-      complex, dimension(:), intent(out) :: dgext_dz
+      complex, dimension(:), intent(in) :: f
+      complex, intent(in) :: f_left, f_right
+      complex, dimension(:), intent(out) :: df_dz
 
-      complex :: zero
-
-      zero = 0.0
-
-      call fd_cell_centres_zed(1, gext, delzed(0), stream_sign(iv), zero, zero, dgext_dz)
+      call fd_cell_centres_zed(1, f, delzed(0), stream_sign(iv), f_left, f_right, df_dz)
 
    end subroutine get_zed_derivative_extended_domain
 
@@ -898,10 +895,11 @@ contains
    !> center_zed_segment_real takes as arguments the vpa index (iv)
    !> the z-depenendent real function f, and the starting iz index for the array f (llim),
    !> and overwrites f with the cell-centered version
+   ! it is assumed that any function passed to this subroutine is periodic
    subroutine center_zed_segment_real(iv, f, llim)
 
       use zgrid, only: nzgrid
-      use run_parameters, only: zed_upwind
+      use run_parameters, only: zed_upwind_plus, zed_upwind_minus
 
       integer, intent(in) :: iv, llim
       real, dimension(llim:), intent(in out) :: f
@@ -911,10 +909,10 @@ contains
       ulim = llim + size(f) - 1
 
       if (stream_sign(iv) > 0) then
-         f(:ulim - 1) = 0.5 * ((1.0 + zed_upwind) * f(:ulim - 1) + (1.0 - zed_upwind) * f(llim + 1:))
+         f(:ulim - 1) = zed_upwind_plus * f(:ulim - 1) + zed_upwind_minus * f(llim + 1:)
          f(ulim) = f(llim)
       else
-         f(llim + 1:) = 0.5 * ((1.0 - zed_upwind) * f(:ulim - 1) + (1.0 + zed_upwind) * f(llim + 1:))
+         f(llim + 1:) = zed_upwind_minus * f(:ulim - 1) + zed_upwind_plus * f(llim + 1:)
          f(llim) = f(ulim)
       end if
 
@@ -923,30 +921,35 @@ contains
    !> center_zed_segment_complex takes as arguments the vpa index (iv)
    !> the z-depenendent conplex function f, and the starting iz index for the array f (llim),
    !> and overwrites f with the cell-centered version;
-   ! NB: a zero incoming BC is used
-   subroutine center_zed_segment_complex(iv, f, llim)
+   subroutine center_zed_segment_complex(iv, f, llim, periodic)
 
       use zgrid, only: nzgrid
-      use run_parameters, only: zed_upwind
+      use run_parameters, only: zupwnd_p => zed_upwind_plus
+      use run_parameters, only: zupwnd_m => zed_upwind_minus
 
       integer, intent(in) :: iv, llim
       complex, dimension(llim:), intent(in out) :: f
+      logical, intent(in) :: periodic
 
       integer :: ulim
-      real :: zupwnd_p, zupwnd_m
 
       ulim = llim + size(f) - 1
-
-      zupwnd_p = 0.5 * (1.0 + zed_upwind)
-      zupwnd_m = 0.5 * (1.0 - zed_upwind)
 
       ! stream_sign > 0 means negative advection velocity
       if (stream_sign(iv) > 0) then
          f(:ulim - 1) = zupwnd_p * f(:ulim - 1) + zupwnd_m * f(llim + 1:)
-         f(ulim) = zupwnd_p * f(ulim)
+         if (periodic) then
+            f(ulim) = f(llim)
+         else
+            f(ulim) = zupwnd_p * f(ulim)
+         end if
       else
          f(llim + 1:) = zupwnd_m * f(:ulim - 1) + zupwnd_p * f(llim + 1:)
-         f(llim) = zupwnd_p * f(llim)
+         if (periodic) then
+            f(llim) = f(ulim)
+         else
+            f(llim) = zupwnd_p * f(llim)
+         end if
       end if
 
    end subroutine center_zed_segment_complex

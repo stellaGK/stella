@@ -26,13 +26,17 @@ module run_parameters
    public :: maxwellian_normalization
    public :: use_extended_domain_for_implicit_solve
    public :: reuse_implicit_sweep_for_response_matrix
-
+   public :: time_upwind_plus, time_upwind_minus
+   public :: zed_upwind_plus, zed_upwind_minus
+   
    private
 
    real :: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
    real :: fphi, fapar, fbpar
    real :: delt, tend, delt_max, delt_min
-   real :: zed_upwind, vpa_upwind, time_upwind
+   real :: vpa_upwind
+   real :: time_upwind, time_upwind_plus, time_upwind_minus
+   real :: zed_upwind, zed_upwind_plus, zed_upwind_minus
    logical :: stream_implicit, mirror_implicit, drifts_implicit
    logical :: driftkinetic_implicit
    logical :: fully_explicit, fully_implicit
@@ -268,6 +272,12 @@ contains
       call broadcast(mat_gen)
       call broadcast(mat_read)
 
+      ! calculate some useful derived quantities that are used repeatedly across modules
+      time_upwind_plus = 0.5 * (1.0 + time_upwind)
+      time_upwind_minus = 0.5 * (1.0 - time_upwind)
+      zed_upwind_plus = 0.5 * (1.0 + zed_upwind)
+      zed_upwind_minus = 0.5 * (1.0 - zed_upwind)
+      
       if (.not. include_mirror) mirror_implicit = .false.
 
       if (driftkinetic_implicit) then

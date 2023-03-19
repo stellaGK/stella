@@ -608,6 +608,8 @@ contains
 
       ia = 1
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         ! only set the first ky mode to be non-zero
+         ! this is because this is meant to test the damping of zonal flow (ky=0)
          iky = iky_idx(kxkyz_lo, ikxkyz); if (iky /= 1) cycle
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
          iz = iz_idx(kxkyz_lo, ikxkyz)
