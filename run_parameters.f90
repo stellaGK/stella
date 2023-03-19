@@ -28,7 +28,7 @@ module run_parameters
    public :: reuse_implicit_sweep_for_response_matrix
    public :: time_upwind_plus, time_upwind_minus
    public :: zed_upwind_plus, zed_upwind_minus
-   
+
    private
 
    real :: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
@@ -277,7 +277,7 @@ contains
       time_upwind_minus = 0.5 * (1.0 - time_upwind)
       zed_upwind_plus = 0.5 * (1.0 + zed_upwind)
       zed_upwind_minus = 0.5 * (1.0 - zed_upwind)
-      
+
       if (.not. include_mirror) mirror_implicit = .false.
 
       if (driftkinetic_implicit) then
