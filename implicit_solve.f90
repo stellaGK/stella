@@ -714,7 +714,7 @@ contains
       use extended_zgrid, only: map_to_iz_ikx_from_izext
       use extended_zgrid, only: periodic
       use dist_fn_arrays, only: wstar
-      
+
       implicit none
 
       complex, dimension(:), intent(in) :: phi, phi_old
@@ -724,7 +724,7 @@ contains
       integer, dimension(:), allocatable :: iz_from_izext, ikx_from_izext
       integer :: iv, imu, is, iz, ia
       integer :: nz_ext, izext
-      
+
       ia = 1
       iv = iv_idx(vmu_lo, ivmu)
       imu = imu_idx(vmu_lo, ivmu)
