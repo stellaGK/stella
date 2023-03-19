@@ -617,7 +617,7 @@ contains
          use dist_fn_arrays, only: wstar, wdriftx_phi, wdrifty_phi
          use parallel_streaming, only: center_zed
          use extended_zgrid, only: periodic
-         
+
          integer :: izext, iz, ikx
 
          ! 'scratch' starts out as the gyro-average of phi, evaluated at zed grid points
@@ -877,7 +877,7 @@ contains
       use extended_zgrid, only: fill_zext_ghost_zones
       use extended_zgrid, only: map_to_iz_ikx_from_izext
       use extended_zgrid, only: periodic
-      
+
       implicit none
 
       complex, dimension(:), intent(in) :: pdf
@@ -1021,7 +1021,7 @@ contains
       use parallel_streaming, only: stream_sign, stream_c
       use parallel_streaming, only: center_zed
       use stella_layouts, only: vmu_lo, iv_idx, is_idx
-      
+
       implicit none
 
       integer, intent(in) :: iky, ie, it, ivmu
@@ -1076,20 +1076,20 @@ contains
       if (periodic(iky)) then
          ! to enforce periodicity, decompose the pdf into a particular integral
          ! and complementary function.
-         
+
          ! calculate the particular integral, with zero BC, and store in pdf
          iz = sgn * nzgrid
          pdf(iz1) = 0.0
          call get_updated_pdf(iz, iv, is, sgn, ulim, iz1, iz2, wdrift_ext, pdf)
          ! calculate the complementary function, with unit BC, and store in pdf_cf
-         allocate(pdf_cf(ulim))
+         allocate (pdf_cf(ulim))
          iz = sgn * nzgrid
-         pdf_cf = 0.0 ; pdf_cf(iz1) = 1.0
+         pdf_cf = 0.0; pdf_cf(iz1) = 1.0
          call get_updated_pdf(iz, iv, is, sgn, ulim, iz1, iz2, wdrift_ext, pdf_cf)
          ! construct pdf = pdf_PI + (pdf_PI(zend)/(1-pdf_CF(zend))) * pdf_CF
          phase_factor = phase_shift(iky)**(-sgn)
          pdf = pdf + (phase_factor * pdf(iz2) / (1.0 - phase_factor * pdf_cf(iz2))) * pdf_cf
-         deallocate(pdf_cf)
+         deallocate (pdf_cf)
       else
          ! specially treat the most upwind grid point
          iz = sgn * nzgrid
@@ -1114,14 +1114,14 @@ contains
       use run_parameters, only: zed_upwind_plus, zed_upwind_minus
       use run_parameters, only: time_upwind_plus
       use parallel_streaming, only: stream_c
-      
+
       implicit none
 
       integer, intent(in out) :: iz
       integer, intent(in) :: iv, is, sgn, ulim, iz1, iz2
       complex, dimension(:), intent(in) :: wdrift_ext
       complex, dimension(:), intent(in out) :: pdf
-      
+
       integer :: izext
       real :: stream_term
       real :: tupwnd_p, zupwnd_p, zupwnd_m
@@ -1130,7 +1130,7 @@ contains
       tupwnd_p = 2.0 * time_upwind_plus
       zupwnd_p = 2.0 * zed_upwind_plus
       zupwnd_m = 2.0 * zed_upwind_minus
-      
+
       ! wd_factor will be modified from below unity to account for magnetic drifts
       ! if the drifts are treated implicitly
       wd_factor = 1.0
@@ -1147,9 +1147,9 @@ contains
          fac2 = zupwnd_m * wd_factor - sgn * stream_term
          pdf(izext) = (-pdf(izext + sgn) * fac2 + 2.0 * pdf(izext)) / fac1
       end do
-     
+
    end subroutine get_updated_pdf
-   
+
    subroutine sweep_zed_zonal(iky, iv, is, sgn, g, llim)
 
       use zgrid, only: nzgrid, delzed
@@ -1169,7 +1169,7 @@ contains
 
       npts = size(g)
       ulim = llim + npts - 1
-      
+
       allocate (gpi(llim:ulim))
       allocate (gcf(llim:ulim))
       ! ky=0 is 2pi periodic (no extended zgrid)
