@@ -4,6 +4,10 @@ import numpy as np
 def get_indicesAtFixedStep(vector, dx, xmax=None):
     '''From an array only keep the values [O, dx, 2*dx, 3*dx, ...]. '''
     
+    # We could ask for the last time step
+    if dx==-1:
+        return [-1]
+    
     # Only reduce the array if <dx> is defined
     if dx!=None:
         

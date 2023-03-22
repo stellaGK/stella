@@ -124,28 +124,20 @@ def write_h5FileForFluxes4D(folder, dt=10):
         
     return 
 
-
-
 #---------------------------------------------
 def read_fluxes4D(dt, netcdf_file, input_file, z_dimension):
     
     # If we have fluxes(t,s,z,kx,ky) then write fluxes(t,s,z); fluxes(t,s,kx) and fluxes(t,s,ky)
     if z_dimension:
         
-        # Read the fluxes from the output file
+        # Read the fluxes from the output file at every <dt> timestep 
         netcdf_data = read_outputFile(netcdf_file)  
         vec_time = read_netcdfVariables('vec_time', netcdf_data) 
-        qflux_vs_tszkxky = read_netcdfVariables('qflux_vs_tszkxky', netcdf_data) 
-        pflux_vs_tszkxky = read_netcdfVariables('pflux_vs_tszkxky', netcdf_data) 
-        vflux_vs_tszkxky = read_netcdfVariables('vflux_vs_tszkxky', netcdf_data)  
-        netcdf_data.close()  
-            
-        # Get the data at every <dt> timestep 
-        indices = get_indicesAtFixedStep(vec_time, dt)
-        qflux_vs_tszkxky = qflux_vs_tszkxky[indices,:,:,:,:] 
-        pflux_vs_tszkxky = pflux_vs_tszkxky[indices,:,:,:,:]
-        vflux_vs_tszkxky = vflux_vs_tszkxky[indices,:,:,:,:]
-        vec_time = vec_time[indices]
+        indices = get_indicesAtFixedStep(vec_time, dt); vec_time = vec_time[indices]
+        qflux_vs_tszkxky = read_netcdfVariables('qflux_vs_tszkxky', netcdf_data, indices) 
+        pflux_vs_tszkxky = read_netcdfVariables('pflux_vs_tszkxky', netcdf_data, indices) 
+        vflux_vs_tszkxky = read_netcdfVariables('vflux_vs_tszkxky', netcdf_data, indices)  
+        netcdf_data.close()       
         
         # Read the geometry data in the output file
         vmec_filename = read_vmecFileNameFromInputFile(input_file)
@@ -162,26 +154,16 @@ def read_fluxes4D(dt, netcdf_file, input_file, z_dimension):
     # If we only have fluxes(t,s,kx,ky) then write fluxes(t,s,kx) and fluxes(t,s,ky)
     if not z_dimension:
         
-        # Read the fluxes from the output file
+        # Read the fluxes from the output file at every <dt> timestep 
         netcdf_data = read_outputFile(netcdf_file)  
         vec_time = read_netcdfVariables('vec_time', netcdf_data) 
-        qflux_vs_tskxky = read_netcdfVariables('qflux_vs_tskxky', netcdf_data) 
-        pflux_vs_tskxky = read_netcdfVariables('pflux_vs_tskxky', netcdf_data) 
-        vflux_vs_tskxky = read_netcdfVariables('vflux_vs_tskxky', netcdf_data)  
-        netcdf_data.close()         
-            
-        # Get the data at every <dt> timestep 
-        indices = get_indicesAtFixedStep(vec_time, dt)
-        qflux_vs_tskxky = qflux_vs_tskxky[indices,:,:,:] 
-        pflux_vs_tskxky = pflux_vs_tskxky[indices,:,:,:]
-        vflux_vs_tskxky = vflux_vs_tskxky[indices,:,:,:]
-        vec_time = vec_time[indices]
+        indices = get_indicesAtFixedStep(vec_time, dt); vec_time = vec_time[indices]
+        qflux_vs_tskxky = read_netcdfVariables('qflux_vs_tskxky', netcdf_data, indices)  
+        pflux_vs_tskxky = read_netcdfVariables('pflux_vs_tskxky', netcdf_data, indices) 
+        vflux_vs_tskxky = read_netcdfVariables('vflux_vs_tskxky', netcdf_data, indices)  
+        netcdf_data.close()          
+        
+        # Return the data
         return vec_time, qflux_vs_tskxky, pflux_vs_tskxky, vflux_vs_tskxky
              
-################################################################################
-#                     USE THESE FUNCTIONS AS A MAIN SCRIPT                     #
-################################################################################
-if __name__ == "__main__":  
-    folder = pathlib.Path("/home/hanne/CIEMAT/RUNS/TEST_NEW_GUI")   
-    write_h5FileForFluxes4D(folder) 
-    
+

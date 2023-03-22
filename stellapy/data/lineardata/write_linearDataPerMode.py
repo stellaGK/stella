@@ -102,23 +102,23 @@ def write_linearDataPerMode(omega=None, dim=None, vec=None,
                     print("    The relative fluctuation of omega between (0.9*t, t) is:  "+str(fluctuation_o)+"%.")
                     print("    The relative fluctuation of gamma between (0.9*t, t) is:  "+str(fluctuation_g)+"%.")
          
-            # Write the data to the "*.linear_data" file 
-            file[mode_identifier] = {
-                'stable'     : stable,\
-                'unstable'   : unstable,\
-                'converged'  : converged,\
-                'gamma_max'  : gamma_max,\
-                'omega_last' : omega_last,\
-                'gamma_last' : gamma_last,\
-                'omega_avg'  : omega_avg,\
-                'gamma_avg'  : gamma_avg,\
-                'omega_min'  : omega_min,\
-                'omega_max'  : omega_max,\
-                'gamma_min'  : gamma_min,\
-                'gamma_max'  : gamma_max} 
-                
-            # Write the "*.linear_data" file 
-            file.write(open(path, 'w'))   
+                # Write the data to the "*.linear_data" file 
+                file[mode_identifier] = {
+                    'stable'     : stable,\
+                    'unstable'   : unstable,\
+                    'converged'  : converged,\
+                    'gamma_max'  : gamma_max,\
+                    'omega_last' : omega_last,\
+                    'gamma_last' : gamma_last,\
+                    'omega_avg'  : omega_avg,\
+                    'gamma_avg'  : gamma_avg,\
+                    'omega_min'  : omega_min,\
+                    'omega_max'  : omega_max,\
+                    'gamma_min'  : gamma_min,\
+                    'gamma_max'  : gamma_max} 
+                    
+                # Write the "*.linear_data" file 
+                file.write(open(path, 'w'))   
     return    
 
 

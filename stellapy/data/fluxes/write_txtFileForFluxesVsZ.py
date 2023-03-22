@@ -1,144 +1,129 @@
-  
-import numpy as np
-import os, h5py, pathlib 
-from stellapy.utils.decorators.verbose import noverbose 
-from stellapy.utils.files.get_filesInFolder import get_filesInFolder   
-from stellapy.data.utils.get_indicesAtFixedStep import get_indicesAtFixedStep  
-from stellapy.data.output.read_outputFile import read_outputFile, read_netcdfVariables  
+
+#!/usr/bin/python3  
+import sys, os    
+import pathlib
+import numpy as np  
+
+# Stellapy package
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)    
 from stellapy.data.input.read_inputFile import read_linearNonlinearFromInputFile 
+from stellapy.data.output.read_outputFile import read_netcdfVariables
+from stellapy.utils.files.get_filesInFolder import get_filesInFolder  
+from stellapy.data.output.read_outputFile import read_outputFile
 
-################################################################################
-#                       WRITE THE FLUXES TO AN H5 FILE
-################################################################################
+#===============================================================================
+#                               WRITE FLUXES(Z)
+#=============================================================================== 
 
-@noverbose
-def write_fluxesVsZ(folder, dt=1):  
+def write_txtFileForFluxesVsZ(folder, verbose=False):
     
-    # Time step
-    dt = int(dt) if int(dt)==dt else dt   
-     
     # Get the input files
     input_files = get_filesInFolder(folder, end=".in")
     input_files = [i for i in input_files if os.path.isfile(i.with_suffix('.out.nc'))]
+    input_files = [i for i in input_files if read_linearNonlinearFromInputFile(i)[0]==True]
     if input_files==[]: return 
- 
-    # Iterate through the input files  
-    for input_file in input_files:
+    
+    # Go through the input files
+    for input_file in input_files:  
         
-        # Processing status
-        status = "    ("+str(input_files.index(input_file)+1)+"/"+str(len(input_files))+")  " if len(input_files)>1 else "   "
+        try:
         
-        # Only write the fluxes(t,kx,ky) file for nonlinear simulations 
-        if read_linearNonlinearFromInputFile(input_file)[1]:    
-            
+            # Processing status
+            status = "    ("+str(input_files.index(input_file)+1)+"/"+str(len(input_files))+")  " if len(input_files)>1 else "   " 
+    
             # Path of the new file 
-            fluxes_file = input_file.with_suffix(".dt"+str(dt)+".fluxes2D") 
-            netcdf_file = input_file.with_suffix(".out.nc")  
+            fluxes_path = input_file.with_suffix(".fluxes_vs_z") 
+            netcdf_path = input_file.with_suffix(".out.nc")   
             
             # If the file doesn't exist, check whether the fluxes were written to the netcdf file
-            # Also the fluxes need to contain the z-dimension, which has been added in december 2021
-            if not os.path.isfile(fluxes_file): 
-                netcdf_data  = read_outputFile(netcdf_file)   
+            if not os.path.isfile(fluxes_path): 
+                netcdf_data = read_outputFile(netcdf_path)   
                 if "qflx_kxky" not in netcdf_data.variables.keys():
-                    qflux_vs_tskxky = read_netcdfVariables('qflux_vs_tskxky', netcdf_data) 
-                    if len(np.shape(qflux_vs_tskxky))!=6: 
-                        continue 
+                    continue  
                 
             # Check whether the fluxes file is older than the simulation
             outputFileHasChanged = False
-            if os.path.isfile(fluxes_file):  
-                if netcdf_file.stat().st_mtime > fluxes_file.stat().st_mtime:
+            if os.path.isfile(fluxes_path):  
+                if netcdf_path.stat().st_mtime > fluxes_path.stat().st_mtime:
                     outputFileHasChanged = True 
                     
             # Notify that the file already existed   
-            if os.path.isfile(fluxes_file) and not outputFileHasChanged:
-                print(status+"The 2D fluxes file already exists:", fluxes_file.parent.name+"/"+fluxes_file.name)
-                continue
-                 
-            # If the output file changed, then append to the h5 file
-            elif os.path.isfile(fluxes_file) and outputFileHasChanged:
-                
-                # Check whether the output file (*.out.nc) contains extra time points
-                netcdf_data  = read_outputFile(netcdf_file)   
-                vec_time     = read_netcdfVariables('vec_time', netcdf_data) 
-                netcdf_data.close()  
-                
-                # Edit the time vector in the output file
-                indices  = get_indicesAtFixedStep(vec_time, dt)
-                vec_time = vec_time[indices]
-                vec_time = [round(n, 8) for n in vec_time]
-                tlast_outputfile = vec_time[-1]  
-        
-                # Read the data in the h5 file            
-                with h5py.File(fluxes_file, 'r') as f: 
-                    vec_time_h5file = f['vec_time'][()]
-                    qflux_vs_tsz_h5file = f['qflux_vs_tsz'][()]
-                    pflux_vs_tsz_h5file = f['pflux_vs_tsz'][()]
-                    vflux_vs_tsz_h5file = f['vflux_vs_tsz'][()] 
-                    tlast_h5file = vec_time_h5file[-1]
-                
-                # If the output file (*.out.nc) contains extra time steps, append to the h5 file 
-                if tlast_outputfile > tlast_h5file: 
-                    index_tlast = np.argwhere(tlast_h5file < vec_time)[0][0] 
-                    vec_time, qflux_vs_tsz, pflux_vs_tsz, vflux_vs_tsz = read_fluxes2D(dt, netcdf_file) 
-                    vec_time = np.append(vec_time_h5file, vec_time[index_tlast:], axis=0)  
-                    qflux_vs_tsz = np.append(qflux_vs_tsz_h5file, qflux_vs_tsz[index_tlast:,:,:], axis=0)  
-                    pflux_vs_tsz = np.append(pflux_vs_tsz_h5file, pflux_vs_tsz[index_tlast:,:,:], axis=0)  
-                    vflux_vs_tsz = np.append(vflux_vs_tsz_h5file, vflux_vs_tsz[index_tlast:,:,:], axis=0)  
+            if os.path.isfile(fluxes_path) and not outputFileHasChanged:
+                if verbose: print(status+"The fluxes(z) file already exists:", fluxes_path.parent.name+"/"+fluxes_path.name)
+                continue 
                     
-                # If the output file has the same time steps, touch the text file
-                elif tlast_outputfile <= tlast_h5file:
-                    print(status+"The 2D fluxes file is up to date:", fluxes_file.parent.name+"/"+fluxes_file.name)  
-                    os.system("touch "+str(fluxes_file))
-                    continue
-                
-            # Create the text file for dphiz(t)
-            elif not os.path.isfile(fluxes_file):    
-                
-                # Read the fluxes versus time from the output file
-                vec_time, qflux_vs_tsz, pflux_vs_tsz, vflux_vs_tsz = read_fluxes2D(dt, netcdf_file) 
-                     
-            # Create the new h5 file 
-            with h5py.File(fluxes_file, 'w') as h5_file: 
-                h5_file.create_dataset("vec_time", data=vec_time) 
-                h5_file.create_dataset("qflux_vs_tsz", data=qflux_vs_tsz) 
-                h5_file.create_dataset("pflux_vs_tsz", data=pflux_vs_tsz) 
-                h5_file.create_dataset("vflux_vs_tsz", data=vflux_vs_tsz)  
-                                     
-            # Notify that we finished creating the file
-            if outputFileHasChanged: print(status+"   ---> The 2D fluxes file is updated as " +  fluxes_file.parent.name+"/"+fluxes_file.name)   
-            if not outputFileHasChanged:  print(status+"   ---> The 2D fluxes file is saved as " +  fluxes_file.parent.name+"/"+fluxes_file.name)  
-        
-    return 
+            # Check whether we have <qflux_vs_tskxky> or <qflux_vs_tszkxky>
+            netcdf_data = read_outputFile(netcdf_path) 
+            qflux_vs_tskxky = read_netcdfVariables('qflux_vs_tskxky', netcdf_data)  
+            if len(np.shape(qflux_vs_tskxky))!=6: z_dimension = False
+            if len(np.shape(qflux_vs_tskxky))==6: z_dimension = True  
+            dim_species = np.shape(qflux_vs_tskxky)[1]
+            netcdf_data.close()
+            if z_dimension==False: continue
+    
+            # Read the fluxes and the potential squared from the netcdf file  
+            qflux_vs_szkxky, pflux_vs_szkxky, vflux_vs_szkxky, phi2_vs_zkxky = read_fluxesAndPhi2(netcdf_path, status) 
+            
+            # Header for the file 
+            header = "       phi2            "
+            for s in range(dim_species): header += "pflux (s="+str(s)+")        "    
+            for s in range(dim_species): header += "vflux (s="+str(s)+")        "    
+            for s in range(dim_species): header += "qflux (s="+str(s)+")        "    
+            header += "\n"
+            
+            # Create the new file and add the header
+            fluxes_file = open(fluxes_path,'w') 
+            fluxes_file.write(header) 
+            data = np.append(phi2_vs_zkxky[np.newaxis,:,0,0], pflux_vs_szkxky[:,:,0,0], axis=0)   
+            data = np.append(data, vflux_vs_szkxky[:,:,0,0], axis=0)   
+            data = np.append(data, qflux_vs_szkxky[:,:,0,0], axis=0)    
+            np.savetxt(fluxes_file, np.transpose(data), fmt='%16.7e', delimiter="   ")
+                    
+            # Close the file
+            fluxes_file.close()
+            
+            # Write a message
+            print(status+"   ---> The fluxes(z) file is saved as " + fluxes_path.name)  
+            
+        except:
+            print(status+"Something went wrong for:", fluxes_path.parent.parent.name+"/"+fluxes_path.parent.name+"/"+fluxes_path.name)
+            sys.exit()
+    return
+
 
 #---------------------------------------------
-def read_fluxes2D(dt, netcdf_file):
-                 
-    # Read the fluxes from the output file
-    netcdf_data = read_outputFile(netcdf_file)  
-    vec_time = read_netcdfVariables('vec_time', netcdf_data) 
-    qflux_vs_tszkxky = read_netcdfVariables('qflux_vs_tszkxky', netcdf_data) 
-    pflux_vs_tszkxky = read_netcdfVariables('pflux_vs_tszkxky', netcdf_data) 
-    vflux_vs_tszkxky = read_netcdfVariables('vflux_vs_tszkxky', netcdf_data)  
-    netcdf_data.close()  
+def read_fluxesAndPhi2(netcdf_file, status): 
         
-    # Get the data at every <dt> timestep 
-    indices = get_indicesAtFixedStep(vec_time, dt)
-    qflux_vs_tszkxky = qflux_vs_tszkxky[indices,:,:,:,:] 
-    pflux_vs_tszkxky = pflux_vs_tszkxky[indices,:,:,:,:]
-    vflux_vs_tszkxky = vflux_vs_tszkxky[indices,:,:,:,:]
-    vec_time = vec_time[indices]
+    # Read the fluxes from the output file at the final time step
+    netcdf_data = read_outputFile(netcdf_file)   
+    qflux_vs_szkxky = read_netcdfVariables('qflux_vs_tszkxky', netcdf_data, time_indices=[-1])[0,:,:,:,:]
+    pflux_vs_szkxky = read_netcdfVariables('pflux_vs_tszkxky', netcdf_data, time_indices=[-1])[0,:,:,:,:]
+    vflux_vs_szkxky = read_netcdfVariables('vflux_vs_tszkxky', netcdf_data, time_indices=[-1])[0,:,:,:,:]
+    phi_vs_zkxkyri = read_netcdfVariables('phi_vs_tzkxkyri', netcdf_data, time_indices=[-1])[0,:,:,:,:]  
+    netcdf_data.close()    
+        
+    # If the value is NaN, take the last time step without nans
+    if np.any(~np.isfinite(qflux_vs_szkxky)) or np.any(~np.isfinite(pflux_vs_szkxky)) or np.any(~np.isfinite(vflux_vs_szkxky)) or np.any(~np.isfinite(phi_vs_zkxkyri)):
+        print(status+"   ---> qflux(tlast) = NaN, finding the last non-NaN time step.")   
+        netcdf_data = read_outputFile(netcdf_file)   
+        qflux_vs_tszkxky = read_netcdfVariables('qflux_vs_tszkxky', netcdf_data)
+        pflux_vs_tszkxky = read_netcdfVariables('pflux_vs_tszkxky', netcdf_data)
+        vflux_vs_tszkxky = read_netcdfVariables('vflux_vs_tszkxky', netcdf_data)
+        phi_vs_tzkxkyri = read_netcdfVariables('phi_vs_tzkxkyri', netcdf_data)
+        netcdf_data.close() 
+        dim_time = np.shape(qflux_vs_tszkxky)[0] 
+        for it in range(dim_time-1, -1, -1): 
+            if (not np.any(~np.isfinite(qflux_vs_tszkxky[it,:,:,:,:]))) and \
+            (not np.any(~np.isfinite(pflux_vs_tszkxky[it,:,:,:,:]))) and \
+            (not np.any(~np.isfinite(vflux_vs_tszkxky[it,:,:,:,:]))) and \
+            (not np.any(~np.isfinite(phi_vs_tzkxkyri[it,:,:,:,:]))):
+                qflux_vs_szkxky = qflux_vs_tszkxky[it,:,:,:,:] 
+                pflux_vs_szkxky = pflux_vs_tszkxky[it,:,:,:,:] 
+                vflux_vs_szkxky = vflux_vs_tszkxky[it,:,:,:,:] 
+                phi_vs_zkxkyri = phi_vs_tzkxkyri[it,:,:,:,:] 
+                break      
     
-    # Get flux(t,z) by summing over the (kx,ky) components
-    qflux_vs_tsz = np.sum(qflux_vs_tszkxky[:,:,:,:,0] + 2*np.sum(qflux_vs_tszkxky[:,:,:,:,1:],axis=4),axis=3)   
-    pflux_vs_tsz = np.sum(pflux_vs_tszkxky[:,:,:,:,0] + 2*np.sum(pflux_vs_tszkxky[:,:,:,:,1:],axis=4),axis=3)   
-    vflux_vs_tsz = np.sum(vflux_vs_tszkxky[:,:,:,:,0] + 2*np.sum(vflux_vs_tszkxky[:,:,:,:,1:],axis=4),axis=3)   
-    return vec_time, qflux_vs_tsz, pflux_vs_tsz, vflux_vs_tsz
-                     
-################################################################################
-#                     USE THESE FUNCTIONS AS A MAIN SCRIPT                     #
-################################################################################
-if __name__ == "__main__":  
-    folder = pathlib.Path("/home/hanne/CIEMAT/RUNS/TEST_NEW_GUI")   
-    write_fluxesVsZ(folder) 
-    
+    # Calculate the potential squared
+    phi_vs_zkxky = phi_vs_zkxkyri[:,:,:,0] + 1j*phi_vs_zkxkyri[:,:,:,1]
+    phi2_vs_zkxky = np.abs(phi_vs_zkxky)**2   
+    return qflux_vs_szkxky, pflux_vs_szkxky, vflux_vs_szkxky, phi2_vs_zkxky

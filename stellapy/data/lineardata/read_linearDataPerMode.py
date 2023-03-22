@@ -1,10 +1,11 @@
 
-import os
+import os, sys
 import numpy as np
 import configparser  
 from stellapy.data.utils.show_progressWhenReadingFiles import show_progressWhenReadingFiles
 from stellapy.data.lineardata.write_linearDataPerMode import write_linearDataPerMode
 from stellapy.data.lineardata.get_modeIdentifier import get_modeIdentifier
+from stellapy.utils.decorators.exit_program import exit_program
 
 #===============================================================================
 #                              GET THE LINEAR DATA                             #
@@ -156,17 +157,22 @@ def read_linearDataFromLinearDataFile(input_file=None, dim_kx=None, dim_ky=None,
                 write_linearDataPerMode(self=dummy_simulation.lineardata); del dummy_simulation
                 
             # Read the data
-            gamma_last_vs_kxky[ikx, iky] = float(file[mode_identifier]["gamma_last"])
-            omega_last_vs_kxky[ikx, iky] = float(file[mode_identifier]["omega_last"])
-            gamma_avg_vs_kxky[ikx, iky] = float(file[mode_identifier]["gamma_avg"])
-            omega_avg_vs_kxky[ikx, iky] = float(file[mode_identifier]["omega_avg"])
-            gamma_min_vs_kxky[ikx, iky] = float(file[mode_identifier]["gamma_min"])
-            gamma_max_vs_kxky[ikx, iky] = float(file[mode_identifier]["gamma_max"])
-            omega_min_vs_kxky[ikx, iky] = float(file[mode_identifier]["omega_min"])
-            omega_max_vs_kxky[ikx, iky] = float(file[mode_identifier]["omega_max"])
-            converged_vs_kxky[ikx, iky] = True if (file[mode_identifier]["converged"]=="True") else False
-            unstable_vs_kxky[ikx, iky] = True if (file[mode_identifier]["unstable"]=="True") else False
-            stable_vs_kxky[ikx, iky] = True if (file[mode_identifier]["stable"]=="True") else False
+            try:
+                gamma_last_vs_kxky[ikx, iky] = float(file[mode_identifier]["gamma_last"])
+                omega_last_vs_kxky[ikx, iky] = float(file[mode_identifier]["omega_last"])
+                gamma_avg_vs_kxky[ikx, iky] = float(file[mode_identifier]["gamma_avg"])
+                omega_avg_vs_kxky[ikx, iky] = float(file[mode_identifier]["omega_avg"])
+                gamma_min_vs_kxky[ikx, iky] = float(file[mode_identifier]["gamma_min"])
+                gamma_max_vs_kxky[ikx, iky] = float(file[mode_identifier]["gamma_max"])
+                omega_min_vs_kxky[ikx, iky] = float(file[mode_identifier]["omega_min"])
+                omega_max_vs_kxky[ikx, iky] = float(file[mode_identifier]["omega_max"])
+                converged_vs_kxky[ikx, iky] = True if (file[mode_identifier]["converged"]=="True") else False
+                unstable_vs_kxky[ikx, iky] = True if (file[mode_identifier]["unstable"]=="True") else False
+                stable_vs_kxky[ikx, iky] = True if (file[mode_identifier]["stable"]=="True") else False
+            except: 
+                exit_reason = f"Could not find the linear data for mode (kx,ky)={mode_identifier}.\n"
+                exit_reason += "     "+str(path)
+                exit_program(exit_reason, read_linearDataFromLinearDataFile, sys._getframe().f_lineno)   
             
     # Return the linear data versus (kx,ky)
     return gamma_last_vs_kxky, omega_last_vs_kxky, gamma_avg_vs_kxky, omega_avg_vs_kxky, \

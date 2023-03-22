@@ -41,9 +41,11 @@ import matplotlib.gridspec as gridspec
 # Personal modules
 sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)   
 from stellapy.plot.utils.style.get_styleForLinesAndMarkers import get_styleForLinesAndMarkers
+from stellapy.data.input.read_inputFile import read_nonlinearFullFluxSurfaceFromInputFile
 from stellapy.plot.utils.labels.get_timeFrameString import get_timeFrameString
 from stellapy.plot.utils.species.recognize_species import recognize_species
 from stellapy.plot.utils.style.create_figure import update_figure_style
+from stellapy.utils.files.get_firstInputFile import get_firstInputFile 
 from stellapy.plot.utils.labels.standardLabels import standardLabels  
 from stellapy.utils.decorators.exit_program import exit_program
 from stellapy.simulations.Research import create_research   
@@ -175,9 +177,13 @@ def get_quantity_data(simulation, x_quantity, y_quantity, specie, tstart, tend):
     if x_quantity=="ky": x = simulation.vec.ky 
     
     # Get the data for the y-axis  
-    try: y, t0, t1 = get_quantity_data_from3DFiles(simulation, x_quantity, y_quantity, specie)
-    except: y, t0, t1 = get_quantity_data_fromSaturatedFiles(simulation, x_quantity, y_quantity, specie)
-
+    try:
+        try: y, t0, t1 = get_quantity_data_from3DFiles(simulation, x_quantity, y_quantity, specie)
+        except: y, t0, t1 = get_quantity_data_fromSaturatedFiles(simulation, x_quantity, y_quantity, specie)
+    except: 
+        print('WARNING: The flux(kx,ky) data could not be found.')
+        return np.array([np.nan]), np.array([np.nan]), 500, 1000
+    
     # Keep track of the time frames
     tstart[0] = np.nanmin([tstart[0], t0]) 
     tstart[1] = np.nanmax([tstart[1], t0]) 
@@ -214,9 +220,12 @@ def get_quantity_data_fromSaturatedFiles(simulation, x_quantity, y_quantity, spe
  
 if __name__ == "__main__":
     
-    # Create a bash interface
-    # Toggles are defined through (name, value, shortoption, longoption, explanation)
-    # Options are defined through (name, datatype, shortoption, longoption, explanation)
+    # Check which script to launch      
+    input_file = get_firstInputFile(pathlib.Path(os.getcwd())) 
+    nonlinear, full_flux_surface = read_nonlinearFullFluxSurfaceFromInputFile(input_file)
+    if not nonlinear: os.system("python3 $STELLAPY/plot/linear/qflux_vs_wavenumber.py "+" ".join(sys.argv[1:])); sys.exit()
+    
+    # Create a bash interface 
     bash = Bash(plot_flux_vs_wavenumber, __doc__)     
     
     # Data toggles for the x-quantities

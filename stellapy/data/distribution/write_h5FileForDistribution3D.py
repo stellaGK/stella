@@ -72,19 +72,19 @@ def write_h5FileForDistribution3D(folder, dt=10):
                 # Read the data in the h5 file            
                 with h5py.File(distribution_file, 'r') as f: 
                     vec_time_h5file = f['vec_time'][()]
-                    g_vs_tsz_h5file = f['g_vs_tsz'][()] 
-                    g_vs_tsmu_h5file = f['g_vs_tsmu'][()] 
-                    g_vs_tsvpa_h5file = f['g_vs_tsvpa'][()] 
+                    g2_vs_tsz_h5file = f['g2_vs_tsz'][()] 
+                    g2_vs_tsmu_h5file = f['g2_vs_tsmu'][()] 
+                    g2_vs_tsvpa_h5file = f['g2_vs_tsvpa'][()] 
                     tlast_h5file = vec_time_h5file[-1]
             
                 # If the output file (*.out.nc) contains extra time steps, append to the h5 file 
                 if tlast_outputfile > tlast_h5file: 
                     index_tlast = np.argwhere(tlast_h5file < vec_time)[0][0] 
-                    g_vs_tsz, g_vs_tsmu, g_vs_tsvpa, vec_time = read_distribution3D(dt, netcdf_file, input_file) 
+                    g2_vs_tsz, g2_vs_tsmu, g2_vs_tsvpa, vec_time = read_distribution3D(dt, netcdf_file, input_file) 
                     vec_time = np.append(vec_time_h5file, vec_time[index_tlast:], axis=0)  
-                    g_vs_tsz = np.append(g_vs_tsz_h5file, g_vs_tsz[index_tlast:,:], axis=0)
-                    g_vs_tsmu = np.append(g_vs_tsmu_h5file, g_vs_tsmu[index_tlast:,:], axis=0)  
-                    g_vs_tsvpa = np.append(g_vs_tsvpa_h5file, g_vs_tsvpa[index_tlast:,:], axis=0)  
+                    g2_vs_tsz = np.append(g2_vs_tsz_h5file, g2_vs_tsz[index_tlast:,:], axis=0)
+                    g2_vs_tsmu = np.append(g2_vs_tsmu_h5file, g2_vs_tsmu[index_tlast:,:], axis=0)  
+                    g2_vs_tsvpa = np.append(g2_vs_tsvpa_h5file, g2_vs_tsvpa[index_tlast:,:], axis=0)  
             
                 # If the output file has the same time steps, touch the text file
                 elif tlast_outputfile <= tlast_h5file:
@@ -96,14 +96,14 @@ def write_h5FileForDistribution3D(folder, dt=10):
             elif not os.path.isfile(distribution_file):    
                 
                 # Read the potential versus time from the output file
-                g_vs_tsz, g_vs_tsmu, g_vs_tsvpa, vec_time = read_distribution3D(dt, netcdf_file, input_file) 
+                g2_vs_tsz, g2_vs_tsmu, g2_vs_tsvpa, vec_time = read_distribution3D(dt, netcdf_file, input_file) 
                     
             # Create the new h5 file 
             with h5py.File(distribution_file, 'w') as h5_file: 
                 h5_file.create_dataset("vec_time", data=vec_time) 
-                h5_file.create_dataset("g_vs_tsz", data=g_vs_tsz) 
-                h5_file.create_dataset("g_vs_tsmu", data=g_vs_tsmu) 
-                h5_file.create_dataset("g_vs_tsvpa", data=g_vs_tsvpa) 
+                h5_file.create_dataset("g2_vs_tsz", data=g2_vs_tsz) 
+                h5_file.create_dataset("g2_vs_tsmu", data=g2_vs_tsmu) 
+                h5_file.create_dataset("g2_vs_tsvpa", data=g2_vs_tsvpa) 
         
             # Notify that we finished creating the file
             if outputFileHasChanged: print(status+"   ---> The 3D distribution file is updated as " +  distribution_file.parent.name+"/"+distribution_file.name)   
@@ -118,47 +118,22 @@ def read_distribution3D(dt, netcdf_file, input_file):
     vmec_filename = read_vmecFileNameFromInputFile(input_file) 
     path = create_dummyPathObject(input_file, vmec_filename)
     geometry = read_outputFileForGeometry(path) 
-    vpa_weights = geometry["vpa_weights"] 
-    mu_weights = geometry["mu_weights"] 
+    vpa_weights = geometry["vpa_weights"]  
     dl_over_B = geometry["dl_over_B"]  
     
     # Get the distribution data from the output file
-    netcdf_data  = read_outputFile(netcdf_file)  
-    g_vs_tsmuvpa = read_netcdfVariables('g_vs_tsmuvpa', netcdf_data) 
-    g_vs_tsvpaz  = read_netcdfVariables('g_vs_tsvpaz', netcdf_data) 
-    vec_time     = read_netcdfVariables('vec_time', netcdf_data) 
+    netcdf_data = read_outputFile(netcdf_file)  
+    vec_time = read_netcdfVariables('vec_time', netcdf_data) 
+    indices = get_indicesAtFixedStep(vec_time, dt)
+    g2_vs_tsmuvpa = read_netcdfVariables('g2_vs_tsmuvpa', netcdf_data, indices) 
+    g2_vs_tsvpaz = read_netcdfVariables('g2_vs_tsvpaz', netcdf_data, indices) 
+    vec_time = vec_time[indices]
     netcdf_data.close()
     
-    # Get the data at every <dt> timestep
-    indices = get_indicesAtFixedStep(vec_time, dt)
-    g_vs_tsmuvpa = g_vs_tsmuvpa[indices] 
-    g_vs_tsvpaz = g_vs_tsvpaz[indices] 
-    vec_time = vec_time[indices]
-    
-    # Get the dimensions  
-    dim_time, dim_species, dim_mu, dim_vpa = np.shape(g_vs_tsmuvpa) 
-    dim_time, dim_species, dim_vpa, dim_z = np.shape(g_vs_tsvpaz) 
-
-    # Calculate the 3D distribution functions
-    g_vs_tsz = np.zeros((dim_time, dim_species, dim_z)) 
-    g_vs_tsmu = np.zeros((dim_time, dim_species, dim_mu)) 
-    g_vs_tsvpa = np.zeros((dim_time, dim_species, dim_vpa))  
-    
-    # Sum over (vpa,mu,z)
-    for vpa in range(dim_vpa): 
-        for mu in range(dim_mu):
-            for z in range(dim_z): 
-                product = g_vs_tsmuvpa[:,:,mu,vpa]*mu_weights[z,mu]*vpa_weights[vpa]*dl_over_B[z] 
-                g_vs_tsz[:,:,z] += product  
-                g_vs_tsmu[:,:,mu] += product  
-                g_vs_tsvpa[:,:,vpa] += product  
-                
-    return g_vs_tsz, g_vs_tsmu, g_vs_tsvpa, vec_time
+    # Sum over (vpa,mu,z) in g2_vs_smuvpa(s,mu,vpa) 
+    g2_vs_tsz = np.sum(g2_vs_tsvpaz[:,:,:,:]*vpa_weights[np.newaxis,np.newaxis,:,np.newaxis], axis=(2))
+    g2_vs_tsmu = np.sum(g2_vs_tsmuvpa[:,:,:,:]*vpa_weights[np.newaxis,np.newaxis,np.newaxis,:], axis=(3)) 
+    g2_vs_tsvpa = np.sum(g2_vs_tsvpaz[:,:,:,:]*dl_over_B[np.newaxis,np.newaxis,np.newaxis,:], axis=(3))                  
+    return g2_vs_tsz, g2_vs_tsmu, g2_vs_tsvpa, vec_time
                             
-################################################################################
-#                     USE THESE FUNCTIONS AS A MAIN SCRIPT                     #
-################################################################################
-if __name__ == "__main__":  
-    folder = pathlib.Path("/home/hanne/CIEMAT/RUNS/TEST_NEW_GUI")   
-    write_h5FileForDistribution3D(folder) 
-    
+

@@ -2,8 +2,7 @@
 import os
 import numpy as np  
 from stellapy.utils.files.get_filesInFolder import get_filesInFolder
-from stellapy.data.input.read_inputFile import read_nspecFromInputFile
-from stellapy.data.input.read_inputFile import read_linearNonlinearFromInputFile 
+from stellapy.data.input.read_inputFile import read_nspecFromInputFile  
 
 #===============================================================================
 #                      REPLACE *.FLUXES BY *.DT1.FLUXES
@@ -12,7 +11,7 @@ from stellapy.data.input.read_inputFile import read_linearNonlinearFromInputFile
 #     > reduce_sizeFluxes -t 1
 #===============================================================================
 
-def write_txtFileForFluxesVsTime(folder, dt=1):
+def write_txtFileForFluxesVsTime(folder, dt=1, verbose=False):
     
     # Time step
     dt = int(dt) if int(dt)==dt else dt   
@@ -79,7 +78,7 @@ def write_txtFileForFluxesVsTime(folder, dt=1):
                 print(status+"   ---> The fluxes(t) file is saved as " + input_file.with_suffix(suffix).name)  
                 
             else: 
-                print(status+"The fluxes(t) file already exists:", input_file.with_suffix(suffix).parent.name+"/"+input_file.with_suffix(suffix).name)
+                if verbose: print(status+"The fluxes(t) file already exists:", input_file.with_suffix(suffix).parent.name+"/"+input_file.with_suffix(suffix).name)
         except:
             print(status+"Something went wrong for:", input_file.with_suffix(suffix).parent.parent.name+"/"+input_file.with_suffix(suffix).parent.name+"/"+input_file.with_suffix(suffix).name)
             import sys; sys.exit()

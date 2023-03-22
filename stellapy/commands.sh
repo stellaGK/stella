@@ -24,6 +24,38 @@ alias write_stellapyDataFiles="python3 $STELLAPY/data/write/write_stellapyDataFi
 alias reduce_sizeNetcdf="python3 $STELLAPY/data/write/reduce_sizeNetcdf.py"
 alias replace_netcdfFile="python3 $STELLAPY/data/write/replace_netcdfFile.py"
 
+# Convert old to new stellapy (October 2022)
+alias write_listOfMatchingInputFilesForOldStellapy="python3 $STELLAPY/data/input/write_listOfMatchingInputFilesForOldStellapy.py"
+
+
+#===============================================================================
+#                               Check data files                               #
+#===============================================================================
+
+# Check the data files
+alias check_netcdfVariables="python3 $STELLAPY/data/check/check_netcdfVariables.py"  
+alias check_dimensions="python3 $STELLAPY/data/check/check_dimensions.py"  
+alias check_netcdf="python3 $STELLAPY/data/check/check_netcdf.py"  
+alias check_timetraces="python3 $STELLAPY/data/check/check_timetraces.py"
+alias check_inputs="python3 $STELLAPY/data/check/check_inputs.py"
+alias check_cputime="python3 $STELLAPY/data/check/check_cputime.py"
+alias check_kperp2="python3 $STELLAPY/data/check/check_kperp2.py"
+
+# Check the differences in files
+alias check_differencesInStellaInputs="python3 $STELLAPY/data/check/check_differencesInStellaInputs.py" 
+
+# Check the VMEC
+alias print_geometry="python3 $STELLAPY/data/check/print_geometry.py" 
+alias check_wout="python3 $STELLAPY/data/check/print_geometry.py" 
+
+
+#===============================================================================
+#                                Plot Geometry                                 #
+#===============================================================================
+
+# Plot geometry versus z 
+alias plot_geometry_vs_z="python3 $STELLAPY/plot/geometry/geometry_vs_z.py"
+
 
 #===============================================================================
 #                                Plot Geometry                                 #
