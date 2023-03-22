@@ -58,6 +58,13 @@ alias plot_geometry_vs_z="python3 $STELLAPY/plot/geometry/geometry_vs_z.py"
 
 
 #===============================================================================
+#                                Plot Geometry                                 #
+#===============================================================================
+
+# Plot geometry versus z 
+alias plot_geometry_vs_z="python3 $STELLAPY/plot/geometry/geometry_vs_z.py"
+
+#===============================================================================
 #                           Plot linear simulations                            #
 #===============================================================================
 
