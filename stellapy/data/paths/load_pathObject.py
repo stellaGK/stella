@@ -133,6 +133,8 @@ class Paths:
     @calculate_attributeWhenReadFirstTime 
     def saturated(self):            get_saturatedPath(self);        return self.saturated
     @calculate_attributeWhenReadFirstTime 
+    def fluxes_vs_z(self):          get_fluxesVsZPath(self);        return self.fluxes_vs_z 
+    @calculate_attributeWhenReadFirstTime 
     def QLfluxes(self):             get_QLfluxesPath(self);         return self.QLfluxes 
     @calculate_attributeWhenReadFirstTime 
     def fluxes(self):               get_fluxesPath(self);           return self.fluxes 
@@ -349,9 +351,13 @@ def get_fluxesPath(self):
     self.path.fluxes = get_pathWithSmallestTimeStep(self, "fluxes_vs_t", ".fluxes_reduced")
     return
 
+def get_fluxesVsZPath(self): 
+    self.path.fluxes_vs_z = self.input_file.with_suffix(".fluxes_vs_z")  
+    return
+
 def get_QLfluxesPath(self): 
     self.path.QLfluxes = self.input_file.with_suffix(".QLfluxes")  
-    return
+    return 
 
 def get_fluxes3DPath(self): 
     self.path.fluxes3D = get_pathWithSmallestTimeStep(self, "fluxes3D")

@@ -89,6 +89,7 @@ from stellapy.data.moments.write_h5FileForMoments2D import write_h5FileForMoment
 from stellapy.data.moments.write_h5FileForMoments3D import write_h5FileForMoments3D
 from stellapy.data.moments.write_h5FileForMoments4D import write_h5FileForMoments4D
 from stellapy.data.moments.write_h5FileForMoments5D import write_h5FileForMoments5D
+from stellapy.data.fluxes.write_txtFileForFluxesVsZ import write_txtFileForFluxesVsZ
 from stellapy.data.moments.write_h5FileForPhaseShifts import write_h5FileForPhaseShifts
 from stellapy.data.omega.write_txtFileForOmegaVsTime import write_txtFileForOmegaVsTime 
 from stellapy.data.dimensions.write_h5FileForDimensions import write_h5FileForDimensions
@@ -102,8 +103,7 @@ from stellapy.data.potential.write_txtFileForPotentialVsZ import write_txtFileFo
 from stellapy.data.input.write_listOfMatchingInputFiles import write_listOfMatchingInputFiles
 from stellapy.data.distribution.write_h5FileForDistribution3D import write_h5FileForDistribution3D
 from stellapy.data.distribution.write_h5FileForDistribution4D import write_h5FileForDistribution4D
-from stellapy.data.potential.write_txtFileForPotentialVsTime import write_txtFileForPotentialVsTime
-from stellapy.data.fluxes.write_txtFileForQuasiLinearFluxes import write_txtFileForQuasiLinearFluxes
+from stellapy.data.potential.write_txtFileForPotentialVsTime import write_txtFileForPotentialVsTime 
 from stellapy.data.saturated.write_netcdfFileOverSaturatedPhase import write_netcdfFileOverSaturatedPhase
 from stellapy.data.distribution.write_txtFileForDistributionVsTime import write_txtFileForDistributionVsTime
 from stellapy.data.distribution.write_txtFileForDistributionVsMuOrVpaOrZ import write_txtFileForDistributionVsMuOrVpaOrZ
@@ -129,18 +129,16 @@ def write_stellapyDataFiles(folder, dt=None, specific=None, skip=None, dimension
              
             # Save the dimensions to an h5 file
             write_h5FileForDimensions(folder)    
-            
-            # Quasi-linear fluxes
-            write_txtFileForQuasiLinearFluxes(folder)
         
         # Only write 2D files
         if dimensions in ["2D", "all", "small", "quick", "restart"]: 
             
             # Reduce the size of the output, omega and fluxes file 
-            write_txtFileForOutputVsTime(folder) 
-            write_txtFileForFluxesVsTime(folder)        
+            write_txtFileForOutputVsTime(folder)       
             write_txtFileForOmegaVsTime(folder)  
-             
+            write_txtFileForFluxesVsTime(folder)   
+            write_txtFileForFluxesVsZ(folder) 
+            
             # Write data files for the potential
             write_txtFileForPotentialVsTime(folder) 
             write_txtFileForDPhiZVsTime(folder)     

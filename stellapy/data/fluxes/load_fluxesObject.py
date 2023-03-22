@@ -5,7 +5,7 @@ import pathlib
 # Stellapy package
 sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)  
 from stellapy.data.utils.calculate_attributeWhenReadFirstTime import calculate_attributeWhenReadFirstTime
-from stellapy.data.fluxes.read_quasilinearfluxes import get_quasilinearfluxes
+from stellapy.data.fluxes.read_fluxesVsZ import get_fluxesVsZ
 from stellapy.data.fluxes.read_fluxesFile import get_fluxes 
 from stellapy.data.fluxes.read_fluxes3D import get_fluxes3D
 from stellapy.data.fluxes.read_fluxes4D import get_fluxes4D
@@ -77,13 +77,13 @@ class Fluxes:
     
     # Get the 4D linear fluxes data (at last time step)
     @calculate_attributeWhenReadFirstTime 
-    def phi2_vs_kxky(self):         get_quasilinearfluxes(self);    return self.phi2_vs_kxky 
+    def phi2_vs_zkxky(self):        get_fluxesVsZ(self);            return self.phi2_vs_zkxky 
     @calculate_attributeWhenReadFirstTime 
-    def qflux_vs_skxky(self):       get_quasilinearfluxes(self);    return self.qflux_vs_skxky 
+    def qflux_vs_szkxky(self):      get_fluxesVsZ(self);            return self.qflux_vs_szkxky 
     @calculate_attributeWhenReadFirstTime 
-    def pflux_vs_skxky(self):       get_quasilinearfluxes(self);    return self.pflux_vs_skxky 
+    def pflux_vs_szkxky(self):      get_fluxesVsZ(self);            return self.pflux_vs_szkxky 
     @calculate_attributeWhenReadFirstTime 
-    def vflux_vs_skxky(self):       get_quasilinearfluxes(self);    return self.vflux_vs_skxky 
+    def vflux_vs_szkxky(self):      get_fluxesVsZ(self);            return self.vflux_vs_szkxky 
     
 #-------------------------
 def load_fluxesObject(self):
