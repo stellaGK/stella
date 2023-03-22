@@ -27,23 +27,6 @@ source $STELLAPY/commands.sh
 #source $STELLAPY/OPTIONAL/commands.sh
 
 #=====================================================================================
-#                            Stella and Runs directories                             #
-#=====================================================================================
-# Automatically synchronize data between the local computer and supercomputer:
-#   >> sync_runsFromMarconi         (DOWNLOAD $MARCONI_RUNS --> $RUNS)
-#   >> sync_stellapyFromMarconi     (DOWNLOAD $MARCONI_COMMON_STELLAPY --> $STELLAPY)
-#   >> sync_stellaToMarconi         (UPLOAD $STELLA --> $MARCONI_STELLA)
-#   >> sync_newRunsToMarconi        (UPLOAD $NEWRUNS --> $MARCONI_RUNS)
-#   >> sync_stellapyToCommon        (UPLOAD $STELLAPY --> $MARCONI_COMMON_STELLAPY)
-#=====================================================================================
-#export RUNS='OPTIONAL/RUNS/'
-#export NEWRUNS='OPTIONAL/NEWRUNS/'
-#export STELLA='OPTIONAL/stella/'
-#export MARCONI_RUNS='OPTIONAL@login.marconi.cineca.it:OPTIONAL/RUNS/'
-#export MARCONI_STELLA='OPTIONAL@login.marconi.cineca.it:OPTIONAL/stella/'
-#export MARCONI_COMMON_STELLAPY='OPTIONAL@login.marconi.cineca.it:/marconi_work/FUA36_STELTURB/COMMON/stellapy_v5.0/' 
-
-#=====================================================================================
 #                    Make sure python loads the stellapy package                     #
 #=====================================================================================
 # Uncomment the following export if you'd like to make the stellapy package
