@@ -33,15 +33,15 @@ def read_potential4DLinear(path, dim, vec, nakxnaky):
     return 
 
 #-------------------------------------
-def read_potentialFromH5File(path): 
-    with h5py.File(path, 'r') as f:   
+def read_potentialFromH5File(path_phi_vs_z): 
+    with h5py.File(path_phi_vs_z, 'r') as f:   
         phi_vs_zkxky = f["phi_vs_zkxky"][()]  
         phi2_vs_zkxky = f["phi2_vs_zkxky"][()]  
     return {"phi_vs_zkxky" : phi_vs_zkxky, "phi2_vs_zkxky" : phi2_vs_zkxky} 
    
 #-----------------------------
-def read_potentialFromTxtFile(path):  
-    data = np.loadtxt(path,skiprows=1,dtype='float').reshape(-1, 3) 
+def read_potentialFromTxtFile(path_phi_vs_z):  
+    data = np.loadtxt(path_phi_vs_z,skiprows=1,dtype='float').reshape(-1, 3) 
     phi_vs_z = data[:,1] + 1j*data[:,2]; phi2_vs_z = data[:,0]  
     return {"phi_vs_zkxky" : phi_vs_z[:,np.newaxis,np.newaxis] , "phi2_vs_zkxky" : phi2_vs_z[:,np.newaxis,np.newaxis] }
 
@@ -64,12 +64,20 @@ def read_potentialFromMultipleFiles(dim, vec, paths):
 
             # Iterate over the modes (kx,ky) 
             for iikx, kx in enumerate(path.vec_kx):
-                for iiky, ky in enumerate(path.vec_ky): 
+                for iiky, ky in enumerate(path.vec_ky):  
                     
                     # Get the mode (kx,ky)   
-                    ikx = list(vec.kx).index(kx) 
-                    iky = list(vec.ky).index(ky)
-                        
+                    try:
+                        ikx = list(vec.kx).index(kx) 
+                        iky = list(vec.ky).index(ky)
+                    except: 
+                        exit_reason = f"The mode (kx,ky) = ({kx},{ky}) could not be found inside:\n"
+                        exit_reason += "     "+str(path.phi_vs_z)+"\n"
+                        exit_reason += "     "+str(path.input_file)+"\n"
+                        exit_reason += f"     vec_kx = {path.vec_kx}\n"
+                        exit_reason += f"     vec_ky = {path.vec_ky}\n"
+                        exit_program(exit_reason, read_potentialFromMultipleFiles, sys._getframe().f_lineno) 
+                            
                     # Put the omega data in the matrices
                     phi_vs_zkxky[:,ikx,iky] = data["phi_vs_zkxky"][:,iikx,iiky]  
                     phi2_vs_zkxky[:,ikx,iky] = data["phi2_vs_zkxky"][:,iikx,iiky]  

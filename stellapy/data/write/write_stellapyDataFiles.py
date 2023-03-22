@@ -89,6 +89,7 @@ from stellapy.data.moments.write_h5FileForMoments2D import write_h5FileForMoment
 from stellapy.data.moments.write_h5FileForMoments3D import write_h5FileForMoments3D
 from stellapy.data.moments.write_h5FileForMoments4D import write_h5FileForMoments4D
 from stellapy.data.moments.write_h5FileForMoments5D import write_h5FileForMoments5D
+from stellapy.data.fluxes.write_txtFileForFluxesVsZ import write_txtFileForFluxesVsZ
 from stellapy.data.moments.write_h5FileForPhaseShifts import write_h5FileForPhaseShifts
 from stellapy.data.omega.write_txtFileForOmegaVsTime import write_txtFileForOmegaVsTime 
 from stellapy.data.dimensions.write_h5FileForDimensions import write_h5FileForDimensions
@@ -102,7 +103,7 @@ from stellapy.data.potential.write_txtFileForPotentialVsZ import write_txtFileFo
 from stellapy.data.input.write_listOfMatchingInputFiles import write_listOfMatchingInputFiles
 from stellapy.data.distribution.write_h5FileForDistribution3D import write_h5FileForDistribution3D
 from stellapy.data.distribution.write_h5FileForDistribution4D import write_h5FileForDistribution4D
-from stellapy.data.potential.write_txtFileForPotentialVsTime import write_txtFileForPotentialVsTime
+from stellapy.data.potential.write_txtFileForPotentialVsTime import write_txtFileForPotentialVsTime 
 from stellapy.data.saturated.write_netcdfFileOverSaturatedPhase import write_netcdfFileOverSaturatedPhase
 from stellapy.data.distribution.write_txtFileForDistributionVsTime import write_txtFileForDistributionVsTime
 from stellapy.data.distribution.write_txtFileForDistributionVsMuOrVpaOrZ import write_txtFileForDistributionVsMuOrVpaOrZ
@@ -133,10 +134,11 @@ def write_stellapyDataFiles(folder, dt=None, specific=None, skip=None, dimension
         if dimensions in ["2D", "all", "small", "quick", "restart"]: 
             
             # Reduce the size of the output, omega and fluxes file 
-            write_txtFileForOutputVsTime(folder) 
-            write_txtFileForFluxesVsTime(folder)        
+            write_txtFileForOutputVsTime(folder)       
             write_txtFileForOmegaVsTime(folder)  
-             
+            write_txtFileForFluxesVsTime(folder)   
+            write_txtFileForFluxesVsZ(folder) 
+            
             # Write data files for the potential
             write_txtFileForPotentialVsTime(folder) 
             write_txtFileForDPhiZVsTime(folder)     
@@ -146,8 +148,8 @@ def write_stellapyDataFiles(folder, dt=None, specific=None, skip=None, dimension
         if dimensions in ["2D", "all", "small", "quick"]: 
              
             # Write data files for the distribution
-            write_txtFileForDistributionVsTime(folder)       
             write_txtFileForDistributionVsMuOrVpaOrZ(folder)
+            write_txtFileForDistributionVsTime(folder)       
             
             # Write data files for the moments
             write_h5FileForMoments2D(folder)
@@ -192,6 +194,7 @@ def write_stellapyDataFiles(folder, dt=None, specific=None, skip=None, dimension
         elif specific=="mom3D":     write_h5FileForMoments3D(**args)
         elif specific=="mom4D":     write_h5FileForMoments4D(**args)
         elif specific=="mom5D":     write_h5FileForMoments5D(**args)
+        elif specific=="QL":        write_txtFileForQuasiLinearFluxes(**args)
         elif specific=="flux":      write_txtFileForFluxesVsTime(**args)
         elif specific=="flux3D":    write_h5FileForFluxes3D(**args)
         elif specific=="flux4D":    write_h5FileForFluxes4D(**args)
@@ -220,7 +223,7 @@ def write_stellapyDataFiles(folder, dt=None, specific=None, skip=None, dimension
  
 if __name__ == "__main__":
     bash = Bash(write_stellapyDataFiles, __doc__)  
-    bash.add_option('specific', 'str', 's', '', '{ini, geo, dim, omega, jump, flux, flux3D, pot, \npot2D, pot3D, pot4D, pot5D, g, g2D, g3D, g4D\nmom3D, mom4D, mom5D, sat, phases, freq}') 
+    bash.add_option('specific', 'str', 's', '', '{ini, geo, dim, omega, jump, QL, flux, flux3D, flux4D, pot, \npot2D, pot3D, pot4D, pot5D, g, g2D, g3D, g4D\nmom3D, mom4D, mom5D, sat, phases, freq}') 
     bash.add_option('dt', 'float', 't', '', 'Time step dt to write data.')  
     bash.add_option('skip', 'int', 'i', '', 'Skip every <skip> time steps.')  
     bash.add_toggle('dimensions', 'restart', '', '', 'Only write quantities needed to restart unconverged modess.')  

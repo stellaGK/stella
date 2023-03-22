@@ -119,8 +119,6 @@ class Paths:
     @calculate_attributeWhenReadFirstTime 
     def omega(self):                get_omegaPath(self);            return self.omega 
     @calculate_attributeWhenReadFirstTime 
-    def fluxes(self):               get_fluxesPath(self);           return self.fluxes 
-    @calculate_attributeWhenReadFirstTime 
     def geometry(self):             get_geometryPath(self);         return self.geometry 
     @calculate_attributeWhenReadFirstTime 
     def moments2D(self):            get_moments2DPath(self);        return self.moments2D 
@@ -134,6 +132,12 @@ class Paths:
     def dimensions(self):           get_dimensionsPath(self);       return self.dimensions 
     @calculate_attributeWhenReadFirstTime 
     def saturated(self):            get_saturatedPath(self);        return self.saturated
+    @calculate_attributeWhenReadFirstTime 
+    def fluxes_vs_z(self):          get_fluxesVsZPath(self);        return self.fluxes_vs_z 
+    @calculate_attributeWhenReadFirstTime 
+    def QLfluxes(self):             get_QLfluxesPath(self);         return self.QLfluxes 
+    @calculate_attributeWhenReadFirstTime 
+    def fluxes(self):               get_fluxesPath(self);           return self.fluxes 
     @calculate_attributeWhenReadFirstTime 
     def fluxes3D(self):             get_fluxes3DPath(self);         return self.fluxes3D
     @calculate_attributeWhenReadFirstTime 
@@ -346,6 +350,14 @@ def get_omegaPath(self):
 def get_fluxesPath(self): 
     self.path.fluxes = get_pathWithSmallestTimeStep(self, "fluxes_vs_t", ".fluxes_reduced")
     return
+
+def get_fluxesVsZPath(self): 
+    self.path.fluxes_vs_z = self.input_file.with_suffix(".fluxes_vs_z")  
+    return
+
+def get_QLfluxesPath(self): 
+    self.path.QLfluxes = self.input_file.with_suffix(".QLfluxes")  
+    return 
 
 def get_fluxes3DPath(self): 
     self.path.fluxes3D = get_pathWithSmallestTimeStep(self, "fluxes3D")

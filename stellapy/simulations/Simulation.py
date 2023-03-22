@@ -89,10 +89,11 @@ class Simulation:
         # Remove some input parameters that may vary between simulations without affecting the simulation (much)
         del self.input_parameters['knobs']['mat_gen']
         del self.input_parameters['knobs']['nstep']
-        del self.input_parameters['knobs']['tend']
+        del self.input_parameters['knobs']['tend'] 
         del self.input_parameters['knobs']['delt_option']
         del self.input_parameters['knobs']['delt_max']
         del self.input_parameters['knobs']['delt_min']
+        del self.input_parameters['knobs']['avail_cpu_time']
         del self.input_parameters['init_g_knobs']['phiinit']
         del self.input_parameters['init_g_knobs']['restart_file']
         del self.input_parameters['init_g_knobs']['restart_dir']
@@ -100,6 +101,8 @@ class Simulation:
         del self.input_parameters['stella_diagnostics_knobs']
         del self.input_parameters['kt_grids_range_parameters']
         if self.input_parameters['physics_flags']['nonlinear']==True: del self.input_parameters['knobs']['delt'] 
+        try: del self.input_parameters['knobs']['t_end']
+        except: pass
         
         # For linear flux tube simulations, add the input files in the dummy input or merge similar simulations
         self.multiple_input_files = False

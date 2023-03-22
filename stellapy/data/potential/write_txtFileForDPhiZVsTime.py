@@ -43,7 +43,7 @@ from stellapy.utils.files.get_filesInFolder import get_filesInFolder
 # Write the maximum difference of the shape phi(z,t) compared with phi(z,tlast) #
 #================================================================================
 
-def write_txtFileForDPhiZVsTime(folder, dt=1):  
+def write_txtFileForDPhiZVsTime(folder, dt=1, verbose=False):  
     
     # Time step
     dt = int(dt) if int(dt)==dt else dt    
@@ -76,7 +76,7 @@ def write_txtFileForDPhiZVsTime(folder, dt=1):
                 
                 # Notify that the file already existed   
                 if os.path.isfile(dphiz_path) and not outputFileHasChanged:
-                    print(status+"The dphiz(t) file already exists:", dphiz_path.parent.name+"/"+dphiz_path.name)
+                    if verbose: print(status+"The dphiz(t) file already exists:", dphiz_path.parent.name+"/"+dphiz_path.name)
                     continue
                 
                 # Read the number of modes simulated in the input file

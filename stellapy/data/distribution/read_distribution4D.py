@@ -50,13 +50,13 @@ def read_distribution4D(path):
     return
 
 #-------------------------------------
-def read_distributionFromH5File(path): 
+def read_distributionFromH5File(path_distribution4D): 
     
     # Initiate
     distribution={}
     
     # Read the *.dt10.distribution4D file  
-    with h5py.File(path, 'r') as f: 
+    with h5py.File(path_distribution4D, 'r') as f: 
         for key in ["vec_time", "g2_vs_tsvpaz", "g2_vs_tsmuvpa"]: 
             if key in f.keys():  
                 distribution[key] = f[key][()]  
