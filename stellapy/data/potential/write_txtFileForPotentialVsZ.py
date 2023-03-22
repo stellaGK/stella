@@ -106,6 +106,5 @@ def read_potentialVsZ(netcdf_path):
         exit_program("We should find at least one time step which doesn't contain nans!", read_potentialVsZ, sys._getframe().f_lineno) 
     
     # Get the potential squared
-    phi2_vs_zkxky = np.abs(phi_vs_zkxky)**2 
-    print(phi2_vs_zkxky[:,0,0])
+    phi2_vs_zkxky = np.abs(phi_vs_zkxky)**2  
     return phi_vs_zkxky, phi2_vs_zkxky

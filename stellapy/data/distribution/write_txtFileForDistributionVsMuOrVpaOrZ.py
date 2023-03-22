@@ -1,7 +1,6 @@
 
 
-import os
-import pathlib
+import os 
 import numpy as np
 from datetime import datetime, timedelta
 from stellapy.utils.files.get_filesInFolder import get_filesInFolder  
