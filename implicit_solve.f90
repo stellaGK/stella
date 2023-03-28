@@ -761,20 +761,22 @@ contains
          end do
       end if
       rhs = rhs * scratch
-      call center_zed(iv, rhs, 1, periodic(iky))
 
       ! set scratch to be phi or <phi> depending on whether parallel streaming is
       ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
-      if (driftkinetic_implicit) then
-         scratch = phi_old
-      else
-         call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, phi_old, scratch)
-      end if
+      if (drifts_implicit) then
+         if (driftkinetic_implicit) then
+            scratch = phi_old
+         else
+            call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, phi_old, scratch)
+         end if
 
-      do izext = 1, nz_ext
-         iz = iz_from_izext(izext)
-         rhs(izext) = rhs(izext) + zi * aky(iky) * wstar(ia, iz, ivmu) * scratch(izext)
-      end do
+         do izext = 1, nz_ext
+            iz = iz_from_izext(izext)
+            rhs(izext) = rhs(izext) + zi * aky(iky) * wstar(ia, iz, ivmu) * scratch(izext)
+         end do
+      end if
+      call center_zed(iv, rhs, 1, periodic(iky))
 
       deallocate (iz_from_izext, ikx_from_izext)
 
@@ -821,10 +823,6 @@ contains
       ! obtain d(pdf^{n})/dz and store in df_dz
       call get_dzed(iv, pdf, df_dz)
 
-      ! obtain the cell-centred pdf
-      rhs = pdf
-      call center_zed(iv, rhs)
-
       ! compute the z-independent factor appearing in front of the d(pdf)/dz term on the RHS of the Gk equation
       constant_factor = -code_dt * spec(is)%stm_psi0 * vpa(iv) * time_upwind_minus
       ! use the correctly centred (b . grad z) pre-factor for this sign of vpa
@@ -834,6 +832,8 @@ contains
          gradpar_fac = gradpar_c(:, 1) * constant_factor
       end if
 
+      ! obtain the cell-centred pdf
+      rhs = pdf
       if (drifts_implicit) then
          do iz = -nzgrid, nzgrid
             do ikx = 1, nakx
@@ -844,6 +844,7 @@ contains
             end do
          end do
       end if
+      call center_zed(iv, rhs)
 
       ! construct the source term on the RHS of the GK equation coming from
       ! the pdf evaluated at the previous time level
