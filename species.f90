@@ -134,7 +134,7 @@ contains
 
    subroutine read_species_knobs
 
-      use mp, only: proc0, job, broadcast
+      use mp, only: proc0, job, broadcast, mp_abort
       use file_utils, only: error_unit, input_unit_exist
       use file_utils, only: runtype_option_switch, runtype_multibox
       use physics_flags, only: radial_variation
@@ -180,7 +180,7 @@ contains
             ierr = error_unit()
             write (unit=ierr, &
                    fmt="('Invalid nspec in species_knobs: ', i5)") nspec
-            stop
+            call mp_abort('Invalid nspec in species_knobs')
          end if
       end if
       call broadcast(nspec)
@@ -343,7 +343,7 @@ contains
 
    subroutine reinit_species(ntspec, dens, temp, fprim, tprim, bess_fac)
 
-      use mp, only: broadcast, proc0
+      use mp, only: broadcast, proc0, mp_abort
 
       implicit none
 
@@ -374,7 +374,7 @@ contains
                   if (proc0) write (*, *) &
                      "Error: TRINITY requires the main ions to have mass 1", &
                      "and the secondary ions to be impurities (mass > 1)"
-                  stop
+                  call mp_abort('TRINITY requires the main ions to have mass 1 and the secondary ions mass > 1')
                end if
             end do
          end if

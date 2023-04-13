@@ -56,8 +56,8 @@ CONTAINS
       integer, dimension(:, :, :), intent(inout) :: varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(3)   :: st, cnt, ldim
-      integer                 :: varid, status, j, k
+      integer, dimension(3)   :: ldim
+      integer                 :: varid, status
       integer, dimension(3)   :: dimlens
 
       integer, dimension(:, :, :), allocatable :: temp
@@ -119,13 +119,11 @@ CONTAINS
       logical, dimension(:, :, :), intent(inout) :: varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer                                :: status
       integer, dimension(:, :, :), allocatable :: varval_i
       character*11, parameter :: logical_name = '__logical__'
 
-      ALLOCATE (varval_i(size(varval, 1), size(varval, 2), size(varval, 3)), stat=status)
-      if (status /= 0) STOP 'Allocation error in cdf_getvar'
-
+      ALLOCATE (varval_i(size(varval, 1), size(varval, 2), size(varval, 3)))
+     
       call cdfr_3i(ncid, trim(varnam)//logical_name, varval_i, ier)
 
       WHERE (varval_i == 0)
@@ -145,8 +143,8 @@ CONTAINS
       REAL(KIND=r8), dimension(:, :, :), intent(inout) ::  varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(3)   :: st, cnt, ldim
-      integer                 :: varid, status, j, k
+      integer, dimension(3)   :: ldim
+      integer                 :: varid, status
       integer, dimension(3)   :: dimlens
 
       real(r8), dimension(:, :, :), allocatable :: temp
@@ -208,8 +206,8 @@ CONTAINS
       COMPLEX(KIND=r8), dimension(:, :, :), intent(inout) ::  varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(3)   :: st, cnt, ldim
-      integer                 :: varid, status, j, k, i
+      integer, dimension(3)   :: ldim
+      integer                 :: varid, status, i
       integer, dimension(3)   :: dimlens
 
       real(r8), dimension(:, :, :), allocatable :: temp
@@ -273,8 +271,8 @@ CONTAINS
       REAL(KIND=r4), dimension(:, :, :), intent(inout) ::  varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(3)   :: st, cnt, ldim
-      integer                 :: varid, status, j, k
+      integer, dimension(3)   :: ldim
+      integer                 :: varid, status
       integer, dimension(3)   :: dimlens
 
       real, dimension(:, :, :), allocatable :: temp
@@ -334,8 +332,8 @@ CONTAINS
       COMPLEX(KIND=r4), dimension(:, :, :), intent(inout) ::  varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(3)   :: st, cnt, ldim
-      integer                 :: varid, status, j, k
+      integer, dimension(3)   :: ldim
+      integer                 :: varid, status
       integer, dimension(3)   :: dimlens
 
       real, dimension(:, :, :), allocatable :: temp
@@ -401,8 +399,8 @@ CONTAINS
       integer, dimension(:, :), intent(inout) :: varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(2)   :: st, cnt, ldim
-      integer                 :: varid, status, j
+      integer, dimension(2)   :: ldim
+      integer                 :: varid, status
       integer, dimension(2)   :: dimlens
 
       integer, dimension(:, :), allocatable :: temp
@@ -459,13 +457,11 @@ CONTAINS
       logical, dimension(:, :), intent(inout) :: varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer                              :: status
       integer, dimension(:, :), allocatable :: varval_i
       character*11, parameter :: logical_name = '__logical__'
 
-      ALLOCATE (varval_i(size(varval, 1), size(varval, 2)), stat=status)
-      if (status /= 0) STOP 'Allocation error in cdf_getvar'
-
+      ALLOCATE (varval_i(size(varval, 1), size(varval, 2)))
+      
       call cdfr_2i(ncid, trim(varnam)//logical_name, varval_i, ier)
 
       WHERE (varval_i == 0)
@@ -485,8 +481,8 @@ CONTAINS
       REAL(KIND=r8), dimension(:, :), intent(inout) ::  varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(2)   :: st, cnt, ldim
-      integer                 :: varid, status, j
+      integer, dimension(2)   :: ldim
+      integer                 :: varid, status
       integer, dimension(2)   :: dimlens
 
       real(r8), dimension(:, :), allocatable :: temp
@@ -541,8 +537,8 @@ CONTAINS
       COMPLEX(KIND=r8), dimension(:, :), intent(inout) ::  varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(2)   :: st, cnt, ldim
-      integer                 :: varid, status, j, i
+      integer, dimension(2)   :: ldim
+      integer                 :: varid, status, i
       integer, dimension(2)   :: dimlens
 
       real(r8), dimension(:, :), allocatable :: temp
@@ -600,8 +596,8 @@ CONTAINS
       REAL(KIND=r4), dimension(:, :), intent(inout) ::  varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(2)   :: st, cnt, ldim
-      integer                 :: varid, status, j
+      integer, dimension(2)   :: ldim
+      integer                 :: varid, status
       integer, dimension(2)   :: dimlens
 
       real, dimension(:, :), allocatable :: temp
@@ -656,8 +652,8 @@ CONTAINS
       COMPLEX(KIND=r4), dimension(:, :), intent(inout) ::  varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer, dimension(2)   :: st, cnt, ldim
-      integer                 :: varid, status, j, i
+      integer, dimension(2)   :: ldim
+      integer                 :: varid, status, i
       integer, dimension(2)   :: dimlens
 
       real(r8), dimension(:, :), allocatable :: temp
@@ -716,7 +712,7 @@ CONTAINS
       integer, optional, intent(out) :: ier
       ! Local
       integer, dimension(2)   :: st, cnt, ldim
-      integer                 :: varid, status, charlen, j
+      integer                 :: varid, status, j
       integer, dimension(2)   :: dimlens
       if (PRESENT(ier)) ier = 1
       ldim(1) = len(varval)
@@ -771,13 +767,11 @@ CONTAINS
       logical, dimension(:), intent(inout) :: varval
       integer, optional, intent(out) :: ier
       ! Local
-      integer                            :: status
       integer, dimension(:), allocatable :: varval_i
       character*11, parameter :: logical_name = '__logical__'
 
-      ALLOCATE (varval_i(size(varval, 1)), stat=status)
-      if (status /= 0) STOP 'Allocation error in cdf_getvar'
-
+      ALLOCATE (varval_i(size(varval, 1)))
+      
       call cdfr_1i(ncid, trim(varnam)//logical_name, varval_i, ier)
 
       WHERE (varval_i == 0)
