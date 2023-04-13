@@ -106,12 +106,12 @@ contains
          ierr = iopen
          return
       end if
-      
+
       if (ierr /= 0) then
-         print *,'error reading wout file'
+         print *, 'error reading wout file'
          return
       end if
-      
+
       if (verbose) then
          write (*, *) "Successfully read VMEC data from '", trim(vmec_filename), "'."
       end if
@@ -331,11 +331,8 @@ contains
 
       real, dimension(:, -nzgrid:), intent(out) :: x_displacement_fac
 
-      
       integer, intent(out) :: ierr
       integer :: ierr2
-
-
 
       !*********************************************************************
       ! Variables used internally by this subroutine
@@ -948,7 +945,7 @@ contains
                ierr = 119
                return
             end if
-            
+
          end if
 
          ! All quantities are multiplied by a variable scale_factor which can in principle depend on m and n.
@@ -1246,7 +1243,7 @@ contains
          print *, "test_arrays returned error for iota"
          ierr = ierr + 1
       end if
-      
+
       deallocate (B_dot_grad_theta_pest_over_B_dot_grad_zeta)
 
       !*********************************************************************
@@ -1384,7 +1381,7 @@ contains
          print *, "test_arrays returned error for sqrt g"
          ierr = ierr + 1
       end if
-      
+
       temp2D = 0 &
                + grad_s_X * grad_theta_vmec_Y * grad_zeta_Z &
                + grad_s_Y * grad_theta_vmec_Z * grad_zeta_X &
@@ -1405,7 +1402,7 @@ contains
       !*********************************************************************
 
      call test_arrays(B_X * d_X_d_theta_vmec + B_Y * d_Y_d_theta_vmec + B_Z * d_Z_d_theta_vmec, B_sub_theta_vmec, .false., 1.0e-2, 'B_sub_theta_vmec', ierr2)
-     if (ierr2 /= 0) then
+      if (ierr2 /= 0) then
          print *, "test_arrays returned error for B_sub_theta_vmec"
          ierr = ierr + 1
       end if
@@ -1684,7 +1681,7 @@ contains
          deallocate (rmns, lmnc, zmnc, bmns, gmns)
          deallocate (bsupumns, bsupvmns, bsubumns, bsubvmns, bsubsmnc)
       end if
-      
+
    contains
 
       subroutine test_arrays(array1, array2, should_be_0, tolerance, name, ierr)
@@ -1702,7 +1699,6 @@ contains
          logical :: should_be_0
          real :: max_value, max_difference
          integer, intent(out) :: ierr
-
 
          ierr = 0
          if (should_be_0) then
@@ -1734,7 +1730,7 @@ contains
                end do
             end if
          end if
-         
+
       end subroutine test_arrays
 
    end subroutine vmec_to_stella_geometry_interface
