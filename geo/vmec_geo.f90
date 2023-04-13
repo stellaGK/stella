@@ -29,14 +29,14 @@ contains
       logical :: exist
 
       namelist /vmec_parameters/ alpha0, zeta_center, nfield_periods, &
-         torflux, zgrid_scalefac, zgrid_refinement_factor, surface_option, & 
+         torflux, zgrid_scalefac, zgrid_refinement_factor, surface_option, &
          verbose, vmec_filename, gradpar_zeta_prefac, n_tolerated_test_arrays_inconsistencies
 
       call init_vmec_defaults
 
       in_file = input_unit_exist("vmec_parameters", exist)
       if (exist) read (unit=in_file, nml=vmec_parameters)
-      
+
       if (zgrid_scalefac < 1.0 - epsilon(0.)) then
          write (*, *) 'zgrid_scalefac = ', zgrid_scalefac
          call mp_abort('zgrid_scalefac should always be >= 1.0.  aborting')
@@ -51,13 +51,11 @@ contains
             zgrid_refinement_factor = 1
          end if
       end if
-      
+
       if (n_tolerated_test_arrays_inconsistencies < 0) then
          write (*, *) 'n_tolerated_test_arrays_inconsistencies = ', n_tolerated_test_arrays_inconsistencies
          call mp_abort('n_tolerated_test_arrays_inconsistencies should always be >= 0.  aborting')
       end if
-      
-
 
    end subroutine read_vmec_parameters
 
@@ -157,7 +155,7 @@ contains
       real, dimension(nalpha, -nzgrid:nzgrid) :: theta
 
       integer :: ierr
-      
+
       !> To avoid writting twice in the output file when recomputing zeta.
       if (stellarator_symmetric_BC) verbose = .false.
       !> first read in equilibrium information from vmec file
@@ -168,7 +166,6 @@ contains
       if (ierr /= 0) then
          call mp_abort('read_vmec_equilibrium returned error.')
       end if
-
 
       ! !> nzgrid_vmec is the number of positive/negative zeta locations
       ! !> at which to get geometry data from vmec
@@ -221,7 +218,7 @@ contains
                                              cvdrift_alpha_vmec, &
                                              cvdrift0_psi_vmec, thetamod_vmec, B_sub_zeta_mod, B_sub_theta_vmec_mod, &
                                              x_displacement_fac_vmec, gradpar_zeta_prefac, ierr)
-      
+
       if (ierr /= 0) then
          if (ierr > n_tolerated_test_arrays_inconsistencies .or. ierr < 0) then
             call mp_abort('vmec_to_stella_geometry_interface returned error.')
