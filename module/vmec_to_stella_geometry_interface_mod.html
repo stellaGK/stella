@@ -101,7 +101,7 @@
           <li id="statements"><i class="fa fa-list-ol"></i>
             <a data-toggle="tooltip"
                data-placement="bottom" data-html="true"
-               title=" 2.7% of total for modules and submodules.">1064 statements</a>
+               title=" 3.3% of total for modules and submodules.">1177 statements</a>
           </li>
 
             <li id="source-file">
@@ -144,7 +144,7 @@
             <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#variable-vmec_radial_index_full">vmec_radial_index_full</a>
             <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#variable-vmec_radial_index_half">vmec_radial_index_half</a>
             <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#variable-lasym">lasym</a>
-            <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#variable-nfp~4">nfp</a>
+            <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#variable-nfp">nfp</a>
             <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#variable-isigng">isigng</a>
             <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#variable-ns">ns</a>
             <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#variable-mnmax">mnmax</a>
@@ -260,7 +260,7 @@
             <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#variable-vmec_radial_index_full">vmec_radial_index_full</a>
             <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#variable-vmec_radial_index_half">vmec_radial_index_half</a>
             <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#variable-lasym">lasym</a>
-            <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#variable-nfp~4">nfp</a>
+            <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#variable-nfp">nfp</a>
             <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#variable-isigng">isigng</a>
             <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#variable-ns">ns</a>
             <a class="list-group-item" href="../module/vmec_to_stella_geometry_interface_mod.html#variable-mnmax">mnmax</a>
@@ -485,7 +485,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nfp~4"></span>
+              <span class="anchor" id="variable-nfp"></span>
               integer,
             </td>
               <td>private</td>
@@ -1175,7 +1175,7 @@
         <section>
           <h2>Subroutines</h2>
               <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-read_vmec_equilibrium"></span><h3>public  subroutine <a href='../proc/read_vmec_equilibrium.html'>read_vmec_equilibrium</a>(vmec_filename, verbose)  
+    <div class="panel-heading codesum"><span class="anchor" id="proc-read_vmec_equilibrium"></span><h3>public  subroutine <a href='../proc/read_vmec_equilibrium.html'>read_vmec_equilibrium</a>(vmec_filename, verbose, ierr)  
 </h3></div>
     <div class="panel-body">
           
@@ -1218,6 +1218,21 @@
             </td>
             <td>::</td>
             <td><strong>verbose</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ierr</strong></td>
             <td>
 
             </td>
@@ -1360,7 +1375,7 @@
   </div>
 
               <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-vmec_to_stella_geometry_interface"></span><h3>public  subroutine <a href='../proc/vmec_to_stella_geometry_interface.html'>vmec_to_stella_geometry_interface</a>(nalpha, alpha0, nzgrid, zeta_center, number_of_field_periods_to_include, desired_normalized_toroidal_flux, vmec_surface_option, verbose, normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp_out, sign_toroidal_flux, alpha, zeta, bmag, gradpar_zeta, grad_alpha_grad_alpha, grad_alpha_grad_psi, grad_psi_grad_psi, gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, theta_vmec, B_sub_zeta, B_sub_theta_vmec, x_displacement_fac, gradpar_zeta_prefac)  
+    <div class="panel-heading codesum"><span class="anchor" id="proc-vmec_to_stella_geometry_interface"></span><h3>public  subroutine <a href='../proc/vmec_to_stella_geometry_interface.html'>vmec_to_stella_geometry_interface</a>(nalpha, alpha0, nzgrid, zeta_center, number_of_field_periods_to_include, desired_normalized_toroidal_flux, vmec_surface_option, verbose, normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp_out, sign_toroidal_flux, alpha, zeta, bmag, gradpar_zeta, grad_alpha_grad_alpha, grad_alpha_grad_psi, grad_psi_grad_psi, gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, theta_vmec, B_sub_zeta, B_sub_theta_vmec, x_displacement_fac, gradpar_zeta_prefac, ierr)  
 </h3></div>
     <div class="panel-body">
           
@@ -1884,7 +1899,7 @@
             <td>::</td>
             <td><strong>x_displacement_fac</strong></td>
             <td>
-<p>Variables used internally by this subroutine</p><a href="../proc/vmec_to_stella_geometry_interface.html#variable-x_displacement_fac" class="pull-right"><emph>Read more&hellip;</emph></a>
+
             </td>
         </tr>
         <tr>
@@ -1898,6 +1913,21 @@
             </td>
             <td>::</td>
             <td><strong>gradpar_zeta_prefac</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ierr</strong></td>
             <td>
 
             </td>
@@ -2123,13 +2153,13 @@
       <div class="container">
         <div class="row">
           <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2023 
-<br /><small>v0.5.1-184-gd36b7ab40</small></p>
+<br /><small>v0.5.1-190-gb6af93dad</small></p>
           </div>
           <div class="col-xs-6 col-md-6">
             <p class="text-right">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2023-03-22T19:25:21.548814             </p>
+ on 2023-04-13T14:03:16.161502             </p>
           </div>
         </div>
         <br>

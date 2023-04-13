@@ -39,7 +39,7 @@ module vmec_to_stella_geometry_interface_mod
 
 contains
 
-   subroutine read_vmec_equilibrium(vmec_filename, verbose)
+   subroutine read_vmec_equilibrium(vmec_filename, verbose, ierr)
 
       use read_wout_mod, only: read_wout_file, read_wout_deallocate
       use read_wout_mod, only: nfp_vmec => nfp
@@ -87,7 +87,8 @@ contains
       logical, intent(in) :: verbose
       character(*), intent(in) :: vmec_filename
 
-      integer :: ierr, iopen
+      integer, intent(out) :: ierr
+      integer :: iopen
 
       !*********************************************************************
       ! Read in everything from the vmec wout file using libstell.
@@ -100,8 +101,17 @@ contains
          write (*, *) "About to read VMEC wout file: '", trim(vmec_filename), "'."
       end if
       call read_wout_file(vmec_filename, ierr, iopen)
-      if (iopen /= 0) stop 'error opening wout file'
-      if (ierr /= 0) stop 'error reading wout file'
+      if (iopen /= 0) then
+         print *, 'error opening wout file'
+         ierr = iopen
+         return
+      end if
+      
+      if (ierr /= 0) then
+         print *,'error reading wout file'
+         return
+      end if
+      
       if (verbose) then
          write (*, *) "Successfully read VMEC data from '", trim(vmec_filename), "'."
       end if
@@ -158,7 +168,11 @@ contains
       end if
 
       ! deallocate all arrays opened externally in read_wout_mod
-      call read_wout_deallocate
+      call read_wout_deallocate(ierr)
+      if (ierr /= 0) then
+         print *, "Warning: error returned when deallocating wout arrays. ", ierr
+      end if
+      ierr = 0
 
    end subroutine read_vmec_equilibrium
 
@@ -214,7 +228,8 @@ contains
                                                 alpha, zeta, bmag, gradpar_zeta, grad_alpha_grad_alpha, &
                                                 grad_alpha_grad_psi, grad_psi_grad_psi, gds23, gds24, gds25, gds26, &
                                                 gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, &
-                                                theta_vmec, B_sub_zeta, B_sub_theta_vmec, x_displacement_fac, gradpar_zeta_prefac)
+                                                theta_vmec, B_sub_zeta, B_sub_theta_vmec, x_displacement_fac, gradpar_zeta_prefac, &
+                                                ierr)
 
       use fzero_mod, only: fzero
 
@@ -316,6 +331,12 @@ contains
 
       real, dimension(:, -nzgrid:), intent(out) :: x_displacement_fac
 
+      
+      integer, intent(out) :: ierr
+      integer :: ierr2
+
+
+
       !*********************************************************************
       ! Variables used internally by this subroutine
       !*********************************************************************
@@ -389,25 +410,30 @@ contains
       !*********************************************************************
       ! Do some validation.
       !*********************************************************************
+      ierr = 0
 
       if (nalpha < 1) then
          print *, "Error! nalpha must be >= 1. Instead it is", nalpha
-         stop
+         ierr = 100
+         return
       end if
 
       if (nzgrid < 1) then
          print *, "Error! nzgrid must be >= 1. Instead it is", nzgrid
-         stop
+         ierr = 101
+         return
       end if
 
       if (desired_normalized_toroidal_flux <= 0) then
          print *, "Error! desired_normalized_toroidal_flux must be >0. Instead it is", desired_normalized_toroidal_flux
-         stop
+         ierr = 102
+         return
       end if
 
       if (desired_normalized_toroidal_flux > 1) then
          print *, "Error! desired_normalized_toroidal_flux must be <= 1. Instead it is", desired_normalized_toroidal_flux
-         stop
+         ierr = 103
+         return
       end if
 
       nfp_out = nfp
@@ -421,7 +447,8 @@ contains
             xn_nyq = xn
          else
             print *, "Error! xm_nyq and xn_nyq arrays are not populated in the wout file, and mnmax_nyq != mnmax."
-            stop
+            ierr = 104
+            return
          end if
       end if
 
@@ -453,7 +480,8 @@ contains
       if (abs(phi(1)) > 1d-14) then
          print *, "Error! VMEC phi array does not begin with 0."
          print *, "phi:", phi
-         stop
+         ierr = 105
+         return
       end if
 
       dphi = phi(2) - phi(1)
@@ -461,7 +489,8 @@ contains
          if (abs(phi(j) - phi(j - 1) - dphi) > 1d-11) then
             print *, "Error! VMEC phi array is not uniformly spaced."
             print *, "phi:", phi
-            stop
+            ierr = 106
+            return
          end if
       end do
 
@@ -471,27 +500,45 @@ contains
          if (abs(phip(j) + phi(ns) / (2 * pi)) > 1d-11) then
             print *, "Error! VMEC phips array is not constant and equal to -phi(ns)/(2*pi)."
             print *, "phip(s):", phip
-            stop
+            ierr = 107
+            return
          end if
       end do
 
       ! The first mode in the m and n arrays should be m=n=0:
-      if (xm(1) /= 0) stop "First element of xm in the wout file should be 0."
-      if (xn(1) /= 0) stop "First element of xn in the wout file should be 0."
-      if (xm_nyq(1) /= 0) stop "First element of xm_nyq in the wout file should be 0."
-      if (xn_nyq(1) /= 0) stop "First element of xn_nyq in the wout file should be 0."
-
+      if (xm(1) /= 0) then
+         print *, "First element of xm in the wout file should be 0."
+         ierr = 108
+         return
+      end if
+      if (xn(1) /= 0) then
+         print *, "First element of xn in the wout file should be 0."
+         ierr = 109
+         return
+      end if
+      if (xm_nyq(1) /= 0) then
+         print *, "First element of xm_nyq in the wout file should be 0."
+         ierr = 110
+         return
+      end if
+      if (xn_nyq(1) /= 0) then
+         print *, "First element of xn_nyq in the wout file should be 0."
+         ierr = 111
+         return
+      end if
       ! Lambda should be on the half mesh, so its value at radial index 1 should be 0 for all (m,n)
       if (maxval(abs(lmns(:, 1))) > 0) then
          print *, "Error! Expected lmns to be on the half mesh, but its value at radial index 1 is nonzero."
          print *, "Here comes lmns(:,1):", lmns(:, 1)
-         stop
+         ierr = 112
+         return
       end if
       if (lasym) then
          if (maxval(abs(lmnc(:, 1))) > 0) then
             print *, "Error! Expected lmnc to be on the half mesh, but its value at radial index 1 is nonzero."
             print *, "Here comes lmnc(:,1):", lmnc(:, 1)
-            stop
+            ierr = 113
+            return
          end if
       end if
 
@@ -565,7 +612,8 @@ contains
 
       case default
          print *, "Error! vmec_surface_option must be 0, 1, or 2. It is instead ", vmec_surface_option
-         stop
+         ierr = 114
+         return
       end select
 
       ! --------------------------------------------------------------------------------
@@ -583,9 +631,13 @@ contains
 
       ! Handle quantities for the full grid
       if (normalized_toroidal_flux_used > 1) then
-         stop "Error! normalized_toroidal_flux_used cannot be >1"
+         print *, "Error! normalized_toroidal_flux_used cannot be >1"
+         ierr = 115
+         return
       elseif (normalized_toroidal_flux_used < 0) then
-         stop "Error! normalized_toroidal_flux_used cannot be <0"
+         print *, "Error! normalized_toroidal_flux_used cannot be <0"
+         ierr = 116
+         return
       elseif (normalized_toroidal_flux_used == 1) then
          vmec_radial_index_full(1) = ns - 1
          vmec_radial_index_full(2) = ns
@@ -733,7 +785,8 @@ contains
 !          end if
             if (.not. theta_converged) then
                write (*, *) "ERROR: could not find root needed to compute theta_vmec. aborting"
-               stop
+               ierr = 117
+               return
             end if
          end do
       end do
@@ -885,8 +938,17 @@ contains
                   exit
                end if
             end do
-            if ((xm(imn) /= m) .or. (xn(imn) /= n * nfp)) stop "Something went wrong!"
-            if (.not. found_imn) stop "Error! imn could not be found matching the given imn_nyq."
+            if ((xm(imn) /= m) .or. (xn(imn) /= n * nfp)) then
+               print *, "Something went wrong!"
+               ierr = 118
+               return
+            end if
+            if (.not. found_imn) then
+               print *, "Error! imn could not be found matching the given imn_nyq."
+               ierr = 119
+               return
+            end if
+            
          end if
 
          ! All quantities are multiplied by a variable scale_factor which can in principle depend on m and n.
@@ -1179,7 +1241,12 @@ contains
       ! Compute (B dot grad theta_pest) / (B dot grad zeta):
       B_dot_grad_theta_pest_over_B_dot_grad_zeta = (B_sup_theta_vmec * (1 + d_Lambda_d_theta_vmec) + B_sup_zeta * d_Lambda_d_zeta) / B_sup_zeta
       temp2D = iota
-      call test_arrays(B_dot_grad_theta_pest_over_B_dot_grad_zeta, temp2D, .false., 0.01, 'iota')
+      call test_arrays(B_dot_grad_theta_pest_over_B_dot_grad_zeta, temp2D, .false., 0.01, 'iota', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for iota"
+         ierr = ierr + 1
+      end if
+      
       deallocate (B_dot_grad_theta_pest_over_B_dot_grad_zeta)
 
       !*********************************************************************
@@ -1235,18 +1302,30 @@ contains
          temp2D(:, izeta) = -sin(zeta(izeta)) / R(:, izeta)
       end do
 
-      call test_arrays(grad_zeta_X, temp2D, .false., 1.0e-2, 'grad_zeta_X')
+      call test_arrays(grad_zeta_X, temp2D, .false., 1.0e-2, 'grad_zeta_X', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for grad_zeta_X"
+         ierr = ierr + 1
+      end if
       grad_zeta_X = temp2D ! We might as well use the exact value, which is in temp2D.
 
       ! Sanity check: grad_zeta_Y should be cos(zeta) / R:
       do izeta = -nzgrid, nzgrid
          temp2D(:, izeta) = cos(zeta(izeta)) / R(:, izeta)
       end do
-      call test_arrays(grad_zeta_Y, temp2D, .false., 1.0e-2, 'grad_zeta_Y')
+      call test_arrays(grad_zeta_Y, temp2D, .false., 1.0e-2, 'grad_zeta_Y', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for grad_zeta_Y"
+         ierr = ierr + 1
+      end if
       grad_zeta_Y = temp2D ! We might as well use the exact value, which is in temp2D.
 
       ! grad_zeta_Z should be 0:
-      call test_arrays(grad_zeta_Z, temp2D, .true., 1.0e-14, 'grad_zeta_Z')
+      call test_arrays(grad_zeta_Z, temp2D, .true., 1.0e-14, 'grad_zeta_Z', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for grad_zeta_Z"
+         ierr = ierr + 1
+      end if
       grad_zeta_Z = 0
 
       !*********************************************************************
@@ -1300,8 +1379,12 @@ contains
                - d_Z_d_s * d_Y_d_theta_vmec * d_X_d_zeta &
                - d_X_d_s * d_Z_d_theta_vmec * d_Y_d_zeta &
                - d_Y_d_s * d_X_d_theta_vmec * d_Z_d_zeta
-      call test_arrays(sqrt_g, temp2D, .false., 3.0e-3, 'sqrt_g')
-
+      call test_arrays(sqrt_g, temp2D, .false., 3.0e-3, 'sqrt_g', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for sqrt g"
+         ierr = ierr + 1
+      end if
+      
       temp2D = 0 &
                + grad_s_X * grad_theta_vmec_Y * grad_zeta_Z &
                + grad_s_Y * grad_theta_vmec_Z * grad_zeta_X &
@@ -1309,7 +1392,11 @@ contains
                - grad_s_Z * grad_theta_vmec_Y * grad_zeta_X &
                - grad_s_X * grad_theta_vmec_Z * grad_zeta_Y &
                - grad_s_Y * grad_theta_vmec_X * grad_zeta_Z
-      call test_arrays(1 / sqrt_g, temp2D, .false., 1.0e-2, '1/sqrt_g')
+      call test_arrays(1 / sqrt_g, temp2D, .false., 1.0e-2, '1/sqrt_g', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for 1/sqrt g"
+         ierr = ierr + 1
+      end if
 
       !*********************************************************************
       ! Sanity tests: Verify that
@@ -1317,13 +1404,37 @@ contains
       ! matches the corresponding term from VMEC.
       !*********************************************************************
 
-     call test_arrays(B_X * d_X_d_theta_vmec + B_Y * d_Y_d_theta_vmec + B_Z * d_Z_d_theta_vmec, B_sub_theta_vmec, .false., 1.0e-2, 'B_sub_theta_vmec')
-      call test_arrays(B_X * d_X_d_s + B_Y * d_Y_d_s + B_Z * d_Z_d_s, B_sub_s, .false., 1.0e-2, 'B_sub_s')
-      call test_arrays(B_X * d_X_d_zeta + B_Y * d_Y_d_zeta + B_Z * d_Z_d_zeta, B_sub_zeta, .false., 1.0e-2, 'B_sub_zeta')
+     call test_arrays(B_X * d_X_d_theta_vmec + B_Y * d_Y_d_theta_vmec + B_Z * d_Z_d_theta_vmec, B_sub_theta_vmec, .false., 1.0e-2, 'B_sub_theta_vmec', ierr2)
+     if (ierr2 /= 0) then
+         print *, "test_arrays returned error for B_sub_theta_vmec"
+         ierr = ierr + 1
+      end if
+      call test_arrays(B_X * d_X_d_s + B_Y * d_Y_d_s + B_Z * d_Z_d_s, B_sub_s, .false., 1.0e-2, 'B_sub_s', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for B_sub_s"
+         ierr = ierr + 1
+      end if
+      call test_arrays(B_X * d_X_d_zeta + B_Y * d_Y_d_zeta + B_Z * d_Z_d_zeta, B_sub_zeta, .false., 1.0e-2, 'B_sub_zeta', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for B_sub_zeta"
+         ierr = ierr + 1
+      end if
 
-      call test_arrays(B_X * grad_s_X + B_Y * grad_s_Y + B_Z * grad_s_Z, temp2D, .true., 1.0e-2, 'B_sup_s')
-      call test_arrays(B_X * grad_zeta_X + B_Y * grad_zeta_Y + B_Z * grad_zeta_Z, B_sup_zeta, .false., 1.0e-2, 'B_sup_zeta')
-  call test_arrays(B_X * grad_theta_vmec_X + B_Y * grad_theta_vmec_Y + B_Z * grad_theta_vmec_Z, B_sup_theta_vmec, .false., 1.0e-2, 'B_sup_theta_vmec')
+      call test_arrays(B_X * grad_s_X + B_Y * grad_s_Y + B_Z * grad_s_Z, temp2D, .true., 1.0e-2, 'B_sup_s', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for B_sup_s"
+         ierr = ierr + 1
+      end if
+      call test_arrays(B_X * grad_zeta_X + B_Y * grad_zeta_Y + B_Z * grad_zeta_Z, B_sup_zeta, .false., 1.0e-2, 'B_sup_zeta', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for B_sup_zeta"
+         ierr = ierr + 1
+      end if
+      call test_arrays(B_X * grad_theta_vmec_X + B_Y * grad_theta_vmec_Y + B_Z * grad_theta_vmec_Z, B_sup_theta_vmec, .false., 1.0e-2, 'B_sup_theta_vmec', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for B_sup_theta_vmec"
+         ierr = ierr + 1
+      end if
 
       !*********************************************************************
       ! For gbdrift, we need \vect{B} cross grad |B| dot grad alpha.
@@ -1344,7 +1455,11 @@ contains
                                                 - B_Y * grad_s_X * grad_alpha_Z
 
       call test_arrays(B_cross_grad_s_dot_grad_alpha, B_cross_grad_s_dot_grad_alpha_alternate, &
-                       .false., 1.0e-2, 'B_cross_grad_s_dot_grad_alpha')
+                       .false., 1.0e-2, 'B_cross_grad_s_dot_grad_alpha', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for B_cross_grad_s_dot_grad_alpha"
+         ierr = ierr + 1
+      end if
 
       do izeta = -nzgrid, nzgrid
          B_cross_grad_B_dot_grad_alpha(:, izeta) = 0 &
@@ -1365,7 +1480,11 @@ contains
                                                 - B_Y * grad_B_X * grad_alpha_Z
 
       call test_arrays(B_cross_grad_B_dot_grad_alpha, B_cross_grad_B_dot_grad_alpha_alternate, &
-                       .false., 1.0e-2, 'B_cross_grad_B_dot_grad_alpha')
+                       .false., 1.0e-2, 'B_cross_grad_B_dot_grad_alpha', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for B_cross_grad_B_dot_grad_alpha"
+         ierr = ierr + 1
+      end if
 
       !*********************************************************************
       ! Finally, assemble the quantities needed for stella.
@@ -1565,10 +1684,10 @@ contains
          deallocate (rmns, lmnc, zmnc, bmns, gmns)
          deallocate (bsupumns, bsupvmns, bsubumns, bsubvmns, bsubsmnc)
       end if
-
+      
    contains
 
-      subroutine test_arrays(array1, array2, should_be_0, tolerance, name)
+      subroutine test_arrays(array1, array2, should_be_0, tolerance, name, ierr)
          ! This subroutine is used for verifying the geometry arrays.
          ! When should_be_0 = .true., the subroutine verifies that |array1| = 0 to within
          !     an absolute tolerance specified by 'tolerance'. array2 is ignored in this case.
@@ -1582,21 +1701,25 @@ contains
          character(len=*) :: name
          logical :: should_be_0
          real :: max_value, max_difference
+         integer, intent(out) :: ierr
 
+
+         ierr = 0
          if (should_be_0) then
             max_value = maxval(abs(array1))
 !         if (verbose) print *,"  maxval(abs(",trim(name),")):",max_value,"(should be << 1.)"
             if (max_value > tolerance) then
+               ierr = 1
                print *, "Error! ", trim(name), " should be 0, but instead it is:"
                do ialpha = 1, nalpha
                   print *, array1(ialpha, :)
                end do
-               stop
             end if
          else
             max_difference = maxval(abs(array1 - array2)) / maxval(abs(array1) + abs(array2))
 !         if (verbose) print *,"  Relative difference between two methods for computing ",trim(name),":",max_difference,"(should be << 1.)"
             if (max_difference > tolerance) then
+               ierr = 1
                print *, "Error! Two methods for computing ", trim(name), " disagree. Here comes method 1:"
                do ialpha = 1, nalpha
                   print *, array1(ialpha, :)
@@ -1609,10 +1732,9 @@ contains
                do ialpha = 1, nalpha
                   print *, array1(ialpha, :) - array2(ialpha, :)
                end do
-               stop
             end if
          end if
-
+         
       end subroutine test_arrays
 
    end subroutine vmec_to_stella_geometry_interface
