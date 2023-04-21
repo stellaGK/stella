@@ -11,12 +11,13 @@ from stellapy.data.input.read_inputFile import read_linearNonlinearFromInputFile
 from stellapy.data.input.read_inputFile import read_numberOfModesFromInputFile
 from stellapy.data.utils.get_indicesAtFixedStep import get_indicesAtFixedStep
 from stellapy.utils.files.get_filesInFolder import get_filesInFolder     
+from stellapy.utils.decorators.exit_program import exit_program
 
 #===============================================================================
 #                  PARALLEL MODE STRUCTURE OF THE POTENTIAL
 #===============================================================================
 
-def write_txtFileForPotentialVsZ(folder):  
+def write_txtFileForPotentialVsZ(folder, verbose=False):  
     
     # Get the input files
     input_files = get_filesInFolder(folder, end=".in")
@@ -45,7 +46,7 @@ def write_txtFileForPotentialVsZ(folder):
     
         # Notify that the file already existed   
         if os.path.isfile(potential_path) and not outputFileHasChanged:
-            print(status+"The phi(z) file already exists:", potential_path.parent.name+"/"+potential_path.name)
+            if verbose: print(status+"The phi(z) file already exists:", potential_path.parent.name+"/"+potential_path.name)
             continue 
     
         # Read the number of modes simulated in the input file
@@ -97,17 +98,13 @@ def read_potentialVsZ(netcdf_path):
     
     # Get the last time step without nans for each mode (kx,ky)
     phi_vs_zkxky = np.ones(np.shape(phi_vs_tzkxky)[1:], dtype="complex")*np.nan
-    dim_kx = np.shape(phi_vs_zkxky)[1]
-    dim_ky = np.shape(phi_vs_zkxky)[2]
-    nakxnaky = dim_kx*dim_ky; count = 0
     for it in range(len(vec_time)-1, -1, -1):
-        for ikx in range(dim_kx):
-            for iky in range(dim_ky):
-                if not np.any(np.isnan(phi_vs_tzkxky[it,:,ikx,iky])):
-                    phi_vs_zkxky[:,ikx,iky] = phi_vs_tzkxky[it,:,ikx,iky]; count += 1
-                if count==nakxnaky:
-                    break
+        if not np.any(~np.isfinite(phi_vs_tzkxky[it,:,:,:])):
+            phi_vs_zkxky[:,:,:] = phi_vs_tzkxky[it,:,:,:]
+            break
+    else: 
+        exit_program("We should find at least one time step which doesn't contain nans!", read_potentialVsZ, sys._getframe().f_lineno) 
     
     # Get the potential squared
-    phi2_vs_zkxky = np.abs(phi_vs_zkxky)**2 
+    phi2_vs_zkxky = np.abs(phi_vs_zkxky)**2  
     return phi_vs_zkxky, phi2_vs_zkxky

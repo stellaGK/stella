@@ -54,9 +54,7 @@ MODULE ezcdf
    ! No aliases. this caused the Intel compiler to fail, so I had to duplicate
    ! 2 interfaces: cdfPutVar <=> cdf_write and cdfGetVar <=> cdf_read (pletzer)
 
-   USE ezcdf_GenPut
    USE ezcdf_GenGet
-   USE ezcdf_attrib
    USE ezcdf_opncls
 
 END MODULE ezcdf

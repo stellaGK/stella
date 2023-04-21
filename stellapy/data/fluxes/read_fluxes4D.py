@@ -29,8 +29,8 @@ def read_fluxes4D(path):
     return
 
 #-------------------------------------
-def read_fromfluxesFile(path, fluxes={}):
-    with h5py.File(path, 'r') as f:  
+def read_fromfluxesFile(path_fluxes4D, fluxes={}):
+    with h5py.File(path_fluxes4D, 'r') as f:  
         for key in ["vec_time", "qflux_vs_ts", "pflux_vs_ts", "vflux_vs_ts"]:
             for extra in ["", "kxky"]: 
                 if key+extra in f.keys(): fluxes[key+extra] = f[key+extra][()]   

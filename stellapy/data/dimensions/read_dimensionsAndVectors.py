@@ -58,7 +58,7 @@ def read_dimensions(path):
 
     # Critical error if we didn't find any data
     exit_reason = "The dimension data could not be found:\n" 
-    exit_reason += path.dimensions+"\n" 
+    exit_reason += "    "+str(path.dimensions)+"\n" 
     exit_program(exit_reason, read_dimensions, sys._getframe().f_lineno)   
     return
 

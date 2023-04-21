@@ -67,11 +67,5 @@ def write_h5FileForDistribution4D(folder, dt=10, simulationWasntFinished=False):
         else:
             print("    The distribution file already exists:", distribution_file.parent.name+"/"+distribution_file.name)
     return 
-    
-################################################################################
-#                     USE THESE FUNCTIONS AS A MAIN SCRIPT                     #
-################################################################################
-if __name__ == "__main__":  
-    folder = pathlib.Path("/home/hanne/CIEMAT/RUNS/TEST_NEW_GUI")   
-    write_h5FileForDistribution4D(folder) 
+
     

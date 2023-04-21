@@ -1,6 +1,8 @@
 MODULE ezcdf_inqvar
 
    IMPLICIT NONE
+   integer, parameter :: fatal_error = 666
+
 !DEC$ IF DEFINED (NETCDF)
    PUBLIC :: cdfInqVar, cdfgv, cdfInqV, cdf_inquire, alpha_numeric
 
@@ -265,7 +267,11 @@ CONTAINS
       status = nf_inq_var(ncid, varid, name, xtype, ndims, dimids, natts)
       call handle_err(status, varnam, 'cdfInqV', 'nf_inq_var')
 
-      if (ndims > size(dimlens)) stop 'dimlens too small in cdfInqV'
+      if (ndims > size(dimlens)) then
+         print *, 'dimlens too small in cdfInqV'
+         status = fatal_error
+         return
+      end if
 
       do i = 1, ndims
          status = nf_inq_dimlen(ncid, dimids(i), dimlens(i))
