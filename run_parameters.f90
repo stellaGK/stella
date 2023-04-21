@@ -114,7 +114,7 @@ contains
          fields_kxkyz = .false.
          stream_implicit = .true.
          mirror_implicit = .true.
-         drifts_implicit = .false.
+         drifts_implicit = .true.
          driftkinetic_implicit = .false.
          maxwellian_inside_zed_derivative = .false.
          mirror_semi_lagrange = .true.
