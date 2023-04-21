@@ -22,7 +22,6 @@ module run_parameters
    public :: fields_kxkyz, mat_gen, mat_read
    public :: rng_seed
    public :: use_deltaphi_for_response_matrix
-   public :: use_h_for_parallel_streaming
    public :: maxwellian_normalization
    public :: use_extended_domain_for_implicit_solve
    public :: reuse_implicit_sweep_for_response_matrix
@@ -46,7 +45,6 @@ module run_parameters
    logical :: fields_kxkyz, mat_gen, mat_read
    logical :: ky_solve_real
    logical :: use_deltaphi_for_response_matrix
-   logical :: use_h_for_parallel_streaming
    logical :: maxwellian_normalization
    logical :: use_extended_domain_for_implicit_solve
    logical :: reuse_implicit_sweep_for_response_matrix
@@ -104,7 +102,7 @@ contains
          cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, &
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
          drifts_implicit, use_deltaphi_for_response_matrix, &
-         use_h_for_parallel_streaming, maxwellian_normalization, &
+         maxwellian_normalization, &
          use_extended_domain_for_implicit_solve, reuse_implicit_sweep_for_response_matrix, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
@@ -128,7 +126,6 @@ contains
          mirror_linear_interp = .false.
          stream_matrix_inversion = .false.
          use_deltaphi_for_response_matrix = .false.
-         use_h_for_parallel_streaming = .false.
          maxwellian_normalization = .false.
          use_extended_domain_for_implicit_solve = .false.
          reuse_implicit_sweep_for_response_matrix = .false.
@@ -201,23 +198,6 @@ contains
             error = .true.
          end if
 
-         if (use_h_for_parallel_streaming) then
-            if (.not. use_deltaphi_for_response_matrix) then
-               write (*, *) '!!!WARNING!!!'
-               write (*, *) 'use_h_for_parallel_streaming is only developed for use_deltaphi_for_response_matrix=T.'
-               write (*, *) 'Forcing use_deltaphi_for_response_matrix=T.'
-               write (*, *) '!!!WARNING!!!'
-               use_deltaphi_for_response_matrix = .true.
-            end if
-            if (.not. maxwellian_normalization) then
-               write (*, *) '!!!WARNING!!!'
-               write (*, *) 'use_h_for_parallel_streaming is only developed for maxwellian_normalization=T.'
-               write (*, *) 'Forcing maxwellian_normalization = .true.'
-               write (*, *) '!!!WARNING!!!'
-               maxwellian_normalization = .true.
-            end if
-         end if
-
          if (radial_variation .and. maxwellian_normalization) then
             write (*, *) '!!!WARNING!!!'
             write (*, *) 'maxwellian_normalization is not currently supported for use with radial_variation.'
@@ -261,7 +241,6 @@ contains
       call broadcast(mirror_linear_interp)
       call broadcast(stream_matrix_inversion)
       call broadcast(use_deltaphi_for_response_matrix)
-      call broadcast(use_h_for_parallel_streaming)
       call broadcast(maxwellian_normalization)
       call broadcast(use_extended_domain_for_implicit_solve)
       call broadcast(reuse_implicit_sweep_for_response_matrix)
