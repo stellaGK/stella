@@ -2632,7 +2632,7 @@ contains
       use physics_flags, only: include_mirror, prp_shear_enabled
       use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
 !      use parallel_streaming, only: advance_parallel_streaming_implicit
-      use implicit_solve, only: advance_implicit_terms, advance_implicit_terms_ext
+      use implicit_solve, only: advance_implicit_terms
       use fields, only: advance_fields, fields_updated
       use mirror_terms, only: advance_mirror_implicit
       use dissipation, only: collisions_implicit, include_collisions
@@ -2640,7 +2640,6 @@ contains
       use run_parameters, only: driftkinetic_implicit
       use flow_shear, only: advance_perp_flow_shear
       use multibox, only: RK_step
-      use run_parameters, only: use_extended_domain_for_implicit_solve
 
       implicit none
 
@@ -2719,12 +2718,7 @@ contains
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
-!            call advance_parallel_streaming_implicit(g, phi, apar)
-            if (use_extended_domain_for_implicit_solve) then
-               call advance_implicit_terms_ext(g, phi, apar)
-            else
-               call advance_implicit_terms(g, phi, apar)
-            end if
+            call advance_implicit_terms(g, phi, apar)
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
 
@@ -2742,12 +2736,7 @@ contains
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
-!            call advance_parallel_streaming_implicit(g, phi, apar)
-            if (use_extended_domain_for_implicit_solve) then
-               call advance_implicit_terms_ext(g, phi, apar)
-            else
-               call advance_implicit_terms(g, phi, apar)
-            end if
+            call advance_implicit_terms(g, phi, apar)
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
 

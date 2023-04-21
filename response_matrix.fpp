@@ -814,7 +814,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use run_parameters, only: time_upwind_plus
-      use implicit_solve, only: get_gke_rhs_ext, sweep_g_zext
+      use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use fields_arrays, only: response_matrix
       use extended_zgrid, only: periodic
 #ifdef ISO_C_BINDING
@@ -857,7 +857,7 @@ contains
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! calculate the RHS of the GK equation (using dum=0 as the pdf at the previous time level,
          ! and phi_ext as the potential) and store it in pdf_ext
-         call get_gke_rhs_ext(ivmu, iky, ie, dum, phi_ext, dum, pdf_ext(:, ivmu))
+         call get_gke_rhs(ivmu, iky, ie, dum, phi_ext, dum, pdf_ext(:, ivmu))
          ! given the RHS of the GK equation (pdf_ext), solve for the pdf at the
          ! new time level by sweeping in zed on the extended domain;
          ! the rhs is input as 'pdf_ext' and over-written with the updated solution for the pdf

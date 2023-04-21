@@ -23,7 +23,6 @@ module run_parameters
    public :: rng_seed
    public :: use_deltaphi_for_response_matrix
    public :: maxwellian_normalization
-   public :: use_extended_domain_for_implicit_solve
    public :: reuse_implicit_sweep_for_response_matrix
    public :: time_upwind_plus, time_upwind_minus
    public :: zed_upwind_plus, zed_upwind_minus
@@ -46,7 +45,6 @@ module run_parameters
    logical :: ky_solve_real
    logical :: use_deltaphi_for_response_matrix
    logical :: maxwellian_normalization
-   logical :: use_extended_domain_for_implicit_solve
    logical :: reuse_implicit_sweep_for_response_matrix
    real :: avail_cpu_time
    integer :: nstep, ky_solve_radial
@@ -103,7 +101,7 @@ contains
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
          drifts_implicit, use_deltaphi_for_response_matrix, &
          maxwellian_normalization, &
-         use_extended_domain_for_implicit_solve, reuse_implicit_sweep_for_response_matrix, &
+         reuse_implicit_sweep_for_response_matrix, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
@@ -127,7 +125,6 @@ contains
          stream_matrix_inversion = .false.
          use_deltaphi_for_response_matrix = .false.
          maxwellian_normalization = .false.
-         use_extended_domain_for_implicit_solve = .false.
          reuse_implicit_sweep_for_response_matrix = .false.
          delt_option = 'default'
          zed_upwind = 0.02
@@ -242,7 +239,6 @@ contains
       call broadcast(stream_matrix_inversion)
       call broadcast(use_deltaphi_for_response_matrix)
       call broadcast(maxwellian_normalization)
-      call broadcast(use_extended_domain_for_implicit_solve)
       call broadcast(reuse_implicit_sweep_for_response_matrix)
       call broadcast(zed_upwind)
       call broadcast(vpa_upwind)
