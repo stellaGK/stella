@@ -888,9 +888,8 @@ contains
       use parallel_streaming, only: init_parallel_streaming
       use dissipation, only: init_collisions, collisions_initialized, include_collisions
       use run_parameters, only: stream_implicit, driftkinetic_implicit, drifts_implicit
-      use run_parameters, only: reuse_implicit_sweep_for_response_matrix
       use response_matrix, only: response_matrix_initialized
-      use response_matrix, only: init_response_matrix, init_response_matrix_ext
+      use response_matrix, only: init_response_matrix
       use mirror_terms, only: mirror_initialized
       use mirror_terms, only: init_mirror
       use flow_shear, only: flow_shear_initialized
@@ -944,11 +943,7 @@ contains
       if ((stream_implicit .or. driftkinetic_implicit) .and. response_matrix_initialized) then
          response_matrix_initialized = .false.
          if (debug) write (6, *) 'time_advance::reset_dt::init_response_matrix'
-         if (reuse_implicit_sweep_for_response_matrix) then
-            call init_response_matrix_ext
-         else
-            call init_response_matrix
-         end if
+         call init_response_matrix
       end if
 
    end subroutine reset_dt

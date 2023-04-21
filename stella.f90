@@ -87,7 +87,6 @@ contains
       use run_parameters, only: stream_implicit, driftkinetic_implicit
       use run_parameters, only: delt_option_switch, delt_option_auto
       use run_parameters, only: mat_gen, mat_read
-      use run_parameters, only: reuse_implicit_sweep_for_response_matrix
       use species, only: init_species, read_species_knobs
       use species, only: nspec
       use zgrid, only: init_zgrid
@@ -95,7 +94,7 @@ contains
       use stella_geometry, only: init_geometry
       use stella_geometry, only: finish_init_geometry
       use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
-      use response_matrix, only: init_response_matrix, init_response_matrix_ext, read_response_matrix
+      use response_matrix, only: init_response_matrix, read_response_matrix
       use init_g, only: ginit, init_init_g, phiinit, scale_to_phiinit
       use init_g, only: tstart
       use fields, only: init_fields, advance_fields, get_radial_correction, fields_updated
@@ -309,11 +308,7 @@ contains
             call read_response_matrix
          else
             if (debug) write (6, *) "stella::init_stella::init_response_matrix"
-            if (reuse_implicit_sweep_for_response_matrix) then
-               call init_response_matrix_ext
-            else
-               call init_response_matrix
-            end if
+            call init_response_matrix
          end if
       end if
 
