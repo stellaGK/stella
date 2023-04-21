@@ -26,12 +26,10 @@ contains
       use dist_fn_arrays, only: g1
       use run_parameters, only: stream_matrix_inversion
       use run_parameters, only: use_deltaphi_for_response_matrix
-      use run_parameters, only: use_h_for_parallel_streaming
       use run_parameters, only: tupwnd1 => time_upwind_minus
       use run_parameters, only: tupwnd2 => time_upwind_plus
       use run_parameters, only: fphi
       use fields, only: advance_fields, fields_updated
-      use g_tofrom_h, only: g_to_h
 
       implicit none
 
@@ -47,22 +45,13 @@ contains
       !> dist_choice indicates whether the non-Boltzmann part of the pdf (h) is evolved
       !> in parallel streaming or if the guiding centre distribution (g = <f>) is evolved
       allocate (phi_source(naky, nakx, -nzgrid:nzgrid, ntubes))
-      if (use_h_for_parallel_streaming) then
-         dist_choice = 'h'
-         !> when dist_choice = 'h', use_deltaphi_for_response_matrix = .true.
-         !> and there is no contribution to the inhomogeneous equation from phi
-         phi_source = 0.0
-         !> convert the incoming pdf from guiding centre (g) to non-Boltzmann (h)
-         call g_to_h(g, phi, fphi)
+      dist_choice = 'gbar'
+      !> if using delphi formulation for response matrix, then phi = phi^n replaces
+      !> phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
+      if (use_deltaphi_for_response_matrix) then
+         phi_source = phi
       else
-         dist_choice = 'gbar'
-         !> if using delphi formulation for response matrix, then phi = phi^n replaces
-         !> phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
-         if (use_deltaphi_for_response_matrix) then
-            phi_source = phi
-         else
-            phi_source = tupwnd1 * phi
-         end if
+         phi_source = tupwnd1 * phi
       end if
 
       ! save the incoming pdf and phi, as they will be needed later
@@ -102,16 +91,10 @@ contains
       call invert_parstream_response(phi)
       if (proc0) call time_message(.false., time_implicit_advance(:, 3), ' (back substitution)')
 
-      if (use_h_for_parallel_streaming) then
-         phi_source = phi
-         !> construct phi^{n+1} = (phi^{n+1}-phi^{n*}) + phi^{n*}
-         phi = phi + phi_old
-      else
-         !> If using deltaphi formulation, must account for fact that phi = phi^{n+1}-phi^{n*}, but
-         !> tupwnd2 should multiply phi^{n+1}
-         if (use_deltaphi_for_response_matrix) phi = phi + phi_old
-         phi_source = tupwnd1 * phi_old + tupwnd2 * phi
-      end if
+      !> If using deltaphi formulation, must account for fact that phi = phi^{n+1}-phi^{n*}, but
+      !> tupwnd2 should multiply phi^{n+1}
+      if (use_deltaphi_for_response_matrix) phi = phi + phi_old
+      phi_source = tupwnd1 * phi_old + tupwnd2 * phi
 
       if (proc0) call time_message(.false., time_implicit_advance(:, 2), ' (bidiagonal solve)')
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -134,9 +117,6 @@ contains
 
       deallocate (phi_old, phi_source)
 
-      !> if using non-Boltzmannn pdf (h) for parallel streaming, convert back to guiding centre pdf (g)
-      if (use_h_for_parallel_streaming) call g_to_h(g, phi, -fphi)
-
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Stream advance')
 
    end subroutine advance_implicit_terms
@@ -151,12 +131,10 @@ contains
       use dist_fn_arrays, only: g1
       use run_parameters, only: stream_matrix_inversion
       use run_parameters, only: use_deltaphi_for_response_matrix
-      use run_parameters, only: use_h_for_parallel_streaming
       use run_parameters, only: tupwnd_p => time_upwind_plus
       use run_parameters, only: tupwnd_m => time_upwind_minus
       use run_parameters, only: fphi
       use fields, only: advance_fields, fields_updated
-      use g_tofrom_h, only: g_to_h
       use extended_zgrid, only: map_to_extended_zgrid, map_from_extended_zgrid
       use extended_zgrid, only: nsegments, nzed_segment
 
@@ -174,22 +152,13 @@ contains
       !> dist_choice indicates whether the non-Boltzmann part of the pdf (h) is evolved
       !> in parallel streaming or if the guiding centre distribution (g = <f>) is evolved
       allocate (phi_source(naky, nakx, -nzgrid:nzgrid, ntubes))
-      if (use_h_for_parallel_streaming) then
-         dist_choice = 'h'
-         !> when dist_choice = 'h', use_deltaphi_for_response_matrix = .true.
-         !> and there is no contribution to the inhomogeneous equation from phi_new
-         phi_source = 0.0
-         !> convert the incoming pdf from guiding centre (g) to non-Boltzmann (h)
-         call g_to_h(g, phi, fphi)
+      dist_choice = 'gbar'
+      !> if using delphi formulation for response matrix, then phi = phi^n replaces
+      !> phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
+      if (use_deltaphi_for_response_matrix) then
+         phi_source = phi
       else
-         dist_choice = 'gbar'
-         !> if using delphi formulation for response matrix, then phi = phi^n replaces
-         !> phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
-         if (use_deltaphi_for_response_matrix) then
-            phi_source = phi
-         else
-            phi_source = tupwnd_m * phi
-         end if
+         phi_source = tupwnd_m * phi
       end if
 
       ! save the incoming pdf and phi, as they will be needed later
@@ -213,24 +182,15 @@ contains
       call invert_parstream_response(phi)
       if (proc0) call time_message(.false., time_implicit_advance(:, 3), ' (back substitution)')
 
-      if (use_h_for_parallel_streaming) then
-         phi_source = phi
-         !> construct phi^{n+1} = (phi^{n+1}-phi^{n*}) + phi^{n*}
-         phi = phi + phi_old
-      else
-         !> If using deltaphi formulation, must account for fact that phi = phi^{n+1}-phi^{n*}, but
-         !> tupwnd_p should multiply phi^{n+1}
-         if (use_deltaphi_for_response_matrix) phi = phi + phi_old
-         phi_source = tupwnd_m * phi_old + tupwnd_p * phi
-      end if
+      !> If using deltaphi formulation, must account for fact that phi = phi^{n+1}-phi^{n*}, but
+      !> tupwnd_p should multiply phi^{n+1}
+      if (use_deltaphi_for_response_matrix) phi = phi + phi_old
+      phi_source = tupwnd_m * phi_old + tupwnd_p * phi
 
       ! solve for the final, updated pdf now that we have phi^{n+1}.
       call update_pdf
 
       deallocate (phi_old, phi_source)
-
-      !> if using non-Boltzmannn pdf (h) for parallel streaming, convert back to guiding centre pdf (g)
-      if (use_h_for_parallel_streaming) call g_to_h(g, phi, -fphi)
 
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Stream advance')
 
@@ -262,10 +222,6 @@ contains
                      call map_to_extended_zgrid(it, ie, iky, g1(iky, :, :, :, ivmu), pdf1, ulim)
                      ! map the incoming potential 'phi_source' onto the extended zed domain and call it 'phiext'
                      call map_to_extended_zgrid(it, ie, iky, phi_source(iky, :, :, :), phiext, ulim)
-                     if (use_h_for_parallel_streaming) then
-                        ! map the potential 'phi_old' onto the extended zed domain and call it 'phiext_old'
-                        call map_to_extended_zgrid(it, ie, iky, phi_old(iky, :, :, :), phiext_old, ulim)
-                     end if
                      ! calculate the RHS of the GK equation (using pdf1 and phi_source as the
                      ! pdf and potential, respectively) and store it in pdf2
                      call get_gke_rhs_ext(ivmu, iky, ie, pdf1, phiext, phiext_old, pdf2)
@@ -293,7 +249,6 @@ contains
 
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
-      use run_parameters, only: use_h_for_parallel_streaming
       use stella_layouts, only: vmu_lo, iv_idx
 
       implicit none
@@ -315,11 +270,7 @@ contains
 
       ! NB: rhs is used as a scratch array in get_contributions_from_phi
       ! so be careful not to move get_contributions_from_pdf before it, or rhs will be over-written
-      if (use_h_for_parallel_streaming) then
-         call get_contributions_from_phi_h_ext(phi, phi_old, ivmu, iky, ie, rhs, rhs_phi)
-      else
-         call get_contributions_from_phi_g_ext(phi, ivmu, iky, ie, rhs, rhs_phi)
-      end if
+      call get_contributions_from_phi_g_ext(phi, ivmu, iky, ie, rhs, rhs_phi)
       call get_contributions_from_pdf_ext(pdf, ivmu, iky, ie, rhs)
 
       ! construct RHS of GK eqn
@@ -333,7 +284,6 @@ contains
 
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
-      use run_parameters, only: use_h_for_parallel_streaming
 
       implicit none
 
@@ -354,11 +304,7 @@ contains
 
       ! NB: rhs is used as a scratch array in get_contributions_from_phi
       ! so be careful not to move get_contributions_from_pdf before it, or rhs will be over-written
-      if (use_h_for_parallel_streaming) then
-         call get_contributions_from_phi_h(phi, ivmu, rhs, rhs_phi)
-      else
-         call get_contributions_from_phi_g(phi, ivmu, rhs, rhs_phi)
-      end if
+      call get_contributions_from_phi_g(phi, ivmu, rhs, rhs_phi)
       call get_contributions_from_pdf(gold, ivmu, rhs)
 
       ! construct RHS of GK eqn
@@ -655,132 +601,6 @@ contains
       end do
 
    end subroutine gyro_average_zext
-
-   subroutine get_contributions_from_phi_h(phi, ivmu, scratch, rhs)
-
-      use zgrid, only: nzgrid
-      use species, only: spec
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use gyro_averages, only: gyro_average
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use run_parameters, only: driftkinetic_implicit, maxwellian_normalization
-      use parallel_streaming, only: center_zed
-
-      implicit none
-
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
-      integer, intent(in) :: ivmu
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: scratch, rhs
-
-      integer :: iv, imu, is, iz, ia
-
-      ia = 1
-      iv = iv_idx(vmu_lo, ivmu)
-      imu = imu_idx(vmu_lo, ivmu)
-      is = is_idx(vmu_lo, ivmu)
-
-      ! set rhs to be phi or <phi> depending on whether parallel streaming is
-      ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
-      if (driftkinetic_implicit) then
-         scratch = phi
-      else
-         call gyro_average(phi, ivmu, scratch)
-      end if
-
-      do iz = -nzgrid, nzgrid
-         rhs(:, :, iz, :) = spec(is)%zt * scratch(:, :, iz, :)
-         if (.not. maxwellian_normalization) rhs(:, :, iz, :) = rhs(:, :, iz, :) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-      end do
-      call center_zed(iv, rhs)
-
-   end subroutine get_contributions_from_phi_h
-
-   !> get_contributions_from_phi_h_ext takes as input the appropriately averaged
-   !> electrostatic potential phi and returns in rhs the sum of the source terms
-   !> involving phi that appear on the RHS of the GK equation when h is the pdf
-   subroutine get_contributions_from_phi_h_ext(phi, phi_old, ivmu, iky, ie, scratch, rhs)
-
-      use constants, only: zi
-      use zgrid, only: nzgrid
-      use species, only: spec
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use gyro_averages, only: gyro_average
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use run_parameters, only: driftkinetic_implicit, drifts_implicit
-      use run_parameters, only: maxwellian_normalization
-      use run_parameters, only: tupwnd_p => time_upwind_plus
-      use kt_grids, only: aky
-      use parallel_streaming, only: center_zed
-      use extended_zgrid, only: map_to_iz_ikx_from_izext
-      use extended_zgrid, only: periodic
-      use dist_fn_arrays, only: wstar
-
-      implicit none
-
-      complex, dimension(:), intent(in) :: phi, phi_old
-      integer, intent(in) :: ivmu, iky, ie
-      complex, dimension(:), intent(out) :: scratch, rhs
-
-      integer, dimension(:), allocatable :: iz_from_izext, ikx_from_izext
-      integer :: iv, imu, is, iz, ia
-      integer :: nz_ext, izext
-
-      ia = 1
-      iv = iv_idx(vmu_lo, ivmu)
-      imu = imu_idx(vmu_lo, ivmu)
-      is = is_idx(vmu_lo, ivmu)
-
-      ! nz_ext is the number of grid points in the extended zed domain
-      nz_ext = size(phi)
-
-      ! determine the mapping from the extended domain zed index (izext) to the
-      ! zed and kx domain indices (iz, ikx)
-      allocate (iz_from_izext(nz_ext))
-      allocate (ikx_from_izext(nz_ext))
-      call map_to_iz_ikx_from_izext(iky, ie, iz_from_izext, ikx_from_izext)
-
-      ! set rhs to be phi or <phi> depending on whether parallel streaming is
-      ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
-      if (driftkinetic_implicit) then
-         scratch = phi
-      else
-         call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, phi, scratch)
-      end if
-
-      do izext = 1, nz_ext
-         rhs(izext) = spec(is)%zt
-         if (.not. maxwellian_normalization) then
-            iz = iz_from_izext(izext)
-            rhs(izext) = rhs(izext) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-         end if
-      end do
-      if (drifts_implicit) then
-         do izext = 1, nz_ext
-            iz = iz_from_izext(izext)
-            rhs(izext) = rhs(izext) + zi * aky(iky) * wstar(ia, iz, ivmu) * tupwnd_p
-         end do
-      end if
-      rhs = rhs * scratch
-
-      ! set scratch to be phi or <phi> depending on whether parallel streaming is
-      ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
-      if (drifts_implicit) then
-         if (driftkinetic_implicit) then
-            scratch = phi_old
-         else
-            call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, phi_old, scratch)
-         end if
-
-         do izext = 1, nz_ext
-            iz = iz_from_izext(izext)
-            rhs(izext) = rhs(izext) + zi * aky(iky) * wstar(ia, iz, ivmu) * scratch(izext)
-         end do
-      end if
-      call center_zed(iv, rhs, 1, periodic(iky))
-
-      deallocate (iz_from_izext, ikx_from_izext)
-
-   end subroutine get_contributions_from_phi_h_ext
 
    !> get_contributions_from_pdf takes as an argument the evolved pdf
    !> (either guiding centre distribution g=<f> or maxwellian-normlized, non-Boltzmann distribution h/F0=f/F0+(Ze*phi/T))

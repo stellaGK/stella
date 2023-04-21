@@ -32,7 +32,6 @@ contains
       use mp, only: proc0, job, mp_abort
       use run_parameters, only: mat_gen, lu_option_switch
       use run_parameters, only: lu_option_none, lu_option_local, lu_option_global
-      use run_parameters, only: use_h_for_parallel_streaming
       use system_fortran, only: systemf
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
@@ -221,11 +220,7 @@ contains
             ! no need to obtain response to impulses at negative kx values
             do iz = iz_low(iseg), izup
                idx = idx + 1
-               if (use_h_for_parallel_streaming) then
-                  call get_dhdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-               else
-                  call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-               end if
+               call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
             end do
             ! once we have used one segments, remaining segments
             ! have one fewer unique zed point
@@ -235,11 +230,7 @@ contains
                   ikx = ikxmod(iseg, ie, iky)
                   do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                      idx = idx + 1
-                     if (use_h_for_parallel_streaming) then
-                        call get_dhdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-                     else
-                        call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
-                     end if
+                     call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
                   end do
                   if (izl_offset == 0) izl_offset = 1
                end do
@@ -267,11 +258,7 @@ contains
          ! for local stella, this is a diagonal process, but global stella
          ! may require something more sophisticated
 
-         if (use_h_for_parallel_streaming) then
-            dist = 'h'
-         else
-            dist = 'gbar'
-         end if
+         dist = 'gbar'
 
          ! loop over the sets of connected kx values
          do ie = 1, neigen(iky)
@@ -392,7 +379,6 @@ contains
       use mp, only: proc0, job, mp_abort
       use run_parameters, only: mat_gen, lu_option_switch
       use run_parameters, only: lu_option_none, lu_option_local, lu_option_global
-      use run_parameters, only: use_h_for_parallel_streaming
       use system_fortran, only: systemf
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
@@ -618,11 +604,7 @@ contains
          ! for local stella, this is a diagonal process, but global stella
          ! may require something more sophisticated
 
-         if (use_h_for_parallel_streaming) then
-            dist = 'h'
-         else
-            dist = 'gbar'
-         end if
+         dist = 'gbar'
 
          ! loop over the sets of connected kx values
          do ie = 1, neigen(iky)
@@ -832,7 +814,6 @@ contains
 
       use stella_layouts, only: vmu_lo
       use run_parameters, only: time_upwind_plus
-      use run_parameters, only: use_h_for_parallel_streaming
       use implicit_solve, only: get_gke_rhs_ext, sweep_g_zext
       use fields_arrays, only: response_matrix
       use extended_zgrid, only: periodic
@@ -860,11 +841,7 @@ contains
       phi_ext = 0.0
       ! how phi^{n+1} enters the GKE depends on whether we are solving for the
       ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
-      if (use_h_for_parallel_streaming) then
-         phi_ext(idx) = 1.0
-      else
-         phi_ext(idx) = time_upwind_plus
-      end if
+      phi_ext(idx) = time_upwind_plus
 
       if (periodic(iky) .and. idx == 1) phi_ext(nz_ext) = phi_ext(1)
 
@@ -1221,128 +1198,6 @@ contains
 #endif
 
    end subroutine get_dgdphi_matrix_column
-
-   subroutine get_dhdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, hext)
-
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use stella_time, only: code_dt
-      use zgrid, only: delzed, nzgrid
-      use extended_zgrid, only: periodic, phase_shift
-      use species, only: spec
-      use stella_geometry, only: gradpar, dbdzed
-      use vpamu_grids, only: vpa, mu
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use fields_arrays, only: response_matrix
-      use gyro_averages, only: aj0x
-      use run_parameters, only: driftkinetic_implicit
-      use run_parameters, only: maxwellian_inside_zed_derivative
-      use run_parameters, only: maxwellian_normalization
-      use parallel_streaming, only: stream_tridiagonal_solve
-      use parallel_streaming, only: stream_sign
-      use implicit_solve, only: sweep_zed_zonal
-      use run_parameters, only: zed_upwind, time_upwind
-#ifdef ISO_C_BINDING
-      use mp, only: sgproc0
-#endif
-
-      implicit none
-
-      integer, intent(in) :: iky, ikx, iz, ie, idx, nz_ext, nresponse
-      complex, dimension(:), intent(in out) :: phiext
-      complex, dimension(:, vmu_lo%llim_proc:), intent(in out) :: hext
-
-      integer :: ivmu, iv, imu, is, ia
-      real :: phi_prefac, gyro_fac
-      real :: zupwnd_p, zupwnd_m
-
-      ia = 1
-
-      ! get RHS of GKE corresponding to unit impulse in phi
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         ! initialize h to zero everywhere along extended zed domain
-         hext(:, ivmu) = 0.0
-
-         ! obtain vpa, mu and species indices from the super-index ivmu
-         iv = iv_idx(vmu_lo, ivmu)
-         imu = imu_idx(vmu_lo, ivmu)
-         is = is_idx(vmu_lo, ivmu)
-
-         ! give unit impulse to phi at this zed location (specified by idx)
-         ! and compute RHS of streaming part of GKE
-
-         ! if driftkinetic_implicit = .true., then split <phi> = phi + (<phi>-phi),
-         ! and only treat the phi piece implicitly via response matrix
-         if (driftkinetic_implicit) then
-            gyro_fac = 1.0
-         else
-            gyro_fac = aj0x(iky, ikx, iz, ivmu)
-         end if
-
-         ! this is the common pre-factor multiplying phi in both terms on the RHS of the GKE
-         phi_prefac = 0.5 * spec(is)%zt_psi0 * gyro_fac
-         if (.not. maxwellian_normalization) then
-            phi_prefac = phi_prefac * maxwell_vpa(iv, is) * maxwell_fac(is) * maxwell_mu(ia, iz, imu, is)
-         end if
-
-         ! zupwnd_p and zupwnd_m are upwinding factors that indicate the relative weight given to phi values
-         ! at neighbouring z locations; zed_upwind = 0 corresponds to a cell-centred evaluation
-         zupwnd_p = 1.0 + zed_upwind
-         zupwnd_m = 1.0 - zed_upwind
-
-         ! stream_sign < 0 corresponds to positive advection speed
-         if (stream_sign(iv) < 0) then
-            hext(idx, ivmu) = zupwnd_p * phi_prefac
-            if (idx < nz_ext) hext(idx + 1, ivmu) = zupwnd_m * phi_prefac
-
-            ! zonal mode BC is periodic instead of zero, so must
-            ! treat specially
-            if (periodic(iky)) then
-               if (idx == 1) then
-                  hext(nz_ext, ivmu) = hext(idx, ivmu) / phase_shift(iky)
-               else if (idx == nz_ext - 1) then
-                  hext(1, ivmu) = hext(nz_ext, ivmu) * phase_shift(iky)
-               end if
-            end if
-         else
-            hext(idx, ivmu) = zupwnd_p * phi_prefac
-            if (idx > 1) hext(idx - 1, ivmu) = zupwnd_m * phi_prefac
-            ! zonal mode BC is periodic instead of zero, so must
-            ! treat specially
-            if (periodic(iky)) then
-               if (idx == 1) then
-                  hext(nz_ext, ivmu) = hext(1, ivmu) / phase_shift(iky)
-                  hext(nz_ext - 1, ivmu) = zupwnd_m * phi_prefac * phase_shift(iky)
-               else if (idx == 2) then
-                  hext(nz_ext, ivmu) = hext(1, ivmu) * phase_shift(iky)
-               end if
-            end if
-         end if
-
-         if (periodic(iky)) then
-            call sweep_zed_zonal(iky, iv, is, stream_sign(iv), hext(:, ivmu), 1)
-         else
-            ! invert parallel streaming equation to get g^{n+1} on extended zed grid
-            ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = hext
-            call stream_tridiagonal_solve(iky, ie, iv, is, hext(:, ivmu))
-         end if
-
-      end do
-
-      ! we now have h on the extended zed domain at this ky and set of connected kx values
-      ! corresponding to a unit impulse in phi at this location
-      ! now integrate over velocities to get a square response matrix
-      ! (this ends the parallelization over velocity space, so every core should have a
-      !  copy of phiext)
-      call integrate_over_velocity(hext, phiext, iky, ie)
-
-#ifdef ISO_C_BINDING
-      if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, idx) = phiext(:nresponse)
-#else
-      response_matrix(iky)%eigen(ie)%zloc(:, idx) = phiext(:nresponse)
-#endif
-
-   end subroutine get_dhdphi_matrix_column
 
 ! subroutine get_phi_matrix
 ! end subroutine get_phi_matrix
