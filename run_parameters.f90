@@ -77,7 +77,7 @@ contains
    subroutine read_parameters
 
       use file_utils, only: input_unit, error_unit, input_unit_exist
-      use mp, only: proc0, broadcast
+      use mp, only: mp_abort, proc0, broadcast
       use text_options, only: text_option, get_option_value
       use physics_flags, only: include_mirror, full_flux_surface, radial_variation
       use physics_flags, only: nonlinear
@@ -95,7 +95,7 @@ contains
                                                       text_option('global', lu_option_global)/)
 
       character(20) :: delt_option, lu_option
-
+      logical :: error = .false.
       integer :: ierr, in_file
 
       namelist /knobs/ fphi, fapar, fbpar, delt, nstep, tend, &
@@ -113,6 +113,8 @@ contains
          ky_solve_radial, ky_solve_real
 
       if (proc0) then
+
+         ! Default parameters in namelist <knobs>
          fphi = 1.0
          fapar = 1.0
          fbpar = -1.0
@@ -167,7 +169,6 @@ contains
          call get_option_value &
             (delt_option, deltopts, delt_option_switch, ierr, &
              "delt_option in knobs")
-
          call get_option_value &
             (lu_option, lu_opts, lu_option_switch, ierr, &
              "lu_option in knobs")
@@ -181,7 +182,7 @@ contains
             write (*, *) ''
             write (*, *) 'Please specify either <nstep> or <tend> in the <knobs> namelist.'
             write (*, *) 'Aborting.'
-            stop
+            error = .true.
          end if
 
          ! Abort if cfl_cushion_lower>cfl_cushion_upper or if cfl_cushion_lower==cfl_cushion_upper
@@ -197,7 +198,7 @@ contains
             write (*, *) 'Please make sure that <cfl_cushion_upper> is bigger than <cfl_cushion_lower>,'
             write (*, *) 'and that <cfl_cushion_middle> lies in between <cfl_cushion_upper> and <cfl_cushion_lower>.'
             write (*, *) 'Aborting.'
-            stop
+            error = .true.
          end if
 
          if (use_h_for_parallel_streaming) then
@@ -234,6 +235,10 @@ contains
          end if
 
       end if
+
+      ! Exit stella if we ran into an error
+      call broadcast(error)
+      if (error) call mp_abort('Aborting in run_parameters.f90')
 
       call broadcast(fields_kxkyz)
       call broadcast(delt_option_switch)

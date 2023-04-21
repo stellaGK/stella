@@ -38,7 +38,7 @@ from stellapy.data.geometry.read_output import read_outputFile as read_outputFil
 #                        TIME EVOLUTION OF THE POTENTIAL
 #===============================================================================
 
-def write_txtFileForPotentialVsTime(folder, dt=1):   
+def write_txtFileForPotentialVsTime(folder, dt=1, verbose=False):   
     
     # Segmentation fault (core dumped) on xula
     if "/mnt/lustre" in os.path.abspath(__file__): return 
@@ -62,7 +62,7 @@ def write_txtFileForPotentialVsTime(folder, dt=1):
         
         # Depending on whether the simulation is linear or nonlinear write different data
         try:
-            if not nonlinear: write_txtFileForPotentialVsTimeLinearSimulations(input_file, dt, status)
+            if not nonlinear: write_txtFileForPotentialVsTimeLinearSimulations(input_file, dt, status, verbose)
             if nonlinear: write_txtFileForPotentialVsTimeNonlinearSimulations(input_file, dt, status)
         except:
             print(status+"   ---> Something went wrong writing phi(t) for " +  input_file.parent.parent.name+"/"+input_file.parent.name+"/"+input_file.name)   
@@ -190,7 +190,7 @@ def read_potentialVsTimeNonlinearSimulations(dt, input_file, netcdf_path):
 #                             LINEAR SIMULATIONS                               #
 #===============================================================================
 
-def write_txtFileForPotentialVsTimeLinearSimulations(input_file, dt, status):   
+def write_txtFileForPotentialVsTimeLinearSimulations(input_file, dt, status, verbose):   
     
     # Path of the new file  
     potential_path = input_file.with_suffix(".dt"+str(dt)+".phi_vs_t") 
@@ -204,7 +204,7 @@ def write_txtFileForPotentialVsTimeLinearSimulations(input_file, dt, status):
     
     # Notify that the file already existed   
     if os.path.isfile(potential_path) and not outputFileHasChanged:
-        print(status+"The phi(t) file already exists:", potential_path.parent.name+"/"+potential_path.name)
+        if verbose: print(status+"The phi(t) file already exists:", potential_path.parent.name+"/"+potential_path.name)
         return
     
     # Read the number of modes simulated in the input file

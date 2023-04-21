@@ -13,6 +13,7 @@ module vmec_geo
    real :: zeta_center, torflux
    logical :: verbose
    character(2000) :: vmec_filename
+   integer :: n_tolerated_test_arrays_inconsistencies
 
 contains
 
@@ -28,7 +29,8 @@ contains
       logical :: exist
 
       namelist /vmec_parameters/ alpha0, zeta_center, nfield_periods, &
-         torflux, zgrid_scalefac, zgrid_refinement_factor, surface_option, verbose, vmec_filename, gradpar_zeta_prefac
+         torflux, zgrid_scalefac, zgrid_refinement_factor, surface_option, &
+         verbose, vmec_filename, gradpar_zeta_prefac, n_tolerated_test_arrays_inconsistencies
 
       call init_vmec_defaults
 
@@ -48,6 +50,11 @@ contains
             write (*, *) 'Setting zgrid_refinement_factor = 1'
             zgrid_refinement_factor = 1
          end if
+      end if
+
+      if (n_tolerated_test_arrays_inconsistencies < 0) then
+         write (*, *) 'n_tolerated_test_arrays_inconsistencies = ', n_tolerated_test_arrays_inconsistencies
+         call mp_abort('n_tolerated_test_arrays_inconsistencies should always be >= 0.  aborting')
       end if
 
    end subroutine read_vmec_parameters
@@ -79,6 +86,7 @@ contains
       else
          zgrid_refinement_factor = 1
       end if
+      n_tolerated_test_arrays_inconsistencies = 0
 
    end subroutine init_vmec_defaults
 
@@ -100,6 +108,7 @@ contains
       use zgrid, only: zed_equal_arc, get_total_arc_length, get_arc_length_grid
       use zgrid, only: zed
       use file_utils, only: open_output_file
+      use mp, only: mp_abort
 
       implicit none
 
@@ -145,13 +154,18 @@ contains
       real :: dzeta_vmec, zmin, zmax
       real, dimension(nalpha, -nzgrid:nzgrid) :: theta
 
+      integer :: ierr
+
       !> To avoid writting twice in the output file when recomputing zeta.
       if (stellarator_symmetric_BC) verbose = .false.
       !> first read in equilibrium information from vmec file
       !> this is stored as a set of global variables in read_wout_mod
       !> in mini_libstell.  it will be accessible
       if (debug) write (*, *) 'get_vmec_geo::read_vmec_equilibrium'
-      call read_vmec_equilibrium(vmec_filename, verbose)
+      call read_vmec_equilibrium(vmec_filename, verbose, ierr)
+      if (ierr /= 0) then
+         call mp_abort('read_vmec_equilibrium returned error.')
+      end if
 
       ! !> nzgrid_vmec is the number of positive/negative zeta locations
       ! !> at which to get geometry data from vmec
@@ -203,7 +217,13 @@ contains
                                              gds25_vmec, gds26_vmec, gbdrift_alpha_vmec, gbdrift0_psi_vmec, &
                                              cvdrift_alpha_vmec, &
                                              cvdrift0_psi_vmec, thetamod_vmec, B_sub_zeta_mod, B_sub_theta_vmec_mod, &
-                                             x_displacement_fac_vmec, gradpar_zeta_prefac)
+                                             x_displacement_fac_vmec, gradpar_zeta_prefac, ierr)
+
+      if (ierr /= 0) then
+         if (ierr > n_tolerated_test_arrays_inconsistencies .or. ierr < 0) then
+            call mp_abort('vmec_to_stella_geometry_interface returned error.')
+         end if
+      end if
 
       !> get ratio of number of simulated field periods to the number of field periods of the device
       field_period_ratio = nfield_periods / real(nfp)

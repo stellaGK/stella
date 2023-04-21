@@ -27,7 +27,7 @@ def write_netcdfFileOverSaturatedPhase(folder, skip=1, verbose=False):
         for netcdf_file in netcdf_files:
 
             # Check whether we have a linear or nonlinear simulation
-            linear, nonlinear = read_linearNonlinearFromInputFile(str(netcdf_file).replace(".out.nc",".in"))
+            linear, nonlinear = read_linearNonlinearFromInputFile(str(netcdf_file).replace(".out.nc",".in")) 
              
             # Start timer
             start = timer.time()
@@ -55,7 +55,7 @@ def write_netcdfFileOverSaturatedPhase(folder, skip=1, verbose=False):
                     variables_new = list(netcdf_data.variables.keys()) 
                 if "input_file" in variables_new:
                     if verbose: print("The netcdf file averaged over the saturated phase already exists. ")
-                    if not verbose: print("   The saturated netcdf already exists: " +  finished_file.parent.name+"/"+finished_file.name)  
+                    if (not verbose) and nonlinear: print("   The saturated netcdf already exists: " +  finished_file.parent.name+"/"+finished_file.name)  
                     continue
                     
             # Constuct a new netcdf file averaged over the saturated time trace

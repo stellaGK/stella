@@ -18,7 +18,7 @@ from stellapy.utils.files.get_filesInFolder import get_filesInFolder
 #                  DISTRIBUTION SQUARED OF THE GUIDING CENTERS
 #===============================================================================
 
-def write_txtFileForDistributionVsTime(folder, dt=1):   
+def write_txtFileForDistributionVsTime(folder, dt=1, verbose=False):   
     
     # Time step
     dt = int(dt) if int(dt)==dt else dt   
@@ -38,7 +38,7 @@ def write_txtFileForDistributionVsTime(folder, dt=1):
         nonlinear = read_linearNonlinearFromInputFile(input_files[0])[1]
         
         # Depending on whether the simulation is linear or nonlinear write different data
-        if not nonlinear: write_txtFileForDistributionVsTimeLinearSimulations(input_file, dt, status)
+        if not nonlinear: write_txtFileForDistributionVsTimeLinearSimulations(input_file, dt, status, verbose)
         if nonlinear: write_txtFileForDistributionVsTimeNonlinearSimulations(input_file, dt, status) 
         
     return 
@@ -138,7 +138,7 @@ def write_txtFileForDistributionVsTimeNonlinearSimulations(input_file, dt, statu
 #                             LINEAR SIMULATIONS                               #
 #===============================================================================
  
-def write_txtFileForDistributionVsTimeLinearSimulations(input_file, dt, status):  
+def write_txtFileForDistributionVsTimeLinearSimulations(input_file, dt, status, verbose):  
     """ Always create a new txt file. """  
     
     try:
@@ -161,7 +161,7 @@ def write_txtFileForDistributionVsTimeLinearSimulations(input_file, dt, status):
                 
         # Notify that the file already existed   
         if os.path.isfile(distribution_path) and not outputFileHasChanged:
-            print(status+"The g(t) file already exists:", distribution_path.parent.name+"/"+distribution_path.name)
+            if verbose: print(status+"The g(t) file already exists:", distribution_path.parent.name+"/"+distribution_path.name)
             return 
             
         # Read the distribution versus time from the output file
@@ -201,33 +201,19 @@ def read_distributionVsTime(dt, input_file, netcdf_path):
         print(geometry['source'])
         print("vpa_weights could not be found in the geometry data (write_txtFileForDistributionVsTime)"); 
         print(input_file); sys.exit()
-    vpa_weights = geometry["vpa_weights"] 
-    mu_weights = geometry["mu_weights"] 
+    vpa_weights = geometry["vpa_weights"]  
     dl_over_B = geometry["dl_over_B"]  
     
     # Get the distribution data from the output file
-    netcdf_data  = read_outputFile(netcdf_path)  
-    g2_vs_tsmuvpa = read_netcdfVariables('g2_vs_tsmuvpa', netcdf_data) 
-    vec_time     = read_netcdfVariables('vec_time', netcdf_data) 
-    netcdf_data.close() 
-    
-    # Get the data at every <dt> timestep
+    netcdf_data = read_outputFile(netcdf_path)  
+    vec_time = read_netcdfVariables('vec_time', netcdf_data) 
     indices = get_indicesAtFixedStep(vec_time, dt)
-    g2_vs_tsmuvpa = g2_vs_tsmuvpa[indices] 
+    g2_vs_tsvpaz = read_netcdfVariables('g2_vs_tsvpaz', netcdf_data, indices) 
     vec_time = vec_time[indices]
+    netcdf_data.close()       
     
-    # Get the (t, species, mu, vpa) dimensions  
-    dim_time, dim_species, dim_mu, dim_vpa = np.shape(g2_vs_tsmuvpa)  
-    
-    # Calculate the final g(vpa) and g(mu)
-    g2_vs_ts = np.zeros((dim_time, dim_species))  
-    
-    # Sum over (vpa,mu,z) in g_vs_smuvpa(s,mu,vpa) 
-    for vpa in range(dim_vpa): 
-        for mu in range(dim_mu):
-            for z in range(len(dl_over_B)): 
-                product = g2_vs_tsmuvpa[:,:,mu,vpa]*mu_weights[z,mu]*vpa_weights[vpa]*dl_over_B[z] 
-                g2_vs_ts[:,:] += product 
+    # Integrate over (vpa,mu,z) 
+    g2_vs_ts = np.sum(g2_vs_tsvpaz[:,:,:,:]*vpa_weights[np.newaxis,np.newaxis,:,np.newaxis]*dl_over_B[np.newaxis,np.newaxis,np.newaxis,:], axis=(2,3))
                 
     # Return the data 
     return g2_vs_ts, vec_time 

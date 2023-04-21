@@ -2,23 +2,14 @@
 set(SOURCES_LIBSTELLA_f90
   mini_libstell/ezcdf.f90
   mini_libstell/ezcdf_GenGet.f90
-  mini_libstell/ezcdf_GenPut.f90
-  mini_libstell/ezcdf_attrib.f90
   mini_libstell/ezcdf_inqvar.f90
   mini_libstell/ezcdf_opncls.f90
-  mini_libstell/getcarg.f
   mini_libstell/handle_err.f90
   mini_libstell/makefile
-  mini_libstell/mgrid_mod.f
   mini_libstell/parse_extension.f
   mini_libstell/safe_open_mod.f
   mini_libstell/stel_constants.f
   mini_libstell/stel_kinds.f
-  mini_libstell/system_mod.f
-  mini_libstell/v3_utilities.f
-  mini_libstell/vmec_getenv.f
-  mini_libstell/vmec_input.f
-  mini_libstell/vparams.f
   mini_libstell/vsvd0.f
   )
 

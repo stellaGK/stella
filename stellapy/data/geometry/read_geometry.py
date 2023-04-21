@@ -93,7 +93,7 @@ def read_geometryFromTxtFile(path):
                 input_data = open(path, 'r')
                 input_text = input_data.read() 
                 new_file = open(str(path)+"_corrected", "w" )  
-                new_file.write(input_text.replace("+1", "E+1").replace("EE", "E")) 
+                new_file.write(input_text.replace("+1", "E+1").replace("-3", "E-3").replace("EE", "E"))  
                 new_file.close(); input_data.close()
                 try: 
                     geometry_data = np.loadtxt(str(path)+"_corrected", dtype='float', skiprows=4).reshape(-1, 14)

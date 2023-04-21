@@ -11,8 +11,9 @@ Variable | Type | Default | Description
 `delt_option`  | string | '`check_restart `' | How to handle setting the timestep on restart. Should be one of <ul><li>`check_restart` automatically checks the restart file for last saved time step.</li><li>`set_by_hand` use `delt` from input file.</li><li>`default` same as `check_restart`.</li></ul>
 `lu_option`  | string | `default` | Parallelization of the LU decomposition. Should be one of <ul><li>`none` no parallelization.</li><li>`none` same as `default`</li><li>`local` Parallelized locally on a core using shared memory. Best case speed-up is \\(j_\mathrm{twist}\times (\textrm{cores per node}). \\).</li><li>`global` parallelized over all cores. Currently only works on experimental branch `development/pLU_scalapack` which uses ScaLAPACK. </li></ul>If compiled with `HAS_ISO_C_BINDING`, then it is ***strongly*** recommended to run with `lu_option='local'`.
 `avail_cpu_time`  |real |  \\( 10^{10} \\) | Available CPU time **in seconds**. Useful for cleanly ending a run before allocated time runs out.
-`cfl_cushion`  | real | 0.5 | Safety factor for the CFL condition. 
-`delt_adjust`  | real | 2.0 | Additional one-way safety factor used for setting a new *smaller* timestep based off CFL condition. 
+`cfl_cushion_upper`  | real | 0.5 | Safety margin for the CFL condition. 
+`cfl_cushion_middle`  | real | 0.25 | Safety margin used for setting a new *smaller* timestep when the timestep exceeds cfl_cushion_upper \* CLF_dt, or for setting a new "larger" timestep when the timesetps is smaller than cfl_cushion_lower \* CFL_dt. 
+`cfl_cushion_lower`  | real |  0.00001 | Lowest time-step based on CFL condition. 
 `delt_max`  | real | -1 | If positive, then set the maximum timestep to `delt_max`; otherwise, the maximum time step will be the initial one.
 `stream_implicit`  | boolean | `true` | Calculate parallel streaming implicitly using the response matrix approach.
 `mirror_implicit`  | boolean | `true` | Calculate the mirror term implicitly.

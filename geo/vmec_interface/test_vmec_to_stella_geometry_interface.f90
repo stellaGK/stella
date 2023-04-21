@@ -38,13 +38,13 @@ program test_vmec_to_stella_geometry_interface
    ! Variables used internally by this program
    !*********************************************************************
 
-   integer :: j, iunit
+   integer :: j, iunit, ierr
 
    !*********************************************************************
    ! Beginning of executable statements
    !*********************************************************************
 
-   call read_vmec_equilibrium(vmec_filename, verbose)
+   call read_vmec_equilibrium(vmec_filename, verbose, ierr)
 
    call vmec_to_stella_geometry_interface(nalpha, alpha0, nzgrid, zeta_center, &
                                           number_of_field_periods_to_include, &
@@ -53,7 +53,8 @@ program test_vmec_to_stella_geometry_interface
                                           sign_toroidal_flux, &
                                           alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gds23, gds24, gds25, gds26, &
                                           gbdrift, gbdrift0, cvdrift, cvdrift0, &
-                                          theta_vmec, B_sub_zeta, B_sub_theta_vmec, displacement, gradpar_zeta_prefac)
+                                          theta_vmec, B_sub_zeta, B_sub_theta_vmec, displacement, gradpar_zeta_prefac, &
+                                          ierr)
 
    print *, "-------------- Input parameters ------------------"
    print *, "vmec_filename: ", trim(vmec_filename)
