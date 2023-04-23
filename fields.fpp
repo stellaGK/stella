@@ -914,7 +914,7 @@ contains
             ! multiply by vpa
             g_scratch(:, :, :, :, ivmu) = g_scratch(:, :, :, :, ivmu) * vpa(iv)
          end do
-         
+
          ! integrate vpa*<g> over velocity space and sum over species
          !> store result in apar, which will be further modified below to account for apar pre-factor
          if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_vmulo::integrate_species_apar'
@@ -1414,30 +1414,30 @@ contains
    ! term appearing in latter case)
    subroutine get_apar(apar, dist)
 
-     use mp, only: proc0, mp_abort
-     use zgrid, only: nzgrid, ntubes
-     use dist_fn_arrays, only: kperp2
-     
-     implicit none
+      use mp, only: proc0, mp_abort
+      use zgrid, only: nzgrid, ntubes
+      use dist_fn_arrays, only: kperp2
 
-     complex, dimension(:, :, -nzgrid:, :), intent(in out) :: apar
-     character(*), intent(in) :: dist
+      implicit none
 
-     integer :: ia
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: apar
+      character(*), intent(in) :: dist
 
-     ! this subroutine only considers flux tubes, so set ia = 1
-     ia = 1
-     if (dist == 'g') then
-        apar = apar / spread(kperp2(:, :, ia, :), 4, ntubes)
-     else if (dist == 'gbar') then
-        apar = apar / spread(apar_denom, 4, ntubes)
-     else
-        if (proc0) write (*, *) 'unknown dist option in get_apar. aborting'
-        call mp_abort('unkown dist option in get_apar. aborting')
-     end if
-     
+      integer :: ia
+
+      ! this subroutine only considers flux tubes, so set ia = 1
+      ia = 1
+      if (dist == 'g') then
+         apar = apar / spread(kperp2(:, :, ia, :), 4, ntubes)
+      else if (dist == 'gbar') then
+         apar = apar / spread(apar_denom, 4, ntubes)
+      else
+         if (proc0) write (*, *) 'unknown dist option in get_apar. aborting'
+         call mp_abort('unkown dist option in get_apar. aborting')
+      end if
+
    end subroutine get_apar
-   
+
    !> Add the adiabatic eletron contribution for globally radial simulations.
    !> This actually entails solving for the whole ky = 0 slice of phi at once (not really adding!)
    subroutine add_adiabatic_response_radial(phi)

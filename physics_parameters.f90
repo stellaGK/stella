@@ -37,7 +37,7 @@ contains
       logical :: rpexist
 
       namelist /parameters/ beta, zeff, tite, nine, rhostar, vnew_ref, &
-           g_exb, g_exbfac, omprimfac, irhostar
+         g_exb, g_exbfac, omprimfac, irhostar
 
       if (proc0) then
          beta = 0.0 ! beta = 8 * pi * p_ref / B_ref^2
