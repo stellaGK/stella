@@ -46,7 +46,7 @@ contains
       !> dist_choice indicates whether the non-Boltzmann part of the pdf (h) is evolved
       !> in parallel streaming or if the guiding centre distribution (g = <f>) is evolved
       allocate (phi_source(naky, nakx, -nzgrid:nzgrid, ntubes))
-      dist_choice = 'gbar'
+      dist_choice = 'g'
       !> if using delphi formulation for response matrix, then phi = phi^n replaces
       !> phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
       if (use_deltaphi_for_response_matrix) then

@@ -36,11 +36,11 @@ contains
       integer :: in_file
       logical :: rpexist
 
-      namelist /parameters/ beta, zeff, tite, nine, rhostar, vnew_ref &
-         , g_exb, g_exbfac, omprimfac, irhostar
+      namelist /parameters/ beta, zeff, tite, nine, rhostar, vnew_ref, &
+           g_exb, g_exbfac, omprimfac, irhostar
 
       if (proc0) then
-         beta = 0.0
+         beta = 0.0 ! beta = 8 * pi * p_ref / B_ref^2
          vnew_ref = -1.0 ! various input options will override this value if it is negative
          rhostar = -1.0 ! = m_ref * vt_ref / (e * B_ref * a_ref), with refs in SI
          irhostar = -1.0

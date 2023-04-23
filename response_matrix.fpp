@@ -257,7 +257,7 @@ contains
          ! for local stella, this is a diagonal process, but global stella
          ! may require something more sophisticated
 
-         dist = 'gbar'
+         dist = 'g'
 
          ! loop over the sets of connected kx values
          do ie = 1, neigen(iky)

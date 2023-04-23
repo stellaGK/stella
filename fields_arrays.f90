@@ -5,7 +5,8 @@ module fields_arrays
 
    implicit none
 
-   complex, dimension(:, :, :, :), allocatable :: phi, apar, phi_old
+   complex, dimension(:, :, :, :), allocatable :: phi, phi_old
+   complex, dimension(:, :, :, :), allocatable :: apar, apar_old
    ! (naky, nakx, -nzgrid:nzgrid, ntubes)
 
    ! DSO 0 the following is a band-aid for radially global simulations until

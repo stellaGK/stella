@@ -342,7 +342,7 @@ contains
 
       if (radial_variation) fields_updated = .false.
       !> get the updated fields corresponding to gnew
-      call advance_fields(gnew, phi, apar, dist='gbar')
+      call advance_fields(gnew, phi, apar, dist='g')
 
       allocate (phi_out(naky, nakx, -nzgrid:nzgrid, ntubes))
       phi_out = phi
