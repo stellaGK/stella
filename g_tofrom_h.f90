@@ -148,11 +148,11 @@ contains
       use run_parameters, only: maxwellian_normalization
 
       implicit none
-    
-      complex, dimension (:), intent (in out) :: g
-      complex, intent (in) :: apar
+
+      complex, dimension(:), intent(in out) :: g
+      complex, intent(in) :: apar
       integer, intent(in) :: imu, ikxkyz
-      real, intent (in) :: facapar
+      real, intent(in) :: facapar
 
       integer :: iz, is, ia
       complex, dimension(:), allocatable :: field, adjust
@@ -163,7 +163,7 @@ contains
       ia = 1
       iz = iz_idx(kxkyz_lo, ikxkyz)
       is = is_idx(kxkyz_lo, ikxkyz)
-      
+
       field = 2.0 * facapar * apar * spec(is)%zt * spec(is)%stm_psi0 * vpa
       if (.not. maxwellian_normalization) then
          field = field * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is)
@@ -171,7 +171,7 @@ contains
       call gyro_average(field, imu, ikxkyz, adjust)
       g = g - adjust
 
-    end subroutine gbar_to_g_1d_vpa
+   end subroutine gbar_to_g_1d_vpa
 
    subroutine gbar_to_g_vmu(g, apar, facapar)
 

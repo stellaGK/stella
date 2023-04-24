@@ -162,7 +162,7 @@ contains
          call get_option_value &
             (lu_option, lu_opts, lu_option_switch, ierr, &
              "lu_option in knobs")
-         
+
          ! Abort if neither tend nor nstep are set
          if (tend < 0 .and. nstep < 0) then
             ierr = error_unit()
