@@ -190,7 +190,6 @@ contains
       use run_parameters, only: maxwellian_inside_zed_derivative
       use run_parameters, only: drifts_implicit
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use gyro_averages, only: gyro_average
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_dvpa
       use parallel_streaming, only: stream_sign

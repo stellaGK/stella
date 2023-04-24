@@ -10,6 +10,7 @@ module fields
 
    public :: init_fields, finish_fields
    public :: advance_fields, get_fields
+   public :: advance_apar
    public :: get_radial_correction
    public :: enforce_reality_field
    public :: rescale_fields
@@ -46,6 +47,11 @@ module fields
       module procedure get_dchidy_2d
    end interface get_dchidy
 
+   interface advance_fields
+      module procedure advance_fields_vmu_lo
+      module procedure advance_fields_kxkyz_lo
+   end interface advance_fields
+   
 contains
 
    subroutine init_fields
@@ -705,7 +711,7 @@ contains
 
    end subroutine enforce_reality_field
 
-   subroutine advance_fields(g, phi, apar, dist)
+   subroutine advance_fields_vmu_lo(g, phi, apar, dist)
 
       use mp, only: proc0
       use stella_layouts, only: vmu_lo
@@ -753,7 +759,41 @@ contains
       !> time the communications + field solve
       if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
 
-   end subroutine advance_fields
+   end subroutine advance_fields_vmu_lo
+
+   subroutine advance_fields_kxkyz_lo(gvmu, phi, apar, dist)
+
+      use mp, only: proc0
+      use stella_layouts, only: kxkyz_lo
+      use job_manage, only: time_message
+      use redistribute, only: scatter
+      use zgrid, only: nzgrid
+      use dist_redistribute, only: kxkyz2vmu
+      use run_parameters, only: fields_kxkyz
+      use physics_flags, only: full_flux_surface
+
+      implicit none
+
+      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: gvmu
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
+      character(*), intent(in) :: dist
+
+      if (fields_updated) return
+
+      !> time the communications + field solve
+      if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
+
+      !> given gvmu with vpa and mu local, calculate the corresponding fields
+      if (debug) write (*, *) 'dist_fn::advance_stella::advance_fields_kxkyz_lo::get_fields'
+      call get_fields(gvmu, phi, apar, dist)
+
+      !> set a flag to indicate that the fields have been updated
+      !> this helps avoid unnecessary field solves
+      fields_updated = .true.
+      !> time the communications + field solve
+      if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
+
+    end subroutine advance_fields_kxkyz_lo
 
    subroutine get_fields(g, phi, apar, dist, skip_fsa)
 
@@ -1438,6 +1478,55 @@ contains
 
    end subroutine get_apar
 
+   subroutine advance_apar(g, dist, apar)
+
+     use mp, only: mp_abort, proc0, sum_allreduce
+     use stella_layouts, only: kxkyz_lo
+     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+     use run_parameters, only: fapar
+     use physics_parameters, only: beta
+     use species, only: spec
+     use dist_fn_arrays, only: kperp2
+     use zgrid, only: nzgrid, ntubes
+     use vpamu_grids, only: nvpa, nmu, vpa
+     use vpamu_grids, only: integrate_vmu
+     use gyro_averages, only: gyro_average
+     
+     implicit none
+
+     complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
+     character(*), intent(in) :: dist
+     complex, dimension(:, :, -nzgrid:, :), intent(out) :: apar
+
+     integer :: ikxkyz, iky, ikx, iz, it, is
+     real :: wgt
+     complex :: tmp
+     complex, dimension(:, :), allocatable :: scratch
+     
+     apar = 0.
+     if (fapar > epsilon(0.0)) then
+        allocate (scratch(nvpa, nmu))
+        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            it = it_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
+            call gyro_average(spread(vpa, 2, nmu) * g(:, :, ikxkyz), ikxkyz, scratch)
+            wgt = beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm_psi0
+            call integrate_vmu(scratch, iz, tmp)
+            apar(iky, ikx, iz, it) = apar(iky, ikx, iz, it) + tmp * wgt
+         end do
+         ! apar for different species may be spread over processors at this point, so
+         ! broadcast to all procs and sum over species
+         call sum_allreduce(apar)
+         ! divide by the appropriate apar pre-factor to get apar
+         call get_apar(apar, dist)
+         deallocate (scratch)
+      end if
+
+    end subroutine advance_apar
+   
    !> Add the adiabatic eletron contribution for globally radial simulations.
    !> This actually entails solving for the whole ky = 0 slice of phi at once (not really adding!)
    subroutine add_adiabatic_response_radial(phi)
