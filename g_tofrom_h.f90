@@ -9,6 +9,7 @@ module g_tofrom_h
 
    interface gbar_to_g
       module procedure gbar_to_g_kxkyz
+      module procedure gbar_to_g_1d_vpa
       module procedure gbar_to_g_vmu
       module procedure gbar_to_g_vmu_single
    end interface
@@ -135,6 +136,42 @@ contains
       end do
 
    end subroutine gbar_to_g_kxkyz
+
+   subroutine gbar_to_g_1d_vpa(g, apar, imu, ikxkyz, facapar)
+
+      use species, only: spec
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
+      use vpamu_grids, only: nvpa
+      use stella_layouts, only: kxkyz_lo
+      use stella_layouts, only: iz_idx, is_idx
+      use gyro_averages, only: gyro_average
+      use run_parameters, only: maxwellian_normalization
+
+      implicit none
+    
+      complex, dimension (:), intent (in out) :: g
+      complex, intent (in) :: apar
+      integer, intent(in) :: imu, ikxkyz
+      real, intent (in) :: facapar
+
+      integer :: iz, is, ia
+      complex, dimension(:), allocatable :: field, adjust
+
+      allocate (field(nvpa))
+      allocate (adjust(nvpa))
+
+      ia = 1
+      iz = iz_idx(kxkyz_lo, ikxkyz)
+      is = is_idx(kxkyz_lo, ikxkyz)
+      
+      field = 2.0 * facapar * apar * spec(is)%zt * spec(is)%stm_psi0 * vpa
+      if (.not. maxwellian_normalization) then
+         field = field * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is)
+      end if
+      call gyro_average(field, imu, ikxkyz, adjust)
+      g = g - adjust
+
+    end subroutine gbar_to_g_1d_vpa
 
    subroutine gbar_to_g_vmu(g, apar, facapar)
 

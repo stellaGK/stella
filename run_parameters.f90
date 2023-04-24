@@ -162,7 +162,7 @@ contains
          call get_option_value &
             (lu_option, lu_opts, lu_option_switch, ierr, &
              "lu_option in knobs")
-
+         
          ! Abort if neither tend nor nstep are set
          if (tend < 0 .and. nstep < 0) then
             ierr = error_unit()
@@ -204,6 +204,15 @@ contains
             write (*, *) 'maxwellian_normalization is not consistent with mirror_semi_lagrange = T.'
             write (*, *) 'forcing mirror_semi_lagrange = F.'
             write (*, *) '!!!WARNING!!!'
+            mirror_semi_lagrange = .false.
+         end if
+
+         ! semi-lagrange advance of mirror term is not supported for EM simulations
+         if (fapar > 0.0 .and. mirror_semi_lagrange) then
+            write (*, *) ''
+            write (*, *) 'mirror_semi_lagrange = .true. is not supported for electromagnetic simulations.'
+            write (*, *) 'forcing mirror_semi_lagrange = .false.'
+            write (*, *) ''
             mirror_semi_lagrange = .false.
          end if
 

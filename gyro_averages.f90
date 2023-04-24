@@ -16,6 +16,7 @@ module gyro_averages
       module procedure gyro_average_kxky_local
       module procedure gyro_average_kxkyz_local
       module procedure gyro_average_kxkyzv_local
+      module procedure gyro_average_v_local
       module procedure gyro_average_vmu_local
       module procedure gyro_average_vmus_nonlocal
       module procedure gyro_average_ffs_kxky_local
@@ -739,6 +740,20 @@ contains
       end do
 
    end subroutine gyro_average_ffs
+
+   subroutine gyro_average_v_local(distfn, imu, ikxkyz, gyro_distfn)
+
+      use vpamu_grids, only: nvpa
+
+      implicit none
+
+      complex, dimension(:), intent(in) :: distfn
+      integer, intent(in) :: imu, ikxkyz
+      complex, dimension(:), intent(out) :: gyro_distfn
+
+      gyro_distfn = aj0v(imu, ikxkyz) * distfn
+
+   end subroutine gyro_average_v_local
 
    subroutine gyro_average_vmu_local(distfn, ikxkyz, gyro_distfn)
 
