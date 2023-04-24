@@ -97,7 +97,7 @@ contains
 
 !   end subroutine gbar_to_h_kxkyz
 
-   subroutine gbar_to_g_kxkyz (g, apar, facapar)
+   subroutine gbar_to_g_kxkyz(g, apar, facapar)
 
       use species, only: spec
       use zgrid, only: nzgrid
@@ -109,10 +109,10 @@ contains
       use run_parameters, only: maxwellian_normalization
 
       implicit none
-    
-      complex, dimension (:, :, kxkyz_lo%llim_proc:), intent (in out) :: g
-      complex, dimension (:, :, -nzgrid:, :), intent (in) :: apar
-      real, intent (in) :: facapar
+
+      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar
+      real, intent(in) :: facapar
 
       integer :: ikxkyz, iz, it, iky, ikx, is, ia
       complex, dimension(:, :), allocatable :: field, adjust
@@ -122,11 +122,11 @@ contains
 
       ia = 1
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-         iz = iz_idx(kxkyz_lo,ikxkyz)
+         iz = iz_idx(kxkyz_lo, ikxkyz)
          it = it_idx(kxkyz_lo, ikxkyz)
-         ikx = ikx_idx(kxkyz_lo,ikxkyz)
-         iky = iky_idx(kxkyz_lo,ikxkyz)
-         is = is_idx(kxkyz_lo,ikxkyz)
+         ikx = ikx_idx(kxkyz_lo, ikxkyz)
+         iky = iky_idx(kxkyz_lo, ikxkyz)
+         is = is_idx(kxkyz_lo, ikxkyz)
          field = 2.0 * facapar * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm_psi0 * spread(vpa, 2, nmu)
          if (.not. maxwellian_normalization) then
             field = field * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
@@ -389,7 +389,7 @@ contains
       use run_parameters, only: maxwellian_normalization
 
       implicit none
-      
+
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
       real, intent(in) :: facphi
