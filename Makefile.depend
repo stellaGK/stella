@@ -26,6 +26,7 @@ stella_mod = \
 	 git_version.o \
 	 gyro_averages.o \
 	 hyper.o \
+	 implicit_solve.o \
 	 init_g.o \
 	 inputprofiles_interface.o \
 	 job_manage.o \
@@ -220,6 +221,7 @@ flow_shear.o: \
 	 mp.o \
 	 physics_flags.o \
 	 physics_parameters.o \
+	 run_parameters.o \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
@@ -233,10 +235,10 @@ g_tofrom_h.o: \
 	 gyro_averages.o \
 	 kt_grids.o \
 	 physics_flags.o \
+	 run_parameters.o \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
-	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 gauss_quad.o: \
@@ -267,6 +269,26 @@ hyper.o: \
 	 stella_layouts.o \
 	 stella_time.o \
 	 zgrid.o 
+implicit_solve.o: \
+	 dist_fn_arrays.o \
+	 extended_zgrid.o \
+	 fields.o \
+	 fields_arrays.o \
+	 g_tofrom_h.o \
+	 gyro_averages.o \
+	 job_manage.o \
+	 kt_grids.o \
+	 linear_solve.o \
+	 mp.o \
+	 neoclassical_terms.o \
+	 parallel_streaming.o \
+	 run_parameters.o \
+	 species.o \
+	 stella_geometry.o \
+	 stella_layouts.o \
+	 stella_time.o \
+	 vpamu_grids.o \
+	 zgrid.o 
 init_g.o: \
 	 constants.o \
 	 dist_fn_arrays.o \
@@ -276,6 +298,7 @@ init_g.o: \
 	 mp.o \
 	 physics_flags.o \
 	 ran.o \
+	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_save.o \
@@ -374,17 +397,13 @@ netcdf_utils.o: \
 	 file_utils.o \
 	 mp.o 
 parallel_streaming.o: \
-	 dist_fn_arrays.o \
 	 extended_zgrid.o \
-	 fields.o \
 	 fields_arrays.o \
 	 finite_differences.o \
 	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \
-	 linear_solve.o \
 	 mp.o \
-	 neoclassical_terms.o \
 	 physics_flags.o \
 	 run_parameters.o \
 	 species.o \
@@ -409,8 +428,10 @@ redistribute.o: \
 response_matrix.o: \
 	 common_types.o \
 	 extended_zgrid.o \
+	 fields.o \
 	 fields_arrays.o \
 	 gyro_averages.o \
+	 implicit_solve.o \
 	 job_manage.o \
 	 kt_grids.o \
 	 linear_solve.o \
@@ -602,6 +623,7 @@ time_advance.o: \
 	 flow_shear.o \
 	 gyro_averages.o \
 	 hyper.o \
+	 implicit_solve.o \
 	 job_manage.o \
 	 kt_grids.o \
 	 mirror_terms.o \
@@ -647,6 +669,7 @@ vpamu_grids.o: \
 	 gauss_quad.o \
 	 kt_grids.o \
 	 mp.o \
+	 run_parameters.o \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \

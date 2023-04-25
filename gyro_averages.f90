@@ -12,6 +12,7 @@ module gyro_averages
    private
 
    interface gyro_average
+      module procedure gyro_average_local
       module procedure gyro_average_kxky_local
       module procedure gyro_average_kxkyz_local
       module procedure gyro_average_kxkyzv_local
@@ -549,6 +550,22 @@ contains
       bessinit = .false.
 
    end subroutine finish_bessel
+
+   !> gyro_average_local takes a field at a given ky, kx, z and (vpa, mu, s) value
+   !> and returns the gyro-average of that field;
+   ! this should never be called for a full flux surface simulation, so no need
+   ! to check if flux tube or full flux surface
+   subroutine gyro_average_local(field, iky, ikx, iz, ivmu, gyro_field)
+
+      implicit none
+
+      complex, intent(in) :: field
+      integer, intent(in) :: iky, ikx, iz, ivmu
+      complex, intent(out) :: gyro_field
+
+      gyro_field = aj0x(iky, ikx, iz, ivmu) * field
+
+   end subroutine gyro_average_local
 
    subroutine gyro_average_kxky_local(field, iz, ivmu, gyro_field)
 
