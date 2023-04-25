@@ -65,7 +65,7 @@ contains
       ! if including apar, the incoming pdf is gbar = g + (Ze/T)*<vpa*apar/c>*F0;
       ! convert from gbar to g
       if (include_apar) call gbar_to_g(g_scratch, apar, 1.0)
-      
+
       ! solve for the 'inhomogeneous' piece of the pdf
       call update_pdf
 
