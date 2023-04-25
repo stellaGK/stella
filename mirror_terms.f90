@@ -831,7 +831,7 @@ contains
             end if
             ! convert from g to gbar
             if (include_apar) call gbar_to_g(g0v, apar, -1.0)
-            deallocate(rhs)
+            deallocate (rhs)
          end if
 
          ! then take the results and remap again so ky,kx,z local.

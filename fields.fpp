@@ -1495,7 +1495,7 @@ contains
       use vpamu_grids, only: nvpa, nmu, vpa
       use vpamu_grids, only: integrate_vmu
       use gyro_averages, only: gyro_average
-      
+
       implicit none
 
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
