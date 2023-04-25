@@ -27,7 +27,7 @@ module mirror_terms
    real, dimension(:, :, :, :), allocatable :: mirror_interp_loc
    integer, dimension(:, :, :, :), allocatable :: mirror_interp_idx_shift
    complex, dimension(:, :, :, :), allocatable :: response_apar_denom
-   
+
 contains
 
    subroutine init_mirror
@@ -286,53 +286,53 @@ contains
 
    subroutine init_mirror_response
 
-     use stella_layouts, only: kxkyz_lo
-     use zgrid, only: nzgrid, ntubes
-     use vpamu_grids, only: nmu, nvpa
-     use kt_grids, only: naky, nakx
-     use fields, only: advance_apar
-     
-     implicit none
+      use stella_layouts, only: kxkyz_lo
+      use zgrid, only: nzgrid, ntubes
+      use vpamu_grids, only: nmu, nvpa
+      use kt_grids, only: naky, nakx
+      use fields, only: advance_apar
 
-     complex :: apar
-     integer :: ikxkyz, imu
-     complex, dimension(:), allocatable :: rhs
-     complex, dimension(:, :, :), allocatable :: mirror_response_g
-     character(5) :: dist
-     
-     allocate(rhs(nvpa))
-     allocate(mirror_response_g(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-     if (.not. allocated(response_apar_denom)) then
-        allocate(response_apar_denom(naky, nakx, -nzgrid:nzgrid, ntubes))
-     end if
-     
-     ! give unit impulse to apar and solve for g (stored in mirror_response_g)
-     apar = 1.0
-     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-        rhs = 0.0
-        do imu = 1, nmu
-           ! calculate the rhs of the 'homogeneous' mirror advance equation
-           call get_mirror_rhs_apar_contribution(rhs, apar, imu, ikxkyz)
-           ! invert the mirror operator and replace rhs with the solution
-           call invert_mirror_operator(imu, ikxkyz, rhs)
-           ! store the solution in mirror_response_g
-           mirror_response_g(:, imu, ikxkyz) = rhs
-        end do
-     end do
+      implicit none
 
-     ! calculate the contribution to apar from mirror_response_g
-     dist = 'g'
-     call advance_apar(mirror_response_g, dist, response_apar_denom)
+      complex :: apar
+      integer :: ikxkyz, imu
+      complex, dimension(:), allocatable :: rhs
+      complex, dimension(:, :, :), allocatable :: mirror_response_g
+      character(5) :: dist
 
-     ! response_apar_denom is the thing that the inhomogeneous contribution to apar
-     ! must be divided by to obtain the total apar; i.e., apar = apar_inh + apar_h,
-     ! and apar_h is proportional to apar, so (1 - apar_h / apar) * apar = apar_inh
-     response_apar_denom = 1.0 - response_apar_denom
-     
-     deallocate(rhs, mirror_response_g)
-     
+      allocate (rhs(nvpa))
+      allocate (mirror_response_g(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+      if (.not. allocated(response_apar_denom)) then
+         allocate (response_apar_denom(naky, nakx, -nzgrid:nzgrid, ntubes))
+      end if
+
+      ! give unit impulse to apar and solve for g (stored in mirror_response_g)
+      apar = 1.0
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         rhs = 0.0
+         do imu = 1, nmu
+            ! calculate the rhs of the 'homogeneous' mirror advance equation
+            call get_mirror_rhs_apar_contribution(rhs, apar, imu, ikxkyz)
+            ! invert the mirror operator and replace rhs with the solution
+            call invert_mirror_operator(imu, ikxkyz, rhs)
+            ! store the solution in mirror_response_g
+            mirror_response_g(:, imu, ikxkyz) = rhs
+         end do
+      end do
+
+      ! calculate the contribution to apar from mirror_response_g
+      dist = 'g'
+      call advance_apar(mirror_response_g, dist, response_apar_denom)
+
+      ! response_apar_denom is the thing that the inhomogeneous contribution to apar
+      ! must be divided by to obtain the total apar; i.e., apar = apar_inh + apar_h,
+      ! and apar_h is proportional to apar, so (1 - apar_h / apar) * apar = apar_inh
+      response_apar_denom = 1.0 - response_apar_denom
+
+      deallocate (rhs, mirror_response_g)
+
    end subroutine init_mirror_response
-   
+
    !> advance_mirror_explicit calculates the contribution to the RHS of the gyrokinetic equation
    !> due to the mirror force term; it treats all terms explicitly in time
    subroutine advance_mirror_explicit(g, gout)
@@ -650,7 +650,7 @@ contains
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
       use fields, only: advance_apar
       use g_tofrom_h, only: gbar_to_g
-      
+
       implicit none
 
       logical, intent(in) :: collisions_implicit
@@ -764,7 +764,7 @@ contains
          if (mirror_semi_lagrange) then
             call vpa_interpolation(gvmu, g0v)
          else
-            allocate(rhs(nvpa))
+            allocate (rhs(nvpa))
             ! remove exp(-vpa^2) normalization from pdf before differentiating
             if (maxwellian_normalization) then
                do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -772,7 +772,7 @@ contains
                   gvmu(:, :, ikxkyz) = gvmu(:, :, ikxkyz) * spread(maxwell_vpa(:, is), 2, nmu)
                end do
             end if
-               
+
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
                iky = iky_idx(kxkyz_lo, ikxkyz)
                ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -862,7 +862,7 @@ contains
       complex, intent(in) :: apar
       integer, intent(in) :: imu, ikxkyz
       complex, dimension(:), intent(out) :: rhs
-      
+
       integer :: iz, is
       complex, dimension(:), allocatable :: dgdv
 
@@ -898,38 +898,38 @@ contains
 
    subroutine get_mirror_rhs_apar_contribution(rhs, apar, imu, ikxkyz)
 
-     use species, only: spec
-     use vpamu_grids, only: nvpa
-     use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
-     use run_parameters, only: maxwellian_normalization
-     use stella_layouts, only: kxkyz_lo, is_idx
-     use gyro_averages, only: gyro_average
-     
-     implicit none
+      use species, only: spec
+      use vpamu_grids, only: nvpa
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
+      use run_parameters, only: maxwellian_normalization
+      use stella_layouts, only: kxkyz_lo, is_idx
+      use gyro_averages, only: gyro_average
 
-     complex, dimension(:), intent(in out) :: rhs
-     complex, intent(in) :: apar
-     integer, intent(in) :: imu, ikxkyz
+      implicit none
 
-     integer :: ia, is
-     real :: pre_factor
-     complex, dimension(:), allocatable :: vpa_scratch
+      complex, dimension(:), intent(in out) :: rhs
+      complex, intent(in) :: apar
+      integer, intent(in) :: imu, ikxkyz
 
-     allocate(vpa_scratch(nvpa))
+      integer :: ia, is
+      real :: pre_factor
+      complex, dimension(:), allocatable :: vpa_scratch
 
-     is = is_idx(kxkyz_lo, ikxkyz)
-     
-     ia = 1
-     pre_factor = -2.0 * spec(is)%zt * spec(is)%stm_psi0
-     call gyro_average(pre_factor * vpa * apar, imu, ikxkyz, vpa_scratch)
-     if (maxwellian_normalization) vpa_scratch = vpa_scratch * maxwell_vpa(:, is) * maxwell_mu(ia, :, imu, is)
-     
-     rhs = rhs + vpa_scratch
+      allocate (vpa_scratch(nvpa))
 
-     deallocate(vpa_scratch)
-     
+      is = is_idx(kxkyz_lo, ikxkyz)
+
+      ia = 1
+      pre_factor = -2.0 * spec(is)%zt * spec(is)%stm_psi0
+      call gyro_average(pre_factor * vpa * apar, imu, ikxkyz, vpa_scratch)
+      if (maxwellian_normalization) vpa_scratch = vpa_scratch * maxwell_vpa(:, is) * maxwell_mu(ia, :, imu, is)
+
+      rhs = rhs + vpa_scratch
+
+      deallocate (vpa_scratch)
+
    end subroutine get_mirror_rhs_apar_contribution
-   
+
    subroutine vpa_interpolation(grid, interp)
 
       use vpamu_grids, only: nvpa, nmu
@@ -1128,12 +1128,12 @@ contains
 
    subroutine finish_mirror_response
 
-     implicit none
+      implicit none
 
-     if (allocated(response_apar_denom)) deallocate(response_apar_denom)
-     
+      if (allocated(response_apar_denom)) deallocate (response_apar_denom)
+
    end subroutine finish_mirror_response
-   
+
    ! subroutine checksum_field (field, total)
 
    !   use zgrid, only: nzgrid, ntubes

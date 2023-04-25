@@ -51,7 +51,7 @@ module fields
       module procedure advance_fields_vmu_lo
       module procedure advance_fields_kxkyz_lo
    end interface advance_fields
-   
+
 contains
 
    subroutine init_fields
@@ -794,7 +794,7 @@ contains
       !> time the communications + field solve
       if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
 
-    end subroutine advance_fields_kxkyz_lo
+   end subroutine advance_fields_kxkyz_lo
 
    subroutine get_fields(g, phi, apar, dist, skip_fsa)
 
@@ -1484,33 +1484,33 @@ contains
 
    subroutine advance_apar(g, dist, apar)
 
-     use mp, only: mp_abort, proc0, sum_allreduce
-     use stella_layouts, only: kxkyz_lo
-     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-     use physics_flags, only: include_apar
-     use physics_parameters, only: beta
-     use species, only: spec
-     use dist_fn_arrays, only: kperp2
-     use zgrid, only: nzgrid, ntubes
-     use vpamu_grids, only: nvpa, nmu, vpa
-     use vpamu_grids, only: integrate_vmu
-     use gyro_averages, only: gyro_average
-     
-     implicit none
+      use mp, only: mp_abort, proc0, sum_allreduce
+      use stella_layouts, only: kxkyz_lo
+      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use physics_flags, only: include_apar
+      use physics_parameters, only: beta
+      use species, only: spec
+      use dist_fn_arrays, only: kperp2
+      use zgrid, only: nzgrid, ntubes
+      use vpamu_grids, only: nvpa, nmu, vpa
+      use vpamu_grids, only: integrate_vmu
+      use gyro_averages, only: gyro_average
+      
+      implicit none
 
-     complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
-     character(*), intent(in) :: dist
-     complex, dimension(:, :, -nzgrid:, :), intent(out) :: apar
+      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
+      character(*), intent(in) :: dist
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: apar
 
-     integer :: ikxkyz, iky, ikx, iz, it, is
-     real :: wgt
-     complex :: tmp
-     complex, dimension(:, :), allocatable :: scratch
-     
-     apar = 0.
-     if (include_apar) then
-        allocate (scratch(nvpa, nmu))
-        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+      integer :: ikxkyz, iky, ikx, iz, it, is
+      real :: wgt
+      complex :: tmp
+      complex, dimension(:, :), allocatable :: scratch
+
+      apar = 0.
+      if (include_apar) then
+         allocate (scratch(nvpa, nmu))
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iz = iz_idx(kxkyz_lo, ikxkyz)
             it = it_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -1529,8 +1529,8 @@ contains
          deallocate (scratch)
       end if
 
-    end subroutine advance_apar
-   
+   end subroutine advance_apar
+
    !> Add the adiabatic eletron contribution for globally radial simulations.
    !> This actually entails solving for the whole ky = 0 slice of phi at once (not really adding!)
    subroutine add_adiabatic_response_radial(phi)
