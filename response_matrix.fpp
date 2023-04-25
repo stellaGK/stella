@@ -55,6 +55,7 @@ contains
       type(c_ptr) :: cptr
 #endif
       real :: dum
+      character(5) :: dist
       complex, dimension(:), allocatable :: phiext
       complex, dimension(:, :), allocatable :: gext
       logical :: debug = .false.
@@ -82,11 +83,10 @@ contains
       time_response_matrix_QN = 0
       time_response_matrix_lu = 0
 
-!   All matrices handled by processor i_proc and job are stored
-!   on a single file named: response_mat_job.iproc
+      ! All matrices handled by processor i_proc and job are stored
+      ! on a single file named: response_mat_job.iproc
       fmt = '(I5.5)'
       if (proc0 .and. mat_gen) then
-
          call systemf('mkdir -p mat')
 
          write (job_str, '(I1.1)') job
@@ -104,10 +104,10 @@ contains
 
 #ifdef ISO_C_BINDING
 
-!   Create a single shared memory window for all the response matrices and
-!   permutation arrays.
-!   Creating a window for each matrix/array would lead to performance
-!   degradation on some clusters
+      ! Create a single shared memory window for all the response matrices and
+      ! permutation arrays.
+      ! Creating a window for each matrix/array would lead to performance
+      ! degradation on some clusters
       if (response_window == MPI_WIN_NULL) then
          win_size = 0
          if (sgproc0) then
@@ -135,7 +135,7 @@ contains
 
       do iky = 1, naky
 
-         if (proc0 .and. mat_gen) THEN
+         if (proc0 .and. mat_gen) then
             write (unit=mat_unit) iky, neigen(iky)
          end if
 
@@ -219,9 +219,9 @@ contains
             ! no need to obtain response to impulses at negative kx values
             do iz = iz_low(iseg), izup
                idx = idx + 1
-               call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+               call get_dpdf_dphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
             end do
-            ! once we have used one segments, remaining segments
+            ! once we have used one segment, remaining segments
             ! have one fewer unique zed point
             izl_offset = 1
             if (nsegments(ie, iky) > 1) then
@@ -229,7 +229,7 @@ contains
                   ikx = ikxmod(iseg, ie, iky)
                   do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                      idx = idx + 1
-                     call get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+                     call get_dpdf_dphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
                   end do
                   if (izl_offset == 0) izl_offset = 1
                end do
@@ -257,6 +257,8 @@ contains
          ! for local stella, this is a diagonal process, but global stella
          ! may require something more sophisticated
 
+         dist = 'gbar'
+
          ! loop over the sets of connected kx values
          do ie = 1, neigen(iky)
 #ifdef ISO_C_BINDING
@@ -278,7 +280,7 @@ contains
                do idx = 1, nresponse
                   phiext(nz_ext) = 0.0
                   phiext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:, idx)
-                  call get_fields_for_response_matrix(phiext, iky, ie)
+                  call get_fields_for_response_matrix(phiext, iky, ie, dist)
 
                   ! next need to create column in response matrix from phiext
                   ! negative sign because matrix to be inverted in streaming equation
@@ -286,7 +288,6 @@ contains
                   ! add in contribution from identity matrix
                   phiext(idx) = phiext(idx) - 1.0
                   response_matrix(iky)%eigen(ie)%zloc(:, idx) = -phiext(:nresponse)
-
                end do
                deallocate (phiext)
 #ifdef ISO_C_BINDING
@@ -344,7 +345,6 @@ contains
             end if
          end do
 
-         !if(proc0)  write (*,*) 'job', iky, iproc, response_matrix(iky)%eigen(1)%zloc(5,:)
       end do
 
 #ifdef ISO_C_BINDING
@@ -463,24 +463,13 @@ contains
       end if
    end subroutine read_response_matrix
 
-   subroutine get_dgdphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)
+   subroutine get_dpdf_dphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phi_ext, pdf_ext)
 
       use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use stella_time, only: code_dt
-      use zgrid, only: delzed, nzgrid
-      use extended_zgrid, only: periodic, phase_shift
-      use species, only: spec
-      use stella_geometry, only: gradpar, dbdzed
-      use vpamu_grids, only: vpa, mu
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use run_parameters, only: time_upwind_plus
+      use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use fields_arrays, only: response_matrix
-      use gyro_averages, only: aj0x
-      use run_parameters, only: driftkinetic_implicit
-      use run_parameters, only: maxwellian_inside_zed_derivative
-      use parallel_streaming, only: stream_tridiagonal_solve, sweep_zed_zonal
-      use parallel_streaming, only: stream_sign
-      use run_parameters, only: zed_upwind, time_upwind
+      use extended_zgrid, only: periodic
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
@@ -488,275 +477,62 @@ contains
       implicit none
 
       integer, intent(in) :: iky, ikx, iz, ie, idx, nz_ext, nresponse
-      complex, dimension(:), intent(in out) :: phiext
-      complex, dimension(:, vmu_lo%llim_proc:), intent(in out) :: gext
+      complex, dimension(:), intent(out) :: phi_ext
+      complex, dimension(:, vmu_lo%llim_proc:), intent(out) :: pdf_ext
 
-      integer :: ivmu, iv, imu, is, ia
-      integer :: izp, izm
-      real :: mu_dbdzed_p, mu_dbdzed_m
-      real :: fac, fac0, fac1, gyro_fac
+      complex, dimension(:), allocatable :: dum
+      integer :: ivmu, it
 
-      ia = 1
+      ! provide a unit impulse to phi^{n+1} (or Delta phi^{n+1}) at the location
+      ! in the extended zed domain corresponding to index 'idx'
+      ! note that it is sufficient to give a unit real impulse (as opposed to
+      ! separately giving real and imaginary impulse) for the following reason:
+      ! split homogeneous GKE, L[f] = R[phi], into L[f1] = R[phir] and L[f2] = i*R[phii],
+      ! with f = f1 + f2; then phi = df1/dphir * phir + df2/dphii * phii.
+      ! however, we see that if phir = phii = 1, L[f1] = R[1] = L[-i*f2],
+      ! and thus f2 = i * f1.  This gives phi = df1/dphir * (phir + i * phii) = df1/dphir * phi
+      phi_ext = 0.0
+      ! how phi^{n+1} enters the GKE depends on whether we are solving for the
+      ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
+      phi_ext(idx) = time_upwind_plus
 
-      if (.not. maxwellian_inside_zed_derivative) then
-         ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            ! initialize g to zero everywhere along extended zed domain
-            gext(:, ivmu) = 0.0
-            iv = iv_idx(vmu_lo, ivmu)
-            imu = imu_idx(vmu_lo, ivmu)
-            is = is_idx(vmu_lo, ivmu)
+      if (periodic(iky) .and. idx == 1) phi_ext(nz_ext) = phi_ext(1)
 
-            ! give unit impulse to phi at this zed location
-            ! and compute -vpa*b.gradz*Ze/T*d<phi>/dz*F0 (RHS of streaming part of GKE)
+      ! dum is a scratch array that takes the place of the pdf and phi
+      ! at the previous time level,
+      ! which is set to zero for the response matrix approach
+      allocate (dum(nz_ext)); dum = 0.0
 
-            ! NB:  assuming equal spacing in zed below
-            ! here, fac = -dt*(1+alph_t)/2*vpa*Ze/T*F0*J0/dz
-            ! b.gradz left out because needs to be centred in zed
-            if (driftkinetic_implicit) then
-               gyro_fac = 1.0
-            else
-               gyro_fac = aj0x(iky, ikx, iz, ivmu)
-            end if
+      ! set the flux tube index to one
+      ! need to check, but think this is okay as the homogeneous equation solved here for the
+      ! response matrix construction is the same for all flux tubes in the flux tube train
+      it = 1
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         ! calculate the RHS of the GK equation (using dum=0 as the pdf at the previous time level,
+         ! and phi_ext as the potential) and store it in pdf_ext
+         call get_gke_rhs(ivmu, iky, ie, dum, phi_ext, dum, pdf_ext(:, ivmu))
+         ! given the RHS of the GK equation (pdf_ext), solve for the pdf at the
+         ! new time level by sweeping in zed on the extended domain;
+         ! the rhs is input as 'pdf_ext' and over-written with the updated solution for the pdf
+         call sweep_g_zext(iky, ie, it, ivmu, pdf_ext(:, ivmu))
+      end do
 
-            ! 0.125 to account for two linear interpolations
-            fac = -0.125 * (1.+time_upwind) * code_dt * vpa(iv) * spec(is)%stm_psi0 &
-                  * gyro_fac * spec(is)%zt / delzed(0) * maxwell_vpa(iv, is) * maxwell_fac(is)
+      deallocate (dum)
 
-            ! In the following, gradpar and maxwell_mu are interpolated separately
-            ! to ensure consistency to what is done in parallel_streaming.f90
-
-            ! stream_sign < 0 corresponds to positive advection speed
-            if (stream_sign(iv) < 0) then
-               if (iz > -nzgrid) then
-                  ! fac0 is the factor multiplying delphi on the RHS
-                  ! of the homogeneous GKE at this zed index
-                  fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
-                                + (1.-zed_upwind) * gradpar(iz - 1)) &
-                         * (maxwell_mu(ia, iz, imu, is) + maxwell_mu(ia, iz - 1, imu, is))
-                  ! fac1 is the factor multiplying delphi on the RHS
-                  ! of the homogeneous GKE at the zed index to the right of
-                  ! this one
-                  if (iz < nzgrid) then
-                     fac1 = fac * ((1.+zed_upwind) * gradpar(iz + 1) &
-                                   + (1.-zed_upwind) * gradpar(iz)) &
-                            * (maxwell_mu(ia, iz + 1, imu, is) + maxwell_mu(ia, iz, imu, is))
-                  else
-                     fac1 = fac * ((1.+zed_upwind) * gradpar(-nzgrid + 1) &
-                                   + (1.-zed_upwind) * gradpar(nzgrid)) &
-                            * (maxwell_mu(ia, -nzgrid + 1, imu, is) + maxwell_mu(ia, nzgrid, imu, is))
-                  end if
-               else
-                  ! fac0 is the factor multiplying delphi on the RHS
-                  ! of the homogeneous GKE at this zed index
-                  fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
-                                + (1.-zed_upwind) * gradpar(nzgrid - 1)) &
-                         * (maxwell_mu(ia, iz, imu, is) + maxwell_mu(ia, nzgrid - 1, imu, is))
-                  ! fac1 is the factor multiplying delphi on the RHS
-                  ! of the homogeneous GKE at the zed index to the right of
-                  ! this one
-                  fac1 = fac * ((1.+zed_upwind) * gradpar(iz + 1) &
-                                + (1.-zed_upwind) * gradpar(iz)) &
-                         * (maxwell_mu(ia, iz + 1, imu, is) + maxwell_mu(ia, iz, imu, is))
-               end if
-               gext(idx, ivmu) = fac0
-               if (idx < nz_ext) gext(idx + 1, ivmu) = -fac1
-               ! zonal mode BC is periodic instead of zero, so must
-               ! treat specially
-               if (periodic(iky)) then
-                  if (idx == 1) then
-                     gext(nz_ext, ivmu) = fac0 / phase_shift(iky)
-                  else if (idx == nz_ext - 1) then
-                     gext(1, ivmu) = -fac1 * phase_shift(iky)
-                  end if
-               end if
-            else
-               if (iz < nzgrid) then
-                  ! fac0 is the factor multiplying delphi on the RHS
-                  ! of the homogeneous GKE at this zed index
-                  fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
-                                + (1.-zed_upwind) * gradpar(iz + 1)) &
-                         * (maxwell_mu(ia, iz, imu, is) + maxwell_mu(ia, iz + 1, imu, is))
-                  ! fac1 is the factor multiplying delphi on the RHS
-                  ! of the homogeneous GKE at the zed index to the left of
-                  ! this one
-                  if (iz > -nzgrid) then
-                     fac1 = fac * ((1.+zed_upwind) * gradpar(iz - 1) &
-                                   + (1.-zed_upwind) * gradpar(iz)) &
-                            * (maxwell_mu(ia, iz - 1, imu, is) + maxwell_mu(ia, iz, imu, is))
-                  else
-                     fac1 = fac * ((1.+zed_upwind) * gradpar(nzgrid - 1) &
-                                   + (1.-zed_upwind) * gradpar(iz)) &
-                            * (maxwell_mu(ia, nzgrid - 1, imu, is) + maxwell_mu(ia, iz, imu, is))
-                  end if
-               else
-                  ! fac0 is the factor multiplying delphi on the RHS
-                  ! of the homogeneous GKE at this zed index
-                  fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
-                                + (1.-zed_upwind) * gradpar(-nzgrid + 1)) &
-                         * (maxwell_mu(ia, iz, imu, is) + maxwell_mu(ia, -nzgrid + 1, imu, is))
-                  ! fac1 is the factor multiplying delphi on the RHS
-                  ! of the homogeneous GKE at the zed index to the left of
-                  ! this one
-                  fac1 = fac * ((1.+zed_upwind) * gradpar(iz - 1) &
-                                + (1.-zed_upwind) * gradpar(iz)) &
-                         * (maxwell_mu(ia, iz - 1, imu, is) + maxwell_mu(ia, iz, imu, is))
-               end if
-               gext(idx, ivmu) = -fac0
-               if (idx > 1) gext(idx - 1, ivmu) = fac1
-               ! zonal mode BC is periodic instead of zero, so must
-               ! treat specially
-               if (periodic(iky)) then
-                  if (idx == 1) then
-                     gext(nz_ext, ivmu) = -fac0 / phase_shift(iky)
-                     gext(nz_ext - 1, ivmu) = fac1 / phase_shift(iky)
-                  else if (idx == 2) then
-                     gext(nz_ext, ivmu) = fac1 / phase_shift(iky)
-                  end if
-               end if
-            end if
-
-            if (periodic(iky)) then
-               call sweep_zed_zonal(iky, iv, is, stream_sign(iv), gext(:, ivmu))
-            else
-               ! invert parallel streaming equation to get g^{n+1} on extended zed grid
-               ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
-               call stream_tridiagonal_solve(iky, ie, iv, is, gext(:, ivmu))
-            end if
-
-         end do
-      else
-         ! get -vpa*b.gradz*Ze/T*F0*d<phi>/dz corresponding to unit impulse in phi
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            ! initialize g to zero everywhere along extended zed domain
-            gext(:, ivmu) = 0.0
-            iv = iv_idx(vmu_lo, ivmu)
-            imu = imu_idx(vmu_lo, ivmu)
-            is = is_idx(vmu_lo, ivmu)
-
-            ! give unit impulse to phi at this zed location
-            ! and compute -vpa*b.gradz*Ze/T*d<phi>/dz*F0 (RHS of streaming part of GKE)
-
-            ! NB:  assuming equal spacing in zed below
-            ! here, fac = -dt*(1+alph_t)/2*vpa*Ze/T*F0*J0/dz
-            ! b.gradz left out because needs to be centred in zed
-            if (driftkinetic_implicit) then
-               gyro_fac = 1.0
-            else
-               gyro_fac = aj0x(iky, ikx, iz, ivmu)
-            end if
-
-            fac = -0.25 * (1.+time_upwind) * code_dt * vpa(iv) * spec(is)%stm_psi0 &
-                  * gyro_fac * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-
-            mu_dbdzed_p = 1./delzed(0) + mu(imu) * dbdzed(ia, iz) * (1.+zed_upwind)
-            mu_dbdzed_m = 1./delzed(0) + mu(imu) * dbdzed(ia, iz) * (1.-zed_upwind)
-
-            ! stream_sign < 0 corresponds to positive advection speed
-            if (stream_sign(iv) < 0) then
-               if (iz > -nzgrid) then
-                  ! fac0 is the factor multiplying delphi on the RHS
-                  ! of the homogeneous GKE at this zed index
-                  fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
-                                + (1.-zed_upwind) * gradpar(iz - 1)) * mu_dbdzed_p
-                  ! fac1 is the factor multiplying delphi on the RHS
-                  ! of the homogeneous GKE at the zed index to the right of
-                  ! this one
-                  if (iz < nzgrid) then
-                     izp = iz + 1
-                  else
-                     izp = -nzgrid + 1
-                  end if
-                  fac1 = fac * ((1.+zed_upwind) * gradpar(izp) &
-                                + (1.-zed_upwind) * gradpar(iz)) * mu_dbdzed_m
-               else
-                  ! fac0 is the factor multiplying delphi on the RHS
-                  ! of the homogeneous GKE at this zed index
-                  fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
-                                + (1.-zed_upwind) * gradpar(nzgrid - 1)) * mu_dbdzed_p
-                  ! fac1 is the factor multiplying delphi on the RHS
-                  ! of the homogeneous GKE at the zed index to the right of
-                  ! this one
-                  fac1 = fac * ((1.+zed_upwind) * gradpar(iz + 1) &
-                                + (1.-zed_upwind) * gradpar(iz)) * mu_dbdzed_m
-               end if
-               gext(idx, ivmu) = fac0
-               if (idx < nz_ext) gext(idx + 1, ivmu) = -fac1
-               ! zonal mode BC is periodic instead of zero, so must
-               ! treat specially
-               if (periodic(iky)) then
-                  if (idx == 1) then
-                     gext(nz_ext, ivmu) = fac0 / phase_shift(iky)
-                  else if (idx == nz_ext - 1) then
-                     gext(1, ivmu) = -fac1 * phase_shift(iky)
-                  end if
-               end if
-            else
-               if (iz < nzgrid) then
-                  ! fac0 is the factor multiplying delphi on the RHS
-                  ! of the homogeneous GKE at this zed index
-                  fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
-                                + (1.-zed_upwind) * gradpar(iz + 1)) * mu_dbdzed_p
-                  ! fac1 is the factor multiplying delphi on the RHS
-                  ! of the homogeneous GKE at the zed index to the left of
-                  ! this one
-                  if (iz > -nzgrid) then
-                     izm = iz - 1
-                  else
-                     izm = nzgrid - 1
-                  end if
-                  fac1 = fac * ((1.+zed_upwind) * gradpar(izm) &
-                                + (1.-zed_upwind) * gradpar(iz)) * mu_dbdzed_m
-               else
-                  ! fac0 is the factor multiplying delphi on the RHS
-                  ! of the homogeneous GKE at this zed index
-                  fac0 = fac * ((1.+zed_upwind) * gradpar(iz) &
-                                + (1.-zed_upwind) * gradpar(-nzgrid + 1)) * mu_dbdzed_p
-                  ! fac1 is the factor multiplying delphi on the RHS
-                  ! of the homogeneous GKE at the zed index to the left of
-                  ! this one
-                  fac1 = fac * ((1.+zed_upwind) * gradpar(iz - 1) &
-                                + (1.-zed_upwind) * gradpar(iz)) * mu_dbdzed_m
-               end if
-               gext(idx, ivmu) = -fac0
-               if (idx > 1) gext(idx - 1, ivmu) = fac1
-               ! zonal mode BC is periodic instead of zero, so must
-               ! treat specially
-               if (periodic(iky)) then
-                  if (idx == 1) then
-                     gext(nz_ext, ivmu) = -fac0 / phase_shift(iky)
-                     gext(nz_ext - 1, ivmu) = fac1 / phase_shift(iky)
-                  else if (idx == 2) then
-                     gext(nz_ext, ivmu) = fac1 / phase_shift(iky)
-                  end if
-               end if
-            end if
-
-            if (periodic(iky)) then
-               call sweep_zed_zonal(iky, iv, is, stream_sign(iv), gext(:, ivmu))
-            else
-               ! invert parallel streaming equation to get g^{n+1} on extended zed grid
-               ! (I + (1+alph)/2*dt*vpa)*g_{inh}^{n+1} = RHS = gext
-               call stream_tridiagonal_solve(iky, ie, iv, is, gext(:, ivmu))
-            end if
-
-         end do
-      end if
-
-      ! we now have g on the extended zed domain at this ky and set of connected kx values
+      ! we now have the pdf on the extended zed domain at this ky and set of connected kx values
       ! corresponding to a unit impulse in phi at this location
       ! now integrate over velocities to get a square response matrix
       ! (this ends the parallelization over velocity space, so every core should have a
-      !  copy of phiext)
-      call integrate_over_velocity(gext, phiext, iky, ie)
+      ! copy of phi_ext)
+      call integrate_over_velocity(pdf_ext, phi_ext, iky, ie)
 
 #ifdef ISO_C_BINDING
-      if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, idx) = phiext(:nresponse)
+      if (sgproc0) response_matrix(iky)%eigen(ie)%zloc(:, idx) = phi_ext(:nresponse)
 #else
-      response_matrix(iky)%eigen(ie)%zloc(:, idx) = phiext(:nresponse)
+      response_matrix(iky)%eigen(ie)%zloc(:, idx) = phi_ext(:nresponse)
 #endif
 
-   end subroutine get_dgdphi_matrix_column
+   end subroutine get_dpdf_dphi_matrix_column
 
 ! subroutine get_phi_matrix
 ! end subroutine get_phi_matrix
@@ -815,8 +591,9 @@ contains
 
    end subroutine integrate_over_velocity
 
-   subroutine get_fields_for_response_matrix(phi, iky, ie)
+   subroutine get_fields_for_response_matrix(phi, iky, ie, dist)
 
+      use zgrid, only: nzgrid
       use stella_layouts, only: vmu_lo
       use species, only: spec
       use species, only: has_electron_species
@@ -826,6 +603,7 @@ contains
       use extended_zgrid, only: nsegments
       use kt_grids, only: zonal_mode, akx
       use fields_arrays, only: gamtot, gamtot3
+      use fields, only: gamtot_h, gamtot3_h
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
 
@@ -833,34 +611,47 @@ contains
 
       complex, dimension(:), intent(inout) :: phi
       integer, intent(in) :: iky, ie
+      character(*), intent(in) :: dist
 
       integer :: idx, iseg, ikx, iz, ia
       integer :: izl_offset
       complex, dimension(:), allocatable :: g0
       complex :: tmp
+      real, dimension(:), allocatable :: gamma_fac
 
       ia = 1
 
       allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (gamma_fac(-nzgrid:nzgrid))
 
       idx = 0; izl_offset = 0
       iseg = 1
       ikx = ikxmod(iseg, ie, iky)
+      if (dist == 'h') then
+         gamma_fac = gamtot_h
+      else
+         gamma_fac = gamtot(iky, ikx, :)
+      end if
       if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
          phi(:) = 0.0
          return
       end if
       do iz = iz_low(iseg), iz_up(iseg)
          idx = idx + 1
-         phi(idx) = phi(idx) / gamtot(iky, ikx, iz)
+         phi(idx) = phi(idx) / gamma_fac(iz)
       end do
       izl_offset = 1
       if (nsegments(ie, iky) > 1) then
          do iseg = 2, nsegments(ie, iky)
             ikx = ikxmod(iseg, ie, iky)
+            if (dist == 'h') then
+               gamma_fac = gamtot_h
+            else
+               gamma_fac = gamtot(iky, ikx, :)
+            end if
             do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                idx = idx + 1
-               phi(idx) = phi(idx) / gamtot(iky, ikx, iz)
+               phi(idx) = phi(idx) / gamma_fac(iz)
             end do
             if (izl_offset == 0) izl_offset = 1
          end do
@@ -872,11 +663,16 @@ contains
             ! no connections for ky = 0
             iseg = 1
             tmp = sum(dl_over_b(ia, :) * phi)
-            phi = phi + tmp * gamtot3(ikxmod(1, ie, iky), :)
+            if (dist == 'h') then
+               phi = phi + tmp * gamtot3_h
+            else
+               phi = phi + tmp * gamtot3(ikxmod(1, ie, iky), :)
+            end if
          end if
       end if
 
       deallocate (g0)
+      deallocate (gamma_fac)
 
    end subroutine get_fields_for_response_matrix
 

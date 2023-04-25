@@ -154,6 +154,7 @@ contains
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed
       use run_parameters, only: vpa_upwind, time_upwind
+      use run_parameters, only: maxwellian_normalization
 
       implicit none
 
@@ -213,37 +214,36 @@ contains
       end if
 
       !> corresponds to sign of mirror term positive on RHS of equation
-      a(2:, 1) = -0.5 * (1.0 - vpa_upwind) / dvpa
-      b(2:, 1) = -vpa_upwind / dvpa
-      c(2:nvpa - 1, 1) = 0.5 * (1.0 + vpa_upwind) / dvpa
+      a(2:, 1) = -0.5 * (1.0 - 2.0 * vpa_upwind) / dvpa
+      b(2:, 1) = -2.0 * vpa_upwind / dvpa
+      c(2:nvpa - 1, 1) = 0.5 * (1.0 + 2.0 * vpa_upwind) / dvpa
       !> must treat boundary carefully
-      !> treatment of boundary seems inconsistent
-      !> implicit piece below is pure upwind, while
-      !> explicit piece in fd_variable_upwind_vpa is mixed
-      !> with assumed zero BC at extremes in both +/- vpa
+      !> assumes fully upwinded at outgoing boundary
       b(1, 1) = -1.0 / dvpa
       c(1, 1) = 1.0 / dvpa
 
       !> corresponds to sign of mirror term negative on RHS of equation
-      a(2:nvpa - 1, -1) = -0.5 * (1.0 + vpa_upwind) / dvpa
-      b(:nvpa - 1, -1) = vpa_upwind / dvpa
-      c(:nvpa - 1, -1) = 0.5 * (1.0 - vpa_upwind) / dvpa
+      a(2:nvpa - 1, -1) = -0.5 * (1.0 + 2.0 * vpa_upwind) / dvpa
+      b(:nvpa - 1, -1) = 2.0 * vpa_upwind / dvpa
+      c(:nvpa - 1, -1) = 0.5 * (1.0 - 2.0 * vpa_upwind) / dvpa
       !> must treat boundary carefully
+      !> assumes fully upwinded at outgoing boundary
       a(nvpa, -1) = -1.0 / dvpa
-      b(nvpa, -1) = 1./dvpa
+      b(nvpa, -1) = 1.0 / dvpa
 
       !> time_upwind = 0.0 corresponds to centered in time
       !> time_upwind = 1.0 corresponds to fully implicit (upwinded)
       tupwndfac = 0.5 * (1.0 + time_upwind)
       a = a * tupwndfac
       c = c * tupwndfac
-      ! NB: b must be treated a bit differently -- see below
-
-      if (full_flux_surface) then
+      if (maxwellian_normalization) then
          !> account for fact that we have expanded d(gnorm)/dvpa, where gnorm = g/exp(-v^s);
          !> this gives rise to d(gnorm*exp(-vpa^2))/dvpa + 2*vpa*gnorm*exp(-vpa^2) term
          !> we solve for gnorm*exp(-vpa^2) and later multiply by exp(vpa^2) to get gnorm
          b = b + spread(2.0 * vpa, 2, 3)
+      end if
+
+      if (full_flux_surface) then
          do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
             iy = iy_idx(kxyz_lo, ikxyz)
             iz = iz_idx(kxyz_lo, ikxyz)
@@ -295,7 +295,7 @@ contains
       use kt_grids, only: swap_kxky
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vpa, maxwell_vpa
-      use run_parameters, only: fields_kxkyz
+      use run_parameters, only: fields_kxkyz, maxwellian_normalization
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
 
       implicit none
@@ -368,7 +368,18 @@ contains
          end if
          ! get dg/dvpa and store in g0v
          g0v = gvmu
+         ! remove exp(-vpa^2) normalization from pdf before differentiating
+         if (maxwellian_normalization) then
+            do iv = 1, nvpa
+               g0v(iv, :, :) = g0v(iv, :, :) * maxwell_vpa(iv, 1)
+            end do
+         end if
          call get_dgdvpa_explicit(g0v)
+         if (maxwellian_normalization) then
+            do iv = 1, nvpa
+               g0v(iv, :, :) = g0v(iv, :, :) / maxwell_vpa(iv, 1) + 2.0 * vpa(iv) * gvmu(iv, :, :)
+            end do
+         end if
          ! swap layouts so that (z,kx,ky) are local
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          call gather(kxkyz2vmu, g0v, g0x)
@@ -575,10 +586,10 @@ contains
       use physics_flags, only: full_flux_surface
       use kt_grids, only: ny, nakx
       use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: dvpa, maxwell_vpa
+      use vpamu_grids, only: dvpa, maxwell_vpa, vpa
       use neoclassical_terms, only: include_neoclassical_terms
       use run_parameters, only: vpa_upwind, time_upwind
-      use run_parameters, only: mirror_semi_lagrange
+      use run_parameters, only: mirror_semi_lagrange, maxwellian_normalization
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
 
       implicit none
@@ -697,17 +708,29 @@ contains
                iz = iz_idx(kxkyz_lo, ikxkyz)
                is = is_idx(kxkyz_lo, ikxkyz)
                do imu = 1, nmu
+                  ! remove exp(-vpa^2) normalization from pdf before differentiating
+                  if (maxwellian_normalization) then
+                     gvmu(:, imu, ikxkyz) = gvmu(:, imu, ikxkyz) * maxwell_vpa(:, is)
+                  end if
+
                   ! calculate dg/dvpa
                   call fd_variable_upwinding_vpa(1, gvmu(:, imu, ikxkyz), dvpa, &
                                                  mirror_sign(1, iz), vpa_upwind, g0v(:, imu, ikxkyz))
                   ! construct RHS of GK equation for mirror advance;
                   ! i.e., (1-(1+alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n+1}
                   ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n}
-                  g0v(:, imu, ikxkyz) = gvmu(:, imu, ikxkyz) + tupwnd * mirror(1, iz, imu, is) * g0v(:, imu, ikxkyz)
+                  if (maxwellian_normalization) then
+                     g0v(:, imu, ikxkyz) = gvmu(:, imu, ikxkyz) + tupwnd * mirror(1, iz, imu, is) * (g0v(:, imu, ikxkyz) &
+                                                                                                     + 2.0 * vpa * gvmu(:, imu, ikxkyz))
+                  else
+                     g0v(:, imu, ikxkyz) = gvmu(:, imu, ikxkyz) + tupwnd * mirror(1, iz, imu, is) * g0v(:, imu, ikxkyz)
+                  end if
 
                   ! invert_mirror_operator takes rhs of equation and
                   ! returns g^{n+1}
                   call invert_mirror_operator(imu, ikxkyz, g0v(:, imu, ikxkyz))
+
+                  if (maxwellian_normalization) g0v(:, imu, ikxkyz) = g0v(:, imu, ikxkyz) / maxwell_vpa(:, is)
                end do
             end do
          end if

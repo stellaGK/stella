@@ -887,7 +887,7 @@ contains
 
          ! zero_bc assumes that g -> zero beyond grid
          ! boundaries in vpa
-         df(istart) = sgn * (0.5 * (upwnd - 1.0) * f(istart - sgn) - upwnd * f(istart)) / del
+         df(istart) = sgn * (0.5 * (2.0 * upwnd - 1.0) * f(istart - sgn) - 2.0 * upwnd * f(istart)) / del
 
          ! as do not have info beyond grid boundary at end of sweep
          ! use pure upwinding
@@ -895,7 +895,7 @@ contains
 
          ! mixed centered and 1st order upwind scheme
          do i = istart - sgn, iend + sgn, -sgn
-            df(i) = sgn * (0.5 * (1.+upwnd) * f(i + sgn) - upwnd * f(i) + 0.5 * (upwnd - 1.) * f(i - sgn)) / del
+            df(i) = sgn * (0.5 * (1.0 + 2.0 * upwnd) * f(i + sgn) - 2.0 * upwnd * f(i) + 0.5 * (2.0 * upwnd - 1.) * f(i - sgn)) / del
          end do
 
       end if
