@@ -101,7 +101,7 @@
           <li id="statements"><i class="fa fa-list-ol"></i>
             <a data-toggle="tooltip"
                data-placement="bottom" data-html="true"
-               title="<p> 0.0% of total for procedures.</p>Including implementation: 128 statements,  0.4% of total for procedures.">10 statements</a>
+               title="<p> 0.0% of total for procedures.</p>Including implementation: 136 statements,  0.4% of total for procedures.">11 statements</a>
           </li>
 
             <li id="source-file">
@@ -155,6 +155,7 @@
       </div>
       <div id="modprocs-0" class="panel-collapse collapse">
         <div class="list-group">
+            <a class="list-group-item" href="../interface/gyro_average.html#moduleprocedure-gyro_average_local">gyro_average_local</a>
             <a class="list-group-item" href="../interface/gyro_average.html#moduleprocedure-gyro_average_kxky_local">gyro_average_kxky_local</a>
             <a class="list-group-item" href="../interface/gyro_average.html#moduleprocedure-gyro_average_kxkyz_local">gyro_average_kxkyz_local</a>
             <a class="list-group-item" href="../interface/gyro_average.html#moduleprocedure-gyro_average_kxkyzv_local">gyro_average_kxkyzv_local</a>
@@ -205,6 +206,7 @@
       </div>
       <div id="modprocs-1" class="panel-collapse collapse">
         <div class="list-group">
+            <a class="list-group-item" href="../interface/gyro_average.html#moduleprocedure-gyro_average_local">gyro_average_local</a>
             <a class="list-group-item" href="../interface/gyro_average.html#moduleprocedure-gyro_average_kxky_local">gyro_average_kxky_local</a>
             <a class="list-group-item" href="../interface/gyro_average.html#moduleprocedure-gyro_average_kxkyz_local">gyro_average_kxkyz_local</a>
             <a class="list-group-item" href="../interface/gyro_average.html#moduleprocedure-gyro_average_kxkyzv_local">gyro_average_kxkyzv_local</a>
@@ -225,6 +227,122 @@
 
 
         <h2>Module Procedures</h2>
+            <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-gyro_average_local"></span><h3>private  subroutine <a href='../proc/gyro_average_local.html'>gyro_average_local</a>(field, iky, ikx, iz, ivmu, gyro_field)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>gyro_average_local takes a field at a given ky, kx, z and (vpa, mu, s) value
+and returns the gyro-average of that field;</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>field</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ikx</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iz</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ivmu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>gyro_field</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
             <div class="panel panel-default">
     <div class="panel-heading codesum"><span class="anchor" id="proc-gyro_average_kxky_local"></span><h3>private  subroutine <a href='../proc/gyro_average_kxky_local.html'>gyro_average_kxky_local</a>(field, iz, ivmu, gyro_field)  
 </h3></div>
@@ -829,13 +947,13 @@ if simulating a flux tube, a gyro-average is local in k-space</p>
       <div class="container">
         <div class="row">
           <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2023 
-<br /><small>v0.5.1-190-gb6af93dad</small></p>
+<br /><small>v0.5.1-231-gee3ee567d</small></p>
           </div>
           <div class="col-xs-6 col-md-6">
             <p class="text-right">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2023-04-13T14:03:16.161502             </p>
+ on 2023-04-25T09:23:45.058411             </p>
           </div>
         </div>
         <br>

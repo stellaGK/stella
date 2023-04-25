@@ -101,7 +101,7 @@
           <li id="statements"><i class="fa fa-list-ol"></i>
             <a data-toggle="tooltip"
                data-placement="bottom" data-html="true"
-               title=" 2.2% of total for modules and submodules.">795 statements</a>
+               title=" 1.5% of total for modules and submodules.">533 statements</a>
           </li>
 
             <li id="source-file">
@@ -193,16 +193,12 @@
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-get_dgdz_centered">get_dgdz_centered</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-add_stream_term">add_stream_term</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-add_stream_term_ffs">add_stream_term_ffs</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#proc-advance_parallel_streaming_implicit">advance_parallel_streaming_implicit</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#proc-get_gke_rhs">get_gke_rhs</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#proc-invert_parstream">invert_parstream</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-stream_tridiagonal_solve">stream_tridiagonal_solve</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#proc-sweep_g_zed">sweep_g_zed</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#proc-sweep_zed_zonal">sweep_zed_zonal</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#proc-invert_parstream_response">invert_parstream_response</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-get_dzed">get_dzed</a>
+            <a class="list-group-item" href="../module/parallel_streaming.html#proc-get_zed_derivative_extended_domain">get_zed_derivative_extended_domain</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-center_zed_extended">center_zed_extended</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-center_zed_segment_real">center_zed_segment_real</a>
+            <a class="list-group-item" href="../module/parallel_streaming.html#proc-center_zed_segment_complex">center_zed_segment_complex</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-center_zed_midpoint">center_zed_midpoint</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-finish_parallel_streaming">finish_parallel_streaming</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-finish_invert_stream_operator">finish_invert_stream_operator</a>
@@ -295,16 +291,12 @@
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-get_dgdz_centered">get_dgdz_centered</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-add_stream_term">add_stream_term</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-add_stream_term_ffs">add_stream_term_ffs</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#proc-advance_parallel_streaming_implicit">advance_parallel_streaming_implicit</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#proc-get_gke_rhs">get_gke_rhs</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#proc-invert_parstream">invert_parstream</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-stream_tridiagonal_solve">stream_tridiagonal_solve</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#proc-sweep_g_zed">sweep_g_zed</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#proc-sweep_zed_zonal">sweep_zed_zonal</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#proc-invert_parstream_response">invert_parstream_response</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-get_dzed">get_dzed</a>
+            <a class="list-group-item" href="../module/parallel_streaming.html#proc-get_zed_derivative_extended_domain">get_zed_derivative_extended_domain</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-center_zed_extended">center_zed_extended</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-center_zed_segment_real">center_zed_segment_real</a>
+            <a class="list-group-item" href="../module/parallel_streaming.html#proc-center_zed_segment_complex">center_zed_segment_complex</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-center_zed_midpoint">center_zed_midpoint</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-finish_parallel_streaming">finish_parallel_streaming</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-finish_invert_stream_operator">finish_invert_stream_operator</a>
@@ -545,7 +537,7 @@
               <span class="anchor" id="variable-gradpar_c"></span>
               real,
             </td>
-              <td>private,</td>
+              <td>public,</td>
             <td>
               dimension(:, :), allocatable
             </td>
@@ -586,17 +578,19 @@
               <div class="panel panel-default">
     <div class="panel-heading codesum">
       <span class="anchor" id="interface-center_zed"></span>
-      <h3>private        interface <a href='../interface/center_zed.html'>center_zed</a> 
+      <h3>public        interface <a href='../interface/center_zed.html'>center_zed</a> 
       </h3>
     </div>
     <ul class="list-group">
           <li class="list-group-item">
                 <h3>
-    private  subroutine <a href='../proc/center_zed_segment_real.html'>center_zed_segment_real</a>(iv, g)  
+    private  subroutine <a href='../proc/center_zed_segment_real.html'>center_zed_segment_real</a>(iv, f, llim)  
 
     </h3>
     
-  
+  <p>center_zed_segment_real takes as arguments the vpa index (iv)
+the z-depenendent real function f, and the starting iz index for the array f (llim),
+and overwrites f with the cell-centered version</p>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -631,10 +625,111 @@
             </td>
 <td>intent(inout),</td>
               <td></td>            <td>
-              dimension(-nzgrid:)
+              dimension(llim:)
             </td>
             <td>::</td>
-            <td><strong>g</strong></td>
+            <td><strong>f</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>llim</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+          </li>
+          <li class="list-group-item">
+                <h3>
+    private  subroutine <a href='../proc/center_zed_segment_complex.html'>center_zed_segment_complex</a>(iv, f, llim, periodic)  
+
+    </h3>
+    
+  <p>center_zed_segment_complex takes as arguments the vpa index (iv)
+the z-depenendent conplex function f, and the starting iz index for the array f (llim),
+and overwrites f with the cell-centered version;</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iv</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(llim:)
+            </td>
+            <td>::</td>
+            <td><strong>f</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>llim</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              logical,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>periodic</strong></td>
             <td>
 
             </td>
@@ -1163,246 +1258,6 @@ start the timer for the parallel streaming part of the time advance</p><a href="
   </div>
 
               <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_parallel_streaming_implicit"></span><h3>public  subroutine <a href='../proc/advance_parallel_streaming_implicit.html'>advance_parallel_streaming_implicit</a>(g, phi, apar)  
-</h3></div>
-    <div class="panel-body">
-          
-  
-
-  <h4>Arguments</h4>
-      <table class="table table-striped varlist">
-    <thead>
-      <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(inout),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
-            </td>
-            <td>::</td>
-            <td><strong>g</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(inout),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :)
-            </td>
-            <td>::</td>
-            <td><strong>phi</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(inout),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :)
-            </td>
-            <td>::</td>
-            <td><strong>apar</strong></td>
-            <td>
-
-            </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-    </div>
-  </div>
-
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-get_gke_rhs"></span><h3>private  subroutine <a href='../proc/get_gke_rhs.html'>get_gke_rhs</a>(ivmu, gold, phiold, phi, g, eqn)  
-</h3></div>
-    <div class="panel-body">
-          
-  
-
-  <h4>Arguments</h4>
-      <table class="table table-striped varlist">
-    <thead>
-      <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              integer,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>ivmu</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(in),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :)
-            </td>
-            <td>::</td>
-            <td><strong>gold</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(in),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :)
-            </td>
-            <td>::</td>
-            <td><strong>phiold</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(in),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :)
-            </td>
-            <td>::</td>
-            <td><strong>phi</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(inout),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :)
-            </td>
-            <td>::</td>
-            <td><strong>g</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              character(len=*),
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>eqn</strong></td>
-            <td>
-
-            </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-    </div>
-  </div>
-
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-invert_parstream"></span><h3>private  subroutine <a href='../proc/invert_parstream.html'>invert_parstream</a>(ivmu, g)  
-</h3></div>
-    <div class="panel-body">
-          
-  
-
-  <h4>Arguments</h4>
-      <table class="table table-striped varlist">
-    <thead>
-      <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              integer,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>ivmu</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(inout),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :)
-            </td>
-            <td>::</td>
-            <td><strong>g</strong></td>
-            <td>
-
-            </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-    </div>
-  </div>
-
-              <div class="panel panel-default">
     <div class="panel-heading codesum"><span class="anchor" id="proc-stream_tridiagonal_solve"></span><h3>public  subroutine <a href='../proc/stream_tridiagonal_solve.html'>stream_tridiagonal_solve</a>(iky, ie, iv, is, g)  
 </h3></div>
     <div class="panel-body">
@@ -1503,202 +1358,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
   </div>
 
               <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-sweep_g_zed"></span><h3>private  subroutine <a href='../proc/sweep_g_zed.html'>sweep_g_zed</a>(ivmu, g)  
-</h3></div>
-    <div class="panel-body">
-          
-  
-
-  <h4>Arguments</h4>
-      <table class="table table-striped varlist">
-    <thead>
-      <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              integer,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>ivmu</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(inout),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :)
-            </td>
-            <td>::</td>
-            <td><strong>g</strong></td>
-            <td>
-
-            </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-    </div>
-  </div>
-
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-sweep_zed_zonal"></span><h3>public  subroutine <a href='../proc/sweep_zed_zonal.html'>sweep_zed_zonal</a>(iky, iv, is, sgn, g)  
-</h3></div>
-    <div class="panel-body">
-          
-  
-
-  <h4>Arguments</h4>
-      <table class="table table-striped varlist">
-    <thead>
-      <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              integer,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>iky</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              integer,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>iv</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              integer,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>is</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              integer,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>sgn</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(inout),</td>
-              <td></td>            <td>
-              dimension(-nzgrid:)
-            </td>
-            <td>::</td>
-            <td><strong>g</strong></td>
-            <td>
-
-            </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-    </div>
-  </div>
-
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-invert_parstream_response"></span><h3>private  subroutine <a href='../proc/invert_parstream_response.html'>invert_parstream_response</a>(phi)  
-</h3></div>
-    <div class="panel-body">
-          
-  
-
-  <h4>Arguments</h4>
-      <table class="table table-striped varlist">
-    <thead>
-      <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(inout),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :)
-            </td>
-            <td>::</td>
-            <td><strong>phi</strong></td>
-            <td>
-
-            </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-    </div>
-  </div>
-
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-get_dzed"></span><h3>private  subroutine <a href='../proc/get_dzed.html'>get_dzed</a>(iv, g, dgdz)  
+    <div class="panel-heading codesum"><span class="anchor" id="proc-get_dzed"></span><h3>public  subroutine <a href='../proc/get_dzed.html'>get_dzed</a>(iv, g, dgdz)  
 </h3></div>
     <div class="panel-body">
           
@@ -1768,6 +1428,106 @@ start the timer for the parallel streaming part of the time advance</p><a href="
   </div>
 
               <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-get_zed_derivative_extended_domain"></span><h3>public  subroutine <a href='../proc/get_zed_derivative_extended_domain.html'>get_zed_derivative_extended_domain</a>(iv, f, f_left, f_right, df_dz)  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iv</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>f</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>f_left</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>f_right</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>df_dz</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="panel panel-default">
     <div class="panel-heading codesum"><span class="anchor" id="proc-center_zed_extended"></span><h3>private  subroutine <a href='../proc/center_zed_extended.html'>center_zed_extended</a>(iv, g)  
 </h3></div>
     <div class="panel-body">
@@ -1823,11 +1583,13 @@ start the timer for the parallel streaming part of the time advance</p><a href="
   </div>
 
               <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-center_zed_segment_real"></span><h3>private  subroutine <a href='../proc/center_zed_segment_real.html'>center_zed_segment_real</a>(iv, g)  
+    <div class="panel-heading codesum"><span class="anchor" id="proc-center_zed_segment_real"></span><h3>private  subroutine <a href='../proc/center_zed_segment_real.html'>center_zed_segment_real</a>(iv, f, llim)  
 </h3></div>
     <div class="panel-body">
           
-  
+  <p>center_zed_segment_real takes as arguments the vpa index (iv)
+the z-depenendent real function f, and the starting iz index for the array f (llim),
+and overwrites f with the cell-centered version</p>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -1862,10 +1624,112 @@ start the timer for the parallel streaming part of the time advance</p><a href="
             </td>
 <td>intent(inout),</td>
               <td></td>            <td>
-              dimension(-nzgrid:)
+              dimension(llim:)
             </td>
             <td>::</td>
-            <td><strong>g</strong></td>
+            <td><strong>f</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>llim</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-center_zed_segment_complex"></span><h3>private  subroutine <a href='../proc/center_zed_segment_complex.html'>center_zed_segment_complex</a>(iv, f, llim, periodic)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>center_zed_segment_complex takes as arguments the vpa index (iv)
+the z-depenendent conplex function f, and the starting iz index for the array f (llim),
+and overwrites f with the cell-centered version;</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iv</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(llim:)
+            </td>
+            <td>::</td>
+            <td><strong>f</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>llim</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              logical,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>periodic</strong></td>
             <td>
 
             </td>
@@ -1972,13 +1836,13 @@ start the timer for the parallel streaming part of the time advance</p><a href="
       <div class="container">
         <div class="row">
           <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2023 
-<br /><small>v0.5.1-190-gb6af93dad</small></p>
+<br /><small>v0.5.1-231-gee3ee567d</small></p>
           </div>
           <div class="col-xs-6 col-md-6">
             <p class="text-right">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2023-04-13T14:03:16.161502             </p>
+ on 2023-04-25T09:23:45.058411             </p>
           </div>
         </div>
         <br>

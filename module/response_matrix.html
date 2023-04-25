@@ -101,7 +101,7 @@
           <li id="statements"><i class="fa fa-list-ol"></i>
             <a data-toggle="tooltip"
                data-placement="bottom" data-html="true"
-               title=" 1.9% of total for modules and submodules.">671 statements</a>
+               title=" 1.6% of total for modules and submodules.">561 statements</a>
           </li>
 
             <li id="source-file">
@@ -163,7 +163,7 @@
         <div class="list-group">
             <a class="list-group-item" href="../module/response_matrix.html#proc-init_response_matrix">init_response_matrix</a>
             <a class="list-group-item" href="../module/response_matrix.html#proc-read_response_matrix">read_response_matrix</a>
-            <a class="list-group-item" href="../module/response_matrix.html#proc-get_dgdphi_matrix_column">get_dgdphi_matrix_column</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-get_dpdf_dphi_matrix_column">get_dpdf_dphi_matrix_column</a>
             <a class="list-group-item" href="../module/response_matrix.html#proc-integrate_over_velocity">integrate_over_velocity</a>
             <a class="list-group-item" href="../module/response_matrix.html#proc-get_fields_for_response_matrix">get_fields_for_response_matrix</a>
             <a class="list-group-item" href="../module/response_matrix.html#proc-finish_response_matrix">finish_response_matrix</a>
@@ -240,7 +240,7 @@
         <div class="list-group">
             <a class="list-group-item" href="../module/response_matrix.html#proc-init_response_matrix">init_response_matrix</a>
             <a class="list-group-item" href="../module/response_matrix.html#proc-read_response_matrix">read_response_matrix</a>
-            <a class="list-group-item" href="../module/response_matrix.html#proc-get_dgdphi_matrix_column">get_dgdphi_matrix_column</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-get_dpdf_dphi_matrix_column">get_dpdf_dphi_matrix_column</a>
             <a class="list-group-item" href="../module/response_matrix.html#proc-integrate_over_velocity">integrate_over_velocity</a>
             <a class="list-group-item" href="../module/response_matrix.html#proc-get_fields_for_response_matrix">get_fields_for_response_matrix</a>
             <a class="list-group-item" href="../module/response_matrix.html#proc-finish_response_matrix">finish_response_matrix</a>
@@ -347,7 +347,7 @@ parameter
   </div>
 
               <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdphi_matrix_column"></span><h3>private  subroutine <a href='../proc/get_dgdphi_matrix_column.html'>get_dgdphi_matrix_column</a>(iky, ikx, iz, ie, idx, nz_ext, nresponse, phiext, gext)  
+    <div class="panel-heading codesum"><span class="anchor" id="proc-get_dpdf_dphi_matrix_column"></span><h3>private  subroutine <a href='../proc/get_dpdf_dphi_matrix_column.html'>get_dpdf_dphi_matrix_column</a>(iky, ikx, iz, ie, idx, nz_ext, nresponse, phi_ext, pdf_ext)  
 </h3></div>
     <div class="panel-body">
           
@@ -474,12 +474,12 @@ parameter
               <span class="anchor" ></span>
               complex,
             </td>
-<td>intent(inout),</td>
+<td>intent(out),</td>
               <td></td>            <td>
               dimension(:)
             </td>
             <td>::</td>
-            <td><strong>phiext</strong></td>
+            <td><strong>phi_ext</strong></td>
             <td>
 
             </td>
@@ -489,12 +489,12 @@ parameter
               <span class="anchor" ></span>
               complex,
             </td>
-<td>intent(inout),</td>
+<td>intent(out),</td>
               <td></td>            <td>
               dimension(:, vmu_lo%llim_proc:)
             </td>
             <td>::</td>
-            <td><strong>gext</strong></td>
+            <td><strong>pdf_ext</strong></td>
             <td>
 
             </td>
@@ -592,7 +592,7 @@ parameter
   </div>
 
               <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-get_fields_for_response_matrix"></span><h3>private  subroutine <a href='../proc/get_fields_for_response_matrix.html'>get_fields_for_response_matrix</a>(phi, iky, ie)  
+    <div class="panel-heading codesum"><span class="anchor" id="proc-get_fields_for_response_matrix"></span><h3>private  subroutine <a href='../proc/get_fields_for_response_matrix.html'>get_fields_for_response_matrix</a>(phi, iky, ie, dist)  
 </h3></div>
     <div class="panel-body">
           
@@ -650,6 +650,21 @@ parameter
             </td>
             <td>::</td>
             <td><strong>ie</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dist</strong></td>
             <td>
 
             </td>
@@ -728,13 +743,13 @@ parameter
       <div class="container">
         <div class="row">
           <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2023 
-<br /><small>v0.5.1-190-gb6af93dad</small></p>
+<br /><small>v0.5.1-231-gee3ee567d</small></p>
           </div>
           <div class="col-xs-6 col-md-6">
             <p class="text-right">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2023-04-13T14:03:16.161502             </p>
+ on 2023-04-25T09:23:45.058411             </p>
           </div>
         </div>
         <br>

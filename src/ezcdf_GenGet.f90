@@ -123,7 +123,7 @@ CONTAINS
       character*11, parameter :: logical_name = '__logical__'
 
       ALLOCATE (varval_i(size(varval, 1), size(varval, 2), size(varval, 3)))
-     
+
       call cdfr_3i(ncid, trim(varnam)//logical_name, varval_i, ier)
 
       WHERE (varval_i == 0)
@@ -461,7 +461,7 @@ CONTAINS
       character*11, parameter :: logical_name = '__logical__'
 
       ALLOCATE (varval_i(size(varval, 1), size(varval, 2)))
-      
+
       call cdfr_2i(ncid, trim(varnam)//logical_name, varval_i, ier)
 
       WHERE (varval_i == 0)
@@ -771,7 +771,7 @@ CONTAINS
       character*11, parameter :: logical_name = '__logical__'
 
       ALLOCATE (varval_i(size(varval, 1)))
-      
+
       call cdfr_1i(ncid, trim(varnam)//logical_name, varval_i, ier)
 
       WHERE (varval_i == 0)

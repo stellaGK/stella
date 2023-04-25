@@ -101,7 +101,7 @@
           <li id="statements"><i class="fa fa-list-ol"></i>
             <a data-toggle="tooltip"
                data-placement="bottom" data-html="true"
-               title=" 0.8% of total for modules and submodules.">286 statements</a>
+               title=" 0.9% of total for modules and submodules.">330 statements</a>
           </li>
 
             <li id="source-file">
@@ -147,7 +147,7 @@
             <a class="list-group-item" href="../module/extended_zgrid.html#variable-it_left">it_left</a>
             <a class="list-group-item" href="../module/extended_zgrid.html#variable-it_right">it_right</a>
             <a class="list-group-item" href="../module/extended_zgrid.html#variable-phase_shift">phase_shift</a>
-            <a class="list-group-item" href="../module/extended_zgrid.html#variable-periodic~6">periodic</a>
+            <a class="list-group-item" href="../module/extended_zgrid.html#variable-periodic~7">periodic</a>
             <a class="list-group-item" href="../module/extended_zgrid.html#variable-extended_zgrid_initialized">extended_zgrid_initialized</a>
         </div>
       </div>
@@ -173,8 +173,10 @@
         <div class="list-group">
             <a class="list-group-item" href="../module/extended_zgrid.html#proc-init_extended_zgrid">init_extended_zgrid</a>
             <a class="list-group-item" href="../module/extended_zgrid.html#proc-fill_zed_ghost_zones">fill_zed_ghost_zones</a>
+            <a class="list-group-item" href="../module/extended_zgrid.html#proc-fill_zext_ghost_zones">fill_zext_ghost_zones</a>
             <a class="list-group-item" href="../module/extended_zgrid.html#proc-map_to_extended_zgrid">map_to_extended_zgrid</a>
             <a class="list-group-item" href="../module/extended_zgrid.html#proc-map_from_extended_zgrid">map_from_extended_zgrid</a>
+            <a class="list-group-item" href="../module/extended_zgrid.html#proc-map_to_iz_ikx_from_izext">map_to_iz_ikx_from_izext</a>
             <a class="list-group-item" href="../module/extended_zgrid.html#proc-finish_extended_zgrid">finish_extended_zgrid</a>
         </div>
       </div>
@@ -219,7 +221,7 @@
             <a class="list-group-item" href="../module/extended_zgrid.html#variable-it_left">it_left</a>
             <a class="list-group-item" href="../module/extended_zgrid.html#variable-it_right">it_right</a>
             <a class="list-group-item" href="../module/extended_zgrid.html#variable-phase_shift">phase_shift</a>
-            <a class="list-group-item" href="../module/extended_zgrid.html#variable-periodic~6">periodic</a>
+            <a class="list-group-item" href="../module/extended_zgrid.html#variable-periodic~7">periodic</a>
             <a class="list-group-item" href="../module/extended_zgrid.html#variable-extended_zgrid_initialized">extended_zgrid_initialized</a>
         </div>
       </div>
@@ -245,8 +247,10 @@
         <div class="list-group">
             <a class="list-group-item" href="../module/extended_zgrid.html#proc-init_extended_zgrid">init_extended_zgrid</a>
             <a class="list-group-item" href="../module/extended_zgrid.html#proc-fill_zed_ghost_zones">fill_zed_ghost_zones</a>
+            <a class="list-group-item" href="../module/extended_zgrid.html#proc-fill_zext_ghost_zones">fill_zext_ghost_zones</a>
             <a class="list-group-item" href="../module/extended_zgrid.html#proc-map_to_extended_zgrid">map_to_extended_zgrid</a>
             <a class="list-group-item" href="../module/extended_zgrid.html#proc-map_from_extended_zgrid">map_from_extended_zgrid</a>
+            <a class="list-group-item" href="../module/extended_zgrid.html#proc-map_to_iz_ikx_from_izext">map_to_iz_ikx_from_izext</a>
             <a class="list-group-item" href="../module/extended_zgrid.html#proc-finish_extended_zgrid">finish_extended_zgrid</a>
         </div>
       </div>
@@ -401,7 +405,7 @@
               <span class="anchor" id="variable-it_left"></span>
               integer,
             </td>
-              <td>public,</td>
+              <td>private,</td>
             <td>
               dimension(:), allocatable
             </td>
@@ -455,7 +459,7 @@ pre-compute to avoid conditionals in loops</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-periodic~6"></span>
+              <span class="anchor" id="variable-periodic~7"></span>
               logical,
             </td>
               <td>public,</td>
@@ -475,7 +479,7 @@ pre-compute to avoid conditionals in loops</p>
               <span class="anchor" id="variable-extended_zgrid_initialized"></span>
               logical,
             </td>
-              <td>public</td>
+              <td>private</td>
             <td>
               
             </td>
@@ -635,6 +639,91 @@ magnetic shear that use periodic boundary conditions everywhere</p><a href="../p
             </td>
             <td>::</td>
             <td><strong>gright</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-fill_zext_ghost_zones"></span><h3>public  subroutine <a href='../proc/fill_zext_ghost_zones.html'>fill_zext_ghost_zones</a>(iky, pdf_ext, pdf_left, pdf_right)  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>pdf_ext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>pdf_left</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>pdf_right</strong></td>
             <td>
 
             </td>
@@ -862,6 +951,91 @@ magnetic shear that use periodic boundary conditions everywhere</p><a href="../p
   </div>
 
               <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-map_to_iz_ikx_from_izext"></span><h3>public  subroutine <a href='../proc/map_to_iz_ikx_from_izext.html'>map_to_iz_ikx_from_izext</a>(iky, ie, iz_from_izext, ikx_from_izext)  
+</h3></div>
+    <div class="panel-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ie</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>iz_from_izext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>ikx_from_izext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="panel panel-default">
     <div class="panel-heading codesum"><span class="anchor" id="proc-finish_extended_zgrid"></span><h3>public  subroutine <a href='../proc/finish_extended_zgrid.html'>finish_extended_zgrid</a>()  
 </h3></div>
     <div class="panel-body">
@@ -888,13 +1062,13 @@ magnetic shear that use periodic boundary conditions everywhere</p><a href="../p
       <div class="container">
         <div class="row">
           <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2023 
-<br /><small>v0.5.1-190-gb6af93dad</small></p>
+<br /><small>v0.5.1-231-gee3ee567d</small></p>
           </div>
           <div class="col-xs-6 col-md-6">
             <p class="text-right">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2023-04-13T14:03:16.161502             </p>
+ on 2023-04-25T09:23:45.058411             </p>
           </div>
         </div>
         <br>

@@ -674,6 +674,7 @@ contains
       use vpamu_grids, only: vperp2, vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use run_parameters, only: fphi
+      use run_parameters, only: maxwellian_normalization
       use kt_grids, only: aky, theta0, naky, nakx, multiply_by_rho
       use physics_flags, only: radial_variation
       use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
@@ -732,8 +733,10 @@ contains
                   end if
 
                   !subtract adiabatic contribution part of g
-                  g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
-                        * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                  g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2
+                  if (.not. maxwellian_normalization) then
+                     g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                  end if
                   if (radial_variation) then
                      g1k = g0k * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                                   - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
@@ -786,8 +789,10 @@ contains
 
                   !subtract adiabatic contribution part of g
                   g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
-                        * (vpa(iv)**2 + vperp2(ia, iz, imu)) &
-                        * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                        * (vpa(iv)**2 + vperp2(ia, iz, imu))
+                  if (.not. maxwellian_normalization) then
+                     g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                  end if
                   if (radial_variation) then
                      g1k = g0k * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                                   - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
@@ -837,8 +842,10 @@ contains
                   end if
                   !subtract adiabatic contribution part of g
                   g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
-                        * vpa(iv) * geo_surf%rmaj * btor(iz) / bmag(ia, iz) &
-                        * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                        * vpa(iv) * geo_surf%rmaj * btor(iz) / bmag(ia, iz)
+                  if (.not. maxwellian_normalization) then
+                     g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                  end if
                   if (radial_variation) then
                      g1k = g0k * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                                   - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
@@ -881,10 +888,12 @@ contains
 
                   !subtract adiabatic contribution part of g
                   g0k = -spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu) * aj1x(:, :, iz, ivmu) &
-                        * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is) &
                         * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
                         * (gds21(ia, iz) + theta0 * gds22(ia, iz)) * spec(is)%smz &
                         / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2)
+                  if (.not. maxwellian_normalization) then
+                     g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                  end if
 
                   if (radial_variation) then
                      g1k = -spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu) * aj1x(:, :, iz, ivmu) &
@@ -1272,7 +1281,7 @@ contains
       use species, only: spec, nspec
       use vpamu_grids, only: integrate_vmu
       use vpamu_grids, only: vpa, vperp2, mu
-      use vpamu_grids, only: maxwell_mu, ztmax, maxwell_fac
+      use vpamu_grids, only: maxwell_mu, ztmax, maxwell_fac, maxwell_vpa
       use kt_grids, only: ny, naky, nakx, multiply_by_rho, rho_d_clamped
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -1282,6 +1291,7 @@ contains
       use gyro_averages, only: aj0x, aj1x, gyro_average
       use fields_arrays, only: phi, phi_corr_QN, phi_proj
       use run_parameters, only: fphi
+      use run_parameters, only: maxwellian_normalization
       use physics_flags, only: radial_variation
       use stella_transforms, only: transform_kx2x_unpadded
 
@@ -1323,9 +1333,15 @@ contains
          ! obtain the gyro-average of g that appears in the density integral
          call gyro_average(g(:, :, :, :, ivmu), ivmu, g1(:, :, :, :, ivmu))
          ! FLAG -- AJ0X NEEDS DEALING WITH BELOW
-         g2(:, :, :, :, ivmu) = g1(:, :, :, :, ivmu) + ztmax(iv, is) &
-                                * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
-                                         * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * fphi * phi
+         g2(:, :, :, :, ivmu) = spread(aj0x(:, :, :, ivmu)**2 - 1.0, 4, ntubes) * spec(is)%zt * fphi * phi
+         if (.not. maxwellian_normalization) then
+            g2(:, :, :, :, ivmu) = g2(:, :, :, :, ivmu) * maxwell_vpa(iv, is) * &
+                                   spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) * maxwell_fac(is), 4, ntubes)
+         end if
+         g2(:, :, :, :, ivmu) = g2(:, :, :, :, ivmu) + g1(:, :, :, :, ivmu)
+         ! g2(:, :, :, :, ivmu) = g1(:, :, :, :, ivmu) + ztmax(iv, is) &
+         !                        * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
+         !                                 * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * fphi * phi
 
          if (radial_variation) then
             do it = 1, ntubes
@@ -1381,10 +1397,16 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         g2(:, :, :, :, ivmu) = (g1(:, :, :, :, ivmu) + ztmax(iv, is) &
-                                 * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
-                                          * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * phi * fphi) &
-                                * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
+         if (maxwellian_normalization) then
+            g2(:, :, :, :, ivmu) = (g1(:, :, :, :, ivmu) + spec(is)%zt &
+                                    * spread(aj0x(:, :, :, ivmu)**2 - 1.0, 4, ntubes) * phi * fphi) &
+                                   * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
+         else
+            g2(:, :, :, :, ivmu) = (g1(:, :, :, :, ivmu) + ztmax(iv, is) &
+                                    * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
+                                             * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * phi * fphi) &
+                                   * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
+         end if
          if (radial_variation) then
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid

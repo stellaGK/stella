@@ -101,7 +101,7 @@
           <li id="statements"><i class="fa fa-list-ol"></i>
             <a data-toggle="tooltip"
                data-placement="bottom" data-html="true"
-               title="<p> 0.0% of total for procedures.</p>Including implementation: 46 statements,  0.1% of total for procedures.">4 statements</a>
+               title="<p> 0.0% of total for procedures.</p>Including implementation: 74 statements,  0.2% of total for procedures.">5 statements</a>
           </li>
 
             <li id="source-file">
@@ -156,6 +156,7 @@
       <div id="modprocs-0" class="panel-collapse collapse">
         <div class="list-group">
             <a class="list-group-item" href="../interface/center_zed.html#moduleprocedure-center_zed_segment_real">center_zed_segment_real</a>
+            <a class="list-group-item" href="../interface/center_zed.html#moduleprocedure-center_zed_segment_complex">center_zed_segment_complex</a>
             <a class="list-group-item" href="../interface/center_zed.html#moduleprocedure-center_zed_extended">center_zed_extended</a>
         </div>
       </div>
@@ -168,7 +169,7 @@
     </div>
 
     <div class="col-md-9" id='text'>
-      <h2>private interface center_zed</h2>
+      <h2>public interface center_zed</h2>
       
 
       <section class="visible-xs visible-sm hidden-md">
@@ -200,6 +201,7 @@
       <div id="modprocs-1" class="panel-collapse collapse">
         <div class="list-group">
             <a class="list-group-item" href="../interface/center_zed.html#moduleprocedure-center_zed_segment_real">center_zed_segment_real</a>
+            <a class="list-group-item" href="../interface/center_zed.html#moduleprocedure-center_zed_segment_complex">center_zed_segment_complex</a>
             <a class="list-group-item" href="../interface/center_zed.html#moduleprocedure-center_zed_extended">center_zed_extended</a>
         </div>
       </div>
@@ -214,11 +216,13 @@
 
         <h2>Module Procedures</h2>
             <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-center_zed_segment_real"></span><h3>private  subroutine <a href='../proc/center_zed_segment_real.html'>center_zed_segment_real</a>(iv, g)  
+    <div class="panel-heading codesum"><span class="anchor" id="proc-center_zed_segment_real"></span><h3>private  subroutine <a href='../proc/center_zed_segment_real.html'>center_zed_segment_real</a>(iv, f, llim)  
 </h3></div>
     <div class="panel-body">
           
-  
+  <p>center_zed_segment_real takes as arguments the vpa index (iv)
+the z-depenendent real function f, and the starting iz index for the array f (llim),
+and overwrites f with the cell-centered version</p>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -253,10 +257,112 @@
             </td>
 <td>intent(inout),</td>
               <td></td>            <td>
-              dimension(-nzgrid:)
+              dimension(llim:)
             </td>
             <td>::</td>
-            <td><strong>g</strong></td>
+            <td><strong>f</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>llim</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+            <div class="panel panel-default">
+    <div class="panel-heading codesum"><span class="anchor" id="proc-center_zed_segment_complex"></span><h3>private  subroutine <a href='../proc/center_zed_segment_complex.html'>center_zed_segment_complex</a>(iv, f, llim, periodic)  
+</h3></div>
+    <div class="panel-body">
+          
+  <p>center_zed_segment_complex takes as arguments the vpa index (iv)
+the z-depenendent conplex function f, and the starting iz index for the array f (llim),
+and overwrites f with the cell-centered version;</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th>Type</th>
+<th>Intent</th><th>Optional</th>        <th>Attributes</th>
+        <th></th>
+        <th>Name</th>
+        <th></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iv</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(llim:)
+            </td>
+            <td>::</td>
+            <td><strong>f</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>llim</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              logical,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>periodic</strong></td>
             <td>
 
             </td>
@@ -331,13 +437,13 @@
       <div class="container">
         <div class="row">
           <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2023 
-<br /><small>v0.5.1-190-gb6af93dad</small></p>
+<br /><small>v0.5.1-231-gee3ee567d</small></p>
           </div>
           <div class="col-xs-6 col-md-6">
             <p class="text-right">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2023-04-13T14:03:16.161502             </p>
+ on 2023-04-25T09:23:45.058411             </p>
           </div>
         </div>
         <br>
