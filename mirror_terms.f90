@@ -43,7 +43,7 @@ contains
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed
       use run_parameters, only: mirror_implicit, mirror_semi_lagrange
-      use run_parameters, only: fapar
+      use physics_flags, only: include_apar
       use physics_flags, only: include_mirror, radial_variation
 
       implicit none
@@ -115,7 +115,7 @@ contains
             call init_invert_mirror_operator
 
             ! if advancing apar, need to get response of pdf to unit impulse in apar
-            if (fapar > 0.0) call init_mirror_response
+            if (include_apar) call init_mirror_response
          end if
 
       end if
@@ -646,7 +646,7 @@ contains
       use neoclassical_terms, only: include_neoclassical_terms
       use run_parameters, only: vpa_upwind
       use run_parameters, only: mirror_semi_lagrange, maxwellian_normalization
-      use run_parameters, only: fapar
+      use physics_flags, only: include_apar
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
       use fields, only: advance_apar
       use g_tofrom_h, only: gbar_to_g
@@ -792,7 +792,7 @@ contains
                end do
             end do
 
-            if (fapar > 0.0) then
+            if (include_apar) then
                ! if advancing apar, need to calculate the contribution to apar from g0v, which is the solution to the 'inhomogenous' equation
                dist = 'g'
                call advance_apar(g0v, dist, apar)
@@ -830,7 +830,7 @@ contains
                end do
             end if
             ! convert from g to gbar
-            if (fapar > 0) call gbar_to_g(g0v, apar, -fapar)
+            if (include_apar) call gbar_to_g(g0v, apar, -1.0)
             deallocate(rhs)
          end if
 
@@ -848,7 +848,7 @@ contains
 
    subroutine get_mirror_rhs_g_contribution(g_in, apar, imu, ikxkyz, rhs)
 
-      use run_parameters, only: fapar
+      use physics_flags, only: include_apar
       use run_parameters, only: vpa_upwind, time_upwind_minus
       use run_parameters, only: maxwellian_normalization
       use g_tofrom_h, only: gbar_to_g
@@ -866,23 +866,17 @@ contains
       integer :: iz, is
       complex, dimension(:), allocatable :: dgdv
 
-     ! if fapar > 0, the incoming pdf (g_in) is gbar; else, it is g.
-     ! the vpa derivative appearing on the RHS of the mirror equation
-     ! should be operating on g, so transform from gbar to g and store in rhs.
-     rhs = g_in
-     ! NB: changes may need to be made to this call to gbar_to_g if using
-     ! maxwellian_normalization; not worried aobut it too much yet, as not
-     ! sure if it will ever be in use here
-     if (fapar > 0.0) call gbar_to_g(rhs, apar, imu, ikxkyz, fapar)
-
       iz = iz_idx(kxkyz_lo, ikxkyz)
       is = is_idx(kxkyz_lo, ikxkyz)
 
-      ! if fapar > 0, the incoming pdf (g_in) is gbar; else, it is g.
+      ! if include_apar = T, the incoming pdf (g_in) is gbar; else, it is g.
       ! the vpa derivative appearing on the RHS of the mirror equation
       ! should be operating on g, so transform from gbar to g and store in rhs.
       rhs = g_in
-      if (fapar > 0.0) call gbar_to_g(rhs, apar, imu, ikxkyz, fapar)
+      ! NB: changes may need to be made to this call to gbar_to_g if using
+      ! maxwellian_normalization; not worried aobut it too much yet, as not
+      ! sure if it will ever be in use here
+      if (include_apar) call gbar_to_g(rhs, apar, imu, ikxkyz, 1.0)
 
       ! calculate dg/dvpa
       allocate (dgdv(nvpa))

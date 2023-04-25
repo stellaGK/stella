@@ -32,6 +32,7 @@
  full_flux_surface = .false.
  radial_variation = .false.
  nonlinear = .true.
+ include_apar = .false.
  adiabatic_option="field-line-average-term"
 /
 
@@ -85,8 +86,6 @@
 
 &knobs
  fphi =   1.0
- fapar =  0.0
- fbpar = 0.0
  zed_upwind = 0.02
  time_upwind = 0.02
  vpa_upwind = 0.02

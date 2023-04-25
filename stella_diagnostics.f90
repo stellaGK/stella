@@ -518,7 +518,8 @@ contains
       use zgrid, only: delzed, nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vperp2, vpa
-      use run_parameters, only: fphi, fapar
+      use physics_flags, only: include_apar
+      use run_parameters, only: fphi
       use kt_grids, only: aky, theta0
       use gyro_averages, only: gyro_average, gyro_average_j1
 
@@ -589,7 +590,7 @@ contains
          end do
       end if
 
-      if (fapar > epsilon(0.0)) then
+      if (include_apar) then
          ! particle flux
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iky = iky_idx(kxkyz_lo, ikxkyz)

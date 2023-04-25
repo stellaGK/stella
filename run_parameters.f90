@@ -5,7 +5,7 @@ module run_parameters
    implicit none
 
    public :: init_run_parameters, finish_run_parameters
-   public :: fphi, fapar, fbpar
+   public :: fphi
    public :: nstep, tend, delt
    public :: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
    public :: delt_max, delt_min
@@ -29,7 +29,7 @@ module run_parameters
    private
 
    real :: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
-   real :: fphi, fapar, fbpar
+   real :: fphi
    real :: delt, tend, delt_max, delt_min
    real :: vpa_upwind
    real :: time_upwind, time_upwind_plus, time_upwind_minus
@@ -74,7 +74,7 @@ contains
       use mp, only: mp_abort, proc0, broadcast
       use text_options, only: text_option, get_option_value
       use physics_flags, only: include_mirror, full_flux_surface, radial_variation
-      use physics_flags, only: nonlinear
+      use physics_flags, only: nonlinear, include_apar
 
       implicit none
 
@@ -92,7 +92,7 @@ contains
       logical :: error = .false.
       integer :: ierr, in_file
 
-      namelist /knobs/ fphi, fapar, fbpar, delt, nstep, tend, &
+      namelist /knobs/ fphi, delt, nstep, tend, &
          delt_option, lu_option, &
          avail_cpu_time, delt_max, delt_min, &
          cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, &
@@ -109,8 +109,6 @@ contains
 
          ! Default parameters in namelist <knobs>
          fphi = 1.0
-         fapar = 1.0
-         fbpar = -1.0
          fields_kxkyz = .false.
          stream_implicit = .true.
          mirror_implicit = .true.
@@ -208,7 +206,7 @@ contains
          end if
 
          ! semi-lagrange advance of mirror term is not supported for EM simulations
-         if (fapar > 0.0 .and. mirror_semi_lagrange) then
+         if (include_apar .and. mirror_semi_lagrange) then
             write (*, *) ''
             write (*, *) 'mirror_semi_lagrange = .true. is not supported for electromagnetic simulations.'
             write (*, *) 'forcing mirror_semi_lagrange = .false.'
@@ -232,8 +230,6 @@ contains
       call broadcast(delt_max)
       call broadcast(delt_min)
       call broadcast(fphi)
-      call broadcast(fapar)
-      call broadcast(fbpar)
       call broadcast(stream_implicit)
       call broadcast(mirror_implicit)
       call broadcast(drifts_implicit)

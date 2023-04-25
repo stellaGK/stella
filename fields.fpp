@@ -84,7 +84,8 @@ contains
       use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use dist_fn_arrays, only: kperp2, dkperp2dr
       use gyro_averages, only: aj0v, aj1v
-      use run_parameters, only: fphi, fapar
+      use physics_flags, only: include_apar
+      use run_parameters, only: fphi
       use run_parameters, only: ky_solve_radial
       use run_parameters, only: maxwellian_normalization
       use physics_parameters, only: tite, nine, beta
@@ -130,7 +131,7 @@ contains
          end if
       end if
       if (.not. allocated(apar_denom)) then
-         if (fapar > epsilon(0.0)) then
+         if (include_apar) then
             allocate (apar_denom(naky, nakx, -nzgrid:nzgrid)); apar_denom = 0.
          else
             allocate (apar_denom(1, 1, 1)); apar_denom = 0.
@@ -233,7 +234,7 @@ contains
 
       end if
 
-      if (fapar > epsilon(0.)) then
+      if (include_apar) then
          allocate (g0(nvpa, nmu))
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             it = it_idx(kxkyz_lo, ikxkyz)
@@ -804,7 +805,8 @@ contains
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use dist_fn_arrays, only: kperp2
       use gyro_averages, only: gyro_average
-      use run_parameters, only: fphi, fapar
+      use physics_flags, only: include_apar
+      use run_parameters, only: fphi
       use physics_parameters, only: beta
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
@@ -856,7 +858,7 @@ contains
       end if
 
       apar = 0.
-      if (fapar > epsilon(0.0)) then
+      if (include_apar) then
          allocate (g0(nvpa, nmu))
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iz = iz_idx(kxkyz_lo, ikxkyz)
@@ -892,7 +894,8 @@ contains
       use job_manage, only: time_message
       use stella_layouts, only: vmu_lo, iv_idx
       use gyro_averages, only: gyro_average
-      use run_parameters, only: fphi, fapar
+      use physics_flags, only: include_apar
+      use run_parameters, only: fphi
       use physics_parameters, only: beta
       use physics_flags, only: radial_variation
       use dist_fn_arrays, only: g_scratch
@@ -939,7 +942,7 @@ contains
       end if
 
       apar = 0.
-      if (fapar > epsilon(0.0)) then
+      if (include_apar) then
 
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
@@ -978,7 +981,8 @@ contains
       use mp, only: mp_abort
       use physics_parameters, only: nine, tite
       use stella_layouts, only: vmu_lo
-      use run_parameters, only: fphi, fapar
+      use physics_flags, only: include_apar
+      use run_parameters, only: fphi
       use species, only: modified_adiabatic_electrons, adiabatic_electrons
       use zgrid, only: nzgrid
       use kt_grids, only: nakx, ikx_max, naky, naky_all
@@ -1042,7 +1046,7 @@ contains
       end if
 
       apar = 0.
-      if (fapar > epsilon(0.0)) then
+      if (include_apar) then
          call mp_abort('apar not yet supported for full_flux_surface = T. aborting.')
       end if
 
@@ -1483,7 +1487,7 @@ contains
      use mp, only: mp_abort, proc0, sum_allreduce
      use stella_layouts, only: kxkyz_lo
      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-     use run_parameters, only: fapar
+     use physics_flags, only: include_apar
      use physics_parameters, only: beta
      use species, only: spec
      use dist_fn_arrays, only: kperp2
@@ -1504,7 +1508,7 @@ contains
      complex, dimension(:, :), allocatable :: scratch
      
      apar = 0.
-     if (fapar > epsilon(0.0)) then
+     if (include_apar) then
         allocate (scratch(nvpa, nmu))
         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iz = iz_idx(kxkyz_lo, ikxkyz)
@@ -1944,18 +1948,19 @@ contains
       use gyro_averages, only: gyro_average
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: is_idx, iv_idx
-      use run_parameters, only: fphi, fapar
+      use physics_flags, only: include_apar
+      use run_parameters, only: fphi
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: vpa
-      use kt_grids, only: nakx, aky, naky
+      use kt_grids, only: aky, naky, nakx
 
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: dchidy
 
-      integer :: ivmu, iv, is, iz, it, ikx
+      integer :: ivmu, iv, is, iky
       complex, dimension(:, :, :, :), allocatable :: field
 
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -1963,12 +1968,13 @@ contains
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          is = is_idx(vmu_lo, ivmu)
          iv = iv_idx(vmu_lo, ivmu)
-         do it = 1, ntubes
-            do iz = -nzgrid, nzgrid
-               do ikx = 1, nakx
-                  field(:, ikx, iz, it) = zi * aky(:) * (fphi * phi(:, ikx, iz, it) - fapar * vpa(iv) * spec(is)%stm * apar(:, ikx, iz, it))
-               end do
-            end do
+         ! intermediate calculation to get factor involving phi contribution
+         field = fphi * phi
+         ! add apar contribution if including it
+         if (include_apar) field = field - vpa(iv) * spec(is)%stm_psi0 * apar
+         ! take spectral y-derivative
+         do iky = 1, naky
+            field(iky, :, :, :) = zi * aky(iky) * field(iky, :, :, :)
          end do
          call gyro_average(field, ivmu, dchidy(:, :, :, :, ivmu))
       end do
@@ -1984,7 +1990,8 @@ contains
       use gyro_averages, only: gyro_average
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: is_idx, iv_idx
-      use run_parameters, only: fphi, fapar
+      use physics_flags, only: include_apar
+      use run_parameters, only: fphi
       use species, only: spec
       use vpamu_grids, only: vpa
       use kt_grids, only: nakx, aky, naky
@@ -2002,8 +2009,9 @@ contains
 
       is = is_idx(vmu_lo, ivmu)
       iv = iv_idx(vmu_lo, ivmu)
-      field = zi * spread(aky, 2, nakx) &
-              * (fphi * phi - fapar * vpa(iv) * spec(is)%stm * apar)
+      field = fphi * phi
+      if (include_apar) field = field - vpa(iv) * spec(is)%stm_psi0 * apar
+      field = zi * spread(aky, 2, nakx) * field
       call gyro_average(field, iz, ivmu, dchidy)
 
       deallocate (field)
@@ -2017,7 +2025,8 @@ contains
       use gyro_averages, only: gyro_average
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: is_idx, iv_idx
-      use run_parameters, only: fphi, fapar
+      use physics_flags, only: include_apar
+      use run_parameters, only: fphi
       use species, only: spec
       use vpamu_grids, only: vpa
       use kt_grids, only: akx, naky, nakx
@@ -2035,8 +2044,9 @@ contains
 
       is = is_idx(vmu_lo, ivmu)
       iv = iv_idx(vmu_lo, ivmu)
-      field = zi * spread(akx, 1, naky) &
-              * (fphi * phi - fapar * vpa(iv) * spec(is)%stm * apar)
+      field = fphi * phi
+      if (include_apar) field = field - vpa(iv) * spec(is)%stm_psi0 * apar
+      field = zi * spread(akx, 1, naky) * field
       call gyro_average(field, iz, ivmu, dchidx)
 
       deallocate (field)
