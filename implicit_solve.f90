@@ -20,9 +20,11 @@ contains
       use mp, only: proc0
       use job_manage, only: time_message
       use stella_layouts, only: vmu_lo
+      use physics_flags, only: include_apar
+      use g_tofrom_h, only: gbar_to_g
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
-      use dist_fn_arrays, only: g1
+      use dist_fn_arrays, only: g_scratch
       use run_parameters, only: stream_matrix_inversion
       use run_parameters, only: use_deltaphi_for_response_matrix
       use run_parameters, only: tupwnd_p => time_upwind_plus
@@ -56,10 +58,14 @@ contains
       end if
 
       ! save the incoming pdf and phi, as they will be needed later
-      g1 = g
+      g_scratch = g
       allocate (phi_old(naky, nakx, -nzgrid:nzgrid, ntubes))
       phi_old = phi
 
+      ! if including apar, the incoming pdf is gbar = g + (Ze/T)*<vpa*apar/c>*F0;
+      ! convert from gbar to g
+      if (include_apar) call gbar_to_g(g_scratch, apar, 1.0)
+      
       ! solve for the 'inhomogeneous' piece of the pdf
       call update_pdf
 
@@ -112,8 +118,8 @@ contains
                      ! pdf1 and pdf2 will be scratch arrays needed to compute the pdf itself,
                      ! as well as contributions to the GK equation
                      allocate (pdf1(nz_ext), pdf2(nz_ext), phiext(nz_ext), phiext_old(nz_ext))
-                     ! map the incoming pdf 'g1' onto the extended zed domain and call it 'pdf1'
-                     call map_to_extended_zgrid(it, ie, iky, g1(iky, :, :, :, ivmu), pdf1, ulim)
+                     ! map the incoming pdf 'g_scratch' onto the extended zed domain and call it 'pdf1'
+                     call map_to_extended_zgrid(it, ie, iky, g_scratch(iky, :, :, :, ivmu), pdf1, ulim)
                      ! map the incoming potential 'phi_source' onto the extended zed domain and call it 'phiext'
                      call map_to_extended_zgrid(it, ie, iky, phi_source(iky, :, :, :), phiext, ulim)
                      ! calculate the RHS of the GK equation (using pdf1 and phi_source as the
@@ -391,11 +397,11 @@ contains
       allocate (ikx_from_izext(nz_ext))
       call map_to_iz_ikx_from_izext(iky, ie, iz_from_izext, ikx_from_izext)
 
-      ! fill ghost zones beyond ends of extended zed domain for <phi>
+      ! fill ghost zones beyond ends of extended zed domain for the pdf
       ! and store values in scratch_left and scratch_right
       call fill_zext_ghost_zones(iky, pdf, pdf_left, pdf_right)
 
-      ! obtain the zed derivative of <phi> (stored in scratch) and store in rhs
+      ! obtain the zed derivative of the pdf and store in dpdf_dz
       allocate (dpdf_dz(nz_ext))
       call get_zed_derivative_extended_domain(iv, pdf, pdf_left, pdf_right, dpdf_dz)
 

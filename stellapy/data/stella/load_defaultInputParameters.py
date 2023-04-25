@@ -43,14 +43,14 @@ def load_defaultInputParameters():
         nalpha; naky; nakx; aky_min; aky_max; akx_min; akx_max; theta0_min; theta0_max
         
     physics_flags
-        full_flux_surface; include_mirror; nonlinear; include_parallel_nonlinearity; include_parallel_streaming
+        full_flux_surface; include_mirror; nonlinear; include_apar; include_parallel_nonlinearity; include_parallel_streaming
 
     init_g_knobs
         tstart; scale; ginit_option; width0; refac; imfac; den0; par0; tperp0; den1; upar1; tpar1; tperp1; kxmin; kxmax;
         den2; upar2; tpar2; tperp2; phiinit; zf_init; chop_side; left; even; restart_file; restart_dir; read_many
         
     knobs
-        nstep; delt; fapar; fbpar; delt_option; zed_upwind; vpa_upwind; time_upwind; avail_cpu_time; cfl_cushion
+        nstep; delt; delt_option; zed_upwind; vpa_upwind; time_upwind; avail_cpu_time; cfl_cushion
         delt_adjust; delt_max; mat_gen; mat_read; fields_kxkyz; stream_implicit; mirror_implicit; driftkinetic_implicit
         mirror_semi_lagrange; mirror_linear_interp; maxwellian_inside_zed_derivative; stream_matrix_inversion, LU_option
 
@@ -175,6 +175,7 @@ def load_defaultInputParameters():
            "full_flux_surface"  :  False    ,\
            "include_mirror"     :  True     ,\
            "nonlinear"          :  False    ,\
+           "include_apar"       :  False    ,\
            "include_parallel_nonlinearity" : False  ,\
            "radial_variation"   :  False    ,    # New parameter 17/12/2020
            "include_parallel_streaming" : True,  
@@ -216,8 +217,6 @@ def load_defaultInputParameters():
            "nstep"              : None      ,\
            "delt"               : 0.1       ,\
            "fphi"               : 1.0       ,\
-           "fapar"              : 1.0       ,\
-           "fbpar"              : -1.0      ,\
            "delt_option"        : 'default' ,\
            "zed_upwind"         : 0.02      ,\
            "vpa_upwind"         : 0.02      ,\
