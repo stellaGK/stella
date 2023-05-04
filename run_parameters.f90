@@ -214,7 +214,7 @@ contains
             write (*, *) ''
             mirror_semi_lagrange = .false.
          end if
-            
+
          if (drifts_implicit) then
             if (.not. stream_implicit) then
                write (*, *) '!!!WARNING!!!'
