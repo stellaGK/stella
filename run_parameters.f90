@@ -73,7 +73,7 @@ contains
       use file_utils, only: input_unit, error_unit, input_unit_exist
       use mp, only: mp_abort, proc0, broadcast
       use text_options, only: text_option, get_option_value
-      use physics_flags, only: include_mirror, full_flux_surface, radial_variation
+      use physics_flags, only: include_mirror, full_flux_surface, radial_variation, include_parallel_streaming
       use physics_flags, only: nonlinear
 
       implicit none
@@ -207,6 +207,20 @@ contains
             mirror_semi_lagrange = .false.
          end if
 
+         if (drifts_implicit) then
+            if (.not. stream_implicit) then
+               write (*, *) '!!!WARNING!!!'
+               write (*, *) 'drifts_implicit = T requires stream_implicit = T.'
+               write (*, *) 'forcing drifts_implicit = F.'
+               drifts_implicit = .false.
+            else if (.not. include_parallel_streaming) then
+               write (*, *) '!!!WARNING!!!'
+               write (*, *) 'drifts_implicit = T requires include_parallel_streaming = T.'
+               write (*, *) 'forcing drifts_implicit = F.'
+               drifts_implicit = .false.
+            end if
+         end if
+         
       end if
 
       ! Exit stella if we ran into an error
