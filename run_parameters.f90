@@ -220,7 +220,7 @@ contains
                drifts_implicit = .false.
             end if
          end if
-         
+
       end if
 
       ! Exit stella if we ran into an error
