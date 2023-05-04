@@ -213,7 +213,8 @@ contains
             write (*, *) 'forcing mirror_semi_lagrange = .false.'
             write (*, *) ''
             mirror_semi_lagrange = .false.
-=======
+         end if
+            
          if (drifts_implicit) then
             if (.not. stream_implicit) then
                write (*, *) '!!!WARNING!!!'
@@ -226,7 +227,6 @@ contains
                write (*, *) 'forcing drifts_implicit = F.'
                drifts_implicit = .false.
             end if
->>>>>>> master
          end if
 
       end if
