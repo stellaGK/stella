@@ -31,7 +31,7 @@ def load_stellaKnobsAndKeys():
             ['nalpha', 'naky', 'nakx', 'aky_min', 'aky_max', 'akx_min', \
              'akx_max', 'theta0_min', 'theta0_max'],\
         "physics_flags" : 
-            ['full_flux_surface', 'include_mirror', 'nonlinear', \
+            ['full_flux_surface', 'include_mirror', 'nonlinear', 'include_apar', \
              'include_parallel_nonlinearity', 'include_parallel_streaming'],\
         "init_g_knobs" : 
             ['tstart', 'scale', 'ginit_option', 'width0', 'refac', 'imfac', \
@@ -39,7 +39,7 @@ def load_stellaKnobsAndKeys():
              'den2', 'upar2', 'tpar2', 'tperp2', 'phiinit', 'zf_init', 'chop_side',\
              'left', 'even', 'restart_file', 'restart_dir', 'read_many'],\
         "knobs" : 
-            ['t_end', 'nstep', 'delt', 'fapar', 'fbpar', 'delt_option', 'zed_upwind', \
+            ['t_end', 'nstep', 'delt', 'delt_option', 'zed_upwind', \
              'vpa_upwind', 'time_upwind', 'avail_cpu_time', 'cfl_cushion',\
              'delt_adjust', 'mat_gen', 'mat_read', 'fields_kxkyz', 'stream_implicit', \
              'mirror_implicit', 'driftkinetic_implicit',  'mirror_semi_lagrange', \
