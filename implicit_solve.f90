@@ -20,6 +20,8 @@ contains
       use mp, only: proc0
       use job_manage, only: time_message
       use stella_layouts, only: vmu_lo
+      use physics_flags, only: include_apar
+      use g_tofrom_h, only: gbar_to_g
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
       use dist_fn_arrays, only: g1
@@ -46,7 +48,7 @@ contains
       !> dist_choice indicates whether the non-Boltzmann part of the pdf (h) is evolved
       !> in parallel streaming or if the guiding centre distribution (g = <f>) is evolved
       allocate (phi_source(naky, nakx, -nzgrid:nzgrid, ntubes))
-      dist_choice = 'gbar'
+      dist_choice = 'g'
       !> if using delphi formulation for response matrix, then phi = phi^n replaces
       !> phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
       if (use_deltaphi_for_response_matrix) then
@@ -60,7 +62,11 @@ contains
       allocate (phi_old(naky, nakx, -nzgrid:nzgrid, ntubes))
       phi_old = phi
 
-      ! solve for the 'inhomogeneous' piece of the pdf
+      ! if including apar, the incoming pdf is gbar = g + (Ze/T)*<vpa*apar/c>*F0;
+      ! convert from gbar to g
+      if (include_apar) call gbar_to_g(g1, apar, 1.0)
+
+      ! solve for the 'inhomogeneous' piece of the pdf, stored in g_scratch
       call update_pdf
 
       fields_updated = .false.
@@ -190,7 +196,6 @@ contains
       use run_parameters, only: maxwellian_inside_zed_derivative
       use run_parameters, only: drifts_implicit
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use gyro_averages, only: gyro_average
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_dvpa
       use parallel_streaming, only: stream_sign
@@ -392,11 +397,11 @@ contains
       allocate (ikx_from_izext(nz_ext))
       call map_to_iz_ikx_from_izext(iky, ie, iz_from_izext, ikx_from_izext)
 
-      ! fill ghost zones beyond ends of extended zed domain for <phi>
+      ! fill ghost zones beyond ends of extended zed domain for the pdf
       ! and store values in scratch_left and scratch_right
       call fill_zext_ghost_zones(iky, pdf, pdf_left, pdf_right)
 
-      ! obtain the zed derivative of <phi> (stored in scratch) and store in rhs
+      ! obtain the zed derivative of the pdf and store in dpdf_dz
       allocate (dpdf_dz(nz_ext))
       call get_zed_derivative_extended_domain(iv, pdf, pdf_left, pdf_right, dpdf_dz)
 
