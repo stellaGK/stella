@@ -26,6 +26,7 @@ module mirror_terms
    real, dimension(:, :, :), allocatable :: mirror_int_fac
    real, dimension(:, :, :, :), allocatable :: mirror_interp_loc
    integer, dimension(:, :, :, :), allocatable :: mirror_interp_idx_shift
+   complex, dimension(:, :, :, :), allocatable :: response_apar_denom
 
 contains
 
@@ -42,6 +43,7 @@ contains
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed
       use run_parameters, only: mirror_implicit, mirror_semi_lagrange
+      use physics_flags, only: include_apar
       use physics_flags, only: include_mirror, radial_variation
 
       implicit none
@@ -111,7 +113,11 @@ contains
             !> set up the tridiagonal matrix that must be inverted
             !> for the implicit treatment of the mirror operator
             call init_invert_mirror_operator
+
+            ! if advancing apar, need to get response of pdf to unit impulse in apar
+            if (include_apar) call init_mirror_response
          end if
+
       end if
 
    end subroutine init_mirror
@@ -277,6 +283,55 @@ contains
       deallocate (a, b, c)
 
    end subroutine init_invert_mirror_operator
+
+   subroutine init_mirror_response
+
+      use stella_layouts, only: kxkyz_lo
+      use zgrid, only: nzgrid, ntubes
+      use vpamu_grids, only: nmu, nvpa
+      use kt_grids, only: naky, nakx
+      use fields, only: advance_apar
+
+      implicit none
+
+      complex :: apar
+      integer :: ikxkyz, imu
+      complex, dimension(:), allocatable :: rhs
+      complex, dimension(:, :, :), allocatable :: mirror_response_g
+      character(5) :: dist
+
+      allocate (rhs(nvpa))
+      allocate (mirror_response_g(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+      if (.not. allocated(response_apar_denom)) then
+         allocate (response_apar_denom(naky, nakx, -nzgrid:nzgrid, ntubes))
+      end if
+
+      ! give unit impulse to apar and solve for g (stored in mirror_response_g)
+      apar = 1.0
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         rhs = 0.0
+         do imu = 1, nmu
+            ! calculate the rhs of the 'homogeneous' mirror advance equation
+            call get_mirror_rhs_apar_contribution(rhs, apar, imu, ikxkyz)
+            ! invert the mirror operator and replace rhs with the solution
+            call invert_mirror_operator(imu, ikxkyz, rhs)
+            ! store the solution in mirror_response_g
+            mirror_response_g(:, imu, ikxkyz) = rhs
+         end do
+      end do
+
+      ! calculate the contribution to apar from mirror_response_g
+      dist = 'g'
+      call advance_apar(mirror_response_g, dist, response_apar_denom)
+
+      ! response_apar_denom is the thing that the inhomogeneous contribution to apar
+      ! must be divided by to obtain the total apar; i.e., apar = apar_inh + apar_h,
+      ! and apar_h is proportional to apar, so (1 - apar_h / apar) * apar = apar_inh
+      response_apar_denom = 1.0 - response_apar_denom
+
+      deallocate (rhs, mirror_response_g)
+
+   end subroutine init_mirror_response
 
    !> advance_mirror_explicit calculates the contribution to the RHS of the gyrokinetic equation
    !> due to the mirror force term; it treats all terms explicitly in time
@@ -571,7 +626,7 @@ contains
    end subroutine add_mirror_term_ffs
 
    ! advance mirror implicit solve dg/dt = mu/m * bhat . grad B (dg/dvpa + m*vpa/T * g)
-   subroutine advance_mirror_implicit(collisions_implicit, g)
+   subroutine advance_mirror_implicit(collisions_implicit, g, apar)
 
       use constants, only: zi
       use mp, only: proc0
@@ -579,33 +634,38 @@ contains
       use redistribute, only: gather, scatter
       use finite_differences, only: fd_variable_upwinding_vpa
       use stella_layouts, only: vmu_lo, kxyz_lo, kxkyz_lo
-      use stella_layouts, only: iz_idx, is_idx, iv_idx, imu_idx
+      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use stella_layouts, only: iv_idx, imu_idx
       use stella_transforms, only: transform_ky2y, transform_y2ky
       use zgrid, only: nzgrid, ntubes
       use dist_fn_arrays, only: gvmu
       use physics_flags, only: full_flux_surface
       use kt_grids, only: ny, nakx
       use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: dvpa, maxwell_vpa, vpa
+      use vpamu_grids, only: maxwell_vpa
       use neoclassical_terms, only: include_neoclassical_terms
-      use run_parameters, only: vpa_upwind, time_upwind
+      use run_parameters, only: vpa_upwind
       use run_parameters, only: mirror_semi_lagrange, maxwellian_normalization
+      use physics_flags, only: include_apar
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
+      use fields, only: advance_apar
+      use g_tofrom_h, only: gbar_to_g
 
       implicit none
 
       logical, intent(in) :: collisions_implicit
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: apar
 
       integer :: ikxyz, ikxkyz, ivmu
-      integer :: iv, imu, iz, is, ikx, it
-      real :: tupwnd
+      integer :: iky, ikx, iz, it, is
+      integer :: iv, imu
+      character(5) :: dist
+      complex, dimension(:), allocatable :: rhs
       complex, dimension(:, :, :), allocatable :: g0v
       complex, dimension(:, :, :, :, :), allocatable :: g0x
 
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
-
-      tupwnd = (1.0 - time_upwind) * 0.5
 
       ! FLAG -- STILL NEED TO IMPLEMENT VARIABLE TIME UPWINDING
       ! FOR FULL_FLUX_SURFACE
@@ -704,35 +764,74 @@ contains
          if (mirror_semi_lagrange) then
             call vpa_interpolation(gvmu, g0v)
          else
-            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-               iz = iz_idx(kxkyz_lo, ikxkyz)
-               is = is_idx(kxkyz_lo, ikxkyz)
-               do imu = 1, nmu
-                  ! remove exp(-vpa^2) normalization from pdf before differentiating
-                  if (maxwellian_normalization) then
-                     gvmu(:, imu, ikxkyz) = gvmu(:, imu, ikxkyz) * maxwell_vpa(:, is)
-                  end if
+            allocate (rhs(nvpa))
+            ! remove exp(-vpa^2) normalization from pdf before differentiating
+            if (maxwellian_normalization) then
+               do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+                  is = is_idx(kxkyz_lo, ikxkyz)
+                  gvmu(:, :, ikxkyz) = gvmu(:, :, ikxkyz) * spread(maxwell_vpa(:, is), 2, nmu)
+               end do
+            end if
 
-                  ! calculate dg/dvpa
-                  call fd_variable_upwinding_vpa(1, gvmu(:, imu, ikxkyz), dvpa, &
-                                                 mirror_sign(1, iz), vpa_upwind, g0v(:, imu, ikxkyz))
-                  ! construct RHS of GK equation for mirror advance;
-                  ! i.e., (1-(1+alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n+1}
-                  ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n}
-                  if (maxwellian_normalization) then
-                     g0v(:, imu, ikxkyz) = gvmu(:, imu, ikxkyz) + tupwnd * mirror(1, iz, imu, is) * (g0v(:, imu, ikxkyz) &
-                                                                                                     + 2.0 * vpa * gvmu(:, imu, ikxkyz))
-                  else
-                     g0v(:, imu, ikxkyz) = gvmu(:, imu, ikxkyz) + tupwnd * mirror(1, iz, imu, is) * g0v(:, imu, ikxkyz)
-                  end if
+            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+               iky = iky_idx(kxkyz_lo, ikxkyz)
+               ikx = ikx_idx(kxkyz_lo, ikxkyz)
+               iz = iz_idx(kxkyz_lo, ikxkyz)
+               it = it_idx(kxkyz_lo, ikxkyz)
+
+               do imu = 1, nmu
+                  ! calculate the contribution to the mirror advance due to source terms
+                  ! involving the particle distribution function
+                  call get_mirror_rhs_g_contribution(gvmu(:, imu, ikxkyz), apar(iky, ikx, iz, it), imu, ikxkyz, rhs)
 
                   ! invert_mirror_operator takes rhs of equation and
                   ! returns g^{n+1}
-                  call invert_mirror_operator(imu, ikxkyz, g0v(:, imu, ikxkyz))
+                  call invert_mirror_operator(imu, ikxkyz, rhs)
+                  g0v(:, imu, ikxkyz) = rhs
 
-                  if (maxwellian_normalization) g0v(:, imu, ikxkyz) = g0v(:, imu, ikxkyz) / maxwell_vpa(:, is)
                end do
             end do
+
+            if (include_apar) then
+               ! if advancing apar, need to calculate the contribution to apar from g0v, which is the solution to the 'inhomogenous' equation
+               dist = 'g'
+               call advance_apar(g0v, dist, apar)
+
+               ! the total apar is the above contribution from the 'inhomogeneous' apar / response_apar_denom,
+               ! with the denominator pre-calculated using a response matrix approach; in this case,
+               ! the response matrix is diagonal, so it is just a scalar divide
+               apar = apar / response_apar_denom
+
+               do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+                  iky = iky_idx(kxkyz_lo, ikxkyz)
+                  ikx = ikx_idx(kxkyz_lo, ikxkyz)
+                  iz = iz_idx(kxkyz_lo, ikxkyz)
+                  is = is_idx(kxkyz_lo, ikxkyz)
+                  do imu = 1, nmu
+                     rhs = 0.0
+                     ! now that we have apar at the future time level, use it to solve for g;
+                     ! first get the rhs of the 'homogeneous' equation, which only has
+                     ! contributions from terms proportional to apar
+                     call get_mirror_rhs_apar_contribution(rhs, apar(iky, ikx, iz, is), imu, ikxkyz)
+                     ! invert the mirror operator to find the 'homogeneous' solution
+                     call invert_mirror_operator(imu, ikxkyz, rhs)
+                     ! add the 'homogeneous' solution to the 'inhomogeneous' one found above
+                     ! to get g = <f> at the future time step
+                     g0v(:, imu, ikxkyz) = g0v(:, imu, ikxkyz) + rhs
+                  end do
+               end do
+            end if
+
+            ! re-insert maxwellian normalization
+            if (maxwellian_normalization) then
+               do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+                  is = is_idx(kxkyz_lo, ikxkyz)
+                  g0v(:, :, ikxkyz) = g0v(:, :, ikxkyz) / spread(maxwell_vpa(:, is), 2, nmu)
+               end do
+            end if
+            ! convert from g to gbar
+            if (include_apar) call gbar_to_g(g0v, apar, -1.0)
+            deallocate (rhs)
          end if
 
          ! then take the results and remap again so ky,kx,z local.
@@ -746,6 +845,90 @@ contains
       if (proc0) call time_message(.false., time_mirror, ' Mirror advance')
 
    end subroutine advance_mirror_implicit
+
+   subroutine get_mirror_rhs_g_contribution(g_in, apar, imu, ikxkyz, rhs)
+
+      use physics_flags, only: include_apar
+      use run_parameters, only: vpa_upwind, time_upwind_minus
+      use run_parameters, only: maxwellian_normalization
+      use g_tofrom_h, only: gbar_to_g
+      use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
+      use finite_differences, only: fd_variable_upwinding_vpa
+      use vpamu_grids, only: dvpa, vpa, nvpa
+
+      implicit none
+
+      complex, dimension(:), intent(in) :: g_in
+      complex, intent(in) :: apar
+      integer, intent(in) :: imu, ikxkyz
+      complex, dimension(:), intent(out) :: rhs
+
+      integer :: iz, is
+      complex, dimension(:), allocatable :: dgdv
+
+      iz = iz_idx(kxkyz_lo, ikxkyz)
+      is = is_idx(kxkyz_lo, ikxkyz)
+
+      ! if include_apar = T, the incoming pdf (g_in) is gbar; else, it is g.
+      ! the vpa derivative appearing on the RHS of the mirror equation
+      ! should be operating on g, so transform from gbar to g and store in rhs.
+      rhs = g_in
+      ! NB: changes may need to be made to this call to gbar_to_g if using
+      ! maxwellian_normalization; not worried aobut it too much yet, as not
+      ! sure if it will ever be in use here
+      if (include_apar) call gbar_to_g(rhs, apar, imu, ikxkyz, 1.0)
+
+      ! calculate dg/dvpa
+      allocate (dgdv(nvpa))
+      call fd_variable_upwinding_vpa(1, rhs, dvpa, &
+                                     mirror_sign(1, iz), vpa_upwind, dgdv)
+
+      ! construct RHS of GK equation for mirror advance;
+      ! i.e., (1-(1+alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n+1}
+      ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n}
+      if (maxwellian_normalization) then
+         rhs = g_in + time_upwind_minus * mirror(1, iz, imu, is) * (dgdv + 2.0 * vpa * rhs)
+      else
+         rhs = g_in + time_upwind_minus * mirror(1, iz, imu, is) * dgdv
+      end if
+
+      deallocate (dgdv)
+
+   end subroutine get_mirror_rhs_g_contribution
+
+   subroutine get_mirror_rhs_apar_contribution(rhs, apar, imu, ikxkyz)
+
+      use species, only: spec
+      use vpamu_grids, only: nvpa
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
+      use run_parameters, only: maxwellian_normalization
+      use stella_layouts, only: kxkyz_lo, is_idx
+      use gyro_averages, only: gyro_average
+
+      implicit none
+
+      complex, dimension(:), intent(in out) :: rhs
+      complex, intent(in) :: apar
+      integer, intent(in) :: imu, ikxkyz
+
+      integer :: ia, is
+      real :: pre_factor
+      complex, dimension(:), allocatable :: vpa_scratch
+
+      allocate (vpa_scratch(nvpa))
+
+      is = is_idx(kxkyz_lo, ikxkyz)
+
+      ia = 1
+      pre_factor = -2.0 * spec(is)%zt * spec(is)%stm_psi0
+      call gyro_average(pre_factor * vpa * apar, imu, ikxkyz, vpa_scratch)
+      if (maxwellian_normalization) vpa_scratch = vpa_scratch * maxwell_vpa(:, is) * maxwell_mu(ia, :, imu, is)
+
+      rhs = rhs + vpa_scratch
+
+      deallocate (vpa_scratch)
+
+   end subroutine get_mirror_rhs_apar_contribution
 
    subroutine vpa_interpolation(grid, interp)
 
@@ -912,6 +1095,7 @@ contains
             call finish_mirror_semi_lagrange
          else
             call finish_invert_mirror_operator
+            call finish_mirror_response
          end if
       end if
 
@@ -941,6 +1125,14 @@ contains
       if (allocated(mirror_int_fac)) deallocate (mirror_int_fac)
 
    end subroutine finish_invert_mirror_operator
+
+   subroutine finish_mirror_response
+
+      implicit none
+
+      if (allocated(response_apar_denom)) deallocate (response_apar_denom)
+
+   end subroutine finish_mirror_response
 
    ! subroutine checksum_field (field, total)
 
