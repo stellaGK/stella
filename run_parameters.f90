@@ -5,7 +5,7 @@ module run_parameters
    implicit none
 
    public :: init_run_parameters, finish_run_parameters
-   public :: fphi
+   public :: fphi, fapar, fbpar
    public :: nstep, tend, delt
    public :: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
    public :: delt_max, delt_min
@@ -29,7 +29,7 @@ module run_parameters
    private
 
    real :: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
-   real :: fphi
+   real :: fphi, fapar, fbpar
    real :: delt, tend, delt_max, delt_min
    real :: vpa_upwind
    real :: time_upwind, time_upwind_plus, time_upwind_minus
@@ -93,7 +93,7 @@ contains
       logical :: error = .false.
       integer :: ierr, in_file
 
-      namelist /knobs/ fphi, delt, nstep, tend, &
+      namelist /knobs/ fphi, fapar, fbpar, delt, nstep, tend, &
          delt_option, lu_option, &
          avail_cpu_time, delt_max, delt_min, &
          cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, &
@@ -110,6 +110,8 @@ contains
 
          ! Default parameters in namelist <knobs>
          fphi = 1.0
+         fapar = -1.0 ! fapar deprecated; keeping for now for backward compatibility
+         fbpar = -1.0 ! fbpar deprecated; keeping for now for backward compatibility
          fields_kxkyz = .false.
          stream_implicit = .true.
          mirror_implicit = .true.
@@ -206,12 +208,28 @@ contains
             mirror_semi_lagrange = .false.
          end if
 
+         if (fapar > -1.0 .or. fbpar > -1.0) then
+            write (*, *) '!!!WARNING!!!'
+            write (*, *) 'fapar and fbpar are deprecated: use include_apar instead.'
+            if (fapar > epsilon(0.0)) then
+               write (*, *) 'setting include_apar = .true.'
+               include_apar = .true.
+            else
+               write (*, *) 'setting include_apar = .false.'
+               include_apar = .false.
+            end if
+            if (fbpar > epsilon(0.0)) then
+               write (*, *) 'bpar evolution not currently supported.'
+            end if
+            write (*, *) '!!!WARNING!!!'
+         end if
+         
          ! semi-lagrange advance of mirror term is not supported for EM simulations
          if (include_apar .and. mirror_semi_lagrange) then
-            write (*, *) ''
+            write (*, *) '!!!WARNING!!!'
             write (*, *) 'mirror_semi_lagrange = .true. is not supported for electromagnetic simulations.'
             write (*, *) 'forcing mirror_semi_lagrange = .false.'
-            write (*, *) ''
+            write (*, *) '!!!WARNING!!!'
             mirror_semi_lagrange = .false.
          end if
 
@@ -220,15 +238,17 @@ contains
                write (*, *) '!!!WARNING!!!'
                write (*, *) 'drifts_implicit = T requires stream_implicit = T.'
                write (*, *) 'forcing drifts_implicit = F.'
+               write (*, *) '!!!WARNING!!!'
                drifts_implicit = .false.
             else if (.not. include_parallel_streaming) then
                write (*, *) '!!!WARNING!!!'
                write (*, *) 'drifts_implicit = T requires include_parallel_streaming = T.'
                write (*, *) 'forcing drifts_implicit = F.'
+               write (*, *) '!!!WARNING!!!'
                drifts_implicit = .false.
             end if
          end if
-
+         
       end if
 
       ! Exit stella if we ran into an error
@@ -266,6 +286,9 @@ contains
       call broadcast(ky_solve_real)
       call broadcast(mat_gen)
       call broadcast(mat_read)
+      ! include_apar broadcast in case it is reset according to specification of
+      ! (deprecated) fapar variable
+      call broadcast(include_apar)
 
       ! calculate some useful derived quantities that are used repeatedly across modules
       time_upwind_plus = 0.5 * (1.0 + time_upwind)
