@@ -102,7 +102,9 @@ contains
 
          integer :: ie, it, iky, ivmu
          integer :: ulim
-         complex, dimension(:), allocatable :: pdf1, pdf2, phiext, phiext_old
+         complex, dimension(:), allocatable :: pdf1, pdf2
+         complex, dimension(:), allocatable :: phiext, phiext_old
+         complex, dimension(:), allocatable :: aparext
 
          ! start the timer for the pdf update
          if (proc0) call time_message(.false., time_implicit_advance(:, 2), ' (bidiagonal solve)')
@@ -117,14 +119,18 @@ contains
                      nz_ext = nsegments(ie, iky) * nzed_segment + 1
                      ! pdf1 and pdf2 will be scratch arrays needed to compute the pdf itself,
                      ! as well as contributions to the GK equation
-                     allocate (pdf1(nz_ext), pdf2(nz_ext), phiext(nz_ext), phiext_old(nz_ext))
+                     allocate (pdf1(nz_ext), pdf2(nz_ext))
+                     allocate (phiext(nz_ext), phiext_old(nz_ext))
+                     if (include_apar) allocate (aparext(nz_ext))
                      ! map the incoming pdf 'g1' onto the extended zed domain and call it 'pdf1'
                      call map_to_extended_zgrid(it, ie, iky, g1(iky, :, :, :, ivmu), pdf1, ulim)
                      ! map the incoming potential 'phi_source' onto the extended zed domain and call it 'phiext'
                      call map_to_extended_zgrid(it, ie, iky, phi_source(iky, :, :, :), phiext, ulim)
+                     ! NEED TO FIGURE OUT WHAT SHOULD BE PASSED IN (PROBABLY NOT APAR)
+                     if (include_apar) call map_to_extended_zgrid(it, ie, iky, apar(iky, :, :, :), aparext, ulim)
                      ! calculate the RHS of the GK equation (using pdf1 and phi_source as the
                      ! pdf and potential, respectively) and store it in pdf2
-                     call get_gke_rhs(ivmu, iky, ie, pdf1, phiext, phiext_old, pdf2)
+                     call get_gke_rhs(ivmu, iky, ie, pdf1, phiext, phiext_old, aparext, pdf2)
                      ! given the RHS of the GK equation (pdf2), solve for the pdf at the
                      ! new time level by sweeping in zed on the extended domain;
                      ! the rhs is input as 'pdf2' and over-written with the updated solution for the pdf
@@ -145,21 +151,22 @@ contains
 
    end subroutine advance_implicit_terms
 
-   subroutine get_gke_rhs(ivmu, iky, ie, pdf, phi, phi_old, rhs)
+   subroutine get_gke_rhs(ivmu, iky, ie, pdf, phi, phi_old, apar, rhs)
 
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
       use stella_layouts, only: vmu_lo, iv_idx
-
+      use physics_flags, only: include_apar
+      
       implicit none
 
       integer, intent(in) :: ivmu, iky, ie
       complex, dimension(:), intent(in) :: pdf
-      complex, dimension(:), intent(in) :: phi, phi_old
+      complex, dimension(:), intent(in) :: phi, phi_old, apar
       complex, dimension(:), intent(out) :: rhs
 
       integer :: nz_ext
-      complex, dimension(:), allocatable :: rhs_phi
+      complex, dimension(:), allocatable :: rhs_phi, rhs_apar
 
       ! now have phi^{n+1} for non-negative kx
       ! obtain RHS of GK eqn
@@ -167,16 +174,19 @@ contains
       ! nz_ext is the number of grid points in this extended zed domain
       nz_ext = size(pdf)
       allocate (rhs_phi(nz_ext))
+      if (include_apar) allocate (rhs_apar(nz_ext))
 
       ! NB: rhs is used as a scratch array in get_contributions_from_phi
       ! so be careful not to move get_contributions_from_pdf before it, or rhs will be over-written
       call get_contributions_from_phi(phi, ivmu, iky, ie, rhs, rhs_phi)
+      if (include_apar) call get_contributions_from_apar(apar, ivmu, iky, ie, rhs, rhs_apar)
       call get_contributions_from_pdf(pdf, ivmu, iky, ie, rhs)
 
       ! construct RHS of GK eqn
       rhs = rhs + rhs_phi
 
       deallocate (rhs_phi)
+      if (allocated(rhs_apar)) deallocate(rhs_apar)
 
    end subroutine get_gke_rhs
 
@@ -325,6 +335,16 @@ contains
 
    end subroutine get_contributions_from_phi
 
+   subroutine get_contributions_from_apar(apar, ivmu, iky, ie, scratch, rhs)
+
+     implicit none
+
+     complex, dimension(:), intent(in) :: apar
+     integer, intent(in) :: ivmu, iky, ie
+     complex, dimension(:), intent(out) :: scratch, rhs
+     
+   end subroutine get_contributions_from_apar
+   
    subroutine gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, phi, gyro_phi)
 
       use gyro_averages, only: gyro_average
