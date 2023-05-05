@@ -1,16 +1,18 @@
 module g_tofrom_h
 
-!  public :: gbar_to_g
+   public :: gbar_to_g
 !  public :: gbar_to_h
 !  public :: gstar_to_g
    public :: g_to_h
 
    private
 
-!   interface gbar_to_g
-!      module procedure gbar_to_g_kxkyz
-!      module procedure gbar_to_g_vmu
-!   end interface
+   interface gbar_to_g
+      module procedure gbar_to_g_kxkyz
+      module procedure gbar_to_g_1d_vpa
+      module procedure gbar_to_g_vmu
+      module procedure gbar_to_g_vmu_single
+   end interface
 
 !  interface gbar_to_h
 !     module procedure gbar_to_h_kxkyz
@@ -95,74 +97,146 @@ contains
 
 !   end subroutine gbar_to_h_kxkyz
 
-!   subroutine gbar_to_g_vmu (g, apar, facapar)
+   subroutine gbar_to_g_kxkyz(g, apar, facapar)
 
-!     use species, only: spec
-!     use zgrid, only: nzgrid
-!     use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
-!     use stella_layouts, only: vmu_lo
-!     use stella_layouts, only: iv_idx, imu_idx, is_idx
-!     use kt_grids, only: naky, nakx
-!     use gyro_averages, only: aj0x
+      use species, only: spec
+      use zgrid, only: nzgrid
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
+      use vpamu_grids, only: nvpa, nmu
+      use stella_layouts, only: kxkyz_lo
+      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use gyro_averages, only: gyro_average
+      use run_parameters, only: maxwellian_normalization
 
-!     implicit none
-!     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
-!     complex, dimension (:,:,-nzgrid:), intent (in) :: apar
-!     real, intent (in) :: facapar
+      implicit none
 
-!     integer :: ivmu, iz, iky, ikx, is, imu, iv
-!     complex :: adj
+      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar
+      real, intent(in) :: facapar
 
-!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-!        iv = iv_idx(vmu_lo,ivmu)
-!        imu = imu_idx(vmu_lo,ivmu)
-!        is = is_idx(vmu_lo,ivmu)
-!        do iz = -nzgrid, nzgrid
-!           do ikx = 1, nakx
-!              do iky = 1, naky
-!                 adj = -aj0x(iky,ikx,iz,ivmu)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(1,iz,imu) &
-!                      * ( facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,iz) )
-!                 g(iky,ikx,iz,ivmu) = g(iky,ikx,iz,ivmu) + adj
-!              end do
-!           end do
-!        end do
-!     end do
+      integer :: ikxkyz, iz, it, iky, ikx, is, ia
+      complex, dimension(:, :), allocatable :: field, adjust
 
-!   end subroutine gbar_to_g_vmu
+      allocate (field(nvpa, nmu))
+      allocate (adjust(nvpa, nmu))
 
-!   subroutine gbar_to_g_kxkyz (g, apar, facapar)
+      ia = 1
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         iz = iz_idx(kxkyz_lo, ikxkyz)
+         it = it_idx(kxkyz_lo, ikxkyz)
+         ikx = ikx_idx(kxkyz_lo, ikxkyz)
+         iky = iky_idx(kxkyz_lo, ikxkyz)
+         is = is_idx(kxkyz_lo, ikxkyz)
+         field = 2.0 * facapar * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm_psi0 * spread(vpa, 2, nmu)
+         if (.not. maxwellian_normalization) then
+            field = field * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
+         end if
+         call gyro_average(field, ikxkyz, adjust)
+         g(:, :, ikxkyz) = g(:, :, ikxkyz) - adjust
+      end do
 
-!     use species, only: spec
-!     use zgrid, only: nzgrid
-!     use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
-!     use vpamu_grids, only: nvpa, nmu
-!     use stella_layouts, only: kxkyz_lo
-!     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-!     use gyro_averages, only: aj0v
+   end subroutine gbar_to_g_kxkyz
 
-!     implicit none
-!     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
-!     complex, dimension (:,:,-nzgrid:), intent (in) :: apar
-!     real, intent (in) :: facapar
+   subroutine gbar_to_g_1d_vpa(g, apar, imu, ikxkyz, facapar)
 
-!     integer :: ikxkyz, iz, iky, ikx, is, imu, iv
-!     complex :: adj
+      use species, only: spec
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
+      use vpamu_grids, only: nvpa
+      use stella_layouts, only: kxkyz_lo
+      use stella_layouts, only: iz_idx, is_idx
+      use gyro_averages, only: gyro_average
+      use run_parameters, only: maxwellian_normalization
 
-!     do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-!        iz = iz_idx(kxkyz_lo,ikxkyz)
-!        ikx = ikx_idx(kxkyz_lo,ikxkyz)
-!        iky = iky_idx(kxkyz_lo,ikxkyz)
-!        is = is_idx(kxkyz_lo,ikxkyz)
-!        do imu = 1, nmu
-!           do iv = 1, nvpa
-!              adj = -aj0v(imu,ikxkyz)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(1,iz,imu) &
-!                   * ( facapar*vpa(iv)*spec(is)%stm*apar(iky,ikx,iz) )
-!              g(iv,imu,ikxkyz) = g(iv,imu,ikxkyz) + adj
-!           end do
-!        end do
-!     end do
+      implicit none
 
-!   end subroutine gbar_to_g_kxkyz
+      complex, dimension(:), intent(in out) :: g
+      complex, intent(in) :: apar
+      integer, intent(in) :: imu, ikxkyz
+      real, intent(in) :: facapar
+
+      integer :: iz, is, ia
+      complex, dimension(:), allocatable :: field, adjust
+
+      allocate (field(nvpa))
+      allocate (adjust(nvpa))
+
+      ia = 1
+      iz = iz_idx(kxkyz_lo, ikxkyz)
+      is = is_idx(kxkyz_lo, ikxkyz)
+
+      field = 2.0 * facapar * apar * spec(is)%zt * spec(is)%stm_psi0 * vpa
+      if (.not. maxwellian_normalization) then
+         field = field * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is)
+      end if
+      call gyro_average(field, imu, ikxkyz, adjust)
+      g = g - adjust
+
+   end subroutine gbar_to_g_1d_vpa
+
+   subroutine gbar_to_g_vmu(g, apar, facapar)
+
+      use zgrid, only: nzgrid
+      use stella_layouts, only: vmu_lo
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar
+      real, intent(in) :: facapar
+
+      integer :: ivmu
+
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         call gbar_to_g_vmu_single(ivmu, g(:, :, :, :, ivmu), apar, facapar)
+      end do
+
+   end subroutine gbar_to_g_vmu
+
+   subroutine gbar_to_g_vmu_single(ivmu, g0, apar, facapar)
+
+      use species, only: spec
+      use zgrid, only: nzgrid, ntubes
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use kt_grids, only: naky, nakx
+      use kt_grids, only: multiply_by_rho
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use vpamu_grids, only: vpa
+      use gyro_averages, only: gyro_average
+      use run_parameters, only: maxwellian_normalization
+
+      implicit none
+
+      integer, intent(in) :: ivmu
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: g0
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar
+      real, intent(in) :: facapar
+
+      integer :: iv, imu, is
+      integer :: it, iz, ia
+      complex, dimension(:, :), allocatable :: field, adjust
+
+      iv = iv_idx(vmu_lo, ivmu)
+      imu = imu_idx(vmu_lo, ivmu)
+      is = is_idx(vmu_lo, ivmu)
+
+      allocate (field(naky, nakx))
+      allocate (adjust(naky, nakx))
+
+      ia = 1
+      do it = 1, ntubes
+         do iz = -nzgrid, nzgrid
+            field = 2.0 * spec(is)%zt * spec(is)%stm_psi0 * vpa(iv) * facapar * apar(:, :, iz, it)
+            if (.not. maxwellian_normalization) then
+               field = field * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+            end if
+            call gyro_average(field, iz, ivmu, adjust)
+            g0(:, :, iz, it) = g0(:, :, iz, it) - adjust
+         end do
+      end do
+
+      deallocate (field, adjust)
+
+   end subroutine gbar_to_g_vmu_single
 
    subroutine g_to_h_vmu(g, phi, facphi, phi_corr)
 
@@ -313,6 +387,7 @@ contains
       use run_parameters, only: maxwellian_normalization
 
       implicit none
+
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
       real, intent(in) :: facphi
