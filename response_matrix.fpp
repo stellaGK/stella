@@ -5,7 +5,7 @@ module response_matrix
 #ifdef ISO_C_BINDING
    use, intrinsic :: iso_c_binding, only: c_intptr_t
 #endif
-   
+
    implicit none
 
    public :: init_response_matrix, finish_response_matrix
@@ -16,7 +16,7 @@ module response_matrix
 
    logical :: response_matrix_initialized = .false.
    integer, parameter :: mat_unit = 70
-#ifdef ISO_C_BINDING   
+#ifdef ISO_C_BINDING
    integer(c_intptr_t) :: cur_pos
 #endif
    character(100) :: message_dgdphi, message_QN, message_lu
@@ -24,7 +24,7 @@ module response_matrix
    real, dimension(2) :: time_QN
    real, dimension(2) :: time_lu
    logical :: debug = .false.
-   
+
 contains
 
    subroutine init_response_matrix
@@ -76,41 +76,41 @@ contains
 
    subroutine write_response_matrix_message
 
-     write (*, *) " "
-     write (*, '(A)') "    ############################################################"
-     write (*, '(A)') "                         RESPONSE MATRIX"
-     write (*, '(A)') "    ############################################################"
-     
+      write (*, *) " "
+      write (*, '(A)') "    ############################################################"
+      write (*, '(A)') "                         RESPONSE MATRIX"
+      write (*, '(A)') "    ############################################################"
+
    end subroutine write_response_matrix_message
 
    subroutine setup_response_matrix_timings
 
-     implicit none
+      implicit none
 
-     message_dgdphi = '     calculate dgdphi: '
-     message_QN = '     calculate QN:     '
-     message_lu = '     calculate LU:     '
-     time_dgdphi = 0.0
-     time_QN = 0.0
-     time_lu = 0.0
-     
+      message_dgdphi = '     calculate dgdphi: '
+      message_QN = '     calculate QN:     '
+      message_lu = '     calculate LU:     '
+      time_dgdphi = 0.0
+      time_QN = 0.0
+      time_lu = 0.0
+
    end subroutine setup_response_matrix_timings
 
    subroutine setup_response_matrix_file_io
 
-     use mp, only: proc0, job
-     use run_parameters, only: mat_gen
-     use system_fortran, only: systemf
-     use kt_grids, only: naky
-     
-     implicit none
+      use mp, only: proc0, job
+      use run_parameters, only: mat_gen
+      use system_fortran, only: systemf
+      use kt_grids, only: naky
 
-     character(len=15) :: job_str
-     character(len=100) :: file_name
-     
-     ! All matrices handled by processor i_proc and job are stored
-     ! on a single file named: response_mat_job.iproc
-     if (proc0 .and. mat_gen) then
+      implicit none
+
+      character(len=15) :: job_str
+      character(len=100) :: file_name
+
+      ! All matrices handled by processor i_proc and job are stored
+      ! on a single file named: response_mat_job.iproc
+      if (proc0 .and. mat_gen) then
          call systemf('mkdir -p mat')
 
          write (job_str, '(I1.1)') job
@@ -120,31 +120,31 @@ contains
                position='rewind', action='write', form='unformatted')
          write (unit=mat_unit) naky
       end if
-     
+
    end subroutine setup_response_matrix_file_io
 
    subroutine setup_shared_memory_window
 
-     use mpi
-     use, intrinsic :: iso_c_binding, only: c_intptr_t
-     use mp, only: sgproc0, real_size
-     use mp, only: create_shared_memory_window
-     use fields_arrays, only: response_window
-     use kt_grids, only: naky
-     use extended_zgrid, only: neigen, nsegments, nzed_segment
-     use extended_zgrid, only: periodic
-     
-     implicit none
+      use mpi
+      use, intrinsic :: iso_c_binding, only: c_intptr_t
+      use mp, only: sgproc0, real_size
+      use mp, only: create_shared_memory_window
+      use fields_arrays, only: response_window
+      use kt_grids, only: naky
+      use extended_zgrid, only: neigen, nsegments, nzed_segment
+      use extended_zgrid, only: periodic
 
-     integer(kind=MPI_ADDRESS_KIND) :: win_size
-     integer :: iky, ie
-     integer :: nresponse
-     
-     ! Create a single shared memory window for all the response matrices and
-     ! permutation arrays.
-     ! Creating a window for each matrix/array would lead to performance
-     ! degradation on some clusters
-     if (response_window == MPI_WIN_NULL) then
+      implicit none
+
+      integer(kind=MPI_ADDRESS_KIND) :: win_size
+      integer :: iky, ie
+      integer :: nresponse
+
+      ! Create a single shared memory window for all the response matrices and
+      ! permutation arrays.
+      ! Creating a window for each matrix/array would lead to performance
+      ! degradation on some clusters
+      if (response_window == MPI_WIN_NULL) then
          win_size = 0
          if (sgproc0) then
             do iky = 1, naky
@@ -163,10 +163,10 @@ contains
 
          call create_shared_memory_window(win_size, response_window, cur_pos)
       end if
-     
+
    end subroutine setup_shared_memory_window
 
-    subroutine construct_response_matrix
+   subroutine construct_response_matrix
 
       use mp, only: proc0
       use job_manage, only: time_message
@@ -177,14 +177,14 @@ contains
 #ifdef ISO_C_BINDING
       use fields_arrays, only: response_window
 #endif
-      
+
       implicit none
 
       integer :: iky, ie
 #ifdef ISO_C_BINDING
       integer :: ierr
 #endif
-      
+
       ! for a given ky and set of connected kx values
       ! give a unit impulse to phi at each zed location
       ! in the extended domain and solve for h(zed_extended,(vpa,mu,s))
@@ -202,7 +202,7 @@ contains
          if (debug) call time_message(.false., time_dgdphi, message_dgdphi)
 
          call calculate_vspace_integrated_response(iky)
-         
+
          !DSO - This ends parallelization over velocity space.
          !      At this point every processor has int dv dgdphi for a given ky
          !      and so the quasineutrality solve and LU decomposition can be
@@ -225,14 +225,14 @@ contains
 #ifdef ISO_C_BINDING
          call mpi_win_fence(0, response_window, ierr)
 #endif
-         
+
          if (debug) then
             call time_message(.true., time_QN, message_QN)
             call time_message(.false., time_lu, message_lu)
          end if
 
          call lu_decompose_response_matrix(iky)
-         
+
          if (proc0 .and. debug) then
             call time_message(.true., time_lu, message_lu)
          end if
@@ -254,242 +254,242 @@ contains
 
    subroutine calculate_vspace_integrated_response(iky)
 
-     use mp, only: proc0
-     use run_parameters, only: mat_gen
-     use extended_zgrid, only: neigen, ikxmod
-     use extended_zgrid, only: nsegments, nzed_segment
-     use extended_zgrid, only: periodic
-     use extended_zgrid, only: iz_low, iz_up
-     use stella_layouts, only: vmu_lo
-     
-     implicit none
+      use mp, only: proc0
+      use run_parameters, only: mat_gen
+      use extended_zgrid, only: neigen, ikxmod
+      use extended_zgrid, only: nsegments, nzed_segment
+      use extended_zgrid, only: periodic
+      use extended_zgrid, only: iz_low, iz_up
+      use stella_layouts, only: vmu_lo
 
-     integer, intent(in) :: iky
+      implicit none
 
-     integer :: ie, idx, ikx, iseg
-     integer :: iz, izl_offset, izup
-     integer :: nz_ext, nresponse
-     complex, dimension(:, :), allocatable :: gext
-     complex, dimension(:), allocatable :: phiext
-     
-     ! loop over the sets of connected kx values
-     do ie = 1, neigen(iky)
+      integer, intent(in) :: iky
 
-        ! number of zeds x number of segments
-        nz_ext = nsegments(ie, iky) * nzed_segment + 1
+      integer :: ie, idx, ikx, iseg
+      integer :: iz, izl_offset, izup
+      integer :: nz_ext, nresponse
+      complex, dimension(:, :), allocatable :: gext
+      complex, dimension(:), allocatable :: phiext
 
-        ! treat zonal mode specially to avoid double counting
-        ! as it is periodic
-        if (periodic(iky)) then
-           nresponse = nz_ext - 1
-        else
-           nresponse = nz_ext
-        end if
-        
-        if (proc0 .and. mat_gen) then
-           write (unit=mat_unit) ie, nresponse
-        end if
+      ! loop over the sets of connected kx values
+      do ie = 1, neigen(iky)
 
-        call setup_response_matrix_zloc_idx(iky, ie, nresponse)
+         ! number of zeds x number of segments
+         nz_ext = nsegments(ie, iky) * nzed_segment + 1
 
-        allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-        allocate (phiext(nz_ext))
-        ! idx is the index in the extended zed domain
-        ! that we are giving a unit impulse
-        idx = 0
-        
-        ! loop over segments, starting with 1
-        ! first segment is special because it has
-        ! one more unique zed value than all others
-        ! since domain is [z0-pi:z0+pi], including both endpoints
-        ! i.e., one endpoint is shared with the previous segment
-        iseg = 1
-        ! ikxmod gives the kx corresponding to iseg,ie,iky
-        ikx = ikxmod(iseg, ie, iky)
-        izl_offset = 0
-        ! avoid double-counting of periodic points for zonal mode (and other periodic modes)
-        if (periodic(iky)) then
-           izup = iz_up(iseg) - 1
-        else
-           izup = iz_up(iseg)
-        end if
-        ! no need to obtain response to impulses at negative kx values
-        do iz = iz_low(iseg), izup
-           idx = idx + 1
-           call get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse, phiext, gext)
-        end do
-        ! once we have used one segment, remaining segments
-        ! have one fewer unique zed point
-        izl_offset = 1
-        if (nsegments(ie, iky) > 1) then
-           do iseg = 2, nsegments(ie, iky)
-              ikx = ikxmod(iseg, ie, iky)
-              do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
-                 idx = idx + 1
-                 call get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse, phiext, gext)
-              end do
-              if (izl_offset == 0) izl_offset = 1
-           end do
-        end if
-        deallocate (gext, phiext)
-     end do
-     
+         ! treat zonal mode specially to avoid double counting
+         ! as it is periodic
+         if (periodic(iky)) then
+            nresponse = nz_ext - 1
+         else
+            nresponse = nz_ext
+         end if
+
+         if (proc0 .and. mat_gen) then
+            write (unit=mat_unit) ie, nresponse
+         end if
+
+         call setup_response_matrix_zloc_idx(iky, ie, nresponse)
+
+         allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (phiext(nz_ext))
+         ! idx is the index in the extended zed domain
+         ! that we are giving a unit impulse
+         idx = 0
+
+         ! loop over segments, starting with 1
+         ! first segment is special because it has
+         ! one more unique zed value than all others
+         ! since domain is [z0-pi:z0+pi], including both endpoints
+         ! i.e., one endpoint is shared with the previous segment
+         iseg = 1
+         ! ikxmod gives the kx corresponding to iseg,ie,iky
+         ikx = ikxmod(iseg, ie, iky)
+         izl_offset = 0
+         ! avoid double-counting of periodic points for zonal mode (and other periodic modes)
+         if (periodic(iky)) then
+            izup = iz_up(iseg) - 1
+         else
+            izup = iz_up(iseg)
+         end if
+         ! no need to obtain response to impulses at negative kx values
+         do iz = iz_low(iseg), izup
+            idx = idx + 1
+            call get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse, phiext, gext)
+         end do
+         ! once we have used one segment, remaining segments
+         ! have one fewer unique zed point
+         izl_offset = 1
+         if (nsegments(ie, iky) > 1) then
+            do iseg = 2, nsegments(ie, iky)
+               ikx = ikxmod(iseg, ie, iky)
+               do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
+                  idx = idx + 1
+                  call get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse, phiext, gext)
+               end do
+               if (izl_offset == 0) izl_offset = 1
+            end do
+         end if
+         deallocate (gext, phiext)
+      end do
+
    end subroutine calculate_vspace_integrated_response
 
    subroutine setup_response_matrix_zloc_idx(iky, ie, nresponse)
 
 #ifdef ISO_C_BINDING
-     use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
-     use mp, only: nbytes_real
+      use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
+      use mp, only: nbytes_real
 #endif
-     use fields_arrays, only: response_matrix
-     
-     implicit none
+      use fields_arrays, only: response_matrix
 
-     integer, intent(in) :: iky, ie, nresponse
-     
+      implicit none
+
+      integer, intent(in) :: iky, ie, nresponse
+
 #ifdef ISO_C_BINDING
-     type(c_ptr) :: cptr
-     
-     !exploit MPIs shared memory framework to reduce memory consumption of
-     !response matrices
+      type(c_ptr) :: cptr
 
-     if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) then
-        cptr = transfer(cur_pos, cptr)
-        call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%zloc, (/nresponse, nresponse/))
-        cur_pos = cur_pos + nresponse**2 * 2 * nbytes_real
-     end if
+      !exploit MPIs shared memory framework to reduce memory consumption of
+      !response matrices
 
-     if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) then
-        cptr = transfer(cur_pos, cptr)
-        call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%idx, (/nresponse/))
-        cur_pos = cur_pos + nresponse * 4
-     end if
+      if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) then
+         cptr = transfer(cur_pos, cptr)
+         call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%zloc, (/nresponse, nresponse/))
+         cur_pos = cur_pos + nresponse**2 * 2 * nbytes_real
+      end if
+
+      if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) then
+         cptr = transfer(cur_pos, cptr)
+         call c_f_pointer(cptr, response_matrix(iky)%eigen(ie)%idx, (/nresponse/))
+         cur_pos = cur_pos + nresponse * 4
+      end if
 #else
-     ! for each ky and set of connected kx values,
-     ! must have a response matrix that is N x N
-     ! with N = number of zeds per 2pi segment x number of 2pi segments
-     if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) &
-          allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse, nresponse))
-        
-     ! response_matrix%idx is needed to keep track of permutations
-     ! to the response matrix made during LU decomposition
-     ! it will be input to LU back substitution during linear solve
-     if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) &
-          allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
+      ! for each ky and set of connected kx values,
+      ! must have a response matrix that is N x N
+      ! with N = number of zeds per 2pi segment x number of 2pi segments
+      if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) &
+         allocate (response_matrix(iky)%eigen(ie)%zloc(nresponse, nresponse))
+
+      ! response_matrix%idx is needed to keep track of permutations
+      ! to the response matrix made during LU decomposition
+      ! it will be input to LU back substitution during linear solve
+      if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) &
+         allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
 #endif
-     
+
    end subroutine setup_response_matrix_zloc_idx
 
    subroutine apply_field_solve_to_finish_response_matrix(iky)
 
 #ifdef ISO_C_BINDING
-     use mp, only: sgproc0
+      use mp, only: sgproc0
 #endif
-     use extended_zgrid, only: neigen
-     use extended_zgrid, only: nsegments, nzed_segment
-     use extended_zgrid, only: periodic
-     use fields_arrays, only: response_matrix
-     
-     implicit none
+      use extended_zgrid, only: neigen
+      use extended_zgrid, only: nsegments, nzed_segment
+      use extended_zgrid, only: periodic
+      use fields_arrays, only: response_matrix
 
-     integer, intent(in) :: iky
+      implicit none
 
-     integer :: ie, idx
-     integer :: nz_ext, nresponse
-     character(5) :: dist
-     complex, dimension(:), allocatable :: phiext
-     
-     ! solve quasineutrality
-     ! for local stella, this is a diagonal process, but global stella
-     ! may require something more sophisticated
-     dist = 'gbar'
+      integer, intent(in) :: iky
 
-     ! loop over the sets of connected kx values
-     do ie = 1, neigen(iky)
+      integer :: ie, idx
+      integer :: nz_ext, nresponse
+      character(5) :: dist
+      complex, dimension(:), allocatable :: phiext
+
+      ! solve quasineutrality
+      ! for local stella, this is a diagonal process, but global stella
+      ! may require something more sophisticated
+      dist = 'gbar'
+
+      ! loop over the sets of connected kx values
+      do ie = 1, neigen(iky)
 #ifdef ISO_C_BINDING
-        if (sgproc0) then
+         if (sgproc0) then
 #endif
-           ! number of zeds x number of segments
-           nz_ext = nsegments(ie, iky) * nzed_segment + 1
-           
-           ! treat zonal mode specially to avoid double counting
-           ! as it is periodic
-           if (periodic(iky)) then
-              nresponse = nz_ext - 1
-           else
-              nresponse = nz_ext
-           end if
-           
-           allocate (phiext(nz_ext))
-           
-           do idx = 1, nresponse
-              phiext(nz_ext) = 0.0
-              phiext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:, idx)
-              call get_fields_for_response_matrix(phiext, iky, ie, dist)
+            ! number of zeds x number of segments
+            nz_ext = nsegments(ie, iky) * nzed_segment + 1
 
-              ! next need to create column in response matrix from phiext
-              ! negative sign because matrix to be inverted in streaming equation
-              ! is identity matrix - response matrix
-              ! add in contribution from identity matrix
-              phiext(idx) = phiext(idx) - 1.0
-              response_matrix(iky)%eigen(ie)%zloc(:, idx) = -phiext(:nresponse)
-           end do
-           deallocate (phiext)
+            ! treat zonal mode specially to avoid double counting
+            ! as it is periodic
+            if (periodic(iky)) then
+               nresponse = nz_ext - 1
+            else
+               nresponse = nz_ext
+            end if
+
+            allocate (phiext(nz_ext))
+
+            do idx = 1, nresponse
+               phiext(nz_ext) = 0.0
+               phiext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:, idx)
+               call get_fields_for_response_matrix(phiext, iky, ie, dist)
+
+               ! next need to create column in response matrix from phiext
+               ! negative sign because matrix to be inverted in streaming equation
+               ! is identity matrix - response matrix
+               ! add in contribution from identity matrix
+               phiext(idx) = phiext(idx) - 1.0
+               response_matrix(iky)%eigen(ie)%zloc(:, idx) = -phiext(:nresponse)
+            end do
+            deallocate (phiext)
 #ifdef ISO_C_BINDING
-        end if
+         end if
 #endif
-     end do
-     
+      end do
+
    end subroutine apply_field_solve_to_finish_response_matrix
 
    subroutine lu_decompose_response_matrix(iky)
 
 #ifdef ISO_C_BINDING
-     use mp, only: sgproc0
+      use mp, only: sgproc0
 #endif
-     use mp, only: mp_abort
-     use fields_arrays, only: response_matrix
-     use run_parameters, only: lu_option_switch
-     use run_parameters, only: lu_option_none, lu_option_local, lu_option_global
-     use extended_zgrid, only: neigen
-     use linear_solve, only: lu_decomposition
-     
-     implicit none
+      use mp, only: mp_abort
+      use fields_arrays, only: response_matrix
+      use run_parameters, only: lu_option_switch
+      use run_parameters, only: lu_option_none, lu_option_local, lu_option_global
+      use extended_zgrid, only: neigen
+      use linear_solve, only: lu_decomposition
 
-     integer, intent(in) :: iky
+      implicit none
 
-     integer :: ie
-     real :: dum
-     
-     ! now we have the full response matrix. Finally, perform its LU decomposition
-     select case (lu_option_switch)
-     case (lu_option_global)
-        call parallel_LU_decomposition_global(iky)
-     case (lu_option_local)
+      integer, intent(in) :: iky
+
+      integer :: ie
+      real :: dum
+
+      ! now we have the full response matrix. Finally, perform its LU decomposition
+      select case (lu_option_switch)
+      case (lu_option_global)
+         call parallel_LU_decomposition_global(iky)
+      case (lu_option_local)
 #ifdef ISO_C_BINDING
-        call parallel_LU_decomposition_local(iky)
+         call parallel_LU_decomposition_local(iky)
 #else
-        call mp_abort('stella must be built with HAS_ISO_BINDING in order to use local parallel LU decomposition.')
+         call mp_abort('stella must be built with HAS_ISO_BINDING in order to use local parallel LU decomposition.')
 #endif
-     case default
-        do ie = 1, neigen(iky)
+      case default
+         do ie = 1, neigen(iky)
 #ifdef ISO_C_BINDING
-           if (sgproc0) then
+            if (sgproc0) then
 #endif
-              ! now that we have the reponse matrix for this ky and set of connected kx values
-              !get the LU decomposition so we are ready to solve the linear system
-              call lu_decomposition(response_matrix(iky)%eigen(ie)%zloc, &
-                   response_matrix(iky)%eigen(ie)%idx, dum)
-              
+               ! now that we have the reponse matrix for this ky and set of connected kx values
+               !get the LU decomposition so we are ready to solve the linear system
+               call lu_decomposition(response_matrix(iky)%eigen(ie)%zloc, &
+                                     response_matrix(iky)%eigen(ie)%idx, dum)
+
 #ifdef ISO_C_BINDING
-           end if
+            end if
 #endif
-        end do
-     end select
-     
+         end do
+      end select
+
    end subroutine lu_decompose_response_matrix
-   
+
    subroutine read_response_matrix
 
       use fields_arrays, only: response_matrix
