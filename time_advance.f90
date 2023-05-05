@@ -848,7 +848,7 @@ contains
          gnew = gold
 
          ! Ensure fields are consistent with gnew.
-         call advance_fields(gnew, phi, apar, dist='gbar')
+         call advance_fields(gnew, phi, apar, dist='g')
 
          ! Keep track whether any routine wants to modify the time step
          restart_time_step = .false.
@@ -908,7 +908,7 @@ contains
       gold = gnew
 
       !> Ensure fields are updated so that omega calculation is correct.
-      call advance_fields(gnew, phi, apar, dist='gbar')
+      call advance_fields(gnew, phi, apar, dist='g')
 
       !update the delay parameters for the Krook operator
       if (source_option_switch == source_option_krook) call update_tcorr_krook(gnew)
@@ -1012,7 +1012,7 @@ contains
          end if
       end do
 
-      !> this is gbar at intermediate time level
+      !> this is g at intermediate time level
       g = 0.5 * g0 + 0.5 * (g1 + g)
 
    end subroutine advance_explicit_rk2
@@ -1063,7 +1063,7 @@ contains
          end if
       end do
 
-      !> this is gbar at intermediate time level
+      !> this is g at intermediate time level
       g = g0 / 3.+0.5 * g1 + (g2 + g) / 6.
 
    end subroutine advance_explicit_rk3
@@ -1124,7 +1124,7 @@ contains
          end if
       end do
 
-      !> this is gbar at intermediate time level
+      !> this is g at intermediate time level
       g = g0 + g1 / 6.
 
    end subroutine advance_explicit_rk4
@@ -1189,12 +1189,12 @@ contains
          rhs => rhs_ky
       end if
 
-      !> start with gbar in k-space and (ky,kx,z) local
-      !> obtain fields corresponding to gbar
+      !> start with g in k-space and (ky,kx,z) local
+      !> obtain fields corresponding to g
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_fields'
-      call advance_fields(gin, phi, apar, dist='gbar')
+      call advance_fields(gin, phi, apar, dist='g')
 
-      if (radial_variation) call get_radial_correction(gin, phi, dist='gbar')
+      if (radial_variation) call get_radial_correction(gin, phi, dist='g')
 
       !> default is to continue with same time step size.
       !> if estimated CFL condition for nonlinear terms is violated
@@ -2481,7 +2481,7 @@ contains
          end if
 
          if (collisions_implicit .and. include_collisions) then
-            call advance_fields(g, phi, apar, dist='gbar')
+            call advance_fields(g, phi, apar, dist='g')
             call advance_collisions_implicit(mirror_implicit, phi, apar, g)
             fields_updated = .false.
          end if
@@ -2500,7 +2500,7 @@ contains
          ! get updated fields corresponding to advanced g
          ! note that hyper-dissipation and mirror advances
          ! depended only on g and so did not need field update
-         call advance_fields(g, phi, apar, dist='gbar')
+         call advance_fields(g, phi, apar, dist='g')
 
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
@@ -2509,14 +2509,14 @@ contains
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
 
-         call advance_fields(g, phi, apar, dist='gbar')
+         call advance_fields(g, phi, apar, dist='g')
 
       else
 
          ! get updated fields corresponding to advanced g
          ! note that hyper-dissipation and mirror advances
          ! depended only on g and so did not need field update
-         call advance_fields(g, phi, apar, dist='gbar')
+         call advance_fields(g, phi, apar, dist='g')
 
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
@@ -2531,7 +2531,7 @@ contains
          end if
 
          if (collisions_implicit .and. include_collisions) then
-            call advance_fields(g, phi, apar, dist='gbar')
+            call advance_fields(g, phi, apar, dist='g')
             call advance_collisions_implicit(mirror_implicit, phi, apar, g)
             fields_updated = .false.
          end if
@@ -2569,19 +2569,19 @@ contains
 
       if (runtype_option_switch == runtype_multibox) then
          if (job /= 1) then
-            call advance_fields(g_in, phi, apar, dist='gbar')
+            call advance_fields(g_in, phi, apar, dist='g')
          end if
 
          call multibox_communicate(g_in)
 
          if (job == 1) then
             fields_updated = .false.
-            call advance_fields(g_in, phi, apar, dist='gbar')
+            call advance_fields(g_in, phi, apar, dist='g')
          end if
       else if (use_dirichlet_BC) then
          call apply_radial_boundary_conditions(g_in)
          fields_updated = .false.
-         call advance_fields(g_in, phi, apar, dist='gbar')
+         call advance_fields(g_in, phi, apar, dist='g')
       end if
 
    end subroutine mb_communicate

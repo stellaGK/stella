@@ -731,7 +731,6 @@ contains
    ! it is assumed that any function passed to this subroutine is periodic
    subroutine center_zed_segment_real(iv, f, llim)
 
-      use zgrid, only: nzgrid
       use run_parameters, only: zed_upwind_plus, zed_upwind_minus
 
       integer, intent(in) :: iv, llim
@@ -756,7 +755,6 @@ contains
    !> and overwrites f with the cell-centered version;
    subroutine center_zed_segment_complex(iv, f, llim, periodic)
 
-      use zgrid, only: nzgrid
       use run_parameters, only: zupwnd_p => zed_upwind_plus
       use run_parameters, only: zupwnd_m => zed_upwind_minus
 
@@ -787,22 +785,22 @@ contains
 
    end subroutine center_zed_segment_complex
 
-   subroutine center_zed_midpoint(iv, g)
+   ! subroutine center_zed_midpoint(iv, g)
 
-      use zgrid, only: nzgrid
+   !    use zgrid, only: nzgrid
 
-      integer, intent(in) :: iv
-      real, dimension(-nzgrid:), intent(in out) :: g
+   !    integer, intent(in) :: iv
+   !    real, dimension(-nzgrid:), intent(in out) :: g
 
-      if (stream_sign(iv) > 0) then
-         g(:nzgrid - 1) = 0.5 * (g(:nzgrid - 1) + g(-nzgrid + 1:))
-         g(nzgrid) = g(-nzgrid)
-      else
-         g(-nzgrid + 1:) = 0.5 * (g(:nzgrid - 1) + g(-nzgrid + 1:))
-         g(-nzgrid) = g(nzgrid)
-      end if
+   !    if (stream_sign(iv) > 0) then
+   !       g(:nzgrid - 1) = 0.5 * (g(:nzgrid - 1) + g(-nzgrid + 1:))
+   !       g(nzgrid) = g(-nzgrid)
+   !    else
+   !       g(-nzgrid + 1:) = 0.5 * (g(:nzgrid - 1) + g(-nzgrid + 1:))
+   !       g(-nzgrid) = g(nzgrid)
+   !    end if
 
-   end subroutine center_zed_midpoint
+   ! end subroutine center_zed_midpoint
 
    subroutine finish_parallel_streaming
 
