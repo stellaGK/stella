@@ -299,7 +299,7 @@ contains
          allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          allocate (phi_ext(nz_ext))
          allocate (apar_ext(nz_ext))
-         
+
          ! idx is the index in the extended zed domain
          ! that we are giving a unit impulse
          idx = 0
@@ -323,7 +323,7 @@ contains
          do iz = iz_low(iseg), izup
             idx = idx + 1
             call get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, gext)
-            if (include_apar) call get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, gext)  
+            if (include_apar) call get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, gext)
          end do
          ! once we have used one segment, remaining segments
          ! have one fewer unique zed point
@@ -334,7 +334,7 @@ contains
                do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                   idx = idx + 1
                   call get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, gext)
-                  if (include_apar) call get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, gext)  
+                  if (include_apar) call get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, gext)
                end do
                if (izl_offset == 0) izl_offset = 1
             end do
@@ -663,10 +663,10 @@ contains
 
 #ifdef ISO_C_BINDING
       if (sgproc0) then
-#endif         
+#endif
          response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = phi_ext(:nresponse)
          if (include_apar) then
-            response_matrix(iky)%eigen(ie)%zloc(nresponse+1:2*nresponse, idx) = apar_ext(:nresponse)
+            response_matrix(iky)%eigen(ie)%zloc(nresponse + 1:2 * nresponse, idx) = apar_ext(:nresponse)
          end if
 #ifdef ISO_C_BINDING
       end if
@@ -708,7 +708,7 @@ contains
       ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
 !      phi_ext(idx) = time_upwind_plus
       apar_ext(idx) = 1.0
-      
+
       if (periodic(iky) .and. idx == 1) apar_ext(nz_ext) = apar_ext(1)
 
       ! dum is a scratch array that takes the place of the pdf and phi
@@ -741,10 +741,10 @@ contains
 
 #ifdef ISO_C_BINDING
       if (sgproc0) then
-#endif         
-         response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx+nresponse) = phi_ext(:nresponse)
+#endif
+         response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx + nresponse) = phi_ext(:nresponse)
          if (include_apar) then
-            response_matrix(iky)%eigen(ie)%zloc(nresponse+1:2*nresponse, idx+nresponse) = apar_ext(:nresponse)
+            response_matrix(iky)%eigen(ie)%zloc(nresponse + 1:2 * nresponse, idx + nresponse) = apar_ext(:nresponse)
          end if
 #ifdef ISO_C_BINDING
       end if
@@ -759,9 +759,9 @@ contains
 
       use stella_layouts, only: vmu_lo
       use physics_flags, only: include_apar
-      
+
       implicit none
-      
+
       complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:), intent(out) :: phi, apar
       integer, intent(in) :: iky, ie
@@ -770,8 +770,8 @@ contains
       if (include_apar) call integrate_over_velocity_apar(g, apar, iky, ie)
 
    end subroutine integrate_over_velocity
-     
-    subroutine integrate_over_velocity_phi(g, phi, iky, ie)
+
+   subroutine integrate_over_velocity_phi(g, phi, iky, ie)
 
       use stella_layouts, only: vmu_lo
       use species, only: nspec, spec
@@ -856,7 +856,7 @@ contains
 
       wgt = spec%z * spec%dens_psi0 * spec%stm_psi0 * beta
       apar = 0.
-      
+
       idx = 0; izl_offset = 0
       iseg = 1
       ikx = ikxmod(iseg, ie, iky)
