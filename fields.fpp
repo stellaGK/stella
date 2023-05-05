@@ -21,7 +21,7 @@ module fields
    public :: get_dchidy, get_dchidx
    public :: efac, efacp
    public :: nfields
-   
+
    private
 
    real, dimension(:, :, :), allocatable ::  apar_denom
@@ -64,7 +64,7 @@ contains
       use physics_flags, only: include_apar
 
       implicit none
-      
+
       debug = debug .and. proc0
 
       if (full_flux_surface) then
@@ -75,7 +75,7 @@ contains
 
       nfields = 1
       if (include_apar) nfields = nfields + 1
-      
+
    end subroutine init_fields
 
    !> @todo would be tidier if the code related to radial profile variation
@@ -1534,7 +1534,7 @@ contains
       end if
 
    end subroutine advance_apar
-    
+
    !> Add the adiabatic eletron contribution for globally radial simulations.
    !> This actually entails solving for the whole ky = 0 slice of phi at once (not really adding!)
    subroutine add_adiabatic_response_radial(phi)
