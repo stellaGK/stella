@@ -223,7 +223,7 @@ contains
             end if
             write (*, *) '!!!WARNING!!!'
          end if
-         
+
          ! semi-lagrange advance of mirror term is not supported for EM simulations
          if (include_apar .and. mirror_semi_lagrange) then
             write (*, *) '!!!WARNING!!!'
@@ -248,7 +248,7 @@ contains
                drifts_implicit = .false.
             end if
          end if
-         
+
       end if
 
       ! Exit stella if we ran into an error
