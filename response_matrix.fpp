@@ -400,7 +400,7 @@ contains
       use extended_zgrid, only: nsegments, nzed_segment
       use extended_zgrid, only: periodic
       use fields_arrays, only: response_matrix
-      
+
       implicit none
 
       integer, intent(in) :: iky
@@ -453,7 +453,7 @@ contains
                response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = -phi_ext(:nresponse)
                if (include_apar) response_matrix(iky)%eigen(ie)%zloc(nresponse + 1:2 * nresponse, idx) = -apar_ext(:nresponse)
             end do
-            
+
             if (include_apar) then
                ! obtain the response matrix entries due to unit impulses in apar;
                ! this accounts for terms appearing both in quasineutrality and parallel ampere
@@ -462,19 +462,19 @@ contains
                   phi_ext(nz_ext) = 0.0
                   phi_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx + offset)
                   apar_ext(nz_ext) = 0.0
-                  apar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset+1:offset+nresponse, idx + offset)
+                  apar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset + 1:offset + nresponse, idx + offset)
                   call get_fields_for_response_matrix(phi_ext, apar_ext, iky, ie, dist)
-                  
+
                   ! next need to create column in response matrix from phi_ext and apar_ext
                   ! negative sign because matrix to be inverted in streaming equation
                   ! is identity matrix - response matrix
                   ! add in contribution from identity matrix for diagonal entries
                   apar_ext(idx) = apar_ext(idx) - 1.0
-                  response_matrix(iky)%eigen(ie)%zloc(:nresponse, offset+idx) = -phi_ext(:nresponse)
-                  response_matrix(iky)%eigen(ie)%zloc(offset+1:offset+nresponse, offset+idx) = -apar_ext(:nresponse)
+                  response_matrix(iky)%eigen(ie)%zloc(:nresponse, offset + idx) = -phi_ext(:nresponse)
+                  response_matrix(iky)%eigen(ie)%zloc(offset + 1:offset + nresponse, offset + idx) = -apar_ext(:nresponse)
                end do
             end if
-               
+
             deallocate (phi_ext, apar_ext)
 #ifdef ISO_C_BINDING
          end if
@@ -541,7 +541,7 @@ contains
       use extended_zgrid, only: periodic
       use mp, only: proc0, job, broadcast, mp_abort
       use fields, only: nfields
-      
+
       implicit none
 
       integer :: iky, ie, nz_ext
@@ -926,19 +926,19 @@ contains
 
    subroutine get_fields_for_response_matrix(phi, apar, iky, ie, dist)
 
-     use physics_flags, only: include_apar
-     
-     implicit none
+      use physics_flags, only: include_apar
 
-     complex, dimension(:), intent(in out) :: phi, apar
-     integer, intent(in) :: iky, ie
-     character(*), intent(in) :: dist
+      implicit none
 
-     call get_phi_for_response_matrix(phi, iky, ie, dist)
-     if (include_apar) call get_apar_for_response_matrix(apar, iky, ie, dist)
-     
+      complex, dimension(:), intent(in out) :: phi, apar
+      integer, intent(in) :: iky, ie
+      character(*), intent(in) :: dist
+
+      call get_phi_for_response_matrix(phi, iky, ie, dist)
+      if (include_apar) call get_apar_for_response_matrix(apar, iky, ie, dist)
+
    end subroutine get_fields_for_response_matrix
-   
+
    subroutine get_phi_for_response_matrix(phi, iky, ie, dist)
 
       use zgrid, only: nzgrid
