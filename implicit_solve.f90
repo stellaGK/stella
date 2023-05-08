@@ -155,7 +155,7 @@ contains
 
       use kt_grids, only: naky, nakx
       use physics_flags, only: include_apar
-      
+
       implicit none
 
       integer, intent(in) :: ivmu, iky, ie
@@ -184,7 +184,7 @@ contains
       rhs = rhs + rhs_phi
 
       deallocate (rhs_phi)
-      if (allocated(rhs_apar)) deallocate(rhs_apar)
+      if (allocated(rhs_apar)) deallocate (rhs_apar)
 
    end subroutine get_gke_rhs
 
@@ -333,14 +333,14 @@ contains
 
    subroutine get_contributions_from_apar(apar, ivmu, iky, ie, scratch, rhs)
 
-     implicit none
+      implicit none
 
-     complex, dimension(:), intent(in) :: apar
-     integer, intent(in) :: ivmu, iky, ie
-     complex, dimension(:), intent(out) :: scratch, rhs
-     
+      complex, dimension(:), intent(in) :: apar
+      integer, intent(in) :: ivmu, iky, ie
+      complex, dimension(:), intent(out) :: scratch, rhs
+
    end subroutine get_contributions_from_apar
-   
+
    subroutine gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, phi, gyro_phi)
 
       use gyro_averages, only: gyro_average
