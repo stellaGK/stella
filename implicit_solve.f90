@@ -11,7 +11,6 @@ module implicit_solve
    private
 
    real, dimension(2, 3) :: time_implicit_advance = 0.
-   real, dimension(:), allocatable :: akx_zext
 
 contains
 
@@ -139,6 +138,7 @@ contains
                      ! to the standard zed domain; the mapped pdf is called 'g'
                      call map_from_extended_zgrid(it, ie, iky, pdf2, g(iky, :, :, :, ivmu))
                      deallocate (pdf1, pdf2, phiext, phiext_old)
+                     if (allocated(aparext)) deallocate(aparext)
                   end do
                end do
             end do
@@ -153,9 +153,7 @@ contains
 
    subroutine get_gke_rhs(ivmu, iky, ie, pdf, phi, phi_old, apar, rhs)
 
-      use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
-      use stella_layouts, only: vmu_lo, iv_idx
       use physics_flags, only: include_apar
       
       implicit none
@@ -196,11 +194,10 @@ contains
    subroutine get_contributions_from_phi(phi, ivmu, iky, ie, scratch, rhs)
 
       use stella_time, only: code_dt
-      use stella_geometry, only: dbdzed
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use vpamu_grids, only: vpa, mu
+      use vpamu_grids, only: vpa
       use kt_grids, only: naky, nakx
       use run_parameters, only: driftkinetic_implicit, maxwellian_normalization
       use run_parameters, only: maxwellian_inside_zed_derivative
@@ -208,7 +205,6 @@ contains
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_dvpa
-      use parallel_streaming, only: stream_sign
       use extended_zgrid, only: map_to_iz_ikx_from_izext
 
       implicit none
@@ -533,12 +529,12 @@ contains
          ! calculate the particular integral, with zero BC, and store in pdf
          iz = sgn * nzgrid
          pdf(iz1) = 0.0
-         call get_updated_pdf(iz, iv, is, sgn, ulim, iz1, iz2, wdrift_ext, pdf)
+         call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf)
          ! calculate the complementary function, with unit BC, and store in pdf_cf
          allocate (pdf_cf(ulim))
          iz = sgn * nzgrid
          pdf_cf = 0.0; pdf_cf(iz1) = 1.0
-         call get_updated_pdf(iz, iv, is, sgn, ulim, iz1, iz2, wdrift_ext, pdf_cf)
+         call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf_cf)
          ! construct pdf = pdf_PI + (pdf_PI(zend)/(1-pdf_CF(zend))) * pdf_CF
          phase_factor = phase_shift(iky)**(-sgn)
          pdf = pdf + (phase_factor * pdf(iz2) / (1.0 - phase_factor * pdf_cf(iz2))) * pdf_cf
@@ -553,14 +549,14 @@ contains
          pdf(iz1) = pdf(iz1) * 2.0 / fac1
          ! now that we have the pdf at the most upwind point, sweep over the
          ! rest of the extended zed domain to obtain the pdf(z)
-         call get_updated_pdf(iz, iv, is, sgn, ulim, iz1, iz2, wdrift_ext, pdf)
+         call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf)
       end if
 
       if (drifts_implicit) deallocate (wdrift, wdrift_ext)
 
    end subroutine sweep_g_zext
 
-   subroutine get_updated_pdf(iz, iv, is, sgn, ulim, iz1, iz2, wdrift_ext, pdf)
+   subroutine get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf)
 
       use zgrid, only: nzgrid, delzed
       use run_parameters, only: drifts_implicit
@@ -571,7 +567,7 @@ contains
       implicit none
 
       integer, intent(in out) :: iz
-      integer, intent(in) :: iv, is, sgn, ulim, iz1, iz2
+      integer, intent(in) :: iv, is, sgn, iz1, iz2
       complex, dimension(:), intent(in) :: wdrift_ext
       complex, dimension(:), intent(in out) :: pdf
 
