@@ -138,7 +138,7 @@ contains
                      ! to the standard zed domain; the mapped pdf is called 'g'
                      call map_from_extended_zgrid(it, ie, iky, pdf2, g(iky, :, :, :, ivmu))
                      deallocate (pdf1, pdf2, phiext, phiext_old)
-                     if (allocated(aparext)) deallocate(aparext)
+                     if (allocated(aparext)) deallocate (aparext)
                   end do
                end do
             end do
