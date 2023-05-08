@@ -806,13 +806,13 @@ contains
                   iky = iky_idx(kxkyz_lo, ikxkyz)
                   ikx = ikx_idx(kxkyz_lo, ikxkyz)
                   iz = iz_idx(kxkyz_lo, ikxkyz)
-                  is = is_idx(kxkyz_lo, ikxkyz)
+                  it = it_idx(kxkyz_lo, ikxkyz)
                   do imu = 1, nmu
                      rhs = 0.0
                      ! now that we have apar at the future time level, use it to solve for g;
                      ! first get the rhs of the 'homogeneous' equation, which only has
                      ! contributions from terms proportional to apar
-                     call get_mirror_rhs_apar_contribution(rhs, apar(iky, ikx, iz, is), imu, ikxkyz)
+                     call get_mirror_rhs_apar_contribution(rhs, apar(iky, ikx, iz, it), imu, ikxkyz)
                      ! invert the mirror operator to find the 'homogeneous' solution
                      call invert_mirror_operator(imu, ikxkyz, rhs)
                      ! add the 'homogeneous' solution to the 'inhomogeneous' one found above

@@ -16,6 +16,7 @@ module fields
    public :: rescale_fields
    public :: get_fields_by_spec, get_fields_by_spec_idx
    public :: gamtot_h, gamtot3_h
+   public :: apar_denom
    public :: time_field_solve
    public :: fields_updated
    public :: get_dchidy, get_dchidx

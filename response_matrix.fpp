@@ -221,6 +221,7 @@ contains
          call mpi_win_fence(0, response_window, ierr)
 #endif
 
+         ! NEED TO UPDATE TO ACCOUNT FOR APAR
          call apply_field_solve_to_finish_response_matrix(iky)
 
 #ifdef ISO_C_BINDING
@@ -394,19 +395,20 @@ contains
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
+      use physics_flags, only: include_apar
       use extended_zgrid, only: neigen
       use extended_zgrid, only: nsegments, nzed_segment
       use extended_zgrid, only: periodic
       use fields_arrays, only: response_matrix
-
+      
       implicit none
 
       integer, intent(in) :: iky
 
-      integer :: ie, idx
+      integer :: ie, idx, offset
       integer :: nz_ext, nresponse
       character(5) :: dist
-      complex, dimension(:), allocatable :: phiext
+      complex, dimension(:), allocatable :: phi_ext, apar_ext
 
       ! solve quasineutrality
       ! for local stella, this is a diagonal process, but global stella
@@ -429,21 +431,51 @@ contains
                nresponse = nz_ext
             end if
 
-            allocate (phiext(nz_ext))
+            allocate (phi_ext(nz_ext))
+            allocate (apar_ext(nz_ext))
 
+            ! obtain the response matrix entries due to unit impulses in phi;
+            ! this accounts for terms appearing both in quasineutrality and parallel ampere
             do idx = 1, nresponse
-               phiext(nz_ext) = 0.0
-               phiext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:, idx)
-               call get_fields_for_response_matrix(phiext, iky, ie, dist)
+               phi_ext(nz_ext) = 0.0
+               phi_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx)
+               if (include_apar) then
+                  apar_ext(nz_ext) = 0.0
+                  apar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(nresponse + 1:2 * nresponse, idx)
+               end if
+               call get_fields_for_response_matrix(phi_ext, apar_ext, iky, ie, dist)
 
-               ! next need to create column in response matrix from phiext
+               ! next need to create column in response matrix from phi_ext and apar_ext
                ! negative sign because matrix to be inverted in streaming equation
                ! is identity matrix - response matrix
                ! add in contribution from identity matrix
-               phiext(idx) = phiext(idx) - 1.0
-               response_matrix(iky)%eigen(ie)%zloc(:, idx) = -phiext(:nresponse)
+               phi_ext(idx) = phi_ext(idx) - 1.0
+               response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = -phi_ext(:nresponse)
+               if (include_apar) response_matrix(iky)%eigen(ie)%zloc(nresponse + 1:2 * nresponse, idx) = -apar_ext(:nresponse)
             end do
-            deallocate (phiext)
+            
+            if (include_apar) then
+               ! obtain the response matrix entries due to unit impulses in apar;
+               ! this accounts for terms appearing both in quasineutrality and parallel ampere
+               offset = nresponse
+               do idx = 1, nresponse
+                  phi_ext(nz_ext) = 0.0
+                  phi_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx + offset)
+                  apar_ext(nz_ext) = 0.0
+                  apar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset+1:offset+nresponse, idx + offset)
+                  call get_fields_for_response_matrix(phi_ext, apar_ext, iky, ie, dist)
+                  
+                  ! next need to create column in response matrix from phi_ext and apar_ext
+                  ! negative sign because matrix to be inverted in streaming equation
+                  ! is identity matrix - response matrix
+                  ! add in contribution from identity matrix for diagonal entries
+                  apar_ext(idx) = apar_ext(idx) - 1.0
+                  response_matrix(iky)%eigen(ie)%zloc(:nresponse, offset+idx) = -phi_ext(:nresponse)
+                  response_matrix(iky)%eigen(ie)%zloc(offset+1:offset+nresponse, offset+idx) = -apar_ext(:nresponse)
+               end do
+            end if
+               
+            deallocate (phi_ext, apar_ext)
 #ifdef ISO_C_BINDING
          end if
 #endif
@@ -508,12 +540,13 @@ contains
       use extended_zgrid, only: nzed_segment
       use extended_zgrid, only: periodic
       use mp, only: proc0, job, broadcast, mp_abort
-
+      use fields, only: nfields
+      
       implicit none
 
       integer :: iky, ie, nz_ext
       integer :: iky_dump, neigen_dump, naky_dump, nresponse_dump
-      integer :: nresponse
+      integer :: nresponse, nresponse_per_field
       character(len=15) :: job_str
       character(len=100) :: file_name
       integer :: ie_dump, istat
@@ -557,10 +590,11 @@ contains
             ! treat zonal mode specially to avoid double counting
             ! as it is periodic
             if (periodic(iky)) then
-               nresponse = nz_ext - 1
+               nresponse_per_field = nz_ext - 1
             else
-               nresponse = nz_ext
+               nresponse_per_field = nz_ext
             end if
+            nresponse = nresponse_per_field * nfields
 
             if (proc0) then
                read (unit=mat_unit) ie_dump, nresponse_dump
@@ -677,7 +711,7 @@ contains
    subroutine get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, pdf_ext)
 
       use stella_layouts, only: vmu_lo
-      use run_parameters, only: time_upwind_plus
+!      use run_parameters, only: time_upwind_plus
       use physics_flags, only: include_apar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use fields_arrays, only: response_matrix
@@ -890,10 +924,24 @@ contains
 
    end subroutine integrate_over_velocity_apar
 
-   subroutine get_fields_for_response_matrix(phi, iky, ie, dist)
+   subroutine get_fields_for_response_matrix(phi, apar, iky, ie, dist)
+
+     use physics_flags, only: include_apar
+     
+     implicit none
+
+     complex, dimension(:), intent(in out) :: phi, apar
+     integer, intent(in) :: iky, ie
+     character(*), intent(in) :: dist
+
+     call get_phi_for_response_matrix(phi, iky, ie, dist)
+     if (include_apar) call get_apar_for_response_matrix(apar, iky, ie, dist)
+     
+   end subroutine get_fields_for_response_matrix
+   
+   subroutine get_phi_for_response_matrix(phi, iky, ie, dist)
 
       use zgrid, only: nzgrid
-      use stella_layouts, only: vmu_lo
       use species, only: spec
       use species, only: has_electron_species
       use stella_geometry, only: dl_over_b
@@ -914,13 +962,11 @@ contains
 
       integer :: idx, iseg, ikx, iz, ia
       integer :: izl_offset
-      complex, dimension(:), allocatable :: g0
       complex :: tmp
       real, dimension(:), allocatable :: gamma_fac
 
       ia = 1
 
-      allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       allocate (gamma_fac(-nzgrid:nzgrid))
 
       idx = 0; izl_offset = 0
@@ -970,10 +1016,70 @@ contains
          end if
       end if
 
-      deallocate (g0)
       deallocate (gamma_fac)
 
-   end subroutine get_fields_for_response_matrix
+   end subroutine get_phi_for_response_matrix
+
+   subroutine get_apar_for_response_matrix(apar, iky, ie, dist)
+
+      use zgrid, only: nzgrid
+      use extended_zgrid, only: iz_low, iz_up
+      use extended_zgrid, only: ikxmod
+      use extended_zgrid, only: nsegments
+      use kt_grids, only: zonal_mode, akx
+      use fields, only: apar_denom
+      use dist_fn_arrays, only: kperp2
+
+      implicit none
+
+      complex, dimension(:), intent(in out) :: apar
+      integer, intent(in) :: iky, ie
+      character(*), intent(in) :: dist
+
+      integer :: idx, iseg, ikx, iz, ia
+      integer :: izl_offset
+      real, dimension(:), allocatable :: denominator
+
+      ia = 1
+
+      allocate (denominator(-nzgrid:nzgrid))
+
+      idx = 0; izl_offset = 0
+      iseg = 1
+      ikx = ikxmod(iseg, ie, iky)
+      if (dist == 'g') then
+         denominator = kperp2(iky, ikx, ia, :)
+      else if (dist == 'gbar') then
+         denominator = apar_denom(iky, ikx, :)
+      end if
+      if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
+         apar(:) = 0.0
+         return
+      end if
+      do iz = iz_low(iseg), iz_up(iseg)
+         idx = idx + 1
+         apar(idx) = apar(idx) / denominator(iz)
+      end do
+      izl_offset = 1
+      if (nsegments(ie, iky) > 1) then
+         do iseg = 2, nsegments(ie, iky)
+            ikx = ikxmod(iseg, ie, iky)
+            if (dist == 'g') then
+               denominator = kperp2(iky, ikx, ia, :)
+            elseif (dist == 'gbar') then
+               denominator = apar_denom(iky, ikx, :)
+            end if
+            do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
+               idx = idx + 1
+               apar(idx) = apar(idx) / denominator(iz)
+            end do
+            if (izl_offset == 0) izl_offset = 1
+         end do
+      end if
+
+      deallocate (denominator)
+
+   end subroutine get_apar_for_response_matrix
 
    subroutine finish_response_matrix
 
