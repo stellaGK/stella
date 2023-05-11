@@ -193,6 +193,8 @@ contains
             ! aref and bref should not be needed, so set to 1
             aref = 1.0; bref = 1.0
             zeta(1, :) = zed * geo_surf%qinp
+            zed_scalefac = 1/geo_surf%qinp
+
          case (geo_option_multibox)
             ! read in Miller local parameters
             call read_local_parameters(nzed, nzgrid, geo_surf)
@@ -246,6 +248,8 @@ contains
             ! aref and bref should not be needed, so set to 1
             aref = 1.0; bref = 1.0
             zeta(1, :) = zed * geo_surf%qinp
+            zed_scalefac = 1/geo_surf%qinp
+
 
          case (geo_option_inputprof)
             ! first read in some local parameters
@@ -290,8 +294,9 @@ contains
             twist_and_shift_geo_fac = 2.0 * pi * geo_surf%shat
             ! aref and bref should not be needed so set to 1
             aref = 1.0; bref = 1.0
-
             zeta(1, :) = zed * geo_surf%qinp
+            zed_scalefac = 1/geo_surf%qinp
+
 
          case (geo_option_vmec)
             vmec_chosen = .true.
