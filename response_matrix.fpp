@@ -221,7 +221,6 @@ contains
          call mpi_win_fence(0, response_window, ierr)
 #endif
 
-         ! NEED TO UPDATE TO ACCOUNT FOR APAR
          call apply_field_solve_to_finish_response_matrix(iky)
 
 #ifdef ISO_C_BINDING
@@ -711,7 +710,7 @@ contains
    subroutine get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, pdf_ext)
 
       use stella_layouts, only: vmu_lo
-!      use run_parameters, only: time_upwind_plus
+      use run_parameters, only: time_upwind_plus
       use physics_flags, only: include_apar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use fields_arrays, only: response_matrix
@@ -738,9 +737,6 @@ contains
       ! however, we see that if aparr = apari = 1, L[f1] = R[1] = L[-i*f2],
       ! and thus f2 = i * f1.  This gives apar = df1/daparr * (aparr + i * apari) = df1/daparr * apar
       apar_ext = 0.0
-      ! how phi^{n+1} enters the GKE depends on whether we are solving for the
-      ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
-!      phi_ext(idx) = time_upwind_plus
       apar_ext(idx) = 1.0
 
       if (periodic(iky) .and. idx == 1) apar_ext(nz_ext) = apar_ext(1)
@@ -757,7 +753,7 @@ contains
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! calculate the RHS of the GK equation (using dum=0 as the pdf at the previous time level,
          ! and phi_ext as the potential) and store it in pdf_ext
-         call get_gke_rhs(ivmu, iky, ie, dum, dum, dum, apar_ext, pdf_ext(:, ivmu))
+         call get_gke_rhs(ivmu, iky, ie, dum, dum, apar_ext*time_upwind_plus, apar_ext, pdf_ext(:, ivmu))
          ! given the RHS of the GK equation (pdf_ext), solve for the pdf at the
          ! new time level by sweeping in zed on the extended domain;
          ! the rhs is input as 'pdf_ext' and over-written with the updated solution for the pdf
