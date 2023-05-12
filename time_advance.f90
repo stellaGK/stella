@@ -1171,7 +1171,7 @@ contains
       complex, dimension(:, :, :, :, :), pointer :: rhs
       complex, dimension(:, :), allocatable :: rhs_ky_swap
       character(5) :: dist_in
-      
+
       integer :: iz, it, ivmu
 
       rhs_ky = 0.
@@ -1197,7 +1197,7 @@ contains
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_fields'
       ! gin should not be changed, but pdf may need changing if, e.g., converting from gbar to g
       pdf = gin
-      
+
       ! if advancing apar, then gbar is evolved in time rather than g
       if (include_apar) then
          call advance_fields(pdf, phi, apar, dist='gbar')

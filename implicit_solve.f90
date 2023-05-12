@@ -824,23 +824,23 @@ contains
       do iky = 1, naky
          ! avoid double counting of periodic endpoints for zonal (and any other periodic) modes
          if (periodic(iky)) then
-            nzp = 2*nzgrid
-            allocate(fld(nzp * nfields))
+            nzp = 2 * nzgrid
+            allocate (fld(nzp * nfields))
             do it = 1, ntubes
                do ie = 1, neigen(iky)
                   ikx = ikxmod(1, ie, iky)
                   ! construct the field vector, consisting of phi (and apar if evolving)
-                  fld(:nzp) = phi(iky, ikx, -nzgrid:nzgrid-1, it)
-                  if (include_apar) fld(nzp+1:2*nzp) = apar(iky, ikx, -nzgrid:nzgrid-1, it)
+                  fld(:nzp) = phi(iky, ikx, -nzgrid:nzgrid - 1, it)
+                  if (include_apar) fld(nzp + 1:2 * nzp) = apar(iky, ikx, -nzgrid:nzgrid - 1, it)
                   ! use LU back substitution to solve the linear response matrix system
                   call lu_back_substitution(response_matrix(iky)%eigen(ie)%zloc, &
                                             response_matrix(iky)%eigen(ie)%idx, fld)
                   ! unpack phi (and apar if evolving) from the field vector;
                   ! also apply phase shift at periodic point
-                  phi(iky, ikx, -nzgrid:nzgrid-1, it) = fld(:nzp)
+                  phi(iky, ikx, -nzgrid:nzgrid - 1, it) = fld(:nzp)
                   phi(iky, ikx, nzgrid, it) = phi(iky, ikx, -nzgrid, it) / phase_shift(iky)
                   if (include_apar) then
-                     apar(iky, ikx, -nzgrid:nzgrid-1, it) = fld(nzp+1:2*nzp)
+                     apar(iky, ikx, -nzgrid:nzgrid - 1, it) = fld(nzp + 1:2 * nzp)
                      apar(iky, ikx, nzgrid, it) = apar(iky, ikx, -nzgrid, it) / phase_shift(iky)
                   end if
                end do
