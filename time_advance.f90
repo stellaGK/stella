@@ -1141,7 +1141,7 @@ contains
       use redistribute, only: gather, scatter
       use physics_flags, only: include_parallel_nonlinearity
       use physics_flags, only: include_parallel_streaming
-      use physics_flags, only: include_mirror
+      use physics_flags, only: include_mirror, include_apar
       use physics_flags, only: nonlinear
       use physics_flags, only: full_flux_surface, radial_variation
       use physics_parameters, only: g_exb
@@ -1157,6 +1157,8 @@ contains
       use mirror_terms, only: advance_mirror_explicit
       use flow_shear, only: advance_parallel_flow_shear
       use multibox, only: include_multibox_krook, add_multibox_krook
+      use dist_fn_arrays, only: pdf => g_scratch
+      use g_tofrom_h, only: gbar_to_g
 
       implicit none
 
@@ -1168,7 +1170,8 @@ contains
       complex, dimension(:, :, :, :, :), allocatable, target :: rhs_y
       complex, dimension(:, :, :, :, :), pointer :: rhs
       complex, dimension(:, :), allocatable :: rhs_ky_swap
-
+      character(5) :: dist_in
+      
       integer :: iz, it, ivmu
 
       rhs_ky = 0.
@@ -1192,9 +1195,19 @@ contains
       !> start with g in k-space and (ky,kx,z) local
       !> obtain fields corresponding to g
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_fields'
-      call advance_fields(gin, phi, apar, dist='g')
+      ! gin should not be changed, but pdf may need changing if, e.g., converting from gbar to g
+      pdf = gin
+      
+      ! if advancing apar, then gbar is evolved in time rather than g
+      if (include_apar) then
+         call advance_fields(pdf, phi, apar, dist='gbar')
+         ! convert from gbar to g = <f>, as all terms on RHS of GKE use g rather than gbar
+         call gbar_to_g(pdf, apar, 1.0)
+      else
+         call advance_fields(pdf, phi, apar, dist='g')
+      end if
 
-      if (radial_variation) call get_radial_correction(gin, phi, dist='g')
+      if (radial_variation) call get_radial_correction(pdf, phi, dist='g')
 
       !> default is to continue with same time step size.
       !> if estimated CFL condition for nonlinear terms is violated
@@ -1204,11 +1217,11 @@ contains
       !> do this first, as the CFL condition may require a change in time step
       !> and thus recomputation of mirror, wdrift, wstar, and parstream
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_ExB_nonlinearity'
-      if (nonlinear) call advance_ExB_nonlinearity(gin, rhs, restart_time_step, istep)
+      if (nonlinear) call advance_ExB_nonlinearity(pdf, rhs, restart_time_step, istep)
 
       !> include contribution from the parallel nonlinearity (aka turbulent acceleration)
       if (include_parallel_nonlinearity .and. .not. restart_time_step) &
-         call advance_parallel_nonlinearity(gin, rhs, restart_time_step)
+         call advance_parallel_nonlinearity(pdf, rhs, restart_time_step)
 
       if (.not. restart_time_step) then
 
@@ -1218,17 +1231,17 @@ contains
          !> calculate and add mirror term to RHS of GK eqn
          if (include_mirror .and. .not. mirror_implicit) then
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_mirror_explicit'
-            call advance_mirror_explicit(gin, rhs)
+            call advance_mirror_explicit(pdf, rhs)
          end if
 
          if (.not. drifts_implicit) then
             !> calculate and add alpha-component of magnetic drift term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdrifty_explicit'
-            call advance_wdrifty_explicit(gin, phi, rhs)
+            call advance_wdrifty_explicit(pdf, phi, rhs)
 
             !> calculate and add psi-component of magnetic drift term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdriftx_explicit'
-            call advance_wdriftx_explicit(gin, phi, rhs)
+            call advance_wdriftx_explicit(pdf, phi, rhs)
 
             !> calculate and add omega_* term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wstar_explicit'
@@ -1236,12 +1249,12 @@ contains
          end if
 
          !> calculate and add contribution from collisions to RHS of GK eqn
-         if (include_collisions .and. .not. collisions_implicit) call advance_collisions_explicit(gin, phi, rhs)
+         if (include_collisions .and. .not. collisions_implicit) call advance_collisions_explicit(pdf, phi, rhs)
 
          !> calculate and add parallel streaming term to RHS of GK eqn
          if (include_parallel_streaming .and. (.not. stream_implicit)) then
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
-            call advance_parallel_streaming_explicit(gin, phi, rhs)
+            call advance_parallel_streaming_explicit(pdf, phi, rhs)
          end if
 
          !> if simulating a full flux surface (flux annulus), all terms to this point have been calculated
@@ -1260,11 +1273,11 @@ contains
             deallocate (rhs_ky_swap)
          end if
 
-         if (radial_variation) call advance_radial_variation(gin, rhs)
+         if (radial_variation) call advance_radial_variation(pdf, rhs)
 
-         if (source_option_switch == source_option_krook) call add_krook_operator(gin, rhs)
+         if (source_option_switch == source_option_krook) call add_krook_operator(pdf, rhs)
 
-         if (include_multibox_krook) call add_multibox_krook(gin, rhs)
+         if (include_multibox_krook) call add_multibox_krook(pdf, rhs)
 
       end if
 

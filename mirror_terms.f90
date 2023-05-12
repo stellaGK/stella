@@ -421,6 +421,8 @@ contains
             call scatter(kxkyz2vmu, g, gvmu)
             if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          end if
+
+         ! incoming gvmu is g = <f>
          ! get dg/dvpa and store in g0v
          g0v = gvmu
          ! remove exp(-vpa^2) normalization from pdf before differentiating
@@ -788,7 +790,6 @@ contains
                   ! returns g^{n+1}
                   call invert_mirror_operator(imu, ikxkyz, rhs)
                   g0v(:, imu, ikxkyz) = rhs
-
                end do
             end do
 
@@ -829,7 +830,7 @@ contains
                   g0v(:, :, ikxkyz) = g0v(:, :, ikxkyz) / spread(maxwell_vpa(:, is), 2, nmu)
                end do
             end if
-            ! convert from g to gbar
+            ! if include_apar = T, must convert from g back to gbar
             if (include_apar) call gbar_to_g(g0v, apar, -1.0)
             deallocate (rhs)
          end if
@@ -869,10 +870,12 @@ contains
       iz = iz_idx(kxkyz_lo, ikxkyz)
       is = is_idx(kxkyz_lo, ikxkyz)
 
-      ! if include_apar = T, the incoming pdf (g_in) is gbar; else, it is g.
-      ! the vpa derivative appearing on the RHS of the mirror equation
-      ! should be operating on g, so transform from gbar to g and store in rhs.
+      ! if include_apar = T, the incoming pdf (g_in) is gbar;
+      ! otherwise, it is g = <f>
       rhs = g_in
+      ! when advancing apar, need to compute g^{n+1} = gbar^{n} + dt * dg/dvpa * (...)
+      ! the vpa derivative appearing on the RHS of the mirror equation
+      ! should be operating on g, so need to have both gbar and g.
       ! NB: changes may need to be made to this call to gbar_to_g if using
       ! maxwellian_normalization; not worried aobut it too much yet, as not
       ! sure if it will ever be in use here
