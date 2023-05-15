@@ -1223,7 +1223,7 @@ contains
       complex, dimension(:, :, :, :, :), allocatable, target :: rhs_y
       complex, dimension(:, :, :, :, :), pointer :: rhs
       complex, dimension(:, :), allocatable :: rhs_ky_swap
-      
+
       integer :: iz, it, ivmu
       ! TMP FOR TESTING -- MAB
       real :: gsum, psum, asum
@@ -1249,6 +1249,7 @@ contains
       !> start with g in k-space and (ky,kx,z) local
       !> obtain fields corresponding to g
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_fields'
+
       ! call checksum(pdf, gsum)
       ! call checksum(phi, psum)
       ! call checksum(apar, asum)
