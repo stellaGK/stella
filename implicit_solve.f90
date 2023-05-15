@@ -70,9 +70,6 @@ contains
          ! when solving for 'inhomogeneous' piece of the pdf, use part of apar weighted towards
          ! previous time level
          apar_source = tupwnd_m * apar
-         ! if including apar, the incoming pdf is gbar = g + (Ze/T)*<vpa*apar/c>*F0;
-         ! convert from gbar to g
-         call gbar_to_g(g1, apar, 1.0)
          ! set apar=0, as in update_pdf it expects apar to be apar^{n+1} or zero
          apar = 0.0
       end if
