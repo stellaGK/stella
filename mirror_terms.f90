@@ -309,7 +309,6 @@ contains
       ! give unit impulse to apar and solve for g (stored in mirror_response_g)
       apar = 1.0
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-         rhs = 0.0
          do imu = 1, nmu
             ! calculate the rhs of the 'homogeneous' mirror advance equation
             call get_mirror_rhs_apar_contribution(rhs, apar, imu, ikxkyz)
@@ -650,7 +649,7 @@ contains
       use run_parameters, only: mirror_semi_lagrange, maxwellian_normalization
       use physics_flags, only: include_apar
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
-      use fields, only: advance_apar
+      use fields, only: advance_apar, fields_updated
       use g_tofrom_h, only: gbar_to_g
 
       implicit none
@@ -669,6 +668,9 @@ contains
 
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
+      ! incoming pdf is g = <f>
+      dist = 'g'
+      
       ! FLAG -- STILL NEED TO IMPLEMENT VARIABLE TIME UPWINDING
       ! FOR FULL_FLUX_SURFACE
 
@@ -775,6 +777,10 @@ contains
                end do
             end if
 
+            ! if fields are not updated, then update apar before converting from g to gbar
+            ! in get_mirror_rhs_g_contribution below
+            if (include_apar .and. .not. fields_updated) call advance_apar(gvmu, dist, apar)
+            
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
                iky = iky_idx(kxkyz_lo, ikxkyz)
                ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -793,9 +799,10 @@ contains
                end do
             end do
 
+            ! if not advancing apar, g0v now contains the updated pdf, g.
+            ! if advanceing apar, g0v contains the 'inhomogeneous' pdf, g_{inh}
             if (include_apar) then
                ! if advancing apar, need to calculate the contribution to apar from g0v, which is the solution to the 'inhomogenous' equation
-               dist = 'g'
                call advance_apar(g0v, dist, apar)
 
                ! the total apar is the above contribution from the 'inhomogeneous' apar / response_apar_denom,
@@ -809,7 +816,6 @@ contains
                   iz = iz_idx(kxkyz_lo, ikxkyz)
                   it = it_idx(kxkyz_lo, ikxkyz)
                   do imu = 1, nmu
-                     rhs = 0.0
                      ! now that we have apar at the future time level, use it to solve for g;
                      ! first get the rhs of the 'homogeneous' equation, which only has
                      ! contributions from terms proportional to apar
@@ -830,8 +836,6 @@ contains
                   g0v(:, :, ikxkyz) = g0v(:, :, ikxkyz) / spread(maxwell_vpa(:, is), 2, nmu)
                end do
             end if
-            ! if include_apar = T, must convert from g back to gbar
-            if (include_apar) call gbar_to_g(g0v, apar, -1.0)
             deallocate (rhs)
          end if
 
@@ -856,6 +860,7 @@ contains
       use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
       use finite_differences, only: fd_variable_upwinding_vpa
       use vpamu_grids, only: dvpa, vpa, nvpa
+      use fields_arrays, only: phi
 
       implicit none
 
@@ -870,8 +875,7 @@ contains
       iz = iz_idx(kxkyz_lo, ikxkyz)
       is = is_idx(kxkyz_lo, ikxkyz)
 
-      ! if include_apar = T, the incoming pdf (g_in) is gbar;
-      ! otherwise, it is g = <f>
+      ! the incoming pdf is g = <f>
       rhs = g_in
       ! when advancing apar, need to compute g^{n+1} = gbar^{n} + dt * dg/dvpa * (...)
       ! the vpa derivative appearing on the RHS of the mirror equation
@@ -879,20 +883,23 @@ contains
       ! NB: changes may need to be made to this call to gbar_to_g if using
       ! maxwellian_normalization; not worried aobut it too much yet, as not
       ! sure if it will ever be in use here
-      if (include_apar) call gbar_to_g(rhs, apar, imu, ikxkyz, 1.0)
-
+      if (include_apar) then
+         ! rhs is converted from g to gbar
+         call gbar_to_g(rhs, apar, imu, ikxkyz, -1.0)
+      end if
+         
       ! calculate dg/dvpa
       allocate (dgdv(nvpa))
-      call fd_variable_upwinding_vpa(1, rhs, dvpa, &
+      call fd_variable_upwinding_vpa(1, g_in, dvpa, &
                                      mirror_sign(1, iz), vpa_upwind, dgdv)
 
       ! construct RHS of GK equation for mirror advance;
       ! i.e., (1-(1+alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n+1}
       ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n}
       if (maxwellian_normalization) then
-         rhs = g_in + time_upwind_minus * mirror(1, iz, imu, is) * (dgdv + 2.0 * vpa * rhs)
+         rhs = rhs + time_upwind_minus * mirror(1, iz, imu, is) * (dgdv + 2.0 * vpa * g_in)
       else
-         rhs = g_in + time_upwind_minus * mirror(1, iz, imu, is) * dgdv
+         rhs = rhs + time_upwind_minus * mirror(1, iz, imu, is) * dgdv
       end if
 
       deallocate (dgdv)
@@ -905,29 +912,32 @@ contains
       use vpamu_grids, only: nvpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
       use run_parameters, only: maxwellian_normalization
-      use stella_layouts, only: kxkyz_lo, is_idx
+      use stella_layouts, only: kxkyz_lo, is_idx, iz_idx
       use gyro_averages, only: gyro_average
 
       implicit none
 
-      complex, dimension(:), intent(in out) :: rhs
+      complex, dimension(:), intent(out) :: rhs
       complex, intent(in) :: apar
       integer, intent(in) :: imu, ikxkyz
 
-      integer :: ia, is
+      integer :: ia, iz, is
       real :: pre_factor
       complex, dimension(:), allocatable :: vpa_scratch
 
       allocate (vpa_scratch(nvpa))
 
       is = is_idx(kxkyz_lo, ikxkyz)
+      iz = iz_idx(kxkyz_lo, ikxkyz)
 
       ia = 1
       pre_factor = -2.0 * spec(is)%zt * spec(is)%stm_psi0
       call gyro_average(pre_factor * vpa * apar, imu, ikxkyz, vpa_scratch)
-      if (maxwellian_normalization) vpa_scratch = vpa_scratch * maxwell_vpa(:, is) * maxwell_mu(ia, :, imu, is)
+      if (.not. maxwellian_normalization) then
+         vpa_scratch = vpa_scratch * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is)
+      end if
 
-      rhs = rhs + vpa_scratch
+      rhs = vpa_scratch
 
       deallocate (vpa_scratch)
 
