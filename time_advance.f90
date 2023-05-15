@@ -934,7 +934,7 @@ contains
       use fields_arrays, only: phi, apar
       use fields, only: advance_fields
       use g_tofrom_h, only: gbar_to_g
-      
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
@@ -954,7 +954,7 @@ contains
          call advance_fields(g, phi, apar, dist='g')
          call gbar_to_g(g, apar, -1.0)
       end if
-      
+
       select case (explicit_option_switch)
       case (explicit_option_euler)
          !> forward Euler
@@ -977,7 +977,7 @@ contains
          ! so convert from gbar to g
          call gbar_to_g(g, apar, 1.0)
       end if
-      
+
       !> enforce periodicity for periodic (including zonal) modes
       do iky = 1, naky
          if (periodic(iky)) then
@@ -1003,7 +1003,7 @@ contains
       use zgrid, only: nzgrid
       use stella_layouts, only: vmu_lo
       use multibox, only: RK_step
-      
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
@@ -1016,11 +1016,11 @@ contains
       g0 = g
 
       call solve_gke(g0, g, restart_time_step, istep)
-      
+
       g = g0 + g
-      
+
    end subroutine advance_explicit_euler
-   
+
    !> advance_expliciit_rk2 uses strong stability-preserving RK2 to advance one time step
    subroutine advance_explicit_rk2(g, restart_time_step, istep)
 
@@ -1065,7 +1065,7 @@ contains
 
       !> this is g at intermediate time level
       g = 0.5 * g0 + 0.5 * (g1 + g)
-      
+
    end subroutine advance_explicit_rk2
 
    !> strong stability-preserving RK3
@@ -1254,7 +1254,7 @@ contains
       ! call checksum(phi, psum)
       ! call checksum(apar, asum)
       ! write (*,*) 'solve_gke_in: ', gsum, psum, asum
-      
+
       ! if advancing apar, then gbar is evolved in time rather than g
       if (include_apar) then
          call advance_fields(pdf, phi, apar, dist='gbar')
@@ -1351,7 +1351,7 @@ contains
 
       ! if advancing apar, need to convert input pdf back from g to gbar
       if (include_apar) call gbar_to_g(pdf, apar, -1.0)
-      
+
       fields_updated = .false.
 
       if (allocated(rhs_y)) deallocate (rhs_y)
