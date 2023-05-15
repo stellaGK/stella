@@ -1976,7 +1976,7 @@ contains
          ! intermediate calculation to get factor involving phi contribution
          field = fphi * phi
          ! add apar contribution if including it
-         if (include_apar) field = field - vpa(iv) * spec(is)%stm_psi0 * apar
+         if (include_apar) field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
          ! take spectral y-derivative
          do iky = 1, naky
             field(iky, :, :, :) = zi * aky(iky) * field(iky, :, :, :)
@@ -2015,7 +2015,7 @@ contains
       is = is_idx(vmu_lo, ivmu)
       iv = iv_idx(vmu_lo, ivmu)
       field = fphi * phi
-      if (include_apar) field = field - vpa(iv) * spec(is)%stm_psi0 * apar
+      if (include_apar) field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
       field = zi * spread(aky, 2, nakx) * field
       call gyro_average(field, iz, ivmu, dchidy)
 
@@ -2050,7 +2050,7 @@ contains
       is = is_idx(vmu_lo, ivmu)
       iv = iv_idx(vmu_lo, ivmu)
       field = fphi * phi
-      if (include_apar) field = field - vpa(iv) * spec(is)%stm_psi0 * apar
+      if (include_apar) field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
       field = zi * spread(akx, 1, naky) * field
       call gyro_average(field, iz, ivmu, dchidx)
 
