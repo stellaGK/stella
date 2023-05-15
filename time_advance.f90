@@ -43,7 +43,8 @@ module time_advance
    integer :: explicit_option_switch
    integer, parameter :: explicit_option_rk3 = 1, &
                          explicit_option_rk2 = 2, &
-                         explicit_option_rk4 = 3
+                         explicit_option_rk4 = 3, &
+                         explicit_option_euler = 4
 
    real :: xdriftknob, ydriftknob, wstarknob
    logical :: flip_flop
@@ -141,11 +142,12 @@ contains
 
       logical :: taexist
 
-      type(text_option), dimension(4), parameter :: explicitopts = &
+      type(text_option), dimension(5), parameter :: explicitopts = &
                                                     (/text_option('default', explicit_option_rk3), &
                                                       text_option('rk3', explicit_option_rk3), &
                                                       text_option('rk2', explicit_option_rk2), &
-                                                      text_option('rk4', explicit_option_rk4)/)
+                                                      text_option('rk4', explicit_option_rk4), &
+                                                      text_option('euler', explicit_option_euler)/)
       character(10) :: explicit_option
 
       namelist /time_advance_knobs/ xdriftknob, ydriftknob, wstarknob, explicit_option, flip_flop
@@ -927,8 +929,12 @@ contains
       use extended_zgrid, only: periodic, phase_shift
       use kt_grids, only: naky
       use stella_layouts, only: vmu_lo, iv_idx
+      use physics_flags, only: include_apar
       use parallel_streaming, only: stream_sign
-
+      use fields_arrays, only: phi, apar
+      use fields, only: advance_fields
+      use g_tofrom_h, only: gbar_to_g
+      
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
@@ -940,7 +946,19 @@ contains
       !> start the timer for the explicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 8), ' explicit')
 
+      ! incoming pdf is g = <f>
+      ! if include_apar = T, convert from g to gbar,
+      ! as gbar appears in time derivative
+      if (include_apar) then
+         ! if the fields are not already updated, then update them
+         call advance_fields(g, phi, apar, dist='g')
+         call gbar_to_g(g, apar, -1.0)
+      end if
+      
       select case (explicit_option_switch)
+      case (explicit_option_euler)
+         !> forward Euler
+         call advance_explicit_euler(g, restart_time_step, istep)
       case (explicit_option_rk2)
          !> SSP RK2
          call advance_explicit_rk2(g, restart_time_step, istep)
@@ -952,6 +970,14 @@ contains
          call advance_explicit_rk4(g, restart_time_step, istep)
       end select
 
+      if (include_apar) then
+         ! if the fields are not already updated, then update them
+         call advance_fields(g, phi, apar, dist='gbar')
+         ! implicit solve will use g rather than gbar for advance,
+         ! so convert from gbar to g
+         call gbar_to_g(g, apar, 1.0)
+      end if
+      
       !> enforce periodicity for periodic (including zonal) modes
       do iky = 1, naky
          if (periodic(iky)) then
@@ -970,6 +996,31 @@ contains
 
    end subroutine advance_explicit
 
+   !> advance_explicit_euler uses forward Euler to advance one time step
+   subroutine advance_explicit_euler(g, restart_time_step, istep)
+
+      use dist_fn_arrays, only: g0
+      use zgrid, only: nzgrid
+      use stella_layouts, only: vmu_lo
+      use multibox, only: RK_step
+      
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+      logical, intent(in out) :: restart_time_step
+      integer, intent(in) :: istep
+
+      !> RK_step only true if running in multibox mode
+      if (RK_step) call mb_communicate(g)
+
+      g0 = g
+
+      call solve_gke(g0, g, restart_time_step, istep)
+      
+      g = g0 + g
+      
+   end subroutine advance_explicit_euler
+   
    !> advance_expliciit_rk2 uses strong stability-preserving RK2 to advance one time step
    subroutine advance_explicit_rk2(g, restart_time_step, istep)
 
@@ -992,7 +1043,7 @@ contains
       g0 = g
       icnt = 1
 
-      !> SSP rk3 algorithm to advance explicit part of code
+      !> SSP rk2 algorithm to advance explicit part of code
       !> if GK equation written as dg/dt = rhs - vpar . grad h,
       !> solve_gke returns rhs*dt
       do while (icnt <= 2)
@@ -1014,7 +1065,7 @@ contains
 
       !> this is g at intermediate time level
       g = 0.5 * g0 + 0.5 * (g1 + g)
-
+      
    end subroutine advance_explicit_rk2
 
    !> strong stability-preserving RK3
@@ -1129,10 +1180,11 @@ contains
 
    end subroutine advance_explicit_rk4
 
-   !> solve_gke accepts as argument gin, the guiding centre distribution function in k-space,
+   !> solve_gke accepts as argument pdf, the guiding centre distribution function in k-space,
    !> and returns rhs_ky, the right-hand side of the gyrokinetic equation in k-space;
-   !> i.e., if dg/dt = r, then rhs_ky = r*dt
-   subroutine solve_gke(gin, rhs_ky, restart_time_step, istep)
+   !> i.e., if dg/dt = r, then rhs_ky = r*dt;
+   !> note that if include_apar = T, then the input pdf is actually gbar = g + (Ze/T)*(vpa/c)*<Apar>*F0
+   subroutine solve_gke(pdf, rhs_ky, restart_time_step, istep)
 
       use job_manage, only: time_message
       use fields_arrays, only: phi, apar
@@ -1157,12 +1209,13 @@ contains
       use mirror_terms, only: advance_mirror_explicit
       use flow_shear, only: advance_parallel_flow_shear
       use multibox, only: include_multibox_krook, add_multibox_krook
-      use dist_fn_arrays, only: pdf => g_scratch
       use g_tofrom_h, only: gbar_to_g
+      ! TMP FOR TESTING -- MAB
+      use fields, only: fields_updated
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: pdf
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out), target :: rhs_ky
       logical, intent(out) :: restart_time_step
       integer, intent(in) :: istep
@@ -1170,9 +1223,10 @@ contains
       complex, dimension(:, :, :, :, :), allocatable, target :: rhs_y
       complex, dimension(:, :, :, :, :), pointer :: rhs
       complex, dimension(:, :), allocatable :: rhs_ky_swap
-      character(5) :: dist_in
       
       integer :: iz, it, ivmu
+      ! TMP FOR TESTING -- MAB
+      real :: gsum, psum, asum
 
       rhs_ky = 0.
 
@@ -1195,14 +1249,27 @@ contains
       !> start with g in k-space and (ky,kx,z) local
       !> obtain fields corresponding to g
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_fields'
-      ! gin should not be changed, but pdf may need changing if, e.g., converting from gbar to g
-      pdf = gin
+      ! call checksum(pdf, gsum)
+      ! call checksum(phi, psum)
+      ! call checksum(apar, asum)
+      ! write (*,*) 'solve_gke_in: ', gsum, psum, asum
       
       ! if advancing apar, then gbar is evolved in time rather than g
       if (include_apar) then
          call advance_fields(pdf, phi, apar, dist='gbar')
+
+         ! call checksum(pdf, gsum)
+         ! call checksum(phi, psum)
+         ! call checksum(apar, asum)
+         ! write (*,*) 'advance_fields: ', gsum, psum, asum
+
          ! convert from gbar to g = <f>, as all terms on RHS of GKE use g rather than gbar
          call gbar_to_g(pdf, apar, 1.0)
+
+         ! call checksum(pdf, gsum)
+         ! call checksum(phi, psum)
+         ! call checksum(apar, asum)
+         ! write (*,*) 'gbar_to_g: ', gsum, psum, asum
       else
          call advance_fields(pdf, phi, apar, dist='g')
       end if
@@ -1281,6 +1348,9 @@ contains
 
       end if
 
+      ! if advancing apar, need to convert input pdf back from g to gbar
+      if (include_apar) call gbar_to_g(pdf, apar, -1.0)
+      
       fields_updated = .false.
 
       if (allocated(rhs_y)) deallocate (rhs_y)
