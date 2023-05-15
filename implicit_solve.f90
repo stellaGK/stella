@@ -194,7 +194,7 @@ contains
       ! NB: rhs is used as a scratch array in get_contributions_from_fields
       ! so be careful not to move get_contributions_from_pdf before it, or rhs will be over-written
       call get_contributions_from_fields(phi, apar, aparnew, ivmu, iky, ie, rhs, rhs_fields)
-      call get_contributions_from_pdf(pdf, ivmu, iky, ie, rhs)
+      call get_contributions_from_pdf(pdf, aparnew, ivmu, iky, ie, rhs)
 
       ! construct RHS of GK eqn
       rhs = rhs + rhs_fields
@@ -482,7 +482,53 @@ contains
 
    end subroutine get_contributions_from_apar
 
-   subroutine gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, phi, gyro_phi)
+   subroutine gbar_to_g_zext(pdf, apar, facapar, iky, ivmu, ikx_from_izext, iz_from_izext)
+
+     use species, only: spec
+     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+     use run_parameters, only: maxwellian_normalization
+     use vpamu_grids, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
+     
+     implicit none
+
+     complex, dimension(:), intent(in out) :: pdf
+     integer, intent(in) :: ivmu, iky
+     integer, dimension(:), intent(in) :: ikx_from_izext, iz_from_izext
+     complex, dimension(:), intent(in) :: apar
+     real, intent(in) :: facapar
+     
+     integer :: iv, imu, is
+     integer :: izext, iz, ia
+     integer :: nz_ext
+
+     complex, dimension(:), allocatable :: field, gyro_field
+     
+     iv = iv_idx(vmu_lo, ivmu)
+     imu = imu_idx(vmu_lo, ivmu)
+     is = is_idx(vmu_lo, ivmu)
+
+     nz_ext = size(apar)
+
+     allocate(field(nz_ext))
+     allocate(gyro_field(nz_ext))
+
+     ia = 1
+
+     field = 2.0 * spec(is)%zt * spec(is)%stm_psi0 * vpa(iv) * facapar * apar
+     if (.not. maxwellian_normalization) then
+        do izext = 1, nz_ext
+           iz = iz_from_izext(izext)
+           field(izext) = field(izext) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+        end do
+     end if
+     call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, field, gyro_field)
+     pdf = pdf - gyro_field
+
+     deallocate(field, gyro_field)
+     
+   end subroutine gbar_to_g_zext
+   
+   subroutine gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, fld, gyro_fld)
 
       use gyro_averages, only: gyro_average
 
@@ -490,15 +536,15 @@ contains
 
       integer, intent(in) :: iky, ivmu
       integer, dimension(:), intent(in) :: ikx_from_izext, iz_from_izext
-      complex, dimension(:), intent(in) :: phi
-      complex, dimension(:), intent(out) :: gyro_phi
+      complex, dimension(:), intent(in) :: fld
+      complex, dimension(:), intent(out) :: gyro_fld
 
       integer :: izext, nz_ext
 
-      nz_ext = size(phi)
+      nz_ext = size(fld)
 
       do izext = 1, nz_ext
-         call gyro_average(phi(izext), iky, ikx_from_izext(izext), iz_from_izext(izext), ivmu, gyro_phi(izext))
+         call gyro_average(fld(izext), iky, ikx_from_izext(izext), iz_from_izext(izext), ivmu, gyro_fld(izext))
       end do
 
    end subroutine gyro_average_zext
@@ -506,10 +552,11 @@ contains
    !> get_contributions_from_pdf takes as an argument the evolved pdf
    !> (either guiding centre distribution g=<f> or maxwellian-normlized, non-Boltzmann distribution h/F0=f/F0+(Ze*phi/T))
    !> and the scratch array rhs, and returns the source terms that depend on the pdf in rhs
-   subroutine get_contributions_from_pdf(pdf, ivmu, iky, ie, rhs)
+   subroutine get_contributions_from_pdf(pdf, apar, ivmu, iky, ie, rhs)
 
       use constants, only: zi
       use stella_time, only: code_dt
+      use physics_flags, only: include_apar
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
@@ -527,7 +574,7 @@ contains
 
       implicit none
 
-      complex, dimension(:), intent(in) :: pdf
+      complex, dimension(:), intent(in) :: pdf, apar
       integer, intent(in) :: ivmu, iky, ie
       complex, dimension(:), intent(out) :: rhs
 
@@ -573,12 +620,20 @@ contains
       end if
 
       rhs = pdf
+      ! if advancing apar, need to use gbar rather than g=<f> for part of source on RHS of GKE,
+      ! so convert from g to gbar
+      if (include_apar) then
+         call gbar_to_g_zext(rhs, apar, -1.0, iky, ivmu, ikx_from_izext, iz_from_izext)
+      end if
+      
       if (drifts_implicit) then
          do izext = 1, nz_ext
             ikx = ikx_from_izext(izext)
             iz = iz_from_izext(izext)
-            rhs(izext) = rhs(izext) * (1.0 + zi * time_upwind_minus &
-                                       * (wdriftx_g(ia, iz, ivmu) * akx(ikx) + wdrifty_g(ia, iz, ivmu) * aky(iky)))
+            rhs(izext) = rhs(izext) + pdf(izext) * zi * time_upwind_minus &
+                                       * (wdriftx_g(ia, iz, ivmu) * akx(ikx) + wdrifty_g(ia, iz, ivmu) * aky(iky))
+!            rhs(izext) = rhs(izext) * (1.0 + zi * time_upwind_minus &
+!                                       * (wdriftx_g(ia, iz, ivmu) * akx(ikx) + wdrifty_g(ia, iz, ivmu) * aky(iky)))
          end do
       end if
 

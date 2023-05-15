@@ -2593,13 +2593,14 @@ contains
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
 
+         ! update the fields if not already updated
          call advance_fields(g, phi, apar, dist='g')
 
       else
 
          ! get updated fields corresponding to advanced g
-         ! note that hyper-dissipation and mirror advances
-         ! depended only on g and so did not need field update
+         ! note that hyper-dissipation
+         ! depends only on g and so does not need field update
          call advance_fields(g, phi, apar, dist='g')
 
          ! g^{**} is input
