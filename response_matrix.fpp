@@ -278,7 +278,7 @@ contains
       ! loop over the sets of connected kx values
       do ie = 1, neigen(iky)
 
-         ! number of zeds x number of segments
+         ! number of zeds x number of segments on extended zed domain
          nz_ext = nsegments(ie, iky) * nzed_segment + 1
 
          ! treat zonal mode specially to avoid double counting
@@ -412,7 +412,7 @@ contains
       ! solve quasineutrality
       ! for local stella, this is a diagonal process, but global stella
       ! may require something more sophisticated
-      dist = 'gbar'
+      dist = 'g'
 
       ! loop over the sets of connected kx values
       do ie = 1, neigen(iky)
@@ -678,7 +678,7 @@ contains
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! calculate the RHS of the GK equation (using dum=0 as the pdf at the previous time level,
          ! and phi_ext as the potential) and store it in pdf_ext
-         call get_gke_rhs(ivmu, iky, ie, dum, phi_ext, dum, dum, pdf_ext(:, ivmu))
+         call get_gke_rhs(ivmu, iky, ie, dum, phi_ext, dum, dum, dum, pdf_ext(:, ivmu))
          ! given the RHS of the GK equation (pdf_ext), solve for the pdf at the
          ! new time level by sweeping in zed on the extended domain;
          ! the rhs is input as 'pdf_ext' and over-written with the updated solution for the pdf
@@ -753,7 +753,7 @@ contains
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! calculate the RHS of the GK equation (using dum=0 as the pdf at the previous time level,
          ! and phi_ext as the potential) and store it in pdf_ext
-         call get_gke_rhs(ivmu, iky, ie, dum, dum, apar_ext * time_upwind_plus, apar_ext, pdf_ext(:, ivmu))
+         call get_gke_rhs(ivmu, iky, ie, dum, dum, apar_ext * time_upwind_plus, apar_ext, dum, pdf_ext(:, ivmu))
          ! given the RHS of the GK equation (pdf_ext), solve for the pdf at the
          ! new time level by sweeping in zed on the extended domain;
          ! the rhs is input as 'pdf_ext' and over-written with the updated solution for the pdf
@@ -781,9 +781,6 @@ contains
 #endif
 
    end subroutine get_dpdf_dapar_matrix_column
-
-! subroutine get_phi_matrix
-! end subroutine get_phi_matrix
 
    subroutine integrate_over_velocity(g, phi, apar, iky, ie)
 
