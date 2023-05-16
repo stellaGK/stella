@@ -670,7 +670,7 @@ contains
 
       ! incoming pdf is g = <f>
       dist = 'g'
-      
+
       ! FLAG -- STILL NEED TO IMPLEMENT VARIABLE TIME UPWINDING
       ! FOR FULL_FLUX_SURFACE
 
@@ -780,7 +780,7 @@ contains
             ! if fields are not updated, then update apar before converting from g to gbar
             ! in get_mirror_rhs_g_contribution below
             if (include_apar .and. .not. fields_updated) call advance_apar(gvmu, dist, apar)
-            
+
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
                iky = iky_idx(kxkyz_lo, ikxkyz)
                ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -887,7 +887,7 @@ contains
          ! rhs is converted from g to gbar
          call gbar_to_g(rhs, apar, imu, ikxkyz, -1.0)
       end if
-         
+
       ! calculate dg/dvpa
       allocate (dgdv(nvpa))
       call fd_variable_upwinding_vpa(1, g_in, dvpa, &
