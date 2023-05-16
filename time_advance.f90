@@ -863,7 +863,7 @@ contains
             !> Advance the explicit parts of the GKE
             if (debug) write (*, *) 'time_advance::advance_explicit'
             if (.not. fully_implicit) call advance_explicit(gnew, restart_time_step, istep)
-            
+
             !> Use operator splitting to separately evolve all terms treated implicitly
             if (.not. restart_time_step .and. .not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
          else
@@ -1668,7 +1668,7 @@ contains
       ! for EM simulations, the pdf entering the ExB nonlinearity needs to be
       ! the non-Boltzmann part of f (h = f + (Ze/T)*phi*F0)
       if (include_apar) call g_to_h(g, phi, fphi)
-      
+
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
@@ -1762,7 +1762,7 @@ contains
 
       ! convert back from h to g = <f> (only needed for EM sims)
       if (include_apar) call g_to_h(g, phi, -fphi)
-      
+
       deallocate (g0k, g0a, g0xy, g1xy, bracket)
       if (allocated(g0k_swap)) deallocate (g0k_swap)
       if (allocated(g0xky)) deallocate (g0xky)
