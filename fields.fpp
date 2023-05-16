@@ -879,7 +879,11 @@ contains
          end do
          call sum_allreduce(apar)
          if (dist == 'g' .or. dist == 'h') then
-            apar = apar / spread(kperp2(:, :, ia, :), 4, ntubes)
+            where (spread(kperp2(:, :, ia, :), 4, ntubes) > epsilon(0.0))
+               apar = apar / spread(kperp2(:, :, ia, :), 4, ntubes)
+            elsewhere
+               apar = 0.0
+            end where
          else if (dist == 'gbar') then
             apar = apar / spread(apar_denom, 4, ntubes)
          else if (dist == 'gstar') then
@@ -1478,7 +1482,11 @@ contains
       ! this subroutine only considers flux tubes, so set ia = 1
       ia = 1
       if (dist == 'g') then
-         apar = apar / spread(kperp2(:, :, ia, :), 4, ntubes)
+         where (spread(kperp2(:, :, ia, :), 4, ntubes) > epsilon(0.0))
+            apar = apar / spread(kperp2(:, :, ia, :), 4, ntubes)
+         elsewhere
+            apar = 0.0
+         end where
       else if (dist == 'gbar') then
          apar = apar / spread(apar_denom, 4, ntubes)
       else

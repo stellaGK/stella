@@ -863,7 +863,7 @@ contains
             !> Advance the explicit parts of the GKE
             if (debug) write (*, *) 'time_advance::advance_explicit'
             if (.not. fully_implicit) call advance_explicit(gnew, restart_time_step, istep)
-
+            
             !> Use operator splitting to separately evolve all terms treated implicitly
             if (.not. restart_time_step .and. .not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
          else
@@ -1225,8 +1225,6 @@ contains
       complex, dimension(:, :), allocatable :: rhs_ky_swap
 
       integer :: iz, it, ivmu
-      ! TMP FOR TESTING -- MAB
-      real :: gsum, psum, asum
 
       rhs_ky = 0.
 
@@ -1250,27 +1248,12 @@ contains
       !> obtain fields corresponding to g
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_fields'
 
-      ! call checksum(pdf, gsum)
-      ! call checksum(phi, psum)
-      ! call checksum(apar, asum)
-      ! write (*,*) 'solve_gke_in: ', gsum, psum, asum
-
       ! if advancing apar, then gbar is evolved in time rather than g
       if (include_apar) then
          call advance_fields(pdf, phi, apar, dist='gbar')
 
-         ! call checksum(pdf, gsum)
-         ! call checksum(phi, psum)
-         ! call checksum(apar, asum)
-         ! write (*,*) 'advance_fields: ', gsum, psum, asum
-
          ! convert from gbar to g = <f>, as all terms on RHS of GKE use g rather than gbar
          call gbar_to_g(pdf, apar, 1.0)
-
-         ! call checksum(pdf, gsum)
-         ! call checksum(phi, psum)
-         ! call checksum(apar, asum)
-         ! write (*,*) 'gbar_to_g: ', gsum, psum, asum
       else
          call advance_fields(pdf, phi, apar, dist='g')
       end if
@@ -1624,13 +1607,15 @@ contains
       use kt_grids, only: akx, aky, rho_clamped
       use physics_flags, only: full_flux_surface, radial_variation
       use physics_flags, only: prp_shear_enabled, hammett_flow_shear
+      use physics_flags, only: include_apar
       use kt_grids, only: x, swap_kxky, swap_kxky_back
       use constants, only: pi, zi
       use file_utils, only: runtype_option_switch, runtype_multibox
+      use g_tofrom_h, only: g_to_h
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
       logical, intent(out) :: restart_time_step
       integer, intent(in) :: istep
@@ -1679,6 +1664,11 @@ contains
          prefac = exp(-zi * g_exb * g_exbfac * spread(x, 1, naky) * spread(aky * shift_state, 2, nx))
       end if
 
+      ! incoming pdf is g = <f>
+      ! for EM simulations, the pdf entering the ExB nonlinearity needs to be
+      ! the non-Boltzmann part of f (h = f + (Ze/T)*phi*F0)
+      if (include_apar) call g_to_h(g, phi, fphi)
+      
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
@@ -1770,6 +1760,9 @@ contains
          end do
       end do
 
+      ! convert back from h to g = <f> (only needed for EM sims)
+      if (include_apar) call g_to_h(g, phi, -fphi)
+      
       deallocate (g0k, g0a, g0xy, g1xy, bracket)
       if (allocated(g0k_swap)) deallocate (g0k_swap)
       if (allocated(g0xky)) deallocate (g0xky)
@@ -2517,7 +2510,8 @@ contains
       integer, intent(in) :: istep
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
-!    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out), target :: g
+
+      !    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out), target :: g
 
 !    complex, dimension (:,:,:,:,:), pointer :: gk, gy
 !    complex, dimension (:,:,:,:,:), allocatable, target :: g_dual
