@@ -63,7 +63,7 @@ contains
       phi_old = phi
       allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes))
       apar_old = apar
-         
+
       if (include_apar) then
          ! when solving for the 'inhomogeneous' piece of the pdf,
          ! use part of apar weighted towards previous time level
@@ -449,82 +449,82 @@ contains
    ! 'inhomogeneous' GKE; this should have been accounted for by passing in
    ! aparnew=0 so that scratch2 will be zero below
    subroutine add_gbar_to_g_contribution_apar(scratch2, iky, ia, iv, imu, is, nz_ext, iz_from_izext, rhs)
-     
-     use run_parameters, only: maxwellian_normalization
-     use vpamu_grids, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
-     use parallel_streaming, only: center_zed
-     use species, only: spec
-     use extended_zgrid, only: periodic
-     
-     implicit none
-     
-     complex, dimension(:), intent(in out) :: scratch2
-     integer, intent(in) :: iky, ia, iv, imu, is, nz_ext
-     integer, dimension(:), intent(in) :: iz_from_izext
-     complex, dimension(:), intent(in out) :: rhs
-     
-     integer :: izext, iz
-     real :: constant_factor
-     
-     ! avoid repeated multiplication in below izext loop
-     constant_factor = -2.0 * spec(is)%zt_psi0 * spec(is)%stm_psi0 * vpa(iv)
-     
-     ! incoming 'scratch2' is <apar^{n+1}>
-     do izext = 1, nz_ext
-        iz = iz_from_izext(izext)
-        scratch2(izext) = constant_factor * scratch2(izext)
-     end do
-     
-     ! if the pdf is not normalized by a Maxwellian then the source term contains a Maxwellian factor
-     if (.not. maxwellian_normalization) then
-        do izext = 1, nz_ext
-           iz = iz_from_izext(izext)
-           scratch2(izext) = scratch2(izext) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-        end do
-     end if
-     call center_zed(iv, scratch2, 1, periodic(iky))
-     rhs = rhs + scratch2
-     
+
+      use run_parameters, only: maxwellian_normalization
+      use vpamu_grids, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
+      use parallel_streaming, only: center_zed
+      use species, only: spec
+      use extended_zgrid, only: periodic
+
+      implicit none
+
+      complex, dimension(:), intent(in out) :: scratch2
+      integer, intent(in) :: iky, ia, iv, imu, is, nz_ext
+      integer, dimension(:), intent(in) :: iz_from_izext
+      complex, dimension(:), intent(in out) :: rhs
+
+      integer :: izext, iz
+      real :: constant_factor
+
+      ! avoid repeated multiplication in below izext loop
+      constant_factor = -2.0 * spec(is)%zt_psi0 * spec(is)%stm_psi0 * vpa(iv)
+
+      ! incoming 'scratch2' is <apar^{n+1}>
+      do izext = 1, nz_ext
+         iz = iz_from_izext(izext)
+         scratch2(izext) = constant_factor * scratch2(izext)
+      end do
+
+      ! if the pdf is not normalized by a Maxwellian then the source term contains a Maxwellian factor
+      if (.not. maxwellian_normalization) then
+         do izext = 1, nz_ext
+            iz = iz_from_izext(izext)
+            scratch2(izext) = scratch2(izext) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+         end do
+      end if
+      call center_zed(iv, scratch2, 1, periodic(iky))
+      rhs = rhs + scratch2
+
    end subroutine add_gbar_to_g_contribution_apar
 
    subroutine add_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
-     
-     use constants, only: zi
-     use species, only: spec
-     use kt_grids, only: aky
-     use dist_fn_arrays, only: wstar
-     use parallel_streaming, only: center_zed
-     use extended_zgrid, only: periodic
-     use vpamu_grids, only: vpa
-     
-     implicit none
-     
-     complex, dimension(:), intent(in out) :: scratch, rhs
-     integer, intent(in) :: iky, ia, ivmu, iv, is, nz_ext
-     integer, dimension(:), intent(in) :: iz_from_izext
-     
-     integer :: izext, iz
-     complex :: constant_factor
-     
-     constant_factor = -2.0 * zi * spec(is)%stm_psi0 * vpa(iv) * aky(iky)
-     
-     do izext = 1, nz_ext
-        iz = iz_from_izext(izext)
-        scratch(izext) = constant_factor * scratch(izext) * wstar(ia, iz, ivmu)
-     end do
-     call center_zed(iv, scratch, 1, periodic(iky))
-     rhs = rhs + scratch
-     
+
+      use constants, only: zi
+      use species, only: spec
+      use kt_grids, only: aky
+      use dist_fn_arrays, only: wstar
+      use parallel_streaming, only: center_zed
+      use extended_zgrid, only: periodic
+      use vpamu_grids, only: vpa
+
+      implicit none
+
+      complex, dimension(:), intent(in out) :: scratch, rhs
+      integer, intent(in) :: iky, ia, ivmu, iv, is, nz_ext
+      integer, dimension(:), intent(in) :: iz_from_izext
+
+      integer :: izext, iz
+      complex :: constant_factor
+
+      constant_factor = -2.0 * zi * spec(is)%stm_psi0 * vpa(iv) * aky(iky)
+
+      do izext = 1, nz_ext
+         iz = iz_from_izext(izext)
+         scratch(izext) = constant_factor * scratch(izext) * wstar(ia, iz, ivmu)
+      end do
+      call center_zed(iv, scratch, 1, periodic(iky))
+      rhs = rhs + scratch
+
    end subroutine add_drifts_contribution_apar
-   
+
    subroutine gbar_to_g_zext(pdf, apar, facapar, iky, ivmu, ikx_from_izext, iz_from_izext)
-     
-     use species, only: spec
-     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-     use run_parameters, only: maxwellian_normalization
-     use vpamu_grids, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
-     
-     implicit none
+
+      use species, only: spec
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use run_parameters, only: maxwellian_normalization
+      use vpamu_grids, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
+
+      implicit none
 
       complex, dimension(:), intent(in out) :: pdf
       integer, intent(in) :: ivmu, iky
