@@ -526,43 +526,43 @@ contains
      
      implicit none
 
-     complex, dimension(:), intent(in out) :: pdf
-     integer, intent(in) :: ivmu, iky
-     integer, dimension(:), intent(in) :: ikx_from_izext, iz_from_izext
-     complex, dimension(:), intent(in) :: apar
-     real, intent(in) :: facapar
-     
-     integer :: iv, imu, is
-     integer :: izext, iz, ia
-     integer :: nz_ext
+      complex, dimension(:), intent(in out) :: pdf
+      integer, intent(in) :: ivmu, iky
+      integer, dimension(:), intent(in) :: ikx_from_izext, iz_from_izext
+      complex, dimension(:), intent(in) :: apar
+      real, intent(in) :: facapar
 
-     complex, dimension(:), allocatable :: field, gyro_field
-     
-     iv = iv_idx(vmu_lo, ivmu)
-     imu = imu_idx(vmu_lo, ivmu)
-     is = is_idx(vmu_lo, ivmu)
+      integer :: iv, imu, is
+      integer :: izext, iz, ia
+      integer :: nz_ext
 
-     nz_ext = size(apar)
+      complex, dimension(:), allocatable :: field, gyro_field
 
-     allocate(field(nz_ext))
-     allocate(gyro_field(nz_ext))
+      iv = iv_idx(vmu_lo, ivmu)
+      imu = imu_idx(vmu_lo, ivmu)
+      is = is_idx(vmu_lo, ivmu)
 
-     ia = 1
+      nz_ext = size(apar)
 
-     field = 2.0 * spec(is)%zt * spec(is)%stm_psi0 * vpa(iv) * facapar * apar
-     if (.not. maxwellian_normalization) then
-        do izext = 1, nz_ext
-           iz = iz_from_izext(izext)
-           field(izext) = field(izext) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-        end do
-     end if
-     call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, field, gyro_field)
-     pdf = pdf - gyro_field
+      allocate (field(nz_ext))
+      allocate (gyro_field(nz_ext))
 
-     deallocate(field, gyro_field)
-     
+      ia = 1
+
+      field = 2.0 * spec(is)%zt * spec(is)%stm_psi0 * vpa(iv) * facapar * apar
+      if (.not. maxwellian_normalization) then
+         do izext = 1, nz_ext
+            iz = iz_from_izext(izext)
+            field(izext) = field(izext) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+         end do
+      end if
+      call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, field, gyro_field)
+      pdf = pdf - gyro_field
+
+      deallocate (field, gyro_field)
+
    end subroutine gbar_to_g_zext
-   
+
    subroutine gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, fld, gyro_fld)
 
       use gyro_averages, only: gyro_average
@@ -660,13 +660,13 @@ contains
       if (include_apar) then
          call gbar_to_g_zext(rhs, apar, -1.0, iky, ivmu, ikx_from_izext, iz_from_izext)
       end if
-      
+
       if (drifts_implicit) then
          do izext = 1, nz_ext
             ikx = ikx_from_izext(izext)
             iz = iz_from_izext(izext)
             rhs(izext) = rhs(izext) + pdf(izext) * zi * time_upwind_minus &
-                                       * (wdriftx_g(ia, iz, ivmu) * akx(ikx) + wdrifty_g(ia, iz, ivmu) * aky(iky))
+                         * (wdriftx_g(ia, iz, ivmu) * akx(ikx) + wdrifty_g(ia, iz, ivmu) * aky(iky))
 !            rhs(izext) = rhs(izext) * (1.0 + zi * time_upwind_minus &
 !                                       * (wdriftx_g(ia, iz, ivmu) * akx(ikx) + wdrifty_g(ia, iz, ivmu) * aky(iky)))
          end do
