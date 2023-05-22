@@ -75,6 +75,7 @@ contains
       use text_options, only: text_option, get_option_value
       use physics_flags, only: include_mirror, full_flux_surface, radial_variation, include_parallel_streaming
       use physics_flags, only: nonlinear
+      use physics_parameters, only: rhostar
 
       implicit none
 
@@ -219,8 +220,16 @@ contains
                write (*, *) 'forcing drifts_implicit = F.'
                drifts_implicit = .false.
             end if
+
+            if (rhostar > epsilon(0.0)) then
+               write (*, *) '!!!WARNING!!!'
+               write (*, *) 'drifts_implicit = T, coupled with rhostar > 0, has been observed'
+               write (*, *) 'to lead to numerical instability.  unless you know what you are doing,'
+               write (*, *) 'it is suggested that you set drifts_implicit = F or rhostar = 0.'
+               write (*, *) '!!!WARNING!!!'
+            end if
          end if
-         
+
       end if
 
       ! Exit stella if we ran into an error
