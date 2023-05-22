@@ -73,9 +73,9 @@ contains
       use file_utils, only: input_unit, error_unit, input_unit_exist
       use mp, only: mp_abort, proc0, broadcast
       use text_options, only: text_option, get_option_value
-
       use physics_flags, only: include_mirror, full_flux_surface, radial_variation
       use physics_flags, only: nonlinear, include_apar, include_parallel_streaming
+      use physics_parameters, only: rhostar
 
       implicit none
 
@@ -246,6 +246,14 @@ contains
                write (*, *) 'forcing drifts_implicit = F.'
                write (*, *) '!!!WARNING!!!'
                drifts_implicit = .false.
+            end if
+
+            if (rhostar > epsilon(0.0)) then
+               write (*, *) '!!!WARNING!!!'
+               write (*, *) 'drifts_implicit = T, coupled with rhostar > 0, has been observed'
+               write (*, *) 'to lead to numerical instability.  unless you know what you are doing,'
+               write (*, *) 'it is suggested that you set drifts_implicit = F or rhostar = 0.'
+               write (*, *) '!!!WARNING!!!'
             end if
          end if
 
