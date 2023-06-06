@@ -842,7 +842,7 @@ contains
             call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
          else
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-	       iv = iv_idx(vmu_lo, ivmu)
+               iv = iv_idx(vmu_lo, ivmu)
                imu = imu_idx(vmu_lo, ivmu)
                is = is_idx(vmu_lo, ivmu)
                g0(ivmu) = g(idx, ivmu) * j0bmaxwell_avg(iky, ikx, iz, ivmu)
@@ -850,7 +850,7 @@ contains
             call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
          end if
       end do
-      
+
       izl_offset = 1
       if (nsegments(ie, iky) > 1) then
          do iseg = 2, nsegments(ie, iky)
@@ -868,7 +868,7 @@ contains
                      g0(ivmu) = g(idx, ivmu) * j0bmaxwell_avg(iky, ikx, iz, ivmu)
                   end do
                   call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
-               end if               
+               end if
             end do
             if (izl_offset == 0) izl_offset = 1
          end do

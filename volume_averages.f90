@@ -8,7 +8,7 @@ module volume_averages
    public :: mode_fac
 
    public :: alpha_average_ffs_realspace
-   
+
    private
 
    interface fieldline_average
@@ -239,26 +239,26 @@ contains
    !!GA
    subroutine alpha_average_ffs_realspace(no_avg, avg, iz)
 
-     use zgrid, only: nzgrid, ntubes
-     use kt_grids, only: naky, naky_all, nalpha
-     use stella_geometry, only: jacob
-     use kt_grids, only: dy, nakx
+      use zgrid, only: nzgrid, ntubes
+      use kt_grids, only: naky, naky_all, nalpha
+      use stella_geometry, only: jacob
+      use kt_grids, only: dy, nakx
 
-     use mp, only: proc0
+      use mp, only: proc0
 
-     implicit none
+      implicit none
 
-     real, dimension(nalpha), intent(in) :: no_avg
-     integer, intent(in) :: iz
-     real, intent(out) :: avg
-     real :: norm
-     integer :: ia
+      real, dimension(nalpha), intent(in) :: no_avg
+      integer, intent(in) :: iz
+      real, intent(out) :: avg
+      real :: norm
+      integer :: ia
 
-     avg = 0.0
-     norm = sum(dy * jacob(:, iz))
+      avg = 0.0
+      norm = sum(dy * jacob(:, iz))
 
-     avg = sum(no_avg* dy * jacob(:,iz) , 1) / norm !size(no_avg, 1)
-     
+      avg = sum(no_avg * dy * jacob(:, iz), 1) / norm !size(no_avg, 1)
+
    end subroutine alpha_average_ffs_realspace
-   
+
 end module volume_averages

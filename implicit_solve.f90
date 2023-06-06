@@ -45,7 +45,7 @@ contains
 
       !!GA
       logical :: const_in_alpha = .false.
-      
+
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Implicit time advance')
 
       allocate (phi_source(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -70,7 +70,7 @@ contains
          fields_updated = .false.
          call advance_fields(g, phi, apar, dist='gbar', const_in_alpha=.true.)
       end if
-      
+
       allocate (phi_old(naky, nakx, -nzgrid:nzgrid, ntubes))
       phi_old = phi
       allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes))

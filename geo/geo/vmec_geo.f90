@@ -157,7 +157,7 @@ contains
       real, dimension(nalpha, -nzgrid:nzgrid) :: theta
 
       !!GA
-      real, dimension (:,:), allocatable :: gradpar_zeta
+      real, dimension(:, :), allocatable :: gradpar_zeta
       real, dimension(:, :), allocatable :: gradzeta_grady_vmec, gradzeta_gradx_vmec, gradpar_zeta_r2_vmec
 
       integer :: ierr
@@ -210,7 +210,7 @@ contains
       allocate (cvdrift0_psi_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec))
       allocate (x_displacement_fac_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec))
       allocate (arc_length(nalpha, -nzgrid_vmec:nzgrid_vmec))
-      !!GA 
+      !!GA
       allocate (gradzeta_grady_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec))
       allocate (gradzeta_gradx_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec))
       allocate (gradpar_zeta_r2_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec))
@@ -307,10 +307,10 @@ contains
             call geo_spline(arc_length(ia, :), B_sub_zeta_mod(ia, :), zed, B_sub_zeta(ia, :)) ! JFP
             call geo_spline(arc_length(ia, :), B_sub_theta_vmec_mod(ia, :), zed, B_sub_theta_vmec(ia, :)) ! JFP
             call geo_spline(arc_length(ia, :), x_displacement_fac_vmec(ia, :), zed, x_displacement_fac(ia, :))
-            !!GA 
-            call geo_spline(arc_length(ia, :), gradzeta_gradx_vmec(ia,:), zed, gradzeta_gradx(ia,:))
-            call geo_spline(arc_length(ia, :), gradzeta_grady_vmec(ia,:), zed, gradzeta_grady(ia,:))
-            call geo_spline(arc_length(ia, :), gradpar_zeta_r2_vmec(ia,:), zed, gradpar_zeta_r2(ia,:))
+            !!GA
+            call geo_spline(arc_length(ia, :), gradzeta_gradx_vmec(ia, :), zed, gradzeta_gradx(ia, :))
+            call geo_spline(arc_length(ia, :), gradzeta_grady_vmec(ia, :), zed, gradzeta_grady(ia, :))
+            call geo_spline(arc_length(ia, :), gradpar_zeta_r2_vmec(ia, :), zed, gradpar_zeta_r2(ia, :))
 
             !B_sub_zeta = B_sub_zeta_mod
             !B_sub_theta_vmec = B_sub_theta_vmec_mod
@@ -380,7 +380,7 @@ contains
          theta_vmec = thetamod_vmec
          B_sub_theta_vmec = B_sub_theta_vmec_mod ! JFP
          B_sub_zeta = B_sub_zeta_mod ! JFP
-         !!GA 
+         !!GA
          gradzeta_grady = gradzeta_grady_vmec
          gradzeta_gradx = gradzeta_gradx_vmec
          gradpar_zeta_r2 = gradpar_zeta_r2_vmec

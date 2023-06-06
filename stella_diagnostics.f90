@@ -521,7 +521,7 @@ contains
       use run_parameters, only: fphi, fapar
       use kt_grids, only: aky, theta0
       use gyro_averages, only: gyro_average, gyro_average_j1
-      
+
       use stella_geometry, only: gds2
       use stella_geometry, only: gradzeta_grady, gradzeta_gradx, gradpar_zeta
       use kt_grids, only: akx
@@ -578,14 +578,14 @@ contains
             call get_one_flux(iky, iz, flx_norm_partial, gtmp1, phi(iky, ikx, iz, it), qflx_vs_kxkyz(iky, ikx, iz, it, is))
 
             !!GA -- get momentum flux
-            !! parallel component 
+            !! parallel component
             call gyro_average(g(:, :, ikxkyz), ikxkyz, gtmp1)
-            gtmp2 = gtmp1 *  spread(vpa, 2, nmu) * gradpar_zeta(ia, iz)
-            !! perpendicular component 
+            gtmp2 = gtmp1 * spread(vpa, 2, nmu) * gradpar_zeta(ia, iz)
+            !! perpendicular component
             call gyro_average_j1(g(:, :, ikxkyz), ikxkyz, gtmp1)
-            gtmp3 = - gtmp1 * spread(vperp2(ia, iz, :), 1, nvpa) * spec(is)%smz &
-                * zi * aky(iky) *(gradzeta_grady(ia, iz)*( gds21(ia, iz) + theta0(iky, ikx) * gds22(ia, iz) )/ geo_surf%shat &
-                - gradzeta_gradx (ia,iz) * (theta0(iky,ikx) * gds21(ia, iz) + gds2(ia, iz) ) )
+            gtmp3 = -gtmp1 * spread(vperp2(ia, iz, :), 1, nvpa) * spec(is)%smz &
+                    * zi * aky(iky) * (gradzeta_grady(ia, iz) * (gds21(ia, iz) + theta0(iky, ikx) * gds22(ia, iz)) / geo_surf%shat &
+                                       - gradzeta_gradx(ia, iz) * (theta0(iky, ikx) * gds21(ia, iz) + gds2(ia, iz)))
             gtmp1 = gtmp2 + gtmp3
             call get_one_flux(iky, iz, flx_norm(iz), gtmp1, phi(iky, ikx, iz, it), vflx(is))
             call get_one_flux(iky, iz, flx_norm_partial, gtmp1, phi(iky, ikx, iz, it), vflx_vs_kxkyz(iky, ikx, iz, it, is))
@@ -610,7 +610,7 @@ contains
             gtmp2 = gtmp2 * (spread(vpa**2, 2, nmu) + spread(vperp2(ia, iz, :), 1, nvpa))
             call get_one_flux(iky, iz, flx_norm(iz), gtmp2, apar(iky, ikx, iz, it), qflx(is))
 
-            !!GA FLAG -- need to check EM contribtion  
+            !!GA FLAG -- need to check EM contribtion
             ! Apar contribution to momentum flux
             ! parallel component
             gtmp1 = -spread(vpa**2, 2, nmu) * spec(is)%stm * g(:, :, ikxkyz) &
@@ -627,9 +627,9 @@ contains
             gtmp1 = gtmp2 + gtmp3
 
             call get_one_flux(iky, iz, flx_norm(iz), gtmp1, apar(iky, ikx, iz, it), vflx(is))
-            
+
             !!GA -- total momentum flux for general (non Tokamak) geometry
-            !! leaving here for when EM stella is done 
+            !! leaving here for when EM stella is done
             ! call gyro_average(g(:, :, ikxkyz), ikxkyz, gtmp1)
             ! gtmp2 = - gtmp1 * spread(vpa**2, 2, nmu) * spec(is)%stm * gradpar_zeta(ia, iz)
             ! call gyro_average_j1(g(:, :, ikxkyz), ikxkyz, gtmp1)
@@ -969,7 +969,7 @@ contains
       use kt_grids, only: aky, dy
       use fields_arrays, only: phi
       use stella_geometry, only: grad_x, jacob
-      
+
       use stella_transforms, only: transform_ky2y
       use kt_grids, only: nalpha
       use kt_grids, only: naky_all, ikx_max
@@ -991,7 +991,7 @@ contains
       integer ::  iz
       complex, dimension(:, :), allocatable :: phi_swap
       complex, dimension(:, :, :), allocatable :: dphidy_y
-      real, dimension (:,:), allocatable :: flxfac
+      real, dimension(:, :), allocatable :: flxfac
 
       real :: fac
 
@@ -1004,16 +1004,16 @@ contains
 
       !> obtain the y-component of the electric field that appears as a factor
       !> in the flux expression due to the radial component of the ExB velocity
-       do iky = 1, naky
+      do iky = 1, naky
          dphidy(iky, :, :) = phi(iky, :, :, it) * aky(iky)
       end do
 
-      allocate (flxfac (ny, -nzgrid:nzgrid))
-      flxfac = spread(delzed*dy, 1, ny)* jacob
+      allocate (flxfac(ny, -nzgrid:nzgrid))
+      flxfac = spread(delzed * dy, 1, ny) * jacob
       flxfac(:, -nzgrid) = 0.5 * flxfac(:, -nzgrid)
       flxfac(:, nzgrid) = 0.5 * flxfac(:, -nzgrid)
 
-      flxfac = nalpha* flxfac / sum(flxfac * grad_x)
+      flxfac = nalpha * flxfac / sum(flxfac * grad_x)
 
       call get_one_flux_ffs(dens, dphidy, flxfac, pflx, pflx_vs_kxkyz(:, :, :, it, :))
       call get_one_flux_ffs(pres, dphidy, flxfac, qflx, qflx_vs_kxkyz(:, :, :, it, :))
@@ -1038,7 +1038,7 @@ contains
 
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: mom
       complex, dimension(:, :, -nzgrid:), intent(in) :: dphidy
-      real, dimension (:, -nzgrid:),  intent(in) :: flxfac
+      real, dimension(:, -nzgrid:), intent(in) :: flxfac
       real, dimension(:), intent(out) :: flx
       real, dimension(:, :, -nzgrid:, :), intent(out) :: flx_vs_kxkyz
 
@@ -1046,7 +1046,7 @@ contains
       complex, dimension(:, :, :, :), allocatable :: mom_ky
       complex, dimension(:, :, :, :), allocatable :: mom_y
 
-      complex, dimension (:,:,:), allocatable :: phi_swap
+      complex, dimension(:, :, :), allocatable :: phi_swap
       integer :: iy
       allocate (mom_ky(naky, nakx, -nzgrid:nzgrid, nspec))
 
@@ -1057,14 +1057,14 @@ contains
       call get_modified_fourier_coefficient(mom, mom_ky, flxfac)
       do is = 1, nspec
          !> pflx_vs_kxkyz is the particle flux before summing over (kx,ky) and integrating over z
-         flx_vs_kxkyz(:, :, :, is) = aimag(mom_ky(:, :, :, is)* conjg(dphidy(:,:,:) ))
+         flx_vs_kxkyz(:, :, :, is) = aimag(mom_ky(:, :, :, is) * conjg(dphidy(:, :, :)))
          !> calculate the volume average of the particle flux
          !> note that the factor of 1/B that appears in the Jacobian has already been taken into account
          !> in the numerator of the flux surface average
          do iz = -nzgrid, nzgrid
             do ikx = 1, nakx
                do iky = 1, naky
-                  flx(is) = flx(is) + 0.5*mode_fac(iky) * flx_vs_kxkyz(iky, ikx, iz, is)
+                  flx(is) = flx(is) + 0.5 * mode_fac(iky) * flx_vs_kxkyz(iky, ikx, iz, is)
                end do
             end do
          end do
@@ -1091,7 +1091,7 @@ contains
       integer :: ikx, iz, is
       complex, dimension(:, :), allocatable :: tmp_kykx
       complex, dimension(:, :), allocatable :: tmp_ykx
-      real, dimension (:, -nzgrid:),  intent(in) :: flxfac
+      real, dimension(:, -nzgrid:), intent(in) :: flxfac
 
       allocate (tmp_kykx(naky_all, ikx_max))
       allocate (tmp_ykx(ny, ikx_max))
@@ -1100,7 +1100,7 @@ contains
             do ikx = 1, ikx_max
                !> divide the input moment by the magnetic field strength
                !> to account for Jacobian in flux-surface average
-               tmp_ykx(:, ikx) = moment(:, ikx, iz, is) * flxfac (:,iz) 
+               tmp_ykx(:, ikx) = moment(:, ikx, iz, is) * flxfac(:, iz)
             end do
             !> transform the B-modified input moment from y to ky space
             call transform_y2ky(tmp_ykx, tmp_kykx)
@@ -1565,14 +1565,14 @@ contains
       use gyro_averages, only: gyro_average, j0_ffs
       use fields_arrays, only: phi
       use stella_transforms, only: transform_ky2y
-      
+
       use gyro_averages, only: j1_ffs
       use stella_geometry, only: gds21, gds22, gds2
       use stella_geometry, only: geo_surf
       use stella_geometry, only: gradzeta_grady, gradzeta_gradx, gradpar_zeta
       use kt_grids, only: akx, aky
       use kt_grids, only: nakx, theta0, naky
-      use constants, only: zi,pi
+      use constants, only: zi, pi
       use zgrid, only: ntubes
 
       implicit none
@@ -1584,7 +1584,7 @@ contains
       !> f_swap will contain delta f(ky,kx) on a grid with all kys and kx >= 0
       complex, dimension(:, :), allocatable :: f_swap
       !> fy will contain delta f(y,kx) on a grid with kx >= 0
-      complex, dimension(:, :, :), allocatable :: fy, f2y, f3y 
+      complex, dimension(:, :, :), allocatable :: fy, f2y, f3y
       !> integrand will contain the integrand in the velocity moment integrals
       complex, dimension(:), allocatable :: integrand
 
@@ -1617,9 +1617,9 @@ contains
       allocate (f_swap(naky_all, ikx_max))
       allocate (integrand(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
-      allocate (fy(ny, ikx_max, vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; fy = 0.0
-      allocate (f2y(ny, ikx_max, vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; f2y = 0.0
-      allocate (f3y(ny, ikx_max, vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; f3y = 0.0
+      allocate (fy(ny, ikx_max, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); fy = 0.0
+      allocate (f2y(ny, ikx_max, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); f2y = 0.0
+      allocate (f3y(ny, ikx_max, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); f3y = 0.0
 
       !> set species-dependent factors needed for density, parallel flow and pressure
       dens_wgts = spec%dens
@@ -1635,13 +1635,13 @@ contains
             call swap_kxky(g1(:, :, iz, it, ivmu), f_swap)
             !> for every (z,vpa,mu,spec) point, Fourier tranform from ky to y space to get
             !> the kx component of <f(y,x)>_r
-            call transform_ky2y(f_swap, fy(:, :, ivmu)) 
+            call transform_ky2y(f_swap, fy(:, :, ivmu))
             !! j1* zi * ky * f
-            g2 (:, :, iz, it, ivmu) = zi* g2 (:, :, iz, it, ivmu)*spread(aky,2,nakx)
+            g2(:, :, iz, it, ivmu) = zi * g2(:, :, iz, it, ivmu) * spread(aky, 2, nakx)
             call swap_kxky(g2(:, :, iz, it, ivmu), f_swap)
             call transform_ky2y(f_swap, f2y(:, :, ivmu))
-            !! j1 * zi * kx * f 
-            g3 (:, :, iz, it, ivmu) = g2(:, :, iz, it, ivmu)* theta0(:,:)
+            !! j1 * zi * kx * f
+            g3(:, :, iz, it, ivmu) = g2(:, :, iz, it, ivmu) * theta0(:, :)
             call swap_kxky(g3(:, :, iz, it, ivmu), f_swap)
             call transform_ky2y(f_swap, f3y(:, :, ivmu))
          end do
@@ -1662,16 +1662,16 @@ contains
                !> integrate over v-space to get the pressure, normalised by the reference pressure.
                call integrate_vmu_ffs(integrand, pres_wgts, iy, iz, pres(iy, ikx, iz, :))
 
-               fac1 = gradzeta_grady(iy, iz) * gds21(iy, iz) / geo_surf%shat - gradzeta_gradx (iy,iz) *gds2(iy, iz)  
-               fac2 = gradzeta_grady(iy, iz) * gds22(iy, iz) / geo_surf%shat - gradzeta_gradx (iy,iz) * gds21(iy, iz)
+               fac1 = gradzeta_grady(iy, iz) * gds21(iy, iz) / geo_surf%shat - gradzeta_gradx(iy, iz) * gds2(iy, iz)
+               fac2 = gradzeta_grady(iy, iz) * gds22(iy, iz) / geo_surf%shat - gradzeta_gradx(iy, iz) * gds21(iy, iz)
                !> the integrand for the parallel flow moment is the parallel velocity
                do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                   iv = iv_idx(vmu_lo, ivmu)
                   is = is_idx(vmu_lo, ivmu)
                   imu = imu_idx(vmu_lo, ivmu)
 
-                  integrand(ivmu) = fy (iy, ikx, ivmu) * vpa(iv) * gradpar_zeta(iy, iz) &
-                  - vperp2(iy,iz,imu) * spec(is)%smz * (f2y(iy, ikx,ivmu)*fac1 + f3y (iy,ikx,ivmu) *fac2)
+                  integrand(ivmu) = fy(iy, ikx, ivmu) * vpa(iv) * gradpar_zeta(iy, iz) &
+                                    - vperp2(iy, iz, imu) * spec(is)%smz * (f2y(iy, ikx, ivmu) * fac1 + f3y(iy, ikx, ivmu) * fac2)
                end do
                !> integrate over v-space to get the parallel flow, normalised by the reference thermal speed.
                call integrate_vmu_ffs(integrand, upar_wgts, iy, iz, upar(iy, ikx, iz, :))

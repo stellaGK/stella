@@ -526,7 +526,7 @@ contains
       use kt_grids, only: akx
       use species, only: has_electron_species
       use kt_grids, only: zonal_mode
-      
+
       implicit none
 
       integer :: iky, ikx, iz, ia
@@ -538,7 +538,7 @@ contains
       real, dimension(:), allocatable :: wgts
       complex, dimension(:), allocatable :: gam0_kalpha
 
-      !!GA 
+      !!GA
       integer :: ikxkyz, it
       real :: tmp, wgt
       real, dimension(:, :, :, :), allocatable :: gamtot_alpha
@@ -580,8 +580,8 @@ contains
                   arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
                   bessel(imu) = j0(arg)
                end do
-               g0 = spread((1.0 - bessel(:)**2), 1, nvpa)! &                                                                                                                                                                                                                                                                                                                                                                          
-               !!!!* spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)                                                                                                                                                                                                                                                                                                                
+               g0 = spread((1.0 - bessel(:)**2), 1, nvpa)! &
+               !!!!* spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
                wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp
                call integrate_vmu(g0, iz, tmp)
                gamtot_alpha(iky, ikx, iz, ia) = gamtot_alpha(iky, ikx, iz, ia) + tmp * wgt
@@ -805,7 +805,7 @@ contains
       character(*), intent(in) :: dist
 
       logical, optional, intent(in) :: const_in_alpha
-      
+
       if (fields_updated) return
 
       !> time the communications + field solve
@@ -834,7 +834,7 @@ contains
             call get_fields_vmulo(g, phi, apar, dist)
          end if
       end if
-      
+
       !> set a flag to indicate that the fields have been updated
       !> this helps avoid unnecessary field solves
       fields_updated = .true.
@@ -1085,9 +1085,9 @@ contains
       !!GA
       logical, optional, intent(in) :: const_in_alpha
       real, dimension(:, :, :, :), allocatable :: gamtot_t
-      
+
       if (.not. allocated(source)) allocate (source(naky, nakx, -nzgrid:nzgrid)); source = 0.0
-      
+
       if (fphi > epsilon(0.0)) then
          !!GA
          if (present(const_in_alpha)) then

@@ -14,7 +14,7 @@ module parallel_streaming
    public :: center_zed, get_dzed
    public :: get_zed_derivative_extended_domain
    public :: stream_correction
-   
+
    private
 
    interface center_zed
@@ -63,7 +63,7 @@ contains
 
       real, dimension(:), allocatable :: energy
       real, dimension(:, :, :), allocatable :: stream_store
-      
+
       if (parallel_streaming_initialized) return
       parallel_streaming_initialized = .true.
 
@@ -75,7 +75,7 @@ contains
          if (.not. allocated(stream_correction)) allocate (stream_correction(nalpha, -nzgrid:nzgrid, nvpa, nspec)); stream_correction = 0.
          if (.not. allocated(stream_store)) allocate (stream_store(-nzgrid:nzgrid, nvpa, nspec)); stream_store = 0.
       end if
-      
+
       ! sign of stream corresponds to appearing on RHS of GK equation
       ! i.e., this is the factor multiplying dg/dz on RHS of equation
       if (include_parallel_streaming) then
@@ -84,7 +84,7 @@ contains
                do ia = 1, nalpha
                   stream(ia, iz, iv, :) = -code_dt * b_dot_grad_z(ia, iz) * vpa(iv) * spec%stm_psi0
                end do
-               !!GA 
+               !!GA
                if (driftkinetic_implicit) then
                   stream_store(iz, iv, :) = -code_dt * gradpar(iz) * vpa(iv) * spec%stm_psi0
                end if
@@ -100,7 +100,7 @@ contains
          stream = spread(stream_store, 1, nalpha)
          deallocate (stream_store)
       end if
-      
+
       if (radial_variation) then
          allocate (energy(-nzgrid:nzgrid))
 
@@ -234,7 +234,7 @@ contains
       complex, dimension(:, :, :, :), allocatable :: g1y_correction
       complex, dimension(:, :, :, :), allocatable :: phi1
       logical :: const_in_alpha = .true.
-      
+
       !> if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
       !> if full flux surface (flux annulus), will need to calculate in y space
 
@@ -251,7 +251,7 @@ contains
          allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
          allocate (g1y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
          !!GA
-          if (driftkinetic_implicit) then
+         if (driftkinetic_implicit) then
             allocate (dgphi_dz_correction(naky, nakx, -nzgrid:nzgrid, ntubes))
             allocate (g1y_correction(ny, ikx_max, -nzgrid:nzgrid, ntubes))
             allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -260,12 +260,12 @@ contains
 
       !!GA - get part of phi that is 'average' in alpha
       !!     (called phi0). We treat phi0 implicitly and (phi0- <phi>
-      !!     explicitly, where <phi> is the gyroavergage of true phi 
+      !!     explicitly, where <phi> is the gyroavergage of true phi
       if (driftkinetic_implicit) then
          fields_updated = .false.
          call advance_fields(g, phi1, apar, dist='gbar', const_in_alpha=.true.)
       end if
-      
+
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          !> get (iv,imu,is) indices corresponding to ivmu super-index
          iv = iv_idx(vmu_lo, ivmu)
@@ -273,7 +273,7 @@ contains
          is = is_idx(vmu_lo, ivmu)
 
          !! GA - obtain <phi>
-          if(full_flux_surface) then
+         if (full_flux_surface) then
             call gyro_average(phi, g0(:, :, :, :), j0_ffs(:, :, :, ivmu))
          else
             call gyro_average(phi, ivmu, g0(:, :, :, :))
@@ -284,9 +284,9 @@ contains
          !> unpleasantness to do with inexact cancellations in later velocity integration
          !> see appendix of the stella JCP 2019 for details
          call get_dgdz_centered(g0, ivmu, dgphi_dz)
-         !!GA - get d(phi0)/dz 
+         !!GA - get d(phi0)/dz
          if (driftkinetic_implicit) call get_dgdz_centered(phi1, ivmu, dgphi_dz_correction)
-           
+
          !> compute dg/dz in k-space and store in g0
          call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
          !> if simulating a full flux surface, need to obtain the contribution from parallel streaming
@@ -300,14 +300,14 @@ contains
                   !!GA- get d<phi>/dz in real space
                   call swap_kxky(dgphi_dz(:, :, iz, it), g0_swap)
                   call transform_ky2y(g0_swap, g1y(:, :, iz, it))
-                  !!GA- get d phi0/dz in real space  
+                  !!GA- get d phi0/dz in real space
                   if (driftkinetic_implicit) then
                      call swap_kxky(dgphi_dz_correction(:, :, iz, it), g0_swap)
                      call transform_ky2y(g0_swap, g1y_correction(:, :, iz, it))
                   end if
                end do
             end do
-             if (driftkinetic_implicit) then
+            if (driftkinetic_implicit) then
                !!GA- this is dg/dx + Z/T d<phi>/dz
                g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt
                !!GA- this is (b.gradz - b.gradz0)*(dg/dx + Z/T d<phi>/dz )
@@ -323,7 +323,7 @@ contains
                call add_stream_term_ffs(g0y, ivmu, gout(:, :, :, :, ivmu))
             end if
          else
-             ia = 1
+            ia = 1
             if (maxwellian_normalization) then
                g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt
             else
@@ -340,7 +340,7 @@ contains
       if (full_flux_surface) deallocate (g0y, g1y, g0_swap)
       if (driftkinetic_implicit) deallocate (dgphi_dz_correction, g1y_correction)
       if (driftkinetic_implicit) deallocate (phi1)
-      
+
       !> finish timing the subroutine
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
@@ -601,29 +601,29 @@ contains
    !!GA
    subroutine add_stream_term_ffs_correction(g, ivmu, src)
 
-     use stella_layouts, only: vmu_lo
-     use stella_layouts, only: iv_idx, is_idx
-     use zgrid, only: nzgrid
-     use kt_grids, only: ny
-     
-     implicit none
-     
-     complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
-     complex, dimension(:, :, -nzgrid:, :), intent(in out) :: src
-     integer, intent(in) :: ivmu
-     
-     integer :: iz, iy, iv, is
-     
-     iv = iv_idx(vmu_lo, ivmu)
-     is = is_idx(vmu_lo, ivmu)
-     do iz = -nzgrid, nzgrid
-        do iy = 1, ny
-           src(iy, :, iz, :) = src(iy, :, iz, :) + stream_correction(iy, iz, iv, is) * g(iy, :, iz, :)
-        end do
-     end do
-     
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: iv_idx, is_idx
+      use zgrid, only: nzgrid
+      use kt_grids, only: ny
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: src
+      integer, intent(in) :: ivmu
+
+      integer :: iz, iy, iv, is
+
+      iv = iv_idx(vmu_lo, ivmu)
+      is = is_idx(vmu_lo, ivmu)
+      do iz = -nzgrid, nzgrid
+         do iy = 1, ny
+            src(iy, :, iz, :) = src(iy, :, iz, :) + stream_correction(iy, iz, iv, is) * g(iy, :, iz, :)
+         end do
+      end do
+
    end subroutine add_stream_term_ffs_correction
-    
+
    subroutine stream_tridiagonal_solve(iky, ie, iv, is, g)
 
       use finite_differences, only: tridag
@@ -874,8 +874,8 @@ contains
       if (stream_implicit .or. driftkinetic_implicit) call finish_invert_stream_operator
 
       !!GA
-      if (driftkinetic_implicit .and. allocated(stream_correction)) deallocate(stream_correction)
-      
+      if (driftkinetic_implicit .and. allocated(stream_correction)) deallocate (stream_correction)
+
       parallel_streaming_initialized = .false.
 
    end subroutine finish_parallel_streaming

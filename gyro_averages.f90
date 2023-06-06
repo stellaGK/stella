@@ -305,9 +305,9 @@ contains
          allocate (j0_B_maxwell_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       end if
 
-      !!GA 
-      if(.not. allocated(j0bmaxwell_avg)) then
-         allocate (j0bmaxwell_avg(naky,nakx,-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      !!GA
+      if (.not. allocated(j0bmaxwell_avg)) then
+         allocate (j0bmaxwell_avg(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          j0bmaxwell_avg = 0.0
       end if
       !!GA - J1 bessels
@@ -316,7 +316,7 @@ contains
       if (.not. allocated(j1_ffs)) then
          allocate (j1_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       end if
-      
+
       ia_max_j0_count = 0; ia_max_j0_B_maxwell_count = 0
       do iz = -nzgrid, nzgrid
          if (proc0) write (*, *) 'calculating Fourier coefficients needed for gyro-averaging with alpha variation; zed index: ', iz
@@ -382,7 +382,7 @@ contains
                   !                   call test_ffs_bessel_coefs (j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier, j0_B_maxwell, iky, ikx, iz, j0_B_maxwell_ffs_unit, ivmu)
                   !!GA
                   if (.not. associated(j1_ffs(iky, ikx, iz, ivmu)%fourier)) &
-                       allocate (j1_ffs(iky, ikx, iz, ivmu)%fourier(j1_ffs(iky, ikx, iz, ivmu)%max_idx))
+                     allocate (j1_ffs(iky, ikx, iz, ivmu)%fourier(j1_ffs(iky, ikx, iz, ivmu)%max_idx))
                   j1_ffs(iky, ikx, iz, ivmu)%fourier = aj1_kalpha(:j1_ffs(iky, ikx, iz, ivmu)%max_idx)
                end do
             end do
@@ -400,15 +400,15 @@ contains
                do iky = 1, naky
                   do ia = 1, nalpha
                      arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
-                     aj0_alpha (ia) = j0(arg) * bmag(ia, iz) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
+                     aj0_alpha(ia) = j0(arg) * bmag(ia, iz) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
                   end do
-                  j0bmaxwell_avg(iky,ikx,iz,ivmu) = sum(aj0_alpha)/size(aj0_alpha)
+                  j0bmaxwell_avg(iky, ikx, iz, ivmu) = sum(aj0_alpha) / size(aj0_alpha)
                end do
             end do
          end do
       end do
       deallocate (aj0_alpha)
-      
+
       !> calculate the reduction factor of Fourier modes
       !> used to represent J0
       !> avoid overflow by converting integers to reals before multiplying
@@ -608,7 +608,7 @@ contains
 
       !!GA
       if (allocated(j0bmaxwell_avg)) deallocate (j0bmaxwell_avg)
-      if (allocated(j1_ffs)) deallocate(j1_ffs)
+      if (allocated(j1_ffs)) deallocate (j1_ffs)
       bessinit = .false.
 
    end subroutine finish_bessel

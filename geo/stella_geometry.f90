@@ -91,8 +91,8 @@ module stella_geometry
    logical :: geoinit = .false.
    logical :: set_bmag_const
 
-   real, dimension (:,:), allocatable :: gradzeta_gradx, gradzeta_grady 
-   real, dimension (:,:), allocatable :: gradpar_zeta
+   real, dimension(:, :), allocatable :: gradzeta_gradx, gradzeta_grady
+   real, dimension(:, :), allocatable :: gradpar_zeta
 contains
 
    subroutine init_geometry(nalpha, naky)
@@ -199,11 +199,11 @@ contains
             zeta(1, :) = zed * geo_surf%qinp
 
             !!GA
-            !!R^2 * grad zeta . grad y / B^2                                                                                                                                                                                                                                            
-            gradzeta_grady = geo_surf%rhoc/(geo_surf%qinp * bmag**2 )
+            !!R^2 * grad zeta . grad y / B^2
+            gradzeta_grady = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
             gradzeta_gradx = 0.0
-            !!GA R^2 * b . grad zeta = R^2 * b. grad theta * dzeta/dtheta                                                                                                                                                                                                               
-            gradpar_zeta = geo_surf%rmaj * spread(btor,1,nalpha) / bmag
+            !!GA R^2 * b . grad zeta = R^2 * b. grad theta * dzeta/dtheta
+            gradpar_zeta = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag
 
          case (geo_option_multibox)
             ! read in Miller local parameters
@@ -258,13 +258,13 @@ contains
             ! aref and bref should not be needed, so set to 1
             aref = 1.0; bref = 1.0
             zeta(1, :) = zed * geo_surf%qinp
-            
+
             !!GA
             !! R^2 * grad zeta . grad y / B^2
-            gradzeta_grady = geo_surf%rhoc/(geo_surf%qinp * bmag**2 )
+            gradzeta_grady = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
             gradzeta_gradx = 0.0
-            !! GA R^2 * b . grad zeta = R^2 * b. grad theta * dzeta/dtheta 
-            gradpar_zeta = geo_surf%rmaj * spread(btor,1,nalpha) / bmag
+            !! GA R^2 * b . grad zeta = R^2 * b. grad theta * dzeta/dtheta
+            gradpar_zeta = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag
 
          case (geo_option_inputprof)
             ! first read in some local parameters
@@ -311,13 +311,13 @@ contains
             aref = 1.0; bref = 1.0
 
             zeta(1, :) = zed * geo_surf%qinp
-            
-            !!GA                                                                                                                                                                                                                                                                        
+
+            !!GA
             !! R^2 * grad zeta . grad y / B^2
-            gradzeta_grady = geo_surf%rhoc/(geo_surf%qinp * bmag**2 )
+            gradzeta_grady = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
             gradzeta_gradx = 0.0
             !! GA R^2 * b . grad zeta = R^2 * b. grad theta * dzeta/dtheta
-            gradpar_zeta = geo_surf%rmaj * spread(btor,1,nalpha) / bmag
+            gradpar_zeta = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag
 
          case (geo_option_vmec)
             vmec_chosen = .true.
@@ -745,7 +745,7 @@ contains
 
       !!GA
       if (.not. allocated(gradzeta_gradx)) allocate (gradzeta_gradx(nalpha, -nzgrid:nzgrid)); gradzeta_gradx = 0.0
-      if (.not.allocated(gradzeta_grady)) allocate (gradzeta_grady(nalpha, -nzgrid:nzgrid)); gradzeta_grady = 0.0
+      if (.not. allocated(gradzeta_grady)) allocate (gradzeta_grady(nalpha, -nzgrid:nzgrid)); gradzeta_grady = 0.0
       if (.not. allocated(gradpar_zeta)) allocate (gradpar_zeta(nalpha, -nzgrid:nzgrid)); gradpar_zeta = 0.0
    end subroutine allocate_arrays
 
@@ -1130,11 +1130,11 @@ contains
       if (allocated(zeta)) deallocate (zeta)
 
       if (allocated(x_displacement_fac)) deallocate (x_displacement_fac)
-      
+
       !!GA
-      if (allocated(gradzeta_grady)) deallocate(gradzeta_grady)
-      if (allocated(gradzeta_gradx)) deallocate(gradzeta_gradx)
-      if (allocated(gradpar_zeta)) deallocate(gradpar_zeta)
+      if (allocated(gradzeta_grady)) deallocate (gradzeta_grady)
+      if (allocated(gradzeta_gradx)) deallocate (gradzeta_gradx)
+      if (allocated(gradpar_zeta)) deallocate (gradpar_zeta)
       geoinit = .false.
 
    end subroutine finish_geometry

@@ -658,7 +658,7 @@ contains
       use stella_layouts, only: iy_idx
       use kt_grids, only: swap_kxky, swap_kxky_back
       use kt_grids, only: naky_all, ikx_max
-      
+
       implicit none
 
       logical, intent(in) :: collisions_implicit
@@ -678,7 +678,7 @@ contains
       complex, dimension(:, :, :), allocatable :: dgdvpa
       integer :: iy
       complex, dimension(:, :), allocatable :: g_swap
-      
+
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
       ! incoming pdf is g = <f>
@@ -732,7 +732,7 @@ contains
                   end do
                end do
             end do
-         ! else
+            ! else
             !!GA
             ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             !    iv = iv_idx(vmu_lo, ivmu)
@@ -751,9 +751,9 @@ contains
             iy = iy_idx(kxyz_lo, ikxyz)
             do imu = 1, nmu
                call fd_variable_upwinding_vpa(1, g0v(:, imu, ikxyz), dvpa, &
-                    mirror_sign(iy, iz), vpa_upwind, dgdvpa(:, imu, ikxyz))
+                                              mirror_sign(iy, iz), vpa_upwind, dgdvpa(:, imu, ikxyz))
                dgdvpa(:, imu, ikxyz) = g0v(:, imu, ikxyz) + tupwnd * mirror(iy, iz, imu, is) * &
-                    (dgdvpa(:, imu, ikxyz) )!+ 2 * vpa * g0v(:, imu, ikxyz))                                                                                                                                                                                                                                                                                                                                      
+                                       (dgdvpa(:, imu, ikxyz))!+ 2 * vpa * g0v(:, imu, ikxyz))
                call invert_mirror_operator(imu, ikxyz, dgdvpa(:, imu, ikxyz))
             end do
          end do
@@ -777,12 +777,12 @@ contains
                end do
             end do
             !!GA
-         ! else
-         !    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         !       iv = iv_idx(vmu_lo, ivmu)
-         !       is = is_idx(vmu_lo, ivmu)
-         !       g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) / maxwell_vpa(iv, is)
-         !    end do
+            ! else
+            !    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            !       iv = iv_idx(vmu_lo, ivmu)
+            !       is = is_idx(vmu_lo, ivmu)
+            !       g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) / maxwell_vpa(iv, is)
+            !    end do
          end if
 
          !!GA
