@@ -642,7 +642,7 @@ contains
       use stella_transforms, only: transform_ky2y, transform_y2ky
       use zgrid, only: nzgrid, ntubes
       use dist_fn_arrays, only: gvmu
-      use physics_flags, only: full_flux_surface
+      use physics_flags, onl g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu)! * maxwell_vpa(iv, is)y: full_flux_surface
       use kt_grids, only: ny, nakx
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: maxwell_vpa
@@ -737,7 +737,7 @@ contains
             ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             !    iv = iv_idx(vmu_lo, ivmu)
             !    is = is_idx(vmu_lo, ivmu)
-            !    g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) * maxwell_vpa(iv, is)
+            !    g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) / maxwell_vpa(iv, is)
             ! end do
          end if
 
@@ -781,7 +781,7 @@ contains
          !    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          !       iv = iv_idx(vmu_lo, ivmu)
          !       is = is_idx(vmu_lo, ivmu)
-         !       g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) / maxwell_vpa(iv, is)
+         !       g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) * maxwell_vpa(iv, is)
          !    end do
          end if
 

@@ -32,6 +32,7 @@ contains
       use extended_zgrid, only: map_to_extended_zgrid, map_from_extended_zgrid
       use extended_zgrid, only: nsegments, nzed_segment
 
+      use run_parameters, only: driftkinetic_implicit, drifts_implicit
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
@@ -42,6 +43,9 @@ contains
       complex, dimension(:, :, :, :), allocatable :: phi_source, apar_source
       character(5) :: dist_choice
 
+      !!GA
+      logical :: const_in_alpha = .false.
+      
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Implicit time advance')
 
       allocate (phi_source(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -59,6 +63,14 @@ contains
 
       ! save the incoming pdf and fields, as they will be needed later
       g1 = g
+
+      !!GA
+      if (driftkinetic_implicit .or. drifts_implicit) then
+         const_in_alpha = .true.
+         fields_updated = .false.
+         call advance_fields(g, phi, apar, dist='gbar', const_in_alpha=.true.)
+      end if
+      
       allocate (phi_old(naky, nakx, -nzgrid:nzgrid, ntubes))
       phi_old = phi
       allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -80,7 +92,11 @@ contains
 
       ! we now have g_{inh}^{n+1}
       ! calculate associated fields (phi_{inh}^{n+1}, apar_{inh}^{n+1})
-      call advance_fields(g, phi, apar, dist=trim(dist_choice))
+      if (driftkinetic_implicit) then
+         call advance_fields(g, phi, apar, dist='gbar', const_in_alpha=.true.)
+      else
+         call advance_fields(g, phi, apar, dist=trim(dist_choice))
+      end if
 
       ! solve response_matrix*(phi^{n+1}-phi^{n*}) = phi_{inh}^{n+1}-phi^{n*}
       ! phi = phi_{inh}^{n+1}-phi^{n*} is input and overwritten by phi = phi^{n+1}-phi^{n*}
