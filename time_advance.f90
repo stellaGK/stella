@@ -697,7 +697,7 @@ contains
       use vpamu_grids, only: dvpa
       use kt_grids, only: akx, aky, nx, rho
       use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit, driftkinetic_implicit
-      use parallel_streaming, only: stream, stream_correction 
+      use parallel_streaming, only: stream, stream_correction
       use parallel_streaming, only: stream_rad_var1, stream_rad_var2
       use mirror_terms, only: mirror
       use flow_shear, only: prl_shear, shift_times
