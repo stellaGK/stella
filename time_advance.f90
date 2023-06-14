@@ -696,8 +696,8 @@ contains
       use zgrid, only: delzed
       use vpamu_grids, only: dvpa
       use kt_grids, only: akx, aky, nx, rho
-      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
-      use parallel_streaming, only: stream
+      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit, driftkinetic_implicit
+      use parallel_streaming, only: stream, stream_correction 
       use parallel_streaming, only: stream_rad_var1, stream_rad_var2
       use mirror_terms, only: mirror
       use flow_shear, only: prl_shear, shift_times
@@ -739,9 +739,14 @@ contains
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_shear)
       end if
 
-      if (.not. stream_implicit) then
+      if (.not. stream_implicit .and. .not. driftkinetic_implicit) then
          ! NB: stream has code_dt built-in, which accounts for code_dt factor here
          cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream)), zero)
+         cfl_dt_linear = min(cfl_dt_linear, cfl_dt_stream)
+      end if
+
+      if (driftkinetic_implicit) then
+         cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream_correction)), zero)
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_stream)
       end if
 
