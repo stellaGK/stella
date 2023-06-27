@@ -1,0 +1,131 @@
+&dissipation
+ hyper_dissipation = .true.
+/
+&hyper
+ d_hyper = 0.1
+/
+&zgrid_parameters
+ nzed = 128
+ nperiod = 1
+ boundary_option='stellarator'
+ shat_zero = 1E-006
+ zed_equal_arc = T
+/
+&geo_knobs
+ geo_option = 'vmec'
+/
+&vmec_parameters
+ zeta_center = 0
+ alpha0= 0
+ vmec_filename = 'wout_kjm30.nc'
+ torflux=0.64
+ nfield_periods = 5.2358
+ surface_option = 0
+ verbose = .true.
+/
+
+&parameters
+ zeff = 1.0
+ beta = 0.0
+ rhostar = 0.3105
+ vnew_ref = 0.0
+ nine=1.0
+ tite=1.0
+/
+&vpamu_grids_parameters
+ nvgrid = 120
+ nmu = 12
+ vpa_max = 3.0
+ vperp_max = 3.0
+/
+&dist_fn_knobs
+ adiabatic_option="field-line-average-term"
+/
+
+&time_advance_knobs
+ explicit_option="rk3"
+/
+
+&kt_grids_knobs
+ grid_option='box'
+/
+&kt_grids_box_parameters
+ y0 = 2.5764895
+ ny = 30
+ nx = 30
+/
+&init_g_knobs
+ chop_side = F
+ phiinit=   1.0
+ restart_file = "nc/ae_kyscan.nc"
+ ginit_option= "default"
+ width0 = 1.0
+/
+&physics_flags
+ nonlinear = .true.
+ full_flux_surface = .true.
+ const_alpha_geo = .true. 
+/
+&knobs
+ fphi =   1.0
+ fapar =  0.0
+ fbpar = 0.0
+ delt = 0.01
+ nstep = 10000000
+ stream_implicit = .false.
+ mirror_implicit = .true.
+ mirror_semi_lagrange = .false.
+ drifts_implicit = .false.
+ driftkinetic_implicit = .true. 
+/
+&species_knobs
+ nspec= 2
+ species_option = 'stella'
+/
+&species_parameters_1
+ z=      1.0
+ mass=   1.0
+ dens=   1.0
+ temp=   1.0
+ tprim=  3.0
+ fprim=  3.0
+ type='ion'
+/
+&species_parameters_2
+ z = -1.0
+ mass = 0.00027
+ dens = 1.0
+ temp = 1.0
+ tprim = 3.0
+ fprim = 3.0
+ type = 'electron'
+/
+&stella_diagnostics_knobs
+ flux_norm = .true.
+ nwrite = 100
+ nsave = 3000
+ save_for_restart = .false.
+ write_omega = .true.
+ write_kspectra = .true.
+ write_phi_vs_time = .true.
+ write_gvmus = .true.
+ write_gzvs = .true.
+/
+&reinit_knobs
+ delt_adj = 2.0
+ delt_minimum = 1.e-4
+/
+&layouts_knobs
+ xyzs_layout = 'yxzs'
+ vms_layout = 'vms'
+/
+&neoclassical_input
+ include_neoclassical_terms = .false.
+ neo_option = 'sfincs'
+ nradii = 3
+/
+&sfincs_input
+ nproc_sfincs = 2
+ nxi = 16
+ nx = 5
+/
