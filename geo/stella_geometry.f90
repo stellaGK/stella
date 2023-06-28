@@ -26,6 +26,8 @@ module stella_geometry
    public :: theta_vmec
    public :: zeta
    public :: zed_scalefac
+   public :: vmec_file
+   public :: geo_file
    public :: dxdXcoord, dydalpha
    public :: aref, bref
    public :: twist_and_shift_geo_fac
@@ -67,7 +69,8 @@ module stella_geometry
    real, dimension(:, :, :), allocatable :: dVolume
    real, dimension(:, :), allocatable :: x_displacement_fac
    real, dimension(:), allocatable :: dBdrho, d2Bdrdth, dgradpardrho
-   real, dimension(:), allocatable :: btor, Rmajor
+   real, dimension(:, :), allocatable :: btor
+   real, dimension(:), allocatable :: Rmajor
    real, dimension(:), allocatable :: alpha
    real, dimension(:, :), allocatable :: zeta
 
@@ -84,6 +87,7 @@ module stella_geometry
    logical :: overwrite_gbdrift, overwrite_cvdrift, overwrite_gbdrift0
    logical :: q_as_x
    character(100) :: geo_file
+   character(200) :: vmec_file
 
    logical :: vmec_chosen = .false.
    logical :: geoinit = .false.
@@ -140,7 +144,9 @@ contains
 
       ! default is no re-scaling of zed
       zed_scalefac = 1.0
-
+      ! default is no VMEC file
+      vmec_file = ""
+      
       if (proc0) then
          call read_parameters
          select case (geo_option_switch)
@@ -157,7 +163,7 @@ contains
                                gds2(1, :), gds21(1, :), gds22(1, :), &
                                gds23(1, :), gds24(1, :), gradpar, &
                                gbdrift0(1, :), gbdrift(1, :), cvdrift0(1, :), cvdrift(1, :), &
-                               dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
+                               dBdrho, d2Bdrdth, dgradpardrho, btor(1, :), rmajor, &
                                dcvdrift0drho(1, :), dcvdriftdrho(1, :), &
                                dgbdrift0drho(1, :), dgbdriftdrho(1, :), &
                                dgds2dr(1, :), dgds21dr(1, :), &
@@ -212,7 +218,7 @@ contains
                                gds2(1, :), gds21(1, :), gds22(1, :), &
                                gds23(1, :), gds24(1, :), gradpar, &
                                gbdrift0(1, :), gbdrift(1, :), cvdrift0(1, :), cvdrift(1, :), &
-                               dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
+                               dBdrho, d2Bdrdth, dgradpardrho, btor(1, :), rmajor, &
                                dcvdrift0drho(1, :), dcvdriftdrho(1, :), &
                                dgbdrift0drho(1, :), dgbdriftdrho(1, :), &
                                dgds2dr(1, :), dgds21dr(1, :), &
@@ -267,7 +273,7 @@ contains
                                gds2(1, :), gds21(1, :), gds22(1, :), &
                                gds23(1, :), gds24(1, :), gradpar, &
                                gbdrift0(1, :), gbdrift(1, :), cvdrift0(1, :), cvdrift(1, :), &
-                               dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
+                               dBdrho, d2Bdrdth, dgradpardrho, btor(1, :), rmajor, &
                                dcvdrift0drho(1, :), dcvdriftdrho(1, :), &
                                dgbdrift0drho(1, :), dgbdriftdrho(1, :), &
                                dgds2dr(1, :), dgds21dr(1, :), &
@@ -325,7 +331,7 @@ contains
                               gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
                               cvdrift_alpha, cvdrift0_psi, sign_torflux, &
                               theta_vmec, zed_scalefac, aref, bref, alpha, zeta, &
-                              field_period_ratio, x_displacement_fac)
+                              field_period_ratio, x_displacement_fac, vmec_file)
 
             write (*, '(A)') "############################################################"
             write (*, '(A)') "                     BOUNDARY CONDITIONS"
@@ -349,7 +355,7 @@ contains
                                  gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
                                  cvdrift_alpha, cvdrift0_psi, sign_torflux, &
                                  theta_vmec, zed_scalefac, aref, bref, alpha, zeta, &
-                                 field_period_ratio, x_displacement_fac)
+                                 field_period_ratio, x_displacement_fac, vmec_file)
                ! Restart the variable twist_and_shift_geo_fac_full
                twist_and_shift_geo_fac_full = 0
             end if
@@ -604,8 +610,7 @@ contains
                   gds2_file, gds21_file, gds22_file, gds23_file, &
                   gds24_file, gbdrift_file, cvdrift_file, gbdrift0_file
                if (overwrite_bmag) bmag(ia, iz) = bmag_file
-               if (overwrite_gradpar) gradpar(iz) = gradpar_file
-               if (overwrite_gradpar) b_dot_grad_z(1, iz) = gradpar_file ! assuming we are only reading in for a single alpha. Usually, gradpar is the average of all b_dot_grad_z values.
+               if (overwrite_gradpar) b_dot_grad_z(ia, iz) = gradpar_file 
                if (overwrite_gds2) gds2(ia, iz) = gds2_file
                if (overwrite_gds21) gds21(ia, iz) = gds21_file
                if (overwrite_gds22) gds22(ia, iz) = gds22_file
@@ -617,6 +622,8 @@ contains
             end do
          end do
          cvdrift0 = gbdrift0
+         if (overwrite_gradpar) gradpar = sum(b_dot_grad_z, dim=1)
+         
 
          close (geofile_unit)
 
@@ -702,10 +709,10 @@ contains
       if (.not. allocated(dl_over_b)) allocate (dl_over_b(nalpha, -nzgrid:nzgrid))
       if (.not. allocated(d_dl_over_b_drho)) allocate (d_dl_over_b_drho(nalpha, -nzgrid:nzgrid))
       if (.not. allocated(b_dot_grad_z)) allocate (b_dot_grad_z(nalpha, -nzgrid:nzgrid))
-
+      if (.not. allocated(btor)) allocate (btor(nalpha, -nzgrid:nzgrid))
+      
       if (.not. allocated(gradpar)) allocate (gradpar(-nzgrid:nzgrid))
       if (.not. allocated(zed_eqarc)) allocate (zed_eqarc(-nzgrid:nzgrid))
-      if (.not. allocated(btor)) allocate (btor(-nzgrid:nzgrid))
       if (.not. allocated(rmajor)) allocate (rmajor(-nzgrid:nzgrid))
       if (.not. allocated(dBdrho)) allocate (dBdrho(-nzgrid:nzgrid))
       if (.not. allocated(d2Bdrdth)) allocate (d2Bdrdth(-nzgrid:nzgrid))
@@ -1020,7 +1027,7 @@ contains
             write (geometry_unit, '(15e12.4)') alpha(ia), zed(iz), zeta(ia, iz), bmag(ia, iz), b_dot_grad_z(ia, iz), &
                gds2(ia, iz), gds21(ia, iz), gds22(ia, iz), gds23(ia, iz), &
                gds24(ia, iz), gbdrift(ia, iz), cvdrift(ia, iz), gbdrift0(ia, iz), &
-               bmag_psi0(ia, iz), btor(iz)
+               bmag_psi0(ia, iz), btor(ia,iz)
          end do
          write (geometry_unit, *)
       end do

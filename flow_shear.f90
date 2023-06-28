@@ -94,7 +94,7 @@ contains
             prl_shear(ia, iz, ivmu) = -omprimfac * g_exb * code_dt * vpa(iv) * spec(is)%stm_psi0 &
                                       * dydalpha * drhodpsi &
                                       * (geo_surf%qinp_psi0 / geo_surf%rhoc_psi0) &
-                                      * (btor(iz) * rmajor(iz) / bmag(ia, iz)) * (spec(is)%mass / spec(is)%temp)
+                                      * (btor(ia, iz) * rmajor(iz) / bmag(ia, iz)) * (spec(is)%mass / spec(is)%temp)
          end do
          if (.not. maxwellian_normalization) then
             do iz = -nzgrid, nzgrid
@@ -104,7 +104,7 @@ contains
          end if
          if (radial_variation) then
             energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
-            prl_shear_p(:, :, ivmu) = prl_shear(:, :, ivmu) * (dIdrho / spread(rmajor * btor, 1, nalpha) &
+            prl_shear_p(:, :, ivmu) = prl_shear(:, :, ivmu) * (dIdrho / (spread(rmajor, 1, nalpha) *  btor) &
                                                                - spread(dBdrho, 1, nalpha) / bmag &
                                                                - spec(is)%fprim - spec(is)%tprim * (energy - 2.5) &
                                                                - 2.*mu(imu) * spread(dBdrho, 1, nalpha))

@@ -576,7 +576,7 @@ contains
 
             ! get momentum flux
             ! parallel component
-            gtmp1 = g(:, :, ikxkyz) * spread(vpa, 2, nmu) * geo_surf%rmaj * btor(iz) / bmag(ia, iz)
+            gtmp1 = g(:, :, ikxkyz) * spread(vpa, 2, nmu) * geo_surf%rmaj * btor(ia, iz) / bmag(ia, iz)
             call gyro_average(gtmp1, ikxkyz, gtmp2)
             gtmp1 = -g(:, :, ikxkyz) * zi * aky(iky) * spread(vperp2(ia, iz, :), 1, nvpa) * geo_surf%rhoc &
                     * (gds21(ia, iz) + theta0(iky, ikx) * gds22(ia, iz)) * spec(is)%smz &
@@ -610,7 +610,7 @@ contains
             ! Apar contribution to momentum flux
             ! parallel component
             gtmp1 = -spread(vpa**2, 2, nmu) * spec(is)%stm * g(:, :, ikxkyz) &
-                    * geo_surf%rmaj * btor(iz) / bmag(1, iz)
+                    * geo_surf%rmaj * btor(ia, iz) / bmag(ia, iz)
             call gyro_average(gtmp1, ikxkyz, gtmp2)
             ! perp component
             gtmp1 = spread(vpa, 2, nmu) * spec(is)%stm * g(:, :, ikxkyz) &
@@ -825,7 +825,7 @@ contains
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
                   ! parallel component
-                  g0k = g(:, :, iz, it, ivmu) * vpa(iv) * geo_surf%rmaj * btor(iz) / bmag(ia, iz)
+                  g0k = g(:, :, iz, it, ivmu) * vpa(iv) * geo_surf%rmaj * btor(ia, iz) / bmag(ia, iz)
                   call gyro_average(g0k, iz, ivmu, g1(:, :, iz, it, ivmu))
 
                   if (radial_variation) then
@@ -833,7 +833,7 @@ contains
                            * (-0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
                               * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                               * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
-                              + dIdrho / (geo_surf%rmaj * btor(iz)))
+                              + dIdrho / (geo_surf%rmaj * btor(ia,iz)))
 
                      call multiply_by_rho(g0k)
 
@@ -842,7 +842,7 @@ contains
                   end if
                   !subtract adiabatic contribution part of g
                   g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
-                        * vpa(iv) * geo_surf%rmaj * btor(iz) / bmag(ia, iz)
+                        * vpa(iv) * geo_surf%rmaj * btor(ia, iz) / bmag(ia, iz)
                   if (.not. maxwellian_normalization) then
                      g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
                   end if
@@ -852,7 +852,7 @@ contains
                                   - aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
                                   * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
                                   * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
-                                  + dIdrho / (geo_surf%rmaj * btor(iz)))
+                                  + dIdrho / (geo_surf%rmaj * btor(ia, iz)))
 
                      call multiply_by_rho(g1k)
 

@@ -12,7 +12,7 @@ module vmec_geo
    real :: nfield_periods
    real :: zeta_center, torflux
    logical :: verbose
-   character(2000) :: vmec_filename
+   character(200) :: vmec_filename
    integer :: n_tolerated_test_arrays_inconsistencies
 
 contains
@@ -97,7 +97,7 @@ contains
                            gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, &
                            cvdrift0_psi, sign_torflux, &
                            theta_vmec, zed_scalefac, L_reference, B_reference, alpha, zeta, &
-                           field_period_ratio, x_displacement_fac)
+                           field_period_ratio, x_displacement_fac, vmec_file)
 
       use constants, only: pi
       use common_types, only: flux_surface_type
@@ -126,6 +126,8 @@ contains
       real, intent(out) :: zed_scalefac, L_reference, B_reference
       integer, intent(out) :: sign_torflux
       real, intent(out) :: field_period_ratio
+
+      character(200), intent(out) :: vmec_file
 
       logical, parameter :: debug = .false.
 
@@ -156,6 +158,7 @@ contains
 
       integer :: ierr
 
+      vmec_file = vmec_filename
       !> To avoid writting twice in the output file when recomputing zeta.
       if (stellarator_symmetric_BC) verbose = .false.
       !> first read in equilibrium information from vmec file
