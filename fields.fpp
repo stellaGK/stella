@@ -526,9 +526,9 @@ contains
       use kt_grids, only: akx
       use kt_grids, only: zonal_mode
       use species, only: has_electron_species, ion_species
-      use physics_flags, only: adiabatic_option_switch,adiabatic_option_fieldlineavg
+      use physics_flags, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       use stella_geometry, only: dl_over_b
-      
+
       implicit none
 
       integer :: iky, ikx, iz, ia
@@ -565,13 +565,13 @@ contains
       !!GA
       if (.not. allocated(gamtot3)) then
          if (.not. has_electron_species(spec) &
-              .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+             .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
             allocate (gamtot3(nakx, -nzgrid:nzgrid)); gamtot3 = 0.
          else
             allocate (gamtot3(1, 1)); gamtot3 = 0.
          end if
       end if
-      
+
       !!GA
       if (driftkinetic_implicit) then
          if (.not. allocated(bessel)) then
@@ -622,7 +622,7 @@ contains
             if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
                if (zonal_mode(1)) then
                   do ikx = 1, nakx
-                     tmp = 1./efac - sum(dl_over_b / gamtot(:, ikx, :))/ nalpha
+                     tmp = 1./efac - sum(dl_over_b / gamtot(:, ikx, :)) / nalpha
                      gamtot3(ikx, :) = 1./(gamtot(1, ikx, :) * tmp)
                   end do
                   if (akx(1) < epsilon(0.)) then
