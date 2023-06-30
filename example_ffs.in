@@ -38,10 +38,6 @@
  vpa_max = 3.0
  vperp_max = 3.0
 /
-&dist_fn_knobs
- adiabatic_option="field-line-average-term"
-/
-
 &time_advance_knobs
  explicit_option="rk3"
 /
@@ -64,7 +60,8 @@
 &physics_flags
  nonlinear = .true.
  full_flux_surface = .true.
- const_alpha_geo = .true. 
+ const_alpha_geo = .true.
+ adiabatic_option="field-line-average-term"
 /
 &knobs
  fphi =   1.0
