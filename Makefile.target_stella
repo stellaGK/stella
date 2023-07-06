@@ -37,7 +37,7 @@ mini_libstell.a:
 ### GEO
 geo_all: vmec geo.a
 
-GEO_OBJ = stella_geometry.o inputprofiles_interface.o millerlocal.o vmec_geo.o
+GEO_OBJ = stella_geometry.o inputprofiles_interface.o millerlocal.o vmec_geo.o zpinch.o
 
 geo.a:  $(GEO_OBJ)
 	$(ARCH) $(ARCHFLAGS) $@ $^

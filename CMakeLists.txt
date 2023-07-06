@@ -70,6 +70,7 @@ set(STELLA_SOURCES_f90
   dissipation/hyper.f90
   geo/inputprofiles_interface.f90
   geo/millerlocal.f90
+  geo/zpinch.f90
   geo/stella_geometry.f90
   geo/vmec_geo.f90
   geo/vmec_interface/vmec_to_stella_geometry_interface.f90
