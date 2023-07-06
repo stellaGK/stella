@@ -351,16 +351,16 @@ contains
    end subroutine communicate_parameters_multibox_zp
 
    subroutine get_local_geo_zp(nzed, nzgrid, zed_in, zed_equal_arc, &
-                            dpsidrho_out, dpsidrho_psi0_out, dIdrho_out, grho_out, &
-                            bmag_out, bmag_psi0_out, &
-                            gds2_out, gds21_out, gds22_out, gds23_out, gds24_out, gradpar_out, &
-                            gbdrift0_out, gbdrift_out, cvdrift0_out, cvdrift_out, &
-                            dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
-                            btor_out, rmajor_out, &
-                            dcvdrift0drho_out, dcvdriftdrho_out, &
-                            dgbdrift0drho_out, dgbdriftdrho_out, &
-                            dgds2dr_out, dgds21dr_out, &
-                            dgds22dr_out, djacdrho_out)
+                               dpsidrho_out, dpsidrho_psi0_out, dIdrho_out, grho_out, &
+                               bmag_out, bmag_psi0_out, &
+                               gds2_out, gds21_out, gds22_out, gds23_out, gds24_out, gradpar_out, &
+                               gbdrift0_out, gbdrift_out, cvdrift0_out, cvdrift_out, &
+                               dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
+                               btor_out, rmajor_out, &
+                               dcvdrift0drho_out, dcvdriftdrho_out, &
+                               dgbdrift0drho_out, dgbdriftdrho_out, &
+                               dgds2dr_out, dgds21dr_out, &
+                               dgds22dr_out, djacdrho_out)
 
       use constants, only: pi
       use splines, only: geo_spline
@@ -428,13 +428,13 @@ contains
       delthet = theta(-nz + 1:) - theta(:nz - 1)
 
       ! get dR/drho and dZ/drho
-      ! I expect dRdrho = 1                                                                             
+      ! I expect dRdrho = 1
       ! and dZdrho = 0
       call get_drho(Rr, dRdrho)
       call get_drho(Zr, dZdrho)
 
       ! get dR/dtheta and dZ/dtheta
-      ! I expect dRdth = 0                                                                    
+      ! I expect dRdth = 0
       ! and dZdth = 1
       call get_dthet(Rr(2, :), dRdth)
       call get_dthet(Zr(2, :), dZdth)
@@ -460,7 +460,6 @@ contains
       ! I expect it being 1/Rr
       call theta_integrate(jacrho(-nz2pi:nz2pi) / Rr(2, -nz2pi:nz2pi)**2, dpsidrho)
       dpsidrho = dpsidrho / (2.*pi)
-
 
       ! get dpsinorm/drho = (I/2*pi*q)*int_0^{2*pi} dthet jacrho/R**2
 
@@ -498,17 +497,17 @@ contains
       call get_dthet(drz, drzdth)
 
       ! get dI/drho
-      ! I expect it being 2*bi/((1.0 + (bi / gpsi)**2)*Rr)                                               
+      ! I expect it being 2*bi/((1.0 + (bi / gpsi)**2)*Rr)
       call get_dIdrho(dpsidrho, grho, dIdrho)
       dIdrho_out = dIdrho
 
       ! get djacobian/drho*dpsi/drho and djacr/drho
-      ! I expect djacrho = jacrho*bi*dIdrho/dpsidrho**2                                              
+      ! I expect djacrho = jacrho*bi*dIdrho/dpsidrho**2
       ! while djacrdrho = djacdrho
       call get_djacdrho(dpsidrho, dIdrho, grho)
 
       ! get d2R/drho2 and d2Z/drho2
-      ! I expect d2Rdr2 = ((djacrdrho - 1) / Rr(2, :))               
+      ! I expect d2Rdr2 = ((djacrdrho - 1) / Rr(2, :))
       ! while d2Zdr2 = 0
       call get_d2RZdr2
 
@@ -554,7 +553,7 @@ contains
       gradparb = gradpar * dBdth
 
       ! get d|grad rho|^2/drho and d|grad psi|^2/drho
-      ! I expect dgr2dr = 2.*(1 / Rr(2, :) - djacrdrho / jacrho)             
+      ! I expect dgr2dr = 2.*(1 / Rr(2, :) - djacrdrho / jacrho)
       ! while dgpsi2dr = 2.*(gpsi**2 * (1 / Rr(2, :) - djacdrho / jacrho))
       call get_dgr2dr(dpsidrho, grho)
 
@@ -656,29 +655,29 @@ contains
       dcvdriftdrho = dcvdriftdrho * (dpsidrho_psi0 / dpsidrho)
       dcvdrift0drho = dcvdrift0drho * (dpsidrho_psi0 / dpsidrho)
 
-      Rr(2,:) = local%rmaj+local%rhoc
+      Rr(2, :) = local%rmaj + local%rhoc
       dpsidrho = 1.
       dpsidrho_psi0 = dpsidrho
       dIdrho = 1.
       grho_psi0 = 1.
-      bmag = local%rgeo/(local%rmaj+local%rhoc)
+      bmag = local%rgeo / (local%rmaj + local%rhoc)
       bmag_psi0 = bmag
       gds2 = 1.*dpsidrho**2.
       gds21 = 0.
       gds22 = 1.*dpsidrho**2.
       gds23 = 0.
       gds24 = 0.
-      gradpar = dpsidrho/bmag
+      gradpar = dpsidrho / bmag
       !gradpar = 0.447
-      dBdrho = - local%rgeo/(local%rmaj+local%rhoc)**2.
+      dBdrho = -local%rgeo / (local%rmaj + local%rhoc)**2.
       gbdrift0 = 0.
-      gbdrift = 2*(-dBdrho)/bmag
+      gbdrift = 2 * (-dBdrho) / bmag
       cvdrift0 = 0.
       cvdrift = gbdrift
       d2Bdrdth = 0.
       dgradpardrho = 0.
       dcvdrift0drho = 0.
-      dgbdriftdrho = (2./bmag)*(dBdrho/Rr(2,:) - bmag/Rr(2,:)**2. + dBdrho**2./bmag)
+      dgbdriftdrho = (2./bmag) * (dBdrho / Rr(2, :) - bmag / Rr(2, :)**2.+dBdrho**2./bmag)
       dcvdriftdrho = dgbdriftdrho
       dgbdrift0drho = 0.
       dgds2dr = 0.
@@ -712,7 +711,7 @@ contains
          call geo_spline(theta, dBdrho, zed_arc, dBdrho_out)
          call geo_spline(theta, d2Bdrdth, zed_arc, d2Bdrdth_out)
          call geo_spline(theta, dgradpardrho, zed_arc, dgradpardrho_out)
-         call geo_spline(theta, Rr(2,:), zed_arc, rmajor_out)
+         call geo_spline(theta, Rr(2, :), zed_arc, rmajor_out)
          call geo_spline(theta, dcvdriftdrho, zed_arc, dcvdriftdrho_out)
          call geo_spline(theta, dgbdriftdrho, zed_arc, dgbdriftdrho_out)
          call geo_spline(theta, dcvdrift0drho, zed_arc, dcvdrift0drho_out)
@@ -740,7 +739,7 @@ contains
          call geo_spline(theta, dBdrho, zed_in, dBdrho_out)
          call geo_spline(theta, d2Bdrdth, zed_in, d2Bdrdth_out)
          call geo_spline(theta, dgradpardrho, zed_in, dgradpardrho_out)
-         call geo_spline(theta, Rr(2,:), zed_in, rmajor_out)
+         call geo_spline(theta, Rr(2, :), zed_in, rmajor_out)
          call geo_spline(theta, dcvdriftdrho, zed_in, dcvdriftdrho_out)
          call geo_spline(theta, dgbdriftdrho, zed_in, dgbdriftdrho_out)
          call geo_spline(theta, dcvdrift0drho, zed_in, dcvdrift0drho_out)
@@ -949,7 +948,7 @@ contains
       df(-nz + 1:nz - 1) = (f(-nz + 2:) - f(:nz - 2)) / (delthet(:nz - 2) + delthet(-nz + 1:))
 
       ! use periodicity at boundary
-      df(-nz) = (f(-nz + 1) - f(nz - 1)) / (theta(-nz+1) - theta(nz - 1))
+      df(-nz) = (f(-nz + 1) - f(nz - 1)) / (theta(-nz + 1) - theta(nz - 1))
       df(nz) = df(-nz)
 
    end subroutine get_dthet
@@ -1393,7 +1392,7 @@ contains
    !   real :: Zpos, dr
    !   integer :: i
 
-      ! allow for strange specification of Z_psi
+   ! allow for strange specification of Z_psi
    !   if (j == nz + 1) then
    !      i = -nz
    !   else
@@ -1401,7 +1400,7 @@ contains
    !   end if
 
    !   dr = r - local%rhoc
-      ! note that d2Z=0 unless read_profile_variation=T in input file
+   ! note that d2Z=0 unless read_profile_variation=T in input file
    !   Zpos = local%kappa * sin(theta) * local%rhoc + (local%rhoc * local%kapprim + local%kappa) * sin(theta) * dr &
    !          + 0.5 * (r - rhoc0)**2 * d2Z(i)
 

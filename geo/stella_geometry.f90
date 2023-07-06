@@ -77,7 +77,7 @@ module stella_geometry
    integer, parameter :: geo_option_vmec = 3
    integer, parameter :: geo_option_multibox = 4
    integer, parameter :: geo_option_zpinch = 5
-   
+
    logical :: overwrite_geometry
    logical :: overwrite_bmag, overwrite_gradpar
    logical :: overwrite_gds2, overwrite_gds21, overwrite_gds22
@@ -423,58 +423,57 @@ contains
             !> to their values at a given alpha; i.e., make the system axisymmetric
             if (const_alpha_geo) call set_ffs_geo_coefs_constant(nalpha)
 
-            case (geo_option_zpinch)
-            ! read in Miller local (zpinch) parameters                                                      
+         case (geo_option_zpinch)
+            ! read in Miller local (zpinch) parameters
             call read_local_parameters_zp(nzed, nzgrid, geo_surf)
-            ! allocate geometry arrays                                                             
+            ! allocate geometry arrays
             call allocate_arrays(nalpha, nzgrid)
-            ! use Miller local parameters to get                                                   
-            ! geometric coefficients needed by stella                                              
+            ! use Miller local parameters to get
+            ! geometric coefficients needed by stella
             call get_local_geo_zp(nzed, nzgrid, zed, zed_equal_arc, &
-                               dpsidrho, dpsidrho_psi0, dIdrho, grho(1, :), &
-                               bmag(1, :), bmag_psi0(1, :), &
-                               gds2(1, :), gds21(1, :), gds22(1, :), &
-                               gds23(1, :), gds24(1, :), gradpar, &
-                               gbdrift0(1, :), gbdrift(1, :), cvdrift0(1, :), cvdrift(1, :), &
-                               dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
-                               dcvdrift0drho(1, :), dcvdriftdrho(1, :), &
-                               dgbdrift0drho(1, :), dgbdriftdrho(1, :), &
-                               dgds2dr(1, :), dgds21dr(1, :), &
-                               dgds22dr(1, :), djacdrho(1, :))
+                                  dpsidrho, dpsidrho_psi0, dIdrho, grho(1, :), &
+                                  bmag(1, :), bmag_psi0(1, :), &
+                                  gds2(1, :), gds21(1, :), gds22(1, :), &
+                                  gds23(1, :), gds24(1, :), gradpar, &
+                                  gbdrift0(1, :), gbdrift(1, :), cvdrift0(1, :), cvdrift(1, :), &
+                                  dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
+                                  dcvdrift0drho(1, :), dcvdriftdrho(1, :), &
+                                  dgbdrift0drho(1, :), dgbdriftdrho(1, :), &
+                                  dgds2dr(1, :), dgds21dr(1, :), &
+                                  dgds22dr(1, :), djacdrho(1, :))
 
-
-            !> b_dot_grad_z is the alpha-dependent b . grad z,                                     
-            !> and gradpar is the constant-in-alpha part of it.                                    
-            !> for axisymmetric systems, b_dot_grad_z is independent of alpha.                     
+            !> b_dot_grad_z is the alpha-dependent b . grad z,
+            !> and gradpar is the constant-in-alpha part of it.
+            !> for axisymmetric systems, b_dot_grad_z is independent of alpha.
             b_dot_grad_z(1, :) = gradpar
-            ! note that psi here is the enclosed poloidal flux divided by 2pi                      
+            ! note that psi here is the enclosed poloidal flux divided by 2pi
             drhodpsi = 1./dpsidrho
             drhodpsi_psi0 = 1./dpsidrho_psi0
-            ! dxdXcoord = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r                                   
+            ! dxdXcoord = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
             dxdXcoord_sign = 1
             if (q_as_x) then
                dxdXcoord = dxdXcoord_sign * dpsidrho
             else
                dxdXcoord = dxdXcoord_sign * geo_surf%qinp_psi0 / geo_surf%rhoc_psi0
             end if
-            ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)                   
+            ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
             dydalpha_sign = 1
             dydalpha = dydalpha_sign * dpsidrho
-            !> | grad x |  = dx/drho * | grad rho | = dx/dpsi * dpsi/drho * | grad rho |           
-            !> = q/rho * dpsidrho * grho                                                           
+            !> | grad x |  = dx/drho * | grad rho | = dx/dpsi * dpsi/drho * | grad rho |
+            !> = q/rho * dpsidrho * grho
             grad_x = grho * dxdXcoord * dpsidrho_psi0
-            ! abs(twist_and_shift_geo_fac) is dkx/dky * jtwist                                     
-            ! minus its sign gives the direction of the shift in kx                                
-            ! to be used for twist-and-shift BC                                                    
+            ! abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
+            ! minus its sign gives the direction of the shift in kx
+            ! to be used for twist-and-shift BC
             if (q_as_x) then
                twist_and_shift_geo_fac = 2.0 * pi
             else
                twist_and_shift_geo_fac = 2.0 * pi * geo_surf%shat_psi0
             end if
-            ! aref and bref should not be needed, so set to 1                                      
+            ! aref and bref should not be needed, so set to 1
             aref = 1.0; bref = 1.0
             zeta(1, :) = zed * geo_surf%qinp
-         end select 
+         end select
 
          if (overwrite_geometry) call overwrite_selected_geometric_coefficients(nalpha)
 
@@ -789,7 +788,7 @@ contains
                                                     text_option('input.profiles', geo_option_inputprof), &
                                                     text_option('vmec', geo_option_vmec), &
                                                     text_option('zpinch', geo_option_zpinch)/)
-      
+
       namelist /geo_knobs/ geo_option, geo_file, overwrite_bmag, overwrite_gradpar, &
          overwrite_gds2, overwrite_gds21, overwrite_gds22, overwrite_gds23, overwrite_gds24, &
          overwrite_gbdrift, overwrite_cvdrift, overwrite_gbdrift0, q_as_x, set_bmag_const
@@ -1085,7 +1084,7 @@ contains
       use mp, only: proc0
       use millerlocal, only: finish_local_geo
       use zpinch, only: finish_local_geo_zp
-      
+
       implicit none
 
       if (proc0) then
