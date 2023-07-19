@@ -237,9 +237,9 @@ contains
       a = a * tupwndfac
       c = c * tupwndfac
 !!!!      if (maxwellian_normalization) then
-         !> account for fact that we have expanded d(gnorm)/dvpa, where gnorm = g/exp(-v^s);
-         !> this gives rise to d(gnorm*exp(-vpa^2))/dvpa + 2*vpa*gnorm*exp(-vpa^2) term
-         !> we solve for gnorm*exp(-vpa^2) and later multiply by exp(vpa^2) to get gnorm
+      !> account for fact that we have expanded d(gnorm)/dvpa, where gnorm = g/exp(-v^s);
+      !> this gives rise to d(gnorm*exp(-vpa^2))/dvpa + 2*vpa*gnorm*exp(-vpa^2) term
+      !> we solve for gnorm*exp(-vpa^2) and later multiply by exp(vpa^2) to get gnorm
 !!!!         b = b + spread(2.0 * vpa, 2, 3)
 !!!!      end if
 
@@ -649,12 +649,12 @@ contains
                   end do
                end do
             end do
-         ! else
-         !    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         !       iv = iv_idx(vmu_lo, ivmu)
-         !       is = is_idx(vmu_lo, ivmu)
-         !       g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) / maxwell_vpa(iv, is)
-         !    end do
+            ! else
+            !    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            !       iv = iv_idx(vmu_lo, ivmu)
+            !       is = is_idx(vmu_lo, ivmu)
+            !       g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) / maxwell_vpa(iv, is)
+            !    end do
          end if
 
          ! second, remap g so velocities are local
@@ -683,12 +683,12 @@ contains
                end do
             end do
             !!!!
-         ! else
-         !    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         !       iv = iv_idx(vmu_lo, ivmu)
-         !       is = is_idx(vmu_lo, ivmu)
-         !       g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) * maxwell_vpa(iv, is)
-         !    end do
+            ! else
+            !    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            !       iv = iv_idx(vmu_lo, ivmu)
+            !       is = is_idx(vmu_lo, ivmu)
+            !       g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) * maxwell_vpa(iv, is)
+            !    end do
          end if
 
          ! finally transform back from y to ky space

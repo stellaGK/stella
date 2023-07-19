@@ -7,7 +7,7 @@ module g_tofrom_h
 
    !!GA
    public :: g_to_f
-   
+
    private
 
 !   interface gbar_to_g
@@ -27,12 +27,12 @@ module g_tofrom_h
       !     module procedure g_to_h_vmu_zext
    end interface
 
-   !!GA 
+   !!GA
    interface g_to_f
       module procedure g_to_f_kxkyz
       module procedure g_to_f_vmu
    end interface g_to_f
-   
+
 contains
 
 !   subroutine gbar_to_h_vmu (g, phi, apar, facphi, facapar)
@@ -302,24 +302,24 @@ contains
          is = is_idx(vmu_lo, ivmu)
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
-               if(full_flux_surface) then
+               if (full_flux_surface) then
                   field = spec(is)%zt * facphi * phi(:, :, iz, it)
                   call gyro_average(field, adjust, j0_ffs(:, :, iz, ivmu))
                else
                   field = spec(is)%zt * facphi * phi(:, :, iz, it) &
-                       * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                          * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
                   if (radial_variation .and. present(phi_corr)) then
                      g0k = field * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
-                          - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
-                          - 0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
-                          * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
-                          * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)))
-                     
+                                    - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
+                                    - 0.5 * aj1x(:, :, iz, ivmu) / aj0x(:, :, iz, ivmu) * (spec(is)%smz)**2 &
+                                    * (kperp2(:, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
+                                    * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)))
+
                      call multiply_by_rho(g0k)
-                     
+
                      field = field + g0k &
-                          + phi_corr(:, :, iz, it) * spec(is)%zt * facphi &
-                          * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                             + phi_corr(:, :, iz, it) * spec(is)%zt * facphi &
+                             * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
                   end if
                   call gyro_average(field, iz, ivmu, adjust)
                end if
@@ -333,9 +333,8 @@ contains
 
       if (allocated(g0k)) deallocate (g0k)
 
-    end subroutine g_to_f_vmu
+   end subroutine g_to_f_vmu
 
-    
 !   subroutine g_to_h_vmu_zext (gext, phiext, facphi, iky, ie)
 
 !     use species, only: spec
@@ -440,7 +439,7 @@ contains
       use gyro_averages, only: gyro_average
 
       implicit none
-      
+
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
       real, intent(in) :: facphi
@@ -451,7 +450,7 @@ contains
       allocate (field(nvpa, nmu))
       allocate (adjust(nvpa, nmu))
 
-      !! Never used in FFS diagnostics so set ia =1 
+      !! Never used in FFS diagnostics so set ia =1
       ia = 1
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -461,17 +460,17 @@ contains
          iky = iky_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
          field = facphi * phi(iky, ikx, iz, it) * spec(is)%zt &
-              * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) &
-              * maxwell_fac(is)
+                 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) &
+                 * maxwell_fac(is)
          call gyro_average(field, ikxkyz, adjust)
          adjust = adjust - field
          g(:, :, ikxkyz) = g(:, :, ikxkyz) + adjust
       end do
 
       deallocate (field, adjust)
-      
-    end subroutine g_to_f_kxkyz
-    
+
+   end subroutine g_to_f_kxkyz
+
 !   subroutine gstar_to_g (g, phi, apar, facphi, facapar)
 
 !     use constants, only: zi
