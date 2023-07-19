@@ -581,7 +581,6 @@ contains
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
       use dist_fn_arrays, only: g0, g1, g2, g3
-
       implicit none
 
       if (.not. allocated(g0)) &

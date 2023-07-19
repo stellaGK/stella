@@ -278,7 +278,7 @@ contains
 
       use physics_flags, only: full_flux_surface
       use gyro_averages, only: j0_ffs
-
+      use run_parameters, only: maxwellian_normalization
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
@@ -288,7 +288,7 @@ contains
 
       integer :: ivmu, iz, it, is, imu, iv, ia
       complex, dimension(:, :), allocatable :: field, adjust, g0k
-
+      
       allocate (field(naky, nakx))
       allocate (adjust(naky, nakx))
       if (radial_variation) then
@@ -306,8 +306,10 @@ contains
                   field = spec(is)%zt * facphi * phi(:, :, iz, it)
                   call gyro_average(field, adjust, j0_ffs(:, :, iz, ivmu))
                else
-                  field = spec(is)%zt * facphi * phi(:, :, iz, it) &
-                       * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                  field = spec(is)%zt * facphi * phi(:, :, iz, it)
+                  if(.not. maxwellian_normalization) then 
+                     field = field * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                  end if
                   if (radial_variation .and. present(phi_corr)) then
                      g0k = field * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                           - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
@@ -316,7 +318,7 @@ contains
                           * (dkperp2dr(:, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)))
                      
                      call multiply_by_rho(g0k)
-                     
+
                      field = field + g0k &
                           + phi_corr(:, :, iz, it) * spec(is)%zt * facphi &
                           * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
@@ -439,6 +441,8 @@ contains
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use gyro_averages, only: gyro_average
 
+      use run_parameters, only: maxwellian_normalization
+      
       implicit none
       
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
@@ -460,9 +464,13 @@ contains
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
          iky = iky_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
-         field = facphi * phi(iky, ikx, iz, it) * spec(is)%zt &
-              * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) &
-              * maxwell_fac(is)
+         
+         field = facphi * phi(iky, ikx, iz, it) * spec(is)%zt
+         if(.not. maxwellian_normalization) then 
+            field = field *spread(maxwell_vpa(:, is), 2, nmu) * &
+                 spread(maxwell_mu(ia, iz, :, is), 1, nvpa)* maxwell_fac(is)
+         end if
+
          call gyro_average(field, ikxkyz, adjust)
          adjust = adjust - field
          g(:, :, ikxkyz) = g(:, :, ikxkyz) + adjust

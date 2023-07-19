@@ -229,7 +229,7 @@ contains
                                                 grad_alpha_grad_psi, grad_psi_grad_psi, gds23, gds24, gds25, gds26, &
                                                 gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, &
                                                 theta_vmec, B_sub_zeta, B_sub_theta_vmec, x_displacement_fac, gradpar_zeta_prefac, &
-                                                ierr)
+                                                ierr, gradzeta_gradx_out, gradzeta_grady_out, gradpar_zeta_r2)
 
       use fzero_mod, only: fzero
 
@@ -334,6 +334,10 @@ contains
       integer, intent(out) :: ierr
       integer :: ierr2
 
+      !!GA 
+      real, dimension(:, -nzgrid:), optional, intent (out) :: gradzeta_grady_out, gradzeta_gradx_out
+      real, dimension(:, -nzgrid:), optional, intent(out) :: gradpar_zeta_r2
+
       !*********************************************************************
       ! Variables used internally by this subroutine
       !*********************************************************************
@@ -380,7 +384,7 @@ contains
       real, dimension(:, :), allocatable :: B_X, B_Y, B_Z
       real, dimension(:, :), allocatable :: gradzeta_grady, gradzeta_gradx
       real, dimension(:, :), allocatable :: gradtheta_grady, gradtheta_gradx
-
+      
       logical :: theta_converged
 
       !*********************************************************************
@@ -1585,6 +1589,9 @@ contains
       ! This is |ds/dx|*sqrt((dR/ds)^2+(dZ/ds)^2)
       x_displacement_fac = 2.0 * sqrt(normalized_toroidal_flux_used) * sqrt(d_R_d_s**2 + d_Z_d_s**2) / L_reference
 
+      gradzeta_gradx_out = gradzeta_gradx * R**2
+      gradzeta_grady_out =  gradzeta_grady * R**2
+      gradpar_zeta_r2 = gradpar_zeta * R**2
       !*********************************************************************
       ! Free all arrays that were allocated.
       !*********************************************************************
