@@ -989,7 +989,7 @@ contains
       flxfac(:, -nzgrid) = 0.5 * flxfac(:, -nzgrid)
       flxfac(:, nzgrid) = 0.5 * flxfac(:, -nzgrid)
 
-      flxfac = nalpha* flxfac / sum(flxfac * grad_x)
+      flxfac = flxfac / sum(flxfac * grad_x)
       
       call get_one_flux_ffs(dens, dphidy, flxfac, pflx, pflx_vs_kxkyz(:, :, :, it, :))
       call get_one_flux_ffs(pres, dphidy, flxfac, qflx, qflx_vs_kxkyz(:, :, :, it, :))
