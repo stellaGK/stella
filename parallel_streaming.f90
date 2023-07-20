@@ -195,6 +195,9 @@ contains
       use gyro_averages, only: gyro_average
       use run_parameters, only: driftkinetic_implicit, maxwellian_normalization
 
+!      use fields, only: advance_fields, fields_updated
+!      use fields_arrays, only: apar
+      use gyro_averages, only: j0_ffs
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -229,70 +232,42 @@ contains
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
 
-         !> obtain <phi> (or <phi>-phi if driftkinetic_implicit=T)
-         call gyro_average(phi, ivmu, g0(:, :, :, :))
-         if (driftkinetic_implicit) g0(:, :, :, :) = g0(:, :, :, :) - phi
+         !> obtain <phi> 
+         if (full_flux_surface) then
+            call gyro_average(phi, g0(:, :, :, :), j0_ffs(:, :, :, ivmu))
+         else
+            call gyro_average(phi, ivmu, g0(:, :, :, :))
+         end if
 
          !> get d<phi>/dz, with z the parallel coordinate and store in dgphi_dz
          !> note that this should be a centered difference to avoid numerical
          !> unpleasantness to do with inexact cancellations in later velocity integration
          !> see appendix of the stella JCP 2019 for details
-         call get_dgdz_centered(g0, ivmu, dgphi_dz)
-
-         !> if driftkinetic_implicit=T, then only want to treat vpar . grad (<phi>-phi)*F0 term explicitly;
-         !> in this case, zero out dg/dz term (or d(g/F)/dz for full-flux-surface)
-         if (driftkinetic_implicit) then
-            g0 = 0.
-         else
-            !> compute dg/dz in k-space and store in g0
-            call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
-            !> if simulating a full flux surface, need to obtain the contribution from parallel streaming
-            !> in y-space, so FFT d(g/F)/dz from ky to y
-            if (full_flux_surface) then
-               do it = 1, ntubes
-                  do iz = -nzgrid, nzgrid
-                     call swap_kxky(g0(:, :, iz, it), g0_swap)
-                     call transform_ky2y(g0_swap, g0y(:, :, iz, it))
-                  end do
-               end do
-            end if
-            ! ! if simulating a full flux surface, must calculate F * d/dz (g/F) rather than dg/dz
-            ! ! since F=F(y) in this case, avoid multiple Fourier transforms by applying chain rule
-            ! ! to z derivative: F * d/dz (g/F) = dg/dz - g * d ln F / dz = dg/dz + g * mu/T * dB/dz
-            ! if (full_flux_surface) then
-            !    ! transform g and dg/dz from ky to y space and store in g0y and g1y, respectively
-            !    g1y = g(:,:,:,:,ivmu)
-            !    do it = 1, ntubes
-            !       do iz = -nzgrid, nzgrid
-            !          call transform_ky2y (g1y(:,:,iz,it), g0y(:,:,iz,it))
-            !          ! no longer need g1y so re-use as FFT of dg/dz (g0)
-            !          call transform_ky2y (g0(:,:,iz,it), g1y(:,:,iz,it))
-            !       end do
-            !    end do
-            !    ! overwrite g0y with dg/dz + g * mu/T * dB/dz
-            !    g0y = g1y + 2.0*mu(imu)*spread(spread(dBdzed,2,nakx),4,ntubes) * g0y
-            !    ! g1y no longer needed so can over-write with d<phi>/dz below
-            ! end if
-         end if
-
+         
+         !> if simulating a full flux surface, need to obtain the contribution from parallel streaming
+         !> in y-space, so FFT d(g/F)/dz from ky to y
          if (full_flux_surface) then
-            !> transform d<phi>/dz (fully explicit) or d(<phi>-phi)/dz (if driftkinetic_implicit)
-            !> from kalpha (ky) to alpha (y) space and store in g1y
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
-                  call swap_kxky(dgphi_dz(:, :, iz, it), g0_swap)
+                  call swap_kxky(g(:, :, iz, it,ivmu), g0_swap)
+                  call transform_ky2y(g0_swap, g0y(:, :, iz, it))
+                  
+                  !> transform d<phi>/dz (fully explicit)
+                  !> from kalpha (ky) to alpha (y) space and store in g1y
+                  call swap_kxky(g0(:, :, iz, it), g0_swap)
                   call transform_ky2y(g0_swap, g1y(:, :, iz, it))
                end do
             end do
-            !> over-write g0y with d/dz (g/F) + Ze/T * d<phi>/dz (or <phi>-phi for driftkinetic_implicit).
+            
+            !> over-write g0y with d/dz (g/F) + Ze/T * d<phi>/dz
             g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt
-            ! ! over-write g0y with F * d/dz (g/F) + ZeF/T * d<phi>/dz (or <phi>-phi for driftkinetic_implicit).
-            ! g0y(:,:,:,:) = g0y(:,:,:,:) + g1y(:,:,:,:)*spec(is)%zt*maxwell_fac(is) &
-            !      * maxwell_vpa(iv,is)*spread(spread(maxwell_mu(:,:,imu,is),2,nakx),4,ntubes)*maxwell_fac(is)
-
+            call get_dgdz_real_ffs (g0y, ivmu, g1y) 
             !> multiply d(g/F)/dz and d<phi>/dz terms with vpa*(b . grad z) and add to source (RHS of GK equation)
-            call add_stream_term_ffs(g0y, ivmu, gout(:, :, :, :, ivmu))
+            call add_stream_term_ffs(g1y, ivmu, gout(:, :, :, :, ivmu))
          else
+            call get_dgdz_centered(g0, ivmu, dgphi_dz)
+            !> compute dg/dz in k-space and store in g0
+            call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
             ia = 1
             if (maxwellian_normalization) then
                g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt
@@ -440,6 +415,32 @@ contains
 
    end subroutine get_dgdz
 
+   subroutine get_dgdz_real_ffs (g, ivmu, dgdz) 
+
+     use finite_differences, only: third_order_upwind
+     use stella_layouts, only: vmu_lo
+     use stella_layouts, only: iv_idx
+     use kt_grids, only: nalpha, ikx_max
+     use zgrid, only: nzgrid, delzed, ntubes
+     implicit none
+     
+     complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
+     complex, dimension(:, :, -nzgrid:, :), intent(out) :: dgdz
+     integer, intent(in) :: ivmu
+     integer :: iv, ia, ikx, it 
+     
+     iv = iv_idx(vmu_lo, ivmu)
+     do ia = 1, nalpha
+        do ikx = 1, ikx_max
+           do it = 1, ntubes
+              call third_order_upwind (-nzgrid, g(ia, ikx, :, it),&
+                   delzed(0), stream_sign(iv), dgdz(ia,ikx, :, it))
+           end do
+        end do
+     end do
+           
+   end subroutine get_dgdz_real_ffs
+   
    subroutine get_dgdz_centered(g, ivmu, dgdz)
 
       use finite_differences, only: second_order_centered_zed
@@ -477,7 +478,7 @@ contains
                end do
             end do
          end do
-      end do
+      end do      
    end subroutine get_dgdz_centered
 
 ! subroutine get_dgdz_variable (g, ivmu, dgdz)
