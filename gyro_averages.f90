@@ -9,7 +9,7 @@ module gyro_averages
    public :: j0_B_maxwell_ffs, j0_ffs
    public :: band_lu_solve_ffs, band_lu_factorisation_ffs
 
-   !!GA 
+   !!GA
    public :: j0bmaxwell_avg
    public :: j1_ffs
    private
@@ -42,7 +42,7 @@ module gyro_averages
 
    logical :: bessinit = .false.
 
-   logical :: debug = .false.  
+   logical :: debug = .false.
 
    !!GA
    real, dimension(:, :, :, :), allocatable :: j0bmaxwell_avg
@@ -104,12 +104,12 @@ contains
             allocate (aj0x(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
             aj0x = 0.
          end if
-         
+
          if (.not. allocated(aj1x)) then
             allocate (aj1x(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
             aj1x = 0.
          end if
-         
+
          ia = 1
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
@@ -281,7 +281,7 @@ contains
       complex, dimension(:), allocatable :: aj1_kalpha
       integer :: ia_max_j1_count
       real :: ia_max_j1_reduction_factor
-      
+
       !       call open_output_file (j0_ffs_unit, '.j0_ffs')
       !       call open_output_file (j0_B_maxwell_ffs_unit, '.j0_over_B_ffs')
 
@@ -305,8 +305,8 @@ contains
       end if
 
       !!GA
-      if(.not. allocated(j0bmaxwell_avg)) then
-         allocate (j0bmaxwell_avg(naky,nakx,-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      if (.not. allocated(j0bmaxwell_avg)) then
+         allocate (j0bmaxwell_avg(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          j0bmaxwell_avg = 0.0
       end if
       !!GA
@@ -315,7 +315,7 @@ contains
       if (.not. allocated(j1_ffs)) then
          allocate (j1_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       end if
-      
+
       ia_max_j0_count = 0; ia_max_j0_B_maxwell_count = 0
       do iz = -nzgrid, nzgrid
          if (debug) write (*, *) 'calculating Fourier coefficients needed for gyro-averaging with alpha variation; zed index: ', iz
@@ -365,7 +365,7 @@ contains
                   ia_max_j0_count = ia_max_j0_count + j0_ffs(iky, ikx, iz, ivmu)%max_idx
                   !> keep track of the total number of coefficients that must be retained across different phase space points
                   ia_max_j0_B_maxwell_count = ia_max_j0_B_maxwell_count + j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx
-                  !!GA 
+                  !!GA
                   ia_max_j1_count = ia_max_j1_count + j1_ffs(iky, ikx, iz, ivmu)%max_idx
                   !> allocate array to hold the reduced number of Fourier coefficients
                   if (.not. associated(j0_ffs(iky, ikx, iz, ivmu)%fourier)) &
@@ -380,7 +380,7 @@ contains
                   !                   call test_ffs_bessel_coefs (j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier, j0_B_maxwell, iky, ikx, iz, j0_B_maxwell_ffs_unit, ivmu)
                   !!GA
                   if (.not. associated(j1_ffs(iky, ikx, iz, ivmu)%fourier)) &
-                       allocate (j1_ffs(iky, ikx, iz, ivmu)%fourier(j1_ffs(iky, ikx, iz, ivmu)%max_idx))
+                     allocate (j1_ffs(iky, ikx, iz, ivmu)%fourier(j1_ffs(iky, ikx, iz, ivmu)%max_idx))
                   j1_ffs(iky, ikx, iz, ivmu)%fourier = aj1_kalpha(:j1_ffs(iky, ikx, iz, ivmu)%max_idx)
                end do
             end do
@@ -388,7 +388,7 @@ contains
       end do
       deallocate (j0_B_maxwell, j0_B_maxwell_kalpha)
 
-      !!GA 
+      !!GA
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          iv = iv_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
@@ -398,9 +398,9 @@ contains
                do iky = 1, naky
                   do ia = 1, nalpha
                      arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
-                     aj0_alpha (ia) = j0(arg) * bmag(ia, iz) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
+                     aj0_alpha(ia) = j0(arg) * bmag(ia, iz) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
                   end do
-                  j0bmaxwell_avg(iky,ikx,iz,ivmu) = sum(aj0_alpha)/size(aj0_alpha)
+                  j0bmaxwell_avg(iky, ikx, iz, ivmu) = sum(aj0_alpha) / size(aj0_alpha)
                end do
             end do
          end do
@@ -430,7 +430,7 @@ contains
       deallocate (aj0_kalpha)
       deallocate (kperp2_swap)
       deallocate (aj1_alpha, aj1_kalpha)
-      
+
       !       call close_output_file (j0_ffs_unit)
       !       call close_output_file (j0_B_maxwell_ffs_unit)
 
@@ -606,9 +606,9 @@ contains
       if (allocated(j0_ffs)) deallocate (j0_ffs)
       if (allocated(j0_B_maxwell_ffs)) deallocate (j0_B_maxwell_ffs)
 
-      !!GA 
+      !!GA
       if (allocated(j0bmaxwell_avg)) deallocate (j0bmaxwell_avg)
-      if (allocated(j1_ffs)) deallocate(j1_ffs)
+      if (allocated(j1_ffs)) deallocate (j1_ffs)
       bessinit = .false.
 
    end subroutine finish_bessel

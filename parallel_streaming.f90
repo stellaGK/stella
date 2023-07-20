@@ -232,7 +232,7 @@ contains
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
 
-         !> obtain <phi> 
+         !> obtain <phi>
          if (full_flux_surface) then
             call gyro_average(phi, g0(:, :, :, :), j0_ffs(:, :, :, ivmu))
          else
@@ -243,25 +243,25 @@ contains
          !> note that this should be a centered difference to avoid numerical
          !> unpleasantness to do with inexact cancellations in later velocity integration
          !> see appendix of the stella JCP 2019 for details
-         
+
          !> if simulating a full flux surface, need to obtain the contribution from parallel streaming
          !> in y-space, so FFT d(g/F)/dz from ky to y
          if (full_flux_surface) then
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
-                  call swap_kxky(g(:, :, iz, it,ivmu), g0_swap)
+                  call swap_kxky(g(:, :, iz, it, ivmu), g0_swap)
                   call transform_ky2y(g0_swap, g0y(:, :, iz, it))
-                  
+
                   !> transform d<phi>/dz (fully explicit)
                   !> from kalpha (ky) to alpha (y) space and store in g1y
                   call swap_kxky(g0(:, :, iz, it), g0_swap)
                   call transform_ky2y(g0_swap, g1y(:, :, iz, it))
                end do
             end do
-            
+
             !> over-write g0y with d/dz (g/F) + Ze/T * d<phi>/dz
             g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt
-            call get_dgdz_real_ffs (g0y, ivmu, g1y) 
+            call get_dgdz_real_ffs(g0y, ivmu, g1y)
             !> multiply d(g/F)/dz and d<phi>/dz terms with vpa*(b . grad z) and add to source (RHS of GK equation)
             call add_stream_term_ffs(g1y, ivmu, gout(:, :, :, :, ivmu))
          else
@@ -415,32 +415,32 @@ contains
 
    end subroutine get_dgdz
 
-   subroutine get_dgdz_real_ffs (g, ivmu, dgdz) 
+   subroutine get_dgdz_real_ffs(g, ivmu, dgdz)
 
-     use finite_differences, only: third_order_upwind
-     use stella_layouts, only: vmu_lo
-     use stella_layouts, only: iv_idx
-     use kt_grids, only: nalpha, ikx_max
-     use zgrid, only: nzgrid, delzed, ntubes
-     implicit none
-     
-     complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
-     complex, dimension(:, :, -nzgrid:, :), intent(out) :: dgdz
-     integer, intent(in) :: ivmu
-     integer :: iv, ia, ikx, it 
-     
-     iv = iv_idx(vmu_lo, ivmu)
-     do ia = 1, nalpha
-        do ikx = 1, ikx_max
-           do it = 1, ntubes
-              call third_order_upwind (-nzgrid, g(ia, ikx, :, it),&
-                   delzed(0), stream_sign(iv), dgdz(ia,ikx, :, it))
-           end do
-        end do
-     end do
-           
+      use finite_differences, only: third_order_upwind
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: iv_idx
+      use kt_grids, only: nalpha, ikx_max
+      use zgrid, only: nzgrid, delzed, ntubes
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: dgdz
+      integer, intent(in) :: ivmu
+      integer :: iv, ia, ikx, it
+
+      iv = iv_idx(vmu_lo, ivmu)
+      do ia = 1, nalpha
+         do ikx = 1, ikx_max
+            do it = 1, ntubes
+               call third_order_upwind(-nzgrid, g(ia, ikx, :, it), &
+                                       delzed(0), stream_sign(iv), dgdz(ia, ikx, :, it))
+            end do
+         end do
+      end do
+
    end subroutine get_dgdz_real_ffs
-   
+
    subroutine get_dgdz_centered(g, ivmu, dgdz)
 
       use finite_differences, only: second_order_centered_zed
@@ -478,7 +478,7 @@ contains
                end do
             end do
          end do
-      end do      
+      end do
    end subroutine get_dgdz_centered
 
 ! subroutine get_dgdz_variable (g, ivmu, dgdz)

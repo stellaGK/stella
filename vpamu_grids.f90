@@ -224,7 +224,7 @@ contains
       ! so currently maxwellian_normalization is not supported for the radially global
       ! version of the code.
       if (maxwellian_normalization) wgts_vpa = wgts_vpa * maxwell_vpa(:, 1)
-      
+
       wgts_vpa_default = wgts_vpa
 
    end subroutine init_vpa_grid

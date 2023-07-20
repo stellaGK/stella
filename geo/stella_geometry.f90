@@ -92,8 +92,8 @@ module stella_geometry
    logical :: set_bmag_const
 
    !!GA
-   real, dimension (:,:), allocatable :: gradzeta_gradx, gradzeta_grady 
-   real, dimension (:,:), allocatable :: gradpar_zeta
+   real, dimension(:, :), allocatable :: gradzeta_gradx, gradzeta_grady
+   real, dimension(:, :), allocatable :: gradpar_zeta
 contains
 
    subroutine init_geometry(nalpha, naky)
@@ -200,35 +200,35 @@ contains
             zeta(1, :) = zed * geo_surf%qinp
 
             !!GA - Ensuring all arrays are filled with the alpha = 1 information
-            bmag = spread(bmag(1,:), 1, nalpha)
-            bmag_psi0 = spread(bmag_psi0(1,:), 1, nalpha)
-            gds2 = spread(gds2(1,:), 1, nalpha)
-            gds21 = spread(gds21(1,:), 1, nalpha)
-            gds22 = spread(gds22(1,:), 1, nalpha)
-            gds23 = spread(gds23(1,:), 1, nalpha)
-            gds24 = spread(gds24(1,:), 1, nalpha)
-            gbdrift0 = spread(gbdrift0(1,:), 1, nalpha)
-            gbdrift = spread(gbdrift(1,:), 1, nalpha)
-            cvdrift0 = spread(cvdrift0(1,:), 1, nalpha)
-            cvdrift = spread(cvdrift(1,:), 1, nalpha)
-            dcvdrift0drho = spread(dcvdrift0drho(1,:), 1, nalpha)
-            dcvdriftdrho = spread(dcvdriftdrho(1,:), 1, nalpha)
-            dgbdrift0drho = spread(dgbdrift0drho(1,:), 1, nalpha)
-            dgbdriftdrho = spread(dgbdriftdrho(1,:), 1, nalpha)
-            dgds2dr = spread(dgds2dr(1,:), 1, nalpha)
-            dgds21dr = spread(dgds21dr(1,:), 1, nalpha)
-            dgds22dr = spread(dgds22dr(1,:), 1, nalpha)
-            djacdrho = spread(djacdrho(1,:), 1, nalpha)
-            b_dot_grad_z = spread(b_dot_grad_z(1,:), 1, nalpha)
-            zeta = spread(zeta(1,:), 1, nalpha) 
+            bmag = spread(bmag(1, :), 1, nalpha)
+            bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
+            gds2 = spread(gds2(1, :), 1, nalpha)
+            gds21 = spread(gds21(1, :), 1, nalpha)
+            gds22 = spread(gds22(1, :), 1, nalpha)
+            gds23 = spread(gds23(1, :), 1, nalpha)
+            gds24 = spread(gds24(1, :), 1, nalpha)
+            gbdrift0 = spread(gbdrift0(1, :), 1, nalpha)
+            gbdrift = spread(gbdrift(1, :), 1, nalpha)
+            cvdrift0 = spread(cvdrift0(1, :), 1, nalpha)
+            cvdrift = spread(cvdrift(1, :), 1, nalpha)
+            dcvdrift0drho = spread(dcvdrift0drho(1, :), 1, nalpha)
+            dcvdriftdrho = spread(dcvdriftdrho(1, :), 1, nalpha)
+            dgbdrift0drho = spread(dgbdrift0drho(1, :), 1, nalpha)
+            dgbdriftdrho = spread(dgbdriftdrho(1, :), 1, nalpha)
+            dgds2dr = spread(dgds2dr(1, :), 1, nalpha)
+            dgds21dr = spread(dgds21dr(1, :), 1, nalpha)
+            dgds22dr = spread(dgds22dr(1, :), 1, nalpha)
+            djacdrho = spread(djacdrho(1, :), 1, nalpha)
+            b_dot_grad_z = spread(b_dot_grad_z(1, :), 1, nalpha)
+            zeta = spread(zeta(1, :), 1, nalpha)
 
             !!GA - for correct momentum diagnostics
             !>R^2 * grad zeta . grad y / B^2
-            gradzeta_grady = geo_surf%rhoc/(geo_surf%qinp * bmag**2 )
+            gradzeta_grady = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
             gradzeta_gradx = 0.0
             !>R^2 * b . grad zeta = R^2 * b. grad theta * dzeta/dtheta
-            gradpar_zeta = geo_surf%rmaj * spread(btor,1,nalpha) / bmag
-            
+            gradpar_zeta = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag
+
          case (geo_option_multibox)
             ! read in Miller local parameters
             call read_local_parameters(nzed, nzgrid, geo_surf)
@@ -284,35 +284,35 @@ contains
             zeta(1, :) = zed * geo_surf%qinp
 
             !!GA - Ensuring all arrays are filled with the alpha = 1 information
-            bmag = spread(bmag(1,:), 1, nalpha)
-            bmag_psi0 = spread(bmag_psi0(1,:), 1, nalpha)
-            gds2 = spread(gds2(1,:), 1, nalpha)
-            gds21 = spread(gds21(1,:), 1, nalpha)
-            gds22 = spread(gds22(1,:), 1, nalpha)
-            gds23 = spread(gds23(1,:), 1, nalpha)
-            gds24 = spread(gds24(1,:), 1, nalpha)
-            gbdrift0 = spread(gbdrift0(1,:), 1, nalpha)
-            gbdrift = spread(gbdrift(1,:), 1, nalpha)
-            cvdrift0 = spread(cvdrift0(1,:), 1, nalpha)
-            cvdrift = spread(cvdrift(1,:), 1, nalpha)
-            dcvdrift0drho = spread(dcvdrift0drho(1,:), 1, nalpha)
-            dcvdriftdrho = spread(dcvdriftdrho(1,:), 1, nalpha)
-            dgbdrift0drho = spread(dgbdrift0drho(1,:), 1, nalpha)
-            dgbdriftdrho = spread(dgbdriftdrho(1,:), 1, nalpha)
-            dgds2dr = spread(dgds2dr(1,:), 1, nalpha)
-            dgds21dr = spread(dgds21dr(1,:), 1, nalpha)
-            dgds22dr = spread(dgds22dr(1,:), 1, nalpha)
-            djacdrho = spread(djacdrho(1,:), 1, nalpha)
-            b_dot_grad_z = spread(b_dot_grad_z(1,:), 1, nalpha)
-            zeta = spread(zeta(1,:), 1, nalpha) 
+            bmag = spread(bmag(1, :), 1, nalpha)
+            bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
+            gds2 = spread(gds2(1, :), 1, nalpha)
+            gds21 = spread(gds21(1, :), 1, nalpha)
+            gds22 = spread(gds22(1, :), 1, nalpha)
+            gds23 = spread(gds23(1, :), 1, nalpha)
+            gds24 = spread(gds24(1, :), 1, nalpha)
+            gbdrift0 = spread(gbdrift0(1, :), 1, nalpha)
+            gbdrift = spread(gbdrift(1, :), 1, nalpha)
+            cvdrift0 = spread(cvdrift0(1, :), 1, nalpha)
+            cvdrift = spread(cvdrift(1, :), 1, nalpha)
+            dcvdrift0drho = spread(dcvdrift0drho(1, :), 1, nalpha)
+            dcvdriftdrho = spread(dcvdriftdrho(1, :), 1, nalpha)
+            dgbdrift0drho = spread(dgbdrift0drho(1, :), 1, nalpha)
+            dgbdriftdrho = spread(dgbdriftdrho(1, :), 1, nalpha)
+            dgds2dr = spread(dgds2dr(1, :), 1, nalpha)
+            dgds21dr = spread(dgds21dr(1, :), 1, nalpha)
+            dgds22dr = spread(dgds22dr(1, :), 1, nalpha)
+            djacdrho = spread(djacdrho(1, :), 1, nalpha)
+            b_dot_grad_z = spread(b_dot_grad_z(1, :), 1, nalpha)
+            zeta = spread(zeta(1, :), 1, nalpha)
 
             !!GA - for correct momentum diagnostics
             !>R^2 * grad zeta . grad y / B^2
-            gradzeta_grady = geo_surf%rhoc/(geo_surf%qinp * bmag**2 )
+            gradzeta_grady = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
             gradzeta_gradx = 0.0
             !>R^2 * b . grad zeta = R^2 * b. grad theta * dzeta/dtheta
-            gradpar_zeta = geo_surf%rmaj * spread(btor,1,nalpha) / bmag
-            
+            gradpar_zeta = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag
+
          case (geo_option_inputprof)
             ! first read in some local parameters
             ! only thing needed really is rhoc
@@ -360,35 +360,35 @@ contains
             zeta(1, :) = zed * geo_surf%qinp
 
             !!GA - Ensuring all arrays are filled with the alpha = 1 information
-            bmag = spread(bmag(1,:), 1, nalpha)
-            bmag_psi0 = spread(bmag_psi0(1,:), 1, nalpha)
-            gds2 = spread(gds2(1,:), 1, nalpha)
-            gds21 = spread(gds21(1,:), 1, nalpha)
-            gds22 = spread(gds22(1,:), 1, nalpha)
-            gds23 = spread(gds23(1,:), 1, nalpha)
-            gds24 = spread(gds24(1,:), 1, nalpha)
-            gbdrift0 = spread(gbdrift0(1,:), 1, nalpha)
-            gbdrift = spread(gbdrift(1,:), 1, nalpha)
-            cvdrift0 = spread(cvdrift0(1,:), 1, nalpha)
-            cvdrift = spread(cvdrift(1,:), 1, nalpha)
-            dcvdrift0drho = spread(dcvdrift0drho(1,:), 1, nalpha)
-            dcvdriftdrho = spread(dcvdriftdrho(1,:), 1, nalpha)
-            dgbdrift0drho = spread(dgbdrift0drho(1,:), 1, nalpha)
-            dgbdriftdrho = spread(dgbdriftdrho(1,:), 1, nalpha)
-            dgds2dr = spread(dgds2dr(1,:), 1, nalpha)
-            dgds21dr = spread(dgds21dr(1,:), 1, nalpha)
-            dgds22dr = spread(dgds22dr(1,:), 1, nalpha)
-            djacdrho = spread(djacdrho(1,:), 1, nalpha)
-            b_dot_grad_z = spread(b_dot_grad_z(1,:), 1, nalpha)
-            zeta = spread(zeta(1,:), 1, nalpha) 
+            bmag = spread(bmag(1, :), 1, nalpha)
+            bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
+            gds2 = spread(gds2(1, :), 1, nalpha)
+            gds21 = spread(gds21(1, :), 1, nalpha)
+            gds22 = spread(gds22(1, :), 1, nalpha)
+            gds23 = spread(gds23(1, :), 1, nalpha)
+            gds24 = spread(gds24(1, :), 1, nalpha)
+            gbdrift0 = spread(gbdrift0(1, :), 1, nalpha)
+            gbdrift = spread(gbdrift(1, :), 1, nalpha)
+            cvdrift0 = spread(cvdrift0(1, :), 1, nalpha)
+            cvdrift = spread(cvdrift(1, :), 1, nalpha)
+            dcvdrift0drho = spread(dcvdrift0drho(1, :), 1, nalpha)
+            dcvdriftdrho = spread(dcvdriftdrho(1, :), 1, nalpha)
+            dgbdrift0drho = spread(dgbdrift0drho(1, :), 1, nalpha)
+            dgbdriftdrho = spread(dgbdriftdrho(1, :), 1, nalpha)
+            dgds2dr = spread(dgds2dr(1, :), 1, nalpha)
+            dgds21dr = spread(dgds21dr(1, :), 1, nalpha)
+            dgds22dr = spread(dgds22dr(1, :), 1, nalpha)
+            djacdrho = spread(djacdrho(1, :), 1, nalpha)
+            b_dot_grad_z = spread(b_dot_grad_z(1, :), 1, nalpha)
+            zeta = spread(zeta(1, :), 1, nalpha)
 
             !!GA - for correct momentum diagnostics
             !>R^2 * grad zeta . grad y / B^2
-            gradzeta_grady = geo_surf%rhoc/(geo_surf%qinp * bmag**2 )
+            gradzeta_grady = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
             gradzeta_gradx = 0.0
             !>R^2 * b . grad zeta = R^2 * b. grad theta * dzeta/dtheta
-            gradpar_zeta = geo_surf%rmaj * spread(btor,1,nalpha) / bmag
-            
+            gradpar_zeta = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag
+
          case (geo_option_vmec)
             vmec_chosen = .true.
             !> read in input parameters for vmec
@@ -744,7 +744,7 @@ contains
          !!GA
          call set_coef_constant(gradzeta_grady, nalpha)
          call set_coef_constant(gradzeta_gradx, nalpha)
-         call set_coef_constant(gradpar_zeta, nalpha) 
+         call set_coef_constant(gradpar_zeta, nalpha)
          ! following coefficients calculated later using above coefficients
          !      call set_coef_constant (dbdzed, nalpha)
          !      call set_coef_constant (jacob, nalpha)
@@ -814,11 +814,11 @@ contains
 
       if (.not. allocated(x_displacement_fac)) allocate (x_displacement_fac(nalpha, -nzgrid:nzgrid)); x_displacement_fac = 0.
 
-      !!GA 
-      if(.not. allocated(gradzeta_grady)) allocate (gradzeta_grady(nalpha, -nzgrid:nzgrid)); gradzeta_grady = 0.0
-      if(.not. allocated(gradzeta_gradx)) allocate (gradzeta_gradx(nalpha, -nzgrid:nzgrid)); gradzeta_gradx = 0.0
-      if(.not. allocated(gradpar_zeta)) allocate (gradpar_zeta(nalpha, -nzgrid:nzgrid)); gradpar_zeta = 0.0
-      
+      !!GA
+      if (.not. allocated(gradzeta_grady)) allocate (gradzeta_grady(nalpha, -nzgrid:nzgrid)); gradzeta_grady = 0.0
+      if (.not. allocated(gradzeta_gradx)) allocate (gradzeta_gradx(nalpha, -nzgrid:nzgrid)); gradzeta_gradx = 0.0
+      if (.not. allocated(gradpar_zeta)) allocate (gradpar_zeta(nalpha, -nzgrid:nzgrid)); gradpar_zeta = 0.0
+
    end subroutine allocate_arrays
 
    subroutine read_parameters
@@ -965,7 +965,7 @@ contains
       call broadcast(gradzeta_grady)
       call broadcast(gradzeta_gradx)
       call broadcast(gradpar_zeta)
-      
+
    end subroutine broadcast_arrays
 
    subroutine communicate_geo_multibox(l_edge, r_edge)
@@ -1205,9 +1205,9 @@ contains
       if (allocated(x_displacement_fac)) deallocate (x_displacement_fac)
 
       !!GA
-      if (allocated(gradzeta_grady)) deallocate(gradzeta_grady)
-      if (allocated(gradzeta_gradx)) deallocate(gradzeta_gradx)
-      if (allocated(gradpar_zeta)) deallocate(gradpar_zeta)
+      if (allocated(gradzeta_grady)) deallocate (gradzeta_grady)
+      if (allocated(gradzeta_gradx)) deallocate (gradzeta_gradx)
+      if (allocated(gradpar_zeta)) deallocate (gradpar_zeta)
       geoinit = .false.
 
    end subroutine finish_geometry

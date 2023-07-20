@@ -347,7 +347,7 @@ contains
             ! end do
             !> get d <f> / dvpa
 !            call get_dgdvpa_ffs(dgdv, ikxyz)
-            call get_dgdvpa_ffs(g0v (:,:,ikxyz), ikxyz)
+            call get_dgdvpa_ffs(g0v(:, :, ikxyz), ikxyz)
 
             !!!!
             ! do iv = 1, nvpa

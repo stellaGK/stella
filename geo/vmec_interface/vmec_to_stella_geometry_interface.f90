@@ -334,8 +334,8 @@ contains
       integer, intent(out) :: ierr
       integer :: ierr2
 
-      !!GA 
-      real, dimension(:, -nzgrid:), optional, intent (out) :: gradzeta_grady_out, gradzeta_gradx_out
+      !!GA
+      real, dimension(:, -nzgrid:), optional, intent(out) :: gradzeta_grady_out, gradzeta_gradx_out
       real, dimension(:, -nzgrid:), optional, intent(out) :: gradpar_zeta_r2
 
       !*********************************************************************
@@ -384,7 +384,7 @@ contains
       real, dimension(:, :), allocatable :: B_X, B_Y, B_Z
       real, dimension(:, :), allocatable :: gradzeta_grady, gradzeta_gradx
       real, dimension(:, :), allocatable :: gradtheta_grady, gradtheta_gradx
-      
+
       logical :: theta_converged
 
       !*********************************************************************
@@ -1590,7 +1590,7 @@ contains
       x_displacement_fac = 2.0 * sqrt(normalized_toroidal_flux_used) * sqrt(d_R_d_s**2 + d_Z_d_s**2) / L_reference
 
       gradzeta_gradx_out = gradzeta_gradx * R**2
-      gradzeta_grady_out =  gradzeta_grady * R**2
+      gradzeta_grady_out = gradzeta_grady * R**2
       gradpar_zeta_r2 = gradpar_zeta * R**2
       !*********************************************************************
       ! Free all arrays that were allocated.
