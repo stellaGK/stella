@@ -748,7 +748,7 @@ contains
          !> leave dmu(nmu) uninitialized. should never be used, so want
          !> valgrind or similar to return error if it is
       end if
-      
+
       !> maxwell_mu is the mu part of the v-space Maxwellian
       maxwell_mu = exp(-2.*spread(spread(spread(mu, 1, nalpha), 2, nztot) * spread(bmag, 3, nmu), 4, nspec) &
                        * spread(spread(spread(spec%temp_psi0 / spec%temp, 1, nalpha), 2, nztot), 3, nmu))
