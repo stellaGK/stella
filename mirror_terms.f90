@@ -616,7 +616,7 @@ contains
       complex, dimension(:, :, :), allocatable :: dgdvpa
       integer :: iy
       complex, dimension(:, :), allocatable :: g_swap
-      
+
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
       tupwnd = (1.0 - time_upwind) * 0.5
@@ -684,15 +684,15 @@ contains
             iy = iy_idx(kxyz_lo, ikxyz)
             do imu = 1, nmu
                call fd_variable_upwinding_vpa(1, g0v(:, imu, ikxyz), dvpa, &
-                    mirror_sign(iy, iz), vpa_upwind, dgdvpa(:, imu, ikxyz))
+                                              mirror_sign(iy, iz), vpa_upwind, dgdvpa(:, imu, ikxyz))
                dgdvpa(:, imu, ikxyz) = g0v(:, imu, ikxyz) + tupwnd * mirror(iy, iz, imu, is) * &
-                    (dgdvpa(:, imu, ikxyz) )
+                                       (dgdvpa(:, imu, ikxyz))
                call invert_mirror_operator(imu, ikxyz, dgdvpa(:, imu, ikxyz))
             end do
          end do
          g0v = dgdvpa
          deallocate (dgdvpa)
-         
+
          ! then take the results and remap again so y,kx,z local.
          call gather(kxyz2vmu, g0v, g0x)
 

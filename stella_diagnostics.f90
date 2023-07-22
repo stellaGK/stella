@@ -336,7 +336,7 @@ contains
             deallocate (phiavg, phioldavg)
          end if
       end if
-      
+
       !> only write data to file every nwrite time steps
       if (mod(istep, nwrite) /= 0) return
 
@@ -384,7 +384,7 @@ contains
          !> for all species
          if (debug) write (*, *) 'stella_diagnostics::write_fluxes_ffs'
          call get_moments_ffs(gnew, dens_ffs, upar_ffs, pres_ffs)
-         upar_ffs = 0.5* upar_ffs
+         upar_ffs = 0.5 * upar_ffs
          !> calculate the (ky,kx) contributions to the particle, parallel momentum and energy fluxes
          call get_fluxes_ffs(dens_ffs, upar_ffs, pres_ffs, part_flux, mom_flux, heat_flux, &
                              pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
@@ -1899,7 +1899,7 @@ contains
                do iz = -nzgrid, nzgrid
                   write (tmpunit, '(10es15.4e3,i3)') zed(iz), zed(iz) - zed0(iky, ikx), aky(iky), akx(ikx), &
                      real(phi(iky, ikx, iz, it)), aimag(phi(iky, ikx, iz, it)), &
-                     (real(phi(iky, ikx, iz, it))**2 + aimag(phi(iky, ikx, iz, it))**2)**0.5, & 
+                     (real(phi(iky, ikx, iz, it))**2 + aimag(phi(iky, ikx, iz, it))**2)**0.5, &
                      real(apar(iky, ikx, iz, it)), aimag(apar(iky, ikx, iz, it)), zed_eqarc(iz) - zed0(iky, ikx), &
                      kperp2(iky, ikx, it, iz), it
                end do

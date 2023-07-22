@@ -58,7 +58,7 @@ contains
          fields_updated = .false.
          call advance_fields(g, phi, apar, dist='gbar', const_in_alpha=.true.)
       end if
-      
+
       !> if using delphi formulation for response matrix, then phi = phi^n replaces
       !> phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
       if (use_deltaphi_for_response_matrix) then

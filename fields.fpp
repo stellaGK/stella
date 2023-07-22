@@ -511,7 +511,7 @@ contains
       use kt_grids, only: akx
       use kt_grids, only: zonal_mode
       use species, only: has_electron_species, ion_species
-      use physics_flags, only: adiabatic_option_switch,adiabatic_option_fieldlineavg
+      use physics_flags, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       use stella_geometry, only: dl_over_b
       implicit none
 
@@ -530,12 +530,12 @@ contains
       real, dimension(:, :, :, :), allocatable :: gamtot_alpha
       real, dimension(:, :), allocatable :: g0
       real, dimension(:), allocatable :: bessel
-      
+
       if (debug) write (*, *) 'fields::init_fields::init_gamm0_factor_ffs'
 
       if (.not. allocated(gamtot3)) then
          if (.not. has_electron_species(spec) &
-              .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+             .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
             allocate (gamtot3(nakx, -nzgrid:nzgrid)); gamtot3 = 0.
          else
             allocate (gamtot3(1, 1)); gamtot3 = 0.
@@ -599,14 +599,14 @@ contains
             zm = 1
          end if
          if (.not. has_electron_species(spec)) then
-            !!FLAG -- ISSUE WITH ADIABATIC !! 
+            !!FLAG -- ISSUE WITH ADIABATIC !!
             efac = tite / nine * (spec(ion_species)%dens / spec(ion_species)%temp)
             gamtot = gamtot + efac
             if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
                if (zonal_mode(1)) then
                   do ikx = 1, nakx
-                     tmp = 1./efac - sum(dl_over_b / gamtot(:, ikx, :))/ nalpha
-                     gamtot3(ikx, :) = 1./( sum(gamtot(:, ikx, :), dim=1)/nalpha * tmp)
+                     tmp = 1./efac - sum(dl_over_b / gamtot(:, ikx, :)) / nalpha
+                     gamtot3(ikx, :) = 1./(sum(gamtot(:, ikx, :), dim=1) / nalpha * tmp)
                   end do
                   if (akx(1) < epsilon(0.)) then
                      gamtot3(1, :) = 0.0
@@ -615,7 +615,7 @@ contains
             end if
          end if
       end if
-         
+
       do iz = -nzgrid, nzgrid
          !> in calculating the Fourier coefficients for Gamma_0, change loop orders
          !> so that inner loop is over ivmu super-index;
@@ -808,9 +808,9 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
       character(*), intent(in) :: dist
-      
+
       logical, optional, intent(in) :: const_in_alpha
-      
+
       if (fields_updated) return
 
       !> time the communications + field solve
@@ -1040,16 +1040,16 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
 
-      integer :: iz, ikx, it, iky 
+      integer :: iz, ikx, it, iky
       complex, dimension(:), allocatable :: phi_fsa
       complex, dimension(:, :, :), allocatable :: phi_swap, source
 
-      !!GA 
+      !!GA
       logical, optional, intent(in) :: const_in_alpha
       real, dimension(:, :, :, :), allocatable :: gamtot_t
 
       if (.not. allocated(source)) allocate (source(naky, nakx, -nzgrid:nzgrid)); source = 0.0
-      
+
       if (fphi > epsilon(0.0)) then
          if (present(const_in_alpha)) then
             allocate (gamtot_t(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -1078,26 +1078,26 @@ contains
             if (modified_adiabatic_electrons) then
                !> first must get phi on grid that includes positive and negative ky (but only positive kx)
                !!            allocate (phi_swap(naky_all, ikx_max, -nzgrid:nzgrid))
-               
+
                if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::swap_kxky_ordered'
                ! do iz = -nzgrid, nzgrid
                !    call swap_kxky_ordered(phi(:, :, iz, 1), phi_swap(:, :, iz))
                ! end do
                ! !> Calculate the flux surface average of this phi_inhomogeneous
                allocate (phi_fsa(nakx))
-               
+
                if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::flux_surface_average_ffs'
-               
+
                do ikx = 1, nakx
-                  call flux_surface_average_ffs(phi(:,ikx,:,1), phi_fsa(ikx))
+                  call flux_surface_average_ffs(phi(:, ikx, :, 1), phi_fsa(ikx))
                end do
-                           
+
                !> use the flux surface average of phi_inhomogeneous, together with the
                !> adiabatic_response_factor, to obtain the flux-surface-averaged phi
-               phi_fsa = phi_fsa * adiabatic_response_factor 
+               phi_fsa = phi_fsa * adiabatic_response_factor
                ! !> use the computed flux surface average of phi as an additional sosurce in quasineutrality
                ! !> to obtain the electrostatic potential; only affects the ky=0 component of QN
-            
+
                do ikx = 1, nakx
                   if (akx(1) < epsilon(0.)) then
                      source(1, 1, :) = source(1, 1, :)
@@ -1105,12 +1105,12 @@ contains
                      source(1, ikx, :) = source(1, ikx, :) + phi_fsa(ikx) * tite / nine
                   end if
                end do
-               
+
                if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::get_phi_ffs2s'
                call get_phi_ffs(source, phi(:, :, :, 1))
-               
-               deallocate(phi_fsa) 
-            
+
+               deallocate (phi_fsa)
+
             end if
          end if
          deallocate (source)
@@ -1349,7 +1349,7 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi
       logical, optional, intent(in) :: skip_fsa
       real, dimension(:, :, :, :), allocatable :: gamtot_t
-      integer :: ia, it, ikx,iky,iz 
+      integer :: ia, it, ikx, iky, iz
       complex :: tmp
       logical :: skip_fsa_local
       logical :: has_elec, adia_elec
@@ -1979,8 +1979,8 @@ contains
                end do
             end do
          end do
-     
-         ! if(full_flux_surface) then 
+
+         ! if(full_flux_surface) then
          !    call gyro_average(field, dchidy(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
          ! else
          !    call gyro_average(field, ivmu, dchidy(:, :, :, :, ivmu))
@@ -2020,13 +2020,13 @@ contains
       is = is_idx(vmu_lo, ivmu)
       iv = iv_idx(vmu_lo, ivmu)
       field = zi * spread(aky, 2, nakx) &
-           * (fphi * phi - fapar * vpa(iv) * spec(is)%stm * apar)
+              * (fphi * phi - fapar * vpa(iv) * spec(is)%stm * apar)
       ! if(full_flux_surface) then
       !    call gyro_average(field, dchidy, j0_ffs(:, :, iz, ivmu))
       ! else
       !    call gyro_average(field, iz, ivmu, dchidy)
       ! end if
-      call gyro_average(field, iz, ivmu, dchidy) 
+      call gyro_average(field, iz, ivmu, dchidy)
       deallocate (field)
 
    end subroutine get_dchidy_2d
@@ -2066,7 +2066,7 @@ contains
       ! else
       !    call gyro_average(field, iz, ivmu, dchidx)
       ! end if
-      call gyro_average(field, iz, ivmu, dchidx) 
+      call gyro_average(field, iz, ivmu, dchidx)
       deallocate (field)
 
    end subroutine get_dchidx

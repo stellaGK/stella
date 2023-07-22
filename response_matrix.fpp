@@ -590,7 +590,7 @@ contains
             call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
          end if
       end do
-      
+
       izl_offset = 1
       if (nsegments(ie, iky) > 1) then
          do iseg = 2, nsegments(ie, iky)

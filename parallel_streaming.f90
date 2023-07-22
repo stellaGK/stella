@@ -14,7 +14,7 @@ module parallel_streaming
    public :: center_zed, get_dzed
    public :: get_zed_derivative_extended_domain
    public :: stream_correction
-   
+
    private
 
    interface center_zed
@@ -38,7 +38,7 @@ module parallel_streaming
    real, dimension(2, 3) :: time_parallel_streaming = 0.
 
    real, dimension(:, :, :, :), allocatable :: stream_correction
-   
+
 contains
 
    subroutine init_parallel_streaming
@@ -64,7 +64,7 @@ contains
 
       real, dimension(:), allocatable :: energy
       real, dimension(:, :, :), allocatable :: stream_store
-      
+
       if (parallel_streaming_initialized) return
       parallel_streaming_initialized = .true.
 
@@ -75,7 +75,7 @@ contains
          if (.not. allocated(stream_correction)) allocate (stream_correction(nalpha, -nzgrid:nzgrid, nvpa, nspec)); stream_correction = 0.
          if (.not. allocated(stream_store)) allocate (stream_store(-nzgrid:nzgrid, nvpa, nspec)); stream_store = 0.
       end if
-      
+
       ! sign of stream corresponds to appearing on RHS of GK equation
       ! i.e., this is the factor multiplying dg/dz on RHS of equation
       if (include_parallel_streaming) then
@@ -232,7 +232,7 @@ contains
       complex, dimension(:, :, :, :), allocatable :: g1y_correction
       complex, dimension(:, :, :, :), allocatable :: phi1
       logical :: const_in_alpha = .true.
-      
+
       !> if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
       !> if full flux surface (flux annulus), will need to calculate in y space
 
@@ -257,7 +257,7 @@ contains
       end if
 
       !!GA - get part of phi that is 'average' in alpha
-      !!     (called phi0). We treat phi0 implicitly and (phi0- <phi 
+      !!     (called phi0). We treat phi0 implicitly and (phi0- <phi
       !!     explicitly, where <phi> is the gyroavergage of true phi
       if (driftkinetic_implicit) then
          fields_updated = .false.
@@ -287,13 +287,13 @@ contains
          if (driftkinetic_implicit) call get_dgdz_centered(phi1, ivmu, dgphi_dz_correction)
          !> dg/dz
          call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
-         
+
          !> if simulating a full flux surface, need to obtain the contribution from parallel streaming
          !> in y-space, so FFT d(g/F)/dz from ky to y
          if (full_flux_surface) then
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
-                  !> get dg/dz in real space 
+                  !> get dg/dz in real space
                   call swap_kxky(g0(:, :, iz, it), g0_swap)
                   call transform_ky2y(g0_swap, g0y(:, :, iz, it))
 
@@ -301,7 +301,7 @@ contains
                   call swap_kxky(dgphi_dz(:, :, iz, it), g0_swap)
                   call transform_ky2y(g0_swap, g1y(:, :, iz, it))
 
-                  !> get d phi0/dz in real space  
+                  !> get d phi0/dz in real space
                   if (driftkinetic_implicit) then
                      call swap_kxky(dgphi_dz_correction(:, :, iz, it), g0_swap)
                      call transform_ky2y(g0_swap, g1y_correction(:, :, iz, it))
@@ -318,8 +318,8 @@ contains
                !> this is (b.gradz0)*(Z/T d(<phi> - phi0)/dz
                !> the final term b.gradz0*(dg/dz + Z/T d phi0/dz) is treated implicitly
                call add_stream_term_ffs(g1y, ivmu, gout(:, :, :, :, ivmu))
-            else               
-               
+            else
+
                !> over-write g0y with d/dz (g/F) + Ze/T * d<phi>/dz
                g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt
                !> multiply d(g/F)/dz and d<phi>/dz terms with vpa*(b . grad z) and add to source (RHS of GK equation)
@@ -331,20 +331,20 @@ contains
                g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt
             else
                g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
-                    * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
+                                * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
             end if
             !> multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
             call add_stream_term(g0, ivmu, gout(:, :, :, :, ivmu))
          end if
-         
+
       end do
-      
+
       !> deallocate intermediate arrays used in this subroutine
       deallocate (g0, dgphi_dz)
       if (full_flux_surface) deallocate (g0y, g1y, g0_swap)
       if (driftkinetic_implicit) deallocate (dgphi_dz_correction, g1y_correction)
       if (driftkinetic_implicit) deallocate (phi1)
-      
+
       !> finish timing the subroutine
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
@@ -626,20 +626,20 @@ contains
          end do
       end do
 
-    end subroutine add_stream_term_ffs
+   end subroutine add_stream_term_ffs
 
-    subroutine add_stream_term_ffs_correction(g, ivmu, src)
+   subroutine add_stream_term_ffs_correction(g, ivmu, src)
 
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
       use zgrid, only: nzgrid
       use kt_grids, only: ny
-      
+
       implicit none
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: src
       integer, intent(in) :: ivmu
-      
+
       integer :: iz, iy, iv, is
 
       iv = iv_idx(vmu_lo, ivmu)
@@ -649,8 +649,8 @@ contains
             src(iy, :, iz, :) = src(iy, :, iz, :) + stream_correction(iy, iz, iv, is) * g(iy, :, iz, :)
          end do
       end do
-      
-    end subroutine add_stream_term_ffs_correction
+
+   end subroutine add_stream_term_ffs_correction
 
    subroutine stream_tridiagonal_solve(iky, ie, iv, is, g)
 

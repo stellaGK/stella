@@ -277,7 +277,7 @@ contains
 
       if (.not. include_mirror) mirror_implicit = .false.
 
-      if(stream_implicit .and. full_flux_surface) then
+      if (stream_implicit .and. full_flux_surface) then
          driftkinetic_implicit = .true.
       end if
 

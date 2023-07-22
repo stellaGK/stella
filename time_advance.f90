@@ -665,7 +665,7 @@ contains
          cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream_correction)), zero)
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_stream)
       end if
-      
+
       if (.not. mirror_implicit) then
          ! NB: mirror has code_dt built-in, which accounts for code_dt factor here
          cfl_dt_mirror = abs(code_dt) * dvpa / max(maxval(abs(mirror)), zero)
@@ -1245,7 +1245,7 @@ contains
          if (include_collisions .and. .not. collisions_implicit) call advance_collisions_explicit(gin, phi, rhs)
 
          !> calculate and add parallel streaming term to RHS of GK eqn
-         if (include_parallel_streaming) then 
+         if (include_parallel_streaming) then
             if ((.not. stream_implicit) .or. driftkinetic_implicit) then
                if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
                call advance_parallel_streaming_explicit(gin, phi, rhs)
@@ -1555,9 +1555,9 @@ contains
       use kt_grids, only: x, swap_kxky, swap_kxky_back
       use constants, only: pi, zi
       use file_utils, only: runtype_option_switch, runtype_multibox
-      
+
       use gyro_averages, only: j0_ffs
-      
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1677,7 +1677,7 @@ contains
 
                if (radial_variation) then
                   bracket = bracket - gfac * g0xy * g1xy * exb_nonlin_fac_p * spread(rho_clamped, 1, ny)
-                   if (full_flux_surface) then
+                  if (full_flux_surface) then
                      call gyro_average(phi_corr_QN(:, :, iz, it), g0a, j0_ffs(:, :, iz, ivmu))
                   else
                      call gyro_average(phi_corr_QN(:, :, iz, it), iz, ivmu, g0a)
@@ -1831,7 +1831,7 @@ contains
       use extended_zgrid, only: fill_zed_ghost_zones
 
       use gyro_averages, only: j0_ffs
-      
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1893,7 +1893,7 @@ contains
          ! construct <phi>
          dphidz = phi
          if (radial_variation) dphidz = dphidz + phi_corr_QN
-         if(full_flux_surface) then
+         if (full_flux_surface) then
             call gyro_average(dphidz, phi_gyro, j0_ffs(:, :, :, ivmu))
          else
             call gyro_average(dphidz, ivmu, phi_gyro)
@@ -2118,7 +2118,7 @@ contains
       use parallel_streaming, only: add_parallel_streaming_radial_variation
 
       use gyro_averages, only: j0_ffs
-      
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -2182,7 +2182,7 @@ contains
                !wdrift - phi
                call get_dgdx(phi(:, :, iz, it), g1k)
                !wdriftx variation
-               if(full_flux_surface) then
+               if (full_flux_surface) then
                   call gyro_average(g1k, g0a, j0_ffs(:, :, iz, ivmu))
                else
                   call gyro_average(g1k, iz, ivmu, g0a)
@@ -2191,7 +2191,7 @@ contains
 
                call get_dgdy(phi(:, :, iz, it), g1k)
                !wdrifty variation
-               if(full_flux_surface) then
+               if (full_flux_surface) then
                   call gyro_average(g1k, g0a, j0_ffs(:, :, iz, ivmu))
                else
                   call gyro_average(g1k, iz, ivmu, g0a)
@@ -2212,7 +2212,7 @@ contains
                !
                !quasineutrality/gyroaveraging
                !
-                if(full_flux_surface) then
+               if (full_flux_surface) then
                   call gyro_average(phi_corr_QN(:, :, iz, it), g0a, j0_ffs(:, :, iz, ivmu))
                else
                   call gyro_average(phi_corr_QN(:, :, iz, it), iz, ivmu, g0a)
