@@ -32,6 +32,7 @@ contains
       use extended_zgrid, only: map_to_extended_zgrid, map_from_extended_zgrid
       use extended_zgrid, only: nsegments, nzed_segment
 
+      use run_parameters, only: driftkinetic_implicit, drifts_implicit
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
@@ -41,12 +42,23 @@ contains
       complex, dimension(:, :, :, :), allocatable :: phi_old, phi_source
       character(5) :: dist_choice
 
+      logical :: const_in_alpha = .false.
+
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Implicit time advance')
 
       !> dist_choice indicates whether the non-Boltzmann part of the pdf (h) is evolved
       !> in parallel streaming or if the guiding centre distribution (g = <f>) is evolved
       allocate (phi_source(naky, nakx, -nzgrid:nzgrid, ntubes))
       dist_choice = 'gbar'
+
+      !!GA
+      !! if (driftkinetic_implicit .or. drifts_implicit) then
+      if (driftkinetic_implicit) then
+         const_in_alpha = .true.
+         fields_updated = .false.
+         call advance_fields(g, phi, apar, dist='gbar', const_in_alpha=.true.)
+      end if
+      
       !> if using delphi formulation for response matrix, then phi = phi^n replaces
       !> phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
       if (use_deltaphi_for_response_matrix) then
@@ -67,7 +79,11 @@ contains
 
       ! we now have g_{inh}^{n+1}
       ! calculate associated fields (phi_{inh}^{n+1})
-      call advance_fields(g, phi, apar, dist=trim(dist_choice))
+      if (driftkinetic_implicit) then
+         call advance_fields(g, phi, apar, dist='gbar', const_in_alpha=.true.)
+      else
+         call advance_fields(g, phi, apar, dist=trim(dist_choice))
+      end if
 
       ! solve response_matrix*(phi^{n+1}-phi^{n*}) = phi_{inh}^{n+1}-phi^{n*}
       ! phi = phi_{inh}^{n+1}-phi^{n*} is input and overwritten by phi = phi^{n+1}-phi^{n*}

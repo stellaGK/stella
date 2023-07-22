@@ -97,7 +97,7 @@ contains
          delt_option, lu_option, &
          avail_cpu_time, delt_max, delt_min, &
          cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, &
-         stream_implicit, mirror_implicit, driftkinetic_implicit, &
+         stream_implicit, mirror_implicit, &
          drifts_implicit, use_deltaphi_for_response_matrix, &
          maxwellian_normalization, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
@@ -116,7 +116,6 @@ contains
          stream_implicit = .true.
          mirror_implicit = .true.
          drifts_implicit = .true.
-         driftkinetic_implicit = .false.
          maxwellian_inside_zed_derivative = .false.
          mirror_semi_lagrange = .true.
          mirror_linear_interp = .false.
@@ -278,16 +277,7 @@ contains
 
       if (.not. include_mirror) mirror_implicit = .false.
 
-      if (driftkinetic_implicit) then
-         stream_implicit = .false.
-      else if (stream_implicit .and. full_flux_surface) then
-         stream_implicit = .false.
-         write (*, *)
-         write (*, *) "!!!WARNING!!!"
-         write (*, *) "The option stream_implicit=T is not supported for full_flux_surface=T."
-         write (*, *) "Setting driftkinetic_implicit=T instead."
-         write (*, *) "!!!WARNING!!!"
-         write (*, *)
+      if(stream_implicit .and. full_flux_surface) then
          driftkinetic_implicit = .true.
       end if
 
