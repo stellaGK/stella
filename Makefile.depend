@@ -239,6 +239,7 @@ g_tofrom_h.o: \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
+	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 gauss_quad.o: \

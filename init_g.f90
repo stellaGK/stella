@@ -249,7 +249,6 @@ contains
       end if
 
       if (reality .and. zonal_mode(1)) phi(1, :, :) = 0.0
-
       ia = 1
 
       gvmu = 0.

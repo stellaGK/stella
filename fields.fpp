@@ -498,6 +498,8 @@ contains
       use vpamu_grids, only: integrate_species
       use gyro_averages, only: band_lu_factorisation_ffs
 
+      use species, only: ion_species
+      
       implicit none
 
       integer :: iky, ikx, iz, ia
@@ -603,7 +605,6 @@ contains
       use kt_grids, only: naky, naky_all, ikx_max
       use gyro_averages, only: band_lu_solve_ffs
       use volume_averages, only: flux_surface_average_ffs
-
       implicit none
 
       integer :: ikx
@@ -930,20 +931,22 @@ contains
       use stella_layouts, only: vmu_lo
       use run_parameters, only: fphi, fapar
       use species, only: modified_adiabatic_electrons, adiabatic_electrons
-      use zgrid, only: nzgrid
+      use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, ikx_max, naky, naky_all
-      use kt_grids, only: swap_kxky_ordered
+      use kt_grids, only: swap_kxky_ordered, swap_kxky_back_ordered
       use volume_averages, only: flux_surface_average_ffs
 
+      use stella_geometry, only: dl_over_b
+      use kt_grids, only: akx
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
 
-      integer :: iz, ikx
+      integer :: iz, ikx, it, iky 
       complex, dimension(:), allocatable :: phi_fsa
       complex, dimension(:, :, :), allocatable :: phi_swap, source
-
+      
       if (fphi > epsilon(0.0)) then
          allocate (source(naky, nakx, -nzgrid:nzgrid))
          !> calculate the contribution to quasineutrality coming from the velocity space
@@ -960,28 +963,52 @@ contains
          !> at this stage is the 'inhomogeneous' part of phi.
          if (modified_adiabatic_electrons) then
             !> first must get phi on grid that includes positive and negative ky (but only positive kx)
-            allocate (phi_swap(naky_all, ikx_max, -nzgrid:nzgrid))
+!!            allocate (phi_swap(naky_all, ikx_max, -nzgrid:nzgrid))
+            
             if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::swap_kxky_ordered'
-            do iz = -nzgrid, nzgrid
-               call swap_kxky_ordered(phi(:, :, iz, 1), phi_swap(:, :, iz))
-            end do
-            !> calculate the flux surface average of this phi_inhomogeneous
+            ! do iz = -nzgrid, nzgrid
+            !    call swap_kxky_ordered(phi(:, :, iz, 1), phi_swap(:, :, iz))
+            ! end do
+            ! !> Calculate the flux surface average of this phi_inhomogeneous
             allocate (phi_fsa(nakx))
-            if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::flux_surface_average_ffs'
+            ! allocate(phi_fsa(ikx_max))
+            
+            ! if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::flux_surface_average_ffs'
+
             do ikx = 1, nakx
-               call flux_surface_average_ffs(phi_swap(:, ikx, :), phi_fsa(ikx))
+               call flux_surface_average_ffs(phi(:,ikx,:,1), phi_fsa(ikx))
             end do
-            !> use the flux surface average of phi_inhomogeneous, together with the
-            !> adiabatic_response_factor, to obtain the flux-surface-averaged phi
-            phi_fsa = phi_fsa * adiabatic_response_factor
-            !> use the computed flux surface average of phi as an additional sosurce in quasineutrality
-            !> to obtain the electrostatic potential; only affects the ky=0 component of QN
+            
+            ! do ikx = 1, ikx_max !! nakx 
+            !    call flux_surface_average_ffs(phi_swap(:, ikx, :), phi_fsa(ikx))
+            ! end do
+            
+            ! !> use the flux surface average of phi_inhomogeneous, together with the
+            ! !> adiabatic_response_factor, to obtain the flux-surface-averaged phi
+            phi_fsa = phi_fsa * adiabatic_response_factor 
+            ! !> use the computed flux surface average of phi as an additional sosurce in quasineutrality
+            ! !> to obtain the electrostatic potential; only affects the ky=0 component of QN
+
+            ! phi_fsa_spread = spread (phi_fsa, 1, naky_all)
+
+            ! call swap_kxky_back_ordered(phi_fsa_spread, phi_fsa2) 
+            
             do ikx = 1, nakx
-               source(1, ikx, :) = source(1, ikx, :) + phi_fsa(ikx) * tite / nine
+               if (akx(1) < epsilon(0.)) then
+                  source(1, 1, :) = source(1, 1, :)
+               else
+     !!          tmp = sum(dl_over_b(1, :) * phi(1, ikx, :, 1)) * adiabatic_response_factor(1)
+                  !!         source(1, ikx, :) = source(1, ikx, :) + tmp * tite / nine
+                  source(1, ikx, :) = source(1, ikx, :) + phi_fsa(ikx) * tite / nine
+               end if
             end do
+            
             if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::get_phi_ffs2s'
             call get_phi_ffs(source, phi(:, :, :, 1))
-            deallocate (phi_swap, phi_fsa)
+
+            deallocate(phi_fsa) 
+  !!          deallocate (phi_swap, phi_fsa)
+            
          end if
          deallocate (source)
       else if (.not. adiabatic_electrons) then
@@ -1212,7 +1239,7 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi
       logical, optional, intent(in) :: skip_fsa
       real, dimension(:, :, :, :), allocatable :: gamtot_t
-      integer :: ia, it, ikx
+      integer :: ia, it, ikx,iky,iz 
       complex :: tmp
       logical :: skip_fsa_local
       logical :: has_elec, adia_elec
@@ -1820,6 +1847,8 @@ contains
       use vpamu_grids, only: vpa
       use kt_grids, only: nakx, aky, naky
 
+      ! use gyro_averages, only: j0_ffs
+      ! use physics_flags, only: full_flux_surface
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar
@@ -1840,6 +1869,12 @@ contains
                end do
             end do
          end do
+     
+         ! if(full_flux_surface) then 
+         !    call gyro_average(field, dchidy(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
+         ! else
+         !    call gyro_average(field, ivmu, dchidy(:, :, :, :, ivmu))
+         ! end if
          call gyro_average(field, ivmu, dchidy(:, :, :, :, ivmu))
       end do
 
@@ -1859,6 +1894,8 @@ contains
       use vpamu_grids, only: vpa
       use kt_grids, only: nakx, aky, naky
 
+      ! use gyro_averages, only: j0_ffs
+      ! use physics_flags, only: full_flux_surface
       implicit none
 
       integer, intent(in) :: ivmu, iz
@@ -1873,9 +1910,13 @@ contains
       is = is_idx(vmu_lo, ivmu)
       iv = iv_idx(vmu_lo, ivmu)
       field = zi * spread(aky, 2, nakx) &
-              * (fphi * phi - fapar * vpa(iv) * spec(is)%stm * apar)
-      call gyro_average(field, iz, ivmu, dchidy)
-
+           * (fphi * phi - fapar * vpa(iv) * spec(is)%stm * apar)
+      ! if(full_flux_surface) then
+      !    call gyro_average(field, dchidy, j0_ffs(:, :, iz, ivmu))
+      ! else
+      !    call gyro_average(field, iz, ivmu, dchidy)
+      ! end if
+      call gyro_average(field, iz, ivmu, dchidy) 
       deallocate (field)
 
    end subroutine get_dchidy_2d
@@ -1892,6 +1933,8 @@ contains
       use vpamu_grids, only: vpa
       use kt_grids, only: akx, naky, nakx
 
+      ! use gyro_averages, only: j0_ffs
+      ! use physics_flags, only: full_flux_surface
       implicit none
 
       integer, intent(in) :: ivmu, iz
@@ -1907,8 +1950,13 @@ contains
       iv = iv_idx(vmu_lo, ivmu)
       field = zi * spread(akx, 1, naky) &
               * (fphi * phi - fapar * vpa(iv) * spec(is)%stm * apar)
-      call gyro_average(field, iz, ivmu, dchidx)
 
+      ! if(full_flux_surface) then
+      !    call gyro_average(field, dchidx, j0_ffs(:, :, iz, ivmu))
+      ! else
+      !    call gyro_average(field, iz, ivmu, dchidx)
+      ! end if
+      call gyro_average(field, iz, ivmu, dchidx) 
       deallocate (field)
 
    end subroutine get_dchidx

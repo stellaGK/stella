@@ -245,6 +245,7 @@ contains
          !> see appendix of the stella JCP 2019 for details
 
          call get_dgdz_centered(g0, ivmu, dgphi_dz)
+         
          call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
          !> if simulating a full flux surface, need to obtain the contribution from parallel streaming
          !> in y-space, so FFT d(g/F)/dz from ky to y
