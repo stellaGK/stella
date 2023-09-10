@@ -295,6 +295,7 @@ contains
       use volume_averages, only: volume_average, fieldline_average
       use run_parameters, only: fphi
 
+      use stella_geometry, only: dl_over_b
       implicit none
 
       !> The current timestep
@@ -328,6 +329,7 @@ contains
             allocate (phioldavg(naky, nakx))
             call fieldline_average(phi, phiavg)
             call fieldline_average(phi_old, phioldavg)
+            
             where (abs(phiavg) < zero .or. abs(phioldavg) < zero)
                omega_vs_time(mod(istep, navg) + 1, :, :) = 0.0
             elsewhere
@@ -1890,14 +1892,14 @@ contains
       integer :: iky, ikx, iz, it
 
       call open_output_file(tmpunit, '.final_fields')
-      write (tmpunit, '(10a14)') '# z', 'z-zed0', 'aky', 'akx', &
+      write (tmpunit, '(11a14)') '# z', 'z-zed0', 'aky', 'akx', &
          'real(phi)', 'imag(phi)', 'real(apar)', '|phi|', 'imag(apar)', &
          'z_eqarc-zed0', 'kperp2'
       do iky = 1, naky
          do ikx = 1, nakx
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
-                  write (tmpunit, '(10es15.4e3,i3)') zed(iz), zed(iz) - zed0(iky, ikx), aky(iky), akx(ikx), &
+                  write (tmpunit, '(11es15.4e3,i3)') zed(iz), zed(iz) - zed0(iky, ikx), aky(iky), akx(ikx), &
                      real(phi(iky, ikx, iz, it)), aimag(phi(iky, ikx, iz, it)), &
                      (real(phi(iky, ikx, iz, it))**2 + aimag(phi(iky, ikx, iz, it))**2)**0.5, &
                      real(apar(iky, ikx, iz, it)), aimag(apar(iky, ikx, iz, it)), zed_eqarc(iz) - zed0(iky, ikx), &

@@ -105,7 +105,7 @@ contains
       use dist_fn_arrays, only: gnew
       use dist_fn, only: init_gxyz, init_dist_fn
       use dist_redistribute, only: init_redistribute
-      use time_advance, only: init_time_advance
+      use time_advance, only: init_time_advance, checksum
       use extended_zgrid, only: init_extended_zgrid
       use kt_grids, only: init_kt_grids, read_kt_grids_parameters
       use kt_grids, only: naky, nakx, ny, nx, nalpha
@@ -121,6 +121,7 @@ contains
       use sources, only: init_sources
       use volume_averages, only: init_volume_averages, volume_average
 
+      use physics_flags, only: full_flux_surface
       implicit none
 
       !> Starting timestep: zero unless the simulation has been restarted
@@ -135,6 +136,9 @@ contains
       integer, dimension(:), allocatable  :: seed
       integer :: i, n, ierr
       real :: delt_saved
+
+      logical :: norm 
+      real :: total
 
       !> initialize mpi message passing
       if (.not. mpi_initialized) call init_mp
@@ -234,7 +238,7 @@ contains
          call init_ranf(.false., seed, job + 2)
       end if
       deallocate (seed)
-
+      
       !> read layouts_knobs namelist from the input file,
       !> which determines the order of parallelisation within the different layouts
       if (debug) write (6, *) 'stella::init_stella::init_stella_layouts'
@@ -283,6 +287,7 @@ contains
       !> initialise the distribution function in the kxkyz_lo and store in gvmu
       if (debug) write (6, *) "stella::init_stella::ginit"
       call ginit(restarted, istep0)
+
       !> use mapping from kxkyz_lo to vmu_lo to get a copy of g that has ky, kx and z local to each core;
       !> stored in gnew and copied to gold
       if (debug) write (6, *) "stella::init_stella::init_gxyz"
@@ -311,7 +316,7 @@ contains
             call init_response_matrix
          end if
       end if
-
+      
       !> get initial field from initial distribution function
       if (debug) write (6, *) 'stella::init_stella::advance_fields'
       call advance_fields(gnew, phi, apar, dist='gbar')

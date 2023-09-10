@@ -1,0 +1,2 @@
+# Hashes of file build rules.
+e455258e1f3e15cadf5991487f96892e externals/git_version/CMakeFiles/version_header

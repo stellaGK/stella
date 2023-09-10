@@ -399,6 +399,7 @@ netcdf_utils.o: \
 	 mp.o 
 parallel_streaming.o: \
 	 extended_zgrid.o \
+	 fields.o \
 	 fields_arrays.o \
 	 finite_differences.o \
 	 gyro_averages.o \
@@ -660,6 +661,7 @@ vmec_to_stella_geometry_interface.o: \
 	 fzero.o 
 volume_averages.o: \
 	 kt_grids.o \
+	 mp.o \
 	 physics_flags.o \
 	 stella_geometry.o \
 	 stella_transforms.o \

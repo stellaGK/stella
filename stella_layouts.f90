@@ -170,7 +170,6 @@ contains
       (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
 
       use mp, only: iproc, nproc
-
       implicit none
 
       integer, intent(in) :: nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec

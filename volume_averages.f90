@@ -111,7 +111,7 @@ contains
       do it = 1, ntubes
          avg = avg + sum(spread(spread(dl_over_b(ia, :), 1, naky), 2, nakx) * unavg(:, :, :, it), dim=3)
       end do
-      avg = avg / real(ntubes)
+      avg = avg / (real(ntubes) * sum(dl_over_b))
 
    end subroutine fieldline_average_real
 
@@ -120,7 +120,6 @@ contains
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, naky
       use stella_geometry, only: dl_over_b
-
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: unavg
@@ -134,8 +133,8 @@ contains
       do it = 1, ntubes
          avg = avg + sum(spread(spread(dl_over_b(ia, :), 1, naky), 2, nakx) * unavg(:, :, :, it), dim=3)
       end do
-      avg = avg / real(ntubes)
-
+      avg = avg / (real(ntubes) * sum(dl_over_b)) 
+      
    end subroutine fieldline_average_complex
 
    !==============================================

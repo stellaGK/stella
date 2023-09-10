@@ -110,6 +110,7 @@ contains
       use zgrid, only: zed
       use file_utils, only: open_output_file
       use mp, only: mp_abort
+      use mp, only: proc0
 
       implicit none
 
@@ -281,8 +282,8 @@ contains
          !zed_scalefac = pi/zmax
          arc_length = 2.0 * pi * arc_length / spread(zed_domain_size, 2, 2 * nzgrid_vmec + 1)
          zed_scalefac = 1.0
-         !       arc_length = arc_length*zed_scalefac
 
+         !       arc_length = arc_length*zed_scalefac
          !!GA
          if (.not. allocated(gradpar_zeta)) allocate (gradpar_zeta(nalpha, -nzgrid:nzgrid))
 
@@ -337,28 +338,28 @@ contains
          !> we must take care to avoid aliasing.
          !> this is accomplished by filtering out the highest third of
          !> the wavenumber spectra
-         if (debug) write (*, *) 'get_vmec_geo::filter_geo_coef'
-         if (full_flux_surface .and. .not. const_alpha_geo) then
-            do iz = -nzgrid, nzgrid
-               call filter_geo_coef(naky, bmag(:, iz))
-               call filter_geo_coef(naky, grad_alpha_grad_alpha(:, iz))
-               call filter_geo_coef(naky, grad_alpha_grad_psi(:, iz))
-               call filter_geo_coef(naky, grad_psi_grad_psi(:, iz))
-               call filter_geo_coef(naky, gds23(:, iz))
-               call filter_geo_coef(naky, gds24(:, iz))
-               call filter_geo_coef(naky, gds25(:, iz))
-               call filter_geo_coef(naky, gds26(:, iz))
-               call filter_geo_coef(naky, gbdrift_alpha(:, iz))
-               call filter_geo_coef(naky, gbdrift0_psi(:, iz))
-               call filter_geo_coef(naky, cvdrift_alpha(:, iz))
-               call filter_geo_coef(naky, cvdrift0_psi(:, iz))
-               call filter_geo_coef(naky, b_dot_grad_z(:, iz))
-               !!GA
-               call filter_geo_coef(naky, gradzeta_gradx(:, iz))
-               call filter_geo_coef(naky, gradzeta_grady(:, iz))
-               call filter_geo_coef(naky, gradpar_zeta_r2(:, iz))
-            end do
-         end if
+         ! if (debug) write (*, *) 'get_vmec_geo::filter_geo_coef' 
+         ! if (full_flux_surface.and. .not. const_alpha_geo) then
+         !    do iz = -nzgrid, nzgrid
+         !       call filter_geo_coef(naky, bmag(:, iz))
+         !       call filter_geo_coef(naky, grad_alpha_grad_alpha(:, iz))
+         !       call filter_geo_coef(naky, grad_alpha_grad_psi(:, iz))
+         !       call filter_geo_coef(naky, grad_psi_grad_psi(:, iz))
+         !       call filter_geo_coef(naky, gds23(:, iz))
+         !       call filter_geo_coef(naky, gds24(:, iz))
+         !       call filter_geo_coef(naky, gds25(:, iz))
+         !       call filter_geo_coef(naky, gds26(:, iz))
+         !       call filter_geo_coef(naky, gbdrift_alpha(:, iz))
+         !       call filter_geo_coef(naky, gbdrift0_psi(:, iz))
+         !       call filter_geo_coef(naky, cvdrift_alpha(:, iz))
+         !       call filter_geo_coef(naky, cvdrift0_psi(:, iz))
+         !       call filter_geo_coef(naky, b_dot_grad_z(:, iz))
+         !       !!GA
+         !       call filter_geo_coef(naky, gradzeta_gradx(:, iz))
+         !       call filter_geo_coef(naky, gradzeta_grady(:, iz))
+         !       call filter_geo_coef(naky, gradpar_zeta_r2(:, iz))
+         !    end do
+         ! end if
       else
          !> if zed_equal_arc = F, zed coordinate is the same as VMEC's zeta coordinate,
          !> so no need to interpolate onto a new grid
@@ -452,6 +453,11 @@ contains
       theta = spread(alpha, 2, 2 * nzgrid + 1) + zeta / surf%qinp
       ! this is the vmec theta (not straight-field-line coordinate)
       ! scaled to run between -pi and pi
+
+      surf%rhoc_psi0 = surf%rhoc
+      surf%qinp_psi0 = surf%qinp
+      surf%shat_psi0 = surf%shat
+
       theta_vmec = theta_vmec / nfp
 
       call open_output_file(tmpunit, '.vmec.geo')

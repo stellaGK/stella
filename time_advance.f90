@@ -204,12 +204,16 @@ contains
       use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
       use run_parameters, only: maxwellian_normalization
 
+      use mp, only: proc0
+
       implicit none
 
       integer :: ivmu, iv, imu, is
       real :: fac
       real, dimension(:, :), allocatable :: wcvdrifty, wgbdrifty
       real, dimension(:, :), allocatable :: wcvdriftx, wgbdriftx
+
+      integer :: ia , iz
 
       if (wdriftinit) return
       wdriftinit = .true.
@@ -322,7 +326,7 @@ contains
          end if
 
       end do
-
+      
       deallocate (wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty)
 
    end subroutine init_wdrift
@@ -379,7 +383,7 @@ contains
             wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          end if
       end do
-
+      
       deallocate (energy)
 
    end subroutine init_wstar
@@ -865,7 +869,6 @@ contains
             !> Advance the explicit parts of the GKE
             if (debug) write (*, *) 'time_advance::advance_explicit'
             if (.not. fully_implicit) call advance_explicit(gnew, restart_time_step, istep)
-
             !> Use operator splitting to separately evolve all terms treated implicitly
             if (.not. restart_time_step .and. .not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
          else
@@ -910,7 +913,7 @@ contains
       end if
 
       gold = gnew
-
+!      fields_updated = .false.
       !> Ensure fields are updated so that omega calculation is correct.
       call advance_fields(gnew, phi, apar, dist='gbar')
 
@@ -1238,6 +1241,7 @@ contains
 
             !> calculate and add omega_* term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wstar_explicit'
+
             call advance_wstar_explicit(phi, rhs)
          end if
 
@@ -1315,7 +1319,7 @@ contains
       if (debug) write (*, *) 'time_advance::solve_gke::get_dchidy'
       !> get d<chi>/dy in k-space
       call get_dchidy(phi, apar, g0)
-
+      
       if (full_flux_surface) then
          !> assume only a single flux surface simulated
          it = 1
@@ -1337,6 +1341,7 @@ contains
          !> multiply d<chi>/dy with omega_* coefficient and add to source (RHS of GK eqn)
          if (debug) write (*, *) 'time_advance::solve_gke::add_wstar_term'
          !       call add_wstar_term (g0, gout)
+
          call add_explicit_term(g0, wstar(1, :, :), gout)
       end if
       deallocate (g0)
@@ -1423,13 +1428,13 @@ contains
          ! add vM . grad y dg/dy term to equation
          call add_explicit_term(g0k, wdrifty_g(1, :, :), gout)
 
-         ! get <dphi/dy> in k-space
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            call gyro_average(dphidy, ivmu, g0k(:, :, :, :, ivmu))
-         end do
+         !get <dphi/dy> in k-space
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+           call gyro_average(dphidy, ivmu, g0k(:, :, :, :, ivmu))
+        end do
 
-         ! add vM . grad y d<phi>/dy term to equation
-         call add_explicit_term(g0k, wdrifty_phi(1, :, :), gout)
+        !add vM . grad y d<phi>/dy term to equation
+        call add_explicit_term(g0k, wdrifty_phi(1, :, :), gout)
       end if
       deallocate (g0k, dphidy)
 
@@ -2404,7 +2409,7 @@ contains
 
       integer :: ivmu
       integer :: iky, ikx, iz, it
-
+      
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
@@ -2434,7 +2439,7 @@ contains
 
       integer :: ivmu
       integer :: ia, ikx, iz, it
-
+       
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
@@ -2631,7 +2636,7 @@ contains
    subroutine checksum_field(field, total)
 
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: naky
+      use kt_grids, only: naky, nakx
       use extended_zgrid, only: neigen, nsegments, ikxmod
       use extended_zgrid, only: iz_low, iz_up
 
@@ -2643,20 +2648,32 @@ contains
       integer :: it, iky, ie, iseg
       integer :: ikx
 
-      total = 0.
+      integer :: iz
 
-      do iky = 1, naky
-         do it = 1, ntubes
-            do ie = 1, neigen(iky)
-               iseg = 1
-               ikx = ikxmod(iseg, ie, iky)
-               total = total + sum(cabs(field(iky, ikx, iz_low(iseg):iz_up(iseg), it)))
-               if (nsegments(ie, iky) > 1) then
-                  do iseg = 2, nsegments(ie, iky)
-                     ikx = ikxmod(iseg, ie, iky)
-                     total = total + sum(cabs(field(iky, ikx, iz_low(iseg) + 1:iz_up(iseg), it)))
-                  end do
-               end if
+      total = 0.
+      it = 1
+      ! do iky = 1, naky
+      !    do it = 1, ntubes
+      !       do ie = 1, neigen§(iky)
+      !          iseg = 1
+      !          ikx = ikxmod(iseg, ie, iky)
+      !          total = total + sum(cabs(field(iky, ikx, iz_low(iseg):iz_up(iseg), it)))
+      !          if (nsegments(ie, iky) > 1) then
+      !             do iseg = 2, nsegments(ie, iky)
+      !                ikx = ikxmod(iseg, ie, iky)
+      !                total = total + sum(cabs(field(iky, ikx, iz_low(iseg) + 1:iz_up(iseg), it)))
+      !             end do
+      !          end if
+      !       end do
+      !    end do
+      ! end do
+      
+      do it = 1, ntubes
+         do ikx = 1, nakx
+            do iky = 1, naky
+               do iz= -nzgrid, nzgrid
+                  total = total + field(iky, ikx, iz, it)
+               end do
             end do
          end do
       end do
@@ -2681,6 +2698,8 @@ contains
       integer :: iky, ikx, it
       real :: subtotal
 
+      integer :: iz
+
       complex, dimension(:, :, :, :), allocatable :: dist_single
 
       total = 0.
@@ -2689,7 +2708,7 @@ contains
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          dist_single = dist(:, :, :, :, ivmu)
          if (present(norm)) then
-            if (norm) then
+            if(norm) then 
                iv = iv_idx(vmu_lo, ivmu)
                imu = imu_idx(vmu_lo, ivmu)
                is = is_idx(vmu_lo, ivmu)
@@ -2700,11 +2719,20 @@ contains
                      end do
                   end do
                end do
-            else
             end if
          end if
-         call checksum(dist_single, subtotal)
-         total = total + subtotal
+
+         do it = 1, ntubes
+            do ikx = 1, nakx
+               do iky = 1, naky
+                  do iz = -nzgrid, nzgrid
+                     total = total + dist_single(iky, ikx, iz, it)
+                  end do
+               end do
+            end do
+         end do
+!         call checksum_field(dist_single, subtotal)
+         !total = total + subtotal
       end do
       deallocate (dist_single)
 

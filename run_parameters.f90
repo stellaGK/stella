@@ -97,7 +97,7 @@ contains
          delt_option, lu_option, &
          avail_cpu_time, delt_max, delt_min, &
          cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, &
-         stream_implicit, mirror_implicit, &
+         stream_implicit, mirror_implicit, & 
          drifts_implicit, use_deltaphi_for_response_matrix, &
          maxwellian_normalization, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
@@ -276,12 +276,9 @@ contains
       zed_upwind_minus = 0.5 * (1.0 - zed_upwind)
 
       if (.not. include_mirror) mirror_implicit = .false.
+      if (.not. include_parallel_streaming) stream_implicit = .false.
 
-      if (stream_implicit .and. full_flux_surface) then
-         driftkinetic_implicit = .true.
-      end if
-
-      if (mirror_implicit .or. stream_implicit .or. driftkinetic_implicit .or. drifts_implicit) then
+      if (mirror_implicit .or. stream_implicit .or. drifts_implicit) then
          fully_explicit = .false.
       else
          fully_explicit = .true.
@@ -314,6 +311,10 @@ contains
          end if
          ! the full flux surface implementation relies on the use of gnorm = g / F_Maxwellian
          ! as the evolved pdf
+         if (stream_implicit) then
+            driftkinetic_implicit = .true.
+         end if
+
          if (full_flux_surface) then
             maxwellian_normalization = .true.
          end if

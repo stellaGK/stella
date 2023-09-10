@@ -20,6 +20,8 @@ module vpamu_grids
    public :: set_vpa_weights
 
    public :: integrate_species_ffs_rm
+   public :: integrate_species_ffs_fields
+   public :: integrate_vmu_local_ffs
 
    logical :: vpamu_initialized = .false.
 
@@ -225,6 +227,7 @@ contains
       ! version of the code and would otherwise add a species index to wgts_vpa,
       ! so currently maxwellian_normalization is not supported for the radially global
       ! version of the code.
+
       if (maxwellian_normalization) wgts_vpa = wgts_vpa * maxwell_vpa(:, 1)
 
       wgts_vpa_default = wgts_vpa
@@ -301,7 +304,7 @@ contains
 
    end subroutine integrate_mu_nonlocal
 
-   subroutine integrate_vmu_local_real(g, iz, total)
+   subroutine integrate_vmu_local_real(g, iz, total, ia_in)
 
       implicit none
 
@@ -309,11 +312,18 @@ contains
       integer, intent(in) :: iz
       real, intent(out) :: total
 
+      integer, optional, intent (in) :: ia_in
+
       integer :: iv, imu, ia
 
       total = 0.
 
-      ia = 1
+      if(present(ia_in)) then 
+         ia = ia_in 
+      else
+         ia = 1
+      end if
+
       do imu = 1, nmu
          do iv = 1, nvpa
             total = total + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(iv, imu)
@@ -638,13 +648,41 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         pout = pout + 2.0 * wgts_mu_bare(imu) * (wgts_vpa(iv) / maxwell_vpa(iv, is)) * g(:, :, ivmu) * weights(is)
+         pout = pout + 2.0 * wgts_mu_bare(imu) * (wgts_vpa(iv)/maxwell_vpa(iv,1) ) * g(:, :, ivmu) * weights(is)
       end do
 
       if (reduce) call sum_allreduce(pout)
 
    end subroutine integrate_species_ffs
 
+   subroutine integrate_species_ffs_fields(g, weights, pout, ia, iz)
+
+      use mp, only: sum_allreduce
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+
+      implicit none
+
+      integer :: ivmu, iv, is, imu
+
+      real, dimension(vmu_lo%llim_proc:), intent(in) :: g
+      real, dimension(:), intent(in) :: weights
+      real, intent(out) :: pout
+      integer, intent (in) :: ia ,iz 
+
+      pout = 0.
+
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         pout = pout + wgts_mu(ia,iz,imu) * wgts_vpa(iv) & 
+              * g(ivmu) * weights(is)
+      end do
+
+      call sum_allreduce(pout)
+
+    end subroutine integrate_species_ffs_fields
+   
    subroutine integrate_species_ffs_rm(g, weights, pout, reduce_in)
       use mp, only: sum_allreduce
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -667,7 +705,7 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         pout = pout + 2.0 * wgts_mu_bare(imu) * (wgts_vpa(iv) / maxwell_vpa(iv, is)) * g(ivmu) * weights(is)
+         pout = pout + 2.0 * wgts_mu_bare(imu) * (wgts_vpa(iv)/maxwell_vpa(iv, 1) ) * g(ivmu) * weights(is)
       end do
 
       if (reduce) call sum_allreduce(pout)
@@ -712,6 +750,25 @@ contains
 
    end subroutine integrate_vmu_ffs
 
+   subroutine integrate_vmu_local_ffs (g, iz, ia, total) 
+     
+     implicit none  
+     real, dimension(:, :), intent(in) :: g
+     integer, intent(in) :: iz
+     real, intent(out) :: total
+
+     integer :: iv, imu
+     integer, intent (in) :: ia 
+
+     total = 0. 
+
+     do imu = 1, nmu  
+        do iv = 1, nvpa
+           total = total + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(iv, imu)   
+        end do
+     end do
+   end subroutine integrate_vmu_local_ffs
+
    subroutine finish_vpa_grid
 
       implicit none
@@ -733,6 +790,8 @@ contains
       use stella_geometry, only: bmag, bmag_psi0
       use run_parameters, only: maxwellian_normalization
 
+      use mp, only: sum_allreduce
+      use mp, only: proc0
       implicit none
 
       integer :: imu

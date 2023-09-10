@@ -154,7 +154,7 @@ contains
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed
       use run_parameters, only: vpa_upwind, time_upwind
-!!!!      use run_parameters, only: maxwellian_normalization
+      !use run_parameters, only: maxwellian_normalization
 
       implicit none
 
@@ -236,12 +236,12 @@ contains
       tupwndfac = 0.5 * (1.0 + time_upwind)
       a = a * tupwndfac
       c = c * tupwndfac
-!!!!      if (maxwellian_normalization) then
+!!      if (maxwellian_normalization) then
       !> account for fact that we have expanded d(gnorm)/dvpa, where gnorm = g/exp(-v^s);
       !> this gives rise to d(gnorm*exp(-vpa^2))/dvpa + 2*vpa*gnorm*exp(-vpa^2) term
       !> we solve for gnorm*exp(-vpa^2) and later multiply by exp(vpa^2) to get gnorm
-!!!!         b = b + spread(2.0 * vpa, 2, 3)
-!!!!      end if
+  !!       b = b + spread(2.0 * vpa, 2, 3)
+    !!  end if
 
       if (full_flux_surface) then
          do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
@@ -593,14 +593,14 @@ contains
       use vpamu_grids, only: dvpa, maxwell_vpa, vpa
       use neoclassical_terms, only: include_neoclassical_terms
       use run_parameters, only: vpa_upwind, time_upwind
-      use run_parameters, only: mirror_semi_lagrange!!!!, maxwellian_normalization
+      use run_parameters, only: mirror_semi_lagrange!!, maxwellian_normalization
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
 
       use run_parameters, only: time_upwind
       use vpamu_grids, only: vpa, dvpa
       use stella_layouts, only: iy_idx
       use kt_grids, only: swap_kxky, swap_kxky_back
-      use kt_grids, only: naky_all, ikx_max
+      use kt_grids, only: naky_all, ikx_max, naky
       implicit none
 
       logical, intent(in) :: collisions_implicit
@@ -640,10 +640,13 @@ contains
          end if
 
          allocate (g0v(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
-         allocate (g0x(ny, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+         allocate (g0x(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+!         allocate (g0x(ny, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          ! for upwinding, need to evaluate dg^{*}/dvpa in y-space
          ! first must take g^{*}(ky) and transform to g^{*}(y)
-         !!GA
+         !!!GA
          allocate (g_swap(naky_all, ikx_max))
          it = 1
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -652,41 +655,42 @@ contains
                call transform_ky2y(g_swap, g0x(:, :, iz, it, ivmu))
             end do
          end do
-
-         ! convert g to g*(integrating factor), as this is what is being advected
-         ! integrating factor = exp(m*vpa^2/2T * (mu*dB/dz) / (mu*dB/dz + Z*e*dphinc/dz))
-         ! if dphinc/dz=0, simplifies to exp(m*vpa^2/2T)
-         if (include_neoclassical_terms) then
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               do it = 1, ntubes
-                  do iz = -nzgrid, nzgrid
-                     do ikx = 1, nakx
-                        g0x(:, ikx, iz, it, ivmu) = g0x(:, ikx, iz, it, ivmu) * mirror_int_fac(:, iz, ivmu)
-                     end do
-                  end do
-               end do
-            end do
-            ! else
-            !    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            !       iv = iv_idx(vmu_lo, ivmu)
-            !       is = is_idx(vmu_lo, ivmu)
-            !       g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) / maxwell_vpa(iv, is)
-            !    end do
-         end if
+         
+         ! ! convert g to g*(integrating factor), as this is what is being advected
+         ! ! integrating factor = exp(m*vpa^2/2T * (mu*dB/dz) / (mu*dB/dz + Z*e*dphinc/dz))
+         ! ! if dphinc/dz=0, simplifies to exp(m*vpa^2/2T)
+         ! if (include_neoclassical_terms) then
+         !    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         !       do it = 1, ntubes
+         !          do iz = -nzgrid, nzgrid
+         !             do ikx = 1, nakx
+         !                g0x(:, ikx, iz, it, ivmu) = g0x(:, ikx, iz, it, ivmu) * mirror_int_fac(:, iz, ivmu)
+         !             end do
+         !          end do
+         !       end do
+         !    end do
+         !    ! else
+         !    !    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         !    !       iv = iv_idx(vmu_lo, ivmu)
+         !    !       is = is_idx(vmu_lo, ivmu)
+         !    !       g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) / maxwell_vpa(iv, is)
+         !    !    end do
+         ! end if
 
          ! second, remap g so velocities are local
          call scatter(kxyz2vmu, g0x, g0v)
 
+         iy = 1
          allocate (dgdvpa(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
          do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
             iz = iz_idx(kxyz_lo, ikxyz)
             is = is_idx(kxyz_lo, ikxyz)
-            iy = iy_idx(kxyz_lo, ikxyz)
+!            iy = iy_idx(kxyz_lo, ikxyz)
             do imu = 1, nmu
                call fd_variable_upwinding_vpa(1, g0v(:, imu, ikxyz), dvpa, &
                                               mirror_sign(iy, iz), vpa_upwind, dgdvpa(:, imu, ikxyz))
                dgdvpa(:, imu, ikxyz) = g0v(:, imu, ikxyz) + tupwnd * mirror(iy, iz, imu, is) * &
-                                       (dgdvpa(:, imu, ikxyz))
+                                       (dgdvpa(:, imu, ikxyz))! + 2.0 * vpa * g0v(:, imu, ikxyz) )
                call invert_mirror_operator(imu, ikxyz, dgdvpa(:, imu, ikxyz))
             end do
          end do
@@ -699,27 +703,26 @@ contains
          ! convert back from g*(integrating factor) to g
          ! integrating factor = exp(m*vpa^2/2T * (mu*dB/dz) / (mu*dB/dz + Z*e*dphinc/dz))
          ! if dphinc/dz=0, simplifies to exp(m*vpa^2/2T)
-         if (include_neoclassical_terms) then
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               do it = 1, ntubes
-                  do iz = -nzgrid, nzgrid
-                     do ikx = 1, nakx
-                        g0x(:, ikx, iz, it, ivmu) = g0x(:, ikx, iz, it, ivmu) / mirror_int_fac(:, iz, ivmu)
-                     end do
-                  end do
-               end do
-            end do
-            !!!!
-            ! else
-            !    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            !       iv = iv_idx(vmu_lo, ivmu)
-            !       is = is_idx(vmu_lo, ivmu)
-            !       g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) * maxwell_vpa(iv, is)
-            !    end do
-         end if
+         ! if (include_neoclassical_terms) then
+         !    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         !       do it = 1, ntubes
+         !          do iz = -nzgrid, nzgrid
+         !             do ikx = 1, nakx
+         !                g0x(:, ikx, iz, it, ivmu) = g0x(:, ikx, iz, it, ivmu) / mirror_int_fac(:, iz, ivmu)
+         !             end do
+         !          end do
+         !       end do
+         !    end do
+         !    ! else
+         !    !    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         !    !       iv = iv_idx(vmu_lo, ivmu)
+         !    !       is = is_idx(vmu_lo, ivmu)
+         !    !       g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) * maxwell_vpa(iv, is)
+         !    !    end do
+         ! end if         
 
          !!GA
-         ! finally transform back from y to ky space
+         !!>finally transform back from y to ky space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do iz = -nzgrid, nzgrid
                call transform_y2ky(g0x(:, :, iz, it, ivmu), g_swap)

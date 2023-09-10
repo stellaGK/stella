@@ -1,0 +1,2 @@
+/usr/bin/ar qc lib/libneasyf.a CMakeFiles/neasyf.dir/src/neasyf.f90.o
+/usr/bin/ranlib lib/libneasyf.a

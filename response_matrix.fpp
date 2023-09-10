@@ -516,9 +516,7 @@ contains
          ! the rhs is input as 'pdf_ext' and over-written with the updated solution for the pdf
          call sweep_g_zext(iky, ie, it, ivmu, pdf_ext(:, ivmu))
       end do
-
       deallocate (dum)
-
       ! we now have the pdf on the extended zed domain at this ky and set of connected kx values
       ! corresponding to a unit impulse in phi at this location
       ! now integrate over velocities to get a square response matrix
@@ -551,10 +549,14 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use run_parameters, only: driftkinetic_implicit
       use vpamu_grids, only: integrate_species_ffs_rm
-      use gyro_averages, only: j0bmaxwell_avg
-
+      
+      use stella_geometry, only: bmag
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu
+      use kt_grids, only: nalpha
+      
+      use gyro_averages, only: j0_B_maxwell_const
       implicit none
-
+      
       complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:), intent(out) :: phi
       integer, intent(in) :: iky, ie
@@ -585,7 +587,11 @@ contains
                iv = iv_idx(vmu_lo, ivmu)
                imu = imu_idx(vmu_lo, ivmu)
                is = is_idx(vmu_lo, ivmu)
-               g0(ivmu) = g(idx, ivmu) * j0bmaxwell_avg(iky, ikx, iz, ivmu)
+               !! ia = 1 for now. To be changed to an average
+               !!TY
+               !call gyro_average_ffs_extended_zed(g(idx, ivmu), gyro_g(:, :, ivmu), j0bmaxconst_ffs(:, :, iz, ivmu))
+               g0(ivmu) = g(idx, ivmu) * j0_B_maxwell_const(iky,ikx,iz,ivmu) 
+               !!g0(ivmu) = g(idx, ivmu)* bmag(1,iz) *  maxwell_vpa(iv, is) * maxwell_mu(1, iz, imu, is)
             end do
             call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
          end if
@@ -605,7 +611,10 @@ contains
                      iv = iv_idx(vmu_lo, ivmu)
                      imu = imu_idx(vmu_lo, ivmu)
                      is = is_idx(vmu_lo, ivmu)
-                     g0(ivmu) = g(idx, ivmu) * j0bmaxwell_avg(iky, ikx, iz, ivmu)
+                     !! ia = 1 for now. To be changed to an average 
+                     !!TY
+                     g0(ivmu) = g(idx, ivmu) * j0_B_maxwell_const(iky,ikx,iz,ivmu)
+                     !g0(ivmu) = g(idx, ivmu) * bmag(1,iz) *  maxwell_vpa(iv, is) * maxwell_mu(1, iz, imu, is)
                   end do
                   call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
                end if

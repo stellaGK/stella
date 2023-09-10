@@ -105,6 +105,7 @@ contains
 
       use stella_save, only: init_tstart
       use run_parameters, only: maxwellian_normalization
+      use physics_flags, only: full_flux_surface
 
       logical, intent(out) :: restarted
       integer, intent(out) :: istep0
@@ -146,7 +147,9 @@ contains
       use file_utils, only: input_unit, error_unit, run_name, input_unit_exist
       use text_options, only: text_option, get_option_value
       use stella_save, only: read_many
-
+      
+      use kt_grids, only: nalpha
+      use physics_flags, only: full_flux_surface
       implicit none
 
       type(text_option), dimension(8), parameter :: ginitopts = &
@@ -201,6 +204,10 @@ contains
 !    if (exist) read (unit=input_unit("init_g_knobs"), nml=init_g_knobs)
       if (exist) read (unit=in_file, nml=init_g_knobs)
 
+!      if(full_flux_surface) then 
+ !        phiinit = phiinit/2.02
+  !    end if
+
       ierr = error_unit()
       call get_option_value &
          (ginit_option, ginitopts, ginitopt_switch, &
@@ -218,9 +225,13 @@ contains
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use dist_fn_arrays, only: gvmu
+      use dist_fn_arrays, only: gvmu, gnew
       use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
       use ran, only: ranf
+
+      use vpamu_grids, only: nvpa, nmu
+      use mp, only: sum_allreduce
+      use mp, only: proc0
 
       implicit none
 
@@ -229,11 +240,25 @@ contains
       integer :: ikxkyz
       integer :: iz, iky, ikx, is, ia
 
+      integer :: ivmu, iv, imu
+      complex :: sums
+      
       right = .not. left
 
       do iz = -nzgrid, nzgrid
          phi(:, :, iz) = exp(-((zed(iz) - theta0) / width0)**2) * cmplx(1.0, 1.0)
       end do
+
+      sums = 0.0
+      do iky = 1, naky
+         do ikx = 1, nakx
+            do iz = -nzgrid, nzgrid
+               sums = sums + phi(iky,ikx,iz)
+            end do
+         end do
+      end do
+      
+      if(proc0) write(*,*) 'sum1', sums
 
       ! this is a messy way of doing things
       ! could tidy it up a bit
@@ -242,25 +267,45 @@ contains
             phi(:, :, iz) = exp(-(zed(iz) / width0)**2) * cmplx(1.0, 1.0)
          end do
       end if
+      
+      sums = 0.0
+      do iky = 1, naky
+         do ikx= 1, nakx
+            do iz = -nzgrid, nzgrid
+               sums = sums + phi(iky,ikx,iz)
+            end do
+         end do
+      end do
+      
+      if(proc0) write(*,*) 'sum2', sums
 
       if (chop_side) then
          if (left) phi(:, :, :-1) = 0.0
          if (right) phi(:, :, 1:) = 0.0
       end if
 
-      if (reality .and. zonal_mode(1)) phi(1, :, :) = 0.0
+!!      if (reality .and. zonal_mode(1)) phi(1, :, :) = 0.0
       ia = 1
 
       gvmu = 0.
+      sums = 0.0
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iz = iz_idx(kxkyz_lo, ikxkyz)
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
          iky = iky_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
          gvmu(:, :, ikxkyz) = phiinit * phi(iky, ikx, iz) / abs(spec(is)%z) &
-                              * (den0 + 2.0 * zi * spread(vpa, 2, nmu) * upar0) &
-                              * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is)
+              * (den0 + 2.0 * zi * spread(vpa, 2, nmu) * upar0) &
+              * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is)
+         do iv = 1,nvpa
+            do imu = 1,nmu 
+               sums = sums + gvmu(iv, imu, ikxkyz)
+            end do
+         end do
       end do
+
+      call sum_allreduce (sums) 
+      if(proc0) write(*,*) 'sum3', sums
 
    end subroutine ginit_default
 
@@ -391,6 +436,7 @@ contains
       use file_utils, only: runtype_option_switch, runtype_multibox
       use physics_flags, only: nonlinear
       use ran
+      use physics_flags, only: full_flux_surface
 
       implicit none
 
@@ -399,25 +445,30 @@ contains
       integer :: ikxkyz, iz, it, iky, ikx, is, ie, iseg, ia
       integer :: itmod
 
-      if ((naky == 1 .and. nakx == 1) .or. (.not. nonlinear)) then
-         if (proc0) then
-            write (*, *) 'Noise initialization option is not suited for single mode simulations,'
-            write (*, *) 'or linear simulations, using default initialization option instead.'
-            write (*, *)
-         end if
-         call ginit_default
-         return
-      else
-         ! zero out ky=kx=0 mode
-         phi(1, 1, :, :) = 0.0
-      end if
+      ! if ((naky == 1 .and. nakx == 1) .or. (.not. nonlinear)) then
+      !    if (proc0) then
+      !       write (*, *) 'Noise initialization option is not suited for single mode simulations,'
+      !       write (*, *) 'or linear simulations, using default initialization option instead.'
+      !       write (*, *)
+      !    end if
+      !    call ginit_default
+      !    return
+      ! else
+      !    ! zero out ky=kx=0 mode
+      phi(1, 1, :, :) = 0.0
+      !end if
 
       ia = 1
       if (proc0) then
          phi(1, 1, :, :) = 0.0
          kmin = 1.e6
-         if (naky > 1) kmin = minval(kperp2(2, 1, ia, :))
-         if (nakx > 1) kmin = min(kmin, minval(kperp2(1, 2, ia, :)))
+         if(full_flux_surface) then 
+            if (naky > 1) kmin = minval(kperp2(2, 1, :, :))
+            if (nakx > 1) kmin = min(kmin, minval(kperp2(1, 2, :, :)))
+         else
+            if (naky > 1) kmin = minval(kperp2(2, 1, ia, :))
+            if (nakx > 1) kmin = min(kmin, minval(kperp2(1, 2, ia, :)))
+         end if
 
          if (runtype_option_switch == runtype_multibox) then
             call scope(crossdomprocs)
@@ -498,6 +549,15 @@ contains
          end do
       end do
 
+      do iky = 1, naky
+         do ikx = 1, nakx
+            do iz = -nzgrid, nzgrid
+               do it = 1, ntubes
+               end do
+            end do
+         end do
+      end do
+
       call broadcast(phi)
 
       !Now set g using data in phi
@@ -509,6 +569,7 @@ contains
          is = is_idx(kxkyz_lo, ikxkyz)
          gvmu(:, :, ikxkyz) = spec(is)%z * phiinit * phi(iky, ikx, iz, it) &
                               * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+
       end do
 
    end subroutine ginit_noise

@@ -494,6 +494,7 @@ contains
             !> gds21 = shat * grad x . grad y = shat * dx/dpsi_t * dy/dalpha * grad alpha . grad psi_t
             !> NB: psi = -psi_t and so dx/dpsi = = dx/dpsi_t, which is why there is a minus sign here
             gds21 = -grad_alpha_grad_psi * geo_surf%shat * dxdXcoord * dydalpha
+            
             !> gds22 = shat^2 * |grad x|^2 = shat^2 * |grad psi_t|^2 * (dx/dpsi_t)^2
             gds22 = (geo_surf%shat * grad_x)**2
             !gds22 = geo_surf%shat**2 * grad_psi_grad_psi * dxdXcoord**2
@@ -511,14 +512,14 @@ contains
             !> need the projections on grad x
             gbdrift0 = gbdrift0_psi * dxdXcoord
             cvdrift0 = cvdrift0_psi * dxdXcoord
-
+                        
             call deallocate_temporary_arrays
 
             !> can test FFS implementation by setting all geometric coefficients
             !> to their values at a given alpha; i.e., make the system axisymmetric
             if (const_alpha_geo) call set_ffs_geo_coefs_constant(nalpha)
          end select
-
+         
          if (overwrite_geometry) call overwrite_selected_geometric_coefficients(nalpha)
 
          ! exb_nonlin_fac is equivalent to kxfac/2 in gs2
@@ -561,7 +562,7 @@ contains
 
       ! this is dl/B
       dl_over_b = spread(delzed, 1, nalpha) * jacob
-
+      
       ! the next line is to avoid double counting the end points for ky = 0 modes (which leads to destabilization
       ! of the zonal modes for certain input parameters)
       ! FLAG DSO - while this is correct for ky = 0 modes and sufficient for output, if dl_over_b is applied to
@@ -740,7 +741,6 @@ contains
          call set_coef_constant(x_displacement_fac, nalpha)
          call set_coef_constant(zeta, nalpha)
          call set_coef_constant(b_dot_grad_z, nalpha)
-
          !!GA
          call set_coef_constant(gradzeta_grady, nalpha)
          call set_coef_constant(gradzeta_gradx, nalpha)

@@ -134,11 +134,13 @@ contains
       use kt_grids, only: akx, aky
       use kt_grids, only: zonal_mode
       use kt_grids, only: nalpha
-
+      
+      use mp, only: proc0
       implicit none
 
       integer :: iky, ikx
 
+      integer ::iz, ia
       if (kp2init) return
       kp2init = .true.
 
@@ -151,18 +153,18 @@ contains
                if (q_as_x) then
                   kperp2(iky, ikx, :, :) = akx(ikx) * akx(ikx) * gds22
                else
-                  kperp2(iky, ikx, :, :) = akx(ikx) * akx(ikx) * gds22 / (geo_surf%shat**2)
+                  kperp2(iky, ikx, :, :) = akx(ikx) * akx(ikx) * gds22 / (geo_surf%shat**2)                  
                end if
             end do
          else
             do ikx = 1, nakx
                kperp2(iky, ikx, :, :) = aky(iky) * aky(iky) &
                                         * (gds2 + 2.0 * theta0(iky, ikx) * gds21 &
-                                           + theta0(iky, ikx) * theta0(iky, ikx) * gds22)
+                                        + theta0(iky, ikx) * theta0(iky, ikx) * gds22)
             end do
          end if
       end do
-
+      
       ! NB: should really avoid this by using higher resolution when reading in VMEC geometry and then
       ! NB: course-graining if necessary to map onto lower-resolution stella grid
       ! ensure kperp2 is positive everywhere (only might go negative if using full-flux-surface due to interpolation)
