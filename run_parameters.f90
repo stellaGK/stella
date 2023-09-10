@@ -97,7 +97,7 @@ contains
          delt_option, lu_option, &
          avail_cpu_time, delt_max, delt_min, &
          cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, &
-         stream_implicit, mirror_implicit, & 
+         stream_implicit, mirror_implicit, &
          drifts_implicit, use_deltaphi_for_response_matrix, &
          maxwellian_normalization, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &

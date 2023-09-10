@@ -301,7 +301,7 @@ contains
          end do
       end do
 
-    end subroutine lu_back_substitution_matrix_ffs
+   end subroutine lu_back_substitution_matrix_ffs
 
   !!
   !! One shouldn't need to compute the inverse of a matrix if solving the linear equation A.x = y;

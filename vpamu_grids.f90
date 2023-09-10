@@ -312,14 +312,14 @@ contains
       integer, intent(in) :: iz
       real, intent(out) :: total
 
-      integer, optional, intent (in) :: ia_in
+      integer, optional, intent(in) :: ia_in
 
       integer :: iv, imu, ia
 
       total = 0.
 
-      if(present(ia_in)) then 
-         ia = ia_in 
+      if (present(ia_in)) then
+         ia = ia_in
       else
          ia = 1
       end if
@@ -648,7 +648,7 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         pout = pout + 2.0 * wgts_mu_bare(imu) * (wgts_vpa(iv)/maxwell_vpa(iv,1) ) * g(:, :, ivmu) * weights(is)
+         pout = pout + 2.0 * wgts_mu_bare(imu) * (wgts_vpa(iv) / maxwell_vpa(iv, 1)) * g(:, :, ivmu) * weights(is)
       end do
 
       if (reduce) call sum_allreduce(pout)
@@ -667,7 +667,7 @@ contains
       real, dimension(vmu_lo%llim_proc:), intent(in) :: g
       real, dimension(:), intent(in) :: weights
       real, intent(out) :: pout
-      integer, intent (in) :: ia ,iz 
+      integer, intent(in) :: ia, iz
 
       pout = 0.
 
@@ -675,14 +675,14 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         pout = pout + wgts_mu(ia,iz,imu) * wgts_vpa(iv) & 
-              * g(ivmu) * weights(is)
+         pout = pout + wgts_mu(ia, iz, imu) * wgts_vpa(iv) &
+                * g(ivmu) * weights(is)
       end do
 
       call sum_allreduce(pout)
 
-    end subroutine integrate_species_ffs_fields
-   
+   end subroutine integrate_species_ffs_fields
+
    subroutine integrate_species_ffs_rm(g, weights, pout, reduce_in)
       use mp, only: sum_allreduce
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -705,7 +705,7 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         pout = pout + 2.0 * wgts_mu_bare(imu) * (wgts_vpa(iv)/maxwell_vpa(iv, 1) ) * g(ivmu) * weights(is)
+         pout = pout + 2.0 * wgts_mu_bare(imu) * (wgts_vpa(iv) / maxwell_vpa(iv, 1)) * g(ivmu) * weights(is)
       end do
 
       if (reduce) call sum_allreduce(pout)
@@ -750,23 +750,23 @@ contains
 
    end subroutine integrate_vmu_ffs
 
-   subroutine integrate_vmu_local_ffs (g, iz, ia, total) 
-     
-     implicit none  
-     real, dimension(:, :), intent(in) :: g
-     integer, intent(in) :: iz
-     real, intent(out) :: total
+   subroutine integrate_vmu_local_ffs(g, iz, ia, total)
 
-     integer :: iv, imu
-     integer, intent (in) :: ia 
+      implicit none
+      real, dimension(:, :), intent(in) :: g
+      integer, intent(in) :: iz
+      real, intent(out) :: total
 
-     total = 0. 
+      integer :: iv, imu
+      integer, intent(in) :: ia
 
-     do imu = 1, nmu  
-        do iv = 1, nvpa
-           total = total + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(iv, imu)   
-        end do
-     end do
+      total = 0.
+
+      do imu = 1, nmu
+         do iv = 1, nvpa
+            total = total + wgts_mu(ia, iz, imu) * wgts_vpa(iv) * g(iv, imu)
+         end do
+      end do
    end subroutine integrate_vmu_local_ffs
 
    subroutine finish_vpa_grid

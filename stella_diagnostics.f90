@@ -329,7 +329,7 @@ contains
             allocate (phioldavg(naky, nakx))
             call fieldline_average(phi, phiavg)
             call fieldline_average(phi_old, phioldavg)
-            
+
             where (abs(phiavg) < zero .or. abs(phioldavg) < zero)
                omega_vs_time(mod(istep, navg) + 1, :, :) = 0.0
             elsewhere

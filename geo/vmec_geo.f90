@@ -338,7 +338,7 @@ contains
          !> we must take care to avoid aliasing.
          !> this is accomplished by filtering out the highest third of
          !> the wavenumber spectra
-         ! if (debug) write (*, *) 'get_vmec_geo::filter_geo_coef' 
+         ! if (debug) write (*, *) 'get_vmec_geo::filter_geo_coef'
          ! if (full_flux_surface.and. .not. const_alpha_geo) then
          !    do iz = -nzgrid, nzgrid
          !       call filter_geo_coef(naky, bmag(:, iz))

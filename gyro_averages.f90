@@ -12,7 +12,7 @@ module gyro_averages
    !!GA
    public :: j1_ffs
    !!TY
-   !public :: j0const_ffs, j0bmaxconst_ffs   
+   !public :: j0const_ffs, j0bmaxconst_ffs
    public :: j0_const, j0_B_maxwell_const
 
    private
@@ -51,7 +51,7 @@ module gyro_averages
    type(coupled_alpha_type), dimension(:, :, :, :), allocatable :: j1_ffs
    !!TY
 !   type(coupled_alpha_type), dimension(:, :, :, :), allocatable :: j0const_ffs, j0bmaxconst_ffs
-   real, dimension (:,:,:,:), allocatable :: j0_const, j0_B_maxwell_const
+   real, dimension(:, :, :, :), allocatable :: j0_const, j0_B_maxwell_const
 contains
 
    subroutine init_bessel
@@ -66,7 +66,7 @@ contains
       use stella_layouts, only: kxkyz_lo, vmu_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, imu_idx
       use spfunc, only: j0, j1
-      
+
       use mp, only: proc0
       implicit none
 
@@ -132,7 +132,7 @@ contains
             end do
          end do
       end if
-      
+
       if (debug) write (*, *) 'gyro_averages::init_bessel::test_gyro_average'
 !    call test_gyro_average
 
@@ -289,12 +289,12 @@ contains
       integer :: ia_max_j1_count
       real :: ia_max_j1_reduction_factor
       !!TY
-!      complex, dimension(:), allocatable :: 0const_kalpha, j0bmax_const_kalpha  
+!      complex, dimension(:), allocatable :: 0const_kalpha, j0bmax_const_kalpha
 !      integer :: ia_max_j0const_count, ia_max_j0bmaxconst_count
-      !!TY 
-      complex, dimension (:,:), allocatable :: j0_const_in_kalpha, j0_B_maxwell_const_in_kalpha
-      complex, dimension (:,:), allocatable :: j0_const_c, j0_B_maxwell_const_c
-      
+      !!TY
+      complex, dimension(:, :), allocatable :: j0_const_in_kalpha, j0_B_maxwell_const_in_kalpha
+      complex, dimension(:, :), allocatable :: j0_const_c, j0_B_maxwell_const_c
+
       !       call open_output_file (j0_ffs_unit, '.j0_ffs')
       !       call open_output_file (j0_B_maxwell_ffs_unit, '.j0_over_B_ffs')
 
@@ -324,21 +324,21 @@ contains
          allocate (j1_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       end if
       !!TY
-      allocate(j0_const_in_kalpha(naky_all, ikx_max) ) ; j0_const_in_kalpha = 0.0
-      allocate(j0_B_maxwell_const_in_kalpha(naky_all, ikx_max) ) ; j0_B_maxwell_const_in_kalpha = 0.0
-      allocate(j0_const_c(naky,nakx)) ; j0_const_c = 0.0
-      allocate(j0_B_maxwell_const_c(naky,nakx)) ; j0_B_maxwell_const_c = 0.0
-      allocate(j0_const(naky,nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc) ) ; j0_const = 0.0
-      allocate(j0_B_maxwell_const(naky,nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc ) ) ; j0_B_maxwell_const = 0.0
+      allocate (j0_const_in_kalpha(naky_all, ikx_max)); j0_const_in_kalpha = 0.0
+      allocate (j0_B_maxwell_const_in_kalpha(naky_all, ikx_max)); j0_B_maxwell_const_in_kalpha = 0.0
+      allocate (j0_const_c(naky, nakx)); j0_const_c = 0.0
+      allocate (j0_B_maxwell_const_c(naky, nakx)); j0_B_maxwell_const_c = 0.0
+      allocate (j0_const(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); j0_const = 0.0
+      allocate (j0_B_maxwell_const(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); j0_B_maxwell_const = 0.0
       !!TY
       ! allocate (j0const_kalpha(naky))
-      ! if (.not. allocated(j0const_ffs)) then 
-      !    allocate (j0const_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))  
+      ! if (.not. allocated(j0const_ffs)) then
+      !    allocate (j0const_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       ! end if
-      ! allocate (j0bmax_const_kalpha(naky)) 
-      ! if (.not. allocated(j0bmaxconst_ffs) ) then 
+      ! allocate (j0bmax_const_kalpha(naky))
+      ! if (.not. allocated(j0bmaxconst_ffs) ) then
       !    allocate (j0bmaxconst_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      ! end if                        
+      ! end if
 
       ia_max_j0_count = 0; ia_max_j0_B_maxwell_count = 0
       do iz = -nzgrid, nzgrid
@@ -368,24 +368,24 @@ contains
                      !> due to B in v-space Jacobian and Maxwellian factor hidden in normalisation of g
                      j0_B_maxwell(ia) = aj0_alpha(ia) * bmag(ia, iz) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
                   end do
-                  
+
                   !> fourier transform aj0_alpha and j0_B_maxwell.
                   !> note that fourier coefficients aj0_kalpha and j0_B_maxwell_kalpha have
                   !> been filtered to avoid aliasing
                   call transform_alpha2kalpha(aj0_alpha, aj0_kalpha)
                   call transform_alpha2kalpha(j0_B_maxwell, j0_B_maxwell_kalpha)
                   call transform_alpha2kalpha(aj1_alpha, aj1_kalpha) !!GA
-                  
+
                   !!TY
-                  !! for phi0 calculation 
+                  !! for phi0 calculation
                   ! j0const_kalpha (:) = aj0_kalpha (1)
                   ! j0bmax_const_kalpha (:) = j0_B_maxwell_kalpha (1)
-                  ! j0_B_maxwell_kalpha(:) = j0_B_maxwell_kalpha(1) 
+                  ! j0_B_maxwell_kalpha(:) = j0_B_maxwell_kalpha(1)
 
-                  j0_const_in_kalpha (iky, ikx) = aj0_alpha (1)
-                  j0_B_maxwell_const_in_kalpha (iky, ikx) = j0_B_maxwell (1)
-!                  j0_const_in_kalpha (iky, ikx) = aj0_kalpha (1) 
-!                  j0_B_maxwell_const_in_kalpha (iky, ikx) = j0_B_maxwell_kalpha (1) 
+                  j0_const_in_kalpha(iky, ikx) = aj0_alpha(1)
+                  j0_B_maxwell_const_in_kalpha(iky, ikx) = j0_B_maxwell(1)
+!                  j0_const_in_kalpha (iky, ikx) = aj0_kalpha (1)
+!                  j0_B_maxwell_const_in_kalpha (iky, ikx) = j0_B_maxwell_kalpha (1)
 
                   !> given the Fourier coefficients aj0_kalpha, calculate the minimum number of coefficients needed,
                   !> called j0_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
@@ -409,7 +409,7 @@ contains
 
                   !!TY
                   ! call find_max_required_kalpha_index(j0const_kalpha, j0const_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
-                  ! call find_max_required_kalpha_index(j0bmax_const_kalpha, j0bmaxconst_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)                  
+                  ! call find_max_required_kalpha_index(j0bmax_const_kalpha, j0bmaxconst_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
                   !!TY
                   ! ia_max_j0const_count = ia_max_j0const_count + j0const_ffs(iky, ikx, iz, ivmu)%max_idx
                   ! ia_max_j0bmaxconst_count = ia_max_j0bmaxconst_count + j0bmaxconst_ffs(iky, ikx, iz, ivmu)%max_idx
@@ -434,29 +434,29 @@ contains
                   ! if (.not. associated(j0const_ffs(iky, ikx, iz, ivmu)%fourier)) &
                   !      allocate (j0const_ffs(iky, ikx, iz, ivmu)%fourier(j0const_ffs(iky, ikx, iz, ivmu)%max_idx))
                   ! j0const_ffs(iky, ikx, iz, ivmu)%fourier = j0const_kalpha(:j0const_ffs(iky, ikx, iz, ivmu)%max_idx)
-                  
+
                   ! if (.not. associated(j0bmaxconst_ffs(iky, ikx, iz, ivmu)%fourier)) &
                   !      allocate (j0bmaxconst_ffs(iky, ikx, iz, ivmu)%fourier(j0bmaxconst_ffs(iky, ikx, iz, ivmu)%max_idx))
                   ! j0bmaxconst_ffs(iky, ikx, iz, ivmu)%fourier = j0bmax_const_kalpha(:j0bmaxconst_ffs(iky, ikx, iz, ivmu)%max_idx)
                end do
             end do
-            
+
             !!TY
-            call swap_kxky_back_ordered ( j0_const_in_kalpha, j0_const_c )
-            j0_const (:,:,iz,ivmu) = real(j0_const_c) 
-            call swap_kxky_back_ordered ( j0_B_maxwell_const_in_kalpha , j0_B_maxwell_const_c)
-            j0_B_maxwell_const (:,:,iz,ivmu) = real(j0_B_maxwell_const_c)
+            call swap_kxky_back_ordered(j0_const_in_kalpha, j0_const_c)
+            j0_const(:, :, iz, ivmu) = real(j0_const_c)
+            call swap_kxky_back_ordered(j0_B_maxwell_const_in_kalpha, j0_B_maxwell_const_c)
+            j0_B_maxwell_const(:, :, iz, ivmu) = real(j0_B_maxwell_const_c)
 
          end do
       end do
-      
+
       deallocate (j0_B_maxwell, j0_B_maxwell_kalpha)
       deallocate (aj0_alpha)
 
       !!TY
       ! deallocate(j0const_kalpha, j0bmax_const_kalpha)
-      deallocate(j0_const_in_kalpha, j0_const_c)
-      deallocate(j0_B_maxwell_const_in_kalpha, j0_B_maxwell_const_c) 
+      deallocate (j0_const_in_kalpha, j0_const_c)
+      deallocate (j0_B_maxwell_const_in_kalpha, j0_B_maxwell_const_c)
 
       !> calculate the reduction factor of Fourier modes
       !> used to represent J0
@@ -470,7 +470,7 @@ contains
       !!GA
       call sum_allreduce(ia_max_j1_count)
       ia_max_j1_reduction_factor = real(ia_max_j1_count) / rtmp
-      
+
       if (proc0) then
          write (*, *) 'average number of k-alphas needed to represent J0(kperp(alpha))=', ia_max_j0_reduction_factor * naky, 'out of ', naky
          write (*, *) 'average number of k-alphas needed to represent J0(kperp(alpha))*B(alpha)*exp(-v^2)=', &
@@ -663,8 +663,8 @@ contains
       !!TY
       ! if (allocated(j0_const)) deallocate(j0_const)
       ! if (allocated(j0_B_maxwell_const)) deallocate(j0_B_maxwell_const)
-      if (allocated(j0_const)) deallocate(j0_const)
-      if (allocated(j0_B_maxwell_const)) deallocate(j0_B_maxwell_const)
+      if (allocated(j0_const)) deallocate (j0_const)
+      if (allocated(j0_B_maxwell_const)) deallocate (j0_B_maxwell_const)
       bessinit = .false.
 
    end subroutine finish_bessel
@@ -860,7 +860,7 @@ contains
 
    !!!
    ! subroutine gyro_average_zext_ffs(iky, ivmu, ikx_from_izext, iz_from_izext, phi, gyro_phi)
-     
+
    !   implicit none
 
    !   integer, intent(in) :: iky, ivmu
@@ -869,16 +869,16 @@ contains
    !   complex, dimension(:), intent(out) :: gyro_phi
 
    !   integer :: izext, nz_ext
-     
+
    !   nz_ext = size(phi)
 
    !   iz = iz_from_izext(izext)
-   !   ikx = ikx_from_izext 
-     
+   !   ikx = ikx_from_izext
+
    !   call map_from_extended_zgrid(it, ie, iky, fieldezt, field(iky, :, :, :))
 
-   !   call gyro_average (field, gyro, coeffs) 
-     
+   !   call gyro_average (field, gyro, coeffs)
+
    !   call map_to_extended_zgrid(it, ie, iky, gyro(iky, :, :, :), gyroext, ulim)
 
    ! end subroutine gyro_average_zext

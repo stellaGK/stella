@@ -549,14 +549,14 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use run_parameters, only: driftkinetic_implicit
       use vpamu_grids, only: integrate_species_ffs_rm
-      
+
       use stella_geometry, only: bmag
       use vpamu_grids, only: maxwell_vpa, maxwell_mu
       use kt_grids, only: nalpha
-      
+
       use gyro_averages, only: j0_B_maxwell_const
       implicit none
-      
+
       complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:), intent(out) :: phi
       integer, intent(in) :: iky, ie
@@ -590,7 +590,7 @@ contains
                !! ia = 1 for now. To be changed to an average
                !!TY
                !call gyro_average_ffs_extended_zed(g(idx, ivmu), gyro_g(:, :, ivmu), j0bmaxconst_ffs(:, :, iz, ivmu))
-               g0(ivmu) = g(idx, ivmu) * j0_B_maxwell_const(iky,ikx,iz,ivmu) 
+               g0(ivmu) = g(idx, ivmu) * j0_B_maxwell_const(iky, ikx, iz, ivmu)
                !!g0(ivmu) = g(idx, ivmu)* bmag(1,iz) *  maxwell_vpa(iv, is) * maxwell_mu(1, iz, imu, is)
             end do
             call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
@@ -611,9 +611,9 @@ contains
                      iv = iv_idx(vmu_lo, ivmu)
                      imu = imu_idx(vmu_lo, ivmu)
                      is = is_idx(vmu_lo, ivmu)
-                     !! ia = 1 for now. To be changed to an average 
+                     !! ia = 1 for now. To be changed to an average
                      !!TY
-                     g0(ivmu) = g(idx, ivmu) * j0_B_maxwell_const(iky,ikx,iz,ivmu)
+                     g0(ivmu) = g(idx, ivmu) * j0_B_maxwell_const(iky, ikx, iz, ivmu)
                      !g0(ivmu) = g(idx, ivmu) * bmag(1,iz) *  maxwell_vpa(iv, is) * maxwell_mu(1, iz, imu, is)
                   end do
                   call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)

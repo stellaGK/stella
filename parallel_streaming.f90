@@ -77,7 +77,7 @@ contains
       if (driftkinetic_implicit) then
          if (.not. allocated(stream_correction)) allocate (stream_correction(nalpha, -nzgrid:nzgrid, nvpa, nspec)); stream_correction = 0.
          if (.not. allocated(stream_store)) allocate (stream_store(-nzgrid:nzgrid, nvpa, nspec)); stream_store = 0.
-         if (.not. allocated(stream_correction_sign)) allocate (stream_correction_sign(nvpa)) ; stream_correction_sign = 0.0
+         if (.not. allocated(stream_correction_sign)) allocate (stream_correction_sign(nvpa)); stream_correction_sign = 0.0
       end if
 
       ! sign of stream corresponds to appearing on RHS of GK equation
@@ -89,14 +89,14 @@ contains
                   stream(ia, iz, iv, :) = -code_dt * b_dot_grad_z(ia, iz) * vpa(iv) * spec%stm_psi0
                end do
                if (driftkinetic_implicit) then
-                  !! Make this ia = 1 for now. Change to average later 
+                  !! Make this ia = 1 for now. Change to average later
                   !stream_store(iz, iv, :) = -code_dt * b_dot_grad_z(1, iz) * vpa(iv) * spec%stm_psi0
                   !stream_store(iz, iv, :) = -code_dt * gradpar(iz) * vpa(iv) * spec%stm_psi0
                   !stream_store(iz, iv, :) = -code_dt * sum(b_dot_grad_z(:, iz)) * vpa(iv) * spec%stm_psi0 / nalpha
-                  stream_store(iz, iv, :) = -code_dt * minval(b_dot_grad_z(:, iz)) * vpa(iv) * spec%stm_psi0 
+                  stream_store(iz, iv, :) = -code_dt * minval(b_dot_grad_z(:, iz)) * vpa(iv) * spec%stm_psi0
                else
-                  stream(:, iz, iv, :) = spread(stream(1,iz,iv,:), 1, nalpha) 
-               end if 
+                  stream(:, iz, iv, :) = spread(stream(1, iz, iv, :), 1, nalpha)
+               end if
             end do
          end do
       else
@@ -266,13 +266,13 @@ contains
          allocate (g0_swap(naky_all, ikx_max))
          allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
          allocate (g1y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
-         
+
          allocate (g1(naky, nakx, -nzgrid:nzgrid, ntubes))
          !!GA
          if (driftkinetic_implicit) then
             allocate (dgphi_dz_correction(naky, nakx, -nzgrid:nzgrid, ntubes))
             allocate (g1y_correction(ny, ikx_max, -nzgrid:nzgrid, ntubes))
-            allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes))           
+            allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes))
          end if
       end if
 
@@ -303,13 +303,13 @@ contains
 
          !> ld<phi>/dz
 
-!         if(driftkinetic_implicit) then 
- !           call get_dgdz_centered(g0, ivmu, dgphi_dz, stream_correction_sign)
+!         if(driftkinetic_implicit) then
+         !           call get_dgdz_centered(g0, ivmu, dgphi_dz, stream_correction_sign)
          !   call get_dgdz_centered(phi1, ivmu, dgphi_dz_correction)
-  !       else
-   !         call get_dgdz_centered(g0, ivmu, dgphi_dz)
-    !     end if
-         
+         !       else
+         !         call get_dgdz_centered(g0, ivmu, dgphi_dz)
+         !     end if
+
          !> d<phi>/dz
          call get_dgdz_centered(g0, ivmu, dgphi_dz)
 
@@ -331,7 +331,7 @@ contains
                   !> get d<phi>/dz in real space
                   call swap_kxky(dgphi_dz(:, :, iz, it), g0_swap)
                   call transform_ky2y(g0_swap, g1y(:, :, iz, it))
-                  
+
                   !! Moved into implicit solve
                   !> get d phi0/dz in real space
                   ! if (driftkinetic_implicit) then
@@ -342,13 +342,13 @@ contains
             end do
             if (driftkinetic_implicit) then
                !> this is dg/dx + Z/T d<phi>/dz
-               g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt 
+               g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt
                !> this is (b.gradz - b.gradz0)*(dg/dx + Z/T d<phi>/dz )
                call add_stream_term_ffs_correction(g0y, ivmu, gout(:, :, :, :, ivmu))
 
-               !!Moved into implicit solve 
+               !!Moved into implicit solve
                !> this is Z/T d(<phi> - phi0)/dz
-!!               g1y = (g1y - g1y_correction) * spec(is)%zt 
+!!               g1y = (g1y - g1y_correction) * spec(is)%zt
                !> this is (b.gradz0)*(Z/T d(<phi> - phi0)/dz
                !> the final term b.gradz0*(dg/dz + Z/T d phi0/dz) is treated implicitly
  !!              call add_stream_term_ffs(g1y, ivmu, gout(:, :, :, :, ivmu))
@@ -378,7 +378,7 @@ contains
       if (driftkinetic_implicit) deallocate (dgphi_dz_correction, g1y_correction)
       if (driftkinetic_implicit) deallocate (phi1)
 
-      if (full_flux_surface) deallocate (g1) 
+      if (full_flux_surface) deallocate (g1)
       !> finish timing the subroutine
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
@@ -490,10 +490,10 @@ contains
       complex, dimension(2) :: gleft, gright
 
       integer, dimension(:), intent(in), optional :: term_sign
-      integer, dimension (:), allocatable :: sign_term
-      allocate(sign_term(nvpa)) ; sign_term = 0.0
+      integer, dimension(:), allocatable :: sign_term
+      allocate (sign_term(nvpa)); sign_term = 0.0
 
-      if(present(term_sign)) then
+      if (present(term_sign)) then
          sign_term = term_sign
       else
          sign_term = stream_sign
@@ -515,8 +515,8 @@ contains
             end do
          end do
       end do
-      
-      deallocate(sign_term)
+
+      deallocate (sign_term)
 
    end subroutine get_dgdz
 
@@ -542,15 +542,15 @@ contains
       integer, dimension(:), intent(in), optional :: term_sign
       integer, intent(in) :: ivmu
 
-      integer, dimension (:), allocatable :: sign_term
+      integer, dimension(:), allocatable :: sign_term
       integer :: iseg, ie, iky, iv, it
       complex, dimension(2) :: gleft, gright
 
-      allocate(sign_term(nvpa)) ; sign_term = 0.0
+      allocate (sign_term(nvpa)); sign_term = 0.0
 
-      if(present(term_sign)) then 
+      if (present(term_sign)) then
          sign_term = term_sign
-      else 
+      else
          sign_term = stream_sign
       end if
 
@@ -572,7 +572,7 @@ contains
          end do
       end do
 
-      deallocate(sign_term) 
+      deallocate (sign_term)
 
    end subroutine get_dgdz_centered
 
@@ -662,7 +662,6 @@ contains
          end do
       end do
 
-      
    end subroutine add_stream_term_ffs
 
    subroutine add_stream_term_ffs_full(g, ivmu, src)
@@ -685,7 +684,7 @@ contains
       do iz = -nzgrid, nzgrid
          do iy = 1, ny
             src(iy, :, iz, :) = src(iy, :, iz, :) + &
-                 (stream(iy, iz, iv, is) + stream_correction(iy, iz, iv, is) ) * g(iy, :, iz, :)
+                                (stream(iy, iz, iv, is) + stream_correction(iy, iz, iv, is)) * g(iy, :, iz, :)
          end do
       end do
 
@@ -913,7 +912,7 @@ contains
 
       integer :: ulim
 
-      complex, optional, intent (in) :: phase_factor
+      complex, optional, intent(in) :: phase_factor
 
       ulim = llim + size(f) - 1
 
@@ -921,9 +920,9 @@ contains
       if (stream_sign(iv) > 0) then
          f(:ulim - 1) = zupwnd_p * f(:ulim - 1) + zupwnd_m * f(llim + 1:)
          if (periodic) then
-            if(present(phase_factor)) then 
+            if (present(phase_factor)) then
                f(ulim) = f(llim) * phase_factor
-            else 
+            else
                f(ulim) = f(llim)
             end if
          else
@@ -932,7 +931,7 @@ contains
       else
          f(llim + 1:) = zupwnd_m * f(:ulim - 1) + zupwnd_p * f(llim + 1:)
          if (periodic) then
-            if(present(phase_factor)) then
+            if (present(phase_factor)) then
                f(llim) = f(ulim) * phase_factor
             else
                f(llim) = f(ulim)
@@ -982,13 +981,13 @@ contains
 
    subroutine finish_invert_stream_operator
 
-     use run_parameters, only: driftkinetic_implicit
+      use run_parameters, only: driftkinetic_implicit
 
       implicit none
-      
-      if(driftkinetic_implicit) then 
-         if (allocated(stream_correction)) deallocate(stream_correction) 
-         if (allocated(stream_correction_sign)) deallocate(stream_correction_sign)
+
+      if (driftkinetic_implicit) then
+         if (allocated(stream_correction)) deallocate (stream_correction)
+         if (allocated(stream_correction_sign)) deallocate (stream_correction_sign)
       end if
 
       if (allocated(stream_tri_a1)) then

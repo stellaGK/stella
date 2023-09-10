@@ -100,7 +100,7 @@ contains
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
       use fields_arrays, only: gamtot, dgamtotdr, gamtot3
-      
+
       use mp, only: proc0
 
       implicit none
@@ -196,7 +196,7 @@ contains
             deallocate (g1)
 
          end if
-         
+
          ! avoid divide by zero when kx=ky=0
          ! do not evolve this mode, so value is irrelevant
          if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then
@@ -505,7 +505,6 @@ contains
       use vpamu_grids, only: integrate_species
       use gyro_averages, only: band_lu_factorisation_ffs
 
-
       !!
       use vpamu_grids, only: integrate_species_ffs_fields
       !! For implicit streaming
@@ -546,10 +545,10 @@ contains
 
       !!TY
 !      complex, dimension(:), allocatable :: gam0const_kalpha
-      
-      complex, dimension(:,:,:), allocatable :: gam0_const
-      complex, dimension(:,:,:), allocatable :: gamtot_con
-      
+
+      complex, dimension(:, :, :), allocatable :: gam0_const
+      complex, dimension(:, :, :), allocatable :: gamtot_con
+
       if (debug) write (*, *) 'fields::init_fields::init_gamm0_factor_ffs'
 
       ! if (.not. allocated(gamtot3)) then
@@ -562,8 +561,8 @@ contains
       ! end if
 
       !!
-      allocate(gam0_const(naky_all,ikx_max, -nzgrid:nzgrid)) ; gam0_const = 0.0
-      allocate(gamtot_con(naky,nakx, -nzgrid:nzgrid)) ; gamtot_con = 0.0 
+      allocate (gam0_const(naky_all, ikx_max, -nzgrid:nzgrid)); gam0_const = 0.0
+      allocate (gamtot_con(naky, nakx, -nzgrid:nzgrid)); gamtot_con = 0.0
 
       allocate (kperp2_swap(naky_all, ikx_max, nalpha))
       allocate (aj0_alpha(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -572,7 +571,7 @@ contains
 
       !> wgts are species-dependent factors appearing in Gamma0 factor
       allocate (wgts(nspec))
-      wgts = spec%dens_psi0 * spec%z* spec%z / spec%temp
+      wgts = spec%dens_psi0 * spec%z * spec%z / spec%temp
       !> allocate gam0_ffs array, which will contain the Fourier coefficients in y
       !> of the Gamma0 factor that appears in quasineutrality
       if (.not. allocated(gam0_ffs)) then
@@ -582,8 +581,8 @@ contains
       !!TY
       ! allocate (gam0const_kalpha(naky))
 
-      ! if (.not. allocated(gam0const_ffs)) then 
-      !    allocate (gam0const_ffs(naky_all, ikx_max, -nzgrid:nzgrid))   
+      ! if (.not. allocated(gam0const_ffs)) then
+      !    allocate (gam0const_ffs(naky_all, ikx_max, -nzgrid:nzgrid))
       ! end if
 
 !       !!GA
@@ -609,25 +608,25 @@ contains
 !                !g0 = spread((1.0 - bessel(:)**2), 1, nvpa)
 !                g0 = spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa)
 !                wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp
-!                !call integrate_vmu(g0, iz, tmp, ia) 
+!                !call integrate_vmu(g0, iz, tmp, ia)
 !                call integrate_vmu(g0, iz, tmp)
-!                gamtot_alpha(iky, ikx, iz, ia) = gamtot_alpha(iky, ikx, iz, ia) + tmp * wgt !s(is) 
+!                gamtot_alpha(iky, ikx, iz, ia) = gamtot_alpha(iky, ikx, iz, ia) + tmp * wgt !s(is)
 !             end do
 !          end do
-         
+
 !          deallocate (g0, bessel)
 !          call sum_allreduce(gamtot_alpha)
-         
+
 !          if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
 
 !          if (.not. allocated(gamtot_con)) allocate (gamtot_con(naky, nakx, -nzgrid:nzgrid)); gamtot_con = 0.
 
 !          !! set gamtot for phi0 to be the alpha = 1 for now. Change to appropriate average later
-!          gamtot = gamtot_alpha(:,:,:,1) 
+!          gamtot = gamtot_alpha(:,:,:,1)
 
 !          if(proc0) write(*,*) 'gamtot sumallreduce', sum(gamtot)
-! !         gamtot = sum(gamtot_alpha, dim = 4)/nalpha 
- 
+! !         gamtot = sum(gamtot_alpha, dim = 4)/nalpha
+
 !         deallocate (gamtot_alpha)
 
 !          if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then
@@ -637,7 +636,7 @@ contains
 
 !          if (.not. has_electron_species(spec)) then
 !             !!FLAG -- ISSUE WITH ADIABATIC !!
-!             write(*,*) 'AAAAAAH ' 
+!             write(*,*) 'AAAAAAH '
 !             efac = tite / nine * (spec(ion_species)%dens / spec(ion_species)%temp)
 !             gamtot = gamtot + efac
 !             if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
@@ -678,18 +677,18 @@ contains
                      !> form coefficient needed to calculate 1-Gamma_0
                      aj0_alpha(ivmu) = (1.0 - aj0_alpha(ivmu)**2)
                   end do
-                  
+
                   !> calculate gamma0(kalpha,alpha,...) = sum_s Zs^2 * ns / Ts int d3v (1-J0^2)*F_{Maxwellian}
                   !> note that v-space Jacobian contains alpha-dependent factor, B(z,alpha),
                   !> but this is not a problem as we have yet to transform from alpha to k_alpha
-                  
-!                  call integrate_species_ffs_fields(aj0_alpha, wgts, gam0_alpha(ia), ia, iz) 
+
+!                  call integrate_species_ffs_fields(aj0_alpha, wgts, gam0_alpha(ia), ia, iz)
                   call integrate_species(aj0_alpha, iz, wgts, gam0_alpha(ia), ia)
                   !> if Boltzmann response used, account for non-flux-surface-averaged component of electron density
                   if (adiabatic_electrons) then
                      gam0_alpha(ia) = gam0_alpha(ia) + tite / nine * (spec(ion_species)%dens / spec(ion_species)%temp)
 !!!!                     gam0_alpha(ia) = gam0_alpha(ia) + tite / nine
-                  else if (ikx == 1 .and. iky == naky) then 
+                  else if (ikx == 1 .and. iky == naky) then
                      !> if kx = ky = 0, 1-Gam0 factor is zero;
                      !> this leads to eqn of form 0 * phi_00 = int d3v g.
                      !> hack for now is to set phi_00 = 0, as above inversion is singular.
@@ -700,7 +699,7 @@ contains
 
                !> fourier transform Gamma_0(alpha) from alpha to k_alpha space
                call transform_alpha2kalpha(gam0_alpha, gam0_kalpha)
-               ! gam0const_kalpha (:) = gam0_kalpha(1) 
+               ! gam0const_kalpha (:) = gam0_kalpha(1)
 
                gam0_ffs(iky, ikx, iz)%max_idx = naky
                !!TY
@@ -713,11 +712,11 @@ contains
                gam0_ffs(iky, ikx, iz)%fourier = gam0_kalpha(:gam0_ffs(iky, ikx, iz)%max_idx)
 
                !!TY
-               ! if (.not. associated(gam0const_ffs(iky, ikx, iz)%fourier)) & 
-               !      allocate (gam0const_ffs(iky, ikx, iz)%fourier(gam0_ffs(iky, ikx, iz)%max_idx))  
-               ! gam0const_ffs(iky, ikx, iz)%fourier = gam0const_kalpha(:gam0const_ffs(iky, ikx, iz)%max_idx) 
- 
-               gam0_const (iky, ikx, iz) = gam0_alpha(1) 
+               ! if (.not. associated(gam0const_ffs(iky, ikx, iz)%fourier)) &
+               !      allocate (gam0const_ffs(iky, ikx, iz)%fourier(gam0_ffs(iky, ikx, iz)%max_idx))
+               ! gam0const_ffs(iky, ikx, iz)%fourier = gam0const_kalpha(:gam0const_ffs(iky, ikx, iz)%max_idx)
+
+               gam0_const(iky, ikx, iz) = gam0_alpha(1)
 !               gam0_const (iky, ikx, iz) = gam0_kalpha(1)
 !!!                call test_ffs_bessel_coefs (gam0_ffs(iky,ikx,iz)%fourier, gam0_alpha, iky, ikx, iz, gam0_ffs_unit)
             end do
@@ -725,13 +724,13 @@ contains
       end do
 
       do iz = -nzgrid, nzgrid
-         call swap_kxky_back_ordered (gam0_const(:,:,iz) , gamtot_con(:,:,iz) )
+         call swap_kxky_back_ordered(gam0_const(:, :, iz), gamtot_con(:, :, iz))
       end do
 
       if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
       gamtot = real(gamtot_con)
-      deallocate(gamtot_con)
-      deallocate(gam0_const)
+      deallocate (gamtot_con)
+      deallocate (gam0_const)
 
       !> LU factorise array of gam0, using the LAPACK zgbtrf routine for banded matrices
       if (.not. allocated(lu_gam0_ffs)) then
@@ -740,11 +739,11 @@ contains
          call band_lu_factorisation_ffs(gam0_ffs, lu_gam0_ffs)
       end if
 
-      ! if (.not. allocated(lu_gam0const_ffs)) then 
-      !     allocate (lu_gam0const_ffs(ikx_max, -nzgrid:nzgrid)) 
-      !     call band_lu_factorisation_ffs(gam0const_ffs, lu_gam0const_ffs) 
+      ! if (.not. allocated(lu_gam0const_ffs)) then
+      !     allocate (lu_gam0const_ffs(ikx_max, -nzgrid:nzgrid))
+      !     call band_lu_factorisation_ffs(gam0const_ffs, lu_gam0const_ffs)
       !  end if
-      !  deallocate (gam0const_kalpha) 
+      !  deallocate (gam0const_kalpha)
 
       deallocate (wgts)
       deallocate (kperp2_swap)
@@ -1118,13 +1117,13 @@ contains
       !!GA
       logical, optional, intent(in) :: const_in_alpha
       real, dimension(:, :, :, :), allocatable :: gamtot_t
-      complex, dimension(:,:), allocatable :: phi_fsa_spread, phi_source
+      complex, dimension(:, :), allocatable :: phi_fsa_spread, phi_source
 
       if (.not. allocated(source)) allocate (source(naky, nakx, -nzgrid:nzgrid)); source = 0.0
 
       if (fphi > epsilon(0.0)) then
          if (present(const_in_alpha)) then
-             allocate (gamtot_t(naky, nakx, -nzgrid:nzgrid, ntubes))
+            allocate (gamtot_t(naky, nakx, -nzgrid:nzgrid, ntubes))
             gamtot_t = spread(gamtot, 4, ntubes)
             call get_g_integral_contribution(g, source, const_in_alpha=.true.)
             where (gamtot_t < epsilon(0.0))
@@ -1146,24 +1145,24 @@ contains
             !> NB: assuming here that ntubes = 1 for FFS sim
             if (debug) write (*, *) 'fields::advance_fields::get_phi_ffs'
             call get_phi_ffs(source, phi(:, :, :, 1))
-            if (akx(1) < epsilon(0.)) then  
-               phi(1,1,:,:) = 0.0
+            if (akx(1) < epsilon(0.)) then
+               phi(1, 1, :, :) = 0.0
             end if
             !> if using a modified Boltzmann response for the electrons, then phi
             !> at this stage is the 'inhomogeneous' part of phi.
             if (modified_adiabatic_electrons) then
                !> first must get phi on grid that includes positive and negative ky (but only positive kx)
-               allocate (phi_swap(naky_all, ikx_max, -nzgrid:nzgrid)) ; phi_swap = 0.0
+               allocate (phi_swap(naky_all, ikx_max, -nzgrid:nzgrid)); phi_swap = 0.0
 
                if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::swap_kxky_ordered'
                do iz = -nzgrid, nzgrid
                   call swap_kxky_ordered(phi(:, :, iz, 1), phi_swap(:, :, iz))
                end do
                ! !> Calculate the flux surface average of this phi_inhomogeneous
-               
-               allocate (phi_fsa(nakx)) ; phi_fsa = 0.0
-               allocate (phi_fsa_spread(naky_all, ikx_max)) ; phi_fsa_spread = 0.0
-               allocate (phi_source(naky, nakx)) ; phi_source = 0.0
+
+               allocate (phi_fsa(nakx)); phi_fsa = 0.0
+               allocate (phi_fsa_spread(naky_all, ikx_max)); phi_fsa_spread = 0.0
+               allocate (phi_source(naky, nakx)); phi_source = 0.0
                if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::flux_surface_average_ffs'
 
                do ikx = 1, ikx_max
@@ -1175,29 +1174,29 @@ contains
                phi_fsa = phi_fsa * adiabatic_response_factor
                ! !> use the computed flux surface average of phi as an additional sosurce in quasineutrality
                ! !> to obtain the electrostatic potential; only affects the ky=0 component of QN
-               
+
                phi_fsa_spread = spread(phi_fsa, 1, naky_all)
-               
-               call swap_kxky_back_ordered (phi_fsa_spread, phi_source)
-               
+
+               call swap_kxky_back_ordered(phi_fsa_spread, phi_source)
+
                do ikx = 1, nakx
                   if (akx(1) < epsilon(0.)) then
-                      source(1, 1, :) = source(1, 1, :)
-                   else
-                      do iz = -nzgrid, nzgrid
-                         source(1, ikx, iz) = source(1, ikx, iz) + phi_source(1, ikx) * tite / nine !!phi_fsa(ikx) * tite / nine
-                      end do
-                   end if
+                     source(1, 1, :) = source(1, 1, :)
+                  else
+                     do iz = -nzgrid, nzgrid
+                        source(1, ikx, iz) = source(1, ikx, iz) + phi_source(1, ikx) * tite / nine !!phi_fsa(ikx) * tite / nine
+                     end do
+                  end if
                end do
 
                if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::get_phi_ffs2s'
                call get_phi_ffs(source, phi(:, :, :, 1))
 
-               if (akx(1) < epsilon(0.)) then  
-                  phi(1,1,:,:) = 0.0
+               if (akx(1) < epsilon(0.)) then
+                  phi(1, 1, :, :) = 0.0
                end if
                deallocate (phi_fsa, phi_swap)
-               deallocate (phi_fsa_spread, phi_source) 
+               deallocate (phi_fsa_spread, phi_source)
             end if
          end if
       else if (.not. adiabatic_electrons) then
@@ -1224,7 +1223,7 @@ contains
          use kt_grids, only: naky, nakx
          use vpamu_grids, only: integrate_species_ffs
          use gyro_averages, only: gyro_average, j0_B_maxwell_ffs
-         
+
          use gyro_averages, only: j0_B_maxwell_const
          !!TY
          !!use gyro_averages, only: j0bmaxconst_ffs
@@ -1243,7 +1242,7 @@ contains
          complex, dimension(:, :, :), allocatable :: gyro_g
          logical, optional, intent(in) :: const_in_alpha
 
-         integer :: iv,imu,is
+         integer :: iv, imu, is
 
          !> assume there is only a single flux surface being simulated
          it = 1
@@ -1253,8 +1252,8 @@ contains
          do iz = -nzgrid, nzgrid
             if (present(const_in_alpha)) then
                do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                  !! gyro average with the k_alpha = 0.0 part of J0* B* Maxwell 
-                  gyro_g(:, :, ivmu) = g(:, :, iz, it, ivmu) * j0_B_maxwell_const (:, :, iz, ivmu)
+                  !! gyro average with the k_alpha = 0.0 part of J0* B* Maxwell
+                  gyro_g(:, :, ivmu) = g(:, :, iz, it, ivmu) * j0_B_maxwell_const(:, :, iz, ivmu)
                   !!TY
                   !! call gyro_average(g(:, :, iz, it, ivmu), gyro_g(:, :, ivmu), j0bmaxconst_ffs(:, :, iz, ivmu))
                end do
@@ -1796,12 +1795,12 @@ contains
       !> and then rhs_swap is over-written with the solution to the linear system
       !! TY
 
-!      if(present(const_in_alpha)) then 
- !        call band_lu_solve_ffs(lu_gam0const_ffs, rhs_swap)
-  !    else
+!      if(present(const_in_alpha)) then
+      !        call band_lu_solve_ffs(lu_gam0const_ffs, rhs_swap)
+      !    else
       call band_lu_solve_ffs(lu_gam0_ffs, rhs_swap)
       !end if
-      
+
       !> swap back from the ordered grid in ky to the original (kx,ky) grid
       do iz = -nzgrid, nzgrid
          call swap_kxky_back_ordered(rhs_swap(:, :, iz), phi(:, :, iz))
@@ -2091,7 +2090,7 @@ contains
             end do
          end do
 
-         if(full_flux_surface) then
+         if (full_flux_surface) then
             call gyro_average(field, dchidy(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
          else
             call gyro_average(field, ivmu, dchidy(:, :, :, :, ivmu))
@@ -2132,7 +2131,7 @@ contains
       iv = iv_idx(vmu_lo, ivmu)
       field = zi * spread(aky, 2, nakx) &
               * (fphi * phi - fapar * vpa(iv) * spec(is)%stm * apar)
-      if(full_flux_surface) then
+      if (full_flux_surface) then
          call gyro_average(field, dchidy, j0_ffs(:, :, iz, ivmu))
       else
          call gyro_average(field, iz, ivmu, dchidy)
@@ -2172,7 +2171,7 @@ contains
       field = zi * spread(akx, 1, naky) &
               * (fphi * phi - fapar * vpa(iv) * spec(is)%stm * apar)
 
-      if(full_flux_surface) then
+      if (full_flux_surface) then
          call gyro_average(field, dchidx, j0_ffs(:, :, iz, ivmu))
       else
          call gyro_average(field, iz, ivmu, dchidx)

@@ -772,9 +772,9 @@ contains
             ! Guess that theta_vmec will be within 0.3 radians of theta_pest:
             theta_vmec_min = theta_pest_target - 1
             theta_vmec_max = theta_pest_target + 1
-            !! Get theta_vmec for alpha0 
+            !! Get theta_vmec for alpha0
             call get_root(theta_vmec_min, theta_vmec_max, theta_vmec(ialpha, izeta), theta_converged)
-         
+
             ! In the 4th argument, we are telling the root-finder (fzero) to use theta_pest as the initial guess for theta_vmec.
             !          call fzero(fzero_residual, theta_vmec_min, theta_vmec_max, theta_pest_target, &
             !               root_solve_relative_tolerance, root_solve_absolute_tolerance, fzero_flag)
@@ -794,10 +794,10 @@ contains
          end do
       end do
 
-  !    do ialpha = 1, nalpha 
-   !      alpha(ialpha) = theta_vmec(ialpha, 1) - iota* zeta(1) 
-    !  end do
-   
+      !    do ialpha = 1, nalpha
+      !      alpha(ialpha) = theta_vmec(ialpha, 1) - iota* zeta(1)
+      !  end do
+
       !*********************************************************************
       ! Initialize geometry arrays
       !*********************************************************************
@@ -995,14 +995,14 @@ contains
                angle = m * theta_vmec(ialpha, izeta) - n * nfp * zeta(izeta)
                cos_angle = cos(angle)
                sin_angle = sin(angle)
-               
+
                do isurf = 1, 2
 
                   ! Handle |B|:
                   temp = bmnc(imn_nyq, vmec_radial_index_half(isurf)) * vmec_radial_weight_half(isurf)
                   temp = temp * scale_factor
                   B(ialpha, izeta) = B(ialpha, izeta) + temp * cos_angle
-                  
+
                   d_B_d_theta_vmec(ialpha, izeta) = d_B_d_theta_vmec(ialpha, izeta) - m * temp * sin_angle
                   d_B_d_zeta(ialpha, izeta) = d_B_d_zeta(ialpha, izeta) + n * nfp * temp * sin_angle
 
@@ -1130,9 +1130,9 @@ contains
             ! End of evaluating radial derivatives.
 
             do ialpha = 1, nalpha
-               d_Z_d_zeta(ialpha,:) = 0.0
-               d_Z_d_theta_vmec(ialpha,:) = 0.0
-               d_Z_d_s(ialpha,:) = 0.0
+               d_Z_d_zeta(ialpha, :) = 0.0
+               d_Z_d_theta_vmec(ialpha, :) = 0.0
+               d_Z_d_s(ialpha, :) = 0.0
 
                do izeta = -nzgrid, nzgrid
 !!                  angle = m * theta_vmec(1, izeta) - n * nfp * zeta(izeta)
@@ -1261,7 +1261,7 @@ contains
       do izeta = -nzgrid, nzgrid
          cos_angle = cos(zeta(izeta))
          sin_angle = sin(zeta(izeta))
-         
+
          ! X = R * cos(zeta)
          d_X_d_theta_vmec(:, izeta) = d_R_d_theta_vmec(:, izeta) * cos_angle
          d_X_d_zeta(:, izeta) = d_R_d_zeta(:, izeta) * cos_angle - R(:, izeta) * sin_angle
@@ -1346,11 +1346,11 @@ contains
          grad_alpha_Y(:, izeta) = (d_Lambda_d_s(:, izeta) - zeta(izeta) * d_iota_d_s) * grad_s_Y(:, izeta)
          grad_alpha_Z(:, izeta) = (d_Lambda_d_s(:, izeta) - zeta(izeta) * d_iota_d_s) * grad_s_Z(:, izeta)
       end do
-      
+
       grad_alpha_X = grad_alpha_X + (1 + d_Lambda_d_theta_vmec) * grad_theta_vmec_X + (-iota + d_Lambda_d_zeta) * grad_zeta_X
       grad_alpha_Y = grad_alpha_Y + (1 + d_Lambda_d_theta_vmec) * grad_theta_vmec_Y + (-iota + d_Lambda_d_zeta) * grad_zeta_Y
       grad_alpha_Z = grad_alpha_Z + (1 + d_Lambda_d_theta_vmec) * grad_theta_vmec_Z + (-iota + d_Lambda_d_zeta) * grad_zeta_Z
-      
+
       grad_B_X = d_B_d_s * grad_s_X + d_B_d_theta_vmec * grad_theta_vmec_X + d_B_d_zeta * grad_zeta_X
       grad_B_Y = d_B_d_s * grad_s_Y + d_B_d_theta_vmec * grad_theta_vmec_Y + d_B_d_zeta * grad_zeta_Y
       grad_B_Z = d_B_d_s * grad_s_Z + d_B_d_theta_vmec * grad_theta_vmec_Z + d_B_d_zeta * grad_zeta_Z
@@ -1485,7 +1485,7 @@ contains
                                                 - B_Y * grad_B_X * grad_alpha_Z
 
       call test_arrays(B_cross_grad_B_dot_grad_alpha, B_cross_grad_B_dot_grad_alpha_alternate, &
-           .false., 1.0e-2, 'B_cross_grad_B_dot_grad_alpha', ierr2)
+                       .false., 1.0e-2, 'B_cross_grad_B_dot_grad_alpha', ierr2)
       if (ierr2 /= 0) then
          print *, "test_arrays returned error for B_cross_grad_B_dot_grad_alpha"
          ierr = ierr + 1
@@ -1503,10 +1503,10 @@ contains
 
       ! grad alpha . grad alpha in units of 1/L_ref^2, with alpha = theta_pest - iota * zeta
       grad_alpha_grad_alpha = L_reference * L_reference * (grad_alpha_X * grad_alpha_X + grad_alpha_Y * grad_alpha_Y + grad_alpha_Z * grad_alpha_Z)
-      
+
       ! this is grad alpha . grad psi_t in units of B_reference
       grad_alpha_grad_psi = (grad_alpha_X * grad_psi_X + grad_alpha_Y * grad_psi_Y + grad_alpha_Z * grad_psi_Z) / B_reference
-      
+
       ! this is grad psi_t . grad psi_t in units of (B_reference*L_reference)^2
       grad_psi_grad_psi = (grad_psi_X * grad_psi_X + grad_psi_Y * grad_psi_Y + grad_psi_Z * grad_psi_Z) &
                           / (L_reference * L_reference * B_reference * B_reference)

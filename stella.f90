@@ -137,7 +137,7 @@ contains
       integer :: i, n, ierr
       real :: delt_saved
 
-      logical :: norm 
+      logical :: norm
       real :: total
 
       !> initialize mpi message passing
@@ -238,7 +238,7 @@ contains
          call init_ranf(.false., seed, job + 2)
       end if
       deallocate (seed)
-      
+
       !> read layouts_knobs namelist from the input file,
       !> which determines the order of parallelisation within the different layouts
       if (debug) write (6, *) 'stella::init_stella::init_stella_layouts'
@@ -316,7 +316,7 @@ contains
             call init_response_matrix
          end if
       end if
-      
+
       !> get initial field from initial distribution function
       if (debug) write (6, *) 'stella::init_stella::advance_fields'
       call advance_fields(gnew, phi, apar, dist='gbar')

@@ -213,7 +213,7 @@ contains
       real, dimension(:, :), allocatable :: wcvdrifty, wgbdrifty
       real, dimension(:, :), allocatable :: wcvdriftx, wgbdriftx
 
-      integer :: ia , iz
+      integer :: ia, iz
 
       if (wdriftinit) return
       wdriftinit = .true.
@@ -326,7 +326,7 @@ contains
          end if
 
       end do
-      
+
       deallocate (wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty)
 
    end subroutine init_wdrift
@@ -383,7 +383,7 @@ contains
             wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          end if
       end do
-      
+
       deallocate (energy)
 
    end subroutine init_wstar
@@ -1319,7 +1319,7 @@ contains
       if (debug) write (*, *) 'time_advance::solve_gke::get_dchidy'
       !> get d<chi>/dy in k-space
       call get_dchidy(phi, apar, g0)
-      
+
       if (full_flux_surface) then
          !> assume only a single flux surface simulated
          it = 1
@@ -1429,12 +1429,12 @@ contains
          call add_explicit_term(g0k, wdrifty_g(1, :, :), gout)
 
          !get <dphi/dy> in k-space
-        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-           call gyro_average(dphidy, ivmu, g0k(:, :, :, :, ivmu))
-        end do
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            call gyro_average(dphidy, ivmu, g0k(:, :, :, :, ivmu))
+         end do
 
-        !add vM . grad y d<phi>/dy term to equation
-        call add_explicit_term(g0k, wdrifty_phi(1, :, :), gout)
+         !add vM . grad y d<phi>/dy term to equation
+         call add_explicit_term(g0k, wdrifty_phi(1, :, :), gout)
       end if
       deallocate (g0k, dphidy)
 
@@ -2409,7 +2409,7 @@ contains
 
       integer :: ivmu
       integer :: iky, ikx, iz, it
-      
+
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
@@ -2439,7 +2439,7 @@ contains
 
       integer :: ivmu
       integer :: ia, ikx, iz, it
-       
+
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
@@ -2667,11 +2667,11 @@ contains
       !       end do
       !    end do
       ! end do
-      
+
       do it = 1, ntubes
          do ikx = 1, nakx
             do iky = 1, naky
-               do iz= -nzgrid, nzgrid
+               do iz = -nzgrid, nzgrid
                   total = total + field(iky, ikx, iz, it)
                end do
             end do
@@ -2708,7 +2708,7 @@ contains
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          dist_single = dist(:, :, :, :, ivmu)
          if (present(norm)) then
-            if(norm) then 
+            if (norm) then
                iv = iv_idx(vmu_lo, ivmu)
                imu = imu_idx(vmu_lo, ivmu)
                is = is_idx(vmu_lo, ivmu)

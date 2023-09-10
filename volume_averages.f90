@@ -133,8 +133,8 @@ contains
       do it = 1, ntubes
          avg = avg + sum(spread(spread(dl_over_b(ia, :), 1, naky), 2, nakx) * unavg(:, :, :, it), dim=3)
       end do
-      avg = avg / (real(ntubes) * sum(dl_over_b)) 
-      
+      avg = avg / (real(ntubes) * sum(dl_over_b))
+
    end subroutine fieldline_average_complex
 
    !==============================================

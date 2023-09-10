@@ -147,7 +147,7 @@ contains
       use file_utils, only: input_unit, error_unit, run_name, input_unit_exist
       use text_options, only: text_option, get_option_value
       use stella_save, only: read_many
-      
+
       use kt_grids, only: nalpha
       use physics_flags, only: full_flux_surface
       implicit none
@@ -204,9 +204,9 @@ contains
 !    if (exist) read (unit=input_unit("init_g_knobs"), nml=init_g_knobs)
       if (exist) read (unit=in_file, nml=init_g_knobs)
 
-!      if(full_flux_surface) then 
- !        phiinit = phiinit/2.02
-  !    end if
+!      if(full_flux_surface) then
+      !        phiinit = phiinit/2.02
+      !    end if
 
       ierr = error_unit()
       call get_option_value &
@@ -242,7 +242,7 @@ contains
 
       integer :: ivmu, iv, imu
       complex :: sums
-      
+
       right = .not. left
 
       do iz = -nzgrid, nzgrid
@@ -253,12 +253,12 @@ contains
       do iky = 1, naky
          do ikx = 1, nakx
             do iz = -nzgrid, nzgrid
-               sums = sums + phi(iky,ikx,iz)
+               sums = sums + phi(iky, ikx, iz)
             end do
          end do
       end do
-      
-      if(proc0) write(*,*) 'sum1', sums
+
+      if (proc0) write (*, *) 'sum1', sums
 
       ! this is a messy way of doing things
       ! could tidy it up a bit
@@ -267,17 +267,17 @@ contains
             phi(:, :, iz) = exp(-(zed(iz) / width0)**2) * cmplx(1.0, 1.0)
          end do
       end if
-      
+
       sums = 0.0
       do iky = 1, naky
-         do ikx= 1, nakx
+         do ikx = 1, nakx
             do iz = -nzgrid, nzgrid
-               sums = sums + phi(iky,ikx,iz)
+               sums = sums + phi(iky, ikx, iz)
             end do
          end do
       end do
-      
-      if(proc0) write(*,*) 'sum2', sums
+
+      if (proc0) write (*, *) 'sum2', sums
 
       if (chop_side) then
          if (left) phi(:, :, :-1) = 0.0
@@ -295,17 +295,17 @@ contains
          iky = iky_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
          gvmu(:, :, ikxkyz) = phiinit * phi(iky, ikx, iz) / abs(spec(is)%z) &
-              * (den0 + 2.0 * zi * spread(vpa, 2, nmu) * upar0) &
-              * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is)
-         do iv = 1,nvpa
-            do imu = 1,nmu 
+                              * (den0 + 2.0 * zi * spread(vpa, 2, nmu) * upar0) &
+                              * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is)
+         do iv = 1, nvpa
+            do imu = 1, nmu
                sums = sums + gvmu(iv, imu, ikxkyz)
             end do
          end do
       end do
 
-      call sum_allreduce (sums) 
-      if(proc0) write(*,*) 'sum3', sums
+      call sum_allreduce(sums)
+      if (proc0) write (*, *) 'sum3', sums
 
    end subroutine ginit_default
 
@@ -462,7 +462,7 @@ contains
       if (proc0) then
          phi(1, 1, :, :) = 0.0
          kmin = 1.e6
-         if(full_flux_surface) then 
+         if (full_flux_surface) then
             if (naky > 1) kmin = minval(kperp2(2, 1, :, :))
             if (nakx > 1) kmin = min(kmin, minval(kperp2(1, 2, :, :)))
          else

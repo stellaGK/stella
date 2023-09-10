@@ -655,7 +655,7 @@ contains
                call transform_ky2y(g_swap, g0x(:, :, iz, it, ivmu))
             end do
          end do
-         
+
          ! ! convert g to g*(integrating factor), as this is what is being advected
          ! ! integrating factor = exp(m*vpa^2/2T * (mu*dB/dz) / (mu*dB/dz + Z*e*dphinc/dz))
          ! ! if dphinc/dz=0, simplifies to exp(m*vpa^2/2T)
@@ -719,7 +719,7 @@ contains
          !    !       is = is_idx(vmu_lo, ivmu)
          !    !       g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) * maxwell_vpa(iv, is)
          !    !    end do
-         ! end if         
+         ! end if
 
          !!GA
          !!>finally transform back from y to ky space
