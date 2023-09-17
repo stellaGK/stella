@@ -336,7 +336,7 @@ contains
       use species, only: spec
       use zgrid, only: nzgrid
       use kt_grids, only: nalpha
-      use stella_geometry, only: dydalpha, drhodpsi
+      use stella_geometry, only: dydalpha, drhodpsi, sign_torflux
       use vpamu_grids, only: vperp2, vpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use dist_fn_arrays, only: wstar
@@ -366,13 +366,13 @@ contains
             if (maxwellian_normalization) then
                call mp_abort("include_neoclassical_terms = T not yet supported for maxwellian_normalization = T. Aborting.")
             else
-               wstar(:, :, ivmu) = dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
+               wstar(:, :, ivmu) = - sign_torflux * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
                                    * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
                                       * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) &
                                       - dfneo_drho(:, :, ivmu))
             end if
          else
-            wstar(:, :, ivmu) = dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
+            wstar(:, :, ivmu) = - sign_torflux * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
                                 * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))
          end if
          if (.not. maxwellian_normalization) then
