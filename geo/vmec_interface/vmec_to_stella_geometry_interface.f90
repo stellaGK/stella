@@ -1329,8 +1329,8 @@ contains
       ! Compute the Cartesian components of other quantities we need:
       !*********************************************************************
 
-      ! In VMEC <s> = psi/psi_LCFS and in stella <psi> = sgn(psi_t)*psi_t 
-      ! nabla psi = (dpsi/ds) * nabla s = d(psi_LCFS*s)/ds * nabla s 
+      ! In VMEC <s> = psi/psi_LCFS and in stella <psi> = sgn(psi_t)*psi_t
+      ! nabla psi = (dpsi/ds) * nabla s = d(psi_LCFS*s)/ds * nabla s
       !           = psi_LCFS * nabla s = sgn(psi_t) * psi_{t,LCFS} * nabla s
       grad_psi_X = grad_s_X * sign_toroidal_flux * edge_toroidal_flux_over_2pi
       grad_psi_Y = grad_s_Y * sign_toroidal_flux * edge_toroidal_flux_over_2pi
@@ -1542,7 +1542,7 @@ contains
 
       ! Define <gds23> = sgn(psi_t)/(B/Bref)^2 * [(∇y . ∇ζ) * (∇x . ∇y) - (∇x . ∇ζ) * |∇y|^2]
       ! Use ∇x . ∇y = (dy/dα)(dx/dψ) ∇α . ∇ψ = (1/Bref) ∇α . ∇ψ = <grad_alpha_grad_psi>
-      ! Use |∇y|^2 = (dy/dα)^2 |∇α|^2 = a^2 ρ^2 |∇α|^2 = a^2 |∇α|^2 * ρ^2 = <grad_alpha_grad_alpha> * <rhotor>^2 
+      ! Use |∇y|^2 = (dy/dα)^2 |∇α|^2 = a^2 ρ^2 |∇α|^2 = a^2 |∇α|^2 * ρ^2 = <grad_alpha_grad_alpha> * <rhotor>^2
       ! Use (∇y . ∇ζ)/(B/Bref)^2 = <gradzeta_grady> and (∇x . ∇ζ)/(B/Bref)^2 = <gradzeta_gradx>
       ! Use ρ = sqrt(psi_t/psi_{t,LCFS}) thus ρ^2 = s = psi_t/psi_{t,LCFS} = <normalized_toroidal_flux_used>
       ! <gds23> = sgn(psi_t)*(gradzeta_grady*grad_alpha_grad_psi - gradzeta_gradx*grad_alpha_grad_alpha*rhotor^2)
@@ -1550,41 +1550,41 @@ contains
 
       ! Define <gds24> = sgn(psi_t)/(B/Bref)^2 * [(∇y . ∇ζ) * |∇x|^2 - (∇x . ∇ζ) * (∇x . ∇y)]
       ! Use ∇x . ∇y = (dy/dα)(dx/dψ) ∇α . ∇ψ = (1/Bref) ∇α . ∇ψ = <grad_alpha_grad_psi>
-      ! Use |∇x|^2 = (dx/dψ)^2 |∇ψ|^2 = 1/(a^2 ρ^2 Bref^2) |∇ψ|^2 = 1/(a^2 Bref^2) |∇ψ|^2 * 1/ρ^2  = <grad_psi_grad_psi> / <rhotor>^2 
+      ! Use |∇x|^2 = (dx/dψ)^2 |∇ψ|^2 = 1/(a^2 ρ^2 Bref^2) |∇ψ|^2 = 1/(a^2 Bref^2) |∇ψ|^2 * 1/ρ^2  = <grad_psi_grad_psi> / <rhotor>^2
       ! Use (∇y . ∇ζ)/(B/Bref)^2 = <gradzeta_grady> and (∇x . ∇ζ)/(B/Bref)^2 = <gradzeta_gradx>
       ! Use ρ = sqrt(psi_t/psi_{t,LCFS}) thus ρ^2 = s = psi_t/psi_{t,LCFS} = <normalized_toroidal_flux_used>
       ! <gds24> = sgn(psi_t)*(gradzeta_grady*grad_psi_grad_psi/rhotor^2 - gradzeta_gradx*grad_alpha_grad_psi)
-      gds24 = sign_toroidal_flux * (gradzeta_grady * grad_psi_grad_psi / normalized_toroidal_flux_used - gradzeta_gradx * grad_alpha_grad_psi) 
+      gds24 = sign_toroidal_flux * (gradzeta_grady * grad_psi_grad_psi / normalized_toroidal_flux_used - gradzeta_gradx * grad_alpha_grad_psi)
 
       ! Define <gds25> = sgn(psi_t)/(B/Bref)^2 * [(∇y . ∇θp) * |∇x|^2 - (∇x . ∇θp) * (∇x . ∇y)]
       ! Use ∇x . ∇y = (dy/dα)(dx/dψ) ∇α . ∇ψ = (1/Bref) ∇α . ∇ψ = <grad_alpha_grad_psi>
-      ! Use |∇y|^2 = (dy/dα)^2 |∇α|^2 = a^2 ρ^2 |∇α|^2 = a^2 |∇α|^2 * ρ^2 = <grad_alpha_grad_alpha> * <rhotor>^2 
+      ! Use |∇y|^2 = (dy/dα)^2 |∇α|^2 = a^2 ρ^2 |∇α|^2 = a^2 |∇α|^2 * ρ^2 = <grad_alpha_grad_alpha> * <rhotor>^2
       ! Use (∇y . ∇θp)/(B/Bref)^2 = <gradtheta_grady> and (∇x . ∇θp)/(B/Bref)^2 = <gradtheta_gradx>
       ! Use ρ = sqrt(psi_t/psi_{t,LCFS}) thus ρ^2 = s = psi_t/psi_{t,LCFS} = <normalized_toroidal_flux_used>
       ! <gds25> = sgn(psi_t)*(gradtheta_grady*grad_alpha_grad_psi - gradtheta_gradx*grad_alpha_grad_alpha*rhotor^2)
-      ! Note that <gds25> was wrong before 17/09/2023 (branch upgrade_clockwise_vmecs) for CCW equilibria  
+      ! Note that <gds25> was wrong before 17/09/2023 (branch upgrade_clockwise_vmecs) for CCW equilibria
       gds25 = gradtheta_grady * grad_alpha_grad_psi - gradtheta_gradx * grad_alpha_grad_alpha * normalized_toroidal_flux_used
-      
+
       ! Define <gds26> = 1/2 * sgn(psi_t)/(B/Bref)^2 * [(∇y . ∇θp) * |∇x|^2 - (∇x . ∇θp) * (∇x . ∇y)]
       ! Use ∇x . ∇y = (dy/dα)(dx/dψ) ∇α . ∇ψ = (1/Bref) ∇α . ∇ψ = <grad_alpha_grad_psi>
-      ! Use |∇x|^2 = (dx/dψ)^2 |∇ψ|^2 = 1/(a^2 ρ^2 Bref^2) |∇ψ|^2 = 1/(a^2 Bref^2) |∇ψ|^2 * 1/ρ^2  = <grad_psi_grad_psi> / <rhotor>^2 
+      ! Use |∇x|^2 = (dx/dψ)^2 |∇ψ|^2 = 1/(a^2 ρ^2 Bref^2) |∇ψ|^2 = 1/(a^2 Bref^2) |∇ψ|^2 * 1/ρ^2  = <grad_psi_grad_psi> / <rhotor>^2
       ! Use (∇y . ∇θp)/(B/Bref)^2 = <gradtheta_grady> and (∇x . ∇θp)/(B/Bref)^2 = <gradtheta_gradx>
       ! Use ρ = sqrt(psi_t/psi_{t,LCFS}) thus ρ^2 = s = psi_t/psi_{t,LCFS} = <normalized_toroidal_flux_used>
       ! <gds26> = 0.5*sgn(psi_t)*(gradtheta_grady*grad_psi_grad_psi/rhotor^2 - gradtheta_gradx*grad_alpha_grad_psi)
-      ! Note that <gds26> was wrong before 17/09/2023 (branch upgrade_clockwise_vmecs) for CCW equilibria  
-      gds26 = 0.5 * (gradtheta_grady * grad_psi_grad_psi / normalized_toroidal_flux_used  - gradtheta_gradx * grad_alpha_grad_psi)
+      ! Note that <gds26> was wrong before 17/09/2023 (branch upgrade_clockwise_vmecs) for CCW equilibria
+      gds26 = 0.5 * (gradtheta_grady * grad_psi_grad_psi / normalized_toroidal_flux_used - gradtheta_gradx * grad_alpha_grad_psi)
 
       gbdrift_alpha = 2 * B_reference * L_reference * L_reference * B_cross_grad_B_dot_grad_alpha &
                       / (B * B * B)
 !    gbdrift = 2 * B_reference * L_reference * L_reference * sqrt_s * B_cross_grad_B_dot_grad_alpha &
 
-      ! Define <gbdrift0_psi> = hat{s} * (2/B^3) * B x ∇B · ∇ψ  
+      ! Define <gbdrift0_psi> = hat{s} * (2/B^3) * B x ∇B · ∇ψ
       ! Use hat{s} * (2/B^3) = 2 * shat / (B * B * B)
       ! Use B x ∇B · ∇ψ = psi_LCFS / sqrt(g) * ( ∂B/∂ζ * Btheta - ∂B/∂θ * Bzeta )
-      ! Use psi_LCFS = sgn(psi_t) * psi_{t,LCFS} = <sign_toroidal_flux> * <edge_toroidal_flux_over_2pi> 
+      ! Use psi_LCFS = sgn(psi_t) * psi_{t,LCFS} = <sign_toroidal_flux> * <edge_toroidal_flux_over_2pi>
       gbdrift0_psi = 2 * shat / (B * B * B) * sign_toroidal_flux * edge_toroidal_flux_over_2pi / sqrt_g &
-                     * (B_sub_theta_vmec * d_B_d_zeta - B_sub_zeta * d_B_d_theta_vmec) 
-                     
+                     * (B_sub_theta_vmec * d_B_d_zeta - B_sub_zeta * d_B_d_theta_vmec)
+
 !    gbdrift0 = (B_sub_theta_vmec * d_B_d_zeta - B_sub_zeta * d_B_d_theta_vmec) / sqrt_g * edge_toroidal_flux_over_2pi &
 !    gbdrift0 = abs(edge_toroidal_flux_over_2pi) &
 !         * (B_sub_theta_vmec * d_B_d_zeta - B_sub_zeta * d_B_d_theta_vmec) / sqrt_g &
