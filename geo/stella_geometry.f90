@@ -27,7 +27,7 @@ module stella_geometry
    public :: zeta
    public :: zed_scalefac
    public :: dxdXcoord, dydalpha
-   public :: sign_torflux 
+   public :: sign_torflux
    public :: aref, bref
    public :: twist_and_shift_geo_fac
    public :: q_as_x, get_x_to_rho, gfac
@@ -353,12 +353,12 @@ contains
                ! Restart the variable twist_and_shift_geo_fac_full
                twist_and_shift_geo_fac_full = 0
             end if
-            
-            !> Define <dxdXcoord> = (ρref/a)(dx̃/dψ̃) and use dx/dψ = 1/(a*ρ0*Bref) 
+
+            !> Define <dxdXcoord> = (ρref/a)(dx̃/dψ̃) and use dx/dψ = 1/(a*ρ0*Bref)
             !> dxdXcoord = (ρref/a)(dx̃/dψ̃) = (ρref/a)(d(x/ρref)/d(ψ/(a^2 Bref)) = a Bref (dx/dψ) = 1/ρ0
             dxdXcoord = 1 / geo_surf%rhotor
 
-            !> Define <dydalpha> = (ρref/a)(dỹ/dα̃) and use dy/dα = a*ρ0 
+            !> Define <dydalpha> = (ρref/a)(dỹ/dα̃) and use dy/dα = a*ρ0
             !> dydalpha = (ρref/a)(dỹ/dα̃) = (ρref/a)(d(y/ρref)/dα) = (1/a) (dy/dα) = ρ0
             dydalpha = geo_surf%rhotor
 
@@ -367,7 +367,7 @@ contains
             !> drhodpsi = dρ0/dψ̃ = dρ0/d(ψ/(a^2 Bref)) = a^2 Bref sgn(psi_t) dρ0/dpsi_t = 1/ρ0
             drhodpsi = 1 / geo_surf%rhotor
             drhodpsi_psi0 = drhodpsi
-            
+
             bmag_psi0 = bmag
             grad_x_grad_y_end = grad_alpha_grad_psi(1, nzgrid) * (aref * aref * bref)
             select case (boundary_option_switch)
@@ -399,12 +399,12 @@ contains
             !> gds2 = |grad y|^2 = |grad alpha|^2 * (dy/dalpha)^2
             !> note that rhotor = sqrt(psi/psi_LCFS)
             gds2 = grad_alpha_grad_alpha * dydalpha**2
-            
-            !> Define <gds21> = hat{s} ∇x . ∇y 
+
+            !> Define <gds21> = hat{s} ∇x . ∇y
             !> Use (dx/dψ)*(dy/dα) = 1/(a ρ0 Bref) * (a ρ0) = 1/Bref
             !> Use ∇x . ∇y = (dx/dψ)(dy/dα) ∇ψ . ∇α = (1/Bref) ∇ψ . ∇α = <grad_alpha_grad_psi>
             gds21 = grad_alpha_grad_psi * geo_surf%shat
-            
+
             !> gds22 = shat^2 * |grad x|^2 = shat^2 * |grad psi_t|^2 * (dx/dpsi_t)^2
             gds22 = (geo_surf%shat * grad_x)**2
             !gds22 = geo_surf%shat**2 * grad_psi_grad_psi * dxdXcoord**2
