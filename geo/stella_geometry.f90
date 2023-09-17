@@ -27,6 +27,7 @@ module stella_geometry
    public :: zeta
    public :: zed_scalefac
    public :: dxdXcoord, dydalpha
+   public :: sign_torflux 
    public :: aref, bref
    public :: twist_and_shift_geo_fac
    public :: q_as_x, get_x_to_rho, gfac
@@ -71,6 +72,7 @@ module stella_geometry
    real, dimension(:), allocatable :: alpha
    real, dimension(:, :), allocatable :: zeta
 
+   integer :: sign_torflux
    integer :: geo_option_switch
    integer, parameter :: geo_option_local = 1
    integer, parameter :: geo_option_inputprof = 2
@@ -171,6 +173,7 @@ contains
             drhodpsi_psi0 = 1./dpsidrho_psi0
             ! dxdXcoord = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
             dxdXcoord_sign = 1
+            sign_torflux = -1
             if (q_as_x) then
                dxdXcoord = dxdXcoord_sign * dpsidrho
             else
@@ -224,6 +227,7 @@ contains
             drhodpsi_psi0 = 1./dpsidrho_psi0
             ! dxdXcoord = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
             dxdXcoord_sign = 1
+            sign_torflux = -1
             if (q_as_x) then
                dxdXcoord = dxdXcoord_sign / drhodpsi_psi0
             else
@@ -278,6 +282,7 @@ contains
             ! dxdXcoord = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
             dxdXcoord_sign = 1
             dxdXcoord = dxdXcoord_sign * geo_surf%qinp / geo_surf%rhoc
+            sign_torflux = -1
             ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
             dydalpha_sign = 1
             dydalpha = dydalpha_sign * dpsidrho
@@ -348,20 +353,21 @@ contains
                ! Restart the variable twist_and_shift_geo_fac_full
                twist_and_shift_geo_fac_full = 0
             end if
-            !> Bref = 2*abs(psi_tor_LCFS)/a^2
-            !> a*Bref*dx/dpsi_tor = sign(psi_tor)/rhotor
-            !> psi = -psi_tor
-            !> dxdXcoord = a*Bref*dx/dpsi = -a*Bref*dx/dpsi_tor = -sign(psi_tor)/rhotor
-            dxdXcoord_sign = -1
-            dxdXcoord = dxdXcoord_sign * sign_torflux / geo_surf%rhotor
-            !> dydalpha = (dy/dalpha) / a = sign(dydalpha) * rhotor
-            dydalpha_sign = 1
-            dydalpha = dydalpha_sign * geo_surf%rhotor
-            !> if using vmec, rho = sqrt(psitor/psitor_lcfs)
-            !> psiN = -psitor/(aref**2*Bref)
-            !> so drho/dpsiN = -drho/d(rho**2) * (aref**2*Bref/psitor_lcfs) = -1.0/rho
-            drhodpsi = dxdXcoord_sign * sign_torflux / geo_surf%rhotor
+            
+            !> Define <dxdXcoord> = (ρref/a)(dx̃/dψ̃) and use dx/dψ = 1/(a*ρ0*Bref) 
+            !> dxdXcoord = (ρref/a)(dx̃/dψ̃) = (ρref/a)(d(x/ρref)/d(ψ/(a^2 Bref)) = a Bref (dx/dψ) = 1/ρ0
+            dxdXcoord = 1 / geo_surf%rhotor
+
+            !> Define <dydalpha> = (ρref/a)(dỹ/dα̃) and use dy/dα = a*ρ0 
+            !> dydalpha = (ρref/a)(dỹ/dα̃) = (ρref/a)(d(y/ρref)/dα) = (1/a) (dy/dα) = ρ0
+            dydalpha = geo_surf%rhotor
+
+            !> Define <drhodpsi> = dρ0/dψ̃ and use ρ0 = sqrt(psi_t/psi_{t,LCFS}) and ψ = sgn(psi_t)*psi_t
+            !> Use dρ0/dpsi_t = d(sqrt(psi_t/psi_{t,LCFS}))/dpsi_t = sgn(psi_t)/(a^2 ρ0 Bref) with Bref = 2 |psi_{t,LCFS}| / a^2
+            !> drhodpsi = dρ0/dψ̃ = dρ0/d(ψ/(a^2 Bref)) = a^2 Bref sgn(psi_t) dρ0/dpsi_t = 1/ρ0
+            drhodpsi = 1 / geo_surf%rhotor
             drhodpsi_psi0 = drhodpsi
+            
             bmag_psi0 = bmag
             grad_x_grad_y_end = grad_alpha_grad_psi(1, nzgrid) * (aref * aref * bref)
             select case (boundary_option_switch)
@@ -393,9 +399,12 @@ contains
             !> gds2 = |grad y|^2 = |grad alpha|^2 * (dy/dalpha)^2
             !> note that rhotor = sqrt(psi/psi_LCFS)
             gds2 = grad_alpha_grad_alpha * dydalpha**2
-            !> gds21 = shat * grad x . grad y = shat * dx/dpsi_t * dy/dalpha * grad alpha . grad psi_t
-            !> NB: psi = -psi_t and so dx/dpsi = = dx/dpsi_t, which is why there is a minus sign here
-            gds21 = -grad_alpha_grad_psi * geo_surf%shat * dxdXcoord * dydalpha
+            
+            !> Define <gds21> = hat{s} ∇x . ∇y 
+            !> Use (dx/dψ)*(dy/dα) = 1/(a ρ0 Bref) * (a ρ0) = 1/Bref
+            !> Use ∇x . ∇y = (dx/dψ)(dy/dα) ∇ψ . ∇α = (1/Bref) ∇ψ . ∇α = <grad_alpha_grad_psi>
+            gds21 = grad_alpha_grad_psi * geo_surf%shat
+            
             !> gds22 = shat^2 * |grad x|^2 = shat^2 * |grad psi_t|^2 * (dx/dpsi_t)^2
             gds22 = (geo_surf%shat * grad_x)**2
             !gds22 = geo_surf%shat**2 * grad_psi_grad_psi * dxdXcoord**2
@@ -426,11 +435,11 @@ contains
          ! exb_nonlin_fac is equivalent to kxfac/2 in gs2
          if (q_as_x) then
             dqdrho = geo_surf%shat * geo_surf%qinp / geo_surf%rhoc
-            exb_nonlin_fac = 0.5 * dxdXcoord * dydalpha * drhodpsi * dqdrho
+            exb_nonlin_fac = -0.5 * sign_torflux * dxdXcoord * dydalpha * drhodpsi * dqdrho
             !the following will get multiplied by exb_nonlin_fac in advance_exb_nonlinearity
             exb_nonlin_fac_p = geo_surf%d2qdr2 / dqdrho - geo_surf%d2psidr2 * drhodpsi
          else
-            exb_nonlin_fac = 0.5 * dxdXcoord * dydalpha
+            exb_nonlin_fac = -0.5 * sign_torflux * dxdXcoord * dydalpha
             exb_nonlin_fac_p = 0.0
          end if
       end if
@@ -846,6 +855,7 @@ contains
       call broadcast(zeta)
       call broadcast(dxdXcoord)
       call broadcast(dydalpha)
+      call broadcast(sign_torflux)
       call broadcast(twist_and_shift_geo_fac)
       call broadcast(grad_x_grad_y_end)
       call broadcast(vmec_chosen)
