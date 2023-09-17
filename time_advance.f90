@@ -366,13 +366,13 @@ contains
             if (maxwellian_normalization) then
                call mp_abort("include_neoclassical_terms = T not yet supported for maxwellian_normalization = T. Aborting.")
             else
-               wstar(:, :, ivmu) = - sign_torflux * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
+               wstar(:, :, ivmu) = -sign_torflux * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
                                    * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
                                       * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) &
                                       - dfneo_drho(:, :, ivmu))
             end if
          else
-            wstar(:, :, ivmu) = - sign_torflux * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
+            wstar(:, :, ivmu) = -sign_torflux * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
                                 * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))
          end if
          if (.not. maxwellian_normalization) then
