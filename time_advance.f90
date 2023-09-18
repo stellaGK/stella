@@ -303,8 +303,8 @@ contains
          if (include_neoclassical_terms) then
             !> NB: the below neoclassical correction needs to be divided by an equilibrium Maxwellian
             wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) &
-                 - 0.5 * spec(is)%zt * dfneo_dvpa(:, :, ivmu) * wcvdriftx &
-                 + code_dt * 0.5 * (dfneo_dalpha(:, :, ivmu) * dxdXcoord - dfneo_dzed(:, :, ivmu) * gds24)
+                                      - 0.5 * spec(is)%zt * dfneo_dvpa(:, :, ivmu) * wcvdriftx &
+                                      + code_dt * 0.5 * (dfneo_dalpha(:, :, ivmu) * dxdXcoord - dfneo_dzed(:, :, ivmu) * gds24)
          end if
 
       end do
@@ -349,13 +349,13 @@ contains
          energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
          if (include_neoclassical_terms) then
             wstar(:, :, ivmu) = dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
-                 * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
-                 * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) &
-                 - dfneo_drho(:, :, ivmu))
+                                * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
+                                   * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) &
+                                   - dfneo_drho(:, :, ivmu))
          else
             wstar(:, :, ivmu) = dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
-                 * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) &
-                 * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
+                                * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) &
+                                * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          end if
       end do
 
@@ -1331,7 +1331,7 @@ contains
       use physics_flags, only: full_flux_surface
       use gyro_averages, only: gyro_average
       use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
-      
+
       use gyro_averages, only: j0_ffs
       implicit none
 
@@ -1468,7 +1468,7 @@ contains
          !> add vM . grad x dg/dx term to equation
          call add_explicit_term_ffs(g0y, wdriftx_g, gout)
          !> get <dphi/dx> in k-space
-          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             call gyro_average(dphidx, g0k(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
          end do
          !> transform d<phi>/dx from k-space to y-space

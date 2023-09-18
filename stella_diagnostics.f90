@@ -300,7 +300,7 @@ contains
       use kt_grids, only: swap_kxky, swap_kxky_back
       use kt_grids, only: naky_all
       use stella_transforms, only: transform_ky2y, transform_y2ky
-      use volume_averages, only : flux_surface_average_ffs
+      use volume_averages, only: flux_surface_average_ffs
 
       use stella_geometry, only: jacob, grad_x
       use kt_grids, only: dy, nalpha
@@ -331,10 +331,10 @@ contains
       !> needed when simulating a full flux surface
       complex, dimension(:, :, :, :), allocatable :: dens_ffs, upar_ffs, pres_ffs
 
-      complex, dimension (:, :, :, :), allocatable :: phi2_kxkyz
-      complex, dimension (:,:), allocatable :: phi_swap 
-      complex, dimension (:, :, :, :), allocatable :: phi2_y, phi2_mod
-      real, dimension (:, :), allocatable :: flxfac
+      complex, dimension(:, :, :, :), allocatable :: phi2_kxkyz
+      complex, dimension(:, :), allocatable :: phi_swap
+      complex, dimension(:, :, :, :), allocatable :: phi2_y, phi2_mod
+      real, dimension(:, :), allocatable :: flxfac
 
       integer :: ikx, iz, it, iky
 
@@ -420,21 +420,21 @@ contains
          call g_to_h(gvmu, phi, -fphi)
       end if
 
-      if(full_flux_surface) then
+      if (full_flux_surface) then
          it = 1
 
-         allocate(phi2_kxkyz(naky,nakx,-nzgrid:nzgrid, ntubes))
-         allocate(phi_swap(ny,ikx_max))
-         allocate(phi2_y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
-         allocate(flxfac(ny, -nzgrid:nzgrid))
-         allocate(phi2_mod(naky,nakx,-nzgrid:nzgrid, ntubes))
+         allocate (phi2_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes))
+         allocate (phi_swap(ny, ikx_max))
+         allocate (phi2_y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
+         allocate (flxfac(ny, -nzgrid:nzgrid))
+         allocate (phi2_mod(naky, nakx, -nzgrid:nzgrid, ntubes))
 
          phi2 = 0.0
          phi2_kxkyz = phi_out * conjg(phi_out)
 
          do iz = -nzgrid, nzgrid
-            call swap_kxky(phi2_kxkyz(:,:,iz, it) , phi_swap(:,:) )
-            call transform_ky2y(phi_swap(:,:), phi2_y(:,:,iz, it))
+            call swap_kxky(phi2_kxkyz(:, :, iz, it), phi_swap(:, :))
+            call transform_ky2y(phi_swap(:, :), phi2_y(:, :, iz, it))
          end do
 
          flxfac = spread(delzed * dy, 1, ny) * jacob
@@ -447,12 +447,12 @@ contains
          do iz = -nzgrid, nzgrid
             do ikx = 1, nakx
                do iky = 1, naky
-                  phi2 = phi2 +  mode_fac(iky) * phi2_mod(iky, ikx, iz, it)
+                  phi2 = phi2 + mode_fac(iky) * phi2_mod(iky, ikx, iz, it)
                end do
             end do
          end do
 
-         deallocate(phi2_kxkyz, phi_swap, phi2_y, flxfac, phi2_mod)
+         deallocate (phi2_kxkyz, phi_swap, phi2_y, flxfac, phi2_mod)
       end if
 
       if (proc0) then
@@ -787,7 +787,7 @@ contains
 
                   !subtract adiabatic contribution part of g
                   g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
-                       * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                        * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
 
                   if (radial_variation) then
                      g1k = g0k * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
@@ -841,7 +841,7 @@ contains
 
                   !subtract adiabatic contribution part of g
                   g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
-                        * (vpa(iv)**2 + vperp2(ia, iz, imu)) & 
+                        * (vpa(iv)**2 + vperp2(ia, iz, imu)) &
                         * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
 
                   if (radial_variation) then
@@ -1066,7 +1066,7 @@ contains
       !> divide the input density by the magnetic field strength (due to Jacobian in flux-surfacee avg)
       !> and Fourier transform in y to get mom_ky = (density/B)(ky,kx,z,spec)
 !      call get_modified_fourier_coefficient(mom, mom_ky)
-      mom_ky = 0.0 
+      mom_ky = 0.0
       do is = 1, nspec
          !> pflx_vs_kxkyz is the particle flux before summing over (kx,ky) and integrating over z
          flx_vs_kxkyz(:, :, :, is) = flxfac * aimag(mom_ky(:, :, :, is) * dphidy)
@@ -1109,7 +1109,7 @@ contains
 
       allocate (tmp_kykx(naky_all, ikx_max))
       allocate (tmp_ykx(ny, ikx_max))
-      is_end = size (moment, dim =4)
+      is_end = size(moment, dim=4)
 
       do is = 1, is_end
          do iz = -nzgrid, nzgrid
@@ -1387,7 +1387,7 @@ contains
          call gyro_average(g(:, :, :, :, ivmu), ivmu, g1(:, :, :, :, ivmu))
          ! FLAG -- AJ0X NEEDS DEALING WITH BELOW
          g2(:, :, :, :, ivmu) = spread(aj0x(:, :, :, ivmu)**2 - 1.0, 4, ntubes) * spec(is)%zt * fphi * phi &
-              * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) * maxwell_fac(is), 4, ntubes)
+                             * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) * maxwell_fac(is), 4, ntubes)
 
          g2(:, :, :, :, ivmu) = g2(:, :, :, :, ivmu) + g1(:, :, :, :, ivmu)
          ! g2(:, :, :, :, ivmu) = g1(:, :, :, :, ivmu) + ztmax(iv, is) &
@@ -1449,9 +1449,9 @@ contains
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
          g2(:, :, :, :, ivmu) = (g1(:, :, :, :, ivmu) + ztmax(iv, is) &
-              * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
-              * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * phi * fphi) &
-              * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
+                                 * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
+                                          * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * phi * fphi) &
+                                * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
 
          if (radial_variation) then
             do it = 1, ntubes
