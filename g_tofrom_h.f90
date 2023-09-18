@@ -197,7 +197,6 @@ contains
       use vpamu_grids, only: vpa, vperp2, mu
       use gyro_averages, only: gyro_average, aj0x, aj1x
       use physics_flags, only: radial_variation
-      use run_parameters, only: maxwellian_normalization
 
       implicit none
 
@@ -224,10 +223,9 @@ contains
       ia = 1
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
-            field = spec(is)%zt * facphi * phi(:, :, iz, it)
-            if (.not. maxwellian_normalization) then
-               field = field * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-            end if
+            field = spec(is)%zt * facphi * phi(:, :, iz, it) &
+                 * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+
             if (radial_variation .and. present(phi_corr)) then
                g0k = field * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                               - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
@@ -310,7 +308,6 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use gyro_averages, only: gyro_average
-      use run_parameters, only: maxwellian_normalization
 
       implicit none
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
@@ -330,10 +327,8 @@ contains
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
          iky = iky_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
-         field = facphi * phi(iky, ikx, iz, it) * spec(is)%zt
-         if (.not. maxwellian_normalization) then
-            field = field * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
-         end if
+         field = facphi * phi(iky, ikx, iz, it) * spec(is)%zt &
+              * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
          call gyro_average(field, ikxkyz, adjust)
          g(:, :, ikxkyz) = g(:, :, ikxkyz) + adjust
       end do

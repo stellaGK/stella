@@ -295,6 +295,18 @@ contains
       use volume_averages, only: volume_average, fieldline_average
       use run_parameters, only: fphi
 
+      use stella_geometry, only: dl_over_b
+
+      use kt_grids, only: swap_kxky, swap_kxky_back
+      use kt_grids, only: naky_all
+      use stella_transforms, only: transform_ky2y, transform_y2ky
+      use volume_averages, only : flux_surface_average_ffs
+
+      use stella_geometry, only: jacob, grad_x
+      use kt_grids, only: dy, nalpha
+      use volume_averages, only: mode_fac
+      use zgrid, only: delzed
+
       implicit none
 
       !> The current timestep
@@ -318,6 +330,13 @@ contains
 
       !> needed when simulating a full flux surface
       complex, dimension(:, :, :, :), allocatable :: dens_ffs, upar_ffs, pres_ffs
+
+      complex, dimension (:, :, :, :), allocatable :: phi2_kxkyz
+      complex, dimension (:,:), allocatable :: phi_swap 
+      complex, dimension (:, :, :, :), allocatable :: phi2_y, phi2_mod
+      real, dimension (:, :), allocatable :: flxfac
+
+      integer :: ikx, iz, it, iky
 
       ! calculation of omega requires computation of omega more
       ! frequently than every nwrite time steps
@@ -399,6 +418,41 @@ contains
                          pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
          !> convert back from h to g
          call g_to_h(gvmu, phi, -fphi)
+      end if
+
+      if(full_flux_surface) then
+         it = 1
+
+         allocate(phi2_kxkyz(naky,nakx,-nzgrid:nzgrid, ntubes))
+         allocate(phi_swap(ny,ikx_max))
+         allocate(phi2_y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
+         allocate(flxfac(ny, -nzgrid:nzgrid))
+         allocate(phi2_mod(naky,nakx,-nzgrid:nzgrid, ntubes))
+
+         phi2 = 0.0
+         phi2_kxkyz = phi_out * conjg(phi_out)
+
+         do iz = -nzgrid, nzgrid
+            call swap_kxky(phi2_kxkyz(:,:,iz, it) , phi_swap(:,:) )
+            call transform_ky2y(phi_swap(:,:), phi2_y(:,:,iz, it))
+         end do
+
+         flxfac = spread(delzed * dy, 1, ny) * jacob
+         flxfac(:, -nzgrid) = 0.5 * flxfac(:, -nzgrid)
+         flxfac(:, nzgrid) = 0.5 * flxfac(:, -nzgrid)
+         flxfac = nalpha * flxfac / sum(flxfac * grad_x)
+
+         call get_modified_fourier_coefficient(phi2_y, phi2_mod, flxfac)
+
+         do iz = -nzgrid, nzgrid
+            do ikx = 1, nakx
+               do iky = 1, naky
+                  phi2 = phi2 +  mode_fac(iky) * phi2_mod(iky, ikx, iz, it)
+               end do
+            end do
+         end do
+
+         deallocate(phi2_kxkyz, phi_swap, phi2_y, flxfac, phi2_mod)
       end if
 
       if (proc0) then
@@ -674,7 +728,6 @@ contains
       use vpamu_grids, only: vperp2, vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use run_parameters, only: fphi
-      use run_parameters, only: maxwellian_normalization
       use kt_grids, only: aky, theta0, naky, nakx, multiply_by_rho
       use physics_flags, only: radial_variation
       use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
@@ -733,10 +786,9 @@ contains
                   end if
 
                   !subtract adiabatic contribution part of g
-                  g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2
-                  if (.not. maxwellian_normalization) then
-                     g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-                  end if
+                  g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
+                       * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+
                   if (radial_variation) then
                      g1k = g0k * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                                   - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
@@ -789,10 +841,9 @@ contains
 
                   !subtract adiabatic contribution part of g
                   g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
-                        * (vpa(iv)**2 + vperp2(ia, iz, imu))
-                  if (.not. maxwellian_normalization) then
-                     g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-                  end if
+                        * (vpa(iv)**2 + vperp2(ia, iz, imu)) & 
+                        * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+
                   if (radial_variation) then
                      g1k = g0k * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                                   - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
@@ -842,10 +893,9 @@ contains
                   end if
                   !subtract adiabatic contribution part of g
                   g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
-                        * vpa(iv) * geo_surf%rmaj * btor(iz) / bmag(ia, iz)
-                  if (.not. maxwellian_normalization) then
-                     g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-                  end if
+                        * vpa(iv) * geo_surf%rmaj * btor(iz) / bmag(ia, iz) &
+                        * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+
                   if (radial_variation) then
                      g1k = g0k * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
                                   - spec(is)%fprim - 2.0 * dBdrho(iz) * mu(imu) &
@@ -890,10 +940,8 @@ contains
                   g0k = -spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu) * aj1x(:, :, iz, ivmu) &
                         * zi * spread(aky, 2, nakx) * vperp2(ia, iz, imu) * geo_surf%rhoc &
                         * (gds21(ia, iz) + theta0 * gds22(ia, iz)) * spec(is)%smz &
-                        / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2)
-                  if (.not. maxwellian_normalization) then
-                     g0k = g0k * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-                  end if
+                        / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2) &
+                        * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
 
                   if (radial_variation) then
                      g1k = -spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu) * aj1x(:, :, iz, ivmu) &
@@ -1017,7 +1065,8 @@ contains
 
       !> divide the input density by the magnetic field strength (due to Jacobian in flux-surfacee avg)
       !> and Fourier transform in y to get mom_ky = (density/B)(ky,kx,z,spec)
-      call get_modified_fourier_coefficient(mom, mom_ky)
+!      call get_modified_fourier_coefficient(mom, mom_ky)
+      mom_ky = 0.0 
       do is = 1, nspec
          !> pflx_vs_kxkyz is the particle flux before summing over (kx,ky) and integrating over z
          flx_vs_kxkyz(:, :, :, is) = flxfac * aimag(mom_ky(:, :, :, is) * dphidy)
@@ -1037,7 +1086,7 @@ contains
 
    end subroutine get_one_flux_ffs
 
-   subroutine get_modified_fourier_coefficient(moment, moment_ky)
+   subroutine get_modified_fourier_coefficient(moment, moment_ky, flxfac)
 
       use species, only: nspec
       use zgrid, only: nzgrid
@@ -1054,15 +1103,20 @@ contains
       integer :: ikx, iz, is
       complex, dimension(:, :), allocatable :: tmp_kykx
       complex, dimension(:, :), allocatable :: tmp_ykx
+      real, dimension(:, -nzgrid:), intent(in) :: flxfac
+
+      integer :: is_end
 
       allocate (tmp_kykx(naky_all, ikx_max))
       allocate (tmp_ykx(ny, ikx_max))
-      do is = 1, nspec
+      is_end = size (moment, dim =4)
+
+      do is = 1, is_end
          do iz = -nzgrid, nzgrid
             do ikx = 1, ikx_max
                !> divide the input moment by the magnetic field strength
                !> to account for Jacobian in flux-surface average
-               tmp_ykx(:, ikx) = moment(:, ikx, iz, is) / bmag(:, iz)
+               tmp_ykx(:, ikx) = moment(:, ikx, iz, is) * flxfac(:, iz)
             end do
             !> transform the B-modified input moment from y to ky space
             call transform_y2ky(tmp_ykx, tmp_kykx)
@@ -1291,7 +1345,6 @@ contains
       use gyro_averages, only: aj0x, aj1x, gyro_average
       use fields_arrays, only: phi, phi_corr_QN, phi_proj
       use run_parameters, only: fphi
-      use run_parameters, only: maxwellian_normalization
       use physics_flags, only: radial_variation
       use stella_transforms, only: transform_kx2x_unpadded
 
@@ -1333,11 +1386,9 @@ contains
          ! obtain the gyro-average of g that appears in the density integral
          call gyro_average(g(:, :, :, :, ivmu), ivmu, g1(:, :, :, :, ivmu))
          ! FLAG -- AJ0X NEEDS DEALING WITH BELOW
-         g2(:, :, :, :, ivmu) = spread(aj0x(:, :, :, ivmu)**2 - 1.0, 4, ntubes) * spec(is)%zt * fphi * phi
-         if (.not. maxwellian_normalization) then
-            g2(:, :, :, :, ivmu) = g2(:, :, :, :, ivmu) * maxwell_vpa(iv, is) * &
-                                   spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) * maxwell_fac(is), 4, ntubes)
-         end if
+         g2(:, :, :, :, ivmu) = spread(aj0x(:, :, :, ivmu)**2 - 1.0, 4, ntubes) * spec(is)%zt * fphi * phi &
+              * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) * maxwell_fac(is), 4, ntubes)
+
          g2(:, :, :, :, ivmu) = g2(:, :, :, :, ivmu) + g1(:, :, :, :, ivmu)
          ! g2(:, :, :, :, ivmu) = g1(:, :, :, :, ivmu) + ztmax(iv, is) &
          !                        * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
@@ -1397,16 +1448,11 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         if (maxwellian_normalization) then
-            g2(:, :, :, :, ivmu) = (g1(:, :, :, :, ivmu) + spec(is)%zt &
-                                    * spread(aj0x(:, :, :, ivmu)**2 - 1.0, 4, ntubes) * phi * fphi) &
-                                   * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
-         else
-            g2(:, :, :, :, ivmu) = (g1(:, :, :, :, ivmu) + ztmax(iv, is) &
-                                    * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
-                                             * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * phi * fphi) &
-                                   * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
-         end if
+         g2(:, :, :, :, ivmu) = (g1(:, :, :, :, ivmu) + ztmax(iv, is) &
+              * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
+              * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * phi * fphi) &
+              * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
+
          if (radial_variation) then
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid

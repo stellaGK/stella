@@ -19,6 +19,8 @@ module vpamu_grids
    public :: equally_spaced_mu_grid
    public :: set_vpa_weights
 
+   public :: integrate_species_ffs_rm
+
    logical :: vpamu_initialized = .false.
 
    integer :: nvgrid, nvpa
@@ -131,7 +133,6 @@ contains
       use mp, only: mp_abort
       use constants, only: pi
       use species, only: spec, nspec
-      use run_parameters, only: maxwellian_normalization
 
       implicit none
 
@@ -214,16 +215,6 @@ contains
 
       !> divide by 2 to account for double-counting
       wgts_vpa = 0.5 * wgts_vpa / sqrt(pi)
-
-      !> if maxwellian_normalization = .true., then the evolved pdf
-      !> is normalized by a Maxwellian; this normalization must be accounted
-      !> for in the velocity space integrals, so include exp(-vpa^2) factor
-      !> in the vpa weights.
-      ! NB: the species index of maxwell_vpa is not needed for the radially local
-      ! version of the code and would otherwise add a species index to wgts_vpa,
-      ! so currently maxwellian_normalization is not supported for the radially global
-      ! version of the code.
-      if (maxwellian_normalization) wgts_vpa = wgts_vpa * maxwell_vpa(:, 1)
 
       wgts_vpa_default = wgts_vpa
 
@@ -636,12 +627,42 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         pout = pout + 2.0 * wgts_mu_bare(imu) * (wgts_vpa(iv) / maxwell_vpa(iv, is)) * g(:, :, ivmu) * weights(is)
+         pout = pout + 2.0 * wgts_mu_bare(imu) * wgts_vpa(iv) * g(:, :, ivmu) * weights(is)
       end do
 
       if (reduce) call sum_allreduce(pout)
 
    end subroutine integrate_species_ffs
+
+    subroutine integrate_species_ffs_rm(g, weights, pout, reduce_in)
+      use mp, only: sum_allreduce
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+
+      implicit none
+      integer :: ivmu, iv, is, imu
+      logical :: reduce
+
+      complex, dimension(vmu_lo%llim_proc:), intent(in) :: g
+      logical, intent(in), optional :: reduce_in
+      real, dimension(:), intent(in) :: weights
+      complex, intent(out) :: pout
+
+      if (present(reduce_in)) then
+         reduce = reduce_in
+      else
+         reduce = .true.
+      end if
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         pout = pout + 2.0 * wgts_mu_bare(imu) * wgts_vpa(iv) * g(ivmu) * weights(is)
+      end do
+
+      if (reduce) call sum_allreduce(pout)
+
+   end subroutine integrate_species_ffs_rm
+
 
    subroutine integrate_vmu_ffs(g, weights, ia, iz, pout, reduce_in)
 
@@ -700,7 +721,6 @@ contains
       use kt_grids, only: nalpha
       use species, only: spec, nspec
       use stella_geometry, only: bmag, bmag_psi0
-      use run_parameters, only: maxwellian_normalization
 
       implicit none
 
@@ -757,12 +777,6 @@ contains
       !> integration over gyro-angle and 1/pi^(3/2) normalization
       !> of velocity space Jacobian
       wgts_mu = 2.*spread(spread(wgts_mu_bare, 1, nalpha), 2, nztot) * spread(bmag, 3, nmu)
-
-      !> if maxwellian_normalization, the evolved pdf is normalized by a Maxwwellian;
-      !> in this case, the velocity integration must account for the Maxwellian.
-      ! NB: the species index on maxwell_mu is only needed for radially global simulations,
-      ! which are not currently supported for maxwellian_normalization = .true.
-      if (maxwellian_normalization) wgts_mu = wgts_mu * maxwell_mu(:, :, :, 1)
 
       !> add ghost cell at mu=0 and beyond mu_max for purposes of differentiation
       !> note assuming here that grid spacing for ghost cell is equal to

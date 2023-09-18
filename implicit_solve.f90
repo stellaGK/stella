@@ -186,7 +186,7 @@ contains
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: vpa, mu
       use kt_grids, only: naky, nakx
-      use run_parameters, only: driftkinetic_implicit, maxwellian_normalization
+      use run_parameters, only: driftkinetic_implicit
       use run_parameters, only: maxwellian_inside_zed_derivative
       use run_parameters, only: drifts_implicit
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -257,21 +257,19 @@ contains
          ! obtain the zed derivative of <phi> (stored in scratch) and store in rhs
          call get_zed_derivative_extended_domain(iv, scratch, scratch_left, scratch_right, rhs)
 
-         if (.not. maxwellian_normalization) then
-            ! center Maxwellian factor in mu
-            ! and store in dummy variable z_scratch
-            z_scratch = maxwell_mu(ia, :, imu, is)
-            call center_zed(iv, z_scratch, -nzgrid)
-            ! multiply by Maxwellian factor
-            do izext = 1, nz_ext
-               rhs(izext) = rhs(izext) * z_scratch(iz_from_izext(izext))
-            end do
-         end if
+         ! center Maxwellian factor in mu
+         ! and store in dummy variable z_scratch
+         z_scratch = maxwell_mu(ia, :, imu, is)
+         call center_zed(iv, z_scratch, -nzgrid)
+         ! multiply by Maxwellian factor
+         do izext = 1, nz_ext
+            rhs(izext) = rhs(izext) * z_scratch(iz_from_izext(izext))
+         end do
 
          ! NB: could do this once at beginning of simulation to speed things up
          ! this is vpa*Z/T*exp(-vpa^2)
          z_scratch = vpa(iv) * spec(is)%zt
-         if (.not. maxwellian_normalization) z_scratch = z_scratch * maxwell_vpa(iv, is) * maxwell_fac(is)
+         z_scratch = z_scratch * maxwell_vpa(iv, is) * maxwell_fac(is)
          ! if including neoclassical correction to equilibrium distribution function
          ! then must also account for -vpa*dF_neo/dvpa*Z/T
          ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!

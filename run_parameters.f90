@@ -22,7 +22,6 @@ module run_parameters
    public :: fields_kxkyz, mat_gen, mat_read
    public :: rng_seed
    public :: use_deltaphi_for_response_matrix
-   public :: maxwellian_normalization
    public :: time_upwind_plus, time_upwind_minus
    public :: zed_upwind_plus, zed_upwind_minus
 
@@ -43,7 +42,6 @@ module run_parameters
    logical :: fields_kxkyz, mat_gen, mat_read
    logical :: ky_solve_real
    logical :: use_deltaphi_for_response_matrix
-   logical :: maxwellian_normalization
    real :: avail_cpu_time
    integer :: nstep, ky_solve_radial
    integer :: rng_seed
@@ -97,9 +95,8 @@ contains
          delt_option, lu_option, &
          avail_cpu_time, delt_max, delt_min, &
          cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, &
-         stream_implicit, mirror_implicit, driftkinetic_implicit, &
+         stream_implicit, mirror_implicit, &
          drifts_implicit, use_deltaphi_for_response_matrix, &
-         maxwellian_normalization, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
@@ -116,13 +113,11 @@ contains
          stream_implicit = .true.
          mirror_implicit = .true.
          drifts_implicit = .true.
-         driftkinetic_implicit = .false.
          maxwellian_inside_zed_derivative = .false.
          mirror_semi_lagrange = .true.
          mirror_linear_interp = .false.
          stream_matrix_inversion = .false.
          use_deltaphi_for_response_matrix = .false.
-         maxwellian_normalization = .false.
          delt_option = 'default'
          zed_upwind = 0.02
          vpa_upwind = 0.02
@@ -192,22 +187,6 @@ contains
             error = .true.
          end if
 
-         if (radial_variation .and. maxwellian_normalization) then
-            write (*, *) '!!!WARNING!!!'
-            write (*, *) 'maxwellian_normalization is not currently supported for use with radial_variation.'
-            write (*, *) 'forcing maxwellian_normalization = F.'
-            write (*, *) '!!!WARNING!!!'
-            maxwellian_normalization = .false.
-         end if
-
-         if (maxwellian_normalization .and. mirror_semi_lagrange) then
-            write (*, *) '!!!WARNING!!!'
-            write (*, *) 'maxwellian_normalization is not consistent with mirror_semi_lagrange = T.'
-            write (*, *) 'forcing mirror_semi_lagrange = F.'
-            write (*, *) '!!!WARNING!!!'
-            mirror_semi_lagrange = .false.
-         end if
-
          if (drifts_implicit) then
             if (.not. stream_implicit) then
                write (*, *) '!!!WARNING!!!'
@@ -257,7 +236,6 @@ contains
       call broadcast(mirror_linear_interp)
       call broadcast(stream_matrix_inversion)
       call broadcast(use_deltaphi_for_response_matrix)
-      call broadcast(maxwellian_normalization)
       call broadcast(zed_upwind)
       call broadcast(vpa_upwind)
       call broadcast(time_upwind)
@@ -277,21 +255,9 @@ contains
       zed_upwind_minus = 0.5 * (1.0 - zed_upwind)
 
       if (.not. include_mirror) mirror_implicit = .false.
+      if (.not. include_parallel_streaming) stream_implicit = .false.
 
-      if (driftkinetic_implicit) then
-         stream_implicit = .false.
-      else if (stream_implicit .and. full_flux_surface) then
-         stream_implicit = .false.
-         write (*, *)
-         write (*, *) "!!!WARNING!!!"
-         write (*, *) "The option stream_implicit=T is not supported for full_flux_surface=T."
-         write (*, *) "Setting driftkinetic_implicit=T instead."
-         write (*, *) "!!!WARNING!!!"
-         write (*, *)
-         driftkinetic_implicit = .true.
-      end if
-
-      if (mirror_implicit .or. stream_implicit .or. driftkinetic_implicit .or. drifts_implicit) then
+      if (mirror_implicit .or. stream_implicit .or. drifts_implicit) then
          fully_explicit = .false.
       else
          fully_explicit = .true.
@@ -322,10 +288,8 @@ contains
             write (*, *) '!!!WARNING!!!'
             mirror_semi_lagrange = .false.
          end if
-         ! the full flux surface implementation relies on the use of gnorm = g / F_Maxwellian
-         ! as the evolved pdf
-         if (full_flux_surface) then
-            maxwellian_normalization = .true.
+         if (stream_implicit) then
+            driftkinetic_implicit = .true.
          end if
       end if
 

@@ -193,7 +193,11 @@ contains
       use species, only: spec
       use physics_flags, only: full_flux_surface
       use gyro_averages, only: gyro_average
-      use run_parameters, only: driftkinetic_implicit, maxwellian_normalization
+      use run_parameters, only: driftkinetic_implicit
+
+      use fields, only: advance_fields, fields_updated
+      use fields_arrays, only: apar
+      use gyro_averages, only: j0_ffs
 
       implicit none
 
@@ -230,7 +234,12 @@ contains
          is = is_idx(vmu_lo, ivmu)
 
          !> obtain <phi> (or <phi>-phi if driftkinetic_implicit=T)
-         call gyro_average(phi, ivmu, g0(:, :, :, :))
+         if (full_flux_surface) then
+            call gyro_average(phi, g0(:, :, :, :), j0_ffs(:, :, :, ivmu))
+         else
+            call gyro_average(phi, ivmu, g0(:, :, :, :))
+         end if
+
          if (driftkinetic_implicit) g0(:, :, :, :) = g0(:, :, :, :) - phi
 
          !> get d<phi>/dz, with z the parallel coordinate and store in dgphi_dz
@@ -284,22 +293,16 @@ contains
                   call transform_ky2y(g0_swap, g1y(:, :, iz, it))
                end do
             end do
-            !> over-write g0y with d/dz (g/F) + Ze/T * d<phi>/dz (or <phi>-phi for driftkinetic_implicit).
-            g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt
             ! ! over-write g0y with F * d/dz (g/F) + ZeF/T * d<phi>/dz (or <phi>-phi for driftkinetic_implicit).
-            ! g0y(:,:,:,:) = g0y(:,:,:,:) + g1y(:,:,:,:)*spec(is)%zt*maxwell_fac(is) &
-            !      * maxwell_vpa(iv,is)*spread(spread(maxwell_mu(:,:,imu,is),2,nakx),4,ntubes)*maxwell_fac(is)
+            g0y(:,:,:,:) = g0y(:,:,:,:) + g1y(:,:,:,:)*spec(is)%zt*maxwell_fac(is) &
+                 * maxwell_vpa(iv,is)*spread(spread(maxwell_mu(:,:,imu,is),2,nakx),4,ntubes)*maxwell_fac(is)
 
             !> multiply d(g/F)/dz and d<phi>/dz terms with vpa*(b . grad z) and add to source (RHS of GK equation)
             call add_stream_term_ffs(g0y, ivmu, gout(:, :, :, :, ivmu))
          else
             ia = 1
-            if (maxwellian_normalization) then
-               g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt
-            else
-               g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
+            g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
                                 * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
-            end if
 
             ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
             call add_stream_term(g0, ivmu, gout(:, :, :, :, ivmu))
