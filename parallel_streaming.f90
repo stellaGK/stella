@@ -295,7 +295,7 @@ contains
             end do
             ! ! over-write g0y with F * d/dz (g/F) + ZeF/T * d<phi>/dz (or <phi>-phi for driftkinetic_implicit).
             g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
-                              * maxwell_vpa(iv, is) * spread(spread(maxwell_mu(:, :, imu, is), 2, nakx), 4, ntubes) * maxwell_fac(is)
+                              * maxwell_vpa(iv, is) * spread(spread(maxwell_mu(:, :, imu, is), 2, ikx_max), 4, ntubes)
 
             !> multiply d(g/F)/dz and d<phi>/dz terms with vpa*(b . grad z) and add to source (RHS of GK equation)
             call add_stream_term_ffs(g0y, ivmu, gout(:, :, :, :, ivmu))

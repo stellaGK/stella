@@ -361,6 +361,7 @@ contains
 
       if (radial_variation) fields_updated = .false.
       !> get the updated fields corresponding to gnew
+      if (debug) write (*, *) 'stella_diagnostics::advance_fields'
       call advance_fields(gnew, phi, apar, dist='gbar')
 
       allocate (phi_out(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -401,9 +402,10 @@ contains
       else if (full_flux_surface) then
          !> calculate the particle density, parallel flow and pressure in (y,kx,z) space
          !> for all species
-         if (debug) write (*, *) 'stella_diagnostics::write_fluxes_ffs'
+         if (debug) write (*, *) 'stella_diagnostics::get_moments_ffs'
          call get_moments_ffs(gnew, dens_ffs, upar_ffs, pres_ffs)
          !> calculate the (ky,kx) contributions to the particle, parallel momentum and energy fluxes
+         if (debug) write (*, *) 'stella_diagnostics::get_fluxes_ffs'
          call get_fluxes_ffs(dens_ffs, upar_ffs, pres_ffs, part_flux, mom_flux, heat_flux, &
                              pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
       else
@@ -423,8 +425,9 @@ contains
       if (full_flux_surface) then
          it = 1
 
+         if (debug) write (*, *) 'stella_diagnostics::allocate_phi_swap'
          allocate (phi2_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes))
-         allocate (phi_swap(ny, ikx_max))
+         allocate (phi_swap(naky_all, ikx_max))
          allocate (phi2_y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
          allocate (flxfac(ny, -nzgrid:nzgrid))
          allocate (phi2_mod(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -432,6 +435,7 @@ contains
          phi2 = 0.0
          phi2_kxkyz = phi_out * conjg(phi_out)
 
+         if (debug) write (*, *) 'stella_diagnostics::transform_ky2y'
          do iz = -nzgrid, nzgrid
             call swap_kxky(phi2_kxkyz(:, :, iz, it), phi_swap(:, :))
             call transform_ky2y(phi_swap(:, :), phi2_y(:, :, iz, it))
