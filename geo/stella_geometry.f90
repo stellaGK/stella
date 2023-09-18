@@ -467,7 +467,7 @@ contains
       !> jacob is the Jacobian from Cartesian coordinates to (y,x,z) coordinates
       !> is ((grad y x grad x) . grad z)^(-1) = Lref*(dalpha/dy)*(dpsi/dx)/(Lref*Bref)*(B/Bref . grad z)^(-1)
       !> Lref*(dalpha/dy) = 1/dydalpha; (dpsi/dx)/(Lref*Bref) = 1 / dxdXcoord ; (B/Bref . grad z) = gradpar*bmag
-      jacob = - sign_torflux / (dydalpha * dxdXcoord * b_dot_grad_z * bmag)
+      jacob = -sign_torflux / (dydalpha * dxdXcoord * b_dot_grad_z * bmag)
       !    jacob = 1.0/(dydalpha*dxdXcoord*spread(gradpar,1,nalpha)*bmag)
 
       ! this is dl/B
