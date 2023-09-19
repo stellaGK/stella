@@ -999,7 +999,7 @@ contains
       use zgrid, only: nzgrid, delzed
       use kt_grids, only: naky, nakx
       use volume_averages, only: mode_fac
-      
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: mom
@@ -1074,15 +1074,15 @@ contains
 
    end subroutine get_modified_fourier_coefficient
 
-   !============================================================================ 
-   !======================== CALCULATE ONE FLUX(IKY,IZ) ======================== 
-   !============================================================================ 
+   !============================================================================
+   !======================== CALCULATE ONE FLUX(IKY,IZ) ========================
+   !============================================================================
    ! For example the particle flux is defined as,
    !      Re[Γ̃_{s,k}] = FAC*int(Im[conj(phi)*VELOCITY_INTEGRAL]*J*dz)/int(J*dz)
    ! With FAC = -sgn(psi_t)*(ñ_s/2)*(k̃_y/<|\tilde{∇}ρ>_ζ)
-   ! With VELOCITY_INTEGRAL = (2B̃/√π) int(int(g̃*J_0) dṽparallel) dμ̃) 
-   ! With <norm>(iz) = J(iz)*dz / <|\tilde{∇}ρ>_ζ and <|\tilde{∇}ρ0>_ζ = sum(<grho>(iz)*J(iz)*dz) 
-   ! With <grho> = a|∇ρ0| = a (dρ0/dψ) ∇ψ = 1/ρ0 * ∇ψ/(a*Bref) = sqrt(|grad_psi_grad_psi|)/ρ0 
+   ! With VELOCITY_INTEGRAL = (2B̃/√π) int(int(g̃*J_0) dṽparallel) dμ̃)
+   ! With <norm>(iz) = J(iz)*dz / <|\tilde{∇}ρ>_ζ and <|\tilde{∇}ρ0>_ζ = sum(<grho>(iz)*J(iz)*dz)
+   ! With <grho> = a|∇ρ0| = a (dρ0/dψ) ∇ψ = 1/ρ0 * ∇ψ/(a*Bref) = sqrt(|grad_psi_grad_psi|)/ρ0
    subroutine get_one_flux(iky, iz, norm, gin, fld, flxout)
 
       use vpamu_grids, only: integrate_vmu
@@ -1139,13 +1139,13 @@ contains
       ia = 1
       flux_sum = 0.
 
-      ! The factor in front of all the flux definitions is <factor> = -sgn(psi_t)/2 
+      ! The factor in front of all the flux definitions is <factor> = -sgn(psi_t)/2
       ! The constants which differ for each flux are gathered in <weights> and added in <integrate_vmu()>
       ! For the particle flux <weights> = ñ_s/<|\tilde{∇}ρ>_ζ = <flx_norm> * <spec%dens_psi0>
       ! For the heat flux <weights> = ñ_s*T̃_s/<|\tilde{∇}ρ>_ζ = <flx_norm> * <spec%dens_psi0> * <spec%temp_psi0>
       ! For the momentum flux <weights> = ñ_s*sqrt(m̃*T̃_s)/<|\tilde{∇}ρ>_ζ = <flx_norm> * <spec%dens_psi0> * sqrt(<spec%mass> * <spec%temp_psi0>)
-      factor = -sign_torflux * 0.5 
-      
+      factor = -sign_torflux * 0.5
+
       call integrate_vmu(gin, weights, totals)
       if (radial_variation) then !do it in real-space
          allocate (g0x(naky, nakx))
@@ -1206,12 +1206,12 @@ contains
       complex, dimension(:, :, :, :, :), allocatable :: totals
 
       integer :: ia, is, it, iz, ikx
-      real :: factor 
+      real :: factor
 
       allocate (totals(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
 
-      ia = 1 
-      factor = -sign_torflux * 0.5 
+      ia = 1
+      factor = -sign_torflux * 0.5
       call integrate_vmu(gin, weights, totals)
       do is = 1, nspec
          do it = 1, ntubes
@@ -1272,7 +1272,7 @@ contains
       !     one cannot simply sum across the radius here to get the total flux; rather, one
       !     would have to multiply by dV/V across the radius first
       call integrate_vmu(gin, weights, totals)
-      factor = -sign_torflux * 0.5 
+      factor = -sign_torflux * 0.5
       do is = 1, nspec
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
