@@ -426,6 +426,10 @@ contains
       theta = spread(alpha, 2, 2 * nzgrid + 1) + zeta / surf%qinp
       ! this is the vmec theta (not straight-field-line coordinate)
       ! scaled to run between -pi and pi
+      surf%rhoc_psi0 = surf%rhoc
+      surf%qinp_psi0 = surf%qinp
+      surf%shat_psi0 = surf%shat
+
       theta_vmec = theta_vmec / nfp
 
       call open_output_file(tmpunit, '.vmec.geo')

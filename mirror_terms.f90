@@ -154,7 +154,6 @@ contains
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed
       use run_parameters, only: vpa_upwind, time_upwind
-      use run_parameters, only: maxwellian_normalization
 
       implicit none
 
@@ -236,12 +235,6 @@ contains
       tupwndfac = 0.5 * (1.0 + time_upwind)
       a = a * tupwndfac
       c = c * tupwndfac
-      if (maxwellian_normalization) then
-         !> account for fact that we have expanded d(gnorm)/dvpa, where gnorm = g/exp(-v^s);
-         !> this gives rise to d(gnorm*exp(-vpa^2))/dvpa + 2*vpa*gnorm*exp(-vpa^2) term
-         !> we solve for gnorm*exp(-vpa^2) and later multiply by exp(vpa^2) to get gnorm
-         b = b + spread(2.0 * vpa, 2, 3)
-      end if
 
       if (full_flux_surface) then
          do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
@@ -295,7 +288,7 @@ contains
       use kt_grids, only: swap_kxky
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vpa, maxwell_vpa
-      use run_parameters, only: fields_kxkyz, maxwellian_normalization
+      use run_parameters, only: fields_kxkyz
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
 
       implicit none
@@ -368,18 +361,10 @@ contains
          end if
          ! get dg/dvpa and store in g0v
          g0v = gvmu
+
          ! remove exp(-vpa^2) normalization from pdf before differentiating
-         if (maxwellian_normalization) then
-            do iv = 1, nvpa
-               g0v(iv, :, :) = g0v(iv, :, :) * maxwell_vpa(iv, 1)
-            end do
-         end if
          call get_dgdvpa_explicit(g0v)
-         if (maxwellian_normalization) then
-            do iv = 1, nvpa
-               g0v(iv, :, :) = g0v(iv, :, :) / maxwell_vpa(iv, 1) + 2.0 * vpa(iv) * gvmu(iv, :, :)
-            end do
-         end if
+
          ! swap layouts so that (z,kx,ky) are local
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          call gather(kxkyz2vmu, g0v, g0x)
@@ -589,9 +574,14 @@ contains
       use vpamu_grids, only: dvpa, maxwell_vpa, vpa
       use neoclassical_terms, only: include_neoclassical_terms
       use run_parameters, only: vpa_upwind, time_upwind
-      use run_parameters, only: mirror_semi_lagrange, maxwellian_normalization
+      use run_parameters, only: mirror_semi_lagrange
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
 
+      use run_parameters, only: time_upwind
+      use vpamu_grids, only: vpa, dvpa
+      use stella_layouts, only: iy_idx
+      use kt_grids, only: swap_kxky, swap_kxky_back
+      use kt_grids, only: naky_all, ikx_max, naky
       implicit none
 
       logical, intent(in) :: collisions_implicit
@@ -602,6 +592,11 @@ contains
       real :: tupwnd
       complex, dimension(:, :, :), allocatable :: g0v
       complex, dimension(:, :, :, :, :), allocatable :: g0x
+
+      !! GA - arrays for FFS
+      complex, dimension(:, :, :), allocatable :: dgdvpa
+      integer :: iy, ia 
+      complex, dimension(:, :), allocatable :: g_swap
 
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
@@ -629,9 +624,15 @@ contains
          allocate (g0x(ny, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          ! for upwinding, need to evaluate dg^{*}/dvpa in y-space
          ! first must take g^{*}(ky) and transform to g^{*}(y)
-         call transform_ky2y(g, g0x)
 
-         write (*, *) 'WARNING: full_flux_surface not working in implicit_mirror advance!'
+         allocate (g_swap(naky_all, ikx_max))
+         it = 1
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            do iz = -nzgrid, nzgrid
+               call swap_kxky(g(:, :, iz, it, ivmu), g_swap)
+               call transform_ky2y(g_swap, g0x(:, :, iz, it, ivmu))
+            end do
+         end do
 
          ! convert g to g*(integrating factor), as this is what is being advected
          ! integrating factor = exp(m*vpa^2/2T * (mu*dB/dz) / (mu*dB/dz + Z*e*dphinc/dz))
@@ -646,22 +647,26 @@ contains
                   end do
                end do
             end do
-         else
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               iv = iv_idx(vmu_lo, ivmu)
-               is = is_idx(vmu_lo, ivmu)
-               g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) / maxwell_vpa(iv, is)
-            end do
          end if
 
          ! second, remap g so velocities are local
          call scatter(kxyz2vmu, g0x, g0v)
 
+         allocate (dgdvpa(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
          do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
+            iz = iz_idx(kxyz_lo, ikxyz)
+            is = is_idx(kxyz_lo, ikxyz)
+            iy = iy_idx(kxyz_lo, ikxyz)
             do imu = 1, nmu
-               call invert_mirror_operator(imu, ikxyz, g0v(:, imu, ikxyz))
+               call fd_variable_upwinding_vpa(iy, g0v(:, imu, ikxyz), dvpa, &
+                    mirror_sign(iy, iz), vpa_upwind, dgdvpa(:, imu, ikxyz))
+               dgdvpa(:, imu, ikxyz) = g0v(:, imu, ikxyz) + tupwnd * mirror(iy, iz, imu, is) * &
+                    dgdvpa(:, imu, ikxyz)
+               call invert_mirror_operator(imu, ikxyz, dgdvpa(:, imu, ikxyz))
             end do
          end do
+         g0v = dgdvpa
+         deallocate (dgdvpa)
 
          ! then take the results and remap again so y,kx,z local.
          call gather(kxyz2vmu, g0v, g0x)
@@ -679,16 +684,17 @@ contains
                   end do
                end do
             end do
-         else
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               iv = iv_idx(vmu_lo, ivmu)
-               is = is_idx(vmu_lo, ivmu)
-               g0x(:, :, :, :, ivmu) = g0x(:, :, :, :, ivmu) * maxwell_vpa(iv, is)
-            end do
          end if
 
          ! finally transform back from y to ky space
-         call transform_y2ky(g0x, g)
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            do iz = -nzgrid, nzgrid
+               call transform_y2ky(g0x(:, :, iz, it, ivmu), g_swap)
+               call swap_kxky_back(g_swap, g(:, :, iz, it, ivmu))
+            end do
+         end do
+         deallocate (g_swap)
+
       else
          ! if implicit treatment of collisions, then already have updated gvmu in kxkyz_lo
          if (.not. collisions_implicit) then
@@ -709,9 +715,6 @@ contains
                is = is_idx(kxkyz_lo, ikxkyz)
                do imu = 1, nmu
                   ! remove exp(-vpa^2) normalization from pdf before differentiating
-                  if (maxwellian_normalization) then
-                     gvmu(:, imu, ikxkyz) = gvmu(:, imu, ikxkyz) * maxwell_vpa(:, is)
-                  end if
 
                   ! calculate dg/dvpa
                   call fd_variable_upwinding_vpa(1, gvmu(:, imu, ikxkyz), dvpa, &
@@ -719,18 +722,12 @@ contains
                   ! construct RHS of GK equation for mirror advance;
                   ! i.e., (1-(1+alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n+1}
                   ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n}
-                  if (maxwellian_normalization) then
-                     g0v(:, imu, ikxkyz) = gvmu(:, imu, ikxkyz) + tupwnd * mirror(1, iz, imu, is) * (g0v(:, imu, ikxkyz) &
-                                                                                                     + 2.0 * vpa * gvmu(:, imu, ikxkyz))
-                  else
-                     g0v(:, imu, ikxkyz) = gvmu(:, imu, ikxkyz) + tupwnd * mirror(1, iz, imu, is) * g0v(:, imu, ikxkyz)
-                  end if
+                  g0v(:, imu, ikxkyz) = gvmu(:, imu, ikxkyz) + tupwnd * mirror(1, iz, imu, is) * g0v(:, imu, ikxkyz)
 
                   ! invert_mirror_operator takes rhs of equation and
                   ! returns g^{n+1}
                   call invert_mirror_operator(imu, ikxkyz, g0v(:, imu, ikxkyz))
 
-                  if (maxwellian_normalization) g0v(:, imu, ikxkyz) = g0v(:, imu, ikxkyz) / maxwell_vpa(:, is)
                end do
             end do
          end if
