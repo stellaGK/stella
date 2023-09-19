@@ -33,7 +33,8 @@ module stella_geometry
    public :: dVolume
    public :: grad_x_grad_y_end
    public :: x_displacement_fac
-
+   public :: geo_option_switch, geo_option_vmec
+   
    private
 
    type(flux_surface_type) :: geo_surf
