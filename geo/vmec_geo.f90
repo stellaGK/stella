@@ -431,7 +431,7 @@ contains
       surf%rhoc_psi0 = surf%rhoc
       surf%qinp_psi0 = surf%qinp
       surf%shat_psi0 = surf%shat
-      
+
       call open_output_file(tmpunit, '.vmec.geo')
       write (tmpunit, '(6a12)') '#rhotor', 'qinp', 'shat', 'aref', 'Bref', 'z_scalefac'
       write (tmpunit, '(6e12.4)') surf%rhoc, surf%qinp, surf%shat, L_reference, B_reference, zed_scalefac
