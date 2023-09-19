@@ -101,7 +101,7 @@
           <li id="statements"><i class="fa fa-list-ol"></i>
             <a data-toggle="tooltip"
                data-placement="bottom" data-html="true"
-               title=" 1.2% of total for modules and submodules.">428 statements</a>
+               title=" 1.1% of total for modules and submodules.">406 statements</a>
           </li>
 
             <li id="source-file">
@@ -198,14 +198,13 @@
         <div class="list-group">
             <a class="list-group-item" href="../module/init_g.html#proc-init_init_g">init_init_g</a>
             <a class="list-group-item" href="../module/init_g.html#proc-ginit">ginit</a>
-            <a class="list-group-item" href="../module/init_g.html#proc-read_parameters~7">read_parameters</a>
+            <a class="list-group-item" href="../module/init_g.html#proc-read_parameters~6">read_parameters</a>
             <a class="list-group-item" href="../module/init_g.html#proc-ginit_default">ginit_default</a>
             <a class="list-group-item" href="../module/init_g.html#proc-ginit_noise">ginit_noise</a>
             <a class="list-group-item" href="../module/init_g.html#proc-ginit_kpar">ginit_kpar</a>
             <a class="list-group-item" href="../module/init_g.html#proc-ginit_rh">ginit_rh</a>
             <a class="list-group-item" href="../module/init_g.html#proc-ginit_remap">ginit_remap</a>
             <a class="list-group-item" href="../module/init_g.html#proc-ginit_restart_many">ginit_restart_many</a>
-            <a class="list-group-item" href="../module/init_g.html#proc-normalize_by_maxwellian">normalize_by_maxwellian</a>
             <a class="list-group-item" href="../module/init_g.html#proc-reset_init">reset_init</a>
             <a class="list-group-item" href="../module/init_g.html#proc-finish_init_g">finish_init_g</a>
         </div>
@@ -302,14 +301,13 @@
         <div class="list-group">
             <a class="list-group-item" href="../module/init_g.html#proc-init_init_g">init_init_g</a>
             <a class="list-group-item" href="../module/init_g.html#proc-ginit">ginit</a>
-            <a class="list-group-item" href="../module/init_g.html#proc-read_parameters~7">read_parameters</a>
+            <a class="list-group-item" href="../module/init_g.html#proc-read_parameters~6">read_parameters</a>
             <a class="list-group-item" href="../module/init_g.html#proc-ginit_default">ginit_default</a>
             <a class="list-group-item" href="../module/init_g.html#proc-ginit_noise">ginit_noise</a>
             <a class="list-group-item" href="../module/init_g.html#proc-ginit_kpar">ginit_kpar</a>
             <a class="list-group-item" href="../module/init_g.html#proc-ginit_rh">ginit_rh</a>
             <a class="list-group-item" href="../module/init_g.html#proc-ginit_remap">ginit_remap</a>
             <a class="list-group-item" href="../module/init_g.html#proc-ginit_restart_many">ginit_restart_many</a>
-            <a class="list-group-item" href="../module/init_g.html#proc-normalize_by_maxwellian">normalize_by_maxwellian</a>
             <a class="list-group-item" href="../module/init_g.html#proc-reset_init">reset_init</a>
             <a class="list-group-item" href="../module/init_g.html#proc-finish_init_g">finish_init_g</a>
         </div>
@@ -1000,8 +998,7 @@ parameter
 </h3></div>
     <div class="panel-body">
           
-  <p>if maxwwellian_normalization = .true., the pdf is normalized by F0 (which is not the case otherwise)
-unless reading in g from a restart file, normalise g by F0 for a full flux surface simulation</p>
+  
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -1052,7 +1049,7 @@ unless reading in g from a restart file, normalise g by F0 for a full flux surfa
   </div>
 
               <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-read_parameters~7"></span><h3>private  subroutine <a href='../proc/read_parameters~7.html'>read_parameters</a>()  
+    <div class="panel-heading codesum"><span class="anchor" id="proc-read_parameters~6"></span><h3>private  subroutine <a href='../proc/read_parameters~6.html'>read_parameters</a>()  
 </h3></div>
     <div class="panel-body">
           
@@ -1143,21 +1140,6 @@ unless reading in g from a restart file, normalise g by F0 for a full flux surfa
   </div>
 
               <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-normalize_by_maxwellian"></span><h3>private  subroutine <a href='../proc/normalize_by_maxwellian.html'>normalize_by_maxwellian</a>()  
-</h3></div>
-    <div class="panel-body">
-          
-  <p>gvmu is initialised with a Maxwellian weighting for flux tube simulations,
-with the Maxwellian evaluated at ia = 1
-we are undoing that weighting here, so also need to use ia = 1</p>
-
-  <h4>Arguments</h4>
-    <em>None</em>
-
-    </div>
-  </div>
-
-              <div class="panel panel-default">
     <div class="panel-heading codesum"><span class="anchor" id="proc-reset_init"></span><h3>public  subroutine <a href='../proc/reset_init.html'>reset_init</a>()  
 </h3></div>
     <div class="panel-body">
@@ -1197,13 +1179,13 @@ we are undoing that weighting here, so also need to use ia = 1</p>
       <div class="container">
         <div class="row">
           <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2023 
-<br /><small>v0.5.1-234-ga97880be3</small></p>
+<br /><small>v0.5.1-235-g1e8a45a59</small></p>
           </div>
           <div class="col-xs-6 col-md-6">
             <p class="text-right">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2023-05-22T15:44:32.582482             </p>
+ on 2023-09-19T19:01:56.514081             </p>
           </div>
         </div>
         <br>

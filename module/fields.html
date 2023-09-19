@@ -101,7 +101,7 @@
           <li id="statements"><i class="fa fa-list-ol"></i>
             <a data-toggle="tooltip"
                data-placement="bottom" data-html="true"
-               title=" 3.5% of total for modules and submodules.">1273 statements</a>
+               title=" 3.7% of total for modules and submodules.">1363 statements</a>
           </li>
 
             <li id="source-file">
@@ -190,7 +190,7 @@
             <a class="list-group-item" href="../module/fields.html#proc-init_fields_ffs">init_fields_ffs</a>
             <a class="list-group-item" href="../module/fields.html#proc-init_gamma0_factor_ffs">init_gamma0_factor_ffs</a>
             <a class="list-group-item" href="../module/fields.html#proc-init_adiabatic_response_factor">init_adiabatic_response_factor</a>
-            <a class="list-group-item" href="../module/fields.html#proc-allocate_arrays~3">allocate_arrays</a>
+            <a class="list-group-item" href="../module/fields.html#proc-allocate_arrays~2">allocate_arrays</a>
             <a class="list-group-item" href="../module/fields.html#proc-enforce_reality_field">enforce_reality_field</a>
             <a class="list-group-item" href="../module/fields.html#proc-advance_fields">advance_fields</a>
             <a class="list-group-item" href="../module/fields.html#proc-get_fields">get_fields</a>
@@ -308,7 +308,7 @@
             <a class="list-group-item" href="../module/fields.html#proc-init_fields_ffs">init_fields_ffs</a>
             <a class="list-group-item" href="../module/fields.html#proc-init_gamma0_factor_ffs">init_gamma0_factor_ffs</a>
             <a class="list-group-item" href="../module/fields.html#proc-init_adiabatic_response_factor">init_adiabatic_response_factor</a>
-            <a class="list-group-item" href="../module/fields.html#proc-allocate_arrays~3">allocate_arrays</a>
+            <a class="list-group-item" href="../module/fields.html#proc-allocate_arrays~2">allocate_arrays</a>
             <a class="list-group-item" href="../module/fields.html#proc-enforce_reality_field">enforce_reality_field</a>
             <a class="list-group-item" href="../module/fields.html#proc-advance_fields">advance_fields</a>
             <a class="list-group-item" href="../module/fields.html#proc-get_fields">get_fields</a>
@@ -855,7 +855,7 @@ is stored in adiabatic_response_factor</p><a href="../proc/init_adiabatic_respon
   </div>
 
               <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-allocate_arrays~3"></span><h3>private  subroutine <a href='../proc/allocate_arrays~3.html'>allocate_arrays</a>()  
+    <div class="panel-heading codesum"><span class="anchor" id="proc-allocate_arrays~2"></span><h3>private  subroutine <a href='../proc/allocate_arrays~2.html'>allocate_arrays</a>()  
 </h3></div>
     <div class="panel-body">
           
@@ -908,7 +908,7 @@ is stored in adiabatic_response_factor</p><a href="../proc/init_adiabatic_respon
   </div>
 
               <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_fields"></span><h3>public  subroutine <a href='../proc/advance_fields.html'>advance_fields</a>(g, phi, apar, dist)  
+    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_fields"></span><h3>public  subroutine <a href='../proc/advance_fields.html'>advance_fields</a>(g, phi, apar, dist, implicit_solve)  
 </h3></div>
     <div class="panel-body">
           
@@ -988,6 +988,21 @@ time the communications + field solve</p>
             </td>
             <td>::</td>
             <td><strong>dist</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              logical,
+            </td>
+<td>intent(in),</td>
+              <td>optional</td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>implicit_solve</strong></td>
             <td>
 
             </td>
@@ -1200,7 +1215,7 @@ time the communications + field solve</p>
   </div>
 
               <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-get_fields_ffs"></span><h3>private  subroutine <a href='../proc/get_fields_ffs.html'>get_fields_ffs</a>(g, phi, apar)  
+    <div class="panel-heading codesum"><span class="anchor" id="proc-get_fields_ffs"></span><h3>private  subroutine <a href='../proc/get_fields_ffs.html'>get_fields_ffs</a>(g, phi, apar, implicit_solve)  
 </h3></div>
     <div class="panel-body">
           
@@ -1259,6 +1274,21 @@ and calculates/returns the electronstatic potential phi for full_flux_surface si
             </td>
             <td>::</td>
             <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" ></span>
+              logical,
+            </td>
+<td>intent(in),</td>
+              <td>optional</td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>implicit_solve</strong></td>
             <td>
 
             </td>
@@ -2069,13 +2099,13 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
       <div class="container">
         <div class="row">
           <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2023 
-<br /><small>v0.5.1-234-ga97880be3</small></p>
+<br /><small>v0.5.1-235-g1e8a45a59</small></p>
           </div>
           <div class="col-xs-6 col-md-6">
             <p class="text-right">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2023-05-22T15:44:32.582482             </p>
+ on 2023-09-19T19:01:56.514081             </p>
           </div>
         </div>
         <br>
