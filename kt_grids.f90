@@ -373,7 +373,11 @@ contains
       norm = 1.
       if (naky > 1) norm = aky(2)
       if (rhostar > 0.) then
-         phase_shift_angle = -2.*pi * (2 * nperiod - 1) * geo_surf%qinp_psi0 * dydalpha / rhostar
+         if (full_flux_surface) then
+            phase_shift_angle = -2.*pi * (2 * nperiod - 1) * dydalpha / (rhostar * geo_surf%qinp_psi0)
+         else
+            phase_shift_angle = -2.*pi * (2 * nperiod - 1) * geo_surf%qinp_psi0 * dydalpha / rhostar
+         end if
       else if (randomize_phase_shift) then
          if (proc0) phase_shift_angle = 2.*pi * ranf() / norm
          call broadcast(phase_shift_angle)
