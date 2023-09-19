@@ -876,7 +876,7 @@ contains
    subroutine get_dbdzed(nz, dz, f, df)
 
       use physics_flags, only: full_flux_surface
-     
+
       implicit none
 
       integer, intent(in) :: nz
@@ -887,15 +887,15 @@ contains
 
       ! hack to avoid non-periodicity in full-flux-surface case
       if (full_flux_surface) then
-         df(-nz) = (f(-nz + 1) - f(-nz))/dz(-nz)
-         df(nz) = (f(nz) - f(nz-1))/dz(nz-1)
+         df(-nz) = (f(-nz + 1) - f(-nz)) / dz(-nz)
+         df(nz) = (f(nz) - f(nz - 1)) / dz(nz - 1)
       else
          ! assume periodicity in the B-field
          df(-nz) = (f(-nz + 1) - f(nz - 1)) / (dz(-nz) + dz(nz - 1))
          df(nz) = df(-nz)
       end if
-         
-    end subroutine get_dbdzed
+
+   end subroutine get_dbdzed
 
    subroutine get_gradpar_eqarc(gp, z, dz, gp_eqarc)
 
