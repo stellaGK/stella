@@ -488,7 +488,7 @@ contains
       ! geometry subroutine (Miller, vmec, etc.), as there
       ! B is likely calculated on a finer z-grid
       do iy = 1, nalpha
-         call get_dzed(nzgrid, delzed, bmag(iy, :), dbdzed(iy, :))
+         call get_dbdzed(nzgrid, delzed, bmag(iy, :), dbdzed(iy, :))
       end do
 
       select case (boundary_option_switch)
@@ -873,8 +873,10 @@ contains
    ! given function f(z:-pi->pi), calculate z derivative
    ! second order accurate, with equal grid spacing assumed
    ! assumes periodic in z -- may need to change this in future
-   subroutine get_dzed(nz, dz, f, df)
+   subroutine get_dbdzed(nz, dz, f, df)
 
+      use physics_flags, only: full_flux_surface
+     
       implicit none
 
       integer, intent(in) :: nz
@@ -883,12 +885,17 @@ contains
 
       df(-nz + 1:nz - 1) = (f(-nz + 2:) - f(:nz - 2)) / (dz(:nz - 2) + dz(-nz + 1:nz - 1))
 
-      ! FLAG -- THIS MAY NEED TO BE CHANGED
-      ! use periodicity at boundary
-      df(-nz) = (f(-nz + 1) - f(nz - 1)) / (dz(-nz) + dz(nz - 1))
-      df(nz) = df(-nz)
-
-   end subroutine get_dzed
+      ! hack to avoid non-periodicity in full-flux-surface case
+      if (full_flux_surface) then
+         df(-nz) = (f(-nz + 1) - f(-nz))/dz(-nz)
+         df(nz) = (f(nz) - f(nz-1))/dz(nz-1)
+      else
+         ! assume periodicity in the B-field
+         df(-nz) = (f(-nz + 1) - f(nz - 1)) / (dz(-nz) + dz(nz - 1))
+         df(nz) = df(-nz)
+      end if
+         
+    end subroutine get_dbdzed
 
    subroutine get_gradpar_eqarc(gp, z, dz, gp_eqarc)
 
