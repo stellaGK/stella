@@ -292,7 +292,7 @@ contains
             driftkinetic_implicit = .true.
          end if
       else
-         driftkinetic_implicit = .false. 
+         driftkinetic_implicit = .false.
       end if
 
    end subroutine read_parameters

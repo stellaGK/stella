@@ -46,19 +46,19 @@ contains
       integer :: nz_ext
       complex, dimension(:, :, :, :), allocatable :: phi_old, phi_source
       character(5) :: dist_choice
-      
+
       logical :: implicit_solve = .false.
       complex, dimension(:, :, :, :), allocatable :: phi1
-      complex, dimension(:,:, :, :, :), allocatable :: phi1_source, g0
-      integer :: ivmu 
+      complex, dimension(:, :, :, :, :), allocatable :: phi1_source, g0
+      integer :: ivmu
 
       integer :: ikx, iky, iz
 
       logical :: modify
-      if(.not. allocated( g0))allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; g0 = 0.0
-      if(.not. allocated( phi1)) allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes)) ; phi1 = 0.0
-      if(.not. allocated( phi1_source)) allocate(phi1_source(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; phi1_source = 0.0
-      
+      if (.not. allocated(g0)) allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); g0 = 0.0
+      if (.not. allocated(phi1)) allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes)); phi1 = 0.0
+      if (.not. allocated(phi1_source)) allocate (phi1_source(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); phi1_source = 0.0
+
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Implicit time advance')
 
       !> dist_choice indicates whether the non-Boltzmann part of the pdf (h) is evolved
@@ -67,18 +67,18 @@ contains
       dist_choice = 'gbar'
 
       if (driftkinetic_implicit) then
-         implicit_solve = .true. 
+         implicit_solve = .true.
          fields_updated = .false.
          call advance_fields(g, phi, apar, dist='gbar', implicit_solve=.true.)
          fields_updated = .false.
          call advance_fields(g, phi1, apar, dist='gbar')
-         phi1(1,1,:,:) = 0.0
+         phi1(1, 1, :, :) = 0.0
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             call gyro_average(phi1, g0(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
-            g0(:, :, :, :, ivmu) = 0.0 
+            g0(:, :, :, :, ivmu) = 0.0
          end do
       end if
-      
+
       !> if using delphi formulation for response matrix, then phi = phi^n replaces
       !> phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
       if (use_deltaphi_for_response_matrix) then
@@ -97,7 +97,7 @@ contains
       ! solve for the 'inhomogeneous' piece of the pdf
       if (driftkinetic_implicit) then
          modify = .true.
-         call update_pdf (modify)
+         call update_pdf(modify)
       else
          call update_pdf
       end if
@@ -127,19 +127,19 @@ contains
       ! solve for the final, updated pdf now that we have phi^{n+1}.
       if (driftkinetic_implicit) then
          modify = .true.
-         call update_pdf (modify)
+         call update_pdf(modify)
       else
          call update_pdf
       end if
 
       deallocate (phi_old, phi_source)
-      deallocate(phi1_source, phi1)
+      deallocate (phi1_source, phi1)
 
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Stream advance')
 
    contains
 
-      subroutine update_pdf (mod) 
+      subroutine update_pdf(mod)
 
          use extended_zgrid, only: neigen
 
@@ -147,8 +147,8 @@ contains
          integer :: ulim
          complex, dimension(:), allocatable :: pdf1, pdf2, phiext, phiext_old
          complex, dimension(:), allocatable :: phifullext
-         
-         logical, optional, intent (in) :: mod
+
+         logical, optional, intent(in) :: mod
 
          ! start the timer for the pdf update
          if (proc0) call time_message(.false., time_implicit_advance(:, 2), ' (bidiagonal solve)')
@@ -171,7 +171,7 @@ contains
                      call map_to_extended_zgrid(it, ie, iky, phi_source(iky, :, :, :), phiext, ulim)
                      ! calculate the RHS of the GK equation (using pdf1 and phi_source as the
                      ! pdf and potential, respectively) and store it in pdf2
-                     if(present(mod) ) then
+                     if (present(mod)) then
                         !! For implicit FFS
                         call map_to_extended_zgrid(it, ie, iky, phi1_source(iky, :, :, :, ivmu), phifullext, ulim)
                         call get_gke_rhs(ivmu, iky, ie, pdf1, phiext, phiext_old, pdf2, phifullext)
@@ -225,7 +225,7 @@ contains
 
       ! NB: rhs is used as a scratch array in get_contributions_from_phi
       ! so be careful not to move get_contributions_from_pdf before it, or rhs will be over-written
-      if(present(phi1)) then
+      if (present(phi1)) then
          call get_contributions_from_phi(phi, ivmu, iky, ie, rhs, rhs_phi, phi1)
       else
          call get_contributions_from_phi(phi, ivmu, iky, ie, rhs, rhs_phi)
@@ -295,14 +295,14 @@ contains
       ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
       if (driftkinetic_implicit) then
          do izext = 1, nz_ext
-            scratch(izext)  = phi(izext) * j0_const(iky, ikx_from_izext(izext), iz_from_izext(izext), ivmu)
+            scratch(izext) = phi(izext) * j0_const(iky, ikx_from_izext(izext), iz_from_izext(izext), ivmu)
          end do
       else
          call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, phi, scratch)
       end if
 
-       if(present(source_driftkin)) then
-         call add_streaming_contribution (source_driftkin)
+      if (present(source_driftkin)) then
+         call add_streaming_contribution(source_driftkin)
       else
          call add_streaming_contribution
       end if
@@ -314,7 +314,7 @@ contains
 
    contains
 
-      subroutine add_streaming_contribution (source_phi)
+      subroutine add_streaming_contribution(source_phi)
 
          use extended_zgrid, only: fill_zext_ghost_zones
          use parallel_streaming, only: get_zed_derivative_extended_domain
@@ -329,7 +329,7 @@ contains
          complex :: scratch1_left, scratch1_right
          complex, dimension(:), allocatable :: rhs1
          complex, dimension(:), optional, intent(in) :: source_phi
-         
+
          ! fill ghost zones beyond ends of extended zed domain for <phi>
          ! and store values in scratch_left and scratch_right
          call fill_zext_ghost_zones(iky, scratch, scratch_left, scratch_right)
@@ -338,16 +338,16 @@ contains
          call get_zed_derivative_extended_domain(iv, scratch, scratch_left, scratch_right, rhs)
 
          !! For implicit FFS
-         if(present (source_phi)) then
-            allocate(rhs1(nz_ext))
+         if (present(source_phi)) then
+            allocate (rhs1(nz_ext))
             rhs1 = 0.0
             call fill_zext_ghost_zones(iky, source_phi, scratch1_left, scratch1_right)
             call get_zed_derivative_extended_domain(iv, source_phi, scratch1_left, scratch1_right, rhs1)
          end if
-         
+
          ! center Maxwellian factor in mu
          ! and store in dummy variable z_scratch
-!         if( .not. driftkinetic_implicit) then 
+!         if( .not. driftkinetic_implicit) then
          z_scratch = maxwell_mu(ia, :, imu, is)
          call center_zed(iv, z_scratch, -nzgrid)
          ! multiply by Maxwellian factor
@@ -359,7 +359,7 @@ contains
          ! NB: could do this once at beginning of simulation to speed things up
          ! this is vpa*Z/T*exp(-vpa^2)
          z_scratch = vpa(iv) * spec(is)%zt
-         !if( .not. driftkinetic_implicit) 
+         !if( .not. driftkinetic_implicit)
          z_scratch = z_scratch * maxwell_vpa(iv, is) * maxwell_fac(is)
          ! if including neoclassical correction to equilibrium distribution function
          ! then must also account for -vpa*dF_neo/dvpa*Z/T
@@ -377,7 +377,7 @@ contains
             z_scratch = z_scratch * gradpar_c(:, 1) * code_dt * spec(is)%stm_psi0
          end if
 
-         if(present (source_phi)) then
+         if (present(source_phi)) then
             do izext = 1, nz_ext
                rhs(izext) = -z_scratch(iz_from_izext(izext)) * (rhs(izext) + rhs1(izext))
             end do
@@ -387,7 +387,7 @@ contains
             end do
          end if
 
-         if(present (source_phi)) deallocate(rhs1)
+         if (present(source_phi)) deallocate (rhs1)
 
       end subroutine add_streaming_contribution
 
