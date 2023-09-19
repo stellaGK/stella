@@ -876,7 +876,7 @@ contains
    ! assumes periodic in z -- may need to change this in future
    subroutine get_dbdzed(nz, dz, f, df)
 
-      use physics_flags, only: full_flux_surface
+      use physics_flags, only: full_flux_surface, const_alpha_geo
 
       implicit none
 
@@ -887,7 +887,7 @@ contains
       df(-nz + 1:nz - 1) = (f(-nz + 2:) - f(:nz - 2)) / (dz(:nz - 2) + dz(-nz + 1:nz - 1))
 
       ! hack to avoid non-periodicity in full-flux-surface case
-      if (full_flux_surface) then
+      if (full_flux_surface .and. .not.const_alpha_geo) then
          df(-nz) = (f(-nz + 1) - f(-nz)) / dz(-nz)
          df(nz) = (f(nz) - f(nz - 1)) / dz(nz - 1)
       else
