@@ -391,6 +391,7 @@ contains
       use mp, only: scope, crossdomprocs, subprocs
       use file_utils, only: runtype_option_switch, runtype_multibox
       use physics_flags, only: nonlinear
+      use stella_geometry, only: sign_torflux
       use ran
 
       implicit none
@@ -432,8 +433,10 @@ contains
             do iky = 1, naky
                do it = 1, ntubes
                   do iz = -nzgrid, nzgrid
+
+                     ! For the same rng-seed, the <-sign_torflux> will make the time trace of CCW and CW more similar
                      a = ranf() - 0.5
-                     b = ranf() - 0.5
+                     b = -sign_torflux * (ranf() - 0.5)
                      ! do not populate high k modes with large amplitudes
                      if ((ikx > 1 .or. iky > 1) .and. (kperp2(iky, ikx, ia, iz) >= kmin)) then
                         !the following as an extra factor of kmin to offset the Gamma-1 in quasineutrality
