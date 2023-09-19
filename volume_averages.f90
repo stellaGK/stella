@@ -101,18 +101,22 @@ contains
       real, dimension(:, :, -nzgrid:, :), intent(in) :: unavg
       real, dimension(:, :), intent(out) :: avg
 
+      real :: norm
       integer :: it, ia
 
       ia = 1
+      
+      norm = sum(dl_over_b(ia,:))
 
       avg = 0.0
       do it = 1, ntubes
          avg = avg + sum(spread(spread(dl_over_b(ia, :), 1, naky), 2, nakx) * unavg(:, :, :, it), dim=3)
       end do
-      avg = avg / real(ntubes)
+      avg = avg / (real(ntubes)*norm) 
 
    end subroutine fieldline_average_real
 
+   
    subroutine fieldline_average_complex(unavg, avg)
 
       use zgrid, only: nzgrid, ntubes
@@ -124,15 +128,18 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: unavg
       complex, dimension(:, :), intent(out) :: avg
 
+      real :: norm 
       integer :: it, ia
 
       ia = 1
+
+      norm = sum(dl_over_b(ia,:))
 
       avg = 0.0
       do it = 1, ntubes
          avg = avg + sum(spread(spread(dl_over_b(ia, :), 1, naky), 2, nakx) * unavg(:, :, :, it), dim=3)
       end do
-      avg = avg / real(ntubes)
+      avg = avg / (real(ntubes)*norm)
 
    end subroutine fieldline_average_complex
 
@@ -150,10 +157,13 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: unavg
       real, intent(out) :: avg
 
+      real :: norm 
       integer :: iky, ikx, iz, it, ia
 
       ia = 1
 
+      norm = sum(dl_over_b(ia,:))
+      
       avg = 0.
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
@@ -164,7 +174,7 @@ contains
             end do
          end do
       end do
-      avg = avg / real(ntubes)
+      avg = avg / (real(ntubes) *norm) 
 
    end subroutine volume_average
 

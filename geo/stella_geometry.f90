@@ -34,6 +34,7 @@ module stella_geometry
    public :: grad_x_grad_y_end
    public :: x_displacement_fac
 
+   public :: geo_option_switch, geo_option_vmec
    private
 
    type(flux_surface_type) :: geo_surf
@@ -463,7 +464,6 @@ contains
 
       ! this is dl/B
       dl_over_b = spread(delzed, 1, nalpha) * jacob
-
       ! the next line is to avoid double counting the end points for ky = 0 modes (which leads to destabilization
       ! of the zonal modes for certain input parameters)
       ! FLAG DSO - while this is correct for ky = 0 modes and sufficient for output, if dl_over_b is applied to
