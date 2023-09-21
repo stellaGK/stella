@@ -72,6 +72,7 @@ module stella_geometry
    real, dimension(:), allocatable :: alpha
    real, dimension(:, :), allocatable :: zeta
 
+   integer :: sign_torflux
    integer :: geo_option_switch
    integer, parameter :: geo_option_local = 1
    integer, parameter :: geo_option_inputprof = 2
@@ -121,7 +122,6 @@ contains
       real :: dpsidrho, dpsidrho_psi0
       real :: new_zeta_min
       integer :: iy, ia, iz
-      integer :: sign_torflux
       integer :: dxdXcoord_sign, dydalpha_sign
       real :: field_period_ratio, bmag_z0
       real, dimension(:, :), allocatable :: grad_alpha_grad_alpha
