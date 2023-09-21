@@ -71,7 +71,7 @@ module stella_geometry
    real, dimension(:), allocatable :: btor, Rmajor
    real, dimension(:), allocatable :: alpha
    real, dimension(:, :), allocatable :: zeta
-   
+
    integer :: geo_option_switch
    integer, parameter :: geo_option_local = 1
    integer, parameter :: geo_option_inputprof = 2
