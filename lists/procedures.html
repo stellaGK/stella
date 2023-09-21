@@ -505,15 +505,12 @@ below a specified tolerance (tol_floor)</p></td></tr>
            Watts, H. A., (SNLA)
 </strong>DESCRIPTION</p><a href="../proc/fzero.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			   <tr><td><a href='../proc/fzero_residual.html'>fzero_residual</a></td><td><a href='../module/vmec_to_stella_geometry_interface_mod.html'>vmec_to_stella_geometry_interface_mod</a></td><td>Function</td><td></td></tr>
-			   <tr><td><a href='../interface/g_to_f.html'>g_to_f</a></td><td><a href='../module/g_tofrom_h.html'>g_tofrom_h</a></td><td>Interface</td><td></td></tr>
-			   <tr><td><a href='../proc/g_to_f0.html'>g_to_f0</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td><p>the Fourier components of the guiding centre distribution function
+			   <tr><td><a href='../proc/g_to_f.html'>g_to_f</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td><p>the Fourier components of the guiding centre distribution function
 normalized by the equilibrium Maxwellian is passed in as g,
 along with the Fourier components of the electrostatic potential, phi.
 g_to_f calculates the Maxwellian-normalized distribution function f,
 which is related to g via
-f = g + (Ze/T)*(<phi>_R - phi)</p><a href="../proc/g_to_f0.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
-			   <tr><td><a href='../proc/g_to_f_kxkyz.html'>g_to_f_kxkyz</a></td><td><a href='../module/g_tofrom_h.html'>g_tofrom_h</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/g_to_f_vmu.html'>g_to_f_vmu</a></td><td><a href='../module/g_tofrom_h.html'>g_tofrom_h</a></td><td>Subroutine</td><td></td></tr>
+f = g + (Ze/T)*(<phi>_R - phi)</p><a href="../proc/g_to_f.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			   <tr><td><a href='../interface/g_to_h.html'>g_to_h</a></td><td><a href='../module/g_tofrom_h.html'>g_tofrom_h</a></td><td>Interface</td><td></td></tr>
 			   <tr><td><a href='../proc/g_to_h_kxkyz.html'>g_to_h_kxkyz</a></td><td><a href='../module/g_tofrom_h.html'>g_tofrom_h</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/g_to_h_vmu.html'>g_to_h_vmu</a></td><td><a href='../module/g_tofrom_h.html'>g_tofrom_h</a></td><td>Subroutine</td><td></td></tr>
@@ -633,7 +630,11 @@ obtain g0=f/F0 in Fourier space</p><a href="../proc/get_moments_ffs.html" class=
 a time no larger than <code>tstart</code></p></td></tr>
 			   <tr><td><a href='../proc/get_one_flux.html'>get_one_flux</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/get_one_flux_ffs.html'>get_one_flux_ffs</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td><p>divide the input density by the magnetic field strength (due to Jacobian in flux-surfacee avg)
-and Fourier transform in y to get mom_ky = (density/B)(ky,kx,z,spec)</p><a href="../proc/get_one_flux_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
+and Fourier transform in y to get mom_ky = (density/B)(ky,kx,z,spec)
+pflx_vs_kxkyz is the particle flux before summing over (kx,ky) and integrating over z
+calculate the volume average of the particle flux
+note that the factor of 1/B that appears in the Jacobian has already been taken into account
+in the numerator of the flux surface average</p></td></tr>
 			   <tr><td><a href='../proc/get_one_flux_radial.html'>get_one_flux_radial</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../interface/get_one_flux_vmulo.html'>get_one_flux_vmulo</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Interface</td><td></td></tr>
 			   <tr><td><a href='../proc/get_one_flux_vmulo_int.html'>get_one_flux_vmulo_int</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td></td></tr>
@@ -672,7 +673,8 @@ onto stella zed grid</p><a href="../proc/get_vmec_geo.html" class="pull-right"><
 			   <tr><td><a href='../proc/get_x_to_rho.html'>get_x_to_rho</a></td><td><a href='../module/stella_geometry.html'>stella_geometry</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/get_zed_derivative_extended_domain.html'>get_zed_derivative_extended_domain</a></td><td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/get_zed_eqarc.html'>get_zed_eqarc</a></td><td><a href='../module/stella_geometry.html'>stella_geometry</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/ginit.html'>ginit</a></td><td><a href='../module/init_g.html'>init_g</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/ginit.html'>ginit</a></td><td><a href='../module/init_g.html'>init_g</a></td><td>Subroutine</td><td><p>if maxwwellian_normalization = .true., the pdf is normalized by F0 (which is not the case otherwise)
+unless reading in g from a restart file, normalise g by F0 for a full flux surface simulation</p></td></tr>
 			   <tr><td><a href='../proc/ginit_default.html'>ginit_default</a></td><td><a href='../module/init_g.html'>init_g</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/ginit_kpar.html'>ginit_kpar</a></td><td><a href='../module/init_g.html'>init_g</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/ginit_noise.html'>ginit_noise</a></td><td><a href='../module/init_g.html'>init_g</a></td><td>Subroutine</td><td><p>Initialise the distribution function with random noise. This is the default</p></td></tr>
@@ -808,6 +810,9 @@ must treat boundary carefully
 assumes fully upwinded at outgoing boundary
 time_upwind = 0.0 corresponds to centered in time
 time_upwind = 1.0 corresponds to fully implicit (upwinded)
+account for fact that we have expanded d(gnorm)/dvpa, where gnorm = g/exp(-v^s);
+this gives rise to d(gnorm<em>exp(-vpa^2))/dvpa + 2</em>vpa<em>gnorm</em>exp(-vpa^2) term
+we solve for gnorm*exp(-vpa^2) and later multiply by exp(vpa^2) to get gnorm
 multiply by mirror coefficient</p></td></tr>
 			   <tr><td><a href='../proc/init_invert_stream_operator.html'>init_invert_stream_operator</a></td><td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_job_name.html'>init_job_name</a></td><td><a href='../module/file_utils.html'>file_utils</a></td><td>Subroutine</td><td></td></tr>
@@ -933,18 +938,21 @@ if including neoclassical corrections to equilibrium,
 add in -(Ze/m) * v_curv/vpa . grad y d<phi>/dy * dF^{nc}/dvpa term
 and v_E . grad z dF^{nc}/dz (here get the dphi/dy part of v_E)
 NB: the below neoclassical correction needs to be divided by an equilibrium Maxwellian
+if maxwellian_normalization = .true.
 this is the curvature drift piece of wdriftx with missing factor of vpa
 vpa factor is missing to avoid singularity when including
 non-Maxwellian corrections to equilibrium
 this is the grad-B drift piece of wdriftx
 if including neoclassical correction to equilibrium Maxwellian,
 then add in v_E^{nc} . grad x dg/dx coefficient here
+if maxwellian_normalizatiion = .true., evolved distribution function is normalised by a Maxwellian
 otherwise, it is not; a Maxwellian weighting factor must thus be included
 if including neoclassical corrections to equilibrium,
 add in (Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
 and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
 and v_E . grad alpha dF^{nc}/dalpha (dphi/dx part of v_E)
-NB: the below neoclassical correction needs to be divided by an equilibrium Maxwellian</p></td></tr>
+NB: the below neoclassical correction needs to be divided by an equilibrium Maxwellian
+if running with maxwellian_normalzation = .true.</p></td></tr>
 			   <tr><td><a href='../proc/init_wstar.html'>init_wstar</a></td><td><a href='../module/time_advance.html'>time_advance</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_x_fft.html'>init_x_fft</a></td><td><a href='../module/stella_transforms.html'>stella_transforms</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/init_x_fft~2.html'>init_x_fft</a></td><td><a href='../module/multibox.html'>multibox</a></td><td>Subroutine</td><td></td></tr>
@@ -963,7 +971,6 @@ NB: the below neoclassical correction needs to be divided by an equilibrium Maxw
 			   <tr><td><a href='../proc/integrate_over_velocity.html'>integrate_over_velocity</a></td><td><a href='../module/response_matrix.html'>response_matrix</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../interface/integrate_species.html'>integrate_species</a></td><td><a href='../module/vpamu_grids.html'>vpamu_grids</a></td><td>Interface</td><td></td></tr>
 			   <tr><td><a href='../proc/integrate_species_ffs.html'>integrate_species_ffs</a></td><td><a href='../module/vpamu_grids.html'>vpamu_grids</a></td><td>Subroutine</td><td></td></tr>
-			   <tr><td><a href='../proc/integrate_species_ffs_rm.html'>integrate_species_ffs_rm</a></td><td><a href='../module/vpamu_grids.html'>vpamu_grids</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/integrate_species_vmu.html'>integrate_species_vmu</a></td><td><a href='../module/vpamu_grids.html'>vpamu_grids</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/integrate_species_vmu_block_complex.html'>integrate_species_vmu_block_complex</a></td><td><a href='../module/vpamu_grids.html'>vpamu_grids</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/integrate_species_vmu_block_real.html'>integrate_species_vmu_block_real</a></td><td><a href='../module/vpamu_grids.html'>vpamu_grids</a></td><td>Subroutine</td><td></td></tr>
@@ -1088,6 +1095,9 @@ g/F is evolved for FFS</p></td></tr>
 			   <tr><td><a href='../proc/netcdf_error.html'>netcdf_error</a></td><td><a href='../module/netcdf_utils.html'>netcdf_utils</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/nonblocking_receive_complex_array.html'>nonblocking_receive_complex_array</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/nonblocking_send_complex_array.html'>nonblocking_send_complex_array</a></td><td><a href='../module/mp.html'>mp</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/normalize_by_maxwellian.html'>normalize_by_maxwellian</a></td><td><a href='../module/init_g.html'>init_g</a></td><td>Subroutine</td><td><p>gvmu is initialised with a Maxwellian weighting for flux tube simulations,
+with the Maxwellian evaluated at ia = 1
+we are undoing that weighting here, so also need to use ia = 1</p></td></tr>
 			   <tr><td><a href='../proc/open_loop_ascii_files.html'>open_loop_ascii_files</a></td><td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td><td>Subroutine</td><td><p>Open the '.out' and the '.fluxes' file.</p><a href="../proc/open_loop_ascii_files.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			   <tr><td><a href='../proc/open_output_file.html'>open_output_file</a></td><td><a href='../module/file_utils.html'>file_utils</a></td><td>Subroutine</td><td></td></tr>
 			   <tr><td><a href='../proc/parallel_lu_decomposition_global.html'>parallel_LU_decomposition_global</a></td><td><a href='../module/response_matrix.html'>response_matrix</a></td><td>Subroutine</td><td></td></tr>
@@ -1366,13 +1376,13 @@ creating them if necessary</p></td></tr>
       <div class="container">
         <div class="row">
           <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2023 
-<br /><small>v0.5.1-235-g1e8a45a59</small></p>
+<br /><small>v0.5.1-238-gd844df4cd</small></p>
           </div>
           <div class="col-xs-6 col-md-6">
             <p class="text-right">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2023-09-19T19:01:56.514081             </p>
+ on 2023-09-21T12:42:17.779516             </p>
           </div>
         </div>
         <br>

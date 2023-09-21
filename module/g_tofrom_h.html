@@ -101,7 +101,7 @@
           <li id="statements"><i class="fa fa-list-ol"></i>
             <a data-toggle="tooltip"
                data-placement="bottom" data-html="true"
-               title=" 0.5% of total for modules and submodules.">185 statements</a>
+               title=" 0.3% of total for modules and submodules.">105 statements</a>
           </li>
 
             <li id="source-file">
@@ -145,7 +145,6 @@
       <div id="inters-0" class="panel-collapse collapse">
         <div class="list-group">
             <a class="list-group-item" href="../module/g_tofrom_h.html#interface-g_to_h">g_to_h</a>
-            <a class="list-group-item" href="../module/g_tofrom_h.html#interface-g_to_f">g_to_f</a>
         </div>
       </div>
     </div>
@@ -163,9 +162,7 @@
         <div class="list-group">
             <a class="list-group-item" href="../module/g_tofrom_h.html#proc-g_to_h_vmu">g_to_h_vmu</a>
             <a class="list-group-item" href="../module/g_tofrom_h.html#proc-g_to_h_vmu_single">g_to_h_vmu_single</a>
-            <a class="list-group-item" href="../module/g_tofrom_h.html#proc-g_to_f_vmu">g_to_f_vmu</a>
             <a class="list-group-item" href="../module/g_tofrom_h.html#proc-g_to_h_kxkyz">g_to_h_kxkyz</a>
-            <a class="list-group-item" href="../module/g_tofrom_h.html#proc-g_to_f_kxkyz">g_to_f_kxkyz</a>
         </div>
       </div>
     </div>
@@ -207,7 +204,6 @@
       <div id="inters-1" class="panel-collapse collapse">
         <div class="list-group">
             <a class="list-group-item" href="../module/g_tofrom_h.html#interface-g_to_h">g_to_h</a>
-            <a class="list-group-item" href="../module/g_tofrom_h.html#interface-g_to_f">g_to_f</a>
         </div>
       </div>
     </div>
@@ -225,9 +221,7 @@
         <div class="list-group">
             <a class="list-group-item" href="../module/g_tofrom_h.html#proc-g_to_h_vmu">g_to_h_vmu</a>
             <a class="list-group-item" href="../module/g_tofrom_h.html#proc-g_to_h_vmu_single">g_to_h_vmu_single</a>
-            <a class="list-group-item" href="../module/g_tofrom_h.html#proc-g_to_f_vmu">g_to_f_vmu</a>
             <a class="list-group-item" href="../module/g_tofrom_h.html#proc-g_to_h_kxkyz">g_to_h_kxkyz</a>
-            <a class="list-group-item" href="../module/g_tofrom_h.html#proc-g_to_f_kxkyz">g_to_f_kxkyz</a>
         </div>
       </div>
     </div>
@@ -510,169 +504,6 @@
     </ul>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum">
-      <span class="anchor" id="interface-g_to_f"></span>
-      <h3>public        interface <a href='../interface/g_to_f.html'>g_to_f</a> 
-      </h3>
-    </div>
-    <ul class="list-group">
-          <li class="list-group-item">
-                <h3>
-    private  subroutine <a href='../proc/g_to_f_kxkyz.html'>g_to_f_kxkyz</a>(g, phi, facphi)  
-
-    </h3>
-    
-  
-
-  <h4>Arguments</h4>
-      <table class="table table-striped varlist">
-    <thead>
-      <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(inout),</td>
-              <td></td>            <td>
-              dimension(:, :, kxkyz_lo%llim_proc:)
-            </td>
-            <td>::</td>
-            <td><strong>g</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(in),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :)
-            </td>
-            <td>::</td>
-            <td><strong>phi</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              real,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>facphi</strong></td>
-            <td>
-
-            </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-          </li>
-          <li class="list-group-item">
-                <h3>
-    private  subroutine <a href='../proc/g_to_f_vmu.html'>g_to_f_vmu</a>(g, phi, facphi, phi_corr)  
-
-    </h3>
-    
-  
-
-  <h4>Arguments</h4>
-      <table class="table table-striped varlist">
-    <thead>
-      <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(inout),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
-            </td>
-            <td>::</td>
-            <td><strong>g</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(in),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :)
-            </td>
-            <td>::</td>
-            <td><strong>phi</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              real,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>facphi</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(in),</td>
-              <td>optional,</td>            <td>
-              dimension(:, :, -nzgrid:, :)
-            </td>
-            <td>::</td>
-            <td><strong>phi_corr</strong></td>
-            <td>
-
-            </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-          </li>
-    </ul>
-  </div>
-
         </section>
         <br>
 
@@ -867,162 +698,7 @@
   </div>
 
               <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-g_to_f_vmu"></span><h3>private  subroutine <a href='../proc/g_to_f_vmu.html'>g_to_f_vmu</a>(g, phi, facphi, phi_corr)  
-</h3></div>
-    <div class="panel-body">
-          
-  
-
-  <h4>Arguments</h4>
-      <table class="table table-striped varlist">
-    <thead>
-      <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(inout),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
-            </td>
-            <td>::</td>
-            <td><strong>g</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(in),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :)
-            </td>
-            <td>::</td>
-            <td><strong>phi</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              real,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>facphi</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(in),</td>
-              <td>optional,</td>            <td>
-              dimension(:, :, -nzgrid:, :)
-            </td>
-            <td>::</td>
-            <td><strong>phi_corr</strong></td>
-            <td>
-
-            </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-    </div>
-  </div>
-
-              <div class="panel panel-default">
     <div class="panel-heading codesum"><span class="anchor" id="proc-g_to_h_kxkyz"></span><h3>private  subroutine <a href='../proc/g_to_h_kxkyz.html'>g_to_h_kxkyz</a>(g, phi, facphi)  
-</h3></div>
-    <div class="panel-body">
-          
-  
-
-  <h4>Arguments</h4>
-      <table class="table table-striped varlist">
-    <thead>
-      <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(inout),</td>
-              <td></td>            <td>
-              dimension(:, :, kxkyz_lo%llim_proc:)
-            </td>
-            <td>::</td>
-            <td><strong>g</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              complex,
-            </td>
-<td>intent(in),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :)
-            </td>
-            <td>::</td>
-            <td><strong>phi</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              real,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>facphi</strong></td>
-            <td>
-
-            </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-    </div>
-  </div>
-
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-g_to_f_kxkyz"></span><h3>private  subroutine <a href='../proc/g_to_f_kxkyz.html'>g_to_f_kxkyz</a>(g, phi, facphi)  
 </h3></div>
     <div class="panel-body">
           
@@ -1105,13 +781,13 @@
       <div class="container">
         <div class="row">
           <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2023 
-<br /><small>v0.5.1-235-g1e8a45a59</small></p>
+<br /><small>v0.5.1-238-gd844df4cd</small></p>
           </div>
           <div class="col-xs-6 col-md-6">
             <p class="text-right">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2023-09-19T19:01:56.514081             </p>
+ on 2023-09-21T12:42:17.779516             </p>
           </div>
         </div>
         <br>

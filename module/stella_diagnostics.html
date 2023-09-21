@@ -101,7 +101,7 @@
           <li id="statements"><i class="fa fa-list-ol"></i>
             <a data-toggle="tooltip"
                data-placement="bottom" data-html="true"
-               title=" 3.6% of total for modules and submodules.">1307 statements</a>
+               title=" 3.4% of total for modules and submodules.">1218 statements</a>
           </li>
 
             <li id="source-file">
@@ -220,7 +220,7 @@
             <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux_radial">get_one_flux_radial</a>
             <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_moments">get_moments</a>
             <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_moments_ffs">get_moments_ffs</a>
-            <a class="list-group-item" href="../module/stella_diagnostics.html#proc-g_to_f0">g_to_f0</a>
+            <a class="list-group-item" href="../module/stella_diagnostics.html#proc-g_to_f">g_to_f</a>
             <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_gvmus">get_gvmus</a>
             <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_gzvs">get_gzvs</a>
             <a class="list-group-item" href="../module/stella_diagnostics.html#proc-finish_stella_diagnostics">finish_stella_diagnostics</a>
@@ -343,7 +343,7 @@
             <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_one_flux_radial">get_one_flux_radial</a>
             <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_moments">get_moments</a>
             <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_moments_ffs">get_moments_ffs</a>
-            <a class="list-group-item" href="../module/stella_diagnostics.html#proc-g_to_f0">g_to_f0</a>
+            <a class="list-group-item" href="../module/stella_diagnostics.html#proc-g_to_f">g_to_f</a>
             <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_gvmus">get_gvmus</a>
             <a class="list-group-item" href="../module/stella_diagnostics.html#proc-get_gzvs">get_gzvs</a>
             <a class="list-group-item" href="../module/stella_diagnostics.html#proc-finish_stella_diagnostics">finish_stella_diagnostics</a>
@@ -1775,7 +1775,11 @@ inputs are the particle density (dens), parallel flow (upar) and pressure (pres)
     <div class="panel-body">
           
   <p>divide the input density by the magnetic field strength (due to Jacobian in flux-surfacee avg)
-and Fourier transform in y to get mom_ky = (density/B)(ky,kx,z,spec)</p><a href="../proc/get_one_flux_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+and Fourier transform in y to get mom_ky = (density/B)(ky,kx,z,spec)
+pflx_vs_kxkyz is the particle flux before summing over (kx,ky) and integrating over z
+calculate the volume average of the particle flux
+note that the factor of 1/B that appears in the Jacobian has already been taken into account
+in the numerator of the flux surface average</p>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -1823,9 +1827,9 @@ and Fourier transform in y to get mom_ky = (density/B)(ky,kx,z,spec)</p><a href=
               <span class="anchor" ></span>
               real,
             </td>
-<td>intent(in),</td>
+<td>intent(in)</td>
               <td></td>            <td>
-              dimension(:, -nzgrid:)
+              
             </td>
             <td>::</td>
             <td><strong>flxfac</strong></td>
@@ -1871,7 +1875,7 @@ and Fourier transform in y to get mom_ky = (density/B)(ky,kx,z,spec)</p><a href=
   </div>
 
               <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-get_modified_fourier_coefficient"></span><h3>private  subroutine <a href='../proc/get_modified_fourier_coefficient.html'>get_modified_fourier_coefficient</a>(moment, moment_ky, flxfac)  
+    <div class="panel-heading codesum"><span class="anchor" id="proc-get_modified_fourier_coefficient"></span><h3>private  subroutine <a href='../proc/get_modified_fourier_coefficient.html'>get_modified_fourier_coefficient</a>(moment, moment_ky)  
 </h3></div>
     <div class="panel-body">
           
@@ -1917,21 +1921,6 @@ swap from all ky and kx &gt;= 0 to all kx and ky &gt;= 0</p>
             </td>
             <td>::</td>
             <td><strong>moment_ky</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" ></span>
-              real,
-            </td>
-<td>intent(in),</td>
-              <td></td>            <td>
-              dimension(:, -nzgrid:)
-            </td>
-            <td>::</td>
-            <td><strong>flxfac</strong></td>
             <td>
 
             </td>
@@ -2552,7 +2541,7 @@ obtain g0=f/F0 in Fourier space</p><a href="../proc/get_moments_ffs.html" class=
   </div>
 
               <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-g_to_f0"></span><h3>private  subroutine <a href='../proc/g_to_f0.html'>g_to_f0</a>(g, phi, f)  
+    <div class="panel-heading codesum"><span class="anchor" id="proc-g_to_f"></span><h3>private  subroutine <a href='../proc/g_to_f.html'>g_to_f</a>(g, phi, f)  
 </h3></div>
     <div class="panel-body">
           
@@ -2561,7 +2550,7 @@ normalized by the equilibrium Maxwellian is passed in as g,
 along with the Fourier components of the electrostatic potential, phi.
 g_to_f calculates the Maxwellian-normalized distribution function f,
 which is related to g via
-f = g + (Ze/T)*(<phi>_R - phi)</p><a href="../proc/g_to_f0.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+f = g + (Ze/T)*(<phi>_R - phi)</p><a href="../proc/g_to_f.html" class="pull-right"><emph>Read more&hellip;</emph></a>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -2961,13 +2950,13 @@ f = g + (Ze/T)*(<phi>_R - phi)</p><a href="../proc/g_to_f0.html" class="pull-rig
       <div class="container">
         <div class="row">
           <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2023 
-<br /><small>v0.5.1-235-g1e8a45a59</small></p>
+<br /><small>v0.5.1-238-gd844df4cd</small></p>
           </div>
           <div class="col-xs-6 col-md-6">
             <p class="text-right">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2023-09-19T19:01:56.514081             </p>
+ on 2023-09-21T12:42:17.779516             </p>
           </div>
         </div>
         <br>

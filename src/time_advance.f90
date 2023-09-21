@@ -202,6 +202,7 @@ contains
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
       use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
+      use run_parameters, only: maxwellian_normalization
 
       implicit none
 
@@ -264,12 +265,18 @@ contains
 
          !> if maxwwellian_normalization = .true., evolved distribution function is normalised by a Maxwellian
          !> otherwise, it is not; a Maxwellian weighting factor must thus be included
-         wdrifty_phi(:, :, ivmu) = wdrifty_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
+         if (.not. maxwellian_normalization) then
+            wdrifty_phi(:, :, ivmu) = wdrifty_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
+         end if
          !> if including neoclassical corrections to equilibrium,
          !> add in -(Ze/m) * v_curv/vpa . grad y d<phi>/dy * dF^{nc}/dvpa term
          !> and v_E . grad z dF^{nc}/dz (here get the dphi/dy part of v_E)
          if (include_neoclassical_terms) then
             !> NB: the below neoclassical correction needs to be divided by an equilibrium Maxwellian
+            !> if maxwellian_normalization = .true.
+            if (maxwellian_normalization) then
+               call mp_abort("include_neoclassical_terms=T not currently supported for maxwellian_normalization=T.  aborting")
+            end if
             wdrifty_phi(:, :, ivmu) = wdrifty_phi(:, :, ivmu) &
                                       - 0.5 * spec(is)%zt * dfneo_dvpa(:, :, ivmu) * wcvdrifty &
                                       - code_dt * 0.5 * dfneo_dzed(:, :, ivmu) * gds23
@@ -294,17 +301,24 @@ contains
                                                                              - dxdXcoord * dphineo_dalpha)
          end if
          wdriftx_phi(:, :, ivmu) = spec(is)%zt * (wgbdriftx + wcvdriftx * vpa(iv))
+         !> if maxwellian_normalizatiion = .true., evolved distribution function is normalised by a Maxwellian
          !> otherwise, it is not; a Maxwellian weighting factor must thus be included
-         wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
+         if (.not. maxwellian_normalization) then
+            wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
+         end if
          !> if including neoclassical corrections to equilibrium,
          !> add in (Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
          !> and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
          !> and v_E . grad alpha dF^{nc}/dalpha (dphi/dx part of v_E)
          if (include_neoclassical_terms) then
             !> NB: the below neoclassical correction needs to be divided by an equilibrium Maxwellian
+            !> if running with maxwellian_normalzation = .true.
+            if (maxwellian_normalization) then
+               call mp_abort("include_neoclassical_terms=T not currently supported for maxwellian_normalization=T.  aborting")
+            end if
             wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) &
-                 - 0.5 * spec(is)%zt * dfneo_dvpa(:, :, ivmu) * wcvdriftx &
-                 + code_dt * 0.5 * (dfneo_dalpha(:, :, ivmu) * dxdXcoord - dfneo_dzed(:, :, ivmu) * gds24)
+                                      - 0.5 * spec(is)%zt * dfneo_dvpa(:, :, ivmu) * wcvdriftx &
+                                      + code_dt * 0.5 * (dfneo_dalpha(:, :, ivmu) * dxdXcoord - dfneo_dzed(:, :, ivmu) * gds24)
          end if
 
       end do
@@ -328,6 +342,7 @@ contains
       use dist_fn_arrays, only: wstar
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_drho
+      use run_parameters, only: maxwellian_normalization
 
       implicit none
 
@@ -348,14 +363,20 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
          if (include_neoclassical_terms) then
-            wstar(:, :, ivmu) = dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
-                 * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
-                 * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) &
-                 - dfneo_drho(:, :, ivmu))
+            if (maxwellian_normalization) then
+               call mp_abort("include_neoclassical_terms = T not yet supported for maxwellian_normalization = T. Aborting.")
+            else
+               wstar(:, :, ivmu) = dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
+                                   * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
+                                      * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) &
+                                      - dfneo_drho(:, :, ivmu))
+            end if
          else
             wstar(:, :, ivmu) = dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
-                 * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) &
-                 * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
+                                * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))
+         end if
+         if (.not. maxwellian_normalization) then
+            wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          end if
       end do
 
@@ -1331,8 +1352,7 @@ contains
       use physics_flags, only: full_flux_surface
       use gyro_averages, only: gyro_average
       use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
-      
-      use gyro_averages, only: j0_ffs
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1373,7 +1393,7 @@ contains
 
          !> get <dphi/dy> in k-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            call gyro_average(dphidy, g0k(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
+            call gyro_average(dphidy, ivmu, g0k(:, :, :, :, ivmu))
          end do
 
          !> transform d<phi>/dy from k-space to y-space
@@ -1423,7 +1443,6 @@ contains
       use gyro_averages, only: gyro_average
       use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
 
-      use gyro_averages, only: j0_ffs
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1468,8 +1487,8 @@ contains
          !> add vM . grad x dg/dx term to equation
          call add_explicit_term_ffs(g0y, wdriftx_g, gout)
          !> get <dphi/dx> in k-space
-          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            call gyro_average(dphidx, g0k(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            call gyro_average(dphidx, ivmu, g0k(:, :, :, :, ivmu))
          end do
          !> transform d<phi>/dx from k-space to y-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc

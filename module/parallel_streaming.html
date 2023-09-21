@@ -101,7 +101,7 @@
           <li id="statements"><i class="fa fa-list-ol"></i>
             <a data-toggle="tooltip"
                data-placement="bottom" data-html="true"
-               title=" 1.5% of total for modules and submodules.">551 statements</a>
+               title=" 1.5% of total for modules and submodules.">533 statements</a>
           </li>
 
             <li id="source-file">
@@ -139,7 +139,6 @@
         <div class="list-group">
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-parallel_streaming_initialized">parallel_streaming_initialized</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_sign">stream_sign</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_correction_sign">stream_correction_sign</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream">stream</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_c">stream_c</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_rad_var1">stream_rad_var1</a>
@@ -152,7 +151,6 @@
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_tri_c2">stream_tri_c2</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-gradpar_c">gradpar_c</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-time_parallel_streaming">time_parallel_streaming</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_correction">stream_correction</a>
         </div>
       </div>
     </div>
@@ -239,7 +237,6 @@
         <div class="list-group">
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-parallel_streaming_initialized">parallel_streaming_initialized</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_sign">stream_sign</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_correction_sign">stream_correction_sign</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream">stream</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_c">stream_c</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_rad_var1">stream_rad_var1</a>
@@ -252,7 +249,6 @@
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_tri_c2">stream_tri_c2</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-gradpar_c">gradpar_c</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-time_parallel_streaming">time_parallel_streaming</a>
-            <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_correction">stream_correction</a>
         </div>
       </div>
     </div>
@@ -360,23 +356,6 @@
             </td>
             <td>::</td>
             <td><strong>stream_sign</strong></td>
-                <td></td>
-                <td></td>
-            <td>
-                
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-stream_correction_sign"></span>
-              integer,
-            </td>
-              <td>public,</td>
-            <td>
-              dimension(:), allocatable
-            </td>
-            <td>::</td>
-            <td><strong>stream_correction_sign</strong></td>
                 <td></td>
                 <td></td>
             <td>
@@ -583,23 +562,6 @@
             <td><strong>time_parallel_streaming</strong></td>
 <td> =</td>
                 <td>0.</td>
-            <td>
-                
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-stream_correction"></span>
-              real,
-            </td>
-              <td>public,</td>
-            <td>
-              dimension(:, :, :, :), allocatable
-            </td>
-            <td>::</td>
-            <td><strong>stream_correction</strong></td>
-                <td></td>
-                <td></td>
             <td>
                 
             </td>
@@ -1086,7 +1048,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
   </div>
 
               <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdz_centered"></span><h3>public  subroutine <a href='../proc/get_dgdz_centered.html'>get_dgdz_centered</a>(g, ivmu, dgdz)  
+    <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdz_centered"></span><h3>private  subroutine <a href='../proc/get_dgdz_centered.html'>get_dgdz_centered</a>(g, ivmu, dgdz)  
 </h3></div>
     <div class="panel-body">
           
@@ -1874,13 +1836,13 @@ and overwrites f with the cell-centered version;</p>
       <div class="container">
         <div class="row">
           <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2023 
-<br /><small>v0.5.1-235-g1e8a45a59</small></p>
+<br /><small>v0.5.1-238-gd844df4cd</small></p>
           </div>
           <div class="col-xs-6 col-md-6">
             <p class="text-right">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2023-09-19T19:01:56.514081             </p>
+ on 2023-09-21T12:42:17.779516             </p>
           </div>
         </div>
         <br>
