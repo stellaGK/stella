@@ -547,18 +547,6 @@ contains
       use vpamu_grids, only: integrate_species
       use gyro_averages, only: gyro_average
       use mp, only: sum_allreduce
-      
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use run_parameters, only: driftkinetic_implicit
-      use vpamu_grids, only: integrate_species_ffs_rm
-
-      use physics_flags, only: full_flux_surface
-
-      use stella_geometry, only: bmag
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu
-      use kt_grids, only: nalpha
-      
-      use gyro_averages, only: j0_B_const
 
       implicit none
 
@@ -570,8 +558,6 @@ contains
       integer :: izl_offset
       real, dimension(nspec) :: wgt
       complex, dimension(:), allocatable :: g0
-
-      integer :: ivmu, imu, iv, is
 
       ia = 1
 
@@ -585,39 +571,17 @@ contains
       ikx = ikxmod(iseg, ie, iky)
       do iz = iz_low(iseg), iz_up(iseg)
          idx = idx + 1
-         if (.not. full_flux_surface .and. (.not. driftkinetic_implicit) ) then
-            call gyro_average(g(idx, :), iky, ikx, iz, g0)
-            call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
-         else
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               iv = iv_idx(vmu_lo, ivmu)
-               imu = imu_idx(vmu_lo, ivmu)
-               is = is_idx(vmu_lo, ivmu)
-               g0(ivmu) = g(idx, ivmu) * j0_B_const(iky,ikx,iz,ivmu)
-            end do
-            call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
-         end if
+         call gyro_average(g(idx, :), iky, ikx, iz, g0)
+         call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
       end do
-               
       izl_offset = 1
       if (nsegments(ie, iky) > 1) then
          do iseg = 2, nsegments(ie, iky)
             ikx = ikxmod(iseg, ie, iky)
             do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                idx = idx + 1
-!               if (.not. driftkinetic_implicit) then
-               if (.not. full_flux_surface .and. (.not. driftkinetic_implicit) ) then
-                  call gyro_average(g(idx, :), iky, ikx, iz, g0)
-                  call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
-               else
-                  do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                     iv = iv_idx(vmu_lo, ivmu)
-                     imu = imu_idx(vmu_lo, ivmu)
-                     is = is_idx(vmu_lo, ivmu)
-                     g0(ivmu) = g(idx, ivmu) * j0_B_const(iky,ikx,iz,ivmu)
-                  end do
-                  call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
-               end if
+               call gyro_average(g(idx, :), iky, ikx, iz, g0)
+               call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
             end do
             if (izl_offset == 0) izl_offset = 1
          end do
