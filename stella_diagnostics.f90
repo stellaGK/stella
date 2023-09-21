@@ -300,7 +300,7 @@ contains
       use kt_grids, only: swap_kxky, swap_kxky_back
       use kt_grids, only: naky_all
       use stella_transforms, only: transform_ky2y, transform_y2ky
-      use volume_averages, only: flux_surface_average_ffs
+      use volume_averages, only : flux_surface_average_ffs
 
       use stella_geometry, only: jacob, grad_x
       use kt_grids, only: dy, nalpha
@@ -331,10 +331,10 @@ contains
       !> needed when simulating a full flux surface
       complex, dimension(:, :, :, :), allocatable :: dens_ffs, upar_ffs, pres_ffs
 
-      complex, dimension(:, :, :, :), allocatable :: phi2_kxkyz
-      complex, dimension(:, :), allocatable :: phi_swap
-      complex, dimension(:, :, :, :), allocatable :: phi2_y, phi2_mod
-      real, dimension(:, :), allocatable :: flxfac, norm
+      complex, dimension (:, :, :, :), allocatable :: phi2_kxkyz
+      complex, dimension (:,:), allocatable :: phi_swap 
+      complex, dimension (:, :, :, :), allocatable :: phi2_y, phi2_mod
+      real, dimension (:, :), allocatable :: flxfac, norm 
 
       integer :: ikx, iz, it, iky
 
@@ -420,21 +420,21 @@ contains
          call g_to_f(gvmu, phi, -fphi)
       end if
 
-      if (full_flux_surface) then
+      if(full_flux_surface) then
          it = 1
 
-         allocate (phi2_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes))
-         allocate (phi_swap(naky_all, ikx_max))
-         allocate (phi2_y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
-         allocate (flxfac(ny, -nzgrid:nzgrid))
-         allocate (phi2_mod(naky, nakx, -nzgrid:nzgrid, ntubes))
+         allocate(phi2_kxkyz(naky,nakx,-nzgrid:nzgrid, ntubes))
+         allocate(phi_swap(naky_all,ikx_max))
+         allocate(phi2_y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
+         allocate(flxfac(ny, -nzgrid:nzgrid))
+         allocate(phi2_mod(naky,nakx,-nzgrid:nzgrid, ntubes))
 
          phi2 = 0.0
          phi2_kxkyz = phi_out * conjg(phi_out)
 
          do iz = -nzgrid, nzgrid
-            call swap_kxky(phi2_kxkyz(:, :, iz, it), phi_swap(:, :))
-            call transform_ky2y(phi_swap(:, :), phi2_y(:, :, iz, it))
+            call swap_kxky(phi2_kxkyz(:,:,iz, it) , phi_swap(:,:) )
+            call transform_ky2y(phi_swap(:,:), phi2_y(:,:,iz, it))
          end do
 
          flxfac = spread(delzed * dy, 1, ny) * jacob
@@ -447,12 +447,12 @@ contains
          do iz = -nzgrid, nzgrid
             do ikx = 1, nakx
                do iky = 1, naky
-                  phi2 = phi2 + mode_fac(iky) * phi2_mod(iky, ikx, iz, it)
+                  phi2 = phi2 +  mode_fac(iky) * phi2_mod(iky, ikx, iz, it)
                end do
             end do
          end do
 
-         deallocate (phi2_kxkyz, phi_swap, phi2_y, flxfac, phi2_mod)
+         deallocate(phi2_kxkyz, phi_swap, phi2_y, flxfac, phi2_mod)
       end if
 
       if (proc0) then
@@ -462,7 +462,7 @@ contains
          else
             allocate (omega_avg(1, 1))
          end if
-         if (.not. full_flux_surface) then
+         if(.not. full_flux_surface) then 
             call volume_average(phi_out, phi2)
             call volume_average(apar, apar2)
          end if
@@ -789,7 +789,7 @@ contains
 
                   !subtract adiabatic contribution part of g
                   g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
-                        * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                       * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
 
                   if (radial_variation) then
                      g1k = g0k * (-spec(is)%tprim * (vpa(iv)**2 + vperp2(ia, iz, imu) - 2.5) &
@@ -843,7 +843,7 @@ contains
 
                   !subtract adiabatic contribution part of g
                   g0k = spec(is)%zt * fphi * phi(:, :, iz, it) * aj0x(:, :, iz, ivmu)**2 &
-                        * (vpa(iv)**2 + vperp2(ia, iz, imu)) &
+                        * (vpa(iv)**2 + vperp2(ia, iz, imu)) & 
                         * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
 
                   if (radial_variation) then
@@ -1038,7 +1038,7 @@ contains
       flxfac(:, nzgrid) = 0.5 * flxfac(:, -nzgrid)
 
       flxfac = nalpha * flxfac / sum(flxfac * grad_x)
-
+      
       call get_one_flux_ffs(dens, dphidy, flxfac, pflx, pflx_vs_kxkyz(:, :, :, it, :))
       call get_one_flux_ffs(pres, dphidy, flxfac, qflx, qflx_vs_kxkyz(:, :, :, it, :))
       call get_one_flux_ffs(upar, dphidy, flxfac, vflx, vflx_vs_kxkyz(:, :, :, it, :))
@@ -1086,7 +1086,7 @@ contains
                   flx(is) = flx(is) + 0.5 * mode_fac(iky) * flx_vs_kxkyz(iky, ikx, iz, is)
                end do
             end do
-         end do
+         end do   
       end do
 
       deallocate (mom_ky)
@@ -1116,7 +1116,7 @@ contains
 
       allocate (tmp_kykx(naky_all, ikx_max))
       allocate (tmp_ykx(ny, ikx_max))
-      is_end = size(moment, dim=4)
+      is_end = size (moment, dim =4)
 
       do is = 1, is_end
          do iz = -nzgrid, nzgrid
@@ -1394,7 +1394,7 @@ contains
          call gyro_average(g(:, :, :, :, ivmu), ivmu, g1(:, :, :, :, ivmu))
          ! FLAG -- AJ0X NEEDS DEALING WITH BELOW
          g2(:, :, :, :, ivmu) = spread(aj0x(:, :, :, ivmu)**2 - 1.0, 4, ntubes) * spec(is)%zt * fphi * phi &
-                             * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) * maxwell_fac(is), 4, ntubes)
+              * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) * maxwell_fac(is), 4, ntubes)
 
          g2(:, :, :, :, ivmu) = g2(:, :, :, :, ivmu) + g1(:, :, :, :, ivmu)
          ! g2(:, :, :, :, ivmu) = g1(:, :, :, :, ivmu) + ztmax(iv, is) &
@@ -1456,9 +1456,9 @@ contains
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
          g2(:, :, :, :, ivmu) = (g1(:, :, :, :, ivmu) + ztmax(iv, is) &
-                                 * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
-                                          * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * phi * fphi) &
-                                * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
+              * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
+              * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * phi * fphi) &
+              * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
 
          if (radial_variation) then
             do it = 1, ntubes
@@ -1615,7 +1615,7 @@ contains
       allocate (dens_wgts(nspec))
       allocate (upar_wgts(nspec))
       allocate (pres_wgts(nspec))
-
+      
       dens = 0.; upar = 0.; pres = 0.
 
       !> the guiding centre distribution function, normalized by
@@ -1656,11 +1656,11 @@ contains
             !> for every (z,vpa,mu,spec) point, Fourier tranform from ky to y space to get
             !> the kx component of <f(y,x)>_r
             call transform_ky2y(f_swap, fy(:, :, ivmu))
-            !! j1* zi * ky * f
+            !! j1* zi * ky * f 
             g2(:, :, iz, it, ivmu) = zi * g0(:, :, iz, it, ivmu) * spread(aky, 2, nakx)
             call swap_kxky(g2(:, :, iz, it, ivmu), f_swap)
             call transform_ky2y(f_swap, f2y(:, :, ivmu))
-            !! j1 * zi * kx * f
+            !! j1 * zi * kx * f 
             g2(:, :, iz, it, ivmu) = g2(:, :, iz, it, ivmu) * theta0(:, :)
             call swap_kxky(g2(:, :, iz, it, ivmu), f_swap)
             call transform_ky2y(f_swap, f3y(:, :, ivmu))
@@ -1717,7 +1717,7 @@ contains
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
       use gyro_averages, only: gyro_average, j0_ffs
-
+      
       use stella_transforms, only: transform_ky2y, transform_y2ky
       use kt_grids, only: swap_kxky, swap_kxky_back
       use vpamu_grids, only: maxwell_vpa, maxwell_mu
@@ -1735,9 +1735,9 @@ contains
       integer :: ivmu, is, it
       integer :: iz, iv, imu, ia
 
-      allocate (phi_swap(naky_all, ikx_max))
-      allocate (phiy(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      allocate (adjust(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate(phi_swap(naky_all, ikx_max))
+      allocate(phiy(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate(adjust(naky,nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
       !! FLAG!! NEED TO CHANGE TO REAL SPACE
       it = 1
@@ -1752,17 +1752,17 @@ contains
          adjust(:, :, :, :, ivmu) = f(:, :, :, :, ivmu) - phi
 
          do iz = -nzgrid, nzgrid
-            call swap_kxky(adjust(:, :, iz, it, ivmu), phi_swap)
+            call swap_kxky(adjust(:, :, iz, it,ivmu), phi_swap)
             call transform_ky2y(phi_swap, phiy(:, :, iz, it, ivmu))
          end do
 
          do ia = 1, ny
-            phiy(ia, :, :, :, ivmu) = phiy(ia, :, :, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
+            phiy(ia,:,:,:,ivmu) = phiy(ia,:,:,:,ivmu) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
          end do
 
          do iz = -nzgrid, nzgrid
-            call transform_y2ky(phiy(:, :, iz, it, ivmu), phi_swap)
-            call swap_kxky_back(phi_swap, adjust(:, :, iz, it, ivmu))
+            call transform_y2ky( phiy(:,:,iz,it,ivmu), phi_swap)
+            call swap_kxky_back( phi_swap, adjust(:, :, iz, it, ivmu))
          end do
 
          !> calculate the normalized f, given phi and <phi>_R (temporarily stored in f)

@@ -634,7 +634,7 @@ contains
 
    end subroutine integrate_species_ffs
 
-   subroutine integrate_species_ffs_rm(g, weights, pout, reduce_in)
+    subroutine integrate_species_ffs_rm(g, weights, pout, reduce_in)
       use mp, only: sum_allreduce
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
@@ -662,6 +662,7 @@ contains
       if (reduce) call sum_allreduce(pout)
 
    end subroutine integrate_species_ffs_rm
+
 
    subroutine integrate_vmu_ffs(g, weights, ia, iz, pout, reduce_in)
 

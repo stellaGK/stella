@@ -595,7 +595,7 @@ contains
 
       !! GA - arrays for FFS
       complex, dimension(:, :, :), allocatable :: dgdvpa
-      integer :: iy, ia
+      integer :: iy, ia 
       complex, dimension(:, :), allocatable :: g_swap
 
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
@@ -659,9 +659,9 @@ contains
             iy = iy_idx(kxyz_lo, ikxyz)
             do imu = 1, nmu
                call fd_variable_upwinding_vpa(iy, g0v(:, imu, ikxyz), dvpa, &
-                                              mirror_sign(iy, iz), vpa_upwind, dgdvpa(:, imu, ikxyz))
+                    mirror_sign(iy, iz), vpa_upwind, dgdvpa(:, imu, ikxyz))
                dgdvpa(:, imu, ikxyz) = g0v(:, imu, ikxyz) + tupwnd * mirror(iy, iz, imu, is) * &
-                                       dgdvpa(:, imu, ikxyz)
+                    dgdvpa(:, imu, ikxyz)
                call invert_mirror_operator(imu, ikxyz, dgdvpa(:, imu, ikxyz))
             end do
          end do

@@ -14,7 +14,7 @@ module parallel_streaming
    public :: center_zed, get_dzed
    public :: get_zed_derivative_extended_domain
 
-   public :: stream_correction
+   public :: stream_correction   
    public :: stream_correction_sign
    public :: get_dgdz_centered
    private
@@ -75,7 +75,7 @@ contains
       if (driftkinetic_implicit) then
          if (.not. allocated(stream_correction)) allocate (stream_correction(nalpha, -nzgrid:nzgrid, nvpa, nspec)); stream_correction = 0.
          if (.not. allocated(stream_store)) allocate (stream_store(-nzgrid:nzgrid, nvpa, nspec)); stream_store = 0.
-         if (.not. allocated(stream_correction_sign)) allocate (stream_correction_sign(nvpa)); stream_correction_sign = 0.0
+         if (.not. allocated(stream_correction_sign)) allocate (stream_correction_sign(nvpa)) ; stream_correction_sign = 0.0
       end if
 
       ! sign of stream corresponds to appearing on RHS of GK equation
@@ -89,7 +89,7 @@ contains
                if (driftkinetic_implicit) then
                   stream_store(iz, iv, :) = -code_dt * gradpar(iz) * vpa(iv) * spec%stm_psi0
                else
-                  stream(:, iz, iv, :) = spread(stream(1, iz, iv, :), 1, nalpha)
+                  stream(:, iz, iv, :) = spread(stream(1,iz,iv,:), 1, nalpha)
                end if
             end do
          end do
@@ -97,7 +97,7 @@ contains
          stream = 0.0
       end if
 
-      if (driftkinetic_implicit) then
+       if (driftkinetic_implicit) then
          stream_correction = stream - spread(stream_store, 1, nalpha)
          stream = spread(stream_store, 1, nalpha)
          deallocate (stream_store)
@@ -122,10 +122,10 @@ contains
             iv = iv_idx(vmu_lo, ivmu)
             energy = (vpa(iv)**2 + vperp2(ia, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
             stream_rad_var2(ia, :, ivmu) = &
-               +code_dt * spec(is)%stm_psi0 * vpa(iv) * gradpar &
-               * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(ia, :, imu, is) * maxwell_fac(is) &
-               * (pfac * (spec(is)%fprim + spec(is)%tprim * (energy - 2.5)) &
-                  + gfac * 2 * mu(imu) * dBdrho)
+                 +code_dt * spec(is)%stm_psi0 * vpa(iv) * gradpar &
+                 * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_mu(ia, :, imu, is) * maxwell_fac(is) &
+                 * (pfac * (spec(is)%fprim + spec(is)%tprim * (energy - 2.5)) &
+                 + gfac * 2 * mu(imu) * dBdrho)
          end do
          deallocate (energy)
       end if
@@ -265,8 +265,8 @@ contains
             call gyro_average(phi, ivmu, g0(:, :, :, :))
          end if
 
-!         if (driftkinetic_implicit) call get_dgdz_centered(phi1, ivmu, dgphi_dz_correction)
-
+!         if (driftkinetic_implicit) call get_dgdz_centered(phi1, ivmu, dgphi_dz_correction) 
+         
          !> get d<phi>/dz, with z the parallel coordinate and store in dgphi_dz
          !> note that this should be a centered difference to avoid numerical
          !> unpleasantness to do with inexact cancellations in later velocity integration
@@ -281,26 +281,26 @@ contains
          if (full_flux_surface) then
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
-                  !> get dg/dz in real space
+                  !> get dg/dz in real space   
                   call swap_kxky(g0(:, :, iz, it), g0_swap)
                   call transform_ky2y(g0_swap, g0y(:, :, iz, it))
-
-                  !> get d<phi>/dz in real space
+         
+                  !> get d<phi>/dz in real space  
                   call swap_kxky(dgphi_dz(:, :, iz, it), g0_swap)
                   call transform_ky2y(g0_swap, g1y(:, :, iz, it))
 
                end do
             end do
             ! ! over-write g0y with F * d/dz (g/F) + ZeF/T * d<phi>/dz (or <phi>-phi for driftkinetic_implicit).
-            g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
-                              * maxwell_vpa(iv, is) * spread(spread(maxwell_mu(:, :, imu, is), 2, ikx_max), 4, ntubes) * maxwell_fac(is)
+            g0y(:,:,:,:) = g0y(:,:,:,:) + g1y(:,:,:,:)*spec(is)%zt*maxwell_fac(is) &
+                 * maxwell_vpa(iv,is)*spread(spread(maxwell_mu(:,:,imu,is),2,ikx_max),4,ntubes)*maxwell_fac(is)
 
             !> multiply d(g/F)/dz and d<phi>/dz terms with vpa*(b . grad z) and add to source (RHS of GK equation)
             call add_stream_term_ffs(g0y, ivmu, gout(:, :, :, :, ivmu))
          else
             ia = 1
             g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
-                             * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
+                                * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
 
             ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
             call add_stream_term(g0, ivmu, gout(:, :, :, :, ivmu))
