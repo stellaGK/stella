@@ -407,13 +407,12 @@ contains
       !> used to represent J0
       !> avoid overflow by converting integers to reals before multiplying
       rtmp = real(naky) * real(naky_all) * real(ikx_max) * real(nztot) * real(nmu) * real(nvpa) * real(nspec)
-      call sum_allreduce(ia_max_j0_count)
       ia_max_j0_reduction_factor = real(ia_max_j0_count) / rtmp
-      call sum_allreduce(ia_max_j0_B_maxwell_count)
       ia_max_j0_B_maxwell_reduction_factor = real(ia_max_j0_B_maxwell_count) / rtmp
-
-      call sum_allreduce(ia_max_j1_count)
       ia_max_j1_reduction_factor = real(ia_max_j1_count) / rtmp
+      call sum_allreduce(ia_max_j0_reduction_factor)
+      call sum_allreduce(ia_max_j0_B_maxwell_reduction_factor)
+      call sum_allreduce(ia_max_j1_reduction_factor)
 
       if (proc0) then
          write (*, *) 'average number of k-alphas needed to represent J0(kperp(alpha))=', ia_max_j0_reduction_factor * naky, 'out of ', naky
