@@ -887,7 +887,7 @@ contains
       df(-nz + 1:nz - 1) = (f(-nz + 2:) - f(:nz - 2)) / (dz(:nz - 2) + dz(-nz + 1:nz - 1))
 
       ! hack to avoid non-periodicity in full-flux-surface case
-      if (full_flux_surface .and. .not.const_alpha_geo) then
+      if (full_flux_surface .and. .not. const_alpha_geo) then
          df(-nz) = (f(-nz + 1) - f(-nz)) / dz(-nz)
          df(nz) = (f(nz) - f(nz - 1)) / dz(nz - 1)
       else
