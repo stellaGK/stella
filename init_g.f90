@@ -255,7 +255,7 @@ contains
             end do
          end if
       end if
-         
+
       ! need better way to initialise for full flux surface cases
       ia = 1
 
