@@ -241,7 +241,7 @@ contains
          if (right) phi(:, :, 1:) = 0.0
       end if
 
-      if (reality .and. zonal_mode(1)) phi(1, :, :) = 0.0
+      if (reality .and. zonal_mode(1)) phi(1, 1, :) = 0.0
 
       ia = 1
 
