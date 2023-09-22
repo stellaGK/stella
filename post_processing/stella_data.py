@@ -4,27 +4,26 @@
 
 from scipy.io import netcdf
 import numpy as np
+import netCDF4 as nc4
 
 ####### Import variables from netcdf file #########
 #infile = input("Path to netcdf file: ")
-input_directory = '/Users/barnesm/Documents/stella_data/bistability/'
-file_prefix = 'jet68448_nogexb'
+input_directory = '/Users/barnesm/codes/stella/runs/cbc_vmec_tests/adiabatic_electrons/fluxtube_linear/'
+file_prefix = 'fluxtube_linear_adiabatic_cbc'
 infile = input_directory + file_prefix + '.out.nc'
-#infile = '../stella.out.nc'
-#print()
 #outdir = input("Path for output: ")
 outdir = input_directory
-ncfile = netcdf.netcdf_file(infile,'r')
+try: ncfile = nc4.Dataset(infile)
+except: ncfile = netcdf.netcdf_file(infile,'r')
 
-#print()
 print('reading data from netcdf file...')
 print()
 
 # get kx and ky grids
 kx_stella = np.copy(ncfile.variables['kx'][:])
-nakx = ncfile.dimensions['kx']
+nakx = len(ncfile.dimensions['kx'])
 ky = np.copy(ncfile.variables['ky'][:])
-naky = ncfile.dimensions['ky']
+naky = len(ncfile.dimensions['ky'])
 
 # this is the index of the first negative value of kx
 # note stella orders kx as (0, dkx, ..., kx_max, -kx_max, -kx_max+dkx, ..., -dkx)
@@ -45,6 +44,14 @@ ntime = time.size
 nspec = ncfile.dimensions['species']
 
 # get geometric quantities
+# NEED TO READ FROM FILE
+rho = 0.5
+rhostar = 0.025
+safety_factor = np.copy(ncfile.variables['q'][:])
+iota = 1 / safety_factor
+magnetic_shear = np.copy(ncfile.variables['shat'][:])
+# d/drho (1/q) = -1/q^2 * dq/drho = -magnetic_shear / (rho * q)
+diota_drho = -magnetic_shear / (rho * safety_factor)
 bmag = np.copy(ncfile.variables['bmag'][:])
 gradpar = np.copy(ncfile.variables['gradpar'][:])
 gbdrift = np.copy(ncfile.variables['gbdrift'][:])
@@ -151,13 +158,13 @@ if vpa_present == False:
     es_mom_sym_present = False
 xgrid, xgrid_present = \
     read_stella_float('xgrid')
-if (xgrid_present):
-    xgrid = np.concatenate((xgrid[kx_stella.shape[0]//2+1:],xgrid[:kx_stella.shape[0]//2+1]))
-else:
-    xgrid = np.arange(nakx,dtype=float)
-    dx = 2*np.pi/(kx_stella[1]*nakx)
-    for ikx in range(nakx):
-        xgrid[ikx] = ikx*dx
+# if (xgrid_present):
+#     xgrid = np.concatenate((xgrid[kx_stella.shape[0]//2+1:],xgrid[:kx_stella.shape[0]//2+1]))
+# else:
+#     xgrid = np.arange(nakx,dtype=float)
+#     dx = 2*np.pi/(kx_stella[1]*nakx)
+#     for ikx in range(nakx):
+#         xgrid[ikx] = ikx*dx
 # density fluctuation (kx,ky,z,t)
 density, density_present = \
     read_stella_float('density')
