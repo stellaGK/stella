@@ -194,7 +194,7 @@ contains
       use physics_flags, only: full_flux_surface
       use gyro_averages, only: gyro_average
       use run_parameters, only: driftkinetic_implicit
-
+      use dist_fn_arrays, only: g_gyro
       use fields, only: advance_fields, fields_updated
       use fields_arrays, only: apar
       use gyro_averages, only: j0_ffs
@@ -235,7 +235,7 @@ contains
 
          !> obtain <phi> (or <phi>-phi if driftkinetic_implicit=T)
          if (full_flux_surface) then
-            call gyro_average(phi, g0(:, :, :, :), j0_ffs(:, :, :, ivmu))
+            g0 = g_gyro(:, :, :, :, ivmu)
          else
             call gyro_average(phi, ivmu, g0(:, :, :, :))
          end if

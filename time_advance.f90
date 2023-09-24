@@ -1136,7 +1136,9 @@ contains
       use mirror_terms, only: advance_mirror_explicit
       use flow_shear, only: advance_parallel_flow_shear
       use multibox, only: include_multibox_krook, add_multibox_krook
-
+      use dist_fn_arrays, only: g_gyro
+      use gyro_averages, only: gyro_average, j0_ffs
+      
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
@@ -1175,6 +1177,15 @@ contains
 
       if (radial_variation) call get_radial_correction(gin, phi, dist='gbar')
 
+      !> obtain the gyro-average of the electrostatic potential phi and store in g_gyro;
+      !> this can be a particularly costly operation when simulating a full flux surface
+      !> due to the coupling of different k-alphas inherent in the gyro-average;
+      !> calculate once here to avoid repeated calculation later
+      if (full_flux_surface) call gyro_average(phi, g_gyro, j0_ffs)
+      
+      !! INSERT TEST HERE TO SEE IF dg/dy, dg/dx, d<phi>/dy, d<phi>/dx WILL BE NEEDED
+      !! IF SO, PRE-COMPUTE ONCE HERE
+      
       !> default is to continue with same time step size.
       !> if estimated CFL condition for nonlinear terms is violated
       !> then restart_time_step will be set to .true.
@@ -1266,7 +1277,7 @@ contains
       use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
       use kt_grids, only: swap_kxky
       use physics_flags, only: full_flux_surface
-      use dist_fn_arrays, only: wstar
+      use dist_fn_arrays, only: wstar, g_gyro
 
       implicit none
 
@@ -1284,15 +1295,15 @@ contains
       allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
       if (debug) write (*, *) 'time_advance::solve_gke::get_dchidy'
-      !> get d<chi>/dy in k-space
-      call get_dchidy(phi, apar, g0)
-
       if (full_flux_surface) then
          !> assume only a single flux surface simulated
          it = 1
          allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          allocate (g0_swap(naky_all, ikx_max))
-         !> transform d<chi>/dy from k-space to y-space
+
+         !> calculate d<phi>/dy in k-space
+         call get_dgdy(g_gyro, g0)
+         !> transform d<phi>/dy from ky-space to y-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do iz = -nzgrid, nzgrid
                call swap_kxky(g0(:, :, iz, it, ivmu), g0_swap)
@@ -1304,6 +1315,8 @@ contains
          call add_explicit_term_ffs(g0y, wstar, gout)
          deallocate (g0y, g0_swap)
       else
+         !> get d<chi>/dy in k-space
+         call get_dchidy(phi, apar, g0)
          !> omega_* stays in ky,kx,z space with ky,kx,z local
          !> multiply d<chi>/dy with omega_* coefficient and add to source (RHS of GK eqn)
          if (debug) write (*, *) 'time_advance::solve_gke::add_wstar_term'
@@ -1329,10 +1342,10 @@ contains
       use kt_grids, only: nakx, ikx_max, naky, naky_all, ny
       use kt_grids, only: swap_kxky
       use physics_flags, only: full_flux_surface
-      use gyro_averages, only: gyro_average
+      use gyro_averages, only: gyro_average, j0_ffs
       use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
+      use dist_fn_arrays, only: g_gyro
 
-      use gyro_averages, only: j0_ffs
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1353,8 +1366,6 @@ contains
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdrifty_explicit::get_dgdy'
       !> calculate dg/dy in (ky,kx) space
       call get_dgdy(g, g0k)
-      !> calculate dphi/dy in (ky,kx) space
-      call get_dgdy(phi, dphidy)
 
       if (full_flux_surface) then
          !> assume only a single flux surface simulated
@@ -1368,13 +1379,12 @@ contains
                call transform_ky2y(g0k_swap, g0y(:, :, iz, it, ivmu))
             end do
          end do
+
          !> add vM . grad y dg/dy term to equation
          call add_explicit_term_ffs(g0y, wdrifty_g, gout)
-
-         !> get <dphi/dy> in k-space
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            call gyro_average(dphidy, g0k(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
-         end do
+         
+         !> calculate d<phi>/dy in (ky,kx) space
+         call get_dgdy(g_gyro, g0k)
 
          !> transform d<phi>/dy from k-space to y-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1392,6 +1402,9 @@ contains
          if (debug) write (*, *) 'time_advance::solve_gke::add_dgdy_term'
          ! add vM . grad y dg/dy term to equation
          call add_explicit_term(g0k, wdrifty_g(1, :, :), gout)
+
+         !> calculate dphi/dy in (ky,kx) space
+         call get_dgdy(phi, dphidy)
 
          ! get <dphi/dy> in k-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1420,10 +1433,10 @@ contains
       use kt_grids, only: nakx, ikx_max, naky, naky_all, ny, akx
       use kt_grids, only: swap_kxky
       use physics_flags, only: full_flux_surface
-      use gyro_averages, only: gyro_average
+      use gyro_averages, only: gyro_average, j0_ffs
       use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
-
-      use gyro_averages, only: j0_ffs
+      use dist_fn_arrays, only: g_gyro
+      
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1450,8 +1463,6 @@ contains
       if (debug) write (*, *) 'time_advance::solve_gke::get_dgdx'
       !> calculate dg/dx in (ky,kx) space
       call get_dgdx(g, g0k)
-      !> calculate dphi/dx in (ky,kx) space
-      call get_dgdx(phi, dphidx)
 
       if (full_flux_surface) then
          !> assume a single flux surface is simulated
@@ -1468,9 +1479,13 @@ contains
          !> add vM . grad x dg/dx term to equation
          call add_explicit_term_ffs(g0y, wdriftx_g, gout)
          !> get <dphi/dx> in k-space
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            call gyro_average(dphidx, g0k(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
-         end do
+!         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+!            call gyro_average(dphidx, g0k(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
+!         end do
+
+         !> calculate d<phi>/dy in (ky,kx) space
+         call get_dgdx(g_gyro, g0k)
+
          !> transform d<phi>/dx from k-space to y-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do iz = -nzgrid, nzgrid
@@ -1485,6 +1500,8 @@ contains
          if (debug) write (*, *) 'time_advance::solve_gke::add_dgdx_term'
          !> add vM . grad x dg/dx term to equation
          call add_explicit_term(g0k, wdriftx_g(1, :, :), gout)
+         !> calculate dphi/dx in (ky,kx) space
+         call get_dgdx(phi, dphidx)
          !> get <dphi/dx> in k-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             call gyro_average(dphidx, ivmu, g0k(:, :, :, :, ivmu))
@@ -1524,6 +1541,7 @@ contains
       use kt_grids, only: x, swap_kxky, swap_kxky_back
       use constants, only: pi, zi
       use file_utils, only: runtype_option_switch, runtype_multibox
+      use dist_fn_arrays, only: g_gyro
 
       implicit none
 
@@ -1586,7 +1604,11 @@ contains
                !> FFT to get dg/dy in (y,x) space
                call forward_transform(g0k, g0xy)
                !> compute i*kx*<chi>
-               call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), g0k)
+               if (full_flux_surface) then
+                  call get_dgdx(g_gyro(:, :, iz, it, ivmu), g0k)
+               else
+                  call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), g0k)
+               end if
                !> if running with equilibrium flow shear, make adjustment to
                !> the term multiplying dg/dy
                if (prp_shear_enabled .and. hammett_flow_shear) then
@@ -1626,7 +1648,11 @@ contains
                !> FFT to get dg/dx in (y,x) space
                call forward_transform(g0k, g0xy)
                !> compute d<chi>/dy in k-space
-               call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), g0k)
+               if (full_flux_surface) then
+                  call get_dgdy(g_gyro(:, :, iz, it, ivmu), g0k)
+               else
+                  call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), g0k)
+               end if
                !> FFT to get d<chi>/dy in (y,x) space
                call forward_transform(g0k, g1xy)
                !> multiply by the geometric factor appearing in the Poisson bracket;
