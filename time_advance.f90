@@ -1138,7 +1138,7 @@ contains
       use multibox, only: include_multibox_krook, add_multibox_krook
       use dist_fn_arrays, only: g_gyro
       use gyro_averages, only: gyro_average, j0_ffs
-      
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
@@ -1182,10 +1182,10 @@ contains
       !> due to the coupling of different k-alphas inherent in the gyro-average;
       !> calculate once here to avoid repeated calculation later
       if (full_flux_surface) call gyro_average(phi, g_gyro, j0_ffs)
-      
+
       !! INSERT TEST HERE TO SEE IF dg/dy, dg/dx, d<phi>/dy, d<phi>/dx WILL BE NEEDED
       !! IF SO, PRE-COMPUTE ONCE HERE
-      
+
       !> default is to continue with same time step size.
       !> if estimated CFL condition for nonlinear terms is violated
       !> then restart_time_step will be set to .true.
@@ -1382,7 +1382,7 @@ contains
 
          !> add vM . grad y dg/dy term to equation
          call add_explicit_term_ffs(g0y, wdrifty_g, gout)
-         
+
          !> calculate d<phi>/dy in (ky,kx) space
          call get_dgdy(g_gyro, g0k)
 
@@ -1436,7 +1436,7 @@ contains
       use gyro_averages, only: gyro_average, j0_ffs
       use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
       use dist_fn_arrays, only: g_gyro
-      
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g

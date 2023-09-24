@@ -776,7 +776,7 @@ contains
    end subroutine gyro_average_ffs_kxkyz_local
 
    subroutine gyro_average_ffs_field(field, gyro_field, coefs)
-        
+
       use common_types, only: coupled_alpha_type
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid
@@ -793,7 +793,7 @@ contains
          call gyro_average(field(:, :, :, :), gyro_field(:, :, :, :, ivmu), coefs(:, :, :, ivmu))
       end do
 
-    end subroutine gyro_average_ffs_field
+   end subroutine gyro_average_ffs_field
 
    subroutine gyro_average_ffs(dist, gyro_dist, coefs)
 
