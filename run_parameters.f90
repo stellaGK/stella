@@ -291,6 +291,8 @@ contains
          if (stream_implicit) then
             driftkinetic_implicit = .true.
          end if
+      else
+         driftkinetic_implicit = .false.
       end if
 
    end subroutine read_parameters
