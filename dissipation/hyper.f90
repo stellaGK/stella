@@ -29,7 +29,7 @@ contains
       logical :: dexist
 
       if (proc0) then
-         use_physical_ksqr = .not. (full_flux_surface .or. radial_variation)  ! use kperp2, instead of akx^2 + aky^2
+         use_physical_ksqr = full_flux_surface .or. (.not. radial_variation)  ! use kperp2, instead of akx^2 + aky^2
          scale_to_outboard = .false.                                          ! scales hyperdissipation to zed = 0
          D_hyper = 0.05
 
