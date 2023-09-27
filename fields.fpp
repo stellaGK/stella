@@ -501,7 +501,7 @@ contains
       use mp, only: sum_allreduce, proc0
       use kt_grids, only: swap_kxky_back_ordered
       use gyro_averages, only: find_max_required_kalpha_index
-      
+
       implicit none
 
       integer :: iky, ikx, iz, ia
@@ -599,7 +599,7 @@ contains
       if (proc0) then
          write (*, *) 'average number of k-alphas used to represent 1-Gamma0(kperp(alpha))=', ia_max_gam0_reduction_factor * naky, 'out of ', naky
       end if
-      
+
       do iz = -nzgrid, nzgrid
          call swap_kxky_back_ordered(gam0_const(:, :, iz), gamtot_con(:, :, iz))
       end do
@@ -996,7 +996,7 @@ contains
          if (present(implicit_solve)) then
             allocate (gamtot_t(naky, nakx, -nzgrid:nzgrid, ntubes))
             gamtot_t = spread(gamtot, 4, ntubes)
-            
+
             call get_g_integral_contribution(g, source, implicit_solve=.true.)
             where (gamtot_t < epsilon(0.0))
                phi = 0.0
@@ -1053,7 +1053,7 @@ contains
                   phi_source(1, 1) = 0.0
                   source(1, 1, :) = 0.0
                end if
-               
+
                !> use the computed flux surface average of phi as an additional sosurce in quasineutrality
                !> to obtain the electrostatic potential; only affects the ky=0 component of QN
                if (zonal_mode(1)) then
