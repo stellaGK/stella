@@ -1727,15 +1727,15 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: f
       complex, dimension(:, :), allocatable :: phi_swap
-      complex, dimension(:, :, :, :, :), allocatable :: phiy
-      complex, dimension(:, :, :, :, :), allocatable :: adjust
+      complex, dimension(:, :, :, :), allocatable :: phiy
+      complex, dimension(:, :, :, :), allocatable :: adjust
 
       integer :: ivmu, is, it
       integer :: iz, iv, imu, ia
 
       allocate (phi_swap(naky_all, ikx_max))
-      allocate (phiy(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      allocate (adjust(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      allocate (phiy(ny, ikx_max, -nzgrid:nzgrid, ntubes))
+      allocate (adjust(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       !! FLAG!! NEED TO CHANGE TO REAL SPACE
       it = 1
@@ -1747,25 +1747,30 @@ contains
          !> compute <phi>_R and store in f
          !> j0_ffs are the fourier coefficients of J0(k_perp(y))
          call gyro_average(phi, f(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
-         adjust(:, :, :, :, ivmu) = f(:, :, :, :, ivmu) - phi
+         ! adjust = <phi> - phi
+         adjust(:, :, :, :) = f(:, :, :, :, ivmu) - phi
 
          do iz = -nzgrid, nzgrid
-            call swap_kxky(adjust(:, :, iz, it, ivmu), phi_swap)
-            call transform_ky2y(phi_swap, phiy(:, :, iz, it, ivmu))
+            call swap_kxky(adjust(:, :, iz, it), phi_swap)
+            call transform_ky2y(phi_swap, phiy(:, :, iz, it))
          end do
-
-         do ia = 1, ny
-            phiy(ia, :, :, :, ivmu) = phiy(ia, :, :, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
-         end do
-
+         ! phiy = <phi> - phi in (kx,y) space at this point
+         ! multiply it by exp(-v^2), which depends on y
          do iz = -nzgrid, nzgrid
-            call transform_y2ky(phiy(:, :, iz, it, ivmu), phi_swap)
-            call swap_kxky_back(phi_swap, adjust(:, :, iz, it, ivmu))
+            do ia = 1, ny
+               phiy(ia, :, iz, :) = phiy(ia, :, iz, :) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
+            end do
          end do
 
-         !> calculate the normalized f, given phi and <phi>_R (temporarily stored in f)
-         is = is_idx(vmu_lo, ivmu)
-         f(:, :, :, :, ivmu) = g(:, :, :, :, ivmu) + spec(is)%zt * adjust(:, :, :, :, ivmu)
+         ! transform back to (kx,ky) space
+         ! so adjust = the Fourier transform in y of (<phi>-phi)*exp(-v^2)
+         do iz = -nzgrid, nzgrid
+            call transform_y2ky(phiy(:, :, iz, it), phi_swap)
+            call swap_kxky_back(phi_swap, adjust(:, :, iz, it))
+         end do
+
+         !> calculate the normalized f = g + (Z/T)*(<phi>-phi)*exp(-v^2)
+         f(:, :, :, :, ivmu) = g(:, :, :, :, ivmu) + spec(is)%zt * adjust(:, :, :, :)
       end do
 
    end subroutine g_to_f0

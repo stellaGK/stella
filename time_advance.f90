@@ -1247,11 +1247,11 @@ contains
                   call transform_y2ky(rhs_y(:, :, iz, it, ivmu), rhs_ky_swap)
                   call swap_kxky_back(rhs_ky_swap, rhs_ky(:, :, iz, it, ivmu))
                end do
+               ! ensure that the kx=ky=0 mode is zeroed out
+               if (zonal_mode(1) .and. akx(1) < epsilon(0.)) then
+                  rhs_ky(1, 1, :, it, ivmu) = 0.0
+               end if
             end do
-            ! ensure that the kx=ky=0 mode is zeroed out
-            if (zonal_mode(1) .and. akx(1) < epsilon(0.)) then
-               rhs_ky(1, 1, iz, it, ivmu) = 0.0
-            end if
             deallocate (rhs_ky_swap)
          end if
 
