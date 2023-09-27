@@ -485,7 +485,7 @@ contains
       use physics_parameters, only: nine, tite
       use species, only: spec, nspec
       use species, only: adiabatic_electrons
-      use zgrid, only: nzgrid
+      use zgrid, only: nzgrid, nztot
       use stella_geometry, only: bmag
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -498,14 +498,16 @@ contains
       use kt_grids, only: nakx
       use fields_arrays, only: gamtot, gamtot3
       use run_parameters, only: driftkinetic_implicit
-      use mp, only: sum_allreduce
+      use mp, only: sum_allreduce, proc0
       use kt_grids, only: swap_kxky_back_ordered
-
+      use gyro_averages, only: find_max_required_kalpha_index
+      
       implicit none
 
       integer :: iky, ikx, iz, ia
       integer :: ivmu, iv, imu, is
-      real :: arg
+      integer :: ia_max_gam0_count
+      real :: arg, ia_max_gam0_reduction_factor, rtmp
 
       real, dimension(:, :, :), allocatable :: kperp2_swap
       real, dimension(:), allocatable :: aj0_alpha, gam0_alpha
@@ -534,6 +536,7 @@ contains
          allocate (gam0_ffs(naky_all, ikx_max, -nzgrid:nzgrid))
       end if
 
+      ia_max_gam0_count = 0
       do iz = -nzgrid, nzgrid
          !> in calculating the Fourier coefficients for Gamma_0, change loop orders
          !> so that inner loop is over ivmu super-index;
@@ -576,7 +579,9 @@ contains
                end do
                !> fourier transform Gamma_0(alpha) from alpha to k_alpha space
                call transform_alpha2kalpha(gam0_alpha, gam0_kalpha)
+!               call find_max_required_kalpha_index(gam0_kalpha, gam0_ffs(iky, ikx, iz)%max_idx, tol_in=1.e-8)
                gam0_ffs(iky, ikx, iz)%max_idx = naky
+               ia_max_gam0_count = ia_max_gam0_count + gam0_ffs(iky, ikx, iz)%max_idx
                !> allocate array to hold the Fourier coefficients
                if (.not. associated(gam0_ffs(iky, ikx, iz)%fourier)) &
                   allocate (gam0_ffs(iky, ikx, iz)%fourier(gam0_ffs(iky, ikx, iz)%max_idx))
@@ -589,7 +594,12 @@ contains
             end do
          end do
       end do
-
+      rtmp = real(naky) * real(naky_all) * real(ikx_max) * real(nztot)
+      ia_max_gam0_reduction_factor = real(ia_max_gam0_count) / rtmp
+      if (proc0) then
+         write (*, *) 'average number of k-alphas used to represent 1-Gamma0(kperp(alpha))=', ia_max_gam0_reduction_factor * naky, 'out of ', naky
+      end if
+      
       do iz = -nzgrid, nzgrid
          call swap_kxky_back_ordered(gam0_const(:, :, iz), gamtot_con(:, :, iz))
       end do
@@ -963,10 +973,10 @@ contains
       use kt_grids, only: nakx, ikx_max, naky, naky_all
       use kt_grids, only: swap_kxky_ordered, swap_kxky_back_ordered
       use volume_averages, only: flux_surface_average_ffs
-
       use fields_arrays, only: gamtot
-      use kt_grids, only: akx
+      use kt_grids, only: akx, zonal_mode
       use mp, only: proc0
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -986,6 +996,7 @@ contains
          if (present(implicit_solve)) then
             allocate (gamtot_t(naky, nakx, -nzgrid:nzgrid, ntubes))
             gamtot_t = spread(gamtot, 4, ntubes)
+            
             call get_g_integral_contribution(g, source, implicit_solve=.true.)
             where (gamtot_t < epsilon(0.0))
                phi = 0.0
@@ -1008,7 +1019,7 @@ contains
             !> NB: assuming here that ntubes = 1 for FFS sim
             if (debug) write (*, *) 'fields::advance_fields::get_phi_ffs'
             call get_phi_ffs(source, phi(:, :, :, 1))
-            if (akx(1) < epsilon(0.)) then
+            if (zonal_mode(1) .and. akx(1) < epsilon(0.)) then
                phi(1, 1, :, :) = 0.0
             end if
             !> if using a modified Boltzmann response for the electrons, then phi
@@ -1037,22 +1048,26 @@ contains
                phi_fsa_spread = spread(phi_fsa, 1, naky_all)
                call swap_kxky_back_ordered(phi_fsa_spread, phi_source)
 
+               ! ensure that kx=ky=0 mode is zeroed out
+               if (zonal_mode(1) .and. akx(1) < epsilon(0.0)) then
+                  phi_source(1, 1) = 0.0
+                  source(1, 1, :) = 0.0
+               end if
+               
                !> use the computed flux surface average of phi as an additional sosurce in quasineutrality
                !> to obtain the electrostatic potential; only affects the ky=0 component of QN
-               do ikx = 1, nakx
-                  if (akx(1) < epsilon(0.)) then
-                     source(1, 1, :) = source(1, 1, :)
-                  else
-                     do iz = -nzgrid, nzgrid
+               if (zonal_mode(1)) then
+                  do iz = -nzgrid, nzgrid
+                     do ikx = 1, nakx
                         source(1, ikx, iz) = source(1, ikx, iz) + phi_source(1, ikx) * tite / nine
                      end do
-                  end if
-               end do
+                  end do
+               end if
 
                if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::get_phi_ffs2s'
                call get_phi_ffs(source, phi(:, :, :, 1))
 
-               if (akx(1) < epsilon(0.)) then
+               if (zonal_mode(1) .and. akx(1) < epsilon(0.)) then
                   phi(1, 1, :, :) = 0.0
                end if
                deallocate (phi_swap, phi_fsa)

@@ -8,7 +8,7 @@ module gyro_averages
    public :: gyro_average_j1
    public :: j0_B_maxwell_ffs, j0_ffs
    public :: band_lu_solve_ffs, band_lu_factorisation_ffs
-
+   public :: find_max_required_kalpha_index
    public :: j1_ffs
    public :: j0_const, j0_B_const
    public :: j0max_const
@@ -377,7 +377,7 @@ contains
                   call find_max_required_kalpha_index(aj0_kalpha, j0_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
                   !> given the Fourier coefficients j0_B_maxwell_kalpha, calculate the minimum number of coefficients needed,
                   !> called j0_B_maxwell_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
-                  call find_max_required_kalpha_index(j0_B_maxwell_kalpha, j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
+                  call find_max_required_kalpha_index(j0_B_maxwell_kalpha, j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is, tol_in=1.0e-6)
                   call find_max_required_kalpha_index(aj1_kalpha, j1_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
                   !> keep track of the total number of coefficients that must be retained across different phase space points
                   ia_max_j0_count = ia_max_j0_count + j0_ffs(iky, ikx, iz, ivmu)%max_idx
@@ -554,7 +554,7 @@ contains
    !> and returns the minimum number of coeffients that must be retained (idx)
    !> to ensure that the relative error in the total spectral energy is
    !> below a specified tolerance (tol_floor)
-   subroutine find_max_required_kalpha_index(ft, idx, imu, iz, is)
+   subroutine find_max_required_kalpha_index(ft, idx, imu, iz, is, tol_in)
 
       use vpamu_grids, only: maxwell_mu
 
@@ -563,6 +563,7 @@ contains
       complex, dimension(:), intent(in) :: ft
       integer, intent(out) :: idx
       integer, intent(in), optional :: imu, iz, is
+      real, intent(in), optional :: tol_in
 
       real, parameter :: tol_floor = 1.0e-8
       integer :: i, n
@@ -574,7 +575,9 @@ contains
 
       ! use conservative estimate
       ! when deciding number of modes to retain
-      if (present(imu) .and. present(iz) .and. present(is)) then
+      if (present(tol_in)) then
+         tol = tol_in
+      elseif (present(imu) .and. present(iz) .and. present(is)) then
          !       tol = min(0.1,tol_floor/maxval(maxwell_mu(:,iz,imu,is)))
          tol = min(1.0e-6, tol_floor / maxval(maxwell_mu(:, iz, imu, is)))
       else

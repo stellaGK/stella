@@ -1127,6 +1127,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: ikx_max, ny, naky_all
       use kt_grids, only: swap_kxky_back
+      use kt_grids, only: zonal_mode, akx
       use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
       use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
       use sources, only: source_option_switch, source_option_krook
@@ -1247,6 +1248,10 @@ contains
                   call swap_kxky_back(rhs_ky_swap, rhs_ky(:, :, iz, it, ivmu))
                end do
             end do
+            ! ensure that the kx=ky=0 mode is zeroed out
+            if (zonal_mode(1) .and. akx(1) < epsilon(0.)) then
+               rhs_ky(1, 1, iz, it, ivmu) = 0.0
+            end if
             deallocate (rhs_ky_swap)
          end if
 
