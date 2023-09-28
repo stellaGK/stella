@@ -1625,7 +1625,7 @@ contains
 
       !> obtain g0=f/F0 in Fourier space
 
-      call g_to_f0(g, phi, g0, phi_max)
+      call g_to_f0(g, phi, g0)
 
       !> calculate the Fourier components of the gyro-average f at fixed particle position
       !> g0=f/F0 is passed in, along with j0_ffs = the Fourier coefficients of J0
