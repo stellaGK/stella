@@ -1604,6 +1604,11 @@ contains
       !> integrand will contain the integrand in the velocity moment integrals
       complex, dimension(:), allocatable :: integrand
 
+<<<<<<< HEAD
+=======
+      complex, dimension(:, :, :, :, :), allocatable :: phi_max
+
+>>>>>>> 52ac6fc2830fd15e4d731c1c364efe0b5abfe1f7
       integer :: iy, ikx, iz, it
       integer :: ivmu, iv, imu, is
       real :: fac1, fac2
@@ -1624,7 +1629,13 @@ contains
       !> f/F0 = g + (Ze/T)*(<phi>_R - phi)
 
       !> obtain g0=f/F0 in Fourier space
+<<<<<<< HEAD
       call g_to_f0(g, phi, g0)
+=======
+      allocate (phi_max(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); phi_max = 0.
+
+      call g_to_f0(g, phi, g0, phi_max)
+>>>>>>> 52ac6fc2830fd15e4d731c1c364efe0b5abfe1f7
 
       !> calculate the Fourier components of the gyro-average f at fixed particle position
       !> g0=f/F0 is passed in, along with j0_ffs = the Fourier coefficients of J0
@@ -1632,6 +1643,12 @@ contains
       call gyro_average(g0, g1, j0_ffs)
       call gyro_average(g0, g2, j1_ffs)
 
+<<<<<<< HEAD
+=======
+      g1 = g1 - phi_max
+      deallocate (phi_max)
+
+>>>>>>> 52ac6fc2830fd15e4d731c1c364efe0b5abfe1f7
       allocate (f_swap(naky_all, ikx_max))
       allocate (integrand(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
@@ -1727,8 +1744,13 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: f
       complex, dimension(:, :), allocatable :: phi_swap
+<<<<<<< HEAD
       complex, dimension(:, :, :, :), allocatable :: phiy
       complex, dimension(:, :, :, :), allocatable :: adjust
+=======
+      complex, dimension(:, :), allocatable :: phiy, fy
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: phiout
+>>>>>>> 52ac6fc2830fd15e4d731c1c364efe0b5abfe1f7
 
       integer :: ivmu, is, it
       integer :: iz, iv, imu, ia
@@ -1760,6 +1782,7 @@ contains
             do ia = 1, ny
                phiy(ia, :, iz, :) = phiy(ia, :, iz, :) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
             end do
+<<<<<<< HEAD
          end do
 
          ! transform back to (kx,ky) space
@@ -1767,6 +1790,16 @@ contains
          do iz = -nzgrid, nzgrid
             call transform_y2ky(phiy(:, :, iz, it), phi_swap)
             call swap_kxky_back(phi_swap, adjust(:, :, iz, it))
+=======
+
+            ! transform back to (kx,ky) space
+            ! so adjust = the Fourier transform in y of (<phi>-phi)*exp(-v^2)
+            call transform_y2ky(fy(:, :), phi_swap)
+            call swap_kxky_back(phi_swap, f(:, :, iz, it, ivmu))
+
+            call transform_y2ky(phiy(:, :), phi_swap)
+            call swap_kxky_back(phi_swap, phiout(:, :, iz, it, ivmu))
+>>>>>>> 52ac6fc2830fd15e4d731c1c364efe0b5abfe1f7
          end do
 
          !> calculate the normalized f = g + (Z/T)*(<phi>-phi)*exp(-v^2)
