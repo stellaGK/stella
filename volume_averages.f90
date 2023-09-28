@@ -209,7 +209,6 @@ contains
       real :: area
 
       ! the normalising factor int dy dz Jacobian
-
       area = 0.0
       fsa = 0.0
       ! get contribution from negative ky values
@@ -222,8 +221,8 @@ contains
          ! to ky values in jacobian_ky from kymax down to dky
          ikymod = naky - iky + 1
          ! for each ky, add the integral over zed
-         fsa = fsa + sum(delzed * no_fsa(iky, :) * jacobian_ky(ikymod, :) * mode_fac(ikymod))
-         area = area + sum(delzed * jacobian_ky(ikymod, :) * mode_fac(ikymod))
+         fsa = fsa + sum(delzed * no_fsa(iky, :) * jacobian_ky(ikymod, :))
+         area = area + sum(delzed * jacobian_ky(ikymod, :))
       end do
       ! get contribution from zero and positive ky values
       ! iky = naky correspond to ky=0 for no_fsa and iky=naky_all to ky=kymax
@@ -232,8 +231,8 @@ contains
          ! ikymod = 1 corresponds to ky=0 for jacobian_ky and ikymod=naky to ky=kymax
          ikymod = iky - naky + 1
          ! for each ky, add the integral over zed
-         fsa = fsa + sum(delzed * no_fsa(iky, :) * conjg(jacobian_ky(ikymod, :)) * mode_fac(ikymod))
-         area = area + sum(delzed * jacobian_ky(ikymod, :) * mode_fac(ikymod))
+         fsa = fsa + sum(delzed * no_fsa(iky, :) * conjg(jacobian_ky(ikymod, :)))
+         area = area + sum(delzed * jacobian_ky(ikymod, :))
       end do
       ! normalise by the flux surface area
       fsa = fsa / area
