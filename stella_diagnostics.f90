@@ -1604,8 +1604,8 @@ contains
       !> integrand will contain the integrand in the velocity moment integrals
       complex, dimension(:), allocatable :: integrand
 
-      complex, dimension (:,:,:,:,:), allocatable :: phi_max
-      
+      complex, dimension(:, :, :, :, :), allocatable :: phi_max
+
       integer :: iy, ikx, iz, it
       integer :: ivmu, iv, imu, is
       real :: fac1, fac2
@@ -1626,8 +1626,8 @@ contains
       !> f/F0 = g + (Ze/T)*(<phi>_R - phi)
 
       !> obtain g0=f/F0 in Fourier space
-      allocate(phi_max(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; phi_max = 0.
-      
+      allocate (phi_max(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); phi_max = 0.
+
       call g_to_f0(g, phi, g0, phi_max)
 
       !> calculate the Fourier components of the gyro-average f at fixed particle position
@@ -1637,8 +1637,8 @@ contains
       call gyro_average(g0, g2, j1_ffs)
 
       g1 = g1 - phi_max
-      deallocate(phi_max)
-      
+      deallocate (phi_max)
+
       allocate (f_swap(naky_all, ikx_max))
       allocate (integrand(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
@@ -1735,8 +1735,8 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: f
       complex, dimension(:, :), allocatable :: phi_swap
       complex, dimension(:, :), allocatable :: phiy, fy
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: phiout 
-      
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: phiout
+
       integer :: ivmu, is, it
       integer :: iz, iv, imu, ia
 
@@ -1768,7 +1768,7 @@ contains
                fy(ia, :) = fy(ia, :) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
                phiy(ia, :) = phiy(ia, :) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
             end do
-            
+
             ! transform back to (kx,ky) space
             ! so adjust = the Fourier transform in y of (<phi>-phi)*exp(-v^2)
             call transform_y2ky(fy(:, :), phi_swap)
