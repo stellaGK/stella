@@ -172,6 +172,7 @@ contains
 
       use zgrid, only: nzgrid
       use kt_grids, only: naky
+      use extended_zgrid, only: periodic
       use stella_geometry, only: jacob
       use stella_transforms, only: transform_alpha2kalpha
 
@@ -186,6 +187,9 @@ contains
       do iz = -nzgrid, nzgrid
          call transform_alpha2kalpha(jacob(:, iz), jacobian_ky(:, iz))
       end do
+      where (periodic)
+         jacobian_ky(:, nzgrid) = 0.0
+      end where
 
    end subroutine init_flux_surface_average_ffs
 
@@ -205,8 +209,7 @@ contains
       real :: area
 
       ! the normalising factor int dy dz Jacobian
-      area = sum(spread(delzed * dy, 1, nalpha) * jacob)
-
+      area = 0.0
       fsa = 0.0
       ! get contribution from negative ky values
       ! for no_fsa, iky=1 corresponds to -kymax, and iky=naky-1 to -dky
@@ -218,7 +221,8 @@ contains
          ! to ky values in jacobian_ky from kymax down to dky
          ikymod = naky - iky + 1
          ! for each ky, add the integral over zed
-         fsa = fsa + sum(delzed * no_fsa(iky, :) * jacobian_ky(ikymod, :))
+         fsa = fsa + sum(delzed * no_fsa(iky, :) * jacobian_ky(ikymod, :) * mode_fac(ikymod))
+         area = area + sum(delzed * jacobian_ky(ikymod, :) * mode_fac(ikymod))
       end do
       ! get contribution from zero and positive ky values
       ! iky = naky correspond to ky=0 for no_fsa and iky=naky_all to ky=kymax
@@ -227,7 +231,8 @@ contains
          ! ikymod = 1 corresponds to ky=0 for jacobian_ky and ikymod=naky to ky=kymax
          ikymod = iky - naky + 1
          ! for each ky, add the integral over zed
-         fsa = fsa + sum(delzed * no_fsa(iky, :) * conjg(jacobian_ky(ikymod, :)))
+         fsa = fsa + sum(delzed * no_fsa(iky, :) * conjg(jacobian_ky(ikymod, :)) * mode_fac(ikymod))
+         area = area + sum(delzed * jacobian_ky(ikymod, :) * mode_fac(ikymod))
       end do
       ! normalise by the flux surface area
       fsa = fsa / area
