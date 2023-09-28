@@ -648,15 +648,19 @@ contains
       !> 'homogeneous' part of phi, with a unit impulse assumed for the flux-surface-averaged phi
       !> only the ky=0 component contributes to the flux-surface-averaged potential
       adiabatic_response_vector = 0.0
+      ! assumes that ky is ordered from -ky_max to ky_max
       adiabatic_response_vector(naky, :, :) = tite / nine
       !> pass in the rhs and overwrite with the solution for phi_homogeneous
       call band_lu_solve_ffs(lu_gam0_ffs, adiabatic_response_vector)
 
       !> obtain the flux surface average of the response vector
-      do ikx = 1, ikx_max
-         call flux_surface_average_ffs(adiabatic_response_vector(:, ikx, :), adiabatic_response_factor(ikx))
-      end do
-      adiabatic_response_factor = 1.0 / (1.0 - adiabatic_response_factor)
+      if (ikx_max > 1) then
+         do ikx = 2, ikx_max
+            call flux_surface_average_ffs(adiabatic_response_vector(:, ikx, :), adiabatic_response_factor(ikx))
+            adiabatic_response_factor(ikx) = 1.0 / (1.0 - adiabatic_response_factor(ikx))
+         end do
+      end if
+      adiabatic_response_factor(1) = 0.0
 
       deallocate (adiabatic_response_vector)
 
@@ -1037,7 +1041,6 @@ contains
                allocate (phi_source(naky, nakx)); phi_source = 0.0
 
                if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::flux_surface_average_ffs'
-
                do ikx = 1, ikx_max
                   call flux_surface_average_ffs(phi_swap(:, ikx, :), phi_fsa(ikx))
                end do
