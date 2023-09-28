@@ -206,8 +206,8 @@ contains
 
       ! the normalising factor int dy dz Jacobian
       ! area = sum(spread(delzed * dy, 1, nalpha) * jacob)
-      area = sum( spread(delzed,1, naky) * jacobian_ky)
-      
+      area = sum(spread(delzed, 1, naky) * jacobian_ky)
+
       fsa = 0.0
       ! get contribution from negative ky values
       ! for no_fsa, iky=1 corresponds to -kymax, and iky=naky-1 to -dky
