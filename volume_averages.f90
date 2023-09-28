@@ -209,6 +209,7 @@ contains
       real :: area
 
       ! the normalising factor int dy dz Jacobian
+
       area = 0.0
       fsa = 0.0
       ! get contribution from negative ky values
