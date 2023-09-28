@@ -1751,7 +1751,7 @@ contains
          ! adjust = <phi> - phi
          adjust(:, :, :) = f(:, :, :, it, ivmu) - phi(:, :, :, it)
 
-          do iz = -nzgrid, nzgrid
+         do iz = -nzgrid, nzgrid
             call swap_kxky(adjust(:, :, iz), phi_swap)
             call transform_ky2y(phi_swap, phiy(:, :))
 
@@ -1764,7 +1764,7 @@ contains
             call transform_y2ky(phiy(:, :), phi_swap)
             call swap_kxky_back(phi_swap, adjust(:, :, iz))
          end do
-         
+
          is = is_idx(vmu_lo, ivmu)
          !> calculate the normalized f = g + (Z/T)*(<phi>-phi)*exp(-v^2)
          f(:, :, :, :, ivmu) = g(:, :, :, :, ivmu) + spec(is)%zt * spread(adjust(:, :, :), 4, ntubes)
