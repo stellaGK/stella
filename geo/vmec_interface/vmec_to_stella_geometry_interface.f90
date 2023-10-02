@@ -1582,8 +1582,8 @@ contains
       ! Use hat{s} * (2/B^3) = 2 * shat / (B * B * B)
       ! Use B x ∇B · ∇ψ = psi_LCFS / sqrt(g) * ( ∂B/∂ζ * Btheta - ∂B/∂θ * Bzeta )
       ! Use psi_LCFS = sgn(psi_t) * psi_{t,LCFS} = <sign_toroidal_flux> * <edge_toroidal_flux_over_2pi>
-      gbdrift0_psi = 2 * shat / (B * B * B) * sign_toroidal_flux * edge_toroidal_flux_over_2pi / sqrt_g &
-                     * (B_sub_theta_vmec * d_B_d_zeta - B_sub_zeta * d_B_d_theta_vmec)
+      gbdrift0_psi = sign_toroidal_flux * edge_toroidal_flux_over_2pi * (B_sub_theta_vmec * d_B_d_zeta  &
+                     - B_sub_zeta * d_B_d_theta_vmec) / sqrt_g * 2 * shat / (B * B * B) 
 
 !    gbdrift0 = (B_sub_theta_vmec * d_B_d_zeta - B_sub_zeta * d_B_d_theta_vmec) / sqrt_g * edge_toroidal_flux_over_2pi &
 !    gbdrift0 = abs(edge_toroidal_flux_over_2pi) &
