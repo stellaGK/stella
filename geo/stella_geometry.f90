@@ -336,8 +336,7 @@ contains
                ! zeta to work with
                stellarator_symmetric_BC = .true.
                ! twist_and_shift_geo_fac_full for the whole zgrid
-               twist_and_shift_geo_fac_full = 2 * (geo_surf%rhotor * geo_surf%rhotor) &
-                                              * (grad_alpha_grad_psi) / (grad_psi_grad_psi)
+               twist_and_shift_geo_fac_full = -2.*(geo_surf%rhotor * geo_surf%rhotor) * (grad_alpha_grad_psi) / (grad_psi_grad_psi)
                ! New min(zeta) to construct the new_number_of_periods_stella
                call desired_zmin(nalpha, nzgrid, zeta, twist_and_shift_geo_fac_full, dkx_over_dky, new_zeta_min)
                ! Final grid of zeta using new_zeta_min
@@ -374,7 +373,7 @@ contains
                !to be used for stellarator symmetric twist-and-shift BC
                !twist_and_shift_geo_fac = -nabla x. nabla y /|nabla x|^2
                write (*, *) 'Stellarator symmetric twist and shift BC selected'
-               twist_and_shift_geo_fac_full = 2 * (geo_surf%rhotor * geo_surf%rhotor) * (grad_alpha_grad_psi) / (grad_psi_grad_psi)
+               twist_and_shift_geo_fac_full = -2.*(geo_surf%rhotor * geo_surf%rhotor) * (grad_alpha_grad_psi) / (grad_psi_grad_psi)
                if (abs(grad_x_grad_y_end) <= grad_x_grad_y_zero) &
                   write (*, *) 'Using periodic boundary conditions as grad_x_grad_y_end < grad_x_grad_y_zero'
                write (*, *)
