@@ -29,6 +29,8 @@ module stella_io
 # ifdef NETCDF
    integer(kind_nf) :: ncid
    integer(kind_nf) :: char10_dim
+   integer(kind_nf) :: char200_dim
+   
 
    integer :: code_id
 
@@ -122,7 +124,7 @@ contains
 
       ! Dimensions for various string variables
       call neasyf_dim(file_id, "char10", dim_size=10, dimid=char10_dim)
-      call neasyf_dim(file_id, "char200", dim_size=200)
+      call neasyf_dim(file_id, "char200", dim_size=200, dimid=char200_dim)
       call neasyf_dim(file_id, "nlines", unlimited=.true., long_name="Input file line number")
 
       call neasyf_dim(file_id, "ri", dim_size=2, long_name="Complex components", units="(real, imaginary)")
@@ -193,7 +195,7 @@ contains
       integer, parameter :: line_length = 200
       character(line_length), dimension(:), allocatable ::  input_file_array
       integer :: n, unit, status, dim_id, previous_nlines
-
+ 
       ! Don't attempt to write zero-sized arrays
       if (num_input_lines <= 0) return
 
@@ -587,15 +589,22 @@ contains
       use neasyf, only: neasyf_write
       use stella_geometry, only: bmag, gradpar, gbdrift, gbdrift0, &
                                  cvdrift, cvdrift0, gds2, gds21, gds22, grho, jacob, &
-                                 drhodpsi, djacdrho, b_dot_grad_z
+                                 drhodpsi, djacdrho, b_dot_grad_z, zed_scalefac, alpha, &
+				 vmec_file, geo_file, gds23, gds24, btor, bmag_psi0, &
+				 aref, bref, exb_nonlin_fac, exb_nonlin_fac_p
       use stella_geometry, only: geo_surf
       use physics_parameters, only: beta
       use dist_fn_arrays, only: kperp2
       use kt_grids, only: naky, nakx, jtwist
+      
+      use netcdf!, only: nf90_inq_varid, nf90_def_var, nf90_enddef, nf90_put_var, NF90_NOERR, NF90_EBADDIM
 #endif
       implicit none
       !> NetCDF ID of the file to write to
       integer, intent(in) :: file_id
+
+      integer :: status,  code_id
+ 
 
 # ifdef NETCDF
       character(len=*), dimension(*), parameter :: flux_surface_dim = ["alpha", "zed  "]
@@ -614,9 +623,19 @@ contains
       call neasyf_write(file_id, "gds2", gds2, dim_names=flux_surface_dim)
       call neasyf_write(file_id, "gds21", gds21, dim_names=flux_surface_dim)
       call neasyf_write(file_id, "gds22", gds22, dim_names=flux_surface_dim)
+      call neasyf_write(file_id, "gds23", gds23, dim_names=flux_surface_dim)
+      call neasyf_write(file_id, "gds24", gds24, dim_names=flux_surface_dim)
+      call neasyf_write(file_id, "btor", btor, dim_names=flux_surface_dim)
+      call neasyf_write(file_id, "bmag_psi0", bmag_psi0, dim_names=flux_surface_dim)
+      
       call neasyf_write(file_id, "grho", grho, dim_names=flux_surface_dim)
       call neasyf_write(file_id, "jacob", jacob, dim_names=flux_surface_dim)
       call neasyf_write(file_id, "djacdrho", djacdrho, dim_names=flux_surface_dim)
+      call neasyf_write(file_id, "zed_scalefac", zed_scalefac, long_name="Factor to divide zed with to get zeta.")
+      !call neasyf_write(file_id, "vmec_file", vmec_file, long_name="VMEC filename used to calculate geometry input.", dim_names=["char200"])
+      !call neasyf_write(file_id, "geo_file", geo_file, long_name="Geometry file potentially used for overriding geometric coefficients.", dim_names=["char200"])
+
+      call neasyf_write(file_id, "alpha_grid", alpha, dim_names=[character(len=5)::"alpha"], long_name="Field line labels in simulation.")
       call neasyf_write(file_id, "beta", beta, &
                         long_name="Reference beta", units="2.mu0.nref.Tref/B_a**2")
       call neasyf_write(file_id, "q", geo_surf%qinp, &
@@ -629,6 +648,43 @@ contains
       call neasyf_write(file_id, "d2psidr2", geo_surf%d2psidr2)
       call neasyf_write(file_id, "jtwist", jtwist, &
                         long_name="2*pi*shat*dky/dkx")
+
+      call neasyf_write(file_id, "aref", aref, &
+                        long_name="Reference length")
+      call neasyf_write(file_id, "bref", bref, &
+                        long_name="Reference magnetic field")
+      call neasyf_write(file_id, "rhotor", geo_surf%rhotor, &
+                        long_name="Radial location in sqrt(normalized toroidal flux)")
+      call neasyf_write(file_id, "rhoc", geo_surf%rhoc, &
+                        long_name="Radial location in sqrt(normalized toroidal flux)")
+      call neasyf_write(file_id, "exb_nonlin", exb_nonlin_fac, &
+                        long_name="Radial location in sqrt(normalized toroidal flux)")
+      call neasyf_write(file_id, "exb_nonlin_p", exb_nonlin_fac_p, &
+                        long_name="Radial location in sqrt(normalized toroidal flux)")
+
+
+      ! Could not get writing string to work with neasy-f, so using the normal interface.
+      status = nf90_inq_varid(file_id, 'vmec_file', code_id)
+      if (status /= nf90_noerr) then
+	status = nf90_def_var(file_id, 'vmec_file', nf90_char, char200_dim, code_id)
+      	if (status /= nf90_noerr) call netcdf_error(status, file_id, code_id, att="vmec_file")
+        status = nf90_enddef(file_id)
+        if (status /= nf90_noerr) call netcdf_error(status, file_id, code_id, att="vmec_file")
+      end if
+      status = nf90_put_var(file_id, code_id, trim(vmec_file))
+      if(status /= nf90_noerr) call netcdf_error(status, file_id, code_id, att="vmec_file")
+
+      status = nf90_inq_varid(file_id, 'geo_file', code_id)
+      if (status /= nf90_noerr) then
+	status = nf90_def_var(file_id, 'geo_file', nf90_char, char200_dim, code_id)
+      	if (status /= nf90_noerr) call netcdf_error(status, file_id, code_id, att="geo_file")
+        status = nf90_enddef(file_id)
+        if (status /= nf90_noerr) call netcdf_error(status, file_id, code_id, att="geo_file")
+      end if
+      status = nf90_put_var(file_id, code_id, trim(geo_file))
+      if(status /= nf90_noerr) call netcdf_error(status, file_id, code_id, att="geo_file")
+
+
 # endif
    end subroutine nc_geo
 
