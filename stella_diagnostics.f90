@@ -17,6 +17,7 @@ module stella_diagnostics
    logical :: write_omega
    logical :: write_moments
    logical :: write_phi_vs_time
+   logical :: write_apar_vs_time
    logical :: write_gvmus
    logical :: write_gzvs
    logical :: write_kspectra
@@ -68,6 +69,7 @@ contains
       call broadcast(write_kspectra)
       call broadcast(write_moments)
       call broadcast(write_phi_vs_time)
+      call broadcast(write_apar_vs_time)
       call broadcast(write_gvmus)
       call broadcast(write_gzvs)
       call broadcast(write_radial_fluxes)
@@ -148,7 +150,8 @@ contains
       integer :: in_file
 
       namelist /stella_diagnostics_knobs/ nwrite, navg, nsave, &
-         save_for_restart, write_phi_vs_time, write_gvmus, write_gzvs, &
+         save_for_restart, write_phi_vs_time, write_apar_vs_time, &
+         write_gvmus, write_gzvs, &
          write_omega, write_kspectra, write_moments, write_radial_fluxes, &
          write_radial_moments, write_fluxes_kxkyz, flux_norm, nc_mult
 
@@ -159,6 +162,7 @@ contains
          save_for_restart = .false.
          write_omega = .false.
          write_phi_vs_time = .false.
+         write_apar_vs_time = .false.
          write_gvmus = .false.
          write_gzvs = .false.
          write_kspectra = .false.
@@ -275,7 +279,7 @@ contains
       use g_tofrom_h, only: g_to_h
       use stella_io, only: write_time_nc
       use stella_io, only: write_phi2_nc
-      use stella_io, only: write_phi_nc
+      use stella_io, only: write_phi_nc, write_apar_nc
       use stella_io, only: write_gvmus_nc
       use stella_io, only: write_gzvs_nc
       use stella_io, only: write_kspectra_nc
@@ -314,7 +318,7 @@ contains
 
       complex, dimension(:, :), allocatable :: omega_avg
       complex, dimension(:, :), allocatable :: phiavg, phioldavg
-      complex, dimension(:, :, :, :), allocatable :: phi_out
+      complex, dimension(:, :, :, :), allocatable :: phi_out, apar_out
 
       !> needed when simulating a full flux surface
       complex, dimension(:, :, :, :), allocatable :: dens_ffs, upar_ffs, pres_ffs
@@ -345,11 +349,12 @@ contains
       call advance_fields(gnew, phi, apar, dist='g')
 
       allocate (phi_out(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (apar_out(naky, nakx, -nzgrid:nzgrid, ntubes))
       phi_out = phi
       if (radial_variation) then
          phi_out = phi_out + phi_corr_QN
       end if
-
+      apar_out = apar
       allocate (part_flux(nspec))
       allocate (mom_flux(nspec))
       allocate (heat_flux(nspec))
@@ -429,6 +434,10 @@ contains
             if (write_phi_vs_time) then
                if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_phi_nc'
                call write_phi_nc(nout, phi_out)
+            end if
+            if (write_apar_vs_time) then
+               if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_apar_nc'
+               call write_apar_nc(nout, apar_out)
             end if
             if (write_kspectra) then
                if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_kspectra'
