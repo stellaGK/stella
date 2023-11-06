@@ -337,7 +337,8 @@ contains
       real, dimension(:, :), allocatable :: flxfac, norm
 
       integer :: ikx, iz, it, iky
-
+      real :: area, area1
+      
       ! calculation of omega requires computation of omega more
       ! frequently than every nwrite time steps
       if (write_omega .and. proc0) then
@@ -437,7 +438,7 @@ contains
             allocate (phi2_mod(naky, nakx, -nzgrid:nzgrid, ntubes))
 
             phi2 = 0.0
-            phi2_kxkyz = phi_out * conjg(phi_out)
+            phi2_kxkyz = real(phi_out * conjg(phi_out))
 
             do iz = -nzgrid, nzgrid
                call swap_kxky(phi2_kxkyz(:, :, iz, it), phi_swap(:, :))
@@ -447,8 +448,12 @@ contains
             flxfac = spread(delzed * dy, 1, ny) * jacob
             flxfac(:, -nzgrid) = 0.5 * flxfac(:, -nzgrid)
             flxfac(:, nzgrid) = 0.5 * flxfac(:, -nzgrid)
-            flxfac = nalpha * flxfac / (sum(flxfac) * grad_x)
 
+            area = sum(flxfac) / ny
+            area1 = sum(flxfac(1,:))
+
+            flxfac = flxfac * area / area1**2
+            
             call get_modified_fourier_coefficient(phi2_y, phi2_mod, flxfac)
 
             do iz = -nzgrid, nzgrid
@@ -459,6 +464,7 @@ contains
                end do
             end do
 
+            apar2 = 0.0
             deallocate (phi2_kxkyz, phi_swap, phi2_y, flxfac, phi2_mod)
          else
             call volume_average(phi_out, phi2)
@@ -1015,7 +1021,8 @@ contains
       real, dimension(:, :), allocatable :: flxfac
 
       complex, dimension(:, :, :), allocatable :: dphidy
-
+      real :: area , area1
+      
       !> assume a single flux annulus
       it = 1
 
@@ -1035,7 +1042,10 @@ contains
       flxfac(:, -nzgrid) = 0.5 * flxfac(:, -nzgrid)
       flxfac(:, nzgrid) = 0.5 * flxfac(:, -nzgrid)
 
-      flxfac = nalpha * flxfac / sum(flxfac * grad_x)
+      area = sum(flxfac) / ny
+      area1 = sum(flxfac(1,:))
+      flxfac = flxfac * area/ area1**2
+!!      flxfac = nalpha * flxfac / sum(flxfac * grad_x)
 
       call get_one_flux_ffs(dens, dphidy, flxfac, pflx, pflx_vs_kxkyz(:, :, :, it, :))
       call get_one_flux_ffs(pres, dphidy, flxfac, qflx, qflx_vs_kxkyz(:, :, :, it, :))
@@ -1630,7 +1640,8 @@ contains
       !> calculate the Fourier components of the gyro-average f at fixed particle position
       !> g0=f/F0 is passed in, along with j0_ffs = the Fourier coefficients of J0
       !> g1=<f/F0>_r is returned
-      call gyro_average(g0, g1, j0_ffs)
+      !      call gyro_average(g0, g1, j0_ffs)
+      g1 = g0
       call gyro_average(g0, g2, j1_ffs)
 
       allocate (f_swap(naky_all, ikx_max))
@@ -1731,13 +1742,14 @@ contains
       complex, dimension(:, :), allocatable :: phi_swap
       complex, dimension(:, :), allocatable :: phiy
       complex, dimension(:, :, :), allocatable :: adjust
-
+      complex, dimension (:,:,:,:), allocatable :: g_store
       integer :: ivmu, is, it
       integer :: iz, iv, imu, ia
 
       allocate (phi_swap(naky_all, ikx_max))
       allocate (phiy(ny, ikx_max))
       allocate (adjust(naky, nakx, -nzgrid:nzgrid))
+      allocate(g_store(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g_store = 0.0
 
       it = 1
 
@@ -1746,13 +1758,9 @@ contains
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
          !> compute <phi>_R and store in f
-         !> j0_ffs are the fourier coefficients of J0(k_perp(y))
-         call gyro_average(phi, f(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
-         ! adjust = <phi> - phi
-         adjust(:, :, :) = f(:, :, :, it, ivmu) - phi(:, :, :, it)
 
          do iz = -nzgrid, nzgrid
-            call swap_kxky(adjust(:, :, iz), phi_swap)
+            call swap_kxky(phi(:, :, iz,1), phi_swap)
             call transform_ky2y(phi_swap, phiy(:, :))
 
             !> phiy = maxwellian * (<phi> - phi)
@@ -1768,8 +1776,12 @@ contains
          is = is_idx(vmu_lo, ivmu)
          !> calculate the normalized f = g + (Z/T)*(<phi>-phi)*exp(-v^2)
          f(:, :, :, :, ivmu) = g(:, :, :, :, ivmu) + spec(is)%zt * spread(adjust(:, :, :), 4, ntubes)
+         call gyro_average(f(:, :, :, :, ivmu), g_store(:,:,:,:), j0_ffs(:, :, :, ivmu))
+         f(:, :, :, :, ivmu) = g_store - spec(is)%zt * spread(adjust(:, :, :), 4, ntubes)
       end do
 
+      deallocate(adjust, phi_swap, phiy)
+      deallocate(g_store)
    end subroutine g_to_f0
 
    !==============================================
