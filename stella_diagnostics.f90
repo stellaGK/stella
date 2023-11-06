@@ -338,7 +338,7 @@ contains
 
       integer :: ikx, iz, it, iky
       real :: area, area1
-      
+
       ! calculation of omega requires computation of omega more
       ! frequently than every nwrite time steps
       if (write_omega .and. proc0) then
@@ -450,10 +450,10 @@ contains
             flxfac(:, nzgrid) = 0.5 * flxfac(:, -nzgrid)
 
             area = sum(flxfac) / ny
-            area1 = sum(flxfac(1,:))
+            area1 = sum(flxfac(1, :))
 
             flxfac = flxfac * area / area1**2
-            
+
             call get_modified_fourier_coefficient(phi2_y, phi2_mod, flxfac)
 
             do iz = -nzgrid, nzgrid
@@ -1021,8 +1021,8 @@ contains
       real, dimension(:, :), allocatable :: flxfac
 
       complex, dimension(:, :, :), allocatable :: dphidy
-      real :: area , area1
-      
+      real :: area, area1
+
       !> assume a single flux annulus
       it = 1
 
@@ -1043,8 +1043,8 @@ contains
       flxfac(:, nzgrid) = 0.5 * flxfac(:, -nzgrid)
 
       area = sum(flxfac) / ny
-      area1 = sum(flxfac(1,:))
-      flxfac = flxfac * area/ area1**2
+      area1 = sum(flxfac(1, :))
+      flxfac = flxfac * area / area1**2
 !!      flxfac = nalpha * flxfac / sum(flxfac * grad_x)
 
       call get_one_flux_ffs(dens, dphidy, flxfac, pflx, pflx_vs_kxkyz(:, :, :, it, :))
@@ -1742,14 +1742,14 @@ contains
       complex, dimension(:, :), allocatable :: phi_swap
       complex, dimension(:, :), allocatable :: phiy
       complex, dimension(:, :, :), allocatable :: adjust
-      complex, dimension (:,:,:,:), allocatable :: g_store
+      complex, dimension(:, :, :, :), allocatable :: g_store
       integer :: ivmu, is, it
       integer :: iz, iv, imu, ia
 
       allocate (phi_swap(naky_all, ikx_max))
       allocate (phiy(ny, ikx_max))
       allocate (adjust(naky, nakx, -nzgrid:nzgrid))
-      allocate(g_store(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g_store = 0.0
+      allocate (g_store(naky, nakx, -nzgrid:nzgrid, ntubes)); g_store = 0.0
 
       it = 1
 
@@ -1760,7 +1760,7 @@ contains
          !> compute <phi>_R and store in f
 
          do iz = -nzgrid, nzgrid
-            call swap_kxky(phi(:, :, iz,1), phi_swap)
+            call swap_kxky(phi(:, :, iz, 1), phi_swap)
             call transform_ky2y(phi_swap, phiy(:, :))
 
             !> phiy = maxwellian * (<phi> - phi)
@@ -1776,12 +1776,12 @@ contains
          is = is_idx(vmu_lo, ivmu)
          !> calculate the normalized f = g + (Z/T)*(<phi>-phi)*exp(-v^2)
          f(:, :, :, :, ivmu) = g(:, :, :, :, ivmu) + spec(is)%zt * spread(adjust(:, :, :), 4, ntubes)
-         call gyro_average(f(:, :, :, :, ivmu), g_store(:,:,:,:), j0_ffs(:, :, :, ivmu))
+         call gyro_average(f(:, :, :, :, ivmu), g_store(:, :, :, :), j0_ffs(:, :, :, ivmu))
          f(:, :, :, :, ivmu) = g_store - spec(is)%zt * spread(adjust(:, :, :), 4, ntubes)
       end do
 
-      deallocate(adjust, phi_swap, phiy)
-      deallocate(g_store)
+      deallocate (adjust, phi_swap, phiy)
+      deallocate (g_store)
    end subroutine g_to_f0
 
    !==============================================
