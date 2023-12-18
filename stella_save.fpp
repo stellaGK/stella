@@ -705,7 +705,7 @@ contains
 !!----------------------------------------------------------------------!!
 !!----------------------------------------------------------------------!!
 
-   subroutine stella_restore_many(g, scale, istatus)
+   subroutine stella_restore_many(g, scale, scale_zonal, scale_kmin, scale_kmax, kfilter_zonal, istatus)
 # ifdef NETCDF
       use fields_arrays, only: shift_state, phi_proj
       use dist_fn_arrays, only: g_krook, g_proj
@@ -718,6 +718,8 @@ contains
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
       use stella_layouts, only: kxkyz_lo, vmu_lo
+      use stella_layouts, only: iky_idx, ikx_idx
+      use kt_grids, only: akx
       use file_utils, only: error_unit
       use sources, only: source_option_krook, source_option_projection
       use sources, only: source_option_switch, int_krook, int_proj
@@ -727,6 +729,8 @@ contains
 
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(out) :: g
       real, intent(in) :: scale
+      real, intent(in) :: scale_zonal, scale_kmin, scale_kmax
+      real, intent(in) :: kfilter_zonal
       integer, intent(out) :: istatus
 # ifdef NETCDF
 # ifdef NETCDF_PARALLEL
@@ -735,6 +739,7 @@ contains
       character(306) :: file_proc
       character(10) :: suffix
       integer :: i, n_elements, nvmulo_elements, ierr
+      integer :: ikxkyz, iky, ikx
       logical :: has_vmulo
 
       n_elements = kxkyz_lo%ulim_proc - kxkyz_lo%llim_proc + 1
@@ -1039,10 +1044,27 @@ contains
       if (istatus /= NF90_NOERR) call netcdf_error(istatus, ncid, shift_id)
 
       if (scale > 0.) then
-         g = g * scale
+!         g = g * scale
          if (source_option_switch == source_option_krook) g_krook = g_krook * scale
          if (source_option_switch == source_option_projection) g_proj = g_proj * scale
       end if
+
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iky = iky_idx(kxkyz_lo, ikxkyz)
+          ikx = ikx_idx(kxkyz_lo, ikxkyz)
+          if (iky == 1 .and. abs(akx(ikx)) > kfilter_zonal) then
+              g(:,:,ikxkyz) = 0
+          end if
+          if ( abs(akx(ikx)) > scale_kmin .and. abs(akx(ikx)) < scale_kmax) then
+              if (iky == 1) then
+                  g(:,:,ikxkyz) = g(:,:,ikxkyz) * scale_zonal
+              else
+                  g(:,:,ikxkyz) = g(:,:,ikxkyz) * scale
+              end if
+          end if
+      end do
+!         if (source_option_switch == source_option_krook) g_krook = g_krook * scale
+!         if (source_option_switch == source_option_projection) g_proj = g_proj * scale
 
       ! RN 2008/05/23: this was commented out. why? HJL 2013/05/15 Because it stops future writing to the file
 !    istatus = nf90_close (ncid)

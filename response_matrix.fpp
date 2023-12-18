@@ -824,10 +824,11 @@ contains
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
-      use kt_grids, only: zonal_mode, akx
+      use kt_grids, only: zonal_mode, akx, nakx
       use fields_arrays, only: gamtot, gamtot3
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
+      use run_parameters, only: zero_ZF, zero_ZF_kmin, zero_ZF_kmax
 
       implicit none
 

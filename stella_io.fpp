@@ -17,12 +17,14 @@ module stella_io
    public :: write_phi_nc
    public :: write_gvmus_nc
    public :: write_gzvs_nc
+   public :: write_g00xyz_nc
    public :: write_kspectra_nc
    public :: write_omega_nc
    public :: write_moments_nc
    public :: write_radial_fluxes_nc
    public :: write_radial_moments_nc
    public :: write_fluxes_kxkyz_nc
+   public :: write_pol_mom_flux_nc
    public :: get_nout
    public :: sync_nc
 
@@ -475,17 +477,53 @@ contains
 # endif
    end subroutine write_fluxes_kxkyz_nc
 
-   subroutine write_moments_nc(nout, density, upar, temperature, spitzer2)
+
+   subroutine write_pol_mom_flux_nc(nout, vflx_pol_phi_slab_kxz, vflx_pol_phi_shear_kxz, vflx_pol_Tperp_slab_kxz, vflx_pol_Tperp_shear_kxz)
+      implicit none
+      !> Current timestep
+      integer, intent(in) :: nout
+      complex, dimension(:, :, :, :), intent(in) :: vflx_pol_phi_slab_kxz,   vflx_pol_phi_shear_kxz
+      complex, dimension(:, :, :, :), intent(in) :: vflx_pol_Tperp_slab_kxz, vflx_pol_Tperp_shear_kxz
+
+# ifdef NETCDF
+      call netcdf_write_complex(ncid, "vflx_pol_phi_slab_kxz", vflx_pol_phi_slab_kxz, &
+                        dim_names=[character(len=7)::"ri", "kx", "zed", "tube", "species", "t"], &
+                        start=[1, 1, 1, 1, 1, nout], &
+                        long_name="Poloidal momentum flux due to delx_phi*dely_phi")
+      call netcdf_write_complex(ncid, "vflx_pol_phi_shear_kxz", vflx_pol_phi_shear_kxz, &
+                        dim_names=[character(len=7)::"ri", "kx", "zed", "tube", "species", "t"], &
+                        start=[1, 1, 1, 1, 1, nout], &
+                        long_name="Poloidal momentum flux due to dely_phi*dely_phi")
+      call netcdf_write_complex(ncid, "vflx_pol_Tperp_slab_kxz", vflx_pol_Tperp_slab_kxz, &
+                        dim_names=[character(len=7)::"ri", "kx", "zed", "tube", "species", "t"], &
+                        start=[1, 1, 1, 1, 1, nout], &
+                        long_name="Poloidal momentum flux due to delx_phi*dely_Tperp")
+      call netcdf_write_complex(ncid, "vflx_pol_Tperp_shear_kxz", vflx_pol_Tperp_shear_kxz, &
+                        dim_names=[character(len=7)::"ri", "kx", "zed", "tube", "species", "t"], &
+                        start=[1, 1, 1, 1, 1, nout], &
+                        long_name="Poloidal momentum flux due to dely_phi*dely_Tperp")
+# endif
+   end subroutine write_pol_mom_flux_nc
+
+   subroutine write_moments_nc(nout, density, upar, temperature, pressure, pressure_perp, qperp, qpar, chi, spitzer2, Wenergy_g)
+# ifdef NETCDF
+      use neasyf, only: neasyf_write
+# endif
       implicit none
 
       integer, intent(in) :: nout
-      complex, dimension(:, :, :, :, :), intent(in) :: density, upar, temperature, spitzer2
+      complex, dimension(:, :, :, :, :), intent(in) :: density, upar, temperature, pressure, pressure_perp
+      complex, dimension(:, :, :, :, :), intent(in) :: qperp, qpar, chi, spitzer2
+      real, dimension(:, :, :, :, :), intent(in) :: Wenergy_g
 
 # ifdef NETCDF
       character(*), dimension(*), parameter :: dims = [character(7)::"ri", "ky", "kx", "zed", "tube", "species", "t"]
+      character(*), dimension(*), parameter :: dims_real = [character(7):: "ky", "kx", "zed", "tube", "species", "t"]
       integer, dimension(7) :: start
+      integer, dimension(6) :: start_real
 
       start = [1, 1, 1, 1, 1, 1, nout]
+      start_real = [1, 1, 1, 1, 1, nout]
 
       call netcdf_write_complex(ncid, "density", density, &
                                 dim_names=dims, start=start, &
@@ -499,15 +537,58 @@ contains
                                 dim_names=dims, start=start, &
                                 long_name="Perturbed temperature")
 
+      call netcdf_write_complex(ncid, "pressure", pressure, &
+                                dim_names=dims, start=start, &
+                                long_name="Perturbed pressure")
+
+      call netcdf_write_complex(ncid, "pressure_perp", pressure_perp, &
+                                dim_names=dims, start=start, &
+                                long_name="Perturbed perpendicular pressure")
+
+      call netcdf_write_complex(ncid, "qperp", qperp, &
+                                dim_names=dims, start=start, &
+                                long_name="Parallel flux of perpendicular energy")
+
+      call netcdf_write_complex(ncid, "qpar", qpar, &
+                                dim_names=dims, start=start, &
+                                long_name="Parallel flux of parallel energy")
+
+      call netcdf_write_complex(ncid, "chi", chi, &
+                                dim_names=dims, start=start, &
+                                long_name="(vpa^2 + vperp^2/2)^2 moment")
+
       ! AVB: added: (move this to a separate diagnostic in the future)
       call netcdf_write_complex(ncid, "spitzer2", spitzer2, &
                                 dim_names=dims, start=start, &
                                 long_name="Integral required for second Spitzer coefficient")
+
+      call neasyf_write(ncid, "Wenergy_g", Wenergy_g, &
+                         dim_names=dims_real, start=start_real,  &
+                         long_name="Energy contribution from distribution function")
+
 # endif
    end subroutine write_moments_nc
 
+   !> Write guiding center distribution function for vpar=mu=0
+   subroutine write_g00xyz_nc(nout, g00xyz)
+      !use zgrid, only: nzgrid
+      implicit none
+      !> Current timestep
+      integer, intent(in) :: nout
+      !> Guiding centre distribution function
+      complex, dimension(:, :, :, :), intent(in) :: g00xyz
+
+# ifdef NETCDF
+      call netcdf_write_complex(ncid, "g00xyz", g00xyz, &
+                        dim_names=[character(len=7)::"ri", "kx", "ky", "zed", "species", "t"], &
+                        start=[1, 1, 1, 1, 1, nout], &
+                        long_name="Guiding center distribution function for vpar=mu=0")
+# endif
+
+   end subroutine write_g00xyz_nc
+
    !> Write guiding center distribution function averaged over real space
-   subroutine write_gvmus_nc(nout, gvmus)
+   subroutine write_gvmus_nc(nout, gvmus, only_zonal, remove_zonal)
 # ifdef NETCDF
       use neasyf, only: neasyf_write
 # endif
@@ -516,12 +597,25 @@ contains
       integer, intent(in) :: nout
       !> Guiding centre distribution function
       real, dimension(:, :, :), intent(in) :: gvmus
+      logical, intent(in) :: only_zonal, remove_zonal
 
 # ifdef NETCDF
-      call neasyf_write(ncid, "gvmus", gvmus, &
+      if (remove_zonal) then
+          call neasyf_write(ncid, "gvmus_NZ", gvmus, &
+                        dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
+                        start=[1, 1, 1, nout], &
+                        long_name="Guiding center distribution function averaged over real space (nonzonal)")
+      else if (only_zonal) then
+          call neasyf_write(ncid, "gvmus_Z", gvmus, &
+                        dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
+                        start=[1, 1, 1, nout], &
+                        long_name="Guiding center distribution function averaged over real space (zonal)")
+      else
+          call neasyf_write(ncid, "gvmus", gvmus, &
                         dim_names=[character(len=7)::"vpa", "mu", "species", "t"], &
                         start=[1, 1, 1, nout], &
                         long_name="Guiding center distribution function averaged over real space")
+      end if
 # endif
    end subroutine write_gvmus_nc
 

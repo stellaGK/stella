@@ -193,6 +193,7 @@ contains
       use physics_flags, only: full_flux_surface
       use gyro_averages, only: gyro_average
       use run_parameters, only: driftkinetic_implicit
+      use physics_flags, only: scale_parallel_streaming_zonal
 
       implicit none
 
@@ -237,6 +238,7 @@ contains
          !> unpleasantness to do with inexact cancellations in later velocity integration
          !> see appendix of the stella JCP 2019 for details
          call get_dgdz_centered(g0, ivmu, dgphi_dz)
+         dgphi_dz(1,:,:,:) = dgphi_dz(1,:,:,:)*scale_parallel_streaming_zonal
 
          !> if driftkinetic_implicit=T, then only want to treat vpar . grad (<phi>-phi)*F0 term explicitly;
          !> in this case, zero out dg/dz term (or d(g/F)/dz for full-flux-surface)
@@ -245,6 +247,7 @@ contains
          else
             !> compute dg/dz in k-space and store in g0
             call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
+            g0(1,:,:,:) = g0(1,:,:,:)*scale_parallel_streaming_zonal
             !> if simulating a full flux surface, need to obtain the contribution from parallel streaming
             !> in y-space, so FFT d(g/F)/dz from ky to y
             if (full_flux_surface) then
@@ -662,6 +665,7 @@ contains
       use run_parameters, only: time_upwind
       use run_parameters, only: driftkinetic_implicit
       use run_parameters, only: maxwellian_inside_zed_derivative
+      use physics_flags, only: scale_parallel_streaming_zonal
 
       implicit none
 
@@ -705,7 +709,7 @@ contains
       ! NB: could eliminate this calculation at the expense of memory
       ! as this was calculated previously
       call get_dzed(iv, gold, dgdz)
-
+      dgdz(1,:,:,:) = dgdz(1,:,:,:)*scale_parallel_streaming_zonal
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
       ! get <phi> = (1+alph)/2*<phi^{n+1}> + (1-alph)/2*<phi^{n}>
       field = tupwnd1 * phiold + tupwnd2 * phi
@@ -738,6 +742,7 @@ contains
          ! multiply by Maxwellian factor
          dphidz = dphidz * spread(spread(spread(gp, 1, naky), 2, nakx), 4, ntubes)
       end if
+      dphidz(1,:,:,:) = dphidz(1,:,:,:)*scale_parallel_streaming_zonal
 
       ! NB: could do this once at beginning of simulation to speed things up
       ! this is vpa*Z/T*exp(-vpa^2)

@@ -13,6 +13,9 @@ module run_parameters
    public :: drifts_implicit
    public :: driftkinetic_implicit
    public :: fully_explicit
+   public :: secondary, secondary_ikx_P, secondary_zed_P, secondary_freeze_P, secondary_restart_zonal_small
+   public :: tertiary, tertiary_hold_g, secondary_source, enforce_uniform_phiZ
+   public :: zero_ZF, zero_ZF_kmin, zero_ZF_kmax
    public :: ky_solve_radial, ky_solve_real
    public :: maxwellian_inside_zed_derivative
    public :: stream_matrix_inversion
@@ -35,6 +38,11 @@ module run_parameters
    logical :: mirror_semi_lagrange, mirror_linear_interp
    logical :: fields_kxkyz, mat_gen, mat_read
    logical :: ky_solve_real
+   logical :: secondary, secondary_freeze_P, secondary_restart_zonal_small
+   logical :: tertiary, tertiary_hold_g, secondary_source, enforce_uniform_phiZ, zero_ZF
+   real    :: zero_ZF_kmin, zero_ZF_kmax
+   integer :: secondary_ikx_P
+   real ::    secondary_zed_P
    real :: avail_cpu_time
    integer :: nstep, ky_solve_radial
    integer :: rng_seed
@@ -91,7 +99,11 @@ contains
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
          fields_kxkyz, mat_gen, mat_read, rng_seed, &
-         ky_solve_radial, ky_solve_real
+         ky_solve_radial, ky_solve_real, &
+         secondary, secondary_ikx_P, secondary_zed_P, secondary_freeze_P, &
+         tertiary, tertiary_hold_g, secondary_source, enforce_uniform_phiZ, &
+         zero_ZF, zero_ZF_kmin, zero_ZF_kmax, &
+         secondary_restart_zonal_small
 
       if (proc0) then
          fphi = 1.0
@@ -118,6 +130,18 @@ contains
          rng_seed = -1 !negative values use current time as seed
          ky_solve_radial = 0
          ky_solve_real = .false.
+         secondary = .false.
+         secondary_ikx_P = 1
+         secondary_zed_P = 0.0
+         secondary_freeze_P = .true.
+         secondary_source = .false.
+         secondary_restart_zonal_small = .true.
+         enforce_uniform_phiZ = .false.
+         zero_ZF = .false.
+         zero_ZF_kmin = -1
+         zero_ZF_kmax = 1e10
+         tertiary = .false.
+         tertiary_hold_g = .false.
          mat_gen = .false.
          mat_read = .false.
          tend = -1.0
@@ -175,6 +199,17 @@ contains
       call broadcast(rng_seed)
       call broadcast(ky_solve_radial)
       call broadcast(ky_solve_real)
+      call broadcast(secondary)
+      call broadcast(secondary_ikx_P)
+      call broadcast(secondary_zed_P)
+      call broadcast(secondary_freeze_P)
+      call broadcast(secondary_source)
+      call broadcast(enforce_uniform_phiZ)
+      call broadcast(zero_ZF)
+      call broadcast(zero_ZF_kmin)
+      call broadcast(zero_ZF_kmax)
+      call broadcast(tertiary)
+      call broadcast(tertiary_hold_g)
       call broadcast(mat_gen)
       call broadcast(mat_read)
 

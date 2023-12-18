@@ -22,11 +22,11 @@ module init_g
                          ginitopt_remap = 8
 
    real :: width0, phiinit, imfac, refac, zf_init
-   real :: den0, upar0, tpar0, tperp0
+   real :: den0, upar0, tpar0, tperp0, den0_phase
    real :: den1, upar1, tpar1, tperp1
    real :: den2, upar2, tpar2, tperp2
-   real :: tstart, scale, kxmax, kxmin
-   logical :: chop_side, left, scale_to_phiinit
+   real :: tstart, scale, kxmax, kxmin, scale_zonal, scale_kmin, scale_kmax, kfilter_zonal
+   logical :: chop_side, left, even, scale_to_phiinit
    character(300), public :: restart_file
    character(len=150) :: restart_dir
 
@@ -74,6 +74,7 @@ contains
       call broadcast(refac)
       call broadcast(imfac)
       call broadcast(den0)
+      call broadcast(den0_phase)
       call broadcast(upar0)
       call broadcast(tpar0)
       call broadcast(tperp0)
@@ -91,11 +92,16 @@ contains
       call broadcast(kxmin)
       call broadcast(tstart)
       call broadcast(chop_side)
+      call broadcast(even)
       call broadcast(left)
       call broadcast(restart_file)
       call broadcast(read_many)
       call broadcast(scale_to_phiinit)
       call broadcast(scale)
+      call broadcast(scale_zonal)
+      call broadcast(scale_kmin)
+      call broadcast(scale_kmax)
+      call broadcast(kfilter_zonal)
 
       call init_save(restart_file)
 
@@ -162,20 +168,26 @@ contains
       character(20) :: ginit_option
       namelist /init_g_knobs/ ginit_option, width0, phiinit, chop_side, &
          restart_file, restart_dir, read_many, left, scale, tstart, zf_init, &
-         den0, upar0, tpar0, tperp0, imfac, refac, &
+         den0, den0_phase, upar0, tpar0, tperp0, imfac, refac, even, &
          den1, upar1, tpar1, tperp1, &
          den2, upar2, tpar2, tperp2, &
-         kxmax, kxmin, scale_to_phiinit
+         kxmax, kxmin, scale_to_phiinit, &
+         scale_zonal, scale_kmin, scale_kmax, kfilter_zonal
 
       integer :: ierr, in_file
 
       tstart = 0.
-      scale = 1.0
+      scale = 1.0 ! Only applies to nonzonal modes, backwards-INcompatible with < 8th Nov 23
+      scale_zonal = 1.0
+      scale_kmin = -1
+      scale_kmax = 1e5
+      kfilter_zonal = 1e5
       ginit_option = "default"
       width0 = -3.5
       refac = 1.
       imfac = 0.
       den0 = 1.
+      den0_phase = 0.
       upar0 = 0.
       tpar0 = 0.
       tperp0 = 0.
@@ -194,6 +206,7 @@ contains
       chop_side = .false.
       scale_to_phiinit = .false.
       left = .true.
+      even = .true.
 
       restart_file = trim(run_name)//".nc"
       restart_dir = "./"
@@ -216,11 +229,12 @@ contains
       use kt_grids, only: theta0
       use kt_grids, only: reality, zonal_mode
       use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: vpa
+      use vpamu_grids, only: vpa, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use dist_fn_arrays, only: gvmu
       use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
       use ran, only: ranf
+      use run_parameters, only: secondary, secondary_ikx_P, secondary_zed_P, tertiary
 
       implicit none
 
@@ -232,7 +246,21 @@ contains
       right = .not. left
 
       do iz = -nzgrid, nzgrid
-         phi(:, :, iz) = exp(-((zed(iz) - theta0) / width0)**2) * cmplx(1.0, 1.0)
+         if (secondary) then
+             ! Initialise only first non-zero ky to large amplitude
+             ! (note zonal modes are rescaled below)
+             phi(:, :,               iz) =  1.d-16* exp(-((zed(iz) - secondary_zed_P) / width0)**2) * cmplx(1.0, 1.0)
+             if (secondary_ikx_P .eq. 1) then
+                 phi(2, 1, iz) = exp(-((zed(iz) - secondary_zed_P) / width0)**2) * cmplx(1.0, 1.0)
+                 !phi(2, 1, iz) = 0.5* ( exp(-((zed(iz) + secondary_zed_P) / width0)**2) + exp(-((zed(iz) - secondary_zed_P) / width0)**2) )* cmplx(1.0, 1.0)
+             else
+                 phi(2, secondary_ikx_P, iz) =        0.5 * exp(-((zed(iz) - secondary_zed_P) / width0)**2) * cmplx(1.0, 1.0)
+                 phi(2, nakx-secondary_ikx_P+2, iz) = 0.5 * exp(-((zed(iz) + secondary_zed_P) / width0)**2) * cmplx(1.0, 1.0)
+             end if
+             phi(1, :,               iz) =          exp(-((zed(iz) - secondary_zed_P) / width0)**2) * cmplx(1.0, 1.0)
+         else
+             phi(:, :, iz) = exp(-((zed(iz) - theta0) / width0)**2) * cmplx(1.0, 1.0)
+         end if
       end do
 
       ! this is a messy way of doing things
@@ -244,11 +272,40 @@ contains
       end if
 
       if (chop_side) then
-         if (left) phi(:, :, :-1) = 0.0
-         if (right) phi(:, :, 1:) = 0.0
+         if (secondary) then
+             if (left) phi(1, :, :-1) = 0.0
+             if (right) phi(1, :, 1:) = 0.0
+         else
+             if (left) phi(:, :, :-1) = 0.0
+             if (right) phi(:, :, 1:) = 0.0
+         end if
       end if
 
-      if (reality .and. zonal_mode(1)) phi(1, :, :) = 0.0
+      if (zonal_mode(1)) then
+         !Apply scaling factor
+         phi(1, :, :) = phi(1, :, :) * zf_init
+
+         if (tertiary) then
+            !Setup zonal profile
+            phi(1, 2, :) = phi(1, 2, :) * cmplx(1.0, -1.0)/2.0**(1.0/2.0)* cmplx(0.0, 1.0)
+!    phi(1, 3:, :) = 0.0
+
+            ! Triangular v_ZF, adjust k > kmin modes accordingly
+            do ikx = 3, nakx / 2 + 1
+               phi(1, ikx, :) = phi(1, 2, :)/(ikx-1) * (1 - (-1)**(ikx-1))/2.0
+            end do
+         end if
+
+         !Set ky=kx=0.0 mode to zero in amplitude
+         phi(1, 1, :) = 0.0
+      end if
+
+      !Apply reality condition (i.e. -kx mode is conjugate of +kx mode)
+      if (reality) then
+         do ikx = nakx / 2 + 2, nakx
+            phi(1, ikx, :) = conjg(phi(1, nakx - ikx + 2, :))
+         end do
+      end if
 
       ia = 1
 
@@ -259,7 +316,9 @@ contains
          iky = iky_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
          gvmu(:, :, ikxkyz) = phiinit * phi(iky, ikx, iz) / abs(spec(is)%z) &
-                              * (den0 + 2.0 * zi * spread(vpa, 2, nmu) * upar0) &
+                              * (den0*exp(zi*den0_phase) + 2.0 * zi * spread(vpa, 2, nmu) * upar0 &
+                                + (spread(vpa, 2, nmu)**2 - 0.5) * tpar0 &
+                                + (spread(vperp2(ia,iz,:), 1, nvpa) - 1.) * tperp0 ) &
                               * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is)
       end do
 
@@ -660,14 +719,30 @@ contains
       use stella_save, only: stella_restore
       use mp, only: proc0
       use file_utils, only: error_unit
-
+      use run_parameters, only: secondary, secondary_restart_zonal_small
+      use stella_layouts, only: kxkyz_lo
+      use stella_layouts, only: ikx_idx, iky_idx
       implicit none
 
       integer :: istatus, ierr
+      integer :: ikxkyz, ikx, iky
 
       ! should really check if profile_variation=T here but need
       ! to move profile_variation to module that is accessible here
-      call stella_restore(gvmu, scale, istatus)
+      call stella_restore(gvmu, scale, scale_zonal, scale_kmin, scale_kmax, kfilter_zonal, istatus)
+
+      ! If secondary restart, the kx != 0 modes are set to 0,
+      ! probably want to use scale!=0 s.t. kx=0 mode can drive secondary
+      if (secondary) then
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            if (ikx > 1.5 .and. (iky > 1.5 .or. secondary_restart_zonal_small)) then
+               !gvmu(:, :, ikxkyz) = 0.
+               gvmu(:, :, ikxkyz) = gvmu(:, :, ikxkyz) * 1e-14
+            end if
+         end do
+      end if
 
       if (istatus /= 0) then
          ierr = error_unit()

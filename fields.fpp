@@ -707,14 +707,18 @@ contains
       use dist_fn_arrays, only: gvmu
       use zgrid, only: nzgrid
       use dist_redistribute, only: kxkyz2vmu
-      use run_parameters, only: fields_kxkyz
+      use run_parameters, only: fields_kxkyz, enforce_uniform_phiZ 
+      use run_parameters, only: zero_ZF, zero_ZF_kmin, zero_ZF_kmax
       use physics_flags, only: full_flux_surface
+      use kt_grids, only: nakx, akx
 
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
       character(*), intent(in) :: dist
+      integer :: ia, ikx, iz
+      real :: phiZ_theta_avg
 
       if (fields_updated) return
 
@@ -740,12 +744,36 @@ contains
          end if
       end if
 
+      !> Option to artificially make phi^Z independent of theta
+      if (enforce_uniform_phiZ) then
+          if (debug) write (*, *) 'fields::advance_fields::enforce_uniform_phiZ'
+          ia = 1
+          do ikx = 1, nakx
+              phiZ_theta_avg = 0
+              do iz = -nzgrid, nzgrid
+                  phiZ_theta_avg = phiZ_theta_avg + phi(1, ikx, iz, ia)
+              end do
+              phi(1, ikx, :, ia) = phiZ_theta_avg/(2*nzgrid+1)
+          end do
+      end if
+
+      !> Option to artificially suppress phi^Z in range kmin<abs(kZ)>kmax
+      if (zero_ZF) then
+          if (debug) write (*, *) 'fields::advance_fields::zero_phiZ'
+          ia = 1
+          do ikx = 1, nakx
+              if ( abs(akx(ikx)) > zero_ZF_kmin .and. abs(akx(ikx)) < zero_ZF_kmax) then
+                  phi(1, ikx, :, ia) = 0
+              end if
+          end do
+      end if
+
       !> set a flag to indicate that the fields have been updated
       !> this helps avoid unnecessary field solves
       fields_updated = .true.
       !> time the communications + field solve
       if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
-
+ 
    end subroutine advance_fields
 
    subroutine get_fields(g, phi, apar, dist, skip_fsa)

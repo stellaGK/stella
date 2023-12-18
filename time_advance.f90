@@ -45,8 +45,8 @@ module time_advance
                          explicit_option_rk2 = 2, &
                          explicit_option_rk4 = 3
 
-   real :: xdriftknob, ydriftknob, wstarknob
-   logical :: flip_flop
+   real :: xdriftknob, xdriftknob_zonal_g, xdriftknob_zonal_phi, ydriftknob, wstarknob
+   logical :: flip_flop, xdrift_vpamu_indep
 
    complex, dimension(:, :, :), allocatable :: gamtot_drifts!, apar_denom_drifts
    complex, dimension(:, :), allocatable :: gamtot3_drifts
@@ -156,7 +156,8 @@ contains
                                                       text_option('rk4', explicit_option_rk4)/)
       character(10) :: explicit_option
 
-      namelist /time_advance_knobs/ xdriftknob, ydriftknob, wstarknob, explicit_option, flip_flop
+      namelist /time_advance_knobs/ xdriftknob, xdriftknob_zonal_g, xdriftknob_zonal_phi, ydriftknob, wstarknob, explicit_option, &
+                                    flip_flop, xdrift_vpamu_indep
 
       integer :: ierr, in_file
 
@@ -166,9 +167,12 @@ contains
       if (proc0) then
          explicit_option = 'default'
          xdriftknob = 1.0
+         xdriftknob_zonal_g = 1.0
+         xdriftknob_zonal_phi = 1.0
          ydriftknob = 1.0
          wstarknob = 1.0
          flip_flop = .false.
+         xdrift_vpamu_indep = .false.
 
          in_file = input_unit_exist("time_advance_knobs", taexist)
          if (taexist) read (unit=in_file, nml=time_advance_knobs)
@@ -181,6 +185,9 @@ contains
 
       call broadcast(explicit_option_switch)
       call broadcast(xdriftknob)
+      call broadcast(xdriftknob_zonal_g)
+      call broadcast(xdriftknob_zonal_phi)
+      call broadcast(xdrift_vpamu_indep)
       call broadcast(ydriftknob)
       call broadcast(wstarknob)
       call broadcast(flip_flop)
@@ -328,38 +335,52 @@ contains
          else
             fac = -xdriftknob * 0.5 * code_dt * spec(is)%tz_psi0 / geo_surf%shat
          end if
-         !> this is the curvature drift piece of wdriftx with missing factor of vpa
-         !> vpa factor is missing to avoid singularity when including
-         !> non-Maxwellian corrections to equilibrium
-         wcvdriftx = fac * cvdrift0 * vpa(iv)
-         !> this is the grad-B drift piece of wdriftx
-         wgbdriftx = fac * gbdrift0 * 0.5 * vperp2(:, :, imu)
-         wdriftx_g(:, :, ivmu) = wcvdriftx * vpa(iv) + wgbdriftx
-         !> if including neoclassical correction to equilibrium Maxwellian,
-         !> then add in v_E^{nc} . grad x dg/dx coefficient here
-         if (include_neoclassical_terms) then
-            wdriftx_g(:, :, ivmu) = wdriftx_g(:, :, ivmu) + code_dt * 0.5 * (gds24 * dphineo_dzed &
-                                                                             - dxdXcoord * dphineo_dalpha)
-         end if
-         wdriftx_phi(:, :, ivmu) = spec(is)%zt * (wgbdriftx + wcvdriftx * vpa(iv))
-         !> if full_flux_surface, evolved distribution function is normalised by a Maxwellian
-         !> otherwise, it is not; a Maxwellian weighting factor must thus be included
-         if (.not. full_flux_surface) then
-            wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
-         end if
-         !> if including neoclassical corrections to equilibrium,
-         !> add in (Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
-         !> and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
-         !> and v_E . grad alpha dF^{nc}/dalpha (dphi/dx part of v_E)
-         if (include_neoclassical_terms) then
-            !> NB: the below neoclassical correction needs to be divided by an equilibrium Maxwellian
-            !> if running in full flux surface mode
-            if (full_flux_surface) then
-               call mp_abort("include_neoclassical_terms=T not currently supported for full_flux_surface=T.  aborting")
-            end if
-            wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) &
-                                      - 0.5 * spec(is)%zt * dfneo_dvpa(:, :, ivmu) * wcvdriftx &
-                                      + code_dt * 0.5 * (dfneo_dalpha(:, :, ivmu) * dxdXcoord - dfneo_dzed(:, :, ivmu) * gds24)
+
+         if (xdrift_vpamu_indep) then 
+             !> make radial drift velocity-independent, for numerical experiments
+             !wcvdriftx(:,:) = fac * cvdrift0
+             !wgbdriftx(:,:) = fac * gbdrift0
+             wcvdriftx(:,:) = fac * cvdrift0 * 0.5
+             wgbdriftx(:,:) = fac * gbdrift0 * 0.5
+             wdriftx_g(:, :, ivmu) = wcvdriftx + wgbdriftx
+             wdriftx_phi(:, :, ivmu) = spec(is)%zt * (wgbdriftx + wcvdriftx)
+             if (.not. full_flux_surface) then
+                wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
+             end if
+          else
+             !> this is the curvature drift piece of wdriftx with missing factor of vpa
+             !> vpa factor is missing to avoid singularity when including
+             !> non-Maxwellian corrections to equilibrium
+             wcvdriftx = fac * cvdrift0 * vpa(iv)
+             !> this is the grad-B drift piece of wdriftx
+             wgbdriftx = fac * gbdrift0 * 0.5 * vperp2(:, :, imu)
+             wdriftx_g(:, :, ivmu) = wcvdriftx * vpa(iv) + wgbdriftx
+             !> if including neoclassical correction to equilibrium Maxwellian,
+             !> then add in v_E^{nc} . grad x dg/dx coefficient here
+             if (include_neoclassical_terms) then
+                wdriftx_g(:, :, ivmu) = wdriftx_g(:, :, ivmu) + code_dt * 0.5 * (gds24 * dphineo_dzed &
+                                                                                 - dxdXcoord * dphineo_dalpha)
+             end if
+             wdriftx_phi(:, :, ivmu) = spec(is)%zt * (wgbdriftx + wcvdriftx * vpa(iv))
+             !> if full_flux_surface, evolved distribution function is normalised by a Maxwellian
+             !> otherwise, it is not; a Maxwellian weighting factor must thus be included
+             if (.not. full_flux_surface) then
+                wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
+             end if
+             !> if including neoclassical corrections to equilibrium,
+             !> add in (Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
+             !> and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
+             !> and v_E . grad alpha dF^{nc}/dalpha (dphi/dx part of v_E)
+             if (include_neoclassical_terms) then
+                !> NB: the below neoclassical correction needs to be divided by an equilibrium Maxwellian
+                !> if running in full flux surface mode
+                if (full_flux_surface) then
+                   call mp_abort("include_neoclassical_terms=T not currently supported for full_flux_surface=T.  aborting")
+                end if
+                wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) &
+                                          - 0.5 * spec(is)%zt * dfneo_dvpa(:, :, ivmu) * wcvdriftx &
+                                          + code_dt * 0.5 * (dfneo_dalpha(:, :, ivmu) * dxdXcoord - dfneo_dzed(:, :, ivmu) * gds24)
+             end if
          end if
 
       end do
@@ -487,11 +508,13 @@ contains
 
                !there terms already contain a factor of code_dt as well as
                !a negative sign to account for RHS
-               wd_g = -zi * (spread(akx, 1, naky) * wdriftx_g(ia, iz, ivmu) &
-                             + spread(aky, 2, nakx) * wdrifty_g(ia, iz, ivmu))
+               wd_g      = -zi * spread(akx, 1, naky) * wdriftx_g(ia, iz, ivmu)
+               wd_g(1,:) = wd_g(1,:)*xdriftknob_zonal_g
+               wd_g      = wd_g - zi * spread(aky, 2, nakx) * wdrifty_g(ia, iz, ivmu)
 
-               wd_phi = -zi * (spread(akx, 1, naky) * wdriftx_phi(ia, iz, ivmu) &
-                               + spread(aky, 2, nakx) * wdrifty_phi(ia, iz, ivmu))
+               wd_phi      = -zi * spread(akx, 1, naky) * wdriftx_phi(ia, iz, ivmu)
+               wd_phi(1,:) = wd_phi(1,:)*xdriftknob_zonal_phi
+               wd_phi      = wd_phi -zi * spread(aky, 2, nakx) * wdrifty_phi(ia, iz, ivmu)
 
                wstr = -zi * spread(aky, 2, nakx) * wstar(ia, iz, ivmu)
 
@@ -948,16 +971,20 @@ contains
 
    subroutine advance_stella(istep)
 
-      use dist_fn_arrays, only: gold, gnew
+      use dist_fn_arrays, only: gold, gnew, g_secondary_source
       use fields_arrays, only: phi, apar
       use fields_arrays, only: phi_old
       use fields, only: advance_fields, fields_updated
       use run_parameters, only: fully_explicit
+      use run_parameters, only: secondary, secondary_ikx_P, secondary_source, secondary_freeze_P !, maxwellianize_gZ
+      use run_parameters, only: tertiary, tertiary_hold_g
       use multibox, only: RK_step
       use sources, only: include_qn_source, update_quasineutrality_source
       use sources, only: source_option_switch, source_option_projection
       use sources, only: source_option_krook
       use sources, only: update_tcorr_krook, project_out_zero
+      use kt_grids, only: nakx
+      use zgrid, only: nzgrid
 
       implicit none
 
@@ -973,6 +1000,7 @@ contains
 
       !> save value of phi
       !> for use in diagnostics (to obtain frequency)
+      !> or for secondary/tertiary calculation
       phi_old = phi
 
       !> reverse the order of operations every time step
@@ -1000,10 +1028,99 @@ contains
          fields_updated = .false.
       end if
 
-      gold = gnew
+      !> Replace gzonal with Maxwellian of equivalent density, upar, temp
+!      if (maxwellianize_gZ) then
+!          allocate (gin_tmp(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+!          gin_tmp = gin
+!          allocate (gvmu_local(nvpa, nmu))
+!
+!          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+!             iv = iv_idx(vmu_lo, ivmu)
+!             imu = imu_idx(vmu_lo, ivmu)
+!             is  = is_idx(vmu_lo, ivmu)
+!             do iz = -nzgrid, nzgrid
+!                 do ikx = 1, nakx
+!                     ! Density
+!                     gvmu_local = gin(1, ikx, iz, 1, ivmu)
+!                     call integrate_vmu( gvmu_local, iz, density)
+!!                     gvmu_local = maxwell_mu(1, iz, imu, is) * maxwell_vpa(iv, is)
+!!                     call integrate_vmu( gvmu_local, iz, density_norm)
+!
+!                     ! Parallel flow
+!                     if (remove_uparZ_NL) then
+!                         upar = 0
+!                     else
+!                         gvmu_local = gin(1, ikx, iz, 1, ivmu) * vpa(iv)
+!                         call integrate_vmu( gvmu_local, iz, upar)
+!                     endif
+!!                     gvmu_local = maxwell_mu(1, iz, imu, is) * maxwell_vpa(iv, is) * vpa(iv)**2
+!!                     call integrate_vmu( gvmu_local, iz, upar_norm)
+!
+!                     ! Temperature
+!                     if (remove_tempZ_NL) then
+!                         temp_par  = 0
+!                         temp_perp = 0
+!                     else
+!                         gvmu_local = gin(1, ikx, iz, 1, ivmu) * (vpa(iv)**2-0.5)/1.5
+!                         call integrate_vmu( gvmu_local, iz, temp_par)
+!                         gvmu_local = gin(1, ikx, iz, 1, ivmu) * (vperp2(1,iz,imu)-1)/1.5
+!                         call integrate_vmu( gvmu_local, iz, temp_perp)
+!                     endif
+!!                     gvmu_local = maxwell_mu(1, iz, imu, is) * maxwell_vpa(iv, is) &
+!!                        * (vpa(iv)**2+vperp2(1,iz,imu)) * (vpa(iv)**2+vperp2(1,iz,imu)-1.5)
+!!                     call integrate_vmu( gvmu_local, iz, temperature_norm)
+!
+!                     gin_tmp(1, ikx, iz, 1, ivmu) = (density + 2*vpa(iv)*upar + (vpa(iv)**2-0.5)*temp_par + & 
+!                        (vperp2(1,iz,imu)-1)*temp_perp) * maxwell_mu(1, iz, imu, is) * maxwell_vpa(iv, is)
+!
+!                 end do
+!             end do
+!          end do
+!          !if (proc0) write (*, *) gin_tmp(1,5,1,1,vmu_lo%llim_proc+1)
+!          call advance_ExB_nonlinearity(gin_tmp, rhs, restart_time_step)
+!
+!          deallocate(gin_tmp)
+!          deallocate(gvmu_local)
+
 
       !> Ensure fields are updated so that omega calculation is correct.
       call advance_fields(gnew, phi, apar, dist='gbar')
+
+      if (secondary_source) then
+      !> Calculation of secondary instability where, in the first step,
+      !> the source is determined to keep phi and g constant,
+      !> and this source is then added every subsequent timestep
+          if (istep .eq. 1) then
+              g_secondary_source = gold-gnew
+          end if
+          gnew = gnew + g_secondary_source
+
+      else if (secondary .and. secondary_freeze_P) then
+      !> For calculation of secondary instability, the primary is generally frozen,
+
+      !> i.e. kx=0 is kept constant
+          gnew(:, 1, :, :, :) = gold(:, 1, :, :, :)
+          phi( :, 1, :, :) = phi_old(:, 1, :, :)
+
+!      !> i.e. kx=+-kx_P, ky=2 mode is kept constant
+!          gnew(2, secondary_ikx_P, :, :, :) = gold(2, secondary_ikx_P, :, :, :)
+!          phi( 2, secondary_ikx_P, :, :) = phi_old(2, secondary_ikx_P, :, :)
+!          if (secondary_ikx_P .ne. 1) then
+!              gnew(2, nakx-secondary_ikx_P+2, :, :, :) = gold(2, nakx-secondary_ikx_P+2, :, :, :)
+!              phi( 2, nakx-secondary_ikx_P+2, :, :) = phi_old(2, nakx-secondary_ikx_P+2, :, :)
+!          end if
+      end if
+
+      !> For calculation of tertiary instability, the zonal modes are frozen,
+      !> i.e. iky=1 mode is kept constant
+      if (tertiary) then
+          phi(1, :, :, :) = phi_old(1, :, :, :)
+          if (tertiary_hold_g) then
+              gnew(1, :, :, :, :) = gold(1, :, :, :, :)
+          end if
+      end if
+
+      gold = gnew
 
       !update the delay parameters for the Krook operator
       if (source_option_switch == source_option_krook) call update_tcorr_krook(gnew)
@@ -1247,10 +1364,12 @@ contains
       use physics_flags, only: include_parallel_streaming
       use physics_flags, only: include_mirror
       use physics_flags, only: nonlinear
+      use physics_flags, only: quasilinear_ExB, remove_phiZ_NL, remove_gZ_NL, remove_gZ_even_NL, remove_gZ_odd_NL, scale_NL_term
+      use physics_flags, only: maxwellianize_gZ_NL, remove_uparZ_NL, remove_tempZ_NL
       use physics_flags, only: full_flux_surface, radial_variation
       use physics_parameters, only: g_exb
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: ikx_max, ny, naky_all
+      use kt_grids, only: ikx_max, ny, naky_all, naky, nakx
       use kt_grids, only: swap_kxky_back
       use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
       use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
@@ -1262,17 +1381,42 @@ contains
       use flow_shear, only: advance_parallel_flow_shear
       use multibox, only: include_multibox_krook, add_multibox_krook
 
+      use constants, only: zi
+      use species, only: spec, nspec
+      use zgrid, only: nztot, nzgrid, ntubes
+      use stella_diagnostics, only: get_moments
+      use vpamu_grids, only: vpa, vperp2, integrate_vmu
+      use stella_layouts, only: iv_idx, imu_idx, is_idx, idx
+      use vpamu_grids, only: maxwell_mu, maxwell_vpa, maxwell_fac
+      use vpamu_grids, only: nvpa, nmu
+      use mp, only: proc0
+      use dist_redistribute, only: kxkyz2vmu
+      use redistribute, only: scatter
+      use dist_fn_arrays, only: gvmu
+      use stella_layouts, only: kxkyz_lo
+      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use mp, only: sum_reduce
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out), target :: rhs_ky
+      complex, dimension(:, :, :, :, :), allocatable, target :: rhs_ky_NZNZ
+      complex, dimension(:, :, :, :, :), allocatable :: gin_tmp
+      complex, dimension(:, :, :), allocatable :: phiZ_tmp, aparZ_tmp
       logical, intent(out) :: restart_time_step
+
+      real, dimension(:, :), allocatable :: dens_x, upar_x, temp_x
+!      complex, dimension(:, :, :, :, :), allocatable :: density, upar, temperature, pressure, pressure_perp, qperp, qpar, spitzer2
 
       complex, dimension(:, :, :, :, :), allocatable, target :: rhs_y
       complex, dimension(:, :, :, :, :), pointer :: rhs
-      complex, dimension(:, :), allocatable :: rhs_ky_swap
+      complex, dimension(:, :), allocatable :: rhs_ky_swap, gvmu_local
 
-      integer :: iz, it, ivmu
+      integer :: iz, it, ivmu, iv, imu, is, iv_neg, ivmu_neg_vpa
+      integer :: ikxkyz, iky, ikx
+      complex :: density, upar, temp_perp, temp_par
+      complex :: density_norm, upar_norm, temperature_norm
 
       rhs_ky = 0.
 
@@ -1307,7 +1451,232 @@ contains
       !> do this first, as the CFL condition may require a change in time step
       !> and thus recomputation of mirror, wdrift, wstar, and parstream
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_ExB_nonlinearity'
-      if (nonlinear) call advance_ExB_nonlinearity(gin, rhs, restart_time_step)
+!      if (nonlinear) call advance_ExB_nonlinearity(gin, rhs, restart_time_step)
+      if (nonlinear) then
+          if (quasilinear_ExB) then
+              ! Temporary arrays
+              allocate (gin_tmp(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+              allocate (rhs_ky_NZNZ(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+              allocate (phiZ_tmp(ikx_max, -nzgrid:nzgrid, ntubes))
+              allocate (aparZ_tmp(ikx_max, -nzgrid:nzgrid, ntubes))
+              phiZ_tmp = phi(1,:,:,:)
+              aparZ_tmp = apar(1,:,:,:)
+              gin_tmp = gin
+
+              ! First, call usual ExB advance routine
+              call advance_ExB_nonlinearity(gin, rhs, restart_time_step)
+
+              ! Second, call ExB advance routine with zonal components of phi, apar and g set to 0, and save to rhs_ky_NZNZ
+              phi(1,:,:,:) = 0
+              apar(1,:,:,:) = 0
+              gin_tmp(1,:,:,:,:) = 0
+              rhs_ky_NZNZ = 0
+              rhs=>rhs_ky_NZNZ
+              call advance_ExB_nonlinearity(gin_tmp, rhs, restart_time_step)
+
+              ! Substract NZ-NZ ExB advance from nonzonal values of rhs
+              rhs_ky(2:,:,:,:,:) = rhs_ky(2:,:,:,:,:) - rhs_ky_NZNZ(2:,:,:,:,:)
+              rhs => rhs_ky
+
+              ! Finally, refill phi and apar zonal values, and deallocate arrays
+              phi(1,:,:,:)  = phiZ_tmp
+              apar(1,:,:,:) = aparZ_tmp
+              deallocate(gin_tmp)
+              deallocate(rhs_ky_NZNZ)
+              deallocate(phiZ_tmp)
+              deallocate(aparZ_tmp)
+
+          else if (remove_phiZ_NL) then
+              allocate (phiZ_tmp(ikx_max, -nzgrid:nzgrid, ntubes))
+              phiZ_tmp = phi(1,:,:,:)
+              phi(1,:,:,:) = 0
+              call advance_ExB_nonlinearity(gin, rhs, restart_time_step)
+              phi(1,:,:,:)  = phiZ_tmp
+              deallocate(phiZ_tmp)
+
+          else if (remove_gZ_NL) then
+              allocate (gin_tmp(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+              gin_tmp = gin
+              gin_tmp(1,:,:,:,:) = 0
+              call advance_ExB_nonlinearity(gin_tmp, rhs, restart_time_step)
+              deallocate(gin_tmp)
+
+
+          else if (remove_gZ_even_NL) then
+!              ! zonal comp of gin_tmp is g_odd (in vpa)
+!              allocate (gin_tmp(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+!              ! Need to have all vpa data on given proc, so convert to kxkyz array and then convert back
+!              allocate (gvmu(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_proc))
+!              call scatter(kxkyz2vmu, gin, gvmu)
+!              gin_tmp = gin
+!              !gin_tmp(1,:,:,:,:) = 0
+!
+!              do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+!                 iky = iky_idx(kxkyz_lo, ikxkyz)
+!                 ikx = ikx_idx(kxkyz_lo, ikxkyz)
+!                 iz = iz_idx(kxkyz_lo, ikxkyz)
+!                 it = it_idx(kxkyz_lo, ikxkyz)
+!                 is = is_idx(kxkyz_lo, ikxkyz)
+!                 if (iky == 1) then
+!                     do iv = 1, nvpa
+!                          if (vpa(iv) .geq. 0) then
+!                              iv_neg = 1 + nvpa-iv
+!                              gvmu(iv    , :, ikxkyz) = gvmu(iv    , :, ikxkyz)
+!                              gvmu(iv_neg, :, ikxkyz) = gvmu(iv_neg, :, ikxkyz)
+!                          end if
+!
+!!                         do imu = 1, nmu
+!!                             ivmu         = idx(vmu_lo, iv    , imu, is)
+!!                             iv_neg = 1 + nvpa-iv
+!!                             !ivmu_neg_vpa = idx(vmu_lo, iv_neg, imu, is)
+!!                             ! Fill in gin_tmp array with g_odd
+!!                             gin_tmp(iky,ikx,iz,it,ivmu) = gvmu(iv,imu,ikxkyz)
+!!                             !gin_tmp(iky,ikx,iz,it,ivmu) = 0.5*(gvmu(iv,imu,ikxkyz)-gvmu(iv_neg,imu,ikxkyz))
+!!                         end do
+!                     end do
+!                 end if
+!              end do
+!!              call barrier
+!              if (proc0) write (*, *) gin_tmp(1,5,1,1,vmu_lo%llim_proc+1)
+!              if (proc0) write (*, *) gin(1,5,1,1,vmu_lo%llim_proc+1)
+
+!              do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+!                  iv = iv_idx(vmu_lo, ivmu)
+!                  imu = imu_idx(vmu_lo, ivmu)
+!                  is = is_idx(vmu_lo, ivmu)
+!                  iv_neg = 1 + nvpa-iv
+!                  ivmu_neg_vpa = idx_vmu(vmu_lo, iv_neg, imu, is)
+!                  gin_tmp(1,:,:,:,ivmu        ) = gin_tmp(1,:,:,:,ivmu)         + 0.5*gin(1,:,:,:,ivmu)
+!                  gin_tmp(1,:,:,:,ivmu_neg_vpa) = gin_tmp(1,:,:,:,ivmu_neg_vpa) - 0.5*gin(1,:,:,:,ivmu)
+!              end do
+
+              call advance_ExB_nonlinearity(gin_tmp, rhs, restart_time_step)
+              deallocate(gin_tmp)
+
+          else if (maxwellianize_gZ_NL) then
+
+              allocate (gin_tmp(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+              gin_tmp = gin
+              allocate (gvmu_local(nvpa, nmu))
+              gvmu_local(:,:) = 0
+
+              !if (proc0) write (*, *) gin_tmp(1,5,1,1,vmu_lo%llim_proc+1)
+              do iz = -nzgrid, nzgrid
+                  do ikx = 1, nakx
+                      ! Density
+                      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                          iv  = iv_idx(vmu_lo, ivmu)
+                          imu = imu_idx(vmu_lo, ivmu)
+                          gvmu_local(iv, imu) = gin(1, ikx, iz, 1, ivmu)
+                      end do
+                      call integrate_vmu( gvmu_local, iz, density)
+!                      if (proc0) write (*, *) density
+
+                      ! Parallel flow
+                      if (remove_uparZ_NL) then
+                          upar = 0
+                      else
+                          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                              iv  = iv_idx(vmu_lo, ivmu)
+                              imu = imu_idx(vmu_lo, ivmu)
+                              gvmu_local(iv, imu) = gin(1, ikx, iz, 1, ivmu) * vpa(iv)
+                          end do
+                          call integrate_vmu( gvmu_local, iz, upar)
+                      endif
+
+                      ! Temperature
+                      if (remove_tempZ_NL) then
+                          temp_par  = 0
+                          temp_perp = 0
+                      else
+                          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                              iv = iv_idx(vmu_lo, ivmu)
+                              imu = imu_idx(vmu_lo, ivmu)
+                              gvmu_local(iv, imu) = gin(1, ikx, iz, 1, ivmu) * (vpa(iv)**2-0.5)/1.5
+                          end do
+                          call integrate_vmu( gvmu_local, iz, temp_par)
+                          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                              iv = iv_idx(vmu_lo, ivmu)
+                              imu = imu_idx(vmu_lo, ivmu)
+                              gvmu_local(iv, imu) = gin(1, ikx, iz, 1, ivmu) * (vperp2(1,iz,imu)-1)/1.5
+                          end do
+                          call integrate_vmu( gvmu_local, iz, temp_perp)
+                      endif
+
+                      call sum_reduce(density,   0)
+                      call sum_reduce(upar,      0)
+                      call sum_reduce(temp_par,  0)
+                      call sum_reduce(temp_perp, 0)
+
+                      ! Fill Maxwellian
+                      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                          iv  = iv_idx( vmu_lo, ivmu)
+                          imu = imu_idx(vmu_lo, ivmu)
+                          is  = is_idx( vmu_lo, ivmu)
+                          gin_tmp(1, ikx, iz, 1, ivmu) = (density + 2*vpa(iv)*upar + & 
+                            (vpa(iv)**2-0.5)*temp_par + (vperp2(1,iz,imu)-1)*temp_perp) * maxwell_mu(1, iz, imu, is) * maxwell_vpa(iv, is)
+                            !(vpa(iv)**2 + vperp2(1,iz,imu)-1.5)*temperature) * maxwell_mu(1, iz, imu, is) * maxwell_vpa(iv, is)
+
+                     end do
+                 end do
+              end do
+              !if (proc0) write (*, *) gin_tmp(1,5,1,1,vmu_lo%llim_proc+1)
+              call advance_ExB_nonlinearity(gin_tmp, rhs, restart_time_step)
+
+              deallocate(gin_tmp)
+              deallocate(gvmu_local)
+
+!
+!              ! Evaluate moments
+!              allocate (density(      naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
+!              allocate (upar(         naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
+!              allocate (temperature(  naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
+!              allocate (pressure(     naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
+!              allocate (pressure_perp(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
+!              allocate (qperp(        naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
+!              allocate (qpar(         naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
+!              allocate (spitzer2(     naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
+!              call get_moments(gin, density, upar, temperature, pressure, pressure_perp, qperp, qpar, dens_x, upar_x, temp_x, spitzer2)
+!
+!              !do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+!              !   imu = imu_idx(vmu_lo, ivmu)
+!              !   is  = is_idx(vmu_lo, ivmu)
+!              !   g1(1, :, :, :, ivmu) = gin(1, :, :, :, ivmu)! * spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes)
+!              !end do
+!
+!
+!              ! Fill zonal component of g with equivalent Maxwellian
+!              allocate (gin_tmp(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+!              gin_tmp = gin
+!              if (proc0) write (*, *) spec(1)%dens_psi0
+!              if (proc0) write (*, *) gin_tmp(1,5,1,1,vmu_lo%llim_proc+1)
+!              do iz = -nzgrid, nzgrid
+!                  !do ikx = 1, nakx
+!                  !    call integrate_vmu( gin(1,ikx,iz,1,:), iz, maxwell_fac, density(ikx))
+!                  !end do
+!                  
+!                  do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+!                      iv = iv_idx(vmu_lo, ivmu)
+!                      imu = imu_idx(vmu_lo, ivmu)
+!                      is = is_idx(vmu_lo, ivmu)
+!                      gin_tmp(1,:,iz,1,ivmu) = (density(1,:,iz,1,is)/spec(is)%dens_psi0) &
+!                                        * maxwell_mu(1, iz, imu, is) * maxwell_vpa(iv, is)
+!                      !gin_tmp(1,:,iz,:,ivmu) = (density(1,:,iz,:,is) + 2.0 * zi * vpa(iv) * upar(1,:,iz,:,is) &
+!                      !                    + (vpa(iv)**2 + vperp2(1,iz,imu)**2 - 1.5) * temperature(1,:,iz,:,is)) &
+!                      !                  * maxwell_mu(1, iz, imu, is) * maxwell_vpa(iv, is) * maxwell_fac(is)
+!                  end do
+!              end do
+!              call advance_ExB_nonlinearity(gin_tmp, rhs, restart_time_step)
+!              if (proc0) write (*, *) gin_tmp(1,5,1,1,vmu_lo%llim_proc+1)
+!
+!              deallocate (density, upar, temperature, pressure, pressure_perp, qperp, qpar, spitzer2)
+!              deallocate (gin_tmp)
+          else
+              call advance_ExB_nonlinearity(gin, rhs, restart_time_step)
+          end if
+      end if
+
+      rhs = rhs*scale_NL_term
 
       !> include contribution from the parallel nonlinearity (aka turbulent acceleration)
       if (include_parallel_nonlinearity .and. .not. restart_time_step) &
@@ -1572,8 +1941,10 @@ contains
       if (debug) write (*, *) 'time_advance::solve_gke::get_dgdx'
       !> calculate dg/dx in (ky,kx) space
       call get_dgdx(g, g0k)
+      g0k(1,:,:,:,:) = g0k(1,:,:,:,:) * xdriftknob_zonal_g
       !> calculate dphi/dx in (ky,kx) space
       call get_dgdx(phi, dphidx)
+      dphidx(1,:,:,:) = dphidx(1,:,:,:) * xdriftknob_zonal_phi
 
       if (full_flux_surface) then
          !> assume a single flux surface is simulated
@@ -1643,6 +2014,7 @@ contains
       use kt_grids, only: akx, aky, rho_clamped
       use physics_flags, only: full_flux_surface, radial_variation
       use physics_flags, only: prp_shear_enabled, hammett_flow_shear
+      use physics_flags, only: suppress_zonal_interaction, suppress_zonal_kmin, suppress_zonal_kmax
       use kt_grids, only: x, swap_kxky, swap_kxky_back
       use constants, only: pi, zi
       use file_utils, only: runtype_option_switch, runtype_multibox
@@ -1658,7 +2030,7 @@ contains
       real, dimension(:, :), allocatable :: g0xy, g1xy, bracket
 
       real :: zero
-      integer :: ivmu, iz, it, imu, is
+      integer :: ivmu, iz, it, imu, is, ikx
       logical :: yfirst
 
       ! alpha-component of magnetic drift (requires ky -> y)
@@ -1705,6 +2077,14 @@ contains
                call forward_transform(g0k, g0xy)
                !> compute i*kx*<chi>
                call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), g0k)
+               !> zero out the zonal contribution to d<chi>/dx if requested
+               if (suppress_zonal_interaction) then
+                   do ikx = 1, nakx
+                       if ( abs(akx(ikx)) >= suppress_zonal_kmin .and. abs(akx(ikx)) <= suppress_zonal_kmax) then
+                           g0k(1, ikx) = 0.0
+                       end if
+                   end do
+               end if
                !> if running with equilibrium flow shear, make adjustment to
                !> the term multiplying dg/dy
                if (prp_shear_enabled .and. hammett_flow_shear) then
@@ -1736,6 +2116,14 @@ contains
 
                !> compute dg/dx in k-space (= i*kx*g)
                call get_dgdx(g(:, :, iz, it, ivmu), g0k)
+               !> zero out the zonal contribution to dg/dx if requested
+               if (suppress_zonal_interaction) then
+                   do ikx = 1, nakx
+                       if ( abs(akx(ikx)) >= suppress_zonal_kmin .and. abs(akx(ikx)) <= suppress_zonal_kmax) then
+                           g0k(1, ikx) = 0.0
+                       end if
+                   end do
+               end if
                !> if running with equilibrium flow shear, correct dg/dx term
                if (prp_shear_enabled .and. hammett_flow_shear) then
                   call get_dgdy(g(:, :, iz, it, ivmu), g0a)
@@ -2739,11 +3127,13 @@ contains
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
-               wd_g = -zi * (spread(akx, 1, naky) * wdriftx_g(ia, iz, ivmu) &
-                             + spread(aky, 2, nakx) * wdrifty_g(ia, iz, ivmu))
+               wd_g = -zi * spread(akx, 1, naky) * wdriftx_g(ia, iz, ivmu)
+               wd_g(1,:) = wd_g(1,:)*xdriftknob_zonal_g
+               wd_g      = wd_g - zi * spread(aky, 2, nakx) * wdrifty_g(ia, iz, ivmu)
 
-               wd_phi = -zi * (spread(akx, 1, naky) * wdriftx_phi(ia, iz, ivmu) &
-                               + spread(aky, 2, nakx) * wdrifty_phi(ia, iz, ivmu))
+               wd_phi = -zi * spread(akx, 1, naky) * wdriftx_phi(ia, iz, ivmu)
+               wd_phi(1,:) = wd_phi(1,:)*xdriftknob_zonal_phi
+               wd_phi      = wd_phi - zi * spread(aky, 2, nakx) * wdrifty_phi(ia, iz, ivmu)
 
                wstr = -zi * spread(aky, 2, nakx) * wstar(ia, iz, ivmu)
 
@@ -2790,11 +3180,13 @@ contains
             do iz = -nzgrid, nzgrid
                !these terms already contain a factor of code_dt and a
                ! negative sign
-               wd_g = -zi * (spread(akx, 1, naky) * wdriftx_g(ia, iz, ivmu) &
-                             + spread(aky, 2, nakx) * wdrifty_g(ia, iz, ivmu))
+               wd_g = -zi * spread(akx, 1, naky) * wdriftx_g(ia, iz, ivmu)
+               wd_g(1,:) = wd_g(1,:)*xdriftknob_zonal_g
+               wd_g      = wd_g - zi * spread(aky, 2, nakx) * wdrifty_g(ia, iz, ivmu)
 
-               wd_phi = -zi * (spread(akx, 1, naky) * wdriftx_phi(ia, iz, ivmu) &
-                               + spread(aky, 2, nakx) * wdrifty_phi(ia, iz, ivmu))
+               wd_phi = -zi * spread(akx, 1, naky) * wdriftx_phi(ia, iz, ivmu)
+               wd_phi(1,:) = wd_phi(1,:)*xdriftknob_zonal_phi
+               wd_phi      = wd_phi - zi * spread(aky, 2, nakx) * wdrifty_phi(ia, iz, ivmu)
 
                wstr = -zi * spread(aky, 2, nakx) * wstar(ia, iz, ivmu)
 
