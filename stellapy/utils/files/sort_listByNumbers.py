@@ -22,7 +22,7 @@ def sort_listByNumbers(input_list, source=None):
         if isinstance(input_list[0], PosixPath): 
             if "_ky" in str(input_list[0]):
                 input_list = [str(i) for i in input_list]
-                numbers = [ i.replace(".in","").split("_ky")[-1] for i in input_list]  
+                numbers = [ i.replace(".in","").split("_ky")[-1] if "_kx" not in i else i.replace(".in","").split("_ky")[-1].split("_kx")[0] for i in input_list]  
                 numbers = [ "".join([s for s in value if s.isdigit() or s=="." or s=="-"]) for value in numbers ]   
                 numbers = [ number[:-1] if number.endswith(".") else number for number in numbers ]  
                 numbers = [float(n) for n in numbers] 

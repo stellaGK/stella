@@ -5,7 +5,7 @@ program stella
    use job_manage, only: checktime
    use run_parameters, only: nstep, tend, fphi, fapar
    use run_parameters, only: avail_cpu_time
-   use stella_time, only: update_time, code_time, code_dt
+   use stella_time, only: update_time, code_time, code_dt, checkcodedt
    use dist_redistribute, only: kxkyz2vmu
    use time_advance, only: advance_stella
    use stella_diagnostics, only: diagnose_stella, nsave
@@ -43,9 +43,11 @@ program stella
       if (mod(istep, 10) == 0) then
          call checkstop(stop_stella)
          call checktime(avail_cpu_time, stop_stella)
+         call checkcodedt(stop_stella)
       end if
       if (stop_stella) exit
-      call advance_stella(istep)
+      call advance_stella(istep, stop_stella)
+      if (stop_stella) exit
       call update_time
       if (nsave > 0 .and. mod(istep, nsave) == 0) then
          call scatter(kxkyz2vmu, gnew, gvmu)
@@ -81,7 +83,7 @@ contains
       use physics_parameters, only: init_physics_parameters
       use physics_flags, only: init_physics_flags, radial_variation
       use run_parameters, only: init_run_parameters
-      use run_parameters, only: avail_cpu_time, nstep, rng_seed, delt, delt_max
+      use run_parameters, only: avail_cpu_time, nstep, rng_seed, delt, delt_max, delt_min
       use run_parameters, only: stream_implicit, driftkinetic_implicit
       use run_parameters, only: delt_option_switch, delt_option_auto
       use run_parameters, only: mat_gen, mat_read
@@ -295,7 +297,7 @@ contains
       end if
       !> set the internal time step size variable code_dt from the input variable delt
       if (debug) write (6, *) "stella::init_stella::init_delt"
-      call init_delt(delt, delt_max)
+      call init_delt(delt, delt_max, delt_min)
       !> allocate and calculate arrays needed for the mirror, parallel streaming,
       !> magnetic drifts, gradient drive, etc. terms during time advance
       if (debug) write (6, *) 'stella::init_stella::init_time_advance'
@@ -487,8 +489,8 @@ contains
          write (*, '(A)') "                OVERVIEW OF THE SIMULATION"
          write (*, '(A)') "############################################################"
          write (*, '(A)') " "
-         write (*, '(A)') "    istep       time           dt         |phi|^2"
-         write (*, '(A)') "------------------------------------------------------------"
+         write (*, '(A)') "    istep       time          dt          CFL ExB       |phi|^2"
+         write (*, '(A)') "-----------------------------------------------------------------"
       end if
 
    end subroutine print_header
@@ -559,7 +561,8 @@ contains
       use kt_grids, only: finish_kt_grids
       use volume_averages, only: finish_volume_averages
       use multibox, only: finish_multibox, time_multibox
-      use run_parameters, only: stream_implicit, driftkinetic_implicit
+      use run_parameters, only: stream_implicit, driftkinetic_implicit, drifts_implicit
+      use implicit_solve, only: time_implicit_advance
 
       implicit none
 
@@ -620,14 +623,18 @@ contains
          write (*, fmt=101) '(phi_adia_elec):', time_field_solve(1, 5) / 60., 'min'
          write (*, fmt=101) 'mirror:', time_mirror(1, 1) / 60., 'min'
          write (*, fmt=101) '(redistribute):', time_mirror(1, 2) / 60., 'min'
-         write (*, fmt=101) 'stream:', time_parallel_streaming(1, 1) / 60., 'min'
          if (stream_implicit) then
+            write (*, fmt=101) 'implicit advance: ', time_implicit_advance(1, 1) / 60., 'min'
             write (*, fmt=101) '(bidiagonal)', time_parallel_streaming(1, 2) / 60., 'min'
             write (*, fmt=101) '(backwards sub)', time_parallel_streaming(1, 3) / 60., 'min'
+         else
+            write (*, fmt=101) 'stream:', time_parallel_streaming(1, 1) / 60., 'min'
          end if
-         write (*, fmt=101) 'dgdx:', time_gke(1, 5) / 60., 'min'
-         write (*, fmt=101) 'dgdy:', time_gke(1, 4) / 60., 'min'
-         write (*, fmt=101) 'wstar:', time_gke(1, 6) / 60., 'min'
+         if (.not. drifts_implicit) then
+            write (*, fmt=101) 'dgdx:', time_gke(1, 5) / 60., 'min'
+            write (*, fmt=101) 'dgdy:', time_gke(1, 4) / 60., 'min'
+            write (*, fmt=101) 'wstar:', time_gke(1, 6) / 60., 'min'
+         end if
          write (*, fmt=101) 'collisions:', time_collisions(1, 1) / 60., 'min'
          write (*, fmt=101) '(redistribute):', time_collisions(1, 2) / 60., 'min'
          write (*, fmt=101) 'sources:', time_sources(1, 1) / 60., 'min'
@@ -638,8 +645,8 @@ contains
          write (*, fmt=101) 'radial var:', time_gke(1, 10) / 60., 'min'
          write (*, fmt=101) 'multibox comm:', time_multibox(1, 1) / 60., 'min'
          write (*, fmt=101) 'multibox krook:', time_multibox(1, 2) / 60., 'min'
-         write (*, fmt=101) 'total implicit: ', time_gke(1, 9) / 60., 'min'
-         write (*, fmt=101) 'total explicit: ', time_gke(1, 8) / 60., 'min'
+         write (*, fmt=101) 'total implicit:', time_gke(1, 9) / 60., 'min'
+         write (*, fmt=101) 'total explicit:', time_gke(1, 8) / 60., 'min'
          write (*, fmt=101) 'total:', time_total(1) / 60., 'min'
          write (*, *)
       end if

@@ -4,22 +4,23 @@ module parallel_streaming
 
    public :: init_parallel_streaming, finish_parallel_streaming
    public :: advance_parallel_streaming_explicit
-   public :: advance_parallel_streaming_implicit
    public :: add_parallel_streaming_radial_variation
    public :: stream_tridiagonal_solve
-   public :: sweep_zed_zonal
    public :: parallel_streaming_initialized
-   public :: stream, stream_c, stream_sign
+   public :: stream, stream_c, stream_sign, gradpar_c
    public :: time_parallel_streaming
    public :: stream_rad_var1
    public :: stream_rad_var2
+   public :: center_zed, get_dzed
+   public :: get_zed_derivative_extended_domain
 
    private
 
    interface center_zed
       module procedure center_zed_segment_real
+      module procedure center_zed_segment_complex
       module procedure center_zed_extended
-   end interface
+   end interface center_zed
 
    logical :: parallel_streaming_initialized = .false.
 
@@ -121,15 +122,15 @@ contains
          stream_c = stream(1, :, :, :)
          do is = 1, nspec
             do iv = 1, nvpa
-               call center_zed(iv, stream_c(:, iv, is))
+               call center_zed(iv, stream_c(:, iv, is), -nzgrid)
             end do
          end do
          if (.not. allocated(gradpar_c)) allocate (gradpar_c(-nzgrid:nzgrid, -1:1))
          gradpar_c = spread(gradpar, 2, 3)
          !> get gradpar centred in zed for negative vpa (affects upwinding)
-         call center_zed(1, gradpar_c(:, -stream_sign(1)))
+         call center_zed(1, gradpar_c(:, -stream_sign(1)), -nzgrid)
          !> get gradpar centred in zed for positive vpa (affects upwinding)
-         call center_zed(nvpa, gradpar_c(:, -stream_sign(nvpa)))
+         call center_zed(nvpa, gradpar_c(:, -stream_sign(nvpa)), -nzgrid)
          stream = spread(stream_c, 1, nalpha)
       end if
 
@@ -140,7 +141,7 @@ contains
       use zgrid, only: delzed
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: nsegments
-      use run_parameters, only: zed_upwind, time_upwind
+      use run_parameters, only: zed_upwind_plus, zed_upwind_minus, time_upwind_plus
 
       implicit none
 
@@ -161,20 +162,20 @@ contains
       ! corresponds to sign of stream term positive on RHS of equation
       ! i.e., negative parallel advection speed
       ! NB: assumes equal spacing in zed
-      stream_tri_b1(:, 1) = 0.5 * (1.0 + zed_upwind)
+      stream_tri_b1(:, 1) = zed_upwind_plus
       stream_tri_b2(:, 1) = -1.0 / delzed(0)
-      stream_tri_c1(:nz * nseg_max, 1) = 0.5 * (1.0 - zed_upwind)
+      stream_tri_c1(:nz * nseg_max, 1) = zed_upwind_minus
       stream_tri_c2(:nz * nseg_max, 1) = 1.0 / delzed(0)
       ! corresponds to sign of stream term negative on RHS of equation
       ! NB: assumes equal spacing in zed
-      stream_tri_b1(:, -1) = 0.5 * (1.0 + zed_upwind)
+      stream_tri_b1(:, -1) = zed_upwind_plus
       stream_tri_b2(:, -1) = 1.0 / delzed(0)
-      stream_tri_a1(2:, -1) = 0.5 * (1.0 - zed_upwind)
+      stream_tri_a1(2:, -1) = zed_upwind_minus
       stream_tri_a2(2:, -1) = -1.0 / delzed(0)
 
-      stream_tri_a2 = 0.5 * (1.0 + time_upwind) * stream_tri_a2
-      stream_tri_b2 = 0.5 * (1.0 + time_upwind) * stream_tri_b2
-      stream_tri_c2 = 0.5 * (1.0 + time_upwind) * stream_tri_c2
+      stream_tri_a2 = time_upwind_plus * stream_tri_a2
+      stream_tri_b2 = time_upwind_plus * stream_tri_b2
+      stream_tri_c2 = time_upwind_plus * stream_tri_c2
 
    end subroutine init_invert_stream_operator
 
@@ -192,8 +193,8 @@ contains
       use species, only: spec
       use physics_flags, only: full_flux_surface
       use gyro_averages, only: gyro_average
-      use run_parameters, only: driftkinetic_implicit
       use physics_flags, only: scale_parallel_streaming_zonal
+      use run_parameters, only: driftkinetic_implicit, maxwellian_normalization
 
       implicit none
 
@@ -296,8 +297,12 @@ contains
             call add_stream_term_ffs(g0y, ivmu, gout(:, :, :, :, ivmu))
          else
             ia = 1
-            g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
-                             * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
+            if (maxwellian_normalization) then
+               g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt
+            else
+               g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
+                                * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
+            end if
 
             ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
             call add_stream_term(g0, ivmu, gout(:, :, :, :, ivmu))
@@ -566,272 +571,6 @@ contains
 
    end subroutine add_stream_term_ffs
 
-   subroutine advance_parallel_streaming_implicit(g, phi, apar)
-
-      use mp, only: proc0
-      use job_manage, only: time_message
-      use stella_layouts, only: vmu_lo
-      use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: naky, nakx
-      use dist_fn_arrays, only: g1
-      use run_parameters, only: stream_matrix_inversion
-      use fields, only: advance_fields, fields_updated
-
-      implicit none
-
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
-
-      integer :: ivmu
-      complex, dimension(:, :, :, :), allocatable :: phi1
-
-      if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
-
-      allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes))
-
-      ! save the incoming g and phi, as they will be needed later
-      g1 = g
-      phi1 = phi
-
-      if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         ! obtain RHS of inhomogeneous GK eqn;
-         ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g_{inh}^{n+1}
-         ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
-         ! + (1-alph)/2*dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d<phi^{n}>/dz
-         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi1, phi, g(:, :, :, :, ivmu), eqn='inhomogeneous')
-
-         if (stream_matrix_inversion) then
-            ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
-            ! g = RHS is input and overwritten by g = g_{inh}^{n+1}
-            call invert_parstream(ivmu, g(:, :, :, :, ivmu))
-         else
-            call sweep_g_zed(ivmu, g(:, :, :, :, ivmu))
-         end if
-      end do
-      if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
-
-      fields_updated = .false.
-
-      ! we now have g_{inh}^{n+1}
-      ! calculate associated fields (phi_{inh}^{n+1})
-      call advance_fields(g, phi, apar, dist='gbar')
-
-      ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
-      ! phi = phi_{inh}^{n+1} is input and overwritten by phi = phi^{n+1}
-      if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
-      call invert_parstream_response(phi)
-      if (proc0) call time_message(.false., time_parallel_streaming(:, 3), ' (back substitution)')
-
-      if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         ! now have phi^{n+1} for non-negative kx
-         ! obtain RHS of GK eqn;
-         ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1}
-         ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
-         ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>)
-         call get_gke_rhs(ivmu, g1(:, :, :, :, ivmu), phi1, phi, g(:, :, :, :, ivmu), eqn='full')
-
-         if (stream_matrix_inversion) then
-            ! solve (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1} = RHS
-            ! g = RHS is input and overwritten by g = g^{n+1}
-            call invert_parstream(ivmu, g(:, :, :, :, ivmu))
-         else
-            call sweep_g_zed(ivmu, g(:, :, :, :, ivmu))
-         end if
-      end do
-      if (proc0) call time_message(.false., time_parallel_streaming(:, 2), ' (bidiagonal solve)')
-
-      deallocate (phi1)
-
-      if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
-
-   end subroutine advance_parallel_streaming_implicit
-
-   subroutine get_gke_rhs(ivmu, gold, phiold, phi, g, eqn)
-
-      use stella_time, only: code_dt
-      use zgrid, only: nzgrid, ntubes
-      use species, only: spec
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use kt_grids, only: naky, nakx
-      use gyro_averages, only: gyro_average
-      use vpamu_grids, only: vpa, mu
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use stella_geometry, only: dbdzed
-      use neoclassical_terms, only: include_neoclassical_terms
-      use neoclassical_terms, only: dfneo_dvpa
-      use run_parameters, only: time_upwind
-      use run_parameters, only: driftkinetic_implicit
-      use run_parameters, only: maxwellian_inside_zed_derivative
-      use physics_flags, only: scale_parallel_streaming_zonal
-
-      implicit none
-
-      integer, intent(in) :: ivmu
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: gold
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phiold, phi
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: g
-      character(*), intent(in) :: eqn
-
-      integer :: iv, imu, is, iz, ia
-      real :: tupwnd1, tupwnd2, fac
-      real, dimension(:), allocatable :: vpadf0dE_fac
-      real, dimension(:), allocatable :: gp
-      complex, dimension(:, :, :, :), allocatable :: dgdz, dphidz
-      complex, dimension(:, :, :, :), allocatable :: field
-
-      allocate (vpadf0dE_fac(-nzgrid:nzgrid))
-      allocate (gp(-nzgrid:nzgrid))
-      allocate (dgdz(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate (dphidz(naky, nakx, -nzgrid:nzgrid, ntubes))
-
-      ia = 1
-
-      tupwnd1 = 0.5 * (1.0 - time_upwind)
-      if (eqn == 'full') then
-         tupwnd2 = 0.5 * (1.0 + time_upwind)
-      else
-         tupwnd2 = 0.0
-      end if
-
-      ! now have phi^{n+1} for non-negative kx
-      ! obtain RHS of GK eqn;
-      ! i.e., (1+(1+alph)/2*dt*vpa*gradpar*d/dz)g^{n+1}
-      ! = (1-(1-alph)/2*dt*vpa*gradpar*d/dz)g^{n}
-      ! + dt*Ze*dlnF0/dE*exp(-vpa^2)*vpa*b.gradz*d/dz((1+alph)/2*<phi^{n+1}>+(1-alph)/2*<phi^{n}>
-      iv = iv_idx(vmu_lo, ivmu)
-      imu = imu_idx(vmu_lo, ivmu)
-      is = is_idx(vmu_lo, ivmu)
-
-      ! obtain dg^{n}/dz and store in dgdz
-      ! NB: could eliminate this calculation at the expense of memory
-      ! as this was calculated previously
-      call get_dzed(iv, gold, dgdz)
-      dgdz(1,:,:,:) = dgdz(1,:,:,:)*scale_parallel_streaming_zonal
-      allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
-      ! get <phi> = (1+alph)/2*<phi^{n+1}> + (1-alph)/2*<phi^{n}>
-      field = tupwnd1 * phiold + tupwnd2 * phi
-      ! set g to be phi or <phi> depending on whether parallel streaming is
-      ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
-      if (driftkinetic_implicit) then
-         g = field
-      else
-         call gyro_average(field, ivmu, g)
-      end if
-      deallocate (field)
-
-      if (maxwellian_inside_zed_derivative) then
-         ! obtain d(exp(-mu*B/T)*<phi>)/dz and store in dphidz
-         g = g * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
-         call get_dzed(iv, g, dphidz)
-         ! get <phi>*exp(-mu*B/T)*dB/dz at cell centres
-         g = g * spread(spread(spread(dbdzed(ia, :), 1, naky), 2, nakx), 4, ntubes)
-         call center_zed(iv, g)
-         ! construct d(<phi>*exp(-mu*B/T))/dz + 2*mu*<phi>*exp(-mu*B/T)*dB/dz
-         ! = d<phi>/dz * exp(-mu*B/T)
-         dphidz = dphidz + 2.0 * mu(imu) * g
-      else
-         ! obtain d<phi>/dz and store in dphidz
-         call get_dzed(iv, g, dphidz)
-         ! center Maxwellian factor in mu
-         ! and store in dummy variable gp
-         gp = maxwell_mu(ia, :, imu, is)
-         call center_zed_midpoint(iv, gp)
-         ! multiply by Maxwellian factor
-         dphidz = dphidz * spread(spread(spread(gp, 1, naky), 2, nakx), 4, ntubes)
-      end if
-      dphidz(1,:,:,:) = dphidz(1,:,:,:)*scale_parallel_streaming_zonal
-
-      ! NB: could do this once at beginning of simulation to speed things up
-      ! this is vpa*Z/T*exp(-vpa^2)
-      vpadf0dE_fac = vpa(iv) * spec(is)%zt * maxwell_vpa(iv, is) * maxwell_fac(is)
-      ! if including neoclassical correction to equilibrium distribution function
-      ! then must also account for -vpa*dF_neo/dvpa*Z/T
-      ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!
-      if (include_neoclassical_terms) then
-         do iz = -nzgrid, nzgrid
-            vpadf0dE_fac(iz) = vpadf0dE_fac(iz) - 0.5 * dfneo_dvpa(1, iz, ivmu) * spec(is)%zt
-         end do
-         call center_zed(iv, vpadf0dE_fac)
-      end if
-
-      g = gold
-      call center_zed(iv, g)
-
-      if (stream_sign(iv) > 0) then
-         gp = gradpar_c(:, -1)
-      else
-         gp = gradpar_c(:, 1)
-      end if
-
-      ! construct RHS of GK eqn
-      fac = code_dt * spec(is)%stm_psi0
-      do iz = -nzgrid, nzgrid
-         g(:, :, iz, :) = g(:, :, iz, :) - fac * gp(iz) &
-                          * (tupwnd1 * vpa(iv) * dgdz(:, :, iz, :) + vpadf0dE_fac(iz) * dphidz(:, :, iz, :))
-      end do
-
-      deallocate (vpadf0dE_fac, gp)
-      deallocate (dgdz, dphidz)
-
-   end subroutine get_gke_rhs
-
-   ! solve (I + (1+alph)/2*dt*vpa . grad)g^{n+1} = RHS
-   ! g = RHS is input and overwritten by g = g^{n+1}
-   subroutine invert_parstream(ivmu, g)
-
-      use zgrid, only: nzgrid, ntubes
-      use extended_zgrid, only: neigen
-      use extended_zgrid, only: nsegments
-      use extended_zgrid, only: nzed_segment
-      use extended_zgrid, only: map_to_extended_zgrid
-      use extended_zgrid, only: map_from_extended_zgrid
-      use extended_zgrid, only: periodic
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, is_idx
-      use kt_grids, only: naky
-
-      implicit none
-
-      integer, intent(in) :: ivmu
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: g
-
-      integer :: iv, is
-      integer :: iky, ie, it
-      integer :: ulim, sgn
-      complex, dimension(:), allocatable :: gext
-
-      iv = iv_idx(vmu_lo, ivmu)
-      is = is_idx(vmu_lo, ivmu)
-      sgn = stream_sign(iv)
-
-      do iky = 1, naky
-         if (periodic(iky)) then
-            do it = 1, ntubes
-               do ie = 1, neigen(iky)
-                  call sweep_zed_zonal(iky, iv, is, sgn, g(iky, ie, :, it))
-               end do
-            end do
-         else
-            do it = 1, ntubes
-               do ie = 1, neigen(iky)
-                  allocate (gext(nsegments(ie, iky) * nzed_segment + 1))
-                  ! get g on extended domain in zed
-                  call map_to_extended_zgrid(it, ie, iky, g(iky, :, :, :), gext, ulim)
-                  ! solve (I + (1+alph)/2*dt*vpa . grad)g_{inh}^{n+1} = RHS
-                  call stream_tridiagonal_solve(iky, ie, iv, is, gext(:ulim))
-                  ! extract g from extended domain in zed
-                  call map_from_extended_zgrid(it, ie, iky, gext, g(iky, :, :, :))
-                  deallocate (gext)
-               end do
-            end do
-         end if
-      end do
-
-   end subroutine invert_parstream
-
    subroutine stream_tridiagonal_solve(iky, ie, iv, is, g)
 
       use finite_differences, only: tridag
@@ -892,170 +631,6 @@ contains
 
    end subroutine stream_tridiagonal_solve
 
-   ! g= RHS of gke is input
-   ! g = g^{n+1} is output
-   subroutine sweep_g_zed(ivmu, g)
-
-      use zgrid, only: nzgrid, delzed, ntubes
-      use extended_zgrid, only: neigen, nsegments, nzed_segment
-      use extended_zgrid, only: map_to_extended_zgrid
-      use extended_zgrid, only: map_from_extended_zgrid
-      use extended_zgrid, only: periodic
-      use kt_grids, only: naky
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, is_idx
-      use run_parameters, only: zed_upwind, time_upwind
-
-      implicit none
-
-      integer, intent(in) :: ivmu
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: g
-
-      integer :: iv, is
-      integer :: iky, ie, it
-      integer :: ulim, sgn
-      integer :: iz, izext, iz1, iz2
-      real :: fac1, fac2
-      complex, dimension(:), allocatable :: gext
-
-      iv = iv_idx(vmu_lo, ivmu)
-      is = is_idx(vmu_lo, ivmu)
-      sgn = stream_sign(iv)
-      ! will sweep to right (positive vpa) or left (negative vpa)
-      ! and solve for g on the extended z-grid
-      do iky = 1, naky
-         if (periodic(iky)) then
-            do it = 1, ntubes
-               do ie = 1, neigen(iky)
-                  call sweep_zed_zonal(iky, iv, is, sgn, g(iky, ie, :, it))
-               end do
-            end do
-         else
-            do it = 1, ntubes
-               do ie = 1, neigen(iky)
-                  allocate (gext(nsegments(ie, iky) * nzed_segment + 1))
-                  ! get g on extended domain in zed
-                  call map_to_extended_zgrid(it, ie, iky, g(iky, :, :, :), gext, ulim)
-                  if (sgn < 0) then
-                     iz1 = 1; iz2 = ulim
-                  else
-                     iz1 = ulim; iz2 = 1
-                  end if
-                  izext = iz1; iz = sgn * nzgrid
-                  fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-                  gext(izext) = gext(izext) * 2.0 / fac1
-                  do izext = iz1 - sgn, iz2, -sgn
-                     if (iz == -sgn * nzgrid) then
-                        iz = sgn * nzgrid - sgn
-                     else
-                        iz = iz - sgn
-                     end if
-                     fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-                     fac2 = 1.0 - zed_upwind - sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-                     gext(izext) = (-gext(izext + sgn) * fac2 + 2.0 * gext(izext)) / fac1
-                  end do
-                  ! extract g from extended domain in zed
-                  call map_from_extended_zgrid(it, ie, iky, gext, g(iky, :, :, :))
-                  deallocate (gext)
-               end do
-            end do
-         end if
-      end do
-
-   end subroutine sweep_g_zed
-
-   subroutine sweep_zed_zonal(iky, iv, is, sgn, g)
-
-      use zgrid, only: nzgrid, delzed
-      use extended_zgrid, only: phase_shift
-      use run_parameters, only: zed_upwind, time_upwind
-
-      implicit none
-
-      integer, intent(in) :: iky, iv, is, sgn
-      complex, dimension(-nzgrid:), intent(in out) :: g
-
-      integer :: iz, iz1, iz2
-      real :: fac1, fac2
-      complex :: pf
-      complex, dimension(:), allocatable :: gcf, gpi
-
-      allocate (gpi(-nzgrid:nzgrid))
-      allocate (gcf(-nzgrid:nzgrid))
-      ! ky=0 is 2pi periodic (no extended zgrid)
-      ! decompose into complementary function + particular integral
-      ! zero BC for particular integral
-      ! unit BC for complementary function (no source)
-      if (sgn < 0) then
-         iz1 = -nzgrid; iz2 = nzgrid
-      else
-         iz1 = nzgrid; iz2 = -nzgrid
-      end if
-      pf = phase_shift(iky)**(-sgn)
-      gpi(iz1) = 0.; gcf(iz1) = 1.
-      do iz = iz1 - sgn, iz2, -sgn
-         fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-         fac2 = 1.0 - zed_upwind - sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-         gpi(iz) = (-gpi(iz + sgn) * fac2 + 2.0 * g(iz)) / fac1
-         gcf(iz) = -gcf(iz + sgn) * fac2 / fac1
-      end do
-      ! g = g_PI + (g_PI(pi)/(1-g_CF(pi))) * g_CF
-      g = gpi + (pf * gpi(iz2) / (1.0 - pf * gcf(iz2))) * gcf
-      deallocate (gpi, gcf)
-
-   end subroutine sweep_zed_zonal
-
-   subroutine invert_parstream_response(phi)
-
-      use linear_solve, only: lu_back_substitution
-      use zgrid, only: nzgrid, ntubes
-      use extended_zgrid, only: neigen
-      use extended_zgrid, only: nsegments
-      use extended_zgrid, only: nzed_segment
-      use extended_zgrid, only: map_to_extended_zgrid
-      use extended_zgrid, only: map_from_extended_zgrid
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: periodic, phase_shift
-      use kt_grids, only: naky
-      use fields_arrays, only: response_matrix
-
-      implicit none
-
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi
-
-      integer :: iky, ie, it, ulim
-      integer :: ikx
-      complex, dimension(:), allocatable :: gext
-
-      ! need to put the fields into extended zed grid
-      do iky = 1, naky
-         ! avoid double counting of periodic endpoints for zonal (and any other periodic) modes
-         if (periodic(iky)) then
-            do it = 1, ntubes
-               do ie = 1, neigen(iky)
-                  ikx = ikxmod(1, ie, iky)
-                  call lu_back_substitution(response_matrix(iky)%eigen(ie)%zloc, &
-                                            response_matrix(iky)%eigen(ie)%idx, phi(iky, ikx, :nzgrid - 1, it))
-                  phi(iky, ikx, nzgrid, it) = phi(iky, ikx, -nzgrid, it) / phase_shift(iky)
-               end do
-            end do
-         else
-            do it = 1, ntubes
-               do ie = 1, neigen(iky)
-                  ! solve response_matrix*phi^{n+1} = phi_{inh}^{n+1}
-                  allocate (gext(nsegments(ie, iky) * nzed_segment + 1))
-                  call map_to_extended_zgrid(it, ie, iky, phi(iky, :, :, :), gext, ulim)
-                  call lu_back_substitution(response_matrix(iky)%eigen(ie)%zloc, &
-                                            response_matrix(iky)%eigen(ie)%idx, gext)
-                  call map_from_extended_zgrid(it, ie, iky, gext, phi(iky, :, :, :))
-                  deallocate (gext)
-               end do
-            end do
-         end if
-      end do
-
-   end subroutine invert_parstream_response
-
    subroutine get_dzed(iv, g, dgdz)
 
       use finite_differences, only: fd_cell_centres_zed
@@ -1093,6 +668,22 @@ contains
       end do
 
    end subroutine get_dzed
+
+   subroutine get_zed_derivative_extended_domain(iv, f, f_left, f_right, df_dz)
+
+      use zgrid, only: delzed
+      use finite_differences, only: fd_cell_centres_zed
+
+      implicit none
+
+      integer, intent(in) :: iv
+      complex, dimension(:), intent(in) :: f
+      complex, intent(in) :: f_left, f_right
+      complex, dimension(:), intent(out) :: df_dz
+
+      call fd_cell_centres_zed(1, f, delzed(0), stream_sign(iv), f_left, f_right, df_dz)
+
+   end subroutine get_zed_derivative_extended_domain
 
    subroutine center_zed_extended(iv, g)
 
@@ -1137,23 +728,67 @@ contains
 
    end subroutine center_zed_extended
 
-   subroutine center_zed_segment_real(iv, g)
+   !> center_zed_segment_real takes as arguments the vpa index (iv)
+   !> the z-depenendent real function f, and the starting iz index for the array f (llim),
+   !> and overwrites f with the cell-centered version
+   ! it is assumed that any function passed to this subroutine is periodic
+   subroutine center_zed_segment_real(iv, f, llim)
 
       use zgrid, only: nzgrid
-      use run_parameters, only: zed_upwind
+      use run_parameters, only: zed_upwind_plus, zed_upwind_minus
 
-      integer, intent(in) :: iv
-      real, dimension(-nzgrid:), intent(in out) :: g
+      integer, intent(in) :: iv, llim
+      real, dimension(llim:), intent(in out) :: f
+
+      integer :: ulim
+
+      ulim = llim + size(f) - 1
 
       if (stream_sign(iv) > 0) then
-         g(:nzgrid - 1) = 0.5 * ((1.+zed_upwind) * g(:nzgrid - 1) + (1.-zed_upwind) * g(-nzgrid + 1:))
-         g(nzgrid) = g(-nzgrid)
+         f(:ulim - 1) = zed_upwind_plus * f(:ulim - 1) + zed_upwind_minus * f(llim + 1:)
+         f(ulim) = f(llim)
       else
-         g(-nzgrid + 1:) = 0.5 * ((1.-zed_upwind) * g(:nzgrid - 1) + (1.+zed_upwind) * g(-nzgrid + 1:))
-         g(-nzgrid) = g(nzgrid)
+         f(llim + 1:) = zed_upwind_minus * f(:ulim - 1) + zed_upwind_plus * f(llim + 1:)
+         f(llim) = f(ulim)
       end if
 
    end subroutine center_zed_segment_real
+
+   !> center_zed_segment_complex takes as arguments the vpa index (iv)
+   !> the z-depenendent conplex function f, and the starting iz index for the array f (llim),
+   !> and overwrites f with the cell-centered version;
+   subroutine center_zed_segment_complex(iv, f, llim, periodic)
+
+      use zgrid, only: nzgrid
+      use run_parameters, only: zupwnd_p => zed_upwind_plus
+      use run_parameters, only: zupwnd_m => zed_upwind_minus
+
+      integer, intent(in) :: iv, llim
+      complex, dimension(llim:), intent(in out) :: f
+      logical, intent(in) :: periodic
+
+      integer :: ulim
+
+      ulim = llim + size(f) - 1
+
+      ! stream_sign > 0 means negative advection velocity
+      if (stream_sign(iv) > 0) then
+         f(:ulim - 1) = zupwnd_p * f(:ulim - 1) + zupwnd_m * f(llim + 1:)
+         if (periodic) then
+            f(ulim) = f(llim)
+         else
+            f(ulim) = zupwnd_p * f(ulim)
+         end if
+      else
+         f(llim + 1:) = zupwnd_m * f(:ulim - 1) + zupwnd_p * f(llim + 1:)
+         if (periodic) then
+            f(llim) = f(ulim)
+         else
+            f(llim) = zupwnd_p * f(llim)
+         end if
+      end if
+
+   end subroutine center_zed_segment_complex
 
    subroutine center_zed_midpoint(iv, g)
 

@@ -9,7 +9,7 @@ in <standardHeaders> and interesting stella parameters with their corresponding 
  <knob> and <key> in <standardParameters>.
 
 Note that we do not represent the normalized labels of phi correctly, 
-technically they are $\\phi (\\rho_r/a) (T_e/e)$ but this is too much.
+technically they are $\\varphi (\\rho_r/a) (T_e/e)$ but this is too much.
 '''
 
 # Get the standard labels for the (x,y) axis
@@ -50,16 +50,25 @@ standardLabels = {
         "pflux"         : "$\\Gamma_{s}/\\Gamma_{\\text{gB},i}$",\
         "vflux"         : "$\\Pi_{s}/\\Pi_{\\text{gB},i}$",\
         # POTENTIAL
-        "phi"           : "$\\langle\\hat\\phi\\rangle$",\
-        "phi_real"      : "Re$(\\langle\\hat\\phi\\rangle)$",\
-        "phi_imag"      : "Im$(\\langle\\hat\\phi\\rangle)$",\
-        "phiRealImag"   : "Re$(\\langle\\hat\\phi\\rangle)$ and Im$(\\langle\\hat\\phi\\rangle)$",\
+        "phi"           : "$\\hat\\varphi$",\
+        "phi_nozonal"   : "$\\hat\\varphi_{NZ}$",\
+        "phi_real"      : "Re$(\\langle\\hat\\varphi\\rangle)$",\
+        "phi_imag"      : "Im$(\\langle\\hat\\varphi\\rangle)$",\
+        "phiRealImag"   : "Re$(\\langle\\hat\\varphi\\rangle)$ and Im$(\\langle\\hat\\varphi\\rangle)$",\
         # POTENTIAL SQUARED
-        "phi2"          : "$|\\langle\\hat\\phi\\rangle^2|$",\
-        "phi2_allModes" : "$\\sum_{k_x,k_y} |\\langle\\hat\\phi\\rangle|^2$",\
-        "phi2_zonal"    : "$\\sum_{k_x,k_y=0} |\\langle\\hat\\phi\\rangle|^2$",\
-        "phi2_nozonal"  : "$\\sum_{k_x,k_y \\neq 0} |\\langle\\hat\\phi\\rangle|^2$",\
+        "phi2"          : "$\\varphi^2$",\
+        "phi2_fourier"  : "$\\hat\\varphi_{k_x,k_y}^2$",\
+        "phi2_allModes" : "$\\sum_{k_x,k_y} |\\hat\\varphi|^2$",\
+        "phi2_zonal"    : "$\\sum_{k_x,k_y=0} |\\hat\\varphi|^2$",\
+        "phi2_nozonal"  : "$\\sum_{k_x,k_y \\neq 0} |\\hat\\varphi|^2$",\
+        "phi2_fieldlineaverage" : "$\\langle \\varphi^2 \\rangle_z \, ({\\rho_i T_i}/{ae})^2$",\
+        "phi2_zonal_fieldlineaverage" : "$\\sum_{k_x,k_y=0} |\\langle\\hat\\varphi\\rangle_z|^2 \, ({\\rho_i T_i}/{ae})^2$",\
+        "phi2_nozonal_fieldlineaverage" : "$\\sum_{k_x,k_y \\neq 0} |\\langle\\hat\\varphi\\rangle_z|^2 \, ({\\rho_i T_i}/{ae})^2$",\
+        "phi2_fieldlineaverage_norm" : "$\\langle \\tilde{\\varphi}^2 \\rangle_z$",\
+        "phi2_zonal_fieldlineaverage_norm" : "$\\sum_{k_x,k_y=0} |\\langle\\hat{\\tilde{\\varphi}}\\rangle_z|^2$",\
+        "phi2_nozonal_fieldlineaverage_norm" : "$\\sum_{k_x,k_y \\neq 0} |\\langle\\hat{\\tilde{\\varphi}}\\rangle_z|^2$",\
         # DISTRIBUTION FUNCTION
+        "g2"            : "$|g_{s}|^2$",\
         "g"             : "$|g_{s}|^2$",\
         "ge"            : "$|g_{e}|^2$",\
         "gi"            : "$|g_{i}|^2$",\
@@ -67,9 +76,15 @@ standardLabels = {
         "gvmus"         : "$|g_{s}|^2$",\
         "gzvs"          : "$|g_{s}|^2$",\
         # MOMENTS 
-        "n"             : "$n$/normalization",\
-        "T"             : "$T$/normalization",\
-        "v"             : "$v_\\parallel$/normalization",\
+        "n"             : "$\\delta n_{s}$",\
+        "T"             : "$\\delta T_{s}$",\
+        "v"             : "$\\delta v_\\parallel$",\
+        "dens"          : "$\\delta n_{s}$",\
+        "temp"          : "$\\delta T_{s}$",\
+        "upar"          : "$\\delta v_{\\parallel,s}$",\
+        "dens2"         : "$|\\delta n_{s}|^2$",\
+        "temp2"         : "$\\delta T_{s}$",\
+        "upar2"         : "$\\delta v_{\\parallel,s}$",\
         # PARAMETERS:
         "parameter"     : "Stella parameter",\
         "rho"           : "$\\rho$",\
@@ -104,6 +119,11 @@ standardLabels = {
         "nfield_periods" : "Number of field periods",\
         "D_hyper"       : "Hyper-dissipation",\
         "boundary_option" : "Boundary option",\
+        "alpha0"        : "$\\alpha$",
+        "kappa"         : "$\\kappa$",
+        "tri"           : "$\\delta$",
+        "cfl_cushion"   : "CFL cushion",\
+        "d_hyper"       : "D hyper",\
         # EMPTY
         None            : "",\
         "-----"         : "",\
@@ -140,15 +160,15 @@ standardLabels = {
         "pflux"         : "$\\Gamma$ [$1/($m$^2s)$]",\
         "vflux"         : "$\\Pi_{s}$ [N/m]",\
         # POTENTIAL
-        "phi"           : "$\\langle\\hat\\phi\\rangle$ [J]",\
-        "phi_real"      : "Re$(\\langle\\hat\\phi\\rangle)$ [J]",\
-        "phi_imag"      : "Im$(\\langle\\hat\\phi\\rangle)$ [J]",\
-        "phiRealImag"   : "Re$(\\langle\\hat\\phi\\rangle)$ [J] and Im$(\\langle\\hat\\phi\\rangle)$ [J]",\
+        "phi"           : "$\\langle\\hat\\varphi\\rangle$ [J]",\
+        "phi_real"      : "Re$(\\langle\\hat\\varphi\\rangle)$ [J]",\
+        "phi_imag"      : "Im$(\\langle\\hat\\varphi\\rangle)$ [J]",\
+        "phiRealImag"   : "Re$(\\langle\\hat\\varphi\\rangle)$ [J] and Im$(\\langle\\hat\\varphi\\rangle)$ [J]",\
         # POTENTIAL
-        "phi2"          : "$|\\langle\\hat\\phi\\rangle^2|$  [J]",\
-        "phi2_allModes" : "$\\sum_{k_x,k_y} |\\langle\\hat\\phi\\rangle|^2$  [J]",\
-        "phi2_zonal"    : "$\\sum_{k_x,k_y=0} |\\langle\\hat\\phi\\rangle|^2$  [J]",\
-        "phi2_nozonal"  : "$\\sum_{k_x,k_y \\neq 0} |\\langle\\hat\\phi\\rangle|^2$  [J]",\
+        "phi2"          : "$|\\langle\\hat\\varphi\\rangle^2|$  [J]",\
+        "phi2_allModes" : "$\\sum_{k_x,k_y} |\\langle\\hat\\varphi\\rangle|^2$  [J]",\
+        "phi2_zonal"    : "$\\sum_{k_x,k_y=0} |\\langle\\hat\\varphi\\rangle|^2$  [J]",\
+        "phi2_nozonal"  : "$\\sum_{k_x,k_y \\neq 0} |\\langle\\hat\\varphi\\rangle|^2$  [J]",\
         # DISTRIBUTION FUNCTION
         "g"             : "$g$ [s$^3$/m$^6$]",\
         "distribution"  : "$g$ [s$^3$/m$^6$]",\
@@ -179,7 +199,7 @@ standardLabels = {
         "pflux"     : "$\\Gamma_{s}/\\Gamma_{sat}$",\
         "vflux"     : "$\\Pi_{s}/\\Pi_{sat}$",\
         # POTENTIAL
-        "phi2"      : "$|\\phi^2|$",\
+        "phi2"      : "$|\\varphi^2|$",\
         # DISTRIBUTION FUNCTION
         "gvmus"     : "$\\sum_{v_\\parallel, v_\\perp} g$",\
         "gzvs"      : "$\\sum_{v_\\parallel, z} g$",\

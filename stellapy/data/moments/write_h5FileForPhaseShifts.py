@@ -7,9 +7,9 @@ import copy
 import os, h5py
 import numpy as np
 import time as timer   
+import netCDF4 as nc4  
 from scipy.io import netcdf as scnetcdf  
 from datetime import datetime, timedelta 
-from stellapy.utils.decorators.verbose import noverbose 
 from stellapy.utils.files.get_filesInFolder import get_filesInFolder     
 from stellapy.data.geometry.read_output import read_outputFile as read_outputFileForGeometry  
 from stellapy.data.output.read_outputFile import read_outputFile, read_netcdfVariables 
@@ -23,7 +23,6 @@ from stellapy.data.stella.load_stellaVariables import stella_variables
 #                       WRITE THE DIMENSIONS TO AN H5 FILE
 ################################################################################
   
-@noverbose
 def write_h5FileForPhaseShifts(folder, dt=50, skip=1):    
        
     # Time step
@@ -62,6 +61,8 @@ def write_h5FileForPhaseShifts(folder, dt=50, skip=1):
                                 outputFileHasChanged = True
                         if nspec==2 and ("Finished" not in f.keys() or "T0_and_T1_vs_tangleky" not in f.keys()):
                                 outputFileHasChanged = True
+                        if nspec==3 and ("Finished" not in f.keys() or "phi_and_T2_vs_tangleky" not in f.keys()):
+                                outputFileHasChanged = True
                         if "T0_and_T1_vs_tangleky" in f.keys():
                             if np.isnan(f["phi_and_n0_vs_tanglekx"][-1,0,0]):
                                 print("Delete the existing "+phaseshifts_path.parent.name+"/"+phaseshifts_path.name+" file since the kx-data is broken.")
@@ -81,7 +82,7 @@ def write_h5FileForPhaseShifts(folder, dt=50, skip=1):
             elif not os.path.isfile(phaseshifts_path) or outputFileHasChanged: 
                   
                 # Read the time axis and variables in the netcdf file
-                netcdf_data = read_outputFile(netcdf_path) 
+                netcdf_data = read_outputFile(netcdf_path)  
                 vec_time = read_netcdfVariables('vec_time', netcdf_data)   
                 vec_kx = read_netcdfVariables('vec_kx', netcdf_data)   
                 vec_ky = read_netcdfVariables('vec_ky', netcdf_data)   
@@ -131,7 +132,7 @@ def write_h5FileForPhaseShifts(folder, dt=50, skip=1):
                             print("     Please backup the file or remove the file and run the script again.\n")
                             os.system("touch "+str(phaseshifts_path))
                             continue
-                        else:
+                        else: 
                             print("Delete the existing "+phaseshifts_path.parent.name+"/"+phaseshifts_path.name+" file since the time vector does not match.")
                             os.system("rm "+str(phaseshifts_path))
                             create_new_file = True
@@ -160,7 +161,9 @@ def write_h5FileForPhaseShifts(folder, dt=50, skip=1):
                 calculate_phaseshifts("n0", "T0", **args)
                 calculate_phaseshifts("n1", "T1", **args)
                 calculate_phaseshifts("n0", "n1", **args)
-                calculate_phaseshifts("T0", "T1", **args)
+                calculate_phaseshifts("T0", "T1", **args) 
+                calculate_phaseshifts("phi", "n2", **args)
+                calculate_phaseshifts("phi", "T2", **args)
                 
                 # Remember that we finished the script
                 with h5py.File(phaseshifts_path, 'r+') as h5_file:   
@@ -196,6 +199,8 @@ def calculate_phaseshifts(y1_variable, y2_variable, nspec=2, skip=1, netcdf_path
     
     # Check whether we can write the data
     if (nspec==1) and (("1" in y1_variable) or ("1" in y2_variable)): return 
+    if (nspec==1) and (("2" in y1_variable) or ("2" in y2_variable)): return 
+    if (nspec==2) and (("2" in y1_variable) or ("2" in y2_variable)): return 
     
     # Check whether this variable is already written
     variable_name = y1_variable + "_and_" + y2_variable
@@ -227,12 +232,16 @@ def calculate_phaseshifts(y1_variable, y2_variable, nspec=2, skip=1, netcdf_path
         # Read the potential and moments from the output file  
         if y1_variable=="phi":          y1_vs_tzkxky = read_phi(netcdf_path, itstarts[it], itends[it], skip) 
         if y2_variable=="phi":          y2_vs_tzkxky = read_phi(netcdf_path, itstarts[it], itends[it], skip) 
-        if y1_variable in ["n0","n1"]:  y1_vs_tzkxky = read_moments(netcdf_path, 'dens_vs_tszkxkyri', itstarts[it], itends[it], skip, specie=int(y1_variable[1]))
-        if y2_variable in ["n0","n1"]:  y2_vs_tzkxky = read_moments(netcdf_path, 'dens_vs_tszkxkyri', itstarts[it], itends[it], skip, specie=int(y2_variable[1]))
-        if y1_variable in ["T0","T1"]:  y1_vs_tzkxky = read_moments(netcdf_path, 'temp_vs_tszkxkyri', itstarts[it], itends[it], skip, specie=int(y1_variable[1]))
-        if y2_variable in ["T0","T1"]:  y2_vs_tzkxky = read_moments(netcdf_path, 'temp_vs_tszkxkyri', itstarts[it], itends[it], skip, specie=int(y2_variable[1]))
+        if y1_variable in ["n0","n1","n2"]:  y1_vs_tzkxky = read_moments(netcdf_path, 'dens_vs_tszkxkyri', itstarts[it], itends[it], skip, specie=int(y1_variable[1]))
+        if y2_variable in ["n0","n1","n2"]:  y2_vs_tzkxky = read_moments(netcdf_path, 'dens_vs_tszkxkyri', itstarts[it], itends[it], skip, specie=int(y2_variable[1]))
+        if y1_variable in ["T0","T1","T2"]:  y1_vs_tzkxky = read_moments(netcdf_path, 'temp_vs_tszkxkyri', itstarts[it], itends[it], skip, specie=int(y1_variable[1]))
+        if y2_variable in ["T0","T1","T2"]:  y2_vs_tzkxky = read_moments(netcdf_path, 'temp_vs_tszkxkyri', itstarts[it], itends[it], skip, specie=int(y2_variable[1]))
                 
-        # The weight of each angle of point (kx,ky,z,t) is |y1(z,ky)|*|y2(z,ky)|*dell/B
+        # Unmask the arrays
+        if isinstance(y1_vs_tzkxky, np.ma.core.MaskedArray): y1_vs_tzkxky = np.ma.filled(y1_vs_tzkxky, np.nan)   
+        if isinstance(y2_vs_tzkxky, np.ma.core.MaskedArray): y2_vs_tzkxky = np.ma.filled(y2_vs_tzkxky, np.nan)          
+                
+        # The weight of each angle of point (kx,ky,z,t) is |y1(z,ky)|*|y2(z,ky)|*dell/B 
         weights_vs_tzkxky = np.abs(y1_vs_tzkxky)*np.abs(y2_vs_tzkxky)*dl_over_B[np.newaxis,:,np.newaxis,np.newaxis]
         weights_vs_t.append(np.sum(weights_vs_tzkxky, axis=(0,1,2,3)))
         weights_vs_tzkxky = weights_vs_tzkxky/weights_vs_t[-1]
@@ -253,7 +262,7 @@ def calculate_phaseshifts(y1_variable, y2_variable, nspec=2, skip=1, netcdf_path
             # For each angle in <vec_phaseshifts_ni_phi>, add its weight to the angle in <bins>
             weighted_data_in_bins = [np.sum(weights_vs_tzkxky[:,:,:,iky][digitized==i+1]) for i in range(len(bins))]
 
-            # Save the sum of the weights of each angle in <bins>
+            # Save the sum of the weights of each angle in <bins> np.ma.filled(marr, np.nan)
             phase_shifts_vs_tangleky[it,:,iky] = np.array(weighted_data_in_bins)
                         
         # Iterate over the ky-modes                 
@@ -311,9 +320,8 @@ def get_phase_shift(y1, y2):
 
 #---------------------------------------------
 def get_integrationWeightsAlongZ(input_file):
-    vmec_filename = read_vmecFileNameFromInputFile(input_file)
-    nonlinear = read_linearNonlinearFromInputFile(input_file)[1]
-    path = create_dummyPathObject(input_file, vmec_filename, nonlinear)
+    vmec_filename = read_vmecFileNameFromInputFile(input_file) 
+    path = create_dummyPathObject(input_file, vmec_filename)
     geometry = read_outputFileForGeometry(path)  
     dl_over_B = geometry["dl_over_B"]   
     return dl_over_B
@@ -322,7 +330,8 @@ def get_integrationWeightsAlongZ(input_file):
 def read_phi(netcdf_path, itstart=0, itend=-1, skip=1): 
       
     # First get the potential ["t", "tube", "z", "kx", "ky", "ri"]
-    netcdf_file = scnetcdf.netcdf_file(netcdf_path,'r') 
+    try: netcdf_file = nc4.Dataset(netcdf_path)  
+    except: netcdf_file = scnetcdf.netcdf_file(netcdf_path,'r') 
     phi_vs_tzkxkyri = copy.deepcopy(netcdf_file.variables["phi_vs_t"][itstart:itend:skip,0,:,:,:,:]) 
     netcdf_file.close()  
       
@@ -334,14 +343,15 @@ def read_phi(netcdf_path, itstart=0, itend=-1, skip=1):
   
 #---------------------------------------------
 def read_moments(netcdf_path, variable, itstart=0, itend=-1, skip=1, specie=0): 
-         
+    
     # Get the dimensions and the stella key of the variable 
     key = stella_variables[variable][0]
-       
+    
     # Open the netcdf file
-    netcdf_file = scnetcdf.netcdf_file(netcdf_path,'r') 
+    try: netcdf_file = nc4.Dataset(netcdf_path)  
+    except: netcdf_file = scnetcdf.netcdf_file(netcdf_path,'r') 
     variable_vs_tzkxkyri = copy.deepcopy(netcdf_file.variables[key][itstart:itend:skip,specie,0,:,:,:,:]) 
-    netcdf_file.close()  
+    netcdf_file.close()    
      
     # Combine the real and imaginary part to a complex number
     variable_vs_tzkxky = variable_vs_tzkxkyri[:,:,:,:,0] + 1j*variable_vs_tzkxkyri[:,:,:,:,1] 

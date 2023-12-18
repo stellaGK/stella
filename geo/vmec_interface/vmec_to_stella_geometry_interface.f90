@@ -39,7 +39,7 @@ module vmec_to_stella_geometry_interface_mod
 
 contains
 
-   subroutine read_vmec_equilibrium(vmec_filename, verbose)
+   subroutine read_vmec_equilibrium(vmec_filename, verbose, ierr)
 
       use read_wout_mod, only: read_wout_file, read_wout_deallocate
       use read_wout_mod, only: nfp_vmec => nfp
@@ -87,7 +87,8 @@ contains
       logical, intent(in) :: verbose
       character(*), intent(in) :: vmec_filename
 
-      integer :: ierr, iopen
+      integer, intent(out) :: ierr
+      integer :: iopen
 
       !*********************************************************************
       ! Read in everything from the vmec wout file using libstell.
@@ -100,8 +101,17 @@ contains
          write (*, *) "About to read VMEC wout file: '", trim(vmec_filename), "'."
       end if
       call read_wout_file(vmec_filename, ierr, iopen)
-      if (iopen /= 0) stop 'error opening wout file'
-      if (ierr /= 0) stop 'error reading wout file'
+      if (iopen /= 0) then
+         print *, 'error opening wout file'
+         ierr = iopen
+         return
+      end if
+
+      if (ierr /= 0) then
+         print *, 'error reading wout file'
+         return
+      end if
+
       if (verbose) then
          write (*, *) "Successfully read VMEC data from '", trim(vmec_filename), "'."
       end if
@@ -158,7 +168,11 @@ contains
       end if
 
       ! deallocate all arrays opened externally in read_wout_mod
-      call read_wout_deallocate
+      call read_wout_deallocate(ierr)
+      if (ierr /= 0) then
+         print *, "Warning: error returned when deallocating wout arrays. ", ierr
+      end if
+      ierr = 0
 
    end subroutine read_vmec_equilibrium
 
@@ -214,7 +228,8 @@ contains
                                                 alpha, zeta, bmag, gradpar_zeta, grad_alpha_grad_alpha, &
                                                 grad_alpha_grad_psi, grad_psi_grad_psi, gds23, gds24, gds25, gds26, &
                                                 gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, &
-                                                theta_vmec, B_sub_zeta, B_sub_theta_vmec, x_displacement_fac, gradpar_zeta_prefac)
+                                                theta_vmec, B_sub_zeta, B_sub_theta_vmec, x_displacement_fac, gradpar_zeta_prefac, &
+                                                ierr)
 
       use fzero_mod, only: fzero
 
@@ -316,6 +331,9 @@ contains
 
       real, dimension(:, -nzgrid:), intent(out) :: x_displacement_fac
 
+      integer, intent(out) :: ierr
+      integer :: ierr2
+
       !*********************************************************************
       ! Variables used internally by this subroutine
       !*********************************************************************
@@ -389,25 +407,30 @@ contains
       !*********************************************************************
       ! Do some validation.
       !*********************************************************************
+      ierr = 0
 
       if (nalpha < 1) then
          print *, "Error! nalpha must be >= 1. Instead it is", nalpha
-         stop
+         ierr = 100
+         return
       end if
 
       if (nzgrid < 1) then
          print *, "Error! nzgrid must be >= 1. Instead it is", nzgrid
-         stop
+         ierr = 101
+         return
       end if
 
       if (desired_normalized_toroidal_flux <= 0) then
          print *, "Error! desired_normalized_toroidal_flux must be >0. Instead it is", desired_normalized_toroidal_flux
-         stop
+         ierr = 102
+         return
       end if
 
       if (desired_normalized_toroidal_flux > 1) then
          print *, "Error! desired_normalized_toroidal_flux must be <= 1. Instead it is", desired_normalized_toroidal_flux
-         stop
+         ierr = 103
+         return
       end if
 
       nfp_out = nfp
@@ -421,7 +444,8 @@ contains
             xn_nyq = xn
          else
             print *, "Error! xm_nyq and xn_nyq arrays are not populated in the wout file, and mnmax_nyq != mnmax."
-            stop
+            ierr = 104
+            return
          end if
       end if
 
@@ -453,7 +477,8 @@ contains
       if (abs(phi(1)) > 1d-14) then
          print *, "Error! VMEC phi array does not begin with 0."
          print *, "phi:", phi
-         stop
+         ierr = 105
+         return
       end if
 
       dphi = phi(2) - phi(1)
@@ -461,7 +486,8 @@ contains
          if (abs(phi(j) - phi(j - 1) - dphi) > 1d-11) then
             print *, "Error! VMEC phi array is not uniformly spaced."
             print *, "phi:", phi
-            stop
+            ierr = 106
+            return
          end if
       end do
 
@@ -471,27 +497,45 @@ contains
          if (abs(phip(j) + phi(ns) / (2 * pi)) > 1d-11) then
             print *, "Error! VMEC phips array is not constant and equal to -phi(ns)/(2*pi)."
             print *, "phip(s):", phip
-            stop
+            ierr = 107
+            return
          end if
       end do
 
       ! The first mode in the m and n arrays should be m=n=0:
-      if (xm(1) /= 0) stop "First element of xm in the wout file should be 0."
-      if (xn(1) /= 0) stop "First element of xn in the wout file should be 0."
-      if (xm_nyq(1) /= 0) stop "First element of xm_nyq in the wout file should be 0."
-      if (xn_nyq(1) /= 0) stop "First element of xn_nyq in the wout file should be 0."
-
+      if (xm(1) /= 0) then
+         print *, "First element of xm in the wout file should be 0."
+         ierr = 108
+         return
+      end if
+      if (xn(1) /= 0) then
+         print *, "First element of xn in the wout file should be 0."
+         ierr = 109
+         return
+      end if
+      if (xm_nyq(1) /= 0) then
+         print *, "First element of xm_nyq in the wout file should be 0."
+         ierr = 110
+         return
+      end if
+      if (xn_nyq(1) /= 0) then
+         print *, "First element of xn_nyq in the wout file should be 0."
+         ierr = 111
+         return
+      end if
       ! Lambda should be on the half mesh, so its value at radial index 1 should be 0 for all (m,n)
       if (maxval(abs(lmns(:, 1))) > 0) then
          print *, "Error! Expected lmns to be on the half mesh, but its value at radial index 1 is nonzero."
          print *, "Here comes lmns(:,1):", lmns(:, 1)
-         stop
+         ierr = 112
+         return
       end if
       if (lasym) then
          if (maxval(abs(lmnc(:, 1))) > 0) then
             print *, "Error! Expected lmnc to be on the half mesh, but its value at radial index 1 is nonzero."
             print *, "Here comes lmnc(:,1):", lmnc(:, 1)
-            stop
+            ierr = 113
+            return
          end if
       end if
 
@@ -565,7 +609,8 @@ contains
 
       case default
          print *, "Error! vmec_surface_option must be 0, 1, or 2. It is instead ", vmec_surface_option
-         stop
+         ierr = 114
+         return
       end select
 
       ! --------------------------------------------------------------------------------
@@ -583,9 +628,13 @@ contains
 
       ! Handle quantities for the full grid
       if (normalized_toroidal_flux_used > 1) then
-         stop "Error! normalized_toroidal_flux_used cannot be >1"
+         print *, "Error! normalized_toroidal_flux_used cannot be >1"
+         ierr = 115
+         return
       elseif (normalized_toroidal_flux_used < 0) then
-         stop "Error! normalized_toroidal_flux_used cannot be <0"
+         print *, "Error! normalized_toroidal_flux_used cannot be <0"
+         ierr = 116
+         return
       elseif (normalized_toroidal_flux_used == 1) then
          vmec_radial_index_full(1) = ns - 1
          vmec_radial_index_full(2) = ns
@@ -733,7 +782,8 @@ contains
 !          end if
             if (.not. theta_converged) then
                write (*, *) "ERROR: could not find root needed to compute theta_vmec. aborting"
-               stop
+               ierr = 117
+               return
             end if
          end do
       end do
@@ -885,8 +935,17 @@ contains
                   exit
                end if
             end do
-            if ((xm(imn) /= m) .or. (xn(imn) /= n * nfp)) stop "Something went wrong!"
-            if (.not. found_imn) stop "Error! imn could not be found matching the given imn_nyq."
+            if ((xm(imn) /= m) .or. (xn(imn) /= n * nfp)) then
+               print *, "Something went wrong!"
+               ierr = 118
+               return
+            end if
+            if (.not. found_imn) then
+               print *, "Error! imn could not be found matching the given imn_nyq."
+               ierr = 119
+               return
+            end if
+
          end if
 
          ! All quantities are multiplied by a variable scale_factor which can in principle depend on m and n.
@@ -1179,7 +1238,12 @@ contains
       ! Compute (B dot grad theta_pest) / (B dot grad zeta):
       B_dot_grad_theta_pest_over_B_dot_grad_zeta = (B_sup_theta_vmec * (1 + d_Lambda_d_theta_vmec) + B_sup_zeta * d_Lambda_d_zeta) / B_sup_zeta
       temp2D = iota
-      call test_arrays(B_dot_grad_theta_pest_over_B_dot_grad_zeta, temp2D, .false., 0.01, 'iota')
+      call test_arrays(B_dot_grad_theta_pest_over_B_dot_grad_zeta, temp2D, .false., 0.01, 'iota', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for iota"
+         ierr = ierr + 1
+      end if
+
       deallocate (B_dot_grad_theta_pest_over_B_dot_grad_zeta)
 
       !*********************************************************************
@@ -1235,27 +1299,42 @@ contains
          temp2D(:, izeta) = -sin(zeta(izeta)) / R(:, izeta)
       end do
 
-      call test_arrays(grad_zeta_X, temp2D, .false., 1.0e-2, 'grad_zeta_X')
+      call test_arrays(grad_zeta_X, temp2D, .false., 1.0e-2, 'grad_zeta_X', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for grad_zeta_X"
+         ierr = ierr + 1
+      end if
       grad_zeta_X = temp2D ! We might as well use the exact value, which is in temp2D.
 
       ! Sanity check: grad_zeta_Y should be cos(zeta) / R:
       do izeta = -nzgrid, nzgrid
          temp2D(:, izeta) = cos(zeta(izeta)) / R(:, izeta)
       end do
-      call test_arrays(grad_zeta_Y, temp2D, .false., 1.0e-2, 'grad_zeta_Y')
+      call test_arrays(grad_zeta_Y, temp2D, .false., 1.0e-2, 'grad_zeta_Y', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for grad_zeta_Y"
+         ierr = ierr + 1
+      end if
       grad_zeta_Y = temp2D ! We might as well use the exact value, which is in temp2D.
 
       ! grad_zeta_Z should be 0:
-      call test_arrays(grad_zeta_Z, temp2D, .true., 1.0e-14, 'grad_zeta_Z')
+      call test_arrays(grad_zeta_Z, temp2D, .true., 1.0e-14, 'grad_zeta_Z', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for grad_zeta_Z"
+         ierr = ierr + 1
+      end if
       grad_zeta_Z = 0
 
       !*********************************************************************
       ! Compute the Cartesian components of other quantities we need:
       !*********************************************************************
 
-      grad_psi_X = grad_s_X * edge_toroidal_flux_over_2pi
-      grad_psi_Y = grad_s_Y * edge_toroidal_flux_over_2pi
-      grad_psi_Z = grad_s_Z * edge_toroidal_flux_over_2pi
+      ! In VMEC <s> = psi/psi_LCFS and in stella <psi> = sgn(psi_t)*psi_t
+      ! nabla psi = (dpsi/ds) * nabla s = d(psi_LCFS*s)/ds * nabla s
+      !           = psi_LCFS * nabla s = sgn(psi_t) * psi_{t,LCFS} * nabla s
+      grad_psi_X = grad_s_X * sign_toroidal_flux * edge_toroidal_flux_over_2pi
+      grad_psi_Y = grad_s_Y * sign_toroidal_flux * edge_toroidal_flux_over_2pi
+      grad_psi_Z = grad_s_Z * sign_toroidal_flux * edge_toroidal_flux_over_2pi
 
       ! Form grad alpha = grad (theta_vmec + Lambda - iota * zeta)
       do izeta = -nzgrid, nzgrid
@@ -1300,7 +1379,11 @@ contains
                - d_Z_d_s * d_Y_d_theta_vmec * d_X_d_zeta &
                - d_X_d_s * d_Z_d_theta_vmec * d_Y_d_zeta &
                - d_Y_d_s * d_X_d_theta_vmec * d_Z_d_zeta
-      call test_arrays(sqrt_g, temp2D, .false., 3.0e-3, 'sqrt_g')
+      call test_arrays(sqrt_g, temp2D, .false., 3.0e-3, 'sqrt_g', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for sqrt g"
+         ierr = ierr + 1
+      end if
 
       temp2D = 0 &
                + grad_s_X * grad_theta_vmec_Y * grad_zeta_Z &
@@ -1309,7 +1392,11 @@ contains
                - grad_s_Z * grad_theta_vmec_Y * grad_zeta_X &
                - grad_s_X * grad_theta_vmec_Z * grad_zeta_Y &
                - grad_s_Y * grad_theta_vmec_X * grad_zeta_Z
-      call test_arrays(1 / sqrt_g, temp2D, .false., 1.0e-2, '1/sqrt_g')
+      call test_arrays(1 / sqrt_g, temp2D, .false., 1.0e-2, '1/sqrt_g', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for 1/sqrt g"
+         ierr = ierr + 1
+      end if
 
       !*********************************************************************
       ! Sanity tests: Verify that
@@ -1317,13 +1404,37 @@ contains
       ! matches the corresponding term from VMEC.
       !*********************************************************************
 
-     call test_arrays(B_X * d_X_d_theta_vmec + B_Y * d_Y_d_theta_vmec + B_Z * d_Z_d_theta_vmec, B_sub_theta_vmec, .false., 1.0e-2, 'B_sub_theta_vmec')
-      call test_arrays(B_X * d_X_d_s + B_Y * d_Y_d_s + B_Z * d_Z_d_s, B_sub_s, .false., 1.0e-2, 'B_sub_s')
-      call test_arrays(B_X * d_X_d_zeta + B_Y * d_Y_d_zeta + B_Z * d_Z_d_zeta, B_sub_zeta, .false., 1.0e-2, 'B_sub_zeta')
+     call test_arrays(B_X * d_X_d_theta_vmec + B_Y * d_Y_d_theta_vmec + B_Z * d_Z_d_theta_vmec, B_sub_theta_vmec, .false., 1.0e-2, 'B_sub_theta_vmec', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for B_sub_theta_vmec"
+         ierr = ierr + 1
+      end if
+      call test_arrays(B_X * d_X_d_s + B_Y * d_Y_d_s + B_Z * d_Z_d_s, B_sub_s, .false., 1.0e-2, 'B_sub_s', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for B_sub_s"
+         ierr = ierr + 1
+      end if
+      call test_arrays(B_X * d_X_d_zeta + B_Y * d_Y_d_zeta + B_Z * d_Z_d_zeta, B_sub_zeta, .false., 1.0e-2, 'B_sub_zeta', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for B_sub_zeta"
+         ierr = ierr + 1
+      end if
 
-      call test_arrays(B_X * grad_s_X + B_Y * grad_s_Y + B_Z * grad_s_Z, temp2D, .true., 1.0e-2, 'B_sup_s')
-      call test_arrays(B_X * grad_zeta_X + B_Y * grad_zeta_Y + B_Z * grad_zeta_Z, B_sup_zeta, .false., 1.0e-2, 'B_sup_zeta')
-  call test_arrays(B_X * grad_theta_vmec_X + B_Y * grad_theta_vmec_Y + B_Z * grad_theta_vmec_Z, B_sup_theta_vmec, .false., 1.0e-2, 'B_sup_theta_vmec')
+      call test_arrays(B_X * grad_s_X + B_Y * grad_s_Y + B_Z * grad_s_Z, temp2D, .true., 1.0e-2, 'B_sup_s', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for B_sup_s"
+         ierr = ierr + 1
+      end if
+      call test_arrays(B_X * grad_zeta_X + B_Y * grad_zeta_Y + B_Z * grad_zeta_Z, B_sup_zeta, .false., 1.0e-2, 'B_sup_zeta', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for B_sup_zeta"
+         ierr = ierr + 1
+      end if
+      call test_arrays(B_X * grad_theta_vmec_X + B_Y * grad_theta_vmec_Y + B_Z * grad_theta_vmec_Z, B_sup_theta_vmec, .false., 1.0e-2, 'B_sup_theta_vmec', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for B_sup_theta_vmec"
+         ierr = ierr + 1
+      end if
 
       !*********************************************************************
       ! For gbdrift, we need \vect{B} cross grad |B| dot grad alpha.
@@ -1344,7 +1455,11 @@ contains
                                                 - B_Y * grad_s_X * grad_alpha_Z
 
       call test_arrays(B_cross_grad_s_dot_grad_alpha, B_cross_grad_s_dot_grad_alpha_alternate, &
-                       .false., 1.0e-2, 'B_cross_grad_s_dot_grad_alpha')
+                       .false., 1.0e-2, 'B_cross_grad_s_dot_grad_alpha', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for B_cross_grad_s_dot_grad_alpha"
+         ierr = ierr + 1
+      end if
 
       do izeta = -nzgrid, nzgrid
          B_cross_grad_B_dot_grad_alpha(:, izeta) = 0 &
@@ -1365,7 +1480,11 @@ contains
                                                 - B_Y * grad_B_X * grad_alpha_Z
 
       call test_arrays(B_cross_grad_B_dot_grad_alpha, B_cross_grad_B_dot_grad_alpha_alternate, &
-                       .false., 1.0e-2, 'B_cross_grad_B_dot_grad_alpha')
+                       .false., 1.0e-2, 'B_cross_grad_B_dot_grad_alpha', ierr2)
+      if (ierr2 /= 0) then
+         print *, "test_arrays returned error for B_cross_grad_B_dot_grad_alpha"
+         ierr = ierr + 1
+      end if
 
       !*********************************************************************
       ! Finally, assemble the quantities needed for stella.
@@ -1400,10 +1519,10 @@ contains
 !    gds22 = (grad_psi_X * grad_psi_X + grad_psi_Y * grad_psi_Y + grad_psi_Z * grad_psi_Z) &
 !         * shat * shat / (L_reference * L_reference * B_reference * B_reference * normalized_toroidal_flux_used)
 
-      ! this is (grad zeta . grad x_stella) / bmag^2 = (grad zeta . grad psitor) * dx/dpsitor / bmag^2
-      ! = (grad zeta . grad psitor) * sign_torflux/rhotor/Lref/Bref/ bmag^2
-      gradzeta_gradx = sign_toroidal_flux &
-                       * (grad_zeta_X * grad_psi_X + grad_zeta_Y * grad_psi_Y + grad_zeta_Z * grad_psi_Z) &
+      ! Define <gradzeta_gradx> = (grad zeta . grad x) / (B/Bref)^2
+      ! gradzeta_gradx = (grad zeta . grad x) / bmag^2 = (grad zeta . grad psi) * dx/dpsi / bmag^2
+      !                = (grad zeta . grad psi) / (rhotor*Lref*Bref) / bmag^2
+      gradzeta_gradx = (grad_zeta_X * grad_psi_X + grad_zeta_Y * grad_psi_Y + grad_zeta_Z * grad_psi_Z) &
                        / (L_reference * B_reference * sqrt(normalized_toroidal_flux_used) * bmag**2)
 
       ! this is (grad zeta . grad y_stella) / bmag^2 = (grad zeta . grad alpha) * dy/dalpha / bmag^2
@@ -1421,37 +1540,51 @@ contains
                          + grad_theta_pest_Z * grad_alpha_Z) &
                         * L_reference * sqrt(normalized_toroidal_flux_used) / bmag**2
 
-      ! this is psitor/|psitor|*((grad y_stella . grad zeta)*(grad x_stella . grad y_stella)
-      ! - (grad x_stella . grad zeta)*|grad y_stella|^2) / (B/Bref)^2
-      gds23 = sign_toroidal_flux * (gradzeta_grady * sign_toroidal_flux * grad_alpha_grad_psi &
-                                    - gradzeta_gradx * grad_alpha_grad_alpha * normalized_toroidal_flux_used)
-!    gds23 = sign_toroidal_flux*(gradzeta_grady * gds21/shat - gradzeta_gradx * gds2)
+      ! Define <gds23> = sgn(psi_t)/(B/Bref)^2 * [(∇y . ∇ζ) * (∇x . ∇y) - (∇x . ∇ζ) * |∇y|^2]
+      ! Use ∇x . ∇y = (dy/dα)(dx/dψ) ∇α . ∇ψ = (1/Bref) ∇α . ∇ψ = <grad_alpha_grad_psi>
+      ! Use |∇y|^2 = (dy/dα)^2 |∇α|^2 = a^2 ρ^2 |∇α|^2 = a^2 |∇α|^2 * ρ^2 = <grad_alpha_grad_alpha> * <rhotor>^2
+      ! Use (∇y . ∇ζ)/(B/Bref)^2 = <gradzeta_grady> and (∇x . ∇ζ)/(B/Bref)^2 = <gradzeta_gradx>
+      ! Use ρ = sqrt(psi_t/psi_{t,LCFS}) thus ρ^2 = s = psi_t/psi_{t,LCFS} = <normalized_toroidal_flux_used>
+      ! <gds23> = sgn(psi_t)*(gradzeta_grady*grad_alpha_grad_psi - gradzeta_gradx*grad_alpha_grad_alpha*rhotor^2)
+      gds23 = sign_toroidal_flux * (gradzeta_grady * grad_alpha_grad_psi - gradzeta_gradx * grad_alpha_grad_alpha * normalized_toroidal_flux_used)
 
-      ! this is psitor/|psitor| * ((grad y_stella . grad zeta) * |grad x_stella|^2
-      ! - (grad x_stella . grad zeta)*(grad x_stella . grad y_stella)) / (B/Bref)^2
-      gds24 = (gradzeta_grady * grad_psi_grad_psi / normalized_toroidal_flux_used &
-               - gradzeta_gradx * sign_toroidal_flux * grad_alpha_grad_psi) * sign_toroidal_flux
-!    gds24 = (gradzeta_grady * gds22/shat**2 - gradzeta_gradx * gds21/shat) * sign_toroidal_flux
+      ! Define <gds24> = sgn(psi_t)/(B/Bref)^2 * [(∇y . ∇ζ) * |∇x|^2 - (∇x . ∇ζ) * (∇x . ∇y)]
+      ! Use ∇x . ∇y = (dy/dα)(dx/dψ) ∇α . ∇ψ = (1/Bref) ∇α . ∇ψ = <grad_alpha_grad_psi>
+      ! Use |∇x|^2 = (dx/dψ)^2 |∇ψ|^2 = 1/(a^2 ρ^2 Bref^2) |∇ψ|^2 = 1/(a^2 Bref^2) |∇ψ|^2 * 1/ρ^2  = <grad_psi_grad_psi> / <rhotor>^2
+      ! Use (∇y . ∇ζ)/(B/Bref)^2 = <gradzeta_grady> and (∇x . ∇ζ)/(B/Bref)^2 = <gradzeta_gradx>
+      ! Use ρ = sqrt(psi_t/psi_{t,LCFS}) thus ρ^2 = s = psi_t/psi_{t,LCFS} = <normalized_toroidal_flux_used>
+      ! <gds24> = sgn(psi_t)*(gradzeta_grady*grad_psi_grad_psi/rhotor^2 - gradzeta_gradx*grad_alpha_grad_psi)
+      gds24 = sign_toroidal_flux * (gradzeta_grady * grad_psi_grad_psi / normalized_toroidal_flux_used - gradzeta_gradx * grad_alpha_grad_psi)
 
-      ! this is ((grad y_stella . grad theta_pest)*(grad x_stella . grad y_stella)
-      ! - (grad x_stella . grad theta_pest)*|grad y_stella|^2) / (B/Bref)^2
-      gds25 = gradtheta_grady * sign_toroidal_flux * grad_alpha_grad_psi &
-              - gradtheta_gradx * grad_alpha_grad_alpha * normalized_toroidal_flux_used
-!    gds25 = gradtheta_grady * gds21/shat - gradtheta_gradx * gds2
+      ! Define <gds25> = sgn(psi_t)/(B/Bref)^2 * [(∇y . ∇θp) * |∇x|^2 - (∇x . ∇θp) * (∇x . ∇y)]
+      ! Use ∇x . ∇y = (dy/dα)(dx/dψ) ∇α . ∇ψ = (1/Bref) ∇α . ∇ψ = <grad_alpha_grad_psi>
+      ! Use |∇y|^2 = (dy/dα)^2 |∇α|^2 = a^2 ρ^2 |∇α|^2 = a^2 |∇α|^2 * ρ^2 = <grad_alpha_grad_alpha> * <rhotor>^2
+      ! Use (∇y . ∇θp)/(B/Bref)^2 = <gradtheta_grady> and (∇x . ∇θp)/(B/Bref)^2 = <gradtheta_gradx>
+      ! Use ρ = sqrt(psi_t/psi_{t,LCFS}) thus ρ^2 = s = psi_t/psi_{t,LCFS} = <normalized_toroidal_flux_used>
+      ! <gds25> = sgn(psi_t)*(gradtheta_grady*grad_alpha_grad_psi - gradtheta_gradx*grad_alpha_grad_alpha*rhotor^2)
+      ! Note that <gds25> was wrong before 17/09/2023 (branch upgrade_clockwise_vmecs) for CCW equilibria
+      gds25 = gradtheta_grady * grad_alpha_grad_psi - gradtheta_gradx * grad_alpha_grad_alpha * normalized_toroidal_flux_used
 
-      ! this is ((grad y_stella . grad theta_pest) * |grad x_stella|^2
-      ! - (grad x_stella . grad theta_pest)*(grad x_stella . grad y_stella)) / 2 / (B/Bref)^2
-      gds26 = 0.5 * (gradtheta_grady * grad_psi_grad_psi / normalized_toroidal_flux_used &
-                     - gradtheta_gradx * sign_toroidal_flux * grad_alpha_grad_psi)
-!    gds26 = 0.5*(gradtheta_grady * gds22/shat**2 - gradtheta_gradx * gds21/shat)
+      ! Define <gds26> = 1/2 * sgn(psi_t)/(B/Bref)^2 * [(∇y . ∇θp) * |∇x|^2 - (∇x . ∇θp) * (∇x . ∇y)]
+      ! Use ∇x . ∇y = (dy/dα)(dx/dψ) ∇α . ∇ψ = (1/Bref) ∇α . ∇ψ = <grad_alpha_grad_psi>
+      ! Use |∇x|^2 = (dx/dψ)^2 |∇ψ|^2 = 1/(a^2 ρ^2 Bref^2) |∇ψ|^2 = 1/(a^2 Bref^2) |∇ψ|^2 * 1/ρ^2  = <grad_psi_grad_psi> / <rhotor>^2
+      ! Use (∇y . ∇θp)/(B/Bref)^2 = <gradtheta_grady> and (∇x . ∇θp)/(B/Bref)^2 = <gradtheta_gradx>
+      ! Use ρ = sqrt(psi_t/psi_{t,LCFS}) thus ρ^2 = s = psi_t/psi_{t,LCFS} = <normalized_toroidal_flux_used>
+      ! <gds26> = 0.5*sgn(psi_t)*(gradtheta_grady*grad_psi_grad_psi/rhotor^2 - gradtheta_gradx*grad_alpha_grad_psi)
+      ! Note that <gds26> was wrong before 17/09/2023 (branch upgrade_clockwise_vmecs) for CCW equilibria
+      gds26 = 0.5 * (gradtheta_grady * grad_psi_grad_psi / normalized_toroidal_flux_used - gradtheta_gradx * grad_alpha_grad_psi)
 
       gbdrift_alpha = 2 * B_reference * L_reference * L_reference * B_cross_grad_B_dot_grad_alpha &
                       / (B * B * B)
 !    gbdrift = 2 * B_reference * L_reference * L_reference * sqrt_s * B_cross_grad_B_dot_grad_alpha &
 
-      gbdrift0_psi = -edge_toroidal_flux_over_2pi &
-                     * (B_sub_theta_vmec * d_B_d_zeta - B_sub_zeta * d_B_d_theta_vmec) / sqrt_g &
-                     * 2 * shat / (B * B * B)
+      ! Define <gbdrift0_psi> = hat{s} * (2/B^3) * B x ∇B · ∇ψ
+      ! Use hat{s} * (2/B^3) = 2 * shat / (B * B * B)
+      ! Use B x ∇B · ∇ψ = psi_LCFS / sqrt(g) * ( ∂B/∂ζ * Btheta - ∂B/∂θ * Bzeta )
+      ! Use psi_LCFS = sgn(psi_t) * psi_{t,LCFS} = <sign_toroidal_flux> * <edge_toroidal_flux_over_2pi>
+      gbdrift0_psi = sign_toroidal_flux * edge_toroidal_flux_over_2pi * (B_sub_theta_vmec * d_B_d_zeta &
+                                                                         - B_sub_zeta * d_B_d_theta_vmec) / sqrt_g * 2 * shat / (B * B * B)
+
 !    gbdrift0 = (B_sub_theta_vmec * d_B_d_zeta - B_sub_zeta * d_B_d_theta_vmec) / sqrt_g * edge_toroidal_flux_over_2pi &
 !    gbdrift0 = abs(edge_toroidal_flux_over_2pi) &
 !         * (B_sub_theta_vmec * d_B_d_zeta - B_sub_zeta * d_B_d_theta_vmec) / sqrt_g &
@@ -1568,7 +1701,7 @@ contains
 
    contains
 
-      subroutine test_arrays(array1, array2, should_be_0, tolerance, name)
+      subroutine test_arrays(array1, array2, should_be_0, tolerance, name, ierr)
          ! This subroutine is used for verifying the geometry arrays.
          ! When should_be_0 = .true., the subroutine verifies that |array1| = 0 to within
          !     an absolute tolerance specified by 'tolerance'. array2 is ignored in this case.
@@ -1582,21 +1715,24 @@ contains
          character(len=*) :: name
          logical :: should_be_0
          real :: max_value, max_difference
+         integer, intent(out) :: ierr
 
+         ierr = 0
          if (should_be_0) then
             max_value = maxval(abs(array1))
 !         if (verbose) print *,"  maxval(abs(",trim(name),")):",max_value,"(should be << 1.)"
             if (max_value > tolerance) then
+               ierr = 1
                print *, "Error! ", trim(name), " should be 0, but instead it is:"
                do ialpha = 1, nalpha
                   print *, array1(ialpha, :)
                end do
-               stop
             end if
          else
             max_difference = maxval(abs(array1 - array2)) / maxval(abs(array1) + abs(array2))
 !         if (verbose) print *,"  Relative difference between two methods for computing ",trim(name),":",max_difference,"(should be << 1.)"
             if (max_difference > tolerance) then
+               ierr = 1
                print *, "Error! Two methods for computing ", trim(name), " disagree. Here comes method 1:"
                do ialpha = 1, nalpha
                   print *, array1(ialpha, :)
@@ -1609,7 +1745,6 @@ contains
                do ialpha = 1, nalpha
                   print *, array1(ialpha, :) - array2(ialpha, :)
                end do
-               stop
             end if
          end if
 

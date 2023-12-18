@@ -110,7 +110,7 @@ contains
    subroutine ginit(restarted, istep0)
 
       use stella_save, only: init_tstart
-      use physics_flags, only: full_flux_surface
+      use run_parameters, only: maxwellian_normalization
 
       logical, intent(out) :: restarted
       integer, intent(out) :: istep0
@@ -140,9 +140,9 @@ contains
 !       call ginit_kxtest
       end select
 
-      !> if simulating a full flux surface, g is normalized by F0 (which is not the case otherwise)
+      !> if maxwwellian_normalization = .true., the pdf is normalized by F0 (which is not the case otherwise)
       !> unless reading in g from a restart file, normalise g by F0 for a full flux surface simulation
-      if (full_flux_surface .and. ginitopt_switch /= ginitopt_restart_many) then
+      if (maxwellian_normalization .and. ginitopt_switch /= ginitopt_restart_many) then
          call normalize_by_maxwellian
       end if
 
@@ -450,6 +450,7 @@ contains
       use mp, only: scope, crossdomprocs, subprocs
       use file_utils, only: runtype_option_switch, runtype_multibox
       use physics_flags, only: nonlinear
+      use stella_geometry, only: sign_torflux
       use ran
 
       implicit none
@@ -491,8 +492,10 @@ contains
             do iky = 1, naky
                do it = 1, ntubes
                   do iz = -nzgrid, nzgrid
+
+                     ! For the same rng-seed, the <-sign_torflux> will make the time trace of CCW and CW more similar
                      a = ranf() - 0.5
-                     b = ranf() - 0.5
+                     b = -sign_torflux * (ranf() - 0.5)
                      ! do not populate high k modes with large amplitudes
                      if ((ikx > 1 .or. iky > 1) .and. (kperp2(iky, ikx, ia, iz) >= kmin)) then
                         !the following as an extra factor of kmin to offset the Gamma-1 in quasineutrality
@@ -667,6 +670,8 @@ contains
 
       ia = 1
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         ! only set the first ky mode to be non-zero
+         ! this is because this is meant to test the damping of zonal flow (ky=0)
          iky = iky_idx(kxkyz_lo, ikxkyz); if (iky /= 1) cycle
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
          iz = iz_idx(kxkyz_lo, ikxkyz)

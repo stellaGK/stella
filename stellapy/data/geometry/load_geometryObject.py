@@ -1,7 +1,6 @@
  
+import os
 import numpy as np
-import configparser
-import os, h5py, pathlib
 from stellapy.data.geometry.read_wout import get_woutData, get_woutDataExtra 
 from stellapy.data.geometry.read_output import get_outputData
 from stellapy.data.geometry.read_geometry import get_geometryData
@@ -52,12 +51,6 @@ class Geometry:
     def qinp(self):         get_geometryData(self);          return self.qinp  
     @calculate_attributeWhenReadFirstTime 
     def rhotor(self):       get_geometryData(self);          return self.rhotor 
-    
-    # Basic geometry arrays in *.geometry
-    @calculate_attributeWhenReadFirstTime 
-    def zeta(self):         get_geometryData(self);         return self.zeta
-    @calculate_attributeWhenReadFirstTime 
-    def gbdrift(self):      get_geometryData(self);         return self.gbdrift
     
     # Extra geometry scalars in *.geometry
     @calculate_attributeWhenReadFirstTime 
@@ -142,182 +135,7 @@ class Geometry:
 #===============================================================================
 
 def load_geometryObject(self): 
-    
-    # Add the geometry for a simulation
-    if self.object=="Simulation":
-        self.geometry = Geometry(self)
-        return
-        
-    # For a linear simulation, add the geometry per mode. Since most geometries are
-    # identical, only read each unique geometry once (self==mode)
-    if self.object=="Mode":
-        load_onlyReferenceGeometries(self)
-        return
+    self.geometry = Geometry(self)
+    return
 
-def load_geometryObjectDirectly(self):  
-    self.geometry = Geometry(self)  
-     
-#===============================================================================
-#                          LOAD REFERENCE GEOMETRIES                           #
-#===============================================================================
 
-def load_onlyReferenceGeometries(self):
-    """ Load a geometry object for each unique geometry. """
-    
-    # Initialize
-    reference_geometries = {}
-    
-    # Only read one geometry per unique geometry
-    for imode, mode in enumerate(self.simulation.modes): 
-        
-        # If the geometry is already read, create a reference to the existing geometry
-        if mode.path.geometry in self.simulation.path.loaded_geometries: 
-            mode.geometry = self.simulation.modes[reference_geometries[mode.path.geometry]].geometry
-            mode.geometry.path = mode.path
-            
-        # If the geometry isn't read, read it now
-        if mode.path.geometry not in self.simulation.path.loaded_geometries:
-            self.simulation.path.loaded_geometries.append(mode.path.geometry) 
-            reference_geometries[mode.path.geometry] = imode
-            mode.geometry = Geometry(mode)  
-    return  
-
-#-----------------------------------
-def read_uniqueGeometries(path):  
-
-    # Make sure we have the overview of unique geometries 
-    path_of_reference_geometries = path.folder / (path.name + ".list.geometries.ini")
-    if not os.path.isfile(path_of_reference_geometries):
-        from stellapy.data.geometry.write_h5FileForGeometry import write_h5FileForGeometry 
-        write_h5FileForGeometry(path.folder)
-        
-    # Read the overview of unique geometries
-    list_of_reference_geometries = configparser.ConfigParser()
-    list_of_reference_geometries.read(path_of_reference_geometries)
-    
-    # Get the identifier of each reference geometry: "Geometry X"
-    ids_of_reference_geometries = sorted([ g for g in list_of_reference_geometries.keys() if "Geometry " in g]) 
-    return list_of_reference_geometries, ids_of_reference_geometries
-
-#-----------------------------------
-def find_referenceGeometry(path, mode, list_of_reference_geometries, ids_of_reference_geometries):
-    
-    # Initiate 
-    reference_geometry_path = None
-    
-    # If it is written on marconi, translate to local paths
-    for i in ids_of_reference_geometries:
-        for key in list_of_reference_geometries[i].keys():
-            if 'marconi' in list_of_reference_geometries[i][key]:   
-                list_of_reference_geometries[i][key] = str(path.folder)+"/"+(list_of_reference_geometries[i][key].split("/"+path.folder.name+"/")[-1])
-            elif '/mnt/lustre/' in list_of_reference_geometries[i][key]:   
-                list_of_reference_geometries[i][key] = str(path.folder)+"/"+(list_of_reference_geometries[i][key].split("/"+path.folder.name+"/")[-1])
-            else:
-                break  
-            
-    # Iterate through the reference geometies to find <input_file>
-    for reference_geometry_id in ids_of_reference_geometries:    
-        if str(mode.input_file) in list_of_reference_geometries[reference_geometry_id].values():   
-            reference_geometry_path = path.folder / (path.name + ".unique.geometry" + reference_geometry_id.split("Geometry ")[-1])
-            break
-        
-    # Return the reference geometry and the path to the file
-    if reference_geometry_path==None:
-        print("\n      Couldn't find the reference geometry for:")
-        print("             ", mode.input_file, "\n")  
-        import sys; sys.exit()
-    return reference_geometry_path
-    
-#===============================================================================
-#                           SAVE THE GEOMETRY OBJECT                           #
-#===============================================================================
-# Replace the "*.geometry", "*.vmec_geo" and "wout*.nc" files with a "*.geo.h5" file.
-
-def save_geometryObject(simulation):
-    
-    # Load all the geometry data  
-    simulation.geometry = Geometry(simulation)  
-    simulation.geometry.load_data()
-    
-    # Save the relevant input parameters
-    for knob in ["geo_knobs", "vmec_parameters", "zgrid_parameters", "millergeo_parameters", "vpamu_grids_parameters"]: 
-        setattr(simulation.geometry, knob, type('knob', (object,), {})) 
-        for key, value in simulation.input.inputParameters[knob].items():
-            setattr(getattr(simulation.geometry, knob), key, value) 
-
-    # Check whether we succeeded in loading the data
-    if np.isnan(simulation.geometry.jacob[0]):
-        print("    ---> The geometry data could not be found for:")
-        print("             ", simulation.input_file)
-        import sys; sys.exit()
-    
-    # Save the geometry data to the "*.geo.h5" file  
-    with h5py.File(simulation.path.geometry, 'w') as f:
-        for key, value in vars(simulation.geometry).items():  
-            if key not in ["path", "geo_knobs", "vmec_parameters", "zgrid_parameters", "millergeo_parameters", "vpamu_grids_parameters"]:  
-                f.create_dataset(key, data=value) 
-            elif key in ["geo_knobs", "vmec_parameters", "zgrid_parameters", "millergeo_parameters", "vpamu_grids_parameters"]:  
-                knob = key; knob_group = f.create_group(knob) 
-                for key, value in vars(getattr(simulation.geometry, knob)).items(): 
-                    if "__" not in key:
-                        if value==None: value = "None"
-                        knob_group.create_dataset(key, data=value) 
-                       
-    # Track progress
-    print("    ----> Saved the geometry file as " + simulation.path.geometry.name)  
-    return 
-
-#----------------------------
-def read_geometryObject(input_file):
-    geometry_file = input_file.with_suffix(".geo.h5") 
-    geometry = Geometry(type('obj', (object,), {'input_files' : [input_file]}) ) 
-    with h5py.File(geometry_file, 'r') as f:
-        for key in f.keys():
-            if key not in ["geo_knobs", "vmec_parameters", "zgrid_parameters", "millergeo_parameters", "vpamu_grids_parameters"]:  
-                setattr(geometry, key, f[key].value) 
-            elif key in ["geo_knobs", "vmec_parameters", "zgrid_parameters", "millergeo_parameters", "vpamu_grids_parameters"]:  
-                knob = key
-                for key in getattr(f, knob).keys(): 
-                    value = f[key].value if (f[key].value!="None") else None
-                    setattr(getattr(geometry, knob), key, value) 
-    
-################################################################################
-#                     USE THESE FUNCTIONS AS A MAIN SCRIPT                     #
-################################################################################
-if __name__ == "__main__":  
-    
-    from stellapy.simulations.Simulation import create_simulations
-    import copy, timeit; start = timeit.timeit()
-
-    folder = pathlib.Path("/home/hanne/CIEMAT/PREVIOUSRUNS/LINEARMAPS/W7Xstandard_rho0.7_aLTe0/ResolutionScan/fprim4tprim4_ky1.5/nmu") 
-    folder = pathlib.Path("/home/hanne/CIEMAT/PREVIOUSRUNS/LINEARMAPS/W7Xstandard_rho0.7_aLTe0/LinearMap/fprim4tprim4")      
-    folder = pathlib.Path("/home/hanne/CIEMAT/PREVIOUSRUNS/LINEARMAPS/W7Xstandard_rho0.7_aLTe0/ResolutionScan/fprim4tprim4_ky1.5/nzed") 
-    print("CREATE SIMULATIONS")
-    simulations = create_simulations(folders=folder, input_files=None, ignore_resolution=True, number_variedVariables=5)
-    print("We have "+str(len(simulations))+" simulations. Test whether we have") 
-    print("references to the data instead of copies.")
-    for simulation in simulations:
-        print("\nSimulation:", simulation.id)  
-        b0_test = copy.deepcopy(simulation.modes[0].geometry.b0) 
-        zeta_test = copy.deepcopy(simulation.modes[0].geometry.zeta) 
-        jacob_test = copy.deepcopy(simulation.modes[0].geometry.jacob) 
-        jtwist_test = copy.deepcopy(simulation.modes[0].geometry.jtwist)  
-        for mode in simulation.modes: 
-            b0 = mode.geometry.b0
-            zeta = mode.geometry.zeta
-            jacob = mode.geometry.jacob 
-            jtwist = mode.geometry.jtwist 
-            reference_test1f = b0 is b0_test
-            reference_test2f = zeta is zeta_test
-            reference_test3f = jacob is jacob_test
-            reference_test4f = jtwist is jtwist_test
-            reference_test1 = b0 is simulation.modes[0].geometry.b0
-            reference_test2 = zeta is simulation.modes[0].geometry.zeta
-            reference_test3 = jacob is simulation.modes[0].geometry.jacob
-            reference_test4 = jtwist is simulation.modes[0].geometry.jtwist 
-            name = "("+str(mode.kx)+", "+str(mode.ky)+")" 
-            print("{:<15}".format(name), len(mode.geometry.zeta), mode.path.geometry.name, " References:", reference_test1, reference_test2, reference_test3, reference_test4,\
-                                             "   TEST:", reference_test1f, reference_test2f, reference_test3f, reference_test4f) 
-
-        
-        

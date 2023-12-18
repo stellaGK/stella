@@ -46,6 +46,7 @@ set(STELLA_SOURCES_f90
   flow_shear.f90
   g_tofrom_h.f90
   gyro_averages.f90
+  implicit_solve.f90
   init_g.f90
   kt_grids.f90
   mirror_terms.f90

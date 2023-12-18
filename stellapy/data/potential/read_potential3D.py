@@ -22,10 +22,6 @@ def read_potential3D(path):
     if os.path.isfile(path.potential3D):
         return read_fromPotentialFile(path.potential3D)    
     
-    # This file doesn't exist for old simulations
-    else:  
-        return read_fromH5File(path)
-    
     # Critical error if we didn't find any data
     exit_reason = "The potential data could not be found."
     exit_program(exit_reason, read_potential3D, sys._getframe().f_lineno)   
@@ -40,25 +36,6 @@ def read_fromPotentialFile(path):
                 if key+extra in f.keys():   
                     potential[key+extra] = f[key+extra][()]  
     return potential 
-
-#===============================================================================
-#                            READ FROM OLD H5 FILE                             #
-#===============================================================================
-
-def read_fromH5File(path):  
-    potential_data={} 
-    with h5py.File(path.output, 'r') as f:    
-        potential_data["vec_time"] = f["vec_time"][()]
-        potential_data["phi_vs_tz"] = f["phi_vs_tzri"][()][:,:,0]+1j*f["phi_vs_tzri"][()][:,:,1]
-        potential_data["phi_vs_tz_zonal"] = f["phi_vs_tzri_zonal"][()][:,:,0]+1j*f["phi_vs_tzri_zonal"][()][:,:,1]
-        potential_data["phi_vs_tz_nozonal"] = f["phi_vs_tzri_nozonal"][()][:,:,0]+1j*f["phi_vs_tzri_nozonal"][()][:,:,1]  
-        potential_data["phi2_vs_tz"] = np.ones((np.shape(potential_data["phi_vs_tz"])))*np.nan
-        potential_data["phi2_vs_tz_zonal"] = np.ones((np.shape(potential_data["phi_vs_tz"])))*np.nan
-        potential_data["phi2_vs_tz_nozonal"] = np.ones((np.shape(potential_data["phi_vs_tz"])))*np.nan
-        phi2_vs_tkxky = f["phi2_vs_kxky"][()] if ("phi2_vs_kxky" in f.keys()) else f["phi2_vs_tkxky"][()]  
-        potential_data["phi2_vs_tkx"] = phi2_vs_tkxky[:,:,0] + 2*np.sum(phi2_vs_tkxky[:,:,1:],axis=2)  
-        potential_data["phi2_vs_tky"] = np.sum(phi2_vs_tkxky[:,:,:],axis=1)  
-    return potential_data
 
 #===============================================================================
 #                  ATTACH THE POTENTIAL TO THE SIMULATION OBJECT                 #

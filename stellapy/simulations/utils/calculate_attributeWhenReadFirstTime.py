@@ -1,3 +1,4 @@
+
 import functools
 
 class calculate_attributeWhenReadFirstTime(object):

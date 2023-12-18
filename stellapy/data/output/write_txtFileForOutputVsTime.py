@@ -9,7 +9,7 @@ from stellapy.utils.files.get_filesInFolder import get_filesInFolder
 #     > reduce_sizeoutes -t 1
 #===============================================================================
 
-def write_txtFileForOutputVsTime(folder, dt=1):
+def write_txtFileForOutputVsTime(folder, dt=1, verbose=False):
     
     # Time step
     dt = int(dt) if int(dt)==dt else dt    
@@ -112,6 +112,6 @@ def write_txtFileForOutputVsTime(folder, dt=1):
                 print(status+"Something went wrong writing the out(t) file:", new_file.parent.name+"/"+new_file.name)      
             
         else: 
-            print(status+"The out(t) file already exists:", new_file.parent.name+"/"+new_file.name)
+            if verbose: print(status+"The out(t) file already exists:", new_file.parent.name+"/"+new_file.name)
     
     return

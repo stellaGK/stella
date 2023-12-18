@@ -1,10 +1,47 @@
+""" 
 
+#===============================================================================
+#                        Create the <dimensions> object                        #
+#===============================================================================   
+
+Attach the dimensions of the simulation to a <dimension> object. 
+
+Thanks to the "calculate_attributeWhenReadFirstTime" wrapper, the <dimension> 
+attributes will not be loaded/read/calculated until they have been requested.
+
+Attributes
+----------
+    dim_x = simulation.dim.x
+    dim_y = simulation.dim.y
+    dim_z = simulation.dim.z
+    dim_kx = simulation.dim.kx
+    dim_ky = simulation.dim.ky
+    dim_mu = simulation.dim.mu
+    dim_vpa = simulation.dim.vpa
+    dim_time = simulation.dim.time
+    dim_species = simulation.dim.species 
+    
+Note that if multiple linear simulations have been combined, dim_time represents
+the maximum of the time dimensions of the individual simulations.
+
+Hanne Thienpondt
+20/01/2023
+
+"""
+
+#!/usr/bin/python3
+import os, sys
+import pathlib
+
+# Stellapy package
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)  
 from stellapy.data.utils.calculate_attributeWhenReadFirstTime import calculate_attributeWhenReadFirstTime
-from stellapy.data.dimensions.get_dimensionsAndVectors import get_dimensionsAndVectors as get_dimensions
+from stellapy.data.dimensions.read_dimensionsAndVectors import get_dimensionsAndVectors as get_dimensions
+from stellapy.data.dimensions.calculate_xyGrid import get_xyGrid
 
 #===============================================================================
-#                      CREATE THE DIMENSIONS OBJECT
-#===============================================================================
+#                        Create the <dimensions> object                        #
+#===============================================================================   
        
 class Dimensions:
     
@@ -16,10 +53,8 @@ class Dimensions:
         self.dim = self  
         
         # Be able to show the reading progress
-        self.simulation = simulation if simulation.object=="Simulation" else simulation.simulation
-        self.mode = None if simulation.object=="Simulation" else simulation
-        self.Progress = simulation.Progress
-        self.object = simulation.object
+        self.simulation = simulation   
+        self.Progress = simulation.Progress 
         return
         
     # The dimension and vector objects are filled at the same time    
@@ -42,61 +77,16 @@ class Dimensions:
     @calculate_attributeWhenReadFirstTime 
     def species(self):      get_dimensions(self);     return self.species  
     
+    # Read the real space dimensions
+    @calculate_attributeWhenReadFirstTime 
+    def x(self):            get_xyGrid(self);         return self.x
+    @calculate_attributeWhenReadFirstTime 
+    def y(self):            get_xyGrid(self);         return self.y
 
 #-------------------------- 
-def load_dimensionsObject(self): 
-    
-    # Add the dimensions for a simulation
-    if self.object=="Simulation": 
-        self.dim = Dimensions(self)
-        self.dim.linkToVector(self)
-        return 
-    
-    # For a linear simulation, add the input per mode. Since most inputs are
-    # identical, only read each unique input once (self==mode)
-    if self.object=="Mode":
-        load_onlyReferenceDimensions(self) 
-        return 
-
-#-------------------------- 
-def load_onlyReferenceDimensions(self): 
-    
-    # Initialize 
-    loaded_list=[]
-    loaded_dimensions={}
-
-    # Only read sets of vectors/dimensions per unique input
-    for imode, mode in enumerate(self.simulation.modes): 
-        
-        # If the input is already read, create a reference to the existing input
-        if mode.path.input in loaded_list:   
-            mode.dim = self.simulation.modes[loaded_dimensions[mode.path.input]].dim
-        if mode.path.input not in loaded_list:
-            loaded_list.append(mode.path.input) 
-            loaded_dimensions[mode.path.input] = imode
-            mode.dim = Dimensions(mode)  
-            mode.dim.linkToVector(mode)   
-            
-    # Clean up the namespace
-    del loaded_dimensions
-    del loaded_list 
-    return
-    
-################################################################################
-#                     USE THESE FUNCTIONS AS A MAIN SCRIPT                     #
-################################################################################
-if __name__ == "__main__":  
-    
-    import pathlib
-    from stellapy.simulations.Simulation import create_simulations 
-    folder = pathlib.Path("/home/hanne/CIEMAT/PREVIOUSRUNS/LINEARMAPS/W7Xstandard_rho0.7_aLTe0/LinearMap/fprim4tprim4") 
-    folder = pathlib.Path("/home/hanne/CIEMAT/RUNS/TEST_NEW_GUI")    
-    simulations = create_simulations(folders=folder, ignore_resolution=True, number_variedVariables=5)
-    print("We have "+str(len(simulations))+" simulations") 
-    print("Test the Dimensions class.\n")
-    for simulation in simulations:  
-        for mode in simulation.modes:  
-            name = "("+str(mode.kx)+", "+str(mode.ky)+")"  
-            print("{:<15}".format(name), mode.dim.z, mode.dim.species, mode.vec.z[:3]) 
+def load_dimensionsObject(self):  
+    self.dim = Dimensions(self)
+    self.dim.linkToVector(self) 
+    return 
 
 

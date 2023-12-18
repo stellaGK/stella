@@ -1,5 +1,11 @@
+#!/usr/bin/python3  
+import sys, os   
+import pathlib 
 
+# Stellapy package
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)  
 from stellapy.data.utils.calculate_attributeWhenReadFirstTime import calculate_attributeWhenReadFirstTime
+from stellapy.data.fluxes.read_fluxesVsZ import get_fluxesVsZ
 from stellapy.data.fluxes.read_fluxesFile import get_fluxes 
 from stellapy.data.fluxes.read_fluxes3D import get_fluxes3D
 from stellapy.data.fluxes.read_fluxes4D import get_fluxes4D
@@ -16,7 +22,7 @@ class Fluxes:
         # Remember the file paths and the progress
         self.path = simulation.path 
         self.Progress = simulation.Progress
-        self.simulation = simulation if simulation.object=="Simulation" else simulation.simulation
+        self.simulation = simulation  
         
         # Remember the dimensions and vectors
         self.dim = simulation.dim 
@@ -31,65 +37,55 @@ class Fluxes:
 
     # Read the fluxes data
     @calculate_attributeWhenReadFirstTime 
-    def date(self):           get_fluxes(self);      return self.date
+    def date(self):                 get_fluxes(self);      return self.date
     @calculate_attributeWhenReadFirstTime 
-    def dim_time(self):       get_fluxes(self);      return self.dim_time 
+    def dim_time(self):             get_fluxes(self);      return self.dim_time 
     @calculate_attributeWhenReadFirstTime 
-    def pflux_vs_ts(self):    get_fluxes(self);      return self.pflux_vs_ts
+    def pflux_vs_ts(self):          get_fluxes(self);      return self.pflux_vs_ts
     @calculate_attributeWhenReadFirstTime 
-    def qflux_vs_ts(self):    get_fluxes(self);      return self.qflux_vs_ts
+    def qflux_vs_ts(self):          get_fluxes(self);      return self.qflux_vs_ts
     @calculate_attributeWhenReadFirstTime  
-    def vflux_vs_ts(self):    get_fluxes(self);      return self.vflux_vs_ts  
+    def vflux_vs_ts(self):          get_fluxes(self);      return self.vflux_vs_ts  
     
     # Get the 3D fluxes data 
     @calculate_attributeWhenReadFirstTime 
-    def qflux_vs_tskx(self):  get_fluxes3D(self);          return self.qflux_vs_tskx
+    def qflux_vs_tskx(self):        get_fluxes3D(self);          return self.qflux_vs_tskx
     @calculate_attributeWhenReadFirstTime 
-    def pflux_vs_tskx(self):  get_fluxes3D(self);          return self.pflux_vs_tskx
+    def pflux_vs_tskx(self):        get_fluxes3D(self);          return self.pflux_vs_tskx
     @calculate_attributeWhenReadFirstTime 
-    def vflux_vs_tskx(self):  get_fluxes3D(self);          return self.vflux_vs_tskx
+    def vflux_vs_tskx(self):        get_fluxes3D(self);          return self.vflux_vs_tskx
     @calculate_attributeWhenReadFirstTime 
-    def qflux_vs_tsky(self):  get_fluxes3D(self);          return self.qflux_vs_tsky
+    def qflux_vs_tsky(self):        get_fluxes3D(self);          return self.qflux_vs_tsky
     @calculate_attributeWhenReadFirstTime 
-    def pflux_vs_tsky(self):  get_fluxes3D(self);          return self.pflux_vs_tsky
+    def pflux_vs_tsky(self):        get_fluxes3D(self);          return self.pflux_vs_tsky
     @calculate_attributeWhenReadFirstTime 
-    def vflux_vs_tsky(self):  get_fluxes3D(self);          return self.vflux_vs_tsky
+    def vflux_vs_tsky(self):        get_fluxes3D(self);          return self.vflux_vs_tsky
     @calculate_attributeWhenReadFirstTime 
-    def qflux_vs_tsz(self):   get_fluxes3D(self);          return self.qflux_vs_tsz
+    def qflux_vs_tsz(self):         get_fluxes3D(self);          return self.qflux_vs_tsz
     @calculate_attributeWhenReadFirstTime 
-    def pflux_vs_tsz(self):   get_fluxes3D(self);          return self.pflux_vs_tsz
+    def pflux_vs_tsz(self):         get_fluxes3D(self);          return self.pflux_vs_tsz
     @calculate_attributeWhenReadFirstTime 
-    def vflux_vs_tsz(self):   get_fluxes3D(self);          return self.vflux_vs_tsz
+    def vflux_vs_tsz(self):         get_fluxes3D(self);          return self.vflux_vs_tsz
     
     # Get the 4D fluxes data 
     @calculate_attributeWhenReadFirstTime 
-    def qflux_vs_tskxky(self):  get_fluxes4D(self);          return self.qflux_vs_tskxky
+    def qflux_vs_tskxky(self):      get_fluxes4D(self);          return self.qflux_vs_tskxky
     @calculate_attributeWhenReadFirstTime 
-    def pflux_vs_tskxky(self):  get_fluxes4D(self);          return self.pflux_vs_tskxky
+    def pflux_vs_tskxky(self):      get_fluxes4D(self);          return self.pflux_vs_tskxky
     @calculate_attributeWhenReadFirstTime 
-    def vflux_vs_tskxky(self):  get_fluxes4D(self);          return self.vflux_vs_tskxky
+    def vflux_vs_tskxky(self):      get_fluxes4D(self);          return self.vflux_vs_tskxky
+    
+    # Get the 4D linear fluxes data (at last time step)
+    @calculate_attributeWhenReadFirstTime 
+    def phi2_vs_zkxky(self):        get_fluxesVsZ(self);            return self.phi2_vs_zkxky 
+    @calculate_attributeWhenReadFirstTime 
+    def qflux_vs_szkxky(self):      get_fluxesVsZ(self);            return self.qflux_vs_szkxky 
+    @calculate_attributeWhenReadFirstTime 
+    def pflux_vs_szkxky(self):      get_fluxesVsZ(self);            return self.pflux_vs_szkxky 
+    @calculate_attributeWhenReadFirstTime 
+    def vflux_vs_szkxky(self):      get_fluxesVsZ(self);            return self.vflux_vs_szkxky 
     
 #-------------------------
 def load_fluxesObject(self):
     self.fluxes = Fluxes(self)
     return
-
-
-################################################################################
-#                     USE THESE FUNCTIONS AS A MAIN SCRIPT                     #
-################################################################################
-if __name__ == "__main__":  
-    
-    from stellapy.simulations.Simulation import create_simulations
-    import timeit, pathlib; start = timeit.timeit()
-    
-    folder = pathlib.Path("/home/hanne/CIEMAT/PREVIOUSRUNS/LINEARMAPS/W7Xstandard_rho0.7_aLTe0/LinearMap/fprim4tprim4")   
-    folder = pathlib.Path("/home/hanne/CIEMAT/RUNS/TEST_NEW_GUI")    
-    simulations = create_simulations(folders=folder, input_files=None, ignore_resolution=True, number_variedVariables=5) 
-    print("\nWe have "+str(len(simulations))+" simulations.") 
-    print("Test the Fluxes class.\n")
-    for simulation in simulations: 
-        for mode in simulation.modes:   
-            name = "("+str(mode.kx)+", "+str(mode.ky)+")"   
-            qflux = mode.fluxes.qflux_vs_ts[:,0]
-            print("{:<15}".format(name), qflux[:3], qflux[-3:]) 

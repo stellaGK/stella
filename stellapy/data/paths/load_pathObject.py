@@ -1,13 +1,18 @@
  
+#!/usr/bin/python3   
+import sys, os
 import numpy as np 
-import os, pathlib, h5py
+import pathlib, h5py
 from scipy.io import netcdf as scnetcdf   
+from stellapy.data.input.write_listOfMatchingInputFiles import read_inputFilesInDummyInputFile
+
+# Stellapy package
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep)    
+from stellapy.data.utils.calculate_attributeWhenReadFirstTime import calculate_attributeWhenReadFirstTime   
+from stellapy.data.input.read_inputFile import read_svalueFromInputFile,\
+    read_numberOfModesFromInputFile, read_modeFromInputFile
+from stellapy.utils.files.get_filesInFolder import get_filesInFolder   
 from stellapy.utils.config import CONFIG
-from stellapy.utils.files.get_filesInFolder import get_filesInFolder 
-from stellapy.data.input.load_inputObject import read_uniqueInputs, find_referenceInput
-from stellapy.data.geometry.load_geometryObject import read_uniqueGeometries, find_referenceGeometry
-from stellapy.data.utils.calculate_attributeWhenReadFirstTime import calculate_attributeWhenReadFirstTime  
-from stellapy.data.input.read_inputFile import read_svalueFromInputFile
 
 #===============================================================================
 #                           CREATE THE PATHS OBJECT                            #
@@ -24,8 +29,8 @@ from stellapy.data.input.read_inputFile import read_svalueFromInputFile
 #    *.dt10.potential3D        potential3D         h5    (phi_vs_tz_zonal, phi_vs_tz_nozonal, phi_vs_tz, phi2_vs_tz)
 #    *.dt10.potential4D        potential4D         h5    (phi2_vs_tkxky, phi_vs_tkxky)
 #    *.dt10.potential5D        potential5D         h5    (phi_tzkxky)
-#    *.dt10.distribution3D     distribution3D      h5    (g_vs_tsz, g_vs_tsmu, g_vs_tsvpa)
-#    *.dt10.distribution4D     distribution4D      h5    (g_vs_tsmuvpa, g_vs_tsvpaz)
+#    *.dt10.distribution3D     distribution3D      h5    (g2_vs_tsz, g2_vs_tsmu, g2_vs_tsvpa)
+#    *.dt10.distribution4D     distribution4D      h5    (g2_vs_tsmuvpa, g2_vs_tsvpaz)
 #    *.dt10.fluxes_vs_t        fluxes              txt   (pflux_vs_ts, ...) 
 #    *.dt10.phi_vs_t           phi_vs_t            txt   (phi_vs_t, phi2_vs_t)
 #
@@ -47,12 +52,12 @@ from stellapy.data.input.read_inputFile import read_svalueFromInputFile
 #    *.dt10.dphiz_vs_t         dphiz_vs_t          txt    (dphiz_vs_t)
 #    *.dt10.potential3D        potential3D         h5     (phi_vs_tz, phi2_vs_tz)
 #
-#    *.g_vs_z                  g_vs_z              txt    (g_vs_sz)
-#    *.g_vs_mu                 g_vs_mu             txt    (g_vs_smu)
-#    *.g_vs_vpa                g_vs_vpa            txt    (g_vs_svpa) 
-#    *.dt10.g_vs_t             g_vs_t              txt    (g_vs_st)  
-#    *.dt10.distribution3D     distribution        h5     (g_vs_tsmu, g_vs_tsvpa)
-#    *.dt10.distribution4D     distribution        h5     (g_vs_tsmuvpa)
+#    *.g2_vs_z                  g2_vs_z              txt    (g2_vs_sz)
+#    *.g2_vs_mu                 g2_vs_mu             txt    (g2_vs_smu)
+#    *.g2_vs_vpa                g2_vs_vpa            txt    (g2_vs_svpa) 
+#    *.dt10.g2_vs_t             g2_vs_t              txt    (g2_vs_st)  
+#    *.dt10.distribution3D     distribution        h5     (g2_vs_tsmu, g2_vs_tsvpa)
+#    *.dt10.distribution4D     distribution        h5     (g2_vs_tsmuvpa)
 #
 #
 # Stella outputs the following files:
@@ -80,20 +85,11 @@ class Paths:
     # Save the paths of all the data files corresponding to <simulation>
     def __init__(self, simulation): 
         
-        # Remember the parent simulation and its input file  
-        self.simulation = simulation if simulation.object=="Simulation" else simulation.simulation
-        
-        # Get the input file
-        if simulation.object=="Simulation":
-            if simulation.linear:       self.input_file = simulation.modes[0].input_file
-            if simulation.nonlinear:    self.input_file = simulation.input_file 
-        if simulation.object=="Mode":
-            if simulation.linear:       self.input_file = simulation.input_file 
-
-        # Remember whether we have a <simulation> or a <mode>
-        self.object = simulation.object
-        self.linear = simulation.linear
+        # Remember the parent simulation and its input file   
+        self.simulation = simulation  
+        self.input_file = simulation.input_file   
         self.nonlinear = simulation.nonlinear
+        self.linear = simulation.linear
         
         # Link itself for more logical access to the variables
         self.path = self   
@@ -104,8 +100,16 @@ class Paths:
     def name(self):                 get_nameSimulation(self);       return self.name 
     @calculate_attributeWhenReadFirstTime 
     def folder(self):               get_folderPath(self);           return self.folder 
+    @calculate_attributeWhenReadFirstTime 
+    def multiple_input_files(self): get_multipleInputFiles(self);   return self.multiple_input_files 
+    @calculate_attributeWhenReadFirstTime 
+    def input_files(self):          get_multipleInputFiles(self);   return self.input_files 
+    @calculate_attributeWhenReadFirstTime 
+    def dummy_input_file(self):     get_multipleInputFiles(self);   return self.dummy_input_file 
         
     # Set the paths when we ask for them
+    @calculate_attributeWhenReadFirstTime 
+    def vmec_filename(self):        get_vmecPath(self);             return self.vmec_filename 
     @calculate_attributeWhenReadFirstTime 
     def vmec(self):                 get_vmecPath(self);             return self.vmec 
     @calculate_attributeWhenReadFirstTime 
@@ -115,9 +119,9 @@ class Paths:
     @calculate_attributeWhenReadFirstTime 
     def omega(self):                get_omegaPath(self);            return self.omega 
     @calculate_attributeWhenReadFirstTime 
-    def fluxes(self):               get_fluxesPath(self);           return self.fluxes 
-    @calculate_attributeWhenReadFirstTime 
     def geometry(self):             get_geometryPath(self);         return self.geometry 
+    @calculate_attributeWhenReadFirstTime 
+    def moments2D(self):            get_moments2DPath(self);        return self.moments2D 
     @calculate_attributeWhenReadFirstTime 
     def moments3D(self):            get_moments3DPath(self);        return self.moments3D 
     @calculate_attributeWhenReadFirstTime 
@@ -128,6 +132,12 @@ class Paths:
     def dimensions(self):           get_dimensionsPath(self);       return self.dimensions 
     @calculate_attributeWhenReadFirstTime 
     def saturated(self):            get_saturatedPath(self);        return self.saturated
+    @calculate_attributeWhenReadFirstTime 
+    def fluxes_vs_z(self):          get_fluxesVsZPath(self);        return self.fluxes_vs_z 
+    @calculate_attributeWhenReadFirstTime 
+    def QLfluxes(self):             get_QLfluxesPath(self);         return self.QLfluxes 
+    @calculate_attributeWhenReadFirstTime 
+    def fluxes(self):               get_fluxesPath(self);           return self.fluxes 
     @calculate_attributeWhenReadFirstTime 
     def fluxes3D(self):             get_fluxes3DPath(self);         return self.fluxes3D
     @calculate_attributeWhenReadFirstTime 
@@ -153,6 +163,8 @@ class Paths:
     
     # Data as a funtion of time
     @calculate_attributeWhenReadFirstTime 
+    def g2_vs_t(self):              get_g2vstPath(self);            return self.g2_vs_t 
+    @calculate_attributeWhenReadFirstTime # Old name
     def g_vs_t(self):               get_gvstPath(self);             return self.g_vs_t 
     @calculate_attributeWhenReadFirstTime 
     def phi_vs_t(self):             get_phivstPath(self);           return self.phi_vs_t 
@@ -161,11 +173,11 @@ class Paths:
     @calculate_attributeWhenReadFirstTime 
     def phi_vs_z(self):             get_phivszPath(self);           return self.phi_vs_z
     @calculate_attributeWhenReadFirstTime 
-    def g_vs_z(self):               get_finalgPath(self);           return self.g_vs_z 
+    def g2_vs_z(self):               get_finalgPath(self);           return self.g2_vs_z 
     @calculate_attributeWhenReadFirstTime 
-    def g_vs_mu(self):              get_finalgPath(self);           return self.g_vs_mu 
+    def g2_vs_mu(self):              get_finalgPath(self);           return self.g2_vs_mu 
     @calculate_attributeWhenReadFirstTime 
-    def g_vs_vpa(self):             get_finalgPath(self);           return self.g_vs_vpa
+    def g2_vs_vpa(self):             get_finalgPath(self);           return self.g2_vs_vpa
     
     # For linear simulations we remember the unique inputs and geometries 
     @calculate_attributeWhenReadFirstTime 
@@ -197,30 +209,73 @@ def load_pathObject(self):
     return
      
 #===============================================================================
+#                            GET DUMMY INPUT FILES                            #
+#=============================================================================== 
+     
+def get_multipleInputFiles(self):
+    """ For 1 mode per simulation, we created a dummy input file. """
+    
+    # Attach whether we have a dummy input file 
+    self.multiple_input_files = self.simulation.multiple_input_files
+    self.input_files = None
+    self.dummy_input_file = None
+    
+    # If we have a multiple input files, attach the input files to the <path> object 
+    if self.multiple_input_files==True:
+        
+        # Get the input files corresponding to a similar simulation with different (kx,ky)
+        self.input_files = self.simulation.input_files; self.paths = []
+        self.input_files = [i for i in self.input_files if pathlib.Path(str(i).replace(".in", "_kx0.0.in")) not in self.input_files]
+
+        # Create dummy path objects for each input file 
+        for input_file in self.input_files:  
+            self.paths.append(create_dummyPathObject(input_file, "/not/used"))
+        
+        # For each input file, remember the modes inside
+        for path in self.paths: 
+            path.dummy_input_file = None
+            nakx, naky = read_numberOfModesFromInputFile(path.input_file)
+            kx, ky = read_modeFromInputFile(path.input_file)
+            path.nakxnaky = nakx*naky
+            path.kx = kx 
+            path.ky = ky
+            if path.nakxnaky==1:
+                path.dim_kx = 1
+                path.dim_ky = 1
+                path.vec_kx = [kx]
+                path.vec_ky = [ky]
+            if path.nakxnaky>1 or "_dummy.in" in str(path.input_file):
+                with h5py.File(path.dimensions, 'r') as f:  
+                    path.dim_kx = f["dim_kx"][()] 
+                    path.dim_ky = f["dim_ky"][()] 
+                    path.vec_kx = f["vec_kx"][()] 
+                    path.vec_ky = f["vec_ky"][()]   
+                    
+        # For each input file, remember if it is part of a dummy input file
+        for input_file in self.input_files: 
+            if "_dummy.in" in str(input_file):
+                dummy_input_files = read_inputFilesInDummyInputFile(input_file)   
+                for path in self.paths: 
+                    if path.input_file in dummy_input_files: path.dummy_input_file = input_file         
+    return 
+
+#===============================================================================
 #                           CREATE DUMMY PATH OBJECT                           #
 #=============================================================================== 
 
-def create_dummyPathObject(input_file, vmec_filename, nonlinear):
+def create_dummyPathObject(path_input_file, vmec_filename):
     """ Needed to access all the paths of a simulation, without actually going
-    through the <create_simulations> routine. Return a working <path> object."""
+    through the <create_simulations> routine. Returns a working <path> object."""
     
-    # Create a dummy path and input object
-    path_object  = type('Paths', (object,), {})
-    input_object = type('input', (object,), {'vmec_filename' : vmec_filename})
-
-    # Create a dummy mode and simulation object
-    attributes   = {'input' : input_object, 'input_file' : input_file, 'linear' : not nonlinear, 'nonlinear' : nonlinear}
-    mode_object  = type('Mode',  (object,), {'object' : 'Mode', 'path' : path_object, **attributes}) 
-    simulation_object = type('Simulation', (object,), {'object' : 'Simulation', 'modes' : [mode_object], **attributes})
-    mode_object.simulation = simulation_object 
+    # Create a dummy input and simulation object 
+    input_object = type('input', (object,), {'vmec_filename' : vmec_filename}) 
+    dummy_object = type('Simulation', (object,), {'input' : input_object, 'input_file' : path_input_file, 'linear' : 'dummy', 'nonlinear' : 'dummy'})
     
     # Load the paths for the mode and simulation
-    load_pathObject(simulation_object) 
-    load_pathObject(simulation_object.modes[0])
+    load_pathObject(dummy_object)  
     
     # Return the finished <path> object of the mode or simulation
-    if not nonlinear:   return simulation_object.modes[0].path
-    elif nonlinear:     return simulation_object.path
+    return dummy_object.path
 
 #===============================================================================
 #                      DEFINE THE DATA IN THE OUTPUT FILE                      #
@@ -249,6 +304,18 @@ def get_outputKeys(self):
     return
  
 #===============================================================================
+#                        MAKE COMPATIBLE WITH OLD FILES                        #
+#=============================================================================== 
+
+def get_geometryPath(self): 
+    self.path.geometry = self.input_file.with_suffix(".geo")       
+    if not os.path.isfile(self.path.geometry):
+        rho = np.sqrt(read_svalueFromInputFile(self.input_file))*100 
+        rho = int(rho) if (int(rho)==rho) else round(rho,2)  
+        self.geometry = self.input_file.with_suffix(".rho"+str(rho)+".geometry") 
+    return 
+
+#===============================================================================
 #                               DEFINE THE PATHS                               #
 #=============================================================================== 
 
@@ -264,11 +331,14 @@ def get_nameSimulation(self):
     return
 
 #------------------------
+def get_inputPath(self): 
+    self.path.input = self.input_file.with_suffix(".ini")  
+    return
+ 
 def get_saturatedPath(self):
     self.path.saturated = get_pathWithLargestTend(self, "out.nc.t")
     return
 
-#------------------------
 def get_outputPath(self):
     self.path.output = get_pathWithSmallestTimeStep(self, "output", ".out.h5")
     return
@@ -280,6 +350,14 @@ def get_omegaPath(self):
 def get_fluxesPath(self): 
     self.path.fluxes = get_pathWithSmallestTimeStep(self, "fluxes_vs_t", ".fluxes_reduced")
     return
+
+def get_fluxesVsZPath(self): 
+    self.path.fluxes_vs_z = self.input_file.with_suffix(".fluxes_vs_z")  
+    return
+
+def get_QLfluxesPath(self): 
+    self.path.QLfluxes = self.input_file.with_suffix(".QLfluxes")  
+    return 
 
 def get_fluxes3DPath(self): 
     self.path.fluxes3D = get_pathWithSmallestTimeStep(self, "fluxes3D")
@@ -317,6 +395,10 @@ def get_phaseshiftsPath(self):
     self.path.phaseshifts = get_pathWithSmallestTimeStep(self, "phaseshifts")
     return
 
+def get_moments2DPath(self): 
+    self.path.moments2D = get_pathWithSmallestTimeStep(self, "moments2D")
+    return
+
 def get_moments3DPath(self): 
     self.path.moments3D = get_pathWithSmallestTimeStep(self, "moments3D")
     return
@@ -337,6 +419,10 @@ def get_phivstPath(self):
     self.path.phi_vs_t = get_pathWithSmallestTimeStep(self, "phi_vs_t")
     return
 
+def get_g2vstPath(self): 
+    self.path.g2_vs_t = get_pathWithSmallestTimeStep(self, "g2_vs_t")
+    return
+
 def get_gvstPath(self): 
     self.path.g_vs_t = get_pathWithSmallestTimeStep(self, "g_vs_t")
     return
@@ -351,9 +437,9 @@ def get_phivszPath(self):
     return
 
 def get_finalgPath(self):  
-    self.path.g_vs_z = self.input_file.with_suffix(".g_vs_z")
-    self.path.g_vs_mu = self.input_file.with_suffix(".g_vs_mu")
-    self.path.g_vs_vpa = self.input_file.with_suffix(".g_vs_vpa")
+    self.path.g2_vs_z = self.input_file.with_suffix(".g_vs_z")
+    self.path.g2_vs_mu = self.input_file.with_suffix(".g_vs_mu")
+    self.path.g2_vs_vpa = self.input_file.with_suffix(".g_vs_vpa")
     return
     
 #------------------------
@@ -372,8 +458,12 @@ def get_stellaPaths(self):
 def get_vmecPath(self): 
     
     # Get the path of the VMEC file
-    self.vmec_filename = vmec_filename = self.simulation.input.vmec_filename
-    self.path.vmec = self.path.input.parent / vmec_filename if (vmec_filename != 'wout*.nc') else "pathNotFound"
+    self.vmec_filename = self.simulation.input.vmec_filename
+    vmec_filename = self.vmec_filename 
+    if os.path.isfile(self.vmec_filename):
+        self.path.vmec = pathlib.Path(self.vmec_filename)
+    else:
+        self.path.vmec = self.path.input.parent / vmec_filename if (vmec_filename != 'wout*.nc') else "pathNotFound"
     if (not os.path.isfile(self.path.vmec)) and (self.path.vmec!=None): 
         
         # Decide whether we're on the local pc or the supercomputer 
@@ -381,95 +471,20 @@ def get_vmecPath(self):
          
         # See if the VMEC file is present in the main VMEC folder  
         if vmec_filename!='wout*.nc':   
-            vmec_files = get_filesInFolder(vmec_folder, start=vmec_filename, end=".nc")
-            self.path.vmec = vmec_files[0] if (vmec_files!=None) else self.path.vmec  
+            if os.path.isfile(vmec_folder / vmec_filename):
+                self.path.vmec = vmec_folder / vmec_filename
+            else:
+                vmec_files = get_filesInFolder(vmec_folder, start=vmec_filename, end=".nc")
+                self.path.vmec = vmec_files[0] if (vmec_files!=[]) else self.path.vmec  
         if vmec_filename=='wout*.nc':    
             self.path.vmec = 'MillerDoesntHaveAVmec'  
     return
 
 #------------------------
-def get_inputPath(self):
-    """" Get the input file of the <simulation> or <mode> """
-    
-    # Read the input parameters from the ini file
-    if self.linear:     self.path.input = self.input_file 
-    if self.nonlinear:  self.path.input = self.input_file.with_suffix(".ini")
-    
-    # For linear simulations, read the *.ini file instead
-    if self.object=="Simulation" and self.linear:
-            
-            # Read the unique inputs
-            list_of_reference_inputs, ids_of_reference_inputs = read_uniqueInputs(self.path)
-
-            # Find the reference input for each <mode> 
-            for mode in self.simulation.modes:   
-                mode.path.input = find_referenceInput(self.path, mode, list_of_reference_inputs, ids_of_reference_inputs)
-
-            # Remember which inputs have already been read
-            self.loaded_inputs = [] 
-            
-            # Load one of the files for the simulation
-            self.path.input = mode.path.input
-          
-    # If we are directly asking it for the mode, load it for the entire simulation  
-    if self.object=="Mode": self.simulation.path.input  
-    return
-
-#------------------------
-def get_geometryPath(self): 
-    """ Get the path to the *.geo.h5 file. """ 
-
-    # Set the geometry path of a simulation
-    if self.object=="Simulation":
-        
-        # Link the *.geo.h5 file for a nonlinear simulation
-        if self.nonlinear:
-            
-            # Read the geometry from the *.geo.h5 file 
-            rho = np.sqrt(read_svalueFromInputFile(self.input_file))*100 
-            rho = int(rho) if (int(rho)==rho) else round(rho,2)  
-            self.geometry = self.input_file.with_suffix(".rho"+str(rho)+".geometry") 
-            
-            # Make sure the file is written
-            if not os.path.isfile(self.geometry) and os.path.isfile(self.output_stella):
-                from stellapy.data.geometry.write_h5FileForGeometry import write_h5FileForGeometry 
-                write_h5FileForGeometry(self.folder, self.geometry)
-                    
-        # Link the *unique.geometryX for a linear simulation
-        if self.linear:
-
-#             # Read the geometry from the *.geo.h5 file 
-#             for mode in self.simulation.modes: 
-#                 rho = np.sqrt(read_svalueFromInputFile(self.input_file))*100 
-#                 rho = int(rho) if (int(rho)==rho) else round(rho,2)  
-#                 mode.path.geometry = mode.input_file.with_suffix(".rho"+str(rho)+".geometry")  
-#                 if not os.path.isfile(mode.path.geometry) and os.path.isfile(mode.path.output_stella):
-#                     from stellapy.data.geometry.write_h5FileForGeometry import write_h5FileForGeometry 
-#                     write_h5FileForGeometry(self.folder, mode.path.geometry, mode)
-#             if not os.path.isfile(mode.path.geometry):
-                
-            # Read the unique geometries if we cant read from the specific geometry file
-            list_of_reference_geometries, ids_of_reference_geometries = read_uniqueGeometries(self.path)
-
-            # Find the reference geometry for each <mode>
-            for mode in self.simulation.modes: 
-                mode.path.geometry = find_referenceGeometry(self.path, mode, list_of_reference_geometries, ids_of_reference_geometries)
-                    
-            # Remember which geometries have already been read
-            self.loaded_geometries = [] 
-            
-            # Make sure <simulation> also has a path.geometry variable
-            self.simulation.path.geometry = "Don't use the geometry of the <simulation>, use the geometry of the <mode>."
-          
-    # If we are directly asking it for the mode, load it for the entire simulation  
-    if self.object=="Mode": self.simulation.path.geometry
-    return 
-
-#------------------------
 def get_pathWithSmallestTimeStep(self, identifier, oldidentifier=None, path="/not/found/"):  
     
     # Get the *.dt10.identifier file  
-    files = get_filesInFolder(self.path.folder, start=self.input_file.stem+".", end=identifier) 
+    files = get_filesInFolder(self.path.folder, start=self.input_file.stem+".", end=identifier, search_in_subfolders=False) 
     if files!= None:  
         files = [f for f in files if "dt" in f.name]  
         files = [f for f in files if "OLD" not in f.parent.name] + [f for f in files if "OLD" in f.parent.name]
@@ -490,9 +505,9 @@ def get_pathWithSmallestTimeStep(self, identifier, oldidentifier=None, path="/no
 def get_pathWithLargestTend(self, identifier, path="/not/found/"):  
     
     # Get the *.identifier.t500-1000 file  
-    files = get_filesInFolder(self.path.folder, start=self.input_file.stem+".") 
+    files = get_filesInFolder(self.path.folder, start=self.input_file.stem+".", search_in_subfolders=False) 
     if files!=None:  
-        if self.linear: 
+        if self.simulation.linear: 
             files = [f for f in files if "out.nc.tlast" in f.name] 
             if len(files)!=0: return files[0]
         files = [f for f in files if identifier in f.name] 

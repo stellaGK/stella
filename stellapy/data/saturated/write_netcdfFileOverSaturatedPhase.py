@@ -9,7 +9,7 @@ from scipy.io import netcdf as scnetcdf
 from datetime import datetime, timedelta
 
 # Personal modules
-sys.path.append(os.path.dirname(os.path.abspath(__file__)).split("stellapy/")[0]) 
+sys.path.append(os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent)+os.path.sep) 
 from stellapy.data.input.read_inputFile import read_linearNonlinearFromInputFile  
 from stellapy.utils.commandprompt.print_progressbar import print_progressbar
 from stellapy.utils.files.get_filesInFolder import get_filesInFolder 
@@ -27,7 +27,7 @@ def write_netcdfFileOverSaturatedPhase(folder, skip=1, verbose=False):
         for netcdf_file in netcdf_files:
 
             # Check whether we have a linear or nonlinear simulation
-            linear, nonlinear = read_linearNonlinearFromInputFile(str(netcdf_file).replace(".out.nc",".in"))
+            linear, nonlinear = read_linearNonlinearFromInputFile(str(netcdf_file).replace(".out.nc",".in")) 
              
             # Start timer
             start = timer.time()
@@ -55,7 +55,7 @@ def write_netcdfFileOverSaturatedPhase(folder, skip=1, verbose=False):
                     variables_new = list(netcdf_data.variables.keys()) 
                 if "input_file" in variables_new:
                     if verbose: print("The netcdf file averaged over the saturated phase already exists. ")
-                    if not verbose: print("   The saturated netcdf already exists: " +  finished_file.parent.name+"/"+finished_file.name)  
+                    if (not verbose) and nonlinear: print("   The saturated netcdf already exists: " +  finished_file.parent.name+"/"+finished_file.name)  
                     continue
                     
             # Constuct a new netcdf file averaged over the saturated time trace
@@ -72,10 +72,10 @@ def write_netcdfFileOverSaturatedPhase(folder, skip=1, verbose=False):
                 # Copy all dimensions (kx,ky,tube,theta0,zed,alpha,vpa,mu,species,t,char10,char200,nlines,ri)
                 if verbose: print("\nSAVE DIMENSIONS")
                 for name, dimension in src.dimensions.items():
-                    if dimension.isunlimited():
+                    if name=="t": 
                         if verbose: print("{0:>10}".format(name), " ", "Put to 1!")
                         dst.createDimension(name, 1)
-                    else:
+                    else: 
                         if verbose: print("{0:>10}".format(name), " ", len(dimension))
                         dst.createDimension(name, len(dimension))
      
@@ -96,7 +96,7 @@ def write_netcdfFileOverSaturatedPhase(folder, skip=1, verbose=False):
                         if verbose: print("{0:>15}".format(name), "   ", variable.datatype, variable.dimensions)
                         dst.createVariable(name, variable.datatype, variable.dimensions)
                          
-                        # Fill in the variable, but first cut off time positions  
+                        # Fill in the variable, but first cut off time positions   
                         if 't' in variable.dimensions and linear: dst.variables[name][:] = src.variables[name][-1]
                         if 't' in variable.dimensions and nonlinear: dst.variables[name][:] = np.mean(src.variables[name][istart:iend:skip], axis=0)
                         if 't' not in variable.dimensions and nonlinear: dst.variables[name][:] = src.variables[name][:]
