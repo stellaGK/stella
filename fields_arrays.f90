@@ -7,6 +7,7 @@ module fields_arrays
 
    complex, dimension(:, :, :, :), allocatable :: phi, phi_old
    complex, dimension(:, :, :, :), allocatable :: apar, apar_old
+   complex, dimension(:, :, :, :), allocatable :: bpar, bpar_old
    ! (naky, nakx, -nzgrid:nzgrid, ntubes)
 
    ! DSO 0 the following is a band-aid for radially global simulations until
@@ -33,6 +34,7 @@ module fields_arrays
    real, dimension(:), allocatable :: shift_state
 
    real, dimension(:, :, :), allocatable :: gamtot, dgamtotdr
+   real, dimension(:, :, :), allocatable :: gamtot13, gamtot31, gamtot33
    real, dimension(:, :), allocatable :: gamtot3
    !real :: gamtot_h, gamtot3_h, efac, efacp
 
