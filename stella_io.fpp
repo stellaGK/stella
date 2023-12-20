@@ -16,6 +16,7 @@ module stella_io
    public :: write_phi2_nc
    public :: write_phi_nc
    public :: write_apar_nc
+   public :: write_bpar_nc
    public :: write_gvmus_nc
    public :: write_gzvs_nc
    public :: write_kspectra_nc
@@ -388,6 +389,23 @@ contains
                                 start=[1, 1, 1, 1, 1, nout])
 # endif
    end subroutine write_apar_nc
+
+   !> Write time trace of electromagnetic field B|| to netCDF
+   subroutine write_bpar_nc(nout, bpar)
+      use zgrid, only: nzgrid
+      implicit none
+      !> Current timestep
+      integer, intent(in) :: nout
+      !> Electrostatic potential
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: bpar
+
+# ifdef NETCDF
+      call netcdf_write_complex(ncid, "bpar_vs_t", bpar, &
+                                [character(len=4)::"ri", "ky", "kx", "zed", "tube", "t"], &
+                                long_name="Electromagnetic potential bpar", &
+                                start=[1, 1, 1, 1, 1, nout])
+# endif
+   end subroutine write_bpar_nc
 
    !> Write the complex frequency to netCDF
    subroutine write_omega_nc(nout, omega)

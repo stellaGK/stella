@@ -18,6 +18,7 @@ module stella_diagnostics
    logical :: write_moments
    logical :: write_phi_vs_time
    logical :: write_apar_vs_time
+   logical :: write_bpar_vs_time
    logical :: write_gvmus
    logical :: write_gzvs
    logical :: write_kspectra
@@ -70,6 +71,7 @@ contains
       call broadcast(write_moments)
       call broadcast(write_phi_vs_time)
       call broadcast(write_apar_vs_time)
+      call broadcast(write_bpar_vs_time)
       call broadcast(write_gvmus)
       call broadcast(write_gzvs)
       call broadcast(write_radial_fluxes)
@@ -151,7 +153,7 @@ contains
 
       namelist /stella_diagnostics_knobs/ nwrite, navg, nsave, &
          save_for_restart, write_phi_vs_time, write_apar_vs_time, &
-         write_gvmus, write_gzvs, &
+         write_bpar_vs_time, write_gvmus, write_gzvs, &
          write_omega, write_kspectra, write_moments, write_radial_fluxes, &
          write_radial_moments, write_fluxes_kxkyz, flux_norm, nc_mult
 
@@ -163,6 +165,7 @@ contains
          write_omega = .false.
          write_phi_vs_time = .false.
          write_apar_vs_time = .false.
+         write_bpar_vs_time = .false.
          write_gvmus = .false.
          write_gzvs = .false.
          write_kspectra = .false.
@@ -272,14 +275,14 @@ contains
       use mp, only: proc0
       use constants, only: zi
       use redistribute, only: scatter
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use fields_arrays, only: phi_old, phi_corr_QN
       use fields, only: fields_updated, advance_fields
       use dist_fn_arrays, only: gvmu, gnew
       use g_tofrom_h, only: g_to_h
       use stella_io, only: write_time_nc
       use stella_io, only: write_phi2_nc
-      use stella_io, only: write_phi_nc, write_apar_nc
+      use stella_io, only: write_phi_nc, write_apar_nc, write_bpar_nc
       use stella_io, only: write_gvmus_nc
       use stella_io, only: write_gzvs_nc
       use stella_io, only: write_kspectra_nc
@@ -304,7 +307,7 @@ contains
       !> The current timestep
       integer, intent(in) :: istep
 
-      real :: phi2, apar2
+      real :: phi2, apar2, bpar2
       real :: zero
       real, dimension(:, :, :), allocatable :: gvmus
       real, dimension(:, :, :, :), allocatable :: gzvs
@@ -318,7 +321,7 @@ contains
 
       complex, dimension(:, :), allocatable :: omega_avg
       complex, dimension(:, :), allocatable :: phiavg, phioldavg
-      complex, dimension(:, :, :, :), allocatable :: phi_out, apar_out
+      complex, dimension(:, :, :, :), allocatable :: phi_out, apar_out, bpar_out
 
       !> needed when simulating a full flux surface
       complex, dimension(:, :, :, :), allocatable :: dens_ffs, upar_ffs, pres_ffs
@@ -350,11 +353,13 @@ contains
 
       allocate (phi_out(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (apar_out(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (bpar_out(naky, nakx, -nzgrid:nzgrid, ntubes))
       phi_out = phi
       if (radial_variation) then
          phi_out = phi_out + phi_corr_QN
       end if
       apar_out = apar
+      bpar_out = bpar
       allocate (part_flux(nspec))
       allocate (mom_flux(nspec))
       allocate (heat_flux(nspec))
@@ -415,10 +420,11 @@ contains
          end if
          call volume_average(phi_out, phi2)
          call volume_average(apar, apar2)
+         call volume_average(bpar, bpar2)
          ! Print information to stella.out, the header is printed in stella.f90
          write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4)') &
             " ", istep, " ", code_time, " ", code_dt, " ", cfl_dt_ExB, " ", phi2
-         call write_loop_ascii_files(istep, phi2, apar2, part_flux, mom_flux, heat_flux, &
+         call write_loop_ascii_files(istep, phi2, apar2, bpar2, part_flux, mom_flux, heat_flux, &
                                      omega_vs_time(mod(istep, navg) + 1, :, :), omega_avg)
 
          ! do not need omega_avg again this time step
@@ -438,6 +444,10 @@ contains
             if (write_apar_vs_time) then
                if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_apar_nc'
                call write_apar_nc(nout, apar_out)
+            end if
+            if (write_bpar_vs_time) then
+               if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_bpar_nc'
+               call write_bpar_nc(nout, bpar_out)
             end if
             if (write_kspectra) then
                if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_kspectra'
@@ -499,6 +509,7 @@ contains
       deallocate (pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
       deallocate (phi_out)
       deallocate (apar_out)
+      deallocate (bpar_out)
       if (allocated(part_flux_x)) deallocate (part_flux_x)
       if (allocated(mom_flux_x)) deallocate (mom_flux_x)
       if (allocated(heat_flux_x)) deallocate (heat_flux_x)
@@ -1791,7 +1802,7 @@ contains
    !==============================================
    !========= WRITE LOOP ASCII FILES =============
    !==============================================
-   subroutine write_loop_ascii_files(istep, phi2, apar2, pflx, vflx, qflx, om, om_avg)
+   subroutine write_loop_ascii_files(istep, phi2, apar2, bpar2, pflx, vflx, qflx, om, om_avg)
 
       use stella_time, only: code_time
       use species, only: nspec
@@ -1801,7 +1812,7 @@ contains
       implicit none
 
       integer, intent(in) :: istep
-      real, intent(in) :: phi2, apar2
+      real, intent(in) :: phi2, apar2, bpar2
       real, dimension(:), intent(in) :: pflx, vflx, qflx
       complex, dimension(:, :), intent(in) :: om, om_avg
 
@@ -1809,8 +1820,8 @@ contains
       character(100) :: str
       integer :: ikx, iky
 
-      write (stdout_unit, '(a7,i7,a6,e12.4,a10,e12.4,a11,e12.4)') 'istep=', istep, &
-         'time=', code_time, '|phi|^2=', phi2, '|apar|^2= ', apar2
+      write (stdout_unit, '(a7,i7,a6,e12.4,a10,e12.4,a11,e12.4,a12,e12.4)') 'istep=', istep, &
+         'time=', code_time, '|phi|^2=', phi2, '|apar|^2= ', apar2, '|bpar|^2= ', bpar2
 
       call flush (stdout_unit)
 
@@ -1842,7 +1853,7 @@ contains
    subroutine write_final_ascii_files
 
       use file_utils, only: open_output_file, close_output_file
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use zgrid, only: nzgrid, ntubes
       use zgrid, only: zed
       use kt_grids, only: naky, nakx
@@ -1858,15 +1869,16 @@ contains
       call open_output_file(tmpunit, '.final_fields')
       write (tmpunit, '(10a14)') '# z', 'z-zed0', 'aky', 'akx', &
          'real(phi)', 'imag(phi)', 'real(apar)', 'imag(apar)', &
-         'z_eqarc-zed0', 'kperp2'
+         'real(bpar)', 'imag(bpar)','z_eqarc-zed0', 'kperp2'
       do iky = 1, naky
          do ikx = 1, nakx
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
-                  write (tmpunit, '(10es15.4e3,i3)') zed(iz), zed(iz) - zed0(iky, ikx), aky(iky), akx(ikx), &
+                  write (tmpunit, '(12es15.4e3,i3)') zed(iz), zed(iz) - zed0(iky, ikx), aky(iky), akx(ikx), &
                      real(phi(iky, ikx, iz, it)), aimag(phi(iky, ikx, iz, it)), &
-                     real(apar(iky, ikx, iz, it)), aimag(apar(iky, ikx, iz, it)), zed_eqarc(iz) - zed0(iky, ikx), &
-                     kperp2(iky, ikx, it, iz), it
+                     real(apar(iky, ikx, iz, it)), aimag(apar(iky, ikx, iz, it)), &
+                     real(bpar(iky, ikx, iz, it)), aimag(bpar(iky, ikx, iz, it)), &
+                     zed_eqarc(iz) - zed0(iky, ikx), kperp2(iky, ikx, it, iz), it
                end do
                write (tmpunit, *)
             end do
