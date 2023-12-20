@@ -2032,7 +2032,7 @@ contains
          if (include_bpar) then
             field = 4 * mu(imu) * (spec(is)%tz) * bpar
             do iky = 1, naky
-                field(iky, :, :, :) = zi * aky(iky) * field(iky, :, :, :)
+               field(iky, :, :, :) = zi * aky(iky) * field(iky, :, :, :)
             end do
             call gyro_average_j1(field, ivmu, gyro_tmp)
             !> include bpar contribution
@@ -2134,7 +2134,7 @@ contains
       end if
       deallocate (field)
       deallocate (gyro_tmp)
-      
+
    end subroutine get_dchidx
 
    subroutine finish_fields
