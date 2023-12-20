@@ -2067,38 +2067,49 @@ contains
    end subroutine get_dchidy_2d
 
    !> compute d<chi>/dx in (ky,kx) space
-   subroutine get_dchidx(iz, ivmu, phi, apar, dchidx)
+   subroutine get_dchidx(iz, ivmu, phi, apar, bpar, dchidx)
 
       use constants, only: zi
       use gyro_averages, only: gyro_average
+      use gyro_averages, only: gyro_average_j1
       use stella_layouts, only: vmu_lo
-      use stella_layouts, only: is_idx, iv_idx
+      use stella_layouts, only: is_idx, iv_idx, imu_idx
       use physics_flags, only: include_apar
+      use physics_flags, only: include_bpar
       use run_parameters, only: fphi
       use species, only: spec
-      use vpamu_grids, only: vpa
+      use vpamu_grids, only: vpa, mu
       use kt_grids, only: akx, naky, nakx
 
       implicit none
 
       integer, intent(in) :: ivmu, iz
-      complex, dimension(:, :), intent(in) :: phi, apar
+      complex, dimension(:, :), intent(in) :: phi, apar, bpar
       complex, dimension(:, :), intent(out) :: dchidx
 
-      integer :: iv, is
-      complex, dimension(:, :), allocatable :: field
+      integer :: iv, is, imu
+      complex, dimension(:, :), allocatable :: field, gyro_tmp
 
       allocate (field(naky, nakx))
+      allocate (gyro_tmp(naky, nakx))
 
       is = is_idx(vmu_lo, ivmu)
       iv = iv_idx(vmu_lo, ivmu)
+      imu = imu_idx(vmu_lo, ivmu)
       field = fphi * phi
       if (include_apar) field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
       field = zi * spread(akx, 1, naky) * field
       call gyro_average(field, iz, ivmu, dchidx)
-
+      if (include_bpar) then
+         field = 4 * mu(imu) * (spec(is)%tz) * bpar
+         field = zi * spread(akx, 1, naky) * field
+         call gyro_average_j1(field, iz, ivmu, gyro_tmp)
+         !> include bpar contribution
+         dchidx = dchidx + gyro_tmp
+      end if
       deallocate (field)
-
+      deallocate (gyro_tmp)
+      
    end subroutine get_dchidx
 
    subroutine finish_fields

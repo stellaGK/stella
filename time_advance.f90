@@ -1593,7 +1593,7 @@ contains
       use job_manage, only: time_message
       use gyro_averages, only: gyro_average
       use fields, only: get_dchidx, get_dchidy
-      use fields_arrays, only: phi, apar, shift_state
+      use fields_arrays, only: phi, apar, bpar, shift_state
       use fields_arrays, only: phi_corr_QN, phi_corr_GA
 !   use fields_arrays, only: apar_corr_QN, apar_corr_GA
       use stella_transforms, only: transform_y2ky, transform_x2kx
@@ -1679,7 +1679,7 @@ contains
                !> FFT to get dg/dy in (y,x) space
                call forward_transform(g0k, g0xy)
                !> compute i*kx*<chi>
-               call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), g0k)
+               call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
                !> if running with equilibrium flow shear, make adjustment to
                !> the term multiplying dg/dy
                if (prp_shear_enabled .and. hammett_flow_shear) then
