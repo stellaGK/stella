@@ -145,7 +145,7 @@ contains
             allocate (apar_denom(1, 1, 1)); apar_denom = 0.
          end if
       end if
-      
+
       if (.not. allocated(gamtot33)) then
          if (include_bpar) then
             allocate (gamtot33(naky, nakx, -nzgrid:nzgrid)); gamtot33 = 0.
@@ -170,7 +170,7 @@ contains
             allocate (gamtot31(1, 1, 1)); gamtot31 = 0.
          end if
       end if
-      
+
       if (radial_variation) then
          if (.not. allocated(dgamtotdr)) allocate (dgamtotdr(naky, nakx, -nzgrid:nzgrid)); dgamtotdr = 0.
       else
