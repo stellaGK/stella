@@ -145,7 +145,7 @@ contains
             allocate (apar_denom(1, 1, 1)); apar_denom = 0.
          end if
       end if
-
+      
       if (.not. allocated(gamtot33)) then
          if (include_bpar) then
             allocate (gamtot33(naky, nakx, -nzgrid:nzgrid)); gamtot33 = 0.
@@ -170,7 +170,7 @@ contains
             allocate (gamtot31(1, 1, 1)); gamtot31 = 0.
          end if
       end if
-
+      
       if (radial_variation) then
          if (.not. allocated(dgamtotdr)) allocate (dgamtotdr(naky, nakx, -nzgrid:nzgrid)); dgamtotdr = 0.
       else
@@ -289,7 +289,54 @@ contains
 
          deallocate (g0)
       end if
+      
+      if (include_bpar) then
+         ! gamtot33
+         allocate (g0(nvpa, nmu))
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            it = it_idx(kxkyz_lo, ikxkyz)
+            ! gamtot33 does not depend on flux tube index,
+            ! so only compute for one flux tube index
+            ! gamtot33 = 1 + 8 * beta * sum_s (n*T* integrate_vmu(mu*mu*exp(-v^2) *(J1/gamma)*(J1/gamma)))
+            if (it /= 1) cycle
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
+            g0 = spread((mu(:) * mu(:) * aj1v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) &
+                 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+            wgt = 8.0 * spec(is)%temp * spec(is)%dens_psi0
+            call integrate_vmu(g0, iz, tmp)
+            gamtot33(iky, ikx, iz) = gamtot33(iky, ikx, iz) + tmp * wgt
+         end do
+         call sum_allreduce(gamtot33)
 
+         gamtot33 = 1.0 + beta * gamtot33
+         
+         !gamtot13
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            it = it_idx(kxkyz_lo, ikxkyz)
+            ! gamtot13 does not depend on flux tube index,
+            ! so only compute for one flux tube index
+            ! gamtot13 = -4 * sum_s (Z*n* integrate_vmu(mu*exp(-v^2) * J0 *J1/gamma))
+            if (it /= 1) cycle
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
+            g0 = spread((mu(:) * aj0v(:, ikxkyz) * aj1v(:, ikxkyz)), 1, nvpa) &
+                 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+            wgt = -4.0 * spec(is)%z * spec(is)%dens_psi0
+            call integrate_vmu(g0, iz, tmp)
+            gamtot13(iky, ikx, iz) = gamtot13(iky, ikx, iz) + tmp * wgt
+         end do
+         call sum_allreduce(gamtot13)
+   
+         ! gamtot31 = 2 * beta * sum_s (Z*n* integrate_vmu(mu*exp(-v^2) * J0 *J1/gamma))
+         !          = -(gamtot13 / 2) * beta
+         gamtot31 = -0.5 * beta * gamtot13 
+         deallocate (g0)
+      end if
    end subroutine init_fields_fluxtube
 
    subroutine init_radial_field_solve
