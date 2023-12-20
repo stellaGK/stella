@@ -106,10 +106,11 @@ contains
       use species, only: spec
       use kt_grids, only: naky, nakx, akx
       use kt_grids, only: zonal_mode
-      use physics_flags, only: include_apar
+      use physics_flags, only: include_apar, include_bpar
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
       use fields_arrays, only: gamtot, dgamtotdr, gamtot3
+      use fields_arrays, only: gamtot13, gamtot31, gamtot33
 
       implicit none
 
@@ -144,7 +145,32 @@ contains
             allocate (apar_denom(1, 1, 1)); apar_denom = 0.
          end if
       end if
+      
+      if (.not. allocated(gamtot33)) then
+         if (include_bpar) then
+            allocate (gamtot33(naky, nakx, -nzgrid:nzgrid)); gamtot33 = 0.
+         else
+            allocate (gamtot33(1, 1, 1)); gamtot33 = 0.
+         end if
+      end if
 
+      ! gamtot13 and gamtot31 required if fphi!=0 and fbpar!=0
+      if (.not. allocated(gamtot13)) then
+         if (include_bpar) then
+            allocate (gamtot13(naky, nakx, -nzgrid:nzgrid)); gamtot13 = 0.
+         else
+            allocate (gamtot13(1, 1, 1)); gamtot13 = 0.
+         end if
+      end if
+
+      if (.not. allocated(gamtot31)) then
+         if (include_bpar) then
+            allocate (gamtot31(naky, nakx, -nzgrid:nzgrid)); gamtot31 = 0.
+         else
+            allocate (gamtot31(1, 1, 1)); gamtot31 = 0.
+         end if
+      end if
+      
       if (radial_variation) then
          if (.not. allocated(dgamtotdr)) allocate (dgamtotdr(naky, nakx, -nzgrid:nzgrid)); dgamtotdr = 0.
       else
@@ -648,6 +674,7 @@ contains
 
       use fields_arrays, only: phi, phi_old
       use fields_arrays, only: apar, apar_old
+      use fields_arrays, only: bpar, bpar_old
       use fields_arrays, only: phi_corr_QN, phi_corr_GA
       use fields_arrays, only: apar_corr_QN, apar_corr_GA
       use zgrid, only: nzgrid, ntubes
@@ -672,6 +699,14 @@ contains
       if (.not. allocated(apar_old)) then
          allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes))
          apar_old = 0.
+      end if
+      if (.not. allocated(bpar)) then
+         allocate (bpar(naky, nakx, -nzgrid:nzgrid, ntubes))
+         bpar = 0.
+      end if
+      if (.not. allocated(bpar_old)) then
+         allocate (bpar_old(naky, nakx, -nzgrid:nzgrid, ntubes))
+         bpar_old = 0.
       end if
       if (.not. allocated(phi_corr_QN) .and. radial_variation) then
          allocate (phi_corr_QN(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -2070,9 +2105,11 @@ contains
 
       use fields_arrays, only: phi, phi_old
       use fields_arrays, only: apar, apar_old
+      use fields_arrays, only: bpar, bpar_old
       use fields_arrays, only: phi_corr_QN, phi_corr_GA
       use fields_arrays, only: apar_corr_QN, apar_corr_GA
       use fields_arrays, only: gamtot, dgamtotdr, gamtot3
+      use fields_arrays, only: gamtot13, gamtot33, gamtot31
       use fields_arrays, only: c_mat, theta
 #ifdef ISO_C_BINDING
       use fields_arrays, only: qn_window
@@ -2090,6 +2127,8 @@ contains
       if (allocated(phi_old)) deallocate (phi_old)
       if (allocated(apar)) deallocate (apar)
       if (allocated(apar_old)) deallocate (apar_old)
+      if (allocated(bpar)) deallocate (bpar)
+      if (allocated(bpar_old)) deallocate (bpar_old)
       if (allocated(phi_corr_QN)) deallocate (phi_corr_QN)
       if (allocated(phi_corr_GA)) deallocate (phi_corr_GA)
       if (allocated(apar_corr_QN)) deallocate (apar_corr_QN)
@@ -2098,7 +2137,9 @@ contains
       if (allocated(gamtot3)) deallocate (gamtot3)
       if (allocated(dgamtotdr)) deallocate (dgamtotdr)
       if (allocated(apar_denom)) deallocate (apar_denom)
-
+      if (allocated(gamtot33)) deallocate (gamtot33)
+      if (allocated(gamtot13)) deallocate (gamtot13)
+      if (allocated(gamtot31)) deallocate (gamtot31)
 #ifdef ISO_C_BINDING
       if (phi_shared_window /= MPI_WIN_NULL) call mpi_win_free(phi_shared_window, ierr)
       if (qn_window /= MPI_WIN_NULL) then
