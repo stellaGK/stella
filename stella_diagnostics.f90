@@ -1869,7 +1869,7 @@ contains
       call open_output_file(tmpunit, '.final_fields')
       write (tmpunit, '(10a14)') '# z', 'z-zed0', 'aky', 'akx', &
          'real(phi)', 'imag(phi)', 'real(apar)', 'imag(apar)', &
-         'real(bpar)', 'imag(bpar)','z_eqarc-zed0', 'kperp2'
+         'real(bpar)', 'imag(bpar)', 'z_eqarc-zed0', 'kperp2'
       do iky = 1, naky
          do ikx = 1, nakx
             do it = 1, ntubes
