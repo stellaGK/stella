@@ -7,6 +7,7 @@ module physics_flags
    public :: full_flux_surface
    public :: radial_variation
    public :: include_apar
+   public :: include_bpar
    public :: include_parallel_nonlinearity
    public :: include_parallel_streaming
    public :: include_mirror
@@ -24,6 +25,7 @@ module physics_flags
    logical :: full_flux_surface
    logical :: radial_variation
    logical :: include_apar
+   logical :: include_bpar
    logical :: include_parallel_nonlinearity
    logical :: include_parallel_streaming
    logical :: include_pressure_variation
@@ -76,7 +78,7 @@ contains
 
       namelist /physics_flags/ full_flux_surface, radial_variation, &
          include_parallel_nonlinearity, include_parallel_streaming, &
-         include_mirror, include_apar, nonlinear, &
+         include_mirror, include_apar, include_bpar, nonlinear, &
          include_pressure_variation, include_geometric_variation, &
          adiabatic_option, const_alpha_geo
 
@@ -84,6 +86,7 @@ contains
          full_flux_surface = .false.
          radial_variation = .false.
          include_apar = .false.
+         include_bpar = .false.
          include_pressure_variation = .true.
          include_geometric_variation = .true.
          include_parallel_nonlinearity = .false.
@@ -108,6 +111,7 @@ contains
       call broadcast(full_flux_surface)
       call broadcast(radial_variation)
       call broadcast(include_apar)
+      call broadcast(include_bpar)
       call broadcast(include_pressure_variation)
       call broadcast(include_geometric_variation)
       call broadcast(include_parallel_nonlinearity)
