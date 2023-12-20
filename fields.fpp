@@ -1990,32 +1990,36 @@ contains
    end subroutine rescale_fields
 
    !> compute d<chi>/dy in (ky,kx,z,tube) space
-   subroutine get_dchidy_4d(phi, apar, dchidy)
+   subroutine get_dchidy_4d(phi, apar, bpar, dchidy)
 
       use constants, only: zi
       use gyro_averages, only: gyro_average
+      use gyro_averages, only: gyro_average_j1
       use stella_layouts, only: vmu_lo
-      use stella_layouts, only: is_idx, iv_idx
+      use stella_layouts, only: is_idx, iv_idx, imu_idx
       use physics_flags, only: include_apar
+      use physics_flags, only: include_bpar
       use run_parameters, only: fphi
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
-      use vpamu_grids, only: vpa
+      use vpamu_grids, only: vpa, mu
       use kt_grids, only: aky, naky, nakx
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: dchidy
 
-      integer :: ivmu, iv, is, iky
-      complex, dimension(:, :, :, :), allocatable :: field
+      integer :: ivmu, iv, is, iky, imu
+      complex, dimension(:, :, :, :), allocatable :: field, gyro_tmp
 
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (gyro_tmp(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          is = is_idx(vmu_lo, ivmu)
          iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
          ! intermediate calculation to get factor involving phi contribution
          field = fphi * phi
          ! add apar contribution if including it
@@ -2025,44 +2029,65 @@ contains
             field(iky, :, :, :) = zi * aky(iky) * field(iky, :, :, :)
          end do
          call gyro_average(field, ivmu, dchidy(:, :, :, :, ivmu))
+         if (include_bpar) then
+            field = 4 * mu(imu) * (spec(is)%tz) * bpar
+            do iky = 1, naky
+                field(iky, :, :, :) = zi * aky(iky) * field(iky, :, :, :)
+            end do
+            call gyro_average_j1(field, ivmu, gyro_tmp)
+            !> include bpar contribution
+            dchidy(:, :, :, :, ivmu) = dchidy(:, :, :, :, ivmu) + gyro_tmp
+         end if
       end do
 
       deallocate (field)
+      deallocate (gyro_tmp)
 
    end subroutine get_dchidy_4d
 
    !> compute d<chi>/dy in (ky,kx) space
-   subroutine get_dchidy_2d(iz, ivmu, phi, apar, dchidy)
+   subroutine get_dchidy_2d(iz, ivmu, phi, apar, bpar, dchidy)
 
       use constants, only: zi
       use gyro_averages, only: gyro_average
+      use gyro_averages, only: gyro_average_j1
       use stella_layouts, only: vmu_lo
-      use stella_layouts, only: is_idx, iv_idx
+      use stella_layouts, only: is_idx, iv_idx, imu_idx
       use physics_flags, only: include_apar
+      use physics_flags, only: include_bpar
       use run_parameters, only: fphi
       use species, only: spec
-      use vpamu_grids, only: vpa
+      use vpamu_grids, only: vpa, mu
       use kt_grids, only: nakx, aky, naky
 
       implicit none
 
       integer, intent(in) :: ivmu, iz
-      complex, dimension(:, :), intent(in) :: phi, apar
+      complex, dimension(:, :), intent(in) :: phi, apar, bpar
       complex, dimension(:, :), intent(out) :: dchidy
 
-      integer :: iv, is
-      complex, dimension(:, :), allocatable :: field
+      integer :: iv, is, imu
+      complex, dimension(:, :), allocatable :: field, gyro_tmp
 
       allocate (field(naky, nakx))
+      allocate (gyro_tmp(naky, nakx))
 
       is = is_idx(vmu_lo, ivmu)
       iv = iv_idx(vmu_lo, ivmu)
+      imu = imu_idx(vmu_lo, ivmu)
       field = fphi * phi
       if (include_apar) field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
       field = zi * spread(aky, 2, nakx) * field
       call gyro_average(field, iz, ivmu, dchidy)
-
+      if (include_bpar) then
+         field = 4 * mu(imu) * (spec(is)%tz) * bpar
+         field = zi * spread(aky, 2, nakx) * field
+         call gyro_average_j1(field, iz, ivmu, gyro_tmp)
+         !> include bpar contribution
+         dchidy = dchidy + gyro_tmp
+      end if
       deallocate (field)
+      deallocate (gyro_tmp)
 
    end subroutine get_dchidy_2d
 
