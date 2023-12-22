@@ -627,7 +627,7 @@ contains
    end subroutine add_mirror_term_ffs
 
    ! advance mirror implicit solve dg/dt = mu/m * bhat . grad B (dg/dvpa + m*vpa/T * g)
-   subroutine advance_mirror_implicit(collisions_implicit, g, apar)
+   subroutine advance_mirror_implicit(collisions_implicit, g, apar, bpar)
 
       use constants, only: zi
       use mp, only: proc0
@@ -656,7 +656,7 @@ contains
 
       logical, intent(in) :: collisions_implicit
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: apar, bpar
 
       integer :: ikxyz, ikxkyz, ivmu
       integer :: iky, ikx, iz, it, is
@@ -790,7 +790,7 @@ contains
                do imu = 1, nmu
                   ! calculate the contribution to the mirror advance due to source terms
                   ! involving the particle distribution function
-                  call get_mirror_rhs_g_contribution(gvmu(:, imu, ikxkyz), apar(iky, ikx, iz, it), imu, ikxkyz, rhs)
+                  call get_mirror_rhs_g_contribution(gvmu(:, imu, ikxkyz), apar(iky, ikx, iz, it), bpar(iky, ikx, iz, it), imu, ikxkyz, rhs)
 
                   ! invert_mirror_operator takes rhs of equation and
                   ! returns g^{n+1}
@@ -851,9 +851,9 @@ contains
 
    end subroutine advance_mirror_implicit
 
-   subroutine get_mirror_rhs_g_contribution(g_in, apar, imu, ikxkyz, rhs)
+   subroutine get_mirror_rhs_g_contribution(g_in, apar, bpar, imu, ikxkyz, rhs)
 
-      use physics_flags, only: include_apar
+      use physics_flags, only: include_apar, include_bpar
       use run_parameters, only: vpa_upwind, time_upwind_minus
       use run_parameters, only: maxwellian_normalization
       use g_tofrom_h, only: gbar_to_g
@@ -865,7 +865,7 @@ contains
       implicit none
 
       complex, dimension(:), intent(in) :: g_in
-      complex, intent(in) :: apar
+      complex, intent(in) :: apar, bpar
       integer, intent(in) :: imu, ikxkyz
       complex, dimension(:), intent(out) :: rhs
 
@@ -883,9 +883,9 @@ contains
       ! NB: changes may need to be made to this call to gbar_to_g if using
       ! maxwellian_normalization; not worried aobut it too much yet, as not
       ! sure if it will ever be in use here
-      if (include_apar) then
+      if (include_apar .or. include_bpar) then
          ! rhs is converted from g to gbar
-         call gbar_to_g(rhs, apar, imu, ikxkyz, -1.0)
+         call gbar_to_g(rhs, apar, bpar, imu, ikxkyz, -1.0, -1.0)
       end if
 
       ! calculate dg/dvpa
