@@ -803,7 +803,7 @@ contains
    subroutine advance_stella(istep, stop_stella)
 
       use dist_fn_arrays, only: gold, gnew
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use fields_arrays, only: phi_old
       use fields, only: advance_fields, fields_updated
       use run_parameters, only: fully_explicit, fully_implicit
@@ -865,9 +865,9 @@ contains
             if (.not. fully_implicit) call advance_explicit(gnew, restart_time_step, istep)
 
             !> Use operator splitting to separately evolve all terms treated implicitly
-            if (.not. restart_time_step .and. .not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
+            if (.not. restart_time_step .and. .not. fully_explicit) call advance_implicit(istep, phi, apar, bpar, gnew)
          else
-            if (.not. fully_explicit) call advance_implicit(istep, phi, apar, gnew)
+            if (.not. fully_explicit) call advance_implicit(istep, phi, apar, bpar, gnew)
             if (.not. fully_implicit) call advance_explicit(gnew, restart_time_step, istep)
          end if
 
@@ -929,9 +929,9 @@ contains
       use extended_zgrid, only: periodic, phase_shift
       use kt_grids, only: naky
       use stella_layouts, only: vmu_lo, iv_idx
-      use physics_flags, only: include_apar
+      use physics_flags, only: include_apar, include_bpar
       use parallel_streaming, only: stream_sign
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use fields, only: advance_fields
       use g_tofrom_h, only: gbar_to_g
 
@@ -949,10 +949,10 @@ contains
       ! incoming pdf is g = <f>
       ! if include_apar = T, convert from g to gbar,
       ! as gbar appears in time derivative
-      if (include_apar) then
+      if (include_apar .or. include_bpar) then
          ! if the fields are not already updated, then update them
          call advance_fields(g, phi, apar, dist='g')
-         call gbar_to_g(g, apar, -1.0)
+         call gbar_to_g(g, apar, bpar, -1.0, -1.0)
       end if
 
       select case (explicit_option_switch)
@@ -970,12 +970,12 @@ contains
          call advance_explicit_rk4(g, restart_time_step, istep)
       end select
 
-      if (include_apar) then
+      if (include_apar .or. include_bpar) then
          ! if the fields are not already updated, then update them
          call advance_fields(g, phi, apar, dist='gbar')
          ! implicit solve will use g rather than gbar for advance,
          ! so convert from gbar to g
-         call gbar_to_g(g, apar, 1.0)
+         call gbar_to_g(g, apar, bpar, 1.0, 1.0)
       end if
 
       !> enforce periodicity for periodic (including zonal) modes
@@ -1187,14 +1187,14 @@ contains
    subroutine solve_gke(pdf, rhs_ky, restart_time_step, istep)
 
       use job_manage, only: time_message
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use stella_layouts, only: vmu_lo
       use stella_transforms, only: transform_y2ky
       use redistribute, only: gather, scatter
       use physics_flags, only: include_parallel_nonlinearity
       use physics_flags, only: include_parallel_streaming
       use physics_flags, only: include_mirror, include_apar
-      use physics_flags, only: nonlinear
+      use physics_flags, only: nonlinear, include_bpar
       use physics_flags, only: full_flux_surface, radial_variation
       use physics_parameters, only: g_exb
       use zgrid, only: nzgrid, ntubes
@@ -1249,11 +1249,11 @@ contains
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_fields'
 
       ! if advancing apar, then gbar is evolved in time rather than g
-      if (include_apar) then
+      if (include_apar .or. include_bpar) then
          call advance_fields(pdf, phi, apar, dist='gbar')
 
          ! convert from gbar to g = <f>, as all terms on RHS of GKE use g rather than gbar
-         call gbar_to_g(pdf, apar, 1.0)
+         call gbar_to_g(pdf, apar, bpar, 1.0, 1.0)
       else
          call advance_fields(pdf, phi, apar, dist='g')
       end if
@@ -1332,8 +1332,8 @@ contains
 
       end if
 
-      ! if advancing apar, need to convert input pdf back from g to gbar
-      if (include_apar) call gbar_to_g(pdf, apar, -1.0)
+      ! if advancing apar or bpar, need to convert input pdf back from g to gbar
+      if (include_apar .or. include_bpar) call gbar_to_g(pdf, apar, bpar, -1.0, -1.0)
 
       fields_updated = .false.
 
@@ -2484,7 +2484,7 @@ contains
 
    end subroutine add_explicit_term_ffs
 
-   subroutine advance_implicit(istep, phi, apar, g)
+   subroutine advance_implicit(istep, phi, apar, bpar, g)
 
       use mp, only: proc0
       use job_manage, only: time_message
@@ -2508,7 +2508,7 @@ contains
       implicit none
 
       integer, intent(in) :: istep
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
 
       !    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out), target :: g
@@ -2571,7 +2571,7 @@ contains
 !          else
 !             g_mirror => g
 !          end if
-            call advance_mirror_implicit(collisions_implicit, g, apar)
+            call advance_mirror_implicit(collisions_implicit, g, apar, bpar)
             fields_updated = .false.
          end if
 
@@ -2605,7 +2605,7 @@ contains
          end if
 
          if (mirror_implicit .and. include_mirror) then
-            call advance_mirror_implicit(collisions_implicit, g, apar)
+            call advance_mirror_implicit(collisions_implicit, g, apar, bpar)
             fields_updated = .false.
          end if
 
