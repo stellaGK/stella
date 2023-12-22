@@ -27,6 +27,7 @@ module gyro_averages
    interface gyro_average_j1
       module procedure gyro_average_j1_kxky_local
       module procedure gyro_average_j1_kxkyz_local
+      module procedure gyro_average_j1_v_local
       module procedure gyro_average_j1_vmu_local
    end interface
 
@@ -827,6 +828,18 @@ contains
 
    end subroutine gyro_average_j1_vmu_local
 
+   subroutine gyro_average_j1_v_local(distfn, imu, ikxkyz, gyro_distfn)
+
+      implicit none
+
+      complex, dimension(:), intent(in) :: distfn
+      integer, intent(in) :: imu, ikxkyz
+      complex, dimension(:), intent(out) :: gyro_distfn
+
+      gyro_distfn = aj1v(imu, ikxkyz) * distfn
+
+   end subroutine gyro_average_j1_v_local
+   
    subroutine band_lu_solve_ffs(lu, solvec)
 
       use common_types, only: gam0_ffs_type
