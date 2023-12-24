@@ -97,23 +97,22 @@ contains
 
 !   end subroutine gbar_to_h_kxkyz
 
-   subroutine gbar_to_g_kxkyz(g, apar, bpar, facapar, facbpar)
+   subroutine gbar_to_g_kxkyz(g, apar, facapar)
 
       use species, only: spec
       use zgrid, only: nzgrid
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa, mu
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
       use vpamu_grids, only: nvpa, nmu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use gyro_averages, only: gyro_average, gyro_average_j1
+      use gyro_averages, only: gyro_average
       use run_parameters, only: maxwellian_normalization
-      use physics_flags, only: include_apar, include_bpar
       
       implicit none
 
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar, bpar
-      real, intent(in) :: facapar, facbpar
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar
+      real, intent(in) :: facapar
 
       integer :: ikxkyz, iz, it, iky, ikx, is, ia
       complex, dimension(:, :), allocatable :: field, adjust
@@ -122,57 +121,38 @@ contains
       allocate (adjust(nvpa, nmu))
 
       ia = 1
-      if (include_apar) then
-         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            iz = iz_idx(kxkyz_lo, ikxkyz)
-            it = it_idx(kxkyz_lo, ikxkyz)
-            ikx = ikx_idx(kxkyz_lo, ikxkyz)
-            iky = iky_idx(kxkyz_lo, ikxkyz)
-            is = is_idx(kxkyz_lo, ikxkyz)
-            !> adjust apar part of <chi>
-            field = 2.0 * facapar * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm_psi0 * spread(vpa, 2, nmu)
-            if (.not. maxwellian_normalization) then
-               field = field * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
-            end if
-            call gyro_average(field, ikxkyz, adjust)
-            g(:, :, ikxkyz) = g(:, :, ikxkyz) - adjust
-         end do
-      end if
-      if (include_bpar) then            
-         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            iz = iz_idx(kxkyz_lo, ikxkyz)
-            it = it_idx(kxkyz_lo, ikxkyz)
-            ikx = ikx_idx(kxkyz_lo, ikxkyz)
-            iky = iky_idx(kxkyz_lo, ikxkyz)
-            is = is_idx(kxkyz_lo, ikxkyz)   
-            !> adjust bpar part of <chi>
-            field = 4.0 * facbpar * spread(mu, 1, nvpa) * bpar(iky, ikx, iz, it)
-            if (.not. maxwellian_normalization) then
-               field = field * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
-            end if
-            call gyro_average_j1(field, ikxkyz, adjust)
-            g(:, :, ikxkyz) = g(:, :, ikxkyz) + adjust
-         end do
-      end if
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         iz = iz_idx(kxkyz_lo, ikxkyz)
+         it = it_idx(kxkyz_lo, ikxkyz)
+         ikx = ikx_idx(kxkyz_lo, ikxkyz)
+         iky = iky_idx(kxkyz_lo, ikxkyz)
+         is = is_idx(kxkyz_lo, ikxkyz)
+         !> adjust apar part of <chi>
+         field = 2.0 * facapar * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm_psi0 * spread(vpa, 2, nmu)
+         if (.not. maxwellian_normalization) then
+            field = field * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
+         end if
+         call gyro_average(field, ikxkyz, adjust)
+         g(:, :, ikxkyz) = g(:, :, ikxkyz) - adjust
+      end do
    end subroutine gbar_to_g_kxkyz
 
-   subroutine gbar_to_g_1d_vpa(g, apar, bpar, imu, ikxkyz, facapar, facbpar)
+   subroutine gbar_to_g_1d_vpa(g, apar, imu, ikxkyz, facapar)
 
       use species, only: spec
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa, mu
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
       use vpamu_grids, only: nvpa
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, is_idx
-      use gyro_averages, only: gyro_average, gyro_average_j1
+      use gyro_averages, only: gyro_average
       use run_parameters, only: maxwellian_normalization
-      use physics_flags, only: include_apar, include_bpar
-
+      
       implicit none
 
       complex, dimension(:), intent(in out) :: g
-      complex, intent(in) :: apar, bpar
+      complex, intent(in) :: apar
       integer, intent(in) :: imu, ikxkyz
-      real, intent(in) :: facapar, facbpar
+      real, intent(in) :: facapar
 
       integer :: iz, is, ia
       complex, dimension(:), allocatable :: field, adjust
@@ -183,28 +163,17 @@ contains
       ia = 1
       iz = iz_idx(kxkyz_lo, ikxkyz)
       is = is_idx(kxkyz_lo, ikxkyz)
-      if (include_apar) then
-         !> adjust apar part of <chi>
-         field = 2.0 * facapar * apar * spec(is)%zt * spec(is)%stm_psi0 * vpa
-         if (.not. maxwellian_normalization) then
-            field = field * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is)
-         end if
-         call gyro_average(field, imu, ikxkyz, adjust)
-         g = g - adjust
+      !> adjust apar part of <chi>
+      field = 2.0 * facapar * apar * spec(is)%zt * spec(is)%stm_psi0 * vpa
+      if (.not. maxwellian_normalization) then
+         field = field * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is)
       end if
-      if (include_bpar) then
-         !> adjust bpar part of <chi>
-         field = 4.0 * facbpar * bpar * mu(imu)
-         if (.not. maxwellian_normalization) then
-            field = field * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is)
-         end if
-         call gyro_average_j1(field, imu, ikxkyz, adjust)
-         g = g + adjust
-      end if
-
+      call gyro_average(field, imu, ikxkyz, adjust)
+      g = g - adjust
+      
    end subroutine gbar_to_g_1d_vpa
 
-   subroutine gbar_to_g_vmu(g, apar, bpar, facapar, facbpar)
+   subroutine gbar_to_g_vmu(g, apar, facapar)
 
       use zgrid, only: nzgrid
       use stella_layouts, only: vmu_lo
@@ -212,18 +181,18 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar, bpar
-      real, intent(in) :: facapar, facbpar
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar
+      real, intent(in) :: facapar
 
       integer :: ivmu
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         call gbar_to_g_vmu_single(ivmu, g(:, :, :, :, ivmu), apar, bpar, facapar, facbpar)
+         call gbar_to_g_vmu_single(ivmu, g(:, :, :, :, ivmu), apar, facapar)
       end do
 
    end subroutine gbar_to_g_vmu
 
-   subroutine gbar_to_g_vmu_single(ivmu, g0, apar, bpar, facapar, facbpar)
+   subroutine gbar_to_g_vmu_single(ivmu, g0, apar, facapar)
 
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
@@ -231,17 +200,16 @@ contains
       use kt_grids, only: naky, nakx
       use kt_grids, only: multiply_by_rho
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use vpamu_grids, only: vpa, mu
-      use gyro_averages, only: gyro_average, gyro_average_j1
+      use vpamu_grids, only: vpa
+      use gyro_averages, only: gyro_average
       use run_parameters, only: maxwellian_normalization
-      use physics_flags, only: include_apar, include_bpar
       
       implicit none
 
       integer, intent(in) :: ivmu
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: g0
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar, bpar
-      real, intent(in) :: facapar, facbpar
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar
+      real, intent(in) :: facapar
 
       integer :: iv, imu, is
       integer :: it, iz, ia
@@ -255,37 +223,22 @@ contains
       allocate (adjust(naky, nakx))
 
       ia = 1
-      if (include_apar) then
-         do it = 1, ntubes
-            do iz = -nzgrid, nzgrid
-               !> adjust apar part of <chi>
-               field = 2.0 * spec(is)%zt * spec(is)%stm_psi0 * vpa(iv) * facapar * apar(:, :, iz, it)
-               if (.not. maxwellian_normalization) then
-                  field = field * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-               end if
-               call gyro_average(field, iz, ivmu, adjust)
-               g0(:, :, iz, it) = g0(:, :, iz, it) - adjust
-            end do
+      do it = 1, ntubes
+         do iz = -nzgrid, nzgrid
+            !> adjust apar part of <chi>
+            field = 2.0 * spec(is)%zt * spec(is)%stm_psi0 * vpa(iv) * facapar * apar(:, :, iz, it)
+            if (.not. maxwellian_normalization) then
+               field = field * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+            end if
+            call gyro_average(field, iz, ivmu, adjust)
+            g0(:, :, iz, it) = g0(:, :, iz, it) - adjust
          end do
-      end if
-      if (include_bpar) then
-         do it = 1, ntubes
-            do iz = -nzgrid, nzgrid
-               !> adjust bpar part of <chi>
-               field = 4.0 * mu(imu) * facbpar * bpar(:,:,iz,it) 
-               if (.not. maxwellian_normalization) then
-                  field = field * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
-               end if
-               call gyro_average_j1(field, iz, ivmu, adjust)
-               g0(:, :, iz, it) = g0(:, :, iz, it) + adjust
-            end do
-         end do
-      end if
+      end do
       deallocate (field, adjust)
 
    end subroutine gbar_to_g_vmu_single
 
-   subroutine g_to_h_vmu(g, phi, facphi, phi_corr)
+   subroutine g_to_h_vmu(g, phi, bpar, facphi, phi_corr)
 
       use zgrid, only: nzgrid
       use stella_layouts, only: vmu_lo
@@ -293,19 +246,19 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, bpar
       complex, dimension(:, :, -nzgrid:, :), optional, intent(in) :: phi_corr
       real, intent(in) :: facphi
 
       integer :: ivmu
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         call g_to_h_vmu_single(ivmu, g(:, :, :, :, ivmu), phi, facphi, phi_corr)
+         call g_to_h_vmu_single(ivmu, g(:, :, :, :, ivmu), phi, bpar, facphi, phi_corr)
       end do
 
    end subroutine g_to_h_vmu
 
-   subroutine g_to_h_vmu_single(ivmu, g0, phi, facphi, phi_corr)
+   subroutine g_to_h_vmu_single(ivmu, g0, phi, bpar, facphi, phi_corr)
 
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
@@ -316,18 +269,19 @@ contains
       use kt_grids, only: multiply_by_rho
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: vpa, vperp2, mu
-      use gyro_averages, only: gyro_average, aj0x, aj1x
-      use physics_flags, only: radial_variation
+      use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
+      use physics_flags, only: radial_variation, include_bpar
       use run_parameters, only: maxwellian_normalization
 
       implicit none
 
       integer, intent(in) :: ivmu
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: g0
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, bpar
       real, intent(in) :: facphi
       complex, dimension(:, :, -nzgrid:, :), optional, intent(in) :: phi_corr
 
+      real :: facbpar
       integer :: iv, imu, is
       integer :: it, iz, ia
       complex, dimension(:, :), allocatable :: field, adjust, g0k
@@ -366,7 +320,21 @@ contains
             g0(:, :, iz, it) = g0(:, :, iz, it) + adjust
          end do
       end do
-
+      if (include_bpar) then
+         facbpar = facphi
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               !> adjust bpar part of <chi>
+               field = 4.0 * mu(imu) * facbpar * bpar(:,:,iz,it) 
+               if (.not. maxwellian_normalization) then
+                  field = field * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+               end if
+               call gyro_average_j1(field, iz, ivmu, adjust)
+               g0(:, :, iz, it) = g0(:, :, iz, it) + adjust
+            end do
+         end do
+      end if
+      
       deallocate (field, adjust)
       if (allocated(g0k)) deallocate (g0k)
 
@@ -422,26 +390,28 @@ contains
 
 !   end subroutine g_to_h_vmu_zext
 
-   subroutine g_to_h_kxkyz(g, phi, facphi)
+   subroutine g_to_h_kxkyz(g, phi, bpar, facphi)
 
       use species, only: spec
       use zgrid, only: nzgrid
-      use vpamu_grids, only: nvpa, nmu
+      use vpamu_grids, only: nvpa, nmu, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use gyro_averages, only: gyro_average
+      use gyro_averages, only: gyro_average, gyro_average_j1
       use run_parameters, only: maxwellian_normalization
-
+      use physics_flags, only: include_bpar
+      
       implicit none
 
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, bpar
       real, intent(in) :: facphi
 
       integer :: ikxkyz, iz, it, iky, ikx, is, ia
       complex, dimension(:, :), allocatable :: field, adjust
-
+      real :: facbpar
+      
       allocate (field(nvpa, nmu))
       allocate (adjust(nvpa, nmu))
 
@@ -459,7 +429,24 @@ contains
          call gyro_average(field, ikxkyz, adjust)
          g(:, :, ikxkyz) = g(:, :, ikxkyz) + adjust
       end do
-
+      if (include_bpar) then            
+         facbpar = facphi
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            it = it_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)   
+            !> adjust bpar part of <chi>
+            field = 4.0 * facbpar * spread(mu, 1, nvpa) * bpar(iky, ikx, iz, it)
+            if (.not. maxwellian_normalization) then
+               field = field * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
+            end if
+            call gyro_average_j1(field, ikxkyz, adjust)
+            g(:, :, ikxkyz) = g(:, :, ikxkyz) + adjust
+         end do
+      end if
+      
       deallocate (field, adjust)
 
    end subroutine g_to_h_kxkyz
