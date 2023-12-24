@@ -349,7 +349,7 @@ contains
 
       if (radial_variation) fields_updated = .false.
       !> get the updated fields corresponding to gnew
-      call advance_fields(gnew, phi, apar, dist='g')
+      call advance_fields(gnew, phi, apar, bpar, dist='g')
 
       allocate (phi_out(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (apar_out(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -403,12 +403,12 @@ contains
          call scatter(kxkyz2vmu, gnew, gvmu)
          !> get_fluxes assumes the non-Boltzmann part of the distribution, h, is passed in;
          !> convert from <delta f> = g to h
-         call g_to_h(gvmu, phi, fphi)
+         call g_to_h(gvmu, phi, bpar, fphi)
          !> compute the fluxes
          call get_fluxes(gvmu, part_flux, mom_flux, heat_flux, &
                          pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
          !> convert back from h to g
-         call g_to_h(gvmu, phi, -fphi)
+         call g_to_h(gvmu, phi, bpar, -fphi)
       end if
 
       if (proc0) then

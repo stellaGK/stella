@@ -951,8 +951,8 @@ contains
       ! as gbar appears in time derivative
       if (include_apar .or. include_bpar) then
          ! if the fields are not already updated, then update them
-         call advance_fields(g, phi, apar, dist='g')
-         call gbar_to_g(g, apar, bpar, -1.0, -1.0)
+         call advance_fields(g, phi, apar, bpar, dist='g')
+         call gbar_to_g(g, apar, -1.0)
       end if
 
       select case (explicit_option_switch)
@@ -972,10 +972,10 @@ contains
 
       if (include_apar .or. include_bpar) then
          ! if the fields are not already updated, then update them
-         call advance_fields(g, phi, apar, dist='gbar')
+         call advance_fields(g, phi, apar, bpar, dist='gbar')
          ! implicit solve will use g rather than gbar for advance,
          ! so convert from gbar to g
-         call gbar_to_g(g, apar, bpar, 1.0, 1.0)
+         call gbar_to_g(g, apar, 1.0)
       end if
 
       !> enforce periodicity for periodic (including zonal) modes
@@ -1253,7 +1253,7 @@ contains
          call advance_fields(pdf, phi, apar, bpar, dist='gbar')
 
          ! convert from gbar to g = <f>, as all terms on RHS of GKE use g rather than gbar
-         call gbar_to_g(pdf, apar, bpar, 1.0, 1.0)
+         call gbar_to_g(pdf, apar, 1.0)
       else
          call advance_fields(pdf, phi, apar, bpar, dist='g')
       end if
@@ -1300,7 +1300,7 @@ contains
          end if
 
          !> calculate and add contribution from collisions to RHS of GK eqn
-         if (include_collisions .and. .not. collisions_implicit) call advance_collisions_explicit(pdf, phi, rhs)
+         if (include_collisions .and. .not. collisions_implicit) call advance_collisions_explicit(pdf, phi, bpar, rhs)
 
          !> calculate and add parallel streaming term to RHS of GK eqn
          if (include_parallel_streaming .and. (.not. stream_implicit)) then
@@ -1333,7 +1333,7 @@ contains
       end if
 
       ! if advancing apar or bpar, need to convert input pdf back from g to gbar
-      if (include_apar .or. include_bpar) call gbar_to_g(pdf, apar, bpar, -1.0, -1.0)
+      if (include_apar .or. include_bpar) call gbar_to_g(pdf, apar, -1.0)
 
       fields_updated = .false.
 
@@ -1667,7 +1667,7 @@ contains
       ! incoming pdf is g = <f>
       ! for EM simulations, the pdf entering the ExB nonlinearity needs to be
       ! the non-Boltzmann part of f (h = f + (Ze/T)*phi*F0)
-      if (include_apar) call g_to_h(g, phi, fphi)
+      if (include_apar) call g_to_h(g, phi, bpar, fphi)
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          imu = imu_idx(vmu_lo, ivmu)
@@ -1761,7 +1761,7 @@ contains
       end do
 
       ! convert back from h to g = <f> (only needed for EM sims)
-      if (include_apar) call g_to_h(g, phi, -fphi)
+      if (include_apar) call g_to_h(g, phi, bpar, -fphi)
 
       deallocate (g0k, g0a, g0xy, g1xy, bracket)
       if (allocated(g0k_swap)) deallocate (g0k_swap)
@@ -2559,8 +2559,8 @@ contains
          end if
 
          if (collisions_implicit .and. include_collisions) then
-            call advance_fields(g, phi, apar, dist='g')
-            call advance_collisions_implicit(mirror_implicit, phi, apar, g)
+            call advance_fields(g, phi, apar, bpar, dist='g')
+            call advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
             fields_updated = .false.
          end if
 
@@ -2578,29 +2578,29 @@ contains
          ! get updated fields corresponding to advanced g
          ! note that hyper-dissipation and mirror advances
          ! depended only on g and so did not need field update
-         call advance_fields(g, phi, apar, dist='g')
+         call advance_fields(g, phi, apar, bpar, dist='g')
 
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
-            call advance_implicit_terms(g, phi, apar)
+            call advance_implicit_terms(g, phi, apar, bpar)
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
 
          ! update the fields if not already updated
-         call advance_fields(g, phi, apar, dist='g')
+         call advance_fields(g, phi, apar, bpar, dist='g')
 
       else
 
          ! get updated fields corresponding to advanced g
          ! note that hyper-dissipation
          ! depends only on g and so does not need field update
-         call advance_fields(g, phi, apar, dist='g')
+         call advance_fields(g, phi, apar, bpar, dist='g')
 
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
-            call advance_implicit_terms(g, phi, apar)
+            call advance_implicit_terms(g, phi, apar, bpar)
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
 
@@ -2610,8 +2610,8 @@ contains
          end if
 
          if (collisions_implicit .and. include_collisions) then
-            call advance_fields(g, phi, apar, dist='g')
-            call advance_collisions_implicit(mirror_implicit, phi, apar, g)
+            call advance_fields(g, phi, apar, bpar, dist='g')
+            call advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
             fields_updated = .false.
          end if
 
@@ -2639,7 +2639,7 @@ contains
       use zgrid, only: nzgrid
       use multibox, only: multibox_communicate, use_dirichlet_bc, apply_radial_boundary_conditions
       use fields, only: fields_updated, advance_fields
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use file_utils, only: runtype_option_switch, runtype_multibox
 
       implicit none
@@ -2648,19 +2648,19 @@ contains
 
       if (runtype_option_switch == runtype_multibox) then
          if (job /= 1) then
-            call advance_fields(g_in, phi, apar, dist='g')
+            call advance_fields(g_in, phi, apar, bpar, dist='g')
          end if
 
          call multibox_communicate(g_in)
 
          if (job == 1) then
             fields_updated = .false.
-            call advance_fields(g_in, phi, apar, dist='g')
+            call advance_fields(g_in, phi, apar, bpar, dist='g')
          end if
       else if (use_dirichlet_BC) then
          call apply_radial_boundary_conditions(g_in)
          fields_updated = .false.
-         call advance_fields(g_in, phi, apar, dist='g')
+         call advance_fields(g_in, phi, apar, bpar, dist='g')
       end if
 
    end subroutine mb_communicate
