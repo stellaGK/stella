@@ -885,7 +885,7 @@ contains
       ! sure if it will ever be in use here
       if (include_apar .or. include_bpar) then
          ! rhs is converted from g to gbar
-         call gbar_to_g(rhs, apar, bpar, imu, ikxkyz, -1.0, -1.0)
+         call gbar_to_g(rhs, apar, imu, ikxkyz, -1.0)
       end if
 
       ! calculate dg/dvpa

@@ -14,7 +14,7 @@ module implicit_solve
 
 contains
 
-   subroutine advance_implicit_terms(g, phi, apar)
+   subroutine advance_implicit_terms(g, phi, apar, bpar)
 
       use mp, only: proc0
       use job_manage, only: time_message
@@ -35,7 +35,7 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
 
       integer :: nz_ext
       complex, dimension(:, :, :, :), allocatable :: phi_old, apar_old
@@ -80,7 +80,7 @@ contains
 
       ! we now have g_{inh}^{n+1}
       ! calculate associated fields (phi_{inh}^{n+1}, apar_{inh}^{n+1})
-      call advance_fields(g, phi, apar, dist=trim(dist_choice))
+      call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice))
 
       ! solve response_matrix*(phi^{n+1}-phi^{n*}) = phi_{inh}^{n+1}-phi^{n*}
       ! phi = phi_{inh}^{n+1}-phi^{n*} is input and overwritten by phi = phi^{n+1}-phi^{n*}
