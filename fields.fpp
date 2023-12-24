@@ -111,11 +111,12 @@ contains
       use physics_flags, only: adiabatic_option_fieldlineavg
       use fields_arrays, only: gamtot, dgamtotdr, gamtot3
       use fields_arrays, only: gamtot13, gamtot31, gamtot33
+      use fields_arrays, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
 
       implicit none
 
       integer :: ikxkyz, iz, it, ikx, iky, is, ia
-      real :: tmp, wgt
+      real :: tmp, wgt, denom_tmp
       real, dimension(:, :), allocatable :: g0
       real, dimension(:), allocatable :: g1
 
@@ -154,7 +155,7 @@ contains
          end if
       end if
 
-      ! gamtot13 and gamtot31 required if fphi!=0 and fbpar!=0
+      ! gamtot13 and gamtot31 required if include_bpar = .true.
       if (.not. allocated(gamtot13)) then
          if (include_bpar) then
             allocate (gamtot13(naky, nakx, -nzgrid:nzgrid)); gamtot13 = 0.
@@ -168,6 +169,38 @@ contains
             allocate (gamtot31(naky, nakx, -nzgrid:nzgrid)); gamtot31 = 0.
          else
             allocate (gamtot31(1, 1, 1)); gamtot31 = 0.
+         end if
+      end if
+      
+      if (.not. allocated(gamtotinv11)) then
+         if (include_bpar) then
+            allocate (gamtotinv11(naky, nakx, -nzgrid:nzgrid)); gamtotinv11 = 0.
+         else
+            allocate (gamtotinv11(1, 1, 1)); gamtotinv11 = 0.
+         end if
+      end if
+
+      if (.not. allocated(gamtotinv31)) then
+         if (include_bpar) then
+            allocate (gamtotinv31(naky, nakx, -nzgrid:nzgrid)); gamtotinv31 = 0.
+         else
+            allocate (gamtotinv31(1, 1, 1)); gamtotinv31 = 0.
+         end if
+      end if
+      
+      if (.not. allocated(gamtotinv11)) then
+         if (include_bpar) then
+            allocate (gamtotinv11(naky, nakx, -nzgrid:nzgrid)); gamtotinv11 = 0.
+         else
+            allocate (gamtotinv11(1, 1, 1)); gamtotinv11 = 0.
+         end if
+      end if
+
+      if (.not. allocated(gamtotinv33)) then
+         if (include_bpar) then
+            allocate (gamtotinv33(naky, nakx, -nzgrid:nzgrid)); gamtotinv33 = 0.
+         else
+            allocate (gamtotinv33(1, 1, 1)); gamtotinv31 = 0.
          end if
       end if
       
@@ -337,6 +370,35 @@ contains
          gamtot31 = -0.5 * beta * gamtot13 
          deallocate (g0)
       end if
+      
+      if (fphi > epsilon(0.0) .and. include_bpar) then
+         !> compute coefficients for even part of field solve (phi, bpar)
+         do iz =-nzgrid,nzgrid 
+            do ikx = 1, nakx
+               do iky = 1, naky 
+                  !> gamtotinv11
+                  denom_tmp = gamtot(iky,ikx,iz) - ((gamtot13(iky,ikx,iz)*gamtot31(iky,ikx,iz))/gamtot33(iky,ikx,iz))
+                  if (denom_tmp < epsilon(0.0)) then
+                     gamtotinv11(iky,ikx,iz) = 0.0
+                  else
+                     gamtotinv11(iky,ikx,iz) = 1.0/denom_tmp
+                  end if
+                  !> gamtotinv13, gamtotinv31, gamtotinv33
+                  denom_tmp = gamtot(iky,ikx,iz)*gamtot33(iky,ikx,iz) - gamtot13(iky,ikx,iz)*gamtot31(iky,ikx,iz)
+                  if (denom_tmp < epsilon(0.0)) then
+                     gamtotinv13(iky,ikx,iz) = 0.0
+                     gamtotinv31(iky,ikx,iz) = 0.0
+                     gamtotinv33(iky,ikx,iz) = 0.0
+                  else
+                     gamtotinv13(iky,ikx,iz) = -gamtot13(iky,ikx,iz)/denom_tmp
+                     gamtotinv33(iky,ikx,iz) = gamtot(iky,ikx,iz)/denom_tmp
+                     gamtotinv31(iky,ikx,iz) = -gamtot31(iky,ikx,iz)/denom_tmp
+                  end if
+               end do
+            end do
+         end do
+      end if
+      
    end subroutine init_fields_fluxtube
 
    subroutine init_radial_field_solve
@@ -801,7 +863,7 @@ contains
 
    end subroutine enforce_reality_field
 
-   subroutine advance_fields_vmu_lo(g, phi, apar, dist)
+   subroutine advance_fields_vmu_lo(g, phi, apar, bpar, dist)
 
       use mp, only: proc0
       use stella_layouts, only: vmu_lo
@@ -816,7 +878,7 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar, bpar
       character(*), intent(in) :: dist
 
       if (fields_updated) return
@@ -833,13 +895,13 @@ contains
          if (proc0) call time_message(.false., time_field_solve(:, 2), ' fields_redist')
          !> given gvmu with vpa and mu local, calculate the corresponding fields
          if (debug) write (*, *) 'fields::advance_fields_vmu_lo::get_fields'
-         call get_fields(gvmu, phi, apar, dist)
+         call get_fields(gvmu, phi, apar, bpar, dist)
       else
          if (full_flux_surface) then
             if (debug) write (*, *) 'fields::advance_fields_vmu_lo::get_fields_ffs'
             call get_fields_ffs(g, phi, apar)
          else
-            call get_fields_vmulo(g, phi, apar, dist)
+            call get_fields_vmulo(g, phi, apar, bpar, dist)
          end if
       end if
 
@@ -851,7 +913,7 @@ contains
 
    end subroutine advance_fields_vmu_lo
 
-   subroutine advance_fields_kxkyz_lo(gvmu, phi, apar, dist)
+   subroutine advance_fields_kxkyz_lo(gvmu, phi, apar, bpar, dist)
 
       use mp, only: proc0
       use stella_layouts, only: kxkyz_lo
@@ -864,7 +926,7 @@ contains
       implicit none
 
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: gvmu
-      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar, bpar
       character(*), intent(in) :: dist
 
       if (fields_updated) return
@@ -874,7 +936,7 @@ contains
 
       !> given gvmu with vpa and mu local, calculate the corresponding fields
       if (debug) write (*, *) 'dist_fn::advance_stella::advance_fields_kxkyz_lo::get_fields'
-      call get_fields(gvmu, phi, apar, dist)
+      call get_fields(gvmu, phi, apar, bpar, dist)
 
       !> set a flag to indicate that the fields have been updated
       !> this helps avoid unnecessary field solves
@@ -884,7 +946,7 @@ contains
 
    end subroutine advance_fields_kxkyz_lo
 
-   subroutine get_fields(g, phi, apar, dist, skip_fsa)
+   subroutine get_fields(g, phi, apar, bpar, dist, skip_fsa)
 
       use mp, only: proc0
       use mp, only: sum_allreduce, mp_abort
@@ -892,20 +954,20 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use dist_fn_arrays, only: kperp2
-      use gyro_averages, only: gyro_average
-      use physics_flags, only: include_apar
+      use gyro_averages, only: gyro_average, gyro_average_j1
+      use physics_flags, only: include_apar, include_bpar
       use run_parameters, only: fphi
       use physics_parameters, only: beta
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: vpa
+      use vpamu_grids, only: vpa, mu
       use vpamu_grids, only: integrate_vmu
       use species, only: spec
 
       implicit none
 
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar, bpar
       logical, optional, intent(in) :: skip_fsa
       character(*), intent(in) :: dist
       complex :: tmp
@@ -923,7 +985,8 @@ contains
       ia = 1
 
       phi = 0.
-      if (fphi > epsilon(0.0)) then
+      bpar = 0.
+      if (fphi > epsilon(0.0) .and. .not. include_bpar) then
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
          allocate (g0(nvpa, nmu))
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -942,7 +1005,32 @@ contains
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
          call get_phi(phi, dist, skip_fsa_local)
+      elseif (fphi > epsilon(0.0) .and. include_bpar) then
+         if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
+         allocate (g0(nvpa, nmu))
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            it = it_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
+            !> integrate g to get sum_s Z_s n_s J0 g and store in phi
+            call gyro_average(g(:, :, ikxkyz), ikxkyz, g0)
+            wgt = spec(is)%z * spec(is)%dens_psi0
+            call integrate_vmu(g0, iz, tmp)
+            phi(iky, ikx, iz, it) = phi(iky, ikx, iz, it) + wgt * tmp
+            !> integrate g to get - 2 beta sum_s n_s T_s J1 mu g and store in bpar
+            call gyro_average_j1(spread(mu, 1, nvpa) * g(:, :, ikxkyz), ikxkyz, g0)
+            wgt = -2.0 * beta* spec(is)%z * spec(is)%dens_psi0 * spec(is)%temp_psi0
+            call integrate_vmu(g0, iz, tmp)
+            bpar(iky, ikx, iz, it) = bpar(iky, ikx, iz, it) + wgt * tmp
+         end do
+         deallocate (g0)
+         call sum_allreduce(phi)
+         call sum_allreduce(bpar)
+         if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
 
+         call get_phi_and_bpar(phi, bpar, dist, skip_fsa_local)
       end if
 
       apar = 0.
@@ -980,7 +1068,7 @@ contains
 
    end subroutine get_fields
 
-   subroutine get_fields_vmulo(g, phi, apar, dist, skip_fsa)
+   subroutine get_fields_vmulo(g, phi, apar, bpar, dist, skip_fsa)
 
       use mp, only: mp_abort, proc0
       use job_manage, only: time_message
@@ -999,7 +1087,7 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar, bpar
       logical, optional, intent(in) :: skip_fsa
       character(*), intent(in) :: dist
 
@@ -1443,6 +1531,56 @@ contains
       if (proc0) call time_message(.false., time_field_solve(:, 5), 'get_phi_adia_elec')
 
    end subroutine get_phi
+
+   subroutine get_phi_and_bpar(phi, bpar, dist, skip_fsa)
+
+      use mp, only: proc0, mp_abort, job
+      use job_manage, only: time_message
+      use physics_flags, only: radial_variation
+      use run_parameters, only: ky_solve_radial, ky_solve_real
+      use zgrid, only: nzgrid, ntubes
+      use stella_geometry, only: dl_over_b
+      use kt_grids, only: nakx, naky, zonal_mode
+      use physics_flags, only: adiabatic_option_switch
+      use physics_flags, only: adiabatic_option_fieldlineavg
+      use species, only: spec, has_electron_species
+      use multibox, only: mb_get_phi
+      use fields_arrays, only: gamtotinv11, gamtotinv13, gamtotinv33, gamtotinv31
+      use file_utils, only: runtype_option_switch, runtype_multibox
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, bpar
+      logical, optional, intent(in) :: skip_fsa
+      integer :: ia, it, ikx, iky, iz
+      complex :: antot1, antot3
+      
+      character(*), intent(in) :: dist
+
+      if (debug) write (*, *) 'dist_fn::advance_stella::get_phi_and_bpar'
+
+      ia = 1
+      if (proc0) call time_message(.false., time_field_solve(:, 4), ' get_phi_and_bpar')
+      if (dist == 'gbar' .or. dist == 'g') then
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+               do ikx = 1, nakx
+                  do iky = 1, naky
+                     antot1 = phi(iky,ikx,iz,it)
+                     antot3 = bpar(iky,ikx,iz,it)
+                     phi(iky,ikx,iz,it) = gamtotinv11(iky,ikx,iz)*antot1 + gamtotinv13(iky,ikx,iz)*antot3
+                     bpar(iky,ikx,iz,it) = gamtotinv31(iky,ikx,iz)*antot1 + gamtotinv33(iky,ikx,iz)*antot3
+                  end do
+               end do
+            end do
+         end do
+      else
+         if (proc0) write (*, *) 'unknown dist option in get_fields. aborting'
+         call mp_abort('unknown dist option in get_fields. aborting')
+         return
+      end if
+
+   end subroutine get_phi_and_bpar
 
    !> Non-perturbative approach to solving quasineutrality for radially
    !> global simulations
