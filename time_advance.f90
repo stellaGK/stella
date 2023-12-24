@@ -850,7 +850,7 @@ contains
          gnew = gold
 
          ! Ensure fields are consistent with gnew.
-         call advance_fields(gnew, phi, apar, dist='g')
+         call advance_fields(gnew, phi, apar, bpar, dist='g')
 
          ! Keep track whether any routine wants to modify the time step
          restart_time_step = .false.
@@ -910,7 +910,7 @@ contains
       gold = gnew
 
       !> Ensure fields are updated so that omega calculation is correct.
-      call advance_fields(gnew, phi, apar, dist='g')
+      call advance_fields(gnew, phi, apar, bpar, dist='g')
 
       !update the delay parameters for the Krook operator
       if (source_option_switch == source_option_krook) call update_tcorr_krook(gnew)
@@ -1250,12 +1250,12 @@ contains
 
       ! if advancing apar, then gbar is evolved in time rather than g
       if (include_apar .or. include_bpar) then
-         call advance_fields(pdf, phi, apar, dist='gbar')
+         call advance_fields(pdf, phi, apar, bpar, dist='gbar')
 
          ! convert from gbar to g = <f>, as all terms on RHS of GKE use g rather than gbar
          call gbar_to_g(pdf, apar, bpar, 1.0, 1.0)
       else
-         call advance_fields(pdf, phi, apar, dist='g')
+         call advance_fields(pdf, phi, apar, bpar, dist='g')
       end if
 
       if (radial_variation) call get_radial_correction(pdf, phi, dist='g')
