@@ -188,6 +188,7 @@ contains
       use mp, only: mp_abort
       use dist_fn_arrays, only: wdriftx_g, wdrifty_g
       use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
+      use dist_fn_arrays, only: wdriftx_bpar, wdrifty_bpar
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_time, only: code_dt
@@ -199,7 +200,7 @@ contains
       use stella_geometry, only: gds23, gds24
       use stella_geometry, only: geo_surf, q_as_x
       use stella_geometry, only: dxdXcoord, drhodpsi, dydalpha
-      use vpamu_grids, only: vpa, vperp2
+      use vpamu_grids, only: vpa, vperp2, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
@@ -225,6 +226,16 @@ contains
       if (.not. allocated(wdrifty_phi)) then
          allocate (wdrifty_phi(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          wdrifty_phi = 0.0
+      end if
+      !> allocate wdriftx_bpar, the factor multiplying dbpar/dx in the magnetic drift term
+      if (.not. allocated(wdriftx_bpar)) then
+         allocate (wdriftx_bpar(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         wdriftx_bpar = 0.0
+      end if
+      !> allocate wdrifty_bpar, the factor multiplying dbpar/dy in the magnetic drift term
+      if (.not. allocated(wdrifty_bpar)) then
+         allocate (wdrifty_bpar(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         wdrifty_bpar = 0.0
       end if
       !> allocate wdriftx_g, the factor multiplying dg/dx in the magnetic drift term
       if (.not. allocated(wdriftx_g)) then
@@ -270,6 +281,8 @@ contains
          if (.not. maxwellian_normalization) then
             wdrifty_phi(:, :, ivmu) = wdrifty_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          end if
+         !> assign wdrifty_bpar, neoclassical terms not supported
+         wdrifty_bpar(:,:,ivmu) = 4.0 * mu(imu) * wdrifty_phi(:, :, ivmu)
          !> if including neoclassical corrections to equilibrium,
          !> add in -(Ze/m) * v_curv/vpa . grad y d<phi>/dy * dF^{nc}/dvpa term
          !> and v_E . grad z dF^{nc}/dz (here get the dphi/dy part of v_E)
@@ -308,6 +321,8 @@ contains
          if (.not. maxwellian_normalization) then
             wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          end if
+         !> assign wdriftx_bpar, neoclassical terms not supported
+         wdriftx_bpar(:,:,ivmu) = 4.0 * mu(imu) * wdriftx_phi(:, :, ivmu)
          !> if including neoclassical corrections to equilibrium,
          !> add in (Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
          !> and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
@@ -1288,11 +1303,11 @@ contains
          if (.not. drifts_implicit) then
             !> calculate and add alpha-component of magnetic drift term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdrifty_explicit'
-            call advance_wdrifty_explicit(pdf, phi, rhs)
+            call advance_wdrifty_explicit(pdf, phi, bpar, rhs)
 
             !> calculate and add psi-component of magnetic drift term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdriftx_explicit'
-            call advance_wdriftx_explicit(pdf, phi, rhs)
+            call advance_wdriftx_explicit(pdf, phi, bpar, rhs)
 
             !> calculate and add omega_* term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wstar_explicit'
@@ -1407,7 +1422,7 @@ contains
 
    !> advance_wdrifty_explicit subroutine calculates and adds the y-component of the
    !> magnetic drift term to the RHS of the GK equation
-   subroutine advance_wdrifty_explicit(g, phi, gout)
+   subroutine advance_wdrifty_explicit(g, phi, bpar, gout)
 
       use mp, only: proc0
       use stella_layouts, only: vmu_lo
@@ -1416,18 +1431,18 @@ contains
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, ikx_max, naky, naky_all, ny
       use kt_grids, only: swap_kxky
-      use physics_flags, only: full_flux_surface
-      use gyro_averages, only: gyro_average
-      use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
+      use physics_flags, only: full_flux_surface, include_bpar
+      use gyro_averages, only: gyro_average, gyro_average_j1
+      use dist_fn_arrays, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
 
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
 
       integer :: ivmu, iz, it
-      complex, dimension(:, :, :, :), allocatable :: dphidy
+      complex, dimension(:, :, :, :), allocatable :: dphidy, dbpardy
       complex, dimension(:, :, :, :, :), allocatable :: g0k, g0y
       complex, dimension(:, :), allocatable :: g0k_swap
 
@@ -1435,6 +1450,7 @@ contains
       if (proc0) call time_message(.false., time_gke(:, 4), ' dgdy advance')
 
       allocate (dphidy(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dbpardy(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (g0k(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdrifty_explicit::get_dgdy'
@@ -1442,6 +1458,8 @@ contains
       call get_dgdy(g, g0k)
       !> calculate dphi/dy in (ky,kx) space
       call get_dgdy(phi, dphidy)
+      !> calculate dbpar/dy in (ky,kx) space
+      if (include_bpar) call get_dgdy(bpar, dbpardy)
 
       if (full_flux_surface) then
          !> assume only a single flux surface simulated
@@ -1487,8 +1505,17 @@ contains
 
          ! add vM . grad y d<phi>/dy term to equation
          call add_explicit_term(g0k, wdrifty_phi(1, :, :), gout)
+         
+         if (include_bpar) then
+            ! get <dbpar/dy> in k-space
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               call gyro_average_j1(dbpardy, ivmu, g0k(:, :, :, :, ivmu))
+            end do
+            ! add vM . grad y (4 mu d<bpar>/dy) term to equation
+            call add_explicit_term(g0k, wdrifty_bpar(1, :, :), gout)            
+         end if
       end if
-      deallocate (g0k, dphidy)
+      deallocate (g0k, dphidy, dbpardy)
 
       !> stop the timing of the y component of the magnetic drift advance
       if (proc0) call time_message(.false., time_gke(:, 4), ' dgdy advance')
@@ -1497,7 +1524,7 @@ contains
 
    !> advance_wdriftx_explicit subroutine calculates and adds the x-component of the
    !> magnetic drift term to the RHS of the GK equation
-   subroutine advance_wdriftx_explicit(g, phi, gout)
+   subroutine advance_wdriftx_explicit(g, phi, bpar, gout)
 
       use mp, only: proc0
       use stella_layouts, only: vmu_lo
@@ -1506,18 +1533,18 @@ contains
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, ikx_max, naky, naky_all, ny, akx
       use kt_grids, only: swap_kxky
-      use physics_flags, only: full_flux_surface
+      use physics_flags, only: full_flux_surface, include_bpar
       use gyro_averages, only: gyro_average
-      use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
+      use dist_fn_arrays, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
 
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
 
       integer :: ivmu, iz, it
-      complex, dimension(:, :, :, :), allocatable :: dphidx
+      complex, dimension(:, :, :, :), allocatable :: dphidx, dbpardx
       complex, dimension(:, :, :, :, :), allocatable :: g0k, g0y
       complex, dimension(:, :), allocatable :: g0k_swap
 
@@ -1531,6 +1558,7 @@ contains
       end if
 
       allocate (dphidx(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dbpardx(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (g0k(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
       if (debug) write (*, *) 'time_advance::solve_gke::get_dgdx'
@@ -1538,6 +1566,8 @@ contains
       call get_dgdx(g, g0k)
       !> calculate dphi/dx in (ky,kx) space
       call get_dgdx(phi, dphidx)
+      !> calculate dbpar/dx in (ky,kx) space
+      if (include_bpar) call get_dgdx(bpar, dbpardx)
 
       if (full_flux_surface) then
          !> assume a single flux surface is simulated
@@ -1577,8 +1607,16 @@ contains
          end do
          !> add vM . grad x d<phi>/dx term to equation
          call add_explicit_term(g0k, wdriftx_phi(1, :, :), gout)
+         if (include_bpar) then
+            !> get <dbpar/dx> in k-space
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               call gyro_average(dbpardx, ivmu, g0k(:, :, :, :, ivmu))
+            end do
+            !> add vM . grad x ( 4 mu d<bpar>/dx ) term to equation
+            call add_explicit_term(g0k, wdriftx_bpar(1, :, :), gout)
+         end if
       end if
-      deallocate (g0k, dphidx)
+      deallocate (g0k, dphidx, dbpardx)
 
       !> stop the timing of the x component of the magnetic drift advance
       if (proc0) call time_message(.false., time_gke(:, 5), ' dgdx advance')
