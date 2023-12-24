@@ -146,7 +146,7 @@ contains
             iky = iky_idx(kxkyz_lo, ikxkyz)
             is = is_idx(kxkyz_lo, ikxkyz)   
             !> adjust bpar part of <chi>
-            field = 4.0 * facbpar * spread(mu, 1, nvpa) * (spec(is)%tz) * bpar(iky, ikx, iz, it)
+            field = 4.0 * facbpar * spread(mu, 1, nvpa) * bpar(iky, ikx, iz, it)
             if (.not. maxwellian_normalization) then
                field = field * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
             end if
@@ -194,7 +194,7 @@ contains
       end if
       if (include_bpar) then
          !> adjust bpar part of <chi>
-         field = 4.0 * facbpar * bpar * spec(is)%tz * mu(imu)
+         field = 4.0 * facbpar * bpar * mu(imu)
          if (.not. maxwellian_normalization) then
             field = field * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is)
          end if
@@ -272,7 +272,7 @@ contains
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
                !> adjust bpar part of <chi>
-               field = 4.0 * spec(is)%tz * mu(imu) * facbpar * bpar(:,:,iz,it) 
+               field = 4.0 * mu(imu) * facbpar * bpar(:,:,iz,it) 
                if (.not. maxwellian_normalization) then
                   field = field * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
                end if
