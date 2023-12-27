@@ -29,6 +29,7 @@ module gyro_averages
       module procedure gyro_average_j1_kxkyz_local
       module procedure gyro_average_j1_v_local
       module procedure gyro_average_j1_vmu_local
+      module procedure gyro_average_j1_kxkyzv_local
    end interface
 
    real, dimension(:, :, :, :), allocatable :: aj0x, aj1x
@@ -839,6 +840,33 @@ contains
       gyro_distfn = aj1v(imu, ikxkyz) * distfn
 
    end subroutine gyro_average_j1_v_local
+
+   subroutine gyro_average_j1_kxkyzv_local(field, gyro_field)
+      use mp, only: proc0, mp_abort
+      use zgrid, only: nzgrid
+      use stella_layouts, only: vmu_lo
+      use physics_flags, only: full_flux_surface
+      
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: field
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: gyro_field
+      integer :: ivmu
+
+      if (full_flux_surface) then
+         if (proc0) write (*, *) 'gyro_average_j1_kxkyzv_local does not support full_flux_surface'
+         call mp_abort('gyro_average_j1_kxkyzv_local does not support full_flux_surface. aborting')
+         return
+         !> if simulating a full flux surface, the alpha dependence present
+         !> in kperp makes gyro-averaging non-local in k-space
+         ! call gyro_average(field, gyro_field, j0_ffs)
+      else
+         !> if simulating a flux tube, a gyro-average is local in k-space
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            call gyro_average_j1(field(:, :, :, :, ivmu), ivmu, gyro_field(:, :, :, :, ivmu))
+         end do
+      end if
+   end subroutine 
    
    subroutine band_lu_solve_ffs(lu, solvec)
 
