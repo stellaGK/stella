@@ -1574,6 +1574,12 @@ contains
                end do
             end do
          end do
+      else if (dist == 'h') then
+         !> divide sum ( Zs int J0 h d^3 v) by sum(Zs^2 ns / Ts) 
+         phi = phi / gamtot_h
+         !> do nothing for bpar because
+         !> bpar = - 2 * beta * sum(Ts ns int (J1/bs) mu h d^3 v)
+         !> which is already stored in bpar when dist = 'h'.         
       else
          if (proc0) write (*, *) 'unknown dist option in get_fields. aborting'
          call mp_abort('unknown dist option in get_fields. aborting')
