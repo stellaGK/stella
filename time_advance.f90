@@ -1320,7 +1320,7 @@ contains
          !> calculate and add parallel streaming term to RHS of GK eqn
          if (include_parallel_streaming .and. (.not. stream_implicit)) then
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
-            call advance_parallel_streaming_explicit(pdf, phi, rhs)
+            call advance_parallel_streaming_explicit(pdf, phi, bpar, rhs)
          end if
 
          !> if simulating a full flux surface (flux annulus), all terms to this point have been calculated
