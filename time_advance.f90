@@ -2609,7 +2609,7 @@ contains
 !          else
 !             g_mirror => g
 !          end if
-            call advance_mirror_implicit(collisions_implicit, g, apar, bpar)
+            call advance_mirror_implicit(collisions_implicit, g, apar)
             fields_updated = .false.
          end if
 
@@ -2643,7 +2643,7 @@ contains
          end if
 
          if (mirror_implicit .and. include_mirror) then
-            call advance_mirror_implicit(collisions_implicit, g, apar, bpar)
+            call advance_mirror_implicit(collisions_implicit, g, apar)
             fields_updated = .false.
          end if
 
