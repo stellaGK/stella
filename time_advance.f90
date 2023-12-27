@@ -1264,7 +1264,7 @@ contains
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_fields'
 
       ! if advancing apar, then gbar is evolved in time rather than g
-      if (include_apar .or. include_bpar) then
+      if (include_apar) then
          call advance_fields(pdf, phi, apar, bpar, dist='gbar')
 
          ! convert from gbar to g = <f>, as all terms on RHS of GKE use g rather than gbar
@@ -1347,8 +1347,8 @@ contains
 
       end if
 
-      ! if advancing apar or bpar, need to convert input pdf back from g to gbar
-      if (include_apar .or. include_bpar) call gbar_to_g(pdf, apar, -1.0)
+      ! if advancing apar, need to convert input pdf back from g to gbar
+      if (include_apar) call gbar_to_g(pdf, apar, -1.0)
 
       fields_updated = .false.
 
