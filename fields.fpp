@@ -188,14 +188,14 @@ contains
          end if
       end if
       
-      if (.not. allocated(gamtotinv11)) then
+      if (.not. allocated(gamtotinv13)) then
          if (include_bpar) then
-            allocate (gamtotinv11(naky, nakx, -nzgrid:nzgrid)); gamtotinv11 = 0.
+            allocate (gamtotinv13(naky, nakx, -nzgrid:nzgrid)); gamtotinv13 = 0.
          else
-            allocate (gamtotinv11(1, 1, 1)); gamtotinv11 = 0.
+            allocate (gamtotinv13(1, 1, 1)); gamtotinv13 = 0.
          end if
       end if
-
+      
       if (.not. allocated(gamtotinv33)) then
          if (include_bpar) then
             allocate (gamtotinv33(naky, nakx, -nzgrid:nzgrid)); gamtotinv33 = 0.
@@ -1072,16 +1072,16 @@ contains
 
       use mp, only: mp_abort, proc0
       use job_manage, only: time_message
-      use stella_layouts, only: vmu_lo, iv_idx
-      use gyro_averages, only: gyro_average
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx
+      use gyro_averages, only: gyro_average, gyro_average_j1
       use run_parameters, only: fphi
       use physics_parameters, only: beta
-      use physics_flags, only: include_apar
+      use physics_flags, only: include_apar, include_bpar
       use physics_flags, only: radial_variation
       use dist_fn_arrays, only: g_scratch
       use zgrid, only: nzgrid
       use vpamu_grids, only: integrate_species
-      use vpamu_grids, only: vpa
+      use vpamu_grids, only: vpa, mu
       use species, only: spec
 
       implicit none
@@ -1091,7 +1091,7 @@ contains
       logical, optional, intent(in) :: skip_fsa
       character(*), intent(in) :: dist
 
-      integer :: iv, ivmu
+      integer :: iv, ivmu, imu
       logical :: skip_fsa_local
 
       skip_fsa_local = .false.
@@ -1100,7 +1100,8 @@ contains
       if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_vmulo'
 
       phi = 0.
-      if (fphi > epsilon(0.0)) then
+      bpar = 0.
+      if (fphi > epsilon(0.0) .and. .not. include_bpar) then
 
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
@@ -1118,7 +1119,41 @@ contains
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
          call get_phi(phi, dist, skip_fsa_local)
+      
+      else if (fphi > epsilon(0.0) .and. include_bpar) then
+         if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
 
+         ! gyroaverage the distribution function g at each phase space location
+         call gyro_average(g, g_scratch)
+
+         ! <g> requires modification if radial profile variation is included
+         if (radial_variation) call add_radial_correction_int_species(g_scratch)
+
+         ! integrate <g> over velocity space and sum over species
+         !> store result in phi, which will be further modified below to account for polarization term
+         if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_vmulo::integrate_species_phi'
+         call integrate_species(g_scratch, spec%z * spec%dens_psi0, phi)
+
+         ! gyroaverage the distribution function g at each phase space location
+         call gyro_average_j1(g, g_scratch)
+         ! multiply by mu factor from vperp2
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            imu = imu_idx(vmu_lo, ivmu)
+            g_scratch(:, :, :, :, ivmu) = g_scratch(:, :, :, :, ivmu) * mu(imu)
+         end do
+         
+         ! <g> requires modification if radial profile variation is included
+         ! not supported for bpar MRH
+         
+         ! integrate <g> over velocity space and sum over species
+         !> store result in bpar, which will be further modified below to account for polarization term
+         if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_vmulo::integrate_species_bpar'
+         call integrate_species(g_scratch, -2.0 * beta * spec%temp_psi0 * spec%dens_psi0, bpar)
+
+         if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
+
+         call get_phi_and_bpar(phi, bpar, dist, skip_fsa_local)
+      
       end if
 
       apar = 0.
