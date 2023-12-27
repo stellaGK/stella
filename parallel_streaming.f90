@@ -179,7 +179,7 @@ contains
 
    end subroutine init_invert_stream_operator
 
-   subroutine advance_parallel_streaming_explicit(g, phi, gout)
+   subroutine advance_parallel_streaming_explicit(g, phi, bpar, gout)
 
       use mp, only: proc0
       use stella_layouts, only: vmu_lo
@@ -190,19 +190,20 @@ contains
       use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
       use kt_grids, only: swap_kxky
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use vpamu_grids, only: mu
       use species, only: spec
-      use physics_flags, only: full_flux_surface
-      use gyro_averages, only: gyro_average
+      use physics_flags, only: full_flux_surface, include_bpar
+      use gyro_averages, only: gyro_average, gyro_average_j1
       use run_parameters, only: driftkinetic_implicit, maxwellian_normalization
 
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
 
       integer :: ivmu, iv, imu, is, ia, iz, it
-      complex, dimension(:, :, :, :), allocatable :: g0, dgphi_dz
+      complex, dimension(:, :, :, :), allocatable :: g0, dgphi_dz, dgbpar_dz
       complex, dimension(:, :, :, :), allocatable :: g0y, g1y
       complex, dimension(:, :), allocatable :: g0_swap
 
@@ -215,6 +216,7 @@ contains
       !> allocate arrays needed for intermmediate calculations
       allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (dgphi_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dgbpar_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
       !> if simulating a full flux surface, will also need version of the above arrays
       !> that is Fourier transformed to y-space
       if (full_flux_surface) then
@@ -238,7 +240,13 @@ contains
          !> unpleasantness to do with inexact cancellations in later velocity integration
          !> see appendix of the stella JCP 2019 for details
          call get_dgdz_centered(g0, ivmu, dgphi_dz)
-
+         
+         if (include_bpar) then
+            call gyro_average_j1(bpar, ivmu, g0(:, :, :, :))
+            call get_dgdz_centered(g0, ivmu, dgbpar_dz)
+         else
+            dgbpar_dz = 0.
+         end if
          !> if driftkinetic_implicit=T, then only want to treat vpar . grad (<phi>-phi)*F0 term explicitly;
          !> in this case, zero out dg/dz term (or d(g/F)/dz for full-flux-surface)
          if (driftkinetic_implicit) then
@@ -293,12 +301,16 @@ contains
             !> multiply d(g/F)/dz and d<phi>/dz terms with vpa*(b . grad z) and add to source (RHS of GK equation)
             call add_stream_term_ffs(g0y, ivmu, gout(:, :, :, :, ivmu))
          else
+            !> bpar term is zero unless include_bpar = T, see if statement above.
             ia = 1
             if (maxwellian_normalization) then
-               g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt
+               g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt & 
+                                               + 4.*mu(imu)*dgbpar_dz(:, :, :, :) 
             else
-               g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
-                                * maxwell_vpa(iv, is) * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
+               g0(:, :, :, :) = g0(:, :, :, :) + (dgphi_dz(:, :, :, :) * spec(is)%zt &
+                                               + 4.*mu(imu)*dgbpar_dz(:, :, :, :)) &
+                                               * maxwell_fac(is) * maxwell_vpa(iv, is) & 
+               * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
             end if
 
             ! multiply dg/dz with vpa*(b . grad z) and add to source (RHS of GK equation)
@@ -308,7 +320,7 @@ contains
       end do
 
       !> deallocate intermediate arrays used in this subroutine
-      deallocate (g0, dgphi_dz)
+      deallocate (g0, dgphi_dz, dgbpar_dz)
       if (full_flux_surface) deallocate (g0y, g1y, g0_swap)
 
       !> finish timing the subroutine
