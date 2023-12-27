@@ -282,7 +282,7 @@ contains
             wdrifty_phi(:, :, ivmu) = wdrifty_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          end if
          !> assign wdrifty_bpar, neoclassical terms not supported
-         wdrifty_bpar(:,:,ivmu) = 4.0 * mu(imu) * wdrifty_phi(:, :, ivmu)
+         wdrifty_bpar(:,:,ivmu) = 4.0 * mu(imu) * wdrifty_phi(:, :, ivmu) * spec(is)%tz
          !> if including neoclassical corrections to equilibrium,
          !> add in -(Ze/m) * v_curv/vpa . grad y d<phi>/dy * dF^{nc}/dvpa term
          !> and v_E . grad z dF^{nc}/dz (here get the dphi/dy part of v_E)
@@ -322,7 +322,7 @@ contains
             wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          end if
          !> assign wdriftx_bpar, neoclassical terms not supported
-         wdriftx_bpar(:,:,ivmu) = 4.0 * mu(imu) * wdriftx_phi(:, :, ivmu)
+         wdriftx_bpar(:,:,ivmu) = 4.0 * mu(imu) * wdriftx_phi(:, :, ivmu) * spec(is)%tz
          !> if including neoclassical corrections to equilibrium,
          !> add in (Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
          !> and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
