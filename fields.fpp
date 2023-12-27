@@ -2256,7 +2256,7 @@ contains
          end do
          call gyro_average(field, ivmu, dchidy(:, :, :, :, ivmu))
          if (include_bpar) then
-            field = 4 * mu(imu) * (spec(is)%tz) * bpar
+            field = 4.0 * mu(imu) * (spec(is)%tz) * bpar
             do iky = 1, naky
                field(iky, :, :, :) = zi * aky(iky) * field(iky, :, :, :)
             end do
@@ -2306,7 +2306,7 @@ contains
       field = zi * spread(aky, 2, nakx) * field
       call gyro_average(field, iz, ivmu, dchidy)
       if (include_bpar) then
-         field = 4 * mu(imu) * (spec(is)%tz) * bpar
+         field = 4.0 * mu(imu) * (spec(is)%tz) * bpar
          field = zi * spread(aky, 2, nakx) * field
          call gyro_average_j1(field, iz, ivmu, gyro_tmp)
          !> include bpar contribution
