@@ -1162,7 +1162,9 @@ contains
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
          ! if fphi > 0, then g_scratch = <g> already calculated above
-         if (fphi < epsilon(0.0)) call gyro_average(g, g_scratch)
+         !if (fphi < epsilon(0.0)) call gyro_average(g, g_scratch)
+         ! MRH remove optimisation for ease of including bpar
+         call gyro_average(g, g_scratch)
 
          ! for parallel Ampere's Law, need to calculate parallel current rather than density,
          ! so multiply <g> by vpa before integrating
