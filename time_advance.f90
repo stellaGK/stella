@@ -944,7 +944,7 @@ contains
       use extended_zgrid, only: periodic, phase_shift
       use kt_grids, only: naky
       use stella_layouts, only: vmu_lo, iv_idx
-      use physics_flags, only: include_apar, include_bpar
+      use physics_flags, only: include_apar
       use parallel_streaming, only: stream_sign
       use fields_arrays, only: phi, apar, bpar
       use fields, only: advance_fields
@@ -964,7 +964,7 @@ contains
       ! incoming pdf is g = <f>
       ! if include_apar = T, convert from g to gbar,
       ! as gbar appears in time derivative
-      if (include_apar .or. include_bpar) then
+      if (include_apar) then
          ! if the fields are not already updated, then update them
          call advance_fields(g, phi, apar, bpar, dist='g')
          call gbar_to_g(g, apar, -1.0)
@@ -985,7 +985,7 @@ contains
          call advance_explicit_rk4(g, restart_time_step, istep)
       end select
 
-      if (include_apar .or. include_bpar) then
+      if (include_apar) then
          ! if the fields are not already updated, then update them
          call advance_fields(g, phi, apar, bpar, dist='gbar')
          ! implicit solve will use g rather than gbar for advance,
