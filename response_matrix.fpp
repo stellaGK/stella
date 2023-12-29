@@ -257,7 +257,7 @@ contains
 
       use mp, only: proc0
       use run_parameters, only: mat_gen
-      use physics_flags, only: include_apar
+      use physics_flags, only: include_apar, include_bpar
       use extended_zgrid, only: neigen, ikxmod
       use extended_zgrid, only: nsegments, nzed_segment
       use extended_zgrid, only: periodic
@@ -273,7 +273,7 @@ contains
       integer :: iz, izl_offset, izup
       integer :: nz_ext, nresponse, nresponse_per_field
       complex, dimension(:, :), allocatable :: gext
-      complex, dimension(:), allocatable :: phi_ext, apar_ext
+      complex, dimension(:), allocatable :: phi_ext, apar_ext, bpar_ext
 
       ! loop over the sets of connected kx values
       do ie = 1, neigen(iky)
@@ -299,6 +299,7 @@ contains
          allocate (gext(nz_ext, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          allocate (phi_ext(nz_ext))
          allocate (apar_ext(nz_ext))
+         allocate (bpar_ext(nz_ext))
 
          ! idx is the index in the extended zed domain
          ! that we are giving a unit impulse
@@ -322,8 +323,9 @@ contains
          ! no need to obtain response to impulses at negative kx values
          do iz = iz_low(iseg), izup
             idx = idx + 1
-            call get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, gext)
-            if (include_apar) call get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, gext)
+            call get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
+            if (include_apar) call get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
+            if (include_bpar) call get_dpdf_dbpar_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
          end do
          ! once we have used one segment, remaining segments
          ! have one fewer unique zed point
@@ -333,13 +335,14 @@ contains
                ikx = ikxmod(iseg, ie, iky)
                do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                   idx = idx + 1
-                  call get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, gext)
-                  if (include_apar) call get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, gext)
+                  call get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
+                  if (include_apar) call get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
+                  if (include_bpar) call get_dpdf_dbpar_matrix_column(iky, ie, idx, nz_ext, nresponse_per_field, phi_ext, apar_ext, bpar_ext, gext)
                end do
                if (izl_offset == 0) izl_offset = 1
             end do
          end if
-         deallocate (gext, phi_ext, apar_ext)
+         deallocate (gext, phi_ext, apar_ext, bpar_ext)
       end do
 
    end subroutine calculate_vspace_integrated_response
@@ -394,7 +397,7 @@ contains
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
-      use physics_flags, only: include_apar
+      use physics_flags, only: include_apar, include_bpar
       use extended_zgrid, only: neigen
       use extended_zgrid, only: nsegments, nzed_segment
       use extended_zgrid, only: periodic
@@ -404,10 +407,10 @@ contains
 
       integer, intent(in) :: iky
 
-      integer :: ie, idx, offset
+      integer :: ie, idx, offset_apar, offset_bpar
       integer :: nz_ext, nresponse
       character(5) :: dist
-      complex, dimension(:), allocatable :: phi_ext, apar_ext
+      complex, dimension(:), allocatable :: phi_ext, apar_ext, bpar_ext
 
       ! solve quasineutrality
       ! for local stella, this is a diagonal process, but global stella
@@ -432,7 +435,20 @@ contains
 
             allocate (phi_ext(nz_ext))
             allocate (apar_ext(nz_ext))
-
+            allocate (bpar_ext(nz_ext))
+            !> set up offset_apar and offset_bpar consistently
+            !> so that the array slices below are consistent with
+            !> the size of the response matrix
+            if (include_apar) then
+               offset_apar = nresponse
+            else
+               offset_apar = 0
+            end if
+            if (include_bpar) then
+               offset_bpar = offset_apar + nresponse
+            else
+               offset_bpar = 0
+            end if
             ! obtain the response matrix entries due to unit impulses in phi;
             ! this accounts for terms appearing both in quasineutrality and parallel ampere
             do idx = 1, nresponse
@@ -440,9 +456,13 @@ contains
                phi_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx)
                if (include_apar) then
                   apar_ext(nz_ext) = 0.0
-                  apar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(nresponse + 1:2 * nresponse, idx)
+                  apar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx)
                end if
-               call get_fields_for_response_matrix(phi_ext, apar_ext, iky, ie, dist)
+               if (include_bpar) then
+                  bpar_ext(nz_ext) = 0.0
+                  bpar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx)
+               end if
+               call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, dist)
 
                ! next need to create column in response matrix from phi_ext and apar_ext
                ! negative sign because matrix to be inverted in streaming equation
@@ -450,31 +470,61 @@ contains
                ! add in contribution from identity matrix
                phi_ext(idx) = phi_ext(idx) - 1.0
                response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = -phi_ext(:nresponse)
-               if (include_apar) response_matrix(iky)%eigen(ie)%zloc(nresponse + 1:2 * nresponse, idx) = -apar_ext(:nresponse)
+               if (include_apar) response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx) = -apar_ext(:nresponse)
+               if (include_bpar) response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx) = -bpar_ext(:nresponse)
             end do
 
             if (include_apar) then
                ! obtain the response matrix entries due to unit impulses in apar;
                ! this accounts for terms appearing both in quasineutrality and parallel ampere
-               offset = nresponse
                do idx = 1, nresponse
                   phi_ext(nz_ext) = 0.0
-                  phi_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx + offset)
+                  phi_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx + offset_apar)
                   apar_ext(nz_ext) = 0.0
-                  apar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset + 1:offset + nresponse, idx + offset)
-                  call get_fields_for_response_matrix(phi_ext, apar_ext, iky, ie, dist)
+                  apar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx + offset_apar)
+                  if (include_bpar) then
+                     bpar_ext(nz_ext) = 0.0
+                     bpar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx + offset_apar)
+                  end if
+                  call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, dist)
 
                   ! next need to create column in response matrix from phi_ext and apar_ext
                   ! negative sign because matrix to be inverted in streaming equation
                   ! is identity matrix - response matrix
                   ! add in contribution from identity matrix for diagonal entries
                   apar_ext(idx) = apar_ext(idx) - 1.0
-                  response_matrix(iky)%eigen(ie)%zloc(:nresponse, offset + idx) = -phi_ext(:nresponse)
-                  response_matrix(iky)%eigen(ie)%zloc(offset + 1:offset + nresponse, offset + idx) = -apar_ext(:nresponse)
+                  response_matrix(iky)%eigen(ie)%zloc(:nresponse, offset_apar + idx) = -phi_ext(:nresponse)
+                  response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, offset_apar + idx) = -apar_ext(:nresponse)
+                  if (include_bpar) response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, offset_apar + idx) = -bpar_ext(:nresponse) 
+               end do
+            end if
+            
+            if (include_bpar) then
+               ! obtain the response matrix entries due to unit impulses in bpar;
+               ! this accounts for terms appearing both in quasineutrality and parallel ampere
+               do idx = 1, nresponse
+                  phi_ext(nz_ext) = 0.0
+                  phi_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx + offset_bpar)
+                  if (include_apar) then
+                     apar_ext(nz_ext) = 0.0
+                     apar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx + offset_bpar)
+                  end if
+                  bpar_ext(nz_ext) = 0.0
+                  bpar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx + offset_bpar)
+                  call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, dist)
+
+                  ! next need to create column in response matrix from phi_ext and apar_ext
+                  ! negative sign because matrix to be inverted in streaming equation
+                  ! is identity matrix - response matrix
+                  ! add in contribution from identity matrix for diagonal entries
+                  bpar_ext(idx) = bpar_ext(idx) - 1.0
+                  response_matrix(iky)%eigen(ie)%zloc(:nresponse, offset_bpar + idx) = -phi_ext(:nresponse)
+                  if (include_apar) response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, offset_bpar + idx) = -apar_ext(:nresponse)
+                  response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, offset_bpar + idx) = -bpar_ext(:nresponse) 
                end do
             end if
 
-            deallocate (phi_ext, apar_ext)
+            deallocate (phi_ext, apar_ext, bpar_ext)
 #ifdef ISO_C_BINDING
          end if
 #endif
@@ -630,11 +680,11 @@ contains
       end if
    end subroutine read_response_matrix
 
-   subroutine get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, pdf_ext)
+   subroutine get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
 
       use stella_layouts, only: vmu_lo
       use run_parameters, only: time_upwind_plus
-      use physics_flags, only: include_apar
+      use physics_flags, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use fields_arrays, only: response_matrix
       use extended_zgrid, only: periodic
@@ -645,11 +695,12 @@ contains
       implicit none
 
       integer, intent(in) :: iky, ie, idx, nz_ext, nresponse
-      complex, dimension(:), intent(out) :: phi_ext, apar_ext
+      complex, dimension(:), intent(out) :: phi_ext, apar_ext, bpar_ext
       complex, dimension(:, vmu_lo%llim_proc:), intent(out) :: pdf_ext
 
       complex, dimension(:), allocatable :: dum
       integer :: ivmu, it
+      integer :: offset_apar, offset_bpar
 
       ! provide a unit impulse to phi^{n+1} (or Delta phi^{n+1}) at the location
       ! in the extended zed domain corresponding to index 'idx'
@@ -678,7 +729,7 @@ contains
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! calculate the RHS of the GK equation (using dum=0 as the pdf at the previous time level,
          ! and phi_ext as the potential) and store it in pdf_ext
-         call get_gke_rhs(ivmu, iky, ie, dum, phi_ext, dum, dum, dum, pdf_ext(:, ivmu))
+         call get_gke_rhs(ivmu, iky, ie, dum, phi_ext, dum, dum, dum, dum, pdf_ext(:, ivmu))
          ! given the RHS of the GK equation (pdf_ext), solve for the pdf at the
          ! new time level by sweeping in zed on the extended domain;
          ! the rhs is input as 'pdf_ext' and over-written with the updated solution for the pdf
@@ -692,14 +743,20 @@ contains
       ! now integrate over velocities to get a square response matrix
       ! (this ends the parallelization over velocity space, so every core should have a
       ! copy of phi_ext)
-      call integrate_over_velocity(pdf_ext, phi_ext, apar_ext, iky, ie)
+      call integrate_over_velocity(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie)
 
 #ifdef ISO_C_BINDING
       if (sgproc0) then
 #endif
          response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx) = phi_ext(:nresponse)
+         offset_apar = 0
          if (include_apar) then
-            response_matrix(iky)%eigen(ie)%zloc(nresponse + 1:2 * nresponse, idx) = apar_ext(:nresponse)
+            offset_apar = nresponse
+            response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx) = apar_ext(:nresponse)
+         end if
+         if (include_bpar) then
+            offset_bpar = offset_apar + nresponse
+            response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx) = bpar_ext(:nresponse)
          end if
 #ifdef ISO_C_BINDING
       end if
@@ -707,11 +764,11 @@ contains
 
    end subroutine get_dpdf_dphi_matrix_column
 
-   subroutine get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, pdf_ext)
+   subroutine get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
 
       use stella_layouts, only: vmu_lo
       use run_parameters, only: time_upwind_plus
-      use physics_flags, only: include_apar
+      use physics_flags, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use fields_arrays, only: response_matrix
       use extended_zgrid, only: periodic
@@ -722,12 +779,13 @@ contains
       implicit none
 
       integer, intent(in) :: iky, ie, idx, nz_ext, nresponse
-      complex, dimension(:), intent(out) :: phi_ext, apar_ext
+      complex, dimension(:), intent(out) :: phi_ext, apar_ext, bpar_ext
       complex, dimension(:, vmu_lo%llim_proc:), intent(out) :: pdf_ext
 
       complex, dimension(:), allocatable :: dum
       integer :: ivmu, it
-
+      integer :: offset_apar, offset_bpar
+      
       ! provide a unit impulse to apar^{n+1} (or Delta apar^{n+1}) at the location
       ! in the extended zed domain corresponding to index 'idx'
       ! note that it is sufficient to give a unit real impulse (as opposed to
@@ -753,7 +811,7 @@ contains
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          ! calculate the RHS of the GK equation (using dum=0 as the pdf at the previous time level,
          ! and phi_ext as the potential) and store it in pdf_ext
-         call get_gke_rhs(ivmu, iky, ie, dum, dum, apar_ext * time_upwind_plus, apar_ext, dum, pdf_ext(:, ivmu))
+         call get_gke_rhs(ivmu, iky, ie, dum, dum, apar_ext * time_upwind_plus, apar_ext, dum, dum, pdf_ext(:, ivmu))
          ! given the RHS of the GK equation (pdf_ext), solve for the pdf at the
          ! new time level by sweeping in zed on the extended domain;
          ! the rhs is input as 'pdf_ext' and over-written with the updated solution for the pdf
@@ -767,14 +825,23 @@ contains
       ! now integrate over velocities to get a square response matrix
       ! (this ends the parallelization over velocity space, so every core should have a
       ! copy of phi_ext)
-      call integrate_over_velocity(pdf_ext, phi_ext, apar_ext, iky, ie)
+      call integrate_over_velocity(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie)
 
 #ifdef ISO_C_BINDING
       if (sgproc0) then
 #endif
+         if (include_apar) then
+            offset_apar = nresponse
+         else
+            offset_apar = 0
+         end if
          response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx + nresponse) = phi_ext(:nresponse)
          if (include_apar) then
-            response_matrix(iky)%eigen(ie)%zloc(nresponse + 1:2 * nresponse, idx + nresponse) = apar_ext(:nresponse)
+            response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx + offset_apar) = apar_ext(:nresponse)
+         end if
+         if (include_bpar) then
+            offset_bpar = offset_apar + nresponse
+            response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx + offset_apar) = bpar_ext(:nresponse)
          end if
 #ifdef ISO_C_BINDING
       end if
@@ -782,19 +849,106 @@ contains
 
    end subroutine get_dpdf_dapar_matrix_column
 
-   subroutine integrate_over_velocity(g, phi, apar, iky, ie)
+   ! modelled on get_dpdf_dphi_matrix_column above
+   subroutine get_dpdf_dbpar_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
 
       use stella_layouts, only: vmu_lo
-      use physics_flags, only: include_apar
+      use run_parameters, only: time_upwind_plus
+      use physics_flags, only: include_apar, include_bpar
+      use implicit_solve, only: get_gke_rhs, sweep_g_zext
+      use fields_arrays, only: response_matrix
+      use extended_zgrid, only: periodic
+#ifdef ISO_C_BINDING
+      use mp, only: sgproc0
+#endif
+
+      implicit none
+
+      integer, intent(in) :: iky, ie, idx, nz_ext, nresponse
+      complex, dimension(:), intent(out) :: phi_ext, apar_ext, bpar_ext
+      complex, dimension(:, vmu_lo%llim_proc:), intent(out) :: pdf_ext
+
+      complex, dimension(:), allocatable :: dum
+      integer :: ivmu, it
+      integer :: offset_apar, offset_bpar
+
+      ! provide a unit impulse to phi^{n+1} (or Delta phi^{n+1}) at the location
+      ! in the extended zed domain corresponding to index 'idx'
+      ! note that it is sufficient to give a unit real impulse (as opposed to
+      ! separately giving real and imaginary impulse) for the following reason:
+      ! split homogeneous GKE, L[f] = R[phi], into L[f1] = R[phir] and L[f2] = i*R[phii],
+      ! with f = f1 + f2; then phi = df1/dphir * phir + df2/dphii * phii.
+      ! however, we see that if phir = phii = 1, L[f1] = R[1] = L[-i*f2],
+      ! and thus f2 = i * f1.  This gives phi = df1/dphir * (phir + i * phii) = df1/dphir * phi
+      bpar_ext = 0.0
+      ! how phi^{n+1} enters the GKE depends on whether we are solving for the
+      ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
+      bpar_ext(idx) = time_upwind_plus
+
+      if (periodic(iky) .and. idx == 1) bpar_ext(nz_ext) = bpar_ext(1)
+
+      ! dum is a scratch array that takes the place of the pdf and phi
+      ! at the previous time level,
+      ! which is set to zero for the response matrix approach
+      allocate (dum(nz_ext)); dum = 0.0
+
+      ! set the flux tube index to one
+      ! need to check, but think this is okay as the homogeneous equation solved here for the
+      ! response matrix construction is the same for all flux tubes in the flux tube train
+      it = 1
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         ! calculate the RHS of the GK equation (using dum=0 as the pdf at the previous time level,
+         ! and phi_ext as the potential) and store it in pdf_ext
+         call get_gke_rhs(ivmu, iky, ie, dum, dum, dum, dum, dum, bpar_ext, pdf_ext(:, ivmu))
+         ! given the RHS of the GK equation (pdf_ext), solve for the pdf at the
+         ! new time level by sweeping in zed on the extended domain;
+         ! the rhs is input as 'pdf_ext' and over-written with the updated solution for the pdf
+         call sweep_g_zext(iky, ie, it, ivmu, pdf_ext(:, ivmu))
+      end do
+
+      deallocate (dum)
+
+      ! we now have the pdf on the extended zed domain at this ky and set of connected kx values
+      ! corresponding to a unit impulse in phi at this location
+      ! now integrate over velocities to get a square response matrix
+      ! (this ends the parallelization over velocity space, so every core should have a
+      ! copy of phi_ext)
+      call integrate_over_velocity(pdf_ext, phi_ext, apar_ext, bpar_ext, iky, ie)
+
+#ifdef ISO_C_BINDING
+      if (sgproc0) then
+#endif
+         offset_apar = 0
+         if (include_apar) offset_apar = nresponse
+         if (include_bpar) offset_bpar = offset_apar + nresponse
+         
+         response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx + offset_bpar) = phi_ext(:nresponse)
+         if (include_apar) then
+            response_matrix(iky)%eigen(ie)%zloc(offset_apar + 1:nresponse + offset_apar, idx + offset_bpar) = apar_ext(:nresponse)
+         end if
+         if (include_bpar) then
+            response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx + offset_bpar) = bpar_ext(:nresponse)
+         end if
+#ifdef ISO_C_BINDING
+      end if
+#endif
+
+   end subroutine get_dpdf_dbpar_matrix_column
+
+   subroutine integrate_over_velocity(g, phi, apar, bpar, iky, ie)
+
+      use stella_layouts, only: vmu_lo
+      use physics_flags, only: include_apar, include_bpar
 
       implicit none
 
       complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:), intent(out) :: phi, apar
+      complex, dimension(:), intent(out) :: phi, apar, bpar
       integer, intent(in) :: iky, ie
 
       call integrate_over_velocity_phi(g, phi, iky, ie)
       if (include_apar) call integrate_over_velocity_apar(g, apar, iky, ie)
+      if (include_bpar) call integrate_over_velocity_bpar(g, bpar, iky, ie)
 
    end subroutine integrate_over_velocity
 
@@ -851,6 +1005,69 @@ contains
       call sum_allreduce(phi)
 
    end subroutine integrate_over_velocity_phi
+
+   subroutine integrate_over_velocity_bpar(g, bpar, iky, ie)
+
+      use stella_layouts, only: vmu_lo, imu_idx
+      use species, only: nspec, spec
+      use physics_parameters, only: beta
+      use extended_zgrid, only: iz_low, iz_up
+      use extended_zgrid, only: ikxmod
+      use extended_zgrid, only: nsegments
+      use vpamu_grids, only: integrate_species, mu
+      use gyro_averages, only: gyro_average_j1
+      use mp, only: sum_allreduce
+
+      implicit none
+
+      complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
+      complex, dimension(:), intent(out) :: bpar
+      integer, intent(in) :: iky, ie
+
+      integer :: idx, iseg, ikx, iz, ia, imu, ivmu
+      integer :: izl_offset
+      real, dimension(nspec) :: wgt
+      complex, dimension(:), allocatable :: g0
+
+      ia = 1
+
+      allocate (g0(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+      wgt = -2.0 * beta * spec%temp_psi0 * spec%dens_psi0
+      bpar = 0.
+
+      idx = 0; izl_offset = 0
+      iseg = 1
+      ikx = ikxmod(iseg, ie, iky)
+      do iz = iz_low(iseg), iz_up(iseg)
+         idx = idx + 1
+         call gyro_average_j1(g(idx, :), iky, ikx, iz, g0)
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            imu = imu_idx(vmu_lo, ivmu)
+            g0(ivmu) = g0(ivmu) * mu(imu)
+         end do
+         call integrate_species(g0, iz, wgt, bpar(idx), reduce_in=.false.)
+      end do
+      izl_offset = 1
+      if (nsegments(ie, iky) > 1) then
+         do iseg = 2, nsegments(ie, iky)
+            ikx = ikxmod(iseg, ie, iky)
+            do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
+               idx = idx + 1
+               call gyro_average_j1(g(idx, :), iky, ikx, iz, g0)
+               do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                  imu = imu_idx(vmu_lo, ivmu)
+                  g0(ivmu) = g0(ivmu) * mu(imu)
+               end do               
+               call integrate_species(g0, iz, wgt, bpar(idx), reduce_in=.false.)
+            end do
+            if (izl_offset == 0) izl_offset = 1
+         end do
+      end if
+
+      call sum_allreduce(bpar)
+
+   end subroutine integrate_over_velocity_bpar
 
    subroutine integrate_over_velocity_apar(g, apar, iky, ie)
 
@@ -917,19 +1134,23 @@ contains
 
    end subroutine integrate_over_velocity_apar
 
-   subroutine get_fields_for_response_matrix(phi, apar, iky, ie, dist)
+   subroutine get_fields_for_response_matrix(phi, apar, bpar, iky, ie, dist)
 
-      use physics_flags, only: include_apar
+      use physics_flags, only: include_apar, include_bpar
 
       implicit none
 
-      complex, dimension(:), intent(in out) :: phi, apar
+      complex, dimension(:), intent(in out) :: phi, apar, bpar
       integer, intent(in) :: iky, ie
       character(*), intent(in) :: dist
 
-      call get_phi_for_response_matrix(phi, iky, ie, dist)
+      if (include_bpar) then
+         call get_phi_and_bpar_for_response_matrix(phi, bpar, iky, ie, dist)
+      else
+         call get_phi_for_response_matrix(phi, iky, ie, dist)
+      end if
       if (include_apar) call get_apar_for_response_matrix(apar, iky, ie, dist)
-
+ 
    end subroutine get_fields_for_response_matrix
 
    subroutine get_phi_for_response_matrix(phi, iky, ie, dist)
@@ -1012,6 +1233,100 @@ contains
       deallocate (gamma_fac)
 
    end subroutine get_phi_for_response_matrix
+
+   subroutine get_phi_and_bpar_for_response_matrix(phi, bpar, iky, ie, dist)
+
+      use zgrid, only: nzgrid
+      use species, only: spec
+      use species, only: has_electron_species
+      use extended_zgrid, only: iz_low, iz_up
+      use extended_zgrid, only: ikxmod
+      use extended_zgrid, only: nsegments
+      use kt_grids, only: zonal_mode, akx
+      use fields_arrays, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
+      use fields, only: gamtot_h
+      use physics_flags, only: adiabatic_option_switch
+      use physics_flags, only: adiabatic_option_fieldlineavg
+      use mp, only: mp_abort
+      
+      implicit none
+
+      complex, dimension(:), intent(inout) :: phi, bpar
+      integer, intent(in) :: iky, ie
+      character(*), intent(in) :: dist
+
+      integer :: idx, iseg, ikx, iz, ia
+      integer :: izl_offset
+      complex :: antot1, antot3
+      real, dimension(:), allocatable :: gammainv11, gammainv13, gammainv31, gammainv33
+
+      ia = 1
+
+      allocate (gammainv11(-nzgrid:nzgrid))
+      allocate (gammainv13(-nzgrid:nzgrid))
+      allocate (gammainv31(-nzgrid:nzgrid))
+      allocate (gammainv33(-nzgrid:nzgrid))
+
+      idx = 0; izl_offset = 0
+      iseg = 1
+      ikx = ikxmod(iseg, ie, iky)
+      if (dist == 'h') then
+         gammainv11 = 1.0/gamtot_h
+         gammainv13 = 0.0
+         gammainv31 = 0.0
+         gammainv33 = 1.0
+      else
+         gammainv11 = gamtotinv11(iky, ikx, :)
+         gammainv13 = gamtotinv13(iky, ikx, :)
+         gammainv31 = gamtotinv31(iky, ikx, :)
+         gammainv33 = gamtotinv33(iky, ikx, :)
+      end if
+      if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
+         phi(:) = 0.0
+         bpar(:) = 0.0
+         return
+      end if
+      do iz = iz_low(iseg), iz_up(iseg)
+         idx = idx + 1
+         antot1 = phi(idx)
+         antot3 = bpar(idx)
+         phi(idx) = antot1 * gammainv11(iz) + antot3 * gammainv13(iz)
+         bpar(idx) = antot1 * gammainv31(iz) + antot3 * gammainv33(iz)
+      end do
+      izl_offset = 1
+      if (nsegments(ie, iky) > 1) then
+         do iseg = 2, nsegments(ie, iky)
+            ikx = ikxmod(iseg, ie, iky)
+            if (dist == 'h') then
+               gammainv11 = 1.0/gamtot_h
+               gammainv13 = 0.0
+               gammainv31 = 0.0
+               gammainv33 = 1.0
+            else
+               gammainv11 = gamtotinv11(iky, ikx, :)
+               gammainv13 = gamtotinv13(iky, ikx, :)
+               gammainv31 = gamtotinv31(iky, ikx, :)
+               gammainv33 = gamtotinv33(iky, ikx, :)
+            end if
+            do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
+               idx = idx + 1
+               antot1 = phi(idx)
+               antot3 = bpar(idx)
+               phi(idx) = antot1 * gammainv11(iz) + antot3 * gammainv13(iz)
+               bpar(idx) = antot1 * gammainv31(iz) + antot3 * gammainv33(iz)
+            end do
+            if (izl_offset == 0) izl_offset = 1
+         end do
+      end if
+
+      if (.not. has_electron_species(spec) .and. &
+          adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+         call mp_abort('adiabatic electrons not yet supported for include_bpar = T. aborting.')
+      end if
+
+      deallocate (gammainv11, gammainv13, gammainv31, gammainv33)
+
+   end subroutine get_phi_and_bpar_for_response_matrix
 
    subroutine get_apar_for_response_matrix(apar, iky, ie, dist)
 

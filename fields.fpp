@@ -62,7 +62,7 @@ contains
       use mp, only: proc0
       use linear_solve, only: lu_decomposition
       use physics_flags, only: full_flux_surface
-      use physics_flags, only: include_apar
+      use physics_flags, only: include_apar, include_bpar
 
       implicit none
 
@@ -76,6 +76,7 @@ contains
 
       nfields = 1
       if (include_apar) nfields = nfields + 1
+      if (include_bpar) nfields = nfields + 1
 
    end subroutine init_fields
 
