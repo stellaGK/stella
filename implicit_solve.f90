@@ -90,6 +90,7 @@ contains
       ! solve response_matrix*(phi^{n+1}-phi^{n*}) = phi_{inh}^{n+1}-phi^{n*}
       ! phi = phi_{inh}^{n+1}-phi^{n*} is input and overwritten by phi = phi^{n+1}-phi^{n*}
       if (use_deltaphi_for_response_matrix) phi = phi - phi_old
+      if (use_deltaphi_for_response_matrix .and. include_bpar) bpar = bpar - bpar_old
       if (proc0) call time_message(.false., time_implicit_advance(:, 3), ' (back substitution)')
       call invert_parstream_response(phi, apar, bpar)
       if (proc0) call time_message(.false., time_implicit_advance(:, 3), ' (back substitution)')
