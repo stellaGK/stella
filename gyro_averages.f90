@@ -25,6 +25,8 @@ module gyro_averages
    end interface gyro_average
 
    interface gyro_average_j1
+      module procedure gyro_average_j1_vmus_nonlocal
+      module procedure gyro_average_j1_local
       module procedure gyro_average_j1_kxky_local
       module procedure gyro_average_j1_kxkyz_local
       module procedure gyro_average_j1_v_local
@@ -782,7 +784,33 @@ contains
       gyro_field = aj0x(iky, ikx, iz, :) * field
 
    end subroutine gyro_average_vmus_nonlocal
+   
+   subroutine gyro_average_j1_vmus_nonlocal(field, iky, ikx, iz, gyro_field)
 
+      use stella_layouts, only: vmu_lo
+
+      implicit none
+
+      complex, dimension(vmu_lo%llim_proc:), intent(in) :: field
+      integer, intent(in) :: iky, ikx, iz
+      complex, dimension(vmu_lo%llim_proc:), intent(out) :: gyro_field
+
+      gyro_field = aj1x(iky, ikx, iz, :) * field
+
+   end subroutine gyro_average_j1_vmus_nonlocal
+   
+   subroutine gyro_average_j1_local(field, iky, ikx, iz, ivmu, gyro_field)
+
+      implicit none
+
+      complex, intent(in) :: field
+      integer, intent(in) :: iky, ikx, iz, ivmu
+      complex, intent(out) :: gyro_field
+
+      gyro_field = aj1x(iky, ikx, iz, ivmu) * field
+
+   end subroutine gyro_average_j1_local
+   
    subroutine gyro_average_j1_kxky_local(field, iz, ivmu, gyro_field)
 
       implicit none
