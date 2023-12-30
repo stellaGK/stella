@@ -436,7 +436,8 @@ contains
       integer, intent(in) :: ivmu, iky
       integer, dimension(:), intent(in) :: iz_from_izext, ikx_from_izext
       complex, dimension(:), intent(out) :: scratch, rhs
-
+      complex, dimension(:), allocatable :: scratch2
+      
       real, dimension(:), allocatable :: z_scratch
       integer :: ia, iz, iv, imu, is
       integer :: nz_ext
@@ -448,9 +449,11 @@ contains
 
       ! nz_ext is the number of grid points in the extended zed domain
       nz_ext = size(bpar)
-
+      
       ! allocate a 1d array in zed for use as a scratch array
       allocate (z_scratch(-nzgrid:nzgrid))
+      ! allocate a 1d array to replace the rhs array as a scratch array
+      allocate (scratch2(nz_ext))
 
       ! set scratch to be bpar or <bpar> depending on whether parallel streaming is
       ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
@@ -463,7 +466,7 @@ contains
       call add_streaming_contribution_bpar
       if (drifts_implicit) call add_drifts_contribution_bpar
 
-      deallocate (z_scratch)
+      deallocate (z_scratch, scratch2)
 
    contains
 
@@ -481,8 +484,8 @@ contains
          ! and store values in scratch_left and scratch_right
          call fill_zext_ghost_zones(iky, scratch, scratch_left, scratch_right)
 
-         ! obtain the zed derivative of <bpar> (stored in scratch) and store in rhs
-         call get_zed_derivative_extended_domain(iv, scratch, scratch_left, scratch_right, rhs)
+         ! obtain the zed derivative of <bpar> (stored in scratch) and store in scratch2
+         call get_zed_derivative_extended_domain(iv, scratch, scratch_left, scratch_right, scratch2)
 
          if (.not. maxwellian_normalization) then
             ! center Maxwellian factor in mu
@@ -491,7 +494,7 @@ contains
             call center_zed(iv, z_scratch, -nzgrid)
             ! multiply by Maxwellian factor
             do izext = 1, nz_ext
-               rhs(izext) = rhs(izext) * z_scratch(iz_from_izext(izext))
+               scratch2(izext) = scratch2(izext) * z_scratch(iz_from_izext(izext))
             end do
          end if
 
@@ -516,9 +519,10 @@ contains
          end if
 
          do izext = 1, nz_ext
-            rhs(izext) = -z_scratch(iz_from_izext(izext)) * rhs(izext)
+            scratch2(izext) = -z_scratch(iz_from_izext(izext)) * scratch2(izext)
          end do
-
+         ! add scratch2 to rhs
+         rhs = rhs + scratch2
       end subroutine add_streaming_contribution_bpar
 
       subroutine add_drifts_contribution_bpar
