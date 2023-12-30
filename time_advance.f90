@@ -1645,7 +1645,7 @@ contains
       use kt_grids, only: akx, aky, rho_clamped
       use physics_flags, only: full_flux_surface, radial_variation
       use physics_flags, only: prp_shear_enabled, hammett_flow_shear
-      use physics_flags, only: include_apar
+      use physics_flags, only: include_apar, include_bpar
       use kt_grids, only: x, swap_kxky, swap_kxky_back
       use constants, only: pi, zi
       use file_utils, only: runtype_option_switch, runtype_multibox
@@ -1705,7 +1705,7 @@ contains
       ! incoming pdf is g = <f>
       ! for EM simulations, the pdf entering the ExB nonlinearity needs to be
       ! the non-Boltzmann part of f (h = f + (Ze/T)*phi*F0)
-      if (include_apar) call g_to_h(g, phi, bpar, fphi)
+      if (include_apar .or. include_bpar) call g_to_h(g, phi, bpar, fphi)
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          imu = imu_idx(vmu_lo, ivmu)
@@ -1799,7 +1799,7 @@ contains
       end do
 
       ! convert back from h to g = <f> (only needed for EM sims)
-      if (include_apar) call g_to_h(g, phi, bpar, -fphi)
+      if (include_apar .or. include_bpar) call g_to_h(g, phi, bpar, -fphi)
 
       deallocate (g0k, g0a, g0xy, g1xy, bracket)
       if (allocated(g0k_swap)) deallocate (g0k_swap)
