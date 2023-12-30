@@ -535,13 +535,16 @@ contains
          use extended_zgrid, only: periodic
 
          integer :: izext, iz, ikx
-
+         real :: constant_factor
          ! 'scratch' starts out as the gyro-average of bpar, evaluated at zed grid points
+         constant_factor = 4. * mu(imu) * spec(is)%tz
          do izext = 1, nz_ext
             ikx = ikx_from_izext(izext)
             iz = iz_from_izext(izext)
+            ! the bpar part of Zs <chi>/Ts = 4 mu J1 bpar / bs, and wdrifty_bpar and wdriftx_bpar contain the 4 mu factor
+            ! the 4 mu Ts/Zs factor must be included explicitly in the wstar term here 
             scratch(izext) = zi * scratch(izext) * (akx(ikx) * wdriftx_bpar(ia, iz, ivmu) &
-                                                    + aky(iky) * (wdrifty_bpar(ia, iz, ivmu) + wstar(ia, iz, ivmu)))
+                                                    + aky(iky) * (wdrifty_bpar(ia, iz, ivmu) + constant_factor * wstar(ia, iz, ivmu)))
          end do
          call center_zed(iv, scratch, 1, periodic(iky))
 
