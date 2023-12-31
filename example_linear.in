@@ -32,6 +32,7 @@
  full_flux_surface = .false.
  nonlinear = .false.
  include_apar = .false.
+ include_bpar = .false.
  adiabatic_option="field-line-average-term"
 /
 
@@ -108,6 +109,8 @@
  save_for_restart = .false.
  write_omega = .true.
  write_phi_vs_time = .true.
+ write_apar_vs_time = .false.
+ write_bpar_vs_time = .false.
  write_gvmus = .true.
  write_gzvs = .true.
 /
