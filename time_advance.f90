@@ -819,7 +819,7 @@ contains
 
       use dist_fn_arrays, only: gold, gnew
       use fields_arrays, only: phi, apar, bpar
-      use fields_arrays, only: phi_old
+      use fields_arrays, only: phi_old, apar_old
       use fields, only: advance_fields, fields_updated
       use run_parameters, only: fully_explicit, fully_implicit
       use multibox, only: RK_step
@@ -845,9 +845,10 @@ contains
          call mb_communicate(gnew)
       end if
 
-      !> save value of phi
+      !> save value of phi & apar
       !> for use in diagnostics (to obtain frequency)
       phi_old = phi
+      apar_old = apar
 
       ! Flag which is set to true once we've taken a step without needing to
       ! reset dt (which can be done by the nonlinear term(s))
