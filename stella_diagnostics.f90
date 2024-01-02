@@ -276,7 +276,7 @@ contains
       use constants, only: zi
       use redistribute, only: scatter
       use fields_arrays, only: phi, apar, bpar
-      use fields_arrays, only: phi_old, phi_corr_QN
+      use fields_arrays, only: phi_old, phi_corr_QN, apar_old
       use fields, only: fields_updated, advance_fields
       use dist_fn_arrays, only: gvmu, gnew
       use g_tofrom_h, only: g_to_h
@@ -299,6 +299,7 @@ contains
       use kt_grids, only: naky, nakx, ikx_max, ny
       use dist_redistribute, only: kxkyz2vmu
       use physics_flags, only: radial_variation, full_flux_surface
+      use physics_flags, only: include_apar
       use volume_averages, only: volume_average, fieldline_average
       use run_parameters, only: fphi
 
@@ -320,7 +321,7 @@ contains
       complex, dimension(:, :, :, :, :), allocatable :: density, upar, temperature, spitzer2
 
       complex, dimension(:, :), allocatable :: omega_avg
-      complex, dimension(:, :), allocatable :: phiavg, phioldavg
+      complex, dimension(:, :), allocatable :: phiavg, phioldavg, aparavg, aparoldavg
       complex, dimension(:, :, :, :), allocatable :: phi_out, apar_out, bpar_out
 
       !> needed when simulating a full flux surface
@@ -333,14 +334,26 @@ contains
          if (istep > 0) then
             allocate (phiavg(naky, nakx))
             allocate (phioldavg(naky, nakx))
+            allocate (aparavg(naky, nakx))
+            allocate (aparoldavg(naky, nakx))
             call fieldline_average(phi, phiavg)
             call fieldline_average(phi_old, phioldavg)
+            if (include_apar) then 
+                call fieldline_average(apar, aparavg)
+                call fieldline_average(apar_old, aparoldavg)
+                ! add <apar> to <phi> in the case <phi> = 0 because the mode has tearing parity
+                ! if the mode is a purely growing mode then 
+                ! (<phi^n+1> + <apar^n+1> )/(<phi^n> + <apar^n>) = exp (-i delta t omega)  
+                phiavg = phiavg + aparavg
+                phioldavg = phioldavg + aparoldavg
+            end if
             where (abs(phiavg) < zero .or. abs(phioldavg) < zero)
                omega_vs_time(mod(istep, navg) + 1, :, :) = 0.0
             elsewhere
                omega_vs_time(mod(istep, navg) + 1, :, :) = log(phiavg / phioldavg) * zi / code_dt
             end where
             deallocate (phiavg, phioldavg)
+            deallocate (aparavg, aparoldavg)
          end if
       end if
 
