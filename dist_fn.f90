@@ -260,7 +260,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
       use vpamu_grids, only: nvpa, nmu
-      use dist_fn_arrays, only: gnew, gold, g_gyro
+      use dist_fn_arrays, only: gnew, gold, g_scratch
       use dist_fn_arrays, only: gvmu
 
       implicit none
@@ -271,9 +271,9 @@ contains
       if (.not. allocated(gold)) &
          allocate (gold(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       gold = 0.
-      if (.not. allocated(g_gyro)) &
-         allocate (g_gyro(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      g_gyro = 0.
+      if (.not. allocated(g_scratch)) &
+         allocate (g_scratch(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      g_scratch = 0.
       if (.not. allocated(gvmu)) &
          allocate (gvmu(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
       gvmu = 0.
@@ -321,13 +321,13 @@ contains
 
    subroutine deallocate_arrays
 
-      use dist_fn_arrays, only: gnew, gold, g_gyro, gvmu
+      use dist_fn_arrays, only: gnew, gold, g_scratch, gvmu
 
       implicit none
 
       if (allocated(gnew)) deallocate (gnew)
       if (allocated(gold)) deallocate (gold)
-      if (allocated(g_gyro)) deallocate (g_gyro)
+      if (allocated(g_scratch)) deallocate (g_scratch)
       if (allocated(gvmu)) deallocate (gvmu)
 
    end subroutine deallocate_arrays

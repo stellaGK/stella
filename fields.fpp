@@ -10,15 +10,18 @@ module fields
 
    public :: init_fields, finish_fields
    public :: advance_fields, get_fields
+   public :: advance_apar
    public :: get_radial_correction
    public :: enforce_reality_field
    public :: rescale_fields
    public :: get_fields_by_spec, get_fields_by_spec_idx
    public :: gamtot_h, gamtot3_h
+   public :: apar_denom
    public :: time_field_solve
    public :: fields_updated
    public :: get_dchidy, get_dchidx
    public :: efac, efacp
+   public :: nfields
 
    private
 
@@ -38,6 +41,7 @@ module fields
    logical :: debug = .false.
 
    integer :: zm
+   integer :: nfields
 
    real, dimension(2, 5) :: time_field_solve = 0.
 
@@ -46,6 +50,11 @@ module fields
       module procedure get_dchidy_2d
    end interface get_dchidy
 
+   interface advance_fields
+      module procedure advance_fields_vmu_lo
+      module procedure advance_fields_kxkyz_lo
+   end interface advance_fields
+
 contains
 
    subroutine init_fields
@@ -53,6 +62,7 @@ contains
       use mp, only: proc0
       use linear_solve, only: lu_decomposition
       use physics_flags, only: full_flux_surface
+      use physics_flags, only: include_apar
 
       implicit none
 
@@ -63,6 +73,9 @@ contains
       else
          call init_fields_fluxtube
       end if
+
+      nfields = 1
+      if (include_apar) nfields = nfields + 1
 
    end subroutine init_fields
 
@@ -78,7 +91,7 @@ contains
       use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use dist_fn_arrays, only: kperp2, dkperp2dr
       use gyro_averages, only: aj0v, aj1v
-      use run_parameters, only: fphi, fapar
+      use run_parameters, only: fphi
       use run_parameters, only: ky_solve_radial
       use run_parameters, only: maxwellian_normalization
       use physics_parameters, only: tite, nine, beta
@@ -93,6 +106,7 @@ contains
       use species, only: spec
       use kt_grids, only: naky, nakx, akx
       use kt_grids, only: zonal_mode
+      use physics_flags, only: include_apar
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
       use fields_arrays, only: gamtot, dgamtotdr, gamtot3
@@ -124,7 +138,7 @@ contains
          end if
       end if
       if (.not. allocated(apar_denom)) then
-         if (fapar > epsilon(0.0)) then
+         if (include_apar) then
             allocate (apar_denom(naky, nakx, -nzgrid:nzgrid)); apar_denom = 0.
          else
             allocate (apar_denom(1, 1, 1)); apar_denom = 0.
@@ -227,7 +241,7 @@ contains
 
       end if
 
-      if (fapar > epsilon(0.)) then
+      if (include_apar) then
          allocate (g0(nvpa, nmu))
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             it = it_idx(kxkyz_lo, ikxkyz)
@@ -494,9 +508,26 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use kt_grids, only: nalpha, ikx_max, naky_all, naky
       use kt_grids, only: swap_kxky_ordered
-      use vpamu_grids, only: vperp2, maxwell_vpa, maxwell_mu, maxwell_fac
+      use vpamu_grids, only: vperp2
       use vpamu_grids, only: integrate_species
       use gyro_averages, only: band_lu_factorisation_ffs
+
+      !!GA - for implicit parallel streaming FFS
+      use kt_grids, only: nakx
+      use fields_arrays, only: gamtot, gamtot3
+      use volume_averages, only: alpha_average_ffs_realspace
+
+      use run_parameters, only: driftkinetic_implicit
+      use mp, only: sum_allreduce
+      use stella_layouts, only: kxkyz_lo
+      use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
+      use vpamu_grids, only: nvpa, nmu, mu
+      use vpamu_grids, only: integrate_vmu
+      use kt_grids, only: akx
+      use kt_grids, only: zonal_mode
+      use species, only: has_electron_species, ion_species
+      use physics_flags, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
+      use stella_geometry, only: dl_over_b
 
       implicit none
 
@@ -508,6 +539,13 @@ contains
       real, dimension(:), allocatable :: aj0_alpha, gam0_alpha
       real, dimension(:), allocatable :: wgts
       complex, dimension(:), allocatable :: gam0_kalpha
+
+      !!GA
+      integer :: ikxkyz, it
+      real :: tmp, wgt
+      real, dimension(:, :, :, :), allocatable :: gamtot_alpha
+      real, dimension(:, :), allocatable :: g0
+      real, dimension(:), allocatable :: bessel
 
       if (debug) write (*, *) 'fields::init_fields::init_gamm0_factor_ffs'
 
@@ -522,6 +560,78 @@ contains
       !> of the Gamma0 factor that appears in quasineutrality
       if (.not. allocated(gam0_ffs)) then
          allocate (gam0_ffs(naky_all, ikx_max, -nzgrid:nzgrid))
+      end if
+
+      !!GA
+      if (.not. allocated(gamtot3)) then
+         if (.not. has_electron_species(spec) &
+             .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+            allocate (gamtot3(nakx, -nzgrid:nzgrid)); gamtot3 = 0.
+         else
+            allocate (gamtot3(1, 1)); gamtot3 = 0.
+         end if
+      end if
+
+      !!GA
+      if (driftkinetic_implicit) then
+         if (.not. allocated(bessel)) then
+            allocate (bessel(nmu))
+            bessel = 0.
+         end if
+         if (.not. allocated(gamtot_alpha)) allocate (gamtot_alpha(naky, nakx, -nzgrid:nzgrid, nalpha)); gamtot_alpha = 0.
+         allocate (g0(nvpa, nmu))
+         do ia = 1, nalpha
+            do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+               it = it_idx(kxkyz_lo, ikxkyz)
+               if (it /= 1) cycle
+               iky = iky_idx(kxkyz_lo, ikxkyz)
+               ikx = ikx_idx(kxkyz_lo, ikxkyz)
+               iz = iz_idx(kxkyz_lo, ikxkyz)
+               is = is_idx(kxkyz_lo, ikxkyz)
+               do imu = 1, nmu
+                  arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
+                  bessel(imu) = j0(arg)
+               end do
+               g0 = spread((1.0 - bessel(:)**2), 1, nvpa)! &
+               !!!!* spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
+               wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp
+               call integrate_vmu(g0, iz, tmp)
+               gamtot_alpha(iky, ikx, iz, ia) = gamtot_alpha(iky, ikx, iz, ia) + tmp * wgt
+            end do
+         end do
+         deallocate (g0, bessel)
+         call sum_allreduce(gamtot_alpha)
+         if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
+         do iz = -nzgrid, nzgrid
+            do iky = 1, naky
+               do ikx = 1, nakx
+                  call alpha_average_ffs_realspace(gamtot_alpha(iky, ikx, iz, :), gamtot(iky, ikx, iz), iz)
+               end do
+            end do
+         end do
+         deallocate (gamtot_alpha)
+
+         if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then
+            gamtot(1, 1, :) = 0.0
+            zm = 1
+         end if
+
+         if (.not. has_electron_species(spec)) then
+            efac = tite / nine * (spec(ion_species)%dens / spec(ion_species)%temp)
+            gamtot = gamtot + efac
+            if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+               if (zonal_mode(1)) then
+                  do ikx = 1, nakx
+                     tmp = 1./efac - sum(dl_over_b / gamtot(:, ikx, :)) / nalpha
+                     gamtot3(ikx, :) = 1./(gamtot(1, ikx, :) * tmp)
+                  end do
+                  if (akx(1) < epsilon(0.)) then
+                     gamtot3(1, :) = 0.0
+                  end if
+               end if
+            end if
+         end if
+
       end if
 
       do iz = -nzgrid, nzgrid
@@ -632,7 +742,8 @@ contains
 
    subroutine allocate_arrays
 
-      use fields_arrays, only: phi, apar, phi_old
+      use fields_arrays, only: phi, phi_old
+      use fields_arrays, only: apar, apar_old
       use fields_arrays, only: phi_corr_QN, phi_corr_GA
       use fields_arrays, only: apar_corr_QN, apar_corr_GA
       use zgrid, only: nzgrid, ntubes
@@ -646,13 +757,17 @@ contains
          allocate (phi(naky, nakx, -nzgrid:nzgrid, ntubes))
          phi = 0.
       end if
+      if (.not. allocated(phi_old)) then
+         allocate (phi_old(naky, nakx, -nzgrid:nzgrid, ntubes))
+         phi_old = 0.
+      end if
       if (.not. allocated(apar)) then
          allocate (apar(naky, nakx, -nzgrid:nzgrid, ntubes))
          apar = 0.
       end if
-      if (.not. allocated(phi_old)) then
-         allocate (phi_old(naky, nakx, -nzgrid:nzgrid, ntubes))
-         phi_old = 0.
+      if (.not. allocated(apar_old)) then
+         allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes))
+         apar_old = 0.
       end if
       if (.not. allocated(phi_corr_QN) .and. radial_variation) then
          allocate (phi_corr_QN(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -700,7 +815,7 @@ contains
 
    end subroutine enforce_reality_field
 
-   subroutine advance_fields(g, phi, apar, dist)
+   subroutine advance_fields_vmu_lo(g, phi, apar, dist, const_in_alpha)
 
       use mp, only: proc0
       use stella_layouts, only: vmu_lo
@@ -718,6 +833,8 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
       character(*), intent(in) :: dist
 
+      logical, optional, intent(in) :: const_in_alpha
+
       if (fields_updated) return
 
       !> time the communications + field solve
@@ -726,17 +843,22 @@ contains
       if (fields_kxkyz) then
          !> first gather (vpa,mu) onto processor for v-space operations
          !> v-space operations are field solve, dg/dvpa, and collisions
-         if (debug) write (*, *) 'dist_fn::advance_stella::scatter'
+         if (debug) write (*, *) 'fields::advance_fields_vmu_lo::scatter'
          if (proc0) call time_message(.false., time_field_solve(:, 2), ' fields_redist')
          call scatter(kxkyz2vmu, g, gvmu)
          if (proc0) call time_message(.false., time_field_solve(:, 2), ' fields_redist')
          !> given gvmu with vpa and mu local, calculate the corresponding fields
-         if (debug) write (*, *) 'dist_fn::advance_stella::get_fields'
+         if (debug) write (*, *) 'fields::advance_fields_vmu_lo::get_fields'
          call get_fields(gvmu, phi, apar, dist)
       else
          if (full_flux_surface) then
-            if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs'
-            call get_fields_ffs(g, phi, apar)
+            if (present(const_in_alpha)) then
+               if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs_const_in_alpha'
+               call get_fields_ffs(g, phi, apar, const_in_alpha=.true.)
+            else
+               if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs'
+               call get_fields_ffs(g, phi, apar)
+            end if
          else
             call get_fields_vmulo(g, phi, apar, dist)
          end if
@@ -748,7 +870,40 @@ contains
       !> time the communications + field solve
       if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
 
-   end subroutine advance_fields
+   end subroutine advance_fields_vmu_lo
+
+   subroutine advance_fields_kxkyz_lo(gvmu, phi, apar, dist)
+
+      use mp, only: proc0
+      use stella_layouts, only: kxkyz_lo
+      use job_manage, only: time_message
+      use redistribute, only: scatter
+      use zgrid, only: nzgrid
+      use run_parameters, only: fields_kxkyz
+      use physics_flags, only: full_flux_surface
+
+      implicit none
+
+      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: gvmu
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar
+      character(*), intent(in) :: dist
+
+      if (fields_updated) return
+
+      !> time the communications + field solve
+      if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
+
+      !> given gvmu with vpa and mu local, calculate the corresponding fields
+      if (debug) write (*, *) 'dist_fn::advance_stella::advance_fields_kxkyz_lo::get_fields'
+      call get_fields(gvmu, phi, apar, dist)
+
+      !> set a flag to indicate that the fields have been updated
+      !> this helps avoid unnecessary field solves
+      fields_updated = .true.
+      !> time the communications + field solve
+      if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
+
+   end subroutine advance_fields_kxkyz_lo
 
    subroutine get_fields(g, phi, apar, dist, skip_fsa)
 
@@ -759,7 +914,8 @@ contains
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use dist_fn_arrays, only: kperp2
       use gyro_averages, only: gyro_average
-      use run_parameters, only: fphi, fapar
+      use physics_flags, only: include_apar
+      use run_parameters, only: fphi
       use physics_parameters, only: beta
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
@@ -811,7 +967,7 @@ contains
       end if
 
       apar = 0.
-      if (fapar > epsilon(0.0)) then
+      if (include_apar) then
          allocate (g0(nvpa, nmu))
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iz = iz_idx(kxkyz_lo, ikxkyz)
@@ -825,8 +981,12 @@ contains
             apar(iky, ikx, iz, it) = apar(iky, ikx, iz, it) + tmp * wgt
          end do
          call sum_allreduce(apar)
-         if (dist == 'h') then
-            apar = apar / spread(kperp2(:, :, ia, :), 4, ntubes)
+         if (dist == 'g' .or. dist == 'h') then
+            where (spread(kperp2(:, :, ia, :), 4, ntubes) > epsilon(0.0))
+               apar = apar / spread(kperp2(:, :, ia, :), 4, ntubes)
+            elsewhere
+               apar = 0.0
+            end where
          else if (dist == 'gbar') then
             apar = apar / spread(apar_denom, 4, ntubes)
          else if (dist == 'gstar') then
@@ -845,13 +1005,16 @@ contains
 
       use mp, only: mp_abort, proc0
       use job_manage, only: time_message
-      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: vmu_lo, iv_idx
       use gyro_averages, only: gyro_average
-      use run_parameters, only: fphi, fapar
+      use run_parameters, only: fphi
+      use physics_parameters, only: beta
+      use physics_flags, only: include_apar
       use physics_flags, only: radial_variation
-      use dist_fn_arrays, only: g_gyro
+      use dist_fn_arrays, only: g_scratch
       use zgrid, only: nzgrid
       use vpamu_grids, only: integrate_species
+      use vpamu_grids, only: vpa
       use species, only: spec
 
       implicit none
@@ -861,6 +1024,7 @@ contains
       logical, optional, intent(in) :: skip_fsa
       character(*), intent(in) :: dist
 
+      integer :: iv, ivmu
       logical :: skip_fsa_local
 
       skip_fsa_local = .false.
@@ -870,18 +1034,19 @@ contains
 
       phi = 0.
       if (fphi > epsilon(0.0)) then
+
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
          ! gyroaverage the distribution function g at each phase space location
-         call gyro_average(g, g_gyro)
+         call gyro_average(g, g_scratch)
 
          ! <g> requires modification if radial profile variation is included
-         if (radial_variation) call add_radial_correction_int_species(g_gyro)
+         if (radial_variation) call add_radial_correction_int_species(g_scratch)
 
          ! integrate <g> over velocity space and sum over species
          !> store result in phi, which will be further modified below to account for polarization term
-         if (debug) write (*, *) 'dist_fn::advance_stella::sum_all_reduce'
-         call integrate_species(g_gyro, spec%z * spec%dens_psi0, phi)
+         if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_vmulo::integrate_species_phi'
+         call integrate_species(g_scratch, spec%z * spec%dens_psi0, phi)
 
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
@@ -890,51 +1055,53 @@ contains
       end if
 
       apar = 0.
-      if (fapar > epsilon(0.0)) then
-         ! FLAG -- NEW LAYOUT NOT YET SUPPORTED !!
-         call mp_abort('APAR NOT YET SUPPORTED FOR NEW FIELD SOLVE. ABORTING.')
-!        allocate (g0(-nvgrid:nvgrid,nmu))
-!        do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-!           iz = iz_idx(kxkyz_lo,ikxkyz)
-!           ikx = ikx_idx(kxkyz_lo,ikxkyz)
-!           iky = iky_idx(kxkyz_lo,ikxkyz)
-!           is = is_idx(kxkyz_lo,ikxkyz)
-!           g0 = spread(aj0v(:,ikxkyz),1,nvpa)*spread(vpa,2,nmu)*g(:,:,ikxkyz)
-!           wgt = 2.0*beta*spec(is)%z*spec(is)%dens*spec(is)%stm
-!           call integrate_vmu (g0, iz, tmp)
-!           apar(iky,ikx,iz) = apar(iky,ikx,iz) + tmp*wgt
-!        end do
-!        call sum_allreduce (apar)
-!        if (dist == 'h') then
-!           apar = apar/kperp2
-!        else if (dist == 'gbar') then
-!           apar = apar/apar_denom
-!        else if (dist == 'gstar') then
-!           write (*,*) 'APAR NOT SETUP FOR GSTAR YET. aborting.'
-!           call mp_abort('APAR NOT SETUP FOR GSTAR YET. aborting.')
-!        else
-!           if (proc0) write (*,*) 'unknown dist option in get_fields. aborting'
-!           call mp_abort ('unknown dist option in get_fields. aborting')
-!        end if
-!        deallocate (g0)
+      if (include_apar) then
+
+         if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+
+         ! if fphi > 0, then g_scratch = <g> already calculated above
+         if (fphi < epsilon(0.0)) call gyro_average(g, g_scratch)
+
+         ! for parallel Ampere's Law, need to calculate parallel current rather than density,
+         ! so multiply <g> by vpa before integrating
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            ! get the vpa index
+            iv = iv_idx(vmu_lo, ivmu)
+            ! multiply by vpa
+            g_scratch(:, :, :, :, ivmu) = g_scratch(:, :, :, :, ivmu) * vpa(iv)
+         end do
+
+         ! integrate vpa*<g> over velocity space and sum over species
+         !> store result in apar, which will be further modified below to account for apar pre-factor
+         if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_vmulo::integrate_species_apar'
+         call integrate_species(g_scratch, spec%z * spec%dens_psi0 * spec%stm_psi0 * beta, apar)
+
+         if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
+
+         ! divide the apar obtained above by the appropriate Apar pre-factor;
+         ! this is just kperp2 if g = <f> is used or apar_denom = (kperp2 + ...)
+         ! if gbar = g + <vpa*apar/c> * Ze/T * F_0 is used
+         call get_apar(apar, dist)
+
       end if
 
    end subroutine get_fields_vmulo
 
    !> get_fields_ffs accepts as input the guiding centre distribution function g
    !> and calculates/returns the electronstatic potential phi for full_flux_surface simulations
-   subroutine get_fields_ffs(g, phi, apar)
+   subroutine get_fields_ffs(g, phi, apar, const_in_alpha)
 
       use mp, only: mp_abort
       use physics_parameters, only: nine, tite
+      use physics_flags, only: include_apar
       use stella_layouts, only: vmu_lo
-      use run_parameters, only: fphi, fapar
+      use run_parameters, only: fphi
       use species, only: modified_adiabatic_electrons, adiabatic_electrons
-      use zgrid, only: nzgrid
+      use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, ikx_max, naky, naky_all
       use kt_grids, only: swap_kxky_ordered
       use volume_averages, only: flux_surface_average_ffs
-
+      use fields_arrays, only: gamtot
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -944,46 +1111,65 @@ contains
       complex, dimension(:), allocatable :: phi_fsa
       complex, dimension(:, :, :), allocatable :: phi_swap, source
 
+      !!GA
+      logical, optional, intent(in) :: const_in_alpha
+      real, dimension(:, :, :, :), allocatable :: gamtot_t
+
+      if (.not. allocated(source)) allocate (source(naky, nakx, -nzgrid:nzgrid)); source = 0.0
+
       if (fphi > epsilon(0.0)) then
-         allocate (source(naky, nakx, -nzgrid:nzgrid))
-         !> calculate the contribution to quasineutrality coming from the velocity space
-         !> integration of the guiding centre distribution function g;
-         !> the sign is consistent with phi appearing on the RHS of the eqn and int g appearing on the LHS.
-         !> this is returned in source
-         if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::get_g_integral_contribution'
-         call get_g_integral_contribution(g, source)
-         !> use sum_s int d3v <g> and QN to solve for phi
-         !> NB: assuming here that ntubes = 1 for FFS sim
-         if (debug) write (*, *) 'fields::advance_fields::get_phi_ffs'
-         call get_phi_ffs(source, phi(:, :, :, 1))
-         !> if using a modified Boltzmann response for the electrons, then phi
-         !> at this stage is the 'inhomogeneous' part of phi.
-         if (modified_adiabatic_electrons) then
-            !> first must get phi on grid that includes positive and negative ky (but only positive kx)
-            allocate (phi_swap(naky_all, ikx_max, -nzgrid:nzgrid))
-            if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::swap_kxky_ordered'
-            do iz = -nzgrid, nzgrid
-               call swap_kxky_ordered(phi(:, :, iz, 1), phi_swap(:, :, iz))
-            end do
-            !> calculate the flux surface average of this phi_inhomogeneous
-            allocate (phi_fsa(nakx))
-            if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::flux_surface_average_ffs'
-            do ikx = 1, nakx
-               call flux_surface_average_ffs(phi_swap(:, ikx, :), phi_fsa(ikx))
-            end do
-            !> use the flux surface average of phi_inhomogeneous, together with the
-            !> adiabatic_response_factor, to obtain the flux-surface-averaged phi
-            phi_fsa = phi_fsa * adiabatic_response_factor
-            !> use the computed flux surface average of phi as an additional sosurce in quasineutrality
-            !> to obtain the electrostatic potential; only affects the ky=0 component of QN
-            do ikx = 1, nakx
-               source(1, ikx, :) = source(1, ikx, :) + phi_fsa(ikx) * tite / nine
-            end do
-            if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::get_phi_ffs2s'
+         !!GA
+         if (present(const_in_alpha)) then
+            allocate (gamtot_t(naky, nakx, -nzgrid:nzgrid, ntubes))
+            gamtot_t = spread(gamtot, 4, ntubes)
+            call get_g_integral_contribution(g, source, const_in_alpha=.true.)
+            where (gamtot_t < epsilon(0.0))
+               phi = 0.0
+            elsewhere
+               phi = spread(source, 4, ntubes) / gamtot_t
+            end where
+            if (any(gamtot(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
+            deallocate (gamtot_t)
+         else
+            !> calculate the contribution to quasineutrality coming from the velocity space
+            !> integration of the guiding centre distribution function g;
+            !> the sign is consistent with phi appearing on the RHS of the eqn and int g appearing on the LHS.
+            !> this is returned in source
+            if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::get_g_integral_contribution'
+            call get_g_integral_contribution(g, source)
+            !> use sum_s int d3v <g> and QN to solve for phi
+            !> NB: assuming here that ntubes = 1 for FFS sim
+            if (debug) write (*, *) 'fields::advance_fields::get_phi_ffs'
             call get_phi_ffs(source, phi(:, :, :, 1))
-            deallocate (phi_swap, phi_fsa)
+            !> if using a modified Boltzmann response for the electrons, then phi
+            !> at this stage is the 'inhomogeneous' part of phi.
+            if (modified_adiabatic_electrons) then
+               !> first must get phi on grid that includes positive and negative ky (but only positive kx)
+               allocate (phi_swap(naky_all, ikx_max, -nzgrid:nzgrid))
+               if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::swap_kxky_ordered'
+               do iz = -nzgrid, nzgrid
+                  call swap_kxky_ordered(phi(:, :, iz, 1), phi_swap(:, :, iz))
+               end do
+               !> calculate the flux surface average of this phi_inhomogeneous
+               allocate (phi_fsa(nakx))
+               if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::flux_surface_average_ffs'
+               do ikx = 1, nakx
+                  call flux_surface_average_ffs(phi_swap(:, ikx, :), phi_fsa(ikx))
+               end do
+               !> use the flux surface average of phi_inhomogeneous, together with the
+               !> adiabatic_response_factor, to obtain the flux-surface-averaged phi
+               phi_fsa = phi_fsa * adiabatic_response_factor
+               !> use the computed flux surface average of phi as an additional sosurce in quasineutrality
+               !> to obtain the electrostatic potential; only affects the ky=0 component of QN
+               do ikx = 1, nakx
+                  source(1, ikx, :) = source(1, ikx, :) + phi_fsa(ikx) * tite / nine
+               end do
+               if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::get_phi_ffs2s'
+               call get_phi_ffs(source, phi(:, :, :, 1))
+               deallocate (phi_swap, phi_fsa)
+            end if
+            deallocate (source)
          end if
-         deallocate (source)
       else if (.not. adiabatic_electrons) then
          !> if adiabatic electrons are not employed, then
          !> no explicit equation for the ky=kx=0 component of phi;
@@ -992,13 +1178,13 @@ contains
       end if
 
       apar = 0.
-      if (fapar > epsilon(0.0)) then
+      if (include_apar) then
          call mp_abort('apar not yet supported for full_flux_surface = T. aborting.')
       end if
 
    contains
 
-      subroutine get_g_integral_contribution(g, source)
+      subroutine get_g_integral_contribution(g, source, const_in_alpha)
 
          use mp, only: sum_allreduce
          use stella_layouts, only: vmu_lo
@@ -1007,7 +1193,7 @@ contains
          use kt_grids, only: naky, nakx
          use vpamu_grids, only: integrate_species_ffs
          use gyro_averages, only: gyro_average, j0_B_maxwell_ffs
-
+         use gyro_averages, only: j0bmaxwell_avg
          implicit none
 
          complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1015,17 +1201,25 @@ contains
 
          integer :: it, iz, ivmu
          complex, dimension(:, :, :), allocatable :: gyro_g
+         !!GA
+         logical, optional, intent(in) :: const_in_alpha
 
          !> assume there is only a single flux surface being simulated
          it = 1
          allocate (gyro_g(naky, nakx, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          !> loop over zed location within flux tube
          do iz = -nzgrid, nzgrid
-            !> loop over super-index ivmu, which include vpa, mu and spec
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               !> gyroaverage the distribution function g at each phase space location
-               call gyro_average(g(:, :, iz, it, ivmu), gyro_g(:, :, ivmu), j0_B_maxwell_ffs(:, :, iz, ivmu))
-            end do
+            if (present(const_in_alpha)) then
+               do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                  gyro_g(:, :, ivmu) = g(:, :, iz, it, ivmu) * j0bmaxwell_avg(:, :, iz, ivmu)
+               end do
+            else
+               !> loop over super-index ivmu, which include vpa, mu and spec
+               do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                  !> gyroaverage the distribution function g at each phase space location
+                  call gyro_average(g(:, :, iz, it, ivmu), gyro_g(:, :, ivmu), j0_B_maxwell_ffs(:, :, iz, ivmu))
+               end do
+            end if
             !> integrate <g> over velocity space and sum over species within each processor
             !> as v-space and species possibly spread over processors, wlil need to
             !> gather sums from each proceessor and sum them all together below
@@ -1238,7 +1432,7 @@ contains
       if (proc0) call time_message(.false., time_field_solve(:, 4), ' get_phi')
       if (dist == 'h') then
          phi = phi / gamtot_h
-      else if (dist == 'gbar') then
+      else if (dist == 'g' .or. dist == 'gbar') then
          if (global_quasineutrality .and. (center_cell .or. .not. multibox_mode) .and. .not. ky_solve_real) then
             call get_phi_radial(phi)
          else if (global_quasineutrality .and. center_cell .and. ky_solve_real) then
@@ -1275,7 +1469,7 @@ contains
                   phi(1, ikx, :, it) = phi(1, ikx, :, it) + tmp * gamtot3_h
                end do
             end do
-         else if (dist == 'gbar') then
+         else if (dist == 'g' .or. dist == 'gbar') then
             if (global_quasineutrality .and. center_cell .and. ky_solve_real) then
                !this is already taken care of in mb_get_phi
             elseif (global_quasineutrality .and. (center_cell .or. .not. multibox_mode) &
@@ -1396,6 +1590,89 @@ contains
       deallocate (g0k, g0x)
 
    end subroutine get_phi_radial
+
+   ! get_apar solves pre-factor * Apar = beta_ref * sum_s Z_s n_s vth_s int d3v vpa * J0 * pdf
+   ! for apar, with pdf being either g or gbar (specified by dist input).
+   ! the input apar is the RHS of the above equation and is overwritten by the true apar
+   ! the pre-factor depends on whether g or gbar is used (kperp2 in former case, with additional
+   ! term appearing in latter case)
+   subroutine get_apar(apar, dist)
+
+      use mp, only: proc0, mp_abort
+      use zgrid, only: nzgrid, ntubes
+      use dist_fn_arrays, only: kperp2
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: apar
+      character(*), intent(in) :: dist
+
+      integer :: ia
+
+      ! this subroutine only considers flux tubes, so set ia = 1
+      ia = 1
+      if (dist == 'g') then
+         where (spread(kperp2(:, :, ia, :), 4, ntubes) > epsilon(0.0))
+            apar = apar / spread(kperp2(:, :, ia, :), 4, ntubes)
+         elsewhere
+            apar = 0.0
+         end where
+      else if (dist == 'gbar') then
+         apar = apar / spread(apar_denom, 4, ntubes)
+      else
+         if (proc0) write (*, *) 'unknown dist option in get_apar. aborting'
+         call mp_abort('unkown dist option in get_apar. aborting')
+      end if
+
+   end subroutine get_apar
+
+   subroutine advance_apar(g, dist, apar)
+
+      use mp, only: mp_abort, sum_allreduce
+      use stella_layouts, only: kxkyz_lo
+      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use physics_flags, only: include_apar
+      use physics_parameters, only: beta
+      use species, only: spec
+      use zgrid, only: nzgrid, ntubes
+      use vpamu_grids, only: nvpa, nmu, vpa
+      use vpamu_grids, only: integrate_vmu
+      use gyro_averages, only: gyro_average
+
+      implicit none
+
+      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
+      character(*), intent(in) :: dist
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: apar
+
+      integer :: ikxkyz, iky, ikx, iz, it, is
+      real :: wgt
+      complex :: tmp
+      complex, dimension(:, :), allocatable :: scratch
+
+      apar = 0.
+      if (include_apar) then
+         allocate (scratch(nvpa, nmu))
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            it = it_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
+            call gyro_average(spread(vpa, 2, nmu) * g(:, :, ikxkyz), ikxkyz, scratch)
+            wgt = beta * spec(is)%z * spec(is)%dens_psi0 * spec(is)%stm_psi0
+            call integrate_vmu(scratch, iz, tmp)
+            apar(iky, ikx, iz, it) = apar(iky, ikx, iz, it) + tmp * wgt
+         end do
+         ! apar for different species may be spread over processors at this point, so
+         ! broadcast to all procs and sum over species
+         call sum_allreduce(apar)
+         ! divide by the appropriate apar pre-factor to get apar
+         call get_apar(apar, dist)
+         deallocate (scratch)
+      end if
+
+   end subroutine advance_apar
 
    !> Add the adiabatic eletron contribution for globally radial simulations.
    !> This actually entails solving for the whole ky = 0 slice of phi at once (not really adding!)
@@ -1694,7 +1971,7 @@ contains
             end do
          end do
 
-         if (dist == 'gbar') then
+         if (dist == 'gbar' .or. dist == 'g') then
             allocate (gamtot_t(naky, nakx, -nzgrid:nzgrid, ntubes))
             gamtot_t = spread(gamtot, 4, ntubes)
             where (gamtot_t < epsilon(0.0))
@@ -1714,7 +1991,7 @@ contains
          if (.not. has_electron_species(spec) .and. &
              adiabatic_option_switch == adiabatic_option_fieldlineavg) then
             if (zonal_mode(1)) then
-               if (dist == 'gbar') then
+               if (dist == 'g' .or. dist == 'gbar') then
                   allocate (g1k(1, nakx))
                   allocate (g1x(1, nakx))
                   do it = 1, ntubes
@@ -1814,18 +2091,19 @@ contains
       use gyro_averages, only: gyro_average
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: is_idx, iv_idx
-      use run_parameters, only: fphi, fapar
+      use physics_flags, only: include_apar
+      use run_parameters, only: fphi
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: vpa
-      use kt_grids, only: nakx, aky, naky
+      use kt_grids, only: aky, naky, nakx
 
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: dchidy
 
-      integer :: ivmu, iv, is, iz, it, ikx
+      integer :: ivmu, iv, is, iky
       complex, dimension(:, :, :, :), allocatable :: field
 
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -1833,12 +2111,13 @@ contains
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          is = is_idx(vmu_lo, ivmu)
          iv = iv_idx(vmu_lo, ivmu)
-         do it = 1, ntubes
-            do iz = -nzgrid, nzgrid
-               do ikx = 1, nakx
-                  field(:, ikx, iz, it) = zi * aky(:) * (fphi * phi(:, ikx, iz, it) - fapar * vpa(iv) * spec(is)%stm * apar(:, ikx, iz, it))
-               end do
-            end do
+         ! intermediate calculation to get factor involving phi contribution
+         field = fphi * phi
+         ! add apar contribution if including it
+         if (include_apar) field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
+         ! take spectral y-derivative
+         do iky = 1, naky
+            field(iky, :, :, :) = zi * aky(iky) * field(iky, :, :, :)
          end do
          call gyro_average(field, ivmu, dchidy(:, :, :, :, ivmu))
       end do
@@ -1854,7 +2133,8 @@ contains
       use gyro_averages, only: gyro_average
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: is_idx, iv_idx
-      use run_parameters, only: fphi, fapar
+      use physics_flags, only: include_apar
+      use run_parameters, only: fphi
       use species, only: spec
       use vpamu_grids, only: vpa
       use kt_grids, only: nakx, aky, naky
@@ -1872,8 +2152,9 @@ contains
 
       is = is_idx(vmu_lo, ivmu)
       iv = iv_idx(vmu_lo, ivmu)
-      field = zi * spread(aky, 2, nakx) &
-              * (fphi * phi - fapar * vpa(iv) * spec(is)%stm * apar)
+      field = fphi * phi
+      if (include_apar) field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
+      field = zi * spread(aky, 2, nakx) * field
       call gyro_average(field, iz, ivmu, dchidy)
 
       deallocate (field)
@@ -1887,7 +2168,8 @@ contains
       use gyro_averages, only: gyro_average
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: is_idx, iv_idx
-      use run_parameters, only: fphi, fapar
+      use physics_flags, only: include_apar
+      use run_parameters, only: fphi
       use species, only: spec
       use vpamu_grids, only: vpa
       use kt_grids, only: akx, naky, nakx
@@ -1905,8 +2187,9 @@ contains
 
       is = is_idx(vmu_lo, ivmu)
       iv = iv_idx(vmu_lo, ivmu)
-      field = zi * spread(akx, 1, naky) &
-              * (fphi * phi - fapar * vpa(iv) * spec(is)%stm * apar)
+      field = fphi * phi
+      if (include_apar) field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
+      field = zi * spread(akx, 1, naky) * field
       call gyro_average(field, iz, ivmu, dchidx)
 
       deallocate (field)
@@ -1916,8 +2199,9 @@ contains
    subroutine finish_fields
 
       use fields_arrays, only: phi, phi_old
+      use fields_arrays, only: apar, apar_old
       use fields_arrays, only: phi_corr_QN, phi_corr_GA
-      use fields_arrays, only: apar, apar_corr_QN, apar_corr_GA
+      use fields_arrays, only: apar_corr_QN, apar_corr_GA
       use fields_arrays, only: gamtot, dgamtotdr, gamtot3
       use fields_arrays, only: c_mat, theta
 #ifdef ISO_C_BINDING
@@ -1934,9 +2218,10 @@ contains
 
       if (allocated(phi)) deallocate (phi)
       if (allocated(phi_old)) deallocate (phi_old)
+      if (allocated(apar)) deallocate (apar)
+      if (allocated(apar_old)) deallocate (apar_old)
       if (allocated(phi_corr_QN)) deallocate (phi_corr_QN)
       if (allocated(phi_corr_GA)) deallocate (phi_corr_GA)
-      if (allocated(apar)) deallocate (apar)
       if (allocated(apar_corr_QN)) deallocate (apar_corr_QN)
       if (allocated(apar_corr_GA)) deallocate (apar_corr_GA)
       if (allocated(gamtot)) deallocate (gamtot)

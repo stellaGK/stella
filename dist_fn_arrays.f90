@@ -4,7 +4,7 @@
 
 module dist_fn_arrays
 
-   public :: gnew, gold, g_symm
+   public :: gnew, gold, g_symm, g_scratch
    public :: g0, g1, g2, g3
    public :: g_krook, g_proj
    public :: gvmu
@@ -15,8 +15,12 @@ module dist_fn_arrays
    public :: wdriftpx_g, wdriftpy_g
    public :: wdriftpx_phi, wdriftpy_phi
 
+   public :: wdriftx_g_correction, wdrifty_g_correction
+   public :: wdriftx_phi_correction, wdrifty_phi_correction
+   public :: wstar_correction
+
    ! dist fn
-   complex, dimension(:, :, :, :, :), allocatable :: gnew, gold, g_gyro
+   complex, dimension(:, :, :, :, :), allocatable :: gnew, gold, g_scratch
    ! (naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 
    complex, dimension(:, :, :, :, :), target, allocatable :: g_symm
@@ -51,4 +55,7 @@ module dist_fn_arrays
    ! (naky, nakx, nalpha, -nzgrid:nzgrid)
    ! note: dkperp2dr is divided by kperp2
 
+   real, dimension(:, :, :), allocatable :: wdriftx_g_correction, wdrifty_g_correction
+   real, dimension(:, :, :), allocatable :: wdriftx_phi_correction, wdrifty_phi_correction
+   real, dimension(:, :, :), allocatable :: wstar_correction
 end module dist_fn_arrays

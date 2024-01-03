@@ -1,4 +1,3 @@
-
 module time_advance
 
    public :: init_time_advance, finish_time_advance
@@ -43,7 +42,8 @@ module time_advance
    integer :: explicit_option_switch
    integer, parameter :: explicit_option_rk3 = 1, &
                          explicit_option_rk2 = 2, &
-                         explicit_option_rk4 = 3
+                         explicit_option_rk4 = 3, &
+                         explicit_option_euler = 4
 
    real :: xdriftknob, ydriftknob, wstarknob
    logical :: flip_flop
@@ -141,11 +141,12 @@ contains
 
       logical :: taexist
 
-      type(text_option), dimension(4), parameter :: explicitopts = &
+      type(text_option), dimension(5), parameter :: explicitopts = &
                                                     (/text_option('default', explicit_option_rk3), &
                                                       text_option('rk3', explicit_option_rk3), &
                                                       text_option('rk2', explicit_option_rk2), &
-                                                      text_option('rk4', explicit_option_rk4)/)
+                                                      text_option('rk4', explicit_option_rk4), &
+                                                      text_option('euler', explicit_option_euler)/)
       character(10) :: explicit_option
 
       namelist /time_advance_knobs/ xdriftknob, ydriftknob, wstarknob, explicit_option, flip_flop
@@ -204,12 +205,23 @@ contains
       use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
       use run_parameters, only: maxwellian_normalization
 
+      use physics_flags, only: full_flux_surface
+      use run_parameters, only: drifts_implicit
+      use volume_averages, only: alpha_average_ffs_realspace
+      use dist_fn_arrays, only: wdriftx_g_correction, wdrifty_g_correction
+      use dist_fn_arrays, only: wdriftx_phi_correction, wdrifty_phi_correction
+
       implicit none
 
       integer :: ivmu, iv, imu, is
       real :: fac
       real, dimension(:, :), allocatable :: wcvdrifty, wgbdrifty
       real, dimension(:, :), allocatable :: wcvdriftx, wgbdriftx
+
+      !!GA
+      real, dimension(:, :), allocatable :: wdriftx_g_store, wdrifty_g_store
+      real, dimension(:, :), allocatable :: wdriftx_phi_store, wdrifty_phi_store
+      integer :: iz, it
 
       if (wdriftinit) return
       wdriftinit = .true.
@@ -239,6 +251,23 @@ contains
       allocate (wgbdrifty(nalpha, -nzgrid:nzgrid))
       allocate (wcvdriftx(nalpha, -nzgrid:nzgrid))
       allocate (wgbdriftx(nalpha, -nzgrid:nzgrid))
+
+      !!GA
+      if (full_flux_surface .and. drifts_implicit) then
+         allocate (wdriftx_g_store(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (wdrifty_g_store(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (wdriftx_phi_store(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (wdrifty_phi_store(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+         allocate (wdriftx_g_correction(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         wdriftx_g_correction = 0.0
+         allocate (wdrifty_g_correction(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         wdrifty_g_correction = 0.0
+         allocate (wdriftx_phi_correction(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         wdriftx_phi_correction = 0.0
+         allocate (wdrifty_phi_correction(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         wdrifty_phi_correction = 0.0
+      end if
 
       ! FLAG -- need to deal with shat=0 case.  ideally move away from q as x-coordinate
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -320,8 +349,33 @@ contains
                                       - 0.5 * spec(is)%zt * dfneo_dvpa(:, :, ivmu) * wcvdriftx &
                                       + code_dt * 0.5 * (dfneo_dalpha(:, :, ivmu) * dxdXcoord - dfneo_dzed(:, :, ivmu) * gds24)
          end if
-
+         !!GA -- need to do something more inteligent here. Comes with a warning that
+         !!      this way of doing things is potentially no better than just using an
+         !!      explicit method and may introduce more issues than it solves
+         if (full_flux_surface .and. drifts_implicit) then
+            do iz = 1, nzgrid
+               wdriftx_g_store(iz, ivmu) = sum(abs(wdriftx_g(:, iz, ivmu))) / nalpha
+               wdrifty_g_store(iz, ivmu) = sum(abs(wdrifty_g(:, iz, ivmu))) / nalpha
+               wdriftx_phi_store(iz, ivmu) = sum(abs(wdriftx_phi(:, iz, ivmu))) / nalpha
+               wdrifty_phi_store(iz, ivmu) = sum(abs(wdrifty_phi(:, iz, ivmu))) / nalpha
+            end do
+         end if
       end do
+
+      if (full_flux_surface .and. drifts_implicit) then
+         wdriftx_g_correction = wdriftx_g - spread(wdriftx_g_store, 1, nalpha)
+         wdrifty_g_correction = wdrifty_g - spread(wdrifty_g_store, 1, nalpha)
+         wdriftx_phi_correction = wdriftx_phi - spread(wdriftx_phi_store, 1, nalpha)
+         wdrifty_phi_correction = wdrifty_phi - spread(wdrifty_phi_store, 1, nalpha)
+
+         wdriftx_g = spread(wdriftx_g_store, 1, nalpha)
+         wdrifty_g = spread(wdrifty_g_store, 1, nalpha)
+         wdriftx_phi = spread(wdriftx_phi_store, 1, nalpha)
+         wdrifty_phi = spread(wdrifty_phi_store, 1, nalpha)
+
+         deallocate (wdriftx_g_store, wdrifty_g_store)
+         deallocate (wdriftx_phi_store, wdrifty_phi_store)
+      end if
 
       deallocate (wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty)
 
@@ -344,16 +398,31 @@ contains
       use neoclassical_terms, only: dfneo_drho
       use run_parameters, only: maxwellian_normalization
 
+      use physics_flags, only: full_flux_surface
+      use run_parameters, only: drifts_implicit
+      use dist_fn_arrays, only: wstar_correction
+      use volume_averages, only: alpha_average_ffs_realspace
       implicit none
 
       integer :: is, imu, iv, ivmu
       real, dimension(:, :), allocatable :: energy
+
+      !!GA
+      real, dimension(:, :), allocatable :: wstar_store
+      integer :: iz, ia
 
       if (wstarinit) return
       wstarinit = .true.
 
       if (.not. allocated(wstar)) &
          allocate (wstar(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar = 0.0
+
+      !!GA
+      if (full_flux_surface .and. drifts_implicit) then
+         allocate (wstar_store(-nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar_store = 0.0
+         allocate (wstar_correction(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         wstar_correction = 0.0
+      end if
 
       allocate (energy(nalpha, -nzgrid:nzgrid))
 
@@ -378,7 +447,20 @@ contains
          if (.not. maxwellian_normalization) then
             wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          end if
+
+         !!GA
+         if (full_flux_surface .and. drifts_implicit) then
+            do iz = 1, nzgrid
+               wstar_store(iz, ivmu) = sum(abs(wstar(:, iz, ivmu))) / nalpha
+            end do
+         end if
       end do
+
+      if (full_flux_surface .and. drifts_implicit) then
+         wstar_correction = wstar - spread(wstar_store, 1, nalpha)
+         wstar = spread(wstar_store, 1, nalpha)
+         deallocate (wstar_store)
+      end if
 
       deallocate (energy)
 
@@ -582,6 +664,7 @@ contains
       use kt_grids, only: naky, nakx
       use dist_fn_arrays, only: g0, g1, g2, g3
 
+      use physics_flags, only: full_flux_surface
       implicit none
 
       if (.not. allocated(g0)) &
@@ -593,7 +676,7 @@ contains
       if (.not. allocated(g2)) &
          allocate (g2(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       g2 = 0.
-      if (.not. allocated(g3) .and. explicit_option_switch == explicit_option_rk4) then
+      if ((.not. allocated(g3) .and. explicit_option_switch == explicit_option_rk4) .or. full_flux_surface) then
          allocate (g3(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          g3 = 0.
       else
@@ -613,8 +696,8 @@ contains
       use zgrid, only: delzed
       use vpamu_grids, only: dvpa
       use kt_grids, only: akx, aky, nx, rho
-      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
-      use parallel_streaming, only: stream
+      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit, driftkinetic_implicit
+      use parallel_streaming, only: stream, stream_correction
       use parallel_streaming, only: stream_rad_var1, stream_rad_var2
       use mirror_terms, only: mirror
       use flow_shear, only: prl_shear, shift_times
@@ -656,9 +739,14 @@ contains
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_shear)
       end if
 
-      if (.not. stream_implicit) then
+      if (.not. stream_implicit .and. .not. driftkinetic_implicit) then
          ! NB: stream has code_dt built-in, which accounts for code_dt factor here
          cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream)), zero)
+         cfl_dt_linear = min(cfl_dt_linear, cfl_dt_stream)
+      end if
+
+      if (driftkinetic_implicit) then
+         cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream_correction)), zero)
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_stream)
       end if
 
@@ -848,7 +936,7 @@ contains
          gnew = gold
 
          ! Ensure fields are consistent with gnew.
-         call advance_fields(gnew, phi, apar, dist='gbar')
+         call advance_fields(gnew, phi, apar, dist='g')
 
          ! Keep track whether any routine wants to modify the time step
          restart_time_step = .false.
@@ -908,7 +996,7 @@ contains
       gold = gnew
 
       !> Ensure fields are updated so that omega calculation is correct.
-      call advance_fields(gnew, phi, apar, dist='gbar')
+      call advance_fields(gnew, phi, apar, dist='g')
 
       !update the delay parameters for the Krook operator
       if (source_option_switch == source_option_krook) call update_tcorr_krook(gnew)
@@ -927,7 +1015,11 @@ contains
       use extended_zgrid, only: periodic, phase_shift
       use kt_grids, only: naky
       use stella_layouts, only: vmu_lo, iv_idx
+      use physics_flags, only: include_apar
       use parallel_streaming, only: stream_sign
+      use fields_arrays, only: phi, apar
+      use fields, only: advance_fields
+      use g_tofrom_h, only: gbar_to_g
 
       implicit none
 
@@ -940,7 +1032,19 @@ contains
       !> start the timer for the explicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 8), ' explicit')
 
+      ! incoming pdf is g = <f>
+      ! if include_apar = T, convert from g to gbar,
+      ! as gbar appears in time derivative
+      if (include_apar) then
+         ! if the fields are not already updated, then update them
+         call advance_fields(g, phi, apar, dist='g')
+         call gbar_to_g(g, apar, -1.0)
+      end if
+
       select case (explicit_option_switch)
+      case (explicit_option_euler)
+         !> forward Euler
+         call advance_explicit_euler(g, restart_time_step, istep)
       case (explicit_option_rk2)
          !> SSP RK2
          call advance_explicit_rk2(g, restart_time_step, istep)
@@ -951,6 +1055,14 @@ contains
          !> RK4
          call advance_explicit_rk4(g, restart_time_step, istep)
       end select
+
+      if (include_apar) then
+         ! if the fields are not already updated, then update them
+         call advance_fields(g, phi, apar, dist='gbar')
+         ! implicit solve will use g rather than gbar for advance,
+         ! so convert from gbar to g
+         call gbar_to_g(g, apar, 1.0)
+      end if
 
       !> enforce periodicity for periodic (including zonal) modes
       do iky = 1, naky
@@ -969,6 +1081,31 @@ contains
       if (proc0) call time_message(.false., time_gke(:, 8), ' explicit')
 
    end subroutine advance_explicit
+
+   !> advance_explicit_euler uses forward Euler to advance one time step
+   subroutine advance_explicit_euler(g, restart_time_step, istep)
+
+      use dist_fn_arrays, only: g0
+      use zgrid, only: nzgrid
+      use stella_layouts, only: vmu_lo
+      use multibox, only: RK_step
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+      logical, intent(in out) :: restart_time_step
+      integer, intent(in) :: istep
+
+      !> RK_step only true if running in multibox mode
+      if (RK_step) call mb_communicate(g)
+
+      g0 = g
+
+      call solve_gke(g0, g, restart_time_step, istep)
+
+      g = g0 + g
+
+   end subroutine advance_explicit_euler
 
    !> advance_expliciit_rk2 uses strong stability-preserving RK2 to advance one time step
    subroutine advance_explicit_rk2(g, restart_time_step, istep)
@@ -992,7 +1129,7 @@ contains
       g0 = g
       icnt = 1
 
-      !> SSP rk3 algorithm to advance explicit part of code
+      !> SSP rk2 algorithm to advance explicit part of code
       !> if GK equation written as dg/dt = rhs - vpar . grad h,
       !> solve_gke returns rhs*dt
       do while (icnt <= 2)
@@ -1012,7 +1149,7 @@ contains
          end if
       end do
 
-      !> this is gbar at intermediate time level
+      !> this is g at intermediate time level
       g = 0.5 * g0 + 0.5 * (g1 + g)
 
    end subroutine advance_explicit_rk2
@@ -1063,7 +1200,7 @@ contains
          end if
       end do
 
-      !> this is gbar at intermediate time level
+      !> this is g at intermediate time level
       g = g0 / 3.+0.5 * g1 + (g2 + g) / 6.
 
    end subroutine advance_explicit_rk3
@@ -1124,15 +1261,16 @@ contains
          end if
       end do
 
-      !> this is gbar at intermediate time level
+      !> this is g at intermediate time level
       g = g0 + g1 / 6.
 
    end subroutine advance_explicit_rk4
 
-   !> solve_gke accepts as argument gin, the guiding centre distribution function in k-space,
+   !> solve_gke accepts as argument pdf, the guiding centre distribution function in k-space,
    !> and returns rhs_ky, the right-hand side of the gyrokinetic equation in k-space;
-   !> i.e., if dg/dt = r, then rhs_ky = r*dt
-   subroutine solve_gke(gin, rhs_ky, restart_time_step, istep)
+   !> i.e., if dg/dt = r, then rhs_ky = r*dt;
+   !> note that if include_apar = T, then the input pdf is actually gbar = g + (Ze/T)*(vpa/c)*<Apar>*F0
+   subroutine solve_gke(pdf, rhs_ky, restart_time_step, istep)
 
       use job_manage, only: time_message
       use fields_arrays, only: phi, apar
@@ -1141,7 +1279,7 @@ contains
       use redistribute, only: gather, scatter
       use physics_flags, only: include_parallel_nonlinearity
       use physics_flags, only: include_parallel_streaming
-      use physics_flags, only: include_mirror
+      use physics_flags, only: include_mirror, include_apar
       use physics_flags, only: nonlinear
       use physics_flags, only: full_flux_surface, radial_variation
       use physics_parameters, only: g_exb
@@ -1157,10 +1295,14 @@ contains
       use mirror_terms, only: advance_mirror_explicit
       use flow_shear, only: advance_parallel_flow_shear
       use multibox, only: include_multibox_krook, add_multibox_krook
+      use g_tofrom_h, only: gbar_to_g
+      ! TMP FOR TESTING -- MAB
+      use fields, only: fields_updated
+      use run_parameters, only: driftkinetic_implicit
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: pdf
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out), target :: rhs_ky
       logical, intent(out) :: restart_time_step
       integer, intent(in) :: istep
@@ -1189,12 +1331,21 @@ contains
          rhs => rhs_ky
       end if
 
-      !> start with gbar in k-space and (ky,kx,z) local
-      !> obtain fields corresponding to gbar
+      !> start with g in k-space and (ky,kx,z) local
+      !> obtain fields corresponding to g
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_fields'
-      call advance_fields(gin, phi, apar, dist='gbar')
 
-      if (radial_variation) call get_radial_correction(gin, phi, dist='gbar')
+      ! if advancing apar, then gbar is evolved in time rather than g
+      if (include_apar) then
+         call advance_fields(pdf, phi, apar, dist='gbar')
+
+         ! convert from gbar to g = <f>, as all terms on RHS of GKE use g rather than gbar
+         call gbar_to_g(pdf, apar, 1.0)
+      else
+         call advance_fields(pdf, phi, apar, dist='g')
+      end if
+
+      if (radial_variation) call get_radial_correction(pdf, phi, dist='g')
 
       !> default is to continue with same time step size.
       !> if estimated CFL condition for nonlinear terms is violated
@@ -1204,11 +1355,11 @@ contains
       !> do this first, as the CFL condition may require a change in time step
       !> and thus recomputation of mirror, wdrift, wstar, and parstream
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_ExB_nonlinearity'
-      if (nonlinear) call advance_ExB_nonlinearity(gin, rhs, restart_time_step, istep)
+      if (nonlinear) call advance_ExB_nonlinearity(pdf, rhs, restart_time_step, istep)
 
       !> include contribution from the parallel nonlinearity (aka turbulent acceleration)
       if (include_parallel_nonlinearity .and. .not. restart_time_step) &
-         call advance_parallel_nonlinearity(gin, rhs, restart_time_step)
+         call advance_parallel_nonlinearity(pdf, rhs, restart_time_step)
 
       if (.not. restart_time_step) then
 
@@ -1218,30 +1369,34 @@ contains
          !> calculate and add mirror term to RHS of GK eqn
          if (include_mirror .and. .not. mirror_implicit) then
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_mirror_explicit'
-            call advance_mirror_explicit(gin, rhs)
+            call advance_mirror_explicit(pdf, rhs)
          end if
 
-         if (.not. drifts_implicit) then
+         !!GA
+         if ((.not. drifts_implicit) .or. (full_flux_surface .and. drifts_implicit)) then
             !> calculate and add alpha-component of magnetic drift term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdrifty_explicit'
-            call advance_wdrifty_explicit(gin, phi, rhs)
+            call advance_wdrifty_explicit(pdf, phi, rhs)
 
             !> calculate and add psi-component of magnetic drift term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdriftx_explicit'
-            call advance_wdriftx_explicit(gin, phi, rhs)
+            call advance_wdriftx_explicit(pdf, phi, rhs)
 
             !> calculate and add omega_* term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wstar_explicit'
-            call advance_wstar_explicit(phi, rhs)
+            call advance_wstar_explicit(pdf, phi, rhs)
          end if
 
          !> calculate and add contribution from collisions to RHS of GK eqn
-         if (include_collisions .and. .not. collisions_implicit) call advance_collisions_explicit(gin, phi, rhs)
+         if (include_collisions .and. .not. collisions_implicit) call advance_collisions_explicit(pdf, phi, rhs)
 
          !> calculate and add parallel streaming term to RHS of GK eqn
-         if (include_parallel_streaming .and. (.not. stream_implicit)) then
-            if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
-            call advance_parallel_streaming_explicit(gin, phi, rhs)
+         !!GA
+         if (include_parallel_streaming) then
+            if ((.not. stream_implicit) .or. driftkinetic_implicit) then
+               if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
+               call advance_parallel_streaming_explicit(pdf, phi, rhs)
+            end if
          end if
 
          !> if simulating a full flux surface (flux annulus), all terms to this point have been calculated
@@ -1260,13 +1415,16 @@ contains
             deallocate (rhs_ky_swap)
          end if
 
-         if (radial_variation) call advance_radial_variation(gin, rhs)
+         if (radial_variation) call advance_radial_variation(pdf, rhs)
 
-         if (source_option_switch == source_option_krook) call add_krook_operator(gin, rhs)
+         if (source_option_switch == source_option_krook) call add_krook_operator(pdf, rhs)
 
-         if (include_multibox_krook) call add_multibox_krook(gin, rhs)
+         if (include_multibox_krook) call add_multibox_krook(pdf, rhs)
 
       end if
+
+      ! if advancing apar, need to convert input pdf back from g to gbar
+      if (include_apar) call gbar_to_g(pdf, apar, -1.0)
 
       fields_updated = .false.
 
@@ -1275,7 +1433,7 @@ contains
 
    end subroutine solve_gke
 
-   subroutine advance_wstar_explicit(phi, gout)
+   subroutine advance_wstar_explicit(g, phi, gout)
 
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
@@ -1289,8 +1447,14 @@ contains
       use physics_flags, only: full_flux_surface
       use dist_fn_arrays, only: wstar
 
+      use dist_fn_arrays, only: wstar_correction
+      use run_parameters, only: drifts_implicit
+      use fields, only: fields_updated, advance_fields
+      use fields_arrays, only: apar
+
       implicit none
 
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
 
@@ -1299,10 +1463,26 @@ contains
 
       integer :: iz, it, ivmu
 
+      !!GA
+      complex, dimension(:, :, :, :), allocatable :: phi1
+      complex, dimension(:, :, :, :), allocatable :: dphidy
+      complex, dimension(:, :, :, :, :), allocatable :: g0y_correction
+      logical :: const_in_alpha = .true.
+
       !> start timing the time advance due to the driving gradients
       if (proc0) call time_message(.false., time_gke(:, 6), ' wstar advance')
 
       allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
+      !!GA
+      if (full_flux_surface .and. drifts_implicit) then
+         allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes))
+         allocate (dphidy(naky, nakx, -nzgrid:nzgrid, ntubes))
+         allocate (g0y_correction(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         fields_updated = .false.
+         call advance_fields(g, phi1, apar, dist='gbar', const_in_alpha=.true.)
+         call get_dgdy(phi1, dphidy)
+      end if
 
       if (debug) write (*, *) 'time_advance::solve_gke::get_dchidy'
       !> get d<chi>/dy in k-space
@@ -1318,11 +1498,28 @@ contains
             do iz = -nzgrid, nzgrid
                call swap_kxky(g0(:, :, iz, it, ivmu), g0_swap)
                call transform_ky2y(g0_swap, g0y(:, :, iz, it, ivmu))
+               if (drifts_implicit) then
+                  call swap_kxky(dphidy(:, :, iz, it), g0_swap)
+                  call transform_ky2y(g0_swap, g0y_correction(:, :, iz, it, ivmu))
+               end if
             end do
          end do
-         !> multiply d<chi>/dy with omega_* coefficient and add to source (RHS of GK eqn)
-         !       call add_wstar_term_ffs (g0y, gout)
-         call add_explicit_term_ffs(g0y, wstar, gout)
+         if (drifts_implicit) then
+            !! GA adding d<phi>/dy * (wstar - wstar_avg)
+            call add_explicit_term_ffs(g0y, wstar_correction, gout)
+            !! GA this is (d<phi>/dy - d phi_avg /dy )
+            g0y_correction = g0y - g0y_correction
+            !! GA adding (d<phi>/dy - d phi_avg /dy ) * wstar
+            call add_explicit_term_ffs(g0y_correction, wstar, gout)
+         else
+            !> multiply d<chi>/dy with omega_* coefficient and add to source (RHS of GK eqn)
+            !       call add_wstar_term_ffs (g0y, gout)
+            call add_explicit_term_ffs(g0y, wstar, gout)
+         end if
+         if (drifts_implicit) then
+            deallocate (phi1, dphidy, g0y_correction)
+         end if
+
          deallocate (g0y, g0_swap)
       else
          !> omega_* stays in ky,kx,z space with ky,kx,z local
@@ -1353,6 +1550,10 @@ contains
       use gyro_averages, only: gyro_average
       use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
 
+      use dist_fn_arrays, only: wdrifty_g_correction, wdrifty_phi_correction
+      use run_parameters, only: drifts_implicit
+      use fields, only: fields_updated, advance_fields
+      use fields_arrays, only: apar
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1364,6 +1565,12 @@ contains
       complex, dimension(:, :, :, :, :), allocatable :: g0k, g0y
       complex, dimension(:, :), allocatable :: g0k_swap
 
+      !!GA
+      complex, dimension(:, :, :, :), allocatable :: phi1
+      complex, dimension(:, :, :, :), allocatable :: dphidy1
+      complex, dimension(:, :, :, :, :), allocatable :: g0y_correction
+      logical :: const_in_alpha = .true.
+
       !> start the timing of the y component of the magnetic drift advance
       if (proc0) call time_message(.false., time_gke(:, 4), ' dgdy advance')
 
@@ -1371,6 +1578,17 @@ contains
       allocate (g0k(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdrifty_explicit::get_dgdy'
+
+      !!GA
+      if (full_flux_surface .and. drifts_implicit) then
+         allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes))
+         allocate (dphidy1(naky, nakx, -nzgrid:nzgrid, ntubes))
+         allocate (g0y_correction(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         fields_updated = .false.
+         call advance_fields(g, phi1, apar, dist='gbar', const_in_alpha=.true.)
+         call get_dgdy(phi1, dphidy1)
+      end if
+
       !> calculate dg/dy in (ky,kx) space
       call get_dgdy(g, g0k)
       !> calculate dphi/dy in (ky,kx) space
@@ -1389,7 +1607,13 @@ contains
             end do
          end do
          !> add vM . grad y dg/dy term to equation
-         call add_explicit_term_ffs(g0y, wdrifty_g, gout)
+         !!GA
+         if (drifts_implicit) then
+            !! this is g * (wdrifty - wdrifty_avg)
+            call add_explicit_term_ffs(g0y, wdrifty_g_correction, gout)
+         else
+            call add_explicit_term_ffs(g0y, wdrifty_g, gout)
+         end if
 
          !> get <dphi/dy> in k-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1401,11 +1625,31 @@ contains
             do iz = -nzgrid, nzgrid
                call swap_kxky(g0k(:, :, iz, it, ivmu), g0k_swap)
                call transform_ky2y(g0k_swap, g0y(:, :, iz, it, ivmu))
+
+               !!GA
+               if (drifts_implicit) then
+                  call swap_kxky(dphidy1(:, :, iz, it), g0k_swap)
+                  call transform_ky2y(g0k_swap, g0y_correction(:, :, iz, it, ivmu))
+               end if
             end do
          end do
 
          !> add vM . grad y d<phi>/dy term to equation
-         call add_explicit_term_ffs(g0y, wdrifty_phi, gout)
+         !!GA
+         if (drifts_implicit) then
+            !! GA adding d<phi>/dy * (wdrifty_phi - wdrifty_phi_avg)
+            call add_explicit_term_ffs(g0y, wdrifty_phi_correction, gout)
+            !! GA this is (d<phi>/dy - d phi_avg /dy )
+            g0y_correction = g0y - g0y_correction
+            !! GA adding (d<phi>/dy - d phi_avg /dy ) * wdrifty_phi
+            call add_explicit_term_ffs(g0y_correction, wdrifty_phi, gout)
+         else
+            call add_explicit_term_ffs(g0y, wdrifty_phi, gout)
+         end if
+
+         if (drifts_implicit) then
+            deallocate (phi1, dphidy1, g0y_correction)
+         end if
 
          deallocate (g0y, g0k_swap)
       else
@@ -1443,6 +1687,11 @@ contains
       use gyro_averages, only: gyro_average
       use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
 
+      use dist_fn_arrays, only: wdriftx_g_correction, wdriftx_phi_correction
+      use run_parameters, only: drifts_implicit
+      use fields, only: fields_updated, advance_fields
+      use fields_arrays, only: apar
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1453,6 +1702,12 @@ contains
       complex, dimension(:, :, :, :), allocatable :: dphidx
       complex, dimension(:, :, :, :, :), allocatable :: g0k, g0y
       complex, dimension(:, :), allocatable :: g0k_swap
+
+      !!GA
+      complex, dimension(:, :, :, :), allocatable :: phi1
+      complex, dimension(:, :, :, :), allocatable :: dphidx1
+      complex, dimension(:, :, :, :, :), allocatable :: g0y_correction
+      logical :: const_in_alpha = .true.
 
       !> start the timing of the x component of the magnetic drift advance
       if (proc0) call time_message(.false., time_gke(:, 5), ' dgdx advance')
@@ -1467,6 +1722,17 @@ contains
       allocate (g0k(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
       if (debug) write (*, *) 'time_advance::solve_gke::get_dgdx'
+
+      !!GA
+      if (full_flux_surface .and. drifts_implicit) then
+         allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes))
+         allocate (dphidx1(naky, nakx, -nzgrid:nzgrid, ntubes))
+         allocate (g0y_correction(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         fields_updated = .false.
+         call advance_fields(g, phi1, apar, dist='gbar', const_in_alpha=.true.)
+         call get_dgdx(phi1, dphidx1)
+      end if
+
       !> calculate dg/dx in (ky,kx) space
       call get_dgdx(g, g0k)
       !> calculate dphi/dx in (ky,kx) space
@@ -1485,7 +1751,14 @@ contains
             end do
          end do
          !> add vM . grad x dg/dx term to equation
-         call add_explicit_term_ffs(g0y, wdriftx_g, gout)
+         !!GA
+         if (drifts_implicit) then
+            !! this is g * (wdriftx - wdriftx_avg)
+            call add_explicit_term_ffs(g0y, wdriftx_g_correction, gout)
+         else
+            call add_explicit_term_ffs(g0y, wdriftx_g, gout)
+         end if
+
          !> get <dphi/dx> in k-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             call gyro_average(dphidx, ivmu, g0k(:, :, :, :, ivmu))
@@ -1495,10 +1768,28 @@ contains
             do iz = -nzgrid, nzgrid
                call swap_kxky(g0k(:, :, iz, it, ivmu), g0k_swap)
                call transform_ky2y(g0k_swap, g0y(:, :, iz, it, ivmu))
+               !!GA
+               if (drifts_implicit) then
+                  call swap_kxky(dphidx1(:, :, iz, it), g0k_swap)
+                  call transform_ky2y(g0k_swap, g0y_correction(:, :, iz, it, ivmu))
+               end if
             end do
          end do
-         !> add vM . grad x d<phi>/dx term to equation
-         call add_explicit_term_ffs(g0y, wdriftx_phi, gout)
+         !!GA
+         if (drifts_implicit) then
+            !!adding d<phi>/dx * (wdriftx_phi - wdriftx_phi_avg)
+            call add_explicit_term_ffs(g0y, wdriftx_phi_correction, gout)
+            g0y_correction = g0y - g0y_correction
+            call add_explicit_term_ffs(g0y_correction, wdriftx_phi, gout)
+         else
+            !> add vM . grad x d<phi>/dx term to equation
+            call add_explicit_term_ffs(g0y, wdriftx_phi, gout)
+         end if
+
+         if (drifts_implicit) then
+            deallocate (phi1, dphidx1, g0y_correction)
+         end if
+
          deallocate (g0y, g0k_swap)
       else
          if (debug) write (*, *) 'time_advance::solve_gke::add_dgdx_term'
@@ -1540,13 +1831,15 @@ contains
       use kt_grids, only: akx, aky, rho_clamped
       use physics_flags, only: full_flux_surface, radial_variation
       use physics_flags, only: prp_shear_enabled, hammett_flow_shear
+      use physics_flags, only: include_apar
       use kt_grids, only: x, swap_kxky, swap_kxky_back
       use constants, only: pi, zi
       use file_utils, only: runtype_option_switch, runtype_multibox
+      use g_tofrom_h, only: g_to_h
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
       logical, intent(out) :: restart_time_step
       integer, intent(in) :: istep
@@ -1594,6 +1887,11 @@ contains
       if (prp_shear_enabled .and. hammett_flow_shear) then
          prefac = exp(-zi * g_exb * g_exbfac * spread(x, 1, naky) * spread(aky * shift_state, 2, nx))
       end if
+
+      ! incoming pdf is g = <f>
+      ! for EM simulations, the pdf entering the ExB nonlinearity needs to be
+      ! the non-Boltzmann part of f (h = f + (Ze/T)*phi*F0)
+      if (include_apar) call g_to_h(g, phi, fphi)
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          imu = imu_idx(vmu_lo, ivmu)
@@ -1685,6 +1983,9 @@ contains
             end do
          end do
       end do
+
+      ! convert back from h to g = <f> (only needed for EM sims)
+      if (include_apar) call g_to_h(g, phi, -fphi)
 
       deallocate (g0k, g0a, g0xy, g1xy, bracket)
       if (allocated(g0k_swap)) deallocate (g0k_swap)
@@ -2433,7 +2734,8 @@ contains
       integer, intent(in) :: istep
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
-!    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out), target :: g
+
+      !    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out), target :: g
 
 !    complex, dimension (:,:,:,:,:), pointer :: gk, gy
 !    complex, dimension (:,:,:,:,:), allocatable, target :: g_dual
@@ -2481,7 +2783,7 @@ contains
          end if
 
          if (collisions_implicit .and. include_collisions) then
-            call advance_fields(g, phi, apar, dist='gbar')
+            call advance_fields(g, phi, apar, dist='g')
             call advance_collisions_implicit(mirror_implicit, phi, apar, g)
             fields_updated = .false.
          end if
@@ -2493,30 +2795,33 @@ contains
 !          else
 !             g_mirror => g
 !          end if
-            call advance_mirror_implicit(collisions_implicit, g)
+            call advance_mirror_implicit(collisions_implicit, g, apar)
             fields_updated = .false.
          end if
 
          ! get updated fields corresponding to advanced g
          ! note that hyper-dissipation and mirror advances
          ! depended only on g and so did not need field update
-         call advance_fields(g, phi, apar, dist='gbar')
+         call advance_fields(g, phi, apar, dist='g')
 
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
             call advance_implicit_terms(g, phi, apar)
+            !!GA - advance fields anyway for FFS because of the way that parallal streaming and drifts
+            !!     deal with phi when implicit
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
 
-         call advance_fields(g, phi, apar, dist='gbar')
+         ! update the fields if not already updated
+         call advance_fields(g, phi, apar, dist='g')
 
       else
 
          ! get updated fields corresponding to advanced g
-         ! note that hyper-dissipation and mirror advances
-         ! depended only on g and so did not need field update
-         call advance_fields(g, phi, apar, dist='gbar')
+         ! note that hyper-dissipation
+         ! depends only on g and so does not need field update
+         call advance_fields(g, phi, apar, dist='g')
 
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
@@ -2526,12 +2831,12 @@ contains
          end if
 
          if (mirror_implicit .and. include_mirror) then
-            call advance_mirror_implicit(collisions_implicit, g)
+            call advance_mirror_implicit(collisions_implicit, g, apar)
             fields_updated = .false.
          end if
 
          if (collisions_implicit .and. include_collisions) then
-            call advance_fields(g, phi, apar, dist='gbar')
+            call advance_fields(g, phi, apar, dist='g')
             call advance_collisions_implicit(mirror_implicit, phi, apar, g)
             fields_updated = .false.
          end if
@@ -2569,19 +2874,19 @@ contains
 
       if (runtype_option_switch == runtype_multibox) then
          if (job /= 1) then
-            call advance_fields(g_in, phi, apar, dist='gbar')
+            call advance_fields(g_in, phi, apar, dist='g')
          end if
 
          call multibox_communicate(g_in)
 
          if (job == 1) then
             fields_updated = .false.
-            call advance_fields(g_in, phi, apar, dist='gbar')
+            call advance_fields(g_in, phi, apar, dist='g')
          end if
       else if (use_dirichlet_BC) then
          call apply_radial_boundary_conditions(g_in)
          fields_updated = .false.
-         call advance_fields(g_in, phi, apar, dist='gbar')
+         call advance_fields(g_in, phi, apar, dist='g')
       end if
 
    end subroutine mb_communicate
@@ -2718,6 +3023,9 @@ contains
       use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
       use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
       use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
+
+      use dist_fn_arrays, only: wdriftx_g_correction, wdrifty_g_correction
+      use dist_fn_arrays, only: wdriftx_phi_correction, wdrifty_phi_correction
 !   use dist_fn_arrays, only: adiabatic_phi
 
       implicit none
@@ -2732,6 +3040,11 @@ contains
       if (allocated(wdriftpy_phi)) deallocate (wdriftpy_phi)
 !   if (allocated(adiabatic_phi)) deallocate (adiabatic_phi)
 
+      !!GA
+      if (allocated(wdriftx_g_correction)) deallocate (wdriftx_g_correction)
+      if (allocated(wdrifty_g_correction)) deallocate (wdrifty_g_correction)
+      if (allocated(wdriftx_phi_correction)) deallocate (wdriftx_phi_correction)
+      if (allocated(wdrifty_phi_correction)) deallocate (wdrifty_phi_correction)
       wdriftinit = .false.
 
    end subroutine finish_wdrift
@@ -2739,12 +3052,15 @@ contains
    subroutine finish_wstar
 
       use dist_fn_arrays, only: wstar, wstarp
+      use dist_fn_arrays, only: wstar_correction
 
       implicit none
 
       if (allocated(wstar)) deallocate (wstar)
       if (allocated(wstarp)) deallocate (wstarp)
 
+      !!GA
+      if (allocated(wstar_correction)) deallocate (wstar_correction)
       wstarinit = .false.
 
    end subroutine finish_wstar
