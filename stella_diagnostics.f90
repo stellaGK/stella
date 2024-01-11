@@ -542,7 +542,7 @@ contains
 
       use mp, only: sum_reduce
       use constants, only: zi
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use species, only: spec, nspec
@@ -551,8 +551,8 @@ contains
       use stella_geometry, only: geo_surf
       use zgrid, only: delzed, nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: vperp2, vpa
-      use physics_flags, only: include_apar
+      use vpamu_grids, only: vperp2, vpa, mu
+      use physics_flags, only: include_apar, include_bpar
       use run_parameters, only: fphi
       use kt_grids, only: aky, theta0
       use gyro_averages, only: gyro_average, gyro_average_j1
@@ -658,6 +658,38 @@ contains
             gtmp1 = gtmp2 + gtmp3
 
             call get_one_flux(iky, iz, flx_norm(iz), gtmp1, apar(iky, ikx, iz, it), vflx(is))
+         end do
+      end if
+      
+      if (include_bpar) then
+         ! particle flux
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            it = it_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
+
+            ! Bpar contribution to particle flux
+            gtmp1 = 4.0 * g(:, :, ikxkyz) * spec(is)%tz * spread(mu, 1, nvpa)
+            call gyro_average_j1(gtmp1, ikxkyz, gtmp2)
+            call get_one_flux(iky, iz, flx_norm(iz), gtmp2, bpar(iky, ikx, iz, it), pflx(is))
+
+            ! Bpar contribution to heat flux
+            gtmp2 = gtmp2 * (spread(vpa**2, 2, nmu) + spread(vperp2(ia, iz, :), 1, nvpa))
+            call get_one_flux(iky, iz, flx_norm(iz), gtmp2, bpar(iky, ikx, iz, it), qflx(is))
+
+            ! Bpar contribution to momentum flux
+            ! parallel component
+            gtmp1 = 4.0 * spec(is)%tz * spread(mu, 1, nvpa) * g(:, :, ikxkyz) &
+                    * spread(vpa, 2, nmu) * geo_surf%rmaj * btor(iz) / bmag(ia, iz)
+            call gyro_average_j1(gtmp1, ikxkyz, gtmp2)
+            ! perp component
+            gtmp3 = 0.0
+            ! NOT SUPPORTED, REQUIRES d J1(x)/ d x 
+            gtmp1 = gtmp2 + gtmp3
+
+            call get_one_flux(iky, iz, flx_norm(iz), gtmp1, bpar(iky, ikx, iz, it), vflx(is))
          end do
       end if
 
