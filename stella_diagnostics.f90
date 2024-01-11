@@ -634,7 +634,7 @@ contains
             is = is_idx(kxkyz_lo, ikxkyz)
 
             ! Apar contribution to particle flux
-            gtmp1 = -g(:, :, ikxkyz) * spec(is)%stm * spread(vpa, 2, nmu)
+            gtmp1 = -2.0*g(:, :, ikxkyz) * spec(is)%stm * spread(vpa, 2, nmu)
             call gyro_average(gtmp1, ikxkyz, gtmp2)
             call get_one_flux(iky, iz, flx_norm(iz), gtmp2, apar(iky, ikx, iz, it), pflx(is))
 
@@ -644,11 +644,11 @@ contains
 
             ! Apar contribution to momentum flux
             ! parallel component
-            gtmp1 = -spread(vpa**2, 2, nmu) * spec(is)%stm * g(:, :, ikxkyz) &
+            gtmp1 = -2.0*spread(vpa**2, 2, nmu) * spec(is)%stm * g(:, :, ikxkyz) &
                     * geo_surf%rmaj * btor(iz) / bmag(1, iz)
             call gyro_average(gtmp1, ikxkyz, gtmp2)
             ! perp component
-            gtmp1 = spread(vpa, 2, nmu) * spec(is)%stm * g(:, :, ikxkyz) &
+            gtmp1 = 2.0*spread(vpa, 2, nmu) * spec(is)%stm * g(:, :, ikxkyz) &
                     * zi * aky(iky) * spread(vperp2(ia, iz, :), 1, nvpa) * geo_surf%rhoc &
                     * (gds21(ia, iz) + theta0(iky, ikx) * gds22(ia, iz)) * spec(is)%smz &
                     / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2)
