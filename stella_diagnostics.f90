@@ -288,6 +288,7 @@ contains
       use stella_io, only: write_kspectra_nc, write_kspectra_apar_nc, write_kspectra_bpar_nc
       use stella_io, only: write_moments_nc
       use stella_io, only: write_omega_nc
+      use stella_io, only: write_fluxes_nc
       use stella_io, only: write_radial_fluxes_nc
       use stella_io, only: write_radial_moments_nc
       use stella_io, only: write_fluxes_kxkyz_nc
@@ -452,6 +453,7 @@ contains
             call write_phi2_nc(nout, phi2)
             call write_apar2_nc(nout, apar2)
             call write_bpar2_nc(nout, bpar2)
+            call write_fluxes_nc(nout, part_flux, mom_flux, heat_flux)
             if (write_phi_vs_time) then
                if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_phi_nc'
                call write_phi_nc(nout, phi_out)
