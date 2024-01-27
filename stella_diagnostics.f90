@@ -281,7 +281,7 @@ contains
       use dist_fn_arrays, only: gvmu, gnew
       use g_tofrom_h, only: g_to_h
       use stella_io, only: write_time_nc
-      use stella_io, only: write_phi2_nc
+      use stella_io, only: write_phi2_nc, write_apar2_nc, write_bpar2_nc
       use stella_io, only: write_phi_nc, write_apar_nc, write_bpar_nc
       use stella_io, only: write_gvmus_nc
       use stella_io, only: write_gzvs_nc
@@ -432,8 +432,8 @@ contains
             allocate (omega_avg(1, 1))
          end if
          call volume_average(phi_out, phi2)
-         call volume_average(apar, apar2)
-         call volume_average(bpar, bpar2)
+         call volume_average(apar_out, apar2)
+         call volume_average(bpar_out, bpar2)
          ! Print information to stella.out, the header is printed in stella.f90
          write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4)') &
             " ", istep, " ", code_time, " ", code_dt, " ", cfl_dt_ExB, " ", phi2
@@ -450,6 +450,8 @@ contains
             call write_time_nc(nout, code_time)
             if (write_omega) call write_omega_nc(nout, omega_vs_time(mod(istep, navg) + 1, :, :))
             call write_phi2_nc(nout, phi2)
+            call write_apar2_nc(nout, apar2)
+            call write_bpar2_nc(nout, bpar2)
             if (write_phi_vs_time) then
                if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_phi_nc'
                call write_phi_nc(nout, phi_out)
