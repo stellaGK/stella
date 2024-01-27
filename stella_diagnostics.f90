@@ -285,7 +285,7 @@ contains
       use stella_io, only: write_phi_nc, write_apar_nc, write_bpar_nc
       use stella_io, only: write_gvmus_nc
       use stella_io, only: write_gzvs_nc
-      use stella_io, only: write_kspectra_nc
+      use stella_io, only: write_kspectra_nc, write_kspectra_apar_nc, write_kspectra_bpar_nc
       use stella_io, only: write_moments_nc
       use stella_io, only: write_omega_nc
       use stella_io, only: write_radial_fluxes_nc
@@ -299,7 +299,7 @@ contains
       use kt_grids, only: naky, nakx, ikx_max, ny
       use dist_redistribute, only: kxkyz2vmu
       use physics_flags, only: radial_variation, full_flux_surface
-      use physics_flags, only: include_apar
+      use physics_flags, only: include_apar, include_bpar
       use volume_averages, only: volume_average, fieldline_average
       use run_parameters, only: fphi
 
@@ -316,7 +316,7 @@ contains
       real, dimension(:), allocatable :: part_flux, mom_flux, heat_flux
       real, dimension(:, :), allocatable :: part_flux_x, mom_flux_x, heat_flux_x
       real, dimension(:, :), allocatable :: dens_x, upar_x, temp_x
-      real, dimension(:, :), allocatable :: phi2_vs_kxky
+      real, dimension(:, :), allocatable :: phi2_vs_kxky, apar2_vs_kxky, bpar2_vs_kxky
       real, dimension(:, :, :, :, :), allocatable :: pflx_kxkyz, vflx_kxkyz, qflx_kxkyz
       complex, dimension(:, :, :, :, :), allocatable :: density, upar, temperature, spitzer2
 
@@ -468,6 +468,18 @@ contains
                call fieldline_average(real(phi_out * conjg(phi_out)), phi2_vs_kxky)
                call write_kspectra_nc(nout, phi2_vs_kxky)
                deallocate (phi2_vs_kxky)
+               if (include_apar) then
+                  allocate (apar2_vs_kxky(naky, nakx))
+                  call fieldline_average(real(apar_out * conjg(apar_out)), apar2_vs_kxky)
+                  call write_kspectra_apar_nc(nout, apar2_vs_kxky)
+                  deallocate (apar2_vs_kxky)
+               end if
+               if (include_bpar) then
+                  allocate (bpar2_vs_kxky(naky, nakx))
+                  call fieldline_average(real(bpar_out * conjg(bpar_out)), bpar2_vs_kxky)
+                  call write_kspectra_bpar_nc(nout, bpar2_vs_kxky)
+                  deallocate (bpar2_vs_kxky)
+               end if
             end if
             if (write_radial_fluxes) then
                call write_radial_fluxes_nc(nout, part_flux_x, mom_flux_x, heat_flux_x)

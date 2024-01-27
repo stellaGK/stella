@@ -20,6 +20,8 @@ module stella_io
    public :: write_gvmus_nc
    public :: write_gzvs_nc
    public :: write_kspectra_nc
+   public :: write_kspectra_apar_nc
+   public :: write_kspectra_bpar_nc
    public :: write_omega_nc
    public :: write_moments_nc
    public :: write_radial_fluxes_nc
@@ -485,6 +487,38 @@ contains
                         long_name="Electrostatic potential")
 # endif
    end subroutine write_kspectra_nc
+
+   subroutine write_kspectra_apar_nc(nout, apar2_vs_kxky)
+# ifdef NETCDF
+      use neasyf, only: neasyf_write
+# endif
+      implicit none
+      !> Current timestep
+      integer, intent(in) :: nout
+      real, dimension(:, :), intent(in) :: apar2_vs_kxky
+# ifdef NETCDF
+      call neasyf_write(ncid, "apar2_vs_kxky", apar2_vs_kxky, &
+                        dim_names=["ky", "kx", "t "], &
+                        start=[1, 1, nout], &
+                        long_name="parallel vector potential")
+# endif
+   end subroutine write_kspectra_apar_nc
+
+   subroutine write_kspectra_bpar_nc(nout, bpar2_vs_kxky)
+# ifdef NETCDF
+      use neasyf, only: neasyf_write
+# endif
+      implicit none
+      !> Current timestep
+      integer, intent(in) :: nout
+      real, dimension(:, :), intent(in) :: bpar2_vs_kxky
+# ifdef NETCDF
+      call neasyf_write(ncid, "bpar2_vs_kxky", bpar2_vs_kxky, &
+                        dim_names=["ky", "kx", "t "], &
+                        start=[1, 1, nout], &
+                        long_name="parallel magnetic field fluctuation")
+# endif
+   end subroutine write_kspectra_bpar_nc
 
    subroutine write_fluxes_kxkyz_nc(nout, pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
 # ifdef NETCDF
