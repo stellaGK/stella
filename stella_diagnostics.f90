@@ -285,7 +285,7 @@ contains
       use stella_io, only: write_phi_nc, write_apar_nc, write_bpar_nc
       use stella_io, only: write_gvmus_nc
       use stella_io, only: write_gzvs_nc
-      use stella_io, only: write_kspectra_nc, write_kspectra_apar_nc, write_kspectra_bpar_nc
+      use stella_io, only: write_kspectra_nc, write_kspectra_species_nc
       use stella_io, only: write_moments_nc
       use stella_io, only: write_omega_nc
       use stella_io, only: write_fluxes_nc
@@ -308,7 +308,7 @@ contains
 
       !> The current timestep
       integer, intent(in) :: istep
-
+      integer :: is
       real :: phi2, apar2, bpar2
       real :: zero
       real, dimension(:, :, :), allocatable :: gvmus
@@ -318,6 +318,7 @@ contains
       real, dimension(:, :), allocatable :: part_flux_x, mom_flux_x, heat_flux_x
       real, dimension(:, :), allocatable :: dens_x, upar_x, temp_x
       real, dimension(:, :), allocatable :: phi2_vs_kxky, apar2_vs_kxky, bpar2_vs_kxky
+      real, dimension(:, :, :), allocatable :: pflx_vs_kxky, vflx_vs_kxky, qflx_vs_kxky
       real, dimension(:, :, :, :, :), allocatable :: pflx_kxkyz, vflx_kxkyz, qflx_kxkyz
       complex, dimension(:, :, :, :, :), allocatable :: density, upar, temperature, spitzer2
 
@@ -470,20 +471,39 @@ contains
                if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_kspectra'
                allocate (phi2_vs_kxky(naky, nakx))
                call fieldline_average(real(phi_out * conjg(phi_out)), phi2_vs_kxky)
-               call write_kspectra_nc(nout, phi2_vs_kxky)
+               call write_kspectra_nc(nout, phi2_vs_kxky, "phi2_vs_kxky", "electrostatic potential")
                deallocate (phi2_vs_kxky)
                if (include_apar) then
                   allocate (apar2_vs_kxky(naky, nakx))
                   call fieldline_average(real(apar_out * conjg(apar_out)), apar2_vs_kxky)
-                  call write_kspectra_apar_nc(nout, apar2_vs_kxky)
+                  call write_kspectra_nc(nout, apar2_vs_kxky, "apar2_vs_kxky", "parallel vector potential")
                   deallocate (apar2_vs_kxky)
                end if
                if (include_bpar) then
                   allocate (bpar2_vs_kxky(naky, nakx))
                   call fieldline_average(real(bpar_out * conjg(bpar_out)), bpar2_vs_kxky)
-                  call write_kspectra_bpar_nc(nout, bpar2_vs_kxky)
+                  call write_kspectra_nc(nout, bpar2_vs_kxky, "bpar2_vs_kxky", "parallel magnetic field fluctuation")
                   deallocate (bpar2_vs_kxky)
                end if
+               !> here write out the spectrum of contributions to the fluxes, after averaging over zed
+               allocate (pflx_vs_kxky(naky, nakx, nspec))
+               do is = 1, nspec
+                  call fieldline_average(pflx_kxkyz(:,:,:,:,is), pflx_vs_kxky(:,:,is))
+               end do
+               call write_kspectra_species_nc(nout, pflx_vs_kxky, "pflx_vs_kxky", "particle flux contributions by (kx,ky)")
+               deallocate (pflx_vs_kxky)
+               allocate (vflx_vs_kxky(naky, nakx, nspec))
+               do is = 1, nspec
+                  call fieldline_average(vflx_kxkyz(:,:,:,:,is), vflx_vs_kxky(:,:,is))
+               end do
+               call write_kspectra_species_nc(nout, vflx_vs_kxky, "vflx_vs_kxky", "momentum flux contributions by (kx,ky)")
+               deallocate (vflx_vs_kxky)
+               allocate (qflx_vs_kxky(naky, nakx, nspec))
+               do is = 1, nspec
+                  call fieldline_average(qflx_kxkyz(:,:,:,:,is), qflx_vs_kxky(:,:,is))
+               end do
+               call write_kspectra_species_nc(nout, qflx_vs_kxky, "qflx_vs_kxky", "heat flux contributions by (kx,ky)")
+               deallocate (qflx_vs_kxky)
             end if
             if (write_radial_fluxes) then
                call write_radial_fluxes_nc(nout, part_flux_x, mom_flux_x, heat_flux_x)
