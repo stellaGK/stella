@@ -22,8 +22,7 @@ module stella_io
    public :: write_gvmus_nc
    public :: write_gzvs_nc
    public :: write_kspectra_nc
-   public :: write_kspectra_apar_nc
-   public :: write_kspectra_bpar_nc
+   public :: write_kspectra_species_nc
    public :: write_omega_nc
    public :: write_moments_nc
    public :: write_radial_fluxes_nc
@@ -509,53 +508,39 @@ contains
 # endif
    end subroutine write_radial_moments_nc
 
-   subroutine write_kspectra_nc(nout, phi2_vs_kxky)
+   subroutine write_kspectra_nc(nout, field_vs_kxky, keyname, longname)
 # ifdef NETCDF
       use neasyf, only: neasyf_write
 # endif
       implicit none
       !> Current timestep
       integer, intent(in) :: nout
-      real, dimension(:, :), intent(in) :: phi2_vs_kxky
+      real, dimension(:, :), intent(in) :: field_vs_kxky
+      character(len=*), intent(in) :: keyname, longname
 # ifdef NETCDF
-      call neasyf_write(ncid, "phi2_vs_kxky", phi2_vs_kxky, &
+      call neasyf_write(ncid, keyname, field_vs_kxky, &
                         dim_names=["ky", "kx", "t "], &
                         start=[1, 1, nout], &
-                        long_name="Electrostatic potential")
+                        long_name=longname)
 # endif
    end subroutine write_kspectra_nc
 
-   subroutine write_kspectra_apar_nc(nout, apar2_vs_kxky)
+   subroutine write_kspectra_species_nc(nout, field_vs_kxkys, keyname, longname)
 # ifdef NETCDF
       use neasyf, only: neasyf_write
 # endif
       implicit none
       !> Current timestep
       integer, intent(in) :: nout
-      real, dimension(:, :), intent(in) :: apar2_vs_kxky
+      real, dimension(:, :, :), intent(in) :: field_vs_kxkys
+      character(len=*), intent(in) :: keyname, longname
 # ifdef NETCDF
-      call neasyf_write(ncid, "apar2_vs_kxky", apar2_vs_kxky, &
-                        dim_names=["ky", "kx", "t "], &
-                        start=[1, 1, nout], &
-                        long_name="parallel vector potential")
+      call neasyf_write(ncid, keyname, field_vs_kxkys, &
+                        dim_names=[character(len=7)::"ky", "kx", "species", "t "], &
+                        start=[1, 1, 1, nout], &
+                        long_name=longname)
 # endif
-   end subroutine write_kspectra_apar_nc
-
-   subroutine write_kspectra_bpar_nc(nout, bpar2_vs_kxky)
-# ifdef NETCDF
-      use neasyf, only: neasyf_write
-# endif
-      implicit none
-      !> Current timestep
-      integer, intent(in) :: nout
-      real, dimension(:, :), intent(in) :: bpar2_vs_kxky
-# ifdef NETCDF
-      call neasyf_write(ncid, "bpar2_vs_kxky", bpar2_vs_kxky, &
-                        dim_names=["ky", "kx", "t "], &
-                        start=[1, 1, nout], &
-                        long_name="parallel magnetic field fluctuation")
-# endif
-   end subroutine write_kspectra_bpar_nc
+   end subroutine write_kspectra_species_nc
 
    subroutine write_fluxes_nc(nout, pflx, vflx, qflx)
 # ifdef NETCDF
