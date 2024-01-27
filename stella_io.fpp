@@ -29,6 +29,7 @@ module stella_io
    public :: write_radial_fluxes_nc
    public :: write_radial_moments_nc
    public :: write_fluxes_kxkyz_nc
+   public :: write_fluxes_nc
    public :: get_nout
    public :: sync_nc
 
@@ -555,6 +556,34 @@ contains
                         long_name="parallel magnetic field fluctuation")
 # endif
    end subroutine write_kspectra_bpar_nc
+
+   subroutine write_fluxes_nc(nout, pflx, vflx, qflx)
+# ifdef NETCDF
+      use neasyf, only: neasyf_write
+# endif
+      implicit none
+      !> Current timestep
+      integer, intent(in) :: nout
+      real, dimension(:), intent(in) :: pflx, vflx, qflx
+
+# ifdef NETCDF
+      call neasyf_write(ncid, "pflx", pflx, &
+                        dim_names=[character(len=7)::"species", "t"], &
+                        start=[1, nout], &
+                        units="TBD", &
+                        long_name="Particle flux")
+      call neasyf_write(ncid, "vflx", vflx, &
+                        dim_names=[character(len=7)::"species", "t"], &
+                        start=[1, nout], &
+                        units="TBD", &
+                        long_name="Momentum flux")
+      call neasyf_write(ncid, "qflx", qflx, &
+                        dim_names=[character(len=7)::"species", "t"], &
+                        start=[1, nout], &
+                        units="TBD", &
+                        long_name="Heat flux")
+# endif
+   end subroutine write_fluxes_nc
 
    subroutine write_fluxes_kxkyz_nc(nout, pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
 # ifdef NETCDF
