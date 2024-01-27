@@ -14,6 +14,8 @@ module stella_io
    public :: init_stella_io, finish_stella_io
    public :: write_time_nc
    public :: write_phi2_nc
+   public :: write_apar2_nc
+   public :: write_bpar2_nc
    public :: write_phi_nc
    public :: write_apar_nc
    public :: write_bpar_nc
@@ -352,11 +354,47 @@ contains
 
 # ifdef NETCDF
       call neasyf_write(ncid, "phi2", phi2, dim_names=["t"], &
-                        units="(T/q rho/L)**2", &
+                        units="(T_ref/q rho_ref/L)**2", &
                         long_name="Amplitude of electrostatic potential", &
                         start=[nout])
 # endif
    end subroutine write_phi2_nc
+
+   subroutine write_apar2_nc(nout, apar2)
+# ifdef NETCDF
+      use neasyf, only: neasyf_write
+# endif
+      implicit none
+      !> Current timestep
+      integer, intent(in) :: nout
+      !> Amplitude of parallel vector potential
+      real, intent(in) :: apar2
+
+# ifdef NETCDF
+      call neasyf_write(ncid, "apar2", apar2, dim_names=["t"], &
+                        units="(B_ref (rho_ref)**2 / L)**2", &
+                        long_name="Amplitude of parallel vector potential apar", &
+                        start=[nout])
+# endif
+   end subroutine write_apar2_nc
+
+   subroutine write_bpar2_nc(nout, bpar2)
+# ifdef NETCDF
+      use neasyf, only: neasyf_write
+# endif
+      implicit none
+      !> Current timestep
+      integer, intent(in) :: nout
+      !> Amplitude of parallel vector potential
+      real, intent(in) :: bpar2
+
+# ifdef NETCDF
+      call neasyf_write(ncid, "bpar2", bpar2, dim_names=["t"], &
+                        units="(B_ref rho_ref / L)**2", &
+                        long_name="Amplitude of parallel magnetic field fluctuation bpar", &
+                        start=[nout])
+# endif
+   end subroutine write_bpar2_nc
 
    !> Write time trace of electrostatic potential to netCDF
    subroutine write_phi_nc(nout, phi)
@@ -381,13 +419,12 @@ contains
       implicit none
       !> Current timestep
       integer, intent(in) :: nout
-      !> Electrostatic potential
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar
 
 # ifdef NETCDF
       call netcdf_write_complex(ncid, "apar_vs_t", apar, &
                                 [character(len=4)::"ri", "ky", "kx", "zed", "tube", "t"], &
-                                long_name="Electromagnetic potential apar", &
+                                long_name="Electromagnetic parallel vector potential apar", &
                                 start=[1, 1, 1, 1, 1, nout])
 # endif
    end subroutine write_apar_nc
@@ -398,13 +435,12 @@ contains
       implicit none
       !> Current timestep
       integer, intent(in) :: nout
-      !> Electrostatic potential
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: bpar
 
 # ifdef NETCDF
       call netcdf_write_complex(ncid, "bpar_vs_t", bpar, &
                                 [character(len=4)::"ri", "ky", "kx", "zed", "tube", "t"], &
-                                long_name="Electromagnetic potential bpar", &
+                                long_name="Electromagnetic field bpar", &
                                 start=[1, 1, 1, 1, 1, nout])
 # endif
    end subroutine write_bpar_nc
