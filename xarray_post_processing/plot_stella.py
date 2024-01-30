@@ -13,6 +13,8 @@ from utils import field_data
 from utils import species_data
 from utils import plot_fluxes_nc
 from utils import plot_fields_nc
+from utils import plot_fields_fluxes_spectra_nc
+from utils import plot_fields_kyspectra_with_time_nc
 
 filename = "example_nonlinear_phiaparbpar_test"
 
@@ -28,3 +30,6 @@ stelladata.close()
 plot_fluxes_nc(filename, pflx, vflx, qflx, time, typestring)
 # plot the fields
 plot_fields_nc(filename, phi2, apar2, apar2_present, bpar2, bpar2_present, time)
+# plot the spectra
+plot_fields_fluxes_spectra_nc(filename)
+plot_fields_kyspectra_with_time_nc(filename)
