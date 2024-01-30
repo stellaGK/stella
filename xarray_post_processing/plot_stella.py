@@ -5,7 +5,8 @@ matplotlib.use('Agg') # this line allows plots to be made without using a displa
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import xarray as xr
-
+import argparse
+import os
 
 from utils import dimension_sizes
 from utils import flux_data
@@ -16,7 +17,16 @@ from utils import plot_fields_nc
 from utils import plot_fields_fluxes_spectra_nc
 from utils import plot_fields_kyspectra_with_time_nc
 
-filename = "example_nonlinear_phiaparbpar_test"
+# define the command line inputs
+parser = argparse.ArgumentParser()
+ncfilehelpstr = "the file_name of the stella netCDF4 file_name.out.nc file to be analysed"
+parser.add_argument("ncfile", help=ncfilehelpstr)
+# read the command line inputs
+args = parser.parse_args()
+# get the current working directory to construct an absolute path
+workdir = os.path.abspath(os.getcwd())
+
+filename = workdir + "/" + args.ncfile
 
 stelladata = xr.open_dataset(filename+".out.nc")
 
