@@ -828,6 +828,9 @@ contains
       use sources, only: source_option_krook
       use sources, only: update_tcorr_krook, project_out_zero
       use mp, only: proc0, broadcast
+      use hyper, only: advance_hyper_vpa, advance_hyper_zed
+      use hyper, only: hyp_zed, hyp_vpa
+      use dissipation, only: hyper_dissipation
 
       implicit none
 
@@ -885,6 +888,11 @@ contains
          else
             if (.not. fully_explicit) call advance_implicit(istep, phi, apar, bpar, gnew)
             if (.not. fully_implicit) call advance_explicit(gnew, restart_time_step, istep)
+         end if
+         
+         if (hyper_dissipation) then
+            if (hyp_zed) call advance_hyper_zed(gnew)
+            if (hyp_vpa) call advance_hyper_vpa(gnew)
          end if
 
          ! If the time step has not been restarted, the time advance was succesfull
@@ -1218,6 +1226,9 @@ contains
       use kt_grids, only: swap_kxky_back
       use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
       use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
+      use hyper, only: advance_hyper_vpa, advance_hyper_zed
+      use hyper, only: hyp_zed, hyp_vpa
+      use dissipation, only: hyper_dissipation
       use sources, only: source_option_switch, source_option_krook
       use sources, only: add_krook_operator
       use parallel_streaming, only: advance_parallel_streaming_explicit
@@ -1323,6 +1334,11 @@ contains
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
             call advance_parallel_streaming_explicit(pdf, phi, bpar, rhs)
          end if
+         
+         !if (hyper_dissipation) then
+         !   if (hyp_zed) call advance_hyper_zed(pdf)
+         !   if (hyp_vpa) call advance_hyper_vpa(pdf)
+         !end if
 
          !> if simulating a full flux surface (flux annulus), all terms to this point have been calculated
          !> in real-space in alpha (y); transform to kalpha (ky) space before adding to RHS of GKE.
