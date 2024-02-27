@@ -102,8 +102,7 @@ contains
       end if
 
       if (driftkinetic_implicit) then
-         stream_correction = 0.0 
-         stream_correction = 0.0! stream - (1.5- tupwnd_m) * spread(stream_store, 1, nalpha)
+         stream_correction = stream - (1.5- tupwnd_m) * spread(stream_store, 1, nalpha)
          stream = spread(stream_store, 1, nalpha)
          deallocate (stream_store)
       end if
