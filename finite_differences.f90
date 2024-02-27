@@ -1309,7 +1309,7 @@ contains
          df(i) = 0
          !if (test .eqv. .true.) write(*,*) 'i', i, 'del', del, 'f(i-2)', f(i-2), 'f(i-1)', f(i-1), 'f(i)', f(i), 'f(i+1)', f(i+1), 'df(i)', df(i)
       else
-         df(i) = (f(i - 2) - 4 * f(i - 1) + 6 * f(i) - 4 * fr(i + 1) + fr(1)) / del**4
+         df(i) = (f(i - 2) - 4 * f(i - 1) + 6 * f(i) - 4 * f(i + 1) + fr(1)) / del**4
          !if (test .eqv. .true.) write(*,*) 'i', i, 'del', del, 'f(i-2)', f(i-2), 'f(i-1)', f(i-1), 'f(i)', f(i), 'f(i+1)', f(i+1), 'fr(1)', fr(1), 'df(i)', df(i)
       end if
       !df(i) = 0
