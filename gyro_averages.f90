@@ -6,7 +6,7 @@ module gyro_averages
    public :: init_bessel, finish_bessel
    public :: gyro_average
    public :: gyro_average_j1
-   public :: j0_B_maxwell_ffs, j0_ffs
+   public :: j0_B_ffs, j0_ffs
    public :: band_lu_solve_ffs, band_lu_factorisation_ffs
    public :: find_max_required_kalpha_index
    public :: j1_ffs
@@ -40,7 +40,7 @@ module gyro_averages
    real, dimension(:, :), allocatable :: aj0v, aj1v
    ! (nmu, -kxkyz-layout-)
 
-   type(coupled_alpha_type), dimension(:, :, :, :), allocatable :: j0_ffs, j0_B_maxwell_ffs
+   type(coupled_alpha_type), dimension(:, :, :, :), allocatable :: j0_ffs, j0_B_ffs
 
    logical :: bessinit = .false.
 
@@ -100,18 +100,18 @@ contains
 
       if (debug) write (*, *) 'gyro_averages::init_bessel::full_flux_surface'
       if (full_flux_surface) then
-         call init_bessel_ffs
+         call init_bessel_ffs 
       else
          if (.not. allocated(aj0x)) then
             allocate (aj0x(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
             aj0x = 0.
          end if
-
+         
          if (.not. allocated(aj1x)) then
             allocate (aj1x(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
             aj1x = 0.
          end if
-
+         
          ia = 1
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
@@ -128,7 +128,8 @@ contains
             end do
          end do
       end if
-      if (debug) write (*, *) 'gyro_averages::init_bessel::test_gyro_average'
+      
+         if (debug) write (*, *) 'gyro_averages::init_bessel::test_gyro_average'
 !    call test_gyro_average
 
    contains
@@ -269,16 +270,16 @@ contains
 
       implicit none
 
-      !    integer :: j0_ffs_unit, j0_B_maxwell_ffs_unit
+      !    integer :: j0_ffs_unit, j0_B_ffs_unit
       integer :: iky, ikx, ia, iz
       integer :: ivmu, iv, imu, is
-      integer :: ia_max_j0_count, ia_max_j0_B_maxwell_count
+      integer :: ia_max_j0_count, ia_max_j0_B_count
       real :: arg, rtmp
-      real :: ia_max_j0_reduction_factor, ia_max_j0_B_maxwell_reduction_factor
+      real :: ia_max_j0_reduction_factor, ia_max_j0_B_reduction_factor
       real, dimension(:), allocatable :: wgts
-      real, dimension(:), allocatable :: aj0_alpha, j0_B_maxwell
+      real, dimension(:), allocatable :: aj0_alpha, j0_B
       real, dimension(:, :, :), allocatable :: kperp2_swap
-      complex, dimension(:), allocatable :: aj0_kalpha, j0_B_maxwell_kalpha
+      complex, dimension(:), allocatable :: aj0_kalpha, j0_B_kalpha
 
       real, dimension(:), allocatable :: aj1_alpha
       complex, dimension(:), allocatable :: aj1_kalpha
@@ -292,7 +293,7 @@ contains
       complex, dimension(:, :), allocatable :: j0max_const_in_kalpha, j0max_const_c
 
       !       call open_output_file (j0_ffs_unit, '.j0_ffs')
-      !       call open_output_file (j0_B_maxwell_ffs_unit, '.j0_over_B_ffs')
+      !       call open_output_file (j0_B_ffs_unit, '.j0_over_B_ffs')
 
       ! wgts are species-dependent factors appearing in Gamma0 factor
       allocate (wgts(nspec))
@@ -302,15 +303,15 @@ contains
       !> aj0_alpha will contain J_0 as a function of k_alpha and alpha
       allocate (aj0_alpha(nalpha))
       allocate (aj0_kalpha(naky))
-      !> j0_B_maxwell will contain J_0*B*exp(-v^2) as a function of k_alpha and alpha
-      allocate (j0_B_maxwell(nalpha))
-      allocate (j0_B_maxwell_kalpha(naky))
+      !> j0_B will contain J_0*B*exp(-v^2) as a function of k_alpha and alpha
+      allocate (j0_B(nalpha))
+      allocate (j0_B_kalpha(naky))
       allocate (kperp2_swap(naky_all, ikx_max, nalpha))
       if (.not. allocated(j0_ffs)) then
          allocate (j0_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       end if
-      if (.not. allocated(j0_B_maxwell_ffs)) then
-         allocate (j0_B_maxwell_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      if (.not. allocated(j0_B_ffs)) then
+         allocate (j0_B_ffs(naky_all, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       end if
 
       allocate (aj1_alpha(nalpha))
@@ -331,7 +332,7 @@ contains
       allocate (j0max_const_c(naky, nakx)); j0max_const_c = 0.0
       allocate (j0max_const(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); j0max_const = 0.0
 
-      ia_max_j0_count = 0; ia_max_j0_B_maxwell_count = 0
+      ia_max_j0_count = 0; ia_max_j0_B_count = 0
       do iz = -nzgrid, nzgrid
 !         if (proc0) write (*, *) 'calculating Fourier coefficients needed for gyro-averaging with alpha variation; zed index: ', iz
          !> for each value of alpha, take kperp^2 calculated on domain kx = [-kx_max, kx_max] and ky = [0, ky_max]
@@ -354,20 +355,20 @@ contains
                      ! compute the value of the Bessel function J0 corresponding to argument arg
                      aj0_alpha(ia) = j0(arg)
                      !> compute J_0*B*exp(-v^2), needed when integrating g over v-space in Maxwell's equations,
-                     !> due to B in v-space Jacobian and Maxwellian factor hidden in normalisation of g
-                     j0_B_maxwell(ia) = aj0_alpha(ia) * bmag(ia, iz) !!* maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
+                     !> due to B in v-space Jacobian
+                     j0_B(ia) = aj0_alpha(ia) * bmag(ia, iz)
                      j0max = aj0_alpha(ia) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
                      aj1_alpha(ia) = j1(arg)
                   end do
-                  !> fourier transform aj0_alpha and j0_B_maxwell.
-                  !> note that fourier coefficients aj0_kalpha and j0_B_maxwell_kalpha have
+                  !> fourier transform aj0_alpha and j0_B.
+                  !> note that fourier coefficients aj0_kalpha and j0_B_kalpha have
                   !> been filtered to avoid aliasing
                   call transform_alpha2kalpha(aj0_alpha, aj0_kalpha)
-                  call transform_alpha2kalpha(j0_B_maxwell, j0_B_maxwell_kalpha)
+                  call transform_alpha2kalpha(j0_B, j0_B_kalpha)
                   call transform_alpha2kalpha(aj1_alpha, aj1_kalpha)
 
                   j0_const_in_kalpha(iky, ikx) = aj0_kalpha(1)
-                  j0_B_const_in_kalpha(iky, ikx) = j0_B_maxwell(1)
+                  j0_B_const_in_kalpha(iky, ikx) = j0_B(1)
                   j0max_const_in_kalpha(iky, ikx) = j0max(1)
                   !> given the Fourier coefficients aj0_kalpha, calculate the minimum number of coefficients needed,
                   !> called j0_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
@@ -375,14 +376,14 @@ contains
                   !                ! TMP FOR TESTING
                   !                j0_ffs(iky,ikx,iz,ivmu)%max_idx = naky
                   call find_max_required_kalpha_index(aj0_kalpha, j0_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
-                  !> given the Fourier coefficients j0_B_maxwell_kalpha, calculate the minimum number of coefficients needed,
-                  !> called j0_B_maxwell_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
-                  call find_max_required_kalpha_index(j0_B_maxwell_kalpha, j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is, tol_in=1.0e-6)
+                  !> given the Fourier coefficients j0_B_kalpha, calculate the minimum number of coefficients needed,
+                  !> called j0_B_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
+                  call find_max_required_kalpha_index(j0_B_kalpha, j0_B_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
                   call find_max_required_kalpha_index(aj1_kalpha, j1_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)
                   !> keep track of the total number of coefficients that must be retained across different phase space points
                   ia_max_j0_count = ia_max_j0_count + j0_ffs(iky, ikx, iz, ivmu)%max_idx
                   !> keep track of the total number of coefficients that must be retained across different phase space points
-                  ia_max_j0_B_maxwell_count = ia_max_j0_B_maxwell_count + j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx
+                  ia_max_j0_B_count = ia_max_j0_B_count + j0_B_ffs(iky, ikx, iz, ivmu)%max_idx
                   ia_max_j1_count = ia_max_j1_count + j1_ffs(iky, ikx, iz, ivmu)%max_idx
 
                   !> allocate array to hold the reduced number of Fourier coefficients
@@ -391,11 +392,11 @@ contains
                   !> fill the array with the requisite coefficients
                   j0_ffs(iky, ikx, iz, ivmu)%fourier = aj0_kalpha(:j0_ffs(iky, ikx, iz, ivmu)%max_idx)
                   !                   call test_ffs_bessel_coefs (j0_ffs(iky,ikx,iz,ivmu)%fourier, aj0_alpha, iky, ikx, iz, j0_ffs_unit, ivmu)
-                  if (.not. associated(j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier)) &
-                     allocate (j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier(j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx))
+                  if (.not. associated(j0_B_ffs(iky, ikx, iz, ivmu)%fourier)) &
+                     allocate (j0_B_ffs(iky, ikx, iz, ivmu)%fourier(j0_B_ffs(iky, ikx, iz, ivmu)%max_idx))
                   !> fill the array with the requisite coefficients
-                  j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%fourier = j0_B_maxwell_kalpha(:j0_B_maxwell_ffs(iky, ikx, iz, ivmu)%max_idx)
-                  !                   call test_ffs_bessel_coefs (j0_B_maxwell_ffs(iky,ikx,iz,ivmu)%fourier, j0_B_maxwell, iky, ikx, iz, j0_B_maxwell_ffs_unit, ivmu)
+                  j0_B_ffs(iky, ikx, iz, ivmu)%fourier = j0_B_kalpha(:j0_B_ffs(iky, ikx, iz, ivmu)%max_idx)
+                  !                   call test_ffs_bessel_coefs (j0_B_ffs(iky,ikx,iz,ivmu)%fourier, j0_B, iky, ikx, iz, j0_B_ffs_unit, ivmu)
                   if (.not. associated(j1_ffs(iky, ikx, iz, ivmu)%fourier)) &
                      allocate (j1_ffs(iky, ikx, iz, ivmu)%fourier(j1_ffs(iky, ikx, iz, ivmu)%max_idx))
                   j1_ffs(iky, ikx, iz, ivmu)%fourier = aj1_kalpha(:j1_ffs(iky, ikx, iz, ivmu)%max_idx)
@@ -410,7 +411,7 @@ contains
          end do
       end do
 
-      deallocate (j0_B_maxwell, j0_B_maxwell_kalpha)
+      deallocate (j0_B, j0_B_kalpha)
       deallocate (aj0_alpha)
 
       deallocate (j0_const_in_kalpha, j0_const_c)
@@ -424,8 +425,8 @@ contains
       rtmp = real(naky) * real(naky_all) * real(ikx_max) * real(nztot) * real(nmu) * real(nvpa) * real(nspec)
       call sum_allreduce(ia_max_j0_count)
       ia_max_j0_reduction_factor = real(ia_max_j0_count) / rtmp
-      call sum_allreduce(ia_max_j0_B_maxwell_count)
-      ia_max_j0_B_maxwell_reduction_factor = real(ia_max_j0_B_maxwell_count) / rtmp
+      call sum_allreduce(ia_max_j0_B_count)
+      ia_max_j0_B_reduction_factor = real(ia_max_j0_B_count) / rtmp
 
       call sum_allreduce(ia_max_j1_count)
       ia_max_j1_reduction_factor = real(ia_max_j1_count) / rtmp
@@ -433,7 +434,7 @@ contains
       if (proc0) then
          write (*, *) 'average number of k-alphas needed to represent J0(kperp(alpha))=', ia_max_j0_reduction_factor * naky, 'out of ', naky
          write (*, *) 'average number of k-alphas needed to represent J0(kperp(alpha))*B(alpha)*exp(-v^2)=', &
-            ia_max_j0_B_maxwell_reduction_factor * naky, 'out of ', naky
+            ia_max_j0_B_reduction_factor * naky, 'out of ', naky
          write (*, *)
       end if
 
@@ -443,7 +444,7 @@ contains
       deallocate (aj1_alpha, aj1_kalpha)
 
       !       call close_output_file (j0_ffs_unit)
-      !       call close_output_file (j0_B_maxwell_ffs_unit)
+      !       call close_output_file (j0_B_ffs_unit)
 
    contains
 
@@ -618,7 +619,7 @@ contains
       if (allocated(aj0x)) deallocate (aj0x)
       if (allocated(aj1x)) deallocate (aj1x)
       if (allocated(j0_ffs)) deallocate (j0_ffs)
-      if (allocated(j0_B_maxwell_ffs)) deallocate (j0_B_maxwell_ffs)
+      if (allocated(j0_B_ffs)) deallocate (j0_B_ffs)
 
       if (allocated(j0_B_const)) deallocate (j0_B_const)
       if (allocated(j0_const)) deallocate (j0_const)

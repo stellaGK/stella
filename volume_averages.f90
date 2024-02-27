@@ -7,6 +7,8 @@ module volume_averages
 
    public :: mode_fac
 
+   public :: jacobian_ky
+
    private
 
    interface fieldline_average
@@ -149,7 +151,6 @@ contains
 
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: unavg
       real, intent(out) :: avg
-
       integer :: iky, ikx, iz, it, ia
 
       ia = 1
@@ -164,6 +165,7 @@ contains
             end do
          end do
       end do
+
       avg = avg / real(ntubes)
 
    end subroutine volume_average

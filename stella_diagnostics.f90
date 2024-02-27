@@ -13,7 +13,7 @@ module stella_diagnostics
    integer :: ntg_out
    integer :: nwrite, nsave, navg, nc_mult
    integer :: stdout_unit, fluxes_unit, omega_unit
-   logical :: save_for_restart
+     logical :: save_for_restart
    logical :: write_omega
    logical :: write_moments
    logical :: write_phi_vs_time
@@ -272,7 +272,7 @@ contains
       use fields_arrays, only: phi_old, phi_corr_QN
       use fields, only: fields_updated, advance_fields
       use dist_fn_arrays, only: gvmu, gnew
-      use g_tofrom_h, only: g_to_f
+      use g_tofrom_h, only: g_to_h
       use stella_io, only: write_time_nc
       use stella_io, only: write_phi2_nc
       use stella_io, only: write_phi_nc
@@ -302,8 +302,8 @@ contains
       use stella_transforms, only: transform_ky2y, transform_y2ky
       use volume_averages, only: flux_surface_average_ffs
 
-      use stella_geometry, only: jacob, grad_x
-      use kt_grids, only: dy, nalpha
+      use stella_geometry, only: jacob, grad_x, geo_surf
+      use kt_grids, only: dy
       use volume_averages, only: mode_fac
       use zgrid, only: delzed
 
@@ -336,8 +336,8 @@ contains
       complex, dimension(:, :, :, :), allocatable :: phi2_y, phi2_mod
       real, dimension(:, :), allocatable :: flxfac, norm
 
-      integer :: ikx, iz, it, iky
-
+      integer :: ikx, iz, it, iky, iy
+      real :: area, area1
       ! calculation of omega requires computation of omega more
       ! frequently than every nwrite time steps
       if (write_omega .and. proc0) then
@@ -361,6 +361,7 @@ contains
 
       if (radial_variation) fields_updated = .false.
       !> get the updated fields corresponding to gnew
+
       call advance_fields(gnew, phi, apar, dist='gbar')
 
       allocate (phi_out(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -373,10 +374,6 @@ contains
       allocate (mom_flux(nspec))
       allocate (heat_flux(nspec))
 
-      allocate (pflx_kxkyz(naky, nakx, nztot, ntubes, nspec))
-      allocate (vflx_kxkyz(naky, nakx, nztot, ntubes, nspec))
-      allocate (qflx_kxkyz(naky, nakx, nztot, ntubes, nspec))
-
       if (write_radial_fluxes) then
          allocate (part_flux_x(nakx, nspec))
          allocate (mom_flux_x(nakx, nspec))
@@ -387,12 +384,19 @@ contains
          allocate (dens_ffs(ny, ikx_max, -nzgrid:nzgrid, nspec))
          allocate (upar_ffs(ny, ikx_max, -nzgrid:nzgrid, nspec))
          allocate (pres_ffs(ny, ikx_max, -nzgrid:nzgrid, nspec))
+         allocate (pflx_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
+         allocate (vflx_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
+         allocate (qflx_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
+      else
+         allocate (pflx_kxkyz(naky, nakx, nztot, ntubes, nspec))
+         allocate (vflx_kxkyz(naky, nakx, nztot, ntubes, nspec))
+         allocate (qflx_kxkyz(naky, nakx, nztot, ntubes, nspec))
       end if
 
       !> obtain turbulent fluxes
       if (radial_variation .or. write_radial_fluxes) then
-!     handle g_to_h in get_fluxes_vmulo to eliminate x^2 terms
-!     call g_to_h (gnew, phi, fphi, phi_corr_QN)
+         !> handle g_to_h in get_fluxes_vmulo to eliminate x^2 terms
+         !> call g_to_h (gnew, phi, fphi, phi_corr_QN)
          if (debug) write (*, *) 'stella_diagnostics::write_fluxes_vmulo'
          call get_fluxes_vmulo(gnew, phi_out, part_flux, mom_flux, heat_flux, &
                                part_flux_x, mom_flux_x, heat_flux_x, &
@@ -412,12 +416,12 @@ contains
          call scatter(kxkyz2vmu, gnew, gvmu)
          !> get_fluxes assumes the non-Boltzmann part of the distribution, h, is passed in;
          !> convert from <delta f> = g to h
-         call g_to_f(gvmu, phi, fphi)
+         call g_to_h(gvmu, phi, fphi)
          !> compute the fluxes
          call get_fluxes(gvmu, part_flux, mom_flux, heat_flux, &
                          pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
          !> convert back from h to g
-         call g_to_f(gvmu, phi, -fphi)
+         call g_to_h(gvmu, phi, -fphi)
       end if
 
       If (proc0) then
@@ -427,43 +431,51 @@ contains
          else
             allocate (omega_avg(1, 1))
          end if
-         if (full_flux_surface) then
-            it = 1
+         ! if (full_flux_surface) then
+         !    it = 1
+            
+         !    allocate (phi2_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes))
+         !    allocate (phi_swap(naky_all, ikx_max))
+         !    allocate (phi2_y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
+         !    allocate (flxfac(ny, -nzgrid:nzgrid))
+         !    allocate (phi2_mod(naky, nakx, -nzgrid:nzgrid, ntubes))
 
-            allocate (phi2_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes))
-            allocate (phi_swap(naky_all, ikx_max))
-            allocate (phi2_y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
-            allocate (flxfac(ny, -nzgrid:nzgrid))
-            allocate (phi2_mod(naky, nakx, -nzgrid:nzgrid, ntubes))
+         !    phi2 = 0.0
+         !    phi2_kxkyz = real(phi_out * conjg(phi_out))
 
-            phi2 = 0.0
-            phi2_kxkyz = phi_out * conjg(phi_out)
+         !    do iz = -nzgrid, nzgrid
+         !       call swap_kxky(phi2_kxkyz(:, :, iz, it), phi_swap(:, :))
+         !       call transform_ky2y(phi_swap(:, :), phi2_y(:, :, iz, it))
+         !    end do
 
-            do iz = -nzgrid, nzgrid
-               call swap_kxky(phi2_kxkyz(:, :, iz, it), phi_swap(:, :))
-               call transform_ky2y(phi_swap(:, :), phi2_y(:, :, iz, it))
-            end do
+         !    flxfac = spread(delzed * dy, 1, ny) * jacob
+         !    flxfac(:, -nzgrid) = 0.5 * flxfac(:, -nzgrid)
+         !    flxfac(:, nzgrid) = 0.5 * flxfac(:, nzgrid)
 
-            flxfac = spread(delzed * dy, 1, ny) * jacob
-            flxfac(:, -nzgrid) = 0.5 * flxfac(:, -nzgrid)
-            flxfac(:, nzgrid) = 0.5 * flxfac(:, -nzgrid)
-            flxfac = nalpha * flxfac / (sum(flxfac) * grad_x)
+         !    !! Area of flux annulus
+         !    area = sum(flxfac) / ny 
+         !    !! Ny * Area of fluxtube for ia = 1 
+         !    area1 = sum(flxfac(1,:))
 
-            call get_modified_fourier_coefficient(phi2_y, phi2_mod, flxfac)
+         !    flxfac = flxfac * area / area1**2
 
-            do iz = -nzgrid, nzgrid
-               do ikx = 1, nakx
-                  do iky = 1, naky
-                     phi2 = phi2 + mode_fac(iky) * phi2_mod(iky, ikx, iz, it)
-                  end do
-               end do
-            end do
+         !    call get_modified_fourier_coefficient(phi2_y, phi2_mod, flxfac)
 
-            deallocate (phi2_kxkyz, phi_swap, phi2_y, flxfac, phi2_mod)
-         else
-            call volume_average(phi_out, phi2)
-            call volume_average(apar, apar2)
-         end if
+         !    do iz = -nzgrid, nzgrid
+         !       do ikx = 1, nakx
+         !          do iky = 1, naky
+         !             phi2 = phi2 + mode_fac(iky) * phi2_mod(iky, ikx, iz, it)
+         !          end do
+         !       end do
+         !    end do
+            
+         !    apar2 = 0.0 
+         !    deallocate (phi2_kxkyz, phi_swap, phi2_y, flxfac, phi2_mod)
+         ! else
+
+         call volume_average(phi_out, phi2)
+         call volume_average(apar, apar2)
+         !end if
          ! Print information to stella.out, the header is printed in stella.f90
          write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4)') &
             " ", istep, " ", code_time, " ", code_dt, " ", cfl_dt_ExB, " ", phi2
@@ -575,7 +587,10 @@ contains
       use run_parameters, only: fphi, fapar
       use kt_grids, only: aky, theta0
       use gyro_averages, only: gyro_average, gyro_average_j1
-
+      
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu   
+      
+      use kt_grids, only: dy
       implicit none
 
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
@@ -586,6 +601,7 @@ contains
       real, dimension(:), allocatable :: flx_norm
       real :: flx_norm_partial
       complex, dimension(:, :), allocatable :: gtmp1, gtmp2, gtmp3
+      real :: area
 
       allocate (flx_norm(-nzgrid:nzgrid))
       allocate (gtmp1(nvpa, nmu), gtmp2(nvpa, nmu), gtmp3(nvpa, nmu))
@@ -619,6 +635,8 @@ contains
 
             ! get particle flux
             call gyro_average(g(:, :, ikxkyz), ikxkyz, gtmp1)
+            gtmp1 = gtmp1 - spec(is)%zt * phi(iky,ikx,iz,it) * spread(maxwell_vpa(:, is),2,nmu) &
+                 * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) 
             call get_one_flux(iky, iz, flx_norm(iz), gtmp1, phi(iky, ikx, iz, it), pflx(is))
             call get_one_flux(iky, iz, flx_norm_partial, gtmp1, phi(iky, ikx, iz, it), pflx_vs_kxkyz(iky, ikx, iz, it, is))
 
@@ -1003,7 +1021,8 @@ contains
       use kt_grids, only: aky, dy
       use fields_arrays, only: phi
       use stella_geometry, only: grad_x, jacob
-      use kt_grids, only: nalpha
+
+      use physics_parameters, only: rhostar
 
       implicit none
 
@@ -1013,29 +1032,33 @@ contains
 
       integer :: iky, it
       real, dimension(:, :), allocatable :: flxfac
-
       complex, dimension(:, :, :), allocatable :: dphidy
+
+      integer :: iy, iz
 
       !> assume a single flux annulus
       it = 1
 
-      !> obtain the y-component of the electric field that appears as a factor
-      !> in the flux expression due to the radial component of the ExB velocity
+      !> Set all fluxes to zero just in case
       pflx = 0.; vflx = 0.; qflx = 0.
       pflx_vs_kxkyz = 0.; vflx_vs_kxkyz = 0.; qflx_vs_kxkyz = 0.
 
       allocate (dphidy(naky, nakx, -nzgrid:nzgrid))
 
+      !> Obtain the y-component of the electric field that appears as a factor
+      !> in the flux expression due to the radial component of the ExB velocity
       do iky = 1, naky
          dphidy(iky, :, :) = phi(iky, :, :, it) * aky(iky)
       end do
-
+      
+      !> Calculate Jacobian for spacial integral 
       allocate (flxfac(ny, -nzgrid:nzgrid))
+
       flxfac = spread(delzed * dy, 1, ny) * jacob
       flxfac(:, -nzgrid) = 0.5 * flxfac(:, -nzgrid)
-      flxfac(:, nzgrid) = 0.5 * flxfac(:, -nzgrid)
-
-      flxfac = nalpha * flxfac / sum(flxfac * grad_x)
+      flxfac(:, nzgrid) = 0.5 * flxfac(:, nzgrid)
+      
+      flxfac = flxfac/(sum(flxfac * grad_x) )
 
       call get_one_flux_ffs(dens, dphidy, flxfac, pflx, pflx_vs_kxkyz(:, :, :, it, :))
       call get_one_flux_ffs(pres, dphidy, flxfac, qflx, qflx_vs_kxkyz(:, :, :, it, :))
@@ -1051,7 +1074,9 @@ contains
       use zgrid, only: nzgrid, delzed
       use kt_grids, only: naky, nakx
       use volume_averages, only: mode_fac
-
+      use volume_averages, only: flux_surface_average_ffs
+      use stella_transforms, only: transform_y2ky
+      use kt_grids, only: ikx_max, naky_all, ny
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: mom
@@ -1063,15 +1088,19 @@ contains
       integer :: iky, ikx, iz, is
       complex, dimension(:, :, :, :), allocatable :: mom_ky
 
+      complex, dimension(:, :, :, :), allocatable :: momy
+      complex, dimension (:,:), allocatable :: flx_x
+
       allocate (mom_ky(naky, nakx, -nzgrid:nzgrid, nspec))
 
-      flx = 0.0
-      flx_vs_kxkyz = 0.0
+      flx = 0.
+      flx_vs_kxkyz = 0.
 
-      !> divide the input density by the magnetic field strength (due to Jacobian in flux-surfacee avg)
-      !> and Fourier transform in y to get mom_ky = (density/B)(ky,kx,z,spec)
+      !> Multiply input moment (e.g. density, momentum, or energy) but Jacobian (called flxfac)
+      !> Need to do this because Jacobian has y-dependence 
+      !> then Fourier transform back to (ky,kx)-space
+      
       call get_modified_fourier_coefficient(mom, mom_ky, flxfac)
-
       do is = 1, nspec
          !> pflx_vs_kxkyz is the particle flux before summing over (kx,ky) and integrating over z
          flx_vs_kxkyz(:, :, :, is) = aimag(mom_ky(:, :, :, is) * conjg(dphidy(:, :, :)))
@@ -1081,7 +1110,11 @@ contains
          do iz = -nzgrid, nzgrid
             do ikx = 1, nakx
                do iky = 1, naky
+                  !if(iky == ikx == 1) then
+                  !   cycle 
+                  !else
                   flx(is) = flx(is) + 0.5 * mode_fac(iky) * flx_vs_kxkyz(iky, ikx, iz, is)
+                  !end if
                end do
             end do
          end do
@@ -1114,6 +1147,7 @@ contains
 
       allocate (tmp_kykx(naky_all, ikx_max))
       allocate (tmp_ykx(ny, ikx_max))
+      !> is_end is either nspec for fluxes, or ntubes when calcualting |phi|^2
       is_end = size(moment, dim=4)
 
       do is = 1, is_end
@@ -1589,7 +1623,7 @@ contains
       use zgrid, only: ntubes
 
       use run_parameters, only: fphi
-      use g_tofrom_h, only: g_to_f
+      use g_tofrom_h, only: g_to_h
 
       implicit none
 
@@ -1615,34 +1649,42 @@ contains
       allocate (pres_wgts(nspec))
 
       dens = 0.; upar = 0.; pres = 0.
+      !> set species-dependent factors needed for density, parallel flow and pressure
+      dens_wgts = spec%dens
+      pres_wgts = spec%dens * spec%temp
+      upar_wgts = spec%dens * sqrt(spec%mass * spec%temp)
 
-      !> the guiding centre distribution function, normalized by
-      !> the equilibrium Maxwellian, is passed in as g.
-      !> to obtain moments such as density, flow and pressure,
+      !> Already allocated arrays (allocated in time_advance.f90). Set to zero just in case
+      g0 = 0. ; g1 = 0. ; g2 = 0.
+
+      !> the guiding centre distribution function is passed in as g.
+      !> To obtain moments such as density, flow and pressure,
       !> we need to take moments of the distribution function, f,
       !> which is related to g via
       !> f/F0 = g + (Ze/T)*(<phi>_R - phi)
 
       !> obtain g0=f/F0 in Fourier space
-
+      !> Note that g comes in with (ky,kx) layout. We return g0 with 
+      !> the same layout 
+      
+!!!!!!!      call g_to_h(g0, phi, fphi)
       call g_to_f0(g, phi, g0)
 
       !> calculate the Fourier components of the gyro-average f at fixed particle position
-      !> g0=f/F0 is passed in, along with j0_ffs = the Fourier coefficients of J0
-      !> g1=<f/F0>_r is returned
-      call gyro_average(g0, g1, j0_ffs)
-      call gyro_average(g0, g2, j1_ffs)
+      !> g0=f is passed in, along with j0_ffs = the Fourier coefficients of J0
+      !> g1=<f>_r = J_0 * f is returned
+ !!!!     call gyro_average(g0, g1, j0_ffs)
 
+      g1 = g0
+      !> g2 = J_1 * f
+      call gyro_average(g0, g2, j1_ffs)
+      
       allocate (f_swap(naky_all, ikx_max))
       allocate (integrand(vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
-      allocate (fy(ny, ikx_max, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); fy = 0.0
-      allocate (f2y(ny, ikx_max, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); f2y = 0.0
-      allocate (f3y(ny, ikx_max, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); f3y = 0.0
-
-      dens_wgts = spec%dens
-      pres_wgts = spec%dens * spec%temp
-      upar_wgts = spec%dens * sqrt(spec%mass * spec%temp)
+      allocate (fy(ny, ikx_max, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); fy = 0.
+      allocate (f2y(ny, ikx_max, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); f2y = 0.
+      allocate (f3y(ny, ikx_max, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); f3y = 0.
 
       !> assume only a single flux annulus
       it = 1
@@ -1655,20 +1697,17 @@ contains
             !> for every (z,vpa,mu,spec) point, Fourier tranform from ky to y space to get
             !> the kx component of <f(y,x)>_r
             call transform_ky2y(f_swap, fy(:, :, ivmu))
-            !! j1* zi * ky * f
+
+            !! The following are only needed for the momentum flux because we need J1*f 
+            !! J1* zi * ky * f
             g2(:, :, iz, it, ivmu) = zi * g0(:, :, iz, it, ivmu) * spread(aky, 2, nakx)
             call swap_kxky(g2(:, :, iz, it, ivmu), f_swap)
             call transform_ky2y(f_swap, f2y(:, :, ivmu))
-            !! j1 * zi * kx * f
+            !! J1 * zi * kx * f
             g2(:, :, iz, it, ivmu) = g2(:, :, iz, it, ivmu) * theta0(:, :)
             call swap_kxky(g2(:, :, iz, it, ivmu), f_swap)
             call transform_ky2y(f_swap, f3y(:, :, ivmu))
          end do
-
-         !> set species-dependent factors needed for density, parallel flow and pressure
-         dens_wgts = spec%dens
-         upar_wgts = spec%stm
-         pres_wgts = spec%dens * spec%temp
 
          do ikx = 1, ikx_max
             do iy = 1, ny
@@ -1698,9 +1737,9 @@ contains
       end do
 
       deallocate (dens_wgts, upar_wgts, pres_wgts)
-      deallocate (f_swap, fy)
+      deallocate (f_swap)
       deallocate (integrand)
-      deallocate (f2y, f3y)
+      deallocate (fy, f2y, f3y)
 
    end subroutine get_moments_ffs
 
@@ -1727,17 +1766,19 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: f
-
       complex, dimension(:, :), allocatable :: phi_swap
       complex, dimension(:, :), allocatable :: phiy
       complex, dimension(:, :, :), allocatable :: adjust
 
+      complex, dimension (:,:,:,:), allocatable :: g_store
       integer :: ivmu, is, it
       integer :: iz, iv, imu, ia
 
       allocate (phi_swap(naky_all, ikx_max))
       allocate (phiy(ny, ikx_max))
       allocate (adjust(naky, nakx, -nzgrid:nzgrid))
+
+      allocate(g_store(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g_store = 0.0
 
       it = 1
 
@@ -1747,15 +1788,18 @@ contains
          is = is_idx(vmu_lo, ivmu)
          !> compute <phi>_R and store in f
          !> j0_ffs are the fourier coefficients of J0(k_perp(y))
-         call gyro_average(phi, f(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
-         ! adjust = <phi> - phi
-         adjust(:, :, :) = f(:, :, :, it, ivmu) - phi(:, :, :, it)
+!!!         call gyro_average(phi, f(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
+         !> Define adjust to be <phi> - phi
+!!!!         adjust(:, :, :) =  f(:, :, :, it, ivmu)! - phi(:, :, :, it) 
 
+         !> Now put <phi> - phi into real space. This is needed  because
+         !> phi must be multiplied by a maxwellian, which is y-dependent 
          do iz = -nzgrid, nzgrid
-            call swap_kxky(adjust(:, :, iz), phi_swap)
+!!!            call swap_kxky(adjust(:, :, iz), phi_swap)
+            call swap_kxky(phi(:, :, iz,1), phi_swap)
             call transform_ky2y(phi_swap, phiy(:, :))
 
-            !> phiy = maxwellian * (<phi> - phi)
+            !> phiy = maxwellian * (<phi> - phi) 
             do ia = 1, ny
                phiy(ia, :) = phiy(ia, :) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
             end do
@@ -1765,11 +1809,18 @@ contains
             call swap_kxky_back(phi_swap, adjust(:, :, iz))
          end do
 
+         !> calculate the normalized f, given phi and <phi>_R (temporarily stored in f)
+         !! f = g + Z/T * (<phi> - phi) * maxwellian 
          is = is_idx(vmu_lo, ivmu)
-         !> calculate the normalized f = g + (Z/T)*(<phi>-phi)*exp(-v^2)
          f(:, :, :, :, ivmu) = g(:, :, :, :, ivmu) + spec(is)%zt * spread(adjust(:, :, :), 4, ntubes)
+         call gyro_average(f(:, :, :, :, ivmu), g_store(:,:,:,:), j0_ffs(:, :, :, ivmu)) 
+
+!         f(:, :, :, :, ivmu) = g_store
+         f(:, :, :, :, ivmu) = g_store - spec(is)%zt * spread(adjust(:, :, :), 4, ntubes)
       end do
 
+      deallocate(adjust, phi_swap, phiy)
+      deallocate(g_store) 
    end subroutine g_to_f0
 
    !==============================================

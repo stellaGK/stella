@@ -255,6 +255,8 @@ contains
             end do
          end if
       end if
+  
+      phi(1,1,:) = 0.0 
 
       ! need better way to initialise for full flux surface cases
       ia = 1

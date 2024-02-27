@@ -194,6 +194,29 @@ contains
             ! aref and bref should not be needed, so set to 1
             aref = 1.0; bref = 1.0
             zeta(1, :) = zed * geo_surf%qinp
+
+            bmag = spread(bmag(1, :), 1, nalpha)
+            bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
+            gds2 = spread(gds2(1, :), 1, nalpha)
+            gds21 = spread(gds21(1, :), 1, nalpha)
+            gds22 = spread(gds22(1, :), 1, nalpha)
+            gds23 = spread(gds23(1, :), 1, nalpha)
+            gds24 = spread(gds24(1, :), 1, nalpha)
+            gbdrift0 = spread(gbdrift0(1, :), 1, nalpha)
+            gbdrift = spread(gbdrift(1, :), 1, nalpha)
+            cvdrift0 = spread(cvdrift0(1, :), 1, nalpha)
+            cvdrift = spread(cvdrift(1, :), 1, nalpha)
+            dcvdrift0drho = spread(dcvdrift0drho(1, :), 1, nalpha)
+            dcvdriftdrho = spread(dcvdriftdrho(1, :), 1, nalpha)
+            dgbdrift0drho = spread(dgbdrift0drho(1, :), 1, nalpha)
+            dgbdriftdrho = spread(dgbdriftdrho(1, :), 1, nalpha)
+            dgds2dr = spread(dgds2dr(1, :), 1, nalpha)
+            dgds21dr = spread(dgds21dr(1, :), 1, nalpha)
+            dgds22dr = spread(dgds22dr(1, :), 1, nalpha)
+            djacdrho = spread(djacdrho(1, :), 1, nalpha)
+            b_dot_grad_z = spread(b_dot_grad_z(1, :), 1, nalpha)
+            zeta = spread(zeta(1, :), 1, nalpha)
+
          case (geo_option_multibox)
             ! read in Miller local parameters
             call read_local_parameters(nzed, nzgrid, geo_surf)
@@ -248,6 +271,28 @@ contains
             aref = 1.0; bref = 1.0
             zeta(1, :) = zed * geo_surf%qinp
 
+            bmag = spread(bmag(1, :), 1, nalpha)
+            bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
+            gds2 = spread(gds2(1, :), 1, nalpha)
+            gds21 = spread(gds21(1, :), 1, nalpha)
+            gds22 = spread(gds22(1, :), 1, nalpha)
+            gds23 = spread(gds23(1, :), 1, nalpha)
+            gds24 = spread(gds24(1, :), 1, nalpha)
+            gbdrift0 = spread(gbdrift0(1, :), 1, nalpha)
+            gbdrift = spread(gbdrift(1, :), 1, nalpha)
+            cvdrift0 = spread(cvdrift0(1, :), 1, nalpha)
+            cvdrift = spread(cvdrift(1, :), 1, nalpha)
+            dcvdrift0drho = spread(dcvdrift0drho(1, :), 1, nalpha)
+            dcvdriftdrho = spread(dcvdriftdrho(1, :), 1, nalpha)
+            dgbdrift0drho = spread(dgbdrift0drho(1, :), 1, nalpha)
+            dgbdriftdrho = spread(dgbdriftdrho(1, :), 1, nalpha)
+            dgds2dr = spread(dgds2dr(1, :), 1, nalpha)
+            dgds21dr = spread(dgds21dr(1, :), 1, nalpha)
+            dgds22dr = spread(dgds22dr(1, :), 1, nalpha)
+            djacdrho = spread(djacdrho(1, :), 1, nalpha)
+            b_dot_grad_z = spread(b_dot_grad_z(1, :), 1, nalpha)
+            zeta = spread(zeta(1, :), 1, nalpha)
+
          case (geo_option_inputprof)
             ! first read in some local parameters
             ! only thing needed really is rhoc
@@ -293,6 +338,28 @@ contains
             aref = 1.0; bref = 1.0
 
             zeta(1, :) = zed * geo_surf%qinp
+
+            bmag = spread(bmag(1, :), 1, nalpha)
+            bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
+            gds2 = spread(gds2(1, :), 1, nalpha)
+            gds21 = spread(gds21(1, :), 1, nalpha)
+            gds22 = spread(gds22(1, :), 1, nalpha)
+            gds23 = spread(gds23(1, :), 1, nalpha)
+            gds24 = spread(gds24(1, :), 1, nalpha)
+            gbdrift0 = spread(gbdrift0(1, :), 1, nalpha)
+            gbdrift = spread(gbdrift(1, :), 1, nalpha)
+            cvdrift0 = spread(cvdrift0(1, :), 1, nalpha)
+            cvdrift = spread(cvdrift(1, :), 1, nalpha)
+            dcvdrift0drho = spread(dcvdrift0drho(1, :), 1, nalpha)
+            dcvdriftdrho = spread(dcvdriftdrho(1, :), 1, nalpha)
+            dgbdrift0drho = spread(dgbdrift0drho(1, :), 1, nalpha)
+            dgbdriftdrho = spread(dgbdriftdrho(1, :), 1, nalpha)
+            dgds2dr = spread(dgds2dr(1, :), 1, nalpha)
+            dgds21dr = spread(dgds21dr(1, :), 1, nalpha)
+            dgds22dr = spread(dgds22dr(1, :), 1, nalpha)
+            djacdrho = spread(djacdrho(1, :), 1, nalpha)
+            b_dot_grad_z = spread(b_dot_grad_z(1, :), 1, nalpha)
+            zeta = spread(zeta(1, :), 1, nalpha)
 
          case (geo_option_vmec)
             vmec_chosen = .true.
@@ -887,14 +954,14 @@ contains
       df(-nz + 1:nz - 1) = (f(-nz + 2:) - f(:nz - 2)) / (dz(:nz - 2) + dz(-nz + 1:nz - 1))
 
       ! hack to avoid non-periodicity in full-flux-surface case
-      if (full_flux_surface .and. .not. const_alpha_geo) then
-         df(-nz) = (f(-nz + 1) - f(-nz)) / dz(-nz)
-         df(nz) = (f(nz) - f(nz - 1)) / dz(nz - 1)
-      else
+!      if (full_flux_surface .and. .not. const_alpha_geo) then
+ !        df(-nz) = (f(-nz + 1) - f(-nz)) / dz(-nz)
+   !      df(nz) = (f(nz) - f(nz - 1)) / dz(nz - 1)
+  !    else
          ! assume periodicity in the B-field
-         df(-nz) = (f(-nz + 1) - f(nz - 1)) / (dz(-nz) + dz(nz - 1))
-         df(nz) = df(-nz)
-      end if
+      df(-nz) = (f(-nz + 1) - f(nz - 1)) / (dz(-nz) + dz(nz - 1))
+      df(nz) = df(-nz)
+   !end if
 
    end subroutine get_dbdzed
 

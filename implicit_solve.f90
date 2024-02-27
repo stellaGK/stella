@@ -49,13 +49,13 @@ contains
 
       logical :: implicit_solve = .false.
       complex, dimension(:, :, :, :), allocatable :: phi1
-      complex, dimension(:, :, :, :, :), allocatable :: phi1_source, g0
+      complex, dimension(:, :, :, :, :), allocatable :: phi1_source
       integer :: ivmu
 
       integer :: ikx, iky, iz
 
       logical :: modify
-      if (.not. allocated(g0)) allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); g0 = 0.0
+
       if (.not. allocated(phi1)) allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes)); phi1 = 0.0
       if (.not. allocated(phi1_source)) allocate (phi1_source(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); phi1_source = 0.0
 
@@ -66,16 +66,30 @@ contains
       allocate (phi_source(naky, nakx, -nzgrid:nzgrid, ntubes))
       dist_choice = 'gbar'
 
+      !! Only needed for FFS
       if (driftkinetic_implicit) then
          implicit_solve = .true.
          fields_updated = .false.
+         !> get the component of phi that will be treated implicitly in parallel streaming
+         !> Label it as 'phi' because it will be treated the same as phi is when not in FFS
+         !> This is bar{phi} in the notes
          call advance_fields(g, phi, apar, dist='gbar', implicit_solve=.true.)
+         
          fields_updated = .false.
-         call advance_fields(g, phi1, apar, dist='gbar')
+         !> Now caculate full phi (not approximation) and store in phi1
+         !! call advance_fields(g, phi1, apar, dist='gbar')
+         !> zero out ky = kx = 0 mode. We probably don't need to do this because it is done
+         !> in the field solve. But just in case set to zero
          phi1(1, 1, :, :) = 0.0
+         phi1 = 0.0
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            call gyro_average(phi1, g0(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
-            g0(:, :, :, :, ivmu) = 0.0
+            !> Get <phi> 
+            call gyro_average(phi1, phi1_source(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
+            !> phi1_source will be a source term on the RHS of parallel streaming 
+            !> (i.e this is the part that is treated using an explici scheme
+            !>phi1_source = <phi> - bar{phi}
+            phi1_source(:, :, :, :, ivmu) = 0.0!phi1_source(:, :, :, :, ivmu) - & 
+!!                 spread(j0_const(:, :, :, ivmu),4, ntubes) * phi
          end do
       end if
 
@@ -83,10 +97,10 @@ contains
       !> phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
       if (use_deltaphi_for_response_matrix) then
          phi_source = phi
-         phi1_source = 0.0
+         !! FLAG!! not been worked out for FFS
+         !> set to zero for now 
       else
-         phi_source = tupwnd_m * phi
-         phi1_source = g0
+         phi_source = tupwnd_m * phi         
       end if
 
       ! save the incoming pdf and phi, as they will be needed later
@@ -96,6 +110,8 @@ contains
 
       ! solve for the 'inhomogeneous' piece of the pdf
       if (driftkinetic_implicit) then
+         !> FFS will have a RHS source term
+         !> modify being passes in will make sure that this source is included
          modify = .true.
          call update_pdf(modify)
       else
@@ -107,6 +123,7 @@ contains
       ! we now have g_{inh}^{n+1}
       ! calculate associated fields (phi_{inh}^{n+1})
       if (driftkinetic_implicit) then
+         !> For FFS we want to re-solve for bar{phi}
          call advance_fields(g, phi, apar, dist='gbar', implicit_solve=.true.)
       else
          call advance_fields(g, phi, apar, dist=trim(dist_choice))
@@ -126,6 +143,8 @@ contains
 
       ! solve for the final, updated pdf now that we have phi^{n+1}.
       if (driftkinetic_implicit) then
+         !> Pass in modify to include RHS source term
+         !> Source term does not need to be modified so will use the phi1_source from before
          modify = .true.
          call update_pdf(modify)
       else
@@ -172,7 +191,8 @@ contains
                      ! calculate the RHS of the GK equation (using pdf1 and phi_source as the
                      ! pdf and potential, respectively) and store it in pdf2
                      if (present(mod)) then
-                        !! For implicit FFS
+                        !> For implicit FFS - Need to map the incoming source term on the RHS
+                        !> (i.e. the piece that is treated explicitly) 
                         call map_to_extended_zgrid(it, ie, iky, phi1_source(iky, :, :, :, ivmu), phifullext, ulim)
                         call get_gke_rhs(ivmu, iky, ie, pdf1, phiext, phiext_old, pdf2, phifullext)
                      else
@@ -203,7 +223,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
       use stella_layouts, only: vmu_lo, iv_idx
-
+      
       implicit none
 
       integer, intent(in) :: ivmu, iky, ie
@@ -262,6 +282,7 @@ contains
       use parallel_streaming, only: stream_sign
       use extended_zgrid, only: map_to_iz_ikx_from_izext
       use gyro_averages, only: j0_const
+
       implicit none
 
       complex, dimension(:), intent(in) :: phi
@@ -272,6 +293,7 @@ contains
       real, dimension(:), allocatable :: z_scratch
       integer :: ia, iz, iv, imu, is, izext
       integer :: nz_ext
+      
       complex, dimension(:), optional, intent(in) :: source_driftkin
 
       ia = 1
@@ -294,10 +316,16 @@ contains
       ! set scratc to be phi or <phi> depending on whether parallel streaming is
       ! implicit or only implicit in the kperp = 0 (drift kinetic) piece
       if (driftkinetic_implicit) then
+         !> If treating parallel streaming implicitly for FFS then multiply phi 
+         !> by the piece of J0 that is constant across fieldlines. This is done to 
+         !> maximise the component of <phi> that is being treated implcitily
+         !> without coupling together different y-modes
+!!!!        call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, phi, scratch)
          do izext = 1, nz_ext
             scratch(izext) = phi(izext) * j0_const(iky, ikx_from_izext(izext), iz_from_izext(izext), ivmu)
          end do
       else
+      !> get <phi>
          call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, phi, scratch)
       end if
 
@@ -314,7 +342,7 @@ contains
 
    contains
 
-      subroutine add_streaming_contribution(source_phi)
+      subroutine add_streaming_contribution (source_phi)
 
          use extended_zgrid, only: fill_zext_ghost_zones
          use parallel_streaming, only: get_zed_derivative_extended_domain
@@ -347,20 +375,27 @@ contains
 
          ! center Maxwellian factor in mu
          ! and store in dummy variable z_scratch
-!         if( .not. driftkinetic_implicit) then
+         !         if( .not. driftkinetic_implicit) the
          z_scratch = maxwell_mu(ia, :, imu, is)
          call center_zed(iv, z_scratch, -nzgrid)
          ! multiply by Maxwellian factor
          do izext = 1, nz_ext
             rhs(izext) = rhs(izext) * z_scratch(iz_from_izext(izext))
          end do
-!         end if
+         
+         if (present(source_phi)) then
+            do izext = 1, nz_ext
+               rhs1(izext) = rhs1(izext) * z_scratch(iz_from_izext(izext))
+            end do
+         end if
 
          ! NB: could do this once at beginning of simulation to speed things up
          ! this is vpa*Z/T*exp(-vpa^2)
          z_scratch = vpa(iv) * spec(is)%zt
          !if( .not. driftkinetic_implicit)
+
          z_scratch = z_scratch * maxwell_vpa(iv, is) * maxwell_fac(is)
+         
          ! if including neoclassical correction to equilibrium distribution function
          ! then must also account for -vpa*dF_neo/dvpa*Z/T
          ! CHECK TO ENSURE THAT DFNEO_DVPA EXCLUDES EXP(-MU*B/T) FACTOR !!

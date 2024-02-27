@@ -69,14 +69,14 @@ contains
             do ia = 1, nalpha
                do iz = -nzgrid, nzgrid
                   mirror(ia, iz, imu, :) = code_dt * spec%stm_psi0 * b_dot_grad_z(ia, iz) &
-                                           * (mu(imu) * dbdzed(ia, iz) + neoclassical_term(iz, :))
+                       * (mu(imu) * dbdzed(ia, iz) + neoclassical_term(iz, :))
                end do
             end do
          end do
       else
          mirror = 0.
       end if
-
+      
       deallocate (neoclassical_term)
 
       if (radial_variation) then
@@ -214,21 +214,21 @@ contains
 
       !> corresponds to sign of mirror term positive on RHS of equation
       a(2:, 1) = -0.5 * (1.0 - 2.0 * vpa_upwind) / dvpa
-      b(2:, 1) = -2.0 * vpa_upwind / dvpa
-      c(2:nvpa - 1, 1) = 0.5 * (1.0 + 2.0 * vpa_upwind) / dvpa
+      b(1:, 1) = -2.0 * vpa_upwind / dvpa
+      c(1:nvpa - 1, 1) = 0.5 * (1.0 + 2.0 * vpa_upwind) / dvpa
       !> must treat boundary carefully
       !> assumes fully upwinded at outgoing boundary
-      b(1, 1) = -1.0 / dvpa
-      c(1, 1) = 1.0 / dvpa
+      !b(1, 1) = -1.0 / dvpa
+      !c(1, 1) = 1.0 / dvpa
 
       !> corresponds to sign of mirror term negative on RHS of equation
-      a(2:nvpa - 1, -1) = -0.5 * (1.0 + 2.0 * vpa_upwind) / dvpa
-      b(:nvpa - 1, -1) = 2.0 * vpa_upwind / dvpa
+      a(2:nvpa, -1) = -0.5 * (1.0 + 2.0 * vpa_upwind) / dvpa
+      b(:nvpa, -1) = 2.0 * vpa_upwind / dvpa
       c(:nvpa - 1, -1) = 0.5 * (1.0 - 2.0 * vpa_upwind) / dvpa
       !> must treat boundary carefully
       !> assumes fully upwinded at outgoing boundary
-      a(nvpa, -1) = -1.0 / dvpa
-      b(nvpa, -1) = 1.0 / dvpa
+      !a(nvpa, -1) = -1.0 / dvpa
+      !b(nvpa, -1) = 1.0 / dvpa
 
       !> time_upwind = 0.0 corresponds to centered in time
       !> time_upwind = 1.0 corresponds to fully implicit (upwinded)
@@ -336,12 +336,12 @@ contains
             is = is_idx(kxyz_lo, ikxyz)
             !> remove exp(-vpa^2) normalisation from g before differentiating
             do imu = 1, nmu
-               dgdv(:, imu) = g0v(:, imu, ikxyz) * maxwell_vpa(:, is)
+               dgdv(:, imu) = g0v(:, imu, ikxyz)
             end do
             !> get d <f> / dvpa
             call get_dgdvpa_ffs(dgdv, ikxyz)
             do iv = 1, nvpa
-               g0v(iv, :, ikxyz) = dgdv(iv, :) / maxwell_vpa(iv, is) + 2.0 * vpa(iv) * g0v(iv, :, ikxyz)
+               g0v(iv, :, ikxyz) = dgdv(iv, :)
             end do
          end do
          !> then take the results and remap again so y,kx,z local.
@@ -613,12 +613,12 @@ contains
       ! to invert and obtain h^{n+1}
       if (full_flux_surface) then
          ! if implicit treatment of collisions, then already have updated gvmu in kxkyz_lo
-         if (.not. collisions_implicit) then
+!         if (.not. collisions_implicit) then
             ! get g^{*} with v-space on processor
-            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-            call scatter(kxkyz2vmu, g, gvmu)
-            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-         end if
+!            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+!            call scatter(kxkyz2vmu, g, gvmu)
+!            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+!         end if
 
          allocate (g0v(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
          allocate (g0x(ny, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -626,11 +626,12 @@ contains
          ! first must take g^{*}(ky) and transform to g^{*}(y)
 
          allocate (g_swap(naky_all, ikx_max))
-         it = 1
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            do iz = -nzgrid, nzgrid
-               call swap_kxky(g(:, :, iz, it, ivmu), g_swap)
-               call transform_ky2y(g_swap, g0x(:, :, iz, it, ivmu))
+            do it = 1, ntubes
+               do iz = -nzgrid, nzgrid
+                  call swap_kxky(g(:, :, iz, it, ivmu), g_swap)
+                  call transform_ky2y(g_swap, g0x(:, :, iz, it, ivmu))
+               end do
             end do
          end do
 
@@ -650,7 +651,9 @@ contains
          end if
 
          ! second, remap g so velocities are local
+         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          call scatter(kxyz2vmu, g0x, g0v)
+         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
 
          allocate (dgdvpa(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
          do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
@@ -658,7 +661,7 @@ contains
             is = is_idx(kxyz_lo, ikxyz)
             iy = iy_idx(kxyz_lo, ikxyz)
             do imu = 1, nmu
-               call fd_variable_upwinding_vpa(iy, g0v(:, imu, ikxyz), dvpa, &
+               call fd_variable_upwinding_vpa(1, g0v(:, imu, ikxyz), dvpa, &
                                               mirror_sign(iy, iz), vpa_upwind, dgdvpa(:, imu, ikxyz))
                dgdvpa(:, imu, ikxyz) = g0v(:, imu, ikxyz) + tupwnd * mirror(iy, iz, imu, is) * &
                                        dgdvpa(:, imu, ikxyz)
@@ -688,9 +691,11 @@ contains
 
          ! finally transform back from y to ky space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            do iz = -nzgrid, nzgrid
-               call transform_y2ky(g0x(:, :, iz, it, ivmu), g_swap)
-               call swap_kxky_back(g_swap, g(:, :, iz, it, ivmu))
+            do it = 1, ntubes
+               do iz = -nzgrid, nzgrid
+                  call transform_y2ky(g0x(:, :, iz, it, ivmu), g_swap)
+                  call swap_kxky_back(g_swap, g(:, :, iz, it, ivmu))
+               end do
             end do
          end do
          deallocate (g_swap)

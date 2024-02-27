@@ -470,6 +470,7 @@ contains
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use fields_arrays, only: response_matrix
       use extended_zgrid, only: periodic
+      use physics_flags, only: full_flux_surface
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
@@ -511,6 +512,7 @@ contains
          ! calculate the RHS of the GK equation (using dum=0 as the pdf at the previous time level,
          ! and phi_ext as the potential) and store it in pdf_ext
          call get_gke_rhs(ivmu, iky, ie, dum, phi_ext, dum, pdf_ext(:, ivmu))
+         !! end if
          ! given the RHS of the GK equation (pdf_ext), solve for the pdf at the
          ! new time level by sweeping in zed on the extended domain;
          ! the rhs is input as 'pdf_ext' and over-written with the updated solution for the pdf
@@ -555,7 +557,7 @@ contains
       use physics_flags, only: full_flux_surface
 
       use stella_geometry, only: bmag
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu
+!!      use vpamu_grids, only: maxwell_vpa, maxwell_mu
       use kt_grids, only: nalpha
 
       use gyro_averages, only: j0_B_const

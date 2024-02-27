@@ -592,8 +592,8 @@ contains
       use zgrid, only: delzed
       use vpamu_grids, only: dvpa
       use kt_grids, only: akx, aky, nx, rho
-      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
-      use parallel_streaming, only: stream
+      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit, driftkinetic_implicit
+      use parallel_streaming, only: stream, stream_correction
       use parallel_streaming, only: stream_rad_var1, stream_rad_var2
       use mirror_terms, only: mirror
       use flow_shear, only: prl_shear, shift_times
@@ -635,9 +635,14 @@ contains
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_shear)
       end if
 
-      if (.not. stream_implicit) then
-         ! NB: stream has code_dt built-in, which accounts for code_dt factor here
+       if (.not. stream_implicit .and. .not. driftkinetic_implicit) then
+         ! NB: stream has code_dt built-in, which accounts for code_dt factor here 
          cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream)), zero)
+         cfl_dt_linear = min(cfl_dt_linear, cfl_dt_stream)
+      end if
+
+      if (driftkinetic_implicit) then
+         cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream_correction)), zero)
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_stream)
       end if
 
@@ -1140,6 +1145,8 @@ contains
       use dist_fn_arrays, only: g_gyro
       use gyro_averages, only: gyro_average, j0_ffs
 
+      use run_parameters, only: driftkinetic_implicit
+      use dissipation, only: hyper_dissipation
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
@@ -1230,9 +1237,15 @@ contains
          if (include_collisions .and. .not. collisions_implicit) call advance_collisions_explicit(gin, phi, rhs)
 
          !> calculate and add parallel streaming term to RHS of GK eqn
-         if (include_parallel_streaming .and. (.not. stream_implicit)) then
-            if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
-            call advance_parallel_streaming_explicit(gin, phi, rhs)
+         if (include_parallel_streaming) then 
+            if ((.not. stream_implicit) .or. driftkinetic_implicit) then
+               if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
+               call advance_parallel_streaming_explicit(gin, phi, rhs)
+            end if
+         end if
+         
+         if (hyper_dissipation) then
+            call advance_hyper_explicit(gin, rhs)
          end if
 
          !> if simulating a full flux surface (flux annulus), all terms to this point have been calculated
@@ -1254,7 +1267,7 @@ contains
             end do
             deallocate (rhs_ky_swap)
          end if
-
+         
          if (radial_variation) call advance_radial_variation(gin, rhs)
 
          if (source_option_switch == source_option_krook) call add_krook_operator(gin, rhs)
@@ -1270,6 +1283,34 @@ contains
 
    end subroutine solve_gke
 
+   subroutine advance_hyper_explicit(gin, gout)
+
+      use stella_layouts, only: vmu_lo
+      use zgrid, only: nzgrid, ntubes
+      use kt_grids, only: naky, nakx
+      use hyper, only: advance_hyper_vpa, advance_hyper_zed
+      use hyper, only: hyp_zed, hyp_vpa
+
+      implicit none
+      
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
+
+      complex, dimension(:, :, :, :, :), allocatable :: dg
+
+      allocate (dg(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); dg = 0.0
+
+      if (hyp_zed) then
+         call advance_hyper_zed(gin, dg)
+         gout = gout + dg
+      end if
+      if (hyp_vpa) then
+         call advance_hyper_vpa(gin, dg)
+      end if
+      deallocate (dg)
+      
+    end subroutine advance_hyper_explicit
+
    subroutine advance_wstar_explicit(phi, gout)
 
       use mp, only: proc0, mp_abort
@@ -1283,6 +1324,8 @@ contains
       use kt_grids, only: swap_kxky
       use physics_flags, only: full_flux_surface
       use dist_fn_arrays, only: wstar, g_gyro
+
+      use gyro_averages, only: gyro_average, j0_ffs
 
       implicit none
 
@@ -1483,12 +1526,8 @@ contains
          end do
          !> add vM . grad x dg/dx term to equation
          call add_explicit_term_ffs(g0y, wdriftx_g, gout)
-         !> get <dphi/dx> in k-space
-!         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-!            call gyro_average(dphidx, g0k(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
-!         end do
 
-         !> calculate d<phi>/dy in (ky,kx) space
+         !> get <dphi/dx> in k-space
          call get_dgdx(g_gyro, g0k)
 
          !> transform d<phi>/dx from k-space to y-space
@@ -2445,6 +2484,8 @@ contains
       integer, intent(in) :: istep
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+
+      logical :: implicit_fields
 !    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out), target :: g
 
 !    complex, dimension (:,:,:,:,:), pointer :: gk, gy
@@ -2512,11 +2553,16 @@ contains
          ! get updated fields corresponding to advanced g
          ! note that hyper-dissipation and mirror advances
          ! depended only on g and so did not need field update
-         call advance_fields(g, phi, apar, dist='gbar')
+         if(driftkinetic_implicit) then 
+            implicit_fields = .true.
+            call advance_fields(g, phi, apar, dist='gbar', implicit_solve = implicit_fields)
+         else
+            call advance_fields(g, phi, apar, dist='gbar')
+         end if
 
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-         if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
+         if (stream_implicit .and. include_parallel_streaming) then
             call advance_implicit_terms(g, phi, apar)
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
@@ -2532,7 +2578,7 @@ contains
 
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-         if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
+         if (stream_implicit .and. include_parallel_streaming) then
             call advance_implicit_terms(g, phi, apar)
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if

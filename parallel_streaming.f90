@@ -58,6 +58,8 @@ contains
       use run_parameters, only: stream_implicit, driftkinetic_implicit
       use physics_flags, only: include_parallel_streaming, radial_variation
 
+      use run_parameters, only: tupwnd_m => time_upwind_minus
+
       implicit none
 
       integer :: iv, imu, is, ivmu
@@ -87,7 +89,9 @@ contains
                   stream(ia, iz, iv, :) = -code_dt * b_dot_grad_z(ia, iz) * vpa(iv) * spec%stm_psi0
                end do
                if (driftkinetic_implicit) then
-                  stream_store(iz, iv, :) = -code_dt * gradpar(iz) * vpa(iv) * spec%stm_psi0
+                  stream_store(iz, iv, :) = stream(1, iz, iv, :)
+                  !-code_dt * b_dot_grad_z(1, iz) * vpa(iv) * spec%stm_psi0
+                  !-code_dt * gradpar(iz) * vpa(iv) * spec%stm_psi0
                else
                   stream(:, iz, iv, :) = spread(stream(1, iz, iv, :), 1, nalpha)
                end if
@@ -98,7 +102,8 @@ contains
       end if
 
       if (driftkinetic_implicit) then
-         stream_correction = stream - spread(stream_store, 1, nalpha)
+         stream_correction = 0.0 
+         stream_correction = 0.0! stream - (1.5- tupwnd_m) * spread(stream_store, 1, nalpha)
          stream = spread(stream_store, 1, nalpha)
          deallocate (stream_store)
       end if
@@ -137,7 +142,7 @@ contains
       do iv = 1, nvpa
          stream_sign(iv) = int(sign(1.0, stream(1, 0, iv, 1)))
          if (driftkinetic_implicit) then
-            stream_correction_sign = int(sign(1.0, stream_correction(1, 0, iv, 1)))
+            stream_correction_sign =  int(sign(1.0, stream_correction(1, 0, iv, 1)))
          end if
       end do
 
@@ -214,7 +219,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
       use kt_grids, only: swap_kxky
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
       use species, only: spec
       use physics_flags, only: full_flux_surface
       use gyro_averages, only: gyro_average
@@ -222,7 +227,7 @@ contains
 
       use fields, only: advance_fields, fields_updated
       use fields_arrays, only: apar
-      use gyro_averages, only: j0_ffs
+      use gyro_averages, only: j0_ffs, j0_const
 
       implicit none
 
@@ -234,6 +239,11 @@ contains
       complex, dimension(:, :, :, :), allocatable :: g0, dgphi_dz
       complex, dimension(:, :, :, :), allocatable :: g0y, g1y
       complex, dimension(:, :), allocatable :: g0_swap
+
+      complex, dimension(:, :, :, :), allocatable :: dgphi_dz_correction
+      complex, dimension(:, :, :, :), allocatable :: g1y_correction
+      complex, dimension(:, :, :, :), allocatable :: phi1
+      logical :: implicit_solve = .true.
 
       !> if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
       !> if full flux surface (flux annulus), will need to calculate in y space
@@ -250,6 +260,11 @@ contains
          allocate (g0_swap(naky_all, ikx_max))
          allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
          allocate (g1y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
+         
+         if (driftkinetic_implicit) then
+            allocate (dgphi_dz_correction(naky, nakx, -nzgrid:nzgrid, ntubes))
+            allocate (g1y_correction(ny, ikx_max, -nzgrid:nzgrid, ntubes))
+         end if
       end if
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -271,7 +286,13 @@ contains
          !> note that this should be a centered difference to avoid numerical
          !> unpleasantness to do with inexact cancellations in later velocity integration
          !> see appendix of the stella JCP 2019 for details
-         call get_dgdz_centered(g0, ivmu, dgphi_dz)
+         !!call get_dgdz_centered(g0, ivmu, dgphi_dz)
+         if(driftkinetic_implicit) then
+            !> stream sign may be different for the correction piece compared with regular streaming coefficient
+            call get_dgdz_centered(g0, ivmu, dgphi_dz_correction)
+         else
+            call get_dgdz_centered(g0, ivmu, dgphi_dz)
+         end if
 
          !> compute dg/dz in k-space and store in g0
          call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
@@ -288,15 +309,26 @@ contains
                   !> get d<phi>/dz in real space
                   call swap_kxky(dgphi_dz(:, :, iz, it), g0_swap)
                   call transform_ky2y(g0_swap, g1y(:, :, iz, it))
-
                end do
             end do
             ! ! over-write g0y with F * d/dz (g/F) + ZeF/T * d<phi>/dz (or <phi>-phi for driftkinetic_implicit).
-            g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
-                              * maxwell_vpa(iv, is) * spread(spread(maxwell_mu(:, :, imu, is), 2, ikx_max), 4, ntubes) * maxwell_fac(is)
-
-            !> multiply d(g/F)/dz and d<phi>/dz terms with vpa*(b . grad z) and add to source (RHS of GK equation)
-            call add_stream_term_ffs(g0y, ivmu, gout(:, :, :, :, ivmu))
+            if (driftkinetic_implicit) then
+               g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt &
+                    * maxwell_vpa(iv, is) * spread(spread(maxwell_mu_avg(:, :, imu, is), 2, ikx_max),4, ntubes) * maxwell_fac(is)
+               call add_stream_term_ffs_correction(g0y, ivmu, gout(:, :, :, :, ivmu))
+               
+               ! g1y_correction(:, :, :, :) = g1y_correction (:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
+               !      * maxwell_vpa(iv, is) * spread(spread(maxwell_mu(:, :, imu, is), 2, ikx_max), 4, ntubes) * maxwell_fac(is) & 
+               !      - g1y(:, :, :, :) * spec(is)%zt * maxwell_vpa(iv, is) & 
+               !      * spread(spread(maxwell_mu_avg(:, :, imu, is), 2, ikx_max),4, ntubes) * maxwell_fac(is)
+               ! call add_stream_term_ffs(g1y_correction, ivmu, gout(:, :, :, :, ivmu))
+            else
+               g0y(:, :, :, :) = 0.0 !g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
+               !* maxwell_vpa(iv, is) * spread(spread(maxwell_mu(:, :, imu, is), 2, ikx_max), 4, ntubes) * maxwell_fac(is)
+               
+               !> multiply d(g/F)/dz and d<phi>/dz terms with vpa*(b . grad z) and add to source (RHS of GK equation)
+               call add_stream_term_ffs(g0y, ivmu, gout(:, :, :, :, ivmu))
+            end if
          else
             ia = 1
             g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
@@ -399,7 +431,7 @@ contains
 
    end subroutine add_parallel_streaming_radial_variation
 
-   subroutine get_dgdz(g, ivmu, dgdz)
+   subroutine get_dgdz(g, ivmu, dgdz, term_sign)
 
       use finite_differences, only: third_order_upwind_zed
       use stella_layouts, only: vmu_lo
@@ -411,15 +443,26 @@ contains
       use extended_zgrid, only: fill_zed_ghost_zones
       use extended_zgrid, only: periodic
       use kt_grids, only: naky
+      use vpamu_grids, only: nvpa
 
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: dgdz
+      integer, dimension(:), intent(in), optional :: term_sign
+      integer, dimension (:), allocatable :: sign_term
       integer, intent(in) :: ivmu
 
       integer :: iseg, ie, it, iky, iv
       complex, dimension(2) :: gleft, gright
+      
+      allocate(sign_term(nvpa)) ; sign_term = 0.0
+
+      if(present(term_sign)) then
+         sign_term = term_sign
+      else
+         sign_term = stream_sign
+      end if
 
       ! FLAG -- assuming delta zed is equally spaced below!
       iv = iv_idx(vmu_lo, ivmu)
@@ -432,16 +475,18 @@ contains
                   ! now get dg/dz
                   call third_order_upwind_zed(iz_low(iseg), iseg, nsegments(ie, iky), &
                                               g(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it), &
-                                              delzed(0), stream_sign(iv), gleft, gright, periodic(iky), &
+                                              delzed(0), sign_term(iv), gleft, gright, periodic(iky), &
                                               dgdz(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it))
                end do
             end do
          end do
       end do
 
+      deallocate(sign_term)
+
    end subroutine get_dgdz
 
-   subroutine get_dgdz_centered(g, ivmu, dgdz)
+   subroutine get_dgdz_centered(g, ivmu, dgdz, term_sign)
 
       use finite_differences, only: second_order_centered_zed
       use stella_layouts, only: vmu_lo
@@ -453,15 +498,27 @@ contains
       use extended_zgrid, only: fill_zed_ghost_zones
       use extended_zgrid, only: periodic
       use kt_grids, only: naky
+      use vpamu_grids, only: nvpa
 
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: dgdz
+      integer, dimension(:), intent(in), optional :: term_sign
+      integer, dimension (:), allocatable :: sign_term
       integer, intent(in) :: ivmu
 
       integer :: iseg, ie, iky, iv, it
       complex, dimension(2) :: gleft, gright
+
+      allocate(sign_term(nvpa)) ; sign_term = 0.0
+
+      if(present(term_sign)) then
+         sign_term = term_sign
+      else
+         sign_term = stream_sign
+      end if
+
       ! FLAG -- assuming delta zed is equally spaced below!
       iv = iv_idx(vmu_lo, ivmu)
       do iky = 1, naky
@@ -473,12 +530,15 @@ contains
                   ! now get dg/dz
                   call second_order_centered_zed(iz_low(iseg), iseg, nsegments(ie, iky), &
                                                  g(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it), &
-                                                 delzed(0), stream_sign(iv), gleft, gright, periodic(iky), &
+                                                 delzed(0), sign_term(iv), gleft, gright, periodic(iky), &
                                                  dgdz(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it))
                end do
             end do
          end do
       end do
+      
+      deallocate(sign_term)
+
    end subroutine get_dgdz_centered
 
 ! subroutine get_dgdz_variable (g, ivmu, dgdz)
@@ -568,6 +628,31 @@ contains
       end do
 
    end subroutine add_stream_term_ffs
+
+   
+   subroutine add_stream_term_ffs_correction(g, ivmu, src)
+
+     use stella_layouts, only: vmu_lo
+     use stella_layouts, only: iv_idx, is_idx
+     use zgrid, only: nzgrid
+     use kt_grids, only: ny
+     
+     implicit none
+     complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
+     complex, dimension(:, :, -nzgrid:, :), intent(in out) :: src
+     integer, intent(in) :: ivmu
+     integer :: iz, iy, iv, is
+
+     iv = iv_idx(vmu_lo, ivmu)
+     is = is_idx(vmu_lo, ivmu)
+      do iz = -nzgrid, nzgrid
+          do iy = 1, ny
+             src(iy, :, iz, :) = src(iy, :, iz, :) + stream_correction(iy, iz, iv, is) * g(iy, :, iz, :)
+          end do
+       end do
+
+     end subroutine add_stream_term_ffs_correction
+
 
    subroutine stream_tridiagonal_solve(iky, ie, iv, is, g)
 

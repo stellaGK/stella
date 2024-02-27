@@ -231,7 +231,6 @@ contains
       dzeta_vmec = zeta_vmec(1) - zeta_vmec(0)
 
       allocate (zed_domain_size(nalpha))
-
 !    if (nzgrid_vmec /= nzgrid) then
       if (zed_equal_arc) then
          !> must interpolate geometric quantities from (zeta,alpha) grid to
@@ -243,16 +242,18 @@ contains
          !> note that nzgrid*zgrid_refinement_factor gives index
          !> for the max zeta of the nominal zeta grid
          !zetamax_idx = nzgrid*zgrid_refinement_factor
-         zetamax_idx = nzgrid_vmec
+         zetamax_idx = nzgrid_vmec 
          if (debug) write (*, *) 'get_vmec_geo::get_total_arc_length'
          do ia = 1, nalpha
             !> zed_domain_size is z(zeta_max) - z(zeta_min) for nominal zeta domain
             call get_total_arc_length(zetamax_idx, gradpar_vmec(ia, -zetamax_idx:zetamax_idx), &
-                                      dzeta_vmec, zed_domain_size(ia))
+                 dzeta_vmec, zed_domain_size(ia))
+
             !> z(zeta_min) should be zeta_min
             zmin = -zed_domain_size(ia) * 0.5
             call get_arc_length_grid(zetamax_idx, nzgrid_vmec, zmin, &
-                                     gradpar_vmec(ia, :), dzeta_vmec, arc_length(ia, :))
+                 gradpar_vmec(ia, :), dzeta_vmec, arc_length(ia, :))
+            
             !> b_dot_grad_z is the total arc-length for one toroidal turn,
             !> multiplied by 2*pi
             b_dot_grad_z(ia, :) = 2.0 * pi / zed_domain_size(ia)
@@ -267,8 +268,9 @@ contains
          !> scale zed so that it is arc-length compressed (or expanded)
          !> to the range [-pi:pi]
          !zed_scalefac = pi/zmax
-         arc_length = 2.0 * pi * arc_length / spread(zed_domain_size, 2, 2 * nzgrid_vmec + 1)
-         zed_scalefac = 1.0
+         arc_length = 2.0 * pi * arc_length / spread(zed_domain_size, 2, 2 * nzgrid_vmec + 1)!! * nfield_periods / real(nfp) 
+
+         zed_scalefac = 1.0 !!nfield_periods / real(nfp) 
          !       arc_length = arc_length*zed_scalefac
 
          if (.not. allocated(gradpar_zeta)) allocate (gradpar_zeta(nalpha, -nzgrid:nzgrid))

@@ -20,6 +20,7 @@ module vpamu_grids
    public :: set_vpa_weights
 
    public :: integrate_species_ffs_rm
+   public :: maxwell_mu_avg
 
    logical :: vpamu_initialized = .false.
 
@@ -33,7 +34,7 @@ module vpamu_grids
    real, dimension(:, :), allocatable :: maxwell_vpa
    real, dimension(:, :, :), allocatable :: int_unit, int_vpa2, int_vperp2, int_vfrth
    real, dimension(:, :, :), allocatable :: wgts_mu
-   real, dimension(:, :, :, :), allocatable :: maxwell_mu
+   real, dimension(:, :, :, :), allocatable :: maxwell_mu, maxwell_mu_avg
    real, dimension(:, :), allocatable :: ztmax
    real :: dvpa
    real, dimension(:), allocatable :: dmu
@@ -215,6 +216,10 @@ contains
 
       !> divide by 2 to account for double-counting
       wgts_vpa = 0.5 * wgts_vpa / sqrt(pi)
+
+      if (conservative_wgts_vpa) then 
+         wgts_vpa = dvpa / sqrt(pi)
+      end if
 
       wgts_vpa_default = wgts_vpa
 
@@ -652,6 +657,7 @@ contains
       else
          reduce = .true.
       end if
+
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
@@ -721,6 +727,7 @@ contains
       use species, only: spec, nspec
       use stella_geometry, only: bmag, bmag_psi0
 
+      use physics_flags, only: full_flux_surface
       implicit none
 
       integer :: imu
@@ -732,6 +739,7 @@ contains
          allocate (wgts_mu(nalpha, -nzgrid:nzgrid, nmu)); wgts_mu = 0.0
          allocate (wgts_mu_bare(nmu)); wgts_mu_bare = 0.0
          allocate (maxwell_mu(nalpha, -nzgrid:nzgrid, nmu, nspec)); maxwell_mu = 0.0
+         allocate (maxwell_mu_avg(nalpha, -nzgrid:nzgrid, nmu, nspec)); maxwell_mu_avg = 0.0
          allocate (dmu(nmu - 1))
          allocate (dmu_ghost(nmu))
          allocate (mu_cell(nmu))
@@ -772,6 +780,8 @@ contains
       maxwell_mu = exp(-2.*spread(spread(spread(mu, 1, nalpha), 2, nztot) * spread(bmag, 3, nmu), 4, nspec) &
                        * spread(spread(spread(spec%temp_psi0 / spec%temp, 1, nalpha), 2, nztot), 3, nmu))
 
+      if(full_flux_surface) maxwell_mu_avg = spread(sum(maxwell_mu, dim = 1), 1, nalpha)/ nalpha 
+
       !> factor of 2. necessary to account for 2pi from
       !> integration over gyro-angle and 1/pi^(3/2) normalization
       !> of velocity space Jacobian
@@ -799,6 +809,7 @@ contains
       if (allocated(wgts_mu)) deallocate (wgts_mu)
       if (allocated(wgts_mu_bare)) deallocate (wgts_mu_bare)
       if (allocated(maxwell_mu)) deallocate (maxwell_mu)
+      if (allocated(maxwell_mu_avg)) deallocate (maxwell_mu_avg)
       if (allocated(dmu)) deallocate (dmu)
       if (allocated(dmu_cell)) deallocate (dmu_cell)
       if (allocated(dmu_ghost)) deallocate (dmu_ghost)
