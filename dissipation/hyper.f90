@@ -18,15 +18,6 @@ module hyper
    logical :: hyp_vpa, hyp_zed
    real :: tfac
    real :: k2max
-   interface advance_hyper_zed
-      module procedure advance_hyper_zed_direct
-      module procedure advance_hyper_zed_diff
-   end interface
-
-   interface advance_hyper_vpa
-      module procedure advance_hyper_vpa_direct
-      module procedure advance_hyper_vpa_diff
-   end interface
 
 contains
 
@@ -163,52 +154,8 @@ contains
       end if
 
    end subroutine advance_hyper_dissipation
-
-   subroutine advance_hyper_vpa_direct(g)
-
-      use stella_time, only: code_dt
-      use zgrid, only: nzgrid
-      use stella_layouts, only: vmu_lo, kxkyz_lo
-      use kt_grids, only: naky
-      use redistribute, only: gather, scatter
-      use dist_fn_arrays, only: g1, G0
-      use dist_redistribute, only: kxkyz2vmu
-      use vpamu_grids, only: nmu, nvpa, dvpa
-
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use zgrid, only: ntubes
-      use mp, only: proc0, iproc
-      use vpamu_grids, only: vpa
-
-      implicit none
-
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(inout) :: g
-
-      complex, dimension(:, :, :), allocatable :: g0v, g1v
-
-      integer :: ia, ivmu
-      integer :: iz, it, iv, imu, is
-
-      ia = 1
-
-      allocate (g0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-      allocate (g1v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-
-      g0 = g
-
-      call scatter(kxkyz2vmu, g0, g0v)
-      call get_dgdvpa_fourth_order(g0v, g1v)
-      call gather(kxkyz2vmu, g1v, g1)
-
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         g(:, :, :, :, ivmu) = g(:, :, :, :, ivmu) - code_dt * D_vpa * dvpa**4 / 16 * g1(:, :, :, :, ivmu)
-      end do
-      deallocate (g0v)
-      deallocate (g1v)
-
-   end subroutine advance_hyper_vpa_direct
-   
-   subroutine advance_hyper_vpa_diff(g, dgdvpa)
+ 
+   subroutine advance_hyper_vpa(g, dgdvpa)
    !> computes the fourth derivative of g in vpa and returns this in dgdvpa
    !> multiplied by the vpa diffusion coefficient
       use stella_time, only: code_dt
@@ -236,7 +183,7 @@ contains
       deallocate (g0v)
       deallocate (g1v)
 
-   end subroutine advance_hyper_vpa_diff
+   end subroutine advance_hyper_vpa
 
    subroutine get_dgdvpa_fourth_order(g, gout)
 
@@ -265,61 +212,7 @@ contains
       deallocate (tmp)
    end subroutine get_dgdvpa_fourth_order
 
-   subroutine advance_hyper_zed_direct(g)
-
-      use stella_time, only: code_dt
-      use zgrid, only: nzgrid, ntubes, zed, delzed
-      use stella_layouts, only: vmu_lo
-      use dist_fn_arrays, only: kperp2
-      use kt_grids, only: naky, nakx
-      use redistribute, only: gather, scatter
-      use dist_fn_arrays, only: g1, g0
-      use dist_redistribute, only: kxkyz2vmu
-      use stella_layouts, only: kxkyz_lo
-
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use mp, only: proc0
-
-      implicit none
-
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(inout) :: g
-
-      integer :: ia, ivmu
-      integer :: iz, it, iv, imu, is
-      g0 = g
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         iv = iv_idx(vmu_lo, ivmu)
-         imu = imu_idx(vmu_lo, ivmu)
-         is = is_idx(vmu_lo, ivmu)
-         do it = 1, ntubes
-            do iz = -nzgrid, nzgrid
-               !g0(:,:,iz,:,ivmu) = cos(4*zed(iz)) * exp(- (zed(iz) / (pi/4.0))**2 / 2.0) * cmplx(1.0, 0.0)
-               !g0(:,:,iz,:,ivmu) = exp(- zed(iz)**2  ) * cmplx(1.0, 0.0)
-               !g0(:,:,iz,:,ivmu) = cmplx(1.0, 0.0)
-               !g0(:,:,iz,:,ivmu) = exp(zed(iz)) * cmplx(1.0, 0.0)
-            end do
-         end do
-      end do
-      ia = 1
-      call get_dgdz_fourth_order(g0, g1)
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         iv = iv_idx(vmu_lo, ivmu)
-         imu = imu_idx(vmu_lo, ivmu)
-         is = is_idx(vmu_lo, ivmu)
-         do it = 1, ntubes
-            do iz = -nzgrid, nzgrid
-               !if ( iv == 1 .and. imu == 1 ) write(*,*) 'iz', iz,'zed(iz)', zed(iz), 'iv', iv ,'imu', imu, 'is', is, 'g0', g0(1,1,iz,it,ivmu), 'g1', g1(1, 1, iz, it, ivmu)&
-               !                                                                  , 'diff', abs(real(g0(1,1,iz,it,ivmu)) - g1(1,1,iz,it,ivmu)), 'delzed(0)**2', delzed(0)**2
-            end do
-         end do
-      end do
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         g(:, :, :, :, ivmu) = g(:, :, :, :, ivmu) - code_dt * D_zed * delzed(0)**4 / 16 * g1(:, :, :, :, ivmu)
-      end do
-
-   end subroutine advance_hyper_zed_direct
-
-   subroutine advance_hyper_zed_diff(g, dgdz)
+   subroutine advance_hyper_zed(g, dgdz)
    !> computes the fourth derivative of g in z and returns this in
    !> dgdz multiplied by the z hyper diffusion coefficient
       use stella_time, only: code_dt
@@ -334,7 +227,7 @@ contains
       call get_dgdz_fourth_order(g, dgdz)
       dgdz = -code_dt * D_zed * delzed(0)**4 / 16 * dgdz
 
-   end subroutine advance_hyper_zed_diff
+   end subroutine advance_hyper_zed
 
    subroutine get_dgdz_fourth_order(g, dgdz)
 
