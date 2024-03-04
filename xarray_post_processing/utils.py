@@ -187,15 +187,50 @@ def plot_1d_semilog_list_pdf (xlist,ylist,marker_list,xlab, pdf,
     plt.close (fig)
     return
 
-def timeavg(ft,time,axis=-1):
+def timeavg(ft,time,axis=-1,tmin=-1.0):
     ntime = time.size
-    it_min = ntime//2 + 1
+    zero = 1.0e-8
+    if (not tmin < -zero):
+        if tmin < time[0]:
+            it_min = 0
+        elif abs(tmin - time[0]) < zero:
+            it_min = 0
+        elif tmin > time[ntime-1]:
+            it_min = ntime - 1
+        else: #find it given tmin
+            for it in range(0,ntime-1):
+                if (tmin - time[it])*(time[it+1]-tmin) > 0.0 or abs(tmin - time[it]) < zero:
+                    it_min = it
+                    break
+    else:
+        # use half of time window
+        it_min = ntime//2 + 1
     it_max = ntime - 1
     time_interval = time[it_max] - time[it_min]
     favg = simps(ft[it_min:it_max+1],x=time[it_min:it_max+1], axis=axis) / time_interval
     return favg
 
-
+def print_average_fluxes(filename, pflx, vflx, qflx, time, typestring, tmin=-1.0):
+    nspec = len(typestring)
+    print("")
+    print("time averaged fluxes")
+    print("####################")
+    print("pflx/pflx_GBref ")
+    pflx_average = timeavg(pflx,time,axis=0,tmin=tmin)
+    for ispec in range(0,nspec):
+        print("pflx "+typestring[ispec]," = ",pflx_average[ispec])
+    print("####################")
+    print("vflx/vflx_GBref ")
+    vflx_average = timeavg(vflx,time,axis=0,tmin=tmin)
+    for ispec in range(0,nspec):
+        print("vflx "+typestring[ispec]," = ",vflx_average[ispec])
+    print("####################")
+    print("qflx/qflx_GBref ")
+    qflx_average = timeavg(qflx,time,axis=0,tmin=tmin)
+    for ispec in range(0,nspec):
+        print("qflx "+typestring[ispec]," = ",qflx_average[ispec])
+    print("####################\n")
+    return pflx_average      
 
 def plot_fluxes_nc(filename, pflx, vflx, qflx, time, typestring):
     nspec = len(typestring)
