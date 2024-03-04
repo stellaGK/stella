@@ -26,7 +26,7 @@ module init_g
    real :: den1, upar1, tpar1, tperp1
    real :: den2, upar2, tpar2, tperp2
    real :: tstart, scale, kxmax, kxmin
-   logical :: chop_side, left, scale_to_phiinit
+   logical :: chop_side, left, scale_to_phiinit, oddparity
    character(300), public :: restart_file
    character(len=150) :: restart_dir
 
@@ -96,6 +96,7 @@ contains
       call broadcast(read_many)
       call broadcast(scale_to_phiinit)
       call broadcast(scale)
+      call broadcast(oddparity)
 
       call init_save(restart_file)
 
@@ -165,8 +166,8 @@ contains
          den0, upar0, tpar0, tperp0, imfac, refac, &
          den1, upar1, tpar1, tperp1, &
          den2, upar2, tpar2, tperp2, &
-         kxmax, kxmin, scale_to_phiinit
-
+         kxmax, kxmin, scale_to_phiinit, &
+         oddparity
       integer :: ierr, in_file
 
       tstart = 0.
@@ -194,6 +195,7 @@ contains
       chop_side = .false.
       scale_to_phiinit = .false.
       left = .true.
+      oddparity = .false.
 
       restart_file = trim(run_name)//".nc"
       restart_dir = "./"
@@ -234,13 +236,19 @@ contains
       do iz = -nzgrid, nzgrid
          phi(:, :, iz) = exp(-((zed(iz) - theta0) / width0)**2) * cmplx(1.0, 1.0)
       end do
-
       ! this is a messy way of doing things
       ! could tidy it up a bit
       if (sum(cabs(phi)) < epsilon(0.)) then
          do iz = -nzgrid, nzgrid
             phi(:, :, iz) = exp(-(zed(iz) / width0)**2) * cmplx(1.0, 1.0)
          end do
+      end if
+
+      if (oddparity) then
+      ! make phi an odd function of zed
+        do iz = -nzgrid,nzgrid
+            phi(:, :, iz) = zed(iz)*phi(:, :, iz)
+        end do
       end if
 
       if (chop_side) then

@@ -2574,7 +2574,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       logical :: conservative_wgts
       real :: dum2
 
-      complex, dimension(:, :, :, :), allocatable :: dum1
+      complex, dimension(:, :, :, :), allocatable :: dum1, dum3
       complex, dimension(:, :, :, :, :), allocatable :: field
       complex, dimension(:, :), allocatable :: sumdelta
       complex, dimension(:, :), allocatable :: gvmutr
@@ -2625,7 +2625,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! gvmu contains dhs/dphi
       ! for phi equation, need 1-P[dhs/dphi]
-      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dist='h') ! note that get_fields sums over species, as required in response matrix
+      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h') ! note that get_fields sums over species, as required in response matrix
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -2883,7 +2883,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       conservative_wgts = .false.
       call set_vpa_weights(conservative_wgts)
 
-      deallocate (dum1, field)
+      deallocate (dum1, dum3, field)
 
    end subroutine init_fp_conserve
 
@@ -3288,7 +3288,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine finish_fp_response
 
-   subroutine advance_collisions_fp_explicit(g, phi, gke_rhs, time_collisions)
+   subroutine advance_collisions_fp_explicit(g, phi, bpar, gke_rhs, time_collisions)
 
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
@@ -3309,7 +3309,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gke_rhs
       real, dimension(:, :), intent(in out) :: time_collisions
 
@@ -3337,7 +3337,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! switch from g = <f> to h = f + Z*e*phi/T * F0
       tmp_vmulo = g
-      call g_to_h(tmp_vmulo, phi, fphi)
+      call g_to_h(tmp_vmulo, phi, bpar, fphi)
 
       ! remap so that (vpa,mu) local
       if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
@@ -3989,7 +3989,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine mu_differential_operator_fp_conservative
 
-   subroutine advance_collisions_fp_implicit(phi, apar)
+   subroutine advance_collisions_fp_implicit(phi, apar, bpar)
 
       use zgrid, only: nzgrid
       use vpamu_grids, only: set_vpa_weights
@@ -3997,7 +3997,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
 
       logical :: conservative_wgts
 
@@ -4010,11 +4010,11 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
          call set_vpa_weights(conservative_wgts)
       end if
 
-      call advance_implicit_fp(phi, apar, gvmu)
+      call advance_implicit_fp(phi, apar, bpar, gvmu)
 
    end subroutine advance_collisions_fp_implicit
 
-   subroutine advance_implicit_fp(phi, apar, g)
+   subroutine advance_implicit_fp(phi, apar, bpar, g)
 
       use mp, only: sum_allreduce
       use finite_differences, only: tridag
@@ -4036,7 +4036,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
 
       complex, dimension(:, :, :, :, :), allocatable :: flds
@@ -4112,7 +4112,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! first get phi_inh^{n+1}
       if (advfield_coll) then
-         call get_fields(g, phi, apar, dist='h')
+         call get_fields(g, phi, apar, bpar, dist='h')
          flds(:, :, :, :, 1) = phi
       end if
 
@@ -4168,7 +4168,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       ! RHS is g^{***} + Ze/T*<phi^{n+1}>*F0 + sum_jlm psi_jlm^{n+1}*delta_jl
       ! first two terms added via g_to_h subroutine
       if (advfield_coll) then
-         call g_to_h(g, phi, fphi)
+         call g_to_h(g, phi, bpar, fphi)
       end if
 
       ! add field particle contribution to RHS:
@@ -4236,7 +4236,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! get g^{n+1} from h^{n+1} and phi^{n+1}
       if (advfield_coll) then
-         call g_to_h(g, phi, -fphi)
+         call g_to_h(g, phi, bpar, -fphi)
       end if
 
       !fields_updated = .false.

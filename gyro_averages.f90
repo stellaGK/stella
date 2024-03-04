@@ -16,6 +16,7 @@ module gyro_averages
       module procedure gyro_average_kxky_local
       module procedure gyro_average_kxkyz_local
       module procedure gyro_average_kxkyzv_local
+      module procedure gyro_average_v_local
       module procedure gyro_average_vmu_local
       module procedure gyro_average_vmus_nonlocal
       module procedure gyro_average_ffs_kxky_local
@@ -24,9 +25,13 @@ module gyro_averages
    end interface gyro_average
 
    interface gyro_average_j1
+      module procedure gyro_average_j1_vmus_nonlocal
+      module procedure gyro_average_j1_local
       module procedure gyro_average_j1_kxky_local
       module procedure gyro_average_j1_kxkyz_local
+      module procedure gyro_average_j1_v_local
       module procedure gyro_average_j1_vmu_local
+      module procedure gyro_average_j1_kxkyzv_local
    end interface
 
    real, dimension(:, :, :, :), allocatable :: aj0x, aj1x
@@ -740,6 +745,18 @@ contains
 
    end subroutine gyro_average_ffs
 
+   subroutine gyro_average_v_local(distfn, imu, ikxkyz, gyro_distfn)
+
+      implicit none
+
+      complex, dimension(:), intent(in) :: distfn
+      integer, intent(in) :: imu, ikxkyz
+      complex, dimension(:), intent(out) :: gyro_distfn
+
+      gyro_distfn = aj0v(imu, ikxkyz) * distfn
+
+   end subroutine gyro_average_v_local
+
    subroutine gyro_average_vmu_local(distfn, ikxkyz, gyro_distfn)
 
       use vpamu_grids, only: nvpa
@@ -767,7 +784,33 @@ contains
       gyro_field = aj0x(iky, ikx, iz, :) * field
 
    end subroutine gyro_average_vmus_nonlocal
+   
+   subroutine gyro_average_j1_vmus_nonlocal(field, iky, ikx, iz, gyro_field)
 
+      use stella_layouts, only: vmu_lo
+
+      implicit none
+
+      complex, dimension(vmu_lo%llim_proc:), intent(in) :: field
+      integer, intent(in) :: iky, ikx, iz
+      complex, dimension(vmu_lo%llim_proc:), intent(out) :: gyro_field
+
+      gyro_field = aj1x(iky, ikx, iz, :) * field
+
+   end subroutine gyro_average_j1_vmus_nonlocal
+   
+   subroutine gyro_average_j1_local(field, iky, ikx, iz, ivmu, gyro_field)
+
+      implicit none
+
+      complex, intent(in) :: field
+      integer, intent(in) :: iky, ikx, iz, ivmu
+      complex, intent(out) :: gyro_field
+
+      gyro_field = aj1x(iky, ikx, iz, ivmu) * field
+
+   end subroutine gyro_average_j1_local
+   
    subroutine gyro_average_j1_kxky_local(field, iz, ivmu, gyro_field)
 
       implicit none
@@ -814,6 +857,45 @@ contains
 
    end subroutine gyro_average_j1_vmu_local
 
+   subroutine gyro_average_j1_v_local(distfn, imu, ikxkyz, gyro_distfn)
+
+      implicit none
+
+      complex, dimension(:), intent(in) :: distfn
+      integer, intent(in) :: imu, ikxkyz
+      complex, dimension(:), intent(out) :: gyro_distfn
+
+      gyro_distfn = aj1v(imu, ikxkyz) * distfn
+
+   end subroutine gyro_average_j1_v_local
+
+   subroutine gyro_average_j1_kxkyzv_local(field, gyro_field)
+      use mp, only: proc0, mp_abort
+      use zgrid, only: nzgrid
+      use stella_layouts, only: vmu_lo
+      use physics_flags, only: full_flux_surface
+      
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: field
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: gyro_field
+      integer :: ivmu
+
+      if (full_flux_surface) then
+         if (proc0) write (*, *) 'gyro_average_j1_kxkyzv_local does not support full_flux_surface'
+         call mp_abort('gyro_average_j1_kxkyzv_local does not support full_flux_surface. aborting')
+         return
+         !> if simulating a full flux surface, the alpha dependence present
+         !> in kperp makes gyro-averaging non-local in k-space
+         ! call gyro_average(field, gyro_field, j0_ffs)
+      else
+         !> if simulating a flux tube, a gyro-average is local in k-space
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            call gyro_average_j1(field(:, :, :, :, ivmu), ivmu, gyro_field(:, :, :, :, ivmu))
+         end do
+      end if
+   end subroutine 
+   
    subroutine band_lu_solve_ffs(lu, solvec)
 
       use common_types, only: gam0_ffs_type

@@ -3,7 +3,7 @@ program stella
    use redistribute, only: scatter
    use job_manage, only: time_message, checkstop, job_fork
    use job_manage, only: checktime
-   use run_parameters, only: nstep, tend, fphi, fapar
+   use run_parameters, only: nstep, tend
    use run_parameters, only: avail_cpu_time
    use stella_time, only: update_time, code_time, code_dt, checkcodedt
    use dist_redistribute, only: kxkyz2vmu
@@ -101,7 +101,7 @@ contains
       use fields, only: rescale_fields
       use stella_time, only: init_tstart, init_delt
       use stella_diagnostics, only: read_stella_diagnostics_knobs, init_stella_diagnostics
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use dist_fn_arrays, only: gnew
       use dist_fn, only: init_gxyz, init_dist_fn
       use dist_redistribute, only: init_redistribute
@@ -314,11 +314,11 @@ contains
 
       !> get initial field from initial distribution function
       if (debug) write (6, *) 'stella::init_stella::advance_fields'
-      call advance_fields(gnew, phi, apar, dist='gbar')
+      call advance_fields(gnew, phi, apar, bpar, dist='g')
 
       if (radial_variation) then
          if (debug) write (6, *) 'stella::init_stella::get_radial_correction'
-         call get_radial_correction(gnew, phi, dist='gbar')
+         call get_radial_correction(gnew, phi, dist='g')
       end if
 
       !> fill in the boundary regions using auxilliary simulations if using
@@ -328,13 +328,13 @@ contains
          call multibox_communicate(gnew)
          if (job == 1) then
             fields_updated = .false.
-            call advance_fields(gnew, phi, apar, dist='gbar')
+            call advance_fields(gnew, phi, apar, bpar, dist='g')
          end if
       else if (use_dirichlet_BC) then
          if (debug) write (6, *) 'stella::init_stella:multibox_radial_BC'
          call apply_radial_boundary_conditions(gnew)
          fields_updated = .false.
-         call advance_fields(gnew, phi, apar, dist='gbar')
+         call advance_fields(gnew, phi, apar, bpar, dist='g')
       end if
 
       !> rescale to phiinit if just beginning a new run

@@ -229,6 +229,7 @@ contains
       logical :: conservative_wgts
       real :: dum2
       complex, dimension(:, :, :, :), allocatable :: dum1
+      complex, dimension(:, :, :, :), allocatable :: dum3
       complex, dimension(:, :, :, :, :), allocatable :: field
       complex, dimension(:, :), allocatable :: temp_mat
 
@@ -253,6 +254,7 @@ contains
       end if
 
       allocate (dum1(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dum3(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
 
       ! set wgts to be equally spaced to ensure exact conservation properties
@@ -274,7 +276,7 @@ contains
       ! for phi equation, need 1-P[dhs/dphi]
       ! for upar equations, need -Us[dhs/dphi]
       ! for energy conservation, need -Qs[dhs/dphi]
-      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dist='h', skip_fsa=.true.)
+      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h', skip_fsa=.true.)
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -449,7 +451,7 @@ contains
       conservative_wgts = .false.
       call set_vpa_weights(conservative_wgts)
 
-      deallocate (dum1, field)
+      deallocate (dum1, dum3, field)
 
    end subroutine init_vpadiff_conserve
 
@@ -480,7 +482,7 @@ contains
       integer :: idx
       real :: dum2
       complex, dimension(:, :), allocatable :: temp_mat
-      complex, dimension(:, :, :, :), allocatable :: dum1
+      complex, dimension(:, :, :, :), allocatable :: dum1, dum3
       complex, dimension(:, :, :, :, :), allocatable :: field
 
       nresponse_mu = 1
@@ -502,6 +504,7 @@ contains
       end if
 
       allocate (dum1(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dum3(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -519,7 +522,7 @@ contains
       ! for phi equation, need 1-P[dhs/dphi]
       ! for uperp equations, need -Us[dhs/dphi]
       ! for energy conservation, need -Qs[dhs/dphi]
-      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dist='h', skip_fsa=.true.)
+      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h', skip_fsa=.true.)
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -694,7 +697,7 @@ contains
          deallocate (temp_mat)
       end if
 
-      deallocate (dum1, field)
+      deallocate (dum1, dum3, field)
 
    end subroutine init_mudiff_conserve
 
@@ -899,7 +902,7 @@ contains
 
    end subroutine get_temp_mu
 
-   subroutine advance_collisions_dougherty_explicit(g, phi, gke_rhs, time_collisions)
+   subroutine advance_collisions_dougherty_explicit(g, phi, bpar, gke_rhs, time_collisions)
 
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
@@ -924,7 +927,7 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gke_rhs
       real, dimension(:, :), intent(in out) :: time_collisions
 
@@ -964,7 +967,7 @@ contains
 
          ! switch from g = <f> to h = f + Z*e*phi/T * F0
          tmp_vmulo = g
-         call g_to_h(tmp_vmulo, phi, fphi, phi_corr_QN)
+         call g_to_h(tmp_vmulo, phi, bpar, fphi, phi_corr_QN)
 
          !handle gyroviscous term
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1056,7 +1059,7 @@ contains
       else
          ! switch from g = <f> to h = f + Z*e*phi/T * F0
          tmp_vmulo = g
-         call g_to_h(tmp_vmulo, phi, fphi)
+         call g_to_h(tmp_vmulo, phi, bpar, fphi)
 
          ! remap so that (vpa,mu) local
          if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
@@ -1500,21 +1503,21 @@ contains
 
    end subroutine conserve_energy_vmulo
 
-   subroutine advance_collisions_dougherty_implicit(phi, apar)
+   subroutine advance_collisions_dougherty_implicit(phi, apar, bpar)
 
       use zgrid, only: nzgrid
       use dist_fn_arrays, only: gvmu
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
 
-      if (vpa_operator) call advance_vpadiff_implicit(phi, apar, gvmu)
-      if (mu_operator) call advance_mudiff_implicit(phi, apar, gvmu)
+      if (vpa_operator) call advance_vpadiff_implicit(phi, apar, bpar, gvmu)
+      if (mu_operator) call advance_mudiff_implicit(phi, apar, bpar, gvmu)
 
    end subroutine advance_collisions_dougherty_implicit
 
-   subroutine advance_vpadiff_implicit(phi, apar, g)
+   subroutine advance_vpadiff_implicit(phi, apar, bpar, g)
 
       use mp, only: sum_allreduce
       use finite_differences, only: tridag
@@ -1538,7 +1541,7 @@ contains
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
 
       integer :: ikxkyz, iky, ikx, iz, it, is, ia
@@ -1569,7 +1572,7 @@ contains
 
       ! need to obtain phi^{n+1} and conservation terms using response matrix approach
       ! first get phi_inh^{n+1}
-      call get_fields(g, phi, apar, dist='h', skip_fsa=.true.)
+      call get_fields(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
       flds(:, :, :, :, 1) = phi
 
       idx = 2
@@ -1640,7 +1643,7 @@ contains
 
       ! RHS is g^{***} + Ze/T*<phi^{n+1}>*F0 + 2*dt*nu*J0*F0*(vpa*upar+(v^2-3/2)*temp)
       ! first two terms added via g_to_h subroutine
-      call g_to_h(g, phi, fphi)
+      call g_to_h(g, phi, bpar, fphi)
 
       allocate (tmp(nvpa, nmu))
 
@@ -1672,13 +1675,13 @@ contains
       end do
 
       ! now get g^{n+1} from h^{n+1} and phi^{n+1}
-      call g_to_h(g, phi, -fphi)
+      call g_to_h(g, phi, bpar, -fphi)
 
       deallocate (g_in)
 
    end subroutine advance_vpadiff_implicit
 
-   subroutine advance_mudiff_implicit(phi, apar, g)
+   subroutine advance_mudiff_implicit(phi, apar, bpar, g)
 
       use mp, only: sum_allreduce
       use finite_differences, only: tridag
@@ -1706,7 +1709,7 @@ contains
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
 
       integer :: ikxkyz, iky, ikx, iz, it, is, ia
@@ -1751,7 +1754,7 @@ contains
 
       ! need to obtain phi^{n+1} and conservation terms using response matrix approach
       ! first get phi_inh^{n+1}
-      call get_fields(g, phi, apar, dist='h', skip_fsa=.true.)
+      call get_fields(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
       flds(:, :, :, :, 1) = phi
 
       idx = 2
@@ -1822,7 +1825,7 @@ contains
 
       ! RHS is g^{***} + Ze/T*<phi^{n+1}>*F0 + ...
       ! first two terms added via g_to_h subroutine
-      call g_to_h(g, phi, fphi)
+      call g_to_h(g, phi, bpar, fphi)
 
       allocate (tmp(nvpa, nmu))
 
@@ -1858,7 +1861,7 @@ contains
       end do
 
       ! now get g^{n+1} from h^{n+1} and phi^{n+1}
-      call g_to_h(g, phi, -fphi)
+      call g_to_h(g, phi, bpar, -fphi)
 
       deallocate (g_in)
 

@@ -162,7 +162,7 @@ contains
 
    end subroutine finish_collisions
 
-   subroutine advance_collisions_explicit(g, phi, gke_rhs)
+   subroutine advance_collisions_explicit(g, phi, bpar, gke_rhs)
 
       use mp, only: mp_abort
       use physics_flags, only: full_flux_surface
@@ -174,7 +174,7 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gke_rhs
 
       if (full_flux_surface) then
@@ -182,14 +182,14 @@ contains
       end if
 
       if (collision_model == "dougherty") then
-         call advance_collisions_dougherty_explicit(g, phi, gke_rhs, time_collisions)
+         call advance_collisions_dougherty_explicit(g, phi, bpar, gke_rhs, time_collisions)
       else if (collision_model == "fokker-planck") then
-         call advance_collisions_fp_explicit(g, phi, gke_rhs, time_collisions)
+         call advance_collisions_fp_explicit(g, phi, bpar, gke_rhs, time_collisions)
       end if
 
    end subroutine advance_collisions_explicit
 
-   subroutine advance_collisions_implicit(mirror_implicit, phi, apar, g)
+   subroutine advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
 
       use mp, only: proc0
       use redistribute, only: gather, scatter
@@ -205,7 +205,7 @@ contains
       implicit none
 
       logical, intent(in) :: mirror_implicit
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar
+      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
 
       logical :: conservative_wgts
@@ -221,9 +221,9 @@ contains
       if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
 
       if (collision_model == "dougherty") then
-         call advance_collisions_dougherty_implicit(phi, apar)
+         call advance_collisions_dougherty_implicit(phi, apar, bpar)
       else if (collision_model == "fokker-planck") then
-         call advance_collisions_fp_implicit(phi, apar)
+         call advance_collisions_fp_implicit(phi, apar, bpar)
       end if
 
       if (.not. mirror_implicit) then
