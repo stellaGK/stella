@@ -263,7 +263,7 @@ contains
          is = is_idx(kxkyz_lo, ikxkyz)
          gvmu(:, :, ikxkyz) = phiinit * phi(iky, ikx, iz) / abs(spec(is)%z) &
                               * (den0 + 2.0 * zi * spread(vpa, 2, nmu) * upar0) &
-                              *spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is)
+                              * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is)
       end do
 
    end subroutine ginit_default
@@ -289,7 +289,7 @@ contains
       integer :: ikxkyz
       integer :: iz, iky, ikx, is, ia
 
-      ia = 1 
+      ia = 1
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iz = iz_idx(kxkyz_lo, ikxkyz)
@@ -297,7 +297,7 @@ contains
          iky = iky_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
          gvmu(:, :, ikxkyz) = exp(-zed(iz)**2) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) &
-              * spread(maxwell_vpa(:, is), 2, nmu)! * den0 / abs(spec(is)%z)
+                              * spread(maxwell_vpa(:, is), 2, nmu)! * den0 / abs(spec(is)%z)
       end do
 
    end subroutine ginit_adtest

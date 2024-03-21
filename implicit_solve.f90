@@ -583,9 +583,8 @@ contains
 
    end subroutine get_updated_pdf
 
-   
-   subroutine get_updated_pdf_gridpoints(iz, iv, is, sgn, ulim, iz1, iz2, wdrift_ext, pdf) 
-     use mp, only: proc0
+   subroutine get_updated_pdf_gridpoints(iz, iv, is, sgn, ulim, iz1, iz2, wdrift_ext, pdf)
+      use mp, only: proc0
       use zgrid, only: nzgrid, delzed
       use run_parameters, only: drifts_implicit
       use run_parameters, only: zed_upwind_plus, zed_upwind_minus
@@ -599,7 +598,7 @@ contains
       complex, dimension(:), intent(in) :: wdrift_ext
       complex, dimension(:), intent(in out) :: pdf
 
-      complex :: scratch 
+      complex :: scratch
 
       integer :: izext
       real :: stream_term
@@ -608,34 +607,34 @@ contains
 
       complex, dimension(:), allocatable :: alpha, beta
 
-      integer :: ia 
+      integer :: ia
 
       ia = 1
 
-      allocate(alpha(size(pdf))) ; alpha = 0.0
-      allocate(beta(size(pdf))) ; beta = 0.0
+      allocate (alpha(size(pdf))); alpha = 0.0
+      allocate (beta(size(pdf))); beta = 0.0
 
       tupwnd_p = time_upwind_plus
       zupwnd_p = zed_upwind_plus
       zupwnd_m = zed_upwind_minus
 
-      iz = - sgn * nzgrid
+      iz = -sgn * nzgrid
       stream_term = tupwnd_p * stream(ia, iz, iv, is) / delzed(0)
-      fac1 = - sgn * stream_term
+      fac1 = -sgn * stream_term
       fac2 = 1 + sgn * stream_term
-      alpha(iz2) = - fac1 / fac2
+      alpha(iz2) = -fac1 / fac2
       beta(iz2) = pdf(iz2) / fac2
 
       do izext = iz2 + sgn, iz1, sgn
          if (iz == sgn * nzgrid) then
-            iz = - sgn * nzgrid - sgn
+            iz = -sgn * nzgrid - sgn
          else
             iz = iz + sgn
          end if
 
          stream_term = tupwnd_p * stream(ia, iz, iv, is) / delzed(0)
 
-         if(izext .NE. iz1) then
+         if (izext /= iz1) then
             fac1 = -sgn * stream_term * zupwnd_p
             fac2 = 1 + sgn * stream_term * (zupwnd_p - zupwnd_m)
             fac3 = sgn * stream_term * zupwnd_m
@@ -646,14 +645,14 @@ contains
          end if
 
          scratch = fac2 + fac3 * alpha(izext - sgn)
-         alpha(izext) = - fac1 / scratch
-         beta(izext) = (pdf(izext) - fac3 * beta(izext - sgn) ) / scratch
+         alpha(izext) = -fac1 / scratch
+         beta(izext) = (pdf(izext) - fac3 * beta(izext - sgn)) / scratch
       end do
 
       iz = sgn * nzgrid
       pdf(iz1) = beta(iz1)
       do izext = iz1 - sgn, iz2, -sgn
-         if (iz == - sgn * nzgrid) then
+         if (iz == -sgn * nzgrid) then
             iz = sgn * nzgrid + sgn
          else
             iz = iz - sgn
@@ -662,8 +661,8 @@ contains
          pdf(izext) = alpha(izext) * pdf(izext + sgn) + beta(izext)
       end do
 
-      deallocate(alpha, beta) 
-    end subroutine get_updated_pdf_gridpoints
+      deallocate (alpha, beta)
+   end subroutine get_updated_pdf_gridpoints
 
    subroutine sweep_zed_zonal(iky, iv, is, sgn, g, llim)
 
