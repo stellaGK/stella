@@ -17,6 +17,8 @@ module finite_differences
    public :: fd_variable_upwinding_zed
    public :: fd_cell_centres_zed, cell_centres_zed
 
+   public :: fd_gridpoint_zed
+
    interface fd3pt
       module procedure fd3pt_real
       module procedure fd3pt_real_array
@@ -749,6 +751,53 @@ contains
       end if
 
    end subroutine fd_cell_centres_zed
+
+    subroutine fd_gridpoint_zed(llim, f, del, sgn, fl, fr, df)
+
+     use run_parameters, only: zed_upwind_plus, zed_upwind_minus
+
+     implicit none
+
+      integer, intent(in) :: llim
+      complex, dimension(llim:), intent(in) :: f
+      real, intent(in) :: del
+      integer, intent(in) :: sgn
+      complex, intent(in) :: fl, fr
+      complex, dimension(llim:), intent(out) :: df
+
+      integer :: i, ulim
+
+      ulim = size(f) + llim - 1
+
+      if (sgn > 0) then
+         i = ulim
+!         df(i) = (fr - f(i)) / del
+         df(i) = zed_upwind_plus * (fr - f(i)) / del &
+              + zed_upwind_minus * (f(i) - f(i-1)) / del
+         do i = ulim - 1, llim + 1, -1
+            df(i) = zed_upwind_plus * (f(i+1) - f(i)) / del &
+                 + zed_upwind_minus * (f(i) - f(i-1)) /(del)
+         end do
+         i = llim
+         df(i) = (f(i+1) - f(i)) / del
+      else
+         i = llim
+!         df(i) = (f(i) - fl) /del
+         df(i) = zed_upwind_plus * (f(i) - fl) /del &
+              + zed_upwind_minus * (f(i+1) - f(i)) / del
+         do i = llim + 1, ulim -1
+            df(i) = zed_upwind_plus * (f(i) - f(i-1)) / del &
+                 + zed_upwind_minus * (f(i+1) - f(i)) / del
+         end do
+         i = ulim
+         df(i) = (f(i) - f(i-1)) / del 
+!         df(i) = zed_upwind_plus * (f(i) - f(i-1))/del &
+!              + zed_upwind_minus * (fr - f(i)) /del
+
+!          df(i) = (f(i) - f(i-1)) / del
+      end if
+
+    end subroutine fd_gridpoint_zed
 
    ! cell_centres_zed takes f at z grid locations
    ! and returns f at cell centres

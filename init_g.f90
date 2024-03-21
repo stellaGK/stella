@@ -19,7 +19,7 @@ module init_g
                          ginitopt_noise = 2, ginitopt_restart_many = 3, &
                          ginitopt_kpar = 4, ginitopt_nltest = 5, &
                          ginitopt_kxtest = 6, ginitopt_rh = 7, &
-                         ginitopt_remap = 8
+                         ginitopt_remap = 8, ginitopt_adtest = 9
 
    real :: width0, phiinit, imfac, refac, zf_init
    real :: den0, upar0, tpar0, tperp0
@@ -128,6 +128,8 @@ contains
          call init_tstart(tstart, istep0, istatus)
          restarted = .true.
          scale = 1.
+      case (ginitopt_adtest)
+         call ginit_adtest
 !    case (ginitopt_nltest)
 !       call ginit_nltest
 !    case (ginitopt_kxtest)
@@ -149,7 +151,7 @@ contains
 
       implicit none
 
-      type(text_option), dimension(8), parameter :: ginitopts = &
+      type(text_option), dimension(9), parameter :: ginitopts = &
                                                     (/text_option('default', ginitopt_default), &
                                                       text_option('noise', ginitopt_noise), &
                                                       text_option('many', ginitopt_restart_many), &
@@ -157,7 +159,8 @@ contains
                                                       text_option('kxtest', ginitopt_kxtest), &
                                                       text_option('kpar', ginitopt_kpar), &
                                                       text_option('rh', ginitopt_rh), &
-                                                      text_option('remap', ginitopt_remap) &
+                                                      text_option('remap', ginitopt_remap), &
+                                                      text_option('advecton_test', ginitopt_adtest) &
                                                       /)
       character(20) :: ginit_option
       namelist /init_g_knobs/ ginit_option, width0, phiinit, chop_side, &
@@ -260,11 +263,44 @@ contains
          is = is_idx(kxkyz_lo, ikxkyz)
          gvmu(:, :, ikxkyz) = phiinit * phi(iky, ikx, iz) / abs(spec(is)%z) &
                               * (den0 + 2.0 * zi * spread(vpa, 2, nmu) * upar0) &
-                              * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is)
+                              *spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is)
       end do
 
    end subroutine ginit_default
 
+   subroutine ginit_adtest
+
+      use constants, only: zi
+      use species, only: spec
+      use zgrid, only: nzgrid, zed
+      use kt_grids, only: naky, nakx
+      use kt_grids, only: theta0
+      use kt_grids, only: reality, zonal_mode
+      use vpamu_grids, only: nvpa, nmu
+      use vpamu_grids, only: vpa
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use dist_fn_arrays, only: gvmu
+      use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
+      use ran, only: ranf
+
+      implicit none
+
+      logical :: right
+      integer :: ikxkyz
+      integer :: iz, iky, ikx, is, ia
+
+      ia = 1 
+
+      do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+         iz = iz_idx(kxkyz_lo, ikxkyz)
+         ikx = ikx_idx(kxkyz_lo, ikxkyz)
+         iky = iky_idx(kxkyz_lo, ikxkyz)
+         is = is_idx(kxkyz_lo, ikxkyz)
+         gvmu(:, :, ikxkyz) = exp(-zed(iz)**2) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) &
+              * spread(maxwell_vpa(:, is), 2, nmu)! * den0 / abs(spec(is)%z)
+      end do
+
+   end subroutine ginit_adtest
    ! initialize two kys and kx=0
 !   subroutine ginit_nltest
 

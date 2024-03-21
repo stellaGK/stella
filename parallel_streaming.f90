@@ -120,17 +120,17 @@ contains
          call init_invert_stream_operator
          if (.not. allocated(stream_c)) allocate (stream_c(-nzgrid:nzgrid, nvpa, nspec))
          stream_c = stream(1, :, :, :)
-         do is = 1, nspec
-            do iv = 1, nvpa
-               call center_zed(iv, stream_c(:, iv, is), -nzgrid)
-            end do
-         end do
+         ! do is = 1, nspec
+         !    do iv = 1, nvpa
+         !       call center_zed(iv, stream_c(:, iv, is), -nzgrid)
+         !    end do
+         ! end do
          if (.not. allocated(gradpar_c)) allocate (gradpar_c(-nzgrid:nzgrid, -1:1))
          gradpar_c = spread(gradpar, 2, 3)
          !> get gradpar centred in zed for negative vpa (affects upwinding)
-         call center_zed(1, gradpar_c(:, -stream_sign(1)), -nzgrid)
+!         call center_zed(1, gradpar_c(:, -stream_sign(1)), -nzgrid)
          !> get gradpar centred in zed for positive vpa (affects upwinding)
-         call center_zed(nvpa, gradpar_c(:, -stream_sign(nvpa)), -nzgrid)
+!         call center_zed(nvpa, gradpar_c(:, -stream_sign(nvpa)), -nzgrid)
          stream = spread(stream_c, 1, nalpha)
       end if
 
@@ -669,7 +669,7 @@ contains
    subroutine get_zed_derivative_extended_domain(iv, f, f_left, f_right, df_dz)
 
       use zgrid, only: delzed
-      use finite_differences, only: fd_cell_centres_zed
+      use finite_differences, only: fd_cell_centres_zed, fd_gridpoint_zed
 
       implicit none
 
@@ -678,7 +678,8 @@ contains
       complex, intent(in) :: f_left, f_right
       complex, dimension(:), intent(out) :: df_dz
 
-      call fd_cell_centres_zed(1, f, delzed(0), stream_sign(iv), f_left, f_right, df_dz)
+      call fd_gridpoint_zed(1, f, delzed(0), stream_sign(iv), f_left, f_right, df_dz)
+!      call fd_cell_centres_zed(1, f, delzed(0), stream_sign(iv), f_left, f_right, df_dz)
 
    end subroutine get_zed_derivative_extended_domain
 

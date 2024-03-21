@@ -68,14 +68,12 @@ contains
       ! we now have g_{inh}^{n+1}
       ! calculate associated fields (phi_{inh}^{n+1})
       call advance_fields(g, phi, apar, dist=trim(dist_choice))
-
       ! solve response_matrix*(phi^{n+1}-phi^{n*}) = phi_{inh}^{n+1}-phi^{n*}
       ! phi = phi_{inh}^{n+1}-phi^{n*} is input and overwritten by phi = phi^{n+1}-phi^{n*}
       if (use_deltaphi_for_response_matrix) phi = phi - phi_old
       if (proc0) call time_message(.false., time_implicit_advance(:, 3), ' (back substitution)')
       call invert_parstream_response(phi)
       if (proc0) call time_message(.false., time_implicit_advance(:, 3), ' (back substitution)')
-
       !> If using deltaphi formulation, must account for fact that phi = phi^{n+1}-phi^{n*}, but
       !> tupwnd_p should multiply phi^{n+1}
       if (use_deltaphi_for_response_matrix) phi = phi + phi_old
@@ -247,6 +245,8 @@ contains
          use parallel_streaming, only: center_zed
          use parallel_streaming, only: gradpar_c, stream_sign
 
+         use stella_geometry, only: gradpar
+
          integer :: izext
          complex :: scratch_left, scratch_right
 
@@ -261,7 +261,7 @@ contains
             ! center Maxwellian factor in mu
             ! and store in dummy variable z_scratch
             z_scratch = maxwell_mu(ia, :, imu, is)
-            call center_zed(iv, z_scratch, -nzgrid)
+!            call center_zed(iv, z_scratch, -nzgrid)
             ! multiply by Maxwellian factor
             do izext = 1, nz_ext
                rhs(izext) = rhs(izext) * z_scratch(iz_from_izext(izext))
@@ -279,14 +279,15 @@ contains
             do iz = -nzgrid, nzgrid
                z_scratch(iz) = z_scratch(iz) - 0.5 * dfneo_dvpa(ia, iz, ivmu) * spec(is)%zt
             end do
-            call center_zed(iv, z_scratch, -nzgrid)
+!            call center_zed(iv, z_scratch, -nzgrid)
          end if
 
-         if (stream_sign(iv) > 0) then
-            z_scratch = z_scratch * gradpar_c(:, -1) * code_dt * spec(is)%stm_psi0
-         else
-            z_scratch = z_scratch * gradpar_c(:, 1) * code_dt * spec(is)%stm_psi0
-         end if
+         z_scratch = z_scratch * gradpar * code_dt * spec(is)%stm_psi0
+         ! if (stream_sign(iv) > 0) then
+         !    z_scratch = z_scratch * gradpar_c(:, -1) * code_dt * spec(is)%stm_psi0
+         ! else
+         !    z_scratch = z_scratch * gradpar_c(:, 1) * code_dt * spec(is)%stm_psi0
+         ! end if
 
          do izext = 1, nz_ext
             rhs(izext) = -z_scratch(iz_from_izext(izext)) * rhs(izext)
@@ -312,7 +313,7 @@ contains
             scratch(izext) = zi * scratch(izext) * (akx(ikx) * wdriftx_phi(ia, iz, ivmu) &
                                                     + aky(iky) * (wdrifty_phi(ia, iz, ivmu) + wstar(ia, iz, ivmu)))
          end do
-         call center_zed(iv, scratch, 1, periodic(iky))
+!         call center_zed(iv, scratch, 1, periodic(iky))
 
          rhs = rhs + scratch
 
@@ -363,6 +364,7 @@ contains
       use extended_zgrid, only: map_to_iz_ikx_from_izext
       use extended_zgrid, only: periodic
 
+      use stella_geometry, only: gradpar
       implicit none
 
       complex, dimension(:), intent(in) :: pdf
@@ -404,11 +406,12 @@ contains
       constant_factor = -code_dt * spec(is)%stm_psi0 * vpa(iv) * time_upwind_minus
       ! use the correctly centred (b . grad z) pre-factor for this sign of vpa
       allocate (gradpar_fac(-nzgrid:nzgrid))
-      if (stream_sign(iv) > 0) then
-         gradpar_fac = gradpar_c(:, -1) * constant_factor
-      else
-         gradpar_fac = gradpar_c(:, 1) * constant_factor
-      end if
+      gradpar_fac = gradpar * constant_factor
+      ! if (stream_sign(iv) > 0) then
+      !    gradpar_fac = gradpar_c(:, -1) * constant_factor
+      ! else
+      !    gradpar_fac = gradpar_c(:, 1) * constant_factor
+      ! end if
 
       rhs = pdf
       if (drifts_implicit) then
@@ -421,7 +424,7 @@ contains
       end if
 
       ! cell-center the terms involving the pdf
-      call center_zed(iv, rhs, 1, periodic(iky))
+!      call center_zed(iv, rhs, 1, periodic(iky))
 
       ! construct the source term on the RHS of the GK equation coming from
       ! the pdf evaluated at the previous time level
@@ -488,7 +491,7 @@ contains
          allocate (wdrift_ext(size(pdf)))
          call map_to_extended_zgrid(it, ie, iky, spread(wdrift, 3, ntubes), wdrift_ext, ulim)
          ! NB: need to check if passing periodic(iky) is the right thing to do here
-         call center_zed(iv, wdrift_ext, 1, periodic(iky))
+!         call center_zed(iv, wdrift_ext, 1, periodic(iky))
       else
          ulim = size(pdf)
       end if
@@ -520,15 +523,17 @@ contains
          deallocate (pdf_cf)
       else
          ! specially treat the most upwind grid point
-         iz = sgn * nzgrid
-         wd_factor = 1.0
-         if (drifts_implicit) wd_factor = 1.0 + 0.5 * tupwnd_p * wdrift_ext(iz1)
-         stream_term = tupwnd_p * stream_c(iz, iv, is) / delzed(0)
-         fac1 = zupwnd_p * wd_factor + sgn * stream_term
-         pdf(iz1) = pdf(iz1) * 2.0 / fac1
-         ! now that we have the pdf at the most upwind point, sweep over the
-         ! rest of the extended zed domain to obtain the pdf(z)
-         call get_updated_pdf(iz, iv, is, sgn, ulim, iz1, iz2, wdrift_ext, pdf)
+         ! iz = sgn * nzgrid
+         ! wd_factor = 1.0
+         ! if (drifts_implicit) wd_factor = 1.0 + 0.5 * tupwnd_p * wdrift_ext(iz1)
+         ! stream_term = tupwnd_p * stream_c(iz, iv, is) / delzed(0)
+         ! fac1 = zupwnd_p * wd_factor + sgn * stream_term
+         ! pdf(iz1) = pdf(iz1) * 2.0 / fac1
+         ! ! now that we have the pdf at the most upwind point, sweep over the
+         ! ! rest of the extended zed domain to obtain the pdf(z)
+         ! call get_updated_pdf(iz, iv, is, sgn, ulim, iz1, iz2, wdrift_ext, pdf)
+
+         call get_updated_pdf_gridpoints(iz, iv, is, sgn, ulim, iz1, iz2, wdrift_ext, pdf)
       end if
 
       if (drifts_implicit) deallocate (wdrift, wdrift_ext)
@@ -577,6 +582,88 @@ contains
       end do
 
    end subroutine get_updated_pdf
+
+   
+   subroutine get_updated_pdf_gridpoints(iz, iv, is, sgn, ulim, iz1, iz2, wdrift_ext, pdf) 
+     use mp, only: proc0
+      use zgrid, only: nzgrid, delzed
+      use run_parameters, only: drifts_implicit
+      use run_parameters, only: zed_upwind_plus, zed_upwind_minus
+      use run_parameters, only: time_upwind_plus
+      use parallel_streaming, only: stream
+
+      implicit none
+
+      integer, intent(in out) :: iz
+      integer, intent(in) :: iv, is, sgn, ulim, iz1, iz2
+      complex, dimension(:), intent(in) :: wdrift_ext
+      complex, dimension(:), intent(in out) :: pdf
+
+      complex :: scratch 
+
+      integer :: izext
+      real :: stream_term
+      real :: tupwnd_p, zupwnd_p, zupwnd_m
+      complex :: fac1, fac2, fac3
+
+      complex, dimension(:), allocatable :: alpha, beta
+
+      integer :: ia 
+
+      ia = 1
+
+      allocate(alpha(size(pdf))) ; alpha = 0.0
+      allocate(beta(size(pdf))) ; beta = 0.0
+
+      tupwnd_p = time_upwind_plus
+      zupwnd_p = zed_upwind_plus
+      zupwnd_m = zed_upwind_minus
+
+      iz = - sgn * nzgrid
+      stream_term = tupwnd_p * stream(ia, iz, iv, is) / delzed(0)
+      fac1 = - sgn * stream_term
+      fac2 = 1 + sgn * stream_term
+      alpha(iz2) = - fac1 / fac2
+      beta(iz2) = pdf(iz2) / fac2
+
+      do izext = iz2 + sgn, iz1, sgn
+         if (iz == sgn * nzgrid) then
+            iz = - sgn * nzgrid - sgn
+         else
+            iz = iz + sgn
+         end if
+
+         stream_term = tupwnd_p * stream(ia, iz, iv, is) / delzed(0)
+
+         if(izext .NE. iz1) then
+            fac1 = -sgn * stream_term * zupwnd_p
+            fac2 = 1 + sgn * stream_term * (zupwnd_p - zupwnd_m)
+            fac3 = sgn * stream_term * zupwnd_m
+         else
+            fac1 = 0.0
+            fac2 = 1 + sgn * stream_term * (zupwnd_p - zupwnd_m)
+            fac3 = sgn * stream_term * zupwnd_m
+         end if
+
+         scratch = fac2 + fac3 * alpha(izext - sgn)
+         alpha(izext) = - fac1 / scratch
+         beta(izext) = (pdf(izext) - fac3 * beta(izext - sgn) ) / scratch
+      end do
+
+      iz = sgn * nzgrid
+      pdf(iz1) = beta(iz1)
+      do izext = iz1 - sgn, iz2, -sgn
+         if (iz == - sgn * nzgrid) then
+            iz = sgn * nzgrid + sgn
+         else
+            iz = iz - sgn
+         end if
+
+         pdf(izext) = alpha(izext) * pdf(izext + sgn) + beta(izext)
+      end do
+
+      deallocate(alpha, beta) 
+    end subroutine get_updated_pdf_gridpoints
 
    subroutine sweep_zed_zonal(iky, iv, is, sgn, g, llim)
 
