@@ -1100,7 +1100,7 @@ contains
          use zgrid, only: nzgrid
          use kt_grids, only: naky, nakx
          use vpamu_grids, only: integrate_species_ffs
-         use gyro_averages, only: gyro_average, j0_B_maxwell_ffs
+         use gyro_averages, only: gyro_average, j0_B_ffs
 
          use gyro_averages, only: j0_B_const
          use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -1130,7 +1130,7 @@ contains
                !> loop over super-index ivmu, which include vpa, mu and spec
                do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                   !> gyroaverage the distribution function g at each phase space location
-                  call gyro_average(g(:, :, iz, it, ivmu), gyro_g(:, :, ivmu), j0_B_maxwell_ffs(:, :, iz, ivmu))
+                  call gyro_average(g(:, :, iz, it, ivmu), gyro_g(:, :, ivmu), j0_B_ffs(:, :, iz, ivmu))
                end do
             end if
             !> integrate <g> over velocity space and sum over species within each processor
