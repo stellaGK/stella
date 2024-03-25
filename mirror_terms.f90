@@ -214,12 +214,12 @@ contains
 
       !> corresponds to sign of mirror term positive on RHS of equation
       a(2:, 1) = -0.5 * (1.0 - 2.0 * vpa_upwind) / dvpa
-      b(1:, 1) = -2.0 * vpa_upwind / dvpa
-      c(1:nvpa - 1, 1) = 0.5 * (1.0 + 2.0 * vpa_upwind) / dvpa
+      b(2:, 1) = -2.0 * vpa_upwind / dvpa
+      c(2:nvpa - 1, 1) = 0.5 * (1.0 + 2.0 * vpa_upwind) / dvpa
       !> must treat boundary carefully
       !> assumes fully upwinded at outgoing boundary
-      !b(1, 1) = -1.0 / dvpa
-      !c(1, 1) = 1.0 / dvpa
+      b(1, 1) = -1.0 / dvpa
+      c(1, 1) = 1.0 / dvpa
 
       !> corresponds to sign of mirror term negative on RHS of equation
       a(2:nvpa, -1) = -0.5 * (1.0 + 2.0 * vpa_upwind) / dvpa
@@ -227,8 +227,8 @@ contains
       c(:nvpa - 1, -1) = 0.5 * (1.0 - 2.0 * vpa_upwind) / dvpa
       !> must treat boundary carefully
       !> assumes fully upwinded at outgoing boundary
-      !a(nvpa, -1) = -1.0 / dvpa
-      !b(nvpa, -1) = 1.0 / dvpa
+      a(nvpa, -1) = -1.0 / dvpa
+      b(nvpa, -1) = 1.0 / dvpa
 
       !> time_upwind = 0.0 corresponds to centered in time
       !> time_upwind = 1.0 corresponds to fully implicit (upwinded)

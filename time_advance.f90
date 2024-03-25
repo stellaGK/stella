@@ -1351,6 +1351,7 @@ contains
 
          !> calculate d<phi>/dy in k-space
          call get_dgdy(g_gyro, g0)
+         
          !> transform d<phi>/dy from ky-space to y-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do iz = -nzgrid, nzgrid
