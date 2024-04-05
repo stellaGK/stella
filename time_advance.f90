@@ -1237,11 +1237,11 @@ contains
          if (include_collisions .and. .not. collisions_implicit) call advance_collisions_explicit(gin, phi, rhs)
 
          !> calculate and add parallel streaming term to RHS of GK eqn
-         if (include_parallel_streaming) then 
-            if ((.not. stream_implicit) .or. driftkinetic_implicit) then
-               if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
-               call advance_parallel_streaming_explicit(gin, phi, rhs)
-            end if
+         if (include_parallel_streaming .and. (.not. stream_implicit)) then
+!            if ((.not. stream_implicit) .or. driftkinetic_implicit) then
+!               if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
+            call advance_parallel_streaming_explicit(gin, phi, rhs)
+!            end if
          end if
          
          if (hyper_dissipation) then
@@ -2554,12 +2554,12 @@ contains
          ! get updated fields corresponding to advanced g
          ! note that hyper-dissipation and mirror advances
          ! depended only on g and so did not need field update
-         if(driftkinetic_implicit) then 
-            implicit_fields = .true.
-            call advance_fields(g, phi, apar, dist='gbar', implicit_solve = implicit_fields)
-         else
-            call advance_fields(g, phi, apar, dist='gbar')
-         end if
+!         if(driftkinetic_implicit) then 
+!            implicit_fields = .true.
+!            call advance_fields(g, phi, apar, dist='gbar', implicit_solve = implicit_fields)
+!         else
+!            call advance_fields(g, phi, apar, dist='gbar')
+!         end if
 
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term

@@ -368,7 +368,7 @@ contains
                   call transform_alpha2kalpha(aj1_alpha, aj1_kalpha)
 
                   j0_const_in_kalpha(iky, ikx) = aj0_kalpha(1)
-                  j0_B_const_in_kalpha(iky, ikx) = j0_B(1)
+                  j0_B_const_in_kalpha(iky, ikx) = j0_B_kalpha(1)
                   j0max_const_in_kalpha(iky, ikx) = j0max(1)
                   !> given the Fourier coefficients aj0_kalpha, calculate the minimum number of coefficients needed,
                   !> called j0_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance

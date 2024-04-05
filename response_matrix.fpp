@@ -495,7 +495,7 @@ contains
       phi_ext = 0.0
       ! how phi^{n+1} enters the GKE depends on whether we are solving for the
       ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
-      phi_ext(idx) = time_upwind_plus
+      phi_ext(idx) = 1.0 ! time_upwind_plus
 
       if (periodic(iky) .and. idx == 1) phi_ext(nz_ext) = phi_ext(1)
 
