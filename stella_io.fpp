@@ -116,15 +116,15 @@ contains
       real, dimension(:, :), allocatable :: rg
 
       ! Grids themselves
-      call neasyf_dim(file_id, "ky", values=aky, long_name="Wavenumber perpendicular to flux surface", units="1/rho_r")
-      call neasyf_dim(file_id, "kx", values=akx, long_name="Wavenumber in direction of grad alpha", units="1/rho_r")
+      call neasyf_dim(file_id, "ky", values=aky, long_name="Wavenumber perpendicular to flux surface", units="1/rho_ref")
+      call neasyf_dim(file_id, "kx", values=akx, long_name="Wavenumber in direction of grad alpha", units="1/rho_ref")
       call neasyf_dim(file_id, "tube", dim_size=ntubes)
       call neasyf_dim(file_id, "zed", values=zed)
       call neasyf_dim(file_id, "alpha", dim_size=nalpha)
       call neasyf_dim(file_id, "vpa", values=vpa)
       call neasyf_dim(file_id, "mu", values=mu)
       call neasyf_dim(file_id, "species", dim_size=nspec)
-      call neasyf_dim(file_id, "t", unlimited=.true., long_name="Time", units="L/vt")
+      call neasyf_dim(file_id, "t", unlimited=.true., long_name="Time", units="a_ref/v_ref")
 
       ! Dimensions for various string variables
       call neasyf_dim(file_id, "char10", dim_size=10, dimid=char10_dim)
@@ -354,7 +354,7 @@ contains
 
 # ifdef NETCDF
       call neasyf_write(ncid, "phi2", phi2, dim_names=["t"], &
-                        units="(T_ref/q rho_ref/L)**2", &
+                        units="(T_ref/q rho_ref/a_ref)**2", &
                         long_name="Amplitude of electrostatic potential", &
                         start=[nout])
 # endif
@@ -372,7 +372,7 @@ contains
 
 # ifdef NETCDF
       call neasyf_write(ncid, "apar2", apar2, dim_names=["t"], &
-                        units="(B_ref (rho_ref)**2 / L)**2", &
+                        units="(B_ref (rho_ref)**2 / a_ref)**2", &
                         long_name="Amplitude of parallel vector potential apar", &
                         start=[nout])
 # endif
@@ -390,7 +390,7 @@ contains
 
 # ifdef NETCDF
       call neasyf_write(ncid, "bpar2", bpar2, dim_names=["t"], &
-                        units="(B_ref rho_ref / L)**2", &
+                        units="(B_ref rho_ref / a_ref)**2", &
                         long_name="Amplitude of parallel magnetic field fluctuation bpar", &
                         start=[nout])
 # endif
@@ -456,7 +456,7 @@ contains
       call netcdf_write_complex(ncid, "omega", omega, &
                                 dim_names=["ri", "ky", "kx", "t "], &
                                 start=[1, 1, 1, nout], &
-                                long_name="Complex frequency", units="aref/vtref")
+                                long_name="Complex frequency", units="a_ref/v_ref")
 # endif
    end subroutine write_omega_nc
 
@@ -555,17 +555,17 @@ contains
       call neasyf_write(ncid, "pflx", pflx, &
                         dim_names=[character(len=7)::"species", "t"], &
                         start=[1, nout], &
-                        units="TBD", &
+                        units="n_ref * v_ref * (rho_ref/a_ref)^2 (with v_ref = sqrt(2 T_ref/m_ref))", &
                         long_name="Particle flux")
       call neasyf_write(ncid, "vflx", vflx, &
                         dim_names=[character(len=7)::"species", "t"], &
                         start=[1, nout], &
-                        units="TBD", &
+                        units="m_ref*n_ref*(v_ref)^2*(rho_ref/a_ref)^2", &
                         long_name="Momentum flux")
       call neasyf_write(ncid, "qflx", qflx, &
                         dim_names=[character(len=7)::"species", "t"], &
                         start=[1, nout], &
-                        units="TBD", &
+                        units="n_ref * T_ref * v_ref * (rho_ref/a_ref)^2", &
                         long_name="Heat flux")
 # endif
    end subroutine write_fluxes_nc
@@ -687,15 +687,15 @@ contains
       call neasyf_write(file_id, "mass", (spec%mass), dim_names=["species"], &
                         long_name="Atomic mass", units="AMU")
       call neasyf_write(file_id, "dens", (spec%dens), dim_names=["species"], &
-                        long_name="Normalised density", units="nref")
+                        long_name="Normalised density", units="n_ref")
       call neasyf_write(file_id, "temp", (spec%temp), dim_names=["species"], &
-                        long_name="Normalised temperature", units="Tref")
+                        long_name="Normalised temperature", units="T_ref")
       call neasyf_write(file_id, "tprim", (spec%tprim), dim_names=["species"], &
-                        long_name="Normalised temperature gradient scale length -1/rho dT/drho", units="1/aref")
+                        long_name="Normalised temperature gradient scale length -1/rho dT/drho", units="1/a_ref")
       call neasyf_write(file_id, "fprim", (spec%fprim), dim_names=["species"], &
-                        long_name="Normalised density gradient scale length -1/rho dn/drho", units="1/aref")
+                        long_name="Normalised density gradient scale length -1/rho dn/drho", units="1/a_ref")
       call neasyf_write(file_id, "vnew", vnew, dim_names=["species"], &
-                        long_name="Collisionality", units="vtref/aref")
+                        long_name="Collisionality", units="v_ref/a_ref")
       call neasyf_write(file_id, "type_of_species", (spec%type), dim_names=["species"], &
                         long_name="Species type: 1=ion, 2=electron, 3=slowing down, 4=trace")
 #endif
@@ -738,7 +738,7 @@ contains
       call neasyf_write(file_id, "jacob", jacob, dim_names=flux_surface_dim)
       call neasyf_write(file_id, "djacdrho", djacdrho, dim_names=flux_surface_dim)
       call neasyf_write(file_id, "beta", beta, &
-                        long_name="Reference beta", units="2.mu0.nref.Tref/B_a**2")
+                        long_name="Reference beta", units="2.mu0.n_ref.T_ref/B_a**2")
       call neasyf_write(file_id, "q", geo_surf%qinp, &
                         long_name="Local safety factor")
       call neasyf_write(file_id, "shat", geo_surf%shat, &
