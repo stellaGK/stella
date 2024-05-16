@@ -488,19 +488,22 @@ contains
                !> here write out the spectrum of contributions to the fluxes, after averaging over zed
                allocate (pflx_vs_kxky(naky, nakx, nspec))
                do is = 1, nspec
-                  call fieldline_average(pflx_kxkyz(:,:,:,:,is), pflx_vs_kxky(:,:,is))
+                  !call fieldline_average(pflx_kxkyz(:,:,:,:,is), pflx_vs_kxky(:,:,is))
+                  pflx_vs_kxky(:,:,is) = sum(sum(pflx_kxkyz(:,:,:,:,is),dim=4),dim=3)
                end do
                call write_kspectra_species_nc(nout, pflx_vs_kxky, "pflx_vs_kxky", "particle flux contributions by (kx,ky)")
                deallocate (pflx_vs_kxky)
                allocate (vflx_vs_kxky(naky, nakx, nspec))
                do is = 1, nspec
-                  call fieldline_average(vflx_kxkyz(:,:,:,:,is), vflx_vs_kxky(:,:,is))
+                  !call fieldline_average(vflx_kxkyz(:,:,:,:,is), vflx_vs_kxky(:,:,is))
+                  vflx_vs_kxky(:,:,is) = sum(sum(vflx_kxkyz(:,:,:,:,is),dim=4),dim=3)
                end do
                call write_kspectra_species_nc(nout, vflx_vs_kxky, "vflx_vs_kxky", "momentum flux contributions by (kx,ky)")
                deallocate (vflx_vs_kxky)
                allocate (qflx_vs_kxky(naky, nakx, nspec))
                do is = 1, nspec
-                  call fieldline_average(qflx_kxkyz(:,:,:,:,is), qflx_vs_kxky(:,:,is))
+                  !call fieldline_average(qflx_kxkyz(:,:,:,:,is), qflx_vs_kxky(:,:,is))
+                  qflx_vs_kxky(:,:,is) = sum(sum(qflx_kxkyz(:,:,:,:,is),dim=4),dim=3)
                end do
                call write_kspectra_species_nc(nout, qflx_vs_kxky, "qflx_vs_kxky", "heat flux contributions by (kx,ky)")
                deallocate (qflx_vs_kxky)
@@ -637,13 +640,13 @@ contains
             ! get particle flux
             call gyro_average(g(:, :, ikxkyz), ikxkyz, gtmp1)
             call get_one_flux(iky, iz, flx_norm(iz), gtmp1, phi(iky, ikx, iz, it), pflx(is))
-            call get_one_flux(iky, iz, flx_norm_partial, gtmp1, phi(iky, ikx, iz, it), pflx_vs_kxkyz(iky, ikx, iz, it, is))
+            call get_one_flux(iky, iz, flx_norm(iz), gtmp1, phi(iky, ikx, iz, it), pflx_vs_kxkyz(iky, ikx, iz, it, is))
 
             ! get heat flux
             ! NEEDS TO BE MODIFIED TO TREAT ENERGY = ENERGY(ALPHA)
             gtmp1 = gtmp1 * (spread(vpa**2, 2, nmu) + spread(vperp2(1, iz, :), 1, nvpa))
             call get_one_flux(iky, iz, flx_norm(iz), gtmp1, phi(iky, ikx, iz, it), qflx(is))
-            call get_one_flux(iky, iz, flx_norm_partial, gtmp1, phi(iky, ikx, iz, it), qflx_vs_kxkyz(iky, ikx, iz, it, is))
+            call get_one_flux(iky, iz, flx_norm(iz), gtmp1, phi(iky, ikx, iz, it), qflx_vs_kxkyz(iky, ikx, iz, it, is))
 
             ! get momentum flux
             ! parallel component
@@ -656,7 +659,7 @@ contains
             gtmp1 = gtmp2 + gtmp3
 
             call get_one_flux(iky, iz, flx_norm(iz), gtmp1, phi(iky, ikx, iz, it), vflx(is))
-            call get_one_flux(iky, iz, flx_norm_partial, gtmp1, phi(iky, ikx, iz, it), vflx_vs_kxkyz(iky, ikx, iz, it, is))
+            call get_one_flux(iky, iz, flx_norm(iz), gtmp1, phi(iky, ikx, iz, it), vflx_vs_kxkyz(iky, ikx, iz, it, is))
          end do
       end if
 
@@ -673,10 +676,12 @@ contains
             gtmp1 = -2.0*g(:, :, ikxkyz) * spec(is)%stm * spread(vpa, 2, nmu)
             call gyro_average(gtmp1, ikxkyz, gtmp2)
             call get_one_flux(iky, iz, flx_norm(iz), gtmp2, apar(iky, ikx, iz, it), pflx(is))
+            call get_one_flux(iky, iz, flx_norm(iz), gtmp2, apar(iky, ikx, iz, it), pflx_vs_kxkyz(iky, ikx, iz, it, is))
 
             ! Apar contribution to heat flux
             gtmp2 = gtmp2 * (spread(vpa**2, 2, nmu) + spread(vperp2(ia, iz, :), 1, nvpa))
             call get_one_flux(iky, iz, flx_norm(iz), gtmp2, apar(iky, ikx, iz, it), qflx(is))
+            call get_one_flux(iky, iz, flx_norm(iz), gtmp2, apar(iky, ikx, iz, it), qflx_vs_kxkyz(iky, ikx, iz, it, is))
 
             ! Apar contribution to momentum flux
             ! parallel component
@@ -694,6 +699,7 @@ contains
             gtmp1 = gtmp2 + gtmp3
 
             call get_one_flux(iky, iz, flx_norm(iz), gtmp1, apar(iky, ikx, iz, it), vflx(is))
+            call get_one_flux(iky, iz, flx_norm(iz), gtmp1, apar(iky, ikx, iz, it), vflx_vs_kxkyz(iky, ikx, iz, it, is))
          end do
       end if
       
@@ -710,10 +716,12 @@ contains
             gtmp1 = 4.0 * g(:, :, ikxkyz) * spec(is)%tz * spread(mu, 1, nvpa)
             call gyro_average_j1(gtmp1, ikxkyz, gtmp2)
             call get_one_flux(iky, iz, flx_norm(iz), gtmp2, bpar(iky, ikx, iz, it), pflx(is))
+            call get_one_flux(iky, iz, flx_norm(iz), gtmp2, bpar(iky, ikx, iz, it), pflx_vs_kxkyz(iky, ikx, iz, it, is))
 
             ! Bpar contribution to heat flux
             gtmp2 = gtmp2 * (spread(vpa**2, 2, nmu) + spread(vperp2(ia, iz, :), 1, nvpa))
             call get_one_flux(iky, iz, flx_norm(iz), gtmp2, bpar(iky, ikx, iz, it), qflx(is))
+            call get_one_flux(iky, iz, flx_norm(iz), gtmp2, bpar(iky, ikx, iz, it), qflx_vs_kxkyz(iky, ikx, iz, it, is))
 
             ! Bpar contribution to momentum flux
             ! parallel component
@@ -726,6 +734,7 @@ contains
             gtmp1 = gtmp2 + gtmp3
 
             call get_one_flux(iky, iz, flx_norm(iz), gtmp1, bpar(iky, ikx, iz, it), vflx(is))
+            call get_one_flux(iky, iz, flx_norm(iz), gtmp1, bpar(iky, ikx, iz, it), vflx_vs_kxkyz(iky, ikx, iz, it, is))
          end do
       end if
 
