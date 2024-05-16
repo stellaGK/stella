@@ -311,8 +311,8 @@ def plot_fields_kyspectra_with_time_nc(filename):
     from matplotlib.colors import to_hex
 
     stelladata = xr.open_dataset(filename+".out.nc")
-    phi2_vs_kxky, phi2_present, apar2_vs_kxky, apar2_present, bpar2_vs_kxky, bpar2_present, time = field_spectra_data(stelladata)
     phi2, apar2, apar2_present, bpar2, bpar2_present = field_data(stelladata)
+    phi2_vs_kxky, phi2_present, apar2_vs_kxky, apar2_present, bpar2_vs_kxky, bpar2_present, time = field_spectra_data(stelladata)
     nky, nkx, nzed, nvpa, nmu, nspec, ntubes, nalpha = dimension_sizes(stelladata)
     ky = stelladata["ky"].data
     stelladata.close()
@@ -372,10 +372,11 @@ def plot_fields_kyspectra_with_time_nc(filename):
 def plot_fields_fluxes_spectra_nc(filename):
     
     stelladata = xr.open_dataset(filename+".out.nc")
-    phi2_vs_kxky, phi2_present, apar2_vs_kxky, apar2_present, bpar2_vs_kxky, bpar2_present, time = field_spectra_data(stelladata)
     phi2, apar2, apar2_present, bpar2, bpar2_present = field_data(stelladata)
+    phi2_vs_kxky, phi2_present, apar2_vs_kxky, apar2_present, bpar2_vs_kxky, bpar2_present, time = field_spectra_data(stelladata)
     nky, nkx, nzed, nvpa, nmu, nspec, ntubes, nalpha = dimension_sizes(stelladata)
     pflx_vs_kxky, pflx_present, vflx_vs_kxky, vflx_present, qflx_vs_kxky, qflx_present = flux_spectra_data(stelladata)
+    pflx, vflx, qflx, time = flux_data(stelladata)
     ky = stelladata["ky"].data
     charge, mass, dens, temp, tprim, fprim, vnew, typeint, typestring = species_data(stelladata,filename)
     stelladata.close()
@@ -386,6 +387,11 @@ def plot_fields_fluxes_spectra_nc(filename):
     xlab = "$k_y \\rho_{\\rm ref}$"
     marker_list = ["k","b","r","g"]
     if phi2_present:
+        phi2_ky = np.sum(phi2_vs_kxky,axis=1)
+        print(phi2_ky[-1,:])
+        phi2_ky[:,1:] *= 2.0 # correct for mode amplitude def
+        #print("phi2[-1]: ",phi2[-1])
+        #print("sum(phi2_vs_kxky[-1]): ",np.sum(phi2_ky,axis=1)[-1])
         phi2_vs_ky = timeavg(np.sum(phi2_vs_kxky,axis=1),time, axis=0)
         xlist = [ky]
         ylist = [phi2_vs_ky]
@@ -419,7 +425,7 @@ def plot_fields_fluxes_spectra_nc(filename):
           legend_shadow=False,legend_frame=False)
     
     if pflx_present:
-        pflx_vs_ky = timeavg(np.sum(pflx_vs_kxky,axis=1),time, axis=0)
+        pflx_vs_ky = timeavg(np.sum(pflx_vs_kxky,axis=2),time, axis=0)
         xlist = [ky[1:] for ispec in range(0,nspec)]
         ylist = [pflx_vs_ky[ispec,1:] for ispec in range(0,nspec)]
         ylab_list = typestring
@@ -431,7 +437,7 @@ def plot_fields_fluxes_spectra_nc(filename):
           legend_shadow=False,legend_frame=False)
     
     if vflx_present:
-        vflx_vs_ky = timeavg(np.sum(vflx_vs_kxky,axis=1),time, axis=0)
+        vflx_vs_ky = timeavg(np.sum(vflx_vs_kxky,axis=2),time, axis=0)
         xlist = [ky[1:] for ispec in range(0,nspec)]
         ylist = [vflx_vs_ky[ispec,1:] for ispec in range(0,nspec)]
         ylab_list = typestring
@@ -444,7 +450,9 @@ def plot_fields_fluxes_spectra_nc(filename):
           legend_shadow=False,legend_frame=False)
     
     if qflx_present:
-        qflx_vs_ky = timeavg(np.sum(qflx_vs_kxky,axis=1),time, axis=0)
+        #print("qflx[-1]: ",qflx[-1,0])
+        #print("sum(qflx_vs_kxky[-1],kx): ",np.sum(np.sum(qflx_vs_kxky,axis=2),axis=2)[-1,0])
+        qflx_vs_ky = timeavg(np.sum(qflx_vs_kxky,axis=2),time, axis=0)
         xlist = [ky[1:] for ispec in range(0,nspec)]
         ylist = [qflx_vs_ky[ispec,1:] for ispec in range(0,nspec)]
         ylab_list = typestring
