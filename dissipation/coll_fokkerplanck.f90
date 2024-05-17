@@ -2593,6 +2593,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       end if
 
       allocate (dum1(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (dum3(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
       allocate (sumdelta(nvpa, nmu)); sumdelta = 0.
       allocate (gvmutr(nvpa, nmu))
