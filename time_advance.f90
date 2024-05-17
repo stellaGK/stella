@@ -962,8 +962,8 @@ contains
       !> start the timer for the explicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 8), ' explicit')
 
-      ! incoming pdf is g = <f>
-      ! if include_apar = T, convert from g to gbar,
+      ! incoming pdf is g = h - (Z F0/T) (J0 phi + 4 mu (T/Z) (J1/gamma) bpar)
+      ! if include_apar = T, convert from g to gbar = g + Z F0/T (2J0 vpa vth apar),
       ! as gbar appears in time derivative
       if (include_apar) then
          ! if the fields are not already updated, then update them
@@ -1268,7 +1268,8 @@ contains
       if (include_apar) then
          call advance_fields(pdf, phi, apar, bpar, dist='gbar')
 
-         ! convert from gbar to g = <f>, as all terms on RHS of GKE use g rather than gbar
+         ! convert from gbar to g = h - (Z F0/T)( J0 phi + 4 mu (T/Z) (J1/gamma) bpar),
+         ! as all terms on RHS of GKE use g rather than gbar
          call gbar_to_g(pdf, apar, 1.0)
       else
          call advance_fields(pdf, phi, apar, bpar, dist='g')
