@@ -28,6 +28,7 @@ contains
       use run_parameters, only: tupwnd_p => time_upwind_plus
       use run_parameters, only: tupwnd_m => time_upwind_minus
       use run_parameters, only: fphi
+      use run_parameters, only: split_z_advection, drifts_implicit
       use fields, only: advance_fields, fields_updated
       use extended_zgrid, only: map_to_extended_zgrid, map_from_extended_zgrid
       use extended_zgrid, only: nsegments, nzed_segment
@@ -69,21 +70,26 @@ contains
       ! calculate associated fields (phi_{inh}^{n+1})
       call advance_fields(g, phi, apar, dist=trim(dist_choice))
 
-      ! solve response_matrix*(phi^{n+1}-phi^{n*}) = phi_{inh}^{n+1}-phi^{n*}
-      ! phi = phi_{inh}^{n+1}-phi^{n*} is input and overwritten by phi = phi^{n+1}-phi^{n*}
-      if (use_deltaphi_for_response_matrix) phi = phi - phi_old
-      if (proc0) call time_message(.false., time_implicit_advance(:, 3), ' (back substitution)')
-      call invert_parstream_response(phi)
-      if (proc0) call time_message(.false., time_implicit_advance(:, 3), ' (back substitution)')
-
-      !> If using deltaphi formulation, must account for fact that phi = phi^{n+1}-phi^{n*}, but
-      !> tupwnd_p should multiply phi^{n+1}
-      if (use_deltaphi_for_response_matrix) phi = phi + phi_old
-      phi_source = tupwnd_m * phi_old + tupwnd_p * phi
-
-      ! solve for the final, updated pdf now that we have phi^{n+1}.
-      call update_pdf
-
+      ! if split_z_advection = .true. and drifts_implicit = .false., there is
+      ! no need for a response matrix approach, as phi does not appear in this part of the
+      ! implicit advance (it is instead placed with the mirror terms)
+      if ((.not. split_z_advection) .or. drifts_implicit) then
+         ! solve response_matrix*(phi^{n+1}-phi^{n*}) = phi_{inh}^{n+1}-phi^{n*}
+         ! phi = phi_{inh}^{n+1}-phi^{n*} is input and overwritten by phi = phi^{n+1}-phi^{n*}
+         if (use_deltaphi_for_response_matrix) phi = phi - phi_old
+         if (proc0) call time_message(.false., time_implicit_advance(:, 3), ' (back substitution)')
+         call invert_parstream_response(phi)
+         if (proc0) call time_message(.false., time_implicit_advance(:, 3), ' (back substitution)')
+         
+         !> If using deltaphi formulation, must account for fact that phi = phi^{n+1}-phi^{n*}, but
+         !> tupwnd_p should multiply phi^{n+1}
+         if (use_deltaphi_for_response_matrix) phi = phi + phi_old
+         phi_source = tupwnd_m * phi_old + tupwnd_p * phi
+         
+         ! solve for the final, updated pdf now that we have phi^{n+1}.
+         call update_pdf
+      end if
+         
       deallocate (phi_old, phi_source)
 
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Stream advance')
@@ -189,6 +195,7 @@ contains
       use run_parameters, only: driftkinetic_implicit, maxwellian_normalization
       use run_parameters, only: maxwellian_inside_zed_derivative
       use run_parameters, only: drifts_implicit
+      use run_parameters, only: split_z_advection
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use gyro_averages, only: gyro_average
       use neoclassical_terms, only: include_neoclassical_terms
@@ -232,7 +239,13 @@ contains
          call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, phi, scratch)
       end if
 
-      call add_streaming_contribution
+      ! if split_z_advection = .true., the d<phi>/dz term is grouped with the mirror term
+      ! instead of parallel streaming, so do not include here
+      if (split_z_advection) then
+         rhs = 0.0
+      else
+         call add_streaming_contribution
+      end if
       if (drifts_implicit) call add_drifts_contribution
 
       deallocate (z_scratch)
@@ -379,6 +392,8 @@ contains
       integer :: nz_ext, izext
       complex :: pdf_left, pdf_right
 
+      ! ia only used for drifts_implicit -- need to modify for FFS code if
+      ! using drifts_implicit
       ia = 1
       iv = iv_idx(vmu_lo, ivmu)
       is = is_idx(vmu_lo, ivmu)
@@ -396,7 +411,7 @@ contains
       ! and store values in scratch_left and scratch_right
       call fill_zext_ghost_zones(iky, pdf, pdf_left, pdf_right)
 
-      ! obtain the zed derivative of <phi> (stored in scratch) and store in rhs
+      ! obtain the zed derivative of the pdf at the previous time level
       allocate (dpdf_dz(nz_ext))
       call get_zed_derivative_extended_domain(iv, pdf, pdf_left, pdf_right, dpdf_dz)
 

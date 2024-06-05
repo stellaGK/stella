@@ -25,7 +25,8 @@ module run_parameters
    public :: maxwellian_normalization
    public :: time_upwind_plus, time_upwind_minus
    public :: zed_upwind_plus, zed_upwind_minus
-
+   public :: split_z_advection
+   
    private
 
    real :: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
@@ -40,6 +41,7 @@ module run_parameters
    logical :: maxwellian_inside_zed_derivative
    logical :: stream_matrix_inversion
    logical :: mirror_semi_lagrange, mirror_linear_interp
+   logical :: split_z_advection
    logical :: fields_kxkyz, mat_gen, mat_read
    logical :: ky_solve_real
    logical :: use_deltaphi_for_response_matrix
@@ -99,7 +101,7 @@ contains
          cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, &
          stream_implicit, mirror_implicit, driftkinetic_implicit, &
          drifts_implicit, use_deltaphi_for_response_matrix, &
-         maxwellian_normalization, &
+         maxwellian_normalization, split_z_advection, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
@@ -123,6 +125,7 @@ contains
          stream_matrix_inversion = .false.
          use_deltaphi_for_response_matrix = .false.
          maxwellian_normalization = .false.
+         split_z_advection = .false.
          delt_option = 'default'
          zed_upwind = 0.02
          vpa_upwind = 0.02
@@ -258,6 +261,7 @@ contains
       call broadcast(stream_matrix_inversion)
       call broadcast(use_deltaphi_for_response_matrix)
       call broadcast(maxwellian_normalization)
+      call broadcast(split_z_advection)
       call broadcast(zed_upwind)
       call broadcast(vpa_upwind)
       call broadcast(time_upwind)
