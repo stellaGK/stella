@@ -80,16 +80,16 @@ contains
          if (proc0) call time_message(.false., time_implicit_advance(:, 3), ' (back substitution)')
          call invert_parstream_response(phi)
          if (proc0) call time_message(.false., time_implicit_advance(:, 3), ' (back substitution)')
-         
+
          !> If using deltaphi formulation, must account for fact that phi = phi^{n+1}-phi^{n*}, but
          !> tupwnd_p should multiply phi^{n+1}
          if (use_deltaphi_for_response_matrix) phi = phi + phi_old
          phi_source = tupwnd_m * phi_old + tupwnd_p * phi
-         
+
          ! solve for the final, updated pdf now that we have phi^{n+1}.
          call update_pdf
       end if
-         
+
       deallocate (phi_old, phi_source)
 
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Stream advance')

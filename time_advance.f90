@@ -817,7 +817,7 @@ contains
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use vpamu_grids, only: vpa, mu
       use stella_geometry, only: bmag
-      
+
       implicit none
 
       integer, intent(in) :: istep
@@ -828,7 +828,7 @@ contains
 
       ! TMP FOR TESTING -- MAB
       integer :: ivmu, iz, iv, imu, is
-      
+
       !> unless running in multibox mode, no need to worry about
       !> mb_communicate calls as the subroutine is immediately exited
       !> if not in multibox mode.
@@ -933,7 +933,7 @@ contains
       !    end do
       !    write (*,*)
       ! end if
-      
+
    end subroutine advance_stella
 
    !> advance_explicit takes as input the guiding centre distribution function
@@ -2514,7 +2514,7 @@ contains
 !          else
 !             g_mirror => g
             !          end if
-            if (split_z_advection .and. .not.fields_updated) then
+            if (split_z_advection .and. .not. fields_updated) then
                call advance_fields(g, phi, apar, dist='gbar')
             end if
             call advance_mirror_implicit(collisions_implicit, g, phi)
@@ -2550,7 +2550,7 @@ contains
          end if
 
          if (mirror_implicit .and. include_mirror) then
-            if (split_z_advection .and. .not.fields_updated) then
+            if (split_z_advection .and. .not. fields_updated) then
                call advance_fields(g, phi, apar, dist='gbar')
             end if
             call advance_mirror_implicit(collisions_implicit, g, phi)

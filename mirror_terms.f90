@@ -595,13 +595,13 @@ contains
       use parallel_streaming, only: get_dgdz_centered, stream
       use species, only: spec
       use gyro_averages, only: gyro_average
-      
+
       implicit none
 
       logical, intent(in) :: collisions_implicit
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi
-      
+
       integer :: ikxyz, ikxkyz, ivmu
       integer :: iv, imu, iz, is, ikx, it, ia
       real :: tupwnd
@@ -617,18 +617,18 @@ contains
          ! calculate d<phi>/dz and store in g1
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             ! calculate <phi> and store in g0
-            call gyro_average(phi, ivmu, g0(:,:,:,:,ivmu))
-            call get_dgdz_centered(g0(:,:,:,:,ivmu), ivmu, g1(:,:,:,:,ivmu))
-            is = is_idx(vmu_lo,ivmu)
-            iv = iv_idx(vmu_lo,ivmu)
-            imu = imu_idx(vmu_lo,ivmu)
-            g1(:,:,:,:,ivmu) = g1(:,:,:,:,ivmu) * spec(is)%zt * maxwell_vpa(iv, is) &
-                 * spread(spread(spread(stream(ia, :, iv, is) * maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
+            call gyro_average(phi, ivmu, g0(:, :, :, :, ivmu))
+            call get_dgdz_centered(g0(:, :, :, :, ivmu), ivmu, g1(:, :, :, :, ivmu))
+            is = is_idx(vmu_lo, ivmu)
+            iv = iv_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
+            g1(:, :, :, :, ivmu) = g1(:, :, :, :, ivmu) * spec(is)%zt * maxwell_vpa(iv, is) &
+                                   * spread(spread(spread(stream(ia, :, iv, is) * maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
          end do
          allocate (phi_term(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
          call scatter(kxkyz2vmu, g1, phi_term)
       end if
-      
+
       ! FLAG -- STILL NEED TO IMPLEMENT VARIABLE TIME UPWINDING
       ! FOR FULL_FLUX_SURFACE
 
@@ -757,7 +757,7 @@ contains
                end do
             end do
          end if
-         
+
          ! then take the results and remap again so ky,kx,z local.
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          call gather(kxkyz2vmu, g0v, g)
@@ -766,7 +766,7 @@ contains
 
       deallocate (g0x, g0v)
       if (split_z_advection) deallocate (phi_term)
-      
+
       if (proc0) call time_message(.false., time_mirror, ' Mirror advance')
 
    end subroutine advance_mirror_implicit

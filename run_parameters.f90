@@ -26,7 +26,7 @@ module run_parameters
    public :: time_upwind_plus, time_upwind_minus
    public :: zed_upwind_plus, zed_upwind_minus
    public :: split_z_advection
-   
+
    private
 
    real :: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
