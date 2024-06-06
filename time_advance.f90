@@ -812,6 +812,12 @@ contains
       use sources, only: update_tcorr_krook, project_out_zero
       use mp, only: proc0, broadcast
 
+      ! TMP FOR TESTING -- MAB
+      use zgrid, only: nzgrid, zed
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use vpamu_grids, only: vpa, mu
+      use stella_geometry, only: bmag
+      
       implicit none
 
       integer, intent(in) :: istep
@@ -820,6 +826,9 @@ contains
       logical :: restart_time_step, time_advance_successful
       integer :: count_restarts
 
+      ! TMP FOR TESTING -- MAB
+      integer :: ivmu, iz, iv, imu, is
+      
       !> unless running in multibox mode, no need to worry about
       !> mb_communicate calls as the subroutine is immediately exited
       !> if not in multibox mode.
@@ -914,6 +923,17 @@ contains
       if (source_option_switch == source_option_krook) call update_tcorr_krook(gnew)
       if (include_qn_source) call update_quasineutrality_source
 
+      ! if (proc0) then
+      !    ivmu = vmu_lo%llim_proc
+      !    iv = iv_idx(vmu_lo, ivmu)
+      !    imu = imu_idx(vmu_lo, ivmu)
+      !    is = is_idx(vmu_lo, ivmu)
+      !    do iz = -nzgrid, nzgrid
+      !       write (*,*) zed(iz), real(gnew(1, 1, iz, 1, ivmu)), istep, vpa(iv), mu(imu), bmag(1,iz)
+      !    end do
+      !    write (*,*)
+      ! end if
+      
    end subroutine advance_stella
 
    !> advance_explicit takes as input the guiding centre distribution function
@@ -2425,6 +2445,7 @@ contains
       use dissipation, only: collisions_implicit, include_collisions
       use dissipation, only: advance_collisions_implicit
       use run_parameters, only: driftkinetic_implicit
+      use run_parameters, only: split_z_advection
       use flow_shear, only: advance_perp_flow_shear
       use multibox, only: RK_step
 
@@ -2492,8 +2513,11 @@ contains
 !             if (.not.alpha_space) call transform_ky2y (g, gy)
 !          else
 !             g_mirror => g
-!          end if
-            call advance_mirror_implicit(collisions_implicit, g)
+            !          end if
+            if (split_z_advection .and. .not.fields_updated) then
+               call advance_fields(g, phi, apar, dist='gbar')
+            end if
+            call advance_mirror_implicit(collisions_implicit, g, phi)
             fields_updated = .false.
          end if
 
@@ -2526,7 +2550,10 @@ contains
          end if
 
          if (mirror_implicit .and. include_mirror) then
-            call advance_mirror_implicit(collisions_implicit, g)
+            if (split_z_advection .and. .not.fields_updated) then
+               call advance_fields(g, phi, apar, dist='gbar')
+            end if
+            call advance_mirror_implicit(collisions_implicit, g, phi)
             fields_updated = .false.
          end if
 

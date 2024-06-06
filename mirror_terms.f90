@@ -571,7 +571,7 @@ contains
    end subroutine add_mirror_term_ffs
 
    ! advance mirror implicit solve dg/dt = mu/m * bhat . grad B (dg/dvpa + m*vpa/T * g)
-   subroutine advance_mirror_implicit(collisions_implicit, g)
+   subroutine advance_mirror_implicit(collisions_implicit, g, phi)
 
       use constants, only: zi
       use mp, only: proc0
@@ -582,31 +582,53 @@ contains
       use stella_layouts, only: iz_idx, is_idx, iv_idx, imu_idx
       use stella_transforms, only: transform_ky2y, transform_y2ky
       use zgrid, only: nzgrid, ntubes
-      use dist_fn_arrays, only: gvmu
+      use dist_fn_arrays, only: gvmu, g0, g1
       use physics_flags, only: full_flux_surface
-      use kt_grids, only: ny, nakx
+      use kt_grids, only: ny, nakx, naky
       use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: dvpa, maxwell_vpa, vpa
+      use vpamu_grids, only: dvpa, maxwell_vpa, vpa, maxwell_mu
       use neoclassical_terms, only: include_neoclassical_terms
       use run_parameters, only: vpa_upwind, time_upwind
       use run_parameters, only: mirror_semi_lagrange, maxwellian_normalization
+      use run_parameters, only: split_z_advection
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
-
+      use parallel_streaming, only: get_dgdz_centered, stream
+      use species, only: spec
+      use gyro_averages, only: gyro_average
+      
       implicit none
 
       logical, intent(in) :: collisions_implicit
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
-
+      complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi
+      
       integer :: ikxyz, ikxkyz, ivmu
-      integer :: iv, imu, iz, is, ikx, it
+      integer :: iv, imu, iz, is, ikx, it, ia
       real :: tupwnd
-      complex, dimension(:, :, :), allocatable :: g0v
+      complex, dimension(:, :, :), allocatable :: g0v, phi_term
       complex, dimension(:, :, :, :, :), allocatable :: g0x
 
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
       tupwnd = (1.0 - time_upwind) * 0.5
 
+      if (split_z_advection) then
+         ia = 1
+         ! calculate d<phi>/dz and store in g1
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            ! calculate <phi> and store in g0
+            call gyro_average(phi, ivmu, g0(:,:,:,:,ivmu))
+            call get_dgdz_centered(g0(:,:,:,:,ivmu), ivmu, g1(:,:,:,:,ivmu))
+            is = is_idx(vmu_lo,ivmu)
+            iv = iv_idx(vmu_lo,ivmu)
+            imu = imu_idx(vmu_lo,ivmu)
+            g1(:,:,:,:,ivmu) = g1(:,:,:,:,ivmu) * spec(is)%zt * maxwell_vpa(iv, is) &
+                 * spread(spread(spread(stream(ia, :, iv, is) * maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx), 4, ntubes)
+         end do
+         allocate (phi_term(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+         call scatter(kxkyz2vmu, g1, phi_term)
+      end if
+      
       ! FLAG -- STILL NEED TO IMPLEMENT VARIABLE TIME UPWINDING
       ! FOR FULL_FLUX_SURFACE
 
@@ -724,6 +746,7 @@ contains
                                                                                                      + 2.0 * vpa * gvmu(:, imu, ikxkyz))
                   else
                      g0v(:, imu, ikxkyz) = gvmu(:, imu, ikxkyz) + tupwnd * mirror(1, iz, imu, is) * g0v(:, imu, ikxkyz)
+                     if (split_z_advection) g0v(:, imu, ikxkyz) = g0v(:, imu, ikxkyz) + phi_term(:, imu, ikxkyz)
                   end if
 
                   ! invert_mirror_operator takes rhs of equation and
@@ -734,7 +757,7 @@ contains
                end do
             end do
          end if
-
+         
          ! then take the results and remap again so ky,kx,z local.
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          call gather(kxkyz2vmu, g0v, g)
@@ -742,7 +765,8 @@ contains
       end if
 
       deallocate (g0x, g0v)
-
+      if (split_z_advection) deallocate (phi_term)
+      
       if (proc0) call time_message(.false., time_mirror, ' Mirror advance')
 
    end subroutine advance_mirror_implicit

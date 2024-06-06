@@ -13,7 +13,8 @@ module parallel_streaming
    public :: stream_rad_var2
    public :: center_zed, get_dzed
    public :: get_zed_derivative_extended_domain
-
+   public :: get_dgdz_centered
+   
    private
 
    interface center_zed
