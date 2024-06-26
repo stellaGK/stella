@@ -210,18 +210,17 @@ contains
 
          if (fapar > -1.0 .or. fbpar > -1.0) then
             write (*, *) '!!!WARNING!!!'
-            write (*, *) 'fapar and fbpar are deprecated: use include_apar instead.'
+            write (*, *) 'fapar and fbpar are deprecated:'
+            write (*, *) 'use include_apar and include_bpar instead in namelist physics_flags.'
             if (fapar > epsilon(0.0)) then
-               write (*, *) 'setting include_apar = .true.'
-               include_apar = .true.
-            else
-               write (*, *) 'setting include_apar = .false.'
-               include_apar = .false.
+               write (*, *) 'to include apar, set include_apar = .true.'
             end if
             if (fbpar > epsilon(0.0)) then
-               write (*, *) 'bpar evolution not currently supported.'
+               write (*, *) 'to include bpar, set include_bpar = .true.'
             end if
+            write (*, *) 'Aborting simulation.'
             write (*, *) '!!!WARNING!!!'
+            error = .true.
          end if
 
          ! semi-lagrange advance of mirror term is not supported for EM simulations
@@ -296,7 +295,7 @@ contains
       call broadcast(mat_read)
       ! include_apar broadcast in case it is reset according to specification of
       ! (deprecated) fapar variable
-      call broadcast(include_apar)
+      ! call broadcast(include_apar)
 
       ! calculate some useful derived quantities that are used repeatedly across modules
       time_upwind_plus = 0.5 * (1.0 + time_upwind)
