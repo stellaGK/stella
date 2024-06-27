@@ -13,7 +13,7 @@ create-test-virtualenv:
 	"
 
 # Run the integrated tests
-check-integrated: check-integrated-dependencies stella
+check-integrated: check-integrated-dependencies $(GK_HEAD_DIR)/stella
 	@echo "Running: integrated tests"
 	@pytest
 
