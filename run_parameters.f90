@@ -17,7 +17,7 @@ module run_parameters
    public :: ky_solve_radial, ky_solve_real
    public :: maxwellian_inside_zed_derivative
    public :: stream_matrix_inversion
-   public :: mirror_semi_lagrange, mirror_linear_interp
+   public :: mirror_semi_lagrange, mirror_linear_interp, mirror_fourier
    public :: zed_upwind, vpa_upwind, time_upwind
    public :: fields_kxkyz, mat_gen, mat_read
    public :: rng_seed
@@ -38,7 +38,7 @@ module run_parameters
    logical :: fully_explicit, fully_implicit
    logical :: maxwellian_inside_zed_derivative
    logical :: stream_matrix_inversion
-   logical :: mirror_semi_lagrange, mirror_linear_interp
+   logical :: mirror_semi_lagrange, mirror_linear_interp, mirror_fourier
    logical :: fields_kxkyz, mat_gen, mat_read
    logical :: ky_solve_real
    logical :: use_deltaphi_for_response_matrix
@@ -98,7 +98,7 @@ contains
          stream_implicit, mirror_implicit, &
          drifts_implicit, use_deltaphi_for_response_matrix, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
-         mirror_semi_lagrange, mirror_linear_interp, &
+         mirror_semi_lagrange, mirror_linear_interp, mirror_fourier, &
          zed_upwind, vpa_upwind, time_upwind, &
          fields_kxkyz, mat_gen, mat_read, rng_seed, &
          ky_solve_radial, ky_solve_real
@@ -116,6 +116,7 @@ contains
          maxwellian_inside_zed_derivative = .false.
          mirror_semi_lagrange = .true.
          mirror_linear_interp = .false.
+         mirror_fourier = .false.
          stream_matrix_inversion = .false.
          use_deltaphi_for_response_matrix = .false.
          delt_option = 'default'
@@ -234,6 +235,7 @@ contains
       call broadcast(maxwellian_inside_zed_derivative)
       call broadcast(mirror_semi_lagrange)
       call broadcast(mirror_linear_interp)
+      call broadcast(mirror_fourier)
       call broadcast(stream_matrix_inversion)
       call broadcast(use_deltaphi_for_response_matrix)
       call broadcast(zed_upwind)

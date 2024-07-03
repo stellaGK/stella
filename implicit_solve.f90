@@ -25,8 +25,6 @@ contains
       use dist_fn_arrays, only: g1
       use run_parameters, only: stream_matrix_inversion
       use run_parameters, only: use_deltaphi_for_response_matrix
-!      use run_parameters, only: tupwnd_p => time_upwind_plus
-!      use run_parameters, only: tupwnd_m => time_upwind_minus
       use run_parameters, only: fphi
       use fields, only: advance_fields, fields_updated
       use extended_zgrid, only: map_to_extended_zgrid, map_from_extended_zgrid
@@ -62,16 +60,14 @@ contains
 
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Implicit time advance')
 
-      tupwnd_p = 1.0
-      tupwnd_m = 0.0 
-
       !> dist_choice indicates whether the non-Boltzmann part of the pdf (h) is evolved
       !> in parallel streaming or if the guiding centre distribution (g = <f>) is evolved
       allocate (phi_source(naky, nakx, -nzgrid:nzgrid, ntubes))
       dist_choice = 'gbar'
 
       if (driftkinetic_implicit) then 
-         call get_phi_source_ffs_implicit (phi, g, phi_source_ffs) 
+!!         call get_phi_source_ffs_implicit (phi, g, phi_source_ffs) 
+         phi_source_ffs = 0.0 
          implicit_solve = .true. 
          fields_updated = .false.  
          call advance_fields(g, phi, apar, dist='gbar', implicit_solve=.true.)
@@ -308,9 +304,11 @@ contains
          !> by the piece of J0 that is constant across fieldlines. This is done to 
          !> maximise the component of <phi> that is being treated implcitily
          !> without coupling together different y-modes
-         do izext = 1, nz_ext
-            scratch(izext) = phi(izext) * j0_const(iky, ikx_from_izext(izext), iz_from_izext(izext), ivmu)
-         end do
+!         do izext = 1, nz_ext
+!            scratch(izext) = phi(izext) * j0_const(iky, ikx_from_izext(izext), iz_from_izext(izext), ivmu)
+!         end do
+         !! GA 
+         scratch = phi 
       else
       !> get <phi>
          call gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, phi, scratch)
@@ -517,8 +515,12 @@ contains
       call get_zed_derivative_extended_domain(iv, pdf, pdf_left, pdf_right, dpdf_dz)
 
       ! compute the z-independent factor appearing in front of the d(pdf)/dz term on the RHS of the Gk equation
-      constant_factor = -code_dt * spec(is)%stm_psi0 * vpa(iv) 
-!      constant_factor = 0.0 !-code_dt * spec(is)%stm_psi0 * vpa(iv) * time_upwind_minus
+!!      constant_factor = -code_dt * spec(is)%stm_psi0 * vpa(iv) * time_upwind_minus
+      if(present(source_ffs)) then
+         constant_factor = -code_dt * spec(is)%stm_psi0 * vpa(iv)
+      else
+         constant_factor = -code_dt * spec(is)%stm_psi0 * vpa(iv) * time_upwind_minus
+      end if
       ! use the correctly centred (b . grad z) pre-factor for this sign of vpa
       allocate (gradpar_fac(-nzgrid:nzgrid))
       if (stream_sign(iv) > 0) then
@@ -549,11 +551,11 @@ contains
       ! the pdf evaluated at the previous time level
       if(present(source_ffs)) then 
          do izext = 1, nz_ext
-            rhs(izext) = rhs(izext) + gradpar_fac(iz_from_izext(izext)) * source_center(izext) 
+            rhs(izext) = rhs(izext) + gradpar_fac(iz_from_izext(izext)) * (source_center(izext) + dpdf_dz(izext) * time_upwind_minus)
          end do
       else
          do izext = 1, nz_ext
-            rhs(izext) = rhs(izext)! + gradpar_fac(iz_from_izext(izext)) * dpdf_dz(izext)
+            rhs(izext) = rhs(izext) + gradpar_fac(iz_from_izext(izext)) * dpdf_dz(izext)
          end do
       end if
 
@@ -603,7 +605,7 @@ contains
       ! avoid repeated calculation of constants
       zupwnd_p = 2.0 * zed_upwind_plus
       zupwnd_m = 2.0 * zed_upwind_minus
-      tupwnd_p = 2.0! * time_upwind_plus
+      tupwnd_p = 2.0 * time_upwind_plus
 
       ! if treating magentic drifts implicitly in time,
       ! get the drift frequency on the extended zed grid
@@ -687,7 +689,7 @@ contains
       real :: tupwnd_p, zupwnd_p, zupwnd_m
       complex :: wd_factor, fac1, fac2
 
-      tupwnd_p = 2.0! * time_upwind_plus
+      tupwnd_p = 2.0 * time_upwind_plus
       zupwnd_p = 2.0 * zed_upwind_plus
       zupwnd_m = 2.0 * zed_upwind_minus
 
@@ -750,10 +752,10 @@ contains
          else
             iz = iz - sgn
          end if
-         fac1 = 1.0 + zed_upwind + sgn * 2.0 * stream_c(iz, iv, is) / delzed(0)
-         fac2 = 1.0 - zed_upwind - sgn * 2.0 * stream_c(iz, iv, is) / delzed(0)
-!         fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
-!         fac2 = 1.0 - zed_upwind - sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
+!!         fac1 = 1.0 + zed_upwind + sgn * 2.0 * stream_c(iz, iv, is) / delzed(0)
+!!         fac2 = 1.0 - zed_upwind - sgn * 2.0 * stream_c(iz, iv, is) / delzed(0)
+         fac1 = 1.0 + zed_upwind + sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
+         fac2 = 1.0 - zed_upwind - sgn * (1.0 + time_upwind) * stream_c(iz, iv, is) / delzed(0)
          gpi(izext) = (-gpi(izext + sgn) * fac2 + 2.0 * g(izext)) / fac1
          gcf(izext) = -gcf(izext + sgn) * fac2 / fac1
       end do

@@ -360,6 +360,7 @@ contains
                      j0max = aj0_alpha(ia) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
                      aj1_alpha(ia) = j1(arg)
                   end do
+
                   !> fourier transform aj0_alpha and j0_B.
                   !> note that fourier coefficients aj0_kalpha and j0_B_kalpha have
                   !> been filtered to avoid aliasing
@@ -370,6 +371,7 @@ contains
                   j0_const_in_kalpha(iky, ikx) = aj0_kalpha(1)
                   j0_B_const_in_kalpha(iky, ikx) = j0_B_kalpha(1)
                   j0max_const_in_kalpha(iky, ikx) = j0max(1)
+                     
                   !> given the Fourier coefficients aj0_kalpha, calculate the minimum number of coefficients needed,
                   !> called j0_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
                   !if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::find_max_required_kalpha_index'
@@ -393,7 +395,7 @@ contains
                   j0_ffs(iky, ikx, iz, ivmu)%fourier = aj0_kalpha(:j0_ffs(iky, ikx, iz, ivmu)%max_idx)
                   !                   call test_ffs_bessel_coefs (j0_ffs(iky,ikx,iz,ivmu)%fourier, aj0_alpha, iky, ikx, iz, j0_ffs_unit, ivmu)
                   if (.not. associated(j0_B_ffs(iky, ikx, iz, ivmu)%fourier)) &
-                     allocate (j0_B_ffs(iky, ikx, iz, ivmu)%fourier(j0_B_ffs(iky, ikx, iz, ivmu)%max_idx))
+                       allocate (j0_B_ffs(iky, ikx, iz, ivmu)%fourier(j0_B_ffs(iky, ikx, iz, ivmu)%max_idx))
                   !> fill the array with the requisite coefficients
                   j0_B_ffs(iky, ikx, iz, ivmu)%fourier = j0_B_kalpha(:j0_B_ffs(iky, ikx, iz, ivmu)%max_idx)
                   !                   call test_ffs_bessel_coefs (j0_B_ffs(iky,ikx,iz,ivmu)%fourier, j0_B, iky, ikx, iz, j0_B_ffs_unit, ivmu)

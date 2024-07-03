@@ -61,7 +61,7 @@ contains
       use physics_flags, only: include_parallel_streaming, radial_variation
 
       use run_parameters, only: tupwnd_m => time_upwind_minus
-
+      use mp, only: proc0
       implicit none
 
       integer :: iv, imu, is, ivmu
@@ -227,7 +227,9 @@ contains
       use fields, only: advance_fields, fields_updated
       use fields_arrays, only: apar
       use gyro_averages, only: j0_ffs, j0_const
-
+      use kt_grids, only: aky, akx
+      use zgrid, only: nztot
+      use dist_fn_arrays, only: kperp2
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -239,11 +241,12 @@ contains
       complex, dimension(:, :, :, :), allocatable :: g0y, g1y
       complex, dimension(:, :), allocatable :: g0_swap
 
-!      complex, dimension(:, :, :, :), allocatable :: dgphi_dz_correction
-!      complex, dimension(:, :, :, :), allocatable :: g1y_correction
+      complex, dimension(:, :, :, :), allocatable :: dgphi1_dz, dgphi2_dz, dgphi3_dz
+      complex, dimension(:, :, :, :), allocatable :: g1y_correction, g2y_correction, g3y_correction
       complex, dimension(:, :, :, :), allocatable :: phi1
       logical :: implicit_solve = .true.
 
+      integer :: iky, ikx 
       !> if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
       !> if full flux surface (flux annulus), will need to calculate in y space
 
@@ -260,10 +263,23 @@ contains
          allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
          allocate (g1y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
          
-!         if (driftkinetic_implicit) then
-!            allocate (dgphi_dz_correction(naky, nakx, -nzgrid:nzgrid, ntubes))
-!            allocate (g1y_correction(ny, ikx_max, -nzgrid:nzgrid, ntubes))
-!         end if
+         if (driftkinetic_implicit) then
+            allocate (dgphi1_dz(naky, nakx, -nzgrid:nzgrid, ntubes)) 
+            allocate (g1y_correction(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g1y_correction = 0.0
+
+            allocate (dgphi2_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
+            allocate (g2y_correction(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g2y_correction = 0.0 
+
+            allocate (dgphi3_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
+            allocate (g3y_correction(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g3y_correction = 0.0
+         end if
+      end if
+
+      if (driftkinetic_implicit) then
+         allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes)) ; phi1 = 0.0
+         implicit_solve = .true.
+         fields_updated = .false.
+         call advance_fields(g, phi1, apar, dist='gbar', implicit_solve=.true.)
       end if
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -279,22 +295,44 @@ contains
             call gyro_average(phi, ivmu, g0(:, :, :, :))
          end if
 
-!         if (driftkinetic_implicit) call get_dgdz_centered(phi1, ivmu, dgphi_dz_correction)
-
+         if (driftkinetic_implicit) then 
+            call get_dgdz_centered(phi, ivmu, dgphi1_dz) !, stream_correction_sign)
+            dgphi2_dz = dgphi1_dz
+            ! do iky = 1, naky 
+               ! do ikx = 1,nakx
+                  ! if(any(kperp2(iky,ikx,:,:) < 0.0085)) then 
+                  !    dgphi2_dz = 0.
+                  ! else
+                  !    dgphi2_dz = dgphi1_dz
+                  ! end if
+               ! end do
+            ! end do
+         end if
          !> get d<phi>/dz, with z the parallel coordinate and store in dgphi_dz
          !> note that this should be a centered difference to avoid numerical
          !> unpleasantness to do with inexact cancellations in later velocity integration
          !> see appendix of the stella JCP 2019 for details
          !!call get_dgdz_centered(g0, ivmu, dgphi_dz)
-!         if(driftkinetic_implicit) then
-!            !> stream sign may be different for the correction piece compared with regular streaming coefficient
-!            call get_dgdz_centered(g0, ivmu, dgphi_dz_correction)
-!         else
-!            call get_dgdz_centered(g0, ivmu, dgphi_dz)
-!         end if
+ !        if(driftkinetic_implicit) then
+            !> stream sign may be different for the correction piece compared with regular streaming coefficient
+ !           call get_dgdz_centered(g0, ivmu, dgphi_dz_correction)
+ !        else
+ !           call get_dgdz_centered(g0, ivmu, dgphi_dz)
+ !        end if
 
          call get_dgdz_centered(g0, ivmu, dgphi_dz)
-
+         if (driftkinetic_implicit) then
+            ! do iky = 1,naky
+            !    do ikx =1,nakx
+            !       if(any(kperp2(iky,ikx,:,:) < 0.0085)) then
+            !          dgphi3_dz = 0.
+            !       else
+            !          dgphi3_dz = dgphi_dz
+            !       end if
+            !    end do
+            ! end do
+            dgphi3_dz = dgphi_dz
+         end if
          !> compute dg/dz in k-space and store in g0
          call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
 
@@ -309,21 +347,40 @@ contains
 
                   !> get d<phi>/dz in real space
                   call swap_kxky(dgphi_dz(:, :, iz, it), g0_swap)
-                  call transform_ky2y(g0_swap, g1y(:, :, iz, it))
+                  call transform_ky2y(g0_swap, g1y(:, :, iz, it))                  
+                  
+                  if(driftkinetic_implicit) then 
+                     call swap_kxky(dgphi1_dz(:, :, iz, it), g0_swap)
+                     call transform_ky2y(g0_swap, g1y_correction(:, :, iz, it))
+
+                     call swap_kxky(dgphi2_dz(:, :, iz, it), g0_swap)
+                     call transform_ky2y(g0_swap, g2y_correction(:, :, iz, it))
+                     call swap_kxky(dgphi3_dz(:, :, iz, it), g0_swap)
+                     call transform_ky2y(g0_swap, g3y_correction(:, :, iz, it))
+                  end if
+
                end do
             end do
             ! ! over-write g0y with F * d/dz (g/F) + ZeF/T * d<phi>/dz (or <phi>-phi for driftkinetic_implicit).
             if (driftkinetic_implicit) then
-               ! g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt &
-               !      * maxwell_vpa(iv, is) * spread(spread(maxwell_mu(:, :, imu, is), 2, ikx_max),4, ntubes) * maxwell_fac(is)
-               ! call add_stream_term_ffs_correction(g0y, ivmu, gout(:, :, :, :, ivmu))
+               g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt &
+                    * maxwell_vpa(iv, is) * spread(spread(maxwell_mu(:, :, imu, is), 2, ikx_max),4, ntubes) * maxwell_fac(is)
+               call add_stream_term_ffs_correction(g0y, ivmu, gout(:, :, :, :, ivmu))
                
+              g1y_correction = - spec(is)%zt * maxwell_fac(is) *  maxwell_vpa(iv, is) * &
+                   spread(spread(maxwell_mu_avg(:, :, imu, is), 2, ikx_max),4, ntubes) * & 
+                   (g3y_correction - g2y_correction ) 
+               
+               ! g1y_correction = - spec(is)%zt * maxwell_fac(is) *  maxwell_vpa(iv, is) * &
+               !      (g3y_correction * spread(spread(maxwell_mu(:, :, imu, is), 2, ikx_max), 4, ntubes) &
+               !      - g2y_correction * spread(spread(maxwell_mu_avg(:, :, imu, is), 2, ikx_max),4, ntubes) )
+                  
                ! g1y_correction(:, :, :, :) = g1y_correction (:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
                !      * maxwell_vpa(iv, is) * spread(spread(maxwell_mu(:, :, imu, is), 2, ikx_max), 4, ntubes) * maxwell_fac(is) & 
                !      - g1y(:, :, :, :) * spec(is)%zt * maxwell_vpa(iv, is) & 
                !      * spread(spread(maxwell_mu_avg(:, :, imu, is), 2, ikx_max),4, ntubes) * maxwell_fac(is)
                
-               ! call add_stream_term_ffs(g1y_correction, ivmu, gout(:, :, :, :, ivmu))
+                call add_stream_term_ffs(g1y_correction, ivmu, gout(:, :, :, :, ivmu))
             else
                g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
                     * maxwell_vpa(iv, is) * spread(spread(maxwell_mu(:, :, imu, is), 2, ikx_max), 4, ntubes) * maxwell_fac(is)
@@ -345,7 +402,8 @@ contains
       !> deallocate intermediate arrays used in this subroutine
       deallocate (g0, dgphi_dz)
       if (full_flux_surface) deallocate (g0y, g1y, g0_swap)
-
+      if(driftkinetic_implicit) deallocate(dgphi1_dz, g1y_correction) 
+      if(driftkinetic_implicit) deallocate(dgphi2_dz,dgphi3_dz, g2y_correction, g3y_correction)
       !> finish timing the subroutine
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
@@ -414,7 +472,7 @@ contains
         is = is_idx(vmu_lo, ivmu)
         
         call gyro_average(phi, g0, j0_ffs(:, :, :, ivmu))
-        g1 = spread(j0_const(:, :, :, ivmu),4, ntubes) * phi1
+        g1 = phi1 !spread(j0_const(:, :, :, ivmu),4, ntubes) * phi1
         
         call get_dgdz_centered(g0, ivmu, dgphi_dz)
         call get_dgdz_centered(g1, ivmu, dgphi1_dz)

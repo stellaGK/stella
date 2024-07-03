@@ -579,7 +579,7 @@ contains
                end do
                !> fourier transform Gamma_0(alpha) from alpha to k_alpha space
                call transform_alpha2kalpha(gam0_alpha, gam0_kalpha)
-!               call find_max_required_kalpha_index(gam0_kalpha, gam0_ffs(iky, ikx, iz)%max_idx, tol_in=1.e-8)
+               call find_max_required_kalpha_index(gam0_kalpha, gam0_ffs(iky, ikx, iz)%max_idx, tol_in=1.e-8)
                gam0_ffs(iky, ikx, iz)%max_idx = naky
                ia_max_gam0_count = ia_max_gam0_count + gam0_ffs(iky, ikx, iz)%max_idx
                !> allocate array to hold the Fourier coefficients
