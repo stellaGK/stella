@@ -51,9 +51,9 @@ gbdrift = np.copy(ncfile.variables['gbdrift'][:])
 gbdrift0 = np.copy(ncfile.variables['gbdrift0'][:])
 cvdrift = np.copy(ncfile.variables['cvdrift'][:])
 cvdrift0 = np.copy(ncfile.variables['cvdrift0'][:])
-gds2 = np.copy(ncfile.variables['gds2'][:])
-gds21 = np.copy(ncfile.variables['gds21'][:])
-gds22 = np.copy(ncfile.variables['gds22'][:])
+grad_y_dot_grad_y = np.copy(ncfile.variables['grad_y_dot_grad_y'][:])
+grad_x_dot_grad_y = np.copy(ncfile.variables['grad_x_dot_grad_y'][:])
+grad_x_dot_grad_x = np.copy(ncfile.variables['grad_x_dot_grad_x'][:])
 
 def read_stella_float(var):
 

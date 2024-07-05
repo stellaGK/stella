@@ -45,9 +45,9 @@ data = np.loadtxt(f)
 gist_theta = data[:,0]
 gist_B = data[:,1]
 gist_gradpar = data[:,2]
-gist_gds2 = data[:,3]
-gist_gds21 = data[:,4]
-gist_gds22 = data[:,5]
+gist_grad_y_dot_grad_y = data[:,3]
+gist_grad_x_dot_grad_y = data[:,4]
+gist_grad_x_dot_grad_x = data[:,5]
 gist_cvdrift = data[:,6]
 gist_cvdrift0 = data[:,7]
 gist_gbdrift = data[:,8]
@@ -128,8 +128,8 @@ for j in range(next_index, next_index+nalpha):
     splitline = lines[j].split()
     data.append([float(item) for item in splitline])
         
-gds2 = np.array(data)
-if verbose: print "gds2:",gds2
+grad_y_dot_grad_y = np.array(data)
+if verbose: print "grad_y_dot_grad_y:",grad_y_dot_grad_y
 
 next_index += nalpha+1
 data = []
@@ -137,8 +137,8 @@ for j in range(next_index, next_index+nalpha):
     splitline = lines[j].split()
     data.append([float(item) for item in splitline])
         
-gds21 = np.array(data)
-if verbose: print "gds21:",gds21
+grad_x_dot_grad_y = np.array(data)
+if verbose: print "grad_x_dot_grad_y:",grad_x_dot_grad_y
 
 next_index += nalpha+1
 data = []
@@ -146,8 +146,8 @@ for j in range(next_index, next_index+nalpha):
     splitline = lines[j].split()
     data.append([float(item) for item in splitline])
         
-gds22 = np.array(data)
-if verbose: print "gds22:",gds22
+grad_x_dot_grad_x = np.array(data)
+if verbose: print "grad_x_dot_grad_x:",grad_x_dot_grad_x
 
 next_index += nalpha+1
 data = []
@@ -208,8 +208,8 @@ linespec_gist='.-'
 linespec_new = '.-'
 markerSize = 3;
 
-# Flipping the sign of (d x / d psi) causes gbdrift0=cvdrift0 and gds21 to flip sign.
-# Furthermore, GIST gets the sign of gds21 backwards.
+# Flipping the sign of (d x / d psi) causes gbdrift0=cvdrift0 and grad_x_dot_grad_y to flip sign.
+# Furthermore, GIST gets the sign of grad_x_dot_grad_y backwards.
 
 plt.subplot(numRows,numCols,plotNum)
 plotNum += 1
@@ -228,24 +228,24 @@ plt.title('gradpar')
 
 plt.subplot(numRows,numCols,plotNum)
 plotNum += 1
-plt.plot(gist_zeta, gist_gds2, linespec_gist)
-plt.plot(zeta, gds2[ialpha,:],linespec_new,label='New interface',ms=markerSize)
+plt.plot(gist_zeta, gist_grad_y_dot_grad_y, linespec_gist)
+plt.plot(zeta, grad_y_dot_grad_y[ialpha,:],linespec_new,label='New interface',ms=markerSize)
 plt.xlabel('zeta')
-plt.title('gds2')
+plt.title('grad_y_dot_grad_y')
 
 plt.subplot(numRows,numCols,plotNum)
 plotNum += 1
-plt.plot(gist_zeta, gist_gds21, linespec_gist)
-plt.plot(zeta, gds21[ialpha,:],linespec_new,label='New interface',ms=markerSize)
+plt.plot(gist_zeta, gist_grad_x_dot_grad_y, linespec_gist)
+plt.plot(zeta, grad_x_dot_grad_y[ialpha,:],linespec_new,label='New interface',ms=markerSize)
 plt.xlabel('zeta')
-plt.title('gds21')
+plt.title('grad_x_dot_grad_y')
 
 plt.subplot(numRows,numCols,plotNum)
 plotNum += 1
-plt.plot(gist_zeta, gist_gds22, linespec_gist)
-plt.plot(zeta, gds22[ialpha,:],linespec_new,label='New interface',ms=markerSize)
+plt.plot(gist_zeta, gist_grad_x_dot_grad_x, linespec_gist)
+plt.plot(zeta, grad_x_dot_grad_x[ialpha,:],linespec_new,label='New interface',ms=markerSize)
 plt.xlabel('zeta')
-plt.title('gds22')
+plt.title('grad_x_dot_grad_x')
 
 plt.subplot(numRows,numCols,plotNum)
 plotNum += 1

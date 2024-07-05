@@ -75,6 +75,7 @@ set(STELLA_SOURCES_f90
   geo/vmec_geo.f90
   geo/vmec_interface/vmec_to_stella_geometry_interface.f90
   geo/vmec_interface/fzero.f90
+  geo/zpinch.f90
 )
 
 # Sources that _do_ need preprocessing

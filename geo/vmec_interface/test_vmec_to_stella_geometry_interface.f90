@@ -28,7 +28,7 @@ program test_vmec_to_stella_geometry_interface
    integer :: sign_toroidal_flux
    real, dimension(nalpha) :: alpha
    real, dimension(-nzgrid:nzgrid) :: zeta
-   real, dimension(nalpha, -nzgrid:nzgrid) :: bmag, gradpar, gds2, gds21, gds22, gds23, gds24, gds25, gds26
+   real, dimension(nalpha, -nzgrid:nzgrid) :: bmag, gradpar, grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, gds23, gds24, gds25, gds26
    real, dimension(nalpha, -nzgrid:nzgrid) :: gbdrift, gbdrift0, cvdrift, cvdrift0
    real, dimension(nalpha, -nzgrid:nzgrid) :: theta_vmec
    real, dimension(nalpha, -nzgrid:nzgrid) :: B_sub_zeta, B_sub_theta_vmec, displacement
@@ -51,7 +51,7 @@ program test_vmec_to_stella_geometry_interface
                                           desired_normalized_toroidal_flux, vmec_surface_option, verbose, &
                                           normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp, &
                                           sign_toroidal_flux, &
-                                          alpha, zeta, bmag, gradpar, gds2, gds21, gds22, gds23, gds24, gds25, gds26, &
+                                          alpha, zeta, bmag, gradpar, grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, gds23, gds24, gds25, gds26, &
                                           gbdrift, gbdrift0, cvdrift, cvdrift0, &
                                           theta_vmec, B_sub_zeta, B_sub_theta_vmec, displacement, gradpar_zeta_prefac, &
                                           ierr)
@@ -89,19 +89,19 @@ program test_vmec_to_stella_geometry_interface
       print *, gradpar(j, :)
    end do
 
-   print *, "gds2:"
+   print *, "grad_y_dot_grad_y:"
    do j = 1, nalpha
-      print *, gds2(j, :)
+      print *, grad_y_dot_grad_y(j, :)
    end do
 
-   print *, "gds21:"
+   print *, "grad_x_dot_grad_y:"
    do j = 1, nalpha
-      print *, gds21(j, :)
+      print *, grad_x_dot_grad_y(j, :)
    end do
 
-   print *, "gds22:"
+   print *, "grad_x_dot_grad_x:"
    do j = 1, nalpha
-      print *, gds22(j, :)
+      print *, grad_x_dot_grad_x(j, :)
    end do
 
    print *, "gds23:"
@@ -168,19 +168,19 @@ program test_vmec_to_stella_geometry_interface
       write (iunit, *) gradpar(j, :)
    end do
 
-   write (iunit, *) 'gds2'
+   write (iunit, *) 'grad_y_dot_grad_y'
    do j = 1, nalpha
-      write (iunit, *) gds2(j, :)
+      write (iunit, *) grad_y_dot_grad_y(j, :)
    end do
 
-   write (iunit, *) 'gds21'
+   write (iunit, *) 'grad_x_dot_grad_y'
    do j = 1, nalpha
-      write (iunit, *) gds21(j, :)
+      write (iunit, *) grad_x_dot_grad_y(j, :)
    end do
 
-   write (iunit, *) 'gds22'
+   write (iunit, *) 'grad_x_dot_grad_x'
    do j = 1, nalpha
-      write (iunit, *) gds22(j, :)
+      write (iunit, *) grad_x_dot_grad_x(j, :)
    end do
 
    write (iunit, *) 'gds23'

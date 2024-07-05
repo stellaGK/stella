@@ -32,7 +32,7 @@ module millerlocal
    real :: bi, dqdr, d2Idr2
    real, dimension(:), allocatable :: grho, bmag, grho_psi0, bmag_psi0, gradpar
    real, dimension(:), allocatable :: gradpararc, arc
-   real, dimension(:), allocatable :: gds2, gds21, gds22
+   real, dimension(:), allocatable :: grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x
    real, dimension(:), allocatable :: gds23, gds24
    real, dimension(:), allocatable :: gbdrift0, gbdrift
    real, dimension(:), allocatable :: cvdrift0, cvdrift
@@ -353,7 +353,7 @@ contains
    subroutine get_local_geo(nzed, nzgrid, zed_in, zed_equal_arc, &
                             dpsidrho_out, dpsidrho_psi0_out, dIdrho_out, grho_out, &
                             bmag_out, bmag_psi0_out, &
-                            gds2_out, gds21_out, gds22_out, gds23_out, gds24_out, gradpar_out, &
+                            grad_y_dot_grad_y_out, grad_x_dot_grad_y_out, grad_x_dot_grad_x_out, gds23_out, gds24_out, gradpar_out, &
                             gbdrift0_out, gbdrift_out, cvdrift0_out, cvdrift_out, &
                             dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
                             btor_out, rmajor_out, &
@@ -374,7 +374,7 @@ contains
       real, intent(out) :: dpsidrho_out, dpsidrho_psi0_out, dIdrho_out
       real, dimension(-nzgrid:), intent(out) :: grho_out, &
                                                 bmag_out, bmag_psi0_out, &
-                                                gds2_out, gds21_out, gds22_out, gds23_out, gds24_out, &
+                                                grad_y_dot_grad_y_out, grad_x_dot_grad_y_out, grad_x_dot_grad_x_out, gds23_out, gds24_out, &
                                                 gradpar_out, gbdrift0_out, &
                                                 gbdrift_out, cvdrift0_out, cvdrift_out, &
                                                 dBdrho_out, d2Bdrdth_out, dgradpardrho_out, &
@@ -555,7 +555,7 @@ contains
       ! get |grad theta|^2, grad r . grad theta, grad alpha . grad theta, etc.
       call get_graddotgrad(dpsidrho, grho)
 
-      call get_gds(gds2, gds21, gds22, gds23, gds24)
+      call get_gds(grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, gds23, gds24)
 
       ! this is (grad alpha x B) . grad theta
       cross = dpsidrho * (gradrho_gradalph * gradalph_gradthet - gradalph2 * gradrho_gradthet)
@@ -635,11 +635,11 @@ contains
          call geo_spline(theta, grho_psi0, zed_arc, grho_out) !grho is used to normalize fluxes
          call geo_spline(theta, bmag, zed_arc, bmag_out)
          call geo_spline(theta, bmag_psi0, zed_arc, bmag_psi0_out)
-         call geo_spline(theta, gds2, zed_arc, gds2_out)
-         call geo_spline(theta, gds21, zed_arc, gds21_out)
-         call geo_spline(theta, gds22, zed_arc, gds22_out)
-         call geo_spline(theta, gds21, zed_arc, gds23_out)
-         call geo_spline(theta, gds21, zed_arc, gds24_out)
+         call geo_spline(theta, grad_y_dot_grad_y, zed_arc, grad_y_dot_grad_y_out)
+         call geo_spline(theta, grad_x_dot_grad_y, zed_arc, grad_x_dot_grad_y_out)
+         call geo_spline(theta, grad_x_dot_grad_x, zed_arc, grad_x_dot_grad_x_out)
+         call geo_spline(theta, gds23, zed_arc, gds23_out)
+         call geo_spline(theta, gds24, zed_arc, gds24_out)
          call geo_spline(theta, gradpararc, zed_arc, gradpar_out)
          call geo_spline(theta, gbdrift, zed_arc, gbdrift_out)
          call geo_spline(theta, gbdrift0, zed_arc, gbdrift0_out)
@@ -663,11 +663,11 @@ contains
          call geo_spline(theta, grho_psi0, zed_in, grho_out) !grho is used to normalize fluxes
          call geo_spline(theta, bmag, zed_in, bmag_out)
          call geo_spline(theta, bmag_psi0, zed_in, bmag_psi0_out)
-         call geo_spline(theta, gds2, zed_in, gds2_out)
-         call geo_spline(theta, gds21, zed_in, gds21_out)
-         call geo_spline(theta, gds22, zed_in, gds22_out)
-         call geo_spline(theta, gds21, zed_in, gds23_out)
-         call geo_spline(theta, gds21, zed_in, gds24_out)
+         call geo_spline(theta, grad_y_dot_grad_y, zed_in, grad_y_dot_grad_y_out)
+         call geo_spline(theta, grad_x_dot_grad_y, zed_in, grad_x_dot_grad_y_out)
+         call geo_spline(theta, grad_x_dot_grad_x, zed_in, grad_x_dot_grad_x_out)
+         call geo_spline(theta, gds23, zed_in, gds23_out)
+         call geo_spline(theta, gds24, zed_in, gds24_out)
          call geo_spline(theta, gradpar, zed_in, gradpar_out)
          call geo_spline(theta, gbdrift, zed_in, gbdrift_out)
          call geo_spline(theta, gbdrift0, zed_in, gbdrift0_out)
@@ -722,8 +722,8 @@ contains
          '31.grgalph', '32.dgagr', '33.galph2', '34.dga2', '35.cross', &
          '36.dcrossdr', '37.gbdrift0', '38.dgbdrift0', '39.cvdrift0', '40.dcvdrift0', &
          '41.gbdrift', '42.dgbdrift', '43.cvdrift', '44.dcvdrift', '45.drzdth', &
-         '46.gradpar', '47.dgpardr', '48.gradparB', '49.dgparBdr', '50.gds2', &
-         '51.dgds2dr', '52.gds21', '53.dgds21dr', '54.gds22', '55.dgds22dr', &
+         '46.gradpar', '47.dgpardr', '48.gradparB', '49.dgparBdr', '50.grad_y_dot_grad_y', &
+         '51.dgds2dr', '52.grad_x_dot_grad_y', '53.dgds21dr', '54.grad_x_dot_grad_x', '55.dgds22dr', &
          '56.gds23', '57.gds24', '58.Zr'
 
       do i = -nz, nz
@@ -736,8 +736,8 @@ contains
             gradrho_gradalph(i), dgagr(i), gradalph2(i), dga2(i), cross(i), &
             dcrossdr(i), gbdrift0(i), dgbdrift0drho(i), cvdrift0(i), dcvdrift0drho(i), &
             gbdrift(i), dgbdriftdrho(i), cvdrift(i), dcvdriftdrho(i), drzdth(i), &
-            gradpar(i), dgradpardrho(i), gradparB(i), dgradparBdrho(i), gds2(i), &
-            dgds2dr(i), gds21(i), dgds21dr(i), gds22(i), dgds22dr(i), gds23(i), gds24(i), &
+            gradpar(i), dgradpardrho(i), gradparB(i), dgradparBdrho(i), grad_y_dot_grad_y(i), &
+            dgds2dr(i), grad_x_dot_grad_y(i), dgds21dr(i), grad_x_dot_grad_x(i), dgds22dr(i), gds23(i), gds24(i), &
             Zr(2, i)
       end do
       close (1001)
@@ -754,7 +754,7 @@ contains
 
       ! periodic quantities can be computed on 2*pi grid and replicated
       allocate (grho(-nz:nz), bmag(-nz:nz), gradpar(-nz:nz))
-      allocate (gds2(-nz:nz), gds21(-nz:nz), gds22(-nz:nz), gds23(-nz:nz), gds24(-nz:nz))
+      allocate (grad_y_dot_grad_y(-nz:nz), grad_x_dot_grad_y(-nz:nz), grad_x_dot_grad_x(-nz:nz), gds23(-nz:nz), gds24(-nz:nz))
       allocate (gbdrift0(-nz:nz), gbdrift(-nz:nz))
       allocate (cvdrift0(-nz:nz), cvdrift(-nz:nz))
       allocate (Rr(nr, -nz:nz), Zr(nr, -nz:nz))
@@ -791,9 +791,9 @@ contains
       deallocate (bmag)
       deallocate (gradpar)
 
-      deallocate (gds2)
-      deallocate (gds21)
-      deallocate (gds22)
+      deallocate (grad_y_dot_grad_y)
+      deallocate (grad_x_dot_grad_y)
+      deallocate (grad_x_dot_grad_x)
       deallocate (gds23)
       deallocate (gds24)
       deallocate (gbdrift0)
@@ -1029,25 +1029,29 @@ contains
 
    end subroutine get_graddotgrad
 
-   subroutine get_gds(gds2, gds21, gds22, gds23, gds24)
+   subroutine get_gds(grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, gds23, gds24)
 
       implicit none
 
-      real, dimension(-nz:), intent(out) :: gds2, gds21, gds22, gds23, gds24
+      real, dimension(-nz:), intent(out) :: grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, gds23, gds24
 
+      ! NB: dx/dpsi = q/(r*Br), dy/dalpha = (dpsi/dr) / Br and psi_norm = psi/(Br*a^2)
+      
       ! |grad alpha|^2 * (dpsiN/drho)^2 (dpsiN/drho factor accounts for ky normalization)
-      gds2 = gradalph2 * dpsidrho_psi0**2
-      ! (grad q . grad alpha) * (dpsiN/drho)^2
-      gds21 = gradrho_gradalph * dqdr * dpsidrho_psi0**2
-      ! |grad q|^2 * (dpsiN/drho)^2
-      gds22 = (grho * dpsidrho_psi0 * dqdr)**2
+      grad_y_dot_grad_y = gradalph2 * dpsidrho_psi0**2
+      ! grad x . grad y = (grad_norm rho . grad_norm alpha) * (dx_norm/drho) * (dy_norm/dalpha),
+      ! with dx_norm/drho = (q/r*Bref) * (dpsi/drho) / a = (q/rho) * (dpsi_norm/drho)
+      ! and dy_norm/dalpha = dpsi_norm/drho
+      grad_x_dot_grad_y = gradrho_gradalph * dpsidrho_psi0**2 * qinp / rhoc
+      ! |grad x|^2 = |grad_norm rho * dx_norm/drho|^2 = (grho * q/(r*Br*a) * dpsi/drho)^2
+      grad_x_dot_grad_x = (grho * qinp / rhoc * dpsidrho_psi0)**2
       ! (grad rho . grad theta * |grad alpha|^2 - grad alpha . grad theta * grad rho . grad alpha) * (dpsiN/drho)^2 / B^2
       gds23 = (gradrho_gradthet * gradalph2 - gradalph_gradthet * gradrho_gradalph) * (dpsidrho_psi0 / bmag)**2
       ! (grad rho . grad theta * grad rho . grad alpha - grad alpha . grad theta * |grad rho|^2) * (dpsiN/drho)^2 / B^2 * q/rho
       gds24 = (gradrho_gradthet * gradrho_gradalph - gradalph_gradthet * grho**2) &
               * (dpsidrho_psi0 / bmag)**2 * (local%qinp_psi0 / local%rhoc_psi0)
 
-      ! note that kperp2 = (n0/a)^2*(drho/dpsiN)^2*(gds2 + 2*theta0*gds21 + theta0^2*gds22)
+      ! note that kperp2 = (n0/a)^2*(drho/dpsiN)^2*(grad_y_dot_grad_y + 2*theta0*gds21 + theta0^2*gds22)
       ! theta0 = kx/(ky*shat)
 
    end subroutine get_gds

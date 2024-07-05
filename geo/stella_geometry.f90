@@ -13,7 +13,7 @@ module stella_geometry
    public :: gbdrift, gbdrift0
    public :: dcvdriftdrho, dcvdrift0drho
    public :: dgbdriftdrho, dgbdrift0drho
-   public :: gds2, gds21, gds22, gds23, gds24, gds25, gds26
+   public :: grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, gds23, gds24, gds25, gds26
    public :: dgds2dr, dgds21dr, dgds22dr
    public :: exb_nonlin_fac, exb_nonlin_fac_p
    public :: jacob, djacdrho
@@ -59,7 +59,7 @@ module stella_geometry
    real, dimension(:, :), allocatable :: gbdrift, gbdrift0
    real, dimension(:, :), allocatable :: dcvdriftdrho, dcvdrift0drho
    real, dimension(:, :), allocatable :: dgbdriftdrho, dgbdrift0drho
-   real, dimension(:, :), allocatable :: gds2, gds21, gds22, gds23, gds24, gds25, gds26
+   real, dimension(:, :), allocatable :: grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, gds23, gds24, gds25, gds26
    real, dimension(:, :), allocatable :: dgds2dr, dgds21dr
    real, dimension(:, :), allocatable :: dgds22dr
    real, dimension(:, :), allocatable :: theta_vmec
@@ -78,10 +78,11 @@ module stella_geometry
    integer, parameter :: geo_option_inputprof = 2
    integer, parameter :: geo_option_vmec = 3
    integer, parameter :: geo_option_multibox = 4
+   integer, parameter :: geo_option_zpinch = 5
 
    logical :: overwrite_geometry
    logical :: overwrite_bmag, overwrite_gradpar
-   logical :: overwrite_gds2, overwrite_gds21, overwrite_gds22
+   logical :: overwrite_grad_y_dot_grad_y, overwrite_grad_x_dot_grad_y, overwrite_grad_x_dot_grad_x
    logical :: overwrite_gds23, overwrite_gds24
    logical :: overwrite_gbdrift, overwrite_cvdrift, overwrite_gbdrift0
    logical :: q_as_x
@@ -99,6 +100,7 @@ contains
       use mp, only: proc0
       use millerlocal, only: read_local_parameters, get_local_geo
       use millerlocal, only: communicate_parameters_multibox
+      use zpinch, only: get_zpinch_geometry_coefficients
       use vmec_geo, only: read_vmec_parameters, get_vmec_geo
       use vmec_to_stella_geometry_interface_mod, only: desired_zmin
       use inputprofiles_interface, only: read_inputprof_geo
@@ -155,7 +157,7 @@ contains
             call get_local_geo(nzed, nzgrid, zed, zed_equal_arc, &
                                dpsidrho, dpsidrho_psi0, dIdrho, grho(1, :), &
                                bmag(1, :), bmag_psi0(1, :), &
-                               gds2(1, :), gds21(1, :), gds22(1, :), &
+                               grad_y_dot_grad_y(1, :), grad_x_dot_grad_y(1, :), grad_x_dot_grad_x(1, :), &
                                gds23(1, :), gds24(1, :), gradpar, &
                                gbdrift0(1, :), gbdrift(1, :), cvdrift0(1, :), cvdrift(1, :), &
                                dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
@@ -195,6 +197,37 @@ contains
             ! aref and bref should not be needed, so set to 1
             aref = 1.0; bref = 1.0
             zeta(1, :) = zed * geo_surf%qinp
+         case (geo_option_zpinch)
+            call allocate_arrays(nalpha, nzgrid)
+            call get_zpinch_geometry_coefficients(nzgrid, bmag(1, :), gradpar, grho(1, :), &
+                 grad_y_dot_grad_y(1, :), grad_x_dot_grad_y(1, :), grad_x_dot_grad_x(1, :), &
+                 gbdrift0(1, :), gbdrift(1, :), cvdrift0(1, :), cvdrift(1, :), btor, rmajor)
+
+            sign_torflux = -1
+            ! effectively choose psi = x * B * a_ref = x * B * r0
+            dpsidrho = 1.0 ; dpsidrho_psi0 = 1.0
+            bmag_psi0 = bmag
+            !> b_dot_grad_z is the alpha-dependent b . grad z,
+            !> and gradpar is the constant-in-alpha part of it.
+            !> for a z-pinch, b_dot_grad_z is independent of alpha.
+            b_dot_grad_z(1, :) = gradpar
+            ! note that psi here is meaningless
+            drhodpsi = 1./dpsidrho
+            drhodpsi_psi0 = 1./dpsidrho_psi0
+            ! dxdXcoord = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
+            dxdXcoord_sign = 1
+            dxdXcoord = 1.0
+            ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
+            dydalpha_sign = 1
+            dydalpha = dydalpha_sign * dpsidrho
+            grad_x = sqrt(grad_x_dot_grad_x)
+            ! there is no magnetic shear in the z-pinch and thus no need for twist-and-shift
+            twist_and_shift_geo_fac = 1.0
+            ! aref and bref should not be needed, so set to 1
+            aref = 1.0; bref = 1.0
+            ! zeta should not be needed
+            zeta(1, :) = 0.0
+
          case (geo_option_multibox)
             ! read in Miller local parameters
             call read_local_parameters(nzed, nzgrid, geo_surf)
@@ -209,7 +242,7 @@ contains
             call get_local_geo(nzed, nzgrid, zed, zed_equal_arc, &
                                dpsidrho, dpsidrho_psi0, dIdrho, grho(1, :), &
                                bmag(1, :), bmag_psi0(1, :), &
-                               gds2(1, :), gds21(1, :), gds22(1, :), &
+                               grad_y_dot_grad_y(1, :), grad_x_dot_grad_y(1, :), grad_x_dot_grad_x(1, :), &
                                gds23(1, :), gds24(1, :), gradpar, &
                                gbdrift0(1, :), gbdrift(1, :), cvdrift0(1, :), cvdrift(1, :), &
                                dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
@@ -263,7 +296,7 @@ contains
             call get_local_geo(nzed, nzgrid, zed, zed_equal_arc, &
                                dpsidrho, dpsidrho_psi0, dIdrho, grho(1, :), &
                                bmag(1, :), bmag_psi0(1, :), &
-                               gds2(1, :), gds21(1, :), gds22(1, :), &
+                               grad_y_dot_grad_y(1, :), grad_x_dot_grad_y(1, :), grad_x_dot_grad_x(1, :), &
                                gds23(1, :), gds24(1, :), gradpar, &
                                gbdrift0(1, :), gbdrift(1, :), cvdrift0(1, :), cvdrift(1, :), &
                                dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
@@ -394,18 +427,17 @@ contains
             !> grad_x = | grad x |
             grad_x = sqrt(abs(grad_psi_grad_psi * dxdXcoord**2))
 
-            !> gds2 = |grad y|^2 = |grad alpha|^2 * (dy/dalpha)^2
+            !> grad_y_dot_grad_y = |grad y|^2 = |grad alpha|^2 * (dy/dalpha)^2
             !> note that rhotor = sqrt(psi/psi_LCFS)
-            gds2 = grad_alpha_grad_alpha * dydalpha**2
+            grad_y_dot_grad_y = grad_alpha_grad_alpha * dydalpha**2
 
-            !> Define <gds21> = hat{s} ∇x . ∇y
+            !> Define grad_x_dot_grad_y = ∇x . ∇y
             !> Use (dx/dψ)*(dy/dα) = 1/(a ρ0 Bref) * (a ρ0) = 1/Bref
             !> Use ∇x . ∇y = (dx/dψ)(dy/dα) ∇ψ . ∇α = (1/Bref) ∇ψ . ∇α = <grad_alpha_grad_psi>
-            gds21 = grad_alpha_grad_psi * geo_surf%shat
+            grad_x_dot_grad_y = grad_alpha_grad_psi
 
-            !> gds22 = shat^2 * |grad x|^2 = shat^2 * |grad psi_t|^2 * (dx/dpsi_t)^2
-            gds22 = (geo_surf%shat * grad_x)**2
-            !gds22 = geo_surf%shat**2 * grad_psi_grad_psi * dxdXcoord**2
+            !> grad_x_dot_grad_x = |grad x|^2 = |grad psi_t|^2 * (dx/dpsi_t)^2
+            grad_x_dot_grad_x = grad_x**2
 
             !> gbdrift_alpha and cvdrift_alpha contain
             !> the grad-B and curvature drifts projected onto
@@ -588,7 +620,7 @@ contains
 
          integer :: ia, iz
          real :: bmag_file, gradpar_file
-         real :: gds2_file, gds21_file, gds22_file, gds23_file, gds24_file
+         real :: grad_y_dot_grad_y_file, grad_x_dot_grad_y_file, grad_x_dot_grad_x_file, gds23_file, gds24_file
          real :: gbdrift_file, cvdrift_file, gbdrift0_file
 
          call get_unused_unit(geofile_unit)
@@ -598,19 +630,19 @@ contains
          read (geofile_unit, fmt=*) dum_char
          read (geofile_unit, fmt=*) dum_char
 
-         ! overwrite bmag, gradpar, gds2, gds21, gds22, gds23, gds24, gbdrift, cvdrift, gbdrift0, and cvdrift0
+         ! overwrite bmag, gradpar, grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, gds23, gds24, gbdrift, cvdrift, gbdrift0, and cvdrift0
          ! with values from file
          do ia = 1, nalpha
             do iz = -nzgrid, nzgrid
                read (geofile_unit, fmt='(13e12.4)') dum_real, dum_real, dum_real, bmag_file, gradpar_file, &
-                  gds2_file, gds21_file, gds22_file, gds23_file, &
+                  grad_y_dot_grad_y_file, grad_x_dot_grad_y_file, grad_x_dot_grad_x_file, gds23_file, &
                   gds24_file, gbdrift_file, cvdrift_file, gbdrift0_file
                if (overwrite_bmag) bmag(ia, iz) = bmag_file
                if (overwrite_gradpar) gradpar(iz) = gradpar_file
                if (overwrite_gradpar) b_dot_grad_z(1, iz) = gradpar_file ! assuming we are only reading in for a single alpha. Usually, gradpar is the average of all b_dot_grad_z values.
-               if (overwrite_gds2) gds2(ia, iz) = gds2_file
-               if (overwrite_gds21) gds21(ia, iz) = gds21_file
-               if (overwrite_gds22) gds22(ia, iz) = gds22_file
+               if (overwrite_grad_y_dot_grad_y) grad_y_dot_grad_y(ia, iz) = grad_y_dot_grad_y_file
+               if (overwrite_grad_x_dot_grad_y) grad_x_dot_grad_y(ia, iz) = grad_x_dot_grad_y_file
+               if (overwrite_grad_x_dot_grad_x) grad_x_dot_grad_x(ia, iz) = grad_x_dot_grad_x_file
                if (overwrite_gds23) gds23(ia, iz) = gds23_file
                if (overwrite_gds24) gds24(ia, iz) = gds24_file
                if (overwrite_gbdrift) gbdrift(ia, iz) = gbdrift_file
@@ -638,9 +670,9 @@ contains
          call set_coef_constant(grho, nalpha)
          call set_coef_constant(bmag, nalpha)
          call set_coef_constant(bmag_psi0, nalpha)
-         call set_coef_constant(gds2, nalpha)
-         call set_coef_constant(gds21, nalpha)
-         call set_coef_constant(gds22, nalpha)
+         call set_coef_constant(grad_y_dot_grad_y, nalpha)
+         call set_coef_constant(grad_x_dot_grad_y, nalpha)
+         call set_coef_constant(grad_x_dot_grad_x, nalpha)
          call set_coef_constant(gds23, nalpha)
          call set_coef_constant(gds24, nalpha)
          call set_coef_constant(gds25, nalpha)
@@ -677,28 +709,28 @@ contains
 
       if (.not. allocated(bmag)) allocate (bmag(nalpha, -nzgrid:nzgrid))
       if (.not. allocated(bmag_psi0)) allocate (bmag_psi0(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds2)) allocate (gds2(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds21)) allocate (gds21(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds22)) allocate (gds22(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds23)) allocate (gds23(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds24)) allocate (gds24(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds25)) allocate (gds25(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds26)) allocate (gds26(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dgds2dr)) allocate (dgds2dr(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dgds21dr)) allocate (dgds21dr(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dgds22dr)) allocate (dgds22dr(nalpha, -nzgrid:nzgrid))
+      if (.not. allocated(grad_y_dot_grad_y)) allocate (grad_y_dot_grad_y(nalpha, -nzgrid:nzgrid))
+      if (.not. allocated(grad_x_dot_grad_y)) allocate (grad_x_dot_grad_y(nalpha, -nzgrid:nzgrid))
+      if (.not. allocated(grad_x_dot_grad_x)) allocate (grad_x_dot_grad_x(nalpha, -nzgrid:nzgrid))
+      if (.not. allocated(gds23)) allocate (gds23(nalpha, -nzgrid:nzgrid)) ; gds23 = 0.0
+      if (.not. allocated(gds24)) allocate (gds24(nalpha, -nzgrid:nzgrid)) ; gds24 = 0.0
+      if (.not. allocated(gds25)) allocate (gds25(nalpha, -nzgrid:nzgrid)) ; gds25 = 0.0
+      if (.not. allocated(gds26)) allocate (gds26(nalpha, -nzgrid:nzgrid)) ; gds26 = 0.0
+      if (.not. allocated(dgds2dr)) allocate (dgds2dr(nalpha, -nzgrid:nzgrid)) ; dgds2dr = 0.0
+      if (.not. allocated(dgds21dr)) allocate (dgds21dr(nalpha, -nzgrid:nzgrid)) ; dgds21dr = 0.0
+      if (.not. allocated(dgds22dr)) allocate (dgds22dr(nalpha, -nzgrid:nzgrid)) ; dgds22dr = 0.0
       if (.not. allocated(gbdrift)) allocate (gbdrift(nalpha, -nzgrid:nzgrid))
       if (.not. allocated(gbdrift0)) allocate (gbdrift0(nalpha, -nzgrid:nzgrid))
       if (.not. allocated(cvdrift)) allocate (cvdrift(nalpha, -nzgrid:nzgrid))
       if (.not. allocated(cvdrift0)) allocate (cvdrift0(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dgbdriftdrho)) allocate (dgbdriftdrho(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dcvdriftdrho)) allocate (dcvdriftdrho(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dgbdrift0drho)) allocate (dgbdrift0drho(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dcvdrift0drho)) allocate (dcvdrift0drho(nalpha, -nzgrid:nzgrid))
+      if (.not. allocated(dgbdriftdrho)) allocate (dgbdriftdrho(nalpha, -nzgrid:nzgrid)) ; dgbdriftdrho = 0.0
+      if (.not. allocated(dcvdriftdrho)) allocate (dcvdriftdrho(nalpha, -nzgrid:nzgrid)) ; dcvdriftdrho = 0.0
+      if (.not. allocated(dgbdrift0drho)) allocate (dgbdrift0drho(nalpha, -nzgrid:nzgrid)) ; dgbdrift0drho = 0.0
+      if (.not. allocated(dcvdrift0drho)) allocate (dcvdrift0drho(nalpha, -nzgrid:nzgrid)) ; dcvdrift0drho = 0.0
       if (.not. allocated(dbdzed)) allocate (dbdzed(nalpha, -nzgrid:nzgrid))
       if (.not. allocated(theta_vmec)) allocate (theta_vmec(nalpha, -nzgrid:nzgrid))
       if (.not. allocated(jacob)) allocate (jacob(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(djacdrho)) allocate (djacdrho(nalpha, -nzgrid:nzgrid))
+      if (.not. allocated(djacdrho)) allocate (djacdrho(nalpha, -nzgrid:nzgrid)) ; djacdrho = 0.0
       if (.not. allocated(grho)) allocate (grho(nalpha, -nzgrid:nzgrid))
       if (.not. allocated(grad_x)) allocate (grad_x(nalpha, -nzgrid:nzgrid))
       if (.not. allocated(dl_over_b)) allocate (dl_over_b(nalpha, -nzgrid:nzgrid))
@@ -709,9 +741,9 @@ contains
       if (.not. allocated(zed_eqarc)) allocate (zed_eqarc(-nzgrid:nzgrid))
       if (.not. allocated(btor)) allocate (btor(-nzgrid:nzgrid))
       if (.not. allocated(rmajor)) allocate (rmajor(-nzgrid:nzgrid))
-      if (.not. allocated(dBdrho)) allocate (dBdrho(-nzgrid:nzgrid))
-      if (.not. allocated(d2Bdrdth)) allocate (d2Bdrdth(-nzgrid:nzgrid))
-      if (.not. allocated(dgradpardrho)) allocate (dgradpardrho(-nzgrid:nzgrid))
+      if (.not. allocated(dBdrho)) allocate (dBdrho(-nzgrid:nzgrid)) ; dBdrho = 0.0
+      if (.not. allocated(d2Bdrdth)) allocate (d2Bdrdth(-nzgrid:nzgrid)) ; d2Bdrdth = 0.0
+      if (.not. allocated(dgradpardrho)) allocate (dgradpardrho(-nzgrid:nzgrid)) ; dgradpardrho = 0.0
 
       if (.not. allocated(alpha)) allocate (alpha(nalpha)); alpha = 0.
       if (.not. allocated(zeta)) allocate (zeta(nalpha, -nzgrid:nzgrid)); zeta = 0.
@@ -734,23 +766,24 @@ contains
       logical :: exist
 
       character(20) :: geo_option
-      type(text_option), dimension(5), parameter :: geoopts = (/ &
+      type(text_option), dimension(6), parameter :: geoopts = (/ &
                                                     text_option('default', geo_option_local), &
                                                     text_option('miller', geo_option_local), &
                                                     text_option('local', geo_option_local), &
+                                                    text_option('zpinch', geo_option_zpinch), &
                                                     text_option('input.profiles', geo_option_inputprof), &
                                                     text_option('vmec', geo_option_vmec)/)
 
       namelist /geo_knobs/ geo_option, geo_file, overwrite_bmag, overwrite_gradpar, &
-         overwrite_gds2, overwrite_gds21, overwrite_gds22, overwrite_gds23, overwrite_gds24, &
+         overwrite_grad_y_dot_grad_y, overwrite_grad_x_dot_grad_y, overwrite_grad_x_dot_grad_x, overwrite_gds23, overwrite_gds24, &
          overwrite_gbdrift, overwrite_cvdrift, overwrite_gbdrift0, q_as_x, set_bmag_const
 
       geo_option = 'local'
       overwrite_bmag = .false.
       overwrite_gradpar = .false.
-      overwrite_gds2 = .false.
-      overwrite_gds21 = .false.
-      overwrite_gds22 = .false.
+      overwrite_grad_y_dot_grad_y = .false.
+      overwrite_grad_x_dot_grad_y = .false.
+      overwrite_grad_x_dot_grad_x = .false.
       overwrite_gds23 = .false.
       overwrite_gds24 = .false.
       overwrite_gbdrift = .false.
@@ -773,7 +806,7 @@ contains
       end if
 
       overwrite_geometry = overwrite_bmag .or. overwrite_gradpar &
-                           .or. overwrite_gds2 .or. overwrite_gds21 .or. overwrite_gds22 &
+                           .or. overwrite_grad_y_dot_grad_y .or. overwrite_grad_x_dot_grad_y .or. overwrite_grad_x_dot_grad_x &
                            .or. overwrite_gds23 .or. overwrite_gds24 &
                            .or. overwrite_cvdrift .or. overwrite_gbdrift .or. overwrite_gbdrift0
 
@@ -800,9 +833,9 @@ contains
       call broadcast(rmajor)
       call broadcast(gradpar)
       call broadcast(b_dot_grad_z)
-      call broadcast(gds2)
-      call broadcast(gds21)
-      call broadcast(gds22)
+      call broadcast(grad_y_dot_grad_y)
+      call broadcast(grad_x_dot_grad_y)
+      call broadcast(grad_x_dot_grad_x)
       call broadcast(gds23)
       call broadcast(gds24)
       call broadcast(gds25)
@@ -1015,13 +1048,13 @@ contains
          dxdXcoord, dydalpha, exb_nonlin_fac, exb_nonlin_fac_p * exb_nonlin_fac
       write (geometry_unit, *)
 
-      write (geometry_unit, '(15a12)') '# alpha', 'zed', 'zeta', 'bmag', 'bdot_grad_z', 'gds2', 'gds21', 'gds22', &
+      write (geometry_unit, '(15a12)') '# alpha', 'zed', 'zeta', 'bmag', 'bdot_grad_z', 'grad_y_dot_grad_y', 'grad_x_dot_grad_y', 'grad_x_dot_grad_x', &
          'gds23', 'gds24', 'gbdrift', 'cvdrift', 'gbdrift0', 'bmag_psi0', 'btor'
       do ia = 1, nalpha
          do iz = -nzgrid, nzgrid
             !          write (geometry_unit,'(15e12.4)') alpha(ia), zed(iz), zeta(ia,iz), bmag(ia,iz), gradpar(iz), &
             write (geometry_unit, '(15e12.4)') alpha(ia), zed(iz), zeta(ia, iz), bmag(ia, iz), b_dot_grad_z(ia, iz), &
-               gds2(ia, iz), gds21(ia, iz), gds22(ia, iz), gds23(ia, iz), &
+               grad_y_dot_grad_y(ia, iz), grad_x_dot_grad_y(ia, iz), grad_x_dot_grad_x(ia, iz), gds23(ia, iz), &
                gds24(ia, iz), gbdrift(ia, iz), cvdrift(ia, iz), gbdrift0(ia, iz), &
                bmag_psi0(ia, iz), btor(iz)
          end do
@@ -1043,6 +1076,7 @@ contains
          select case (geo_option_switch)
          case (geo_option_local)
             call finish_local_geo
+         case (geo_option_zpinch)
          case (geo_option_multibox)
             call finish_local_geo
          case (geo_option_inputprof)
@@ -1071,9 +1105,9 @@ contains
       if (allocated(b_dot_grad_z)) deallocate (b_dot_grad_z)
       if (allocated(dl_over_b)) deallocate (dl_over_b)
       if (allocated(d_dl_over_b_drho)) deallocate (d_dl_over_b_drho)
-      if (allocated(gds2)) deallocate (gds2)
-      if (allocated(gds21)) deallocate (gds21)
-      if (allocated(gds22)) deallocate (gds22)
+      if (allocated(grad_y_dot_grad_y)) deallocate (grad_y_dot_grad_y)
+      if (allocated(grad_x_dot_grad_y)) deallocate (grad_x_dot_grad_y)
+      if (allocated(grad_x_dot_grad_x)) deallocate (grad_x_dot_grad_x)
       if (allocated(gds23)) deallocate (gds23)
       if (allocated(gds24)) deallocate (gds24)
       if (allocated(gds25)) deallocate (gds25)

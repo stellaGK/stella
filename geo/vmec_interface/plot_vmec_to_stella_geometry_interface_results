@@ -52,8 +52,8 @@ for j in range(next_index, next_index+nalpha):
     splitline = lines[j].split()
     data.append([float(item) for item in splitline])
         
-gds2 = np.array(data)
-if verbose: print "gds2:",gds2
+grad_y_dot_grad_y = np.array(data)
+if verbose: print "grad_y_dot_grad_y:",grad_y_dot_grad_y
 
 next_index += nalpha+1
 data = []
@@ -61,8 +61,8 @@ for j in range(next_index, next_index+nalpha):
     splitline = lines[j].split()
     data.append([float(item) for item in splitline])
         
-gds21 = np.array(data)
-if verbose: print "gds21:",gds21
+grad_x_dot_grad_y = np.array(data)
+if verbose: print "grad_x_dot_grad_y:",grad_x_dot_grad_y
 
 next_index += nalpha+1
 data = []
@@ -70,8 +70,8 @@ for j in range(next_index, next_index+nalpha):
     splitline = lines[j].split()
     data.append([float(item) for item in splitline])
         
-gds22 = np.array(data)
-if verbose: print "gds22:",gds22
+grad_x_dot_grad_x = np.array(data)
+if verbose: print "grad_x_dot_grad_x:",grad_x_dot_grad_x
 
 next_index += nalpha+1
 data = []
@@ -130,18 +130,18 @@ plt.title('gradpar')
 plt.xlabel('zeta')
 
 plt.subplot(numRows,numCols,3)
-plt.plot(zeta,gds2[ialpha,:],'.-')
-plt.title('gds2')
+plt.plot(zeta,grad_y_dot_grad_y[ialpha,:],'.-')
+plt.title('grad_y_dot_grad_y')
 plt.xlabel('zeta')
 
 plt.subplot(numRows,numCols,4)
-plt.plot(zeta,gds21[ialpha,:],'.-')
-plt.title('gds21')
+plt.plot(zeta,grad_x_dot_grad_y[ialpha,:],'.-')
+plt.title('grad_x_dot_grad_y')
 plt.xlabel('zeta')
 
 plt.subplot(numRows,numCols,5)
-plt.plot(zeta,gds22[ialpha,:],'.-')
-plt.title('gds22')
+plt.plot(zeta,grad_x_dot_grad_x[ialpha,:],'.-')
+plt.title('grad_x_dot_grad_x')
 plt.xlabel('zeta')
 
 plt.subplot(numRows,numCols,6)
@@ -190,22 +190,22 @@ plt.ylabel('alpha')
 plt.colorbar()
 
 plt.subplot(numRows,numCols,3)
-plt.contourf(zeta,alpha,gds2,numContours)
-plt.title('gds2')
+plt.contourf(zeta,alpha,grad_y_dot_grad_y,numContours)
+plt.title('grad_y_dot_grad_y')
 plt.xlabel('zeta')
 plt.ylabel('alpha')
 plt.colorbar()
 
 plt.subplot(numRows,numCols,4)
-plt.contourf(zeta,alpha,gds21,numContours)
-plt.title('gds21')
+plt.contourf(zeta,alpha,grad_x_dot_grad_y,numContours)
+plt.title('grad_x_dot_grad_y')
 plt.xlabel('zeta')
 plt.ylabel('alpha')
 plt.colorbar()
 
 plt.subplot(numRows,numCols,5)
-plt.contourf(zeta,alpha,gds22,numContours)
-plt.title('gds22')
+plt.contourf(zeta,alpha,grad_x_dot_grad_x,numContours)
+plt.title('grad_x_dot_grad_x')
 plt.xlabel('zeta')
 plt.ylabel('alpha')
 plt.colorbar()
