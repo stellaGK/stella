@@ -641,10 +641,10 @@ contains
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_stream)
       end if
 
-      if (driftkinetic_implicit) then
-         cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream_correction)), zero)
-         cfl_dt_linear = min(cfl_dt_linear, cfl_dt_stream)
-      end if
+      ! if (driftkinetic_implicit) then
+      !    cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream_correction)), zero)
+      !    cfl_dt_linear = min(cfl_dt_linear, cfl_dt_stream)
+      ! end if
 
       if (.not. mirror_implicit) then
          ! NB: mirror has code_dt built-in, which accounts for code_dt factor here
@@ -1237,11 +1237,9 @@ contains
          if (include_collisions .and. .not. collisions_implicit) call advance_collisions_explicit(gin, phi, rhs)
 
          !> calculate and add parallel streaming term to RHS of GK eqn
-         if (include_parallel_streaming) then ! .and. (.not. stream_implicit)) then
-            if ((.not. stream_implicit) .or. driftkinetic_implicit) then
-               if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
-               call advance_parallel_streaming_explicit(gin, phi, rhs)
-            end if
+         if (include_parallel_streaming .and. (.not. stream_implicit)) then 
+            if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
+            call advance_parallel_streaming_explicit(gin, phi, rhs)
          end if
          
          if (hyper_dissipation) then
@@ -1310,6 +1308,108 @@ contains
       deallocate (dg)
       
     end subroutine advance_hyper_explicit
+
+    ! subroutine get_drifts_ffs_itteration (phi, g, source)
+
+    !   use mp, only: proc0
+    !   use stella_layouts, only: vmu_lo
+    !   use stella_layouts, only: iv_idx, imu_idx, is_idx
+    !   use stella_transforms, only: transform_ky2y,transform_y2ky
+    !   use zgrid, only: nzgrid, ntubes
+    !   use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
+    !   use kt_grids, only: swap_kxky, swap_kxky_back
+    !   use gyro_averages, only: j0_ffs, gyro_average
+    !   use dist_fn_arrays, only: wstar
+
+    !   use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
+    !   use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
+    !   use dist_fn_arrays, only: wstar
+
+    !   implicit none 
+
+    !   complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+    !   complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+    !   complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent (inout) :: source
+      
+    !   integer :: iz, it, ivmu, iv, is, imu
+    !   complex, dimension(:, :), allocatable :: g_swap
+    !   complex, dimension(:, :, :, :), allocatable :: g0, g1, g2, g3, g4
+    !   complex, dimension(:, :, :, :), allocatable :: sourcey, g1y, g2y, g3y, g4y
+    !   it = 1
+
+    !   allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g0 = 0.0
+    !   allocate (g1(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g1 = 0.0
+    !   allocate (g2(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g2 = 0.0
+    !   allocate (g3(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g3 = 0.0
+    !   allocate (g4(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g4 = 0.0
+
+    !   allocate (sourcey(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; sourcey = 0.0
+    !   allocate (g1y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g1y = 0.0
+    !   allocate (g2y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g2y = 0.0
+    !   allocate (g3y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g3y = 0.0
+    !   allocate (g4y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g4y = 0.0
+
+    !   allocate (g_swap(naky_all, ikx_max))
+      
+    !   source = 0.0
+    !   if(proc0) write(*,*) '1'
+
+    !   do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+    !      iv = iv_idx(vmu_lo, ivmu)
+    !      imu = imu_idx(vmu_lo, ivmu)
+    !      is = is_idx(vmu_lo, ivmu)
+
+    !      call gyro_average(phi, g0, j0_ffs(:, :, :, ivmu))
+    !      if(proc0) write(*,*) '2' 
+
+    !      call get_dgdy(g0, g1)
+    !      call get_dgdx(g0, g2)
+
+    !      call get_dgdy(g(:,:,:,:,ivmu), g3)
+    !      call get_dgdx(g(:,:,:,:,ivmu), g4)
+
+    !      if(proc0) write(*,*) '3' 
+    !      do it = 1, ntubes
+    !         do iz = -nzgrid, nzgrid
+    !            call swap_kxky(g1(:, :, iz, it), g_swap)
+    !            call transform_ky2y(g_swap, g1y(:, :, iz, it))
+
+    !            call swap_kxky(g2(:, :, iz, it), g_swap)
+    !            call transform_ky2y(g_swap, g2y(:, :, iz, it))
+
+    !            call swap_kxky(g3(:, :, iz, it), g_swap)
+    !            call transform_ky2y(g_swap, g3y(:, :, iz, it))
+
+    !            call swap_kxky(g4(:, :, iz, it), g_swap)
+    !            call transform_ky2y(g_swap, g4y(:, :, iz, it))      
+    !         end do
+    !      end do
+         
+    !      if(proc0) write(*,*) '4'
+    !      call add_explicit_term_ffs_fields(g1y, wstar, sourcey, ivmu)
+    !      if(proc0) write(*,*) '5'
+    !      !!
+    !      call add_explicit_term_ffs_fields(g4y, wdriftx_g, sourcey, ivmu) 
+    !      call add_explicit_term_ffs_fields(g2y, wdriftx_phi, sourcey, ivmu) 
+    !      if(proc0) write(*,*)'6'
+    !      !!
+    !      call add_explicit_term_ffs_fields(g3y, wdrifty_g, sourcey, ivmu)
+    !      call add_explicit_term_ffs_fields(g1y, wdrifty_phi, sourcey, ivmu)
+    !      if(proc0) write(*,*)'7'
+    !      do iz = -nzgrid, nzgrid
+    !        call transform_y2ky(sourcey(:, :, iz, it), g_swap)
+    !        call swap_kxky_back(g_swap, source(:, :, iz, it, ivmu))
+    !     end do
+    !     if(proc0) write(*,*) '8' 
+    !  end do
+
+    !  if(proc0) write(*,*) '9' 
+    !  deallocate(sourcey, g_swap)
+    !  deallocate(g0,g1,g2,g3,g4)
+    !  deallocate(g1y, g2y, g3y, g4y)
+
+
+    ! end subroutine get_drifts_ffs_itteration
 
    subroutine advance_wstar_explicit(phi, gout)
 
@@ -2458,6 +2558,33 @@ contains
       end do
 
    end subroutine add_explicit_term_ffs
+
+   ! subroutine add_explicit_term_ffs_fields(g, pre_factor, src, ivmu)
+
+   !    use stella_layouts, only: vmu_lo
+   !    use zgrid, only: nzgrid, ntubes
+   !    use kt_grids, only: ikx_max, nalpha
+
+   !    implicit none
+
+   !    complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
+   !    real, dimension(:, -nzgrid:, vmu_lo%llim_proc:), intent(in) :: pre_factor
+   !    complex, dimension(:, :, -nzgrid:, :), intent(in out) :: src
+
+   !    integer :: ivmu
+   !    integer :: ia, ikx, iz, it
+
+   !    do it = 1, ntubes
+   !       do iz = -nzgrid, nzgrid
+   !          do ikx = 1, ikx_max
+   !             do ia = 1, nalpha
+   !                src(ia, ikx, iz, it) = src(ia, ikx, iz, it) + pre_factor(ia, iz, ivmu) * g(ia, ikx, iz, it)
+   !             end do
+   !          end do
+   !       end do
+   !    end do
+
+   ! end subroutine add_explicit_term_ffs_fields
 
    subroutine advance_implicit(istep, phi, apar, g)
 

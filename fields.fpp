@@ -20,6 +20,7 @@ module fields
    public :: get_dchidy, get_dchidx
    public :: efac, efacp
 
+   public :: get_fields_source
    private
 
    real, dimension(:, :, :), allocatable ::  apar_denom
@@ -964,6 +965,106 @@ contains
 
    end subroutine get_fields_vmulo
 
+   
+   subroutine get_fields_source(gold, phiold, source) 
+
+     use stella_layouts, only: vmu_lo
+     use species, only: spec
+     use zgrid, only: nzgrid, ntubes
+     use kt_grids, only: naky, nakx
+     use fields_arrays, only: gamtot
+     use kt_grids, only: akx
+     use gyro_averages, only: gyro_average
+
+     implicit none
+     complex, dimension(:, :, -nzgrid:, :), intent (in out) :: source
+     complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gold
+     complex, dimension(:, :, -nzgrid:, :), intent(in) :: phiold
+
+     real, dimension(:, :, :, :), allocatable :: gamtot_t
+     complex, dimension(:, :, :, :), allocatable :: source2 
+
+     allocate (gamtot_t(naky, nakx, -nzgrid:nzgrid, ntubes))
+     gamtot_t = spread(gamtot, 4, ntubes)
+
+     allocate(source2(naky, nakx, -nzgrid:nzgrid, ntubes)) ; source2 = 0.0
+
+     source = 0.0 
+
+     call get_g_integral_contribution_source(gold, source(:,:,:,1) )
+     call gyro_average(phiold, source2, gam0_ffs)
+
+     source2 = source2 - gamtot_t * phiold
+
+     source = source - source2
+
+     where (gamtot_t < epsilon(0.0))
+        source= 0.0
+     elsewhere
+        source = source / gamtot_t
+     end where
+     
+     if (any(gamtot(1, 1, :) < epsilon(0.))) source(1, 1, :, :) = 0.0
+     if (akx(1) < epsilon(0.)) then
+         source(1, 1, :, :) = 0.0
+      end if
+
+     deallocate(source2, gamtot_t) 
+     
+   end subroutine get_fields_source
+   
+
+   subroutine get_g_integral_contribution_source (g, source) 
+
+     use mp, only: sum_allreduce
+     use stella_layouts, only: vmu_lo
+     use species, only: spec
+     use zgrid, only: nzgrid
+     use kt_grids, only: naky, nakx
+     use vpamu_grids, only: integrate_species_ffs
+     use gyro_averages, only: gyro_average, j0_B_ffs
+     
+     use gyro_averages, only: j0_B_const
+     use stella_layouts, only: iv_idx, imu_idx, is_idx
+     use kt_grids, only: nalpha
+     
+     implicit none
+     
+     complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+     complex, dimension(:, :, -nzgrid:), intent(in out) :: source
+     
+     integer :: it, iz, ivmu
+     complex, dimension(:, :, :), allocatable :: gyro_g, gyro_g2
+     
+     integer :: iv, imu, is
+     
+     !> assume there is only a single flux surface being simulated
+     it = 1
+     allocate (gyro_g(naky, nakx, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+     allocate (gyro_g2(naky, nakx, vmu_lo%llim_proc:vmu_lo%ulim_alloc))  
+     
+     do iz = -nzgrid, nzgrid
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+           gyro_g(:, :, ivmu) = g(:, :, iz, it, ivmu) * j0_B_const(:, :, iz, ivmu)
+           call gyro_average(g(:, :, iz, it, ivmu), gyro_g2(:, :, ivmu), j0_B_ffs(:, :, iz, ivmu))
+        end do
+        
+        gyro_g = gyro_g2 - gyro_g 
+        !> integrate <g> over velocity space and sum over species within each processor
+        !> as v-space and species possibly spread over processors, wlil need to
+        !> gather sums from each proceessor and sum them all together below
+        call integrate_species_ffs(gyro_g, spec%z * spec%dens_psi0, source(:, :, iz), reduce_in=.false.)
+     end do
+     !> gather sub-sums from each processor and add them together
+     !> store result in phi, which will be further modified below to account for polarization term
+     call sum_allreduce(source)
+     !> no longer need <g>, so deallocate
+     deallocate (gyro_g, gyro_g2)
+
+     
+   end subroutine get_g_integral_contribution_source
+
+
    !> get_fields_ffs accepts as input the guiding centre distribution function g
    !> and calculates/returns the electronstatic potential phi for full_flux_surface simulations
    subroutine get_fields_ffs(g, phi, apar, implicit_solve)
@@ -1090,7 +1191,7 @@ contains
          call mp_abort('apar not yet supported for full_flux_surface = T. aborting.')
       end if
 
-   contains
+    contains
 
       subroutine get_g_integral_contribution(g, source, implicit_solve)
 

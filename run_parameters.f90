@@ -25,6 +25,8 @@ module run_parameters
    public :: time_upwind_plus, time_upwind_minus
    public :: zed_upwind_plus, zed_upwind_minus
 
+   public :: nitt 
+
    private
 
    real :: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
@@ -53,6 +55,7 @@ module run_parameters
    logical :: initialized = .false.
    logical :: knexist
 
+   integer :: nitt
 contains
 
    subroutine init_run_parameters
@@ -101,7 +104,7 @@ contains
          mirror_semi_lagrange, mirror_linear_interp, mirror_fourier, &
          zed_upwind, vpa_upwind, time_upwind, &
          fields_kxkyz, mat_gen, mat_read, rng_seed, &
-         ky_solve_radial, ky_solve_real
+         ky_solve_radial, ky_solve_real, nitt
 
       if (proc0) then
 
@@ -128,6 +131,7 @@ contains
          ky_solve_real = .false.
          mat_gen = .false.
          mat_read = .false.
+         nitt = 1
 
          ! Stella runs until t*v_{th,i}/a=tend or until istep=nstep
          tend = -1.0
@@ -210,7 +214,13 @@ contains
             end if
          end if
 
+         if(.not. full_flux_surface) then 
+            write(*,*) 'nitt set to 1 for fluxtube' 
+            nitt = 1
+         end if
+         
       end if
+
 
       ! Exit stella if we ran into an error
       call broadcast(error)
@@ -250,6 +260,7 @@ contains
       call broadcast(mat_gen)
       call broadcast(mat_read)
 
+      call broadcast(nitt) 
       ! calculate some useful derived quantities that are used repeatedly across modules
       time_upwind_plus = 0.5 * (1.0 + time_upwind)
       time_upwind_minus = 0.5 * (1.0 - time_upwind)
