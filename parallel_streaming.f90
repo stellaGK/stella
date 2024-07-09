@@ -446,6 +446,7 @@ contains
      real, dimension(:,:,:), allocatable :: z_scratch1, z_scratch2
      real :: scratch 
 
+     complex, dimension(:,:,:,:,:), allocatable :: source2
      integer :: ikx 
 
      allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g0 = 0.0
@@ -462,6 +463,7 @@ contains
      allocate(z_scratch1(ny, -nzgrid:nzgrid, 3)) ; z_scratch1 = 0.0   
      allocate(z_scratch2(ny, -nzgrid:nzgrid, 3)) ; z_scratch2 = 0.0
      
+     allocate(source2(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc)) ; source2 = 0.0
      source = 0.0 
 
      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -477,8 +479,8 @@ contains
         !> d phi/dz
         call get_dgdz_centered(phi, ivmu, dphi_dz)
         !> dg/dz
-        call get_dgdz(g(:, :, :, :, ivmu), ivmu, dgdz)
-
+!!        call get_dgdz(g(:, :, :, :, ivmu), ivmu, dgdz)
+        call get_dzed(iv, g(:, :, :, :, ivmu), dgdz)
         !> get these quantities in real space 
         do it = 1, ntubes
            do iz = -nzgrid, nzgrid
@@ -520,6 +522,8 @@ contains
 
         ! g0y = g0y + g2y
         !!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!
          
         scratch = maxwell_fac(is) *  maxwell_vpa(iv, is) * spec(is)%zt
 
@@ -537,7 +541,7 @@ contains
 !            do ikx = 1, ikx_max  
 !               do iz = -nzgrid, nzgrid
 !                  if (stream_correction_sign(ia, iv) > 0) then 
-!                  !if (stream_sign(iv) > 0) then 
+! !                 if (stream_sign(iv) > 0) then 
 !                     g2y(ia,ikx,iz,1) = z_scratch1(ia,iz,-1) * (g2y(ia,ikx,iz,1) + scratch * z_scratch2(ia,iz,-1) * g1y (ia,ikx,iz,1))
 !                  else
 !                     g2y(ia,ikx,iz,1) = z_scratch1(ia,iz,1) * (g2y(ia,ikx,iz,1) + scratch * z_scratch2(ia,iz,1) * g1y (ia,ikx,iz,1))
@@ -549,41 +553,52 @@ contains
         g2y = spread(spread(stream_correction(:,:,iv,is), 2, ikx_max), 4, ntubes) * scratch &
              * (g2y + g0y * spread(spread(maxwell_mu_avg(:, :, imu, is), 2, ikx_max),4, ntubes ))
 
-        z_scratch1 = spread(stream_store_full(:,:,iv,is) * maxwell_mu(:, :, imu, is), 2, 3)
-        do ia = 1, ny
-           call center_zed(1, z_scratch1(ia, :, -stream_full_sign(ia,1)), -nzgrid)
-        end do
+        g0y = spread(spread(stream_store_full (:,:,iv,is) * maxwell_mu(:, :, imu, is) , 2, ikx_max),4, ntubes) & 
+             * (g1y - g0y) * scratch 
 
-        do ia = 1, ny
-           do ikx = 1, ikx_max
-              do iz = -nzgrid, nzgrid
-                 if (stream_full_sign(ia, iv) > 0) then
-                    g0y(ia,ikx,iz,1) = z_scratch1(ia,iz,-1) * (g0y(ia,ikx,iz,1) - g1y(ia,ikx,iz,1))
-                 else
-                    g0y(ia,ikx,iz,1) = z_scratch1(ia,iz,1) * (g0y(ia,ikx,iz,1) - g1y(ia,ikx,iz,1))
-                 end if
-              end do
-           end do
-        end do
-        
-        g0y = g0y + g2y 
-!!        g0y = g0y + g2y
+!         z_scratch1 = spread(stream_store_full(:,:,iv,is) * maxwell_mu(:, :, imu, is), 2, 3)
+!         do ia = 1, ny
+!            call center_zed(1, z_scratch1(ia, :, -stream_full_sign(ia,1)), -nzgrid)
+!         end do
+
+!         do ia = 1, ny
+!            do ikx = 1, ikx_max
+!               do iz = -nzgrid, nzgrid
+!                  if (stream_full_sign(ia, iv) > 0) then
+!                     g0y(ia,ikx,iz,1) = z_scratch1(ia,iz,-1) * (g0y(ia,ikx,iz,1) - g1y(ia,ikx,iz,1))
+!                  else
+!                     g0y(ia,ikx,iz,1) = z_scratch1(ia,iz,1) * (g0y(ia,ikx,iz,1) - g1y(ia,ikx,iz,1))
+!                  end if
+!               end do
+!            end do
+!         end do
+ 
+! !!        g0y = g0y + g2y 
+! !!        g0y = g0y + g2y
 
         do it = 1, ntubes
            do iz = -nzgrid, nzgrid
               call transform_y2ky(g0y(:, :, iz, it), g_swap)
               call swap_kxky_back(g_swap, source(:, :, iz, it, ivmu))
+
+              call transform_y2ky(g2y(:, :, iz, it), g_swap)
+              call swap_kxky_back(g_swap, source2(:, :, iz, it, ivmu))
            end do
         end do
+
+        call center_zed(iv, source2(:,:,:,:,ivmu))
+        call center_zed(iv, source(:,:,:,:,ivmu))
      end do
 
+     source = source + source2
+     
      deallocate(g0)
      deallocate(dgphi_dz, dphi_dz, dgdz)
      deallocate(g_swap)
      deallocate(g0y,g1y,g2y) 
      
      deallocate(z_scratch1, z_scratch2) 
-     
+     deallocate(source2)
 
    end subroutine get_source_ffs_itteration
 
