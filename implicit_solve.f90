@@ -818,5 +818,165 @@ contains
 
    end subroutine invert_parstream_response
 
+   ! subroutine get_drifts_ffs_itteration 
+
+   !    use mp, only: proc0
+   !    use stella_layouts, only: vmu_lo
+   !    use stella_layouts, only: iv_idx, imu_idx, is_idx
+   !    use stella_transforms, only: transform_ky2y,transform_y2ky
+   !    use zgrid, only: nzgrid, ntubes
+   !    use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
+   !    use kt_grids, only: swap_kxky, swap_kxky_back
+   !    use gyro_averages, only: j0_ffs, gyro_average
+
+   !    use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
+   !    use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
+   !    use dist_fn_arrays, only: wstar
+
+   !    implicit none 
+
+   !    integer :: iz, it, ivmu, iv, is, imu
+   !    complex, dimension(:, :), allocatable :: g_swap
+   !    complex, dimension(:, :, :, :), allocatable :: gk0, gk1, gk2, gk3, gk4
+   !    complex, dimension(:, :, :, :), allocatable :: sourcey, g1y, g2y, g3y, g4y
+   !    it = 1
+
+   !    allocate (gk0(naky, nakx, -nzgrid:nzgrid, ntubes)) ; gk0 = 0.0
+   !    allocate (gk1(naky, nakx, -nzgrid:nzgrid, ntubes)) ; gk1 = 0.0
+   !    allocate (gk2(naky, nakx, -nzgrid:nzgrid, ntubes)) ; gk2 = 0.0
+   !    allocate (gk3(naky, nakx, -nzgrid:nzgrid, ntubes)) ; gk3 = 0.0
+   !    allocate (gk4(naky, nakx, -nzgrid:nzgrid, ntubes)) ; gk4 = 0.0
+
+   !    allocate (sourcey(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; sourcey = 0.0
+   !    allocate (g1y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g1y = 0.0
+   !    allocate (g2y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g2y = 0.0
+   !    allocate (g3y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g3y = 0.0
+   !    allocate (g4y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g4y = 0.0
+
+   !    allocate (g_swap(naky_all, ikx_max))
+      
+   !    do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+   !       iv = iv_idx(vmu_lo, ivmu)
+   !       imu = imu_idx(vmu_lo, ivmu)
+   !       is = is_idx(vmu_lo, ivmu)
+
+   !       call gyro_average(phi_old, gk0, j0_ffs(:, :, :, ivmu))
+
+   !       call get_dgdy(gk0, gk1)
+   !       call get_dgdx(gk0, gk2)
+
+   !       call get_dgdy(g2(:,:,:,:,ivmu), gk3)
+   !       call get_dgdx(g2(:,:,:,:,ivmu), gk4)
+
+   !       do it = 1, ntubes
+   !          do iz = -nzgrid, nzgrid
+   !             call swap_kxky(gk1(:, :, iz, it), g_swap)
+   !             call transform_ky2y(g_swap, g1y(:, :, iz, it))
+
+   !             call swap_kxky(gk2(:, :, iz, it), g_swap)
+   !             call transform_ky2y(g_swap, g2y(:, :, iz, it))
+
+   !             call swap_kxky(gk3(:, :, iz, it), g_swap)
+   !             call transform_ky2y(g_swap, g3y(:, :, iz, it))
+
+   !             call swap_kxky(gk4(:, :, iz, it), g_swap)
+   !             call transform_ky2y(g_swap, g4y(:, :, iz, it))      
+   !          end do
+   !       end do
+         
+   !       call add_explicit_term_ffs_fields(g1y, wstar(:,:,ivmu), sourcey)
+   !       !!
+   !       call add_explicit_term_ffs_fields(g4y, wdriftx_g(:,:,ivmu), sourcey) 
+   !       call add_explicit_term_ffs_fields(g2y, wdriftx_phi(:,:,ivmu), sourcey) 
+   !       !!
+   !       call add_explicit_term_ffs_fields(g3y, wdrifty_g(:,:,ivmu), sourcey)
+   !       call add_explicit_term_ffs_fields(g1y, wdrifty_phi(:,:,ivmu), sourcey)
+   !       do it = 1, ntubes
+   !          do iz = -nzgrid, nzgrid
+   !             call transform_y2ky(sourcey(:, :, iz, it), g_swap)
+   !             call swap_kxky_back(g_swap, drifts_source_ffs(:, :, iz, it, ivmu))
+   !          end do
+   !       end do
+   !   end do
+
+   !   deallocate(sourcey, g_swap)
+   !   deallocate(gk0,gk1,gk2,gk3,gk4)
+   !   deallocate(g1y, g2y, g3y, g4y)
+
+   !  end subroutine get_drifts_ffs_itteration
  
+   !  subroutine get_dgdy(gin, dgdy)
+
+   !    use constants, only: zi
+   !    use zgrid, only: nzgrid, ntubes
+   !    use kt_grids, only: nakx, aky
+
+   !    implicit none
+
+   !    complex, dimension(:, :, -nzgrid:, :), intent(in) :: gin
+   !    complex, dimension(:, :, -nzgrid:, :), intent(out) :: dgdy
+
+   !    integer :: it, iz, ikx
+
+   !    do it = 1, ntubes
+   !       do iz = -nzgrid, nzgrid
+   !          do ikx = 1, nakx
+   !             dgdy(:, ikx, iz, it) = zi * aky(:) * gin(:, ikx, iz, it)
+   !          end do
+   !       end do
+   !    end do
+
+   ! end subroutine get_dgdy
+
+   ! subroutine get_dgdx(gin, dgdx)
+
+   !    use constants, only: zi
+   !    use zgrid, only: nzgrid, ntubes
+   !    use kt_grids, only: akx, nakx
+
+   !    implicit none
+
+   !    complex, dimension(:, :, -nzgrid:, :), intent(in) :: gin
+   !    complex, dimension(:, :, -nzgrid:, :), intent(out) :: dgdx
+
+   !    integer :: ikx, iz, it
+
+   !    do it = 1, ntubes
+   !       do iz = -nzgrid, nzgrid
+   !          do ikx = 1, nakx
+   !             dgdx(:, ikx, iz, it) = zi * akx(ikx) * gin(:, ikx, iz, it)
+   !          end do
+   !       end do
+   !    end do
+
+   ! end subroutine get_dgdx
+
+   ! subroutine add_explicit_term_ffs_fields(g, pre_factor, src)
+
+   !    use stella_layouts, only: vmu_lo
+   !    use zgrid, only: nzgrid, ntubes
+   !    use kt_grids, only: ikx_max, nalpha
+
+   !    implicit none
+
+   !    complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
+   !    real, dimension(:, -nzgrid:), intent(in) :: pre_factor
+   !    complex, dimension(:, :, -nzgrid:, :), intent(in out) :: src
+
+   !    integer :: ivmu
+   !    integer :: ia, ikx, iz, it
+
+   !    do it = 1, ntubes
+   !       do iz = -nzgrid, nzgrid
+   !          do ikx = 1, ikx_max
+   !             do ia = 1, nalpha
+   !                src(ia, ikx, iz, it) = src(ia, ikx, iz, it) + pre_factor(ia, iz) * g(ia, ikx, iz, it)
+   !             end do
+   !          end do
+   !       end do
+   !    end do
+
+   ! end subroutine add_explicit_term_ffs_fields
+
+
 end module implicit_solve

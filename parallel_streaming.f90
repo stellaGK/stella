@@ -19,6 +19,8 @@ module parallel_streaming
    public :: get_dgdz_centered
 
    public :: get_phi_source_ffs_implicit
+   public :: get_source_ffs_itteration
+
    private
 
    interface center_zed
@@ -29,7 +31,7 @@ module parallel_streaming
 
    logical :: parallel_streaming_initialized = .false.
 
-   integer, dimension(:), allocatable :: stream_sign, stream_correction_sign
+   integer, dimension(:), allocatable :: stream_sign
    real, dimension(:, :, :, :), allocatable :: stream
    real, dimension(:, :, :), allocatable :: stream_c
    real, dimension(:, :, :), allocatable :: stream_rad_var1
@@ -40,7 +42,8 @@ module parallel_streaming
    real, dimension(:, :), allocatable :: gradpar_c
 
    real, dimension(2, 3) :: time_parallel_streaming = 0.
-   real, dimension(:, :, :, :), allocatable :: stream_correction
+   integer, dimension(:,:), allocatable :: stream_correction_sign, stream_full_sign
+   real, dimension(:, :, :, :), allocatable :: stream_correction, stream_store_full
 
 contains
 
@@ -79,7 +82,9 @@ contains
       if (driftkinetic_implicit) then
          if (.not. allocated(stream_correction)) allocate (stream_correction(nalpha, -nzgrid:nzgrid, nvpa, nspec)); stream_correction = 0.
          if (.not. allocated(stream_store)) allocate (stream_store(-nzgrid:nzgrid, nvpa, nspec)); stream_store = 0.
-         if (.not. allocated(stream_correction_sign)) allocate (stream_correction_sign(nvpa)); stream_correction_sign = 0.0
+         if (.not. allocated(stream_correction_sign)) allocate (stream_correction_sign(nalpha, nvpa)); stream_correction_sign = 0.0
+         if (.not. allocated(stream_store_full)) allocate (stream_store_full(nalpha,-nzgrid:nzgrid, nvpa, nspec)); stream_store_full = 0.
+         if (.not. allocated(stream_full_sign)) allocate(stream_full_sign(nalpha, nvpa)); stream_full_sign = 0.0
       end if
 
       ! sign of stream corresponds to appearing on RHS of GK equation
@@ -103,6 +108,7 @@ contains
 
       if (driftkinetic_implicit) then
          stream_correction = stream - spread(stream_store, 1, nalpha)
+         stream_store_full = stream 
          stream = spread(stream_store, 1, nalpha)
          deallocate (stream_store)
       end if
@@ -141,7 +147,10 @@ contains
       do iv = 1, nvpa
          stream_sign(iv) = int(sign(1.0, stream(1, 0, iv, 1)))
          if (driftkinetic_implicit) then
-            stream_correction_sign =  int(sign(1.0, stream_correction(1, 0, iv, 1)))
+            do ia = 1, nalpha
+                stream_correction_sign(ia,:) =  int(sign(1.0, stream_correction(ia, 0, iv, 1)))
+                stream_full_sign(ia,:) = int(sign(1.0, stream_store_full(ia, 0, iv, 1)))
+            end do
          end if
       end do
 
@@ -241,9 +250,9 @@ contains
       complex, dimension(:, :, :, :), allocatable :: g0y, g1y
       complex, dimension(:, :), allocatable :: g0_swap
 
-      complex, dimension(:, :, :, :), allocatable :: dgphi1_dz, dgphi2_dz, dgphi3_dz
-      complex, dimension(:, :, :, :), allocatable :: g1y_correction, g2y_correction, g3y_correction
-      complex, dimension(:, :, :, :), allocatable :: phi1
+!      complex, dimension(:, :, :, :), allocatable :: dgphi1_dz, dgphi2_dz, dgphi3_dz
+!      complex, dimension(:, :, :, :), allocatable :: g1y_correction, g2y_correction, g3y_correction
+!      complex, dimension(:, :, :, :), allocatable :: phi1
       logical :: implicit_solve = .true.
 
       integer :: iky, ikx 
@@ -263,24 +272,24 @@ contains
          allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
          allocate (g1y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
          
-         if (driftkinetic_implicit) then
-            allocate (dgphi1_dz(naky, nakx, -nzgrid:nzgrid, ntubes)) 
-            allocate (g1y_correction(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g1y_correction = 0.0
+         ! if (driftkinetic_implicit) then
+         !    allocate (dgphi1_dz(naky, nakx, -nzgrid:nzgrid, ntubes)) 
+         !    allocate (g1y_correction(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g1y_correction = 0.0
 
-            allocate (dgphi2_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
-            allocate (g2y_correction(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g2y_correction = 0.0 
+         !    allocate (dgphi2_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
+         !    allocate (g2y_correction(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g2y_correction = 0.0 
 
-            allocate (dgphi3_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
-            allocate (g3y_correction(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g3y_correction = 0.0
-         end if
+         !    allocate (dgphi3_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
+         !    allocate (g3y_correction(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g3y_correction = 0.0
+         ! end if
       end if
 
-      if (driftkinetic_implicit) then
-         allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes)) ; phi1 = 0.0
-         implicit_solve = .true.
-         fields_updated = .false.
-         call advance_fields(g, phi1, apar, dist='gbar', implicit_solve=.true.)
-      end if
+      ! if (driftkinetic_implicit) then
+      !    allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes)) ; phi1 = 0.0
+      !    implicit_solve = .true.
+      !    fields_updated = .false.
+      !    call advance_fields(g, phi1, apar, dist='gbar', implicit_solve=.true.)
+      ! end if
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          !> get (iv,imu,is) indices corresponding to ivmu super-index
@@ -295,19 +304,19 @@ contains
             call gyro_average(phi, ivmu, g0(:, :, :, :))
          end if
 
-         if (driftkinetic_implicit) then 
-            call get_dgdz_centered(phi, ivmu, dgphi1_dz) !, stream_correction_sign)
-            dgphi2_dz = dgphi1_dz
-            ! do iky = 1, naky 
-               ! do ikx = 1,nakx
-                  ! if(any(kperp2(iky,ikx,:,:) < 0.0085)) then 
-                  !    dgphi2_dz = 0.
-                  ! else
-                  !    dgphi2_dz = dgphi1_dz
-                  ! end if
-               ! end do
-            ! end do
-         end if
+         ! if (driftkinetic_implicit) then 
+         !    call get_dgdz_centered(phi, ivmu, dgphi1_dz) !, stream_correction_sign)
+         !    dgphi2_dz = dgphi1_dz
+
+         !    ! call get_dgdz_centered(phi, ivmu, dgphi1_dz)
+         !    ! do iky = 1, naky 
+         !    !    do ikx = 1,nakx
+         !    !       if(any(kperp2(iky,ikx,:,:) < 0.0085)) then 
+         !    !          dgphi2_dz(iky,ikx,:,:) = dgphi1_dz(iky,ikx,:,:)
+         !    !       end if
+         !    !    end do
+         !    ! end do
+         ! end if
          !> get d<phi>/dz, with z the parallel coordinate and store in dgphi_dz
          !> note that this should be a centered difference to avoid numerical
          !> unpleasantness to do with inexact cancellations in later velocity integration
@@ -321,18 +330,9 @@ contains
  !        end if
 
          call get_dgdz_centered(g0, ivmu, dgphi_dz)
-         if (driftkinetic_implicit) then
-            ! do iky = 1,naky
-            !    do ikx =1,nakx
-            !       if(any(kperp2(iky,ikx,:,:) < 0.0085)) then
-            !          dgphi3_dz = 0.
-            !       else
-            !          dgphi3_dz = dgphi_dz
-            !       end if
-            !    end do
-            ! end do
-            dgphi3_dz = dgphi_dz
-         end if
+         ! if (driftkinetic_implicit) then
+         !    dgphi3_dz = dgphi_dz
+         ! end if
          !> compute dg/dz in k-space and store in g0
          call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
 
@@ -349,27 +349,28 @@ contains
                   call swap_kxky(dgphi_dz(:, :, iz, it), g0_swap)
                   call transform_ky2y(g0_swap, g1y(:, :, iz, it))                  
                   
-                  if(driftkinetic_implicit) then 
-                     call swap_kxky(dgphi1_dz(:, :, iz, it), g0_swap)
-                     call transform_ky2y(g0_swap, g1y_correction(:, :, iz, it))
+                  ! if(driftkinetic_implicit) then 
+                  !    call swap_kxky(dgphi1_dz(:, :, iz, it), g0_swap)
+                  !    call transform_ky2y(g0_swap, g1y_correction(:, :, iz, it))
 
-                     call swap_kxky(dgphi2_dz(:, :, iz, it), g0_swap)
-                     call transform_ky2y(g0_swap, g2y_correction(:, :, iz, it))
-                     call swap_kxky(dgphi3_dz(:, :, iz, it), g0_swap)
-                     call transform_ky2y(g0_swap, g3y_correction(:, :, iz, it))
-                  end if
+                  !    call swap_kxky(dgphi2_dz(:, :, iz, it), g0_swap)
+                  !    call transform_ky2y(g0_swap, g2y_correction(:, :, iz, it))
+                  !    call swap_kxky(dgphi3_dz(:, :, iz, it), g0_swap)
+                  !    call transform_ky2y(g0_swap, g3y_correction(:, :, iz, it))
+                  ! end if
 
                end do
             end do
             ! ! over-write g0y with F * d/dz (g/F) + ZeF/T * d<phi>/dz (or <phi>-phi for driftkinetic_implicit).
             if (driftkinetic_implicit) then
-               g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt &
-                    * maxwell_vpa(iv, is) * spread(spread(maxwell_mu(:, :, imu, is), 2, ikx_max),4, ntubes) * maxwell_fac(is)
-               call add_stream_term_ffs_correction(g0y, ivmu, gout(:, :, :, :, ivmu))
+            !    g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt &
+            !         * maxwell_vpa(iv, is) * spread(spread(maxwell_mu_avg(:, :, imu, is), 2, ikx_max),4, ntubes) * maxwell_fac(is)
+            !    call add_stream_term_ffs_correction(g0y, ivmu, gout(:, :, :, :, ivmu))
+
                
-              g1y_correction = - spec(is)%zt * maxwell_fac(is) *  maxwell_vpa(iv, is) * &
-                   spread(spread(maxwell_mu_avg(:, :, imu, is), 2, ikx_max),4, ntubes) * & 
-                   (g3y_correction - g2y_correction ) 
+               ! g1y_correction = - spec(is)%zt * maxwell_fac(is) *  maxwell_vpa(iv, is) * &
+               !      spread(spread(maxwell_mu_avg(:, :, imu, is), 2, ikx_max),4, ntubes) * & 
+               !      (g3y_correction - g2y_correction ) 
                
                ! g1y_correction = - spec(is)%zt * maxwell_fac(is) *  maxwell_vpa(iv, is) * &
                !      (g3y_correction * spread(spread(maxwell_mu(:, :, imu, is), 2, ikx_max), 4, ntubes) &
@@ -380,7 +381,7 @@ contains
                !      - g1y(:, :, :, :) * spec(is)%zt * maxwell_vpa(iv, is) & 
                !      * spread(spread(maxwell_mu_avg(:, :, imu, is), 2, ikx_max),4, ntubes) * maxwell_fac(is)
                
-                call add_stream_term_ffs(g1y_correction, ivmu, gout(:, :, :, :, ivmu))
+               ! call add_stream_term_ffs(g1y_correction, ivmu, gout(:, :, :, :, ivmu))
             else
                g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
                     * maxwell_vpa(iv, is) * spread(spread(maxwell_mu(:, :, imu, is), 2, ikx_max), 4, ntubes) * maxwell_fac(is)
@@ -402,13 +403,189 @@ contains
       !> deallocate intermediate arrays used in this subroutine
       deallocate (g0, dgphi_dz)
       if (full_flux_surface) deallocate (g0y, g1y, g0_swap)
-      if(driftkinetic_implicit) deallocate(dgphi1_dz, g1y_correction) 
-      if(driftkinetic_implicit) deallocate(dgphi2_dz,dgphi3_dz, g2y_correction, g3y_correction)
+!      if(driftkinetic_implicit) deallocate(dgphi1_dz, g1y_correction) 
+!      if(driftkinetic_implicit) deallocate(dgphi2_dz,dgphi3_dz, g2y_correction, g3y_correction)
       !> finish timing the subroutine
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
    end subroutine advance_parallel_streaming_explicit
 
+   subroutine get_source_ffs_itteration (phi, g, source) 
+
+     use mp, only: proc0
+     use stella_layouts, only: vmu_lo
+     use stella_layouts, only: iv_idx, imu_idx, is_idx
+     use stella_transforms, only: transform_ky2y
+     use zgrid, only: nzgrid, ntubes
+     use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
+     use kt_grids, only: swap_kxky
+     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
+     use species, only: spec
+
+     use fields, only: advance_fields, fields_updated
+     use fields_arrays, only: apar
+     use gyro_averages, only: j0_ffs, j0_const, gyro_average
+
+     use kt_grids, only: swap_kxky_back
+     use stella_transforms, only: transform_y2ky
+     
+     implicit none
+
+     complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+     complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+     complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent (out) :: source
+
+     integer :: ivmu, iv, imu, is, ia, iz, it
+     complex, dimension(:, :, :, :), allocatable :: g0, g1
+     complex, dimension(:, :, :, :), allocatable :: dgphi_dz, dphi_dz, dgdz
+     complex, dimension(:, :, :, :), allocatable :: g0y, g1y, g2y
+     complex, dimension(:, :), allocatable :: g_swap
+
+     logical :: implicit_solve
+
+     real, dimension(:,:,:), allocatable :: z_scratch1, z_scratch2
+     real :: scratch 
+
+     integer :: ikx 
+
+     allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g0 = 0.0
+
+     allocate (dgphi_dz(naky, nakx, -nzgrid:nzgrid, ntubes)) ; dgphi_dz = 0.0
+     allocate (dphi_dz(naky, nakx, -nzgrid:nzgrid, ntubes)) ; dphi_dz = 0.0
+     allocate (dgdz(naky, nakx, -nzgrid:nzgrid, ntubes)) ; dgdz = 0.0
+
+     allocate (g_swap(naky_all, ikx_max)) ; g_swap = 0.0
+     allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g0y = 0.0
+     allocate (g1y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g1y = 0.0
+     allocate (g2y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g2y = 0.0 
+     
+     allocate(z_scratch1(ny, -nzgrid:nzgrid, 3)) ; z_scratch1 = 0.0   
+     allocate(z_scratch2(ny, -nzgrid:nzgrid, 3)) ; z_scratch2 = 0.0
+     
+     source = 0.0 
+
+     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        iv = iv_idx(vmu_lo, ivmu)
+        imu = imu_idx(vmu_lo, ivmu)
+        is = is_idx(vmu_lo, ivmu)
+        
+        !> <phi>
+        call gyro_average(phi, g0, j0_ffs(:, :, :, ivmu))
+        
+        !> Full d <phi>/dz
+        call get_dgdz_centered(g0, ivmu, dgphi_dz)
+        !> d phi/dz
+        call get_dgdz_centered(phi, ivmu, dphi_dz)
+        !> dg/dz
+        call get_dgdz(g(:, :, :, :, ivmu), ivmu, dgdz)
+
+        !> get these quantities in real space 
+        do it = 1, ntubes
+           do iz = -nzgrid, nzgrid
+              !> g0y is real space version of d<phi>/dz
+              call swap_kxky(dgphi_dz(:, :, iz, it), g_swap)
+              call transform_ky2y(g_swap, g0y(:, :, iz, it))
+
+              !> g1y is real space version of dphi/dz
+              call swap_kxky(dphi_dz(:, :, iz, it), g_swap) 
+              call transform_ky2y(g_swap, g1y(:, :, iz, it)) 
+
+              !> g2y is real space version of dg/dz
+              call swap_kxky(dgdz(:, :, iz, it), g_swap)
+              call transform_ky2y(g_swap, g2y(:, :, iz, it)) 
+              
+           end do
+        end do
+
+        !!> NB stream conains minus sign 
+        !!> g0y = - v_par  * b_dot_gradz * F_0 * Z/T * d<phi>/dz
+        ! g0y = spread(spread(((stream (:, :, iv, is) + stream_correction (:,:,iv,is) ) & 
+        !      * maxwell_mu(:, :, imu, is) ), 2, ikx_max), 4, ntubes ) * scratch * g0y
+
+        ! !> g1y = - v_par * ( alpha_avg(b_dot_grad_z) * alpha_avg(F_0) ) * Z/T * dphi/dz
+        ! g1y = spread(spread((stream (:, :, iv, is) * maxwell_mu_avg(:, :, imu, is) ), 2, ikx_max),4, ntubes) & 
+        !      * scratch * g1y 
+
+        !> g2y = - v_par * ( b_dot_grad_z - alpha_avg(b_dot_grad_z) * dg/dz
+        ! g2y = spread(spread( stream_correction (:,:,iv,is) , 2, ikx_max),4, ntubes) * & 
+        !      (g2y + scratch * spread(spread((maxwell_mu_avg(:, :, imu, is) ), 2, ikx_max),4, ntubes) * g1y )
+        ! g0y = g0y + g2y
+        !!!!!!!!!!!!!!!!!!!!!!!!!!! 
+
+        ! g2y = spread(spread(stream_correction(:,:,iv,is), 2, ikx_max), 4, ntubes) * scratch &
+        !      * (g2y + g0y * spread(spread(maxwell_mu_avg(:, :, imu, is), 2, ikx_max),4, ntubes ))
+        
+        ! g0y = spread(spread(stream_store_full (:,:,iv,is) * maxwell_mu(:, :, imu, is) , 2, ikx_max),4, ntubes) & 
+        !      * (g1y - g0y) * scratch 
+
+        ! g0y = g0y + g2y
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!
+         
+        scratch = maxwell_fac(is) *  maxwell_vpa(iv, is) * spec(is)%zt
+
+!         z_scratch1 = spread(stream_correction (:,:,iv,is), 2, 3) 
+!         z_scratch2 = spread(maxwell_mu(:, :, imu, is), 2, 3)
+
+!         do ia = 1, ny 
+! !           call center_zed(1, z_scratch1(ia, :, -stream_sign(1)), -nzgrid)  
+! !           call center_zed(1, z_scratch2(ia, :, -stream_sign(1)), -nzgrid)
+!            call center_zed(1, z_scratch1(ia, :, -stream_correction_sign(ia,1)), -nzgrid)  
+!            call center_zed(1, z_scratch2(ia, :, -stream_correction_sign(ia,1)), -nzgrid)
+!         end do
+        
+!         do ia = 1, ny
+!            do ikx = 1, ikx_max  
+!               do iz = -nzgrid, nzgrid
+!                  if (stream_correction_sign(ia, iv) > 0) then 
+!                  !if (stream_sign(iv) > 0) then 
+!                     g2y(ia,ikx,iz,1) = z_scratch1(ia,iz,-1) * (g2y(ia,ikx,iz,1) + scratch * z_scratch2(ia,iz,-1) * g1y (ia,ikx,iz,1))
+!                  else
+!                     g2y(ia,ikx,iz,1) = z_scratch1(ia,iz,1) * (g2y(ia,ikx,iz,1) + scratch * z_scratch2(ia,iz,1) * g1y (ia,ikx,iz,1))
+!                  end if
+!               end do
+!            end do
+!         end do
+
+        g2y = spread(spread(stream_correction(:,:,iv,is), 2, ikx_max), 4, ntubes) * scratch &
+             * (g2y + g0y * spread(spread(maxwell_mu_avg(:, :, imu, is), 2, ikx_max),4, ntubes ))
+
+        z_scratch1 = spread(stream_store_full(:,:,iv,is) * maxwell_mu(:, :, imu, is), 2, 3)
+        do ia = 1, ny
+           call center_zed(1, z_scratch1(ia, :, -stream_full_sign(ia,1)), -nzgrid)
+        end do
+
+        do ia = 1, ny
+           do ikx = 1, ikx_max
+              do iz = -nzgrid, nzgrid
+                 if (stream_full_sign(ia, iv) > 0) then
+                    g0y(ia,ikx,iz,1) = z_scratch1(ia,iz,-1) * (g0y(ia,ikx,iz,1) - g1y(ia,ikx,iz,1))
+                 else
+                    g0y(ia,ikx,iz,1) = z_scratch1(ia,iz,1) * (g0y(ia,ikx,iz,1) - g1y(ia,ikx,iz,1))
+                 end if
+              end do
+           end do
+        end do
+        
+        g0y = g0y + g2y 
+!!        g0y = g0y + g2y
+
+        do it = 1, ntubes
+           do iz = -nzgrid, nzgrid
+              call transform_y2ky(g0y(:, :, iz, it), g_swap)
+              call swap_kxky_back(g_swap, source(:, :, iz, it, ivmu))
+           end do
+        end do
+     end do
+
+     deallocate(g0)
+     deallocate(dgphi_dz, dphi_dz, dgdz)
+     deallocate(g_swap)
+     deallocate(g0y,g1y,g2y) 
+     
+     deallocate(z_scratch1, z_scratch2) 
+     
+
+   end subroutine get_source_ffs_itteration
 
    subroutine get_phi_source_ffs_implicit (phi, g, source) 
 
@@ -1065,6 +1242,12 @@ contains
       if (allocated(stream_rad_var2)) deallocate (stream_rad_var2)
 
       if (stream_implicit .or. driftkinetic_implicit) call finish_invert_stream_operator
+      if (driftkinetic_implicit) then 
+         if(allocated(stream_correction)) deallocate(stream_correction)
+         if(allocated(stream_correction_sign)) deallocate(stream_correction_sign)
+         if(allocated(stream_store_full)) deallocate(stream_store_full)
+         if(allocated(stream_full_sign)) deallocate(stream_full_sign)
+      end if
 
       parallel_streaming_initialized = .false.
 
