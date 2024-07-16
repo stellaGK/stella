@@ -80,20 +80,20 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.1% of total for procedures.">39 statements</a>
+                 title=" 0.1% of total for procedures.">29 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
               <i class="fa fa-code"></i>
-              <a href="../src/physics_flags.f90"> Source File</a>
+              <a href="../src/stella_diagnostics.f90"> Source File</a>
             </li>
         </ul>
       </div>
       <div class="col">
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb justify-content-end mb-0">
-                <li class="breadcrumb-item"><a href='../sourcefile/physics_flags.f90.html'>physics_flags.f90</a></li>
-                <li class="breadcrumb-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
+                <li class="breadcrumb-item"><a href='../sourcefile/stella_diagnostics.f90.html'>stella_diagnostics.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></li>
             <li class="breadcrumb-item active" aria-current="page">read_parameters</li>
           </ol>
         </nav>
@@ -138,7 +138,7 @@
       </a>
       <div id="namelists-0" class="collapse">
         <div class="list-group list-group-flush">
-            <a class="list-group-item" href="../proc/read_parameters~10.html#namelist-physics_flags">physics_flags</a>
+            <a class="list-group-item" href="../proc/read_parameters~10.html#namelist-stella_diagnostics_knobs">stella_diagnostics_knobs</a>
         </div>
       </div>
     </div>
@@ -158,8 +158,8 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
                   <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
-                  <li class="list-inline-item"><a href='../module/text_options.html'>text_options</a></li>
                   <li class="list-inline-item"><a href='../module/file_utils.html'>file_utils</a></li>
               </ul>
             </li>
@@ -168,6 +168,8 @@
     </div>
 
 
+    <p>Read the diagnostic input parameters from the input file</p>
+<p>Namelist: <code>stella_diagnostics_knobs</code></p>
 
 
     <h3>Arguments</h3>
@@ -188,15 +190,15 @@
         <h2>Namelists</h2>
             <div class="card">
     <div class="card-header codesum">
-      <span class="anchor" id="namelist-physics_flags"></span>
-      <h3>Namelist <a href='../namelist/physics_flags.html'>physics_flags</a></h3>
+      <span class="anchor" id="namelist-stella_diagnostics_knobs"></span>
+      <h3>Namelist <a href='../namelist/stella_diagnostics_knobs.html'>stella_diagnostics_knobs</a></h3>
     </div>
     <div class="card-body">
         
   <br class="visible-xs visible-sm hidden-md">
   <section>
     <h2>Variables</h2>
-    <table class="table table-striped" id="namelist-physics_flags">
+    <table class="table table-striped" id="namelist-stella_diagnostics_knobs">
       <thead><tr>
           <th>Name</th>
           <th>Type</th>
@@ -204,72 +206,107 @@
           <th>Description</th>
       </tr></thead>
       <tbody>
-              <tr id="variable-full_flux_surface">
-      <td><a href="#variable-full_flux_surface">full_flux_surface</a></td>
+              <tr id="variable-nwrite">
+      <td><a href="#variable-nwrite">nwrite</a></td>
+      <td>integer</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-navg">
+      <td><a href="#variable-navg">navg</a></td>
+      <td>integer</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-nsave">
+      <td><a href="#variable-nsave">nsave</a></td>
+      <td>integer</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-save_for_restart">
+      <td><a href="#variable-save_for_restart">save_for_restart</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-radial_variation">
-      <td><a href="#variable-radial_variation">radial_variation</a></td>
+              <tr id="variable-write_phi_vs_time">
+      <td><a href="#variable-write_phi_vs_time">write_phi_vs_time</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-include_parallel_nonlinearity">
-      <td><a href="#variable-include_parallel_nonlinearity">include_parallel_nonlinearity</a></td>
+              <tr id="variable-write_gvmus">
+      <td><a href="#variable-write_gvmus">write_gvmus</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-include_parallel_streaming">
-      <td><a href="#variable-include_parallel_streaming">include_parallel_streaming</a></td>
+              <tr id="variable-write_gzvs">
+      <td><a href="#variable-write_gzvs">write_gzvs</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-include_mirror">
-      <td><a href="#variable-include_mirror">include_mirror</a></td>
+              <tr id="variable-write_omega">
+      <td><a href="#variable-write_omega">write_omega</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-nonlinear">
-      <td><a href="#variable-nonlinear">nonlinear</a></td>
+              <tr id="variable-write_kspectra">
+      <td><a href="#variable-write_kspectra">write_kspectra</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-include_pressure_variation">
-      <td><a href="#variable-include_pressure_variation">include_pressure_variation</a></td>
+              <tr id="variable-write_moments">
+      <td><a href="#variable-write_moments">write_moments</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-include_geometric_variation">
-      <td><a href="#variable-include_geometric_variation">include_geometric_variation</a></td>
+              <tr id="variable-write_radial_fluxes">
+      <td><a href="#variable-write_radial_fluxes">write_radial_fluxes</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-adiabatic_option">
-      <td><a href="#variable-adiabatic_option">adiabatic_option</a></td>
-      <td>character(len=30)</td>
+              <tr id="variable-write_radial_moments">
+      <td><a href="#variable-write_radial_moments">write_radial_moments</a></td>
+      <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-const_alpha_geo">
-      <td><a href="#variable-const_alpha_geo">const_alpha_geo</a></td>
+              <tr id="variable-write_fluxes_kxkyz">
+      <td><a href="#variable-write_fluxes_kxkyz">write_fluxes_kxkyz</a></td>
       <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-flux_norm">
+      <td><a href="#variable-flux_norm">flux_norm</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-nc_mult">
+      <td><a href="#variable-nc_mult">nc_mult</a></td>
+      <td>integer</td>
       <td>None</td>
       <td></td>
     </tr>
@@ -296,13 +333,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-241-g84751169b</small></p>
+<br /><small>v0.5.1-242-g2fc9f395b</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-16T09:40:34.897874             </p>
+ on 2024-07-16T17:55:20.489058             </p>
           </div>
         </div>
         <br>
