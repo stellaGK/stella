@@ -1,3 +1,5 @@
+<!-- -*- mode: jinja2 -*- -->
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -10,82 +12,60 @@
 
     <title>time_advance &ndash; stella</title>
 
-    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
     <link href="../css/pygments.css" rel="stylesheet">
     <link href="../css/font-awesome.min.css" rel="stylesheet">
     <link href="../css/local.css" rel="stylesheet">
       <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
 
-    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-    <!--[if lt IE 9]>
-        <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-        <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-        <![endif]-->
-
-         <script src="../js/jquery-2.1.3.min.js"></script>
-         <script src="../js/svg-pan-zoom.min.js"></script>
-
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
   </head>
 
   <body>
 
     <!-- Fixed navbar -->
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-      <div class="container">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
           <a class="navbar-brand" href="../index.html">stella </a>
-        </div>
-        <div id="navbar" class="navbar-collapse collapse">
-          <ul class="nav navbar-nav">
-              <li><a href='../page/index.html'>Manual</a></li>
-            <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
-              <a href="#" class="dropdown-toggle"
-                 data-toggle="dropdown" role="button"
-                 aria-haspopup="true"
-                 aria-expanded="false">
-                 Contents <span class="caret"></span>
-              </a>
-              <ul class="dropdown-menu">
-                    <li><a href="../lists/files.html">Source Files</a></li>
-                  <li><a href="../lists/modules.html">Modules</a></li>
-                  <li><a href="../lists/procedures.html">Procedures</a></li>
-                  <li><a href="../lists/types.html">Derived Types</a></li>
-                  <li><a href="../lists/programs.html">Programs</a></li>
-              </ul>
-            </li>
-                <li class="visible-xs hidden-sm visible-lg">
-                  <a href="../lists/files.html">Source Files</a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                <li class="nav-item"><a class="nav-link" href="../page/index.html">Manual</a></li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
                 </li>
-              <li class="visible-xs hidden-sm visible-lg">
-                <a href="../lists/modules.html">Modules</a>
-              </li>
-              <li class="visible-xs hidden-sm visible-lg">
-                <a href="../lists/procedures.html">Procedures</a>
-              </li>
-              <li class="visible-xs hidden-sm visible-lg">
-                <a href="../lists/types.html">Derived Types</a>
-              </li>
-              <li class="visible-xs hidden-sm visible-lg">
-                <a href="../lists/programs.html">Programs</a>
-              </li>
-          </ul>
-            <form action="../search.html" class="navbar-form navbar-right" role="search">
-              <div class="form-group">
-                <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/programs.html">Programs</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
               </div>
-              <!--
-                  <button type="submit" class="btn btn-default">Submit</button>
-                  -->
-            </form>
-        </div><!--/.nav-collapse -->
-      </div>
-    </nav>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
 
     <div class="container">
   <div class="row">
@@ -93,50 +73,52 @@
       <small>Module</small>
       
     </h1>
-      <div class="row" id="info-bar">
-    <div class="col-lg-12">
-      <div class="well well-sm">
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
         <ul class="list-inline" style="margin-bottom:0px;display:inline">
 
-          <li id="statements"><i class="fa fa-list-ol"></i>
-            <a data-toggle="tooltip"
-               data-placement="bottom" data-html="true"
-               title=" 5.0% of total for modules and submodules.">1799 statements</a>
-          </li>
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 5.0% of total for modules and submodules.">1799 statements</a>
+            </li>
 
-            <li id="source-file">
+            <li class="list-inline-item" id="source-file">
               <i class="fa fa-code"></i>
               <a href="../src/time_advance.f90"> Source File</a>
             </li>
         </ul>
-        <ol class="breadcrumb in-well text-right">
-              <li><a href='../sourcefile/time_advance.f90.html'>time_advance.f90</a></li>
-          <li class="active">time_advance</li>
-        </ol>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/time_advance.f90.html'>time_advance.f90</a></li>
+            <li class="breadcrumb-item active" aria-current="page">time_advance</li>
+          </ol>
+        </nav>
       </div>
     </div>
   </div>
   <script>
     $(function () {
-    $('[data-toggle="tooltip"]').tooltip()
+    $('[data-bs-toggle="tooltip"]').tooltip()
     })
   </script>
 
   </div>
 
   <div class="row">
-    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+    <div class="col-md-3">
         <div id="sidebar">
       <h3>Contents</h3>
   
-      <div class="panel panel-primary">
-      <div class="panel-heading text-left">
-        <h3 class="panel-title">
-          <a data-toggle="collapse" href="#vars-0">Variables</a>
-        </h3>
-      </div>
-      <div id="vars-0" class="panel-collapse collapse">
-        <div class="list-group">
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#vars-0"
+         aria-expanded="false" aria-controls="vars-0">
+         <h4 class="card-header bg-primary text-white">Variables</h4>
+      </a>
+      <div id="vars-0" class="collapse">
+        <div class="list-group list-group-flush">
             <a class="list-group-item" href="../module/time_advance.html#variable-time_advance_initialized">time_advance_initialized</a>
             <a class="list-group-item" href="../module/time_advance.html#variable-wdriftinit">wdriftinit</a>
             <a class="list-group-item" href="../module/time_advance.html#variable-wstarinit">wstarinit</a>
@@ -162,7 +144,7 @@
             <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_drifty_dr">d_par_nl_drifty_dr</a>
             <a class="list-group-item" href="../module/time_advance.html#variable-time_gke">time_gke</a>
             <a class="list-group-item" href="../module/time_advance.html#variable-time_parallel_nl">time_parallel_nl</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-debug~2">debug</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-debug~4">debug</a>
         </div>
       </div>
     </div>
@@ -173,14 +155,13 @@
   
   
   
-      <div class="panel panel-primary">
-      <div class="panel-heading text-left">
-        <h3 class="panel-title">
-          <a data-toggle="collapse" href="#inters-0">Interfaces</a>
-        </h3>
-      </div>
-      <div id="inters-0" class="panel-collapse collapse">
-        <div class="list-group">
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#inters-0"
+         aria-expanded="false" aria-controls="inters-0">
+         <h4 class="card-header bg-primary text-white">Interfaces</h4>
+      </a>
+      <div id="inters-0" class="collapse">
+        <div class="list-group list-group-flush">
             <a class="list-group-item" href="../module/time_advance.html#interface-get_dgdy">get_dgdy</a>
             <a class="list-group-item" href="../module/time_advance.html#interface-get_dgdx">get_dgdx</a>
             <a class="list-group-item" href="../module/time_advance.html#interface-checksum">checksum</a>
@@ -191,21 +172,20 @@
   
   
   
-      <div class="panel panel-primary">
-      <div class="panel-heading text-left">
-        <h3 class="panel-title">
-          <a data-toggle="collapse" href="#subs-0">Subroutines</a>
-        </h3>
-      </div>
-      <div id="subs-0" class="panel-collapse collapse">
-        <div class="list-group">
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#subs-0"
+         aria-expanded="false" aria-controls="subs-0">
+         <h4 class="card-header bg-primary text-white">Subroutines</h4>
+      </a>
+      <div id="subs-0" class="collapse">
+        <div class="list-group list-group-flush">
             <a class="list-group-item" href="../module/time_advance.html#proc-init_time_advance">init_time_advance</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-read_parameters~3">read_parameters</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-read_parameters~2">read_parameters</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-init_wdrift">init_wdrift</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-init_wstar">init_wstar</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-init_parallel_nonlinearity">init_parallel_nonlinearity</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-init_radial_variation">init_radial_variation</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-allocate_arrays~2">allocate_arrays</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-allocate_arrays~4">allocate_arrays</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-init_cfl">init_cfl</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-reset_dt">reset_dt</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-advance_stella">advance_stella</a>
@@ -236,11 +216,12 @@
             <a class="list-group-item" href="../module/time_advance.html#proc-finish_parallel_nonlinearity">finish_parallel_nonlinearity</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-finish_wdrift">finish_wdrift</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-finish_wstar">finish_wstar</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-deallocate_arrays">deallocate_arrays</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-deallocate_arrays~2">deallocate_arrays</a>
         </div>
       </div>
     </div>
 
+  
   
   
   
@@ -259,143 +240,17 @@
       
       <br>
 
-      <section class="visible-xs visible-sm hidden-md">
-          <h3>Contents</h3>
-  
-      <div class="panel panel-primary">
-      <div class="panel-heading text-left">
-        <h3 class="panel-title">
-          <a data-toggle="collapse" href="#vars-1">Variables</a>
-        </h3>
-      </div>
-      <div id="vars-1" class="panel-collapse collapse">
-        <div class="list-group">
-            <a class="list-group-item" href="../module/time_advance.html#variable-time_advance_initialized">time_advance_initialized</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-wdriftinit">wdriftinit</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-wstarinit">wstarinit</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-parnlinit">parnlinit</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-readinit">readinit</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-radialinit">radialinit</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-driftimpinit">driftimpinit</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_switch">explicit_option_switch</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_rk3">explicit_option_rk3</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_rk2">explicit_option_rk2</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_rk4">explicit_option_rk4</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-xdriftknob">xdriftknob</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-ydriftknob">ydriftknob</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-wstarknob">wstarknob</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-flip_flop">flip_flop</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_fac">par_nl_fac</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_fac_dr">d_par_nl_fac_dr</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_curv">par_nl_curv</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_curv_dr">d_par_nl_curv_dr</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_driftx">par_nl_driftx</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-par_nl_drifty">par_nl_drifty</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_driftx_dr">d_par_nl_driftx_dr</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_drifty_dr">d_par_nl_drifty_dr</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-time_gke">time_gke</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-time_parallel_nl">time_parallel_nl</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-debug~2">debug</a>
-        </div>
-      </div>
-    </div>
-
-  
-  
-  
-  
-  
-  
-      <div class="panel panel-primary">
-      <div class="panel-heading text-left">
-        <h3 class="panel-title">
-          <a data-toggle="collapse" href="#inters-1">Interfaces</a>
-        </h3>
-      </div>
-      <div id="inters-1" class="panel-collapse collapse">
-        <div class="list-group">
-            <a class="list-group-item" href="../module/time_advance.html#interface-get_dgdy">get_dgdy</a>
-            <a class="list-group-item" href="../module/time_advance.html#interface-get_dgdx">get_dgdx</a>
-            <a class="list-group-item" href="../module/time_advance.html#interface-checksum">checksum</a>
-        </div>
-      </div>
-    </div>
-
-  
-  
-  
-      <div class="panel panel-primary">
-      <div class="panel-heading text-left">
-        <h3 class="panel-title">
-          <a data-toggle="collapse" href="#subs-1">Subroutines</a>
-        </h3>
-      </div>
-      <div id="subs-1" class="panel-collapse collapse">
-        <div class="list-group">
-            <a class="list-group-item" href="../module/time_advance.html#proc-init_time_advance">init_time_advance</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-read_parameters~3">read_parameters</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-init_wdrift">init_wdrift</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-init_wstar">init_wstar</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-init_parallel_nonlinearity">init_parallel_nonlinearity</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-init_radial_variation">init_radial_variation</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-allocate_arrays~2">allocate_arrays</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-init_cfl">init_cfl</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-reset_dt">reset_dt</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-advance_stella">advance_stella</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit">advance_explicit</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_rk2">advance_explicit_rk2</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_rk3">advance_explicit_rk3</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_rk4">advance_explicit_rk4</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-solve_gke">solve_gke</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-advance_wstar_explicit">advance_wstar_explicit</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-advance_wdrifty_explicit">advance_wdrifty_explicit</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-advance_wdriftx_explicit">advance_wdriftx_explicit</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-advance_exb_nonlinearity">advance_ExB_nonlinearity</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-advance_parallel_nonlinearity">advance_parallel_nonlinearity</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-advance_radial_variation">advance_radial_variation</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdy_2d">get_dgdy_2d</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdy_3d">get_dgdy_3d</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdy_4d">get_dgdy_4d</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_2d">get_dgdx_2d</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_3d">get_dgdx_3d</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-get_dgdx_4d">get_dgdx_4d</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-add_explicit_term">add_explicit_term</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-add_explicit_term_ffs">add_explicit_term_ffs</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-advance_implicit">advance_implicit</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-mb_communicate">mb_communicate</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-checksum_field">checksum_field</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-checksum_dist">checksum_dist</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-finish_time_advance">finish_time_advance</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-finish_parallel_nonlinearity">finish_parallel_nonlinearity</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-finish_wdrift">finish_wdrift</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-finish_wstar">finish_wstar</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-deallocate_arrays">deallocate_arrays</a>
-        </div>
-      </div>
-    </div>
-
-  
-  
-  
-  
-  
-  
-
-
-      </section>
-      <br class="visible-xs visible-sm hidden-md">
-
 
         <section>
           <h2>Variables</h2>
             <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Visibility</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-<th></th><th>Initial</th>        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
@@ -825,7 +680,7 @@ parameter
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-debug~2"></span>
+              <span class="anchor" id="variable-debug~4"></span>
               logical,
             </td>
               <td>private</td>
@@ -849,8 +704,8 @@ parameter
 
         <section>
           <h2>Interfaces</h2>
-              <div class="panel panel-default">
-    <div class="panel-heading codesum">
+              <div class="card">
+    <div class="card-header bg-light codesum">
       <span class="anchor" id="interface-get_dgdy"></span>
       <h3>private        interface <a href='../interface/get_dgdy.html'>get_dgdy</a> 
       </h3>
@@ -869,16 +724,16 @@ accepts g(ky,kx)</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~23"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -893,7 +748,7 @@ accepts g(ky,kx)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-dgdy"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -924,16 +779,16 @@ accepts g(ky,kx,z,tube)</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~24"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -948,7 +803,7 @@ accepts g(ky,kx,z,tube)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-dgdy~2"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -979,16 +834,16 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~25"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1003,7 +858,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-dgdy~3"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -1024,8 +879,8 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     </ul>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum">
+              <div class="card">
+    <div class="card-header bg-light codesum">
       <span class="anchor" id="interface-get_dgdx"></span>
       <h3>private        interface <a href='../interface/get_dgdx.html'>get_dgdx</a> 
       </h3>
@@ -1044,16 +899,16 @@ accepts g(ky,kx)</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~26"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1068,7 +923,7 @@ accepts g(ky,kx)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-dgdx"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -1099,16 +954,16 @@ accepts g(ky,kx,z,tube)</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~27"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1123,7 +978,7 @@ accepts g(ky,kx,z,tube)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-dgdx~2"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -1154,16 +1009,16 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~28"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1178,7 +1033,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-dgdx~3"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -1199,8 +1054,8 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     </ul>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum">
+              <div class="card">
+    <div class="card-header bg-light codesum">
       <span class="anchor" id="interface-checksum"></span>
       <h3>public        interface <a href='../interface/checksum.html'>checksum</a> 
       </h3>
@@ -1218,16 +1073,16 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-field~4"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1242,7 +1097,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-total"></span>
               real,
             </td>
 <td>intent(out)</td>
@@ -1272,16 +1127,16 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-dist~6"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1296,7 +1151,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-total~2"></span>
               real,
             </td>
 <td>intent(out)</td>
@@ -1311,7 +1166,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-norm~2"></span>
               logical,
             </td>
 <td>intent(in),</td>
@@ -1340,10 +1195,10 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
 
         <section>
           <h2>Subroutines</h2>
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-init_time_advance"></span><h3>public  subroutine <a href='../proc/init_time_advance.html'>init_time_advance</a>()  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-init_time_advance"></span> <h3>public  subroutine <a href='../proc/init_time_advance.html'>init_time_advance</a>()  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>read time_advance_knobs namelist from the input file;
 sets the explicit time advance option, as well as allows for scaling of
@@ -1366,10 +1221,10 @@ allocate and calculate the factor multiplying dphi/dy in the gradient drive term
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-read_parameters~3"></span><h3>private  subroutine <a href='../proc/read_parameters~3.html'>read_parameters</a>()  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-read_parameters~2"></span> <h3>private  subroutine <a href='../proc/read_parameters~2.html'>read_parameters</a>()  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -1379,10 +1234,10 @@ allocate and calculate the factor multiplying dphi/dy in the gradient drive term
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-init_wdrift"></span><h3>private  subroutine <a href='../proc/init_wdrift.html'>init_wdrift</a>()  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-init_wdrift"></span> <h3>private  subroutine <a href='../proc/init_wdrift.html'>init_wdrift</a>()  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>allocate wdriftx_phi, the factor multiplying dphi/dx in the magnetic drift term
 allocate wdrifty_phi, the factor multiplying dphi/dy in the magnetic drift term
@@ -1422,10 +1277,10 @@ if running with maxwellian_normalzation = .true.</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-init_wstar"></span><h3>private  subroutine <a href='../proc/init_wstar.html'>init_wstar</a>()  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-init_wstar"></span> <h3>private  subroutine <a href='../proc/init_wstar.html'>init_wstar</a>()  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -1435,10 +1290,10 @@ if running with maxwellian_normalzation = .true.</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-init_parallel_nonlinearity"></span><h3>private  subroutine <a href='../proc/init_parallel_nonlinearity.html'>init_parallel_nonlinearity</a>()  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-init_parallel_nonlinearity"></span> <h3>private  subroutine <a href='../proc/init_parallel_nonlinearity.html'>init_parallel_nonlinearity</a>()  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -1448,10 +1303,10 @@ if running with maxwellian_normalzation = .true.</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-init_radial_variation"></span><h3>private  subroutine <a href='../proc/init_radial_variation.html'>init_radial_variation</a>()  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-init_radial_variation"></span> <h3>private  subroutine <a href='../proc/init_radial_variation.html'>init_radial_variation</a>()  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -1461,10 +1316,10 @@ if running with maxwellian_normalzation = .true.</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-allocate_arrays~2"></span><h3>private  subroutine <a href='../proc/allocate_arrays~2.html'>allocate_arrays</a>()  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-allocate_arrays~4"></span> <h3>private  subroutine <a href='../proc/allocate_arrays~4.html'>allocate_arrays</a>()  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -1474,10 +1329,10 @@ if running with maxwellian_normalzation = .true.</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-init_cfl"></span><h3>private  subroutine <a href='../proc/init_cfl.html'>init_cfl</a>()  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-init_cfl"></span> <h3>private  subroutine <a href='../proc/init_cfl.html'>init_cfl</a>()  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -1487,10 +1342,10 @@ if running with maxwellian_normalzation = .true.</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-reset_dt"></span><h3>private  subroutine <a href='../proc/reset_dt.html'>reset_dt</a>()  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-reset_dt"></span> <h3>private  subroutine <a href='../proc/reset_dt.html'>reset_dt</a>()  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -1500,10 +1355,10 @@ if running with maxwellian_normalzation = .true.</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_stella"></span><h3>public  subroutine <a href='../proc/advance_stella.html'>advance_stella</a>(istep, stop_stella)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_stella"></span> <h3>public  subroutine <a href='../proc/advance_stella.html'>advance_stella</a>(istep, stop_stella)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>unless running in multibox mode, no need to worry about
 mb_communicate calls as the subroutine is immediately exited
@@ -1515,16 +1370,16 @@ for use in diagnostics (to obtain frequency)</p><a href="../proc/advance_stella.
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-istep"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1539,7 +1394,7 @@ for use in diagnostics (to obtain frequency)</p><a href="../proc/advance_stella.
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-stop_stella"></span>
               logical,
             </td>
 <td>intent(inout)</td>
@@ -1559,10 +1414,10 @@ for use in diagnostics (to obtain frequency)</p><a href="../proc/advance_stella.
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_explicit"></span><h3>private  subroutine <a href='../proc/advance_explicit.html'>advance_explicit</a>(g, restart_time_step, istep)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_explicit"></span> <h3>private  subroutine <a href='../proc/advance_explicit.html'>advance_explicit</a>(g, restart_time_step, istep)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>advance_explicit takes as input the guiding centre distribution function
 in k-space and updates it to account for all of the terms in the GKE that
@@ -1572,16 +1427,16 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~14"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1596,7 +1451,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-restart_time_step~2"></span>
               logical,
             </td>
 <td>intent(inout)</td>
@@ -1611,7 +1466,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-istep~2"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1631,10 +1486,10 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_explicit_rk2"></span><h3>private  subroutine <a href='../proc/advance_explicit_rk2.html'>advance_explicit_rk2</a>(g, restart_time_step, istep)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_explicit_rk2"></span> <h3>private  subroutine <a href='../proc/advance_explicit_rk2.html'>advance_explicit_rk2</a>(g, restart_time_step, istep)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>advance_expliciit_rk2 uses strong stability-preserving RK2 to advance one time step</p><a href="../proc/advance_explicit_rk2.html" class="pull-right"><emph>Read more&hellip;</emph></a>
 
@@ -1642,16 +1497,16 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~15"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1666,7 +1521,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-restart_time_step~3"></span>
               logical,
             </td>
 <td>intent(inout)</td>
@@ -1681,7 +1536,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-istep~3"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1701,10 +1556,10 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_explicit_rk3"></span><h3>private  subroutine <a href='../proc/advance_explicit_rk3.html'>advance_explicit_rk3</a>(g, restart_time_step, istep)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_explicit_rk3"></span> <h3>private  subroutine <a href='../proc/advance_explicit_rk3.html'>advance_explicit_rk3</a>(g, restart_time_step, istep)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>strong stability-preserving RK3</p><a href="../proc/advance_explicit_rk3.html" class="pull-right"><emph>Read more&hellip;</emph></a>
 
@@ -1712,16 +1567,16 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~16"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1736,7 +1591,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-restart_time_step~4"></span>
               logical,
             </td>
 <td>intent(inout)</td>
@@ -1751,7 +1606,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-istep~4"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1771,10 +1626,10 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_explicit_rk4"></span><h3>private  subroutine <a href='../proc/advance_explicit_rk4.html'>advance_explicit_rk4</a>(g, restart_time_step, istep)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_explicit_rk4"></span> <h3>private  subroutine <a href='../proc/advance_explicit_rk4.html'>advance_explicit_rk4</a>(g, restart_time_step, istep)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>standard RK4</p><a href="../proc/advance_explicit_rk4.html" class="pull-right"><emph>Read more&hellip;</emph></a>
 
@@ -1782,16 +1637,16 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~17"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1806,7 +1661,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-restart_time_step~5"></span>
               logical,
             </td>
 <td>intent(inout)</td>
@@ -1821,7 +1676,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-istep~5"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1841,10 +1696,10 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-solve_gke"></span><h3>private  subroutine <a href='../proc/solve_gke.html'>solve_gke</a>(gin, rhs_ky, restart_time_step, istep)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-solve_gke"></span> <h3>private  subroutine <a href='../proc/solve_gke.html'>solve_gke</a>(gin, rhs_ky, restart_time_step, istep)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>solve_gke accepts as argument gin, the guiding centre distribution function in k-space,
 and returns rhs_ky, the right-hand side of the gyrokinetic equation in k-space;
@@ -1854,16 +1709,16 @@ i.e., if dg/dt = r, then rhs_ky = r*dt</p><a href="../proc/solve_gke.html" class
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-gin"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1878,7 +1733,7 @@ i.e., if dg/dt = r, then rhs_ky = r*dt</p><a href="../proc/solve_gke.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-rhs_ky"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -1893,7 +1748,7 @@ i.e., if dg/dt = r, then rhs_ky = r*dt</p><a href="../proc/solve_gke.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-restart_time_step~6"></span>
               logical,
             </td>
 <td>intent(out)</td>
@@ -1908,7 +1763,7 @@ i.e., if dg/dt = r, then rhs_ky = r*dt</p><a href="../proc/solve_gke.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-istep~6"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1928,10 +1783,10 @@ i.e., if dg/dt = r, then rhs_ky = r*dt</p><a href="../proc/solve_gke.html" class
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_wstar_explicit"></span><h3>private  subroutine <a href='../proc/advance_wstar_explicit.html'>advance_wstar_explicit</a>(phi, gout)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_wstar_explicit"></span> <h3>private  subroutine <a href='../proc/advance_wstar_explicit.html'>advance_wstar_explicit</a>(phi, gout)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>start timing the time advance due to the driving gradients</p><a href="../proc/advance_wstar_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a>
 
@@ -1939,16 +1794,16 @@ i.e., if dg/dt = r, then rhs_ky = r*dt</p><a href="../proc/solve_gke.html" class
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-phi~13"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1963,7 +1818,7 @@ i.e., if dg/dt = r, then rhs_ky = r*dt</p><a href="../proc/solve_gke.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-gout"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1983,10 +1838,10 @@ i.e., if dg/dt = r, then rhs_ky = r*dt</p><a href="../proc/solve_gke.html" class
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_wdrifty_explicit"></span><h3>private  subroutine <a href='../proc/advance_wdrifty_explicit.html'>advance_wdrifty_explicit</a>(g, phi, gout)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_wdrifty_explicit"></span> <h3>private  subroutine <a href='../proc/advance_wdrifty_explicit.html'>advance_wdrifty_explicit</a>(g, phi, gout)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>advance_wdrifty_explicit subroutine calculates and adds the y-component of the
 magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wdrifty_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a>
@@ -1995,16 +1850,16 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~18"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2019,7 +1874,7 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-phi~14"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2034,7 +1889,7 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-gout~2"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2054,10 +1909,10 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_wdriftx_explicit"></span><h3>private  subroutine <a href='../proc/advance_wdriftx_explicit.html'>advance_wdriftx_explicit</a>(g, phi, gout)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_wdriftx_explicit"></span> <h3>private  subroutine <a href='../proc/advance_wdriftx_explicit.html'>advance_wdriftx_explicit</a>(g, phi, gout)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>advance_wdriftx_explicit subroutine calculates and adds the x-component of the
 magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wdriftx_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a>
@@ -2066,16 +1921,16 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~19"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2090,7 +1945,7 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-phi~15"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2105,7 +1960,7 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-gout~3"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2125,10 +1980,10 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_exb_nonlinearity"></span><h3>private  subroutine <a href='../proc/advance_exb_nonlinearity.html'>advance_ExB_nonlinearity</a>(g, gout, restart_time_step, istep)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_exb_nonlinearity"></span> <h3>private  subroutine <a href='../proc/advance_exb_nonlinearity.html'>advance_ExB_nonlinearity</a>(g, gout, restart_time_step, istep)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>compute phase factor needed when running with equilibrium flow shear
 compute i<em>ky</em>g
@@ -2145,16 +2000,16 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~20"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2169,7 +2024,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-gout~4"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2184,7 +2039,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-restart_time_step~7"></span>
               logical,
             </td>
 <td>intent(out)</td>
@@ -2199,7 +2054,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-istep~7"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -2219,10 +2074,10 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_parallel_nonlinearity"></span><h3>private  subroutine <a href='../proc/advance_parallel_nonlinearity.html'>advance_parallel_nonlinearity</a>(g, gout, restart_time_step)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_parallel_nonlinearity"></span> <h3>private  subroutine <a href='../proc/advance_parallel_nonlinearity.html'>advance_parallel_nonlinearity</a>(g, gout, restart_time_step)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>check estimated cfl_dt to see if the time step size needs to be changed</p>
 
@@ -2230,16 +2085,16 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~21"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2254,7 +2109,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-gout~5"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2269,7 +2124,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-restart_time_step~8"></span>
               logical,
             </td>
 <td>intent(out)</td>
@@ -2289,10 +2144,10 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_radial_variation"></span><h3>private  subroutine <a href='../proc/advance_radial_variation.html'>advance_radial_variation</a>(g, gout)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_radial_variation"></span> <h3>private  subroutine <a href='../proc/advance_radial_variation.html'>advance_radial_variation</a>(g, gout)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -2300,16 +2155,16 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~22"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2324,7 +2179,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-gout~6"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2344,10 +2199,10 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdy_2d"></span><h3>private  subroutine <a href='../proc/get_dgdy_2d.html'>get_dgdy_2d</a>(g, dgdy)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_dgdy_2d"></span> <h3>private  subroutine <a href='../proc/get_dgdy_2d.html'>get_dgdy_2d</a>(g, dgdy)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>compute dg/dy in k-space
 accepts g(ky,kx)</p>
@@ -2356,16 +2211,16 @@ accepts g(ky,kx)</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~23"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2380,7 +2235,7 @@ accepts g(ky,kx)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-dgdy"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -2400,10 +2255,10 @@ accepts g(ky,kx)</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdy_3d"></span><h3>private  subroutine <a href='../proc/get_dgdy_3d.html'>get_dgdy_3d</a>(g, dgdy)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_dgdy_3d"></span> <h3>private  subroutine <a href='../proc/get_dgdy_3d.html'>get_dgdy_3d</a>(g, dgdy)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>compute dg/dy in k-space
 accepts g(ky,kx,z,tube)</p>
@@ -2412,16 +2267,16 @@ accepts g(ky,kx,z,tube)</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~24"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2436,7 +2291,7 @@ accepts g(ky,kx,z,tube)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-dgdy~2"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -2456,10 +2311,10 @@ accepts g(ky,kx,z,tube)</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdy_4d"></span><h3>private  subroutine <a href='../proc/get_dgdy_4d.html'>get_dgdy_4d</a>(g, dgdy)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_dgdy_4d"></span> <h3>private  subroutine <a href='../proc/get_dgdy_4d.html'>get_dgdy_4d</a>(g, dgdy)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>compute dg/dy in k-space
 accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
@@ -2468,16 +2323,16 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~25"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2492,7 +2347,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-dgdy~3"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -2512,10 +2367,10 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdx_2d"></span><h3>private  subroutine <a href='../proc/get_dgdx_2d.html'>get_dgdx_2d</a>(g, dgdx)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_dgdx_2d"></span> <h3>private  subroutine <a href='../proc/get_dgdx_2d.html'>get_dgdx_2d</a>(g, dgdx)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>compute dg/dx in k-space
 accepts g(ky,kx)</p>
@@ -2524,16 +2379,16 @@ accepts g(ky,kx)</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~26"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2548,7 +2403,7 @@ accepts g(ky,kx)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-dgdx"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -2568,10 +2423,10 @@ accepts g(ky,kx)</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdx_3d"></span><h3>private  subroutine <a href='../proc/get_dgdx_3d.html'>get_dgdx_3d</a>(g, dgdx)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_dgdx_3d"></span> <h3>private  subroutine <a href='../proc/get_dgdx_3d.html'>get_dgdx_3d</a>(g, dgdx)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>compute dg/dx in k-space
 accepts g(ky,kx,z,tube)</p>
@@ -2580,16 +2435,16 @@ accepts g(ky,kx,z,tube)</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~27"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2604,7 +2459,7 @@ accepts g(ky,kx,z,tube)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-dgdx~2"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -2624,10 +2479,10 @@ accepts g(ky,kx,z,tube)</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-get_dgdx_4d"></span><h3>private  subroutine <a href='../proc/get_dgdx_4d.html'>get_dgdx_4d</a>(g, dgdx)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_dgdx_4d"></span> <h3>private  subroutine <a href='../proc/get_dgdx_4d.html'>get_dgdx_4d</a>(g, dgdx)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>compute dg/dx in k-space
 accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
@@ -2636,16 +2491,16 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~28"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2660,7 +2515,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-dgdx~3"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -2680,10 +2535,10 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-add_explicit_term"></span><h3>private  subroutine <a href='../proc/add_explicit_term.html'>add_explicit_term</a>(g, pre_factor, src)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-add_explicit_term"></span> <h3>private  subroutine <a href='../proc/add_explicit_term.html'>add_explicit_term</a>(g, pre_factor, src)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -2691,16 +2546,16 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~29"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2715,7 +2570,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-pre_factor"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -2730,7 +2585,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-src"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2750,10 +2605,10 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-add_explicit_term_ffs"></span><h3>private  subroutine <a href='../proc/add_explicit_term_ffs.html'>add_explicit_term_ffs</a>(g, pre_factor, src)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-add_explicit_term_ffs"></span> <h3>private  subroutine <a href='../proc/add_explicit_term_ffs.html'>add_explicit_term_ffs</a>(g, pre_factor, src)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   <p>add vM . grad y d<phi>/dy or vM . grad x d<phi>/dx (or equivalents with g) or omega_* * d<phi>/dy term to RHS of GK equation</p>
 
@@ -2761,16 +2616,16 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~30"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2785,7 +2640,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-pre_factor~2"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -2800,7 +2655,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-src~2"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2820,10 +2675,10 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-advance_implicit"></span><h3>private  subroutine <a href='../proc/advance_implicit.html'>advance_implicit</a>(istep, phi, apar, g)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_implicit"></span> <h3>private  subroutine <a href='../proc/advance_implicit.html'>advance_implicit</a>(istep, phi, apar, g)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -2831,16 +2686,16 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-istep~8"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -2855,7 +2710,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-phi~16"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2870,7 +2725,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-apar~8"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2885,7 +2740,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g~31"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2905,10 +2760,10 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-mb_communicate"></span><h3>private  subroutine <a href='../proc/mb_communicate.html'>mb_communicate</a>(g_in)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-mb_communicate"></span> <h3>private  subroutine <a href='../proc/mb_communicate.html'>mb_communicate</a>(g_in)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -2916,16 +2771,16 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-g_in~2"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2945,10 +2800,10 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-checksum_field"></span><h3>private  subroutine <a href='../proc/checksum_field.html'>checksum_field</a>(field, total)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-checksum_field"></span> <h3>private  subroutine <a href='../proc/checksum_field.html'>checksum_field</a>(field, total)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -2956,16 +2811,16 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-field~4"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2980,7 +2835,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-total"></span>
               real,
             </td>
 <td>intent(out)</td>
@@ -3000,10 +2855,10 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-checksum_dist"></span><h3>private  subroutine <a href='../proc/checksum_dist.html'>checksum_dist</a>(dist, total, norm)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-checksum_dist"></span> <h3>private  subroutine <a href='../proc/checksum_dist.html'>checksum_dist</a>(dist, total, norm)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -3011,16 +2866,16 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-dist~6"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -3035,7 +2890,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-total~2"></span>
               real,
             </td>
 <td>intent(out)</td>
@@ -3050,7 +2905,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-norm~2"></span>
               logical,
             </td>
 <td>intent(in),</td>
@@ -3070,10 +2925,10 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-finish_time_advance"></span><h3>public  subroutine <a href='../proc/finish_time_advance.html'>finish_time_advance</a>()  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-finish_time_advance"></span> <h3>public  subroutine <a href='../proc/finish_time_advance.html'>finish_time_advance</a>()  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -3083,10 +2938,10 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-finish_parallel_nonlinearity"></span><h3>private  subroutine <a href='../proc/finish_parallel_nonlinearity.html'>finish_parallel_nonlinearity</a>()  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-finish_parallel_nonlinearity"></span> <h3>private  subroutine <a href='../proc/finish_parallel_nonlinearity.html'>finish_parallel_nonlinearity</a>()  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -3096,10 +2951,10 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-finish_wdrift"></span><h3>private  subroutine <a href='../proc/finish_wdrift.html'>finish_wdrift</a>()  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-finish_wdrift"></span> <h3>private  subroutine <a href='../proc/finish_wdrift.html'>finish_wdrift</a>()  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -3109,10 +2964,10 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-finish_wstar"></span><h3>private  subroutine <a href='../proc/finish_wstar.html'>finish_wstar</a>()  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-finish_wstar"></span> <h3>private  subroutine <a href='../proc/finish_wstar.html'>finish_wstar</a>()  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -3122,10 +2977,10 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-deallocate_arrays"></span><h3>private  subroutine <a href='../proc/deallocate_arrays.html'>deallocate_arrays</a>()  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-deallocate_arrays~2"></span> <h3>private  subroutine <a href='../proc/deallocate_arrays~2.html'>deallocate_arrays</a>()  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -3147,32 +3002,30 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     </div> <!-- /container -->
     <footer>
       <div class="container">
-        <div class="row">
-          <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2023 
-<br /><small>v0.5.1-240-g4cdc5fcd3</small></p>
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              stella
+ was developed by The stella team<br>              &copy; 2024 
+<br /><small>v0.5.1-241-g84751169b</small></p>
           </div>
-          <div class="col-xs-6 col-md-6">
-            <p class="text-right">
+          <div class="col">
+            <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2023-10-02T12:04:25.276282             </p>
+ on 2024-07-16T09:40:34.897874             </p>
           </div>
         </div>
         <br>
       </div> <!-- /container -->
     </footer>
 
-    <!-- Bootstrap core JavaScript
-         ================================================== -->
-         <!-- Placed at the end of the document so the pages load faster -->
-    <!--
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-        -->
-        <script src="../js/bootstrap.min.js"></script>
-        <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-        <script src="../js/ie10-viewport-bug-workaround.js"></script>
+    <!-- Bootstrap core JavaScript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>    
 
-        <!-- MathJax JavaScript
+    <!-- MathJax JavaScript
              ================================================== -->
              <!-- Placed at the end of the document so the pages load faster -->
         <script type="text/x-mathjax-config">

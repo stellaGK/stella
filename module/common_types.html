@@ -1,3 +1,5 @@
+<!-- -*- mode: jinja2 -*- -->
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -10,82 +12,60 @@
 
     <title>common_types &ndash; stella</title>
 
-    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
     <link href="../css/pygments.css" rel="stylesheet">
     <link href="../css/font-awesome.min.css" rel="stylesheet">
     <link href="../css/local.css" rel="stylesheet">
       <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
 
-    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-    <!--[if lt IE 9]>
-        <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-        <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-        <![endif]-->
-
-         <script src="../js/jquery-2.1.3.min.js"></script>
-         <script src="../js/svg-pan-zoom.min.js"></script>
-
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
   </head>
 
   <body>
 
     <!-- Fixed navbar -->
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-      <div class="container">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
           <a class="navbar-brand" href="../index.html">stella </a>
-        </div>
-        <div id="navbar" class="navbar-collapse collapse">
-          <ul class="nav navbar-nav">
-              <li><a href='../page/index.html'>Manual</a></li>
-            <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
-              <a href="#" class="dropdown-toggle"
-                 data-toggle="dropdown" role="button"
-                 aria-haspopup="true"
-                 aria-expanded="false">
-                 Contents <span class="caret"></span>
-              </a>
-              <ul class="dropdown-menu">
-                    <li><a href="../lists/files.html">Source Files</a></li>
-                  <li><a href="../lists/modules.html">Modules</a></li>
-                  <li><a href="../lists/procedures.html">Procedures</a></li>
-                  <li><a href="../lists/types.html">Derived Types</a></li>
-                  <li><a href="../lists/programs.html">Programs</a></li>
-              </ul>
-            </li>
-                <li class="visible-xs hidden-sm visible-lg">
-                  <a href="../lists/files.html">Source Files</a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                <li class="nav-item"><a class="nav-link" href="../page/index.html">Manual</a></li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
                 </li>
-              <li class="visible-xs hidden-sm visible-lg">
-                <a href="../lists/modules.html">Modules</a>
-              </li>
-              <li class="visible-xs hidden-sm visible-lg">
-                <a href="../lists/procedures.html">Procedures</a>
-              </li>
-              <li class="visible-xs hidden-sm visible-lg">
-                <a href="../lists/types.html">Derived Types</a>
-              </li>
-              <li class="visible-xs hidden-sm visible-lg">
-                <a href="../lists/programs.html">Programs</a>
-              </li>
-          </ul>
-            <form action="../search.html" class="navbar-form navbar-right" role="search">
-              <div class="form-group">
-                <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/programs.html">Programs</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
               </div>
-              <!--
-                  <button type="submit" class="btn btn-default">Submit</button>
-                  -->
-            </form>
-        </div><!--/.nav-collapse -->
-      </div>
-    </nav>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
 
     <div class="container">
   <div class="row">
@@ -93,39 +73,42 @@
       <small>Module</small>
       
     </h1>
-      <div class="row" id="info-bar">
-    <div class="col-lg-12">
-      <div class="well well-sm">
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
         <ul class="list-inline" style="margin-bottom:0px;display:inline">
 
-          <li id="statements"><i class="fa fa-list-ol"></i>
-            <a data-toggle="tooltip"
-               data-placement="bottom" data-html="true"
-               title=" 0.2% of total for modules and submodules.">84 statements</a>
-          </li>
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.2% of total for modules and submodules.">84 statements</a>
+            </li>
 
-            <li id="source-file">
+            <li class="list-inline-item" id="source-file">
               <i class="fa fa-code"></i>
               <a href="../src/common_types.f90"> Source File</a>
             </li>
         </ul>
-        <ol class="breadcrumb in-well text-right">
-              <li><a href='../sourcefile/common_types.f90.html'>common_types.f90</a></li>
-          <li class="active">common_types</li>
-        </ol>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/common_types.f90.html'>common_types.f90</a></li>
+            <li class="breadcrumb-item active" aria-current="page">common_types</li>
+          </ol>
+        </nav>
       </div>
     </div>
   </div>
   <script>
     $(function () {
-    $('[data-toggle="tooltip"]').tooltip()
+    $('[data-bs-toggle="tooltip"]').tooltip()
     })
   </script>
 
   </div>
 
   <div class="row">
-    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+    <div class="col-md-3">
         <div id="sidebar">
       <h3>Contents</h3>
   
@@ -138,14 +121,13 @@
   
   
   
-      <div class="panel panel-primary">
-      <div class="panel-heading text-left">
-        <h3 class="panel-title">
-          <a data-toggle="collapse" href="#types-0">Derived Types</a>
-        </h3>
-      </div>
-      <div id="types-0" class="panel-collapse collapse">
-        <div class="list-group">
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#types-0"
+         aria-expanded="false" aria-controls="types-0">
+         <h4 class="card-header bg-primary text-white">Derived Types</h4>
+      </a>
+      <div id="types-0" class="collapse">
+        <div class="list-group list-group-flush">
             <a class="list-group-item" href="../module/common_types.html#type-kxkyz_layout_type">kxkyz_layout_type</a>
             <a class="list-group-item" href="../module/common_types.html#type-kxyz_layout_type">kxyz_layout_type</a>
             <a class="list-group-item" href="../module/common_types.html#type-xyz_layout_type">xyz_layout_type</a>
@@ -160,6 +142,7 @@
       </div>
     </div>
 
+  
   
   
   
@@ -180,53 +163,6 @@
       
       <br>
 
-      <section class="visible-xs visible-sm hidden-md">
-          <h3>Contents</h3>
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-      <div class="panel panel-primary">
-      <div class="panel-heading text-left">
-        <h3 class="panel-title">
-          <a data-toggle="collapse" href="#types-1">Derived Types</a>
-        </h3>
-      </div>
-      <div id="types-1" class="panel-collapse collapse">
-        <div class="list-group">
-            <a class="list-group-item" href="../module/common_types.html#type-kxkyz_layout_type">kxkyz_layout_type</a>
-            <a class="list-group-item" href="../module/common_types.html#type-kxyz_layout_type">kxyz_layout_type</a>
-            <a class="list-group-item" href="../module/common_types.html#type-xyz_layout_type">xyz_layout_type</a>
-            <a class="list-group-item" href="../module/common_types.html#type-vmu_layout_type">vmu_layout_type</a>
-            <a class="list-group-item" href="../module/common_types.html#type-flux_surface_type">flux_surface_type</a>
-            <a class="list-group-item" href="../module/common_types.html#type-spec_type">spec_type</a>
-            <a class="list-group-item" href="../module/common_types.html#type-eigen_type">eigen_type</a>
-            <a class="list-group-item" href="../module/common_types.html#type-response_matrix_type">response_matrix_type</a>
-            <a class="list-group-item" href="../module/common_types.html#type-coupled_alpha_type">coupled_alpha_type</a>
-            <a class="list-group-item" href="../module/common_types.html#type-gam0_ffs_type">gam0_ffs_type</a>
-        </div>
-      </div>
-    </div>
-
-  
-  
-  
-  
-  
-  
-  
-  
-
-
-      </section>
-      <br class="visible-xs visible-sm hidden-md">
-
 
 
 
@@ -234,8 +170,8 @@
 
         <section>
           <h2>Derived Types</h2>
-              <div class="panel panel-default">
-    <div class="panel-heading codesum">
+              <div class="card">
+    <div class="card-header codesum">
       <span class="anchor" id="type-kxkyz_layout_type"></span>
       <h3>
         type, public, sequence &nbsp;::&nbsp;
@@ -243,23 +179,23 @@
         
       </h3>
     </div>
-    <div class="panel-body">
+    <div class="card-body">
       
 
         <h4>Components</h4>
           <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Visibility</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-<th></th><th>Initial</th>        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iproc"></span>
+              <span class="anchor" id="variable-iproc~2"></span>
               integer,
             </td>
               <td>public</td>
@@ -276,7 +212,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nzgrid"></span>
+              <span class="anchor" id="variable-nzgrid~16"></span>
               integer,
             </td>
               <td>public</td>
@@ -293,7 +229,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nzed"></span>
+              <span class="anchor" id="variable-nzed~4"></span>
               integer,
             </td>
               <td>public</td>
@@ -310,7 +246,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ntubes"></span>
+              <span class="anchor" id="variable-ntubes~7"></span>
               integer,
             </td>
               <td>public</td>
@@ -327,7 +263,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-naky"></span>
+              <span class="anchor" id="variable-naky~8"></span>
               integer,
             </td>
               <td>public</td>
@@ -344,7 +280,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nakx"></span>
+              <span class="anchor" id="variable-nakx~7"></span>
               integer,
             </td>
               <td>public</td>
@@ -361,7 +297,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nvgrid"></span>
+              <span class="anchor" id="variable-nvgrid~7"></span>
               integer,
             </td>
               <td>public</td>
@@ -378,7 +314,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nvpa"></span>
+              <span class="anchor" id="variable-nvpa~2"></span>
               integer,
             </td>
               <td>public</td>
@@ -395,7 +331,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nmu"></span>
+              <span class="anchor" id="variable-nmu~7"></span>
               integer,
             </td>
               <td>public</td>
@@ -412,7 +348,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nspec"></span>
+              <span class="anchor" id="variable-nspec~10"></span>
               integer,
             </td>
               <td>public</td>
@@ -538,8 +474,8 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum">
+              <div class="card">
+    <div class="card-header codesum">
       <span class="anchor" id="type-kxyz_layout_type"></span>
       <h3>
         type, public, sequence &nbsp;::&nbsp;
@@ -547,23 +483,23 @@
         
       </h3>
     </div>
-    <div class="panel-body">
+    <div class="card-body">
       
 
         <h4>Components</h4>
           <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Visibility</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-<th></th><th>Initial</th>        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iproc~2"></span>
+              <span class="anchor" id="variable-iproc~3"></span>
               integer,
             </td>
               <td>public</td>
@@ -580,7 +516,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nzgrid~2"></span>
+              <span class="anchor" id="variable-nzgrid~17"></span>
               integer,
             </td>
               <td>public</td>
@@ -597,7 +533,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nzed~2"></span>
+              <span class="anchor" id="variable-nzed~5"></span>
               integer,
             </td>
               <td>public</td>
@@ -614,7 +550,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ntubes~2"></span>
+              <span class="anchor" id="variable-ntubes~8"></span>
               integer,
             </td>
               <td>public</td>
@@ -631,7 +567,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ny"></span>
+              <span class="anchor" id="variable-ny~6"></span>
               integer,
             </td>
               <td>public</td>
@@ -648,7 +584,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-naky~2"></span>
+              <span class="anchor" id="variable-naky~9"></span>
               integer,
             </td>
               <td>public</td>
@@ -665,7 +601,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nakx~2"></span>
+              <span class="anchor" id="variable-nakx~8"></span>
               integer,
             </td>
               <td>public</td>
@@ -682,7 +618,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ikx_max"></span>
+              <span class="anchor" id="variable-ikx_max~4"></span>
               integer,
             </td>
               <td>public</td>
@@ -699,7 +635,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nvgrid~2"></span>
+              <span class="anchor" id="variable-nvgrid~8"></span>
               integer,
             </td>
               <td>public</td>
@@ -716,7 +652,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nvpa~2"></span>
+              <span class="anchor" id="variable-nvpa~3"></span>
               integer,
             </td>
               <td>public</td>
@@ -733,7 +669,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nmu~2"></span>
+              <span class="anchor" id="variable-nmu~8"></span>
               integer,
             </td>
               <td>public</td>
@@ -750,7 +686,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nspec~2"></span>
+              <span class="anchor" id="variable-nspec~11"></span>
               integer,
             </td>
               <td>public</td>
@@ -876,8 +812,8 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum">
+              <div class="card">
+    <div class="card-header codesum">
       <span class="anchor" id="type-xyz_layout_type"></span>
       <h3>
         type, public, sequence &nbsp;::&nbsp;
@@ -885,23 +821,23 @@
         
       </h3>
     </div>
-    <div class="panel-body">
+    <div class="card-body">
       
 
         <h4>Components</h4>
           <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Visibility</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-<th></th><th>Initial</th>        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iproc~3"></span>
+              <span class="anchor" id="variable-iproc~4"></span>
               integer,
             </td>
               <td>public</td>
@@ -918,7 +854,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nzgrid~3"></span>
+              <span class="anchor" id="variable-nzgrid~18"></span>
               integer,
             </td>
               <td>public</td>
@@ -935,7 +871,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nzed~3"></span>
+              <span class="anchor" id="variable-nzed~6"></span>
               integer,
             </td>
               <td>public</td>
@@ -952,7 +888,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ntubes~3"></span>
+              <span class="anchor" id="variable-ntubes~9"></span>
               integer,
             </td>
               <td>public</td>
@@ -969,7 +905,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ny~2"></span>
+              <span class="anchor" id="variable-ny~7"></span>
               integer,
             </td>
               <td>public</td>
@@ -986,7 +922,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-naky~3"></span>
+              <span class="anchor" id="variable-naky~10"></span>
               integer,
             </td>
               <td>public</td>
@@ -1003,7 +939,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nx"></span>
+              <span class="anchor" id="variable-nx~5"></span>
               integer,
             </td>
               <td>public</td>
@@ -1020,7 +956,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nakx~3"></span>
+              <span class="anchor" id="variable-nakx~9"></span>
               integer,
             </td>
               <td>public</td>
@@ -1037,7 +973,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nvgrid~3"></span>
+              <span class="anchor" id="variable-nvgrid~9"></span>
               integer,
             </td>
               <td>public</td>
@@ -1054,7 +990,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nvpa~3"></span>
+              <span class="anchor" id="variable-nvpa~4"></span>
               integer,
             </td>
               <td>public</td>
@@ -1071,7 +1007,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nmu~3"></span>
+              <span class="anchor" id="variable-nmu~9"></span>
               integer,
             </td>
               <td>public</td>
@@ -1088,7 +1024,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nspec~3"></span>
+              <span class="anchor" id="variable-nspec~12"></span>
               integer,
             </td>
               <td>public</td>
@@ -1214,8 +1150,8 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum">
+              <div class="card">
+    <div class="card-header codesum">
       <span class="anchor" id="type-vmu_layout_type"></span>
       <h3>
         type, public, sequence &nbsp;::&nbsp;
@@ -1223,18 +1159,18 @@
         
       </h3>
     </div>
-    <div class="panel-body">
+    <div class="card-body">
       
 
         <h4>Components</h4>
           <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Visibility</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-<th></th><th>Initial</th>        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
@@ -1256,7 +1192,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-iproc~4"></span>
+              <span class="anchor" id="variable-iproc~5"></span>
               integer,
             </td>
               <td>public</td>
@@ -1273,7 +1209,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nzgrid~4"></span>
+              <span class="anchor" id="variable-nzgrid~19"></span>
               integer,
             </td>
               <td>public</td>
@@ -1290,7 +1226,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nzed~4"></span>
+              <span class="anchor" id="variable-nzed~7"></span>
               integer,
             </td>
               <td>public</td>
@@ -1307,7 +1243,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ntubes~4"></span>
+              <span class="anchor" id="variable-ntubes~10"></span>
               integer,
             </td>
               <td>public</td>
@@ -1324,7 +1260,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nalpha"></span>
+              <span class="anchor" id="variable-nalpha~14"></span>
               integer,
             </td>
               <td>public</td>
@@ -1341,7 +1277,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ny~3"></span>
+              <span class="anchor" id="variable-ny~8"></span>
               integer,
             </td>
               <td>public</td>
@@ -1358,7 +1294,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-naky~4"></span>
+              <span class="anchor" id="variable-naky~11"></span>
               integer,
             </td>
               <td>public</td>
@@ -1375,7 +1311,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nx~2"></span>
+              <span class="anchor" id="variable-nx~6"></span>
               integer,
             </td>
               <td>public</td>
@@ -1392,7 +1328,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nakx~4"></span>
+              <span class="anchor" id="variable-nakx~10"></span>
               integer,
             </td>
               <td>public</td>
@@ -1409,7 +1345,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nvgrid~4"></span>
+              <span class="anchor" id="variable-nvgrid~10"></span>
               integer,
             </td>
               <td>public</td>
@@ -1426,7 +1362,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nvpa~4"></span>
+              <span class="anchor" id="variable-nvpa~5"></span>
               integer,
             </td>
               <td>public</td>
@@ -1443,7 +1379,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nmu~4"></span>
+              <span class="anchor" id="variable-nmu~10"></span>
               integer,
             </td>
               <td>public</td>
@@ -1460,7 +1396,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nspec~4"></span>
+              <span class="anchor" id="variable-nspec~13"></span>
               integer,
             </td>
               <td>public</td>
@@ -1586,8 +1522,8 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum">
+              <div class="card">
+    <div class="card-header codesum">
       <span class="anchor" id="type-flux_surface_type"></span>
       <h3>
         type, public&nbsp;::&nbsp;
@@ -1595,23 +1531,23 @@
         
       </h3>
     </div>
-    <div class="panel-body">
+    <div class="card-body">
       
 
         <h4>Components</h4>
           <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Visibility</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-<th></th><th>Initial</th>        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-rmaj"></span>
+              <span class="anchor" id="variable-rmaj~3"></span>
               real,
             </td>
               <td>public</td>
@@ -1628,7 +1564,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-rgeo"></span>
+              <span class="anchor" id="variable-rgeo~2"></span>
               real,
             </td>
               <td>public</td>
@@ -1645,7 +1581,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-kappa"></span>
+              <span class="anchor" id="variable-kappa~3"></span>
               real,
             </td>
               <td>public</td>
@@ -1662,7 +1598,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-kapprim"></span>
+              <span class="anchor" id="variable-kapprim~3"></span>
               real,
             </td>
               <td>public</td>
@@ -1679,7 +1615,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-tri"></span>
+              <span class="anchor" id="variable-tri~3"></span>
               real,
             </td>
               <td>public</td>
@@ -1696,7 +1632,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-triprim"></span>
+              <span class="anchor" id="variable-triprim~3"></span>
               real,
             </td>
               <td>public</td>
@@ -1713,7 +1649,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-rhoc"></span>
+              <span class="anchor" id="variable-rhoc~3"></span>
               real,
             </td>
               <td>public</td>
@@ -1730,7 +1666,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dr"></span>
+              <span class="anchor" id="variable-dr~7"></span>
               real,
             </td>
               <td>public</td>
@@ -1747,7 +1683,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-shift"></span>
+              <span class="anchor" id="variable-shift~4"></span>
               real,
             </td>
               <td>public</td>
@@ -1764,7 +1700,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-qinp"></span>
+              <span class="anchor" id="variable-qinp~4"></span>
               real,
             </td>
               <td>public</td>
@@ -1781,7 +1717,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-shat"></span>
+              <span class="anchor" id="variable-shat~6"></span>
               real,
             </td>
               <td>public</td>
@@ -1798,7 +1734,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-betaprim"></span>
+              <span class="anchor" id="variable-betaprim~3"></span>
               real,
             </td>
               <td>public</td>
@@ -1815,7 +1751,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-betadbprim"></span>
+              <span class="anchor" id="variable-betadbprim~3"></span>
               real,
             </td>
               <td>public</td>
@@ -1832,7 +1768,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-d2qdr2"></span>
+              <span class="anchor" id="variable-d2qdr2~3"></span>
               real,
             </td>
               <td>public</td>
@@ -1849,7 +1785,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-d2psidr2"></span>
+              <span class="anchor" id="variable-d2psidr2~2"></span>
               real,
             </td>
               <td>public</td>
@@ -1866,7 +1802,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dpsitordrho"></span>
+              <span class="anchor" id="variable-dpsitordrho~2"></span>
               real,
             </td>
               <td>public</td>
@@ -1883,7 +1819,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-d2psitordrho2"></span>
+              <span class="anchor" id="variable-d2psitordrho2~2"></span>
               real,
             </td>
               <td>public</td>
@@ -1900,7 +1836,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-rhotor"></span>
+              <span class="anchor" id="variable-rhotor~4"></span>
               real,
             </td>
               <td>public</td>
@@ -1917,7 +1853,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-drhotordrho"></span>
+              <span class="anchor" id="variable-drhotordrho~3"></span>
               real,
             </td>
               <td>public</td>
@@ -1934,7 +1870,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-psitor_lcfs"></span>
+              <span class="anchor" id="variable-psitor_lcfs~2"></span>
               real,
             </td>
               <td>public</td>
@@ -1968,7 +1904,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-rhoc_psi0"></span>
+              <span class="anchor" id="variable-rhoc_psi0~2"></span>
               real,
             </td>
               <td>public</td>
@@ -1985,7 +1921,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-qinp_psi0"></span>
+              <span class="anchor" id="variable-qinp_psi0~2"></span>
               real,
             </td>
               <td>public</td>
@@ -2002,7 +1938,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-shat_psi0"></span>
+              <span class="anchor" id="variable-shat_psi0~2"></span>
               real,
             </td>
               <td>public</td>
@@ -2026,8 +1962,8 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum">
+              <div class="card">
+    <div class="card-header codesum">
       <span class="anchor" id="type-spec_type"></span>
       <h3>
         type, public&nbsp;::&nbsp;
@@ -2035,23 +1971,23 @@
         
       </h3>
     </div>
-    <div class="panel-body">
+    <div class="card-body">
       
 
         <h4>Components</h4>
           <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Visibility</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-<th></th><th>Initial</th>        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-nspec~5"></span>
+              <span class="anchor" id="variable-nspec~14"></span>
               integer,
             </td>
               <td>public</td>
@@ -2068,7 +2004,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-z"></span>
+              <span class="anchor" id="variable-z~38"></span>
               real,
             </td>
               <td>public</td>
@@ -2085,7 +2021,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-mass"></span>
+              <span class="anchor" id="variable-mass~3"></span>
               real,
             </td>
               <td>public</td>
@@ -2102,7 +2038,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dens"></span>
+              <span class="anchor" id="variable-dens~7"></span>
               real,
             </td>
               <td>public</td>
@@ -2119,7 +2055,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-temp"></span>
+              <span class="anchor" id="variable-temp~33"></span>
               real,
             </td>
               <td>public</td>
@@ -2136,7 +2072,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-tprim"></span>
+              <span class="anchor" id="variable-tprim~3"></span>
               real,
             </td>
               <td>public</td>
@@ -2153,7 +2089,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-fprim"></span>
+              <span class="anchor" id="variable-fprim~3"></span>
               real,
             </td>
               <td>public</td>
@@ -2170,7 +2106,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-vnew_ref"></span>
+              <span class="anchor" id="variable-vnew_ref~2"></span>
               real,
             </td>
               <td>public</td>
@@ -2272,7 +2208,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-d2ndr2"></span>
+              <span class="anchor" id="variable-d2ndr2~2"></span>
               real,
             </td>
               <td>public</td>
@@ -2289,7 +2225,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-d2tdr2"></span>
+              <span class="anchor" id="variable-d2tdr2~2"></span>
               real,
             </td>
               <td>public</td>
@@ -2306,7 +2242,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-bess_fac"></span>
+              <span class="anchor" id="variable-bess_fac~3"></span>
               real,
             </td>
               <td>public</td>
@@ -2340,7 +2276,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-type"></span>
+              <span class="anchor" id="variable-type~3"></span>
               integer,
             </td>
               <td>public</td>
@@ -2483,8 +2419,8 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum">
+              <div class="card">
+    <div class="card-header codesum">
       <span class="anchor" id="type-eigen_type"></span>
       <h3>
         type, public&nbsp;::&nbsp;
@@ -2492,18 +2428,18 @@
         
       </h3>
     </div>
-    <div class="panel-body">
+    <div class="card-body">
       
 
         <h4>Components</h4>
           <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Visibility</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-<th></th><th>Initial</th>        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
@@ -2525,7 +2461,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-idx"></span>
+              <span class="anchor" id="variable-idx~26"></span>
               integer,
             </td>
               <td>public,</td>
@@ -2549,8 +2485,8 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum">
+              <div class="card">
+    <div class="card-header codesum">
       <span class="anchor" id="type-response_matrix_type"></span>
       <h3>
         type, public&nbsp;::&nbsp;
@@ -2558,18 +2494,18 @@
         
       </h3>
     </div>
-    <div class="panel-body">
+    <div class="card-body">
       
 
         <h4>Components</h4>
           <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Visibility</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-<th></th><th>Initial</th>        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
@@ -2598,8 +2534,8 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum">
+              <div class="card">
+    <div class="card-header codesum">
       <span class="anchor" id="type-coupled_alpha_type"></span>
       <h3>
         type, public&nbsp;::&nbsp;
@@ -2607,18 +2543,18 @@
         
       </h3>
     </div>
-    <div class="panel-body">
+    <div class="card-body">
       
 
         <h4>Components</h4>
           <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Visibility</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-<th></th><th>Initial</th>        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
@@ -2664,8 +2600,8 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum">
+              <div class="card">
+    <div class="card-header codesum">
       <span class="anchor" id="type-gam0_ffs_type"></span>
       <h3>
         type, public&nbsp;::&nbsp;
@@ -2673,18 +2609,18 @@
         
       </h3>
     </div>
-    <div class="panel-body">
+    <div class="card-body">
       
 
         <h4>Components</h4>
           <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Visibility</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-<th></th><th>Initial</th>        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
@@ -2744,32 +2680,30 @@
     </div> <!-- /container -->
     <footer>
       <div class="container">
-        <div class="row">
-          <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2023 
-<br /><small>v0.5.1-240-g4cdc5fcd3</small></p>
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              stella
+ was developed by The stella team<br>              &copy; 2024 
+<br /><small>v0.5.1-241-g84751169b</small></p>
           </div>
-          <div class="col-xs-6 col-md-6">
-            <p class="text-right">
+          <div class="col">
+            <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2023-10-02T12:04:25.276282             </p>
+ on 2024-07-16T09:40:34.897874             </p>
           </div>
         </div>
         <br>
       </div> <!-- /container -->
     </footer>
 
-    <!-- Bootstrap core JavaScript
-         ================================================== -->
-         <!-- Placed at the end of the document so the pages load faster -->
-    <!--
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-        -->
-        <script src="../js/bootstrap.min.js"></script>
-        <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-        <script src="../js/ie10-viewport-bug-workaround.js"></script>
+    <!-- Bootstrap core JavaScript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>    
 
-        <!-- MathJax JavaScript
+    <!-- MathJax JavaScript
              ================================================== -->
              <!-- Placed at the end of the document so the pages load faster -->
         <script type="text/x-mathjax-config">

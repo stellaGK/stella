@@ -1,3 +1,5 @@
+<!-- -*- mode: jinja2 -*- -->
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -10,82 +12,60 @@
 
     <title>splines &ndash; stella</title>
 
-    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
     <link href="../css/pygments.css" rel="stylesheet">
     <link href="../css/font-awesome.min.css" rel="stylesheet">
     <link href="../css/local.css" rel="stylesheet">
       <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
 
-    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-    <!--[if lt IE 9]>
-        <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-        <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-        <![endif]-->
-
-         <script src="../js/jquery-2.1.3.min.js"></script>
-         <script src="../js/svg-pan-zoom.min.js"></script>
-
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
   </head>
 
   <body>
 
     <!-- Fixed navbar -->
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-      <div class="container">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
           <a class="navbar-brand" href="../index.html">stella </a>
-        </div>
-        <div id="navbar" class="navbar-collapse collapse">
-          <ul class="nav navbar-nav">
-              <li><a href='../page/index.html'>Manual</a></li>
-            <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
-              <a href="#" class="dropdown-toggle"
-                 data-toggle="dropdown" role="button"
-                 aria-haspopup="true"
-                 aria-expanded="false">
-                 Contents <span class="caret"></span>
-              </a>
-              <ul class="dropdown-menu">
-                    <li><a href="../lists/files.html">Source Files</a></li>
-                  <li><a href="../lists/modules.html">Modules</a></li>
-                  <li><a href="../lists/procedures.html">Procedures</a></li>
-                  <li><a href="../lists/types.html">Derived Types</a></li>
-                  <li><a href="../lists/programs.html">Programs</a></li>
-              </ul>
-            </li>
-                <li class="visible-xs hidden-sm visible-lg">
-                  <a href="../lists/files.html">Source Files</a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                <li class="nav-item"><a class="nav-link" href="../page/index.html">Manual</a></li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
                 </li>
-              <li class="visible-xs hidden-sm visible-lg">
-                <a href="../lists/modules.html">Modules</a>
-              </li>
-              <li class="visible-xs hidden-sm visible-lg">
-                <a href="../lists/procedures.html">Procedures</a>
-              </li>
-              <li class="visible-xs hidden-sm visible-lg">
-                <a href="../lists/types.html">Derived Types</a>
-              </li>
-              <li class="visible-xs hidden-sm visible-lg">
-                <a href="../lists/programs.html">Programs</a>
-              </li>
-          </ul>
-            <form action="../search.html" class="navbar-form navbar-right" role="search">
-              <div class="form-group">
-                <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/programs.html">Programs</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
               </div>
-              <!--
-                  <button type="submit" class="btn btn-default">Submit</button>
-                  -->
-            </form>
-        </div><!--/.nav-collapse -->
-      </div>
-    </nav>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
 
     <div class="container">
   <div class="row">
@@ -93,39 +73,42 @@
       <small>Module</small>
       
     </h1>
-      <div class="row" id="info-bar">
-    <div class="col-lg-12">
-      <div class="well well-sm">
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
         <ul class="list-inline" style="margin-bottom:0px;display:inline">
 
-          <li id="statements"><i class="fa fa-list-ol"></i>
-            <a data-toggle="tooltip"
-               data-placement="bottom" data-html="true"
-               title=" 5.0% of total for modules and submodules.">1815 statements</a>
-          </li>
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 5.0% of total for modules and submodules.">1815 statements</a>
+            </li>
 
-            <li id="source-file">
+            <li class="list-inline-item" id="source-file">
               <i class="fa fa-code"></i>
               <a href="../src/spl.f90"> Source File</a>
             </li>
         </ul>
-        <ol class="breadcrumb in-well text-right">
-              <li><a href='../sourcefile/spl.f90.html'>spl.f90</a></li>
-          <li class="active">splines</li>
-        </ol>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/spl.f90.html'>spl.f90</a></li>
+            <li class="breadcrumb-item active" aria-current="page">splines</li>
+          </ol>
+        </nav>
       </div>
     </div>
   </div>
   <script>
     $(function () {
-    $('[data-toggle="tooltip"]').tooltip()
+    $('[data-bs-toggle="tooltip"]').tooltip()
     })
   </script>
 
   </div>
 
   <div class="row">
-    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+    <div class="col-md-3">
         <div id="sidebar">
       <h3>Contents</h3>
   
@@ -136,42 +119,39 @@
   
   
   
-      <div class="panel panel-primary">
-      <div class="panel-heading text-left">
-        <h3 class="panel-title">
-          <a data-toggle="collapse" href="#inters-0">Interfaces</a>
-        </h3>
-      </div>
-      <div id="inters-0" class="panel-collapse collapse">
-        <div class="list-group">
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#inters-0"
+         aria-expanded="false" aria-controls="inters-0">
+         <h4 class="card-header bg-primary text-white">Interfaces</h4>
+      </a>
+      <div id="inters-0" class="collapse">
+        <div class="list-group list-group-flush">
             <a class="list-group-item" href="../module/splines.html#interface-geo_spline">geo_spline</a>
         </div>
       </div>
     </div>
 
   
-      <div class="panel panel-primary">
-      <div class="panel-heading text-left">
-        <h3 class="panel-title">
-          <a data-toggle="collapse" href="#types-0">Derived Types</a>
-        </h3>
-      </div>
-      <div id="types-0" class="panel-collapse collapse">
-        <div class="list-group">
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#types-0"
+         aria-expanded="false" aria-controls="types-0">
+         <h4 class="card-header bg-primary text-white">Derived Types</h4>
+      </a>
+      <div id="types-0" class="collapse">
+        <div class="list-group list-group-flush">
             <a class="list-group-item" href="../module/splines.html#type-spline">spline</a>
             <a class="list-group-item" href="../module/splines.html#type-periodic_spline">periodic_spline</a>
         </div>
       </div>
     </div>
 
-      <div class="panel panel-primary">
-      <div class="panel-heading text-left">
-        <h3 class="panel-title">
-          <a data-toggle="collapse" href="#funcs-0">Functions</a>
-        </h3>
-      </div>
-      <div id="funcs-0" class="panel-collapse collapse">
-        <div class="list-group">
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#funcs-0"
+         aria-expanded="false" aria-controls="funcs-0">
+         <h4 class="card-header bg-primary text-white">Functions</h4>
+      </a>
+      <div id="funcs-0" class="collapse">
+        <div class="list-group list-group-flush">
             <a class="list-group-item" href="../module/splines.html#proc-fitp_curv2">fitp_curv2</a>
             <a class="list-group-item" href="../module/splines.html#proc-fitp_curvd">fitp_curvd</a>
             <a class="list-group-item" href="../module/splines.html#proc-fitp_curvi">fitp_curvi</a>
@@ -186,14 +166,13 @@
       </div>
     </div>
 
-      <div class="panel panel-primary">
-      <div class="panel-heading text-left">
-        <h3 class="panel-title">
-          <a data-toggle="collapse" href="#subs-0">Subroutines</a>
-        </h3>
-      </div>
-      <div id="subs-0" class="panel-collapse collapse">
-        <div class="list-group">
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#subs-0"
+         aria-expanded="false" aria-controls="subs-0">
+         <h4 class="card-header bg-primary text-white">Subroutines</h4>
+      </a>
+      <div id="subs-0" class="collapse">
+        <div class="list-group list-group-flush">
             <a class="list-group-item" href="../module/splines.html#proc-fitp_curv1">fitp_curv1</a>
             <a class="list-group-item" href="../module/splines.html#proc-fitp_curvs">fitp_curvs</a>
             <a class="list-group-item" href="../module/splines.html#proc-fitp_curvp1">fitp_curvp1</a>
@@ -217,6 +196,7 @@
       </div>
     </div>
 
+  
   
   
   
@@ -235,115 +215,13 @@
       
       <br>
 
-      <section class="visible-xs visible-sm hidden-md">
-          <h3>Contents</h3>
-  
-  
-  
-  
-  
-  
-  
-  
-      <div class="panel panel-primary">
-      <div class="panel-heading text-left">
-        <h3 class="panel-title">
-          <a data-toggle="collapse" href="#inters-1">Interfaces</a>
-        </h3>
-      </div>
-      <div id="inters-1" class="panel-collapse collapse">
-        <div class="list-group">
-            <a class="list-group-item" href="../module/splines.html#interface-geo_spline">geo_spline</a>
-        </div>
-      </div>
-    </div>
-
-  
-      <div class="panel panel-primary">
-      <div class="panel-heading text-left">
-        <h3 class="panel-title">
-          <a data-toggle="collapse" href="#types-1">Derived Types</a>
-        </h3>
-      </div>
-      <div id="types-1" class="panel-collapse collapse">
-        <div class="list-group">
-            <a class="list-group-item" href="../module/splines.html#type-spline">spline</a>
-            <a class="list-group-item" href="../module/splines.html#type-periodic_spline">periodic_spline</a>
-        </div>
-      </div>
-    </div>
-
-      <div class="panel panel-primary">
-      <div class="panel-heading text-left">
-        <h3 class="panel-title">
-          <a data-toggle="collapse" href="#funcs-1">Functions</a>
-        </h3>
-      </div>
-      <div id="funcs-1" class="panel-collapse collapse">
-        <div class="list-group">
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_curv2">fitp_curv2</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_curvd">fitp_curvd</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_curvi">fitp_curvi</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_curvp2">fitp_curvp2</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_curvpd">fitp_curvpd</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_curvpi">fitp_curvpi</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_surf2">fitp_surf2</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_intrvl">fitp_intrvl</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_intrvp">fitp_intrvp</a>
-            <a class="list-group-item" href="../module/splines.html#proc-dedge">dedge</a>
-        </div>
-      </div>
-    </div>
-
-      <div class="panel panel-primary">
-      <div class="panel-heading text-left">
-        <h3 class="panel-title">
-          <a data-toggle="collapse" href="#subs-1">Subroutines</a>
-        </h3>
-      </div>
-      <div id="subs-1" class="panel-collapse collapse">
-        <div class="list-group">
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_curv1">fitp_curv1</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_curvs">fitp_curvs</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_curvp1">fitp_curvp1</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_curvps">fitp_curvps</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_kurv1">fitp_kurv1</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_kurv2">fitp_kurv2</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_kurvd">fitp_kurvd</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_kurvp1">fitp_kurvp1</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_kurvp2">fitp_kurvp2</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_kurvpd">fitp_kurvpd</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_surf1">fitp_surf1</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_ceez">fitp_ceez</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_curvpp">fitp_curvpp</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_curvss">fitp_curvss</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_snhcsh">fitp_snhcsh</a>
-            <a class="list-group-item" href="../module/splines.html#proc-fitp_terms">fitp_terms</a>
-            <a class="list-group-item" href="../module/splines.html#proc-geo_spline_real">geo_spline_real</a>
-            <a class="list-group-item" href="../module/splines.html#proc-geo_spline_array">geo_spline_array</a>
-            <a class="list-group-item" href="../module/splines.html#proc-linear_interp_periodic">linear_interp_periodic</a>
-        </div>
-      </div>
-    </div>
-
-  
-  
-  
-  
-  
-  
-
-
-      </section>
-      <br class="visible-xs visible-sm hidden-md">
-
 
 
 
         <section>
           <h2>Interfaces</h2>
-              <div class="panel panel-default">
-    <div class="panel-heading codesum">
+              <div class="card">
+    <div class="card-header bg-light codesum">
       <span class="anchor" id="interface-geo_spline"></span>
       <h3>public        interface <a href='../interface/geo_spline.html'>geo_spline</a> 
       </h3>
@@ -361,16 +239,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~26"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -385,7 +263,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~23"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -400,7 +278,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xint"></span>
               real,
             </td>
 <td>intent(in)</td>
@@ -415,7 +293,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yint"></span>
               real,
             </td>
 <td>intent(out)</td>
@@ -445,16 +323,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~27"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -469,7 +347,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~24"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -484,7 +362,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xint~2"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -499,7 +377,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yint~2"></span>
               real,
             </td>
 <td>intent(out),</td>
@@ -526,8 +404,8 @@
 
         <section>
           <h2>Derived Types</h2>
-              <div class="panel panel-default">
-    <div class="panel-heading codesum">
+              <div class="card">
+    <div class="card-header codesum">
       <span class="anchor" id="type-spline"></span>
       <h3>
         type, public&nbsp;::&nbsp;
@@ -535,23 +413,23 @@
         
       </h3>
     </div>
-    <div class="panel-body">
+    <div class="card-body">
       
 
         <h4>Components</h4>
           <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Visibility</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-<th></th><th>Initial</th>        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-n~3"></span>
+              <span class="anchor" id="variable-n"></span>
               integer,
             </td>
               <td>public</td>
@@ -626,8 +504,8 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum">
+              <div class="card">
+    <div class="card-header codesum">
       <span class="anchor" id="type-periodic_spline"></span>
       <h3>
         type, public&nbsp;::&nbsp;
@@ -635,23 +513,23 @@
         
       </h3>
     </div>
-    <div class="panel-body">
+    <div class="card-body">
       
 
         <h4>Components</h4>
           <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Visibility</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-<th></th><th>Initial</th>        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-n~4"></span>
+              <span class="anchor" id="variable-n~2"></span>
               integer,
             </td>
               <td>public</td>
@@ -748,10 +626,10 @@
 
         <section>
           <h2>Functions</h2>
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_curv2"></span><h3>public  function <a href='../proc/fitp_curv2.html'>fitp_curv2</a>(t, n, x, y, yp, sigma)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_curv2"></span> <h3>public  function <a href='../proc/fitp_curv2.html'>fitp_curv2</a>(t, n, x, y, yp, sigma)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -759,16 +637,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-t"></span>
               real
             </td>
 <td></td>
@@ -783,7 +661,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~5"></span>
               integer
             </td>
 <td></td>
@@ -798,7 +676,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~5"></span>
               real
             </td>
 <td></td>
@@ -813,7 +691,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~5"></span>
               real
             </td>
 <td></td>
@@ -828,7 +706,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yp~2"></span>
               real
             </td>
 <td></td>
@@ -843,7 +721,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~3"></span>
               real
             </td>
 <td></td>
@@ -868,10 +746,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_curvd"></span><h3>public  function <a href='../proc/fitp_curvd.html'>fitp_curvd</a>(t, n, x, y, yp, sigma)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_curvd"></span> <h3>public  function <a href='../proc/fitp_curvd.html'>fitp_curvd</a>(t, n, x, y, yp, sigma)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -879,16 +757,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-t~2"></span>
               real
             </td>
 <td></td>
@@ -903,7 +781,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~6"></span>
               integer
             </td>
 <td></td>
@@ -918,7 +796,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~6"></span>
               real
             </td>
 <td></td>
@@ -933,7 +811,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~6"></span>
               real
             </td>
 <td></td>
@@ -948,7 +826,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yp~3"></span>
               real
             </td>
 <td></td>
@@ -963,7 +841,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~4"></span>
               real
             </td>
 <td></td>
@@ -988,10 +866,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_curvi"></span><h3>public  function <a href='../proc/fitp_curvi.html'>fitp_curvi</a>(xl, xu, n, x, y, yp, sigma)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_curvi"></span> <h3>public  function <a href='../proc/fitp_curvi.html'>fitp_curvi</a>(xl, xu, n, x, y, yp, sigma)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -999,16 +877,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xl"></span>
               real
             </td>
 <td></td>
@@ -1023,7 +901,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xu"></span>
               real
             </td>
 <td></td>
@@ -1038,7 +916,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~7"></span>
               integer
             </td>
 <td></td>
@@ -1053,7 +931,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~7"></span>
               real
             </td>
 <td></td>
@@ -1068,7 +946,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~7"></span>
               real
             </td>
 <td></td>
@@ -1083,7 +961,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yp~4"></span>
               real
             </td>
 <td></td>
@@ -1098,7 +976,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~5"></span>
               real
             </td>
 <td></td>
@@ -1123,10 +1001,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_curvp2"></span><h3>public  function <a href='../proc/fitp_curvp2.html'>fitp_curvp2</a>(t, n, x, y, p, yp, sigma)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_curvp2"></span> <h3>public  function <a href='../proc/fitp_curvp2.html'>fitp_curvp2</a>(t, n, x, y, p, yp, sigma)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -1134,16 +1012,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-t~3"></span>
               real
             </td>
 <td></td>
@@ -1158,7 +1036,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~10"></span>
               integer
             </td>
 <td></td>
@@ -1173,7 +1051,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~10"></span>
               real,
             </td>
 <td></td>
@@ -1188,7 +1066,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~10"></span>
               real,
             </td>
 <td></td>
@@ -1203,7 +1081,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-p~3"></span>
               real
             </td>
 <td></td>
@@ -1218,7 +1096,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yp~6"></span>
               real,
             </td>
 <td></td>
@@ -1233,7 +1111,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~8"></span>
               real
             </td>
 <td></td>
@@ -1258,10 +1136,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_curvpd"></span><h3>public  function <a href='../proc/fitp_curvpd.html'>fitp_curvpd</a>(t, n, x, y, p, yp, sigma)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_curvpd"></span> <h3>public  function <a href='../proc/fitp_curvpd.html'>fitp_curvpd</a>(t, n, x, y, p, yp, sigma)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -1269,16 +1147,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-t~4"></span>
               real
             </td>
 <td></td>
@@ -1293,7 +1171,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~11"></span>
               integer
             </td>
 <td></td>
@@ -1308,7 +1186,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~11"></span>
               real
             </td>
 <td></td>
@@ -1323,7 +1201,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~11"></span>
               real
             </td>
 <td></td>
@@ -1338,7 +1216,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-p~4"></span>
               real
             </td>
 <td></td>
@@ -1353,7 +1231,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yp~7"></span>
               real
             </td>
 <td></td>
@@ -1368,7 +1246,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~9"></span>
               real
             </td>
 <td></td>
@@ -1393,10 +1271,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_curvpi"></span><h3>public  function <a href='../proc/fitp_curvpi.html'>fitp_curvpi</a>(xl, xu, n, x, y, p, yp, sigma)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_curvpi"></span> <h3>public  function <a href='../proc/fitp_curvpi.html'>fitp_curvpi</a>(xl, xu, n, x, y, p, yp, sigma)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -1404,16 +1282,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xl~2"></span>
               real
             </td>
 <td></td>
@@ -1428,7 +1306,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xu~2"></span>
               real
             </td>
 <td></td>
@@ -1443,7 +1321,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~12"></span>
               integer
             </td>
 <td></td>
@@ -1458,7 +1336,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~12"></span>
               real
             </td>
 <td></td>
@@ -1473,7 +1351,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~12"></span>
               real
             </td>
 <td></td>
@@ -1488,7 +1366,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-p~5"></span>
               real
             </td>
 <td></td>
@@ -1503,7 +1381,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yp~8"></span>
               real
             </td>
 <td></td>
@@ -1518,7 +1396,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~10"></span>
               real
             </td>
 <td></td>
@@ -1543,10 +1421,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_surf2"></span><h3>public  function <a href='../proc/fitp_surf2.html'>fitp_surf2</a>(xx, yy, m, n, x, y, z, iz, zp, sigma)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_surf2"></span> <h3>public  function <a href='../proc/fitp_surf2.html'>fitp_surf2</a>(xx, yy, m, n, x, y, z, iz, zp, sigma)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -1554,16 +1432,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xx"></span>
               real
             </td>
 <td></td>
@@ -1578,7 +1456,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yy"></span>
               real
             </td>
 <td></td>
@@ -1593,7 +1471,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-m~2"></span>
               integer
             </td>
 <td></td>
@@ -1608,7 +1486,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~20"></span>
               integer
             </td>
 <td></td>
@@ -1623,7 +1501,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~20"></span>
               real
             </td>
 <td></td>
@@ -1638,7 +1516,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~20"></span>
               real
             </td>
 <td></td>
@@ -1653,7 +1531,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-z~2"></span>
               real
             </td>
 <td></td>
@@ -1668,7 +1546,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-iz~2"></span>
               integer
             </td>
 <td></td>
@@ -1683,7 +1561,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-zp~2"></span>
               real
             </td>
 <td></td>
@@ -1698,7 +1576,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~18"></span>
               real
             </td>
 <td></td>
@@ -1723,10 +1601,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_intrvl"></span><h3>public  function <a href='../proc/fitp_intrvl.html'>fitp_intrvl</a>(t, x, n)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_intrvl"></span> <h3>public  function <a href='../proc/fitp_intrvl.html'>fitp_intrvl</a>(t, x, n)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -1734,16 +1612,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-t~10"></span>
               real
             </td>
 <td></td>
@@ -1758,7 +1636,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~23"></span>
               real
             </td>
 <td></td>
@@ -1773,7 +1651,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~24"></span>
               integer
             </td>
 <td></td>
@@ -1798,10 +1676,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_intrvp"></span><h3>public  function <a href='../proc/fitp_intrvp.html'>fitp_intrvp</a>(t, x, n, p, tp)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_intrvp"></span> <h3>public  function <a href='../proc/fitp_intrvp.html'>fitp_intrvp</a>(t, x, n, p, tp)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -1809,16 +1687,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-t~11"></span>
               real
             </td>
 <td></td>
@@ -1833,7 +1711,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~24"></span>
               real
             </td>
 <td></td>
@@ -1848,7 +1726,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~25"></span>
               integer
             </td>
 <td></td>
@@ -1863,7 +1741,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-p~8"></span>
               real
             </td>
 <td></td>
@@ -1878,7 +1756,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-tp~3"></span>
               real
             </td>
 <td></td>
@@ -1903,10 +1781,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-dedge"></span><h3>public  function <a href='../proc/dedge.html'>dedge</a>(a, r, n, iside)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-dedge"></span> <h3>public  function <a href='../proc/dedge.html'>dedge</a>(a, r, n, iside)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -1914,16 +1792,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-a"></span>
               real
             </td>
 <td></td>
@@ -1938,7 +1816,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-r"></span>
               real
             </td>
 <td></td>
@@ -1953,7 +1831,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~26"></span>
               integer
             </td>
 <td></td>
@@ -1968,7 +1846,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-iside"></span>
               integer
             </td>
 <td></td>
@@ -1998,10 +1876,10 @@
 
         <section>
           <h2>Subroutines</h2>
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_curv1"></span><h3>public  subroutine <a href='../proc/fitp_curv1.html'>fitp_curv1</a>(n, x, y, slp1, slpn, islpsw, yp, temp, sigma, ierr)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_curv1"></span> <h3>public  subroutine <a href='../proc/fitp_curv1.html'>fitp_curv1</a>(n, x, y, slp1, slpn, islpsw, yp, temp, sigma, ierr)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -2009,16 +1887,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~3"></span>
               integer
             </td>
 <td></td>
@@ -2033,7 +1911,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~3"></span>
               real
             </td>
 <td></td>
@@ -2048,7 +1926,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~3"></span>
               real
             </td>
 <td></td>
@@ -2063,7 +1941,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-slp1"></span>
               real
             </td>
 <td></td>
@@ -2078,7 +1956,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-slpn"></span>
               real
             </td>
 <td></td>
@@ -2093,7 +1971,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-islpsw"></span>
               integer
             </td>
 <td></td>
@@ -2108,7 +1986,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yp"></span>
               real
             </td>
 <td></td>
@@ -2123,7 +2001,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-temp"></span>
               real
             </td>
 <td></td>
@@ -2138,7 +2016,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma"></span>
               real
             </td>
 <td></td>
@@ -2153,7 +2031,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ierr"></span>
               integer
             </td>
 <td></td>
@@ -2173,10 +2051,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_curvs"></span><h3>public  subroutine <a href='../proc/fitp_curvs.html'>fitp_curvs</a>(n, x, y, d, isw, s, eps, ys, ysp, sigma, temp, ierr)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_curvs"></span> <h3>public  subroutine <a href='../proc/fitp_curvs.html'>fitp_curvs</a>(n, x, y, d, isw, s, eps, ys, ysp, sigma, temp, ierr)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -2184,16 +2062,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~4"></span>
               integer
             </td>
 <td></td>
@@ -2208,7 +2086,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~4"></span>
               real
             </td>
 <td></td>
@@ -2223,7 +2101,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~4"></span>
               real
             </td>
 <td></td>
@@ -2238,7 +2116,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-d"></span>
               real
             </td>
 <td></td>
@@ -2253,7 +2131,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-isw"></span>
               integer
             </td>
 <td></td>
@@ -2268,7 +2146,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-s"></span>
               real
             </td>
 <td></td>
@@ -2283,7 +2161,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-eps"></span>
               real
             </td>
 <td></td>
@@ -2298,7 +2176,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ys"></span>
               real
             </td>
 <td></td>
@@ -2313,7 +2191,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ysp"></span>
               real
             </td>
 <td></td>
@@ -2328,7 +2206,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~2"></span>
               real
             </td>
 <td></td>
@@ -2343,7 +2221,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-temp~2"></span>
               real
             </td>
 <td></td>
@@ -2358,7 +2236,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ierr~2"></span>
               integer
             </td>
 <td></td>
@@ -2378,10 +2256,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_curvp1"></span><h3>public  subroutine <a href='../proc/fitp_curvp1.html'>fitp_curvp1</a>(n, x, y, p, yp, temp, sigma, ierr)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_curvp1"></span> <h3>public  subroutine <a href='../proc/fitp_curvp1.html'>fitp_curvp1</a>(n, x, y, p, yp, temp, sigma, ierr)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -2389,16 +2267,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~8"></span>
               integer
             </td>
 <td></td>
@@ -2413,7 +2291,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~8"></span>
               real,
             </td>
 <td></td>
@@ -2428,7 +2306,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~8"></span>
               real,
             </td>
 <td></td>
@@ -2443,7 +2321,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-p"></span>
               real
             </td>
 <td></td>
@@ -2458,7 +2336,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yp~5"></span>
               real,
             </td>
 <td></td>
@@ -2473,7 +2351,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-temp~3"></span>
               real,
             </td>
 <td></td>
@@ -2488,7 +2366,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~6"></span>
               real
             </td>
 <td></td>
@@ -2503,7 +2381,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ierr~3"></span>
               integer
             </td>
 <td></td>
@@ -2523,10 +2401,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_curvps"></span><h3>public  subroutine <a href='../proc/fitp_curvps.html'>fitp_curvps</a>(n, x, y, p, d, isw, s, eps, ys, ysp, sigma, temp, ierr)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_curvps"></span> <h3>public  subroutine <a href='../proc/fitp_curvps.html'>fitp_curvps</a>(n, x, y, p, d, isw, s, eps, ys, ysp, sigma, temp, ierr)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -2534,16 +2412,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~9"></span>
               integer
             </td>
 <td></td>
@@ -2558,7 +2436,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~9"></span>
               real
             </td>
 <td></td>
@@ -2573,7 +2451,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~9"></span>
               real
             </td>
 <td></td>
@@ -2588,7 +2466,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-p~2"></span>
               real
             </td>
 <td></td>
@@ -2603,7 +2481,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-d~2"></span>
               real
             </td>
 <td></td>
@@ -2618,7 +2496,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-isw~2"></span>
               integer
             </td>
 <td></td>
@@ -2633,7 +2511,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-s~2"></span>
               real
             </td>
 <td></td>
@@ -2648,7 +2526,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-eps~2"></span>
               real
             </td>
 <td></td>
@@ -2663,7 +2541,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ys~2"></span>
               real
             </td>
 <td></td>
@@ -2678,7 +2556,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ysp~2"></span>
               real
             </td>
 <td></td>
@@ -2693,7 +2571,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~7"></span>
               real
             </td>
 <td></td>
@@ -2708,7 +2586,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-temp~4"></span>
               real
             </td>
 <td></td>
@@ -2723,7 +2601,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ierr~4"></span>
               integer
             </td>
 <td></td>
@@ -2743,10 +2621,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_kurv1"></span><h3>public  subroutine <a href='../proc/fitp_kurv1.html'>fitp_kurv1</a>(n, x, y, slp1, slpn, islpsw, xp, yp, temp, s, sigma, ierr)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_kurv1"></span> <h3>public  subroutine <a href='../proc/fitp_kurv1.html'>fitp_kurv1</a>(n, x, y, slp1, slpn, islpsw, xp, yp, temp, s, sigma, ierr)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -2754,16 +2632,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~13"></span>
               integer
             </td>
 <td></td>
@@ -2778,7 +2656,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~13"></span>
               real
             </td>
 <td></td>
@@ -2793,7 +2671,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~13"></span>
               real
             </td>
 <td></td>
@@ -2808,7 +2686,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-slp1~2"></span>
               real
             </td>
 <td></td>
@@ -2823,7 +2701,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-slpn~2"></span>
               real
             </td>
 <td></td>
@@ -2838,7 +2716,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-islpsw~2"></span>
               integer
             </td>
 <td></td>
@@ -2853,7 +2731,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xp"></span>
               real
             </td>
 <td></td>
@@ -2868,7 +2746,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yp~9"></span>
               real
             </td>
 <td></td>
@@ -2883,7 +2761,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-temp~5"></span>
               real
             </td>
 <td></td>
@@ -2898,7 +2776,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-s~3"></span>
               real
             </td>
 <td></td>
@@ -2913,7 +2791,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~11"></span>
               real
             </td>
 <td></td>
@@ -2928,7 +2806,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ierr~5"></span>
               integer
             </td>
 <td></td>
@@ -2948,10 +2826,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_kurv2"></span><h3>public  subroutine <a href='../proc/fitp_kurv2.html'>fitp_kurv2</a>(t, xs, ys, n, x, y, xp, yp, s, sigma)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_kurv2"></span> <h3>public  subroutine <a href='../proc/fitp_kurv2.html'>fitp_kurv2</a>(t, xs, ys, n, x, y, xp, yp, s, sigma)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -2959,16 +2837,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-t~5"></span>
               real
             </td>
 <td></td>
@@ -2983,7 +2861,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xs"></span>
               real
             </td>
 <td></td>
@@ -2998,7 +2876,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ys~3"></span>
               real
             </td>
 <td></td>
@@ -3013,7 +2891,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~14"></span>
               integer
             </td>
 <td></td>
@@ -3028,7 +2906,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~14"></span>
               real
             </td>
 <td></td>
@@ -3043,7 +2921,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~14"></span>
               real
             </td>
 <td></td>
@@ -3058,7 +2936,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xp~2"></span>
               real
             </td>
 <td></td>
@@ -3073,7 +2951,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yp~10"></span>
               real
             </td>
 <td></td>
@@ -3088,7 +2966,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-s~4"></span>
               real
             </td>
 <td></td>
@@ -3103,7 +2981,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~12"></span>
               real
             </td>
 <td></td>
@@ -3123,10 +3001,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_kurvd"></span><h3>public  subroutine <a href='../proc/fitp_kurvd.html'>fitp_kurvd</a>(t, xs, ys, xst, yst, xstt, ystt, n, x, y, xp, yp, s, sigma)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_kurvd"></span> <h3>public  subroutine <a href='../proc/fitp_kurvd.html'>fitp_kurvd</a>(t, xs, ys, xst, yst, xstt, ystt, n, x, y, xp, yp, s, sigma)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -3134,16 +3012,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-t~6"></span>
               real
             </td>
 <td></td>
@@ -3158,7 +3036,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xs~2"></span>
               real
             </td>
 <td></td>
@@ -3173,7 +3051,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ys~4"></span>
               real
             </td>
 <td></td>
@@ -3188,7 +3066,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xst"></span>
               real
             </td>
 <td></td>
@@ -3203,7 +3081,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yst"></span>
               real
             </td>
 <td></td>
@@ -3218,7 +3096,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xstt"></span>
               real
             </td>
 <td></td>
@@ -3233,7 +3111,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ystt"></span>
               real
             </td>
 <td></td>
@@ -3248,7 +3126,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~15"></span>
               integer
             </td>
 <td></td>
@@ -3263,7 +3141,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~15"></span>
               real
             </td>
 <td></td>
@@ -3278,7 +3156,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~15"></span>
               real
             </td>
 <td></td>
@@ -3293,7 +3171,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xp~3"></span>
               real
             </td>
 <td></td>
@@ -3308,7 +3186,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yp~11"></span>
               real
             </td>
 <td></td>
@@ -3323,7 +3201,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-s~5"></span>
               real
             </td>
 <td></td>
@@ -3338,7 +3216,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~13"></span>
               real
             </td>
 <td></td>
@@ -3358,10 +3236,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_kurvp1"></span><h3>public  subroutine <a href='../proc/fitp_kurvp1.html'>fitp_kurvp1</a>(n, x, y, xp, yp, temp, s, sigma, ierr)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_kurvp1"></span> <h3>public  subroutine <a href='../proc/fitp_kurvp1.html'>fitp_kurvp1</a>(n, x, y, xp, yp, temp, s, sigma, ierr)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -3369,16 +3247,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~16"></span>
               integer
             </td>
 <td></td>
@@ -3393,7 +3271,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~16"></span>
               real
             </td>
 <td></td>
@@ -3408,7 +3286,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~16"></span>
               real
             </td>
 <td></td>
@@ -3423,7 +3301,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xp~4"></span>
               real
             </td>
 <td></td>
@@ -3438,7 +3316,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yp~12"></span>
               real
             </td>
 <td></td>
@@ -3453,7 +3331,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-temp~6"></span>
               real
             </td>
 <td></td>
@@ -3468,7 +3346,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-s~6"></span>
               real
             </td>
 <td></td>
@@ -3483,7 +3361,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~14"></span>
               real
             </td>
 <td></td>
@@ -3498,7 +3376,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ierr~6"></span>
               integer
             </td>
 <td></td>
@@ -3518,10 +3396,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_kurvp2"></span><h3>public  subroutine <a href='../proc/fitp_kurvp2.html'>fitp_kurvp2</a>(t, xs, ys, n, x, y, xp, yp, s, sigma)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_kurvp2"></span> <h3>public  subroutine <a href='../proc/fitp_kurvp2.html'>fitp_kurvp2</a>(t, xs, ys, n, x, y, xp, yp, s, sigma)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -3529,16 +3407,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-t~7"></span>
               real
             </td>
 <td></td>
@@ -3553,7 +3431,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xs~3"></span>
               real
             </td>
 <td></td>
@@ -3568,7 +3446,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ys~5"></span>
               real
             </td>
 <td></td>
@@ -3583,7 +3461,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~17"></span>
               integer
             </td>
 <td></td>
@@ -3598,7 +3476,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~17"></span>
               real
             </td>
 <td></td>
@@ -3613,7 +3491,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~17"></span>
               real
             </td>
 <td></td>
@@ -3628,7 +3506,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xp~5"></span>
               real
             </td>
 <td></td>
@@ -3643,7 +3521,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yp~13"></span>
               real
             </td>
 <td></td>
@@ -3658,7 +3536,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-s~7"></span>
               real
             </td>
 <td></td>
@@ -3673,7 +3551,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~15"></span>
               real
             </td>
 <td></td>
@@ -3693,10 +3571,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_kurvpd"></span><h3>public  subroutine <a href='../proc/fitp_kurvpd.html'>fitp_kurvpd</a>(t, xs, ys, xst, yst, xstt, ystt, n, x, y, xp, yp, s, sigma)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_kurvpd"></span> <h3>public  subroutine <a href='../proc/fitp_kurvpd.html'>fitp_kurvpd</a>(t, xs, ys, xst, yst, xstt, ystt, n, x, y, xp, yp, s, sigma)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -3704,16 +3582,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-t~8"></span>
               real
             </td>
 <td></td>
@@ -3728,7 +3606,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xs~4"></span>
               real
             </td>
 <td></td>
@@ -3743,7 +3621,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ys~6"></span>
               real
             </td>
 <td></td>
@@ -3758,7 +3636,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xst~2"></span>
               real
             </td>
 <td></td>
@@ -3773,7 +3651,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yst~2"></span>
               real
             </td>
 <td></td>
@@ -3788,7 +3666,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xstt~2"></span>
               real
             </td>
 <td></td>
@@ -3803,7 +3681,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ystt~2"></span>
               real
             </td>
 <td></td>
@@ -3818,7 +3696,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~18"></span>
               integer
             </td>
 <td></td>
@@ -3833,7 +3711,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~18"></span>
               real
             </td>
 <td></td>
@@ -3848,7 +3726,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~18"></span>
               real
             </td>
 <td></td>
@@ -3863,7 +3741,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xp~6"></span>
               real
             </td>
 <td></td>
@@ -3878,7 +3756,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yp~14"></span>
               real
             </td>
 <td></td>
@@ -3893,7 +3771,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-s~8"></span>
               real
             </td>
 <td></td>
@@ -3908,7 +3786,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~16"></span>
               real
             </td>
 <td></td>
@@ -3928,10 +3806,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_surf1"></span><h3>public  subroutine <a href='../proc/fitp_surf1.html'>fitp_surf1</a>(m, n, x, y, z, iz, zx1, zxm, zy1, zyn, zxy11, zxym1, zxy1n, zxymn, islpsw, zp, temp, sigma, ierr)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_surf1"></span> <h3>public  subroutine <a href='../proc/fitp_surf1.html'>fitp_surf1</a>(m, n, x, y, z, iz, zx1, zxm, zy1, zyn, zxy11, zxym1, zxy1n, zxymn, islpsw, zp, temp, sigma, ierr)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -3939,16 +3817,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-m"></span>
               integer
             </td>
 <td></td>
@@ -3963,7 +3841,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~19"></span>
               integer
             </td>
 <td></td>
@@ -3978,7 +3856,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~19"></span>
               real
             </td>
 <td></td>
@@ -3993,7 +3871,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~19"></span>
               real
             </td>
 <td></td>
@@ -4008,7 +3886,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-z"></span>
               real
             </td>
 <td></td>
@@ -4023,7 +3901,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-iz"></span>
               integer
             </td>
 <td></td>
@@ -4038,7 +3916,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-zx1"></span>
               real
             </td>
 <td></td>
@@ -4053,7 +3931,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-zxm"></span>
               real
             </td>
 <td></td>
@@ -4068,7 +3946,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-zy1"></span>
               real
             </td>
 <td></td>
@@ -4083,7 +3961,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-zyn"></span>
               real
             </td>
 <td></td>
@@ -4098,7 +3976,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-zxy11"></span>
               real
             </td>
 <td></td>
@@ -4113,7 +3991,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-zxym1"></span>
               real
             </td>
 <td></td>
@@ -4128,7 +4006,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-zxy1n"></span>
               real
             </td>
 <td></td>
@@ -4143,7 +4021,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-zxymn"></span>
               real
             </td>
 <td></td>
@@ -4158,7 +4036,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-islpsw~3"></span>
               integer
             </td>
 <td></td>
@@ -4173,7 +4051,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-zp"></span>
               real
             </td>
 <td></td>
@@ -4188,7 +4066,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-temp~7"></span>
               real
             </td>
 <td></td>
@@ -4203,7 +4081,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~17"></span>
               real
             </td>
 <td></td>
@@ -4218,7 +4096,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ierr~7"></span>
               integer
             </td>
 <td></td>
@@ -4238,10 +4116,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_ceez"></span><h3>public  subroutine <a href='../proc/fitp_ceez.html'>fitp_ceez</a>(del1, del2, sigma, c1, c2, c3, n)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_ceez"></span> <h3>public  subroutine <a href='../proc/fitp_ceez.html'>fitp_ceez</a>(del1, del2, sigma, c1, c2, c3, n)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -4249,16 +4127,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-del1~13"></span>
               real
             </td>
 <td></td>
@@ -4273,7 +4151,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-del2~13"></span>
               real
             </td>
 <td></td>
@@ -4288,7 +4166,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~19"></span>
               real
             </td>
 <td></td>
@@ -4303,7 +4181,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-c1~12"></span>
               real
             </td>
 <td></td>
@@ -4318,7 +4196,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-c2~12"></span>
               real
             </td>
 <td></td>
@@ -4333,7 +4211,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-c3~4"></span>
               real
             </td>
 <td></td>
@@ -4348,7 +4226,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~21"></span>
               integer
             </td>
 <td></td>
@@ -4368,10 +4246,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_curvpp"></span><h3>public  subroutine <a href='../proc/fitp_curvpp.html'>fitp_curvpp</a>(n, x, y, p, d, isw, s, eps, ys, ysp, sigma, td, tsd1, hd, hsd1, hsd2, rd, rsd1, rsd2, rnm1, rn, v, ierr)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_curvpp"></span> <h3>public  subroutine <a href='../proc/fitp_curvpp.html'>fitp_curvpp</a>(n, x, y, p, d, isw, s, eps, ys, ysp, sigma, td, tsd1, hd, hsd1, hsd2, rd, rsd1, rsd2, rnm1, rn, v, ierr)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -4379,16 +4257,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~22"></span>
               integer
             </td>
 <td></td>
@@ -4403,7 +4281,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~21"></span>
               real
             </td>
 <td></td>
@@ -4418,7 +4296,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~21"></span>
               real
             </td>
 <td></td>
@@ -4433,7 +4311,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-p~6"></span>
               real
             </td>
 <td></td>
@@ -4448,7 +4326,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-d~7"></span>
               real
             </td>
 <td></td>
@@ -4463,7 +4341,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-isw~3"></span>
               integer
             </td>
 <td></td>
@@ -4478,7 +4356,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-s~9"></span>
               real
             </td>
 <td></td>
@@ -4493,7 +4371,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-eps~3"></span>
               real
             </td>
 <td></td>
@@ -4508,7 +4386,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ys~7"></span>
               real
             </td>
 <td></td>
@@ -4523,7 +4401,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ysp~3"></span>
               real
             </td>
 <td></td>
@@ -4538,7 +4416,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~20"></span>
               real
             </td>
 <td></td>
@@ -4553,7 +4431,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-td"></span>
               real
             </td>
 <td></td>
@@ -4568,7 +4446,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-tsd1"></span>
               real
             </td>
 <td></td>
@@ -4583,7 +4461,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-hd"></span>
               real
             </td>
 <td></td>
@@ -4598,7 +4476,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-hsd1"></span>
               real
             </td>
 <td></td>
@@ -4613,7 +4491,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-hsd2"></span>
               real
             </td>
 <td></td>
@@ -4628,7 +4506,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-rd"></span>
               real
             </td>
 <td></td>
@@ -4643,7 +4521,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-rsd1"></span>
               real
             </td>
 <td></td>
@@ -4658,7 +4536,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-rsd2"></span>
               real
             </td>
 <td></td>
@@ -4673,7 +4551,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-rnm1"></span>
               real
             </td>
 <td></td>
@@ -4688,7 +4566,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-rn"></span>
               real
             </td>
 <td></td>
@@ -4703,7 +4581,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-v"></span>
               real
             </td>
 <td></td>
@@ -4718,7 +4596,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ierr~8"></span>
               integer
             </td>
 <td></td>
@@ -4738,10 +4616,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_curvss"></span><h3>public  subroutine <a href='../proc/fitp_curvss.html'>fitp_curvss</a>(n, x, y, d, isw, s, eps, ys, ysp, sigma, td, tsd1, hd, hsd1, hsd2, rd, rsd1, rsd2, v, ierr)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_curvss"></span> <h3>public  subroutine <a href='../proc/fitp_curvss.html'>fitp_curvss</a>(n, x, y, d, isw, s, eps, ys, ysp, sigma, td, tsd1, hd, hsd1, hsd2, rd, rsd1, rsd2, v, ierr)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -4749,16 +4627,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-n~23"></span>
               integer
             </td>
 <td></td>
@@ -4773,7 +4651,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~22"></span>
               real
             </td>
 <td></td>
@@ -4788,7 +4666,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~22"></span>
               real
             </td>
 <td></td>
@@ -4803,7 +4681,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-d~8"></span>
               real
             </td>
 <td></td>
@@ -4818,7 +4696,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-isw~4"></span>
               integer
             </td>
 <td></td>
@@ -4833,7 +4711,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-s~10"></span>
               real
             </td>
 <td></td>
@@ -4848,7 +4726,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-eps~4"></span>
               real
             </td>
 <td></td>
@@ -4863,7 +4741,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ys~8"></span>
               real
             </td>
 <td></td>
@@ -4878,7 +4756,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ysp~4"></span>
               real
             </td>
 <td></td>
@@ -4893,7 +4771,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~21"></span>
               real
             </td>
 <td></td>
@@ -4908,7 +4786,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-td~2"></span>
               real
             </td>
 <td></td>
@@ -4923,7 +4801,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-tsd1~2"></span>
               real
             </td>
 <td></td>
@@ -4938,7 +4816,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-hd~2"></span>
               real
             </td>
 <td></td>
@@ -4953,7 +4831,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-hsd1~2"></span>
               real
             </td>
 <td></td>
@@ -4968,7 +4846,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-hsd2~2"></span>
               real
             </td>
 <td></td>
@@ -4983,7 +4861,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-rd~2"></span>
               real
             </td>
 <td></td>
@@ -4998,7 +4876,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-rsd1~2"></span>
               real
             </td>
 <td></td>
@@ -5013,7 +4891,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-rsd2~2"></span>
               real
             </td>
 <td></td>
@@ -5028,7 +4906,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-v~2"></span>
               real
             </td>
 <td></td>
@@ -5043,7 +4921,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-ierr~9"></span>
               integer
             </td>
 <td></td>
@@ -5063,10 +4941,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_snhcsh"></span><h3>public  subroutine <a href='../proc/fitp_snhcsh.html'>fitp_snhcsh</a>(sinhm, coshm, x, isw)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_snhcsh"></span> <h3>public  subroutine <a href='../proc/fitp_snhcsh.html'>fitp_snhcsh</a>(sinhm, coshm, x, isw)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -5074,16 +4952,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sinhm"></span>
               real
             </td>
 <td></td>
@@ -5098,7 +4976,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-coshm"></span>
               real
             </td>
 <td></td>
@@ -5113,7 +4991,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~25"></span>
               real
             </td>
 <td></td>
@@ -5128,7 +5006,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-isw~5"></span>
               integer
             </td>
 <td></td>
@@ -5148,10 +5026,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-fitp_terms"></span><h3>public  subroutine <a href='../proc/fitp_terms.html'>fitp_terms</a>(diag, sdiag, sigma, del)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-fitp_terms"></span> <h3>public  subroutine <a href='../proc/fitp_terms.html'>fitp_terms</a>(diag, sdiag, sigma, del)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -5159,16 +5037,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-diag~5"></span>
               real
             </td>
 <td></td>
@@ -5183,7 +5061,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sdiag"></span>
               real
             </td>
 <td></td>
@@ -5198,7 +5076,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-sigma~22"></span>
               real
             </td>
 <td></td>
@@ -5213,7 +5091,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-del~2"></span>
               real
             </td>
 <td></td>
@@ -5233,10 +5111,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-geo_spline_real"></span><h3>public  subroutine <a href='../proc/geo_spline_real.html'>geo_spline_real</a>(x, y, xint, yint)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-geo_spline_real"></span> <h3>public  subroutine <a href='../proc/geo_spline_real.html'>geo_spline_real</a>(x, y, xint, yint)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -5244,16 +5122,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~26"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -5268,7 +5146,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~23"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -5283,7 +5161,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xint"></span>
               real,
             </td>
 <td>intent(in)</td>
@@ -5298,7 +5176,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yint"></span>
               real,
             </td>
 <td>intent(out)</td>
@@ -5318,10 +5196,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-geo_spline_array"></span><h3>public  subroutine <a href='../proc/geo_spline_array.html'>geo_spline_array</a>(x, y, xint, yint)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-geo_spline_array"></span> <h3>public  subroutine <a href='../proc/geo_spline_array.html'>geo_spline_array</a>(x, y, xint, yint)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -5329,16 +5207,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~27"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -5353,7 +5231,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~24"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -5368,7 +5246,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xint~2"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -5383,7 +5261,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yint~2"></span>
               real,
             </td>
 <td>intent(out),</td>
@@ -5403,10 +5281,10 @@
     </div>
   </div>
 
-              <div class="panel panel-default">
-    <div class="panel-heading codesum"><span class="anchor" id="proc-linear_interp_periodic"></span><h3>public  subroutine <a href='../proc/linear_interp_periodic.html'>linear_interp_periodic</a>(x, y, xint, yint, period)  
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-linear_interp_periodic"></span> <h3>public  subroutine <a href='../proc/linear_interp_periodic.html'>linear_interp_periodic</a>(x, y, xint, yint, period)  
 </h3></div>
-    <div class="panel-body">
+    <div class="card-body">
           
   
 
@@ -5414,16 +5292,16 @@
       <table class="table table-striped varlist">
     <thead>
       <tr>
-        <th>Type</th>
-<th>Intent</th><th>Optional</th>        <th>Attributes</th>
-        <th></th>
-        <th>Name</th>
-        <th></th>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
     </thead>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-x~28"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -5438,7 +5316,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-y~25"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -5453,7 +5331,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-xint~3"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -5468,7 +5346,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-yint~3"></span>
               real,
             </td>
 <td>intent(out),</td>
@@ -5483,7 +5361,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" ></span>
+              <span class="anchor" id="variable-period~2"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -5515,32 +5393,30 @@
     </div> <!-- /container -->
     <footer>
       <div class="container">
-        <div class="row">
-          <div class="col-xs-6 col-md-6"><p>stella was developed by The stella team<br>&copy; 2023 
-<br /><small>v0.5.1-240-g4cdc5fcd3</small></p>
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              stella
+ was developed by The stella team<br>              &copy; 2024 
+<br /><small>v0.5.1-241-g84751169b</small></p>
           </div>
-          <div class="col-xs-6 col-md-6">
-            <p class="text-right">
+          <div class="col">
+            <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2023-10-02T12:04:25.276282             </p>
+ on 2024-07-16T09:40:34.897874             </p>
           </div>
         </div>
         <br>
       </div> <!-- /container -->
     </footer>
 
-    <!-- Bootstrap core JavaScript
-         ================================================== -->
-         <!-- Placed at the end of the document so the pages load faster -->
-    <!--
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-        -->
-        <script src="../js/bootstrap.min.js"></script>
-        <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-        <script src="../js/ie10-viewport-bug-workaround.js"></script>
+    <!-- Bootstrap core JavaScript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>    
 
-        <!-- MathJax JavaScript
+    <!-- MathJax JavaScript
              ================================================== -->
              <!-- Placed at the end of the document so the pages load faster -->
         <script type="text/x-mathjax-config">
