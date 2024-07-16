@@ -9,7 +9,7 @@ module fields_radial_variation
    public :: get_phi_radial, add_adiabatic_response_radial
    public :: add_radial_correction_int_species
    !> Initialise and Finalise Routines
-   !> TODO-GA: probably can make private -- need to do! 
+   !> TODO-GA: probably can make private -- need to do!
    public :: init_radial_field_solve
    public :: allocate_arrays_radial_variation
    public :: finish_radial_fields
@@ -24,8 +24,6 @@ module fields_radial_variation
    logical :: debug = .false.
 
 contains
-
-
 
 !###############################################################################
 !####################### ADVANCE RADIALLY GLOBAL FIELDS ########################
@@ -549,14 +547,13 @@ contains
 
    end subroutine get_radial_correction
 
-
 !###############################################################################
 !############################ INITALIZE & FINALIZE #############################
 !###############################################################################
 
    !============================================================================
    !============= INITALISE THE FIELDS FOR RADIALLY GLOBAL STELLA ==============
-   !============================================================================ 
+   !============================================================================
    subroutine init_radial_field_solve
       use mp, only: proc0, job
       use mp, only: sum_allreduce
@@ -817,7 +814,7 @@ contains
 
    !============================================================================
    !======================= ALLOCATE ARRAYS FOR EM FIELDS ======================
-   !============================================================================ 
+   !============================================================================
 
    subroutine allocate_arrays_radial_variation
 
@@ -854,7 +851,6 @@ contains
       if (.not. allocated(dgamtotdr)) allocate (dgamtotdr(1, 1, 1)); dgamtotdr = 0.
 
    end subroutine allocate_arrays_radial_variation
-
 
    !============================================================================
    !==================== FINISH THE RADIALLY GLOBAL FIELDS =====================

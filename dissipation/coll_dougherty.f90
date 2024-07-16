@@ -218,7 +218,7 @@ contains
       use dist_fn_arrays, only: gvmu
       use gyro_averages, only: aj0v
       use fields_fluxtube, only: get_fields_kxkyzlo
-      use fields_collisions,only: get_fields_by_spec
+      use fields_collisions, only: get_fields_by_spec
       use fields_arrays, only: efac, gamtot_h
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
@@ -472,7 +472,7 @@ contains
       use dist_fn_arrays, only: gvmu, kperp2
       use gyro_averages, only: aj0v, aj1v
       use fields_fluxtube, only: get_fields_kxkyzlo
-      use fields_collisions,only: get_fields_by_spec
+      use fields_collisions, only: get_fields_by_spec
       use fields_arrays, only: efac, gamtot_h
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg

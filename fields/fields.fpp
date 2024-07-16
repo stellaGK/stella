@@ -61,23 +61,23 @@ contains
       if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
 
       !> TODO-GA: Add full flux and electromagnetic routines
-      
+
       !> Get phi for Full Flux Surface or Fluxtube
-      if (full_flux_surface) then 
+      if (full_flux_surface) then
          !call advance_fields_ffs
-         if (proc0) write(*,*) 'STOP: FFS not implemented yet'
+         if (proc0) write (*, *) 'STOP: FFS not implemented yet'
          call mp_abort('STOP: FFS not implemented yet')
-      else 
+      else
          if (debug) write (*, *) 'fields::init_fields::advance_fields_fluxtube'
          call advance_fields_fluxtube(g, phi, apar, dist)
-      end if 
+      end if
 
       !> TODO-GA: make flag for electromagnetic
-      !> Get Apar and Bpar for fluxtube 
-      if (fapar > epsilon(0.0)) then 
-         if (proc0) write(*,*) 'STOP: EM not implemented yet'
+      !> Get Apar and Bpar for fluxtube
+      if (fapar > epsilon(0.0)) then
+         if (proc0) write (*, *) 'STOP: EM not implemented yet'
          call mp_abort('STOP: EM not implemented yet')
-      end if 
+      end if
 
       !> Set a flag to indicate that the fields have been updated
       !> this helps avoid unnecessary field solves
@@ -93,7 +93,7 @@ contains
 
    !============================================================================
    !============================ FIELDS DERIVATIVES ============================
-   !============================================================================ 
+   !============================================================================
    !> Rescale fields, including the distribution function
    !============================================================================
    subroutine rescale_fields(target_amplitude)
@@ -130,11 +130,11 @@ contains
 
    !============================================================================
    !============================ FIELDS DERIVATIVES ============================
-   !============================================================================ 
+   !============================================================================
    !> Compute d<chi>/dy and d<chi>/dx in (ky,kx) space where <.> is a gyroaverage
    !>    d<chi>/dy = i * ky * J0 * chi
    !>    d<chi>/dx = i * kx * J0 * chi
-   !>    chi = phi - Z/T * vpa * apar 
+   !>    chi = phi - Z/T * vpa * apar
    !> There are different routines depending on the size of the input array
    !============================================================================
 
@@ -245,14 +245,13 @@ contains
 
    end subroutine get_dchidx
 
-
 !###############################################################################
 !############################ INITALIZE & FINALIZE #############################
 !###############################################################################
 
    !============================================================================
    !=========================== INITALIZE THE FIELDS ===========================
-   !============================================================================ 
+   !============================================================================
    subroutine init_fields
 
       use mp, only: proc0
@@ -279,7 +278,7 @@ contains
          call init_fields_fluxtube
 
          if (radial_variation) then
-            !> TODO-GA: combinbe 
+            !> TODO-GA: combinbe
             if (debug) write (*, *) 'fields::init_fields::allocate_arrays_radial_variation'
             call allocate_arrays_radial_variation
             if (debug) write (*, *) 'fields::init_fields::init_radial_field_solve'
@@ -295,9 +294,9 @@ contains
 
    !============================================================================
    !============================= ALLOCATE ARRAYS ==============================
-   !============================================================================ 
+   !============================================================================
    !> Allocate arrays needed for solving fields for all versions of stella
-   !============================================================================ 
+   !============================================================================
    subroutine allocate_arrays
 
       use fields_arrays, only: phi, phi_old
@@ -345,7 +344,7 @@ contains
 
    !============================================================================
    !============================ FINISH THE FIELDS =============================
-   !============================================================================ 
+   !============================================================================
    subroutine finish_fields
 
       use fields_arrays, only: phi, phi_old

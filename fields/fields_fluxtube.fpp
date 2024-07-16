@@ -7,7 +7,7 @@ module fields_fluxtube
    !> Initialise Routine
    public :: init_fields_fluxtube
    public :: get_fields_kxkyzlo
-   
+
    private
 
    integer :: zm
@@ -15,18 +15,17 @@ module fields_fluxtube
 
 contains
 
-
 !###############################################################################
 !############################## ADVANCE FIELDS #################################
 !###############################################################################
 
    !============================================================================
    !============================== ADVANCE FIELDS ==============================
-   !============================================================================ 
-   !> This calls the appropriate routines needed to advance phi in the main code 
-   !> when using fluxtube stella, depending on the distribution (i.e. if the 
+   !============================================================================
+   !> This calls the appropriate routines needed to advance phi in the main code
+   !> when using fluxtube stella, depending on the distribution (i.e. if the
    !> information is parallelised over (kx,ky,z) or (vpa,mu) ).
-   !> Note that Apar and Bpar are only advanced when using EM so these are in 
+   !> Note that Apar and Bpar are only advanced when using EM so these are in
    !> fields_electromagnetic.fpp
    !============================================================================
    subroutine advance_fields_fluxtube(g, phi, apar, dist)
@@ -71,7 +70,7 @@ contains
    !> This is the more common version used compared with parallelising over (kx,ky,z)
    !> Here we calculate:
    !>    sum_s int dv (J0 * g)
-   !> and then call get_phi which divides this by the appropriate gamtot factor 
+   !> and then call get_phi which divides this by the appropriate gamtot factor
    !============================================================================
    !> TODO-GA: remove apar from this and make it only needed for EM stella
    subroutine get_fields_vmulo(g, phi, apar, dist, skip_fsa)
@@ -112,7 +111,7 @@ contains
          call gyro_average(g, g_gyro)
 
          !> TODO-GA: Move this somehow??
-         ! If radial profile variation is included then <g> requires modification 
+         ! If radial profile variation is included then <g> requires modification
          if (radial_variation) call add_radial_correction_int_species(g_gyro)
 
          !> Integrate <g> over velocity space and sum over species
@@ -122,7 +121,7 @@ contains
 
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
-         !> Divide this by the appropriate factor that appears in Quasineutrality 
+         !> Divide this by the appropriate factor that appears in Quasineutrality
          call get_phi(phi, dist, skip_fsa_local)
 
       end if
@@ -136,7 +135,7 @@ contains
    !> This is the less common version used compared with parallelising over (vpa, mu)
    !> Here we calculate:
    !>    sum_s int dv (J0 * g)
-   !> and then call get_phi which divides this by the appropriate gamtot factor 
+   !> and then call get_phi which divides this by the appropriate gamtot factor
    !============================================================================
    !> TODO-GA: remove apar from this and make it only needed for EM stella
    subroutine get_fields_kxkyzlo(g, phi, apar, dist, skip_fsa)
@@ -189,8 +188,8 @@ contains
 
             !> Gyroaverage the distribution function g at each phase space location
             call gyro_average(g(:, :, ikxkyz), ikxkyz, g0)
-         
-            !> Integrate <g> over velocity space 
+
+            !> Integrate <g> over velocity space
             call integrate_vmu(g0, iz, tmp)
 
             !> Sum over species
@@ -200,12 +199,12 @@ contains
          end do
          deallocate (g0)
 
-         !> Gather information that is spread over different processors onto one and then 
+         !> Gather information that is spread over different processors onto one and then
          !> broadcast to all processors
          call sum_allreduce(phi)
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
-         !> Divide this by the appropriate factor that appears in Quasineutrality 
+         !> Divide this by the appropriate factor that appears in Quasineutrality
          call get_phi(phi, dist, skip_fsa_local)
 
       end if
@@ -215,10 +214,10 @@ contains
    !============================================================================
    !================================ UPDATE PHI ================================
    !============================================================================
-   !> The 'phi' variable passed in is 
-   !>    sum_s int dv (J0 * g) 
-   !> This routine divides by the appropriate gamtot factor depending on if we 
-   !> have kinetic or adiabatic electrons, and also on whether we are using 'g' 
+   !> The 'phi' variable passed in is
+   !>    sum_s int dv (J0 * g)
+   !> This routine divides by the appropriate gamtot factor depending on if we
+   !> have kinetic or adiabatic electrons, and also on whether we are using 'g'
    !> or 'h' as our distribution function that we are evolving
    !============================================================================
    subroutine get_phi(phi, dist, skip_fsa)
@@ -317,19 +316,18 @@ contains
 
    end subroutine get_phi
 
-
 !###############################################################################
 !################################## INITALISE ##################################
 !###############################################################################
 
    !============================================================================
    !============================= INITALISE ARRAYS =============================
-   !============================================================================ 
-   !> Initialise arrays that are needed during the main time advance loop in the 
+   !============================================================================
+   !> Initialise arrays that are needed during the main time advance loop in the
    !> field solve for the flux tube simulations only
    !> These are initialised once and then used throughout the rest of the simulation
    !>    gamtot = 1 - gamma0 = Z^2*n/T * int e^(-v^2) * (1 - J0^2) dv
-   !> If using adiabatic electrons then this factor is modified and we use gamtot3 
+   !> If using adiabatic electrons then this factor is modified and we use gamtot3
    !> which includes the Boltmann response
    !============================================================================
    subroutine init_fields_fluxtube
@@ -377,7 +375,7 @@ contains
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
             iz = iz_idx(kxkyz_lo, ikxkyz)
             is = is_idx(kxkyz_lo, ikxkyz)
-            
+
             !> Calculate (1- j0^2) for each kx,ky,z
             g0 = spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa)
             !> TODO-GA: remove maxwellian_normalisation flag
@@ -410,7 +408,7 @@ contains
             if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
                if (zonal_mode(1)) then
                   gamtot3_h = efac / (sum(spec%zt * spec%z * spec%dens))
-                  do ikx = 1, nakx      
+                  do ikx = 1, nakx
                      tmp = 1./efac - sum(dl_over_b(ia, :) / gamtot(1, ikx, :))
                      gamtot3(ikx, :) = 1./(gamtot(1, ikx, :) * tmp)
                   end do
