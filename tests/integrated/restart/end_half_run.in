@@ -32,6 +32,7 @@
 &physics_flags
  full_flux_surface = .false.
  nonlinear = .true.
+ include_apar = .false.
 /
 
 &parameters
@@ -72,8 +73,6 @@
 
 &knobs
  fphi =   1.0
- fapar =  0.0
- fbpar = 0.0
  zed_upwind = 0.02
  time_upwind = 0.02
  vpa_upwind = 0.02
