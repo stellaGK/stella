@@ -73,8 +73,8 @@ contains
       use file_utils, only: input_unit, error_unit, input_unit_exist
       use mp, only: mp_abort, proc0, broadcast
       use text_options, only: text_option, get_option_value
-      use physics_flags, only: include_mirror, full_flux_surface, radial_variation, include_parallel_streaming
-      use physics_flags, only: nonlinear
+      use physics_flags, only: include_mirror, full_flux_surface, radial_variation
+      use physics_flags, only: nonlinear, include_apar, include_parallel_streaming
       use physics_parameters, only: rhostar
 
       implicit none
@@ -110,8 +110,8 @@ contains
 
          ! Default parameters in namelist <knobs>
          fphi = 1.0
-         fapar = 1.0
-         fbpar = -1.0
+         fapar = -1.0 ! fapar deprecated; keeping for now for backward compatibility
+         fbpar = -1.0 ! fbpar deprecated; keeping for now for backward compatibility
          fields_kxkyz = .false.
          stream_implicit = .true.
          mirror_implicit = .true.
@@ -208,16 +208,42 @@ contains
             mirror_semi_lagrange = .false.
          end if
 
+         if (fapar > -1.0 .or. fbpar > -1.0) then
+            write (*, *) '!!!WARNING!!!'
+            write (*, *) 'fapar and fbpar are deprecated:'
+            write (*, *) 'use include_apar and include_bpar instead in namelist physics_flags.'
+            if (fapar > epsilon(0.0)) then
+               write (*, *) 'to include apar, set include_apar = .true.'
+            end if
+            if (fbpar > epsilon(0.0)) then
+               write (*, *) 'to include bpar, set include_bpar = .true.'
+            end if
+            write (*, *) 'Aborting simulation.'
+            write (*, *) '!!!WARNING!!!'
+            error = .true.
+         end if
+
+         ! semi-lagrange advance of mirror term is not supported for EM simulations
+         if (include_apar .and. mirror_semi_lagrange) then
+            write (*, *) '!!!WARNING!!!'
+            write (*, *) 'mirror_semi_lagrange = .true. is not supported for electromagnetic simulations.'
+            write (*, *) 'forcing mirror_semi_lagrange = .false.'
+            write (*, *) '!!!WARNING!!!'
+            mirror_semi_lagrange = .false.
+         end if
+
          if (drifts_implicit) then
             if (.not. stream_implicit) then
                write (*, *) '!!!WARNING!!!'
                write (*, *) 'drifts_implicit = T requires stream_implicit = T.'
                write (*, *) 'forcing drifts_implicit = F.'
+               write (*, *) '!!!WARNING!!!'
                drifts_implicit = .false.
             else if (.not. include_parallel_streaming) then
                write (*, *) '!!!WARNING!!!'
                write (*, *) 'drifts_implicit = T requires include_parallel_streaming = T.'
                write (*, *) 'forcing drifts_implicit = F.'
+               write (*, *) '!!!WARNING!!!'
                drifts_implicit = .false.
             end if
 
@@ -246,8 +272,6 @@ contains
       call broadcast(delt_max)
       call broadcast(delt_min)
       call broadcast(fphi)
-      call broadcast(fapar)
-      call broadcast(fbpar)
       call broadcast(stream_implicit)
       call broadcast(mirror_implicit)
       call broadcast(drifts_implicit)
@@ -269,6 +293,9 @@ contains
       call broadcast(ky_solve_real)
       call broadcast(mat_gen)
       call broadcast(mat_read)
+      ! include_apar broadcast in case it is reset according to specification of
+      ! (deprecated) fapar variable
+      ! call broadcast(include_apar)
 
       ! calculate some useful derived quantities that are used repeatedly across modules
       time_upwind_plus = 0.5 * (1.0 + time_upwind)

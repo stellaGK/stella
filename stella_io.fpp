@@ -14,15 +14,21 @@ module stella_io
    public :: init_stella_io, finish_stella_io
    public :: write_time_nc
    public :: write_phi2_nc
+   public :: write_apar2_nc
+   public :: write_bpar2_nc
    public :: write_phi_nc
+   public :: write_apar_nc
+   public :: write_bpar_nc
    public :: write_gvmus_nc
    public :: write_gzvs_nc
    public :: write_kspectra_nc
+   public :: write_kspectra_species_nc
    public :: write_omega_nc
    public :: write_moments_nc
    public :: write_radial_fluxes_nc
    public :: write_radial_moments_nc
    public :: write_fluxes_kxkyz_nc
+   public :: write_fluxes_nc
    public :: get_nout
    public :: sync_nc
 
@@ -110,15 +116,15 @@ contains
       real, dimension(:, :), allocatable :: rg
 
       ! Grids themselves
-      call neasyf_dim(file_id, "ky", values=aky, long_name="Wavenumber perpendicular to flux surface", units="1/rho_r")
-      call neasyf_dim(file_id, "kx", values=akx, long_name="Wavenumber in direction of grad alpha", units="1/rho_r")
+      call neasyf_dim(file_id, "ky", values=aky, long_name="Wavenumber perpendicular to flux surface", units="1/rho_ref")
+      call neasyf_dim(file_id, "kx", values=akx, long_name="Wavenumber in direction of grad alpha", units="1/rho_ref")
       call neasyf_dim(file_id, "tube", dim_size=ntubes)
       call neasyf_dim(file_id, "zed", values=zed)
       call neasyf_dim(file_id, "alpha", dim_size=nalpha)
       call neasyf_dim(file_id, "vpa", values=vpa)
       call neasyf_dim(file_id, "mu", values=mu)
       call neasyf_dim(file_id, "species", dim_size=nspec)
-      call neasyf_dim(file_id, "t", unlimited=.true., long_name="Time", units="L/vt")
+      call neasyf_dim(file_id, "t", unlimited=.true., long_name="Time", units="a_ref/v_ref")
 
       ! Dimensions for various string variables
       call neasyf_dim(file_id, "char10", dim_size=10, dimid=char10_dim)
@@ -348,11 +354,47 @@ contains
 
 # ifdef NETCDF
       call neasyf_write(ncid, "phi2", phi2, dim_names=["t"], &
-                        units="(T/q rho/L)**2", &
+                        units="(T_ref/q rho_ref/a_ref)**2", &
                         long_name="Amplitude of electrostatic potential", &
                         start=[nout])
 # endif
    end subroutine write_phi2_nc
+
+   subroutine write_apar2_nc(nout, apar2)
+# ifdef NETCDF
+      use neasyf, only: neasyf_write
+# endif
+      implicit none
+      !> Current timestep
+      integer, intent(in) :: nout
+      !> Amplitude of parallel vector potential
+      real, intent(in) :: apar2
+
+# ifdef NETCDF
+      call neasyf_write(ncid, "apar2", apar2, dim_names=["t"], &
+                        units="(B_ref (rho_ref)**2 / a_ref)**2", &
+                        long_name="Amplitude of parallel vector potential apar", &
+                        start=[nout])
+# endif
+   end subroutine write_apar2_nc
+
+   subroutine write_bpar2_nc(nout, bpar2)
+# ifdef NETCDF
+      use neasyf, only: neasyf_write
+# endif
+      implicit none
+      !> Current timestep
+      integer, intent(in) :: nout
+      !> Amplitude of parallel vector potential
+      real, intent(in) :: bpar2
+
+# ifdef NETCDF
+      call neasyf_write(ncid, "bpar2", bpar2, dim_names=["t"], &
+                        units="(B_ref rho_ref / a_ref)**2", &
+                        long_name="Amplitude of parallel magnetic field fluctuation bpar", &
+                        start=[nout])
+# endif
+   end subroutine write_bpar2_nc
 
    !> Write time trace of electrostatic potential to netCDF
    subroutine write_phi_nc(nout, phi)
@@ -371,6 +413,38 @@ contains
 # endif
    end subroutine write_phi_nc
 
+   !> Write time trace of electromagnetic field A|| to netCDF
+   subroutine write_apar_nc(nout, apar)
+      use zgrid, only: nzgrid
+      implicit none
+      !> Current timestep
+      integer, intent(in) :: nout
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: apar
+
+# ifdef NETCDF
+      call netcdf_write_complex(ncid, "apar_vs_t", apar, &
+                                [character(len=4)::"ri", "ky", "kx", "zed", "tube", "t"], &
+                                long_name="Electromagnetic parallel vector potential apar", &
+                                start=[1, 1, 1, 1, 1, nout])
+# endif
+   end subroutine write_apar_nc
+
+   !> Write time trace of electromagnetic field B|| to netCDF
+   subroutine write_bpar_nc(nout, bpar)
+      use zgrid, only: nzgrid
+      implicit none
+      !> Current timestep
+      integer, intent(in) :: nout
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: bpar
+
+# ifdef NETCDF
+      call netcdf_write_complex(ncid, "bpar_vs_t", bpar, &
+                                [character(len=4)::"ri", "ky", "kx", "zed", "tube", "t"], &
+                                long_name="Electromagnetic field bpar", &
+                                start=[1, 1, 1, 1, 1, nout])
+# endif
+   end subroutine write_bpar_nc
+
    !> Write the complex frequency to netCDF
    subroutine write_omega_nc(nout, omega)
       implicit none
@@ -382,7 +456,7 @@ contains
       call netcdf_write_complex(ncid, "omega", omega, &
                                 dim_names=["ri", "ky", "kx", "t "], &
                                 start=[1, 1, 1, nout], &
-                                long_name="Complex frequency", units="aref/vtref")
+                                long_name="Complex frequency", units="a_ref/v_ref")
 # endif
    end subroutine write_omega_nc
 
@@ -434,21 +508,67 @@ contains
 # endif
    end subroutine write_radial_moments_nc
 
-   subroutine write_kspectra_nc(nout, phi2_vs_kxky)
+   subroutine write_kspectra_nc(nout, field_vs_kxky, keyname, longname)
 # ifdef NETCDF
       use neasyf, only: neasyf_write
 # endif
       implicit none
       !> Current timestep
       integer, intent(in) :: nout
-      real, dimension(:, :), intent(in) :: phi2_vs_kxky
+      real, dimension(:, :), intent(in) :: field_vs_kxky
+      character(len=*), intent(in) :: keyname, longname
 # ifdef NETCDF
-      call neasyf_write(ncid, "phi2_vs_kxky", phi2_vs_kxky, &
+      call neasyf_write(ncid, keyname, field_vs_kxky, &
                         dim_names=["ky", "kx", "t "], &
                         start=[1, 1, nout], &
-                        long_name="Electrostatic potential")
+                        long_name=longname)
 # endif
    end subroutine write_kspectra_nc
+
+   subroutine write_kspectra_species_nc(nout, field_vs_kxkys, keyname, longname)
+# ifdef NETCDF
+      use neasyf, only: neasyf_write
+# endif
+      implicit none
+      !> Current timestep
+      integer, intent(in) :: nout
+      real, dimension(:, :, :), intent(in) :: field_vs_kxkys
+      character(len=*), intent(in) :: keyname, longname
+# ifdef NETCDF
+      call neasyf_write(ncid, keyname, field_vs_kxkys, &
+                        dim_names=[character(len=7)::"ky", "kx", "species", "t "], &
+                        start=[1, 1, 1, nout], &
+                        long_name=longname)
+# endif
+   end subroutine write_kspectra_species_nc
+
+   subroutine write_fluxes_nc(nout, pflx, vflx, qflx)
+# ifdef NETCDF
+      use neasyf, only: neasyf_write
+# endif
+      implicit none
+      !> Current timestep
+      integer, intent(in) :: nout
+      real, dimension(:), intent(in) :: pflx, vflx, qflx
+
+# ifdef NETCDF
+      call neasyf_write(ncid, "pflx", pflx, &
+                        dim_names=[character(len=7)::"species", "t"], &
+                        start=[1, nout], &
+                        units="n_ref * v_ref * (rho_ref/a_ref)^2 (with v_ref = sqrt(2 T_ref/m_ref))", &
+                        long_name="Particle flux")
+      call neasyf_write(ncid, "vflx", vflx, &
+                        dim_names=[character(len=7)::"species", "t"], &
+                        start=[1, nout], &
+                        units="m_ref*n_ref*(v_ref)^2*(rho_ref/a_ref)^2", &
+                        long_name="Momentum flux")
+      call neasyf_write(ncid, "qflx", qflx, &
+                        dim_names=[character(len=7)::"species", "t"], &
+                        start=[1, nout], &
+                        units="n_ref * T_ref * v_ref * (rho_ref/a_ref)^2", &
+                        long_name="Heat flux")
+# endif
+   end subroutine write_fluxes_nc
 
    subroutine write_fluxes_kxkyz_nc(nout, pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
 # ifdef NETCDF
@@ -567,15 +687,15 @@ contains
       call neasyf_write(file_id, "mass", (spec%mass), dim_names=["species"], &
                         long_name="Atomic mass", units="AMU")
       call neasyf_write(file_id, "dens", (spec%dens), dim_names=["species"], &
-                        long_name="Normalised density", units="nref")
+                        long_name="Normalised density", units="n_ref")
       call neasyf_write(file_id, "temp", (spec%temp), dim_names=["species"], &
-                        long_name="Normalised temperature", units="Tref")
+                        long_name="Normalised temperature", units="T_ref")
       call neasyf_write(file_id, "tprim", (spec%tprim), dim_names=["species"], &
-                        long_name="Normalised temperature gradient scale length -1/rho dT/drho", units="1/aref")
+                        long_name="Normalised temperature gradient scale length -1/rho dT/drho", units="1/a_ref")
       call neasyf_write(file_id, "fprim", (spec%fprim), dim_names=["species"], &
-                        long_name="Normalised density gradient scale length -1/rho dn/drho", units="1/aref")
+                        long_name="Normalised density gradient scale length -1/rho dn/drho", units="1/a_ref")
       call neasyf_write(file_id, "vnew", vnew, dim_names=["species"], &
-                        long_name="Collisionality", units="vtref/aref")
+                        long_name="Collisionality", units="v_ref/a_ref")
       call neasyf_write(file_id, "type_of_species", (spec%type), dim_names=["species"], &
                         long_name="Species type: 1=ion, 2=electron, 3=slowing down, 4=trace")
 #endif
@@ -618,7 +738,7 @@ contains
       call neasyf_write(file_id, "jacob", jacob, dim_names=flux_surface_dim)
       call neasyf_write(file_id, "djacdrho", djacdrho, dim_names=flux_surface_dim)
       call neasyf_write(file_id, "beta", beta, &
-                        long_name="Reference beta", units="2.mu0.nref.Tref/B_a**2")
+                        long_name="Reference beta", units="2.mu0.n_ref.T_ref/B_a**2")
       call neasyf_write(file_id, "q", geo_surf%qinp, &
                         long_name="Local safety factor")
       call neasyf_write(file_id, "shat", geo_surf%shat, &

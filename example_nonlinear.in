@@ -32,6 +32,8 @@
  full_flux_surface = .false.
  radial_variation = .false.
  nonlinear = .true.
+ include_apar = .false.
+ include_bpar = .false.
  adiabatic_option="field-line-average-term"
 /
 
@@ -85,8 +87,6 @@
 
 &knobs
  fphi =   1.0
- fapar =  0.0
- fbpar = 0.0
  zed_upwind = 0.02
  time_upwind = 0.02
  vpa_upwind = 0.02
@@ -124,6 +124,8 @@
  save_for_restart = .false.
  write_omega = .false.
  write_phi_vs_time = .false.
+ write_apar_vs_time = .false.
+ write_bpar_vs_time = .false.
  write_gvmus = .false.
  write_gzvs = .false.
 /
