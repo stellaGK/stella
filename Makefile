@@ -167,6 +167,7 @@ export NETCDF_LIB
 export COLL=$(GK_HEAD_DIR)/dissipation
 export UTILS=$(GK_HEAD_DIR)/utils
 export GEO=$(GK_HEAD_DIR)/geo
+export FIELDS=$(GK_HEAD_DIR)/fields
 export VMEC=$(GEO)/vmec_interface
 export LIBSTELL=$(VMEC)/mini_libstell
 LIBSTELL_LIB=$(LIBSTELL)/mini_libstell.a
@@ -277,11 +278,14 @@ endif
 ifeq ($(notdir $(CURDIR)), $(GEO))
 	TOPDIR=$(subst /$(GEO),,$(CURDIR))
 endif
+ifeq ($(notdir $(CURDIR)), $(FIELDS))
+	TOPDIR=$(subst /$(FIELDS),,$(CURDIR))
+endif
 ifneq ($(TOPDIR),$(CURDIR))
 	SUBDIR=true
 endif
 
-VPATH = $(COLL):$(UTILS):$(GEO):$(VMEC):$(GIT_VERSION_DIR)/src:$(NEASYF)
+VPATH = $(COLL):$(UTILS):$(GEO):$(FIELDS):$(VMEC):$(GIT_VERSION_DIR)/src:$(NEASYF)
 # this just removes non-existing directory from VPATH
 VPATH_tmp := $(foreach tmpvp,$(subst :, ,$(VPATH)),$(shell [ -d $(tmpvp) ] && echo $(tmpvp)))
 VPATH = .:$(shell echo $(VPATH_tmp) | sed "s/ /:/g")
@@ -293,7 +297,7 @@ DEPEND=Makefile.depend
 DEPEND_CMD=$(PERL) fortdep
 
 # most common include and library directories
-DEFAULT_INC_LIST = . $(COLL) $(UTILS) $(LIBSTELL) $(VMEC) $(GEO) $(NEASYF)
+DEFAULT_INC_LIST = . $(COLL) $(UTILS) $(LIBSTELL) $(VMEC) $(GEO) $(NEASYF) $(FIELDS)
 DEFAULT_LIB_LIST =
 DEFAULT_INC=$(foreach tmpinc,$(DEFAULT_INC_LIST),$(shell [ -d $(tmpinc) ] && echo -I$(tmpinc)))
 DEFAULT_LIB=$(foreach tmplib,$(DEFAULT_LIB_LIST),$(shell [ -d $(tmplib) ] && echo -L$(tmplib)))
@@ -403,6 +407,7 @@ clean:
 	-rm -f Makefiles/*~
 	-rm -f $(UTILS)/*.o $(UTILS)/*~
 	-rm -f $(COLL)/*.o $(COLL)/*~
+	-rm -f $(FIELDS)/*.o $(FIELDS)/*~
 	-rm -f .compiler_flags
 	$(MAKE) -C $(VMEC) clean
 

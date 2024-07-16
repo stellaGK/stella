@@ -17,9 +17,10 @@ stella_mod = \
 	 fft_work.o \
 	 fields.o \
 	 fields_arrays.o \
-	 fields_ffs.o \
+	 fields_collisions.o \
 	 fields_fluxtube.o \
-	 fields_radial_variation.o \
+	 fields_fullfluxsurface.o \
+	 fields_radialvariation.o \
 	 file_utils.o \
 	 finite_differences.o \
 	 flow_shear.o \
@@ -82,6 +83,7 @@ coll_dougherty.o: \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields_arrays.o \
+	 fields_collisions.o \
 	 fields_fluxtube.o \
 	 file_utils.o \
 	 finite_differences.o \
@@ -106,6 +108,7 @@ coll_fokkerplanck.o: \
 	 constants.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
+	 fields_collisions.o \
 	 fields_fluxtube.o \
 	 file_utils.o \
 	 finite_differences.o \
@@ -189,9 +192,9 @@ fields.o: \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields_arrays.o \
-	 fields_ffs.o \
 	 fields_fluxtube.o \
-	 fields_radial_variation.o \
+	 fields_fullfluxsurface.o \
+	 fields_radialvariation.o \
 	 file_utils.o \
 	 gyro_averages.o \
 	 job_manage.o \
@@ -208,7 +211,21 @@ fields.o: \
 	 zgrid.o 
 fields_arrays.o: \
 	 common_types.o 
-fields_em.o: \
+fields_collisions.o: \
+	 dist_fn_arrays.o \
+	 fields_arrays.o \
+	 gyro_averages.o \
+	 kt_grids.o \
+	 mp.o \
+	 physics_flags.o \
+	 run_parameters.o \
+	 species.o \
+	 spfunc.o \
+	 stella_geometry.o \
+	 stella_layouts.o \
+	 vpamu_grids.o \
+	 zgrid.o 
+fields_electromagnetic.o: \
 	 dist_fn_arrays.o \
 	 gyro_averages.o \
 	 job_manage.o \
@@ -220,7 +237,27 @@ fields_em.o: \
 	 stella_layouts.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-fields_ffs.o: \
+fields_fluxtube.o: \
+	 dist_fn_arrays.o \
+	 dist_redistribute.o \
+	 fields_arrays.o \
+	 fields_radialvariation.o \
+	 file_utils.o \
+	 gyro_averages.o \
+	 job_manage.o \
+	 kt_grids.o \
+	 mp.o \
+	 multibox.o \
+	 physics_flags.o \
+	 physics_parameters.o \
+	 redistribute.o \
+	 run_parameters.o \
+	 species.o \
+	 stella_geometry.o \
+	 stella_layouts.o \
+	 vpamu_grids.o \
+	 zgrid.o 
+fields_fullfluxsurface.o: \
 	 common_types.o \
 	 dist_fn_arrays.o \
 	 gyro_averages.o \
@@ -236,28 +273,7 @@ fields_ffs.o: \
 	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-fields_fluxtube.o: \
-	 dist_fn_arrays.o \
-	 dist_redistribute.o \
-	 fields_arrays.o \
-	 fields_radial_variation.o \
-	 file_utils.o \
-	 gyro_averages.o \
-	 job_manage.o \
-	 kt_grids.o \
-	 mp.o \
-	 multibox.o \
-	 physics_flags.o \
-	 physics_parameters.o \
-	 redistribute.o \
-	 run_parameters.o \
-	 species.o \
-	 spfunc.o \
-	 stella_geometry.o \
-	 stella_layouts.o \
-	 vpamu_grids.o \
-	 zgrid.o 
-fields_radial_variation.o: \
+fields_radialvariation.o: \
 	 dist_fn_arrays.o \
 	 fields_arrays.o \
 	 file_utils.o \
@@ -569,7 +585,7 @@ stella.o: \
 	 extended_zgrid.o \
 	 fields.o \
 	 fields_arrays.o \
-	 fields_radial_variation.o \
+	 fields_radialvariation.o \
 	 file_utils.o \
 	 git_version.o \
 	 implicit_solve.o \
@@ -688,7 +704,7 @@ time_advance.o: \
 	 extended_zgrid.o \
 	 fields.o \
 	 fields_arrays.o \
-	 fields_radial_variation.o \
+	 fields_radialvariation.o \
 	 file_utils.o \
 	 finite_differences.o \
 	 flow_shear.o \
