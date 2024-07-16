@@ -54,7 +54,7 @@ target_compile_options(mini_libstell PRIVATE
   $<$<Fortran_COMPILER_ID:GNU>:
     -ffree-line-length-none
     $<$<VERSION_GREATER:$<Fortran_COMPILER_VERSION>,10>:
-      -fallow-argument-mismatch
+      -fallow-argument-mismatch -w
     >
   >)
 
