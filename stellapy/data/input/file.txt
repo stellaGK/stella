@@ -1,6 +1,7 @@
 &physics_flags
   nonlinear = .true.
   full_flux_surface = .false.
+  include_apar = .false.
 /
 
 &init_g_knobs
@@ -76,8 +77,6 @@
 
 &knobs
   fphi = 1.0
-  fapar = 0.0
-  fbpar = 0.0
   delt_option = 'check_restart'
   t_end = 1000
   cfl_cushion = 0.5

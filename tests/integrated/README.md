@@ -5,13 +5,16 @@ The integrated tests here are written using the Python [pytest][pytest] package,
 and make use of [xarray][xarray] for reading in the data. To install these
 packages in a standalone environment, you can run:
 
+    export GK_HEAD_DIR=your_path_to_stella/stella
+    cd $GK_HEAD_DIR/tests/integrated/
     make create-test-virtualenv
-    source tests/integrated/venv/bin/activate
+    source $GK_HEAD_DIR/tests/integrated/venv/bin/activate
 
 This will create a Python [virtual environment][venv] with the packages needed
 for running the tests. You can then run all the tests:
-
-    make check-integrated-tests
+    
+    cd $GK_HEAD_DIR/tests/integrated/
+    make check-integrated
 
 This assumes that the executable is located two directories above this one. You
 can set the environment variable `STELLA_EXE_PATH` to the location of the
