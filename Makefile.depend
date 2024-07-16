@@ -17,6 +17,9 @@ stella_mod = \
 	 fft_work.o \
 	 fields.o \
 	 fields_arrays.o \
+	 fields_ffs.o \
+	 fields_fluxtube.o \
+	 fields_radial_variation.o \
 	 file_utils.o \
 	 finite_differences.o \
 	 flow_shear.o \
@@ -78,8 +81,8 @@ test_vmec_to_stella_geometry_interface_mod = \
 coll_dougherty.o: \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
-	 fields.o \
 	 fields_arrays.o \
+	 fields_fluxtube.o \
 	 file_utils.o \
 	 finite_differences.o \
 	 g_tofrom_h.o \
@@ -103,7 +106,7 @@ coll_fokkerplanck.o: \
 	 constants.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
-	 fields.o \
+	 fields_fluxtube.o \
 	 file_utils.o \
 	 finite_differences.o \
 	 g_tofrom_h.o \
@@ -186,6 +189,77 @@ fields.o: \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields_arrays.o \
+	 fields_ffs.o \
+	 fields_fluxtube.o \
+	 fields_radial_variation.o \
+	 file_utils.o \
+	 gyro_averages.o \
+	 job_manage.o \
+	 kt_grids.o \
+	 linear_solve.o \
+	 mp.o \
+	 physics_flags.o \
+	 redistribute.o \
+	 run_parameters.o \
+	 species.o \
+	 stella_layouts.o \
+	 volume_averages.o \
+	 vpamu_grids.o \
+	 zgrid.o 
+fields_arrays.o: \
+	 common_types.o 
+fields_em.o: \
+	 dist_fn_arrays.o \
+	 gyro_averages.o \
+	 job_manage.o \
+	 kt_grids.o \
+	 mp.o \
+	 physics_parameters.o \
+	 run_parameters.o \
+	 species.o \
+	 stella_layouts.o \
+	 vpamu_grids.o \
+	 zgrid.o 
+fields_ffs.o: \
+	 common_types.o \
+	 dist_fn_arrays.o \
+	 gyro_averages.o \
+	 kt_grids.o \
+	 mp.o \
+	 physics_parameters.o \
+	 run_parameters.o \
+	 species.o \
+	 spfunc.o \
+	 stella_geometry.o \
+	 stella_layouts.o \
+	 stella_transforms.o \
+	 volume_averages.o \
+	 vpamu_grids.o \
+	 zgrid.o 
+fields_fluxtube.o: \
+	 dist_fn_arrays.o \
+	 dist_redistribute.o \
+	 fields_arrays.o \
+	 fields_radial_variation.o \
+	 file_utils.o \
+	 gyro_averages.o \
+	 job_manage.o \
+	 kt_grids.o \
+	 mp.o \
+	 multibox.o \
+	 physics_flags.o \
+	 physics_parameters.o \
+	 redistribute.o \
+	 run_parameters.o \
+	 species.o \
+	 spfunc.o \
+	 stella_geometry.o \
+	 stella_layouts.o \
+	 vpamu_grids.o \
+	 zgrid.o 
+fields_radial_variation.o: \
+	 dist_fn_arrays.o \
+	 fields_arrays.o \
 	 file_utils.o \
 	 gyro_averages.o \
 	 job_manage.o \
@@ -196,18 +270,13 @@ fields.o: \
 	 multibox.o \
 	 physics_flags.o \
 	 physics_parameters.o \
-	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
-	 spfunc.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_transforms.o \
-	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-fields_arrays.o: \
-	 common_types.o 
 file_utils.o: \
 	 command_line.o 
 finite_differences.o: 
@@ -270,11 +339,11 @@ hyper.o: \
 	 stella_time.o \
 	 zgrid.o 
 implicit_solve.o: \
+	 constants.o \
 	 dist_fn_arrays.o \
 	 extended_zgrid.o \
 	 fields.o \
 	 fields_arrays.o \
-	 g_tofrom_h.o \
 	 gyro_averages.o \
 	 job_manage.o \
 	 kt_grids.o \
@@ -300,6 +369,7 @@ init_g.o: \
 	 ran.o \
 	 run_parameters.o \
 	 species.o \
+	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_save.o \
 	 system_fortran.o \
@@ -428,7 +498,6 @@ redistribute.o: \
 response_matrix.o: \
 	 common_types.o \
 	 extended_zgrid.o \
-	 fields.o \
 	 fields_arrays.o \
 	 gyro_averages.o \
 	 implicit_solve.o \
@@ -437,13 +506,11 @@ response_matrix.o: \
 	 linear_solve.o \
 	 mp.o \
 	 mp_lu_decomposition.o \
-	 parallel_streaming.o \
 	 physics_flags.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
-	 stella_time.o \
 	 system_fortran.o \
 	 vpamu_grids.o \
 	 zgrid.o 
@@ -451,6 +518,7 @@ run_parameters.o: \
 	 file_utils.o \
 	 mp.o \
 	 physics_flags.o \
+	 physics_parameters.o \
 	 text_options.o 
 sfincs_interface.o: \
 	 mp.o \
@@ -501,8 +569,10 @@ stella.o: \
 	 extended_zgrid.o \
 	 fields.o \
 	 fields_arrays.o \
+	 fields_radial_variation.o \
 	 file_utils.o \
 	 git_version.o \
+	 implicit_solve.o \
 	 init_g.o \
 	 job_manage.o \
 	 kt_grids.o \
@@ -600,7 +670,7 @@ stella_save.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 stella_time.o: \
-         mp.o 
+	 mp.o 
 stella_transforms.o: \
 	 fft_work.o \
 	 physics_flags.o \
@@ -618,6 +688,7 @@ time_advance.o: \
 	 extended_zgrid.o \
 	 fields.o \
 	 fields_arrays.o \
+	 fields_radial_variation.o \
 	 file_utils.o \
 	 finite_differences.o \
 	 flow_shear.o \

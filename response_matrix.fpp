@@ -603,7 +603,7 @@ contains
       use extended_zgrid, only: nsegments
       use kt_grids, only: zonal_mode, akx
       use fields_arrays, only: gamtot, gamtot3
-      use fields, only: gamtot_h, gamtot3_h
+      use fields_arrays, only: gamtot_h, gamtot3_h
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
 

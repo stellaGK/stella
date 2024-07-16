@@ -1153,7 +1153,8 @@ contains
       use sources, only: source_option_switch, source_option_krook
       use sources, only: add_krook_operator
       use parallel_streaming, only: advance_parallel_streaming_explicit
-      use fields, only: advance_fields, fields_updated, get_radial_correction
+      use fields, only: advance_fields, fields_updated
+      use fields_radial_variation, only: get_radial_correction
       use mirror_terms, only: advance_mirror_explicit
       use flow_shear, only: advance_parallel_flow_shear
       use multibox, only: include_multibox_krook, add_multibox_krook

@@ -217,7 +217,8 @@ contains
       use stella_geometry, only: dl_over_b
       use dist_fn_arrays, only: gvmu
       use gyro_averages, only: aj0v
-      use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h
+      use fields_fluxtube, only: get_fields, get_fields_by_spec
+      use fields_arrays, only: efac, gamtot_h
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
 
@@ -469,7 +470,8 @@ contains
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use dist_fn_arrays, only: gvmu, kperp2
       use gyro_averages, only: aj0v, aj1v
-      use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h
+      use fields_fluxtube, only: get_fields, get_fields_by_spec
+      use fields_arrays, only: efac, gamtot_h
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
 
@@ -1532,7 +1534,8 @@ contains
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use g_tofrom_h, only: g_to_h
       use gyro_averages, only: aj0v
-      use fields, only: get_fields, efac, gamtot_h
+      use fields_fluxtube, only: get_fields
+      use fields_arrays, only: efac, gamtot_h
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
 
@@ -1696,7 +1699,8 @@ contains
       use dist_fn_arrays, only: kperp2
       use gyro_averages, only: aj0v, aj1v
       use g_tofrom_h, only: g_to_h
-      use fields, only: get_fields, efac, gamtot_h
+      use fields_fluxtube, only: get_fields
+      use fields_arrays, only: efac, gamtot_h
       use stella_geometry, only: bmag, dl_over_b
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg

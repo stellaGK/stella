@@ -97,7 +97,8 @@ contains
       use response_matrix, only: init_response_matrix, read_response_matrix
       use init_g, only: ginit, init_init_g, phiinit, scale_to_phiinit
       use init_g, only: tstart
-      use fields, only: init_fields, advance_fields, get_radial_correction, fields_updated
+      use fields, only: init_fields, advance_fields, fields_updated
+      use fields_radial_variation, only: get_radial_correction
       use fields, only: rescale_fields
       use stella_time, only: init_tstart, init_delt
       use stella_diagnostics, only: read_stella_diagnostics_knobs, init_stella_diagnostics
@@ -120,6 +121,7 @@ contains
       use dissipation, only: init_dissipation
       use sources, only: init_sources
       use volume_averages, only: init_volume_averages, volume_average
+      
 
       implicit none
 
@@ -552,7 +554,7 @@ contains
       use dist_fn, only: finish_dist_fn
       use dist_redistribute, only: finish_redistribute
       use fields, only: finish_fields
-      use fields, only: time_field_solve
+      use fields_arrays, only: time_field_solve
       use stella_diagnostics, only: finish_stella_diagnostics
       use response_matrix, only: finish_response_matrix
       use stella_geometry, only: finish_geometry
