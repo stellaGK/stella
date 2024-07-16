@@ -379,7 +379,7 @@ include tests/unit/Makefile
 tests/integrated/Makefile:
 include tests/integrated/Makefile
 
-check: check-unit check-integrated
+check: check-unit check-integrated-tests
 
 ############################################################### SPECIAL RULES
 
