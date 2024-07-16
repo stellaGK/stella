@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.2% of total for procedures.">62 statements</a>
+                 title=" 0.2% of total for procedures.">66 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -139,7 +139,7 @@
     </div>
     
     <div class="col-md-9" id='text'>
-    <h2>private  subroutine get_contributions_from_pdf(pdf, ivmu, iky, ie, rhs)  
+    <h2>private  subroutine get_contributions_from_pdf(pdf, apar, ivmu, iky, ie, rhs)  
 </h2>
         <div class="card mb-4">
       <h3 class="card-header card-title bg-light">Uses</h3>
@@ -147,17 +147,18 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/species.html'>species</a></li>
-                  <li class="list-inline-item"><a href='../module/parallel_streaming.html'>parallel_streaming</a></li>
-                  <li class="list-inline-item"><a href='../module/kt_grids.html'>kt_grids</a></li>
-                  <li class="list-inline-item"><a href='../module/dist_fn_arrays.html'>dist_fn_arrays</a></li>
-                  <li class="list-inline-item"><a href='../module/extended_zgrid.html'>extended_zgrid</a></li>
-                  <li class="list-inline-item"><a href='../module/stella_time.html'>stella_time</a></li>
-                  <li class="list-inline-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
                   <li class="list-inline-item"><a href='../module/zgrid.html'>zgrid</a></li>
-                  <li class="list-inline-item"><a href='../module/stella_layouts.html'>stella_layouts</a></li>
-                  <li class="list-inline-item"><a href='../module/constants.html'>constants</a></li>
+                  <li class="list-inline-item"><a href='../module/extended_zgrid.html'>extended_zgrid</a></li>
+                  <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
                   <li class="list-inline-item"><a href='../module/vpamu_grids.html'>vpamu_grids</a></li>
+                  <li class="list-inline-item"><a href='../module/species.html'>species</a></li>
+                  <li class="list-inline-item"><a href='../module/kt_grids.html'>kt_grids</a></li>
+                  <li class="list-inline-item"><a href='../module/stella_layouts.html'>stella_layouts</a></li>
+                  <li class="list-inline-item"><a href='../module/dist_fn_arrays.html'>dist_fn_arrays</a></li>
+                  <li class="list-inline-item"><a href='../module/constants.html'>constants</a></li>
+                  <li class="list-inline-item"><a href='../module/stella_time.html'>stella_time</a></li>
+                  <li class="list-inline-item"><a href='../module/parallel_streaming.html'>parallel_streaming</a></li>
+                  <li class="list-inline-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
               </ul>
             </li>
         </ul>
@@ -183,7 +184,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-pdf~2"></span>
+              <span class="anchor" id="variable-pdf~4"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -198,7 +199,22 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~12"></span>
+              <span class="anchor" id="variable-apar~29"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ivmu~78"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -213,7 +229,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-iky~11"></span>
+              <span class="anchor" id="variable-iky~94"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -228,7 +244,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ie~6"></span>
+              <span class="anchor" id="variable-ie~19"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -243,7 +259,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-rhs~3"></span>
+              <span class="anchor" id="variable-rhs~16"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -284,13 +300,13 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-242-g2fc9f395b</small></p>
+<br /><small>v0.5.1-346-g52df87b42</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-16T17:55:20.489058             </p>
+ on 2024-07-16T18:19:37.478445             </p>
           </div>
         </div>
         <br>

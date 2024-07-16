@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.2% of total for procedures.">62 statements</a>
+                 title=" 0.2% of total for procedures.">70 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -139,7 +139,7 @@
     </div>
     
     <div class="col-md-9" id='text'>
-    <h2>private  subroutine advance_wdriftx_explicit(g, phi, gout)  
+    <h2>private  subroutine advance_wdriftx_explicit(g, phi, bpar, gout)  
 </h2>
         <div class="card mb-4">
       <h3 class="card-header card-title bg-light">Uses</h3>
@@ -147,15 +147,15 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/job_manage.html'>job_manage</a></li>
-                  <li class="list-inline-item"><a href='../module/gyro_averages.html'>gyro_averages</a></li>
-                  <li class="list-inline-item"><a href='../module/kt_grids.html'>kt_grids</a></li>
-                  <li class="list-inline-item"><a href='../module/dist_fn_arrays.html'>dist_fn_arrays</a></li>
                   <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
                   <li class="list-inline-item"><a href='../module/zgrid.html'>zgrid</a></li>
-                  <li class="list-inline-item"><a href='../module/stella_transforms.html'>stella_transforms</a></li>
                   <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
+                  <li class="list-inline-item"><a href='../module/gyro_averages.html'>gyro_averages</a></li>
+                  <li class="list-inline-item"><a href='../module/stella_transforms.html'>stella_transforms</a></li>
+                  <li class="list-inline-item"><a href='../module/kt_grids.html'>kt_grids</a></li>
                   <li class="list-inline-item"><a href='../module/stella_layouts.html'>stella_layouts</a></li>
+                  <li class="list-inline-item"><a href='../module/job_manage.html'>job_manage</a></li>
+                  <li class="list-inline-item"><a href='../module/dist_fn_arrays.html'>dist_fn_arrays</a></li>
               </ul>
             </li>
         </ul>
@@ -168,7 +168,8 @@ magnetic drift term to the RHS of the GK equation</p>
 <p>start the timing of the x component of the magnetic drift advance</p>
 <p>do not calculate if wdriftx terms are all zero
 calculate dg/dx in (ky,kx) space
-calculate dphi/dx in (ky,kx) space</p>
+calculate dphi/dx in (ky,kx) space
+calculate dbpar/dx in (ky,kx) space</p>
 <p>assume a single flux surface is simulated
 transform dg/dx from k-space to y-space
 add vM . grad x dg/dx term to equation
@@ -178,6 +179,8 @@ add vM . grad x d<phi>/dx term to equation
 add vM . grad x dg/dx term to equation
 get <dphi/dx> in k-space
 add vM . grad x d<phi>/dx term to equation
+get <dbpar/dx> in k-space
+add vM . grad x ( 4 mu d<bpar>/dx ) term to equation
 stop the timing of the x component of the magnetic drift advance</p>
 
 
@@ -194,7 +197,7 @@ stop the timing of the x component of the magnetic drift advance</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~24"></span>
+              <span class="anchor" id="variable-g~23"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -209,7 +212,7 @@ stop the timing of the x component of the magnetic drift advance</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~26"></span>
+              <span class="anchor" id="variable-phi~18"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -224,7 +227,22 @@ stop the timing of the x component of the magnetic drift advance</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gout~9"></span>
+              <span class="anchor" id="variable-bpar~12"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gout~3"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -265,13 +283,13 @@ stop the timing of the x component of the magnetic drift advance</p>
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-242-g2fc9f395b</small></p>
+<br /><small>v0.5.1-346-g52df87b42</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-16T17:55:20.489058             </p>
+ on 2024-07-16T18:19:37.478445             </p>
           </div>
         </div>
         <br>

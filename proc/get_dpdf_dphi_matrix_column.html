@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.1% of total for procedures.">26 statements</a>
+                 title=" 0.1% of total for procedures.">37 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -139,7 +139,7 @@
     </div>
     
     <div class="col-md-9" id='text'>
-    <h2>private  subroutine get_dpdf_dphi_matrix_column(iky, ikx, iz, ie, idx, nz_ext, nresponse, phi_ext, pdf_ext)  
+    <h2>private  subroutine get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)  
 </h2>
         <div class="card mb-4">
       <h3 class="card-header card-title bg-light">Uses</h3>
@@ -148,10 +148,11 @@
             <li class="list-group-item">
               <ul class="list-inline">
                   <li class="list-inline-item"><a href='../module/extended_zgrid.html'>extended_zgrid</a></li>
-                  <li class="list-inline-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
+                  <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
                   <li class="list-inline-item"><a href='../module/implicit_solve.html'>implicit_solve</a></li>
                   <li class="list-inline-item"><a href='../module/fields_arrays.html'>fields_arrays</a></li>
                   <li class="list-inline-item"><a href='../module/stella_layouts.html'>stella_layouts</a></li>
+                  <li class="list-inline-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
               </ul>
             </li>
         </ul>
@@ -174,7 +175,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iky~32"></span>
+              <span class="anchor" id="variable-iky~126"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -189,37 +190,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ikx~28"></span>
-              integer,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>ikx</strong></td>
-            <td>
-                
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-iz~36"></span>
-              integer,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>iz</strong></td>
-            <td>
-                
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-ie~16"></span>
+              <span class="anchor" id="variable-ie~29"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -234,7 +205,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-idx~6"></span>
+              <span class="anchor" id="variable-idx~24"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -249,7 +220,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nz_ext~9"></span>
+              <span class="anchor" id="variable-nz_ext~17"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -264,7 +235,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nresponse~3"></span>
+              <span class="anchor" id="variable-nresponse~8"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -279,7 +250,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi_ext"></span>
+              <span class="anchor" id="variable-phi_ext~5"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -288,6 +259,36 @@
             </td>
             <td>::</td>
             <td><strong>phi_ext</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar_ext~4"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>apar_ext</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar_ext~4"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>bpar_ext</strong></td>
             <td>
                 
             </td>
@@ -335,13 +336,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-242-g2fc9f395b</small></p>
+<br /><small>v0.5.1-346-g52df87b42</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-16T17:55:20.489058             </p>
+ on 2024-07-16T18:19:37.478445             </p>
           </div>
         </div>
         <br>

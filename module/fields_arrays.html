@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.1% of total for modules and submodules.">23 statements</a>
+                 title=" 0.1% of total for modules and submodules.">27 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -119,9 +119,12 @@
       </a>
       <div id="vars-0" class="collapse">
         <div class="list-group list-group-flush">
-            <a class="list-group-item" href="../module/fields_arrays.html#variable-phi~45">phi</a>
-            <a class="list-group-item" href="../module/fields_arrays.html#variable-apar~16">apar</a>
-            <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_old~3">phi_old</a>
+            <a class="list-group-item" href="../module/fields_arrays.html#variable-phi~31">phi</a>
+            <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_old">phi_old</a>
+            <a class="list-group-item" href="../module/fields_arrays.html#variable-apar~23">apar</a>
+            <a class="list-group-item" href="../module/fields_arrays.html#variable-apar_old">apar_old</a>
+            <a class="list-group-item" href="../module/fields_arrays.html#variable-bpar~23">bpar</a>
+            <a class="list-group-item" href="../module/fields_arrays.html#variable-bpar_old">bpar_old</a>
             <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_shared">phi_shared</a>
             <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_corr_qn">phi_corr_QN</a>
             <a class="list-group-item" href="../module/fields_arrays.html#variable-apar_corr_qn">apar_corr_QN</a>
@@ -134,10 +137,17 @@
             <a class="list-group-item" href="../module/fields_arrays.html#variable-shift_state">shift_state</a>
             <a class="list-group-item" href="../module/fields_arrays.html#variable-gamtot">gamtot</a>
             <a class="list-group-item" href="../module/fields_arrays.html#variable-dgamtotdr">dgamtotdr</a>
+            <a class="list-group-item" href="../module/fields_arrays.html#variable-gamtot13">gamtot13</a>
+            <a class="list-group-item" href="../module/fields_arrays.html#variable-gamtot31">gamtot31</a>
+            <a class="list-group-item" href="../module/fields_arrays.html#variable-gamtot33">gamtot33</a>
+            <a class="list-group-item" href="../module/fields_arrays.html#variable-gamtotinv11">gamtotinv11</a>
+            <a class="list-group-item" href="../module/fields_arrays.html#variable-gamtotinv13">gamtotinv13</a>
+            <a class="list-group-item" href="../module/fields_arrays.html#variable-gamtotinv31">gamtotinv31</a>
+            <a class="list-group-item" href="../module/fields_arrays.html#variable-gamtotinv33">gamtotinv33</a>
             <a class="list-group-item" href="../module/fields_arrays.html#variable-gamtot3">gamtot3</a>
-            <a class="list-group-item" href="../module/fields_arrays.html#variable-theta~6">theta</a>
+            <a class="list-group-item" href="../module/fields_arrays.html#variable-theta~5">theta</a>
             <a class="list-group-item" href="../module/fields_arrays.html#variable-c_mat">c_mat</a>
-            <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_ext~2">phi_ext</a>
+            <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_ext">phi_ext</a>
             <a class="list-group-item" href="../module/fields_arrays.html#variable-phi_solve">phi_solve</a>
             <a class="list-group-item" href="../module/fields_arrays.html#variable-phizf_solve">phizf_solve</a>
             <a class="list-group-item" href="../module/fields_arrays.html#variable-exclude_boundary_regions_qn">exclude_boundary_regions_qn</a>
@@ -181,8 +191,8 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='common_types.html'>common_types</a></li>
                   <li class="list-inline-item"><a href='http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm'>mpi</a></li>
+                  <li class="list-inline-item"><a href='common_types.html'>common_types</a></li>
               </ul>
             </li>
         </ul>
@@ -207,7 +217,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~45"></span>
+              <span class="anchor" id="variable-phi~31"></span>
               complex,
             </td>
               <td>public,</td>
@@ -224,7 +234,24 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-apar~16"></span>
+              <span class="anchor" id="variable-phi_old"></span>
+              complex,
+            </td>
+              <td>public,</td>
+            <td>
+              dimension(:, :, :, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>phi_old</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~23"></span>
               complex,
             </td>
               <td>public,</td>
@@ -241,7 +268,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi_old~3"></span>
+              <span class="anchor" id="variable-apar_old"></span>
               complex,
             </td>
               <td>public,</td>
@@ -249,7 +276,41 @@
               dimension(:, :, :, :), allocatable
             </td>
             <td>::</td>
-            <td><strong>phi_old</strong></td>
+            <td><strong>apar_old</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~23"></span>
+              complex,
+            </td>
+              <td>public,</td>
+            <td>
+              dimension(:, :, :, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar_old"></span>
+              complex,
+            </td>
+              <td>public,</td>
+            <td>
+              dimension(:, :, :, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bpar_old</strong></td>
                 <td></td>
                 <td></td>
             <td>
@@ -462,6 +523,125 @@
         </tr>
         <tr>
             <td>
+              <span class="anchor" id="variable-gamtot13"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              dimension(:, :, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>gamtot13</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gamtot31"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              dimension(:, :, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>gamtot31</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gamtot33"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              dimension(:, :, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>gamtot33</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gamtotinv11"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              dimension(:, :, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>gamtotinv11</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gamtotinv13"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              dimension(:, :, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>gamtotinv13</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gamtotinv31"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              dimension(:, :, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>gamtotinv31</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gamtotinv33"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              dimension(:, :, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>gamtotinv33</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
               <span class="anchor" id="variable-gamtot3"></span>
               real,
             </td>
@@ -479,7 +659,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-theta~6"></span>
+              <span class="anchor" id="variable-theta~5"></span>
               complex,
             </td>
               <td>public,</td>
@@ -513,7 +693,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi_ext~2"></span>
+              <span class="anchor" id="variable-phi_ext"></span>
               complex,
             </td>
               <td>public,</td>
@@ -673,13 +853,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-242-g2fc9f395b</small></p>
+<br /><small>v0.5.1-346-g52df87b42</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-16T17:55:20.489058             </p>
+ on 2024-07-16T18:19:37.478445             </p>
           </div>
         </div>
         <br>

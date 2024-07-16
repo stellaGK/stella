@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 1.6% of total for modules and submodules.">561 statements</a>
+                 title=" 2.8% of total for modules and submodules.">1058 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -121,6 +121,13 @@
         <div class="list-group list-group-flush">
             <a class="list-group-item" href="../module/response_matrix.html#variable-response_matrix_initialized">response_matrix_initialized</a>
             <a class="list-group-item" href="../module/response_matrix.html#variable-mat_unit">mat_unit</a>
+            <a class="list-group-item" href="../module/response_matrix.html#variable-message_dgdphi">message_dgdphi</a>
+            <a class="list-group-item" href="../module/response_matrix.html#variable-message_qn">message_QN</a>
+            <a class="list-group-item" href="../module/response_matrix.html#variable-message_lu">message_lu</a>
+            <a class="list-group-item" href="../module/response_matrix.html#variable-time_dgdphi">time_dgdphi</a>
+            <a class="list-group-item" href="../module/response_matrix.html#variable-time_qn">time_QN</a>
+            <a class="list-group-item" href="../module/response_matrix.html#variable-time_lu">time_lu</a>
+            <a class="list-group-item" href="../module/response_matrix.html#variable-debug~12">debug</a>
         </div>
       </div>
     </div>
@@ -143,10 +150,27 @@
       <div id="subs-0" class="collapse">
         <div class="list-group list-group-flush">
             <a class="list-group-item" href="../module/response_matrix.html#proc-init_response_matrix">init_response_matrix</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-write_response_matrix_message">write_response_matrix_message</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-setup_response_matrix_timings">setup_response_matrix_timings</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-setup_response_matrix_file_io">setup_response_matrix_file_io</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-setup_shared_memory_window">setup_shared_memory_window</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-construct_response_matrix">construct_response_matrix</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-calculate_vspace_integrated_response">calculate_vspace_integrated_response</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-setup_response_matrix_zloc_idx">setup_response_matrix_zloc_idx</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-apply_field_solve_to_finish_response_matrix">apply_field_solve_to_finish_response_matrix</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-lu_decompose_response_matrix">lu_decompose_response_matrix</a>
             <a class="list-group-item" href="../module/response_matrix.html#proc-read_response_matrix">read_response_matrix</a>
             <a class="list-group-item" href="../module/response_matrix.html#proc-get_dpdf_dphi_matrix_column">get_dpdf_dphi_matrix_column</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-get_dpdf_dapar_matrix_column">get_dpdf_dapar_matrix_column</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-get_dpdf_dbpar_matrix_column">get_dpdf_dbpar_matrix_column</a>
             <a class="list-group-item" href="../module/response_matrix.html#proc-integrate_over_velocity">integrate_over_velocity</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-integrate_over_velocity_phi">integrate_over_velocity_phi</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-integrate_over_velocity_bpar">integrate_over_velocity_bpar</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-integrate_over_velocity_apar">integrate_over_velocity_apar</a>
             <a class="list-group-item" href="../module/response_matrix.html#proc-get_fields_for_response_matrix">get_fields_for_response_matrix</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-get_phi_for_response_matrix">get_phi_for_response_matrix</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-get_phi_and_bpar_for_response_matrix">get_phi_and_bpar_for_response_matrix</a>
+            <a class="list-group-item" href="../module/response_matrix.html#proc-get_apar_for_response_matrix">get_apar_for_response_matrix</a>
             <a class="list-group-item" href="../module/response_matrix.html#proc-finish_response_matrix">finish_response_matrix</a>
             <a class="list-group-item" href="../module/response_matrix.html#proc-parallel_lu_decomposition_global">parallel_LU_decomposition_global</a>
         </div>
@@ -232,6 +256,125 @@ parameter
                 
             </td>
         </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-message_dgdphi"></span>
+              character(len=100),
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>message_dgdphi</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-message_qn"></span>
+              character(len=100),
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>message_QN</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-message_lu"></span>
+              character(len=100),
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>message_lu</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-time_dgdphi"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(2)
+            </td>
+            <td>::</td>
+            <td><strong>time_dgdphi</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-time_qn"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(2)
+            </td>
+            <td>::</td>
+            <td><strong>time_QN</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-time_lu"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(2)
+            </td>
+            <td>::</td>
+            <td><strong>time_lu</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-debug~12"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>debug</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
     </tbody>
   </table>
 
@@ -259,7 +402,7 @@ parameter
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-read_response_matrix"></span> <h3>public  subroutine <a href='../proc/read_response_matrix.html'>read_response_matrix</a>()  
+    <div class="card-header codesum"><span class="anchor" id="proc-write_response_matrix_message"></span> <h3>private  subroutine <a href='../proc/write_response_matrix_message.html'>write_response_matrix_message</a>()  
 </h3></div>
     <div class="card-body">
           
@@ -272,7 +415,59 @@ parameter
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-get_dpdf_dphi_matrix_column"></span> <h3>private  subroutine <a href='../proc/get_dpdf_dphi_matrix_column.html'>get_dpdf_dphi_matrix_column</a>(iky, ikx, iz, ie, idx, nz_ext, nresponse, phi_ext, pdf_ext)  
+    <div class="card-header codesum"><span class="anchor" id="proc-setup_response_matrix_timings"></span> <h3>private  subroutine <a href='../proc/setup_response_matrix_timings.html'>setup_response_matrix_timings</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-setup_response_matrix_file_io"></span> <h3>private  subroutine <a href='../proc/setup_response_matrix_file_io.html'>setup_response_matrix_file_io</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-setup_shared_memory_window"></span> <h3>private  subroutine <a href='../proc/setup_shared_memory_window.html'>setup_shared_memory_window</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-construct_response_matrix"></span> <h3>private  subroutine <a href='../proc/construct_response_matrix.html'>construct_response_matrix</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-calculate_vspace_integrated_response"></span> <h3>private  subroutine <a href='../proc/calculate_vspace_integrated_response.html'>calculate_vspace_integrated_response</a>(iky)  
 </h3></div>
     <div class="card-body">
           
@@ -291,7 +486,47 @@ parameter
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iky~32"></span>
+              <span class="anchor" id="variable-iky~121"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-setup_response_matrix_zloc_idx"></span> <h3>private  subroutine <a href='../proc/setup_response_matrix_zloc_idx.html'>setup_response_matrix_zloc_idx</a>(iky, ie, nresponse)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~122"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -306,37 +541,7 @@ parameter
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ikx~28"></span>
-              integer,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>ikx</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-iz~36"></span>
-              integer,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>iz</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-ie~16"></span>
+              <span class="anchor" id="variable-ie~25"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -351,7 +556,172 @@ parameter
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-idx~6"></span>
+              <span class="anchor" id="variable-nresponse~5"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nresponse</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-apply_field_solve_to_finish_response_matrix"></span> <h3>private  subroutine <a href='../proc/apply_field_solve_to_finish_response_matrix.html'>apply_field_solve_to_finish_response_matrix</a>(iky)  
+</h3></div>
+    <div class="card-body">
+          
+  <p>set up offset_apar and offset_bpar consistently
+so that the array slices below are consistent with
+the size of the response matrix</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~123"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-lu_decompose_response_matrix"></span> <h3>private  subroutine <a href='../proc/lu_decompose_response_matrix.html'>lu_decompose_response_matrix</a>(iky)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~124"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-read_response_matrix"></span> <h3>public  subroutine <a href='../proc/read_response_matrix.html'>read_response_matrix</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_dpdf_dphi_matrix_column"></span> <h3>private  subroutine <a href='../proc/get_dpdf_dphi_matrix_column.html'>get_dpdf_dphi_matrix_column</a>(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~126"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ie~29"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ie</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-idx~24"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -366,7 +736,7 @@ parameter
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nz_ext~9"></span>
+              <span class="anchor" id="variable-nz_ext~17"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -381,7 +751,7 @@ parameter
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nresponse~3"></span>
+              <span class="anchor" id="variable-nresponse~8"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -396,7 +766,7 @@ parameter
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi_ext"></span>
+              <span class="anchor" id="variable-phi_ext~5"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -405,6 +775,36 @@ parameter
             </td>
             <td>::</td>
             <td><strong>phi_ext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar_ext~4"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>apar_ext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar_ext~4"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>bpar_ext</strong></td>
             <td>
 
             </td>
@@ -432,7 +832,7 @@ parameter
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-integrate_over_velocity"></span> <h3>private  subroutine <a href='../proc/integrate_over_velocity.html'>integrate_over_velocity</a>(g, phi, iky, ie)  
+    <div class="card-header codesum"><span class="anchor" id="proc-get_dpdf_dapar_matrix_column"></span> <h3>private  subroutine <a href='../proc/get_dpdf_dapar_matrix_column.html'>get_dpdf_dapar_matrix_column</a>(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)  
 </h3></div>
     <div class="card-body">
           
@@ -451,37 +851,7 @@ parameter
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~14"></span>
-              complex,
-            </td>
-<td>intent(in),</td>
-              <td></td>            <td>
-              dimension(:, vmu_lo%llim_proc:)
-            </td>
-            <td>::</td>
-            <td><strong>g</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-phi~18"></span>
-              complex,
-            </td>
-<td>intent(out),</td>
-              <td></td>            <td>
-              dimension(:)
-            </td>
-            <td>::</td>
-            <td><strong>phi</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-iky~33"></span>
+              <span class="anchor" id="variable-iky~127"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -496,7 +866,387 @@ parameter
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ie~17"></span>
+              <span class="anchor" id="variable-ie~30"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ie</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-idx~25"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>idx</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nz_ext~18"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nz_ext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nresponse~9"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nresponse</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-phi_ext~6"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>phi_ext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar_ext~5"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>apar_ext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar_ext~5"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>bpar_ext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-pdf_ext~3"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>pdf_ext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_dpdf_dbpar_matrix_column"></span> <h3>private  subroutine <a href='../proc/get_dpdf_dbpar_matrix_column.html'>get_dpdf_dbpar_matrix_column</a>(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~128"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ie~31"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ie</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-idx~26"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>idx</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nz_ext~19"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nz_ext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nresponse~10"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nresponse</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-phi_ext~7"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>phi_ext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar_ext~6"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>apar_ext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar_ext~6"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>bpar_ext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-pdf_ext~4"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>pdf_ext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-integrate_over_velocity"></span> <h3>private  subroutine <a href='../proc/integrate_over_velocity.html'>integrate_over_velocity</a>(g, phi, apar, bpar, iky, ie)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~100"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-phi~46"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~35"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~32"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~129"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ie~32"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -517,7 +1267,7 @@ parameter
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-get_fields_for_response_matrix"></span> <h3>private  subroutine <a href='../proc/get_fields_for_response_matrix.html'>get_fields_for_response_matrix</a>(phi, iky, ie, dist)  
+    <div class="card-header codesum"><span class="anchor" id="proc-integrate_over_velocity_phi"></span> <h3>private  subroutine <a href='../proc/integrate_over_velocity_phi.html'>integrate_over_velocity_phi</a>(g, phi, iky, ie)  
 </h3></div>
     <div class="card-body">
           
@@ -536,10 +1286,25 @@ parameter
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~19"></span>
+              <span class="anchor" id="variable-g~101"></span>
               complex,
             </td>
-<td>intent(inout),</td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-phi~47"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
               <td></td>            <td>
               dimension(:)
             </td>
@@ -551,7 +1316,7 @@ parameter
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-iky~34"></span>
+              <span class="anchor" id="variable-iky~130"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -566,7 +1331,277 @@ parameter
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ie~18"></span>
+              <span class="anchor" id="variable-ie~33"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ie</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-integrate_over_velocity_bpar"></span> <h3>private  subroutine <a href='../proc/integrate_over_velocity_bpar.html'>integrate_over_velocity_bpar</a>(g, bpar, iky, ie)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~102"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~33"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~131"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ie~34"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ie</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-integrate_over_velocity_apar"></span> <h3>private  subroutine <a href='../proc/integrate_over_velocity_apar.html'>integrate_over_velocity_apar</a>(g, apar, iky, ie)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~103"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~36"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~132"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ie~35"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ie</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_fields_for_response_matrix"></span> <h3>private  subroutine <a href='../proc/get_fields_for_response_matrix.html'>get_fields_for_response_matrix</a>(phi, apar, bpar, iky, ie, dist)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-phi~48"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~37"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~34"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~133"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ie~36"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -581,7 +1616,277 @@ parameter
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dist~8"></span>
+              <span class="anchor" id="variable-dist~16"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dist</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_phi_for_response_matrix"></span> <h3>private  subroutine <a href='../proc/get_phi_for_response_matrix.html'>get_phi_for_response_matrix</a>(phi, iky, ie, dist)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-phi~49"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~134"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ie~37"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ie</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dist~17"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dist</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_phi_and_bpar_for_response_matrix"></span> <h3>private  subroutine <a href='../proc/get_phi_and_bpar_for_response_matrix.html'>get_phi_and_bpar_for_response_matrix</a>(phi, bpar, iky, ie, dist)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-phi~50"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~35"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~135"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ie~38"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ie</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dist~18"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dist</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_apar_for_response_matrix"></span> <h3>private  subroutine <a href='../proc/get_apar_for_response_matrix.html'>get_apar_for_response_matrix</a>(apar, iky, ie, dist)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~38"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~136"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ie~39"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ie</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dist~19"></span>
               character(len=*),
             </td>
 <td>intent(in)</td>
@@ -634,7 +1939,7 @@ parameter
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iky~35"></span>
+              <span class="anchor" id="variable-iky~137"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -671,13 +1976,13 @@ parameter
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-242-g2fc9f395b</small></p>
+<br /><small>v0.5.1-346-g52df87b42</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-16T17:55:20.489058             </p>
+ on 2024-07-16T18:19:37.478445             </p>
           </div>
         </div>
         <br>

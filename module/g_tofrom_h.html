@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.3% of total for modules and submodules.">105 statements</a>
+                 title=" 0.7% of total for modules and submodules.">251 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -126,6 +126,7 @@
       </a>
       <div id="inters-0" class="collapse">
         <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/g_tofrom_h.html#interface-gbar_to_g">gbar_to_g</a>
             <a class="list-group-item" href="../module/g_tofrom_h.html#interface-g_to_h">g_to_h</a>
         </div>
       </div>
@@ -141,6 +142,10 @@
       </a>
       <div id="subs-0" class="collapse">
         <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/g_tofrom_h.html#proc-gbar_to_g_kxkyz">gbar_to_g_kxkyz</a>
+            <a class="list-group-item" href="../module/g_tofrom_h.html#proc-gbar_to_g_1d_vpa">gbar_to_g_1d_vpa</a>
+            <a class="list-group-item" href="../module/g_tofrom_h.html#proc-gbar_to_g_vmu">gbar_to_g_vmu</a>
+            <a class="list-group-item" href="../module/g_tofrom_h.html#proc-gbar_to_g_vmu_single">gbar_to_g_vmu_single</a>
             <a class="list-group-item" href="../module/g_tofrom_h.html#proc-g_to_h_vmu">g_to_h_vmu</a>
             <a class="list-group-item" href="../module/g_tofrom_h.html#proc-g_to_h_vmu_single">g_to_h_vmu_single</a>
             <a class="list-group-item" href="../module/g_tofrom_h.html#proc-g_to_h_kxkyz">g_to_h_kxkyz</a>
@@ -174,14 +179,182 @@
           <h2>Interfaces</h2>
               <div class="card">
     <div class="card-header bg-light codesum">
-      <span class="anchor" id="interface-g_to_h"></span>
-      <h3>public        interface <a href='../interface/g_to_h.html'>g_to_h</a> 
+      <span class="anchor" id="interface-gbar_to_g"></span>
+      <h3>public        interface <a href='../interface/gbar_to_g.html'>gbar_to_g</a> 
       </h3>
     </div>
     <ul class="list-group">
           <li class="list-group-item">
                 <h3>
-    private  subroutine <a href='../proc/g_to_h_kxkyz.html'>g_to_h_kxkyz</a>(g, phi, facphi)  
+    private  subroutine <a href='../proc/gbar_to_g_kxkyz.html'>gbar_to_g_kxkyz</a>(g, apar, facapar)  
+
+    </h3>
+    
+  <p>adjust apar part of Zs <chi> / Ts</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~88"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, kxkyz_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~31"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-facapar~2"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>facapar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+          </li>
+          <li class="list-group-item">
+                <h3>
+    private  subroutine <a href='../proc/gbar_to_g_1d_vpa.html'>gbar_to_g_1d_vpa</a>(g, apar, imu, ikxkyz, facapar)  
+
+    </h3>
+    
+  <p>adjust apar part of Zs <chi> / Ts</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~89"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~32"></span>
+              complex,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-imu~88"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>imu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ikxkyz~45"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ikxkyz</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-facapar~3"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>facapar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+          </li>
+          <li class="list-group-item">
+                <h3>
+    private  subroutine <a href='../proc/gbar_to_g_vmu.html'>gbar_to_g_vmu</a>(g, apar, facapar)  
 
     </h3>
     
@@ -200,7 +373,170 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~18"></span>
+              <span class="anchor" id="variable-g~90"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~33"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-facapar~4"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>facapar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+          </li>
+          <li class="list-group-item">
+                <h3>
+    private  subroutine <a href='../proc/gbar_to_g_vmu_single.html'>gbar_to_g_vmu_single</a>(ivmu, g0, apar, facapar)  
+
+    </h3>
+    
+  <p>adjust apar part of <chi></p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ivmu~84"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ivmu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g0~15"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>g0</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~34"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-facapar~5"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>facapar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+          </li>
+    </ul>
+  </div>
+
+              <div class="card">
+    <div class="card-header bg-light codesum">
+      <span class="anchor" id="interface-g_to_h"></span>
+      <h3>public        interface <a href='../interface/g_to_h.html'>g_to_h</a> 
+      </h3>
+    </div>
+    <ul class="list-group">
+          <li class="list-group-item">
+                <h3>
+    private  subroutine <a href='../proc/g_to_h_kxkyz.html'>g_to_h_kxkyz</a>(g, phi, bpar, facphi)  
+
+    </h3>
+    
+  <p>adjust bpar part of Zs <chi>/ Ts</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~92"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -215,7 +551,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~23"></span>
+              <span class="anchor" id="variable-phi~42"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -224,6 +560,21 @@
             </td>
             <td>::</td>
             <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~31"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -250,7 +601,7 @@
           </li>
           <li class="list-group-item">
                 <h3>
-    private  subroutine <a href='../proc/g_to_h_vmu.html'>g_to_h_vmu</a>(g, phi, facphi, phi_corr)  
+    private  subroutine <a href='../proc/g_to_h_vmu.html'>g_to_h_vmu</a>(g, phi, bpar, facphi, phi_corr)  
 
     </h3>
     
@@ -269,7 +620,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~17"></span>
+              <span class="anchor" id="variable-g~91"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -284,7 +635,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~21"></span>
+              <span class="anchor" id="variable-phi~40"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -293,6 +644,21 @@
             </td>
             <td>::</td>
             <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~29"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -334,11 +700,11 @@
           </li>
           <li class="list-group-item">
                 <h3>
-    private  subroutine <a href='../proc/g_to_h_vmu_single.html'>g_to_h_vmu_single</a>(ivmu, g0, phi, facphi, phi_corr)  
+    private  subroutine <a href='../proc/g_to_h_vmu_single.html'>g_to_h_vmu_single</a>(ivmu, g0, phi, bpar, facphi, phi_corr)  
 
     </h3>
     
-  
+  <p>adjust bpar part of Zs <chi> / Ts</p>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -353,7 +719,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~23"></span>
+              <span class="anchor" id="variable-ivmu~86"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -368,7 +734,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-g0~7"></span>
+              <span class="anchor" id="variable-g0~16"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -383,7 +749,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~22"></span>
+              <span class="anchor" id="variable-phi~41"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -392,6 +758,21 @@
             </td>
             <td>::</td>
             <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~30"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -443,7 +824,177 @@
         <section>
           <h2>Subroutines</h2>
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-g_to_h_vmu"></span> <h3>private  subroutine <a href='../proc/g_to_h_vmu.html'>g_to_h_vmu</a>(g, phi, facphi, phi_corr)  
+    <div class="card-header codesum"><span class="anchor" id="proc-gbar_to_g_kxkyz"></span> <h3>private  subroutine <a href='../proc/gbar_to_g_kxkyz.html'>gbar_to_g_kxkyz</a>(g, apar, facapar)  
+</h3></div>
+    <div class="card-body">
+          
+  <p>adjust apar part of Zs <chi> / Ts</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~88"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, kxkyz_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~31"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-facapar~2"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>facapar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-gbar_to_g_1d_vpa"></span> <h3>private  subroutine <a href='../proc/gbar_to_g_1d_vpa.html'>gbar_to_g_1d_vpa</a>(g, apar, imu, ikxkyz, facapar)  
+</h3></div>
+    <div class="card-body">
+          
+  <p>adjust apar part of Zs <chi> / Ts</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~89"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~32"></span>
+              complex,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-imu~88"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>imu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ikxkyz~45"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ikxkyz</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-facapar~3"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>facapar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-gbar_to_g_vmu"></span> <h3>private  subroutine <a href='../proc/gbar_to_g_vmu.html'>gbar_to_g_vmu</a>(g, apar, facapar)  
 </h3></div>
     <div class="card-body">
           
@@ -462,7 +1013,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~17"></span>
+              <span class="anchor" id="variable-g~90"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -477,7 +1028,162 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~21"></span>
+              <span class="anchor" id="variable-apar~33"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-facapar~4"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>facapar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-gbar_to_g_vmu_single"></span> <h3>private  subroutine <a href='../proc/gbar_to_g_vmu_single.html'>gbar_to_g_vmu_single</a>(ivmu, g0, apar, facapar)  
+</h3></div>
+    <div class="card-body">
+          
+  <p>adjust apar part of <chi></p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ivmu~84"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ivmu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g0~15"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>g0</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~34"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-facapar~5"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>facapar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-g_to_h_vmu"></span> <h3>private  subroutine <a href='../proc/g_to_h_vmu.html'>g_to_h_vmu</a>(g, phi, bpar, facphi, phi_corr)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~91"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-phi~40"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -486,6 +1192,21 @@
             </td>
             <td>::</td>
             <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~29"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -528,11 +1249,11 @@
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-g_to_h_vmu_single"></span> <h3>private  subroutine <a href='../proc/g_to_h_vmu_single.html'>g_to_h_vmu_single</a>(ivmu, g0, phi, facphi, phi_corr)  
+    <div class="card-header codesum"><span class="anchor" id="proc-g_to_h_vmu_single"></span> <h3>private  subroutine <a href='../proc/g_to_h_vmu_single.html'>g_to_h_vmu_single</a>(ivmu, g0, phi, bpar, facphi, phi_corr)  
 </h3></div>
     <div class="card-body">
           
-  
+  <p>adjust bpar part of Zs <chi> / Ts</p>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -547,7 +1268,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~23"></span>
+              <span class="anchor" id="variable-ivmu~86"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -562,7 +1283,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-g0~7"></span>
+              <span class="anchor" id="variable-g0~16"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -577,7 +1298,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~22"></span>
+              <span class="anchor" id="variable-phi~41"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -586,6 +1307,21 @@
             </td>
             <td>::</td>
             <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~30"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -628,11 +1364,11 @@
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-g_to_h_kxkyz"></span> <h3>private  subroutine <a href='../proc/g_to_h_kxkyz.html'>g_to_h_kxkyz</a>(g, phi, facphi)  
+    <div class="card-header codesum"><span class="anchor" id="proc-g_to_h_kxkyz"></span> <h3>private  subroutine <a href='../proc/g_to_h_kxkyz.html'>g_to_h_kxkyz</a>(g, phi, bpar, facphi)  
 </h3></div>
     <div class="card-body">
           
-  
+  <p>adjust bpar part of Zs <chi>/ Ts</p>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -647,7 +1383,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~18"></span>
+              <span class="anchor" id="variable-g~92"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -662,7 +1398,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~23"></span>
+              <span class="anchor" id="variable-phi~42"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -671,6 +1407,21 @@
             </td>
             <td>::</td>
             <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~31"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -714,13 +1465,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-242-g2fc9f395b</small></p>
+<br /><small>v0.5.1-346-g52df87b42</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-16T17:55:20.489058             </p>
+ on 2024-07-16T18:19:37.478445             </p>
           </div>
         </div>
         <br>

@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 1.8% of total for modules and submodules.">662 statements</a>
+                 title=" 2.1% of total for modules and submodules.">788 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -130,6 +130,7 @@
             <a class="list-group-item" href="../module/mirror_terms.html#variable-mirror_int_fac">mirror_int_fac</a>
             <a class="list-group-item" href="../module/mirror_terms.html#variable-mirror_interp_loc">mirror_interp_loc</a>
             <a class="list-group-item" href="../module/mirror_terms.html#variable-mirror_interp_idx_shift">mirror_interp_idx_shift</a>
+            <a class="list-group-item" href="../module/mirror_terms.html#variable-response_apar_denom">response_apar_denom</a>
         </div>
       </div>
     </div>
@@ -154,6 +155,7 @@
             <a class="list-group-item" href="../module/mirror_terms.html#proc-init_mirror">init_mirror</a>
             <a class="list-group-item" href="../module/mirror_terms.html#proc-init_mirror_semi_lagrange">init_mirror_semi_lagrange</a>
             <a class="list-group-item" href="../module/mirror_terms.html#proc-init_invert_mirror_operator">init_invert_mirror_operator</a>
+            <a class="list-group-item" href="../module/mirror_terms.html#proc-init_mirror_response">init_mirror_response</a>
             <a class="list-group-item" href="../module/mirror_terms.html#proc-advance_mirror_explicit">advance_mirror_explicit</a>
             <a class="list-group-item" href="../module/mirror_terms.html#proc-add_mirror_radial_variation">add_mirror_radial_variation</a>
             <a class="list-group-item" href="../module/mirror_terms.html#proc-get_dgdvpa_ffs">get_dgdvpa_ffs</a>
@@ -161,11 +163,14 @@
             <a class="list-group-item" href="../module/mirror_terms.html#proc-add_mirror_term">add_mirror_term</a>
             <a class="list-group-item" href="../module/mirror_terms.html#proc-add_mirror_term_ffs">add_mirror_term_ffs</a>
             <a class="list-group-item" href="../module/mirror_terms.html#proc-advance_mirror_implicit">advance_mirror_implicit</a>
+            <a class="list-group-item" href="../module/mirror_terms.html#proc-get_mirror_rhs_g_contribution">get_mirror_rhs_g_contribution</a>
+            <a class="list-group-item" href="../module/mirror_terms.html#proc-get_mirror_rhs_apar_contribution">get_mirror_rhs_apar_contribution</a>
             <a class="list-group-item" href="../module/mirror_terms.html#proc-vpa_interpolation">vpa_interpolation</a>
             <a class="list-group-item" href="../module/mirror_terms.html#proc-invert_mirror_operator">invert_mirror_operator</a>
             <a class="list-group-item" href="../module/mirror_terms.html#proc-finish_mirror">finish_mirror</a>
             <a class="list-group-item" href="../module/mirror_terms.html#proc-finish_mirror_semi_lagrange">finish_mirror_semi_lagrange</a>
             <a class="list-group-item" href="../module/mirror_terms.html#proc-finish_invert_mirror_operator">finish_invert_mirror_operator</a>
+            <a class="list-group-item" href="../module/mirror_terms.html#proc-finish_mirror_response">finish_mirror_response</a>
         </div>
       </div>
     </div>
@@ -389,6 +394,23 @@
                 
             </td>
         </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-response_apar_denom"></span>
+              complex,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :, :, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>response_apar_denom</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
     </tbody>
   </table>
 
@@ -464,6 +486,19 @@ multiply by mirror coefficient</p>
   </div>
 
               <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-init_mirror_response"></span> <h3>private  subroutine <a href='../proc/init_mirror_response.html'>init_mirror_response</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
     <div class="card-header codesum"><span class="anchor" id="proc-advance_mirror_explicit"></span> <h3>public  subroutine <a href='../proc/advance_mirror_explicit.html'>advance_mirror_explicit</a>(g, gout)  
 </h3></div>
     <div class="card-body">
@@ -484,7 +519,7 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~69"></span>
+              <span class="anchor" id="variable-g~58"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -499,7 +534,7 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gout~15"></span>
+              <span class="anchor" id="variable-gout~7"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -539,7 +574,7 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~70"></span>
+              <span class="anchor" id="variable-g~59"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -554,7 +589,7 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gout~16"></span>
+              <span class="anchor" id="variable-gout~8"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -594,7 +629,7 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~71"></span>
+              <span class="anchor" id="variable-g~60"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -649,7 +684,7 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~72"></span>
+              <span class="anchor" id="variable-g~61"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -689,7 +724,7 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~73"></span>
+              <span class="anchor" id="variable-g~62"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -704,7 +739,7 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-src~27"></span>
+              <span class="anchor" id="variable-src~25"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -744,7 +779,7 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~74"></span>
+              <span class="anchor" id="variable-g~63"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -759,7 +794,7 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-src~28"></span>
+              <span class="anchor" id="variable-src~26"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -780,7 +815,7 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-advance_mirror_implicit"></span> <h3>public  subroutine <a href='../proc/advance_mirror_implicit.html'>advance_mirror_implicit</a>(collisions_implicit, g)  
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_mirror_implicit"></span> <h3>public  subroutine <a href='../proc/advance_mirror_implicit.html'>advance_mirror_implicit</a>(collisions_implicit, g, apar)  
 </h3></div>
     <div class="card-body">
           
@@ -799,7 +834,7 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-collisions_implicit~2"></span>
+              <span class="anchor" id="variable-collisions_implicit~3"></span>
               logical,
             </td>
 <td>intent(in)</td>
@@ -814,7 +849,7 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~75"></span>
+              <span class="anchor" id="variable-g~64"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -823,6 +858,206 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
             </td>
             <td>::</td>
             <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~16"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_mirror_rhs_g_contribution"></span> <h3>private  subroutine <a href='../proc/get_mirror_rhs_g_contribution.html'>get_mirror_rhs_g_contribution</a>(g_in, apar, imu, ikxkyz, rhs)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g_in~4"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>g_in</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~17"></span>
+              complex,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-imu~67"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>imu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ikxkyz~22"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ikxkyz</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-rhs~6"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>rhs</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_mirror_rhs_apar_contribution"></span> <h3>private  subroutine <a href='../proc/get_mirror_rhs_apar_contribution.html'>get_mirror_rhs_apar_contribution</a>(rhs, apar, imu, ikxkyz)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-rhs~7"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>rhs</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~18"></span>
+              complex,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-imu~68"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>imu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ikxkyz~23"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ikxkyz</strong></td>
             <td>
 
             </td>
@@ -909,7 +1144,7 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-imu~66"></span>
+              <span class="anchor" id="variable-imu~70"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -939,7 +1174,7 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~76"></span>
+              <span class="anchor" id="variable-g~65"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -998,6 +1233,19 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
     </div>
   </div>
 
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-finish_mirror_response"></span> <h3>private  subroutine <a href='../proc/finish_mirror_response.html'>finish_mirror_response</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
         </section>
         <br>
 
@@ -1015,13 +1263,13 @@ due to the mirror force term; it treats all terms explicitly in time</p><a href=
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-242-g2fc9f395b</small></p>
+<br /><small>v0.5.1-346-g52df87b42</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-16T17:55:20.489058             </p>
+ on 2024-07-16T18:19:37.478445             </p>
           </div>
         </div>
         <br>

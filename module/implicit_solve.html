@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 1.3% of total for modules and submodules.">455 statements</a>
+                 title=" 2.1% of total for modules and submodules.">780 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -120,7 +120,6 @@
       <div id="vars-0" class="collapse">
         <div class="list-group list-group-flush">
             <a class="list-group-item" href="../module/implicit_solve.html#variable-time_implicit_advance">time_implicit_advance</a>
-            <a class="list-group-item" href="../module/implicit_solve.html#variable-akx_zext">akx_zext</a>
         </div>
       </div>
     </div>
@@ -144,8 +143,15 @@
         <div class="list-group list-group-flush">
             <a class="list-group-item" href="../module/implicit_solve.html#proc-advance_implicit_terms">advance_implicit_terms</a>
             <a class="list-group-item" href="../module/implicit_solve.html#proc-get_gke_rhs">get_gke_rhs</a>
+            <a class="list-group-item" href="../module/implicit_solve.html#proc-get_contributions_from_fields">get_contributions_from_fields</a>
             <a class="list-group-item" href="../module/implicit_solve.html#proc-get_contributions_from_phi">get_contributions_from_phi</a>
+            <a class="list-group-item" href="../module/implicit_solve.html#proc-get_contributions_from_bpar">get_contributions_from_bpar</a>
+            <a class="list-group-item" href="../module/implicit_solve.html#proc-get_contributions_from_apar">get_contributions_from_apar</a>
+            <a class="list-group-item" href="../module/implicit_solve.html#proc-add_gbar_to_g_contribution_apar">add_gbar_to_g_contribution_apar</a>
+            <a class="list-group-item" href="../module/implicit_solve.html#proc-add_drifts_contribution_apar">add_drifts_contribution_apar</a>
+            <a class="list-group-item" href="../module/implicit_solve.html#proc-gbar_to_g_zext">gbar_to_g_zext</a>
             <a class="list-group-item" href="../module/implicit_solve.html#proc-gyro_average_zext">gyro_average_zext</a>
+            <a class="list-group-item" href="../module/implicit_solve.html#proc-gyro_average_j1_zext">gyro_average_j1_zext</a>
             <a class="list-group-item" href="../module/implicit_solve.html#proc-get_contributions_from_pdf">get_contributions_from_pdf</a>
             <a class="list-group-item" href="../module/implicit_solve.html#proc-sweep_g_zext">sweep_g_zext</a>
             <a class="list-group-item" href="../module/implicit_solve.html#proc-get_updated_pdf">get_updated_pdf</a>
@@ -204,23 +210,6 @@
                 
             </td>
         </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-akx_zext"></span>
-              real,
-            </td>
-              <td>private,</td>
-            <td>
-              dimension(:), allocatable
-            </td>
-            <td>::</td>
-            <td><strong>akx_zext</strong></td>
-                <td></td>
-                <td></td>
-            <td>
-                
-            </td>
-        </tr>
     </tbody>
   </table>
 
@@ -235,7 +224,7 @@
         <section>
           <h2>Subroutines</h2>
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-advance_implicit_terms"></span> <h3>public  subroutine <a href='../proc/advance_implicit_terms.html'>advance_implicit_terms</a>(g, phi, apar)  
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_implicit_terms"></span> <h3>public  subroutine <a href='../proc/advance_implicit_terms.html'>advance_implicit_terms</a>(g, phi, apar, bpar)  
 </h3></div>
     <div class="card-body">
           
@@ -259,7 +248,7 @@ tupwnd_p should multiply phi^{n+1}</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g"></span>
+              <span class="anchor" id="variable-g~85"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -274,7 +263,7 @@ tupwnd_p should multiply phi^{n+1}</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi"></span>
+              <span class="anchor" id="variable-phi~35"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -289,7 +278,7 @@ tupwnd_p should multiply phi^{n+1}</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-apar"></span>
+              <span class="anchor" id="variable-apar~24"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -302,6 +291,21 @@ tupwnd_p should multiply phi^{n+1}</p>
 
             </td>
         </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~24"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
+            <td>
+
+            </td>
+        </tr>
     </tbody>
   </table>
 
@@ -310,11 +314,15 @@ tupwnd_p should multiply phi^{n+1}</p>
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-get_gke_rhs"></span> <h3>public  subroutine <a href='../proc/get_gke_rhs.html'>get_gke_rhs</a>(ivmu, iky, ie, pdf, phi, phi_old, rhs)  
+    <div class="card-header codesum"><span class="anchor" id="proc-get_gke_rhs"></span> <h3>public  subroutine <a href='../proc/get_gke_rhs.html'>get_gke_rhs</a>(ivmu, iky, ie, pdf, phi, apar, aparnew, aparold, bpar, rhs)  
 </h3></div>
     <div class="card-body">
           
-  
+  <p>get_gke_rhs calculates the RHS of the GK equation.
+as the response matrix approach requires separate solution of the 'inhomogeneous' GKE,
+the homogeneous GKE (to obtain the response matrix itself),
+and the full GKE, which RHS is obtained depends on the input values
+for 'pdf', 'phi', 'apar', 'aparnew' and 'aparold'</p>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -329,7 +337,7 @@ tupwnd_p should multiply phi^{n+1}</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~9"></span>
+              <span class="anchor" id="variable-ivmu~69"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -344,7 +352,7 @@ tupwnd_p should multiply phi^{n+1}</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-iky~8"></span>
+              <span class="anchor" id="variable-iky~84"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -359,7 +367,7 @@ tupwnd_p should multiply phi^{n+1}</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ie~4"></span>
+              <span class="anchor" id="variable-ie~17"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -374,7 +382,7 @@ tupwnd_p should multiply phi^{n+1}</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-pdf"></span>
+              <span class="anchor" id="variable-pdf~2"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -389,7 +397,7 @@ tupwnd_p should multiply phi^{n+1}</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~2"></span>
+              <span class="anchor" id="variable-phi~36"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -404,7 +412,7 @@ tupwnd_p should multiply phi^{n+1}</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi_old~2"></span>
+              <span class="anchor" id="variable-apar~25"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -412,14 +420,59 @@ tupwnd_p should multiply phi^{n+1}</p>
               dimension(:)
             </td>
             <td>::</td>
-            <td><strong>phi_old</strong></td>
+            <td><strong>apar</strong></td>
             <td>
 
             </td>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-rhs"></span>
+              <span class="anchor" id="variable-aparnew"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>aparnew</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-aparold"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>aparold</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~25"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-rhs~9"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -440,12 +493,175 @@ tupwnd_p should multiply phi^{n+1}</p>
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-get_contributions_from_phi"></span> <h3>private  subroutine <a href='../proc/get_contributions_from_phi.html'>get_contributions_from_phi</a>(phi, ivmu, iky, ie, scratch, rhs)  
+    <div class="card-header codesum"><span class="anchor" id="proc-get_contributions_from_fields"></span> <h3>private  subroutine <a href='../proc/get_contributions_from_fields.html'>get_contributions_from_fields</a>(phi, apar, aparnew, bpar, ivmu, iky, ie, scratch, rhs)  
+</h3></div>
+    <div class="card-body">
+          
+  <p>get_contributions_from_fields takes as input the appropriately averaged
+electrostatic potential phi and magnetic vector potential components apar
+and returns in rhs the sum of the source terms
+involving phi and apar that appear on the RHS of the GK equation when g is the pdf</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-phi~37"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~26"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-aparnew~2"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>aparnew</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~26"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ivmu~70"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ivmu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~85"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ie~18"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ie</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-scratch~2"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>scratch</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-rhs~10"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>rhs</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_contributions_from_phi"></span> <h3>private  subroutine <a href='../proc/get_contributions_from_phi.html'>get_contributions_from_phi</a>(phi, ivmu, iky, iz_from_izext, ikx_from_izext, scratch, rhs)  
 </h3></div>
     <div class="card-body">
           
   <p>get_contributions_from_phi takes as input the appropriately averaged
-electrostatic potential phi and returns in rhs the sum off the source terms
+electrostatic potential phi and returns in rhs the sum of the source terms
 involving phi that appear on the RHS of the GK equation when g is the pdf</p>
 
   <h4>Arguments</h4>
@@ -461,7 +677,7 @@ involving phi that appear on the RHS of the GK equation when g is the pdf</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~3"></span>
+              <span class="anchor" id="variable-phi~38"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -476,7 +692,7 @@ involving phi that appear on the RHS of the GK equation when g is the pdf</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~10"></span>
+              <span class="anchor" id="variable-ivmu~71"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -491,7 +707,7 @@ involving phi that appear on the RHS of the GK equation when g is the pdf</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-iky~9"></span>
+              <span class="anchor" id="variable-iky~86"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -506,22 +722,37 @@ involving phi that appear on the RHS of the GK equation when g is the pdf</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ie~5"></span>
+              <span class="anchor" id="variable-iz_from_izext~3"></span>
               integer,
             </td>
-<td>intent(in)</td>
+<td>intent(in),</td>
               <td></td>            <td>
-              
+              dimension(:)
             </td>
             <td>::</td>
-            <td><strong>ie</strong></td>
+            <td><strong>iz_from_izext</strong></td>
             <td>
 
             </td>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-scratch"></span>
+              <span class="anchor" id="variable-ikx_from_izext~3"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>ikx_from_izext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-scratch~3"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -536,7 +767,7 @@ involving phi that appear on the RHS of the GK equation when g is the pdf</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-rhs~2"></span>
+              <span class="anchor" id="variable-rhs~11"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -557,7 +788,448 @@ involving phi that appear on the RHS of the GK equation when g is the pdf</p>
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-gyro_average_zext"></span> <h3>private  subroutine <a href='../proc/gyro_average_zext.html'>gyro_average_zext</a>(iky, ivmu, ikx_from_izext, iz_from_izext, phi, gyro_phi)  
+    <div class="card-header codesum"><span class="anchor" id="proc-get_contributions_from_bpar"></span> <h3>private  subroutine <a href='../proc/get_contributions_from_bpar.html'>get_contributions_from_bpar</a>(bpar, ivmu, iky, iz_from_izext, ikx_from_izext, scratch, rhs)  
+</h3></div>
+    <div class="card-body">
+          
+  <p>get_contributions_from_bpar takes as input the appropriately averaged
+electrostatic potential bpar and returns in rhs the sum of the source terms
+involving bpar that appear on the RHS of the GK equation when g is the pdf</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~27"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ivmu~72"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ivmu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~87"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iz_from_izext~4"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>iz_from_izext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ikx_from_izext~4"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>ikx_from_izext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-scratch~4"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>scratch</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-rhs~12"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>rhs</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_contributions_from_apar"></span> <h3>private  subroutine <a href='../proc/get_contributions_from_apar.html'>get_contributions_from_apar</a>(apar, aparnew, ivmu, iky, iz_from_izext, ikx_from_izext, scratch, rhs)  
+</h3></div>
+    <div class="card-body">
+          
+  <p>get_contributions_from_apar takes as input the appropriately averaged
+parallel component of the vector potential, apar, and returns in rhs the sum of the source terms
+involving apar that appear on the RHS of the GK equation when g is the pdf</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~27"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-aparnew~3"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>aparnew</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ivmu~73"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ivmu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~88"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iz_from_izext~5"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>iz_from_izext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ikx_from_izext~5"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>ikx_from_izext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-scratch~5"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>scratch</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-rhs~13"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>rhs</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-add_gbar_to_g_contribution_apar"></span> <h3>private  subroutine <a href='../proc/add_gbar_to_g_contribution_apar.html'>add_gbar_to_g_contribution_apar</a>(scratch2, iky, ia, iv, imu, is, nz_ext, iz_from_izext, rhs)  
+</h3></div>
+    <div class="card-body">
+          
+  <p>adds the contributions to the GKE RHS that comes from switching from
+gbar^{n+1} = g^{n+1} + (Ze/T)<em>(vpa/c)</em><Apar^{n+1}>*F0 to g^{n+1} = <f^{n+1}>
+in the time derivative;</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-scratch2~3"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>scratch2</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~89"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ia~88"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ia</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iv~84"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iv</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-imu~85"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>imu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-is~109"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>is</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nz_ext~8"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nz_ext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iz_from_izext~6"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>iz_from_izext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-rhs~14"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>rhs</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-add_drifts_contribution_apar"></span> <h3>private  subroutine <a href='../proc/add_drifts_contribution_apar.html'>add_drifts_contribution_apar</a>(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)  
 </h3></div>
     <div class="card-body">
           
@@ -576,7 +1248,22 @@ involving phi that appear on the RHS of the GK equation when g is the pdf</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iky~10"></span>
+              <span class="anchor" id="variable-scratch~6"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>scratch</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~90"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -591,7 +1278,22 @@ involving phi that appear on the RHS of the GK equation when g is the pdf</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~11"></span>
+              <span class="anchor" id="variable-ia~89"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ia</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ivmu~74"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -606,22 +1308,52 @@ involving phi that appear on the RHS of the GK equation when g is the pdf</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ikx_from_izext~2"></span>
+              <span class="anchor" id="variable-iv~85"></span>
               integer,
             </td>
-<td>intent(in),</td>
+<td>intent(in)</td>
               <td></td>            <td>
-              dimension(:)
+              
             </td>
             <td>::</td>
-            <td><strong>ikx_from_izext</strong></td>
+            <td><strong>iv</strong></td>
             <td>
 
             </td>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-iz_from_izext~2"></span>
+              <span class="anchor" id="variable-is~110"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>is</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nz_ext~9"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nz_ext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iz_from_izext~7"></span>
               integer,
             </td>
 <td>intent(in),</td>
@@ -636,30 +1368,15 @@ involving phi that appear on the RHS of the GK equation when g is the pdf</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~4"></span>
+              <span class="anchor" id="variable-rhs~15"></span>
               complex,
             </td>
-<td>intent(in),</td>
+<td>intent(inout),</td>
               <td></td>            <td>
               dimension(:)
             </td>
             <td>::</td>
-            <td><strong>phi</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-gyro_phi"></span>
-              complex,
-            </td>
-<td>intent(out),</td>
-              <td></td>            <td>
-              dimension(:)
-            </td>
-            <td>::</td>
-            <td><strong>gyro_phi</strong></td>
+            <td><strong>rhs</strong></td>
             <td>
 
             </td>
@@ -672,7 +1389,367 @@ involving phi that appear on the RHS of the GK equation when g is the pdf</p>
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-get_contributions_from_pdf"></span> <h3>private  subroutine <a href='../proc/get_contributions_from_pdf.html'>get_contributions_from_pdf</a>(pdf, ivmu, iky, ie, rhs)  
+    <div class="card-header codesum"><span class="anchor" id="proc-gbar_to_g_zext"></span> <h3>private  subroutine <a href='../proc/gbar_to_g_zext.html'>gbar_to_g_zext</a>(pdf, apar, facapar, iky, ivmu, ikx_from_izext, iz_from_izext)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-pdf~3"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>pdf</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~28"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-facapar"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>facapar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~91"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ivmu~75"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ivmu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ikx_from_izext~6"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>ikx_from_izext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iz_from_izext~8"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>iz_from_izext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-gyro_average_zext"></span> <h3>private  subroutine <a href='../proc/gyro_average_zext.html'>gyro_average_zext</a>(iky, ivmu, ikx_from_izext, iz_from_izext, fld, gyro_fld)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~92"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ivmu~76"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ivmu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ikx_from_izext~7"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>ikx_from_izext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iz_from_izext~9"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>iz_from_izext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-fld~9"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>fld</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gyro_fld"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>gyro_fld</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-gyro_average_j1_zext"></span> <h3>private  subroutine <a href='../proc/gyro_average_j1_zext.html'>gyro_average_j1_zext</a>(iky, ivmu, ikx_from_izext, iz_from_izext, fld, gyro_fld)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~93"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ivmu~77"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ivmu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ikx_from_izext~8"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>ikx_from_izext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iz_from_izext~10"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>iz_from_izext</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-fld~10"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>fld</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gyro_fld~2"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>gyro_fld</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_contributions_from_pdf"></span> <h3>private  subroutine <a href='../proc/get_contributions_from_pdf.html'>get_contributions_from_pdf</a>(pdf, apar, ivmu, iky, ie, rhs)  
 </h3></div>
     <div class="card-body">
           
@@ -693,7 +1770,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-pdf~2"></span>
+              <span class="anchor" id="variable-pdf~4"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -708,7 +1785,22 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~12"></span>
+              <span class="anchor" id="variable-apar~29"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ivmu~78"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -723,7 +1815,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-iky~11"></span>
+              <span class="anchor" id="variable-iky~94"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -738,7 +1830,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ie~6"></span>
+              <span class="anchor" id="variable-ie~19"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -753,7 +1845,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-rhs~3"></span>
+              <span class="anchor" id="variable-rhs~16"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -793,7 +1885,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iky~12"></span>
+              <span class="anchor" id="variable-iky~95"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -808,7 +1900,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ie~7"></span>
+              <span class="anchor" id="variable-ie~20"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -823,7 +1915,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-it~8"></span>
+              <span class="anchor" id="variable-it~90"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -838,7 +1930,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~13"></span>
+              <span class="anchor" id="variable-ivmu~79"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -853,7 +1945,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-pdf~3"></span>
+              <span class="anchor" id="variable-pdf~5"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -874,7 +1966,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-get_updated_pdf"></span> <h3>private  subroutine <a href='../proc/get_updated_pdf.html'>get_updated_pdf</a>(iz, iv, is, sgn, ulim, iz1, iz2, wdrift_ext, pdf)  
+    <div class="card-header codesum"><span class="anchor" id="proc-get_updated_pdf"></span> <h3>private  subroutine <a href='../proc/get_updated_pdf.html'>get_updated_pdf</a>(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf)  
 </h3></div>
     <div class="card-body">
           
@@ -893,7 +1985,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iz~17"></span>
+              <span class="anchor" id="variable-iz~153"></span>
               integer,
             </td>
 <td>intent(inout)</td>
@@ -908,7 +2000,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-iv~13"></span>
+              <span class="anchor" id="variable-iv~89"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -923,7 +2015,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-is~12"></span>
+              <span class="anchor" id="variable-is~114"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -938,7 +2030,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-sgn~2"></span>
+              <span class="anchor" id="variable-sgn~20"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -947,21 +2039,6 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
             </td>
             <td>::</td>
             <td><strong>sgn</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-ulim~3"></span>
-              integer,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>ulim</strong></td>
             <td>
 
             </td>
@@ -1013,7 +2090,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-pdf~4"></span>
+              <span class="anchor" id="variable-pdf~6"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1053,7 +2130,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iky~13"></span>
+              <span class="anchor" id="variable-iky~96"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1068,7 +2145,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-iv~14"></span>
+              <span class="anchor" id="variable-iv~90"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1083,7 +2160,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-is~13"></span>
+              <span class="anchor" id="variable-is~115"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1098,7 +2175,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-sgn~3"></span>
+              <span class="anchor" id="variable-sgn~21"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1113,7 +2190,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~2"></span>
+              <span class="anchor" id="variable-g~86"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1128,7 +2205,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-llim"></span>
+              <span class="anchor" id="variable-llim~32"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1149,11 +2226,12 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-invert_parstream_response"></span> <h3>private  subroutine <a href='../proc/invert_parstream_response.html'>invert_parstream_response</a>(phi)  
+    <div class="card-header codesum"><span class="anchor" id="proc-invert_parstream_response"></span> <h3>private  subroutine <a href='../proc/invert_parstream_response.html'>invert_parstream_response</a>(phi, apar, bpar)  
 </h3></div>
     <div class="card-body">
           
-  
+  <p>use the LU-decomposed response matrix and the contributions from the
+'inhomogeneous' fields (phi, apar) to solve for (phi^{n+1}, apar^{n+1})</p>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -1168,7 +2246,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~5"></span>
+              <span class="anchor" id="variable-phi~39"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1177,6 +2255,36 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
             </td>
             <td>::</td>
             <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~30"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~28"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -1205,13 +2313,13 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-242-g2fc9f395b</small></p>
+<br /><small>v0.5.1-346-g52df87b42</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-16T17:55:20.489058             </p>
+ on 2024-07-16T18:19:37.478445             </p>
           </div>
         </div>
         <br>

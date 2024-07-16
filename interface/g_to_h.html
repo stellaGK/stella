@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title="<p> 0.0% of total for procedures.</p>Including implementation: 100 statements,  0.3% of total for procedures.">5 statements</a>
+                 title="<p> 0.0% of total for procedures.</p>Including implementation: 132 statements,  0.4% of total for procedures.">5 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -159,11 +159,11 @@
 
         <h2>Module Procedures</h2>
             <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-g_to_h_kxkyz"></span> <h3>private  subroutine <a href='../proc/g_to_h_kxkyz.html'>g_to_h_kxkyz</a>(g, phi, facphi)  
+    <div class="card-header codesum"><span class="anchor" id="proc-g_to_h_kxkyz"></span> <h3>private  subroutine <a href='../proc/g_to_h_kxkyz.html'>g_to_h_kxkyz</a>(g, phi, bpar, facphi)  
 </h3></div>
     <div class="card-body">
           
-  
+  <p>adjust bpar part of Zs <chi>/ Ts</p>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -178,7 +178,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~18"></span>
+              <span class="anchor" id="variable-g~92"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -193,7 +193,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~23"></span>
+              <span class="anchor" id="variable-phi~42"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -202,6 +202,21 @@
             </td>
             <td>::</td>
             <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~31"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -229,7 +244,7 @@
   </div>
 
             <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-g_to_h_vmu"></span> <h3>private  subroutine <a href='../proc/g_to_h_vmu.html'>g_to_h_vmu</a>(g, phi, facphi, phi_corr)  
+    <div class="card-header codesum"><span class="anchor" id="proc-g_to_h_vmu"></span> <h3>private  subroutine <a href='../proc/g_to_h_vmu.html'>g_to_h_vmu</a>(g, phi, bpar, facphi, phi_corr)  
 </h3></div>
     <div class="card-body">
           
@@ -248,7 +263,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~17"></span>
+              <span class="anchor" id="variable-g~91"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -263,7 +278,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~21"></span>
+              <span class="anchor" id="variable-phi~40"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -272,6 +287,21 @@
             </td>
             <td>::</td>
             <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~29"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -314,11 +344,11 @@
   </div>
 
             <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-g_to_h_vmu_single"></span> <h3>private  subroutine <a href='../proc/g_to_h_vmu_single.html'>g_to_h_vmu_single</a>(ivmu, g0, phi, facphi, phi_corr)  
+    <div class="card-header codesum"><span class="anchor" id="proc-g_to_h_vmu_single"></span> <h3>private  subroutine <a href='../proc/g_to_h_vmu_single.html'>g_to_h_vmu_single</a>(ivmu, g0, phi, bpar, facphi, phi_corr)  
 </h3></div>
     <div class="card-body">
           
-  
+  <p>adjust bpar part of Zs <chi> / Ts</p>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -333,7 +363,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~23"></span>
+              <span class="anchor" id="variable-ivmu~86"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -348,7 +378,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-g0~7"></span>
+              <span class="anchor" id="variable-g0~16"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -363,7 +393,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~22"></span>
+              <span class="anchor" id="variable-phi~41"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -372,6 +402,21 @@
             </td>
             <td>::</td>
             <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~30"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -424,13 +469,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-242-g2fc9f395b</small></p>
+<br /><small>v0.5.1-346-g52df87b42</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-16T17:55:20.489058             </p>
+ on 2024-07-16T18:19:37.478445             </p>
           </div>
         </div>
         <br>

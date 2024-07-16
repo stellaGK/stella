@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title="<p> 0.0% of total for procedures.</p>Including implementation: 33 statements,  0.1% of total for procedures.">5 statements</a>
+                 title="<p> 0.0% of total for procedures.</p>Including implementation: 78 statements,  0.2% of total for procedures.">9 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -137,9 +137,13 @@
       </a>
       <div id="modprocs-0" class="collapse">
         <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../interface/gyro_average_j1.html#moduleprocedure-gyro_average_j1_vmus_nonlocal">gyro_average_j1_vmus_nonlocal</a>
+            <a class="list-group-item" href="../interface/gyro_average_j1.html#moduleprocedure-gyro_average_j1_local">gyro_average_j1_local</a>
             <a class="list-group-item" href="../interface/gyro_average_j1.html#moduleprocedure-gyro_average_j1_kxky_local">gyro_average_j1_kxky_local</a>
             <a class="list-group-item" href="../interface/gyro_average_j1.html#moduleprocedure-gyro_average_j1_kxkyz_local">gyro_average_j1_kxkyz_local</a>
+            <a class="list-group-item" href="../interface/gyro_average_j1.html#moduleprocedure-gyro_average_j1_v_local">gyro_average_j1_v_local</a>
             <a class="list-group-item" href="../interface/gyro_average_j1.html#moduleprocedure-gyro_average_j1_vmu_local">gyro_average_j1_vmu_local</a>
+            <a class="list-group-item" href="../interface/gyro_average_j1.html#moduleprocedure-gyro_average_j1_kxkyzv_local">gyro_average_j1_kxkyzv_local</a>
         </div>
       </div>
     </div>
@@ -158,6 +162,221 @@
 
 
         <h2>Module Procedures</h2>
+            <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-gyro_average_j1_vmus_nonlocal"></span> <h3>private  subroutine <a href='../proc/gyro_average_j1_vmus_nonlocal.html'>gyro_average_j1_vmus_nonlocal</a>(field, iky, ikx, iz, gyro_field)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-field~24"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>field</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~108"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ikx~103"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ikx</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iz~179"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iz</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gyro_field~9"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>gyro_field</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+            <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-gyro_average_j1_local"></span> <h3>private  subroutine <a href='../proc/gyro_average_j1_local.html'>gyro_average_j1_local</a>(field, iky, ikx, iz, ivmu, gyro_field)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-field~25"></span>
+              complex,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>field</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iky~109"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iky</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ikx~104"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ikx</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iz~180"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iz</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ivmu~96"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ivmu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gyro_field~10"></span>
+              complex,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>gyro_field</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
             <div class="card">
     <div class="card-header codesum"><span class="anchor" id="proc-gyro_average_j1_kxky_local"></span> <h3>private  subroutine <a href='../proc/gyro_average_j1_kxky_local.html'>gyro_average_j1_kxky_local</a>(field, iz, ivmu, gyro_field)  
 </h3></div>
@@ -178,7 +397,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-field~18"></span>
+              <span class="anchor" id="variable-field~26"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -193,7 +412,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-iz~92"></span>
+              <span class="anchor" id="variable-iz~181"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -208,7 +427,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~57"></span>
+              <span class="anchor" id="variable-ivmu~97"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -223,7 +442,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gyro_field~8"></span>
+              <span class="anchor" id="variable-gyro_field~11"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -263,7 +482,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-field~19"></span>
+              <span class="anchor" id="variable-field~27"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -278,7 +497,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~58"></span>
+              <span class="anchor" id="variable-ivmu~98"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -293,7 +512,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gyro_field~9"></span>
+              <span class="anchor" id="variable-gyro_field~12"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -302,6 +521,91 @@
             </td>
             <td>::</td>
             <td><strong>gyro_field</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+            <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-gyro_average_j1_v_local"></span> <h3>private  subroutine <a href='../proc/gyro_average_j1_v_local.html'>gyro_average_j1_v_local</a>(distfn, imu, ikxkyz, gyro_distfn)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-distfn~4"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>distfn</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-imu~100"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>imu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ikxkyz~51"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ikxkyz</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gyro_distfn~4"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>gyro_distfn</strong></td>
             <td>
 
             </td>
@@ -333,7 +637,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-distfn~2"></span>
+              <span class="anchor" id="variable-distfn~3"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -348,7 +652,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ikxkyz~22"></span>
+              <span class="anchor" id="variable-ikxkyz~50"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -363,7 +667,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gyro_distfn~2"></span>
+              <span class="anchor" id="variable-gyro_distfn~3"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -372,6 +676,63 @@
             </td>
             <td>::</td>
             <td><strong>gyro_distfn</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+            <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-gyro_average_j1_kxkyzv_local"></span> <h3>private  subroutine <a href='../proc/gyro_average_j1_kxkyzv_local.html'>gyro_average_j1_kxkyzv_local</a>(field, gyro_field)  
+</h3></div>
+    <div class="card-body">
+          
+  <p>if simulating a full flux surface, the alpha dependence present
+in kperp makes gyro-averaging non-local in k-space
+if simulating a flux tube, a gyro-average is local in k-space</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-field~28"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>field</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gyro_field~13"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>gyro_field</strong></td>
             <td>
 
             </td>
@@ -394,13 +755,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-242-g2fc9f395b</small></p>
+<br /><small>v0.5.1-346-g52df87b42</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-16T17:55:20.489058             </p>
+ on 2024-07-16T18:19:37.478445             </p>
           </div>
         </div>
         <br>

@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 5.0% of total for modules and submodules.">1799 statements</a>
+                 title=" 4.9% of total for modules and submodules.">1867 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -130,6 +130,7 @@
             <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_rk3">explicit_option_rk3</a>
             <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_rk2">explicit_option_rk2</a>
             <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_rk4">explicit_option_rk4</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-explicit_option_euler">explicit_option_euler</a>
             <a class="list-group-item" href="../module/time_advance.html#variable-xdriftknob">xdriftknob</a>
             <a class="list-group-item" href="../module/time_advance.html#variable-ydriftknob">ydriftknob</a>
             <a class="list-group-item" href="../module/time_advance.html#variable-wstarknob">wstarknob</a>
@@ -144,7 +145,7 @@
             <a class="list-group-item" href="../module/time_advance.html#variable-d_par_nl_drifty_dr">d_par_nl_drifty_dr</a>
             <a class="list-group-item" href="../module/time_advance.html#variable-time_gke">time_gke</a>
             <a class="list-group-item" href="../module/time_advance.html#variable-time_parallel_nl">time_parallel_nl</a>
-            <a class="list-group-item" href="../module/time_advance.html#variable-debug~8">debug</a>
+            <a class="list-group-item" href="../module/time_advance.html#variable-debug~5">debug</a>
         </div>
       </div>
     </div>
@@ -185,11 +186,12 @@
             <a class="list-group-item" href="../module/time_advance.html#proc-init_wstar">init_wstar</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-init_parallel_nonlinearity">init_parallel_nonlinearity</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-init_radial_variation">init_radial_variation</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-allocate_arrays~3">allocate_arrays</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-allocate_arrays~5">allocate_arrays</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-init_cfl">init_cfl</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-reset_dt">reset_dt</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-advance_stella">advance_stella</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit">advance_explicit</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_euler">advance_explicit_euler</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_rk2">advance_explicit_rk2</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_rk3">advance_explicit_rk3</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-advance_explicit_rk4">advance_explicit_rk4</a>
@@ -216,7 +218,7 @@
             <a class="list-group-item" href="../module/time_advance.html#proc-finish_parallel_nonlinearity">finish_parallel_nonlinearity</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-finish_wdrift">finish_wdrift</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-finish_wstar">finish_wstar</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-deallocate_arrays~2">deallocate_arrays</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-deallocate_arrays~3">deallocate_arrays</a>
         </div>
       </div>
     </div>
@@ -436,6 +438,23 @@ parameter
             <td><strong>explicit_option_rk4</strong></td>
 <td> =</td>
                 <td>3</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-explicit_option_euler"></span>
+              integer,
+            </td>
+              <td>private,</td>
+            <td>
+parameter               
+            </td>
+            <td>::</td>
+            <td><strong>explicit_option_euler</strong></td>
+<td> =</td>
+                <td>4</td>
             <td>
                 
             </td>
@@ -680,7 +699,7 @@ parameter
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-debug~8"></span>
+              <span class="anchor" id="variable-debug~5"></span>
               logical,
             </td>
               <td>private</td>
@@ -733,7 +752,7 @@ accepts g(ky,kx)</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~28"></span>
+              <span class="anchor" id="variable-g~27"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -788,7 +807,7 @@ accepts g(ky,kx,z,tube)</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~29"></span>
+              <span class="anchor" id="variable-g~28"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -843,7 +862,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~30"></span>
+              <span class="anchor" id="variable-g~29"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -908,7 +927,7 @@ accepts g(ky,kx)</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~31"></span>
+              <span class="anchor" id="variable-g~30"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -963,7 +982,7 @@ accepts g(ky,kx,z,tube)</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~32"></span>
+              <span class="anchor" id="variable-g~31"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1018,7 +1037,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~33"></span>
+              <span class="anchor" id="variable-g~32"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1082,7 +1101,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-field~7"></span>
+              <span class="anchor" id="variable-field~5"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1136,7 +1155,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-dist~9"></span>
+              <span class="anchor" id="variable-dist~11"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1241,6 +1260,8 @@ allocate and calculate the factor multiplying dphi/dy in the gradient drive term
           
   <p>allocate wdriftx_phi, the factor multiplying dphi/dx in the magnetic drift term
 allocate wdrifty_phi, the factor multiplying dphi/dy in the magnetic drift term
+allocate wdriftx_bpar, the factor multiplying dbpar/dx in the magnetic drift term
+allocate wdrifty_bpar, the factor multiplying dbpar/dy in the magnetic drift term
 allocate wdriftx_g, the factor multiplying dg/dx in the magnetic drift term
 allocate wdrifty_g, the factor multiplying dg/dy in the magnetic drift term
 this is the curvature drift piece of wdrifty with missing factor of vpa
@@ -1251,6 +1272,7 @@ if including neoclassical correction to equilibrium Maxwellian,
 then add in v_E^{nc} . grad y dg/dy coefficient here
 if maxwwellian_normalization = .true., evolved distribution function is normalised by a Maxwellian
 otherwise, it is not; a Maxwellian weighting factor must thus be included
+assign wdrifty_bpar, neoclassical terms not supported
 if including neoclassical corrections to equilibrium,
 add in -(Ze/m) * v_curv/vpa . grad y d<phi>/dy * dF^{nc}/dvpa term
 and v_E . grad z dF^{nc}/dz (here get the dphi/dy part of v_E)
@@ -1264,6 +1286,7 @@ if including neoclassical correction to equilibrium Maxwellian,
 then add in v_E^{nc} . grad x dg/dx coefficient here
 if maxwellian_normalizatiion = .true., evolved distribution function is normalised by a Maxwellian
 otherwise, it is not; a Maxwellian weighting factor must thus be included
+assign wdriftx_bpar, neoclassical terms not supported
 if including neoclassical corrections to equilibrium,
 add in (Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
 and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
@@ -1317,7 +1340,7 @@ if running with maxwellian_normalzation = .true.</p>
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-allocate_arrays~3"></span> <h3>private  subroutine <a href='../proc/allocate_arrays~3.html'>allocate_arrays</a>()  
+    <div class="card-header codesum"><span class="anchor" id="proc-allocate_arrays~5"></span> <h3>private  subroutine <a href='../proc/allocate_arrays~5.html'>allocate_arrays</a>()  
 </h3></div>
     <div class="card-body">
           
@@ -1363,8 +1386,11 @@ if running with maxwellian_normalzation = .true.</p>
   <p>unless running in multibox mode, no need to worry about
 mb_communicate calls as the subroutine is immediately exited
 if not in multibox mode.
-save value of phi
-for use in diagnostics (to obtain frequency)</p><a href="../proc/advance_stella.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+save value of phi &amp; apar
+for use in diagnostics (to obtain frequency)
+reverse the order of operations every time step
+as part of alternating direction operator splitting
+this is needed to ensure 2nd order accuracy in time</p><a href="../proc/advance_stella.html" class="pull-right"><emph>Read more&hellip;</emph></a>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -1436,7 +1462,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~19"></span>
+              <span class="anchor" id="variable-g~17"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1487,11 +1513,11 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-advance_explicit_rk2"></span> <h3>private  subroutine <a href='../proc/advance_explicit_rk2.html'>advance_explicit_rk2</a>(g, restart_time_step, istep)  
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_explicit_euler"></span> <h3>private  subroutine <a href='../proc/advance_explicit_euler.html'>advance_explicit_euler</a>(g, restart_time_step, istep)  
 </h3></div>
     <div class="card-body">
           
-  <p>advance_expliciit_rk2 uses strong stability-preserving RK2 to advance one time step</p><a href="../proc/advance_explicit_rk2.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+  <p>advance_explicit_euler uses forward Euler to advance one time step</p><a href="../proc/advance_explicit_euler.html" class="pull-right"><emph>Read more&hellip;</emph></a>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -1506,7 +1532,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~20"></span>
+              <span class="anchor" id="variable-g~18"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1557,11 +1583,11 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-advance_explicit_rk3"></span> <h3>private  subroutine <a href='../proc/advance_explicit_rk3.html'>advance_explicit_rk3</a>(g, restart_time_step, istep)  
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_explicit_rk2"></span> <h3>private  subroutine <a href='../proc/advance_explicit_rk2.html'>advance_explicit_rk2</a>(g, restart_time_step, istep)  
 </h3></div>
     <div class="card-body">
           
-  <p>strong stability-preserving RK3</p><a href="../proc/advance_explicit_rk3.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+  <p>advance_expliciit_rk2 uses strong stability-preserving RK2 to advance one time step</p><a href="../proc/advance_explicit_rk2.html" class="pull-right"><emph>Read more&hellip;</emph></a>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -1576,7 +1602,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~21"></span>
+              <span class="anchor" id="variable-g~19"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1627,11 +1653,11 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-advance_explicit_rk4"></span> <h3>private  subroutine <a href='../proc/advance_explicit_rk4.html'>advance_explicit_rk4</a>(g, restart_time_step, istep)  
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_explicit_rk3"></span> <h3>private  subroutine <a href='../proc/advance_explicit_rk3.html'>advance_explicit_rk3</a>(g, restart_time_step, istep)  
 </h3></div>
     <div class="card-body">
           
-  <p>standard RK4</p><a href="../proc/advance_explicit_rk4.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+  <p>strong stability-preserving RK3</p><a href="../proc/advance_explicit_rk3.html" class="pull-right"><emph>Read more&hellip;</emph></a>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -1646,7 +1672,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~22"></span>
+              <span class="anchor" id="variable-g~20"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1697,13 +1723,11 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-solve_gke"></span> <h3>private  subroutine <a href='../proc/solve_gke.html'>solve_gke</a>(gin, rhs_ky, restart_time_step, istep)  
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_explicit_rk4"></span> <h3>private  subroutine <a href='../proc/advance_explicit_rk4.html'>advance_explicit_rk4</a>(g, restart_time_step, istep)  
 </h3></div>
     <div class="card-body">
           
-  <p>solve_gke accepts as argument gin, the guiding centre distribution function in k-space,
-and returns rhs_ky, the right-hand side of the gyrokinetic equation in k-space;
-i.e., if dg/dt = r, then rhs_ky = r*dt</p><a href="../proc/solve_gke.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+  <p>standard RK4</p><a href="../proc/advance_explicit_rk4.html" class="pull-right"><emph>Read more&hellip;</emph></a>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -1718,15 +1742,88 @@ i.e., if dg/dt = r, then rhs_ky = r*dt</p><a href="../proc/solve_gke.html" class
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-gin~7"></span>
+              <span class="anchor" id="variable-g~21"></span>
               complex,
             </td>
-<td>intent(in),</td>
+<td>intent(inout),</td>
               <td></td>            <td>
               dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
             </td>
             <td>::</td>
-            <td><strong>gin</strong></td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-restart_time_step~6"></span>
+              logical,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>restart_time_step</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-istep~7"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>istep</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-solve_gke"></span> <h3>private  subroutine <a href='../proc/solve_gke.html'>solve_gke</a>(pdf, rhs_ky, restart_time_step, istep)  
+</h3></div>
+    <div class="card-body">
+          
+  <p>solve_gke accepts as argument pdf, the guiding centre distribution function in k-space,
+and returns rhs_ky, the right-hand side of the gyrokinetic equation in k-space;
+i.e., if dg/dt = r, then rhs_ky = r<em>dt;
+note that if include_apar = T, then the input pdf is actually gbar = g + (Ze/T)</em>(vpa/c)<em><Apar></em>F0</p><a href="../proc/solve_gke.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-pdf"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>pdf</strong></td>
             <td>
 
             </td>
@@ -1748,7 +1845,7 @@ i.e., if dg/dt = r, then rhs_ky = r*dt</p><a href="../proc/solve_gke.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-restart_time_step~6"></span>
+              <span class="anchor" id="variable-restart_time_step~7"></span>
               logical,
             </td>
 <td>intent(out)</td>
@@ -1763,7 +1860,7 @@ i.e., if dg/dt = r, then rhs_ky = r*dt</p><a href="../proc/solve_gke.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep~7"></span>
+              <span class="anchor" id="variable-istep~8"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1803,7 +1900,7 @@ i.e., if dg/dt = r, then rhs_ky = r*dt</p><a href="../proc/solve_gke.html" class
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~24"></span>
+              <span class="anchor" id="variable-phi~16"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1818,7 +1915,7 @@ i.e., if dg/dt = r, then rhs_ky = r*dt</p><a href="../proc/solve_gke.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gout~7"></span>
+              <span class="anchor" id="variable-gout"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1839,12 +1936,98 @@ i.e., if dg/dt = r, then rhs_ky = r*dt</p><a href="../proc/solve_gke.html" class
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-advance_wdrifty_explicit"></span> <h3>private  subroutine <a href='../proc/advance_wdrifty_explicit.html'>advance_wdrifty_explicit</a>(g, phi, gout)  
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_wdrifty_explicit"></span> <h3>private  subroutine <a href='../proc/advance_wdrifty_explicit.html'>advance_wdrifty_explicit</a>(g, phi, bpar, gout)  
 </h3></div>
     <div class="card-body">
           
   <p>advance_wdrifty_explicit subroutine calculates and adds the y-component of the
 magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wdrifty_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~22"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-phi~17"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~11"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gout~2"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>gout</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_wdriftx_explicit"></span> <h3>private  subroutine <a href='../proc/advance_wdriftx_explicit.html'>advance_wdriftx_explicit</a>(g, phi, bpar, gout)  
+</h3></div>
+    <div class="card-body">
+          
+  <p>advance_wdriftx_explicit subroutine calculates and adds the x-component of the
+magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wdriftx_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -1874,7 +2057,7 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~25"></span>
+              <span class="anchor" id="variable-phi~18"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1889,63 +2072,7 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gout~8"></span>
-              complex,
-            </td>
-<td>intent(inout),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
-            </td>
-            <td>::</td>
-            <td><strong>gout</strong></td>
-            <td>
-
-            </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-    </div>
-  </div>
-
-              <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-advance_wdriftx_explicit"></span> <h3>private  subroutine <a href='../proc/advance_wdriftx_explicit.html'>advance_wdriftx_explicit</a>(g, phi, gout)  
-</h3></div>
-    <div class="card-body">
-          
-  <p>advance_wdriftx_explicit subroutine calculates and adds the x-component of the
-magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wdriftx_explicit.html" class="pull-right"><emph>Read more&hellip;</emph></a>
-
-  <h4>Arguments</h4>
-      <table class="table table-striped varlist">
-    <thead>
-      <tr>
-        <th scope="col">Type</th>
-<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
-        <th scope="col"></th>
-        <th scope="col">Name</th>
-        <th scope="col"></th>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-g~24"></span>
-              complex,
-            </td>
-<td>intent(in),</td>
-              <td></td>            <td>
-              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
-            </td>
-            <td>::</td>
-            <td><strong>g</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-phi~26"></span>
+              <span class="anchor" id="variable-bpar~12"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1953,14 +2080,14 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
               dimension(:, :, -nzgrid:, :)
             </td>
             <td>::</td>
-            <td><strong>phi</strong></td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gout~9"></span>
+              <span class="anchor" id="variable-gout~3"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2009,10 +2136,10 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~25"></span>
+              <span class="anchor" id="variable-g~24"></span>
               complex,
             </td>
-<td>intent(in),</td>
+<td>intent(inout),</td>
               <td></td>            <td>
               dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
             </td>
@@ -2024,7 +2151,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gout~10"></span>
+              <span class="anchor" id="variable-gout~4"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2039,7 +2166,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-restart_time_step~7"></span>
+              <span class="anchor" id="variable-restart_time_step~8"></span>
               logical,
             </td>
 <td>intent(out)</td>
@@ -2054,7 +2181,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep~8"></span>
+              <span class="anchor" id="variable-istep~9"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -2094,7 +2221,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~26"></span>
+              <span class="anchor" id="variable-g~25"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2109,7 +2236,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gout~11"></span>
+              <span class="anchor" id="variable-gout~5"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2124,7 +2251,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-restart_time_step~8"></span>
+              <span class="anchor" id="variable-restart_time_step~9"></span>
               logical,
             </td>
 <td>intent(out)</td>
@@ -2164,7 +2291,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~27"></span>
+              <span class="anchor" id="variable-g~26"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2179,7 +2306,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gout~12"></span>
+              <span class="anchor" id="variable-gout~6"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2220,7 +2347,7 @@ accepts g(ky,kx)</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~28"></span>
+              <span class="anchor" id="variable-g~27"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2276,7 +2403,7 @@ accepts g(ky,kx,z,tube)</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~29"></span>
+              <span class="anchor" id="variable-g~28"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2332,7 +2459,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~30"></span>
+              <span class="anchor" id="variable-g~29"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2388,7 +2515,7 @@ accepts g(ky,kx)</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~31"></span>
+              <span class="anchor" id="variable-g~30"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2444,7 +2571,7 @@ accepts g(ky,kx,z,tube)</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~32"></span>
+              <span class="anchor" id="variable-g~31"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2500,7 +2627,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~33"></span>
+              <span class="anchor" id="variable-g~32"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2555,7 +2682,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~34"></span>
+              <span class="anchor" id="variable-g~33"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2585,7 +2712,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-src~23"></span>
+              <span class="anchor" id="variable-src"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2625,7 +2752,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~35"></span>
+              <span class="anchor" id="variable-g~34"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2655,7 +2782,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-src~24"></span>
+              <span class="anchor" id="variable-src~2"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2676,7 +2803,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-advance_implicit"></span> <h3>private  subroutine <a href='../proc/advance_implicit.html'>advance_implicit</a>(istep, phi, apar, g)  
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_implicit"></span> <h3>private  subroutine <a href='../proc/advance_implicit.html'>advance_implicit</a>(istep, phi, apar, bpar, g)  
 </h3></div>
     <div class="card-body">
           
@@ -2695,7 +2822,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep~9"></span>
+              <span class="anchor" id="variable-istep~10"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -2710,7 +2837,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~27"></span>
+              <span class="anchor" id="variable-phi~19"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2725,7 +2852,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-apar~9"></span>
+              <span class="anchor" id="variable-apar~12"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2740,7 +2867,22 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~36"></span>
+              <span class="anchor" id="variable-bpar~13"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~35"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2820,7 +2962,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-field~7"></span>
+              <span class="anchor" id="variable-field~5"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2875,7 +3017,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-dist~9"></span>
+              <span class="anchor" id="variable-dist~11"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2978,7 +3120,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-deallocate_arrays~2"></span> <h3>private  subroutine <a href='../proc/deallocate_arrays~2.html'>deallocate_arrays</a>()  
+    <div class="card-header codesum"><span class="anchor" id="proc-deallocate_arrays~3"></span> <h3>private  subroutine <a href='../proc/deallocate_arrays~3.html'>deallocate_arrays</a>()  
 </h3></div>
     <div class="card-body">
           
@@ -3007,13 +3149,13 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-242-g2fc9f395b</small></p>
+<br /><small>v0.5.1-346-g52df87b42</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-16T17:55:20.489058             </p>
+ on 2024-07-16T18:19:37.478445             </p>
           </div>
         </div>
         <br>

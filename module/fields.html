@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 3.5% of total for modules and submodules.">1273 statements</a>
+                 title=" 4.4% of total for modules and submodules.">1652 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -131,6 +131,7 @@
             <a class="list-group-item" href="../module/fields.html#variable-fields_initialized">fields_initialized</a>
             <a class="list-group-item" href="../module/fields.html#variable-debug~3">debug</a>
             <a class="list-group-item" href="../module/fields.html#variable-zm">zm</a>
+            <a class="list-group-item" href="../module/fields.html#variable-nfields">nfields</a>
             <a class="list-group-item" href="../module/fields.html#variable-time_field_solve">time_field_solve</a>
         </div>
       </div>
@@ -150,6 +151,7 @@
       <div id="inters-0" class="collapse">
         <div class="list-group list-group-flush">
             <a class="list-group-item" href="../module/fields.html#interface-get_dchidy">get_dchidy</a>
+            <a class="list-group-item" href="../module/fields.html#interface-advance_fields">advance_fields</a>
         </div>
       </div>
     </div>
@@ -170,16 +172,20 @@
             <a class="list-group-item" href="../module/fields.html#proc-init_fields_ffs">init_fields_ffs</a>
             <a class="list-group-item" href="../module/fields.html#proc-init_gamma0_factor_ffs">init_gamma0_factor_ffs</a>
             <a class="list-group-item" href="../module/fields.html#proc-init_adiabatic_response_factor">init_adiabatic_response_factor</a>
-            <a class="list-group-item" href="../module/fields.html#proc-allocate_arrays~2">allocate_arrays</a>
+            <a class="list-group-item" href="../module/fields.html#proc-allocate_arrays~3">allocate_arrays</a>
             <a class="list-group-item" href="../module/fields.html#proc-enforce_reality_field">enforce_reality_field</a>
-            <a class="list-group-item" href="../module/fields.html#proc-advance_fields">advance_fields</a>
+            <a class="list-group-item" href="../module/fields.html#proc-advance_fields_vmu_lo">advance_fields_vmu_lo</a>
+            <a class="list-group-item" href="../module/fields.html#proc-advance_fields_kxkyz_lo">advance_fields_kxkyz_lo</a>
             <a class="list-group-item" href="../module/fields.html#proc-get_fields">get_fields</a>
             <a class="list-group-item" href="../module/fields.html#proc-get_fields_vmulo">get_fields_vmulo</a>
             <a class="list-group-item" href="../module/fields.html#proc-get_fields_ffs">get_fields_ffs</a>
             <a class="list-group-item" href="../module/fields.html#proc-get_fields_by_spec">get_fields_by_spec</a>
             <a class="list-group-item" href="../module/fields.html#proc-get_fields_by_spec_idx">get_fields_by_spec_idx</a>
             <a class="list-group-item" href="../module/fields.html#proc-get_phi">get_phi</a>
+            <a class="list-group-item" href="../module/fields.html#proc-get_phi_and_bpar">get_phi_and_bpar</a>
             <a class="list-group-item" href="../module/fields.html#proc-get_phi_radial">get_phi_radial</a>
+            <a class="list-group-item" href="../module/fields.html#proc-get_apar">get_apar</a>
+            <a class="list-group-item" href="../module/fields.html#proc-advance_apar">advance_apar</a>
             <a class="list-group-item" href="../module/fields.html#proc-add_adiabatic_response_radial">add_adiabatic_response_radial</a>
             <a class="list-group-item" href="../module/fields.html#proc-get_phi_ffs">get_phi_ffs</a>
             <a class="list-group-item" href="../module/fields.html#proc-add_radial_correction_int_species">add_radial_correction_int_species</a>
@@ -243,7 +249,7 @@
               <span class="anchor" id="variable-apar_denom"></span>
               real,
             </td>
-              <td>private,</td>
+              <td>public,</td>
             <td>
               dimension(:, :, :), allocatable
             </td>
@@ -444,6 +450,23 @@
         </tr>
         <tr>
             <td>
+              <span class="anchor" id="variable-nfields"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nfields</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
               <span class="anchor" id="variable-time_field_solve"></span>
               real,
             </td>
@@ -477,11 +500,12 @@
     <ul class="list-group">
           <li class="list-group-item">
                 <h3>
-    private  subroutine <a href='../proc/get_dchidy_4d.html'>get_dchidy_4d</a>(phi, apar, dchidy)  
+    private  subroutine <a href='../proc/get_dchidy_4d.html'>get_dchidy_4d</a>(phi, apar, bpar, dchidy)  
 
     </h3>
     
   <p>compute d<chi>/dy in (ky,kx,z,tube) space</p>
+<p>include bpar contribution</p>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -496,7 +520,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~15"></span>
+              <span class="anchor" id="variable-phi~13"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -511,7 +535,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-apar~6"></span>
+              <span class="anchor" id="variable-apar~9"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -520,6 +544,21 @@
             </td>
             <td>::</td>
             <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~8"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -546,11 +585,12 @@
           </li>
           <li class="list-group-item">
                 <h3>
-    private  subroutine <a href='../proc/get_dchidy_2d.html'>get_dchidy_2d</a>(iz, ivmu, phi, apar, dchidy)  
+    private  subroutine <a href='../proc/get_dchidy_2d.html'>get_dchidy_2d</a>(iz, ivmu, phi, apar, bpar, dchidy)  
 
     </h3>
     
   <p>compute d<chi>/dy in (ky,kx) space</p>
+<p>include bpar contribution</p>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -565,7 +605,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iz~33"></span>
+              <span class="anchor" id="variable-iz~30"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -580,7 +620,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~19"></span>
+              <span class="anchor" id="variable-ivmu~12"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -595,7 +635,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~16"></span>
+              <span class="anchor" id="variable-phi~14"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -610,7 +650,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-apar~7"></span>
+              <span class="anchor" id="variable-apar~10"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -619,6 +659,21 @@
             </td>
             <td>::</td>
             <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~9"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -634,6 +689,225 @@
             </td>
             <td>::</td>
             <td><strong>dchidy</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+          </li>
+    </ul>
+  </div>
+
+              <div class="card">
+    <div class="card-header bg-light codesum">
+      <span class="anchor" id="interface-advance_fields"></span>
+      <h3>public        interface <a href='../interface/advance_fields.html'>advance_fields</a> 
+      </h3>
+    </div>
+    <ul class="list-group">
+          <li class="list-group-item">
+                <h3>
+    private  subroutine <a href='../proc/advance_fields_vmu_lo.html'>advance_fields_vmu_lo</a>(g, phi, apar, bpar, dist)  
+
+    </h3>
+    
+  <p>time the communications + field solve
+fields_kxkyz = F is the default
+first gather (vpa,mu) onto processor for v-space operations
+v-space operations are field solve, dg/dvpa, and collisions
+given gvmu with vpa and mu local, calculate the corresponding fields
+set a flag to indicate that the fields have been updated
+this helps avoid unnecessary field solves
+time the communications + field solve</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~8"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-phi~3"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~2"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~3"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dist"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dist</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+          </li>
+          <li class="list-group-item">
+                <h3>
+    private  subroutine <a href='../proc/advance_fields_kxkyz_lo.html'>advance_fields_kxkyz_lo</a>(gvmu, phi, apar, bpar, dist)  
+
+    </h3>
+    
+  <p>time the communications + field solve</p>
+<p>given gvmu with vpa and mu local, calculate the corresponding fields
+set a flag to indicate that the fields have been updated
+this helps avoid unnecessary field solves
+time the communications + field solve</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gvmu"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, kxkyz_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>gvmu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-phi~4"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~3"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~4"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dist~2"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dist</strong></td>
             <td>
 
             </td>
@@ -741,7 +1015,7 @@ is stored in adiabatic_response_factor</p><a href="../proc/init_adiabatic_respon
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-allocate_arrays~2"></span> <h3>private  subroutine <a href='../proc/allocate_arrays~2.html'>allocate_arrays</a>()  
+    <div class="card-header codesum"><span class="anchor" id="proc-allocate_arrays~3"></span> <h3>private  subroutine <a href='../proc/allocate_arrays~3.html'>allocate_arrays</a>()  
 </h3></div>
     <div class="card-body">
           
@@ -794,7 +1068,7 @@ is stored in adiabatic_response_factor</p><a href="../proc/init_adiabatic_respon
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-advance_fields"></span> <h3>public  subroutine <a href='../proc/advance_fields.html'>advance_fields</a>(g, phi, apar, dist)  
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_fields_vmu_lo"></span> <h3>private  subroutine <a href='../proc/advance_fields_vmu_lo.html'>advance_fields_vmu_lo</a>(g, phi, apar, bpar, dist)  
 </h3></div>
     <div class="card-body">
           
@@ -820,7 +1094,7 @@ time the communications + field solve</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~6"></span>
+              <span class="anchor" id="variable-g~8"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -835,7 +1109,7 @@ time the communications + field solve</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~7"></span>
+              <span class="anchor" id="variable-phi~3"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -865,7 +1139,22 @@ time the communications + field solve</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dist~2"></span>
+              <span class="anchor" id="variable-bpar~3"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dist"></span>
               character(len=*),
             </td>
 <td>intent(in)</td>
@@ -886,11 +1175,11 @@ time the communications + field solve</p>
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-get_fields"></span> <h3>public  subroutine <a href='../proc/get_fields.html'>get_fields</a>(g, phi, apar, dist, skip_fsa)  
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_fields_kxkyz_lo"></span> <h3>private  subroutine <a href='../proc/advance_fields_kxkyz_lo.html'>advance_fields_kxkyz_lo</a>(gvmu, phi, apar, bpar, dist)  
 </h3></div>
     <div class="card-body">
           
-  
+  <p>time the communications + field solve</p><a href="../proc/advance_fields_kxkyz_lo.html" class="pull-right"><emph>Read more&hellip;</emph></a>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -905,7 +1194,7 @@ time the communications + field solve</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~7"></span>
+              <span class="anchor" id="variable-gvmu"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -913,14 +1202,14 @@ time the communications + field solve</p>
               dimension(:, :, kxkyz_lo%llim_proc:)
             </td>
             <td>::</td>
-            <td><strong>g</strong></td>
+            <td><strong>gvmu</strong></td>
             <td>
 
             </td>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~8"></span>
+              <span class="anchor" id="variable-phi~4"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -944,6 +1233,122 @@ time the communications + field solve</p>
             </td>
             <td>::</td>
             <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~4"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dist~2"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dist</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_fields"></span> <h3>public  subroutine <a href='../proc/get_fields.html'>get_fields</a>(g, phi, apar, bpar, dist, skip_fsa)  
+</h3></div>
+    <div class="card-body">
+          
+  <p>integrate g to get sum_s Z_s n_s J0 g and store in phi
+integrate g to get - 2 beta sum_s n_s T_s J1 mu g and store in bpar</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~9"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, kxkyz_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-phi~5"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~4"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~5"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -986,11 +1391,14 @@ time the communications + field solve</p>
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-get_fields_vmulo"></span> <h3>private  subroutine <a href='../proc/get_fields_vmulo.html'>get_fields_vmulo</a>(g, phi, apar, dist, skip_fsa)  
+    <div class="card-header codesum"><span class="anchor" id="proc-get_fields_vmulo"></span> <h3>private  subroutine <a href='../proc/get_fields_vmulo.html'>get_fields_vmulo</a>(g, phi, apar, bpar, dist, skip_fsa)  
 </h3></div>
     <div class="card-body">
           
-  <p>store result in phi, which will be further modified below to account for polarization term</p>
+  <p>store result in phi, which will be further modified below to account for polarization term
+store result in phi, which will be further modified below to account for polarization term
+store result in bpar, which will be further modified below to account for polarization term
+store result in apar, which will be further modified below to account for apar pre-factor</p>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -1005,7 +1413,7 @@ time the communications + field solve</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~8"></span>
+              <span class="anchor" id="variable-g~10"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1020,7 +1428,7 @@ time the communications + field solve</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~9"></span>
+              <span class="anchor" id="variable-phi~6"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -1035,7 +1443,7 @@ time the communications + field solve</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-apar~4"></span>
+              <span class="anchor" id="variable-apar~5"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -1044,6 +1452,21 @@ time the communications + field solve</p>
             </td>
             <td>::</td>
             <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~6"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -1106,7 +1529,7 @@ and calculates/returns the electronstatic potential phi for full_flux_surface si
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~9"></span>
+              <span class="anchor" id="variable-g~11"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1121,7 +1544,7 @@ and calculates/returns the electronstatic potential phi for full_flux_surface si
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~10"></span>
+              <span class="anchor" id="variable-phi~7"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -1136,7 +1559,7 @@ and calculates/returns the electronstatic potential phi for full_flux_surface si
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-apar~5"></span>
+              <span class="anchor" id="variable-apar~6"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -1176,7 +1599,7 @@ and calculates/returns the electronstatic potential phi for full_flux_surface si
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~11"></span>
+              <span class="anchor" id="variable-g~13"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1261,7 +1684,7 @@ and calculates/returns the electronstatic potential phi for full_flux_surface si
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~12"></span>
+              <span class="anchor" id="variable-g~14"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1316,7 +1739,7 @@ and calculates/returns the electronstatic potential phi for full_flux_surface si
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~11"></span>
+              <span class="anchor" id="variable-phi~8"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1367,6 +1790,94 @@ and calculates/returns the electronstatic potential phi for full_flux_surface si
   </div>
 
               <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_phi_and_bpar"></span> <h3>private  subroutine <a href='../proc/get_phi_and_bpar.html'>get_phi_and_bpar</a>(phi, bpar, dist, skip_fsa)  
+</h3></div>
+    <div class="card-body">
+          
+  <p>divide sum ( Zs int J0 h d^3 v) by sum(Zs^2 ns / Ts)
+do nothing for bpar because
+bpar = - 2 * beta * sum(Ts ns int (J1/bs) mu h d^3 v)
+which is already stored in bpar when dist = 'h'.</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-phi~9"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~7"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dist~6"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dist</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-skip_fsa~5"></span>
+              logical,
+            </td>
+<td>intent(in),</td>
+              <td>optional</td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>skip_fsa</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
     <div class="card-header codesum"><span class="anchor" id="proc-get_phi_radial"></span> <h3>private  subroutine <a href='../proc/get_phi_radial.html'>get_phi_radial</a>(phi)  
 </h3></div>
     <div class="card-body">
@@ -1387,7 +1898,7 @@ global simulations</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~12"></span>
+              <span class="anchor" id="variable-phi~10"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1396,6 +1907,131 @@ global simulations</p>
             </td>
             <td>::</td>
             <td><strong>phi</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_apar"></span> <h3>private  subroutine <a href='../proc/get_apar.html'>get_apar</a>(apar, dist)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~7"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dist~7"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dist</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_apar"></span> <h3>public  subroutine <a href='../proc/advance_apar.html'>advance_apar</a>(g, dist, apar)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~15"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, kxkyz_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dist~8"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>dist</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-apar~8"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>apar</strong></td>
             <td>
 
             </td>
@@ -1428,7 +2064,7 @@ This actually entails solving for the whole ky = 0 slice of phi at once (not rea
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~13"></span>
+              <span class="anchor" id="variable-phi~11"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1472,7 +2108,7 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-rhs~4"></span>
+              <span class="anchor" id="variable-rhs"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1487,7 +2123,7 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~14"></span>
+              <span class="anchor" id="variable-phi~12"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -1568,7 +2204,7 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~13"></span>
+              <span class="anchor" id="variable-g~16"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1598,7 +2234,7 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dist~6"></span>
+              <span class="anchor" id="variable-dist~9"></span>
               character(len=*),
             </td>
 <td>intent(in)</td>
@@ -1659,11 +2295,11 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-get_dchidy_4d"></span> <h3>private  subroutine <a href='../proc/get_dchidy_4d.html'>get_dchidy_4d</a>(phi, apar, dchidy)  
+    <div class="card-header codesum"><span class="anchor" id="proc-get_dchidy_4d"></span> <h3>private  subroutine <a href='../proc/get_dchidy_4d.html'>get_dchidy_4d</a>(phi, apar, bpar, dchidy)  
 </h3></div>
     <div class="card-body">
           
-  <p>compute d<chi>/dy in (ky,kx,z,tube) space</p>
+  <p>compute d<chi>/dy in (ky,kx,z,tube) space</p><a href="../proc/get_dchidy_4d.html" class="pull-right"><emph>Read more&hellip;</emph></a>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -1678,7 +2314,7 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~15"></span>
+              <span class="anchor" id="variable-phi~13"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1693,7 +2329,7 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-apar~6"></span>
+              <span class="anchor" id="variable-apar~9"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1702,6 +2338,21 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
             </td>
             <td>::</td>
             <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~8"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -1729,11 +2380,11 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-get_dchidy_2d"></span> <h3>private  subroutine <a href='../proc/get_dchidy_2d.html'>get_dchidy_2d</a>(iz, ivmu, phi, apar, dchidy)  
+    <div class="card-header codesum"><span class="anchor" id="proc-get_dchidy_2d"></span> <h3>private  subroutine <a href='../proc/get_dchidy_2d.html'>get_dchidy_2d</a>(iz, ivmu, phi, apar, bpar, dchidy)  
 </h3></div>
     <div class="card-body">
           
-  <p>compute d<chi>/dy in (ky,kx) space</p>
+  <p>compute d<chi>/dy in (ky,kx) space</p><a href="../proc/get_dchidy_2d.html" class="pull-right"><emph>Read more&hellip;</emph></a>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -1748,7 +2399,7 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iz~33"></span>
+              <span class="anchor" id="variable-iz~30"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1763,7 +2414,7 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~19"></span>
+              <span class="anchor" id="variable-ivmu~12"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1778,7 +2429,7 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~16"></span>
+              <span class="anchor" id="variable-phi~14"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1793,7 +2444,7 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-apar~7"></span>
+              <span class="anchor" id="variable-apar~10"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1802,6 +2453,21 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
             </td>
             <td>::</td>
             <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~9"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -1829,11 +2495,11 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-get_dchidx"></span> <h3>public  subroutine <a href='../proc/get_dchidx.html'>get_dchidx</a>(iz, ivmu, phi, apar, dchidx)  
+    <div class="card-header codesum"><span class="anchor" id="proc-get_dchidx"></span> <h3>public  subroutine <a href='../proc/get_dchidx.html'>get_dchidx</a>(iz, ivmu, phi, apar, bpar, dchidx)  
 </h3></div>
     <div class="card-body">
           
-  <p>compute d<chi>/dx in (ky,kx) space</p>
+  <p>compute d<chi>/dx in (ky,kx) space</p><a href="../proc/get_dchidx.html" class="pull-right"><emph>Read more&hellip;</emph></a>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -1848,7 +2514,7 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iz~34"></span>
+              <span class="anchor" id="variable-iz~31"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1863,7 +2529,7 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~20"></span>
+              <span class="anchor" id="variable-ivmu~13"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1878,7 +2544,7 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~17"></span>
+              <span class="anchor" id="variable-phi~15"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1893,7 +2559,7 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-apar~8"></span>
+              <span class="anchor" id="variable-apar~11"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1902,6 +2568,21 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
             </td>
             <td>::</td>
             <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~10"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -1958,13 +2639,13 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-242-g2fc9f395b</small></p>
+<br /><small>v0.5.1-346-g52df87b42</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-16T17:55:20.489058             </p>
+ on 2024-07-16T18:19:37.478445             </p>
           </div>
         </div>
         <br>

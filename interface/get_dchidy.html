@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title="<p> 0.0% of total for procedures.</p>Including implementation: 56 statements,  0.2% of total for procedures.">4 statements</a>
+                 title="<p> 0.0% of total for procedures.</p>Including implementation: 82 statements,  0.2% of total for procedures.">4 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -158,11 +158,11 @@
 
         <h2>Module Procedures</h2>
             <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-get_dchidy_4d"></span> <h3>private  subroutine <a href='../proc/get_dchidy_4d.html'>get_dchidy_4d</a>(phi, apar, dchidy)  
+    <div class="card-header codesum"><span class="anchor" id="proc-get_dchidy_4d"></span> <h3>private  subroutine <a href='../proc/get_dchidy_4d.html'>get_dchidy_4d</a>(phi, apar, bpar, dchidy)  
 </h3></div>
     <div class="card-body">
           
-  <p>compute d<chi>/dy in (ky,kx,z,tube) space</p>
+  <p>compute d<chi>/dy in (ky,kx,z,tube) space</p><a href="../proc/get_dchidy_4d.html" class="pull-right"><emph>Read more&hellip;</emph></a>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -177,7 +177,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~15"></span>
+              <span class="anchor" id="variable-phi~13"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -192,7 +192,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-apar~6"></span>
+              <span class="anchor" id="variable-apar~9"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -201,6 +201,21 @@
             </td>
             <td>::</td>
             <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~8"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -228,11 +243,11 @@
   </div>
 
             <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-get_dchidy_2d"></span> <h3>private  subroutine <a href='../proc/get_dchidy_2d.html'>get_dchidy_2d</a>(iz, ivmu, phi, apar, dchidy)  
+    <div class="card-header codesum"><span class="anchor" id="proc-get_dchidy_2d"></span> <h3>private  subroutine <a href='../proc/get_dchidy_2d.html'>get_dchidy_2d</a>(iz, ivmu, phi, apar, bpar, dchidy)  
 </h3></div>
     <div class="card-body">
           
-  <p>compute d<chi>/dy in (ky,kx) space</p>
+  <p>compute d<chi>/dy in (ky,kx) space</p><a href="../proc/get_dchidy_2d.html" class="pull-right"><emph>Read more&hellip;</emph></a>
 
   <h4>Arguments</h4>
       <table class="table table-striped varlist">
@@ -247,7 +262,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iz~33"></span>
+              <span class="anchor" id="variable-iz~30"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -262,7 +277,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~19"></span>
+              <span class="anchor" id="variable-ivmu~12"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -277,7 +292,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~16"></span>
+              <span class="anchor" id="variable-phi~14"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -292,7 +307,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-apar~7"></span>
+              <span class="anchor" id="variable-apar~10"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -301,6 +316,21 @@
             </td>
             <td>::</td>
             <td><strong>apar</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bpar~9"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
             <td>
 
             </td>
@@ -338,13 +368,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-242-g2fc9f395b</small></p>
+<br /><small>v0.5.1-346-g52df87b42</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-16T17:55:20.489058             </p>
+ on 2024-07-16T18:19:37.478445             </p>
           </div>
         </div>
         <br>
