@@ -49,7 +49,7 @@ contains
       debug = debug .and. proc0
       if (fields_initialized) return
       fields_initialized = .true.
-      
+
       !> Allocate arrays such as phi that are needed throughout the simulation
       call allocate_arrays
 
@@ -57,7 +57,7 @@ contains
          call init_fields_ffs
       else
          call init_fields_fluxtube
-         if(radial_variation) then 
+         if (radial_variation) then
             call allocate_arrays_radial_variation
             call init_radial_field_solve
          end if
@@ -68,7 +68,7 @@ contains
 
    end subroutine init_fields
 
-   !> Allocate arrays needed for solving fields for all versions of stella 
+   !> Allocate arrays needed for solving fields for all versions of stella
    subroutine allocate_arrays
 
       use fields_arrays, only: phi, phi_old
@@ -84,24 +84,23 @@ contains
          allocate (phi(naky, nakx, -nzgrid:nzgrid, ntubes))
          phi = 0.
       end if
-     
+
       if (.not. allocated(phi_old)) then
          allocate (phi_old(naky, nakx, -nzgrid:nzgrid, ntubes))
          phi_old = 0.
       end if
 
-      !> TODO-GA: neeed to make this such that it is only for EM stella 
+      !> TODO-GA: neeed to make this such that it is only for EM stella
       if (.not. allocated(apar)) then
          allocate (apar(naky, nakx, -nzgrid:nzgrid, ntubes))
          apar = 0.
       end if
 
-      if (.not. allocated(gamtot)) then 
+      if (.not. allocated(gamtot)) then
          allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
       end if
 
    end subroutine allocate_arrays
-   
 
    subroutine enforce_reality_field(fin)
 
@@ -155,22 +154,22 @@ contains
       if (fields_updated) return
 
       !> time the communications + field solve
-      if (proc0) call time_message(.false., time_field_solve(:,1), ' fields')
+      if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
       !> fields_kxkyz = F is the default
-    
-      !> Get phi for fluxtube 
-      call advance_fields_fluxtube (g, phi, apar, dist)
+
+      !> Get phi for fluxtube
+      call advance_fields_fluxtube(g, phi, apar, dist)
 
       !> set a flag to indicate that the fields have been updated
       !> this helps avoid unnecessary field solves
       fields_updated = .true.
       !> time the communications + field solve
-      if (proc0) call time_message(.false., time_field_solve(:,1), ' fields')
+      if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
 
    end subroutine advance_fields
 
    !> ######################################################################################
-   !> Routines that use fields 
+   !> Routines that use fields
    !> ######################################################################################
    !> rescale fields, including the distribution function
    subroutine rescale_fields(target_amplitude)
@@ -328,7 +327,7 @@ contains
       implicit none
 
       if (allocated(phi)) deallocate (phi)
-      if (allocated(phi_old)) deallocate (phi_old)         
+      if (allocated(phi_old)) deallocate (phi_old)
       if (allocated(gamtot)) deallocate (gamtot)
       if (allocated(gamtot3)) deallocate (gamtot3)
 
@@ -337,8 +336,8 @@ contains
 
       !> TODO-GA: REMOVE
       if (allocated(apar)) deallocate (apar)
-      if(full_flux_surface) call finish_fields_ffs
-      if(radial_variation) call finish_radial_fields
+      if (full_flux_surface) call finish_fields_ffs
+      if (radial_variation) call finish_radial_fields
 
       fields_initialized = .false.
 

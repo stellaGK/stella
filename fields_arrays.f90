@@ -54,6 +54,6 @@ module fields_arrays
 
    !> NB: may want to move
    real :: gamtot_h, gamtot3_h, efac, efacp
-   real, dimension(2,5) :: time_field_solve = 0.
+   real, dimension(2, 5) :: time_field_solve = 0.
 
 end module fields_arrays

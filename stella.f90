@@ -121,7 +121,6 @@ contains
       use dissipation, only: init_dissipation
       use sources, only: init_sources
       use volume_averages, only: init_volume_averages, volume_average
-      
 
       implicit none
 
