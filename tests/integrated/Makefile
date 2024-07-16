@@ -13,9 +13,9 @@ create-test-virtualenv:
 	"
 
 # Run the integrated tests
-check-integrated: check-integrated-dependencies stella
+check-integrated-tests: check-integrated-dependencies stella
 	@echo "Running: integrated tests"
-	@pytest
+	@pytest -W ignore::DeprecationWarning
 
 # Check that all the Python dependencies are importable
 check-integrated-dependencies:
