@@ -80,20 +80,20 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.6% of total for procedures.">215 statements</a>
+                 title=" 0.0% of total for procedures.">17 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
               <i class="fa fa-code"></i>
-              <a href="../src/run_parameters.f90"> Source File</a>
+              <a href="../src/stella_layouts.f90"> Source File</a>
             </li>
         </ul>
       </div>
       <div class="col">
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb justify-content-end mb-0">
-                <li class="breadcrumb-item"><a href='../sourcefile/run_parameters.f90.html'>run_parameters.f90</a></li>
-                <li class="breadcrumb-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
+                <li class="breadcrumb-item"><a href='../sourcefile/stella_layouts.f90.html'>stella_layouts.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/stella_layouts.html'>stella_layouts</a></li>
             <li class="breadcrumb-item active" aria-current="page">read_parameters</li>
           </ol>
         </nav>
@@ -138,7 +138,7 @@
       </a>
       <div id="namelists-0" class="collapse">
         <div class="list-group list-group-flush">
-            <a class="list-group-item" href="../proc/read_parameters~11.html#namelist-knobs">knobs</a>
+            <a class="list-group-item" href="../proc/read_parameters~11.html#namelist-layouts_knobs">layouts_knobs</a>
         </div>
       </div>
     </div>
@@ -160,9 +160,6 @@
               <ul class="list-inline">
                   <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
                   <li class="list-inline-item"><a href='../module/file_utils.html'>file_utils</a></li>
-                  <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
-                  <li class="list-inline-item"><a href='../module/physics_parameters.html'>physics_parameters</a></li>
-                  <li class="list-inline-item"><a href='../module/text_options.html'>text_options</a></li>
               </ul>
             </li>
         </ul>
@@ -170,7 +167,6 @@
     </div>
 
 
-    <p>print warning messages and override inconsistent or unsupported options for full_flux_surface = T</p>
 
 
     <h3>Arguments</h3>
@@ -191,15 +187,15 @@
         <h2>Namelists</h2>
             <div class="card">
     <div class="card-header codesum">
-      <span class="anchor" id="namelist-knobs"></span>
-      <h3>Namelist <a href='../namelist/knobs.html'>knobs</a></h3>
+      <span class="anchor" id="namelist-layouts_knobs"></span>
+      <h3>Namelist <a href='../namelist/layouts_knobs.html'>layouts_knobs</a></h3>
     </div>
     <div class="card-body">
         
   <br class="visible-xs visible-sm hidden-md">
   <section>
     <h2>Variables</h2>
-    <table class="table table-striped" id="namelist-knobs">
+    <table class="table table-striped" id="namelist-layouts_knobs">
       <thead><tr>
           <th>Name</th>
           <th>Type</th>
@@ -207,233 +203,16 @@
           <th>Description</th>
       </tr></thead>
       <tbody>
-              <tr id="variable-fphi">
-      <td><a href="#variable-fphi">fphi</a></td>
-      <td>real</td>
+              <tr id="variable-xyzs_layout">
+      <td><a href="#variable-xyzs_layout">xyzs_layout</a></td>
+      <td>character(len=4)</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-fapar">
-      <td><a href="#variable-fapar">fapar</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-fbpar">
-      <td><a href="#variable-fbpar">fbpar</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-delt~4">
-      <td><a href="#variable-delt~4">delt</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-nstep~2">
-      <td><a href="#variable-nstep~2">nstep</a></td>
-      <td>integer</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-tend">
-      <td><a href="#variable-tend">tend</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-delt_option">
-      <td><a href="#variable-delt_option">delt_option</a></td>
-      <td>character(len=20)</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-lu_option">
-      <td><a href="#variable-lu_option">lu_option</a></td>
-      <td>character(len=20)</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-avail_cpu_time">
-      <td><a href="#variable-avail_cpu_time">avail_cpu_time</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-delt_max~2">
-      <td><a href="#variable-delt_max~2">delt_max</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-delt_min~2">
-      <td><a href="#variable-delt_min~2">delt_min</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-cfl_cushion_upper">
-      <td><a href="#variable-cfl_cushion_upper">cfl_cushion_upper</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-cfl_cushion_middle">
-      <td><a href="#variable-cfl_cushion_middle">cfl_cushion_middle</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-cfl_cushion_lower">
-      <td><a href="#variable-cfl_cushion_lower">cfl_cushion_lower</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-stream_implicit">
-      <td><a href="#variable-stream_implicit">stream_implicit</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-mirror_implicit~2">
-      <td><a href="#variable-mirror_implicit~2">mirror_implicit</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-driftkinetic_implicit">
-      <td><a href="#variable-driftkinetic_implicit">driftkinetic_implicit</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-drifts_implicit">
-      <td><a href="#variable-drifts_implicit">drifts_implicit</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-use_deltaphi_for_response_matrix">
-      <td><a href="#variable-use_deltaphi_for_response_matrix">use_deltaphi_for_response_matrix</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-maxwellian_normalization">
-      <td><a href="#variable-maxwellian_normalization">maxwellian_normalization</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-stream_matrix_inversion">
-      <td><a href="#variable-stream_matrix_inversion">stream_matrix_inversion</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-maxwellian_inside_zed_derivative">
-      <td><a href="#variable-maxwellian_inside_zed_derivative">maxwellian_inside_zed_derivative</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-mirror_semi_lagrange">
-      <td><a href="#variable-mirror_semi_lagrange">mirror_semi_lagrange</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-mirror_linear_interp">
-      <td><a href="#variable-mirror_linear_interp">mirror_linear_interp</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-zed_upwind">
-      <td><a href="#variable-zed_upwind">zed_upwind</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-vpa_upwind">
-      <td><a href="#variable-vpa_upwind">vpa_upwind</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-time_upwind">
-      <td><a href="#variable-time_upwind">time_upwind</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-fields_kxkyz">
-      <td><a href="#variable-fields_kxkyz">fields_kxkyz</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-mat_gen">
-      <td><a href="#variable-mat_gen">mat_gen</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-mat_read">
-      <td><a href="#variable-mat_read">mat_read</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-rng_seed">
-      <td><a href="#variable-rng_seed">rng_seed</a></td>
-      <td>integer</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-ky_solve_radial">
-      <td><a href="#variable-ky_solve_radial">ky_solve_radial</a></td>
-      <td>integer</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-ky_solve_real">
-      <td><a href="#variable-ky_solve_real">ky_solve_real</a></td>
-      <td>logical</td>
+              <tr id="variable-vms_layout">
+      <td><a href="#variable-vms_layout">vms_layout</a></td>
+      <td>character(len=3)</td>
       <td>None</td>
       <td></td>
     </tr>
@@ -460,13 +239,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-346-g52df87b42</small></p>
+<br /><small>v0.5.1-346-gd42b08b58</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-16T18:19:37.478445             </p>
+ on 2024-07-17T09:01:19.323261             </p>
           </div>
         </div>
         <br>
