@@ -214,8 +214,8 @@ contains
       use constants, only: zi
       use species, only: spec
       use zgrid, only: nzgrid, zed
-      use kt_grids, only: naky, nakx
-      use kt_grids, only: theta0
+      use kt_grids, only: naky, nakx, ikx_max
+      use kt_grids, only: theta0, akx
       use kt_grids, only: reality, zonal_mode
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vpa
@@ -236,6 +236,7 @@ contains
       do iz = -nzgrid, nzgrid
          phi(:, :, iz) = exp(-((zed(iz) - theta0) / width0)**2) * cmplx(1.0, 1.0)
       end do
+
       ! this is a messy way of doing things
       ! could tidy it up a bit
       if (sum(cabs(phi)) < epsilon(0.)) then
@@ -256,8 +257,22 @@ contains
          if (right) phi(:, :, 1:) = 0.0
       end if
 
-      if (reality .and. zonal_mode(1)) phi(1, :, :) = 0.0
+      if (zonal_mode(1)) then
+         ! zero out kx = ky = 0 mode
+         if (abs(akx(1)) < epsilon(0.0)) then
+            phi(1, 1, :) = 0.0
+         end if
 
+         ! force the reality condition on the zonal mode; i.e. phi_(-kx,ky=0) = conjugate(phi_(kx,ky=0))
+         if (reality) then
+            ! ikx_max is the index corresponding to max k_x value
+            do ikx = 1, nakx - ikx_max
+               phi(1, nakx - ikx + 1, :) = conjg(phi(1, ikx + 1, :))
+            end do
+         end if
+      end if
+
+      ! need better way to initialise for full flux surface cases
       ia = 1
 
       gvmu = 0.

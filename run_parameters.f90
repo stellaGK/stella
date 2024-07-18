@@ -26,6 +26,8 @@ module run_parameters
    public :: time_upwind_plus, time_upwind_minus
    public :: zed_upwind_plus, zed_upwind_minus
 
+   public :: nitt 
+
    private
 
    real :: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
@@ -55,6 +57,7 @@ module run_parameters
    logical :: initialized = .false.
    logical :: knexist
 
+   integer :: nitt
 contains
 
    subroutine init_run_parameters
@@ -97,14 +100,14 @@ contains
          delt_option, lu_option, &
          avail_cpu_time, delt_max, delt_min, &
          cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, &
-         stream_implicit, mirror_implicit, driftkinetic_implicit, &
+         stream_implicit, mirror_implicit, &
          drifts_implicit, use_deltaphi_for_response_matrix, &
          maxwellian_normalization, &
          stream_matrix_inversion, maxwellian_inside_zed_derivative, &
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
          fields_kxkyz, mat_gen, mat_read, rng_seed, &
-         ky_solve_radial, ky_solve_real
+         ky_solve_radial, ky_solve_real, nitt
 
       if (proc0) then
 
@@ -116,7 +119,6 @@ contains
          stream_implicit = .true.
          mirror_implicit = .true.
          drifts_implicit = .false.
-         driftkinetic_implicit = .false.
          maxwellian_inside_zed_derivative = .false.
          mirror_semi_lagrange = .true.
          mirror_linear_interp = .false.
@@ -132,6 +134,7 @@ contains
          ky_solve_real = .false.
          mat_gen = .false.
          mat_read = .false.
+         nitt = 1
 
          ! Stella runs until t*v_{th,i}/a=tend or until istep=nstep
          tend = -1.0
@@ -192,22 +195,6 @@ contains
             error = .true.
          end if
 
-         if (radial_variation .and. maxwellian_normalization) then
-            write (*, *) '!!!WARNING!!!'
-            write (*, *) 'maxwellian_normalization is not currently supported for use with radial_variation.'
-            write (*, *) 'forcing maxwellian_normalization = F.'
-            write (*, *) '!!!WARNING!!!'
-            maxwellian_normalization = .false.
-         end if
-
-         if (maxwellian_normalization .and. mirror_semi_lagrange) then
-            write (*, *) '!!!WARNING!!!'
-            write (*, *) 'maxwellian_normalization is not consistent with mirror_semi_lagrange = T.'
-            write (*, *) 'forcing mirror_semi_lagrange = F.'
-            write (*, *) '!!!WARNING!!!'
-            mirror_semi_lagrange = .false.
-         end if
-
          if (fapar > -1.0 .or. fbpar > -1.0) then
             write (*, *) '!!!WARNING!!!'
             write (*, *) 'fapar and fbpar are deprecated:'
@@ -256,6 +243,45 @@ contains
             end if
          end if
 
+         if(.not. full_flux_surface) then 
+            write(*,*) 'nitt set to 1 for fluxtube' 
+            nitt = 1
+         end if
+         
+         !> print warning messages and override inconsistent or unsupported options for full_flux_surface = T
+         if (full_flux_surface) then
+            if (fields_kxkyz) then
+               write (*, *)
+               write (*, *) '!!!WARNING!!!'
+               write (*, *) 'The option fields_kxkyz=T is not currently supported for full_flux_surface=T.'
+               write (*, *) 'Forcing fields_kxkyz=F.'
+               write (*, *) '!!!WARNING!!!'
+               write (*, *)
+               fields_kxkyz = .false.
+            end if
+            if (mirror_semi_lagrange) then
+               write (*, *)
+               write (*, *) '!!!WARNING!!!'
+               write (*, *) 'The option mirror_semi_lagrange=T is not consistent with full_flux_surface=T.'
+               write (*, *) 'Forcing mirror_semi_lagrange=F.'
+               write (*, *) '!!!WARNING!!!'
+               mirror_semi_lagrange = .false.
+            end if
+            if (stream_implicit) then
+               driftkinetic_implicit = .true.
+            end if
+	    if (maxwellian_normalization) then 
+               write (*, *)
+               write (*, *) '!!!WARNING!!!'
+               write (*, *) 'The option maxwellian_normalisation=T is not consistent with full_flux_surface=T.'
+               write (*, *) 'Forcing maxwellian_normalisation=F.'
+               write (*, *) '!!!WARNING!!!'
+               maxwellian_normalization = .false.
+            end if
+   
+         else
+            driftkinetic_implicit = .false.
+         end if
       end if
 
       ! Exit stella if we ran into an error
@@ -293,6 +319,9 @@ contains
       call broadcast(ky_solve_real)
       call broadcast(mat_gen)
       call broadcast(mat_read)
+      call broadcast(maxwellian_normalization)
+!!GA: may remove from input
+      call broadcast(nitt) 
       ! include_apar broadcast in case it is reset according to specification of
       ! (deprecated) fapar variable
       ! call broadcast(include_apar)
@@ -304,21 +333,9 @@ contains
       zed_upwind_minus = 0.5 * (1.0 - zed_upwind)
 
       if (.not. include_mirror) mirror_implicit = .false.
+      if (.not. include_parallel_streaming) stream_implicit = .false.
 
-      if (driftkinetic_implicit) then
-         stream_implicit = .false.
-      else if (stream_implicit .and. full_flux_surface) then
-         stream_implicit = .false.
-         write (*, *)
-         write (*, *) "!!!WARNING!!!"
-         write (*, *) "The option stream_implicit=T is not supported for full_flux_surface=T."
-         write (*, *) "Setting driftkinetic_implicit=T instead."
-         write (*, *) "!!!WARNING!!!"
-         write (*, *)
-         driftkinetic_implicit = .true.
-      end if
-
-      if (mirror_implicit .or. stream_implicit .or. driftkinetic_implicit .or. drifts_implicit) then
+      if (mirror_implicit .or. stream_implicit .or. drifts_implicit) then
          fully_explicit = .false.
       else
          fully_explicit = .true.
@@ -328,32 +345,6 @@ contains
          fully_implicit = .true.
       else
          fully_implicit = .false.
-      end if
-
-      !> print warning messages and override inconsistent or unsupported options for full_flux_surface = T
-      if (full_flux_surface) then
-         if (fields_kxkyz) then
-            write (*, *)
-            write (*, *) '!!!WARNING!!!'
-            write (*, *) 'The option fields_kxkyz=T is not currently supported for full_flux_surface=T.'
-            write (*, *) 'Forcing fields_kxkyz=F.'
-            write (*, *) '!!!WARNING!!!'
-            write (*, *)
-            fields_kxkyz = .false.
-         end if
-         if (mirror_semi_lagrange) then
-            write (*, *)
-            write (*, *) '!!!WARNING!!!'
-            write (*, *) 'The option mirror_semi_lagrange=T is not consistent with full_flux_surface=T.'
-            write (*, *) 'Forcing mirror_semi_lagrange=F.'
-            write (*, *) '!!!WARNING!!!'
-            mirror_semi_lagrange = .false.
-         end if
-         ! the full flux surface implementation relies on the use of gnorm = g / F_Maxwellian
-         ! as the evolved pdf
-         if (full_flux_surface) then
-            maxwellian_normalization = .true.
-         end if
       end if
 
    end subroutine read_parameters

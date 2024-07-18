@@ -97,7 +97,8 @@ contains
                            gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, &
                            cvdrift0_psi, sign_torflux, &
                            theta_vmec, zed_scalefac, L_reference, B_reference, alpha, zeta, &
-                           field_period_ratio, x_displacement_fac)
+                           field_period_ratio, x_displacement_fac, gradzeta_gradx, gradzeta_grady, &
+                           gradpar_zeta_r2)
 
       use constants, only: pi
       use common_types, only: flux_surface_type
@@ -121,7 +122,8 @@ contains
                                                    grad_alpha_grad_alpha, grad_alpha_grad_psi, grad_psi_grad_psi, &
                                                    gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
                                                    cvdrift_alpha, cvdrift0_psi, theta_vmec, zeta, & ! JCP
-                                                   x_displacement_fac
+                                                   x_displacement_fac, gradzeta_gradx, gradzeta_grady, &
+                                                   gradpar_zeta_r2
       real, dimension(:), intent(out) :: alpha
       real, intent(out) :: zed_scalefac, L_reference, B_reference
       integer, intent(out) :: sign_torflux
@@ -139,7 +141,7 @@ contains
       real, dimension(:, :), allocatable :: thetamod_vmec
       real, dimension(nalpha, -nzgrid:nzgrid) :: B_sub_theta_vmec, B_sub_zeta ! JFP
       real, dimension(:, :), allocatable :: B_sub_theta_vmec_mod, B_sub_zeta_mod ! JFP
-      real, dimension(:, :), allocatable :: bmag_vmec, gradpar_vmec, gradpar_zeta
+      real, dimension(:, :), allocatable :: bmag_vmec, gradpar_vmec
       real, dimension(:, :), allocatable :: grad_alpha_grad_alpha_vmec
       real, dimension(:, :), allocatable :: grad_alpha_grad_psi_vmec
       real, dimension(:, :), allocatable :: grad_psi_grad_psi_vmec
@@ -153,6 +155,10 @@ contains
 
       real :: dzeta_vmec, zmin, zmax
       real, dimension(nalpha, -nzgrid:nzgrid) :: theta
+
+      !!GA
+      real, dimension(:, :), allocatable :: gradpar_zeta
+      real, dimension(:, :), allocatable :: gradzeta_grady_vmec, gradzeta_gradx_vmec, gradpar_zeta_r2_vmec
 
       integer :: ierr
 
@@ -205,6 +211,11 @@ contains
       allocate (x_displacement_fac_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec))
       allocate (arc_length(nalpha, -nzgrid_vmec:nzgrid_vmec))
 
+      !!GA
+      allocate (gradzeta_grady_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec))
+      allocate (gradzeta_gradx_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec))
+      allocate (gradpar_zeta_r2_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec))
+
       if (debug) write (*, *) 'get_vmec_geo::vmec_to_stella_geometry_interface'
       call vmec_to_stella_geometry_interface(nalpha, alpha0, &
                                              nzgrid_vmec, zeta_center, nfield_periods * zgrid_scalefac, torflux, &
@@ -217,7 +228,8 @@ contains
                                              gds25_vmec, gds26_vmec, gbdrift_alpha_vmec, gbdrift0_psi_vmec, &
                                              cvdrift_alpha_vmec, &
                                              cvdrift0_psi_vmec, thetamod_vmec, B_sub_zeta_mod, B_sub_theta_vmec_mod, &
-                                             x_displacement_fac_vmec, gradpar_zeta_prefac, ierr)
+                                             x_displacement_fac_vmec, gradpar_zeta_prefac, ierr, &
+                                             gradzeta_gradx_vmec, gradzeta_grady_vmec, gradpar_zeta_r2_vmec)
 
       if (ierr /= 0) then
          if (ierr > n_tolerated_test_arrays_inconsistencies .or. ierr < 0) then
@@ -295,6 +307,10 @@ contains
             call geo_spline(arc_length(ia, :), B_sub_zeta_mod(ia, :), zed, B_sub_zeta(ia, :)) ! JFP
             call geo_spline(arc_length(ia, :), B_sub_theta_vmec_mod(ia, :), zed, B_sub_theta_vmec(ia, :)) ! JFP
             call geo_spline(arc_length(ia, :), x_displacement_fac_vmec(ia, :), zed, x_displacement_fac(ia, :))
+            !!GA
+            call geo_spline(arc_length(ia, :), gradzeta_gradx_vmec(ia, :), zed, gradzeta_gradx(ia, :))
+            call geo_spline(arc_length(ia, :), gradzeta_grady_vmec(ia, :), zed, gradzeta_grady(ia, :))
+            call geo_spline(arc_length(ia, :), gradpar_zeta_r2_vmec(ia, :), zed, gradpar_zeta_r2(ia, :))
 
             !B_sub_zeta = B_sub_zeta_mod
             !B_sub_theta_vmec = B_sub_theta_vmec_mod
@@ -320,24 +336,29 @@ contains
          !> we must take care to avoid aliasing.
          !> this is accomplished by filtering out the highest third of
          !> the wavenumber spectra
-         if (debug) write (*, *) 'get_vmec_geo::filter_geo_coef'
-         if (full_flux_surface .and. .not. const_alpha_geo) then
-            do iz = -nzgrid, nzgrid
-               call filter_geo_coef(naky, bmag(:, iz))
-               call filter_geo_coef(naky, grad_alpha_grad_alpha(:, iz))
-               call filter_geo_coef(naky, grad_alpha_grad_psi(:, iz))
-               call filter_geo_coef(naky, grad_psi_grad_psi(:, iz))
-               call filter_geo_coef(naky, gds23(:, iz))
-               call filter_geo_coef(naky, gds24(:, iz))
-               call filter_geo_coef(naky, gds25(:, iz))
-               call filter_geo_coef(naky, gds26(:, iz))
-               call filter_geo_coef(naky, gbdrift_alpha(:, iz))
-               call filter_geo_coef(naky, gbdrift0_psi(:, iz))
-               call filter_geo_coef(naky, cvdrift_alpha(:, iz))
-               call filter_geo_coef(naky, cvdrift0_psi(:, iz))
-               call filter_geo_coef(naky, b_dot_grad_z(:, iz))
-            end do
-         end if
+         !> TODO-GA: check if you want tot do this or not -- turn off fo rnow for testing 
+         ! if (debug) write (*, *) 'get_vmec_geo::filter_geo_coef' 
+         ! if (full_flux_surface.and. .not. const_alpha_geo) then
+         !    do iz = -nzgrid, nzgrid
+         !       call filter_geo_coef(naky, bmag(:, iz))
+         !       call filter_geo_coef(naky, grad_alpha_grad_alpha(:, iz))
+         !       call filter_geo_coef(naky, grad_alpha_grad_psi(:, iz))
+         !       call filter_geo_coef(naky, grad_psi_grad_psi(:, iz))
+         !       call filter_geo_coef(naky, gds23(:, iz))
+         !       call filter_geo_coef(naky, gds24(:, iz))
+         !       call filter_geo_coef(naky, gds25(:, iz))
+         !       call filter_geo_coef(naky, gds26(:, iz))
+         !       call filter_geo_coef(naky, gbdrift_alpha(:, iz))
+         !       call filter_geo_coef(naky, gbdrift0_psi(:, iz))
+         !       call filter_geo_coef(naky, cvdrift_alpha(:, iz))
+         !       call filter_geo_coef(naky, cvdrift0_psi(:, iz))
+         !       call filter_geo_coef(naky, b_dot_grad_z(:, iz))
+         !       !!GA
+         !       call filter_geo_coef(naky, gradzeta_gradx(:, iz))
+         !       call filter_geo_coef(naky, gradzeta_grady(:, iz))
+         !       call filter_geo_coef(naky, gradpar_zeta_r2(:, iz))
+         !    end do
+         ! end if
       else
          !> if zed_equal_arc = F, zed coordinate is the same as VMEC's zeta coordinate,
          !> so no need to interpolate onto a new grid
@@ -360,7 +381,10 @@ contains
          theta_vmec = thetamod_vmec
          B_sub_theta_vmec = B_sub_theta_vmec_mod ! JFP
          B_sub_zeta = B_sub_zeta_mod ! JFP
-
+         !!GA
+         gradzeta_grady = gradzeta_grady_vmec
+         gradzeta_gradx = gradzeta_gradx_vmec
+         gradpar_zeta_r2 = gradpar_zeta_r2_vmec
          ! scale zed so that it is zeta compressed (or expanded)
          ! to the range [-pi,pi]
          ! this is 1/p from stella JCP paper
@@ -381,14 +405,16 @@ contains
       deallocate (B_sub_theta_vmec_mod)
       deallocate (B_sub_zeta_mod)
       deallocate (bmag_vmec, gradpar_vmec)
-      if (allocated(gradpar_zeta)) deallocate (gradpar_zeta)
       deallocate (grad_alpha_grad_alpha_vmec, grad_alpha_grad_psi_vmec, grad_psi_grad_psi_vmec)
       deallocate (gds23_vmec, gds24_vmec, gds25_vmec, gds26_vmec)
       deallocate (gbdrift_alpha_vmec, gbdrift0_psi_vmec)
       deallocate (cvdrift_alpha_vmec, cvdrift0_psi_vmec)
       deallocate (x_displacement_fac_vmec)
       deallocate (arc_length)
-
+      !!GA
+      deallocate (gradzeta_grady_vmec, gradzeta_gradx_vmec)
+      deallocate (gradpar_zeta_r2_vmec)
+      if (allocated(gradpar_zeta)) deallocate (gradpar_zeta)
       !> vmec_to_stella_geometry_interface returns psitor/psitor_lcfs as rhoc
       !> stella uses rhoc = sqrt(psitor/psitor_lcfs) = rhotor
       surf%rhoc = sqrt(surf%rhoc)
@@ -427,6 +453,10 @@ contains
       ! this is the vmec theta (not straight-field-line coordinate)
       ! scaled to run between -pi and pi
       theta_vmec = theta_vmec / nfp
+
+      surf%rhoc_psi0 = surf%rhoc
+      surf%qinp_psi0 = surf%qinp
+      surf%shat_psi0 = surf%shat
 
       call open_output_file(tmpunit, '.vmec.geo')
       write (tmpunit, '(6a12)') '#rhotor', 'qinp', 'shat', 'aref', 'Bref', 'z_scalefac'
