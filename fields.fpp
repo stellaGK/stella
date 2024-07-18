@@ -2469,18 +2469,19 @@ contains
          do iky = 1, naky
             field(iky, :, :, :) = zi * aky(iky) * field(iky, :, :, :)
          end do
-         call gyro_average(field, ivmu, dchidy(:, :, :, :, ivmu))
+         if (full_flux_surface) then
+            call gyro_average(field, dchidy(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
+         else
+            call gyro_average(field, ivmu, dchidy(:, :, :, :, ivmu))
+         end if
          if (include_bpar) then
             field = 4.0 * mu(imu) * (spec(is)%tz) * bpar
             do iky = 1, naky
                field(iky, :, :, :) = zi * aky(iky) * field(iky, :, :, :)
             end do
-         end if
-
-         if (full_flux_surface) then
-            call gyro_average(field, dchidy(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
-         else
-            call gyro_average(field, ivmu, dchidy(:, :, :, :, ivmu))
+            call gyro_average_j1(field, ivmu, gyro_tmp)
+            !> include bpar contribution
+            dchidy(:, :, :, :, ivmu) = dchidy(:, :, :, :, ivmu) + gyro_tmp
          end if
       end do
 
