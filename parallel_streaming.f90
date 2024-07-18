@@ -18,7 +18,8 @@ module parallel_streaming
    public :: stream_correction_sign
    public :: get_dgdz_centered
 
-   public :: get_phi_source_ffs_implicit
+   public :: stream_store_full, stream_full_sign
+!   public :: get_phi_source_ffs_implicit
    public :: get_source_ffs_itteration
 
    private
