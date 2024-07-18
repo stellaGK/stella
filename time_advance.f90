@@ -1896,7 +1896,7 @@ contains
                if (full_flux_surface) then
                   call get_dgdx(g_scratch(:, :, iz, it, ivmu), g0k)
                else
-                  call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
+                  call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
                end if
                !> if running with equilibrium flow shear, make adjustment to
                !> the term multiplying dg/dy
