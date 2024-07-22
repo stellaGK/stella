@@ -1015,15 +1015,15 @@ contains
          dxdXcoord, dydalpha, exb_nonlin_fac, exb_nonlin_fac_p * exb_nonlin_fac
       write (geometry_unit, *)
 
-      write (geometry_unit, '(15a12)') '# alpha', 'zed', 'zeta', 'bmag', 'bdot_grad_z', 'gds2', 'gds21', 'gds22', &
-         'gds23', 'gds24', 'gbdrift', 'cvdrift', 'gbdrift0', 'bmag_psi0', 'btor'
+      write (geometry_unit, '(14a12)') '# alpha', 'zed', 'zeta', 'bmag', 'bdot_grad_z', 'gds2', 'gds21', 'gds22', &
+         'gds23', 'gds24', 'gbdrift', 'cvdrift', 'gbdrift0', 'bmag_psi0'
       do ia = 1, nalpha
          do iz = -nzgrid, nzgrid
             !          write (geometry_unit,'(15e12.4)') alpha(ia), zed(iz), zeta(ia,iz), bmag(ia,iz), gradpar(iz), &
             write (geometry_unit, '(15e12.4)') alpha(ia), zed(iz), zeta(ia, iz), bmag(ia, iz), b_dot_grad_z(ia, iz), &
                gds2(ia, iz), gds21(ia, iz), gds22(ia, iz), gds23(ia, iz), &
                gds24(ia, iz), gbdrift(ia, iz), cvdrift(ia, iz), gbdrift0(ia, iz), &
-               bmag_psi0(ia, iz), btor(iz)
+               bmag_psi0(ia, iz)
          end do
          write (geometry_unit, *)
       end do
