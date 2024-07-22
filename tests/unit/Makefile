@@ -52,7 +52,7 @@ PFUNIT_TEST_LIST := $(PFUNIT_TEST_DIR)/testSuites.inc
 
 build-pfunit-library:
 	@echo "Building pFUnit in default location: $(GK_HEAD_DIR)/externals/pFUnit_build/install"
-	@scripts/build_pfunit -v ${PFUNIT_VERSION_MAJOR}
+	@tests/unit/build_pfunit -v ${PFUNIT_VERSION_MAJOR}
 
 check-pfunit-install:
 ifeq ("$(wildcard $(PFUNIT_PREPROCESSOR))","")
@@ -61,7 +61,7 @@ endif
 
 clean-pfunit-library:
 	@echo "Removing pFUnit library"
-	@scripts/build_pfunit -r
+	@tests/unit/build_pfunit -r
 
 distclean: clean-pfunit-library
 
