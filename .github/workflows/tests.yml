@@ -1,12 +1,64 @@
-name: Tests
+# Run these tests automatically on Github
+# on every push and pull request.
+name: StellaTests
 on: [push, pull_request]
 
+# We run the in a bash shell
 defaults:
   run:
     shell: bash
 
+# Define the tests, for now we only have <standard_tests>
+# where we define 3 seperate workflows in matrix/config/name
+# For each of these workflows we need to perform the same
+# initial steps: <Install dependencies>, <System information>
+# Next, only the step corresponding to the test will be executed.
 jobs:
-  standard_tests:
+        
+  # Build stella with Make in debug mode, here the python tests do not work!
+  # Specifically, the flush statement in mini_libstell's 
+  # read_wout_mod.F module in the readw_and_open() routine breaks 
+  # when reading a VMEC equilibirium during the python tests.
+  test1:
+    runs-on: ubuntu-latest
+    env:
+      OMPI_MCA_rmaps_base_oversubscribe: yes
+      MPIRUN: mpiexec -np
+    strategy:
+      fail-fast: false
+      matrix:
+        config: 
+          - name: "Make stella in debug mode"  
+    steps:
+      - name: Install dependencies
+        run: sudo apt update &&
+             sudo apt install -y
+                 gfortran
+                 make
+                 libfftw3-dev
+                 libnetcdf-dev
+                 libnetcdff-dev
+                 netcdf-bin
+                 python3
+                 python3-pip
+                 openmpi-bin
+                 libopenmpi-dev
+
+      - name: System information
+        run: |
+          cat /etc/*release
+          gfortran --version
+          nf-config --all
+      - uses: actions/checkout@v2 
+        
+      - name: Build stella in debug mode
+        run: |
+          set -ex
+          export GK_SYSTEM=gnu_ubuntu_debug
+          make -I Makefiles -j4
+
+  # Build stella with Make and run automatic python tests
+  test2:
     runs-on: ubuntu-latest
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
@@ -15,10 +67,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - name: "Makefiles"
-          - name: "Makefiles, debug"
-            gk_system: gnu_ubuntu_debug
-          - name: "CMake"
+          - name: "Make stella and run python tests" 
     steps:
       - name: Install dependencies
         run: sudo apt update &&
@@ -41,13 +90,63 @@ jobs:
           nf-config --all
       - uses: actions/checkout@v2
 
-      - name: Install integrated test dependencies
-        run: pip3 install --user -r tests/integrated/requirements.txt
+      - name: Install automated stella test dependencies
+        run: pip3 install --user -r tests/automated_stella_tests/requirements.txt
 
-      - name: Build stella (Makefile)
-        if: ${{ contains(matrix.config.name, 'Makefile') }}
-        run: ./scripts/ci_build_and_run.sh ${{ matrix.config.gk_system }}
+      - name: Build stella 
+        run: |
+          set -ex
+          export GK_SYSTEM=gnu_ubuntu
+          make -I Makefiles -j4
+
+      - name: Perform automated fortran tests
+        run: |
+          set -ex
+          export GK_SYSTEM=gnu_ubuntu
+          make -I Makefiles build-pfunit-library
+
+      - name: Perform automated stella tests
+        run: |
+          set -ex
+          export GK_SYSTEM=gnu_ubuntu
+          make -I Makefiles check
+        
+  # Build stella with CMake and run automatic Fortran tests
+  # Cmake has to run on 1 node or it will run into parallelisation errors
+  test3:
+    runs-on: ubuntu-latest
+    env:
+      OMPI_MCA_rmaps_base_oversubscribe: yes
+      MPIRUN: mpiexec -np
+    strategy:
+      fail-fast: false
+      matrix:
+        config: 
+          - name: "CMake stella"
+    steps:
+      - name: Install dependencies
+        run: sudo apt update &&
+             sudo apt install -y
+                 gfortran
+                 make
+                 libfftw3-dev
+                 libnetcdf-dev
+                 libnetcdff-dev
+                 netcdf-bin
+                 python3
+                 python3-pip
+                 openmpi-bin
+                 libopenmpi-dev
+
+      - name: System information
+        run: |
+          cat /etc/*release
+          gfortran --version
+          nf-config --all
+      - uses: actions/checkout@v2  
 
       - name: Build stella (CMake)
-        if: ${{ contains(matrix.config.name, 'CMake') }}
-        run: ./scripts/ci_cmake_build_and_run.sh
+        run: |
+          set -ex
+          cmake . -B build -DSTELLA_ENABLE_TESTS=on
+          cmake --build build -j1 --target check
