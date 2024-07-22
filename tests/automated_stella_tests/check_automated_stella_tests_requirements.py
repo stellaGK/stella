@@ -32,7 +32,7 @@ if failed_modules:
             Could not import: {list_of_failed_modules}
             Run:
                 make create-test-virtualenv
-                source tests/integrated/venv/bin/activate
+                source tests/automated_stella_tests/venv/bin/activate
             to install and activate test dependencies
             """
         )

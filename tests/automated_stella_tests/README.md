@@ -1,20 +1,20 @@
-Integrated tests
-================
+Automated stella tests
+======================
 
-The integrated tests here are written using the Python [pytest][pytest] package,
+The automated stella tests here are written using the Python [pytest][pytest] package,
 and make use of [xarray][xarray] for reading in the data. To install these
 packages in a standalone environment, you can run:
 
     export GK_HEAD_DIR=your_path_to_stella/stella
-    cd $GK_HEAD_DIR/tests/integrated/
+    cd $GK_HEAD_DIR/tests/automated_stella_tests/
     make create-test-virtualenv
-    source $GK_HEAD_DIR/tests/integrated/venv/bin/activate
+    source $GK_HEAD_DIR/tests/automated_stella_tests/venv/bin/activate
 
 This will create a Python [virtual environment][venv] with the packages needed
 for running the tests. You can then run all the tests:
     
-    cd $GK_HEAD_DIR/tests/integrated/
-    make check-integrated
+    cd $GK_HEAD_DIR/tests/automated_stella_tests/
+    make check-automated-stella-tests-dependencies
 
 This assumes that the executable is located two directories above this one. You
 can set the environment variable `STELLA_EXE_PATH` to the location of the
@@ -24,9 +24,8 @@ Writing new tests
 -----------------
 
 The testing framework is setup to automatically find files called `test_*.py`
-and run any functions it finds in them called `test_*`. Writing a new integrated
-test for `stella` is as "simple" as writing a new function that starts with
-`test_`.
+and run any functions it finds in them called `test_*`. Writing a new automated
+test for `stella` is as "simple" as writing a new function that starts with `test_`.
 
 Let's look at a basic test, `test_simple_run` in
 [`simple/test_simple.py`](simple/test_simple.py) to see how to write a test that

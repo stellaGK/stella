@@ -371,15 +371,14 @@ include $(DEPEND)
 
 sinclude Makefile.target_$(GK_PROJECT)
 
-# Include unit test makefile, empty target so Make doesn't attempt to
-# build the file
+# Include unit test makefile, empty target so Make doesn't attempt to build the file
 tests/unit/Makefile:
 include tests/unit/Makefile
 
-tests/integrated/Makefile:
-include tests/integrated/Makefile
-
-check: check-unit check-integrated-tests
+tests/automated_stella_tests/Makefile:
+include tests/automated_stella_tests/Makefile
+ 
+check: check-unit run-automated-stella-tests
 
 ############################################################### SPECIAL RULES
 
