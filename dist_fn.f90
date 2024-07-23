@@ -153,8 +153,8 @@ contains
          else
             do ikx = 1, nakx
                kperp2(iky, ikx, :, :) = aky(iky) * aky(iky) * grad_y_dot_grad_y &
-                    + 2.0 * aky(iky) * akx(ikx) * grad_x_dot_grad_y &
-                    + akx(ikx) * akx(ikx) * grad_x_dot_grad_x
+                                        + 2.0 * aky(iky) * akx(ikx) * grad_x_dot_grad_y &
+                                        + akx(ikx) * akx(ikx) * grad_x_dot_grad_x
             end do
          end if
       end do

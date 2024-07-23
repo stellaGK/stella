@@ -51,7 +51,7 @@ program test_vmec_to_stella_geometry_interface
                                           desired_normalized_toroidal_flux, vmec_surface_option, verbose, &
                                           normalized_toroidal_flux_used, safety_factor_q, shat, L_reference, B_reference, nfp, &
                                           sign_toroidal_flux, &
-                                          alpha, zeta, bmag, gradpar, grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, gds23, gds24, gds25, gds26, &
+                                    alpha, zeta, bmag, gradpar, grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, gds23, gds24, gds25, gds26, &
                                           gbdrift, gbdrift0, cvdrift, cvdrift0, &
                                           theta_vmec, B_sub_zeta, B_sub_theta_vmec, displacement, gradpar_zeta_prefac, &
                                           ierr)

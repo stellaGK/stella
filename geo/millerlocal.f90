@@ -1036,7 +1036,7 @@ contains
       real, dimension(-nz:), intent(out) :: grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, gds23, gds24
 
       ! NB: dx/dpsi = q/(r*Br), dy/dalpha = (dpsi/dr) / Br and psi_norm = psi/(Br*a^2)
-      
+
       ! |grad alpha|^2 * (dpsiN/drho)^2 (dpsiN/drho factor accounts for ky normalization)
       grad_y_dot_grad_y = gradalph2 * dpsidrho_psi0**2
       ! grad x . grad y = (grad_norm rho . grad_norm alpha) * (dx_norm/drho) * (dy_norm/dalpha),

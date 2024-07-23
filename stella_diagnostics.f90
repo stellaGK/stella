@@ -582,8 +582,8 @@ contains
 !                    * (gds21(ia, iz) + theta0(iky, ikx) * gds22(ia, iz)) * spec(is)%smz &
 !                    / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2)
             gtmp1 = -g(:, :, ikxkyz) * zi * aky(iky) * spread(vperp2(ia, iz, :), 1, nvpa) * geo_surf%rhoc &
-                 * (grad_x_dot_grad_y(ia, iz) + theta0(iky, ikx) * geo_surf%shat * grad_x_dot_grad_x(ia, iz)) * spec(is)%smz &
-                 / (geo_surf%qinp * bmag(ia, iz)**2)
+                    * (grad_x_dot_grad_y(ia, iz) + theta0(iky, ikx) * geo_surf%shat * grad_x_dot_grad_x(ia, iz)) * spec(is)%smz &
+                    / (geo_surf%qinp * bmag(ia, iz)**2)
             call gyro_average_j1(gtmp1, ikxkyz, gtmp3)
             gtmp1 = gtmp2 + gtmp3
 
@@ -621,8 +621,8 @@ contains
 !                    * (gds21(ia, iz) + theta0(iky, ikx) * gds22(ia, iz)) * spec(is)%smz &
 !                    / (geo_surf%qinp * geo_surf%shat * bmag(ia, iz)**2)
             gtmp1 = spread(vpa, 2, nmu) * spec(is)%stm * g(:, :, ikxkyz) &
-                 * zi * aky(iky) * spread(vperp2(ia, iz, :), 1, nvpa) * geo_surf%rhoc &
-                 * (grad_x_dot_grad_y(ia, iz) + theta0(iky, ikx) * geo_surf%shat * grad_x_dot_grad_x(ia, iz)) * spec(is)%smz &
+                    * zi * aky(iky) * spread(vperp2(ia, iz, :), 1, nvpa) * geo_surf%rhoc &
+                    * (grad_x_dot_grad_y(ia, iz) + theta0(iky, ikx) * geo_surf%shat * grad_x_dot_grad_x(ia, iz)) * spec(is)%smz &
                     / (geo_surf%qinp * bmag(ia, iz)**2)
             call gyro_average_j1(gtmp1, ikxkyz, gtmp3)
             ! FLAG -- NEED TO ADD IN CONTRIBUTION FROM BOLTZMANN PIECE !!
