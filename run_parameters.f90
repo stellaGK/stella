@@ -86,7 +86,7 @@ contains
                                                       text_option('set_by_hand', delt_option_hand), &
                                                       text_option('check_restart', delt_option_auto)/)
       type(text_option), dimension(4), parameter :: lu_opts = &
-                                                    (/text_option('default', lu_option_none), &
+                                                    (/text_option('default', lu_option_local), &
                                                       text_option('none', lu_option_none), &
                                                       text_option('local', lu_option_local), &
                                                       text_option('global', lu_option_global)/)
