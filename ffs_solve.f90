@@ -167,7 +167,7 @@ contains
            end do
         end do
 
-        call center_zed(iv, source(:,:,:,:,ivmu))
+!!        call center_zed(iv, source(:,:,:,:,ivmu))
      end do
 
      deallocate(g0)
