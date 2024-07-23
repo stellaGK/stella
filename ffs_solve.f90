@@ -50,7 +50,6 @@ contains
      use species, only: spec
 
      use fields, only: advance_fields, fields_updated
-     use fields_arrays, only: apar, bpar
      use gyro_averages, only: j0_ffs, j0_const, gyro_average
 
      use kt_grids, only: swap_kxky_back

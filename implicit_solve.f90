@@ -289,7 +289,7 @@ contains
                      ! to the standard zed domain; the mapped pdf is called 'g'
                      call map_from_extended_zgrid(it, ie, iky, pdf2, g(iky, :, :, :, ivmu))
                      deallocate (pdf1, pdf2, phiext, aparext, aparext_new, aparext_old, bparext)
-		      if (present(mod)) deallocate(phiffsext)
+		               if (present(mod)) deallocate(phiffsext)
                   end do
                end do
             end do
@@ -471,12 +471,12 @@ contains
             call center_zed(iv, z_scratch, -nzgrid)
          else
             if (.not. maxwellian_normalization) then
-              ! center Maxwellian factor in mu
-              ! and store in dummy variable z_scratch
-              z_scratch = maxwell_mu(ia, :, imu, is)
-	      call center_zed(iv, z_scratch, -nzgrid)
-	    else
-	       z_scratch = 1.0
+               ! center Maxwellian factor in mu
+               ! and store in dummy variable z_scratch
+               z_scratch = maxwell_mu(ia, :, imu, is)
+               call center_zed(iv, z_scratch, -nzgrid)
+	         else
+	            z_scratch = 1.0
             end if
          end if
          ! multiply by Maxwellian factor

@@ -1398,6 +1398,11 @@ contains
       use kt_grids, only: akx, zonal_mode
       use mp, only: proc0
 
+      use fields_arrays, only: gamtot3
+      use species, only: spec, has_electron_species
+      use physics_flags, only: adiabatic_option_switch
+      use physics_flags, only: adiabatic_option_fieldlineavg
+      use stella_geometry, only: dl_over_b
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1410,11 +1415,17 @@ contains
       logical, optional, intent(in) :: implicit_solve
       real, dimension(:, :, :, :), allocatable :: gamtot_t
       complex, dimension(:, :), allocatable :: phi_fsa_spread, phi_source
+      logical :: has_elec, adia_elec
+      integer :: it, ia
+      complex :: tmp
 
       allocate (source(naky, nakx, -nzgrid:nzgrid))
 
       if (fphi > epsilon(0.0)) then
          if (present(implicit_solve)) then
+            has_elec = has_electron_species(spec)
+            adia_elec = .not. has_elec &
+                 .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
             allocate (gamtot_t(naky, nakx, -nzgrid:nzgrid, ntubes))
             gamtot_t = spread(gamtot, 4, ntubes)
 
@@ -1426,9 +1437,21 @@ contains
             end where
             if (any(gamtot(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
             deallocate (gamtot_t)
+
+            if (adia_elec .and. zonal_mode(1)) then
+               ia = 1
+               do ikx = 1, nakx
+                  do it = 1, ntubes
+                     tmp = sum(dl_over_b(ia, :) * phi(1, ikx, :, it))
+                     phi(1, ikx, :, it) = phi(1, ikx, :, it) + tmp * gamtot3(ikx, :)
+                  end do
+               end do
+            end if
+
             if (akx(1) < epsilon(0.)) then
                phi(1, 1, :, :) = 0.0
             end if
+            
          else
             !> calculate the contribution to quasineutrality coming from the velocity space
             !> integration of the guiding centre distribution function g;
