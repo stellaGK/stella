@@ -885,11 +885,13 @@ contains
             !> Advance the explicit parts of the GKE
             if (debug) write (*, *) 'time_advance::advance_explicit'
             if (.not. fully_implicit) call advance_explicit(gnew, restart_time_step, istep)
-
+            if (debug) write (*, *) 'time_advance::advance_implicit'
             !> Use operator splitting to separately evolve all terms treated implicitly
             if (.not. restart_time_step .and. .not. fully_explicit) call advance_implicit(istep, phi, apar, bpar, gnew)
          else
+            if (debug) write (*, *) 'time_advance::advance_implicit'
             if (.not. fully_explicit) call advance_implicit(istep, phi, apar, bpar, gnew)
+            if (debug) write (*, *) 'time_advance::advance_explicit'
             if (.not. fully_implicit) call advance_explicit(gnew, restart_time_step, istep)
          end if
 
@@ -2798,16 +2800,8 @@ contains
             fields_updated = .false.
          end if
 
-         ! get updated fields corresponding to advanced g
-         ! note that hyper-dissipation and mirror advances
-         ! depended only on g and so did not need field update
-         if(driftkinetic_implicit) then 
-            implicit_fields = .true.
-            call advance_fields(g, phi, apar, bpar, dist='g', implicit_solve = implicit_fields)
-         else
-            call advance_fields(g, phi, apar, bpar, dist='g')
-         end if
-
+         call advance_fields(g, phi, apar, bpar, dist='g')
+         fields_updated = .true. 
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
          if (stream_implicit .and. include_parallel_streaming) then
@@ -2823,12 +2817,8 @@ contains
          ! get updated fields corresponding to advanced g
          ! note that hyper-dissipation and mirror advances
          ! depended only on g and so did not need field update
-        if(driftkinetic_implicit) then 
-            implicit_fields = .true.
-            call advance_fields(g, phi, apar, bpar, dist='g', implicit_solve = implicit_fields)
-         else
-            call advance_fields(g, phi, apar, bpar, dist='g')
-         end if
+         call advance_fields(g, phi, apar, bpar, dist='g')
+         fields_updated = .true. 
 
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term

@@ -319,7 +319,6 @@ contains
       call broadcast(ky_solve_real)
       call broadcast(mat_gen)
       call broadcast(mat_read)
-      call broadcast(maxwellian_normalization)
 !!GA: may remove from input
       call broadcast(nitt) 
       ! include_apar broadcast in case it is reset according to specification of
