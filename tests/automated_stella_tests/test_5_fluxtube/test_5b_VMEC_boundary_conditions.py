@@ -19,17 +19,10 @@ with open(module_path, 'r') as file: exec(file.read())
 # Global variables 
 vmec_filename = 'wout_w7x_kjm.nc'
 
-################################################################################
-#                Run stella locally and check the output files                 #
-################################################################################
-# The argument of any test function is the temporary path where the test is 
-# performed, e.g., test_local_stella_run(tmp_path) executes stella in <tmp_path>. 
-################################################################################
-
 #-------------------------------------------------------------------------------
 #               Check whether VMEC nonlinear evolves correctly                 #
 #-------------------------------------------------------------------------------
-def test_whether_vmec_nonlinear_linked_evolves_correctly(tmp_path):
+def test_whether_vmec_nonlinear_linked_evolves_correctly(tmp_path, error=False):
 
     # Input file name  
     input_filename = 'vmec_geometry_nonlinear_linked.in'  
@@ -54,16 +47,23 @@ def test_whether_vmec_nonlinear_linked_evolves_correctly(tmp_path):
         # Read the potential axis
         local_phi2 = local_netcdf['phi2']
         expected_phi2 = expected_netcdf['phi2'] 
-                     
+        
         # Check whether we have the same time and potential data
-        assert (np.allclose(local_time, expected_time, equal_nan=True)), f'The time axis does not match in the netcdf files.'
-        assert (np.allclose(local_phi2, expected_phi2, equal_nan=True)), f'The potential data does not match in the netcdf files.' 
+        if not (np.allclose(local_time, expected_time, equal_nan=True)):
+            print('\nERROR: The time axis does not match in the netCDF files.'); error = True
+            print('\nCompare the time arrays in the local and expected netCDF files:')
+            compare_local_array_with_expected_array(local_time, expected_time)  
+        if not (np.allclose(local_phi2, expected_phi2, equal_nan=True)):
+            print('\nERROR: The potential data does not match in the netCDF files.'); error = True 
+            print('\nCompare the potential arrays in the local and expected netCDF files:')
+            compare_local_array_with_expected_array(local_phi2, expected_phi2) 
+        assert (not error), f'The potential data does not match in the netCDF files.'   
                 
     print(f'\n  -->  The potential is evolving correctly in a nonlinear flux-tube simulation using VMEC geometry and linked BC ({int(local_netcdf["nproc"])} CPUs).')
     return
     
 #-------------------------------------------------------------------------------
-def test_whether_vmec_nonlinear_stellarator_evolves_correctly(tmp_path):
+def test_whether_vmec_nonlinear_stellarator_evolves_correctly(tmp_path, error=False):
 
     # Input file name  
     input_filename = 'vmec_geometry_nonlinear_stellaratorsymmetric.in'  
@@ -88,16 +88,23 @@ def test_whether_vmec_nonlinear_stellarator_evolves_correctly(tmp_path):
         # Read the potential axis
         local_phi2 = local_netcdf['phi2']
         expected_phi2 = expected_netcdf['phi2'] 
-                     
+        
         # Check whether we have the same time and potential data
-        assert (np.allclose(local_time, expected_time, equal_nan=True)), f'The time axis does not match in the netcdf files.'
-        assert (np.allclose(local_phi2, expected_phi2, equal_nan=True)), f'The potential data does not match in the netcdf files.' 
+        if not (np.allclose(local_time, expected_time, equal_nan=True)):
+            print('\nERROR: The time axis does not match in the netCDF files.'); error = True
+            print('\nCompare the time arrays in the local and expected netCDF files:')
+            compare_local_array_with_expected_array(local_time, expected_time)  
+        if not (np.allclose(local_phi2, expected_phi2, equal_nan=True)):
+            print('\nERROR: The potential data does not match in the netCDF files.'); error = True 
+            print('\nCompare the potential arrays in the local and expected netCDF files:')
+            compare_local_array_with_expected_array(local_phi2, expected_phi2) 
+        assert (not error), f'The potential data does not match in the netCDF files.'  
                 
     print(f'\n  -->  The potential is evolving correctly in a nonlinear flux-tube simulation using VMEC geometry and stellarator symmetric BC ({int(local_netcdf["nproc"])} CPUs).')
     return
     
 #-------------------------------------------------------------------------------
-def test_whether_vmec_nonlinear_periodic_evolves_correctly(tmp_path):
+def test_whether_vmec_nonlinear_periodic_evolves_correctly(tmp_path, error=False):
 
     # Input file name  
     input_filename = 'vmec_geometry_nonlinear_periodic.in'  
@@ -122,16 +129,23 @@ def test_whether_vmec_nonlinear_periodic_evolves_correctly(tmp_path):
         # Read the potential axis
         local_phi2 = local_netcdf['phi2']
         expected_phi2 = expected_netcdf['phi2'] 
-                     
+        
         # Check whether we have the same time and potential data
-        assert (np.allclose(local_time, expected_time, equal_nan=True)), f'The time axis does not match in the netcdf files.'
-        assert (np.allclose(local_phi2, expected_phi2, equal_nan=True)), f'The potential data does not match in the netcdf files.' 
+        if not (np.allclose(local_time, expected_time, equal_nan=True)):
+            print('\nERROR: The time axis does not match in the netCDF files.'); error = True
+            print('\nCompare the time arrays in the local and expected netCDF files:')
+            compare_local_array_with_expected_array(local_time, expected_time)  
+        if not (np.allclose(local_phi2, expected_phi2, equal_nan=True)):
+            print('\nERROR: The potential data does not match in the netCDF files.'); error = True 
+            print('\nCompare the potential arrays in the local and expected netCDF files:')
+            compare_local_array_with_expected_array(local_phi2, expected_phi2) 
+        assert (not error), f'The potential data does not match in the netCDF files.'  
                 
     print(f'\n  -->  The potential is evolving correctly in a nonlinear flux-tube simulation using VMEC geometry and periodic BC ({int(local_netcdf["nproc"])} CPUs).')
     return
     
 #-------------------------------------------------------------------------------
-def test_whether_vmec_nonlinear_zero_evolves_correctly(tmp_path):
+def test_whether_vmec_nonlinear_zero_evolves_correctly(tmp_path, error=False):
 
     # Input file name  
     input_filename = 'vmec_geometry_nonlinear_zero.in'  
@@ -156,10 +170,17 @@ def test_whether_vmec_nonlinear_zero_evolves_correctly(tmp_path):
         # Read the potential axis
         local_phi2 = local_netcdf['phi2']
         expected_phi2 = expected_netcdf['phi2'] 
-                     
+        
         # Check whether we have the same time and potential data
-        assert (np.allclose(local_time, expected_time, equal_nan=True)), f'The time axis does not match in the netcdf files.'
-        assert (np.allclose(local_phi2, expected_phi2, equal_nan=True)), f'The potential data does not match in the netcdf files.' 
+        if not (np.allclose(local_time, expected_time, equal_nan=True)):
+            print('\nERROR: The time axis does not match in the netCDF files.'); error = True
+            print('\nCompare the time arrays in the local and expected netCDF files:')
+            compare_local_array_with_expected_array(local_time, expected_time)  
+        if not (np.allclose(local_phi2, expected_phi2, equal_nan=True)):
+            print('\nERROR: The potential data does not match in the netCDF files.'); error = True 
+            print('\nCompare the potential arrays in the local and expected netCDF files:')
+            compare_local_array_with_expected_array(local_phi2, expected_phi2) 
+        assert (not error), f'The potential data does not match in the netCDF files.'  
                 
     print(f'\n  -->  The potential is evolving correctly in a nonlinear flux-tube simulation using VMEC geometry and periodic BC ({int(local_netcdf["nproc"])} CPUs).')
     return

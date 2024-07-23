@@ -29,7 +29,7 @@ vmec_filename = 'wout_w7x_kjm.nc'
 #-------------------------------------------------------------------------------
 #               Check whether VMEC nonlinear evolves correctly                 #
 #-------------------------------------------------------------------------------
-def test_whether_a_mistake_was_introduced_in_an_extra_flag_1(tmp_path):
+def test_whether_a_mistake_was_introduced_in_an_extra_flag_1(tmp_path, error=False):
 
     # Input file name  
     input_filename = 'test_all_flags1.in'  
@@ -54,16 +54,23 @@ def test_whether_a_mistake_was_introduced_in_an_extra_flag_1(tmp_path):
         # Read the potential axis
         local_phi2 = local_netcdf['phi2']
         expected_phi2 = expected_netcdf['phi2'] 
-                     
+        
         # Check whether we have the same time and potential data
-        assert (np.allclose(local_time, expected_time, equal_nan=True)), f'The time axis does not match in the netcdf files.'
-        assert (np.allclose(local_phi2, expected_phi2, equal_nan=True)), f'The potential data does not match in the netcdf files.' 
+        if not (np.allclose(local_time, expected_time, equal_nan=True)):
+            print('\nERROR: The time axis does not match in the netCDF files.'); error = True
+            print('\nCompare the time arrays in the local and expected netCDF files:')
+            compare_local_array_with_expected_array(local_time, expected_time)  
+        if not (np.allclose(local_phi2, expected_phi2, equal_nan=True)):
+            print('\nERROR: The potential data does not match in the netCDF files.'); error = True 
+            print('\nCompare the potential arrays in the local and expected netCDF files:')
+            compare_local_array_with_expected_array(local_phi2, expected_phi2) 
+        assert (not error), f'The potential data does not match in the netCDF files.'  
                 
     print(f'\n  -->  The potential is evolving correctly in a nonlinear flux-tube simulation using VMEC geometry when toggling usefull flags ({int(local_netcdf["nproc"])} CPUs).')
     return
  
 #-------------------------------------------------------------------------------
-def test_whether_a_mistake_was_introduced_in_an_extra_flag_2(tmp_path):
+def test_whether_a_mistake_was_introduced_in_an_extra_flag_2(tmp_path, error=False):
 
     # Input file name  
     input_filename = 'test_all_flags2.in'  
@@ -88,10 +95,17 @@ def test_whether_a_mistake_was_introduced_in_an_extra_flag_2(tmp_path):
         # Read the potential axis
         local_phi2 = local_netcdf['phi2']
         expected_phi2 = expected_netcdf['phi2'] 
-                     
+        
         # Check whether we have the same time and potential data
-        assert (np.allclose(local_time, expected_time, equal_nan=True)), f'The time axis does not match in the netcdf files.'
-        assert (np.allclose(local_phi2, expected_phi2, equal_nan=True)), f'The potential data does not match in the netcdf files.' 
+        if not (np.allclose(local_time, expected_time, equal_nan=True)):
+            print('\nERROR: The time axis does not match in the netCDF files.'); error = True
+            print('\nCompare the time arrays in the local and expected netCDF files:')
+            compare_local_array_with_expected_array(local_time, expected_time)  
+        if not (np.allclose(local_phi2, expected_phi2, equal_nan=True)):
+            print('\nERROR: The potential data does not match in the netCDF files.'); error = True 
+            print('\nCompare the potential arrays in the local and expected netCDF files:')
+            compare_local_array_with_expected_array(local_phi2, expected_phi2) 
+        assert (not error), f'The potential data does not match in the netCDF files.'  
                 
     print(f'\n  -->  The potential is evolving correctly in a nonlinear flux-tube simulation using VMEC geometry when toggling usefull flags ({int(local_netcdf["nproc"])} CPUs).')
     return

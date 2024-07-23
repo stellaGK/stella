@@ -1,9 +1,10 @@
  
-! Simple nonlinear example using CBC, only the nonlinear term is turned on
-! Use a fixed rng_seed, otherwise the noise initialization will be different on each run
+! Simple linear example using CBC to test that without any gyrokinetic  
+! terms and without dissipation, the! potential does not evolve in time
+! Using the <ginit_option> = 'default' initialization  
 
 &physics_flags
-  nonlinear = .true.
+  nonlinear = .false.
   include_parallel_streaming = .false.
   include_mirror = .false.
 /
@@ -28,7 +29,7 @@
   type = 'electron'
   z = -1.0
 /
-&kt_grids_box_parameters
+&kt_grids_box_parameters 
   nx = 6
   ny = 9
   y0 = 15
@@ -44,20 +45,21 @@
 /
 &knobs
   delt = 0.01 
-  nstep = 100
+  nstep = 1
   print_extra_info_to_terminal = .false. 
-  rng_seed = 1
   stream_implicit = .true.
   mirror_implicit = .true.
   drifts_implicit = .false.
+  rng_seed = 1
 /
 &stella_diagnostics_knobs
-  nsave = 100
-  nwrite = 10 
+  nsave = 1
+  nwrite = 1
 /
-&init_g_knobs 
-  ginit_option = 'noise'
+&init_g_knobs
+  ginit_option = 'default'
   phiinit = 0.01 
+  width0 = 1.0
 /
 &dissipation
   hyper_dissipation = .false.

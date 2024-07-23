@@ -1,7 +1,7 @@
 ################################################################################
-#                            Check the VMEC geometry                           #
+#                           Check the Miller geometry                          #
 ################################################################################
-# Test all the geometry arrays when using a VMEC equilibrium. 
+# Test all the geometry arrays when using a Miller equilibrium. 
 ################################################################################
 
 # Python modules
@@ -14,15 +14,14 @@ import xarray as xr
 module_path = str(pathlib.Path(__file__).parent.parent / 'run_local_stella_simulation.py')
 with open(module_path, 'r') as file: exec(file.read())
 
-# Global variables 
-vmec_filename = 'wout_w7x_kjm.nc'
-input_filename = 'vmec_geometry.in'  
-stella_local_run_directory = 'Not/Run/Yet' 
+# Global variables  
+input_filename = 'miller_geometry.in'  
+stella_local_run_directory = 'Not/Run/Yet'
 
 #-------------------------------------------------------------------------------
 #                    Check whether output files are present                    #
 #-------------------------------------------------------------------------------
-def test_whether_VMEC_output_files_are_present(tmp_path, error=False):  
+def test_whether_miller_output_files_are_present(tmp_path, error=False):  
     
     # Save the temporary folder <tmp_path> as a global variable so the
     # other tests can access the output files from the local stella run.
@@ -30,13 +29,13 @@ def test_whether_VMEC_output_files_are_present(tmp_path, error=False):
     stella_local_run_directory = tmp_path
     
     # Run stella inside of <tmp_path> based on <input_filename>
-    run_local_stella_simulation(input_filename, tmp_path, vmec_filename)
+    run_local_stella_simulation(input_filename, tmp_path)
     
     # Gather the output files generated during the local stella run inside <tmp_path>
     local_files = os.listdir(stella_local_run_directory)
     
     # Create a list of the output files we expect when stella has been run 
-    expected_files = ['vmec_geometry.vmec.geo', 'vmec_geometry.geometry']
+    expected_files = ['millerlocal.miller_geometry.input', 'millerlocal.miller_geometry.output', 'miller_geometry.geometry']
     
     # Check whether all these output files are present
     for expected_file in expected_files:
@@ -51,49 +50,59 @@ def test_whether_VMEC_output_files_are_present(tmp_path, error=False):
     
     # The test will stop as soon as an <assert> error was triggered, hence we
     # will only reach this final line of code if the test ran successfully
-    print(f'  -->  All the expected files (.vmec.geo, .geometry) are generated.')
+    print(f'  -->  All the expected files (millerlocal.input, millerlocal.output, .geometry) are generated.')
     return 
 
 #-------------------------------------------------------------------------------
-#                     Check whether VMEC output files match                    #
+#                    Check whether Miller output files match                   #
 #-------------------------------------------------------------------------------
-def test_whether_vmec_output_files_are_correct():  
+def test_whether_miller_output_files_are_correct():  
+    '''Check that the results are identical to a previous run.'''
 
     # Initialize
     geometry_files_match = True
-    vmec_files_match = True 
+    miller_input_files_match = True
+    miller_output_files_match = True
     
     # File names 
-    local_geometry_file = stella_local_run_directory / 'vmec_geometry.geometry' 
+    local_geometry_file = stella_local_run_directory / 'miller_geometry.geometry' 
     expected_geometry_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.geometry' 
-    local_vmec_file = stella_local_run_directory / 'vmec_geometry.vmec.geo' 
-    expected_vmec_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.vmec.geo'  
+    local_miller_input_file = stella_local_run_directory / 'millerlocal.miller_geometry.input' 
+    expected_miller_input_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.millerlocal.input' 
+    local_miller_output_file = stella_local_run_directory / 'millerlocal.miller_geometry.output' 
+    expected_miller_output_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.millerlocal.output' 
      
-    # Check whether the vmec.geo files match  
-    if os.path.getsize(local_vmec_file) != os.path.getsize(expected_vmec_file): vmec_files_match = False; print('ERROR: vmec.geo files do not match.')
-    elif open(local_vmec_file,'r').read() != open(expected_vmec_file,'r').read(): vmec_files_match = False; print('ERROR: vmec.geo files do not match.') 
+    # Check whether the millerlocal input files match  
+    if os.path.getsize(local_miller_input_file) != os.path.getsize(expected_miller_input_file): miller_input_files_match = False; print('ERROR: Miller input files do not match.')
+    elif open(local_miller_input_file,'r').read() != open(expected_miller_input_file,'r').read(): miller_input_files_match = False; print('ERROR: Miller input files do not match.')
+
+    # Check whether the millerlocal output files match  
+    if os.path.getsize(local_miller_output_file) != os.path.getsize(expected_miller_output_file): miller_output_files_match = False; print('ERROR: Miller output files do not match.')
+    elif open(local_miller_output_file,'r').read() != open(expected_miller_output_file,'r').read(): miller_output_files_match = False; print('ERROR: Miller output files do not match.')
 
     # Check whether the geometry files match  
     if os.path.getsize(local_geometry_file) != os.path.getsize(expected_geometry_file): geometry_files_match = False; print('ERROR: Geometry files do not match.')
     elif open(local_geometry_file,'r').read() != open(expected_geometry_file,'r').read(): geometry_files_match = False; print('ERROR: Geometry files do not match.')
     
     # If the files don't match, print the differences
-    if vmec_files_match==False:
-        print_differences_in_text_files(local_vmec_file, expected_vmec_file, name='VMEC GEO')
-        assert False, 'The .vmec.geo files do not match.'
+    if miller_input_files_match==False:
+        print_differences_in_text_files(local_miller_input_file, expected_miller_input_file, name='MILLER INPUT')
+        assert False, 'Miller input files do not match.'
+    if miller_output_files_match==False:
+        print_differences_in_text_files(local_miller_output_file, expected_miller_output_file, name='MILLER OUTPUT')
+        assert False, 'Miller output files do not match.'
     if geometry_files_match==False:
         print_differences_in_text_files(local_geometry_file, expected_geometry_file, name='GEOMETRY')
-        assert False, 'Geometry files do not match.' 
+        assert False, 'Geometry files do not match.'
 
     # If we made it here the test was run correctly 
-    print(f'  -->  The geometry output file matches.')
+    print(f'  -->  Geometry output file matches.')
     return 
-        
-    
+
 #-------------------------------------------------------------------------------
 #              Check whether the data in the netcdf file matches               #
 #-------------------------------------------------------------------------------
-def test_whether_VMEC_geometry_data_in_netcdf_file_is_correct(error=False):
+def test_whether_miller_geometry_data_in_netcdf_file_is_correct(error=False):
     '''Check that the results are identical to a previous run.'''
      
     # File names  
@@ -105,8 +114,8 @@ def test_whether_VMEC_geometry_data_in_netcdf_file_is_correct(error=False):
     
         # Check whether all the keys are present
         if set(local_netcdf.keys()) != set(expected_netcdf.keys()):
-            print('ERROR: The quantities in the netCDF file differ from the EXPECTED_OUTPUT.out.nc file.')
-            assert False, 'The quantities in the netCDF file differ from the EXPECTED_OUTPUT.out.nc file.'
+            print('ERROR: The quantities in the netcdf file differ from the EXPECTED_OUTPUT.out.nc file.')
+            assert False, 'The quantities in the netcdf file differ from the EXPECTED_OUTPUT.out.nc file.'
         
         # Relevant keys for the geometry
         geometry_keys = ["bmag", "b_dot_grad_z", "gradpar", "gbdrift", "gbdrift0", "cvdrift", "cvdrift0", "kperp2", \
@@ -118,8 +127,8 @@ def test_whether_VMEC_geometry_data_in_netcdf_file_is_correct(error=False):
                 if key=='nproc': continue # The number of processors is allowed to differ
                 if (local_netcdf[key] != expected_netcdf[key]):
                     print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
-                    print(f'    LOCAL:    {local_netcdf[key]}')
-                    print(f'    EXPECTED: {expected_netcdf[key]}')
+                    print('    LOCAL:    {local_netcdf[key]}')
+                    print('    EXPECTED: {expected_netcdf[key]}')
                 
             # Compare texts (code_info and input_file)
             if expected_netcdf[key].dtype.kind == 'S':
@@ -128,19 +137,20 @@ def test_whether_VMEC_geometry_data_in_netcdf_file_is_correct(error=False):
                 if key=='input_file': continue # The input file is allowed to differ
                 if (local_netcdf_str != expected_netcdf_str):
                     print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
-                    print(f'    LOCAL:    {local_netcdf_str}')
-                    print(f'    EXPECTED: {expected_netcdf_str}') 
+                    print('    LOCAL:    {local_netcdf[key]}')
+                    print('    EXPECTED: {expected_netcdf[key]}') 
                     
             # Compare data arrays 
             else: 
-                if key=='djacdrho': continue # The quantity <djacdrho> is undefined when using VMEC (it's for Miller + radial_variation)
                 if not (np.allclose(local_netcdf[key], expected_netcdf[key], equal_nan=True)):
                     print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
-                    print(f'    LOCAL:    {local_netcdf[key]}')
-                    print(f'    EXPECTED: {expected_netcdf[key]}')
+                    print('    LOCAL:    {local_netcdf[key]}')
+                    print('    EXPECTED: {expected_netcdf[key]}')
                     
         # Print "AssertionError: <error message>" if an error was encountered
-        assert (not error), f'Some Miller geometry arrays in the netCDF file did not match the previous run.' 
+        assert (not error), f'Some Miller geometry arrays in the netcdf file did not match the previous run.' 
                 
-    print('  -->  All VMEC geometry data in the netCDF file matches the expected output.')
+    print('  -->  All Miller geometry data in the netcdf file matches the expected output.')
     return
+    
+

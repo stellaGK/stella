@@ -1,14 +1,15 @@
  
-! Simple nonlinear example using CBC, only the nonlinear term is turned on
-! Use a fixed rng_seed, otherwise the noise initialization will be different on each run
+! Simple nonlinear example using CBC
 
 &physics_flags
+  adiabatic_option = 'iphi00=2'
+  full_flux_surface = .false.
+  include_apar = .false.
   nonlinear = .true.
-  include_parallel_streaming = .false.
-  include_mirror = .false.
 /
 &species_knobs
   nspec = 2
+  species_option = 'stella'
 /
 &species_parameters_1
   dens = 1.0
@@ -29,6 +30,7 @@
   z = -1.0
 /
 &kt_grids_box_parameters
+  jtwist = 5
   nx = 6
   ny = 9
   y0 = 15
@@ -44,23 +46,28 @@
 /
 &knobs
   delt = 0.01 
-  nstep = 100
-  print_extra_info_to_terminal = .false. 
-  rng_seed = 1
-  stream_implicit = .true.
-  mirror_implicit = .true.
-  drifts_implicit = .false.
+  nstep = 10
+  print_extra_info_to_terminal = .false.  
 /
 &stella_diagnostics_knobs
-  nsave = 100
-  nwrite = 10 
+  nsave = 10
+  nwrite = 1
+  save_for_restart = .false.
+  write_fluxes_kxkyz = .true.
+  write_gvmus = .true.
+  write_gzvs = .true.
+  write_kspectra = .true.
+  write_omega = .true.
+  write_phi_vs_time = .true.
+  write_radial_fluxes = .true.
+  write_radial_moments = .true.
 /
-&init_g_knobs 
+&init_g_knobs
   ginit_option = 'noise'
-  phiinit = 0.01 
+  phiinit = 0.01
 /
 &dissipation
-  hyper_dissipation = .false.
+  hyper_dissipation = .true.
 /
 &geo_knobs
   geo_option = 'miller'
@@ -68,11 +75,12 @@
 &kt_grids_knobs
   grid_option = 'box'
 /
-&time_advance_knobs
-  xdriftknob = 0
-  ydriftknob = 0
-  wstarknob = 0
+&time_advance_knobs 
   explicit_option = 'rk2'
+/
+&layouts_knobs
+  vms_layout = 'vms'
+  xyzs_layout = 'yxzs'
 /
 &millergeo_parameters
   nzed_local = 128
