@@ -656,6 +656,12 @@ contains
       use kt_grids, only: swap_kxky_back_ordered
       use gyro_averages, only: find_max_required_kalpha_index
 
+      !! For gamtot3 - clean up 
+      use species, only: has_electron_species, ion_species
+      use kt_grids, only: zonal_mode , akx
+      use physics_flags, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
+      use stella_geometry, only: dl_over_b
+
       implicit none
 
       integer :: iky, ikx, iz, ia
@@ -671,6 +677,8 @@ contains
       complex, dimension(:, :, :), allocatable :: gam0_const
       complex, dimension(:, :, :), allocatable :: gamtot_con
 
+      real :: tmp 
+      
       if (debug) write (*, *) 'fields::init_fields::init_gamm0_factor_ffs'
 
       allocate (kperp2_swap(naky_all, ikx_max, nalpha))
@@ -688,6 +696,16 @@ contains
       !> of the Gamma0 factor that appears in quasineutrality
       if (.not. allocated(gam0_ffs)) then
          allocate (gam0_ffs(naky_all, ikx_max, -nzgrid:nzgrid))
+      end if
+
+      !> Needed for adiabatic response
+      if (.not. allocated(gamtot3)) then
+         if (.not. has_electron_species(spec) &
+             .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+            allocate (gamtot3(nakx, -nzgrid:nzgrid)); gamtot3 = 0.
+         else
+            allocate (gamtot3(1, 1)); gamtot3 = 0.
+         end if
       end if
 
       ia_max_gam0_count = 0
@@ -722,7 +740,9 @@ contains
                   call integrate_species(aj0_alpha, iz, wgts, gam0_alpha(ia), ia)
                   !> if Boltzmann response used, account for non-flux-surface-averaged component of electron density
                   if (adiabatic_electrons) then
-                     gam0_alpha(ia) = gam0_alpha(ia) + tite / nine
+                     !> TODO:GA-check
+                     gam0_alpha(ia) = gam0_alpha(ia) + tite / nine * (spec(ion_species)%dens / spec(ion_species)%temp) 
+!!                     gam0_alpha(ia) = gam0_alpha(ia) + tite / nine
                   else if (ikx == 1 .and. iky == naky) then
                      !> if kx = ky = 0, 1-Gam0 factor is zero;
                      !> this leads to eqn of form 0 * phi_00 = int d3v g.
@@ -760,6 +780,29 @@ contains
 
       if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
       gamtot = real(gamtot_con)
+      !> TODO-GA: move this to adiabatic response factor 
+      if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then 
+         gamtot(1, 1, :) = 0.0
+      end if
+
+      if (.not. has_electron_species(spec)) then
+         ia = 1
+         efac = tite / nine * (spec(ion_species)%dens / spec(ion_species)%temp)
+         !> Can probably delete -- need to check 
+         gamtot_h = 0.0
+         if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+            if (zonal_mode(1)) then
+               do ikx = 1, nakx
+                  tmp = 1./efac - sum(dl_over_b(ia, :) / gamtot(1, ikx, :))
+                  gamtot3(ikx, :) = 1./(gamtot(1, ikx, :) * tmp)
+               end do
+               if (akx(1) < epsilon(0.)) then
+                  gamtot3(1, :) = 0.0
+               end if
+            end if
+         end if
+      end if
+      
       deallocate (gamtot_con)
       deallocate (gam0_const)
 
