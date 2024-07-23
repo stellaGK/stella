@@ -363,11 +363,14 @@ contains
             !> theta0 = kx/ky
             theta0(2:, ikx) = akx(ikx) / aky(2:)
          end do
-      else
+      else if (abs(geo_surf%shat) > epsilon(0.0)) then
          do ikx = 1, nakx
             !> theta0 = kx/ky/shat
             theta0(2:, ikx) = akx(ikx) / (aky(2:) * geo_surf%shat)
          end do
+      else
+         ! if shat = 0, then theta0 should not enter anywhere
+         theta0(2:,:) = 0.0
       end if
 
       norm = 1.

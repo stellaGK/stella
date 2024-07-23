@@ -284,8 +284,12 @@ contains
 
          if (q_as_x) then
             fac = -xdriftknob * 0.5 * code_dt * spec(is)%tz_psi0
-         else
+         else if (abs(geo_surf%shat) > epsilon(0.0)) then
             fac = -xdriftknob * 0.5 * code_dt * spec(is)%tz_psi0 / geo_surf%shat
+         else
+            ! the only currently supported case for which shat = 0 is z-pinch geometry, where the
+            ! x-component of the magnetic drift is zero
+            fac = 0.0
          end if
          !> this is the curvature drift piece of wdriftx with missing factor of vpa
          !> vpa factor is missing to avoid singularity when including
@@ -301,6 +305,7 @@ contains
                                                                              - dxdXcoord * dphineo_dalpha)
          end if
          wdriftx_phi(:, :, ivmu) = spec(is)%zt * (wgbdriftx + wcvdriftx * vpa(iv))
+
          !> if maxwellian_normalizatiion = .true., evolved distribution function is normalised by a Maxwellian
          !> otherwise, it is not; a Maxwellian weighting factor must thus be included
          if (.not. maxwellian_normalization) then
@@ -857,7 +862,6 @@ contains
          !> as part of alternating direction operator splitting
          !> this is needed to ensure 2nd order accuracy in time
          if (mod(istep, 2) == 1 .or. .not. flip_flop) then
-
             !> Advance the explicit parts of the GKE
             if (debug) write (*, *) 'time_advance::advance_explicit'
             if (.not. fully_implicit) call advance_explicit(gnew, restart_time_step, istep)

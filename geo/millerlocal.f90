@@ -76,7 +76,7 @@ contains
       qinp = 1.4
       shat = 0.8
       shift = 0.0
-      kappa = 0.0
+      kappa = 1.0
       kapprim = 0.0
       tri = 0.0
       triprim = 0.0
