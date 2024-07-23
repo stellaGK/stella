@@ -370,7 +370,7 @@ contains
          end do
       else
          ! if shat = 0, then theta0 should not enter anywhere
-         theta0(2:,:) = 0.0
+         theta0(2:, :) = 0.0
       end if
 
       norm = 1.
