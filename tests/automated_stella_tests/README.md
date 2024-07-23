@@ -6,6 +6,7 @@ and make use of [xarray][xarray] for reading in the data. To install these
 packages in a standalone environment, you can run:
 
     export GK_HEAD_DIR=your_path_to_stella/stella
+    export STELLA_EXE_PATH=your_path_to_stella/stella/stella
     cd $GK_HEAD_DIR/tests/automated_stella_tests/
     make create-test-virtualenv
     source $GK_HEAD_DIR/tests/automated_stella_tests/venv/bin/activate
@@ -14,11 +15,8 @@ This will create a Python [virtual environment][venv] with the packages needed
 for running the tests. You can then run all the tests:
     
     cd $GK_HEAD_DIR/tests/automated_stella_tests/
-    make check-automated-stella-tests-dependencies
-
-This assumes that the executable is located two directories above this one. You
-can set the environment variable `STELLA_EXE_PATH` to the location of the
-`stella` executable if it has been built somewhere else.
+    make check-automated-stella-tests
+    
 
 Writing new tests
 -----------------
