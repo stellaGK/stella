@@ -691,7 +691,9 @@ contains
       use physics_flags, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use fields_arrays, only: response_matrix
-      use extended_zgrid, only: periodic
+      use extended_zgrid, only: periodic, phase_shift
+      use parallel_streaming, only: stream_sign
+      use physics_flags, only: full_flux_surface
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
@@ -719,7 +721,8 @@ contains
       ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
       phi_ext(idx) = time_upwind_plus
 
-      if (periodic(iky) .and. idx == 1) phi_ext(nz_ext) = phi_ext(1)
+      if (periodic(iky) .and. idx == 1) phi_ext(nz_ext) = phi_ext(1) * phase_shift(iky)
+!!      if (periodic(iky) .and. idx == 1) phi_ext(nz_ext) = phi_ext(1)
 
       ! dum is a scratch array that takes the place of the pdf and phi
       ! at the previous time level,
