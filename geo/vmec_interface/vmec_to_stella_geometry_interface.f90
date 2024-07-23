@@ -115,7 +115,7 @@ contains
          return
       end if
 
-      if (verbose) then
+      if (verbose .and. print_extra_info_to_terminal) then
          write (*, *) "Successfully read VMEC data from '", trim(vmec_filename), "'."
       end if
 
@@ -460,7 +460,7 @@ contains
       ! this gives the sign of the edge toroidal flux
       sign_toroidal_flux = int(sign(1.1, edge_toroidal_flux_over_2pi))
 
-      if (verbose) write (*, '(A43, I2)') "      Sign of the toroidal flux from VMEC:"//repeat(' ', 50), sign_toroidal_flux
+      if (verbose .and. print_extra_info_to_terminal) write (*, '(A43, I2)') "      Sign of the toroidal flux from VMEC:"//repeat(' ', 50), sign_toroidal_flux
 
       ! Set reference length and magnetic field for stella's normalization,
       ! using the choices made by Pavlos Xanthopoulos in GIST:
@@ -719,7 +719,7 @@ contains
       allocate (d_iota_d_s_on_half_grid(ns))
       d_iota_d_s_on_half_grid = 0
       ds = normalized_toroidal_flux_full_grid(2) - normalized_toroidal_flux_full_grid(1)
-      if (verbose) write (*, '(A21, ES20.12E3)') "      ds:"//repeat(' ', 50), ds
+      if (verbose .and. print_extra_info_to_terminal) write (*, '(A21, ES20.12E3)') "      ds:"//repeat(' ', 50), ds
       d_iota_d_s_on_half_grid(2:ns) = (iotaf(2:ns) - iotaf(1:ns - 1)) / ds
       d_iota_d_s = &
          d_iota_d_s_on_half_grid(vmec_radial_index_half(1)) * vmec_radial_weight_half(1) &
