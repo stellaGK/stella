@@ -170,32 +170,32 @@ contains
          oddparity
       integer :: ierr, in_file
 
-      tstart = 0.
-      scale = 1.0
-      ginit_option = "default"
-      width0 = -3.5
-      refac = 1.
-      imfac = 0.
-      den0 = 1.
-      upar0 = 0.
-      tpar0 = 0.
-      tperp0 = 0.
-      den1 = 0.
-      upar1 = 0.
-      tpar1 = 0.
-      tperp1 = 0.
-      den2 = 0.
-      upar2 = 0.
-      tpar2 = 0.
-      tperp2 = 0.
-      phiinit = 1.0
-      zf_init = 1.0
-      kxmax = 1.e100
-      kxmin = 0.
-      chop_side = .false.
-      scale_to_phiinit = .false.
-      left = .true.
-      oddparity = .false.
+      tstart = 0.			! Used for restarted simulations
+      scale = 1.0			! Used for restarted simulations
+      ginit_option = "default"		! Select the <ginit_options> 
+      width0 = -3.5			! Used for <ginit_options> = {default, kpar}
+      refac = 1.			! Used for <ginit_options> = {kpar}
+      imfac = 0.			! Used for <ginit_options> = {kpar}
+      den0 = 1.				! Used for <ginit_options> = {default, kpar}
+      upar0 = 0.			! Used for <ginit_options> = {default, kpar}
+      tpar0 = 0.			! Used for <ginit_options> = {kpar}
+      tperp0 = 0.			! Used for <ginit_options> = {kpar}
+      den1 = 0.				! Used for <ginit_options> = {kpar}
+      upar1 = 0.			! Used for <ginit_options> = {kpar}	
+      tpar1 = 0.			! Used for <ginit_options> = {kpar}
+      tperp1 = 0.			! Used for <ginit_options> = {kpar}
+      den2 = 0.				! Used for <ginit_options> = {kpar}
+      upar2 = 0.			! Used for <ginit_options> = {kpar}
+      tpar2 = 0.			! Used for <ginit_options> = {kpar}
+      tperp2 = 0.			! Used for <ginit_options> = {kpar}
+      phiinit = 1.0			! Used in all <ginit_options>  
+      zf_init = 1.0			! Used for <ginit_options> = {noise}
+      kxmax = 1.e100			! Used for <ginit_options> = {rh}
+      kxmin = 0.			! Used for <ginit_options> = {rh}
+      chop_side = .false.		! Used for <ginit_options> = {default, noise, kpar}
+      scale_to_phiinit = .false.	! Used to call rescale_fields() to rescale {phi, apar, g} to <phiinit>
+      left = .true.			! Used for <ginit_options> = {default, noise, kpar}
+      oddparity = .false.		! Used for <ginit_options> = {default}
 
       restart_file = trim(run_name)//".nc"
       restart_dir = "./"
