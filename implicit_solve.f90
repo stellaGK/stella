@@ -43,7 +43,7 @@ contains
       use run_parameters, only: nitt
 
       use ffs_solve, only: get_source_ffs_itteration, get_drifts_ffs_itteration
-
+      use species, only: has_electron_species
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
@@ -56,7 +56,7 @@ contains
 
       logical :: implicit_solve = .false.
       complex, dimension(:, :, :, :, :), allocatable :: phi_source_ffs
-      complex, dimension(:, :, :, :), allocatable :: fields_source
+      complex, dimension(:, :, :, :), allocatable :: fields_source_ffs
       complex, dimension(:, :, :, :, :), allocatable :: drifts_source_ffs
 
       integer :: ikx, iky, iz
@@ -67,8 +67,8 @@ contains
       if(driftkinetic_implicit) then 
          if (.not. allocated(phi_source_ffs)) allocate (phi_source_ffs(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          phi_source_ffs = 0.0
-         if (.not. allocated(fields_source)) allocate (fields_source(naky, nakx, -nzgrid:nzgrid, ntubes))
-         fields_source = 0.0
+         if (.not. allocated(fields_source_ffs)) allocate (fields_source_ffs(naky, nakx, -nzgrid:nzgrid, ntubes))
+         fields_source_ffs = 0.0
          if (.not. allocated(drifts_source_ffs)) allocate (drifts_source_ffs(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          drifts_source_ffs = 0.0
       end if
@@ -95,6 +95,9 @@ contains
       g1 = g
       g2 = g
 
+      call advance_fields(g2, phi, apar, bpar, dist=trim(dist_choice))
+      phi_old = phi
+
       !> if using delphi formulation for response matrix, then phi = phi^n replaces
       !> phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
       !> NB: for FFS phi_source = 0.0 for inhomogeneous step - this is always set below
@@ -112,10 +115,10 @@ contains
       do while (itt <= nitt)
          !> save the incoming pdf and phi, as they will be needed later
          !> this will become g^{n+1, i} -- the g from the previous iteration         
-         if (driftkinetic_implicit) then
+         if (driftkinetic_implicit .and. (itt .NE. 1)) then
             call advance_fields(g2, phi, apar, bpar, dist=trim(dist_choice))
-         end if
-         phi_old = phi 
+            phi_old = phi
+         end if 
 
          if (include_apar) then
             ! when solving for the 'inhomogeneous' piece of the pdf,
@@ -152,8 +155,8 @@ contains
             call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice), implicit_solve=.true.) 
             !> g2 = g^{n+1, i}
             !> phi_old = phi^{n+1, i} 
-            call get_fields_source(g2, phi_old, fields_source) 
-            phi = phi + fields_source
+            call get_fields_source(g2, phi_old, fields_source_ffs) 
+            phi = phi + fields_source_ffs
          else
             call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice)) 
          end if
@@ -187,6 +190,7 @@ contains
          if (driftkinetic_implicit) then
             !> Pass in modify to include RHS source term
             !> solving for full g = g_{inh} + g_{hom} 
+            modify = .true.
             call update_pdf(modify)
             g2 = g 
          else
@@ -200,7 +204,7 @@ contains
 
       deallocate (phi_old, apar_old, bpar_old)
       deallocate (phi_source, apar_source, bpar_source)
-      if(driftkinetic_implicit) deallocate (fields_source) 
+      if(driftkinetic_implicit) deallocate (fields_source_ffs) 
       if(driftkinetic_implicit) deallocate (phi_source_ffs, drifts_source_ffs) 
 
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Stream advance')
@@ -982,7 +986,7 @@ contains
       ! the pdf evaluated at the previous time level
       if(present(source_ffs)) then 
          do izext = 1, nz_ext
-            rhs(izext) = rhs(izext) + source_ffs(izext)
+            rhs(izext) = rhs(izext) + gradpar_fac(iz_from_izext(izext)) * dpdf_dz(izext) + source_ffs(izext)
          end do
       else
          do izext = 1, nz_ext

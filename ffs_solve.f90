@@ -50,7 +50,7 @@ contains
      use species, only: spec
 
      use fields, only: advance_fields, fields_updated
-     use fields_arrays, only: apar
+     use fields_arrays, only: apar, bpar
      use gyro_averages, only: j0_ffs, j0_const, gyro_average
 
      use kt_grids, only: swap_kxky_back
@@ -58,6 +58,8 @@ contains
      
      use parallel_streaming, only: center_zed, get_dgdz_centered, get_dzed
      use parallel_streaming, only: stream_correction, stream, stream_store_full
+     
+     use species, only: has_electron_species
      implicit none
 
      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
@@ -67,9 +69,10 @@ contains
      integer :: ivmu, iv, imu, is, ia, iz, it, ikx
      complex, dimension(:, :, :, :), allocatable :: g0, g1
      complex, dimension(:, :, :, :), allocatable :: dgphi_dz, dphi_dz, dgdz
-     complex, dimension(:, :, :, :), allocatable :: g0y, g1y, g2y
+     complex, dimension(:, :, :, :), allocatable :: g0y, g1y, g2y, g3y
      complex, dimension(:, :), allocatable :: g_swap
 
+     real, dimension (:, :), allocatable :: coeff, coeff2
      real :: scratch 
 
      allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g0 = 0.0
@@ -82,9 +85,13 @@ contains
      allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g0y = 0.0
      allocate (g1y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g1y = 0.0
      allocate (g2y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g2y = 0.0 
+     allocate (g3y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g3y = 0.0
      
-     source = 0.0 
+     allocate (coeff(ny, -nzgrid:nzgrid)) ; coeff = 0.0 
+     allocate (coeff2(ny, -nzgrid:nzgrid)) ; coeff2 = 0.0
 
+     source = 0.0 
+     
      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         iv = iv_idx(vmu_lo, ivmu)
         imu = imu_idx(vmu_lo, ivmu)
@@ -122,13 +129,36 @@ contains
          
         scratch = maxwell_fac(is) *  maxwell_vpa(iv, is) * spec(is)%zt
 
-        g2y = spread(spread(stream_correction(:,:,iv,is), 2, ikx_max), 4, ntubes) * scratch &
-             * (g2y + g0y * spread(spread(maxwell_mu_avg(:, :, imu, is), 2, ikx_max),4, ntubes ))
+        coeff = stream_correction(:,:,iv,is)
+        coeff2 = stream_correction(:,:,iv,is) * maxwell_mu_avg(:, :, imu, is) * scratch
+        do ia = 1, ny
+           call center_zed(iv, coeff(ia, :) ,  -nzgrid)
+           call center_zed(iv, coeff2(ia, :) ,  -nzgrid)
+        end do
+        g2y = spread(spread(coeff, 2, ikx_max), 4, ntubes) * g2y + spread(spread(coeff2, 2, ikx_max), 4, ntubes) * g0y
+!        g2y = spread(spread(stream_correction(:,:,iv,is), 2, ikx_max), 4, ntubes) &
+!             * (g2y + g0y * spread(spread(maxwell_mu_avg(:, :, imu, is), 2, ikx_max),4, ntubes ) * scratch)
 
-        g0y = spread(spread(stream_store_full (:,:,iv,is) * maxwell_mu(:, :, imu, is) , 2, ikx_max),4, ntubes) & 
-             * (g1y - g0y) * scratch 
+        coeff = stream_store_full (:,:,iv,is) * (maxwell_mu(:, :, imu, is) - maxwell_mu_avg(:, :, imu, is)) * scratch
+        do ia = 1, ny
+           call center_zed(iv, coeff(ia, :) ,  -nzgrid)
+        end do
+        g3y = spread(spread(coeff, 2, ikx_max), 4, ntubes) * g1y
 
-        g0y = g0y + g2y 
+!        g3y = spread(spread(stream_store_full (:,:,iv,is) * (maxwell_mu(:, :, imu, is) & 
+!!             - maxwell_mu_avg(:, :, imu, is)), 2, ikx_max),4, ntubes) &
+!             * g1y * scratch 
+
+        coeff = stream_store_full (:,:,iv,is) * maxwell_mu(:, :, imu, is)
+        do ia = 1, ny 
+           call center_zed(iv, coeff(ia, :) ,  -nzgrid) 
+        end do
+        g0y =  spread(spread(coeff, 2, ikx_max), 4, ntubes) * (g0y - g1y) * scratch 
+!        g0y = spread(spread(stream_store_full (:,:,iv,is) * maxwell_mu(:, :, imu, is) , 2, ikx_max),4, ntubes) & 
+!             * (g0y - g1y) * scratch 
+
+!        g0y = 0.0 
+        g0y = g0y + g2y + g3y
 
         do it = 1, ntubes
            do iz = -nzgrid, nzgrid
@@ -143,8 +173,8 @@ contains
      deallocate(g0)
      deallocate(dgphi_dz, dphi_dz, dgdz)
      deallocate(g_swap)
-     deallocate(g0y,g1y,g2y) 
-
+     deallocate(g0y,g1y,g2y, g3y) 
+     deallocate(coeff, coeff2) 
    end subroutine get_source_ffs_itteration
 
     subroutine get_drifts_ffs_itteration (phi, g, source) 
