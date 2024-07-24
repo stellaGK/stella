@@ -1419,7 +1419,7 @@ contains
       integer :: it, ia
       complex :: tmp
 
-      allocate (source(naky, nakx, -nzgrid:nzgrid))
+      allocate (source(naky, nakx, -nzgrid:nzgrid)); source = 0.0
 
       if (fphi > epsilon(0.0)) then
          if (present(implicit_solve)) then
@@ -1559,7 +1559,8 @@ contains
 
          !> assume there is only a single flux surface being simulated
          it = 1
-         allocate (gyro_g(naky, nakx, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         !> TODO-GA: use g_scratch here to save memory?
+         allocate (gyro_g(naky, nakx, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); gyro_g = 0.0
          !> loop over zed location within flux tube
          do iz = -nzgrid, nzgrid
             if (present(implicit_solve)) then

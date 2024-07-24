@@ -270,7 +270,7 @@ contains
             if (stream_implicit) then
                driftkinetic_implicit = .true.
             end if
-	    if (maxwellian_normalization) then 
+	         if (maxwellian_normalization) then 
                write (*, *)
                write (*, *) '!!!WARNING!!!'
                write (*, *) 'The option maxwellian_normalisation=T is not consistent with full_flux_surface=T.'

@@ -336,29 +336,24 @@ contains
          !> we must take care to avoid aliasing.
          !> this is accomplished by filtering out the highest third of
          !> the wavenumber spectra
-         !> TODO-GA: check if you want tot do this or not -- turn off fo rnow for testing 
-         ! if (debug) write (*, *) 'get_vmec_geo::filter_geo_coef' 
-         ! if (full_flux_surface.and. .not. const_alpha_geo) then
-         !    do iz = -nzgrid, nzgrid
-         !       call filter_geo_coef(naky, bmag(:, iz))
-         !       call filter_geo_coef(naky, grad_alpha_grad_alpha(:, iz))
-         !       call filter_geo_coef(naky, grad_alpha_grad_psi(:, iz))
-         !       call filter_geo_coef(naky, grad_psi_grad_psi(:, iz))
-         !       call filter_geo_coef(naky, gds23(:, iz))
-         !       call filter_geo_coef(naky, gds24(:, iz))
-         !       call filter_geo_coef(naky, gds25(:, iz))
-         !       call filter_geo_coef(naky, gds26(:, iz))
-         !       call filter_geo_coef(naky, gbdrift_alpha(:, iz))
-         !       call filter_geo_coef(naky, gbdrift0_psi(:, iz))
-         !       call filter_geo_coef(naky, cvdrift_alpha(:, iz))
-         !       call filter_geo_coef(naky, cvdrift0_psi(:, iz))
-         !       call filter_geo_coef(naky, b_dot_grad_z(:, iz))
-         !       !!GA
-         !       call filter_geo_coef(naky, gradzeta_gradx(:, iz))
-         !       call filter_geo_coef(naky, gradzeta_grady(:, iz))
-         !       call filter_geo_coef(naky, gradpar_zeta_r2(:, iz))
-         !    end do
-         ! end if
+         if (debug) write (*, *) 'get_vmec_geo::filter_geo_coef'
+         if (full_flux_surface .and. .not. const_alpha_geo) then
+            do iz = -nzgrid, nzgrid
+               call filter_geo_coef(naky, bmag(:, iz))
+               call filter_geo_coef(naky, grad_alpha_grad_alpha(:, iz))
+               call filter_geo_coef(naky, grad_alpha_grad_psi(:, iz))
+               call filter_geo_coef(naky, grad_psi_grad_psi(:, iz))
+               call filter_geo_coef(naky, gds23(:, iz))
+               call filter_geo_coef(naky, gds24(:, iz))
+               call filter_geo_coef(naky, gds25(:, iz))
+               call filter_geo_coef(naky, gds26(:, iz))
+               call filter_geo_coef(naky, gbdrift_alpha(:, iz))
+               call filter_geo_coef(naky, gbdrift0_psi(:, iz))
+               call filter_geo_coef(naky, cvdrift_alpha(:, iz))
+               call filter_geo_coef(naky, cvdrift0_psi(:, iz))
+               call filter_geo_coef(naky, b_dot_grad_z(:, iz))
+            end do
+         end if
       else
          !> if zed_equal_arc = F, zed coordinate is the same as VMEC's zeta coordinate,
          !> so no need to interpolate onto a new grid
