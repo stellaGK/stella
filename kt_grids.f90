@@ -260,6 +260,7 @@ contains
       use constants, only: pi, zi
       use stella_geometry, only: geo_surf, twist_and_shift_geo_fac, dydalpha
       use stella_geometry, only: q_as_x, get_x_to_rho, dxdXcoord, drhodpsi
+      use stella_geometry, only: geo_option_switch, geo_option_vmec
       use physics_parameters, only: rhostar
       use physics_flags, only: full_flux_surface, radial_variation
       use file_utils, only: runtype_option_switch, runtype_multibox
@@ -373,7 +374,11 @@ contains
       norm = 1.
       if (naky > 1) norm = aky(2)
       if (rhostar > 0.) then
-         phase_shift_angle = -2.*pi * (2 * nperiod - 1) * geo_surf%qinp_psi0 * dydalpha / rhostar
+         if (geo_option_switch == geo_option_vmec) then
+            phase_shift_angle = -2.*pi * (2 * nperiod - 1) * dydalpha / (rhostar * geo_surf%qinp_psi0)
+         else
+            phase_shift_angle = -2.*pi * (2 * nperiod - 1) * geo_surf%qinp_psi0 * dydalpha / rhostar
+         end if
       else if (randomize_phase_shift) then
          if (proc0) phase_shift_angle = 2.*pi * ranf() / norm
          call broadcast(phase_shift_angle)

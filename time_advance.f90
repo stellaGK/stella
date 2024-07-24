@@ -630,8 +630,8 @@ contains
       use zgrid, only: delzed
       use vpamu_grids, only: dvpa
       use kt_grids, only: akx, aky, nx, rho
-      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
-      use parallel_streaming, only: stream
+      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit, driftkinetic_implicit
+      use parallel_streaming, only: stream, stream_correction
       use parallel_streaming, only: stream_rad_var1, stream_rad_var2
       use mirror_terms, only: mirror
       use flow_shear, only: prl_shear, shift_times
@@ -678,6 +678,12 @@ contains
          cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream)), zero)
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_stream)
       end if
+
+      !> TODO:GA- add correct CFL condition 
+      ! if (driftkinetic_implicit) then
+      !    cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream_correction)), zero)
+      !    cfl_dt_linear = min(cfl_dt_linear, cfl_dt_stream)
+      ! end if
 
       if (.not. mirror_implicit) then
          ! NB: mirror has code_dt built-in, which accounts for code_dt factor here
@@ -879,11 +885,13 @@ contains
             !> Advance the explicit parts of the GKE
             if (debug) write (*, *) 'time_advance::advance_explicit'
             if (.not. fully_implicit) call advance_explicit(gnew, restart_time_step, istep)
-
+            if (debug) write (*, *) 'time_advance::advance_implicit'
             !> Use operator splitting to separately evolve all terms treated implicitly
             if (.not. restart_time_step .and. .not. fully_explicit) call advance_implicit(istep, phi, apar, bpar, gnew)
          else
+            if (debug) write (*, *) 'time_advance::advance_implicit'
             if (.not. fully_explicit) call advance_implicit(istep, phi, apar, bpar, gnew)
+            if (debug) write (*, *) 'time_advance::advance_explicit'
             if (.not. fully_implicit) call advance_explicit(gnew, restart_time_step, istep)
          end if
 
@@ -1216,6 +1224,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: ikx_max, ny, naky_all
       use kt_grids, only: swap_kxky_back
+      use kt_grids, only: zonal_mode, akx
       use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
       use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
       use sources, only: source_option_switch, source_option_krook
@@ -1225,7 +1234,11 @@ contains
       use mirror_terms, only: advance_mirror_explicit
       use flow_shear, only: advance_parallel_flow_shear
       use multibox, only: include_multibox_krook, add_multibox_krook
+      use dist_fn_arrays, only: g_scratch
+      use gyro_averages, only: gyro_average, j0_ffs
       use g_tofrom_h, only: gbar_to_g
+      use run_parameters, only: driftkinetic_implicit
+      use dissipation, only: hyper_dissipation
       ! TMP FOR TESTING -- MAB
       use fields, only: fields_updated
 
@@ -1275,7 +1288,17 @@ contains
          call advance_fields(pdf, phi, apar, bpar, dist='g')
       end if
 
-      if (radial_variation) call get_radial_correction(pdf, phi, dist='g')
+      if (radial_variation) call get_radial_correction(pdf, phi, dist='gbar')
+
+      !> obtain the gyro-average of the electrostatic potential phi and store in g_scratch;
+      !> this can be a particularly costly operation when simulating a full flux surface
+      !> due to the coupling of different k-alphas inherent in the gyro-average;
+      !> calculate once here to avoid repeated calculation later
+      !> TODO-GA : can this be spec up??
+      if (full_flux_surface) call gyro_average(phi, g_scratch, j0_ffs)
+
+      !! INSERT TEST HERE TO SEE IF dg/dy, dg/dx, d<phi>/dy, d<phi>/dx WILL BE NEEDED
+      !! IF SO, PRE-COMPUTE ONCE HERE
 
       !> default is to continue with same time step size.
       !> if estimated CFL condition for nonlinear terms is violated
@@ -1324,6 +1347,10 @@ contains
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_parallel_streaming_explicit'
             call advance_parallel_streaming_explicit(pdf, phi, bpar, rhs)
          end if
+         
+         if (hyper_dissipation) then
+            call advance_hyper_explicit(pdf, rhs)
+         end if
 
          !> if simulating a full flux surface (flux annulus), all terms to this point have been calculated
          !> in real-space in alpha (y); transform to kalpha (ky) space before adding to RHS of GKE.
@@ -1337,6 +1364,10 @@ contains
                   call transform_y2ky(rhs_y(:, :, iz, it, ivmu), rhs_ky_swap)
                   call swap_kxky_back(rhs_ky_swap, rhs_ky(:, :, iz, it, ivmu))
                end do
+               ! ensure that the kx=ky=0 mode is zeroed out
+               if (zonal_mode(1) .and. akx(1) < epsilon(0.)) then
+                  rhs_ky(1, 1, :, it, ivmu) = 0.0
+               end if
             end do
             deallocate (rhs_ky_swap)
          end if
@@ -1359,6 +1390,137 @@ contains
 
    end subroutine solve_gke
 
+   subroutine advance_hyper_explicit(gin, gout)
+
+      use stella_layouts, only: vmu_lo
+      use zgrid, only: nzgrid, ntubes
+      use kt_grids, only: naky, nakx
+      use hyper, only: advance_hyper_vpa, advance_hyper_zed
+      use hyper, only: hyp_zed, hyp_vpa
+
+      implicit none
+      
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
+
+      complex, dimension(:, :, :, :, :), allocatable :: dg
+
+      allocate (dg(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); dg = 0.0
+
+      if (hyp_zed) then
+         call advance_hyper_zed(gin, dg)
+         gout = gout + dg
+      end if
+      if (hyp_vpa) then
+         call advance_hyper_vpa(gin, dg)
+      end if
+      deallocate (dg)
+      
+    end subroutine advance_hyper_explicit
+
+     !> TODO-GA: Note this is now in ffs_solve.f90 - this can probably be deleted here after tests
+    ! subroutine get_drifts_ffs_itteration (phi, g, source)
+
+    !   use mp, only: proc0
+    !   use stella_layouts, only: vmu_lo
+    !   use stella_layouts, only: iv_idx, imu_idx, is_idx
+    !   use stella_transforms, only: transform_ky2y,transform_y2ky
+    !   use zgrid, only: nzgrid, ntubes
+    !   use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
+    !   use kt_grids, only: swap_kxky, swap_kxky_back
+    !   use gyro_averages, only: j0_ffs, gyro_average
+    !   use dist_fn_arrays, only: wstar
+
+    !   use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
+    !   use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
+    !   use dist_fn_arrays, only: wstar
+
+    !   implicit none 
+
+    !   complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+    !   complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+    !   complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent (inout) :: source
+      
+    !   integer :: iz, it, ivmu, iv, is, imu
+    !   complex, dimension(:, :), allocatable :: g_swap
+    !   complex, dimension(:, :, :, :), allocatable :: g0, g1, g2, g3, g4
+    !   complex, dimension(:, :, :, :), allocatable :: sourcey, g1y, g2y, g3y, g4y
+    !   it = 1
+
+    !   allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g0 = 0.0
+    !   allocate (g1(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g1 = 0.0
+    !   allocate (g2(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g2 = 0.0
+    !   allocate (g3(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g3 = 0.0
+    !   allocate (g4(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g4 = 0.0
+
+    !   allocate (sourcey(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; sourcey = 0.0
+    !   allocate (g1y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g1y = 0.0
+    !   allocate (g2y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g2y = 0.0
+    !   allocate (g3y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g3y = 0.0
+    !   allocate (g4y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g4y = 0.0
+
+    !   allocate (g_swap(naky_all, ikx_max))
+      
+    !   source = 0.0
+    !   if(proc0) write(*,*) '1'
+
+    !   do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+    !      iv = iv_idx(vmu_lo, ivmu)
+    !      imu = imu_idx(vmu_lo, ivmu)
+    !      is = is_idx(vmu_lo, ivmu)
+
+    !      call gyro_average(phi, g0, j0_ffs(:, :, :, ivmu))
+    !      if(proc0) write(*,*) '2' 
+
+    !      call get_dgdy(g0, g1)
+    !      call get_dgdx(g0, g2)
+
+    !      call get_dgdy(g(:,:,:,:,ivmu), g3)
+    !      call get_dgdx(g(:,:,:,:,ivmu), g4)
+
+    !      if(proc0) write(*,*) '3' 
+    !      do it = 1, ntubes
+    !         do iz = -nzgrid, nzgrid
+    !            call swap_kxky(g1(:, :, iz, it), g_swap)
+    !            call transform_ky2y(g_swap, g1y(:, :, iz, it))
+
+    !            call swap_kxky(g2(:, :, iz, it), g_swap)
+    !            call transform_ky2y(g_swap, g2y(:, :, iz, it))
+
+    !            call swap_kxky(g3(:, :, iz, it), g_swap)
+    !            call transform_ky2y(g_swap, g3y(:, :, iz, it))
+
+    !            call swap_kxky(g4(:, :, iz, it), g_swap)
+    !            call transform_ky2y(g_swap, g4y(:, :, iz, it))      
+    !         end do
+    !      end do
+         
+    !      if(proc0) write(*,*) '4'
+    !      call add_explicit_term_ffs_fields(g1y, wstar, sourcey, ivmu)
+    !      if(proc0) write(*,*) '5'
+    !      !!
+    !      call add_explicit_term_ffs_fields(g4y, wdriftx_g, sourcey, ivmu) 
+    !      call add_explicit_term_ffs_fields(g2y, wdriftx_phi, sourcey, ivmu) 
+    !      if(proc0) write(*,*)'6'
+    !      !!
+    !      call add_explicit_term_ffs_fields(g3y, wdrifty_g, sourcey, ivmu)
+    !      call add_explicit_term_ffs_fields(g1y, wdrifty_phi, sourcey, ivmu)
+    !      if(proc0) write(*,*)'7'
+    !      do iz = -nzgrid, nzgrid
+    !        call transform_y2ky(sourcey(:, :, iz, it), g_swap)
+    !        call swap_kxky_back(g_swap, source(:, :, iz, it, ivmu))
+    !     end do
+    !     if(proc0) write(*,*) '8' 
+    !  end do
+
+    !  if(proc0) write(*,*) '9' 
+    !  deallocate(sourcey, g_swap)
+    !  deallocate(g0,g1,g2,g3,g4)
+    !  deallocate(g1y, g2y, g3y, g4y)
+
+
+    ! end subroutine get_drifts_ffs_itteration
+
    subroutine advance_wstar_explicit(phi, gout)
 
       use mp, only: proc0, mp_abort
@@ -1371,7 +1533,9 @@ contains
       use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
       use kt_grids, only: swap_kxky
       use physics_flags, only: full_flux_surface
-      use dist_fn_arrays, only: wstar
+      use dist_fn_arrays, only: wstar, g_scratch
+
+      use gyro_averages, only: gyro_average, j0_ffs
 
       implicit none
 
@@ -1388,16 +1552,17 @@ contains
 
       allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
-      if (debug) write (*, *) 'time_advance::solve_gke::get_dchidy'
-      !> get d<chi>/dy in k-space
-      call get_dchidy(phi, apar, bpar, g0)
-
       if (full_flux_surface) then
          !> assume only a single flux surface simulated
          it = 1
          allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          allocate (g0_swap(naky_all, ikx_max))
-         !> transform d<chi>/dy from k-space to y-space
+
+         !> calculate d<phi>/dy in k-space
+         !> Here g_scratch is <phi> in k-space that has been pre-calculated and stored
+         call get_dgdy(g_scratch, g0)
+         
+         !> transform d<phi>/dy from ky-space to y-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do iz = -nzgrid, nzgrid
                call swap_kxky(g0(:, :, iz, it, ivmu), g0_swap)
@@ -1409,6 +1574,9 @@ contains
          call add_explicit_term_ffs(g0y, wstar, gout)
          deallocate (g0y, g0_swap)
       else
+         !> get d<chi>/dy in k-space
+         if (debug) write (*, *) 'time_advance::solve_gke::get_dchidy'
+         call get_dchidy(phi, apar, bpar, g0)
          !> omega_* stays in ky,kx,z space with ky,kx,z local
          !> multiply d<chi>/dy with omega_* coefficient and add to source (RHS of GK eqn)
          if (debug) write (*, *) 'time_advance::solve_gke::add_wstar_term'
@@ -1434,8 +1602,9 @@ contains
       use kt_grids, only: nakx, ikx_max, naky, naky_all, ny
       use kt_grids, only: swap_kxky
       use physics_flags, only: full_flux_surface, include_bpar
-      use gyro_averages, only: gyro_average, gyro_average_j1
+      use gyro_averages, only: gyro_average, j0_ffs, gyro_average_j1
       use dist_fn_arrays, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
+      use dist_fn_arrays, only: g_scratch
 
       implicit none
 
@@ -1458,8 +1627,6 @@ contains
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdrifty_explicit::get_dgdy'
       !> calculate dg/dy in (ky,kx) space
       call get_dgdy(g, g0k)
-      !> calculate dphi/dy in (ky,kx) space
-      call get_dgdy(phi, dphidy)
       !> calculate dbpar/dy in (ky,kx) space
       if (include_bpar) call get_dgdy(bpar, dbpardy)
 
@@ -1475,13 +1642,13 @@ contains
                call transform_ky2y(g0k_swap, g0y(:, :, iz, it, ivmu))
             end do
          end do
+
          !> add vM . grad y dg/dy term to equation
          call add_explicit_term_ffs(g0y, wdrifty_g, gout)
 
-         !> get <dphi/dy> in k-space
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            call gyro_average(dphidy, ivmu, g0k(:, :, :, :, ivmu))
-         end do
+         !> > calculate dphi/dy in (ky,kx) space
+         !> Here g_scratch is <phi> in k-space that has been pre-calculated and stored
+         call get_dgdy(g_scratch, g0k)
 
          !> transform d<phi>/dy from k-space to y-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1499,6 +1666,11 @@ contains
          if (debug) write (*, *) 'time_advance::solve_gke::add_dgdy_term'
          ! add vM . grad y dg/dy term to equation
          call add_explicit_term(g0k, wdrifty_g(1, :, :), gout)
+
+         !> Note that this is here because for FFS te gyro-average is calculated once outside this routine
+         !> TODO-GA: can we do something similar for fluxtube to save cpu time?
+         !> calculate dphi/dy in (ky,kx) space
+         call get_dgdy(phi, dphidy)
 
          ! get <dphi/dy> in k-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1536,8 +1708,9 @@ contains
       use kt_grids, only: nakx, ikx_max, naky, naky_all, ny, akx
       use kt_grids, only: swap_kxky
       use physics_flags, only: full_flux_surface, include_bpar
-      use gyro_averages, only: gyro_average
+      use gyro_averages, only: gyro_average, j0_ffs
       use dist_fn_arrays, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
+      use dist_fn_arrays, only: g_scratch
 
       implicit none
 
@@ -1566,8 +1739,7 @@ contains
       if (debug) write (*, *) 'time_advance::solve_gke::get_dgdx'
       !> calculate dg/dx in (ky,kx) space
       call get_dgdx(g, g0k)
-      !> calculate dphi/dx in (ky,kx) space
-      call get_dgdx(phi, dphidx)
+
       !> calculate dbpar/dx in (ky,kx) space
       if (include_bpar) call get_dgdx(bpar, dbpardx)
 
@@ -1585,10 +1757,11 @@ contains
          end do
          !> add vM . grad x dg/dx term to equation
          call add_explicit_term_ffs(g0y, wdriftx_g, gout)
+
+         !> Here g_scratch is <phi> in k-space that has been pre-calculated and stored
          !> get <dphi/dx> in k-space
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            call gyro_average(dphidx, ivmu, g0k(:, :, :, :, ivmu))
-         end do
+         call get_dgdx(g_scratch, g0k)
+
          !> transform d<phi>/dx from k-space to y-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do iz = -nzgrid, nzgrid
@@ -1603,6 +1776,8 @@ contains
          if (debug) write (*, *) 'time_advance::solve_gke::add_dgdx_term'
          !> add vM . grad x dg/dx term to equation
          call add_explicit_term(g0k, wdriftx_g(1, :, :), gout)
+         !> calculate dphi/dx in (ky,kx) space
+         call get_dgdx(phi, dphidx)
          !> get <dphi/dx> in k-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             call gyro_average(dphidx, ivmu, g0k(:, :, :, :, ivmu))
@@ -1651,6 +1826,7 @@ contains
       use kt_grids, only: x, swap_kxky, swap_kxky_back
       use constants, only: pi, zi
       use file_utils, only: runtype_option_switch, runtype_multibox
+      use dist_fn_arrays, only: g_scratch
       use g_tofrom_h, only: g_to_h
 
       implicit none
@@ -1719,7 +1895,11 @@ contains
                !> FFT to get dg/dy in (y,x) space
                call forward_transform(g0k, g0xy)
                !> compute i*kx*<chi>
-               call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
+               if (full_flux_surface) then
+                  call get_dgdx(g_scratch(:, :, iz, it, ivmu), g0k)
+               else
+                  call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
+               end if
                !> if running with equilibrium flow shear, make adjustment to
                !> the term multiplying dg/dy
                if (prp_shear_enabled .and. hammett_flow_shear) then
@@ -1759,7 +1939,11 @@ contains
                !> FFT to get dg/dx in (y,x) space
                call forward_transform(g0k, g0xy)
                !> compute d<chi>/dy in k-space
-               call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
+               if (full_flux_surface) then
+                  call get_dgdy(g_scratch(:, :, iz, it, ivmu), g0k)
+               else
+                  call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
+               end if
                !> FFT to get d<chi>/dy in (y,x) space
                call forward_transform(g0k, g1xy)
                !> multiply by the geometric factor appearing in the Poisson bracket;
@@ -2551,7 +2735,8 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
 
-      !    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out), target :: g
+      logical :: implicit_fields
+!    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out), target :: g
 
 !    complex, dimension (:,:,:,:,:), pointer :: gk, gy
 !    complex, dimension (:,:,:,:,:), allocatable, target :: g_dual
@@ -2615,31 +2800,29 @@ contains
             fields_updated = .false.
          end if
 
-         ! get updated fields corresponding to advanced g
-         ! note that hyper-dissipation and mirror advances
-         ! depended only on g and so did not need field update
          call advance_fields(g, phi, apar, bpar, dist='g')
-
+         fields_updated = .true. 
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-         if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
+         if (stream_implicit .and. include_parallel_streaming) then
             call advance_implicit_terms(g, phi, apar, bpar)
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if
 
          ! update the fields if not already updated
          call advance_fields(g, phi, apar, bpar, dist='g')
-
+         fields_updated = .true. 
       else
 
          ! get updated fields corresponding to advanced g
-         ! note that hyper-dissipation
-         ! depends only on g and so does not need field update
+         ! note that hyper-dissipation and mirror advances
+         ! depended only on g and so did not need field update
          call advance_fields(g, phi, apar, bpar, dist='g')
+         fields_updated = .true. 
 
          ! g^{**} is input
          ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-         if ((stream_implicit .or. driftkinetic_implicit) .and. include_parallel_streaming) then
+         if (stream_implicit .and. include_parallel_streaming) then
             call advance_implicit_terms(g, phi, apar, bpar)
             if (radial_variation .or. full_flux_surface) fields_updated = .false.
          end if

@@ -34,6 +34,10 @@ module stella_geometry
    public :: dVolume
    public :: grad_x_grad_y_end
    public :: x_displacement_fac
+   public :: geo_option_switch, geo_option_vmec
+
+   public :: gradzeta_gradx, gradzeta_grady
+   public :: gradpar_zeta
 
    private
 
@@ -91,6 +95,8 @@ module stella_geometry
    logical :: geoinit = .false.
    logical :: set_bmag_const
 
+   real, dimension(:, :), allocatable :: gradzeta_gradx, gradzeta_grady
+   real, dimension(:, :), allocatable :: gradpar_zeta
 contains
 
    subroutine init_geometry(nalpha, naky)
@@ -195,6 +201,37 @@ contains
             ! aref and bref should not be needed, so set to 1
             aref = 1.0; bref = 1.0
             zeta(1, :) = zed * geo_surf%qinp
+
+            !!GA - Ensuring all arrays are filled with the alpha = 1 information
+            bmag = spread(bmag(1, :), 1, nalpha)
+            bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
+            gds2 = spread(gds2(1, :), 1, nalpha)
+            gds21 = spread(gds21(1, :), 1, nalpha)
+            gds22 = spread(gds22(1, :), 1, nalpha)
+            gds23 = spread(gds23(1, :), 1, nalpha)
+            gds24 = spread(gds24(1, :), 1, nalpha)
+            gbdrift0 = spread(gbdrift0(1, :), 1, nalpha)
+            gbdrift = spread(gbdrift(1, :), 1, nalpha)
+            cvdrift0 = spread(cvdrift0(1, :), 1, nalpha)
+            cvdrift = spread(cvdrift(1, :), 1, nalpha)
+            dcvdrift0drho = spread(dcvdrift0drho(1, :), 1, nalpha)
+            dcvdriftdrho = spread(dcvdriftdrho(1, :), 1, nalpha)
+            dgbdrift0drho = spread(dgbdrift0drho(1, :), 1, nalpha)
+            dgbdriftdrho = spread(dgbdriftdrho(1, :), 1, nalpha)
+            dgds2dr = spread(dgds2dr(1, :), 1, nalpha)
+            dgds21dr = spread(dgds21dr(1, :), 1, nalpha)
+            dgds22dr = spread(dgds22dr(1, :), 1, nalpha)
+            djacdrho = spread(djacdrho(1, :), 1, nalpha)
+            b_dot_grad_z = spread(b_dot_grad_z(1, :), 1, nalpha)
+            zeta = spread(zeta(1, :), 1, nalpha)
+
+            !!GA - for correct momentum diagnostics
+            !>R^2 * grad zeta . grad y / B^2
+            gradzeta_grady = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
+            gradzeta_gradx = 0.0
+            !>R^2 * b . grad zeta = R^2 * b. grad theta * dzeta/dtheta
+            gradpar_zeta = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag
+
          case (geo_option_multibox)
             ! read in Miller local parameters
             call read_local_parameters(nzed, nzgrid, geo_surf)
@@ -250,6 +287,36 @@ contains
             aref = 1.0; bref = 1.0
             zeta(1, :) = zed * geo_surf%qinp
 
+            !!GA - Ensuring all arrays are filled with the alpha = 1 information
+            bmag = spread(bmag(1, :), 1, nalpha)
+            bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
+            gds2 = spread(gds2(1, :), 1, nalpha)
+            gds21 = spread(gds21(1, :), 1, nalpha)
+            gds22 = spread(gds22(1, :), 1, nalpha)
+            gds23 = spread(gds23(1, :), 1, nalpha)
+            gds24 = spread(gds24(1, :), 1, nalpha)
+            gbdrift0 = spread(gbdrift0(1, :), 1, nalpha)
+            gbdrift = spread(gbdrift(1, :), 1, nalpha)
+            cvdrift0 = spread(cvdrift0(1, :), 1, nalpha)
+            cvdrift = spread(cvdrift(1, :), 1, nalpha)
+            dcvdrift0drho = spread(dcvdrift0drho(1, :), 1, nalpha)
+            dcvdriftdrho = spread(dcvdriftdrho(1, :), 1, nalpha)
+            dgbdrift0drho = spread(dgbdrift0drho(1, :), 1, nalpha)
+            dgbdriftdrho = spread(dgbdriftdrho(1, :), 1, nalpha)
+            dgds2dr = spread(dgds2dr(1, :), 1, nalpha)
+            dgds21dr = spread(dgds21dr(1, :), 1, nalpha)
+            dgds22dr = spread(dgds22dr(1, :), 1, nalpha)
+            djacdrho = spread(djacdrho(1, :), 1, nalpha)
+            b_dot_grad_z = spread(b_dot_grad_z(1, :), 1, nalpha)
+            zeta = spread(zeta(1, :), 1, nalpha)
+
+            !!GA - for correct momentum diagnostics
+            !>R^2 * grad zeta . grad y / B^2
+            gradzeta_grady = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
+            gradzeta_gradx = 0.0
+            !>R^2 * b . grad zeta = R^2 * b. grad theta * dzeta/dtheta
+            gradpar_zeta = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag
+
          case (geo_option_inputprof)
             ! first read in some local parameters
             ! only thing needed really is rhoc
@@ -297,6 +364,36 @@ contains
 
             zeta(1, :) = zed * geo_surf%qinp
 
+            !!GA - Ensuring all arrays are filled with the alpha = 1 information
+            bmag = spread(bmag(1, :), 1, nalpha)
+            bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
+            gds2 = spread(gds2(1, :), 1, nalpha)
+            gds21 = spread(gds21(1, :), 1, nalpha)
+            gds22 = spread(gds22(1, :), 1, nalpha)
+            gds23 = spread(gds23(1, :), 1, nalpha)
+            gds24 = spread(gds24(1, :), 1, nalpha)
+            gbdrift0 = spread(gbdrift0(1, :), 1, nalpha)
+            gbdrift = spread(gbdrift(1, :), 1, nalpha)
+            cvdrift0 = spread(cvdrift0(1, :), 1, nalpha)
+            cvdrift = spread(cvdrift(1, :), 1, nalpha)
+            dcvdrift0drho = spread(dcvdrift0drho(1, :), 1, nalpha)
+            dcvdriftdrho = spread(dcvdriftdrho(1, :), 1, nalpha)
+            dgbdrift0drho = spread(dgbdrift0drho(1, :), 1, nalpha)
+            dgbdriftdrho = spread(dgbdriftdrho(1, :), 1, nalpha)
+            dgds2dr = spread(dgds2dr(1, :), 1, nalpha)
+            dgds21dr = spread(dgds21dr(1, :), 1, nalpha)
+            dgds22dr = spread(dgds22dr(1, :), 1, nalpha)
+            djacdrho = spread(djacdrho(1, :), 1, nalpha)
+            b_dot_grad_z = spread(b_dot_grad_z(1, :), 1, nalpha)
+            zeta = spread(zeta(1, :), 1, nalpha)
+
+            !!GA - for correct momentum diagnostics
+            !>R^2 * grad zeta . grad y / B^2
+            gradzeta_grady = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
+            gradzeta_gradx = 0.0
+            !>R^2 * b . grad zeta = R^2 * b. grad theta * dzeta/dtheta
+            gradpar_zeta = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag
+
          case (geo_option_vmec)
             vmec_chosen = .true.
             !> read in input parameters for vmec
@@ -324,7 +421,8 @@ contains
                               gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
                               cvdrift_alpha, cvdrift0_psi, sign_torflux, &
                               theta_vmec, zed_scalefac, aref, bref, alpha, zeta, &
-                              field_period_ratio, x_displacement_fac)
+                              field_period_ratio, x_displacement_fac, &
+                              gradzeta_grady, gradzeta_gradx, gradpar_zeta)
 
             write (*, '(A)') "############################################################"
             write (*, '(A)') "                     BOUNDARY CONDITIONS"
@@ -347,7 +445,8 @@ contains
                                  gds23, gds24, gds25, gds26, gbdrift_alpha, gbdrift0_psi, &
                                  cvdrift_alpha, cvdrift0_psi, sign_torflux, &
                                  theta_vmec, zed_scalefac, aref, bref, alpha, zeta, &
-                                 field_period_ratio, x_displacement_fac)
+                                 field_period_ratio, x_displacement_fac, &
+                                 gradzeta_grady, gradzeta_gradx, gradpar_zeta)
                ! Restart the variable twist_and_shift_geo_fac_full
                twist_and_shift_geo_fac_full = 0
             end if
@@ -649,6 +748,10 @@ contains
          call set_coef_constant(x_displacement_fac, nalpha)
          call set_coef_constant(zeta, nalpha)
          call set_coef_constant(b_dot_grad_z, nalpha)
+         !!GA
+         call set_coef_constant(gradzeta_grady, nalpha)
+         call set_coef_constant(gradzeta_gradx, nalpha)
+         call set_coef_constant(gradpar_zeta, nalpha)
          ! following coefficients calculated later using above coefficients
          !      call set_coef_constant (dbdzed, nalpha)
          !      call set_coef_constant (jacob, nalpha)
@@ -675,48 +778,53 @@ contains
 
       integer, intent(in) :: nalpha, nzgrid
 
-      if (.not. allocated(bmag)) allocate (bmag(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(bmag_psi0)) allocate (bmag_psi0(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds2)) allocate (gds2(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds21)) allocate (gds21(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds22)) allocate (gds22(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds23)) allocate (gds23(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds24)) allocate (gds24(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds25)) allocate (gds25(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds26)) allocate (gds26(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dgds2dr)) allocate (dgds2dr(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dgds21dr)) allocate (dgds21dr(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dgds22dr)) allocate (dgds22dr(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gbdrift)) allocate (gbdrift(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gbdrift0)) allocate (gbdrift0(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(cvdrift)) allocate (cvdrift(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(cvdrift0)) allocate (cvdrift0(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dgbdriftdrho)) allocate (dgbdriftdrho(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dcvdriftdrho)) allocate (dcvdriftdrho(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dgbdrift0drho)) allocate (dgbdrift0drho(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dcvdrift0drho)) allocate (dcvdrift0drho(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dbdzed)) allocate (dbdzed(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(theta_vmec)) allocate (theta_vmec(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(jacob)) allocate (jacob(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(djacdrho)) allocate (djacdrho(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(grho)) allocate (grho(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(grad_x)) allocate (grad_x(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dl_over_b)) allocate (dl_over_b(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(d_dl_over_b_drho)) allocate (d_dl_over_b_drho(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(b_dot_grad_z)) allocate (b_dot_grad_z(nalpha, -nzgrid:nzgrid))
+      if (.not. allocated(bmag)) allocate (bmag(nalpha, -nzgrid:nzgrid)); bmag = 0.0 
+      if (.not. allocated(bmag_psi0)) allocate (bmag_psi0(nalpha, -nzgrid:nzgrid)); bmag_psi0 = 0.0
+      if (.not. allocated(gds2)) allocate (gds2(nalpha, -nzgrid:nzgrid)); gds2 = 0.0
+      if (.not. allocated(gds21)) allocate (gds21(nalpha, -nzgrid:nzgrid)); gds21 = 0.0
+      if (.not. allocated(gds22)) allocate (gds22(nalpha, -nzgrid:nzgrid)); gds22 = 0.0
+      if (.not. allocated(gds23)) allocate (gds23(nalpha, -nzgrid:nzgrid)); gds23 = 0.0
+      if (.not. allocated(gds24)) allocate (gds24(nalpha, -nzgrid:nzgrid)); gds24 = 0.0
+      if (.not. allocated(gds25)) allocate (gds25(nalpha, -nzgrid:nzgrid)); gds25 = 0.0
+      if (.not. allocated(gds26)) allocate (gds26(nalpha, -nzgrid:nzgrid)); gds26 = 0.0
+      if (.not. allocated(dgds2dr)) allocate (dgds2dr(nalpha, -nzgrid:nzgrid)); dgds2dr = 0.0
+      if (.not. allocated(dgds21dr)) allocate (dgds21dr(nalpha, -nzgrid:nzgrid)); dgds21dr = 0.0
+      if (.not. allocated(dgds22dr)) allocate (dgds22dr(nalpha, -nzgrid:nzgrid)); dgds22dr = 0.0
+      if (.not. allocated(gbdrift)) allocate (gbdrift(nalpha, -nzgrid:nzgrid)); gbdrift = 0.0
+      if (.not. allocated(gbdrift0)) allocate (gbdrift0(nalpha, -nzgrid:nzgrid)); gbdrift0 = 0.0
+      if (.not. allocated(cvdrift)) allocate (cvdrift(nalpha, -nzgrid:nzgrid)); cvdrift = 0.0
+      if (.not. allocated(cvdrift0)) allocate (cvdrift0(nalpha, -nzgrid:nzgrid)); cvdrift0 = 0.0
+      if (.not. allocated(dgbdriftdrho)) allocate (dgbdriftdrho(nalpha, -nzgrid:nzgrid)); dgbdriftdrho = 0.0
+      if (.not. allocated(dcvdriftdrho)) allocate (dcvdriftdrho(nalpha, -nzgrid:nzgrid)); dcvdriftdrho = 0.0
+      if (.not. allocated(dgbdrift0drho)) allocate (dgbdrift0drho(nalpha, -nzgrid:nzgrid)); dgbdrift0drho = 0.0
+      if (.not. allocated(dcvdrift0drho)) allocate (dcvdrift0drho(nalpha, -nzgrid:nzgrid)); dcvdrift0drho = 0.0
+      if (.not. allocated(dbdzed)) allocate (dbdzed(nalpha, -nzgrid:nzgrid)); dbdzed = 0.0
+      if (.not. allocated(theta_vmec)) allocate (theta_vmec(nalpha, -nzgrid:nzgrid)); theta_vmec = 0.0
+      if (.not. allocated(jacob)) allocate (jacob(nalpha, -nzgrid:nzgrid)); jacob = 0.0
+      if (.not. allocated(djacdrho)) allocate (djacdrho(nalpha, -nzgrid:nzgrid)); djacdrho = 0.0
+      if (.not. allocated(grho)) allocate (grho(nalpha, -nzgrid:nzgrid)); grho = 0.0
+      if (.not. allocated(grad_x)) allocate (grad_x(nalpha, -nzgrid:nzgrid)); grad_x = 0.0
+      if (.not. allocated(dl_over_b)) allocate (dl_over_b(nalpha, -nzgrid:nzgrid)); dl_over_b = 0.0
+      if (.not. allocated(d_dl_over_b_drho)) allocate (d_dl_over_b_drho(nalpha, -nzgrid:nzgrid)); d_dl_over_b_drho = 0.0
+      if (.not. allocated(b_dot_grad_z)) allocate (b_dot_grad_z(nalpha, -nzgrid:nzgrid)); b_dot_grad_z = 0.0
 
-      if (.not. allocated(gradpar)) allocate (gradpar(-nzgrid:nzgrid))
-      if (.not. allocated(zed_eqarc)) allocate (zed_eqarc(-nzgrid:nzgrid))
-      if (.not. allocated(btor)) allocate (btor(-nzgrid:nzgrid))
-      if (.not. allocated(rmajor)) allocate (rmajor(-nzgrid:nzgrid))
-      if (.not. allocated(dBdrho)) allocate (dBdrho(-nzgrid:nzgrid))
-      if (.not. allocated(d2Bdrdth)) allocate (d2Bdrdth(-nzgrid:nzgrid))
-      if (.not. allocated(dgradpardrho)) allocate (dgradpardrho(-nzgrid:nzgrid))
+      if (.not. allocated(gradpar)) allocate (gradpar(-nzgrid:nzgrid)); gradpar = 0.0
+      if (.not. allocated(zed_eqarc)) allocate (zed_eqarc(-nzgrid:nzgrid)); zed_eqarc = 0.0
+      if (.not. allocated(btor)) allocate (btor(-nzgrid:nzgrid)); btor = 0.0
+      if (.not. allocated(rmajor)) allocate (rmajor(-nzgrid:nzgrid)); rmajor = 0.0
+      if (.not. allocated(dBdrho)) allocate (dBdrho(-nzgrid:nzgrid)); dBdrho = 0.0
+      if (.not. allocated(d2Bdrdth)) allocate (d2Bdrdth(-nzgrid:nzgrid)); d2Bdrdth = 0.0
+      if (.not. allocated(dgradpardrho)) allocate (dgradpardrho(-nzgrid:nzgrid)); dgradpardrho = 0.0
 
-      if (.not. allocated(alpha)) allocate (alpha(nalpha)); alpha = 0.
-      if (.not. allocated(zeta)) allocate (zeta(nalpha, -nzgrid:nzgrid)); zeta = 0.
+      if (.not. allocated(alpha)) allocate (alpha(nalpha)); alpha = 0.0
+      if (.not. allocated(zeta)) allocate (zeta(nalpha, -nzgrid:nzgrid)); zeta = 0.0
 
-      if (.not. allocated(x_displacement_fac)) allocate (x_displacement_fac(nalpha, -nzgrid:nzgrid)); x_displacement_fac = 0.
+      if (.not. allocated(x_displacement_fac)) allocate (x_displacement_fac(nalpha, -nzgrid:nzgrid)); x_displacement_fac = 0.0
+
+      !!GA - Needed for the momentum flux diagnostic for non-axisymmetric devices
+      if (.not. allocated(gradzeta_grady)) allocate (gradzeta_grady(nalpha, -nzgrid:nzgrid)); gradzeta_grady = 0.0
+      if (.not. allocated(gradzeta_gradx)) allocate (gradzeta_gradx(nalpha, -nzgrid:nzgrid)); gradzeta_gradx = 0.0
+      if (.not. allocated(gradpar_zeta)) allocate (gradpar_zeta(nalpha, -nzgrid:nzgrid)); gradpar_zeta = 0.0
 
    end subroutine allocate_arrays
 
@@ -861,6 +969,11 @@ contains
       call broadcast(aref)
       call broadcast(bref)
 
+      !!GA
+      call broadcast(gradzeta_grady)
+      call broadcast(gradzeta_gradx)
+      call broadcast(gradpar_zeta)
+
    end subroutine broadcast_arrays
 
    subroutine communicate_geo_multibox(l_edge, r_edge)
@@ -891,10 +1004,15 @@ contains
 
       df(-nz + 1:nz - 1) = (f(-nz + 2:) - f(:nz - 2)) / (dz(:nz - 2) + dz(-nz + 1:nz - 1))
 
-      ! FLAG -- THIS MAY NEED TO BE CHANGED
-      ! use periodicity at boundary
+      ! hack to avoid non-periodicity in full-flux-surface case
+!      if (full_flux_surface .and. .not. const_alpha_geo) then
+ !        df(-nz) = (f(-nz + 1) - f(-nz)) / dz(-nz)
+   !      df(nz) = (f(nz) - f(nz - 1)) / dz(nz - 1)
+  !    else
+         ! assume periodicity in the B-field
       df(-nz) = (f(-nz + 1) - f(nz - 1)) / (dz(-nz) + dz(nz - 1))
       df(nz) = df(-nz)
+   !end if
 
    end subroutine get_dzed
 
@@ -1099,6 +1217,10 @@ contains
 
       if (allocated(x_displacement_fac)) deallocate (x_displacement_fac)
 
+      !!GA
+      if (allocated(gradzeta_grady)) deallocate (gradzeta_grady)
+      if (allocated(gradzeta_gradx)) deallocate (gradzeta_gradx)
+      if (allocated(gradpar_zeta)) deallocate (gradpar_zeta)
       geoinit = .false.
 
    end subroutine finish_geometry
