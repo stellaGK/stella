@@ -1,0 +1,97 @@
+
+! Simple nonlinear example based on CBC
+! Turned on all the diagnostics
+
+&physics_flags
+  nonlinear = .true.
+/
+&species_knobs
+  nspec = 2 
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 3.0
+  type = 'ion'
+  z = 1.0
+/
+&species_parameters_2
+  dens = 1.0
+  fprim = 1.0
+  mass = 0.0005446
+  temp = 1.0
+  tprim = 3.0
+  type = 'electron'
+  z = -1.0
+/
+&kt_grids_box_parameters
+  jtwist = 5
+  nx = 6
+  ny = 9
+  y0 = 15
+/
+&zgrid_parameters
+  boundary_option = 'linked'
+  nperiod = 1
+  nzed = 24
+/
+&vpamu_grids_parameters
+  nmu = 2 
+  nvgrid = 3  
+/
+&knobs
+  delt = 0.01  
+  nstep = 100
+  print_extra_info_to_terminal = .false.  
+  rng_seed = 1
+/
+&stella_diagnostics_knobs
+  nsave = 100
+  nwrite = 10 
+  write_omega = .true.
+  write_moments = .true.
+  write_phi_vs_time = .true.
+  write_apar_vs_time = .true.
+  write_bpar_vs_time = .true.
+  write_gvmus = .true.
+  write_gzvs = .true.
+  write_kspectra = .true.
+  write_radial_fluxes = .true.
+  write_radial_moments = .true.
+  write_fluxes_kxkyz = .true.
+/
+&init_g_knobs 
+  ginit_option = 'noise'
+  phiinit = 0.01   
+/
+&dissipation
+  hyper_dissipation = .true.
+/
+&geo_knobs
+  geo_option = 'miller'
+/
+&kt_grids_knobs
+  grid_option = 'box'
+/
+&time_advance_knobs
+  explicit_option = 'rk2'
+/
+&millergeo_parameters
+  nzed_local = 128
+  rhoc = 0.5
+  shat = 0.796
+  qinp = 1.4
+  rmaj = 2.77778
+  rgeo = 2.77778
+  shift = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  betaprim = 0.0
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  betadbprim = 0.0
+/ 
