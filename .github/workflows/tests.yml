@@ -57,7 +57,7 @@ jobs:
           export GK_SYSTEM=gnu_ubuntu_debug
           make -I Makefiles -j4
 
-  # Build stella with Make and run automatic python tests
+  # Build stella with Make and run automatic fortran tests
   test2:
     runs-on: ubuntu-latest
     env:
@@ -67,7 +67,53 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - name: "Make stella and run python tests" 
+          - name: "Perform fortran tests of the stella code" 
+    steps:
+      - name: Install dependencies
+        run: sudo apt update &&
+             sudo apt install -y
+                 gfortran
+                 make
+                 libfftw3-dev
+                 libnetcdf-dev
+                 libnetcdff-dev
+                 netcdf-bin
+                 python3
+                 python3-pip
+                 openmpi-bin
+                 libopenmpi-dev
+
+      - name: System information
+        run: |
+          cat /etc/*release
+          gfortran --version
+          nf-config --all
+      - uses: actions/checkout@v2
+
+      - name: Build stella 
+        run: |
+          set -ex
+          export GK_SYSTEM=gnu_ubuntu
+          make -I Makefiles -j4
+
+      - name: Perform automated Fortran tests
+        run: |
+          set -ex
+          export GK_SYSTEM=gnu_ubuntu
+          make -I Makefiles -j4 build-pfunit-library
+          make -I Makefiles -j4 run-automated-fortran-tests 
+
+  # Build stella with Make and run automatic python tests
+  test3:
+    runs-on: ubuntu-latest
+    env:
+      OMPI_MCA_rmaps_base_oversubscribe: yes
+      MPIRUN: mpiexec -np
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - name: "Run stella and check the outputs numerically" 
     steps:
       - name: Install dependencies
         run: sudo apt update &&
@@ -91,29 +137,23 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Install automated stella test dependencies
-        run: pip3 install --user -r tests/automated_stella_tests/requirements.txt
+        run: pip3 install --user -r tests/requirements.txt
 
       - name: Build stella 
         run: |
           set -ex
           export GK_SYSTEM=gnu_ubuntu
-          make -I Makefiles -j4
+          make -I Makefiles -j4 
 
-      - name: Perform automated fortran tests
+      - name: Perform numerical tests for stella with Python
         run: |
           set -ex
           export GK_SYSTEM=gnu_ubuntu
-          make -I Makefiles build-pfunit-library
-
-      - name: Perform automated stella tests
-        run: |
-          set -ex
-          export GK_SYSTEM=gnu_ubuntu
-          make -I Makefiles check
+          make -I Makefiles run-automated-numerical-tests-for-stella
         
   # Build stella with CMake and run automatic Fortran tests
   # Cmake has to run on 1 node or it will run into parallelisation errors
-  test3:
+  test4:
     runs-on: ubuntu-latest
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes

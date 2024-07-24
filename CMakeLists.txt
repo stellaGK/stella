@@ -293,23 +293,15 @@ if (STELLA_ENABLE_TESTS)
     simple
     utils_convert
     )
-  add_custom_target(check-unit-tests
+  add_custom_target(run-automated-fortran-tests-with-cmake
     COMMAND ctest --output-on-failure -R unit
     DEPENDS ${STELLA_CTEST_CASES}
     )
 
-  # Include the python tests
-  add_subdirectory(tests/automated_stella_tests)
-  add_custom_target(run-automated-stella-tests
-    COMMAND ctest --output-on-failure -R automated_stella_tests
-    DEPENDS stella
-   )
-
   # With --target check we run both the fortran and python tests
   add_custom_target(check
     DEPENDS
-    check-unit-tests
-    run-automated-stella-tests
+    run-automated-fortran-tests-with-cmake
     )
 else()
   set(STELLA_PFUNIT_LOCATION "Not used")

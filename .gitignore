@@ -30,8 +30,7 @@ system_fortran.f90
 !stellapy/data/stella
 
 externals/pFUnit_build
-unit_tests
-tests/unit/*.F90
+tests/automated_fortran_tests/*.F90
 docs/html/
 docs/pages/user_manual/namelists.md
 .compiler_flags
