@@ -45,7 +45,6 @@
   delt = 0.01 
   nstep = 100
   print_extra_info_to_terminal = .false. 
-  rng_seed = 1
   stream_implicit = .true.
   mirror_implicit = .false.
   drifts_implicit = .true.
