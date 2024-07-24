@@ -30,8 +30,7 @@ system_fortran.f90
 !stellapy/data/stella
 
 externals/pFUnit_build
-unit_tests
-tests/unit/*.F90
+tests/automated_fortran_tests/*.F90
 docs/html/
 docs/pages/user_manual/namelists.md
 .compiler_flags
@@ -72,18 +71,18 @@ MANIFEST
 *.spec
 
 # Code output files
-millerlocal.*.input
-millerlocal.*.output
-*.out.nc
-*.out
-response_mat_*
-*.geometry
-*.fluxes
-*.error
-*.scratch
-.*.in
-*.species.input
-!tests/integrated/simple/GOLDEN_ANSWER.out.nc
+#millerlocal.*.input
+#millerlocal.*.output
+#*.out.nc
+#*.out
+#response_mat_*
+#*.geometry
+#*.fluxes
+#*.error
+#*.scratch
+#.*.in
+#*.species.input
+#!tests/integrated/simple/GOLDEN_ANSWER.out.nc
 
 # Installer logs
 pip-log.txt

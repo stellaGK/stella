@@ -25,6 +25,7 @@ module run_parameters
    public :: maxwellian_normalization
    public :: time_upwind_plus, time_upwind_minus
    public :: zed_upwind_plus, zed_upwind_minus
+   public :: print_extra_info_to_terminal
 
    public :: nitt 
 
@@ -46,6 +47,7 @@ module run_parameters
    logical :: ky_solve_real
    logical :: use_deltaphi_for_response_matrix
    logical :: maxwellian_normalization
+   logical :: print_extra_info_to_terminal
    real :: avail_cpu_time
    integer :: nstep, ky_solve_radial
    integer :: rng_seed
@@ -88,7 +90,7 @@ contains
                                                       text_option('set_by_hand', delt_option_hand), &
                                                       text_option('check_restart', delt_option_auto)/)
       type(text_option), dimension(4), parameter :: lu_opts = &
-                                                    (/text_option('default', lu_option_none), &
+                                                    (/text_option('default', lu_option_local), &
                                                       text_option('none', lu_option_none), &
                                                       text_option('local', lu_option_local), &
                                                       text_option('global', lu_option_global)/)
@@ -108,7 +110,7 @@ contains
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
          fields_kxkyz, mat_gen, mat_read, rng_seed, &
-         ky_solve_radial, ky_solve_real, nitt
+         ky_solve_radial, ky_solve_real, nitt, print_extra_info_to_terminal
 
       if (proc0) then
 
@@ -135,6 +137,7 @@ contains
          ky_solve_real = .false.
          mat_gen = .false.
          mat_read = .false.
+         print_extra_info_to_terminal = .true.
          nitt = 1
 
          ! Stella runs until t*v_{th,i}/a=tend or until istep=nstep
@@ -244,8 +247,7 @@ contains
             end if
          end if
 
-         if (.not. full_flux_surface) then 
-            write(*,*) 'nitt set to 1 for fluxtube' 
+         if (.not. full_flux_surface) then  
             nitt = 1
          end if
          
@@ -321,6 +323,7 @@ contains
       call broadcast(ky_solve_real)
       call broadcast(mat_gen)
       call broadcast(mat_read)
+      call broadcast(print_extra_info_to_terminal)
 !!GA: may remove from input
       call broadcast(nitt) 
       ! include_apar broadcast in case it is reset according to specification of

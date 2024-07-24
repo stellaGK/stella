@@ -371,15 +371,18 @@ include $(DEPEND)
 
 sinclude Makefile.target_$(GK_PROJECT)
 
-# Include unit test makefile, empty target so Make doesn't attempt to
-# build the file
-tests/unit/Makefile:
-include tests/unit/Makefile
+# Include the automated Fortran tests
+# Inside 'tests/automated_fortran_tests/Makefile' we define the commands 
+# >> build-pfunit-library 
+# >> run-automated-fortran-tests
+tests/automated_fortran_tests/Makefile:
+include tests/automated_fortran_tests/Makefile
 
-tests/integrated/Makefile:
-include tests/integrated/Makefile
-
-check: check-unit check-integrated-tests
+tests/automated_numerical_tests_for_stella/Makefile:
+include tests/automated_numerical_tests_for_stella/Makefile
+ 
+# Run all tests together with the 'check' command
+check: run-automated-fortran-tests run-automated-numerical-tests-for-stella
 
 ############################################################### SPECIAL RULES
 

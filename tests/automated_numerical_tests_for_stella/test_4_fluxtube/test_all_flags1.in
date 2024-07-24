@@ -1,0 +1,105 @@
+
+! Simple nonlinear example based on a VMEC equillibrium at rho=0.7 
+! Use this to test which flags are useless. Toggle certain flags or
+! change certain variables to see if it changes the output at all.
+! The flags labeled (IGNORE) will not be tested here.
+
+&physics_flags
+  include_parallel_nonlinearity = .false.	! (TOGGLE)
+  include_mirror = .true.			! Already tested in test_4_gyrokinetic_equation
+  include_parallel_streaming = .true.		! Already tested in test_4_gyrokinetic_equation
+  nonlinear = .true.				! Already tested in test_4_gyrokinetic_equation
+  adiabatic_option = 'default'			! (IGNORE-ADIA) Not used when electrons are present
+  full_flux_surface = .false.			! (IGNORE-FFS) Only testing flux-tube flags here
+  const_alpha_geo = .false.			! (IGNORE-FFS) Full flux surface flag
+  radial_variation = .false.			! (IGNORE-RV) Simulate 3 adjacent flux tubes with radial variation across them
+  include_pressure_variation = .true.		! (IGNORE-RV) Part of the radial variation routines
+  include_geometric_variation = .true.		! (IGNORE-RV) Part of the radial variation routines
+/
+&species_knobs
+  nspec = 2 
+  species_option = 'stella'			! (IGNORE) Choose between {stella, input.profiles, euterpe}
+  read_profile_variation = .false.		! (IGNORE-RV) Part of the radial variation routines
+  write_profile_variation = .false.		! (IGNORE-RV) Part of the radial variation routines
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 3.0
+  type = 'ion'
+  z = 1.0
+/
+&species_parameters_2
+  dens = 1.0
+  fprim = 1.0
+  mass = 0.0005446
+  temp = 1.0
+  tprim = 3.0
+  type = 'electron'
+  z = -1.0
+/
+&parameters
+  beta = 0.01					! (IGNORE-EM) Useless for electrostatic simulations  
+  rhostar = 0.01				! (IGNORE-EM) Useless for electrostatic simulations  
+  vnew_ref = 0.01				! (IGNORE-EM) Useless for electrostatic simulations 	
+  zeff = 0.01					! (IGNORE-EM) Useless for electrostatic simulations 
+  tite = 1.0					! (IGNORE-ADIA) Sets the temperature of the adiabatic electrons
+  nine = 1.0					! (IGNORE-ADIA) Sets the density of the adiabatic electrons
+  g_exb = 0.0					! (IGNORE-ZF) TODO: something related to flow shear (and radial variation?)
+  g_exbfac = 1.0				! (IGNORE-ZF) TODO: something related to flow shear (and radial variation?)
+  omprimfac = 1.0				! (IGNORE-ZF) TODO: something related to flow shear (and radial variation?)
+/
+&vmec_parameters
+  alpha0 = 0.0					! (TOGGLE)
+  nfield_periods = 6.073867			! (TOGGLE)
+  surface_option = 0				! (TOGGLE)
+  torflux = 0.49				! (TOGGLE)
+  verbose = .true.
+  vmec_filename = 'wout_w7x_kjm.nc'
+  zeta_center = 0.0				! (TOGGLE) 
+  zgrid_scalefac = 2.0				! Only used when zed_equal_arc = .true. 
+  zgrid_refinement_factor = 4			! Only used when zed_equal_arc = .true.  
+/
+&kt_grids_box_parameters 
+  nx = 9
+  ny = 12
+  y0 = 15
+/
+&zgrid_parameters
+  boundary_option = 'stellarator'
+  nperiod = 1
+  nzed = 12
+  zed_equal_arc = .true.			! (TOGGLE) 
+/
+&vpamu_grids_parameters
+  nmu = 4 
+  nvgrid = 3  
+/
+&knobs
+  delt = 0.01  
+  nstep = 10
+  print_extra_info_to_terminal = .false.  
+  rng_seed = 1
+/
+&stella_diagnostics_knobs
+  nsave = 10
+  nwrite = 1  
+/
+&init_g_knobs 
+  ginit_option = 'noise'
+  phiinit = 0.01   
+/
+&dissipation
+  hyper_dissipation = .true.
+/
+&geo_knobs
+  geo_option = 'vmec'
+/
+&kt_grids_knobs
+  grid_option = 'box'
+/
+&time_advance_knobs
+  explicit_option = 'rk2'
+/ 

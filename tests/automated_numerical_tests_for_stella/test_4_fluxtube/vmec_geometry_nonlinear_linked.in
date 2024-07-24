@@ -1,0 +1,75 @@
+
+! Simple linear example based on a VMEC equillibrium at rho=0.7 
+
+&physics_flags
+  nonlinear = .true.
+/
+&species_knobs
+  nspec = 2 
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 3.0
+  type = 'ion'
+  z = 1.0
+/
+&species_parameters_2
+  dens = 1.0
+  fprim = 1.0
+  mass = 0.0005446
+  temp = 1.0
+  tprim = 3.0
+  type = 'electron'
+  z = -1.0
+/
+&vmec_parameters
+  nfield_periods = 6.073867
+  surface_option = 0
+  torflux = 0.49
+  verbose = .true.
+  vmec_filename = 'wout_w7x_kjm.nc'
+  zeta_center = 0.0
+/
+&kt_grids_box_parameters 
+  nx = 9
+  ny = 12
+  y0 = 15
+/
+&zgrid_parameters
+  boundary_option = 'linked'
+  nperiod = 1
+  nzed = 12
+/
+&vpamu_grids_parameters
+  nmu = 4 
+  nvgrid = 3  
+/
+&knobs
+  delt = 0.01  
+  nstep = 10
+  print_extra_info_to_terminal = .false.  
+  rng_seed = 1
+/
+&stella_diagnostics_knobs
+  nsave = 10
+  nwrite = 1  
+/
+&init_g_knobs 
+  ginit_option = 'noise'
+  phiinit = 0.01   
+/
+&dissipation
+  hyper_dissipation = .true.
+/
+&geo_knobs
+  geo_option = 'vmec'
+/
+&kt_grids_knobs
+  grid_option = 'box'
+/
+&time_advance_knobs
+  explicit_option = 'rk2'
+/ 
