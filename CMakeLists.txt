@@ -41,6 +41,7 @@ set(STELLA_SOURCES_f90
   dist_redistribute.f90
   euterpe_interface.f90
   extended_zgrid.f90
+  ffs_solve.f90
   fields_arrays.f90
   finite_differences.f90
   flow_shear.f90

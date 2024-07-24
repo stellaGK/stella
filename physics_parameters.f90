@@ -29,6 +29,7 @@ contains
    subroutine read_parameters
 
       use file_utils, only: input_unit_exist
+      use physics_flags, only: full_flux_surface
       use mp, only: proc0, broadcast
 
       implicit none
@@ -52,10 +53,16 @@ contains
          g_exbfac = 1.0
          omprimfac = 1.0
 
+	 ! Read input file  
          in_file = input_unit_exist("parameters", rpexist)
          if (rpexist) read (unit=in_file, nml=parameters)
 
          if (irhostar > 0) rhostar = 1./irhostar
+         
+         ! Don't allow people to set rhostar when its not full flux
+         ! Otherwise phase_shift_angle will be changed in kt_grids.f90
+         if (.not. full_flux_surface) rhostar = 0
+         
       end if
 
       call broadcast(beta)
