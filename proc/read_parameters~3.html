@@ -80,20 +80,20 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.1% of total for procedures.">36 statements</a>
+                 title=" 0.1% of total for procedures.">30 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
               <i class="fa fa-code"></i>
-              <a href="../src/dissipation.f90"> Source File</a>
+              <a href="../src/neoclassical_terms.f90"> Source File</a>
             </li>
         </ul>
       </div>
       <div class="col">
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb justify-content-end mb-0">
-                <li class="breadcrumb-item"><a href='../sourcefile/dissipation.f90.html'>dissipation.f90</a></li>
-                <li class="breadcrumb-item"><a href='../module/dissipation.html'>dissipation</a></li>
+                <li class="breadcrumb-item"><a href='../sourcefile/neoclassical_terms.f90.html'>neoclassical_terms.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/neoclassical_terms.html'>neoclassical_terms</a></li>
             <li class="breadcrumb-item active" aria-current="page">read_parameters</li>
           </ol>
         </nav>
@@ -138,7 +138,7 @@
       </a>
       <div id="namelists-0" class="collapse">
         <div class="list-group list-group-flush">
-            <a class="list-group-item" href="../proc/read_parameters~3.html#namelist-dissipation">dissipation</a>
+            <a class="list-group-item" href="../proc/read_parameters~3.html#namelist-neoclassical_input">neoclassical_input</a>
         </div>
       </div>
     </div>
@@ -150,7 +150,7 @@
     </div>
     
     <div class="col-md-9" id='text'>
-    <h2>public  subroutine read_parameters()  
+    <h2>private  subroutine read_parameters()  
 </h2>
         <div class="card mb-4">
       <h3 class="card-header card-title bg-light">Uses</h3>
@@ -158,12 +158,9 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
-                  <li class="list-inline-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
                   <li class="list-inline-item"><a href='../module/file_utils.html'>file_utils</a></li>
-                  <li class="list-inline-item"><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></li>
-                  <li class="list-inline-item"><a href='../module/coll_dougherty.html'>coll_dougherty</a></li>
-                  <li class="list-inline-item"><a href='../module/hyper.html'>hyper</a></li>
+                  <li class="list-inline-item"><a href='../module/text_options.html'>text_options</a></li>
+                  <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
               </ul>
             </li>
         </ul>
@@ -191,15 +188,15 @@
         <h2>Namelists</h2>
             <div class="card">
     <div class="card-header codesum">
-      <span class="anchor" id="namelist-dissipation"></span>
-      <h3>Namelist <a href='../namelist/dissipation.html'>dissipation</a></h3>
+      <span class="anchor" id="namelist-neoclassical_input"></span>
+      <h3>Namelist <a href='../namelist/neoclassical_input.html'>neoclassical_input</a></h3>
     </div>
     <div class="card-body">
         
   <br class="visible-xs visible-sm hidden-md">
   <section>
     <h2>Variables</h2>
-    <table class="table table-striped" id="namelist-dissipation">
+    <table class="table table-striped" id="namelist-neoclassical_input">
       <thead><tr>
           <th>Name</th>
           <th>Type</th>
@@ -207,30 +204,30 @@
           <th>Description</th>
       </tr></thead>
       <tbody>
-              <tr id="variable-include_collisions">
-      <td><a href="#variable-include_collisions">include_collisions</a></td>
+              <tr id="variable-include_neoclassical_terms">
+      <td><a href="#variable-include_neoclassical_terms">include_neoclassical_terms</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-collisions_implicit~2">
-      <td><a href="#variable-collisions_implicit~2">collisions_implicit</a></td>
-      <td>logical</td>
+              <tr id="variable-neo_option">
+      <td><a href="#variable-neo_option">neo_option</a></td>
+      <td>character(len=10)</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-collision_model">
-      <td><a href="#variable-collision_model">collision_model</a></td>
-      <td>character(len=30)</td>
+              <tr id="variable-nradii">
+      <td><a href="#variable-nradii">nradii</a></td>
+      <td>integer</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-hyper_dissipation">
-      <td><a href="#variable-hyper_dissipation">hyper_dissipation</a></td>
-      <td>logical</td>
+              <tr id="variable-drho">
+      <td><a href="#variable-drho">drho</a></td>
+      <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
@@ -257,13 +254,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-351-g6dd956999</small></p>
+<br /><small>v0.5.1-352-gcd82a1e48</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-24T15:56:54.694257             </p>
+ on 2024-07-24T16:01:20.939562             </p>
           </div>
         </div>
         <br>
