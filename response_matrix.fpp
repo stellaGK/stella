@@ -720,9 +720,10 @@ contains
       ! how phi^{n+1} enters the GKE depends on whether we are solving for the
       ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
       phi_ext(idx) = time_upwind_plus
-
-      if (periodic(iky) .and. idx == 1) phi_ext(nz_ext) = phi_ext(1) * phase_shift(iky)
-!!      if (periodic(iky) .and. idx == 1) phi_ext(nz_ext) = phi_ext(1)
+      
+      !> TOGO-GA: check division rather than multiplication -- kept division for now to be consistent with 
+      !> parallel_streaming phase shift 
+      if (periodic(iky) .and. idx == 1) phi_ext(nz_ext) = phi_ext(1) / phase_shift(iky)
 
       ! dum is a scratch array that takes the place of the pdf and phi
       ! at the previous time level,
