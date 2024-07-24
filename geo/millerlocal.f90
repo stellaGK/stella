@@ -753,33 +753,35 @@ contains
       integer, intent(in) :: nr, nz
 
       ! periodic quantities can be computed on 2*pi grid and replicated
-      allocate (grho(-nz:nz), bmag(-nz:nz), gradpar(-nz:nz))
-      allocate (gds2(-nz:nz), gds21(-nz:nz), gds22(-nz:nz), gds23(-nz:nz), gds24(-nz:nz))
-      allocate (gbdrift0(-nz:nz), gbdrift(-nz:nz))
-      allocate (cvdrift0(-nz:nz), cvdrift(-nz:nz))
-      allocate (Rr(nr, -nz:nz), Zr(nr, -nz:nz))
-      allocate (jacrho(-nz:nz), djacdrho(-nz:nz), djacrdrho(-nz:nz), d2jacdr2(-nz:nz))
-      allocate (d2Rdrdth(-nz:nz), d2Zdrdth(-nz:nz), gpsi(-nz:nz))
-      allocate (dBdrho(-nz:nz), dgradpardrho(-nz:nz))
-      allocate (d2Bdrdth(-nz:nz), dgradparBdrho(-nz:nz), dBdth(-nz:nz), gradparb(-nz:nz))
-      allocate (dcvdrift0drho(-nz:nz), dgbdrift0drho(-nz:nz))
-      allocate (theta(-nz:nz))
-      allocate (gradpararc(-nz:nz))
-      allocate (arc(-nz:nz))
-      allocate (dRdrho(-nz:nz), dZdrho(-nz:nz), dRdth(-nz:nz), dZdth(-nz:nz))
-      allocate (gradrho_gradthet(-nz:nz), gradthet2(-nz:nz), dgr2dr(-nz:nz), dgpsi2dr(-nz:nz))
-      allocate (dgrgt(-nz:nz), dgt2(-nz:nz), dgagr(-nz:nz), dgagt(-nz:nz), dga2(-nz:nz))
-      allocate (d2Rdr2(-nz:nz), d2Zdr2(-nz:nz), d2Bdr2(-nz:nz))
-      allocate (drz(-nz:nz), drzdth(-nz:nz), d2Rdr2dth(-nz:nz), d2Zdr2dth(-nz:nz))
-      allocate (d2Rdth2(-nz:nz), d2Zdth2(-nz:nz))
-      allocate (d2gpsidr2(-nz:nz))
-      allocate (gradalph_gradthet(-nz:nz), gradalph2(-nz:nz), gradrho_gradalph(-nz:nz))
-      allocate (dgds2dr(-nz:nz), dgds21dr(-nz:nz))
-      allocate (dgds22dr(-nz:nz))
-      allocate (dcvdriftdrho(-nz:nz), dgbdriftdrho(-nz:nz))
-      allocate (varthet(-nz:nz), dvarthdr(-nz:nz), d2varthdr2(-nz:nz))
-      allocate (cross(-nz:nz))
-      allocate (dcrossdr(-nz:nz))
+      allocate (grho(-nz:nz), bmag(-nz:nz), gradpar(-nz:nz)); grho = 0.0; bmag = 0.0; gradpar = 0.0
+      allocate (gds2(-nz:nz), gds21(-nz:nz), gds22(-nz:nz))); gds2 = 0.0; gds21 = 0.0; gds21 = 0.0
+      allocate (gds23(-nz:nz), gds24(-nz:nz)); gds23 = 0.0; gds24 = 0.0
+      allocate (gbdrift0(-nz:nz), gbdrift(-nz:nz)); gbdrift0 = 0.0; gbdrift = 0.0
+      allocate (cvdrift0(-nz:nz), cvdrift(-nz:nz)); cvdrift0 = 0.0; cvdrift = 0.0
+      allocate (Rr(nr, -nz:nz), Zr(nr, -nz:nz)); Rr = 0.0; Zr = 0.0
+      allocate (jacrho(-nz:nz), djacdrho(-nz:nz)); jacrho = 0.0; djacdrho = 0.0
+      allocate (djacrdrho(-nz:nz), d2jacdr2(-nz:nz)); djacrdrho = 0.0; d2jacdr2 = 0.0
+      allocate (d2Rdrdth(-nz:nz), d2Zdrdth(-nz:nz), gpsi(-nz:nz)); d2Rdrdth = 0.0; d2Zdrdth = 0.0; gpsi = 0.0
+      allocate (dBdrho(-nz:nz), dgradpardrho(-nz:nz)); dBdrho = 0.0; dgradpardrho = 0.0
+      allocate (d2Bdrdth(-nz:nz), dgradparBdrho(-nz:nz)); d2Bdrdth = 0.0; dgradparBdrho = 0.0
+      allocate (dBdth(-nz:nz), gradparb(-nz:nz)); dBdth = 0.0; gradparb = 0.0
+      allocate (dcvdrift0drho(-nz:nz), dgbdrift0drho(-nz:nz)); dcvdrift0drho = 0.0; dgbdrift0drho = 0.0
+      allocate (theta(-nz:nz), gradpararc(-nz:nz), arc(-nz:nz)); theta = 0.0; gradpararc = 0.0; arc = 0.0
+      allocate (dRdrho(-nz:nz), dZdrho(-nz:nz)); dRdrho = 0.0; dZdrho = 0.0
+      allocate (dRdth(-nz:nz), dZdth(-nz:nz)); dRdth = 0.0; dZdth = 0.0
+      allocate (gradrho_gradthet(-nz:nz), gradthet2(-nz:nz)); gradrho_gradthet = 0.0; gradthet2 = 0.0
+      allocate (dgr2dr(-nz:nz), dgpsi2dr(-nz:nz)); dgr2dr = 0.0; dgpsi2dr = 0.0
+      allocate (dgrgt(-nz:nz), dgt2(-nz:nz), dgagr(-nz:nz)); dgrgt = 0.0; dgt2 = 0.0; dgagr = 0.0
+      allocate (dgagt(-nz:nz), dga2(-nz:nz)); dgagt = 0.0; dga2	= 0.0
+      allocate (d2Rdr2(-nz:nz), d2Zdr2(-nz:nz), d2Bdr2(-nz:nz);	d2Rdr2 = 0.0; d2Zdr2 = 0.0; d2Bdr2 = 0.0
+      allocate (drz(-nz:nz), drzdth(-nz:nz), d2Rdr2dth(-nz:nz)); drz = 0.0; drzdth = 0.0; d2Rdr2dth = 0.0
+      allocate (d2Zdr2dth(-nz:nz), d2Rdth2(-nz:nz), d2Zdth2(-nz:nz)); d2Zdr2dth = 0.0; d2Rdth2 = 0.0; d2Zdth2 = 0.0
+      allocate (d2gpsidr2(-nz:nz) gradalph_gradthet(-nz:nz)); d2gpsidr2 = 0.0; gradalph_gradthet = 0.0
+      allocate (gradalph2(-nz:nz), gradrho_gradalph(-nz:nz)); gradalph2 = 0.0; gradrho_gradalph = 0.0
+      allocate (dgds2dr(-nz:nz), dgds21dr(-nz:nz), dgds22dr(-nz:nz)); dgds2dr = 0.0; dgds21dr = 0.0; dgds22dr = 0.0
+      allocate (dcvdriftdrho(-nz:nz), dgbdriftdrho(-nz:nz)); dcvdriftdrho = 0.0; dgbdriftdrho = 0.0
+      allocate (varthet(-nz:nz), dvarthdr(-nz:nz), d2varthdr2(-nz:nz)); varthet = 0.0; dvarthdr = 0.0; d2varthdr2 = 0.0
+      allocate (cross(-nz:nz), dcrossdr(-nz:nz)); cross = 0.0; dcrossdr = 0.0
 
    end subroutine allocate_arrays
 
