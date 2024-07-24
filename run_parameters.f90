@@ -79,7 +79,8 @@ contains
       use physics_flags, only: include_mirror, full_flux_surface, radial_variation
       use physics_flags, only: nonlinear, include_apar, include_parallel_streaming
       use physics_parameters, only: rhostar
-
+      !> For FFS - need to delete 
+      use species, only: has_electron_species
       implicit none
 
       type(text_option), dimension(3), parameter :: deltopts = &
@@ -250,6 +251,7 @@ contains
          
          !> print warning messages and override inconsistent or unsupported options for full_flux_surface = T
          if (full_flux_surface) then
+            if(has_electron_species) call mp_abort('FFS not set up for kinetic electrons yet')
             if (fields_kxkyz) then
                write (*, *)
                write (*, *) '!!!WARNING!!!'
