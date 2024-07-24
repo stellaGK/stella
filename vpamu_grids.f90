@@ -19,6 +19,9 @@ module vpamu_grids
    public :: equally_spaced_mu_grid
    public :: set_vpa_weights
 
+   public :: integrate_species_ffs_rm
+   public :: maxwell_mu_avg
+
    logical :: vpamu_initialized = .false.
 
    integer :: nvgrid, nvpa
@@ -31,7 +34,7 @@ module vpamu_grids
    real, dimension(:, :), allocatable :: maxwell_vpa
    real, dimension(:, :, :), allocatable :: int_unit, int_vpa2, int_vperp2, int_vfrth
    real, dimension(:, :, :), allocatable :: wgts_mu
-   real, dimension(:, :, :, :), allocatable :: maxwell_mu
+   real, dimension(:, :, :, :), allocatable :: maxwell_mu, maxwell_mu_avg
    real, dimension(:, :), allocatable :: ztmax
    real :: dvpa
    real, dimension(:), allocatable :: dmu
@@ -224,6 +227,10 @@ contains
       ! so currently maxwellian_normalization is not supported for the radially global
       ! version of the code.
       if (maxwellian_normalization) wgts_vpa = wgts_vpa * maxwell_vpa(:, 1)
+      !> TODO-GA: May way to remove this option?
+      if (conservative_wgts_vpa) then 
+         wgts_vpa = dvpa / sqrt(pi)
+      end if
 
       wgts_vpa_default = wgts_vpa
 
@@ -636,12 +643,42 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         pout = pout + 2.0 * wgts_mu_bare(imu) * (wgts_vpa(iv) / maxwell_vpa(iv, is)) * g(:, :, ivmu) * weights(is)
+         pout = pout + 2.0 * wgts_mu_bare(imu) * wgts_vpa(iv) * g(:, :, ivmu) * weights(is)
       end do
 
       if (reduce) call sum_allreduce(pout)
 
    end subroutine integrate_species_ffs
+
+   subroutine integrate_species_ffs_rm(g, weights, pout, reduce_in)
+      use mp, only: sum_allreduce
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+
+      implicit none
+      integer :: ivmu, iv, is, imu
+      logical :: reduce
+
+      complex, dimension(vmu_lo%llim_proc:), intent(in) :: g
+      logical, intent(in), optional :: reduce_in
+      real, dimension(:), intent(in) :: weights
+      complex, intent(out) :: pout
+
+      if (present(reduce_in)) then
+         reduce = reduce_in
+      else
+         reduce = .true.
+      end if
+
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         pout = pout + 2.0 * wgts_mu_bare(imu) * wgts_vpa(iv) * g(ivmu) * weights(is)
+      end do
+
+      if (reduce) call sum_allreduce(pout)
+
+   end subroutine integrate_species_ffs_rm
 
    subroutine integrate_vmu_ffs(g, weights, ia, iz, pout, reduce_in)
 
@@ -702,6 +739,7 @@ contains
       use stella_geometry, only: bmag, bmag_psi0
       use run_parameters, only: maxwellian_normalization
 
+      use physics_flags, only: full_flux_surface
       implicit none
 
       integer :: imu
@@ -713,6 +751,7 @@ contains
          allocate (wgts_mu(nalpha, -nzgrid:nzgrid, nmu)); wgts_mu = 0.0
          allocate (wgts_mu_bare(nmu)); wgts_mu_bare = 0.0
          allocate (maxwell_mu(nalpha, -nzgrid:nzgrid, nmu, nspec)); maxwell_mu = 0.0
+         allocate (maxwell_mu_avg(nalpha, -nzgrid:nzgrid, nmu, nspec)); maxwell_mu_avg = 0.0
          allocate (dmu(nmu - 1))
          allocate (dmu_ghost(nmu))
          allocate (mu_cell(nmu))
@@ -753,6 +792,8 @@ contains
       maxwell_mu = exp(-2.*spread(spread(spread(mu, 1, nalpha), 2, nztot) * spread(bmag, 3, nmu), 4, nspec) &
                        * spread(spread(spread(spec%temp_psi0 / spec%temp, 1, nalpha), 2, nztot), 3, nmu))
 
+      if(full_flux_surface) maxwell_mu_avg = spread(sum(maxwell_mu, dim = 1), 1, nalpha)/ nalpha 
+
       !> factor of 2. necessary to account for 2pi from
       !> integration over gyro-angle and 1/pi^(3/2) normalization
       !> of velocity space Jacobian
@@ -786,6 +827,7 @@ contains
       if (allocated(wgts_mu)) deallocate (wgts_mu)
       if (allocated(wgts_mu_bare)) deallocate (wgts_mu_bare)
       if (allocated(maxwell_mu)) deallocate (maxwell_mu)
+      if (allocated(maxwell_mu_avg)) deallocate (maxwell_mu_avg)
       if (allocated(dmu)) deallocate (dmu)
       if (allocated(dmu_cell)) deallocate (dmu_cell)
       if (allocated(dmu_ghost)) deallocate (dmu_ghost)
