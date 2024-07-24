@@ -82,7 +82,7 @@ contains
       use physics_flags, only: nonlinear, include_apar, include_parallel_streaming
       use physics_parameters, only: rhostar
       !> For FFS - need to delete 
-      use species, only: has_electron_species
+      use species, only: has_electron_species, spec
       implicit none
 
       type(text_option), dimension(3), parameter :: deltopts = &
@@ -247,14 +247,14 @@ contains
             end if
          end if
 
-         if(.not. full_flux_surface) then 
+         if (.not. full_flux_surface) then 
             write(*,*) 'nitt set to 1 for fluxtube' 
             nitt = 1
          end if
          
          !> print warning messages and override inconsistent or unsupported options for full_flux_surface = T
          if (full_flux_surface) then
-            if(has_electron_species) call mp_abort('FFS not set up for kinetic electrons yet')
+            if (has_electron_species(spec)) call mp_abort('FFS not set up for kinetic electrons yet')
             if (fields_kxkyz) then
                write (*, *)
                write (*, *) '!!!WARNING!!!'
