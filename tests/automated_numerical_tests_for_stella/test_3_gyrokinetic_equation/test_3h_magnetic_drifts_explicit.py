@@ -45,32 +45,10 @@ def test_whether_magnetic_drifts_explicit_evolves_correctly(tmp_path, error=Fals
     # Run stella inside of <tmp_path> based on <input_filename>
     run_local_stella_simulation(input_filename, tmp_path)
      
-    # File names  
+    # Compare phi2(t) in the netCDF files
     local_netcdf_file = tmp_path / input_filename.replace('.in', '.out.nc') 
-    expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'   
-
-    # Check whether the geometry data matches in the netcdf file
-    with xr.open_dataset(local_netcdf_file) as local_netcdf, xr.open_dataset(expected_netcdf_file) as expected_netcdf:
-        
-        # Read the time axis
-        local_time = local_netcdf['t']
-        expected_time = expected_netcdf['t']
-        
-        # Read the potential axis
-        local_phi2 = local_netcdf['phi2']
-        expected_phi2 = expected_netcdf['phi2'] 
-                     
-        # Check whether we have the same time and potential data
-        if not (np.allclose(local_time, expected_time, equal_nan=True)):
-            print('\nERROR: The time axis does not match in the netCDF files.'); error = True
-            print('\nCompare the time arrays in the local and expected netCDF files:')
-            compare_local_array_with_expected_array(local_time, expected_time)  
-        if not (np.allclose(local_phi2, expected_phi2, equal_nan=True)):
-            print('\nERROR: The potential data does not match in the netCDF files.'); error = True 
-            print('\nCompare the potential arrays in the local and expected netCDF files:')
-            compare_local_array_with_expected_array(local_phi2, expected_phi2) 
-        assert (not error), f'The potential data does not match in the netCDF files.'   
-                
+    expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'    
+    compare_local_potential_with_expected_potential(local_netcdf_file, expected_netcdf_file, error=False)    
     print('  -->  The diamagnetic drift term, implemented explicitly, are evolving correctly.')
     return
     

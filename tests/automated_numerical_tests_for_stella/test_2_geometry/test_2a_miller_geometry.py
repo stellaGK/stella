@@ -58,11 +58,6 @@ def test_whether_miller_output_files_are_present(tmp_path, error=False):
 #-------------------------------------------------------------------------------
 def test_whether_miller_output_files_are_correct():  
     '''Check that the results are identical to a previous run.'''
-
-    # Initialize
-    geometry_files_match = True
-    miller_input_files_match = True
-    miller_output_files_match = True
     
     # File names 
     local_geometry_file = stella_local_run_directory / 'miller_geometry.geometry' 
@@ -71,29 +66,11 @@ def test_whether_miller_output_files_are_correct():
     expected_miller_input_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.miller_geometry.millerlocal.input' 
     local_miller_output_file = stella_local_run_directory / 'millerlocal.miller_geometry.output' 
     expected_miller_output_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.miller_geometry.millerlocal.output' 
-     
-    # Check whether the millerlocal input files match  
-    if os.path.getsize(local_miller_input_file) != os.path.getsize(expected_miller_input_file): miller_input_files_match = False; print('ERROR: Miller input files do not match.')
-    elif open(local_miller_input_file,'r').read() != open(expected_miller_input_file,'r').read(): miller_input_files_match = False; print('ERROR: Miller input files do not match.')
-
-    # Check whether the millerlocal output files match  
-    if os.path.getsize(local_miller_output_file) != os.path.getsize(expected_miller_output_file): miller_output_files_match = False; print('ERROR: Miller output files do not match.')
-    elif open(local_miller_output_file,'r').read() != open(expected_miller_output_file,'r').read(): miller_output_files_match = False; print('ERROR: Miller output files do not match.')
-
-    # Check whether the geometry files match  
-    if os.path.getsize(local_geometry_file) != os.path.getsize(expected_geometry_file): geometry_files_match = False; print('ERROR: Geometry files do not match.')
-    elif open(local_geometry_file,'r').read() != open(expected_geometry_file,'r').read(): geometry_files_match = False; print('ERROR: Geometry files do not match.')
     
-    # If the files don't match, print the differences
-    if miller_input_files_match==False:
-        print_differences_in_text_files(local_miller_input_file, expected_miller_input_file, name='MILLER INPUT')
-        assert False, 'Miller input files do not match.'
-    if miller_output_files_match==False:
-        print_differences_in_text_files(local_miller_output_file, expected_miller_output_file, name='MILLER OUTPUT')
-        assert False, 'Miller output files do not match.'
-    if geometry_files_match==False:
-        print_differences_in_text_files(local_geometry_file, expected_geometry_file, name='GEOMETRY')
-        assert False, 'Geometry files do not match.'
+    # Check whether the txt files match  
+    compare_local_txt_with_expected_txt(local_geometry_file, expected_geometry_file, name='Geometry txt', error=False)
+    compare_local_txt_with_expected_txt(local_miller_input_file, expected_miller_input_file, name='Miller input txt', error=False)
+    compare_local_txt_with_expected_txt(local_miller_output_file, expected_miller_output_file, name='Miller output txt', error=False)
 
     # If we made it here the test was run correctly 
     print(f'  -->  Geometry output file matches.')
@@ -110,12 +87,7 @@ def test_whether_miller_geometry_data_in_netcdf_file_is_correct(error=False):
     expected_netcdf_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.miller_geometry.out.nc'   
 
     # Check whether the geometry data matches in the netcdf file
-    with xr.open_dataset(local_netcdf_file) as local_netcdf, xr.open_dataset(expected_netcdf_file) as expected_netcdf:
-    
-        # Check whether all the keys are present
-        if set(local_netcdf.keys()) != set(expected_netcdf.keys()):
-            print('ERROR: The quantities in the netcdf file differ from the EXPECTED_OUTPUT.out.nc file.')
-            assert False, 'The quantities in the netcdf file differ from the EXPECTED_OUTPUT.out.nc file.'
+    with xr.open_dataset(local_netcdf_file) as local_netcdf, xr.open_dataset(expected_netcdf_file) as expected_netcdf: 
         
         # Relevant keys for the geometry
         geometry_keys = ["bmag", "b_dot_grad_z", "gradpar", "gbdrift", "gbdrift0", "cvdrift", "cvdrift0", "kperp2", \
@@ -127,8 +99,8 @@ def test_whether_miller_geometry_data_in_netcdf_file_is_correct(error=False):
                 if key=='nproc': continue # The number of processors is allowed to differ
                 if (local_netcdf[key] != expected_netcdf[key]):
                     print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
-                    print('    LOCAL:    {local_netcdf[key]}')
-                    print('    EXPECTED: {expected_netcdf[key]}')
+                    print(f'    LOCAL:    {local_netcdf[key]}')
+                    print(f'    EXPECTED: {expected_netcdf[key]}')
                 
             # Compare texts (code_info and input_file)
             if expected_netcdf[key].dtype.kind == 'S':
@@ -137,15 +109,15 @@ def test_whether_miller_geometry_data_in_netcdf_file_is_correct(error=False):
                 if key=='input_file': continue # The input file is allowed to differ
                 if (local_netcdf_str != expected_netcdf_str):
                     print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
-                    print('    LOCAL:    {local_netcdf[key]}')
-                    print('    EXPECTED: {expected_netcdf[key]}') 
+                    print(f'    LOCAL:    {local_netcdf_str}')
+                    print(f'    EXPECTED: {expected_netcdf_str}') 
                     
             # Compare data arrays 
             else: 
                 if not (np.allclose(local_netcdf[key], expected_netcdf[key], equal_nan=True)):
                     print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
-                    print('    LOCAL:    {local_netcdf[key]}')
-                    print('    EXPECTED: {expected_netcdf[key]}')
+                    print('\nCompare the {key} arrays in the local and expected netCDF files:')
+                    compare_local_array_with_expected_array(local_netcdf[key], expected_netcdf[key])  
                     
         # Print "AssertionError: <error message>" if an error was encountered
         assert (not error), f'Some Miller geometry arrays in the netcdf file did not match the previous run.' 

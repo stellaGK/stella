@@ -68,22 +68,10 @@ def test_whether_vmec_output_files_are_correct():
     expected_geometry_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.vmec_geometry.geometry' 
     local_vmec_file = stella_local_run_directory / 'vmec_geometry.vmec.geo' 
     expected_vmec_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.vmec_geometry.vmec.geo'  
-     
-    # Check whether the vmec.geo files match  
-    if os.path.getsize(local_vmec_file) != os.path.getsize(expected_vmec_file): vmec_files_match = False; print('ERROR: vmec.geo files do not match.')
-    elif open(local_vmec_file,'r').read() != open(expected_vmec_file,'r').read(): vmec_files_match = False; print('ERROR: vmec.geo files do not match.') 
-
-    # Check whether the geometry files match  
-    if os.path.getsize(local_geometry_file) != os.path.getsize(expected_geometry_file): geometry_files_match = False; print('ERROR: Geometry files do not match.')
-    elif open(local_geometry_file,'r').read() != open(expected_geometry_file,'r').read(): geometry_files_match = False; print('ERROR: Geometry files do not match.')
     
-    # If the files don't match, print the differences
-    if vmec_files_match==False:
-        print_differences_in_text_files(local_vmec_file, expected_vmec_file, name='VMEC GEO')
-        assert False, 'The .vmec.geo files do not match.'
-    if geometry_files_match==False:
-        print_differences_in_text_files(local_geometry_file, expected_geometry_file, name='GEOMETRY')
-        assert False, 'Geometry files do not match.' 
+    # Check whether the txt files match  
+    compare_local_txt_with_expected_txt(local_geometry_file, expected_geometry_file, name='Geometry txt', error=False)
+    compare_local_txt_with_expected_txt(local_vmec_file, expected_vmec_file, name='vmec.geo txt', error=False)  
 
     # If we made it here the test was run correctly 
     print(f'  -->  The geometry output file matches.')
@@ -102,11 +90,6 @@ def test_whether_VMEC_geometry_data_in_netcdf_file_is_correct(error=False):
 
     # Check whether the geometry data matches in the netcdf file
     with xr.open_dataset(local_netcdf_file) as local_netcdf, xr.open_dataset(expected_netcdf_file) as expected_netcdf:
-    
-        # Check whether all the keys are present
-        if set(local_netcdf.keys()) != set(expected_netcdf.keys()):
-            print('ERROR: The quantities in the netCDF file differ from the EXPECTED_OUTPUT.out.nc file.')
-            assert False, 'The quantities in the netCDF file differ from the EXPECTED_OUTPUT.out.nc file.'
         
         # Relevant keys for the geometry
         geometry_keys = ["bmag", "b_dot_grad_z", "gradpar", "gbdrift", "gbdrift0", "cvdrift", "cvdrift0", "kperp2", \
@@ -133,11 +116,10 @@ def test_whether_VMEC_geometry_data_in_netcdf_file_is_correct(error=False):
                     
             # Compare data arrays 
             else: 
-                if key=='djacdrho': continue # The quantity <djacdrho> is undefined when using VMEC (it's for Miller + radial_variation)
                 if not (np.allclose(local_netcdf[key], expected_netcdf[key], equal_nan=True)):
                     print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
-                    print(f'    LOCAL:    {local_netcdf[key]}')
-                    print(f'    EXPECTED: {expected_netcdf[key]}')
+                    print('\nCompare the {key} arrays in the local and expected netCDF files:')
+                    compare_local_array_with_expected_array(local_netcdf[key], expected_netcdf[key])  
                     
         # Print "AssertionError: <error message>" if an error was encountered
         assert (not error), f'Some Miller geometry arrays in the netCDF file did not match the previous run.' 
