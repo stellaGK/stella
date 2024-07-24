@@ -28,7 +28,7 @@
   z = -1.0
 /
 &parameters
-  beta = 0.01		 
+  beta = 0.01
   rhostar = 0.01	 
   vnew_ref = 0.01	 	
   zeff = 1.0	 

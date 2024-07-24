@@ -29,7 +29,10 @@ contains
 
    subroutine init_response_matrix
 
+      use linear_solve, only: lu_decomposition
       use fields_arrays, only: response_matrix
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: iv_idx, is_idx
       use kt_grids, only: naky
       use mp, only: proc0
       use run_parameters, only: mat_gen
@@ -189,6 +192,7 @@ contains
       ! for a given ky and set of connected kx values
       ! give a unit impulse to phi at each zed location
       ! in the extended domain and solve for h(zed_extended,(vpa,mu,s))
+
       do iky = 1, naky
 
          if (proc0 .and. mat_gen) then
@@ -687,7 +691,9 @@ contains
       use physics_flags, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use fields_arrays, only: response_matrix
-      use extended_zgrid, only: periodic
+      use extended_zgrid, only: periodic, phase_shift
+      use parallel_streaming, only: stream_sign
+      use physics_flags, only: full_flux_surface
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
@@ -714,8 +720,10 @@ contains
       ! how phi^{n+1} enters the GKE depends on whether we are solving for the
       ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
       phi_ext(idx) = time_upwind_plus
-
-      if (periodic(iky) .and. idx == 1) phi_ext(nz_ext) = phi_ext(1)
+      
+      !> TOGO-GA: check division rather than multiplication -- kept division for now to be consistent with 
+      !> parallel_streaming phase shift 
+      if (periodic(iky) .and. idx == 1) phi_ext(nz_ext) = phi_ext(1) / phase_shift(iky)
 
       ! dum is a scratch array that takes the place of the pdf and phi
       ! at the previous time level,
@@ -963,6 +971,17 @@ contains
       use gyro_averages, only: gyro_average
       use mp, only: sum_allreduce
 
+      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use run_parameters, only: driftkinetic_implicit
+      use vpamu_grids, only: integrate_species_ffs_rm
+
+      use physics_flags, only: full_flux_surface
+
+      use stella_geometry, only: bmag
+      use kt_grids, only: nalpha
+
+      use gyro_averages, only: j0_B_const
+
       implicit none
 
       complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
@@ -973,6 +992,8 @@ contains
       integer :: izl_offset
       real, dimension(nspec) :: wgt
       complex, dimension(:), allocatable :: g0
+
+      integer :: ivmu, imu, iv, is
 
       ia = 1
 
@@ -986,17 +1007,38 @@ contains
       ikx = ikxmod(iseg, ie, iky)
       do iz = iz_low(iseg), iz_up(iseg)
          idx = idx + 1
-         call gyro_average(g(idx, :), iky, ikx, iz, g0)
-         call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
+         if (.not. full_flux_surface .and. (.not. driftkinetic_implicit)) then
+            call gyro_average(g(idx, :), iky, ikx, iz, g0)
+            call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
+         else
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               iv = iv_idx(vmu_lo, ivmu)
+               imu = imu_idx(vmu_lo, ivmu)
+               is = is_idx(vmu_lo, ivmu)
+               g0(ivmu) = g(idx, ivmu) * j0_B_const(iky, ikx, iz, ivmu)
+            end do
+            call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
+         end if
       end do
+
       izl_offset = 1
       if (nsegments(ie, iky) > 1) then
          do iseg = 2, nsegments(ie, iky)
             ikx = ikxmod(iseg, ie, iky)
             do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                idx = idx + 1
-               call gyro_average(g(idx, :), iky, ikx, iz, g0)
-               call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
+               if (.not. full_flux_surface .and. (.not. driftkinetic_implicit)) then
+                  call gyro_average(g(idx, :), iky, ikx, iz, g0)
+                  call integrate_species(g0, iz, wgt, phi(idx), reduce_in=.false.)
+               else
+                  do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+                     iv = iv_idx(vmu_lo, ivmu)
+                     imu = imu_idx(vmu_lo, ivmu)
+                     is = is_idx(vmu_lo, ivmu)
+                     g0(ivmu) = g(idx, ivmu) * j0_B_const(iky, ikx, iz, ivmu)
+                  end do
+                  call integrate_species_ffs_rm(g0, wgt, phi(idx), reduce_in=.false.)
+               end if
             end do
             if (izl_offset == 0) izl_offset = 1
          end do
