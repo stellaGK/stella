@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.3% of total for procedures.">105 statements</a>
+                 title=" 0.5% of total for procedures.">176 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -147,16 +147,20 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/job_manage.html'>job_manage</a></li>
+                  <li class="list-inline-item"><a href='../module/extended_zgrid.html'>extended_zgrid</a></li>
                   <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
+                  <li class="list-inline-item"><a href='../module/gyro_averages.html'>gyro_averages</a></li>
+                  <li class="list-inline-item"><a href='../module/species.html'>species</a></li>
                   <li class="list-inline-item"><a href='../module/zgrid.html'>zgrid</a></li>
-                  <li class="list-inline-item"><a href='../module/dist_fn_arrays.html'>dist_fn_arrays</a></li>
-                  <li class="list-inline-item"><a href='../module/stella_layouts.html'>stella_layouts</a></li>
                   <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
                   <li class="list-inline-item"><a href='../module/fields.html'>fields</a></li>
-                  <li class="list-inline-item"><a href='../module/extended_zgrid.html'>extended_zgrid</a></li>
-                  <li class="list-inline-item"><a href='../module/kt_grids.html'>kt_grids</a></li>
+                  <li class="list-inline-item"><a href='../module/stella_layouts.html'>stella_layouts</a></li>
+                  <li class="list-inline-item"><a href='../module/ffs_solve.html'>ffs_solve</a></li>
+                  <li class="list-inline-item"><a href='../module/dist_fn_arrays.html'>dist_fn_arrays</a></li>
+                  <li class="list-inline-item"><a href='../module/job_manage.html'>job_manage</a></li>
+                  <li class="list-inline-item"><a href='../module/parallel_streaming.html'>parallel_streaming</a></li>
                   <li class="list-inline-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
+                  <li class="list-inline-item"><a href='../module/kt_grids.html'>kt_grids</a></li>
               </ul>
             </li>
         </ul>
@@ -165,11 +169,32 @@
 
 
     <p>dist_choice indicates whether the non-Boltzmann part of the pdf (h) is evolved
-in parallel streaming or if the guiding centre distribution (g = <f>) is evolved
+in parallel streaming or if the guiding centre distribution (g = <f>) is evolved</p>
+<p>store g_n from pervious time step 
 if using delphi formulation for response matrix, then phi = phi^n replaces
 phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
-If using deltaphi formulation, must account for fact that phi = phi^{n+1}-phi^{n*}, but
-tupwnd_p should multiply phi^{n+1}</p>
+NB: for FFS phi_source = 0.0 for inhomogeneous step - this is always set below
+for fluxtube this ordering doesn't matter
+save the incoming pdf and phi, as they will be needed later
+this will become g^{n+1, i} -- the g from the previous iteration       <br>
+if using delphi formulation for response matrix, then phi = phi^n replaces
+phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
+set the g on the RHS to be g from the previous time step<br>
+FFS will have a RHS source term
+modify being passes in will make sure that this source is included
+We now have g_{inh}^{n+1, i+1} stored in g
+calculate associated fields (phi_{inh}^{n+1, i+1})
+For FFS we want to re-solve for bar{phi}
+NB the 'g' here is g_inh^{n+1, i+1}
+g2 = g^{n+1, i}
+phi_old = phi^{n+1, i} 
+solve response_matrix<em>(phi^{n+1}-phi^{n</em>}) = phi_{inh}^{n+1}-phi^{n<em>}
+phi = phi_{inh}^{n+1}-phi^{n</em>} is input and overwritten by phi = phi^{n+1}-phi^{n<em>}
+for Drift kinetic implicit this is full phi^{n+1, i+1}
+If using deltaphi formulation, must account for fact that phi = phi^{n+1}-phi^{n</em>}, but
+tupwnd_p should multiply phi^{n+1}
+Pass in modify to include RHS source term
+solving for full g = g_{inh} + g_{hom} </p>
 
 
     <h3>Arguments</h3>
@@ -185,7 +210,7 @@ tupwnd_p should multiply phi^{n+1}</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~22"></span>
+              <span class="anchor" id="variable-g~102"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -200,7 +225,7 @@ tupwnd_p should multiply phi^{n+1}</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~12"></span>
+              <span class="anchor" id="variable-phi~38"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -215,7 +240,7 @@ tupwnd_p should multiply phi^{n+1}</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-apar~8"></span>
+              <span class="anchor" id="variable-apar~25"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -230,7 +255,7 @@ tupwnd_p should multiply phi^{n+1}</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-bpar~9"></span>
+              <span class="anchor" id="variable-bpar~23"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -271,13 +296,13 @@ tupwnd_p should multiply phi^{n+1}</p>
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-349-ge1da75cc2</small></p>
+<br /><small>v0.5.1-350-g451141589</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-17T09:05:02.838535             </p>
+ on 2024-07-24T15:50:08.808861             </p>
           </div>
         </div>
         <br>

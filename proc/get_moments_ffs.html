@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.2% of total for procedures.">60 statements</a>
+                 title=" 0.2% of total for procedures.">95 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -147,15 +147,19 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/zgrid.html'>zgrid</a></li>
-                  <li class="list-inline-item"><a href='../module/dist_fn_arrays.html'>dist_fn_arrays</a></li>
-                  <li class="list-inline-item"><a href='../module/species.html'>species</a></li>
-                  <li class="list-inline-item"><a href='../module/stella_layouts.html'>stella_layouts</a></li>
-                  <li class="list-inline-item"><a href='../module/gyro_averages.html'>gyro_averages</a></li>
                   <li class="list-inline-item"><a href='../module/fields_arrays.html'>fields_arrays</a></li>
-                  <li class="list-inline-item"><a href='../module/kt_grids.html'>kt_grids</a></li>
-                  <li class="list-inline-item"><a href='../module/vpamu_grids.html'>vpamu_grids</a></li>
                   <li class="list-inline-item"><a href='../module/stella_transforms.html'>stella_transforms</a></li>
+                  <li class="list-inline-item"><a href='../module/gyro_averages.html'>gyro_averages</a></li>
+                  <li class="list-inline-item"><a href='../module/species.html'>species</a></li>
+                  <li class="list-inline-item"><a href='../module/zgrid.html'>zgrid</a></li>
+                  <li class="list-inline-item"><a href='../module/stella_geometry.html'>stella_geometry</a></li>
+                  <li class="list-inline-item"><a href='../module/stella_layouts.html'>stella_layouts</a></li>
+                  <li class="list-inline-item"><a href='../module/g_tofrom_h.html'>g_tofrom_h</a></li>
+                  <li class="list-inline-item"><a href='../module/vpamu_grids.html'>vpamu_grids</a></li>
+                  <li class="list-inline-item"><a href='../module/dist_fn_arrays.html'>dist_fn_arrays</a></li>
+                  <li class="list-inline-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
+                  <li class="list-inline-item"><a href='../module/constants.html'>constants</a></li>
+                  <li class="list-inline-item"><a href='../module/kt_grids.html'>kt_grids</a></li>
               </ul>
             </li>
         </ul>
@@ -163,26 +167,22 @@
     </div>
 
 
-    <p>species-dependent factor by which velocity moments must be multiplied
+    <p>For momentum flux
+species-dependent factor by which velocity moments must be multiplied
 to get density, pressure, etc.
-the guiding centre distribution function, normalized by
-the equilibrium Maxwellian, is passed in as g.
-to obtain moments such as density, flow and pressure,
-we need to take moments of the distribution function, f,
-which is related to g via
-f/F0 = g + (Ze/T)*(<phi>_R - phi)
-obtain g0=f/F0 in Fourier space</p>
-<p>calculate the Fourier components of the gyro-average f at fixed particle position
-g0=f/F0 is passed in, along with j0_ffs = the Fourier coefficients of J0
-g1=<f/F0>_r is returned</p>
+set species-dependent factors needed for density, parallel flow and pressure
+Already allocated arrays (allocated in time_advance.f90). Set to zero just in case</p>
+<p>This returns f = g + Z/T * (<phi> - phi)
+NB: g_to_f0 TODO-GA: check </p>
+<p>g1 = J0 * f
+g2 = J1 * f</p>
 <p>assume only a single flux annulus
 for every (z,vpa,mu,spec) point
 switch from ky &gt;= 0 and kx = [-kxmax, kxmax]
 to ky = [-kymax, kymax] and kx &gt;= 0
 for every (z,vpa,mu,spec) point, Fourier tranform from ky to y space to get
-the kx component of <f(y,x)>_r
-set species-dependent factors needed for density, parallel flow and pressure
-the integrand for the density moment is the distribution function
+the kx component of <f(y,x)>_r</p>
+<p>the integrand for the density moment is the distribution function
 integrate over v-space to get the density, normalised by the reference density.</p>
 <p>the integrand for the pressure moment is the energy-weighted distribution function
 integrate over v-space to get the pressure, normalised by the reference pressure.</p>
@@ -203,7 +203,7 @@ integrate over v-space to get the parallel flow, normalised by the reference the
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~50"></span>
+              <span class="anchor" id="variable-g~60"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -218,7 +218,7 @@ integrate over v-space to get the parallel flow, normalised by the reference the
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dens~6"></span>
+              <span class="anchor" id="variable-dens~3"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -233,7 +233,7 @@ integrate over v-space to get the parallel flow, normalised by the reference the
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-upar~5"></span>
+              <span class="anchor" id="variable-upar~4"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -289,13 +289,13 @@ integrate over v-space to get the parallel flow, normalised by the reference the
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-349-ge1da75cc2</small></p>
+<br /><small>v0.5.1-350-g451141589</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-17T09:05:02.838535             </p>
+ on 2024-07-24T15:50:08.808861             </p>
           </div>
         </div>
         <br>

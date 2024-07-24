@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.7% of total for modules and submodules.">275 statements</a>
+                 title=" 0.7% of total for modules and submodules.">269 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -125,7 +125,7 @@
             <a class="list-group-item" href="../module/run_parameters.html#variable-fphi">fphi</a>
             <a class="list-group-item" href="../module/run_parameters.html#variable-fapar">fapar</a>
             <a class="list-group-item" href="../module/run_parameters.html#variable-fbpar">fbpar</a>
-            <a class="list-group-item" href="../module/run_parameters.html#variable-delt~4">delt</a>
+            <a class="list-group-item" href="../module/run_parameters.html#variable-delt~3">delt</a>
             <a class="list-group-item" href="../module/run_parameters.html#variable-tend">tend</a>
             <a class="list-group-item" href="../module/run_parameters.html#variable-delt_max~2">delt_max</a>
             <a class="list-group-item" href="../module/run_parameters.html#variable-delt_min~2">delt_min</a>
@@ -153,7 +153,7 @@
             <a class="list-group-item" href="../module/run_parameters.html#variable-use_deltaphi_for_response_matrix">use_deltaphi_for_response_matrix</a>
             <a class="list-group-item" href="../module/run_parameters.html#variable-maxwellian_normalization">maxwellian_normalization</a>
             <a class="list-group-item" href="../module/run_parameters.html#variable-avail_cpu_time">avail_cpu_time</a>
-            <a class="list-group-item" href="../module/run_parameters.html#variable-nstep">nstep</a>
+            <a class="list-group-item" href="../module/run_parameters.html#variable-nstep~2">nstep</a>
             <a class="list-group-item" href="../module/run_parameters.html#variable-ky_solve_radial">ky_solve_radial</a>
             <a class="list-group-item" href="../module/run_parameters.html#variable-rng_seed">rng_seed</a>
             <a class="list-group-item" href="../module/run_parameters.html#variable-delt_option_switch">delt_option_switch</a>
@@ -163,8 +163,9 @@
             <a class="list-group-item" href="../module/run_parameters.html#variable-lu_option_none">lu_option_none</a>
             <a class="list-group-item" href="../module/run_parameters.html#variable-lu_option_local">lu_option_local</a>
             <a class="list-group-item" href="../module/run_parameters.html#variable-lu_option_global">lu_option_global</a>
-            <a class="list-group-item" href="../module/run_parameters.html#variable-initialized~16">initialized</a>
+            <a class="list-group-item" href="../module/run_parameters.html#variable-initialized~8">initialized</a>
             <a class="list-group-item" href="../module/run_parameters.html#variable-knexist">knexist</a>
+            <a class="list-group-item" href="../module/run_parameters.html#variable-nitt">nitt</a>
         </div>
       </div>
     </div>
@@ -187,7 +188,7 @@
       <div id="subs-0" class="collapse">
         <div class="list-group list-group-flush">
             <a class="list-group-item" href="../module/run_parameters.html#proc-init_run_parameters">init_run_parameters</a>
-            <a class="list-group-item" href="../module/run_parameters.html#proc-read_parameters~10">read_parameters</a>
+            <a class="list-group-item" href="../module/run_parameters.html#proc-read_parameters~8">read_parameters</a>
             <a class="list-group-item" href="../module/run_parameters.html#proc-finish_run_parameters">finish_run_parameters</a>
         </div>
       </div>
@@ -329,7 +330,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-delt~4"></span>
+              <span class="anchor" id="variable-delt~3"></span>
               real,
             </td>
               <td>public</td>
@@ -805,7 +806,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-nstep"></span>
+              <span class="anchor" id="variable-nstep~2"></span>
               integer,
             </td>
               <td>public</td>
@@ -975,7 +976,7 @@ parameter
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-initialized~16"></span>
+              <span class="anchor" id="variable-initialized~8"></span>
               logical,
             </td>
               <td>private</td>
@@ -1001,6 +1002,23 @@ parameter
             </td>
             <td>::</td>
             <td><strong>knexist</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nitt"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nitt</strong></td>
                 <td></td>
                 <td></td>
             <td>
@@ -1034,11 +1052,12 @@ parameter
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-read_parameters~10"></span> <h3>private  subroutine <a href='../proc/read_parameters~10.html'>read_parameters</a>()  
+    <div class="card-header codesum"><span class="anchor" id="proc-read_parameters~8"></span> <h3>private  subroutine <a href='../proc/read_parameters~8.html'>read_parameters</a>()  
 </h3></div>
     <div class="card-body">
           
-  <p>print warning messages and override inconsistent or unsupported options for full_flux_surface = T</p>
+  <p>For FFS - need to delete 
+print warning messages and override inconsistent or unsupported options for full_flux_surface = T</p>
 
   <h4>Arguments</h4>
     <em>None</em>
@@ -1076,13 +1095,13 @@ parameter
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-349-ge1da75cc2</small></p>
+<br /><small>v0.5.1-350-g451141589</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-17T09:05:02.838535             </p>
+ on 2024-07-24T15:50:08.808861             </p>
           </div>
         </div>
         <br>

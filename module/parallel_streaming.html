@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 1.4% of total for modules and submodules.">527 statements</a>
+                 title=" 1.6% of total for modules and submodules.">618 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -133,6 +133,10 @@
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_tri_c2">stream_tri_c2</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-gradpar_c">gradpar_c</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#variable-time_parallel_streaming">time_parallel_streaming</a>
+            <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_correction_sign">stream_correction_sign</a>
+            <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_full_sign">stream_full_sign</a>
+            <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_correction">stream_correction</a>
+            <a class="list-group-item" href="../module/parallel_streaming.html#variable-stream_store_full">stream_store_full</a>
         </div>
       </div>
     </div>
@@ -173,12 +177,15 @@
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-get_dgdz_centered">get_dgdz_centered</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-add_stream_term">add_stream_term</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-add_stream_term_ffs">add_stream_term_ffs</a>
+            <a class="list-group-item" href="../module/parallel_streaming.html#proc-add_stream_term_full_ffs">add_stream_term_full_ffs</a>
+            <a class="list-group-item" href="../module/parallel_streaming.html#proc-add_stream_term_ffs_correction">add_stream_term_ffs_correction</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-stream_tridiagonal_solve">stream_tridiagonal_solve</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-get_dzed~2">get_dzed</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-get_zed_derivative_extended_domain">get_zed_derivative_extended_domain</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-center_zed_extended">center_zed_extended</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-center_zed_segment_real">center_zed_segment_real</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-center_zed_segment_complex">center_zed_segment_complex</a>
+            <a class="list-group-item" href="../module/parallel_streaming.html#proc-center_zed_midpoint">center_zed_midpoint</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-finish_parallel_streaming">finish_parallel_streaming</a>
             <a class="list-group-item" href="../module/parallel_streaming.html#proc-finish_invert_stream_operator">finish_invert_stream_operator</a>
         </div>
@@ -455,6 +462,74 @@
                 
             </td>
         </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-stream_correction_sign"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              dimension(:,:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>stream_correction_sign</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-stream_full_sign"></span>
+              integer,
+            </td>
+              <td>public,</td>
+            <td>
+              dimension(:,:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>stream_full_sign</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-stream_correction"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              dimension(:, :, :, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>stream_correction</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-stream_store_full"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              dimension(:, :, :, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>stream_store_full</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
     </tbody>
   </table>
 
@@ -494,7 +569,7 @@ and overwrites f with the cell-centered version</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iv~82"></span>
+              <span class="anchor" id="variable-iv~87"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -509,7 +584,7 @@ and overwrites f with the cell-centered version</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-f~54"></span>
+              <span class="anchor" id="variable-f~34"></span>
               real,
             </td>
 <td>intent(inout),</td>
@@ -524,7 +599,7 @@ and overwrites f with the cell-centered version</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-llim~31"></span>
+              <span class="anchor" id="variable-llim~29"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -565,7 +640,7 @@ and overwrites f with the cell-centered version;</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iv~83"></span>
+              <span class="anchor" id="variable-iv~88"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -580,7 +655,7 @@ and overwrites f with the cell-centered version;</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-f~55"></span>
+              <span class="anchor" id="variable-f~35"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -595,7 +670,7 @@ and overwrites f with the cell-centered version;</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-llim~32"></span>
+              <span class="anchor" id="variable-llim~30"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -649,7 +724,7 @@ and overwrites f with the cell-centered version;</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iv~81"></span>
+              <span class="anchor" id="variable-iv~86"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -664,7 +739,7 @@ and overwrites f with the cell-centered version;</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~88"></span>
+              <span class="anchor" id="variable-g~99"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -746,7 +821,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~80"></span>
+              <span class="anchor" id="variable-g~89"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -761,7 +836,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~47"></span>
+              <span class="anchor" id="variable-phi~36"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -776,7 +851,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-bpar~35"></span>
+              <span class="anchor" id="variable-bpar~22"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -791,7 +866,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gout~21"></span>
+              <span class="anchor" id="variable-gout~18"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -831,7 +906,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~81"></span>
+              <span class="anchor" id="variable-g~90"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -846,7 +921,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gout~22"></span>
+              <span class="anchor" id="variable-gout~19"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -861,7 +936,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-rhs~16"></span>
+              <span class="anchor" id="variable-rhs~7"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -901,7 +976,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~82"></span>
+              <span class="anchor" id="variable-g~91"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -916,7 +991,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~80"></span>
+              <span class="anchor" id="variable-ivmu~88"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -931,7 +1006,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdz"></span>
+              <span class="anchor" id="variable-dgdz~4"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -952,7 +1027,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-get_dgdz_centered"></span> <h3>private  subroutine <a href='../proc/get_dgdz_centered.html'>get_dgdz_centered</a>(g, ivmu, dgdz)  
+    <div class="card-header codesum"><span class="anchor" id="proc-get_dgdz_centered"></span> <h3>public  subroutine <a href='../proc/get_dgdz_centered.html'>get_dgdz_centered</a>(g, ivmu, dgdz)  
 </h3></div>
     <div class="card-body">
           
@@ -971,7 +1046,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~83"></span>
+              <span class="anchor" id="variable-g~92"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -986,7 +1061,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~81"></span>
+              <span class="anchor" id="variable-ivmu~89"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1001,7 +1076,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdz~2"></span>
+              <span class="anchor" id="variable-dgdz~5"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -1041,7 +1116,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~84"></span>
+              <span class="anchor" id="variable-g~93"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1056,7 +1131,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~82"></span>
+              <span class="anchor" id="variable-ivmu~90"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1071,7 +1146,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-src~27"></span>
+              <span class="anchor" id="variable-src~6"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1111,7 +1186,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~85"></span>
+              <span class="anchor" id="variable-g~94"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1126,7 +1201,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ivmu~83"></span>
+              <span class="anchor" id="variable-ivmu~91"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1141,7 +1216,147 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-src~28"></span>
+              <span class="anchor" id="variable-src~7"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>src</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-add_stream_term_full_ffs"></span> <h3>private  subroutine <a href='../proc/add_stream_term_full_ffs.html'>add_stream_term_full_ffs</a>(g, ivmu, src)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~95"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ivmu~92"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ivmu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-src~8"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>src</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-add_stream_term_ffs_correction"></span> <h3>private  subroutine <a href='../proc/add_stream_term_ffs_correction.html'>add_stream_term_ffs_correction</a>(g, ivmu, src)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~96"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ivmu~93"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ivmu</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-src~9"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1181,7 +1396,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iky~119"></span>
+              <span class="anchor" id="variable-iky~70"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1196,7 +1411,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ie~37"></span>
+              <span class="anchor" id="variable-ie~6"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1211,7 +1426,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-iv~78"></span>
+              <span class="anchor" id="variable-iv~83"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1226,7 +1441,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-is~114"></span>
+              <span class="anchor" id="variable-is~113"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1241,7 +1456,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~86"></span>
+              <span class="anchor" id="variable-g~97"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1281,7 +1496,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iv~79"></span>
+              <span class="anchor" id="variable-iv~84"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1296,7 +1511,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~87"></span>
+              <span class="anchor" id="variable-g~98"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1311,7 +1526,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdz~3"></span>
+              <span class="anchor" id="variable-dgdz~6"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -1351,7 +1566,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iv~80"></span>
+              <span class="anchor" id="variable-iv~85"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1366,7 +1581,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-f~53"></span>
+              <span class="anchor" id="variable-f~33"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1451,7 +1666,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iv~81"></span>
+              <span class="anchor" id="variable-iv~86"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1466,7 +1681,7 @@ start the timer for the parallel streaming part of the time advance</p><a href="
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~88"></span>
+              <span class="anchor" id="variable-g~99"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1508,7 +1723,7 @@ and overwrites f with the cell-centered version</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iv~82"></span>
+              <span class="anchor" id="variable-iv~87"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1523,7 +1738,7 @@ and overwrites f with the cell-centered version</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-f~54"></span>
+              <span class="anchor" id="variable-f~34"></span>
               real,
             </td>
 <td>intent(inout),</td>
@@ -1538,7 +1753,7 @@ and overwrites f with the cell-centered version</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-llim~31"></span>
+              <span class="anchor" id="variable-llim~29"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1580,7 +1795,7 @@ and overwrites f with the cell-centered version;</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iv~83"></span>
+              <span class="anchor" id="variable-iv~88"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1595,7 +1810,7 @@ and overwrites f with the cell-centered version;</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-f~55"></span>
+              <span class="anchor" id="variable-f~35"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1610,7 +1825,7 @@ and overwrites f with the cell-centered version;</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-llim~32"></span>
+              <span class="anchor" id="variable-llim~30"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1634,6 +1849,61 @@ and overwrites f with the cell-centered version;</p>
             </td>
             <td>::</td>
             <td><strong>periodic</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-center_zed_midpoint"></span> <h3>private  subroutine <a href='../proc/center_zed_midpoint.html'>center_zed_midpoint</a>(iv, g)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iv~89"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iv</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~100"></span>
+              real,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(-nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
             <td>
 
             </td>
@@ -1688,13 +1958,13 @@ and overwrites f with the cell-centered version;</p>
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-349-ge1da75cc2</small></p>
+<br /><small>v0.5.1-350-g451141589</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-17T09:05:02.838535             </p>
+ on 2024-07-24T15:50:08.808861             </p>
           </div>
         </div>
         <br>

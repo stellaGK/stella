@@ -89,6 +89,12 @@
 This actually entails solving for the whole ky = 0 slice of phi at once (not really adding!)</p></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/add_correction_ffs.html'>add_correction_ffs</a></td>
+                 <td><a href='../module/ffs_solve.html'>ffs_solve</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
                  <td><a href='../proc/add_drifts_contribution_apar.html'>add_drifts_contribution_apar</a></td>
                  <td><a href='../module/implicit_solve.html'>implicit_solve</a></td>
                  <td>Subroutine</td>
@@ -105,6 +111,12 @@ This actually entails solving for the whole ky = 0 slice of phi at once (not rea
                  <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Subroutine</td>
                  <td><p>add vM . grad y d<phi>/dy or vM . grad x d<phi>/dx (or equivalents with g) or omega_* * d<phi>/dy term to RHS of GK equation</p></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/add_explicit_term_ffs_fields.html'>add_explicit_term_ffs_fields</a></td>
+                 <td><a href='../module/ffs_solve.html'>ffs_solve</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/add_gbar_to_g_contribution_apar.html'>add_gbar_to_g_contribution_apar</a></td>
@@ -165,6 +177,18 @@ in the time derivative;</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/add_stream_term_ffs.html'>add_stream_term_ffs</a></td>
+                 <td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/add_stream_term_ffs_correction.html'>add_stream_term_ffs_correction</a></td>
+                 <td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/add_stream_term_full_ffs.html'>add_stream_term_full_ffs</a></td>
                  <td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td>
                  <td>Subroutine</td>
                  <td></td>
@@ -292,6 +316,26 @@ add in hyper-dissipation of form dg/dt = -D<em>(k/kmax)^4</em>g
 add in hyper-dissipation of form dg/dt = -D<em>(k/kmax)^4</em>g</p></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/advance_hyper_explicit.html'>advance_hyper_explicit</a></td>
+                 <td><a href='../module/time_advance.html'>time_advance</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/advance_hyper_vpa.html'>advance_hyper_vpa</a></td>
+                 <td><a href='../module/hyper.html'>hyper</a></td>
+                 <td>Subroutine</td>
+                 <td><p>computes the fourth derivative of g in vpa and returns this in dgdvpa
+multiplied by the vpa diffusion coefficient</p></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/advance_hyper_zed.html'>advance_hyper_zed</a></td>
+                 <td><a href='../module/hyper.html'>hyper</a></td>
+                 <td>Subroutine</td>
+                 <td><p>computes the fourth derivative of g in z and returns this in
+dgdz multiplied by the z hyper diffusion coefficient</p></td>
+               </tr>
+			   <tr>
                  <td><a href='../proc/advance_implicit.html'>advance_implicit</a></td>
                  <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Subroutine</td>
@@ -308,11 +352,7 @@ add in hyper-dissipation of form dg/dt = -D<em>(k/kmax)^4</em>g</p></td>
                  <td><a href='../module/implicit_solve.html'>implicit_solve</a></td>
                  <td>Subroutine</td>
                  <td><p>dist_choice indicates whether the non-Boltzmann part of the pdf (h) is evolved
-in parallel streaming or if the guiding centre distribution (g = <f>) is evolved
-if using delphi formulation for response matrix, then phi = phi^n replaces
-phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
-If using deltaphi formulation, must account for fact that phi = phi^{n+1}-phi^{n*}, but
-tupwnd_p should multiply phi^{n+1}</p></td>
+in parallel streaming or if the guiding centre distribution (g = <f>) is evolved</p><a href="../proc/advance_implicit_terms.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/advance_mirror_explicit.html'>advance_mirror_explicit</a></td>
@@ -424,43 +464,43 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
                </tr>
 			   <tr>
                  <td><a href='../proc/allocate_arrays.html'>allocate_arrays</a></td>
-                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/allocate_arrays~2.html'>allocate_arrays</a></td>
-                 <td><a href='../module/stella_geometry.html'>stella_geometry</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/allocate_arrays~3.html'>allocate_arrays</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/allocate_arrays~4.html'>allocate_arrays</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
-                 <td>Subroutine</td>
-                 <td><p>Allocate the module-level arrays</p></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/allocate_arrays~5.html'>allocate_arrays</a></td>
-                 <td><a href='../module/kt_grids.html'>kt_grids</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/allocate_arrays~6.html'>allocate_arrays</a></td>
                  <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/allocate_arrays~7.html'>allocate_arrays</a></td>
+                 <td><a href='../proc/allocate_arrays~2.html'>allocate_arrays</a></td>
+                 <td><a href='../module/kt_grids.html'>kt_grids</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/allocate_arrays~3.html'>allocate_arrays</a></td>
+                 <td><a href='../module/stella_geometry.html'>stella_geometry</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/allocate_arrays~4.html'>allocate_arrays</a></td>
+                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/allocate_arrays~5.html'>allocate_arrays</a></td>
+                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
+                 <td>Subroutine</td>
+                 <td><p>Allocate the module-level arrays</p></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/allocate_arrays~6.html'>allocate_arrays</a></td>
                  <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/allocate_arrays~7.html'>allocate_arrays</a></td>
+                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -678,13 +718,13 @@ the size of the response matrix</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/broadcast_parameters.html'>broadcast_parameters</a></td>
-                 <td><a href='../module/zgrid.html'>zgrid</a></td>
+                 <td><a href='../module/species.html'>species</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/broadcast_parameters~2.html'>broadcast_parameters</a></td>
-                 <td><a href='../module/species.html'>species</a></td>
+                 <td><a href='../module/zgrid.html'>zgrid</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -1169,6 +1209,12 @@ the size of the response matrix</p></td>
                  <td></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/center_zed_midpoint.html'>center_zed_midpoint</a></td>
+                 <td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
                  <td><a href='../proc/center_zed_segment_complex.html'>center_zed_segment_complex</a></td>
                  <td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td>
                  <td>Subroutine</td>
@@ -1235,37 +1281,37 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
                </tr>
 			   <tr>
                  <td><a href='../interface/checksum.html'>checksum</a></td>
-                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
+                 <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Interface</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../interface/checksum~2.html'>checksum</a></td>
-                 <td><a href='../module/time_advance.html'>time_advance</a></td>
+                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
                  <td>Interface</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/checksum_dist.html'>checksum_dist</a></td>
-                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
+                 <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/checksum_dist~2.html'>checksum_dist</a></td>
-                 <td><a href='../module/time_advance.html'>time_advance</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/checksum_field.html'>checksum_field</a></td>
                  <td><a href='../module/dist_fn.html'>dist_fn</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/checksum_field~2.html'>checksum_field</a></td>
+                 <td><a href='../proc/checksum_field.html'>checksum_field</a></td>
                  <td><a href='../module/time_advance.html'>time_advance</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/checksum_field~2.html'>checksum_field</a></td>
+                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -1463,7 +1509,7 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
                </tr>
 			   <tr>
                  <td><a href='../proc/deallocate_arrays.html'>deallocate_arrays</a></td>
-                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
+                 <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -1475,13 +1521,13 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
                </tr>
 			   <tr>
                  <td><a href='../proc/deallocate_arrays~3.html'>deallocate_arrays</a></td>
-                 <td><a href='../module/time_advance.html'>time_advance</a></td>
+                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/deallocate_arrays~4.html'>deallocate_arrays</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -2287,6 +2333,18 @@ below a specified tolerance (tol_floor)</p></td>
                  <td></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/fourth_derivate_second_centered_vpa.html'>fourth_derivate_second_centered_vpa</a></td>
+                 <td><a href='../module/finite_differences.html'>finite_differences</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/fourth_derivative_second_centered_zed.html'>fourth_derivative_second_centered_zed</a></td>
+                 <td><a href='../module/finite_differences.html'>finite_differences</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
                  <td><a href='../interface/fourth_order_centered.html'>fourth_order_centered</a></td>
                  <td><a href='../module/finite_differences.html'>finite_differences</a></td>
                  <td>Interface</td>
@@ -2327,7 +2385,13 @@ below a specified tolerance (tol_floor)</p></td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/g_to_f.html'>g_to_f</a></td>
+                 <td><a href='../interface/g_to_f.html'>g_to_f</a></td>
+                 <td><a href='../module/g_tofrom_h.html'>g_tofrom_h</a></td>
+                 <td>Interface</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/g_to_f0.html'>g_to_f0</a></td>
                  <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
                  <td>Subroutine</td>
                  <td><p>the Fourier components of the guiding centre distribution function
@@ -2335,7 +2399,31 @@ normalized by the equilibrium Maxwellian is passed in as g,
 along with the Fourier components of the electrostatic potential, phi.
 g_to_f calculates the Maxwellian-normalized distribution function f,
 which is related to g via
-f = g + (Ze/T)*(<phi>_R - phi)</p><a href="../proc/g_to_f.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+f = g + (Ze/T)*(<phi>_R - phi)</p><a href="../proc/g_to_f0.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/g_to_f1.html'>g_to_f1</a></td>
+                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
+                 <td>Subroutine</td>
+                 <td><p>compute phi * maxwellian in real space and transform back to k-space
+phiy = maxwellian * phi 
+Put this back into k-space for future calculations
+Note that adjust here is (<phi>_R - phi) * maxwellian 
+calculate the normalized f, given (<phi>_R - phi) 
+f = g + Z/T * (<phi> - phi) * maxwellian 
+f = g + J0 * phi * maxwellian</p></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/g_to_f_kxkyz.html'>g_to_f_kxkyz</a></td>
+                 <td><a href='../module/g_tofrom_h.html'>g_tofrom_h</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/g_to_f_vmu.html'>g_to_f_vmu</a></td>
+                 <td><a href='../module/g_tofrom_h.html'>g_tofrom_h</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../interface/g_to_h.html'>g_to_h</a></td>
@@ -2490,7 +2578,7 @@ and the scratch array rhs, and returns the source terms that depend on the pdf i
                  <td>Subroutine</td>
                  <td><p>get_contributions_from_phi takes as input the appropriately averaged
 electrostatic potential phi and returns in rhs the sum of the source terms
-involving phi that appear on the RHS of the GK equation when g is the pdf</p></td>
+involving phi that appear on the RHS of the GK equation when g is the pdf</p><a href="../proc/get_contributions_from_phi.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_d2bdr2.html'>get_d2Bdr2</a></td>
@@ -2589,9 +2677,21 @@ involving phi that appear on the RHS of the GK equation when g is the pdf</p></t
                  <td></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/get_dgdvpa_fourth_order.html'>get_dgdvpa_fourth_order</a></td>
+                 <td><a href='../module/hyper.html'>hyper</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
                  <td><a href='../interface/get_dgdx.html'>get_dgdx</a></td>
                  <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Interface</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/get_dgdx.html'>get_dgdx</a></td>
+                 <td><a href='../module/ffs_solve.html'>ffs_solve</a></td>
+                 <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
@@ -2619,6 +2719,12 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p></td>
                  <td><a href='../interface/get_dgdy.html'>get_dgdy</a></td>
                  <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Interface</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/get_dgdy.html'>get_dgdy</a></td>
+                 <td><a href='../module/ffs_solve.html'>ffs_solve</a></td>
+                 <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
@@ -2651,6 +2757,12 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p></td>
 			   <tr>
                  <td><a href='../proc/get_dgdz_centered.html'>get_dgdz_centered</a></td>
                  <td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/get_dgdz_fourth_order.html'>get_dgdz_fourth_order</a></td>
+                 <td><a href='../module/hyper.html'>hyper</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -2688,7 +2800,8 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p></td>
                  <td><a href='../proc/get_dpdf_dphi_matrix_column.html'>get_dpdf_dphi_matrix_column</a></td>
                  <td><a href='../module/response_matrix.html'>response_matrix</a></td>
                  <td>Subroutine</td>
-                 <td></td>
+                 <td><p>TOGO-GA: check division rather than multiplication -- kept division for now to be consistent with
+parallel_streaming phase shift</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_dphineo_drho.html'>get_dphineo_drho</a></td>
@@ -2705,6 +2818,12 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p></td>
 			   <tr>
                  <td><a href='../proc/get_drho.html'>get_drho</a></td>
                  <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/get_drifts_ffs_itteration.html'>get_drifts_ffs_itteration</a></td>
+                 <td><a href='../module/ffs_solve.html'>ffs_solve</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -2765,6 +2884,12 @@ and calculates/returns the electronstatic potential phi for full_flux_surface si
                  <td></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/get_fields_source.html'>get_fields_source</a></td>
+                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
                  <td><a href='../proc/get_fields_vmulo.html'>get_fields_vmulo</a></td>
                  <td><a href='../module/fields.html'>fields</a></td>
                  <td>Subroutine</td>
@@ -2792,6 +2917,18 @@ inputs are the particle density (dens), parallel flow (upar) and pressure (pres)
                  <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
                  <td>Subroutine</td>
                  <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/get_g_integral_contribution_source.html'>get_g_integral_contribution_source</a></td>
+                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td>Subroutine</td>
+                 <td><p>assume there is only a single flux surface being simulated
+integrate <g> over velocity space and sum over species within each processor
+as v-space and species possibly spread over processors, wlil need to
+gather sums from each proceessor and sum them all together below
+gather sub-sums from each processor and add them together
+store result in phi, which will be further modified below to account for polarization term
+no longer need <g>, so deallocate</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_gds.html'>get_gds</a></td>
@@ -2891,10 +3028,7 @@ for 'pdf', 'phi', 'apar', 'aparnew' and 'aparold'</p></td>
                  <td><a href='../proc/get_modified_fourier_coefficient.html'>get_modified_fourier_coefficient</a></td>
                  <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
                  <td>Subroutine</td>
-                 <td><p>divide the input moment by the magnetic field strength
-to account for Jacobian in flux-surface average
-transform the B-modified input moment from y to ky space
-swap from all ky and kx &gt;= 0 to all kx and ky &gt;= 0</p></td>
+                 <td><p>is_end is either nspec for fluxes, or ntubes when calcualting |phi|^2</p><a href="../proc/get_modified_fourier_coefficient.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_modified_vmec_zeta_grid.html'>get_modified_vmec_zeta_grid</a></td>
@@ -2924,15 +3058,11 @@ as the former is sampled while keeping alpha fixed (rather than theta)</p><a hre
                  <td><a href='../proc/get_moments_ffs.html'>get_moments_ffs</a></td>
                  <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
                  <td>Subroutine</td>
-                 <td><p>species-dependent factor by which velocity moments must be multiplied
+                 <td><p>For momentum flux
+species-dependent factor by which velocity moments must be multiplied
 to get density, pressure, etc.
-the guiding centre distribution function, normalized by
-the equilibrium Maxwellian, is passed in as g.
-to obtain moments such as density, flow and pressure,
-we need to take moments of the distribution function, f,
-which is related to g via
-f/F0 = g + (Ze/T)*(<phi>_R - phi)
-obtain g0=f/F0 in Fourier space</p><a href="../proc/get_moments_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+set species-dependent factors needed for density, parallel flow and pressure
+Already allocated arrays (allocated in time_advance.f90). Set to zero just in case</p><a href="../proc/get_moments_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_neo_from_sfincs.html'>get_neo_from_sfincs</a></td>
@@ -2969,8 +3099,9 @@ a time no larger than <code>tstart</code></p></td>
                  <td><a href='../proc/get_one_flux_ffs.html'>get_one_flux_ffs</a></td>
                  <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
                  <td>Subroutine</td>
-                 <td><p>divide the input density by the magnetic field strength (due to Jacobian in flux-surfacee avg)
-and Fourier transform in y to get mom_ky = (density/B)(ky,kx,z,spec)
+                 <td><p>Multiply input moment (e.g. density, momentum, or energy) but Jacobian (called flxfac)
+Need to do this because Jacobian has y-dependence 
+then Fourier transform back to (ky,kx)-space
 pflx_vs_kxkyz is the particle flux before summing over (kx,ky) and integrating over z
 calculate the volume average of the particle flux
 note that the factor of 1/B that appears in the Jacobian has already been taken into account
@@ -3085,6 +3216,12 @@ global simulations</p></td>
                  <td><a href='../module/vmec_to_stella_geometry_interface_mod.html'>vmec_to_stella_geometry_interface_mod</a></td>
                  <td>Subroutine</td>
                  <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/get_source_ffs_itteration.html'>get_source_ffs_itteration</a></td>
+                 <td><a href='../module/ffs_solve.html'>ffs_solve</a></td>
+                 <td>Subroutine</td>
+                 <td><p><phi></p><a href="../proc/get_source_ffs_itteration.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_temp.html'>get_temp</a></td>
@@ -3245,6 +3382,12 @@ unless reading in g from a restart file, normalise g by F0 for a full flux surfa
                </tr>
 			   <tr>
                  <td><a href='../proc/gyro_average_ffs.html'>gyro_average_ffs</a></td>
+                 <td><a href='../module/gyro_averages.html'>gyro_averages</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/gyro_average_ffs_field.html'>gyro_average_ffs_field</a></td>
                  <td><a href='../module/gyro_averages.html'>gyro_averages</a></td>
                  <td>Subroutine</td>
                  <td></td>
@@ -3584,7 +3727,7 @@ is stored in adiabatic_response_factor</p><a href="../proc/init_adiabatic_respon
                  <td><a href='../module/gyro_averages.html'>gyro_averages</a></td>
                  <td>Subroutine</td>
                  <td><p>aj0_alpha will contain J_0 as a function of k_alpha and alpha
-j0_B_maxwell will contain J_0<em>B</em>exp(-v^2) as a function of k_alpha and alpha
+j0_B will contain J_0<em>B</em>exp(-v^2) as a function of k_alpha and alpha
 for each value of alpha, take kperp^2 calculated on domain kx = [-kx_max, kx_max] and ky = [0, ky_max]
 and use symmetry to obtain kperp^2 on domain kx = [0, kx_max] and ky = [-ky_max, ky_max]
 this makes later convolutions involving sums over all ky more straightforward
@@ -3606,7 +3749,7 @@ calculate the argument of the Bessel function, which depends on both alpha and k
                  <td><a href='../proc/init_cfl.html'>init_cfl</a></td>
                  <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Subroutine</td>
-                 <td></td>
+                 <td><p>TODO:GA- add correct CFL condition </p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/init_collisions.html'>init_collisions</a></td>
@@ -3765,8 +3908,8 @@ this involves the factor 1-Gamma_0(kperp(alpha))</p><a href="../proc/init_gamma0
                  <td><a href='../module/stella_geometry.html'>stella_geometry</a></td>
                  <td>Subroutine</td>
                  <td><p>b_dot_grad_z is the alpha-dependent b . grad z,
-and gradpar is the constant-in-alpha part of it.
-for axisymmetric systems, b_dot_grad_z is independent of alpha.</p><a href="../proc/init_geometry.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+ and gradpar is the constant-in-alpha part of it.
+ for axisymmetric systems, b_dot_grad_z is independent of alpha.</p><a href="../proc/init_geometry.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/init_gxyz.html'>init_gxyz</a></td>
@@ -4289,13 +4432,13 @@ if running with maxwellian_normalzation = .true.</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/init_x_fft.html'>init_x_fft</a></td>
-                 <td><a href='../module/stella_transforms.html'>stella_transforms</a></td>
+                 <td><a href='../module/multibox.html'>multibox</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/init_x_fft~2.html'>init_x_fft</a></td>
-                 <td><a href='../module/multibox.html'>multibox</a></td>
+                 <td><a href='../module/stella_transforms.html'>stella_transforms</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -4319,13 +4462,13 @@ if running with maxwellian_normalzation = .true.</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/init_y_fft.html'>init_y_fft</a></td>
-                 <td><a href='../module/stella_transforms.html'>stella_transforms</a></td>
+                 <td><a href='../module/multibox.html'>multibox</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/init_y_fft~2.html'>init_y_fft</a></td>
-                 <td><a href='../module/multibox.html'>multibox</a></td>
+                 <td><a href='../module/stella_transforms.html'>stella_transforms</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -4403,6 +4546,12 @@ if running with maxwellian_normalzation = .true.</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/integrate_species_ffs.html'>integrate_species_ffs</a></td>
+                 <td><a href='../module/vpamu_grids.html'>vpamu_grids</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/integrate_species_ffs_rm.html'>integrate_species_ffs_rm</a></td>
                  <td><a href='../module/vpamu_grids.html'>vpamu_grids</a></td>
                  <td>Subroutine</td>
                  <td></td>
@@ -5134,7 +5283,7 @@ g/F is evolved for FFS</p></td>
                  <td><a href='../proc/nc_species.html'>nc_species</a></td>
                  <td><a href='../module/stella_io.html'>stella_io</a></td>
                  <td>Subroutine</td>
-                 <td><p>Write <a href="../module/species.html#variable-spec">spec</a> to output netCDF file</p></td>
+                 <td><p>Write <a href="../module/species.html#variable-spec~2">spec</a> to output netCDF file</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/netcdf_error.html'>netcdf_error</a></td>
@@ -5392,19 +5541,19 @@ we are undoing that weighting here, so also need to use ia = 1</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_parameters.html'>read_parameters</a></td>
-                 <td><a href='../module/physics_flags.html'>physics_flags</a></td>
+                 <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_parameters~2.html'>read_parameters</a></td>
-                 <td><a href='../module/stella_geometry.html'>stella_geometry</a></td>
+                 <td><a href='../module/dissipation.html'>dissipation</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_parameters~3.html'>read_parameters</a></td>
-                 <td><a href='../module/zgrid.html'>zgrid</a></td>
+                 <td><a href='../module/stella_geometry.html'>stella_geometry</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -5416,7 +5565,7 @@ we are undoing that weighting here, so also need to use ia = 1</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_parameters~5.html'>read_parameters</a></td>
-                 <td><a href='../module/dissipation.html'>dissipation</a></td>
+                 <td><a href='../module/stella_layouts.html'>stella_layouts</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -5428,27 +5577,28 @@ we are undoing that weighting here, so also need to use ia = 1</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_parameters~7.html'>read_parameters</a></td>
-                 <td><a href='../module/time_advance.html'>time_advance</a></td>
+                 <td><a href='../module/physics_parameters.html'>physics_parameters</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_parameters~8.html'>read_parameters</a></td>
-                 <td><a href='../module/stella_layouts.html'>stella_layouts</a></td>
+                 <td><a href='../module/run_parameters.html'>run_parameters</a></td>
                  <td>Subroutine</td>
-                 <td></td>
+                 <td><p>For FFS - need to delete 
+print warning messages and override inconsistent or unsupported options for full_flux_surface = T</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_parameters~9.html'>read_parameters</a></td>
-                 <td><a href='../module/neoclassical_terms.html'>neoclassical_terms</a></td>
+                 <td><a href='../module/physics_flags.html'>physics_flags</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_parameters~10.html'>read_parameters</a></td>
-                 <td><a href='../module/run_parameters.html'>run_parameters</a></td>
+                 <td><a href='../module/zgrid.html'>zgrid</a></td>
                  <td>Subroutine</td>
-                 <td><p>print warning messages and override inconsistent or unsupported options for full_flux_surface = T</p></td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_parameters~11.html'>read_parameters</a></td>
@@ -5458,7 +5608,7 @@ we are undoing that weighting here, so also need to use ia = 1</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_parameters~12.html'>read_parameters</a></td>
-                 <td><a href='../module/physics_parameters.html'>physics_parameters</a></td>
+                 <td><a href='../module/neoclassical_terms.html'>neoclassical_terms</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -6347,15 +6497,15 @@ the highest 1/3 of the ky modes from the FFT have been discarded to avoid de-ali
                </tr>
 			   <tr>
                  <td><a href='../proc/transform_kx2x.html'>transform_kx2x</a></td>
-                 <td><a href='../module/stella_transforms.html'>stella_transforms</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/transform_kx2x~2.html'>transform_kx2x</a></td>
                  <td><a href='../module/multibox.html'>multibox</a></td>
                  <td>Subroutine</td>
                  <td><p>transform routines start here</p></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/transform_kx2x~2.html'>transform_kx2x</a></td>
+                 <td><a href='../module/stella_transforms.html'>stella_transforms</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/transform_kx2x_unpadded.html'>transform_kx2x_unpadded</a></td>
@@ -6370,15 +6520,15 @@ the highest 1/3 of the ky modes from the FFT have been discarded to avoid de-ali
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../interface/transform_ky2y.html'>transform_ky2y</a></td>
-                 <td><a href='../module/stella_transforms.html'>stella_transforms</a></td>
-                 <td>Interface</td>
-                 <td></td>
-               </tr>
-			   <tr>
                  <td><a href='../proc/transform_ky2y.html'>transform_ky2y</a></td>
                  <td><a href='../module/multibox.html'>multibox</a></td>
                  <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../interface/transform_ky2y.html'>transform_ky2y</a></td>
+                 <td><a href='../module/stella_transforms.html'>stella_transforms</a></td>
+                 <td>Interface</td>
                  <td></td>
                </tr>
 			   <tr>
@@ -6407,13 +6557,13 @@ the highest 1/3 of the ky modes from the FFT have been discarded to avoid de-ali
                </tr>
 			   <tr>
                  <td><a href='../proc/transform_x2kx.html'>transform_x2kx</a></td>
-                 <td><a href='../module/stella_transforms.html'>stella_transforms</a></td>
+                 <td><a href='../module/multibox.html'>multibox</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/transform_x2kx~2.html'>transform_x2kx</a></td>
-                 <td><a href='../module/multibox.html'>multibox</a></td>
+                 <td><a href='../module/stella_transforms.html'>stella_transforms</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -6815,13 +6965,13 @@ creating them if necessary</p></td>
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-349-ge1da75cc2</small></p>
+<br /><small>v0.5.1-350-g451141589</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-17T09:05:02.838535             </p>
+ on 2024-07-24T15:50:08.808861             </p>
           </div>
         </div>
         <br>

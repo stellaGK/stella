@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.7% of total for procedures.">246 statements</a>
+                 title=" 0.7% of total for procedures.">265 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -147,23 +147,25 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/g_tofrom_h.html'>g_tofrom_h</a></li>
-                  <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
-                  <li class="list-inline-item"><a href='../module/zgrid.html'>zgrid</a></li>
-                  <li class="list-inline-item"><a href='../module/dist_fn_arrays.html'>dist_fn_arrays</a></li>
-                  <li class="list-inline-item"><a href='../module/volume_averages.html'>volume_averages</a></li>
-                  <li class="list-inline-item"><a href='../module/dist_redistribute.html'>dist_redistribute</a></li>
-                  <li class="list-inline-item"><a href='../module/species.html'>species</a></li>
-                  <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
-                  <li class="list-inline-item"><a href='../module/stella_time.html'>stella_time</a></li>
-                  <li class="list-inline-item"><a href='../module/fields.html'>fields</a></li>
-                  <li class="list-inline-item"><a href='../module/constants.html'>constants</a></li>
-                  <li class="list-inline-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
-                  <li class="list-inline-item"><a href='../module/fields_arrays.html'>fields_arrays</a></li>
-                  <li class="list-inline-item"><a href='../module/kt_grids.html'>kt_grids</a></li>
+                  <li class="list-inline-item"><a href='../module/stella_geometry.html'>stella_geometry</a></li>
                   <li class="list-inline-item"><a href='../module/vpamu_grids.html'>vpamu_grids</a></li>
-                  <li class="list-inline-item"><a href='../module/stella_io.html'>stella_io</a></li>
+                  <li class="list-inline-item"><a href='../module/kt_grids.html'>kt_grids</a></li>
+                  <li class="list-inline-item"><a href='../module/dist_redistribute.html'>dist_redistribute</a></li>
+                  <li class="list-inline-item"><a href='../module/fields.html'>fields</a></li>
+                  <li class="list-inline-item"><a href='../module/zgrid.html'>zgrid</a></li>
+                  <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
+                  <li class="list-inline-item"><a href='../module/fields_arrays.html'>fields_arrays</a></li>
                   <li class="list-inline-item"><a href='../module/redistribute.html'>redistribute</a></li>
+                  <li class="list-inline-item"><a href='../module/g_tofrom_h.html'>g_tofrom_h</a></li>
+                  <li class="list-inline-item"><a href='../module/stella_io.html'>stella_io</a></li>
+                  <li class="list-inline-item"><a href='../module/dist_fn_arrays.html'>dist_fn_arrays</a></li>
+                  <li class="list-inline-item"><a href='../module/constants.html'>constants</a></li>
+                  <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
+                  <li class="list-inline-item"><a href='../module/stella_time.html'>stella_time</a></li>
+                  <li class="list-inline-item"><a href='../module/volume_averages.html'>volume_averages</a></li>
+                  <li class="list-inline-item"><a href='../module/stella_transforms.html'>stella_transforms</a></li>
+                  <li class="list-inline-item"><a href='../module/species.html'>species</a></li>
+                  <li class="list-inline-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
               </ul>
             </li>
         </ul>
@@ -172,10 +174,13 @@
 
 
     <p>Calculate and write diagnostics</p>
-<p>only write data to file every nwrite time steps</p>
+<p>TODO-GA: add phi2 diagnostic to different folder for ffs
+only write data to file every nwrite time steps</p>
 <p>get the updated fields corresponding to gnew</p>
-<p>obtain turbulent fluxes</p>
-<p>calculate the particle density, parallel flow and pressure in (y,kx,z) space
+<p>obtain turbulent fluxes
+handle g_to_h in get_fluxes_vmulo to eliminate x^2 terms
+call g_to_h (gnew, phi, fphi, phi_corr_QN)
+calculate the particle density, parallel flow and pressure in (y,kx,z) space
 for all species
 calculate the (ky,kx) contributions to the particle, parallel momentum and energy fluxes
 redistribute data so that data for each vpa and mu are guaranteed to be on each processor
@@ -199,7 +204,7 @@ here write out the spectrum of contributions to the fluxes, after averaging over
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep~2"></span>
+              <span class="anchor" id="variable-istep~11"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -240,13 +245,13 @@ here write out the spectrum of contributions to the fluxes, after averaging over
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-349-ge1da75cc2</small></p>
+<br /><small>v0.5.1-350-g451141589</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-17T09:05:02.838535             </p>
+ on 2024-07-24T15:50:08.808861             </p>
           </div>
         </div>
         <br>

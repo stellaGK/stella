@@ -753,33 +753,35 @@ contains
       integer, intent(in) :: nr, nz
 
       ! periodic quantities can be computed on 2*pi grid and replicated
-      allocate (grho(-nz:nz), bmag(-nz:nz), gradpar(-nz:nz))
-      allocate (gds2(-nz:nz), gds21(-nz:nz), gds22(-nz:nz), gds23(-nz:nz), gds24(-nz:nz))
-      allocate (gbdrift0(-nz:nz), gbdrift(-nz:nz))
-      allocate (cvdrift0(-nz:nz), cvdrift(-nz:nz))
-      allocate (Rr(nr, -nz:nz), Zr(nr, -nz:nz))
-      allocate (jacrho(-nz:nz), djacdrho(-nz:nz), djacrdrho(-nz:nz), d2jacdr2(-nz:nz))
-      allocate (d2Rdrdth(-nz:nz), d2Zdrdth(-nz:nz), gpsi(-nz:nz))
-      allocate (dBdrho(-nz:nz), dgradpardrho(-nz:nz))
-      allocate (d2Bdrdth(-nz:nz), dgradparBdrho(-nz:nz), dBdth(-nz:nz), gradparb(-nz:nz))
-      allocate (dcvdrift0drho(-nz:nz), dgbdrift0drho(-nz:nz))
-      allocate (theta(-nz:nz))
-      allocate (gradpararc(-nz:nz))
-      allocate (arc(-nz:nz))
-      allocate (dRdrho(-nz:nz), dZdrho(-nz:nz), dRdth(-nz:nz), dZdth(-nz:nz))
-      allocate (gradrho_gradthet(-nz:nz), gradthet2(-nz:nz), dgr2dr(-nz:nz), dgpsi2dr(-nz:nz))
-      allocate (dgrgt(-nz:nz), dgt2(-nz:nz), dgagr(-nz:nz), dgagt(-nz:nz), dga2(-nz:nz))
-      allocate (d2Rdr2(-nz:nz), d2Zdr2(-nz:nz), d2Bdr2(-nz:nz))
-      allocate (drz(-nz:nz), drzdth(-nz:nz), d2Rdr2dth(-nz:nz), d2Zdr2dth(-nz:nz))
-      allocate (d2Rdth2(-nz:nz), d2Zdth2(-nz:nz))
-      allocate (d2gpsidr2(-nz:nz))
-      allocate (gradalph_gradthet(-nz:nz), gradalph2(-nz:nz), gradrho_gradalph(-nz:nz))
-      allocate (dgds2dr(-nz:nz), dgds21dr(-nz:nz))
-      allocate (dgds22dr(-nz:nz))
-      allocate (dcvdriftdrho(-nz:nz), dgbdriftdrho(-nz:nz))
-      allocate (varthet(-nz:nz), dvarthdr(-nz:nz), d2varthdr2(-nz:nz))
-      allocate (cross(-nz:nz))
-      allocate (dcrossdr(-nz:nz))
+      allocate (grho(-nz:nz), bmag(-nz:nz), gradpar(-nz:nz)); grho = 0.0; bmag = 0.0; gradpar = 0.0
+      allocate (gds2(-nz:nz), gds21(-nz:nz), gds22(-nz:nz)); gds2 = 0.0; gds21 = 0.0; gds21 = 0.0
+      allocate (gds23(-nz:nz), gds24(-nz:nz)); gds23 = 0.0; gds24 = 0.0
+      allocate (gbdrift0(-nz:nz), gbdrift(-nz:nz)); gbdrift0 = 0.0; gbdrift = 0.0
+      allocate (cvdrift0(-nz:nz), cvdrift(-nz:nz)); cvdrift0 = 0.0; cvdrift = 0.0
+      allocate (Rr(nr, -nz:nz), Zr(nr, -nz:nz)); Rr = 0.0; Zr = 0.0
+      allocate (jacrho(-nz:nz), djacdrho(-nz:nz)); jacrho = 0.0; djacdrho = 0.0
+      allocate (djacrdrho(-nz:nz), d2jacdr2(-nz:nz)); djacrdrho = 0.0; d2jacdr2 = 0.0
+      allocate (d2Rdrdth(-nz:nz), d2Zdrdth(-nz:nz), gpsi(-nz:nz)); d2Rdrdth = 0.0; d2Zdrdth = 0.0; gpsi = 0.0
+      allocate (dBdrho(-nz:nz), dgradpardrho(-nz:nz)); dBdrho = 0.0; dgradpardrho = 0.0
+      allocate (d2Bdrdth(-nz:nz), dgradparBdrho(-nz:nz)); d2Bdrdth = 0.0; dgradparBdrho = 0.0
+      allocate (dBdth(-nz:nz), gradparb(-nz:nz)); dBdth = 0.0; gradparb = 0.0
+      allocate (dcvdrift0drho(-nz:nz), dgbdrift0drho(-nz:nz)); dcvdrift0drho = 0.0; dgbdrift0drho = 0.0
+      allocate (theta(-nz:nz), gradpararc(-nz:nz), arc(-nz:nz)); theta = 0.0; gradpararc = 0.0; arc = 0.0
+      allocate (dRdrho(-nz:nz), dZdrho(-nz:nz)); dRdrho = 0.0; dZdrho = 0.0
+      allocate (dRdth(-nz:nz), dZdth(-nz:nz)); dRdth = 0.0; dZdth = 0.0
+      allocate (gradrho_gradthet(-nz:nz), gradthet2(-nz:nz)); gradrho_gradthet = 0.0; gradthet2 = 0.0
+      allocate (dgr2dr(-nz:nz), dgpsi2dr(-nz:nz)); dgr2dr = 0.0; dgpsi2dr = 0.0
+      allocate (dgrgt(-nz:nz), dgt2(-nz:nz), dgagr(-nz:nz)); dgrgt = 0.0; dgt2 = 0.0; dgagr = 0.0
+      allocate (dgagt(-nz:nz), dga2(-nz:nz)); dgagt = 0.0; dga2	= 0.0
+      allocate (d2Rdr2(-nz:nz), d2Zdr2(-nz:nz), d2Bdr2(-nz:nz));	d2Rdr2 = 0.0; d2Zdr2 = 0.0; d2Bdr2 = 0.0
+      allocate (drz(-nz:nz), drzdth(-nz:nz), d2Rdr2dth(-nz:nz)); drz = 0.0; drzdth = 0.0; d2Rdr2dth = 0.0
+      allocate (d2Zdr2dth(-nz:nz), d2Rdth2(-nz:nz), d2Zdth2(-nz:nz)); d2Zdr2dth = 0.0; d2Rdth2 = 0.0; d2Zdth2 = 0.0
+      allocate (d2gpsidr2(-nz:nz), gradalph_gradthet(-nz:nz)); d2gpsidr2 = 0.0; gradalph_gradthet = 0.0
+      allocate (gradalph2(-nz:nz), gradrho_gradalph(-nz:nz)); gradalph2 = 0.0; gradrho_gradalph = 0.0
+      allocate (dgds2dr(-nz:nz), dgds21dr(-nz:nz), dgds22dr(-nz:nz)); dgds2dr = 0.0; dgds21dr = 0.0; dgds22dr = 0.0
+      allocate (dcvdriftdrho(-nz:nz), dgbdriftdrho(-nz:nz)); dcvdriftdrho = 0.0; dgbdriftdrho = 0.0
+      allocate (varthet(-nz:nz), dvarthdr(-nz:nz), d2varthdr2(-nz:nz)); varthet = 0.0; dvarthdr = 0.0; d2varthdr2 = 0.0
+      allocate (cross(-nz:nz), dcrossdr(-nz:nz)); cross = 0.0; dcrossdr = 0.0
 
    end subroutine allocate_arrays
 
@@ -787,43 +789,75 @@ contains
 
       implicit none
 
-      deallocate (grho)
-      deallocate (bmag)
-      deallocate (gradpar)
-
-      deallocate (gds2)
-      deallocate (gds21)
-      deallocate (gds22)
-      deallocate (gds23)
-      deallocate (gds24)
-      deallocate (gbdrift0)
-      deallocate (gbdrift)
-      deallocate (cvdrift0)
-      deallocate (cvdrift)
-      deallocate (Rr, Zr)
-      deallocate (jacrho, djacdrho, djacrdrho, d2jacdr2)
-      deallocate (d2Rdrdth, d2Zdrdth, gpsi)
-      deallocate (dBdrho, dgradpardrho)
-      deallocate (d2Bdrdth, dgradparBdrho, dBdth, gradparb)
-      deallocate (dcvdrift0drho, dgbdrift0drho)
-      deallocate (theta)
-      deallocate (gradpararc)
-      deallocate (arc)
-      deallocate (dRdrho, dZdrho, dRdth, dZdth)
-      deallocate (gradrho_gradthet, gradthet2, dgr2dr, dgpsi2dr)
-      deallocate (dgrgt, dgt2, dgagr, dgagt, dga2)
-      deallocate (d2Rdr2, d2Zdr2, d2Bdr2)
-      deallocate (drz, drzdth, d2Rdr2dth, d2Zdr2dth)
-      deallocate (d2Rdth2, d2Zdth2)
-      deallocate (d2gpsidr2)
-      deallocate (gradalph_gradthet, gradalph2, gradrho_gradalph)
-      deallocate (dgds2dr, dgds21dr)
-      deallocate (dgds22dr)
-      deallocate (dcvdriftdrho, dgbdriftdrho)
-      deallocate (varthet, dvarthdr, d2varthdr2)
-      deallocate (cross)
-      deallocate (dcrossdr)
-      deallocate (d2R, d2Z)
+      if (allocated(grho)) deallocate (grho)
+      if (allocated(bmag)) deallocate (bmag)
+      if (allocated(gradpar)) deallocate (gradpar)
+      if (allocated(gds2)) deallocate (gds2)
+      if (allocated(gds21)) deallocate (gds21)
+      if (allocated(gds22)) deallocate (gds22)
+      if (allocated(gds23)) deallocate (gds23)
+      if (allocated(gds24)) deallocate (gds24)
+      if (allocated(gbdrift0)) deallocate (gbdrift0)
+      if (allocated(gbdrift)) deallocate (gbdrift)
+      if (allocated(cvdrift0)) deallocate (cvdrift0)
+      if (allocated(cvdrift)) deallocate (cvdrift)
+      if (allocated(Rr)) deallocate (Rr)
+      if (allocated(Zr)) deallocate (Zr)
+      if (allocated(jacrho)) deallocate (jacrho)
+      if (allocated(djacdrho)) deallocate (djacdrho)
+      if (allocated(djacrdrho)) deallocate (djacrdrho)
+      if (allocated(d2jacdr2)) deallocate (d2jacdr2)
+      if (allocated(d2Rdrdth)) deallocate (d2Rdrdth)
+      if (allocated(d2Zdrdth)) deallocate (d2Zdrdth)
+      if (allocated(gpsi)) deallocate (gpsi)
+      if (allocated(dBdrho)) deallocate (dBdrho)
+      if (allocated(dgradpardrho)) deallocate (dgradpardrho)
+      if (allocated(d2Bdrdth)) deallocate (d2Bdrdth)
+      if (allocated(dgradparBdrho)) deallocate (dgradparBdrho)
+      if (allocated(dBdth)) deallocate (dBdth)
+      if (allocated(gradparb)) deallocate (gradparb)
+      if (allocated(dcvdrift0drho)) deallocate (dcvdrift0drho)
+      if (allocated(dgbdrift0drho)) deallocate (dgbdrift0drho)
+      if (allocated(theta)) deallocate (theta)
+      if (allocated(gradpararc)) deallocate (gradpararc)
+      if (allocated(arc)) deallocate (arc)
+      if (allocated(dRdrho)) deallocate (dRdrho)
+      if (allocated(dZdrho)) deallocate (dZdrho)
+      if (allocated(dRdth)) deallocate (dRdth)
+      if (allocated(dZdth)) deallocate (dZdth)
+      if (allocated(gradrho_gradthet)) deallocate (gradrho_gradthet)
+      if (allocated(gradthet2)) deallocate (gradthet2)
+      if (allocated(dgr2dr)) deallocate (dgr2dr)
+      if (allocated(dgpsi2dr)) deallocate (dgpsi2dr)
+      if (allocated(dgrgt)) deallocate (dgrgt)
+      if (allocated(dgt2)) deallocate (dgt2)
+      if (allocated(dgagr)) deallocate (dgagr)
+      if (allocated(dgagt)) deallocate (dgagt)
+      if (allocated(dga2)) deallocate (dga2)
+      if (allocated(d2Rdr2)) deallocate (d2Rdr2)
+      if (allocated(d2Zdr2)) deallocate (d2Zdr2)
+      if (allocated(d2Bdr2)) deallocate (d2Bdr2)
+      if (allocated(drz)) deallocate (drz)
+      if (allocated(drzdth)) deallocate (drzdth)
+      if (allocated(d2Rdr2dth)) deallocate (d2Rdr2dth)
+      if (allocated(d2Zdr2dth)) deallocate (d2Zdr2dth)
+      if (allocated(d2Rdth2)) deallocate (d2Rdth2)
+      if (allocated(d2Zdth2)) deallocate (d2Zdth2)
+      if (allocated(d2gpsidr2)) deallocate (d2gpsidr2)
+      if (allocated(gradalph_gradthet)) deallocate (gradalph_gradthet)
+      if (allocated(gradalph2)) deallocate (gradalph2)
+      if (allocated(gradrho_gradalph)) deallocate (gradrho_gradalph)
+      if (allocated(dgds2dr)) deallocate (dgds2dr)
+      if (allocated(dgds21dr)) deallocate (dgds21dr)
+      if (allocated(dcvdriftdrho)) deallocate (dcvdriftdrho)
+      if (allocated(dgbdriftdrho)) deallocate (dgbdriftdrho)
+      if (allocated(varthet)) deallocate (varthet)
+      if (allocated(dvarthdr)) deallocate (dvarthdr)
+      if (allocated(d2varthdr2)) deallocate (d2varthdr2)
+      if (allocated(cross)) deallocate (cross)
+      if (allocated(dcrossdr)) deallocate (dcrossdr)
+      if (allocated(d2R)) deallocate (d2R)
+      if (allocated(d2Z)) deallocate(d2Z)
       if (allocated(delthet)) deallocate (delthet)
       if (allocated(bmag_psi0)) deallocate (bmag_psi0)
       if (allocated(grho_psi0)) deallocate (grho_psi0)

@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.3% of total for modules and submodules.">97 statements</a>
+                 title=" 0.5% of total for modules and submodules.">193 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -122,7 +122,11 @@
             <a class="list-group-item" href="../module/hyper.html#variable-use_physical_ksqr">use_physical_ksqr</a>
             <a class="list-group-item" href="../module/hyper.html#variable-scale_to_outboard">scale_to_outboard</a>
             <a class="list-group-item" href="../module/hyper.html#variable-d_hyper">D_hyper</a>
-            <a class="list-group-item" href="../module/hyper.html#variable-tfac~4">tfac</a>
+            <a class="list-group-item" href="../module/hyper.html#variable-d_zed">D_zed</a>
+            <a class="list-group-item" href="../module/hyper.html#variable-d_vpa">D_vpa</a>
+            <a class="list-group-item" href="../module/hyper.html#variable-hyp_vpa">hyp_vpa</a>
+            <a class="list-group-item" href="../module/hyper.html#variable-hyp_zed">hyp_zed</a>
+            <a class="list-group-item" href="../module/hyper.html#variable-tfac~2">tfac</a>
             <a class="list-group-item" href="../module/hyper.html#variable-k2max">k2max</a>
         </div>
       </div>
@@ -148,6 +152,10 @@
             <a class="list-group-item" href="../module/hyper.html#proc-read_parameters_hyper">read_parameters_hyper</a>
             <a class="list-group-item" href="../module/hyper.html#proc-init_hyper">init_hyper</a>
             <a class="list-group-item" href="../module/hyper.html#proc-advance_hyper_dissipation">advance_hyper_dissipation</a>
+            <a class="list-group-item" href="../module/hyper.html#proc-advance_hyper_vpa">advance_hyper_vpa</a>
+            <a class="list-group-item" href="../module/hyper.html#proc-get_dgdvpa_fourth_order">get_dgdvpa_fourth_order</a>
+            <a class="list-group-item" href="../module/hyper.html#proc-advance_hyper_zed">advance_hyper_zed</a>
+            <a class="list-group-item" href="../module/hyper.html#proc-get_dgdz_fourth_order">get_dgdz_fourth_order</a>
         </div>
       </div>
     </div>
@@ -223,7 +231,7 @@
               <span class="anchor" id="variable-d_hyper"></span>
               real,
             </td>
-              <td>private</td>
+              <td>public</td>
             <td>
               
             </td>
@@ -237,7 +245,75 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-tfac~4"></span>
+              <span class="anchor" id="variable-d_zed"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>D_zed</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-d_vpa"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>D_vpa</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-hyp_vpa"></span>
+              logical,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>hyp_vpa</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-hyp_zed"></span>
+              logical,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>hyp_zed</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-tfac~2"></span>
               real,
             </td>
               <td>private</td>
@@ -257,7 +333,7 @@
               <span class="anchor" id="variable-k2max"></span>
               real,
             </td>
-              <td>private</td>
+              <td>public</td>
             <td>
               
             </td>
@@ -332,7 +408,7 @@ add in hyper-dissipation of form dg/dt = -D<em>(k/kmax)^4</em>g</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~54"></span>
+              <span class="anchor" id="variable-g~67"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -341,6 +417,228 @@ add in hyper-dissipation of form dg/dt = -D<em>(k/kmax)^4</em>g</p>
             </td>
             <td>::</td>
             <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_hyper_vpa"></span> <h3>public  subroutine <a href='../proc/advance_hyper_vpa.html'>advance_hyper_vpa</a>(g, dgdvpa)  
+</h3></div>
+    <div class="card-body">
+          
+  <p>computes the fourth derivative of g in vpa and returns this in dgdvpa
+multiplied by the vpa diffusion coefficient</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~68"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dgdvpa~2"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>dgdvpa</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_dgdvpa_fourth_order"></span> <h3>private  subroutine <a href='../proc/get_dgdvpa_fourth_order.html'>get_dgdvpa_fourth_order</a>(g, gout)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~69"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, kxkyz_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gout~17"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, kxkyz_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>gout</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-advance_hyper_zed"></span> <h3>public  subroutine <a href='../proc/advance_hyper_zed.html'>advance_hyper_zed</a>(g, dgdz)  
+</h3></div>
+    <div class="card-body">
+          
+  <p>computes the fourth derivative of g in z and returns this in
+dgdz multiplied by the z hyper diffusion coefficient</p>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~70"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dgdz"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>dgdz</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-get_dgdz_fourth_order"></span> <h3>private  subroutine <a href='../proc/get_dgdz_fourth_order.html'>get_dgdz_fourth_order</a>(g, dgdz)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-g~71"></span>
+              complex,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>g</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dgdz~2"></span>
+              complex,
+            </td>
+<td>intent(inout),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:)
+            </td>
+            <td>::</td>
+            <td><strong>dgdz</strong></td>
             <td>
 
             </td>
@@ -369,13 +667,13 @@ add in hyper-dissipation of form dg/dt = -D<em>(k/kmax)^4</em>g</p>
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-349-ge1da75cc2</small></p>
+<br /><small>v0.5.1-350-g451141589</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-17T09:05:02.838535             </p>
+ on 2024-07-24T15:50:08.808861             </p>
           </div>
         </div>
         <br>

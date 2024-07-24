@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.2% of total for procedures.">76 statements</a>
+                 title=" 0.4% of total for procedures.">152 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -139,7 +139,7 @@
     </div>
     
     <div class="col-md-9" id='text'>
-    <h2>private  subroutine get_fields_ffs(g, phi, apar)  
+    <h2>private  subroutine get_fields_ffs(g, phi, apar, implicit_solve)  
 </h2>
         <div class="card mb-4">
       <h3 class="card-header card-title bg-light">Uses</h3>
@@ -147,15 +147,17 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/physics_parameters.html'>physics_parameters</a></li>
+                  <li class="list-inline-item"><a href='../module/fields_arrays.html'>fields_arrays</a></li>
                   <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
-                  <li class="list-inline-item"><a href='../module/zgrid.html'>zgrid</a></li>
                   <li class="list-inline-item"><a href='../module/volume_averages.html'>volume_averages</a></li>
                   <li class="list-inline-item"><a href='../module/species.html'>species</a></li>
-                  <li class="list-inline-item"><a href='../module/stella_layouts.html'>stella_layouts</a></li>
                   <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
-                  <li class="list-inline-item"><a href='../module/kt_grids.html'>kt_grids</a></li>
+                  <li class="list-inline-item"><a href='../module/zgrid.html'>zgrid</a></li>
+                  <li class="list-inline-item"><a href='../module/stella_geometry.html'>stella_geometry</a></li>
+                  <li class="list-inline-item"><a href='../module/stella_layouts.html'>stella_layouts</a></li>
+                  <li class="list-inline-item"><a href='../module/physics_parameters.html'>physics_parameters</a></li>
                   <li class="list-inline-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
+                  <li class="list-inline-item"><a href='../module/kt_grids.html'>kt_grids</a></li>
               </ul>
             </li>
         </ul>
@@ -176,8 +178,8 @@ at this stage is the 'inhomogeneous' part of phi.
 first must get phi on grid that includes positive and negative ky (but only positive kx)
 calculate the flux surface average of this phi_inhomogeneous
 use the flux surface average of phi_inhomogeneous, together with the
-adiabatic_response_factor, to obtain the flux-surface-averaged phi
-use the computed flux surface average of phi as an additional sosurce in quasineutrality
+adiabatic_response_factor, to obtain the flux-surface-averaged phi</p>
+<p>use the computed flux surface average of phi as an additional sosurce in quasineutrality
 to obtain the electrostatic potential; only affects the ky=0 component of QN
 if adiabatic electrons are not employed, then
 no explicit equation for the ky=kx=0 component of phi;
@@ -197,7 +199,7 @@ hack for now is to set it equal to zero.</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~27"></span>
+              <span class="anchor" id="variable-g~51"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -212,7 +214,7 @@ hack for now is to set it equal to zero.</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~22"></span>
+              <span class="anchor" id="variable-phi~20"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -227,7 +229,7 @@ hack for now is to set it equal to zero.</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-apar~20"></span>
+              <span class="anchor" id="variable-apar~17"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -236,6 +238,21 @@ hack for now is to set it equal to zero.</p>
             </td>
             <td>::</td>
             <td><strong>apar</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-implicit_solve~2"></span>
+              logical,
+            </td>
+<td>intent(in),</td>
+              <td>optional</td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>implicit_solve</strong></td>
             <td>
                 
             </td>
@@ -268,13 +285,13 @@ hack for now is to set it equal to zero.</p>
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-349-ge1da75cc2</small></p>
+<br /><small>v0.5.1-350-g451141589</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-17T09:05:02.838535             </p>
+ on 2024-07-24T15:50:08.808861             </p>
           </div>
         </div>
         <br>
