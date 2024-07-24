@@ -778,50 +778,50 @@ contains
 
       integer, intent(in) :: nalpha, nzgrid
 
-      if (.not. allocated(bmag)) allocate (bmag(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(bmag_psi0)) allocate (bmag_psi0(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds2)) allocate (gds2(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds21)) allocate (gds21(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds22)) allocate (gds22(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds23)) allocate (gds23(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds24)) allocate (gds24(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds25)) allocate (gds25(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gds26)) allocate (gds26(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dgds2dr)) allocate (dgds2dr(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dgds21dr)) allocate (dgds21dr(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dgds22dr)) allocate (dgds22dr(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gbdrift)) allocate (gbdrift(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(gbdrift0)) allocate (gbdrift0(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(cvdrift)) allocate (cvdrift(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(cvdrift0)) allocate (cvdrift0(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dgbdriftdrho)) allocate (dgbdriftdrho(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dcvdriftdrho)) allocate (dcvdriftdrho(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dgbdrift0drho)) allocate (dgbdrift0drho(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dcvdrift0drho)) allocate (dcvdrift0drho(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dbdzed)) allocate (dbdzed(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(theta_vmec)) allocate (theta_vmec(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(jacob)) allocate (jacob(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(djacdrho)) allocate (djacdrho(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(grho)) allocate (grho(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(grad_x)) allocate (grad_x(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(dl_over_b)) allocate (dl_over_b(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(d_dl_over_b_drho)) allocate (d_dl_over_b_drho(nalpha, -nzgrid:nzgrid))
-      if (.not. allocated(b_dot_grad_z)) allocate (b_dot_grad_z(nalpha, -nzgrid:nzgrid))
+      if (.not. allocated(bmag)) allocate (bmag(nalpha, -nzgrid:nzgrid)); bmag = 0.0 
+      if (.not. allocated(bmag_psi0)) allocate (bmag_psi0(nalpha, -nzgrid:nzgrid)); bmag_psi0 = 0.0
+      if (.not. allocated(gds2)) allocate (gds2(nalpha, -nzgrid:nzgrid)); gds2 = 0.0
+      if (.not. allocated(gds21)) allocate (gds21(nalpha, -nzgrid:nzgrid)); gds21 = 0.0
+      if (.not. allocated(gds22)) allocate (gds22(nalpha, -nzgrid:nzgrid)); gds22 = 0.0
+      if (.not. allocated(gds23)) allocate (gds23(nalpha, -nzgrid:nzgrid)); gds23 = 0.0
+      if (.not. allocated(gds24)) allocate (gds24(nalpha, -nzgrid:nzgrid)); gds24 = 0.0
+      if (.not. allocated(gds25)) allocate (gds25(nalpha, -nzgrid:nzgrid)); gds25 = 0.0
+      if (.not. allocated(gds26)) allocate (gds26(nalpha, -nzgrid:nzgrid)); gds26 = 0.0
+      if (.not. allocated(dgds2dr)) allocate (dgds2dr(nalpha, -nzgrid:nzgrid)); dgds2dr = 0.0
+      if (.not. allocated(dgds21dr)) allocate (dgds21dr(nalpha, -nzgrid:nzgrid)); dgds21dr = 0.0
+      if (.not. allocated(dgds22dr)) allocate (dgds22dr(nalpha, -nzgrid:nzgrid)); dgds22dr = 0.0
+      if (.not. allocated(gbdrift)) allocate (gbdrift(nalpha, -nzgrid:nzgrid)); gbdrift = 0.0
+      if (.not. allocated(gbdrift0)) allocate (gbdrift0(nalpha, -nzgrid:nzgrid)); gbdrift0 = 0.0
+      if (.not. allocated(cvdrift)) allocate (cvdrift(nalpha, -nzgrid:nzgrid)); cvdrift = 0.0
+      if (.not. allocated(cvdrift0)) allocate (cvdrift0(nalpha, -nzgrid:nzgrid)); cvdrift0 = 0.0
+      if (.not. allocated(dgbdriftdrho)) allocate (dgbdriftdrho(nalpha, -nzgrid:nzgrid)); dgbdriftdrho = 0.0
+      if (.not. allocated(dcvdriftdrho)) allocate (dcvdriftdrho(nalpha, -nzgrid:nzgrid)); dcvdriftdrho = 0.0
+      if (.not. allocated(dgbdrift0drho)) allocate (dgbdrift0drho(nalpha, -nzgrid:nzgrid)); dgbdrift0drho = 0.0
+      if (.not. allocated(dcvdrift0drho)) allocate (dcvdrift0drho(nalpha, -nzgrid:nzgrid)); dcvdrift0drho = 0.0
+      if (.not. allocated(dbdzed)) allocate (dbdzed(nalpha, -nzgrid:nzgrid)); dbdzed = 0.0
+      if (.not. allocated(theta_vmec)) allocate (theta_vmec(nalpha, -nzgrid:nzgrid)); theta_vmec = 0.0
+      if (.not. allocated(jacob)) allocate (jacob(nalpha, -nzgrid:nzgrid)); jacob = 0.0
+      if (.not. allocated(djacdrho)) allocate (djacdrho(nalpha, -nzgrid:nzgrid)); djacdrho = 0.0
+      if (.not. allocated(grho)) allocate (grho(nalpha, -nzgrid:nzgrid)); grho = 0.0
+      if (.not. allocated(grad_x)) allocate (grad_x(nalpha, -nzgrid:nzgrid)); grad_x = 0.0
+      if (.not. allocated(dl_over_b)) allocate (dl_over_b(nalpha, -nzgrid:nzgrid)); dl_over_b = 0.0
+      if (.not. allocated(d_dl_over_b_drho)) allocate (d_dl_over_b_drho(nalpha, -nzgrid:nzgrid)); d_dl_over_b_drho = 0.0
+      if (.not. allocated(b_dot_grad_z)) allocate (b_dot_grad_z(nalpha, -nzgrid:nzgrid)); b_dot_grad_z = 0.0
 
-      if (.not. allocated(gradpar)) allocate (gradpar(-nzgrid:nzgrid))
-      if (.not. allocated(zed_eqarc)) allocate (zed_eqarc(-nzgrid:nzgrid))
-      if (.not. allocated(btor)) allocate (btor(-nzgrid:nzgrid))
-      if (.not. allocated(rmajor)) allocate (rmajor(-nzgrid:nzgrid))
-      if (.not. allocated(dBdrho)) allocate (dBdrho(-nzgrid:nzgrid))
-      if (.not. allocated(d2Bdrdth)) allocate (d2Bdrdth(-nzgrid:nzgrid))
-      if (.not. allocated(dgradpardrho)) allocate (dgradpardrho(-nzgrid:nzgrid))
+      if (.not. allocated(gradpar)) allocate (gradpar(-nzgrid:nzgrid)); gradpar = 0.0
+      if (.not. allocated(zed_eqarc)) allocate (zed_eqarc(-nzgrid:nzgrid)); zed_eqarc = 0.0
+      if (.not. allocated(btor)) allocate (btor(-nzgrid:nzgrid)); btor = 0.0
+      if (.not. allocated(rmajor)) allocate (rmajor(-nzgrid:nzgrid)); rmajor = 0.0
+      if (.not. allocated(dBdrho)) allocate (dBdrho(-nzgrid:nzgrid)); dBdrho = 0.0
+      if (.not. allocated(d2Bdrdth)) allocate (d2Bdrdth(-nzgrid:nzgrid)); d2Bdrdth = 0.0
+      if (.not. allocated(dgradpardrho)) allocate (dgradpardrho(-nzgrid:nzgrid)); dgradpardrho = 0.0
 
-      if (.not. allocated(alpha)) allocate (alpha(nalpha)); alpha = 0.
-      if (.not. allocated(zeta)) allocate (zeta(nalpha, -nzgrid:nzgrid)); zeta = 0.
+      if (.not. allocated(alpha)) allocate (alpha(nalpha)); alpha = 0.0
+      if (.not. allocated(zeta)) allocate (zeta(nalpha, -nzgrid:nzgrid)); zeta = 0.0
 
-      if (.not. allocated(x_displacement_fac)) allocate (x_displacement_fac(nalpha, -nzgrid:nzgrid)); x_displacement_fac = 0.
+      if (.not. allocated(x_displacement_fac)) allocate (x_displacement_fac(nalpha, -nzgrid:nzgrid)); x_displacement_fac = 0.0
 
-      !!GA
+      !!GA - Needed for the momentum flux diagnostic for non-axisymmetric devices
       if (.not. allocated(gradzeta_grady)) allocate (gradzeta_grady(nalpha, -nzgrid:nzgrid)); gradzeta_grady = 0.0
       if (.not. allocated(gradzeta_gradx)) allocate (gradzeta_gradx(nalpha, -nzgrid:nzgrid)); gradzeta_gradx = 0.0
       if (.not. allocated(gradpar_zeta)) allocate (gradpar_zeta(nalpha, -nzgrid:nzgrid)); gradpar_zeta = 0.0
