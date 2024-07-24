@@ -426,6 +426,7 @@ contains
    !> Write the start message to screen
    subroutine write_start_message(VERNUM, VERDATE)
       use mp, only: proc0, nproc
+      use run_parameters, only: print_extra_info_to_terminal
 
       implicit none
 
@@ -438,7 +439,7 @@ contains
       character(len=50) :: version_format
       integer :: version_text_length
 
-      if (proc0) then
+      if (proc0 .and. print_extra_info_to_terminal) then
          version_text_length = 60 - (len("Version ") + len_trim(VERNUM) + 1)
          write (version_format, '("('' '', ", i2, "x, ''Version '', a)")') version_text_length / 2
 
@@ -481,13 +482,16 @@ contains
    subroutine print_header
 
       use mp, only: proc0
+      use run_parameters, only: print_extra_info_to_terminal
 
       implicit none
 
-      if (proc0) then
+      if (proc0 .and. print_extra_info_to_terminal) then
          write (*, '(A)') "############################################################"
          write (*, '(A)') "                OVERVIEW OF THE SIMULATION"
          write (*, '(A)') "############################################################"
+      end if
+      if (proc0) then
          write (*, '(A)') " "
          write (*, '(A)') "    istep       time          dt          CFL ExB       |phi|^2"
          write (*, '(A)') "-----------------------------------------------------------------"
@@ -563,6 +567,7 @@ contains
       use multibox, only: finish_multibox, time_multibox
       use run_parameters, only: stream_implicit, driftkinetic_implicit, drifts_implicit
       use implicit_solve, only: time_implicit_advance
+      use run_parameters, only: print_extra_info_to_terminal
 
       implicit none
 
@@ -607,7 +612,7 @@ contains
       if (debug) write (*, *) 'stella::finish_stella::finish_zgrid'
       call finish_zgrid
       if (debug) write (*, *) 'stella::finish_stella::finish_file_utils'
-      if (proc0) then
+      if (proc0 .and. print_extra_info_to_terminal) then
          call finish_file_utils
          call time_message(.false., time_total, ' Total')
          write (*, *)

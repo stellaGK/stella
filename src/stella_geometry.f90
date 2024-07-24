@@ -42,6 +42,9 @@ module stella_geometry
    private
 
    type(flux_surface_type) :: geo_surf
+   
+   ! TODO-GA: import this from run_parameters as "use run_parameters, only: print_extra_info_to_terminal"
+   logical :: print_extra_info_to_terminal = .false.
 
    real :: grad_x_grad_y_end
    real :: aref, bref
@@ -424,10 +427,12 @@ contains
                               field_period_ratio, x_displacement_fac, &
                               gradzeta_grady, gradzeta_gradx, gradpar_zeta)
 
-            write (*, '(A)') "############################################################"
-            write (*, '(A)') "                     BOUNDARY CONDITIONS"
-            write (*, '(A)') "############################################################"
-            write (*, *)
+            if (print_extra_info_to_terminal) then 	
+               write (*, '(A)') "############################################################"
+               write (*, '(A)') "                     BOUNDARY CONDITIONS"
+               write (*, '(A)') "############################################################"
+               write (*, *)
+            end if
 
             if ((boundary_option_switch == boundary_option_linked_stellarator) .and. (dkx_over_dky > 0)) then
                ! If stellarator_symmetric_BC and dkx_over_dky>0 the code will compute the new
@@ -471,21 +476,19 @@ contains
             case (boundary_option_linked_stellarator)
                !to be used for stellarator symmetric twist-and-shift BC
                !twist_and_shift_geo_fac = -nabla x. nabla y /|nabla x|^2
-               write (*, *) 'Stellarator symmetric twist and shift BC selected'
+               if (print_extra_info_to_terminal) write (*, *) 'Stellarator symmetric twist and shift BC selected'
                twist_and_shift_geo_fac_full = -2.*(geo_surf%rhotor * geo_surf%rhotor) * (grad_alpha_grad_psi) / (grad_psi_grad_psi)
-               if (abs(grad_x_grad_y_end) <= grad_x_grad_y_zero) &
-                  write (*, *) 'Using periodic boundary conditions as grad_x_grad_y_end < grad_x_grad_y_zero'
-               write (*, *)
+               if ((abs(grad_x_grad_y_end) <= grad_x_grad_y_zero) .and. (print_extra_info_to_terminal)) write (*, *) 'Using periodic boundary conditions as grad_x_grad_y_end < grad_x_grad_y_zero'
+               if (print_extra_info_to_terminal) write (*, *)
             case default
                ! to be used for std twist-and-shift BC
                ! twist_and_shift_geo_fac =
                ! -2.*pi*geo_surf%shat*geo_surf%qinp*drhodpsi*dydalpha/(dxdpsi*geo_surf%rhotor)
-               write (*, *) 'Standard twist and shift BC selected'
+               if (print_extra_info_to_terminal) write (*, *) 'Standard twist and shift BC selected'
                twist_and_shift_geo_fac_full = -2.*pi * geo_surf%shat * drhodpsi * dydalpha / (geo_surf%qinp * dxdXcoord * geo_surf%rhotor) &
                                               * field_period_ratio
-               if (abs(geo_surf%shat) <= shat_zero) &
-                  write (*, *) 'Using periodic boundary conditions as shat < shat_zero'
-               write (*, *)
+               if ((abs(geo_surf%shat) <= shat_zero) .and. (print_extra_info_to_terminal)) write (*, *) 'Using periodic boundary conditions as shat < shat_zero'
+               if (print_extra_info_to_terminal) write (*, *)
             end select
             twist_and_shift_geo_fac = twist_and_shift_geo_fac_full(1, nzgrid)
             deallocate (twist_and_shift_geo_fac_full)
@@ -1133,15 +1136,15 @@ contains
          dxdXcoord, dydalpha, exb_nonlin_fac, exb_nonlin_fac_p * exb_nonlin_fac
       write (geometry_unit, *)
 
-      write (geometry_unit, '(15a12)') '# alpha', 'zed', 'zeta', 'bmag', 'bdot_grad_z', 'gds2', 'gds21', 'gds22', &
-         'gds23', 'gds24', 'gbdrift', 'cvdrift', 'gbdrift0', 'bmag_psi0', 'btor'
+      write (geometry_unit, '(14a12)') '# alpha', 'zed', 'zeta', 'bmag', 'bdot_grad_z', 'gds2', 'gds21', 'gds22', &
+         'gds23', 'gds24', 'gbdrift', 'cvdrift', 'gbdrift0', 'bmag_psi0'
       do ia = 1, nalpha
          do iz = -nzgrid, nzgrid
             !          write (geometry_unit,'(15e12.4)') alpha(ia), zed(iz), zeta(ia,iz), bmag(ia,iz), gradpar(iz), &
             write (geometry_unit, '(15e12.4)') alpha(ia), zed(iz), zeta(ia, iz), bmag(ia, iz), b_dot_grad_z(ia, iz), &
                gds2(ia, iz), gds21(ia, iz), gds22(ia, iz), gds23(ia, iz), &
                gds24(ia, iz), gbdrift(ia, iz), cvdrift(ia, iz), gbdrift0(ia, iz), &
-               bmag_psi0(ia, iz), btor(iz)
+               bmag_psi0(ia, iz)
          end do
          write (geometry_unit, *)
       end do

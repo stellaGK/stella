@@ -80,20 +80,20 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.1% of total for procedures.">34 statements</a>
+                 title=" 0.1% of total for procedures.">47 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
               <i class="fa fa-code"></i>
-              <a href="../src/physics_parameters.f90"> Source File</a>
+              <a href="../src/sources.fpp"> Source File</a>
             </li>
         </ul>
       </div>
       <div class="col">
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb justify-content-end mb-0">
-                <li class="breadcrumb-item"><a href='../sourcefile/physics_parameters.f90.html'>physics_parameters.f90</a></li>
-                <li class="breadcrumb-item"><a href='../module/physics_parameters.html'>physics_parameters</a></li>
+                <li class="breadcrumb-item"><a href='../sourcefile/sources.fpp.html'>sources.fpp</a></li>
+                <li class="breadcrumb-item"><a href='../module/sources.html'>sources</a></li>
             <li class="breadcrumb-item active" aria-current="page">read_parameters</li>
           </ol>
         </nav>
@@ -138,7 +138,7 @@
       </a>
       <div id="namelists-0" class="collapse">
         <div class="list-group list-group-flush">
-            <a class="list-group-item" href="../proc/read_parameters~7.html#namelist-parameters">parameters</a>
+            <a class="list-group-item" href="../proc/read_parameters~7.html#namelist-sources">sources</a>
         </div>
       </div>
     </div>
@@ -158,9 +158,12 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
                   <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
+                  <li class="list-inline-item"><a href='../module/text_options.html'>text_options</a></li>
                   <li class="list-inline-item"><a href='../module/file_utils.html'>file_utils</a></li>
+                  <li class="list-inline-item"><a href='../module/kt_grids.html'>kt_grids</a></li>
+                  <li class="list-inline-item"><a href='../module/fields_arrays.html'>fields_arrays</a></li>
+                  <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
               </ul>
             </li>
         </ul>
@@ -188,15 +191,15 @@
         <h2>Namelists</h2>
             <div class="card">
     <div class="card-header codesum">
-      <span class="anchor" id="namelist-parameters"></span>
-      <h3>Namelist <a href='../namelist/parameters.html'>parameters</a></h3>
+      <span class="anchor" id="namelist-sources"></span>
+      <h3>Namelist <a href='../namelist/sources.html'>sources</a></h3>
     </div>
     <div class="card-body">
         
   <br class="visible-xs visible-sm hidden-md">
   <section>
     <h2>Variables</h2>
-    <table class="table table-striped" id="namelist-parameters">
+    <table class="table table-striped" id="namelist-sources">
       <thead><tr>
           <th>Name</th>
           <th>Type</th>
@@ -204,72 +207,79 @@
           <th>Description</th>
       </tr></thead>
       <tbody>
-              <tr id="variable-beta~3">
-      <td><a href="#variable-beta~3">beta</a></td>
+              <tr id="variable-source_option">
+      <td><a href="#variable-source_option">source_option</a></td>
+      <td>character(len=30)</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-nu_krook">
+      <td><a href="#variable-nu_krook">nu_krook</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-zeff">
-      <td><a href="#variable-zeff">zeff</a></td>
+              <tr id="variable-tcorr_source">
+      <td><a href="#variable-tcorr_source">tcorr_source</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-tite">
-      <td><a href="#variable-tite">tite</a></td>
+              <tr id="variable-ikxmax_source">
+      <td><a href="#variable-ikxmax_source">ikxmax_source</a></td>
+      <td>integer</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-krook_odd">
+      <td><a href="#variable-krook_odd">krook_odd</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-exclude_boundary_regions">
+      <td><a href="#variable-exclude_boundary_regions">exclude_boundary_regions</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-tcorr_source_qn">
+      <td><a href="#variable-tcorr_source_qn">tcorr_source_qn</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-nine">
-      <td><a href="#variable-nine">nine</a></td>
-      <td>real</td>
+              <tr id="variable-exclude_boundary_regions_qn">
+      <td><a href="#variable-exclude_boundary_regions_qn">exclude_boundary_regions_qn</a></td>
+      <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-rhostar">
-      <td><a href="#variable-rhostar">rhostar</a></td>
-      <td>real</td>
+              <tr id="variable-from_zero">
+      <td><a href="#variable-from_zero">from_zero</a></td>
+      <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-vnew_ref">
-      <td><a href="#variable-vnew_ref">vnew_ref</a></td>
-      <td>real</td>
+              <tr id="variable-conserve_momentum">
+      <td><a href="#variable-conserve_momentum">conserve_momentum</a></td>
+      <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-g_exb">
-      <td><a href="#variable-g_exb">g_exb</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-g_exbfac">
-      <td><a href="#variable-g_exbfac">g_exbfac</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-omprimfac">
-      <td><a href="#variable-omprimfac">omprimfac</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-irhostar">
-      <td><a href="#variable-irhostar">irhostar</a></td>
-      <td>real</td>
+              <tr id="variable-conserve_density">
+      <td><a href="#variable-conserve_density">conserve_density</a></td>
+      <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
@@ -296,13 +306,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-350-g451141589</small></p>
+<br /><small>v0.5.1-351-g6dd956999</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-24T15:50:08.808861             </p>
+ on 2024-07-24T15:56:54.694257             </p>
           </div>
         </div>
         <br>

@@ -638,6 +638,7 @@ contains
       use file_utils, only: runtype_option_switch, runtype_multibox
       use dissipation, only: include_collisions, collisions_implicit
       use dissipation, only: cfl_dt_vpadiff, cfl_dt_mudiff
+      use run_parameters, only: print_extra_info_to_terminal
 
       implicit none
 
@@ -725,7 +726,7 @@ contains
       call min_allreduce(cfl_dt_linear)
       if (runtype_option_switch == runtype_multibox) call scope(subprocs)
 
-      if (proc0) then
+      if (proc0 .and. print_extra_info_to_terminal) then
          write (*, '(A)') "############################################################"
          write (*, '(A)') "                        CFL CONDITION"
          write (*, '(A)') "############################################################"
@@ -752,7 +753,7 @@ contains
          end if
          code_dt = sign(1.0, code_dt) * cfl_dt_linear * cfl_cushion_upper
          call reset_dt
-      else if (proc0) then
+      else if (proc0 .and. print_extra_info_to_terminal) then
          call write_dt
          write (*, *)
       end if
