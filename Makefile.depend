@@ -448,6 +448,7 @@ physics_flags.o: \
 	 mp.o \
 	 text_options.o 
 physics_parameters.o: \
+         physics_flags.o \
 	 file_utils.o \
 	 mp.o 
 ran.o: \
