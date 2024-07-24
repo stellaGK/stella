@@ -82,6 +82,9 @@ contains
       use read_wout_mod, only: presf_vmec => presf
 
       implicit none
+      
+      ! TODO-GA: import this from run_parameters as "use run_parameters, only: print_extra_info_to_terminal"
+      logical :: print_extra_info_to_terminal = .false.
 
       ! vmec_filename is the vmec wout_* file that will be read.
       logical, intent(in) :: verbose
@@ -94,7 +97,7 @@ contains
       ! Read in everything from the vmec wout file using libstell.
       !*********************************************************************
 
-      if (verbose) then
+      if (verbose .and. print_extra_info_to_terminal) then
          write (*, '(A)') "############################################################"
          write (*, '(A)') "                       MAGNETIC FIELD"
          write (*, '(A)') "############################################################"
@@ -112,7 +115,7 @@ contains
          return
       end if
 
-      if (verbose) then
+      if (verbose .and. print_extra_info_to_terminal) then
          write (*, *) "Successfully read VMEC data from '", trim(vmec_filename), "'."
       end if
 
@@ -126,7 +129,7 @@ contains
       mpol = mpol_vmec
       ntor = ntor_vmec
 
-      if (verbose) then
+      if (verbose .and. print_extra_info_to_terminal) then
          write (*, *) " "
          write (*, *) "  Characteristics of the magnetic field:"
          write (*, '(A51, I1)') "      Number of field periods of the machine (nfp):"//REPEAT(' ', 50), nfp
@@ -234,6 +237,9 @@ contains
       use fzero_mod, only: fzero
 
       implicit none
+      
+      ! TODO-GA: import this from run_parameters as "use run_parameters, only: print_extra_info_to_terminal"
+      logical :: print_extra_info_to_terminal = .false.
 
       !*********************************************************************
       ! Input parameters
@@ -458,7 +464,7 @@ contains
       ! this gives the sign of the edge toroidal flux
       sign_toroidal_flux = int(sign(1.1, edge_toroidal_flux_over_2pi))
 
-      if (verbose) write (*, '(A43, I2)') "      Sign of the toroidal flux from VMEC:"//repeat(' ', 50), sign_toroidal_flux
+      if (verbose .and. print_extra_info_to_terminal) write (*, '(A43, I2)') "      Sign of the toroidal flux from VMEC:"//repeat(' ', 50), sign_toroidal_flux
 
       ! Set reference length and magnetic field for stella's normalization,
       ! using the choices made by Pavlos Xanthopoulos in GIST:
@@ -466,7 +472,7 @@ contains
 !    B_reference = 2 * edge_toroidal_flux_over_2pi / (L_reference * L_reference)
       B_reference = 2 * abs(edge_toroidal_flux_over_2pi) / (L_reference * L_reference)
 
-      if (verbose) then
+      if (verbose .and. print_extra_info_to_terminal) then
          write (*, *) "  "
          write (*, *) "  Reference values for the stella normalization:"
          write (*, '(A42, F15.12, A7)') "      Reference length (minor radius a):"//repeat(' ', 50), L_reference, " meters"
@@ -707,23 +713,23 @@ contains
       ! Evaluate several radial-profile functions at the flux surface
       ! we ended up choosing.
       !*********************************************************************
-      if (verbose) write (*, *) " "
-      if (verbose) write (*, *) "  Radial-profile functions at the chosen flux surface:"
+      if (verbose .and. print_extra_info_to_terminal) write (*, *) " "
+      if (verbose .and. print_extra_info_to_terminal) write (*, *) "  Radial-profile functions at the chosen flux surface:"
       iota = iotas(vmec_radial_index_half(1)) * vmec_radial_weight_half(1) &
              + iotas(vmec_radial_index_half(2)) * vmec_radial_weight_half(2)
-      if (verbose) write (*, '(A21, F15.12)') "      iota:"//repeat(' ', 50), iota
+      if (verbose .and. print_extra_info_to_terminal) write (*, '(A21, F15.12)') "      iota:"//repeat(' ', 50), iota
       safety_factor_q = 1 / iota
 
       allocate (d_iota_d_s_on_half_grid(ns))
       d_iota_d_s_on_half_grid = 0
       ds = normalized_toroidal_flux_full_grid(2) - normalized_toroidal_flux_full_grid(1)
-      if (verbose) write (*, '(A21, ES20.12E3)') "      ds:"//repeat(' ', 50), ds
+      if (verbose .and. print_extra_info_to_terminal) write (*, '(A21, ES20.12E3)') "      ds:"//repeat(' ', 50), ds
       d_iota_d_s_on_half_grid(2:ns) = (iotaf(2:ns) - iotaf(1:ns - 1)) / ds
       d_iota_d_s = &
          d_iota_d_s_on_half_grid(vmec_radial_index_half(1)) * vmec_radial_weight_half(1) &
          + d_iota_d_s_on_half_grid(vmec_radial_index_half(2)) * vmec_radial_weight_half(2)
       deallocate (d_iota_d_s_on_half_grid)
-      if (verbose) write (*, '(A21, ES20.12E3)') "      diota/ds:"//repeat(' ', 50), d_iota_d_s
+      if (verbose .and. print_extra_info_to_terminal) write (*, '(A21, ES20.12E3)') "      diota/ds:"//repeat(' ', 50), d_iota_d_s
       ! shat = (r/q)(dq/dr) where r = a sqrt(s).
       !      = - (r/iota) (d iota / d r) = -2 (s/iota) (d iota / d s)
       shat = (-2 * normalized_toroidal_flux_used / iota) * d_iota_d_s
@@ -736,8 +742,8 @@ contains
          d_pressure_d_s_on_half_grid(vmec_radial_index_half(1)) * vmec_radial_weight_half(1) &
          + d_pressure_d_s_on_half_grid(vmec_radial_index_half(2)) * vmec_radial_weight_half(2)
       deallocate (d_pressure_d_s_on_half_grid)
-      if (verbose) write (*, '(A21, ES20.12E3)') "      dpressure/ds:"//repeat(' ', 50), d_pressure_d_s
-      if (verbose) write (*, *) " "
+      if (verbose .and. print_extra_info_to_terminal) write (*, '(A21, ES20.12E3)') "      dpressure/ds:"//repeat(' ', 50), d_pressure_d_s
+      if (verbose .and. print_extra_info_to_terminal) write (*, *) " "
 
       !*********************************************************************
       ! Set up the coordinate grids.
@@ -764,7 +770,7 @@ contains
       ! theta_vmec = theta_pest - Lambda.
       !*********************************************************************
 
-      if (verbose) print *, "Beginning root solves to determine theta_vmec."
+      if (verbose .and. print_extra_info_to_terminal) print *, "Beginning root solves to determine theta_vmec."
       do izeta = -nzgrid, nzgrid
          zeta0 = zeta(izeta)
          do ialpha = 1, nalpha
@@ -1689,7 +1695,7 @@ contains
       deallocate (normalized_toroidal_flux_full_grid)
       deallocate (normalized_toroidal_flux_half_grid)
 
-      if (verbose) then
+      if (verbose .and. print_extra_info_to_terminal) then
          write (*, *) "Leaving vmec_to_stella_geometry_interface."
          write (*, *)
       end if

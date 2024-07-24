@@ -236,23 +236,37 @@ add_subdirectory(utils)
 target_link_libraries(libstella PUBLIC mini_libstell stella_utils)
 
 ############################################################
-# Tests
+#                          Tests                           #
+############################################################
+# Compile with the following lines to run the automated tests 
+#   >>  cmake . -B build -DSTELLA_ENABLE_TESTS=on
+#   >>  cmake --build build -j1 --target check
+# Note that the automated python tests are not working with 
+# cmake. If we change the folder name back from "automated_
+# stella_tests" to "integrated" then cmake does try to run 
+# the tests but it will fail with the error:
+#     Start 3: stella_integrated_tests
+#     1/1 Test #3: stella_integrated_tests .......***Failed  
+#     no such file or directory
+# Since the tests are running fine with make, we will not 
+# spend any time to fix this right now.
+############################################################
 
+# If -DSTELLA_ENABLE_TESTS=on we need to compile the tests as well 
 if (STELLA_ENABLE_TESTS)
+
+  # For the fortran tests, we need to download the pFUnit module
   if (STELLA_DOWNLOAD_PFUNIT)
     message(STATUS "Downloading pFUnit...")
     include(FetchContent)
     set(STELLA_DOWNLOAD_PFUNIT_URL "https://github.com/Goddard-Fortran-Ecosystem/pFUnit"
       CACHE STRING "URL of pFUnit repository")
-
     set(STELLA_PFUNIT_LOCATION "${STELLA_DOWNLOAD_PFUNIT_URL}")
-
     FetchContent_Declare(
       pfunit
       GIT_REPOSITORY ${STELLA_DOWNLOAD_PFUNIT_URL}
       GIT_TAG        main
       )
-
     set(SKIP_OPENMP YES CACHE BOOL "" FORCE)
     # Workaround for bug in current main at time of commit
     set(BUILD_SHARED ${BUILD_SHARED_LIBS})
@@ -270,32 +284,25 @@ if (STELLA_ENABLE_TESTS)
     find_package(PFUNIT REQUIRED)
     set(STELLA_PFUNIT_LOCATION "${PFUNIT_ROOT}")
   endif()
+  
+  # Include the fortran tests
   include(CTest)
   enable_testing()
-
   include(GKfunctions)
-
   set(STELLA_CTEST_CASES)
   stella_add_standard_tests(TEST_NAMES
     simple
     utils_convert
     )
-  add_custom_target(check-unit-tests
+  add_custom_target(run-automated-fortran-tests-with-cmake
     COMMAND ctest --output-on-failure -R unit
     DEPENDS ${STELLA_CTEST_CASES}
     )
 
-  add_subdirectory(tests/integrated)
-
-  add_custom_target(check-integrated-tests
-    COMMAND ctest --output-on-failure -R integrated
-    DEPENDS stella
-   )
-
+  # With --target check we run both the fortran and python tests
   add_custom_target(check
     DEPENDS
-    check-unit-tests
-    check-integrated-tests
+    run-automated-fortran-tests-with-cmake
     )
 else()
   set(STELLA_PFUNIT_LOCATION "Not used")

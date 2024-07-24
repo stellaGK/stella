@@ -33,11 +33,12 @@ contains
 
       use mp, only: proc0
       use hyper, only: init_hyper
+      use run_parameters, only: print_extra_info_to_terminal
 
       implicit none
 
       call read_parameters
-      if (proc0) then
+      if (proc0 .and. print_extra_info_to_terminal) then
          write (*, '(A)') "############################################################"
          write (*, '(A)') "                         COLLISIONS"
          write (*, '(A)') "############################################################"
