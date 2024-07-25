@@ -2,6 +2,7 @@
 import os
 import shutil
 import pathlib
+import difflib
 import subprocess   
 
 ################################################################################
