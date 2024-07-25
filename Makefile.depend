@@ -178,6 +178,14 @@ extended_zgrid.o: \
 	 constants.o \
 	 kt_grids.o \
 	 zgrid.o 
+ezcdf.o: \
+	 ezcdf_GenGet.o \
+	 ezcdf_opncls.o 
+ezcdf_GenGet.o: \
+	 ezcdf_inqvar.o \
+	 ezcdf_opncls.o 
+ezcdf_inqvar.o: 
+ezcdf_opncls.o: 
 ffs_solve.o: \
 	 constants.o \
 	 dist_fn_arrays.o \
@@ -468,6 +476,7 @@ response_matrix.o: \
 	 linear_solve.o \
 	 mp.o \
 	 mp_lu_decomposition.o \
+	 parallel_streaming.o \
 	 physics_flags.o \
 	 physics_parameters.o \
 	 run_parameters.o \
