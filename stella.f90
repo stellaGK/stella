@@ -27,10 +27,18 @@ program stella
    real, dimension(2) :: time_diagnose_stella = 0.
    real, dimension(2) :: time_total = 0.
 
+   ! Stella version number and release date 
+   character(len=40) :: git_commit 
+   character(len=10) :: git_date
+
    call parse_command_line()
 
+   ! Set git data automatically or manually
+   git_commit = get_git_version()
+   git_date = get_git_date()
+
    !> Initialize stella
-   call init_stella(istep0, get_git_version(), get_git_date())
+   call init_stella(istep0, git_commit, git_date)
 
    !> Diagnose stella
    if (debug) write (*, *) 'stella::diagnose_stella'
@@ -73,7 +81,7 @@ contains
    !>
    !> Calls the initialisation routines for all the geometry, physics, and
    !> diagnostic modules
-   subroutine init_stella(istep0, VERNUM, VERDATE)
+   subroutine init_stella(istep0, git_commit, git_date)
 
       use mp, only: init_mp, broadcast, sum_allreduce
       use mp, only: proc0, job
@@ -127,10 +135,10 @@ contains
 
       !> Starting timestep: zero unless the simulation has been restarted
       integer, intent(out) :: istep0
-      !> stella version number
-      character(len=*), intent(in) :: VERNUM
-      !> Release date
-      character(len=10), intent(in) :: VERDATE
+
+      ! Stella version number and release date 
+      character(len=40), intent(in) :: git_commit 
+      character(len=10), intent(in) :: git_date
 
       logical :: exit, list, restarted, needs_transforms
       character(500), target :: cbuff
@@ -150,7 +158,7 @@ contains
       if (proc0) then
          !> write message to screen with useful info regarding start of simulation
          if (debug) write (*, *) 'stella::init_stella::write_start_message'
-         call write_start_message(VERNUM, VERDATE)
+         call write_start_message(git_commit, git_date)
          !> initialize file i/o
          if (debug) write (*, *) 'stella::init_stella::init_file_utils'
          call init_file_utils(list)
@@ -345,7 +353,7 @@ contains
       !> read stella_diagnostics_knob namelist from the input file,
       !> open ascii output files and initialise the neetcdf file with extension .out.nc
       if (debug) write (6, *) 'stella::init_stella::init_stella_diagnostics'
-      call init_stella_diagnostics(restarted, tstart)
+      call init_stella_diagnostics(restarted, tstart, git_commit, git_date)
       !> initialise the code_time
       if (debug) write (6, *) 'stella::init_stella::init_tstart'
       call init_tstart(tstart)
@@ -426,27 +434,22 @@ contains
    end subroutine check_transforms
 
    !> Write the start message to screen
-   subroutine write_start_message(VERNUM, VERDATE)
+   subroutine write_start_message(git_commit, git_date)
+   
       use mp, only: proc0, nproc
       use run_parameters, only: print_extra_info_to_terminal
 
       implicit none
 
-      !> stella version number
-      character(len=*), intent(in) :: VERNUM
-      !> Release date
-      character(len=10), intent(in) :: VERDATE
+      ! Stella version number and release date 
+      character(len=40), intent(in) :: git_commit 
+      character(len=10), intent(in) :: git_date
+
+      ! Strings to format data
       character(len=23) :: str
-
-      character(len=50) :: version_format
-      integer :: version_text_length
-
+      
+      ! Print the stella header
       if (proc0 .and. print_extra_info_to_terminal) then
-
-
-         version_text_length = 60 - (len("Version ") + len_trim(VERNUM) + 1)
-         write (version_format, '("('' '', ", i2, "x, ''Version '', a)")') version_text_length / 2
-
          write (*, *) ' '
          write (*, *) ' '
          write (*, *) "              I8            ,dPYb, ,dPYb,            "
@@ -460,8 +463,8 @@ contains
          write (*, *) '  P` "YY8P8P8P""Y8888P"Y8888P`"Y888P`"Y88P"Y8888P"`Y8'
          write (*, *) ' '
          write (*, *) ' '
-         write (*, version_format) VERNUM
-         write (*, *) '                        ', VERDATE
+         write (*, '(a48)') git_commit
+         write (*, *) '                      ', git_date
          write (*, *) ' '
          write (*, *) '                   The stella team' 
          write (*, *) '                 University of Oxford'
@@ -472,7 +475,7 @@ contains
          write (*, '(A)') "############################################################"
          if (nproc == 1) then
             write (str, '(I10, A)') nproc, " processor."
-            write (*, '(A,A,A)') " Running on ", adjustl(trim(str))
+            write (*,*) ' '; write (*, '(A,A,A)') " Running on ", adjustl(trim(str))
          else
             write (str, '(I10, A)') nproc, " processors."
             write (*, '(A,A,A)') " Running on ", adjustl(trim(str))
@@ -542,10 +545,10 @@ contains
 
       use mp, only: finish_mp
       use mp, only: proc0
-      use file_utils, only: finish_file_utils
+      use file_utils, only: finish_file_utils, runtype_option_switch, runtype_multibox
       use job_manage, only: time_message
       use physics_parameters, only: finish_physics_parameters
-      use physics_flags, only: finish_physics_flags
+      use physics_flags, only: finish_physics_flags, include_parallel_nonlinearity, radial_variation
       use run_parameters, only: finish_run_parameters
       use zgrid, only: finish_zgrid
       use species, only: finish_species
@@ -553,8 +556,8 @@ contains
       use time_advance, only: finish_time_advance
       use parallel_streaming, only: time_parallel_streaming
       use mirror_terms, only: time_mirror
-      use dissipation, only: time_collisions
-      use sources, only: finish_sources, time_sources
+      use dissipation, only: time_collisions, include_collisions 
+      use sources, only: finish_sources, time_sources, source_option_switch, source_option_none
       use init_g, only: finish_init_g
       use dist_fn, only: finish_dist_fn
       use dist_redistribute, only: finish_redistribute
@@ -568,9 +571,10 @@ contains
       use kt_grids, only: finish_kt_grids
       use volume_averages, only: finish_volume_averages
       use multibox, only: finish_multibox, time_multibox
-      use run_parameters, only: stream_implicit, driftkinetic_implicit, drifts_implicit
+      use run_parameters, only: stream_implicit, drifts_implicit, fields_kxkyz
       use implicit_solve, only: time_implicit_advance
       use run_parameters, only: print_extra_info_to_terminal
+      use run_parameters, only: fields_kxkyz
 
       implicit none
 

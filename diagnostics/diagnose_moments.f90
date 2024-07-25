@@ -90,7 +90,7 @@ contains
 
       ! Calculate the moments if <radial_variation> = True
       if (radial_variation) then 
-         call get_moments_radialvariation(gnew, dens_vs_kykxzts, upar_vs_kykxzts, temp_vs_kykxzts, dens_kxs, upar_kxs, temp_kxs, spitzer2_vs_kykxzts)
+         call get_moments_radial_variation(gnew, dens_vs_kykxzts, upar_vs_kykxzts, temp_vs_kykxzts, dens_kxs, upar_kxs, temp_kxs, spitzer2_vs_kykxzts)
       
       ! Calculate the moments if <full_flux_surface> = True
       else if (full_flux_surface .and. write_moments) then  
@@ -100,14 +100,12 @@ contains
 
       ! Calculate the moments for a flux tube simulation
       else if (write_moments) then
-         call get_moments_fluxtube(gnew, dens_vs_kykxzts, upar_vs_kykxzts, temp_vs_kykxzts, dens_kxs, upar_kxs, temp_kxs, spitzer2_vs_kykxzts)
+         call get_moments_fluxtube(gnew, dens_vs_kykxzts, upar_vs_kykxzts, temp_vs_kykxzts, spitzer2_vs_kykxzts)
       end if
 
       ! Write the moments to the netcdf file
-	   if (proc0 .and. write_moments) call write_moments_nc(nout, dens_vs_kykxzts, upar_vs_kykxzts, temp_vs_kykxzts, spitzer2_vs_kykxzts)
-	   if (proc0 .and. write_radial_moments) call write_radial_moments_nc(nout, dens_kxs, upar_kxs, temp_kxs) 
-      
-      end if
+      if (proc0 .and. write_moments) call write_moments_nc(nout, dens_vs_kykxzts, upar_vs_kykxzts, temp_vs_kykxzts, spitzer2_vs_kykxzts)
+      if (proc0 .and. write_radial_moments) call write_radial_moments_nc(nout, dens_kxs, upar_kxs, temp_kxs) 
 
       ! Deallocate the arrays for the moments
       deallocate (dens_vs_kykxzts, upar_vs_kykxzts, temp_vs_kykxzts, spitzer2_vs_kykxzts)
@@ -130,29 +128,25 @@ contains
    ! g     = h     - Ze*<phi>_R/T * F0
    ! <f>_r = g J_0 + Ze*(J_0<phi>_R-phi)/T * F0
    !============================================================================
-   subroutine get_moments_fluxtube(g, density, upar_vs_kykxzts, temperature, dens_kxs, upar_kxs, temp_kxs, spitzer2_vs_kykxzts)
+   subroutine get_moments_fluxtube(g, density, upar_vs_kykxzts, temperature, spitzer2_vs_kykxzts)
 
       use zgrid, only: nzgrid, ntubes
       use species, only: spec, nspec
-      use vpamu_grids, only: integrate_vmu
-      use vpamu_grids, only: vpa, vperp2, mu
+      use vpamu_grids, only: vpa, vperp2, integrate_vmu
       use vpamu_grids, only: maxwell_mu, ztmax, maxwell_fac, maxwell_vpa
-      use kt_grids, only: naky, nakx, multiply_by_rho, rho_d_clamped
+      use kt_grids, only: naky, nakx, multiply_by_rho
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use dist_fn_arrays, only: kperp2, dkperp2dr 
-      use stella_geometry, only: bmag, dBdrho
-      use stella_geometry, only: dl_over_b, d_dl_over_b_drho
-      use gyro_averages, only: aj0x, aj1x, gyro_average
-      use fields_arrays, only: phi, phi_corr_QN, phi_proj
+      use gyro_averages, only: aj0x, gyro_average
+      use fields_arrays, only: phi
       use run_parameters, only: fphi
       use run_parameters, only: maxwellian_normalization
       use physics_flags, only: radial_variation
       use stella_transforms, only: transform_kx2x_unpadded
       
       ! Import temp arrays g1 and g2 with dimensions (nky, nkx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
-      use dist_fn_arrays, only: g1 => g_gyro 
-      use dist_fn_arrays, only: g2 => integrand
+      use dist_fn_arrays, only: g_gyro => g1 
+      use dist_fn_arrays, only: integrand => g2 
 
       implicit none
 
@@ -163,7 +157,7 @@ contains
       complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: density, temperature, upar_vs_kykxzts, spitzer2_vs_kykxzts
 
 		! Local variables
-      integer :: ivmu, iv, imu, is, ia, iz, it
+      integer :: ivmu, iv, imu, is, ia
       
       ! We only have one field line because <full_flux_surface> = .false.
       ia = 1
@@ -190,7 +184,7 @@ contains
          integrand(:, :, :, :, ivmu) = spread(aj0x(:, :, :, ivmu)**2 - 1.0, 4, ntubes) * spec(is)%zt * fphi * phi
          if (.not. maxwellian_normalization) then
             integrand(:, :, :, :, ivmu) = integrand(:, :, :, :, ivmu) * maxwell_vpa(iv, is) * &
-            		spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) * maxwell_fac(is), 4, ntubes)
+                  spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) * maxwell_fac(is), 4, ntubes)
          end if
          integrand(:, :, :, :, ivmu) = integrand(:, :, :, :, ivmu) + g_gyro(:, :, :, :, ivmu)
       end do
@@ -213,13 +207,13 @@ contains
          is = is_idx(vmu_lo, ivmu)
          if (maxwellian_normalization) then
             integrand(:, :, :, :, ivmu) = (g_gyro(:, :, :, :, ivmu) + spec(is)%zt &
-            		* spread(aj0x(:, :, :, ivmu)**2 - 1.0, 4, ntubes) * phi * fphi) &
-            		* (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
+                  * spread(aj0x(:, :, :, ivmu)**2 - 1.0, 4, ntubes) * phi * fphi) &
+                  * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
          else
             integrand(:, :, :, :, ivmu) = (g_gyro(:, :, :, :, ivmu) + ztmax(iv, is) &
-            		* spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
-            		* maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * phi * fphi) &
-            		* (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
+                  * spread(spread(spread(maxwell_mu(ia, :, imu, is), 1, naky), 2, nakx) &
+                  * maxwell_fac(is) * (aj0x(:, :, :, ivmu)**2 - 1.0), 4, ntubes) * phi * fphi) &
+                  * (vpa(iv)**2 + spread(spread(spread(vperp2(1, :, imu), 1, naky), 2, nakx), 4, ntubes) - 1.5) / 1.5
          end if
       end do
       
@@ -235,7 +229,8 @@ contains
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
-         g2(:,:,:,:,ivmu) = g(:,:,:,:,ivmu)*( vpa(iv)*(vpa(iv)**2+spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes)) - 5./2.*vpa(iv) )
+         integrand(:,:,:,:,ivmu) = g(:,:,:,:,ivmu) * ( vpa(iv) * (vpa(iv)**2 + &
+                  spread(spread(spread(vperp2(1,:,imu),1,naky),2,nakx),4,ntubes)) - 5./2. * vpa(iv) )
       end do
       call integrate_vmu(integrand, spec%stm, spitzer2_vs_kykxzts) ! AVB: stm is the thermal speed
 
@@ -504,7 +499,7 @@ contains
    !============================================================================  
    subroutine init_diagnose_moments(write_moments_in, write_radial_moments_in)  
 
-		use mp, only: proc0
+      use mp, only: proc0
 
       implicit none 
 

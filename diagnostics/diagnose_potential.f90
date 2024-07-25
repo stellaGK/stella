@@ -56,6 +56,8 @@ contains
       ! Write to netcdf file 
       use stella_io, only: write_time_nc
       use stella_io, only: write_phi2_nc
+      use stella_io, only: write_apar2_nc
+      use stella_io, only: write_bpar2_nc
       use stella_io, only: write_phi_nc 
       use stella_io, only: write_kspectra_nc
       use stella_time, only: code_dt, code_time

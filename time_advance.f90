@@ -643,8 +643,8 @@ contains
       use zgrid, only: delzed
       use vpamu_grids, only: dvpa
       use kt_grids, only: akx, aky, nx, rho
-      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit, driftkinetic_implicit
-      use parallel_streaming, only: stream, stream_correction
+      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
+      use parallel_streaming, only: stream
       use parallel_streaming, only: stream_rad_var1, stream_rad_var2
       use mirror_terms, only: mirror
       use flow_shear, only: prl_shear, shift_times
@@ -1250,8 +1250,7 @@ contains
       use multibox, only: include_multibox_krook, add_multibox_krook
       use dist_fn_arrays, only: g_scratch
       use gyro_averages, only: gyro_average, j0_ffs
-      use g_tofrom_h, only: gbar_to_g
-      use run_parameters, only: driftkinetic_implicit
+      use g_tofrom_h, only: gbar_to_g 
       use dissipation, only: hyper_dissipation
       ! TMP FOR TESTING -- MAB
       use fields, only: fields_updated
@@ -1548,8 +1547,7 @@ contains
       use kt_grids, only: swap_kxky
       use physics_flags, only: full_flux_surface
       use dist_fn_arrays, only: wstar, g_scratch
-
-      use gyro_averages, only: gyro_average, j0_ffs
+      use gyro_averages, only: gyro_average
 
       implicit none
 
@@ -1616,7 +1614,7 @@ contains
       use kt_grids, only: nakx, ikx_max, naky, naky_all, ny
       use kt_grids, only: swap_kxky
       use physics_flags, only: full_flux_surface, include_bpar
-      use gyro_averages, only: gyro_average, j0_ffs, gyro_average_j1
+      use gyro_averages, only: gyro_average, gyro_average_j1
       use dist_fn_arrays, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
       use dist_fn_arrays, only: g_scratch
 
@@ -1722,7 +1720,7 @@ contains
       use kt_grids, only: nakx, ikx_max, naky, naky_all, ny, akx
       use kt_grids, only: swap_kxky
       use physics_flags, only: full_flux_surface, include_bpar
-      use gyro_averages, only: gyro_average, j0_ffs
+      use gyro_averages, only: gyro_average
       use dist_fn_arrays, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
       use dist_fn_arrays, only: g_scratch
 
@@ -2748,7 +2746,6 @@ contains
       use mirror_terms, only: advance_mirror_implicit
       use dissipation, only: collisions_implicit, include_collisions
       use dissipation, only: advance_collisions_implicit
-      use run_parameters, only: driftkinetic_implicit
       use flow_shear, only: advance_perp_flow_shear
       use multibox, only: RK_step
 
@@ -2758,7 +2755,6 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
 
-      logical :: implicit_fields
 !    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out), target :: g
 
 !    complex, dimension (:,:,:,:,:), pointer :: gk, gy

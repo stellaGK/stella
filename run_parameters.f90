@@ -26,7 +26,6 @@ module run_parameters
    public :: time_upwind_plus, time_upwind_minus
    public :: zed_upwind_plus, zed_upwind_minus
    public :: print_extra_info_to_terminal
-
    public :: nitt 
 
    private
@@ -57,8 +56,9 @@ module run_parameters
                                  lu_option_global = 3
    logical :: initialized = .false.
    logical :: knexist
-
+   logical :: print_extra_info_to_terminal
    integer :: nitt
+   
 contains
 
    subroutine init_run_parameters
@@ -285,7 +285,7 @@ contains
             if (stream_implicit) then
                driftkinetic_implicit = .true.
             end if
-	         if (maxwellian_normalization) then 
+            if (maxwellian_normalization) then 
                write (*, *)
                write (*, *) '!!!WARNING!!!'
                write (*, *) 'The option maxwellian_normalisation=T is not consistent with full_flux_surface=T.'

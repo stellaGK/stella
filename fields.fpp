@@ -104,8 +104,7 @@ contains
       use vpamu_grids, only: nvpa, nmu, mu
       use vpamu_grids, only: vpa, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use vpamu_grids, only: integrate_vmu
-      use species, only: spec
+      use vpamu_grids, only: integrate_vmu 
       use kt_grids, only: naky, nakx, akx
       use kt_grids, only: zonal_mode
       use physics_flags, only: include_apar, include_bpar
@@ -416,8 +415,7 @@ contains
       use run_parameters, only: ky_solve_radial, ky_solve_real
       use species, only: spec, has_electron_species
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
-      use zgrid, only: nzgrid, ntubes, nztot
-      use species, only: spec
+      use zgrid, only: nzgrid, ntubes, nztot 
       use kt_grids, only: naky, nakx
       use kt_grids, only: zonal_mode, rho_d_clamped
       use physics_flags, only: adiabatic_option_switch
@@ -645,13 +643,12 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use kt_grids, only: nalpha, ikx_max, naky_all, naky
       use kt_grids, only: swap_kxky_ordered
-      use vpamu_grids, only: vperp2, maxwell_vpa, maxwell_mu, maxwell_fac
+      use vpamu_grids, only: vperp2, maxwell_vpa, maxwell_mu
       use vpamu_grids, only: integrate_species
       use gyro_averages, only: band_lu_factorisation_ffs
 
       use kt_grids, only: nakx
-      use fields_arrays, only: gamtot, gamtot3
-      use run_parameters, only: driftkinetic_implicit
+      use fields_arrays, only: gamtot, gamtot3 
       use mp, only: sum_allreduce, proc0
       use kt_grids, only: swap_kxky_back_ordered
       use gyro_averages, only: find_max_required_kalpha_index
@@ -1121,7 +1118,7 @@ contains
          call sum_allreduce(bpar)
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
 
-         call get_phi_and_bpar(phi, bpar, dist, skip_fsa_local)
+         call get_phi_and_bpar(phi, bpar, dist)
       end if
 
       apar = 0.
@@ -1243,7 +1240,7 @@ contains
 
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
 
-         call get_phi_and_bpar(phi, bpar, dist, skip_fsa_local)
+         call get_phi_and_bpar(phi, bpar, dist)
       
       end if
 
@@ -1284,8 +1281,7 @@ contains
 
   subroutine get_fields_source(gold, phiold, source) 
 
-     use stella_layouts, only: vmu_lo
-     use species, only: spec
+     use stella_layouts, only: vmu_lo 
      use zgrid, only: nzgrid, ntubes
      use kt_grids, only: naky, nakx
      use fields_arrays, only: gamtot
@@ -1341,8 +1337,7 @@ contains
      use gyro_averages, only: gyro_average, j0_B_ffs
      
      use gyro_averages, only: j0_B_const
-     use stella_layouts, only: iv_idx, imu_idx, is_idx
-     use kt_grids, only: nalpha
+     use stella_layouts, only: iv_idx, imu_idx, is_idx 
      
      implicit none
      
@@ -1351,8 +1346,6 @@ contains
      
      integer :: it, iz, ivmu
      complex, dimension(:, :, :), allocatable :: gyro_g, gyro_g2
-     
-     integer :: iv, imu, is
      
      !> assume there is only a single flux surface being simulated
      it = 1
@@ -1396,7 +1389,6 @@ contains
       use volume_averages, only: flux_surface_average_ffs
       use fields_arrays, only: gamtot
       use kt_grids, only: akx, zonal_mode
-      use mp, only: proc0
 
       use fields_arrays, only: gamtot3
       use species, only: spec, has_electron_species
@@ -1544,7 +1536,6 @@ contains
 
          use gyro_averages, only: j0_B_const
          use stella_layouts, only: iv_idx, imu_idx, is_idx
-         use kt_grids, only: nalpha
 
          implicit none
 
@@ -1554,8 +1545,6 @@ contains
          integer :: it, iz, ivmu
          complex, dimension(:, :, :), allocatable :: gyro_g
          logical, optional, intent(in) :: implicit_solve
-
-         integer :: iv, imu, is
 
          !> assume there is only a single flux surface being simulated
          it = 1
@@ -1846,26 +1835,17 @@ contains
 
    end subroutine get_phi
 
-   subroutine get_phi_and_bpar(phi, bpar, dist, skip_fsa)
+   subroutine get_phi_and_bpar(phi, bpar, dist)
 
-      use mp, only: proc0, mp_abort, job
+      use mp, only: proc0, mp_abort
       use job_manage, only: time_message
-      use physics_flags, only: radial_variation
-      use run_parameters, only: ky_solve_radial, ky_solve_real
-      use zgrid, only: nzgrid, ntubes
-      use stella_geometry, only: dl_over_b
-      use kt_grids, only: nakx, naky, zonal_mode
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
-      use species, only: spec, has_electron_species
-      use multibox, only: mb_get_phi
+      use zgrid, only: nzgrid, ntubes 
+      use kt_grids, only: nakx, naky
       use fields_arrays, only: gamtotinv11, gamtotinv13, gamtotinv33, gamtotinv31
-      use file_utils, only: runtype_option_switch, runtype_multibox
 
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, bpar
-      logical, optional, intent(in) :: skip_fsa
       integer :: ia, it, ikx, iky, iz
       complex :: antot1, antot3
       
@@ -2518,7 +2498,7 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: dchidy
 
-      integer :: ivmu, iv, is, iky, ikx, imu, iz, it
+      integer :: ivmu, iv, is, iky, imu
       complex, dimension(:, :, :, :), allocatable :: field, gyro_tmp
 
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))

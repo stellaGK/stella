@@ -91,7 +91,7 @@ contains
    subroutine calculate_omega(istep, timer)
      
       use physics_flags, only: include_apar
-      use fields_arrays, only: phi, phi_old
+      use fields_arrays, only: phi, phi_old, apar, apar_old
       use kt_grids, only: nakx, naky
       use stella_time, only: code_dt
       use volume_averages, only: fieldline_average

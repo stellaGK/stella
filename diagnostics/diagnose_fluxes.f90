@@ -118,10 +118,13 @@ contains
    !================================ FLUX TUBE =================================
    !============================================================================
    subroutine write_fluxes_for_fluxtube(pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts)
+   
+      ! Flags
+      use physics_flags, only: include_apar, include_bpar
 
       ! Load data 
       use dist_fn_arrays, only: gnew, gvmu
-      use fields_arrays, only: phi
+      use fields_arrays, only: phi, bpar
       use run_parameters, only: fphi
 
       ! Redistribute data from  i[vpa,mu,s] to i[kx,ky,z,s] 
@@ -130,7 +133,7 @@ contains
 
       ! Calculations 
       use diagnose_fluxes_fluxtube, only: calculate_fluxes_fluxtube
-      use g_tofrom_h, only: g_to_h
+      use g_tofrom_h, only: g_to_h, g_to_f
 
       implicit none    
 
@@ -150,9 +153,9 @@ contains
       ! <qflux> or <pflux>, but it does matter for <vflux>! Only <δf> is the correct options for <vflux> TODO is it?
       ! TODO-GA for electromagnetic stella the equations are written for f, for electromagnetic stella the equations are written for h
       if (include_apar .or. include_bpar) then  
-      	call g_to_h(gvmu, phi, bpar, fphi)
-      else (.not. include_apar .and. .not. include_bpar) then 
-      	call g_to_f(gvmu, phi, fphi)
+         call g_to_h(gvmu, phi, bpar, fphi)
+      else if (.not. include_apar .and. .not. include_bpar) then 
+         call g_to_f(gvmu, phi, fphi)
       end if 
 
       ! Now calculate the fluxes explicitly
@@ -162,9 +165,9 @@ contains
       ! Convert <δf> back to <g> since it will be used by other routines 
       ! TODO-GA for electromagnetic stella the equations are written for f, for electromagnetic stella the equations are written for h
       if (include_apar .or. include_bpar) then  
-      	call g_to_h(gvmu, phi, bpar, -fphi)
-      else (.not. include_apar .and. .not. include_bpar) then 
-      	call g_to_f(gvmu, phi, -fphi)
+         call g_to_h(gvmu, phi, bpar, -fphi)
+      else if (.not. include_apar .and. .not. include_bpar) then 
+         call g_to_f(gvmu, phi, -fphi)
       end if 
 
    end subroutine write_fluxes_for_fluxtube

@@ -24,7 +24,7 @@ module stella_geometry
    public :: bmag, dbdzed, btor, bmag_psi0, grho, grho_norm, grad_x
    public :: dcvdriftdrho, dcvdrift0drho, dgbdriftdrho, dgbdrift0drho
    public :: gds2, gds21, gds22, gds23, gds24, gds25, gds26, gradpar
-   public :: b_dot_grad_zeta, b_dot_grad_z_averaged_eqarc, b_dot_grad_z, zed_eqarc
+   public :: b_dot_grad_zeta
    public :: cvdrift, cvdrift0, gbdrift, gbdrift0
    public :: dgds2dr, dgds21dr, dgds22dr
    public :: exb_nonlin_fac, exb_nonlin_fac_p, flux_fac
@@ -37,10 +37,11 @@ module stella_geometry
    public :: aref, bref, twist_and_shift_geo_fac
    public :: q_as_x, get_x_to_rho, gfac
    public :: dVolume, grad_x_grad_y_end  
+   public :: b_dot_grad_z_averaged_eqarc, zed_eqarc ! Extended z-grid for final fields diagnostics
    public :: b_dot_grad_z ! Full flux surface
-   public :: gradzeta_gradx_times_Rsquared_over_Bsquared ! Momentum flux
-   public :: gradzeta_grady_times_Rsquared_over_Bsquared ! Momentum flux
-   public :: b_dot_grad_zeta_times_Rsquared ! Momentum flux
+   public :: gradzeta_gradx_RRoverBB ! Momentum flux
+   public :: gradzeta_grady_RRoverBB ! Momentum flux
+   public :: b_dot_grad_zeta_RR ! Momentum flux
    public :: geo_option_switch, geo_option_vmec ! Used in kt_grids.f90
 
    private
@@ -49,9 +50,6 @@ module stella_geometry
    logical :: debug = .true.
 
    type(flux_surface_type) :: geo_surf
-   
-   ! TODO-GA: import this from run_parameters as "use run_parameters, only: print_extra_info_to_terminal"
-   logical :: print_extra_info_to_terminal = .false.
 
    real :: grad_x_grad_y_end, clebsch_factor
    real :: aref, bref, dxdpsi, dydalpha
@@ -62,9 +60,10 @@ module stella_geometry
    real :: twist_and_shift_geo_fac, gfac
 
    ! Geometric quantities for the gyrokinetic equations (electrostatic, fluxtube)
-   real, dimension(:), allocatable :: zed_eqarc, b_dot_grad_zeta, alpha, gradpar
+   real, dimension(:), allocatable :: zed_eqarc, b_dot_grad_zeta, alpha
+   real, dimension(:), allocatable :: gradpar, b_dot_grad_z_averaged
    real, dimension(:), allocatable :: dBdrho, d2Bdrdth, dgradpardrho, btor, Rmajor 
-   real, dimension(:, :), allocatable :: b_dot_grad_z_averaged, bmag, bmag_psi0, dbdzed 
+   real, dimension(:, :), allocatable :: bmag, bmag_psi0, dbdzed 
    real, dimension(:, :), allocatable :: cvdrift, cvdrift0, gbdrift, gbdrift0
    real, dimension(:, :), allocatable :: dcvdriftdrho, dcvdrift0drho, dgbdriftdrho, dgbdrift0drho
    real, dimension(:, :), allocatable :: gds2, gds21, gds22, gds23, gds24, gds25, gds26
@@ -78,9 +77,9 @@ module stella_geometry
    real, dimension(:, :), allocatable :: b_dot_grad_z
    
    ! Geometric quantities for the momentum flux
-   real, dimension(:, :), allocatable :: gradzeta_gradx_times_Rsquared_over_Bsquared
-   real, dimension(:, :), allocatable :: gradzeta_grady_times_Rsquared_over_Bsquared
-   real, dimension(:, :), allocatable :: b_dot_grad_zeta_times_Rsquared
+   real, dimension(:, :), allocatable :: gradzeta_gradx_RRoverBB
+   real, dimension(:, :), allocatable :: gradzeta_grady_RRoverBB
+   real, dimension(:, :), allocatable :: b_dot_grad_zeta_RR
 
    integer :: sign_torflux
    integer :: geo_option_switch
@@ -167,11 +166,11 @@ contains
          
          ! In the diagnostics of final fields we want out extented z-grid in arc length units
 		   ! So here we calculate <zed_eqarc> which is z = arc length
-		   call get_b_dot_grad_z_averaged_eqarc(b_dot_grad_z_averaged, zed, delzed, b_dot_grad_z_averaged_eqarc)
-		   call get_zed_eqarc(b_dot_grad_zeta, delzed, zed, b_dot_grad_z_averaged_eqarc, zed_eqarc)
+         call get_b_dot_grad_z_averaged_eqarc(b_dot_grad_z_averaged, zed, delzed, b_dot_grad_z_averaged_eqarc)
+         call get_zed_eqarc(b_dot_grad_zeta, delzed, zed, b_dot_grad_z_averaged_eqarc, zed_eqarc)
 		   
 		   ! A lot of modules use <gradpar> even though <b_dot_grad_z_averaged> is a better name  
-		   gradpar = b_dot_grad_z_averaged
+         gradpar = b_dot_grad_z_averaged
 
       end if
  
@@ -344,6 +343,7 @@ contains
       real, dimension(:, :), allocatable :: gds23_alphapsit, gds24_alphapsit
       real, dimension(:, :), allocatable :: gds25_alphapsit, gds26_alphapsit
       real, dimension(:, :), allocatable :: grad_x_grad_x, grad_y_grad_y, grad_y_grad_x
+      real, dimension(:, :), allocatable :: gradzeta_gradpsit_RRoverBB, gradzeta_gradalpha_RRoverBB, b_dot_grad_zeta_RR
 
       real :: rho, shat, iota, field_period_ratio
       real :: dpsidpsit, dpsidx, dpsitdx, dxdpsit 
@@ -364,7 +364,7 @@ contains
                grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, &
                gds23_alphapsit, gds24_alphapsit, gds25_alphapsit, gds26_alphapsit, & 
                gbdrift_alpha, gbdrift0_psit, cvdrift_alpha, cvdrift0_psit, &
-               gradzeta_gradpsit_times_Rsquared_over_Bsquared, gradzeta_gradalpha_times_Rsquared_over_Bsquared, b_dot_grad_zeta_times_Rsquared, &
+               gradzeta_gradpsit_RRoverBB, gradzeta_gradalpha_RRoverBB, b_dot_grad_zeta_RR, &
                sign_torflux, theta_vmec, dzetadz, aref, bref, alpha, zeta, &
                field_period_ratio, psit_displacement_fac)
 
@@ -420,8 +420,8 @@ contains
       gds22 = (geo_surf%shat * grad_x)**2
       
       ! For the momentum flux we need (R^2/B^2) ∇ζ . ∇y and (R^2/B^2) ∇ζ . ∇x
-      gradzeta_gradx_times_Rsquared_over_Bsquared = gradzeta_gradpsit_times_Rsquared_over_Bsquared * dxdpsit
-      gradzeta_grady_times_Rsquared_over_Bsquared = gradzeta_gradalpha_times_Rsquared_over_Bsquared * dydalpha
+      gradzeta_gradx_RRoverBB = gradzeta_gradpsit_RRoverBB * dxdpsit
+      gradzeta_grady_RRoverBB = gradzeta_gradalpha_RRoverBB * dydalpha
 
       ! We want |ds/dx|*sqrt((dR/ds)^2+(dZ/ds)^2) so do dψ̃t/dx̃ * |ds̃/dψ̃t|*sqrt((dR/ds)^2+(dZ/ds)^2)  
       x_displacement_fac = dpsitdx*psit_displacement_fac
@@ -693,41 +693,41 @@ contains
          drhodpsi = 1/dqdrho
       end if
 
-		! For Miller each field line <alpha> has the same geometry so
-		! ensure that all arrays are filled with the ialpha = 1 information
-		bmag = spread(bmag(1, :), 1, nalpha)
-		bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
-		gds2 = spread(gds2(1, :), 1, nalpha)
-		gds21 = spread(gds21(1, :), 1, nalpha)
-		gds22 = spread(gds22(1, :), 1, nalpha)
-		gds23 = spread(gds23(1, :), 1, nalpha)
-		gds24 = spread(gds24(1, :), 1, nalpha)
-		gbdrift0 = spread(gbdrift0(1, :), 1, nalpha)
-		gbdrift = spread(gbdrift(1, :), 1, nalpha)
-		cvdrift0 = spread(cvdrift0(1, :), 1, nalpha)
-		cvdrift = spread(cvdrift(1, :), 1, nalpha)
-		dcvdrift0drho = spread(dcvdrift0drho(1, :), 1, nalpha)
-		dcvdriftdrho = spread(dcvdriftdrho(1, :), 1, nalpha)
-		dgbdrift0drho = spread(dgbdrift0drho(1, :), 1, nalpha)
-		dgbdriftdrho = spread(dgbdriftdrho(1, :), 1, nalpha)
-		dgds2dr = spread(dgds2dr(1, :), 1, nalpha)
-		dgds21dr = spread(dgds21dr(1, :), 1, nalpha)
-		dgds22dr = spread(dgds22dr(1, :), 1, nalpha)
-		djacdrho = spread(djacdrho(1, :), 1, nalpha)
-		b_dot_grad_z = spread(b_dot_grad_z(1, :), 1, nalpha)
-		zeta = spread(zeta(1, :), 1, nalpha)
+      ! For Miller each field line <alpha> has the same geometry so
+      ! ensure that all arrays are filled with the ialpha = 1 information
+      bmag = spread(bmag(1, :), 1, nalpha)
+      bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
+      gds2 = spread(gds2(1, :), 1, nalpha)
+      gds21 = spread(gds21(1, :), 1, nalpha)
+      gds22 = spread(gds22(1, :), 1, nalpha)
+      gds23 = spread(gds23(1, :), 1, nalpha)
+      gds24 = spread(gds24(1, :), 1, nalpha)
+      gbdrift0 = spread(gbdrift0(1, :), 1, nalpha)
+      gbdrift = spread(gbdrift(1, :), 1, nalpha)
+      cvdrift0 = spread(cvdrift0(1, :), 1, nalpha)
+      cvdrift = spread(cvdrift(1, :), 1, nalpha)
+      dcvdrift0drho = spread(dcvdrift0drho(1, :), 1, nalpha)
+      dcvdriftdrho = spread(dcvdriftdrho(1, :), 1, nalpha)
+      dgbdrift0drho = spread(dgbdrift0drho(1, :), 1, nalpha)
+      dgbdriftdrho = spread(dgbdriftdrho(1, :), 1, nalpha)
+      dgds2dr = spread(dgds2dr(1, :), 1, nalpha)
+      dgds21dr = spread(dgds21dr(1, :), 1, nalpha)
+      dgds22dr = spread(dgds22dr(1, :), 1, nalpha)
+      djacdrho = spread(djacdrho(1, :), 1, nalpha)
+      b_dot_grad_z = spread(b_dot_grad_z(1, :), 1, nalpha)
+      zeta = spread(zeta(1, :), 1, nalpha)
 
-		! For the momentum flux we need (R^2/B^2) ∇ζ . ∇y and (R^2/B^2) ∇ζ . ∇x
+      ! For the momentum flux we need (R^2/B^2) ∇ζ . ∇y and (R^2/B^2) ∇ζ . ∇x
       ! For Miller or axi-symmetric devices we have: ∇ζ . ∇ψp = 0 and ∇ζ . ∇α = ∇ζ . ∇ζ = (1/R^2) 
       !		(R^2/B^2) * ∇ζ . ∇α * (dy/dα) = (R^2/B^2) (1/R^2) (dy/dα) = (1/B^2) (dy/dα) = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
-		gradzeta_grady_times_Rsquared_over_Bsquared = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
-		gradzeta_gradx_times_Rsquared_over_Bsquared = 0.0
-      
+      gradzeta_grady_RRoverBB = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
+      gradzeta_gradx_RRoverBB = 0.0
+
       ! For the momentum flux we need R^2 * b . ∇ζ
       ! Note that in Miller z = theta, so b_dot_grad_z = b_dot_grad_theta
-		!		R^2 * b . ∇ζ = R^2 * (1/B) (∇ζ x ∇ψ + I ∇ζ) . ∇ζ =  R^2/B * I * ∇ζ . ∇ζ
-		!                  = R^2/B * I * (1/R^2) = I/B = (R/B) (I/R) = (R/B) * Btor
-		b_dot_grad_zeta_times_Rsquared = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag 
+      !		R^2 * b . ∇ζ = R^2 * (1/B) (∇ζ x ∇ψ + I ∇ζ) . ∇ζ =  R^2/B * I * ∇ζ . ∇ζ
+      !                  = R^2/B * I * (1/R^2) = I/B = (R/B) (I/R) = (R/B) * Btor
+      b_dot_grad_zeta_RR = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag 
 
    end subroutine get_geometry_arrays_from_Miller
 
@@ -813,9 +813,9 @@ contains
       call set_coef_constant(x_displacement_fac, nalpha)
       call set_coef_constant(zeta, nalpha)
       call set_coef_constant(b_dot_grad_z, nalpha)
-      call set_coef_constant(gradzeta_gradx_times_Rsquared_over_Bsquared, nalpha)
-      call set_coef_constant(gradzeta_grady_times_Rsquared_over_Bsquared, nalpha)
-      call set_coef_constant(b_dot_grad_zeta_times_Rsquared, nalpha)
+      call set_coef_constant(gradzeta_gradx_RRoverBB, nalpha)
+      call set_coef_constant(gradzeta_grady_RRoverBB, nalpha)
+      call set_coef_constant(b_dot_grad_zeta_RR, nalpha)
 
    end subroutine set_ffs_geo_coefs_constant
 
@@ -882,15 +882,9 @@ contains
       if (.not. allocated(x_displacement_fac)) allocate (x_displacement_fac(nalpha, -nzgrid:nzgrid)); x_displacement_fac = 0.0
 
       ! Needed for the momentum flux diagnostic for non-axisymmetric devices
-      if (.not. allocated(gradzeta_gradx_times_Rsquared_over_Bsquared)) allocate (gradzeta_gradx_times_Rsquared_over_Bsquared(nalpha, -nzgrid:nzgrid)); gradzeta_gradx_times_Rsquared_over_Bsquared = 0.0
-      if (.not. allocated(gradzeta_grady_times_Rsquared_over_Bsquared)) allocate (gradzeta_grady_times_Rsquared_over_Bsquared(nalpha, -nzgrid:nzgrid)); gradzeta_grady_times_Rsquared_over_Bsquared = 0.0
-      if (.not. allocated(b_dot_grad_zeta_times_Rsquared)) allocate (b_dot_grad_zeta_times_Rsquared(nalpha, -nzgrid:nzgrid)); b_dot_grad_zeta_times_Rsquared = 0.0
-      
-      if (geo_option_switch==geo_option_vmec) then 
-      	if (.not. allocated(b_dot_grad_zeta)) allocate (b_dot_grad_zeta(-nzgrid:nzgrid)); b_dot_grad_zeta = 0.0
-      else
-      	if (.not. allocated(b_dot_grad_theta)) allocate (b_dot_grad_theta(-nzgrid:nzgrid)); b_dot_grad_theta = 0.0
-      end if 
+      if (.not. allocated(gradzeta_gradx_RRoverBB)) allocate (gradzeta_gradx_RRoverBB(nalpha, -nzgrid:nzgrid)); gradzeta_gradx_RRoverBB = 0.0
+      if (.not. allocated(gradzeta_grady_RRoverBB)) allocate (gradzeta_grady_RRoverBB(nalpha, -nzgrid:nzgrid)); gradzeta_grady_RRoverBB = 0.0
+      if (.not. allocated(b_dot_grad_zeta_RR)) allocate (b_dot_grad_zeta_RR(nalpha, -nzgrid:nzgrid)); b_dot_grad_zeta_RR = 0.0
 
    end subroutine allocate_arrays
 
@@ -1043,9 +1037,9 @@ contains
       call broadcast(djacdrho)
       
       ! Arrays for the momentum flux
-      call broadcast(gradzeta_gradx_times_Rsquared_over_Bsquared)
-      call broadcast(gradzeta_grady_times_Rsquared_over_Bsquared)
-      call broadcast(b_dot_grad_zeta_times_Rsquared)
+      call broadcast(gradzeta_gradx_RRoverBB)
+      call broadcast(gradzeta_grady_RRoverBB)
+      call broadcast(b_dot_grad_zeta_RR)
    
       ! Geometric variables at the chosen radial location
       call broadcast(qinp)
@@ -1315,9 +1309,7 @@ contains
       if (allocated(dbdzed)) deallocate (dbdzed)
       if (allocated(jacob)) deallocate (jacob)
       if (allocated(djacdrho)) deallocate (djacdrho)
-      if (allocated(gradpar)) deallocate (gradpar)
-      if (allocated(b_dot_grad_zeta)) deallocate (b_dot_grad_zeta)
-      if (allocated(b_dot_grad_theta)) deallocate (b_dot_grad_theta)
+      if (allocated(gradpar)) deallocate (gradpar) 
       if (allocated(b_dot_grad_z)) deallocate (b_dot_grad_z)
       if (allocated(dl_over_b)) deallocate (dl_over_b)
       if (allocated(d_dl_over_b_drho)) deallocate (d_dl_over_b_drho)
@@ -1350,9 +1342,9 @@ contains
       if (allocated(x_displacement_fac)) deallocate (x_displacement_fac)
       
       ! Arrays for the momentum flux 
-      if (allocated(gradzeta_gradx_times_Rsquared_over_Bsquared)) deallocate (gradzeta_gradx_times_Rsquared_over_Bsquared)
-      if (allocated(gradzeta_grady_times_Rsquared_over_Bsquared)) deallocate (gradzeta_grady_times_Rsquared_over_Bsquared)
-      if (allocated(b_dot_grad_zeta_times_Rsquared)) deallocate (b_dot_grad_zeta_times_Rsquared)
+      if (allocated(gradzeta_gradx_RRoverBB)) deallocate (gradzeta_gradx_RRoverBB)
+      if (allocated(gradzeta_grady_RRoverBB)) deallocate (gradzeta_grady_RRoverBB)
+      if (allocated(b_dot_grad_zeta_RR)) deallocate (b_dot_grad_zeta_RR)
 
       geoinit = .false.
 

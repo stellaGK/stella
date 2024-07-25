@@ -39,7 +39,7 @@
 # The "?=" sets a variable if it does not already have a value. 
 ####################################################################
 
-DEBUG ?=                   # Turns on debug mode (bin) 
+DEBUG ?= on                # Turns on debug mode (bin) 
 TEST ?=                    # Turns on test mode (bin) 
 OPT ?= on                  # Optimization (on, aggressive, undefined)
 STATIC ?=                  # Prevents linking with shared libraries (bin)

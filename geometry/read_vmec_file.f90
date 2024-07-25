@@ -235,9 +235,9 @@ contains
                   sign_toroidal_flux, alpha, zeta, bmag, b_dot_grad_zeta, grad_alpha_grad_alpha, &
                   grad_alpha_grad_psit, grad_psit_grad_psit, gds23_psitalpha, gds24_psitalpha, & 
                   gds25_psitalpha, gds26_psitalpha, gbdrift_alpha, gbdrift0_psit, cvdrift_alpha, & 
-                  cvdrift0_psit,theta, B_sub_zeta, B_sub_theta, psit_displacement_fac, 
-                  gradzeta_gradpsit_times_Rsquared_over_Bsquared, gradzeta_gradalpha_times_Rsquared_over_Bsquared, &
-                  b_dot_grad_zeta_times_Rsquared, ierr)
+                  cvdrift0_psit,theta, B_sub_zeta, B_sub_theta, psit_displacement_fac, &
+                  gradzeta_gradpsit_RRoverBB, gradzeta_gradalpha_RRoverBB, &
+                  b_dot_grad_zeta_RR, ierr)
 
       use mp, only: mp_abort
 
@@ -316,8 +316,8 @@ contains
       real, dimension(:, -nzgrid:), intent(out) :: grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit
       real, dimension(:, -nzgrid:), intent(out) :: gds23_psitalpha, gds24_psitalpha, gds25_psitalpha, gds26_psitalpha
       real, dimension(:, -nzgrid:), intent(out) :: gbdrift_alpha, cvdrift_alpha, gbdrift0_psit, cvdrift0_psit, B_sub_theta, B_sub_zeta 
-      real, dimension(:, -nzgrid:), intent(out) :: gradzeta_gradpsit_times_Rsquared_over_Bsquared, gradzeta_gradalpha_times_Rsquared_over_Bsquared 
-      real, dimension(:, -nzgrid:), intent(out) :: b_dot_grad_zeta_times_Rsquared
+      real, dimension(:, -nzgrid:), intent(out) :: gradzeta_gradpsit_RRoverBB, gradzeta_gradalpha_RRoverBB 
+      real, dimension(:, -nzgrid:), intent(out) :: b_dot_grad_zeta_RR
       real, dimension(-nzgrid:), intent(out) :: zeta
       real, dimension(:), intent(out) :: alpha 
 
@@ -475,9 +475,9 @@ contains
       gradthetap_gradalpha = a * (grad_theta_pest_X * grad_alpha_X + grad_theta_pest_Y * grad_alpha_Y + grad_theta_pest_Z * grad_alpha_Z)
       
       ! For the momentum flux we need (R^2/B^2) ∇ζ . ∇α and (R^2/B^2) ∇ζ . ∇ψt
-      gradzeta_gradpsit_times_Rsquared_over_Bsquared = gradzeta_gradpsit * R**2 / (bmag*bmag)
-      gradzeta_gradalpha_times_Rsquared_over_Bsquared = gradzeta_gradalpha * R**2 / (bmag*bmag)
-      b_dot_grad_zeta_times_Rsquared = b_dot_grad_zeta * R**2
+      gradzeta_gradpsit_RRoverBB = gradzeta_gradpsit * R**2 / (bmag*bmag)
+      gradzeta_gradalpha_RRoverBB = gradzeta_gradalpha * R**2 / (bmag*bmag)
+      b_dot_grad_zeta_RR = b_dot_grad_zeta * R**2
 
       ! Define <gds23_psitalpha> = -1/B̃^2 * [(∇α . ∇ζ) * (∇ψt . ∇α)  - (∇ψt . ∇ζ) * |∇α|^2]
       ! Define <gds24_psitalpha> = -1/B̃^2 * [(∇α . ∇ζ) * |∇ψt|^2     - (∇ψt . ∇ζ) * (∇ψt . ∇α)]
@@ -509,7 +509,7 @@ contains
       ! Print some information to the output file if <verbose> = True
       call print_variables_to_outputfile()
 
-   contains
+  contains
 
 !###############################################################################
 !############################# CALCULATE GEOMETRY ##############################
@@ -523,7 +523,6 @@ contains
          implicit none 
 
          integer :: izeta
-         real :: cos_angle, sin_angle
          real, dimension(:, :), allocatable :: B_cross_grad_s_dot_grad_alpha_v2
          real, dimension(:, :), allocatable :: B_cross_grad_s_dot_grad_alpha_v3
          real, dimension(:, :), allocatable :: B_cross_grad_B_dot_grad_alpha_v2
@@ -1480,7 +1479,6 @@ contains
          implicit none
 
          real, dimension(:, :), allocatable :: temp1_vs_alphazeta, temp2_vs_alphazeta
-         integer :: ierr2
 
          !---------------------------------------------------------------------- 
 
@@ -1524,7 +1522,7 @@ contains
          implicit none
 
          real, dimension(:, :), allocatable :: minus_sinzeta_over_R, plus_coszeta_over_R
-         integer :: izeta, ierr2
+         integer :: izeta
 
          !---------------------------------------------------------------------- 
 
@@ -1573,8 +1571,7 @@ contains
 
          implicit none
 
-         real, dimension(:, :), allocatable :: temp_vs_alphazeta
-         integer :: ierr2
+         real, dimension(:, :), allocatable :: temp_vs_alphazeta 
 
          !---------------------------------------------------------------------- 
 
@@ -1621,8 +1618,7 @@ contains
 
          implicit none
 
-         real, dimension(:, :), allocatable :: temp_vs_alphazeta
-         integer :: ierr2
+         real, dimension(:, :), allocatable :: temp_vs_alphazeta 
 
          !----------------------------------------------------------------------  
 
@@ -1755,7 +1751,7 @@ contains
          bmag = 0; b_dot_grad_zeta = 0.0; B_sub_theta = 0; B_sub_zeta = 0.0
          gbdrift_alpha = 0.0; gbdrift0_psit = 0.0; cvdrift_alpha = 0; cvdrift0_psit = 0.0
          grad_alpha_grad_alpha = 0.0; grad_alpha_grad_psit = 0.0; grad_psit_grad_psit = 0.0
-         gradzeta_gradpsit_times_Rsquared_over_Bsquared = 0.0; gradzeta_gradpsit_times_Rsquared_over_Bsquared = 0.0
+         gradzeta_gradpsit_RRoverBB = 0.0; gradzeta_gradpsit_RRoverBB = 0.0
          
          ! Allocate the arrays versus (nalpha, nz) along the chosen field line
          allocate (B(nalpha, -nzgrid:nzgrid)); B = 0.0
@@ -1774,7 +1770,7 @@ contains
          allocate (d_Lambda_d_theta(nalpha, -nzgrid:nzgrid)); d_Lambda_d_theta = 0.0
          allocate (d_Lambda_d_zeta(nalpha, -nzgrid:nzgrid)); d_Lambda_d_zeta = 0.0
          allocate (d_Lambda_d_s(nalpha, -nzgrid:nzgrid)); d_Lambda_d_s = 0.0
-         allocate (B_sub_s(nalpha, -nzgrid:nzgrid)); B_sub_s = 0 .0
+         allocate (B_sub_s(nalpha, -nzgrid:nzgrid)); B_sub_s = 0.0
          allocate (B_sup_theta(nalpha, -nzgrid:nzgrid)); B_sup_theta = 0.0
          allocate (B_sup_zeta(nalpha, -nzgrid:nzgrid)); B_sup_zeta = 0.0         
          allocate (B_cross_grad_B_dot_grad_alpha(nalpha, -nzgrid:nzgrid)); B_cross_grad_B_dot_grad_alpha = 0.0        

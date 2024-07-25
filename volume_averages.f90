@@ -50,7 +50,7 @@ contains
       ! NB: dVolume does not contain the factor dx, as this should always be uniform
       dVolume = spread(jacob * spread(delzed, 1, nalpha), 2, nakx)
       if (q_as_x) then
-         dVolume = dVolume / (dqdrho * drhodpsi)
+         dVolume = dVolume / (dqdrho * drhodpsip)
       end if
 
       if (radial_variation) then
@@ -198,10 +198,8 @@ contains
 
    subroutine flux_surface_average_ffs(no_fsa, fsa)
 
-      use zgrid, only: nzgrid, delzed
-      use stella_geometry, only: jacob
-      use kt_grids, only: naky, naky_all, nalpha
-      use kt_grids, only: dy
+      use zgrid, only: nzgrid, delzed 
+      use kt_grids, only: naky, naky_all 
 
       implicit none
 
@@ -235,6 +233,7 @@ contains
          ikymod = iky - naky + 1
          ! for each ky, add the integral over zed
          fsa = fsa + sum(delzed * no_fsa(iky, :) * conjg(jacobian_ky(ikymod, :)))
+         ! TODO-GA: WARNING: Possible change of value in conversion from COMPLEX(8) to REAL(8)
          area = area + sum(delzed * jacobian_ky(ikymod, :))
       end do
       ! normalise by the flux surface area

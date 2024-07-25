@@ -46,8 +46,7 @@ contains
 
       integer :: iky, it
       integer :: iy, iz
-      real, dimension(:, :), allocatable :: flxfac
-      real :: flxfac
+      real, dimension(:, :), allocatable :: flxfac 
 
       complex, dimension(:, :, :), allocatable :: dphidy
 
@@ -55,8 +54,8 @@ contains
       it = 1
       
       !> Set all fluxes to zero just in case
-      pflx = 0.; vflx = 0.; qflx = 0.
-      pflx_vs_kxkyz = 0.; vflx_vs_kxkyz = 0.; qflx_vs_kxkyz = 0.
+      pflux_vs_s = 0.; vflux_vs_s = 0.; qflux_vs_s = 0.
+      pflux_kxkyzts = 0.; vflux_kxkyzts = 0.; qflux_kxkyzts = 0.
 
       allocate (dphidy(naky, nakx, -nzgrid:nzgrid))
 
@@ -188,14 +187,14 @@ contains
 
    subroutine calculate_moments_fullfluxsurface(g, dens, upar, pres)
 
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use species, only: spec, nspec
       use zgrid, only: nzgrid
       use vpamu_grids, only: integrate_vmu_ffs
       use vpamu_grids, only: vpa, vperp2
       use kt_grids, only: naky_all, ikx_max, ny
       use kt_grids, only: swap_kxky
-      use dist_fn_arrays, only: g0, g1
+      use dist_fn_arrays, only: g0, g1, g2
       use gyro_averages, only: gyro_average, j0_ffs
       use fields_arrays, only: phi
       use stella_transforms, only: transform_ky2y
@@ -211,7 +210,7 @@ contains
       use gyro_averages, only: j1_ffs
       use stella_geometry, only: gds21, gds22, gds2
       use stella_geometry, only: geo_surf
-      use stella_geometry, only: gradzeta_grady, gradzeta_gradx, gradpar_zeta
+      use stella_geometry, only: gradzeta_grady_RRoverBB, gradzeta_gradx_RRoverBB, b_dot_grad_zeta_RR
 
       implicit none
 
@@ -301,14 +300,14 @@ contains
                !> integrate over v-space to get the pressure, normalised by the reference pressure.
                call integrate_vmu_ffs(integrand, pres_wgts, iy, iz, pres(iy, ikx, iz, :))
 
-               fac1 = gradzeta_grady(iy, iz) * gds21(iy, iz) / geo_surf%shat - gradzeta_gradx(iy, iz) * gds2(iy, iz)
-               fac2 = gradzeta_grady(iy, iz) * gds22(iy, iz) / geo_surf%shat - gradzeta_gradx(iy, iz) * gds21(iy, iz)
+               fac1 = gradzeta_grady_RRoverBB(iy, iz) * gds21(iy, iz) / geo_surf%shat - gradzeta_gradx_RRoverBB(iy, iz) * gds2(iy, iz)
+               fac2 = gradzeta_grady_RRoverBB(iy, iz) * gds22(iy, iz) / geo_surf%shat - gradzeta_gradx_RRoverBB(iy, iz) * gds21(iy, iz)
                !> the integrand for the parallel flow moment is the parallel velocity
                do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                   iv = iv_idx(vmu_lo, ivmu)
                   is = is_idx(vmu_lo, ivmu)
                   imu = imu_idx(vmu_lo, ivmu)
-                  integrand(ivmu) = fy(iy, ikx, ivmu) * gradpar_zeta(iy, iz) &
+                  integrand(ivmu) = fy(iy, ikx, ivmu) * b_dot_grad_zeta_RR(iy, iz) &
                                     - vperp2(iy, iz, imu) * spec(is)%smz * (f2y(iy, ikx, ivmu) * fac1 + f3y(iy, ikx, ivmu) * fac2)
                end do
                !> integrate over v-space to get the parallel flow, normalised by the reference thermal speed.
@@ -322,7 +321,7 @@ contains
       deallocate (integrand)
       deallocate (fy, f2y, f3y)
 
-   end subroutine get_moments_ffs
+   end subroutine calculate_moments_fullfluxsurface
 
    !> the Fourier components of the guiding centre distribution function
    !> normalized by the equilibrium Maxwellian is passed in as g,

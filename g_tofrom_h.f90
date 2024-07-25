@@ -24,8 +24,7 @@ module g_tofrom_h
    interface g_to_h
       module procedure g_to_h_kxkyz
       module procedure g_to_h_vmu
-      module procedure g_to_h_vmu_single
-      !     module procedure g_to_h_vmu_zext
+      module procedure g_to_h_vmu_single 
    end interface
 
    interface g_to_f

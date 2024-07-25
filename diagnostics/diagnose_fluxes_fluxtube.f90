@@ -94,18 +94,22 @@ contains
    subroutine calculate_fluxes_fluxtube(df_vs_vpamuikxkyzs, pflux_vs_s, vflux_vs_s, &
       qflux_vs_s, pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts, flux_norm, write_fluxes_kxkyz)
 
+      ! Flags
+      use physics_flags, only: include_apar, include_bpar
+
       ! Data 
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use run_parameters, only: fphi, fapar
       
       ! Geometry 
-      use stella_geometry, only: bmag, btor, gds21, gds22, geo_surf 
-      use stella_geometry, only: gradzeta_gradx_times_Rsquared_over_Bsquared
-      use stella_geometry, only: gradzeta_grady_times_Rsquared_over_Bsquared
-      use stella_geometry, only: b_dot_grad_zeta_times_Rsquared
-
+      use stella_geometry, only: bmag, btor, gds2, gds21, gds22, geo_surf 
+      use stella_geometry, only: gradzeta_gradx_RRoverBB
+      use stella_geometry, only: gradzeta_grady_RRoverBB
+      use stella_geometry, only: b_dot_grad_zeta_RR
+      use stella_geometry, only: jacob, grho, btor 
+      
       ! Dimensions
-      use vpamu_grids, only: vperp2, vpa
+      use vpamu_grids, only: vperp2, vpa, mu
       use vpamu_grids, only: nvpa, nmu
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: aky, theta0
@@ -187,14 +191,14 @@ contains
             ! 			+ i*δf*J1*ky*vperp^2*rho*(theta0*gds21+gds2)*(∇ζ.∇x)*(sqrt(T*m)/Z)/(q*B^2)) 
             
             ! First add the parallel component of the momentum flux: δf*J0*vpa*(b.∇ζ)*R^2 
-            velocityintegrand_vs_vpamu = df_vs_vpamuikxkyzs(:, :, ikxkyz) * spread(vpa, 2, nmu) * b_dot_grad_zeta_times_Rsquared(ia, iz)
+            velocityintegrand_vs_vpamu = df_vs_vpamuikxkyzs(:, :, ikxkyz) * spread(vpa, 2, nmu) * b_dot_grad_zeta_RR(ia, iz)
             call gyro_average(velocityintegrand_vs_vpamu, ikxkyz, temp1_vs_vpamu)
             
             ! Next add the perpendicular component
             velocityintegrand_vs_vpamu = -df_vs_vpamuikxkyzs(:, :, ikxkyz) * spread(vperp2(ia, iz, :), 1, nvpa) * spec(is)%smz &
-                    * zi * aky(iky) * (gradzeta_grady_times_Rsquared_over_Bsquared(ia, iz) * (gds21(ia, iz) &
+                    * zi * aky(iky) * (gradzeta_grady_RRoverBB(ia, iz) * (gds21(ia, iz) &
                     + theta0(iky, ikx) * gds22(ia, iz)) / geo_surf%shat &
-                    - gradzeta_gradx_times_Rsquared_over_Bsquared(ia, iz) * (theta0(iky, ikx) * gds21(ia, iz) + gds2(ia, iz)))
+                    - gradzeta_gradx_RRoverBB(ia, iz) * (theta0(iky, ikx) * gds21(ia, iz) + gds2(ia, iz)))
             call gyro_average_j1(velocityintegrand_vs_vpamu, ikxkyz, temp2_vs_vpamu)
             
             ! Sum parallel and perpendicular components together
@@ -259,24 +263,24 @@ contains
             is = is_idx(kxkyz_lo, ikxkyz)
 
             ! Bpar contribution to particle flux
-            temp1_vs_vpamu = 4.0 * g(:, :, ikxkyz) * spec(is)%tz * spread(mu, 1, nvpa)
+            temp1_vs_vpamu = 4.0 * df_vs_vpamuikxkyzs(:, :, ikxkyz) * spec(is)%tz * spread(mu, 1, nvpa)
             call gyro_average_j1(temp1_vs_vpamu, ikxkyz, velocityintegrand_vs_vpamu)
-            call get_one_flux(iky, iz, flx_norm(iz), velocityintegrand_vs_vpamu, bpar(iky, ikx, iz, it), pflux_vs_s(is))
+            call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, bpar(iky, ikx, iz, it), pflux_vs_s(is))
             call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, bpar(iky, ikx, iz, it), pflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
             ! Bpar contribution to heat flux
             velocityintegrand_vs_vpamu = velocityintegrand_vs_vpamu * (spread(vpa**2, 2, nmu) + spread(vperp2(ia, iz, :), 1, nvpa))
-            call get_one_flux(iky, iz, flx_norm(iz), velocityintegrand_vs_vpamu, bpar(iky, ikx, iz, it), qflux_vs_s(is))
+            call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, bpar(iky, ikx, iz, it), qflux_vs_s(is))
             call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, bpar(iky, ikx, iz, it), qflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
             ! Bpar contribution to momentum flux
             ! NOT SUPPORTED, REQUIRES d J1(x)/ d x 
-            velocityintegrand_vs_vpamu = 4.0 * spec(is)%tz * spread(mu, 1, nvpa) * g(:, :, ikxkyz) &
+            velocityintegrand_vs_vpamu = 4.0 * spec(is)%tz * spread(mu, 1, nvpa) * df_vs_vpamuikxkyzs(:, :, ikxkyz) &
                     * spread(vpa, 2, nmu) * geo_surf%rmaj * btor(iz) / bmag(ia, iz)
             call gyro_average_j1(velocityintegrand_vs_vpamu, ikxkyz, temp1_vs_vpamu)
             temp2_vs_vpamu = 0.0
             velocityintegrand_vs_vpamu = temp1_vs_vpamu + temp2_vs_vpamu
-            call get_one_flux(iky, iz, flx_norm(iz), velocityintegrand_vs_vpamu, bpar(iky, ikx, iz, it), vflux_vs_s(is)) 
+            call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, bpar(iky, ikx, iz, it), vflux_vs_s(is)) 
             call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, bpar(iky, ikx, iz, it), vflux_vs_kxkyzts(iky, ikx, iz, it, is))
          end do
       end if

@@ -64,7 +64,7 @@ contains
    subroutine diagnose_stella(istep)
 
       ! Data 
-      use fields_arrays, only: phi, apar
+      use fields_arrays, only: phi, apar, bpar
       use dist_fn_arrays, only: gnew 
       use fields, only: advance_fields 
       use constants, only: zi 
@@ -141,7 +141,7 @@ contains
    ! are initialized (zgrid, kt_grids, ...). Open/append the netcdf file with
    ! extension '.out.nc'. Open/append the ascii files ('.out'; '.fluxes'; '.omega').
    ! Gets called in the <init_stella> subroutine in the <stella> module. 
-   subroutine init_stella_diagnostics(restart, tstart, git_branch, git_commit, git_date)
+   subroutine init_stella_diagnostics(restart, tstart, git_commit, git_date)
 
       use zgrid, only: init_zgrid
       use kt_grids, only: init_kt_grids
@@ -167,7 +167,6 @@ contains
       real, intent(in) :: tstart
 
       ! Print git information to netcdf file
-      character(len=50), intent(in) :: git_branch
       character(len=40), intent(in) :: git_commit 
       character(len=10), intent(in) :: git_date
 
@@ -197,7 +196,7 @@ contains
                write_g2_vs_kxkyzs, write_g2_vs_zvpamus, write_distribution_g, write_distribution_h, write_distribution_f) 
 
       ! Open the netcdf file with extension '.out.nc'
-      call init_stella_io(restart, git_branch, git_commit, git_date) 
+      call init_stella_io(restart, git_commit, git_date) 
 
       ! Get the final position <nout> of the time axis in the netcdf file
       if (proc0) call get_nout(tstart, nout)
