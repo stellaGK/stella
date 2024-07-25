@@ -17,7 +17,7 @@ program stella
 
    implicit none
 
-   logical :: debug = .false.
+   logical :: debug = .true.
    logical :: stop_stella = .false.
    logical :: mpi_initialized = .false.
 
@@ -496,8 +496,8 @@ contains
       end if
       if (proc0) then
          write (*, '(A)') " "
-         write (*, '(A)') "    istep       time          dt          |phi|^2"
-         write (*, '(A)') "---------------------------------------------------"
+         write (*, '(A)') "    istep       time          dt          |phi|^2          |apar|^2"
+         write (*, '(A)') "--------------------------------------------------------------------"
       end if
 
    end subroutine print_header

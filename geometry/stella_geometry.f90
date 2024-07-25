@@ -44,6 +44,9 @@ module stella_geometry
    public :: geo_option_switch, geo_option_vmec ! Used in kt_grids.f90
 
    private
+   
+   ! Debugging
+   logical :: debug = .true.
 
    type(flux_surface_type) :: geo_surf
    
@@ -91,7 +94,7 @@ module stella_geometry
    logical :: overwrite_gds23, overwrite_gds24, overwrite_gbdrift
    logical :: overwrite_cvdrift, overwrite_gbdrift0, q_as_x
    character(100) :: geo_file
- 
+  
    logical :: geoinit = .false.
    logical :: set_bmag_const
    
@@ -132,6 +135,9 @@ contains
 
       ! Default is no re-scaling of zed
       dzetadz = 1.0
+      
+      ! Track the code 
+      if (debug) write (*, *) 'stella_geometry::init_geometry'
 
       ! Only calculate the geometry on proc0
       if (proc0) then
@@ -172,6 +178,9 @@ contains
       !=========================================================================
       !=================== CALCULATIONS ON ALL PROCESSORS  =====================
       !=========================================================================
+      
+      ! Track the code 
+      if (debug) write (*, *) 'stella_geometry::init_geometry::calculate_on_all_processors'
 
       ! We calculated the geometric quantities on proc0, now allocate the arrays on 
       ! the other processors, and broadcast from proc0 to the other processors
