@@ -927,11 +927,7 @@ C-----------------------------------------------
         END IF
       END DO
 
-
-  720 FORMAT(8i10)
-  730 FORMAT(5e20.13)
-  740 FORMAT(a)
-  790 FORMAT(i5,/,(1p,3e12.4))
+  730 FORMAT(5e20.13) 
 
       END SUBROUTINE read_wout_text
 
@@ -1443,8 +1439,6 @@ C-----------------------------------------------
          CALL cdf_read(nwout, vn_curlab, curlabel)
       ENDIF
 
- 1000 CONTINUE
-
       CALL cdf_close(nwout, ierr)
 
       IF (.not.ALLOCATED(bsubumnc)) RETURN                              !Moved this here because ns may not be set. SAL -09/07/11
@@ -1493,7 +1487,7 @@ C-----------------------------------------------
 !     already been read in.
 
       iounit = 0
-      ierr = 0
+      ierr = 0 
       CALL safe_open(iounit, ierr,                                             &
      &               'wout_' // TRIM(filename) // '.txt',                      &
      &               'replace', 'formatted')
@@ -1714,7 +1708,7 @@ C-----------------------------------------------
      &                         curmid(js), js=1, 2*ns - 1)
             WRITE (iounit, *) (rstark(js), datastark(js), qmeas(js),           &
      &                         js=1, imse)
-            WRITE (iounit, *) (rthom(js), datathom(i), js=1, itse)
+            WRITE (iounit, *) (rthom(js), datathom(js), js=1, itse)
          END IF
 
          IF (nobd .gt. 0) THEN

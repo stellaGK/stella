@@ -260,7 +260,7 @@ contains
                      call fourth_derivative_second_centered_zed(iz_low(iseg), iseg, nsegments(ie, iky), &
                                                                 g(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it, ivmu), &
                                                                 delzed(0), gleft, gright, periodic(iky), &
-                                                                dgdz(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it, ivmu), .false.)
+                                                                dgdz(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it, ivmu))
                   end do
                end do
             end do
