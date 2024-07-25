@@ -985,7 +985,7 @@ contains
 
       use constants, only: pi
       use zgrid, only: nz2pi, zed
-      use stella_geometry, only: zed_scalefac
+      use stella_geometry, only: dzetadz
       use stella_geometry, only: alpha
       use kt_grids, only: nalpha
       use globalVariables, only: iota
@@ -1001,10 +1001,10 @@ contains
 
       ! convert from scaled zed grid on [-pi,pi]
       ! to un-scaled grid with lower bound of zero
-      ! note that zed_scalefac=1 unless geometryScheme=5 (VMEC)
+      ! note that dzetadz=1 unless geometryScheme=5 (VMEC)
       ! for geometryScheme=5, this will get extended zeta domain
       ! with lower bound of 0
-      zed_stella = (zed(-nzpi:nzpi) + pi) / zed_scalefac
+      zed_stella = (zed(-nzpi:nzpi) + pi) / dzetadz
 
       ! if geometryScheme is 5, then using vmec geo
       ! and thus zed in stella is scaled zeta

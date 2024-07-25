@@ -199,7 +199,7 @@ contains
       use stella_geometry, only: cvdrift0, gbdrift0
       use stella_geometry, only: gds23, gds24
       use stella_geometry, only: geo_surf, q_as_x
-      use stella_geometry, only: dxdXcoord, drhodpsi, dydalpha
+      use stella_geometry, only: dxdpsi, drhodpsi, dydalpha
       use vpamu_grids, only: vpa, vperp2, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use neoclassical_terms, only: include_neoclassical_terms
@@ -270,8 +270,7 @@ contains
          !> if including neoclassical correction to equilibrium Maxwellian,
          !> then add in v_E^{nc} . grad y dg/dy coefficient here
          if (include_neoclassical_terms) then
-            wdrifty_g(:, :, ivmu) = wdrifty_g(:, :, ivmu) + code_dt * 0.5 * (gds23 * dphineo_dzed &
-                                                                             + drhodpsi * dydalpha * dphineo_drho)
+            wdrifty_g(:, :, ivmu) = wdrifty_g(:, :, ivmu) + code_dt * 0.5 * (gds23 * dphineo_dzed + drhodpsi * dydalpha * dphineo_drho)
          end if
 
          wdrifty_phi(:, :, ivmu) = spec(is)%zt * (wgbdrifty + wcvdrifty * vpa(iv))
@@ -312,8 +311,7 @@ contains
          !> if including neoclassical correction to equilibrium Maxwellian,
          !> then add in v_E^{nc} . grad x dg/dx coefficient here
          if (include_neoclassical_terms) then
-            wdriftx_g(:, :, ivmu) = wdriftx_g(:, :, ivmu) + code_dt * 0.5 * (gds24 * dphineo_dzed &
-                                                                             - dxdXcoord * dphineo_dalpha)
+            wdriftx_g(:, :, ivmu) = wdriftx_g(:, :, ivmu) + code_dt * 0.5 * (gds24 * dphineo_dzed - dxdpsi * dphineo_dalpha)
          end if
          wdriftx_phi(:, :, ivmu) = spec(is)%zt * (wgbdriftx + wcvdriftx * vpa(iv))
          !> if maxwellian_normalizatiion = .true., evolved distribution function is normalised by a Maxwellian
@@ -335,7 +333,7 @@ contains
             end if
             wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) &
                                       - 0.5 * spec(is)%zt * dfneo_dvpa(:, :, ivmu) * wcvdriftx &
-                                      + code_dt * 0.5 * (dfneo_dalpha(:, :, ivmu) * dxdXcoord - dfneo_dzed(:, :, ivmu) * gds24)
+                                      + code_dt * 0.5 * (dfneo_dalpha(:, :, ivmu) * dxdpsi - dfneo_dzed(:, :, ivmu) * gds24)
          end if
 
       end do
@@ -353,7 +351,7 @@ contains
       use species, only: spec
       use zgrid, only: nzgrid
       use kt_grids, only: nalpha
-      use stella_geometry, only: dydalpha, drhodpsi, sign_torflux
+      use stella_geometry, only: dydalpha, drhodpsi, clebsch_factor
       use vpamu_grids, only: vperp2, vpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use dist_fn_arrays, only: wstar
@@ -374,6 +372,21 @@ contains
 
       allocate (energy(nalpha, -nzgrid:nzgrid))
 
+      ! We have wstar = - (1/C) (a*Bref) (dy/dalpha) (d/dpsi) ... 
+      ! The profile gradients are given with respect to r, i.e., <fprim> = -(a/n)(dn/dr)
+      ! wstar = - (1/C) (a*Bref) (dy/dalpha) (1/n) (dn/dpsi) ... 
+      !       = - (1/C) (a*Bref) (dy/dalpha) (dr/dpsi) (1/n) (dn/dr) ... 
+      !       = - (1/C) * (1/a) (dy/dalpha) * (a*Bref) (dr/dpsi) * (a/n) (dn/dr) ... 
+      !       = - (1/<clebsch_factor>) * <dydalpha> * <drhodpsi> * <fprim> ...
+      ! Note that for psi=psit we have B = sign_torflux ∇ψ x ∇α 
+      ! Note that for psi=psip we have B = - ∇ψ x ∇α  
+      !     <dydalpha> = (rhor/a)(d(y/rhor)/dalpha) = (1/a)(dy/dalpha) 
+      !     <drhodpsi> = drho/dψ̃ = d(r/a)/d(psi/(a^2*Br)) = (a*Bref) * dr/dpsi
+      !     1/<clebsch_factor> = -1 or sign_torflux
+      ! Note that for psi=q we have B = - (dpsi_p/dq) ∇ψ x ∇α and,
+      !     <drhodpsi> = drho/dq = d(r/a)/dq = (1/a) * dr/dq
+      !     <dydalpha> = (rhor/a)(d(y/rhor)/dalpha) = (1/a)(dy/dalpha) 
+      !     1/<clebsch_factor> = - dq/d(psip/(a^2*Br)) = - (a^2*Bref) (qd/dpsi_p) 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          is = is_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
@@ -383,13 +396,13 @@ contains
             if (maxwellian_normalization) then
                call mp_abort("include_neoclassical_terms = T not yet supported for maxwellian_normalization = T. Aborting.")
             else
-               wstar(:, :, ivmu) = -sign_torflux * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
+               wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
                                    * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
                                       * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) &
                                       - dfneo_drho(:, :, ivmu))
             end if
          else
-            wstar(:, :, ivmu) = -sign_torflux * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
+            wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
                                 * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))
          end if
          if (.not. maxwellian_normalization) then
@@ -1827,6 +1840,7 @@ contains
       use kt_grids, only: x, swap_kxky, swap_kxky_back
       use constants, only: pi, zi
       use file_utils, only: runtype_option_switch, runtype_multibox
+      use physics_flags, only: suppress_zonal_interaction
       use dist_fn_arrays, only: g_scratch
       use g_tofrom_h, only: g_to_h
 
@@ -1901,6 +1915,10 @@ contains
                else
                   call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
                end if
+               !> zero out the zonal contribution to d<chi>/dx if requested
+               if (suppress_zonal_interaction) then
+                  g0k(1,:) = 0.0
+               end if
                !> if running with equilibrium flow shear, make adjustment to
                !> the term multiplying dg/dy
                if (prp_shear_enabled .and. hammett_flow_shear) then
@@ -1932,6 +1950,10 @@ contains
 
                !> compute dg/dx in k-space (= i*kx*g)
                call get_dgdx(g(:, :, iz, it, ivmu), g0k)
+               !> zero out the zonal contribution to dg/dx if requested
+               if (suppress_zonal_interaction) then
+                  g0k(1,:) = 0.0
+               end if
                !> if running with equilibrium flow shear, correct dg/dx term
                if (prp_shear_enabled .and. hammett_flow_shear) then
                   call get_dgdy(g(:, :, iz, it, ivmu), g0a)

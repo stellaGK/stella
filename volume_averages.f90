@@ -27,7 +27,7 @@ contains
 
       use zgrid, only: nzgrid, nztot, delzed
       use kt_grids, only: nalpha, aky, nakx, naky, rho_d_clamped
-      use stella_geometry, only: geo_surf, drhodpsi
+      use stella_geometry, only: geo_surf, drhodpsip
       use stella_geometry, only: geo_surf, jacob, djacdrho, q_as_x, dVolume
       use physics_flags, only: full_flux_surface, radial_variation
 
@@ -57,7 +57,7 @@ contains
          if (q_as_x) then
             dVolume = dVolume * (1.+spread(spread(rho_d_clamped, 1, nalpha), 3, nztot) &
                                  * (spread(djacdrho / jacob, 2, nakx) - geo_surf%d2qdr2 / dqdrho &
-                                    + geo_surf%d2psidr2 * drhodpsi))
+                                    + geo_surf%d2psidr2 * drhodpsip))
          else
             dVolume = dVolume * (1.+spread(spread(rho_d_clamped, 1, nalpha), 3, nztot) &
                                  * spread(djacdrho / jacob, 2, nakx))

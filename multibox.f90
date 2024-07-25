@@ -223,7 +223,7 @@ contains
       use constants, only: pi
       use stella_layouts, only: vmu_lo
       use stella_geometry, only: geo_surf, q_as_x, get_x_to_rho
-      use stella_geometry, only: drhodpsi, dxdXcoord
+      use stella_geometry, only: drhodpsi, dxdpsi
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, naky, akx, aky, nx, x, x_d, x0
       use kt_grids, only: centered_in_rho, rho_clamped, rho_d, rho_d_clamped
@@ -346,10 +346,10 @@ contains
             if (q_as_x) then
                dqdrho = geo_surf%shat * geo_surf%qinp / geo_surf%rhoc
                x_shift = pi * x0 * (1.0 &
-                                    - 0.5 * rhostar * pi * x0 * geo_surf%d2qdr2 / (pfac * dqdrho**2 * dxdXcoord))
+                                    - 0.5 * rhostar * pi * x0 * geo_surf%d2qdr2 / (pfac * dqdrho**2 * dxdpsi))
             else
                x_shift = pi * x0 * (1.0 &
-                                    - 0.5 * rhostar * pi * x0 * geo_surf%d2psidr2 * drhodpsi**2 / (pfac * dxdXcoord))
+                                    - 0.5 * rhostar * pi * x0 * geo_surf%d2psidr2 * drhodpsi**2 / (pfac * dxdpsi))
             end if
          end if
          do i = 1, x_fft_size

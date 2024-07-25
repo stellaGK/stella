@@ -151,8 +151,7 @@ export NETCDF_LIB
 # Export the subdirectories
 export COLL=$(GK_HEAD_DIR)/dissipation
 export UTILS=$(GK_HEAD_DIR)/utils
-export GEO=$(GK_HEAD_DIR)/geo
-export VMEC=$(GEO)/vmec_interface
+export GEO=$(GK_HEAD_DIR)/geometry
 export LIBSTELL=$(UTILS)/mini_libstell
 
 # We make extra libraries <mini_libstell> and <stella_utils>
@@ -292,7 +291,7 @@ ifneq ($(TOPDIR),$(CURDIR))
 endif
 
 # VPATH is a list of directories to be searched for missing source files
-VPATH = $(COLL):$(UTILS):$(GEO):$(VMEC):$(LIBSTELL):$(GIT_VERSION_DIR)/src:$(NEASYF)
+VPATH = $(COLL):$(UTILS):$(GEO):$(LIBSTELL):$(GIT_VERSION_DIR)/src:$(NEASYF)
 
 # Removes non-existing directories from VPATH
 VPATH_tmp := $(foreach tmpvp,$(subst :, ,$(VPATH)),$(shell [ -d $(tmpvp) ] && echo $(tmpvp)))
@@ -313,7 +312,7 @@ DEPEND=Makefile.depend
 DEPEND_CMD=$(PERL) fortdep
 
 # Most common include and library directories
-DEFAULT_INC_LIST = . $(COLL) $(UTILS) $(LIBSTELL) $(VMEC) $(GEO) $(NEASYF)
+DEFAULT_INC_LIST = . $(COLL) $(UTILS) $(LIBSTELL) $(GEO) $(NEASYF)
 DEFAULT_LIB_LIST =
 DEFAULT_INC=$(foreach tmpinc,$(DEFAULT_INC_LIST),$(shell [ -d $(tmpinc) ] && echo -I$(tmpinc)))
 DEFAULT_LIB=$(foreach tmplib,$(DEFAULT_LIB_LIST),$(shell [ -d $(tmplib) ] && echo -L$(tmplib)))
@@ -434,10 +433,11 @@ check: run-automated-fortran-tests run-automated-numerical-tests-for-stella
 
 ############################################################# MORE DIRECTIVES
 
-.PHONY: depend clean distclean tar test_make
+.PHONY: depend clean distclean
 
 depend: $(GIT_VERSION_SENTINEL) $(NEASYF)
 	@$(DEPEND_CMD) -m "$(MAKE)" -1 -o -v=0 $(VPATH)
+
 
 # To compile correctly it is very important to remove the previously build
 # *.o and *.mod files. Here '$(MAKE) -C $(LIBSTELL) clean' will look at 
@@ -457,50 +457,6 @@ cleanlib:
 distclean: unlink clean cleanlib
 
 %.o: %.mod
-
-tar:
-	@[ ! -d $(TARDIR) ] || echo "ERROR: directory $(TARDIR) exists. Stop."
-	@[ -d $(TARDIR) ] || $(MAKE) tar_exec
-
-test_make:
-	@echo GK_SYSTEM is $(GK_SYSTEM)
-	@echo .DEFAULT_GOAL is $(.DEFAULT_GOAL)
-	@echo VPATH is $(VPATH)
-	@echo CURDIR is $(CURDIR)
-	@echo TOPDIR is $(TOPDIR)
-	@echo NETCDF_DIR is $(NETCDF_DIR)
-	@echo FFTW_DIR is $(FFTW_DIR)
-	@echo
-	@echo Compile mode:
-	@echo  DEBUG is $(DEBUG)
-	@echo  TEST is $(TEST)
-	@echo  OPT is $(OPT)
-	@echo  STATIC is $(STATIC)
-	@echo  DBLE is $(DBLE)
-	@echo
-	@echo Functions:
-	@echo  USE_FFT is $(USE_FFT)
-	@echo  USE_NETCDF is $(USE_NETCDF)
-	@echo  USE_HDF5 is $(USE_HDF5)
-	@echo  USE_LOCAL_RAN is $(USE_LOCAL_RAN)
-	@echo  USE_LOCAL_SPFUNC is $(USE_LOCAL_SPFUNC)
-	@echo  USE_NAGLIB is $(USE_NAGLIB)
-	@echo  USE_LAPACK is $(USE_LAPACK)
-	@echo  DEFAULT_LIB is $(DEFAULT_LIB)
-	@echo  MPI_LIB is $(MPI_LIB)
-	@echo
-	@echo FC is $(FC)
-	@echo F90FLAGS is $(F90FLAGS)
-	@echo F90OPTFLAGS is $(F90OPTFLAGS)
-	@echo CC is $(CC)
-	@echo CFLAGS is $(CFLAGS)
-	@echo COPTFLAGS is $(COPTFLAGS)
-	@echo LD is $(LD)
-	@echo LDFLAGS is $(LDFLAGS)
-	@echo CPP is $(CPP)
-	@echo CPPFLAGS is $(CPPFLAGS)
-	@echo LIBS is $(LIBS)
-	$(MAKE) -C $(VMEC) test_make
 
 unlink:
 	-rm -f $(F90FROMFPP)

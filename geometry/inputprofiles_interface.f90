@@ -37,7 +37,7 @@ contains
       use common_types, only: flux_surface_type
       use finite_differences, only: fd3pt, d2_3pt
       use splines, only: geo_spline
-      use millerlocal, only: local
+      use miller_geometry, only: local
 
       implicit none
 
@@ -201,7 +201,7 @@ contains
       use finite_differences, only: fd3pt, d2_3pt
       use splines, only: geo_spline
       use common_types, only: spec_type
-      use millerlocal, only: local
+      use miller_geometry, only: local
       use physics_parameters, only: vnew_ref, rhostar
 
       implicit none

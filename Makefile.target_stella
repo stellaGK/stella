@@ -19,6 +19,7 @@ stella.x: git_version_impl.o $(stella_mod)
 automated-fortran-tests: git_version_impl.o
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
+# Create phony targets "modules", "utils_all" and "mini_libstell_all"
 .PHONY: modules utils_all mini_libstell_all
 
 # When we call the target "modules" we want to gather/compile two submodules: "utils_all" and "mini_libstell_all"
@@ -39,4 +40,5 @@ mini_libstell.a:
 # Remove the executable
 distclean:
 	-rm -f stella stella.x
+
 

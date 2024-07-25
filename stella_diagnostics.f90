@@ -663,7 +663,9 @@ contains
       use vpamu_grids, only: maxwell_vpa, maxwell_mu   
       !> For momentum flux -- to allow for non-axisymmetry                                                                                                                                                                                                                                                                                                                                                          
       use stella_geometry, only: gds2
-      use stella_geometry, only: gradzeta_grady, gradzeta_gradx, gradpar_zeta
+      use stella_geometry, only: gradzeta_gradpsit_times_Rsquared_over_Bsquared
+      use stella_geometry, only: gradzeta_gradalpha_times_Rsquared_over_Bsquared
+      use stella_geometry, only: b_dot_grad_zeta_times_Rsquared
       use kt_grids, only: akx
       implicit none
 
@@ -725,12 +727,12 @@ contains
             !> Get momentum flux - allowing for non-axisymmetry
             !> Parallel component
             call gyro_average(g(:, :, ikxkyz), ikxkyz, gtmp1)
-            gtmp2 = gtmp1 * spread(vpa, 2, nmu) * gradpar_zeta(ia, iz)
+            gtmp2 = gtmp1 * spread(vpa, 2, nmu) * b_dot_grad_zeta_times_Rsquared(ia, iz)
             !> Perpendicular component
             call gyro_average_j1(g(:, :, ikxkyz), ikxkyz, gtmp1)
             gtmp3 = -gtmp1 * spread(vperp2(ia, iz, :), 1, nvpa) * spec(is)%smz &
-                    * zi * aky(iky) * (gradzeta_grady(ia, iz) * (gds21(ia, iz) + theta0(iky, ikx) * gds22(ia, iz)) / geo_surf%shat &
-                                       - gradzeta_gradx(ia, iz) * (theta0(iky, ikx) * gds21(ia, iz) + gds2(ia, iz)))
+                    * zi * aky(iky) * (gradzeta_grady_times_Rsquared_over_Bsquared(ia, iz) * (gds21(ia, iz) + theta0(iky, ikx) * gds22(ia, iz)) / geo_surf%shat &
+                                       - gradzeta_gradx_times_Rsquared_over_Bsquared(ia, iz) * (theta0(iky, ikx) * gds21(ia, iz) + gds2(ia, iz)))
             !> Sum parallel and perpendicular components together
             gtmp1 = gtmp2 + gtmp3
 
@@ -1773,7 +1775,9 @@ contains
       use gyro_averages, only: j1_ffs
       use stella_geometry, only: gds21, gds22, gds2
       use stella_geometry, only: geo_surf
-      use stella_geometry, only: gradzeta_grady, gradzeta_gradx, gradpar_zeta
+      use stella_geometry, only: gradzeta_gradpsit_times_Rsquared_over_Bsquared
+      use stella_geometry, only: gradzeta_gradalpha_times_Rsquared_over_Bsquared
+      use stella_geometry, only: b_dot_grad_zeta_times_Rsquared
 
       implicit none
 
@@ -1863,14 +1867,14 @@ contains
                !> integrate over v-space to get the pressure, normalised by the reference pressure.
                call integrate_vmu_ffs(integrand, pres_wgts, iy, iz, pres(iy, ikx, iz, :))
 
-               fac1 = gradzeta_grady(iy, iz) * gds21(iy, iz) / geo_surf%shat - gradzeta_gradx(iy, iz) * gds2(iy, iz)
-               fac2 = gradzeta_grady(iy, iz) * gds22(iy, iz) / geo_surf%shat - gradzeta_gradx(iy, iz) * gds21(iy, iz)
+               fac1 = gradzeta_grady_times_Rsquared_over_Bsquared(iy, iz) * gds21(iy, iz) / geo_surf%shat - gradzeta_gradx_times_Rsquared_over_Bsquared(iy, iz) * gds2(iy, iz)
+               fac2 = gradzeta_grady_times_Rsquared_over_Bsquared(iy, iz) * gds22(iy, iz) / geo_surf%shat - gradzeta_gradx_times_Rsquared_over_Bsquared(iy, iz) * gds21(iy, iz)
                !> the integrand for the parallel flow moment is the parallel velocity
                do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                   iv = iv_idx(vmu_lo, ivmu)
                   is = is_idx(vmu_lo, ivmu)
                   imu = imu_idx(vmu_lo, ivmu)
-                  integrand(ivmu) = fy(iy, ikx, ivmu) * gradpar_zeta(iy, iz) &
+                  integrand(ivmu) = fy(iy, ikx, ivmu) * b_dot_grad_zeta_times_Rsquared(iy, iz) &
                                     - vperp2(iy, iz, imu) * spec(is)%smz * (f2y(iy, ikx, ivmu) * fac1 + f3y(iy, ikx, ivmu) * fac2)
                end do
                !> integrate over v-space to get the parallel flow, normalised by the reference thermal speed.

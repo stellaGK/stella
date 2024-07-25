@@ -1,4 +1,4 @@
-module millerlocal
+module miller_geometry
 
    use common_types, only: flux_surface_type
 
@@ -20,7 +20,7 @@ module millerlocal
    real :: betaprim, betadbprim
    real :: qinp, shat, d2qdr2
    real :: rgeo
-   real :: dpsidrho, d2psidr2, dpsidrho_psi0
+   real :: dpsipdrho, d2psidr2, dpsipdrho_psi0
    real :: psitor_lcfs
    real :: rhotor, drhotordrho, dIdrho, dI
    real :: rhoc0
@@ -174,7 +174,7 @@ contains
       if (read_profile_variation) then
          open (1002, file='RZ.in', status='old')
          read (1002, '(12e13.5)') rhoc0, dI, qinp, shat, d2qdr2, kappa, kapprim, tri, triprim, &
-            betaprim, betadbprim, dpsidrho_psi0
+            betaprim, betadbprim, dpsipdrho_psi0
          do j = -nz, nz
             read (1002, '(5e13.5)') dum, d2R(j), d2Z(j), bmag_psi0(j), grho_psi0(j)
          end do
@@ -252,7 +252,7 @@ contains
          call send(rhoc, 0, 130)
          call send(qinp, 0, 131)
          call send(shat, 0, 132)
-         call send(dpsidrho, 0, 133)
+         call send(dpsipdrho, 0, 133)
          call send(bmag, 0, 134)
          call send(grho, 0, 135)
 
@@ -269,7 +269,7 @@ contains
          call send(rhoc, njobs - 1, 230)
          call send(qinp, njobs - 1, 231)
          call send(shat, njobs - 1, 232)
-         call send(dpsidrho, njobs - 1, 233)
+         call send(dpsipdrho, njobs - 1, 233)
          call send(bmag, njobs - 1, 234)
          call send(grho, njobs - 1, 235)
          rhoc_psi0 = rhoc
@@ -292,7 +292,7 @@ contains
          call receive(rhoc_psi0, 1, 130)
          call receive(qinp_psi0, 1, 131)
          call receive(shat_psi0, 1, 132)
-         call receive(dpsidrho_psi0, 1, 133)
+         call receive(dpsipdrho_psi0, 1, 133)
          call receive(bmag_psi0, 1, 134)
          call receive(grho_psi0, 1, 135)
          local%rhoc = rhoc
@@ -320,7 +320,7 @@ contains
          call receive(rhoc_psi0, 1, 230)
          call receive(qinp_psi0, 1, 231)
          call receive(shat_psi0, 1, 232)
-         call receive(dpsidrho_psi0, 1, 233)
+         call receive(dpsipdrho_psi0, 1, 233)
          call receive(bmag_psi0, 1, 234)
          call receive(grho_psi0, 1, 235)
          local%rhoc = rhoc
@@ -350,8 +350,9 @@ contains
 
    end subroutine communicate_parameters_multibox
 
+	! gradpar_out is called b_dot_grad_zeta in stella_geometry
    subroutine get_local_geo(nzed, nzgrid, zed_in, zed_equal_arc, &
-                            dpsidrho_out, dpsidrho_psi0_out, dIdrho_out, grho_out, &
+                            dpsipdrho_out, dpsipdrho_psi0_out, dIdrho_out, grho_out, &
                             bmag_out, bmag_psi0_out, &
                             gds2_out, gds21_out, gds22_out, gds23_out, gds24_out, gradpar_out, &
                             gbdrift0_out, gbdrift_out, cvdrift0_out, cvdrift_out, &
@@ -371,7 +372,7 @@ contains
       integer, intent(in) :: nzed, nzgrid
       real, dimension(-nzgrid:), intent(in) :: zed_in
       logical, intent(in) :: zed_equal_arc
-      real, intent(out) :: dpsidrho_out, dpsidrho_psi0_out, dIdrho_out
+      real, intent(out) :: dpsipdrho_out, dpsipdrho_psi0_out, dIdrho_out
       real, dimension(-nzgrid:), intent(out) :: grho_out, &
                                                 bmag_out, bmag_psi0_out, &
                                                 gds2_out, gds21_out, gds22_out, gds23_out, gds24_out, &
@@ -446,18 +447,18 @@ contains
       call get_jacrho
 
       ! theta_integrate returns integral from 0 -> 2*pi
-      ! note that dpsidrho here is an intermediary
-      ! that requires manipulation to get final dpsidrho
-      call theta_integrate(jacrho(-nz2pi:nz2pi) / Rr(2, -nz2pi:nz2pi)**2, dpsidrho)
-      dpsidrho = dpsidrho / (2.*pi)
+      ! note that dpsipdrho here is an intermediary
+      ! that requires manipulation to get final dpsipdrho
+      call theta_integrate(jacrho(-nz2pi:nz2pi) / Rr(2, -nz2pi:nz2pi)**2, dpsipdrho)
+      dpsipdrho = dpsipdrho / (2.*pi)
 
       ! get dpsinorm/drho = (I/2*pi*q)*int_0^{2*pi} dthet jacrho/R**2
 
       ! if using input.profiles, we are given
       ! dpsitordrho and must use it to compute rgeo
       if (abs(local%dpsitordrho) > epsilon(0.)) then
-         local%rgeo = local%dpsitordrho / dpsidrho
-         dpsidrho = local%dpsitordrho / local%qinp
+         local%rgeo = local%dpsitordrho / dpsipdrho
+         dpsipdrho = local%dpsitordrho / local%qinp
          local%d2psidr2 = (local%d2psitordrho2 - local%dpsitordrho * local%shat / local%rhoc) &
                           / local%qinp
          ! I=Btor*R is a flux function
@@ -465,30 +466,30 @@ contains
          bi = local%rgeo
       else
          ! otherwise, we are given rgeo
-         ! and must use it to compute dpsidrho
+         ! and must use it to compute dpsipdrho
 
          ! I=Btor*R is a flux function
          ! bi = I/(Btor(psi,theta of Rgeo)*a) = Rgeo/a
          bi = local%rgeo + dI * (rhoc - rhoc0)
-         dpsidrho = dpsidrho * bi / local%qinp
+         dpsipdrho = dpsipdrho * bi / local%qinp
       end if
 
 !    ! get dpsinorm/drho
-!    call get_dpsidrho (dpsidrho)
+!    call get_dpsipdrho (dpsipdrho)
 
       ! get |grad rho| and |grad psi|
-      call get_gradrho(dpsidrho, grho)
+      call get_gradrho(dpsipdrho, grho)
 
       ! quantity needed in calculation of dI/drho and djacrho/drho
       drz = (dRdrho * dRdth + dZdrho * dZdth) / jacrho
       call get_dthet(drz, drzdth)
 
       ! get dI/drho
-      call get_dIdrho(dpsidrho, grho, dIdrho)
+      call get_dIdrho(dpsipdrho, grho, dIdrho)
       dIdrho_out = dIdrho
 
       ! get djacobian/drho*dpsi/drho and djacr/drho
-      call get_djacdrho(dpsidrho, dIdrho, grho)
+      call get_djacdrho(dpsipdrho, dIdrho, grho)
 
       ! get d2R/drho2 and d2Z/drho2
       call get_d2RZdr2
@@ -506,7 +507,7 @@ contains
 
       ! the next line is for multibox runs
       if (load_psi0_variables) then
-         dpsidrho_psi0 = dpsidrho
+         dpsipdrho_psi0 = dpsipdrho
          bmag_psi0 = bmag
          grho_psi0 = grho
       end if
@@ -516,7 +517,7 @@ contains
          write (1002, '(12e13.5)') local%rhoc, dIdrho, local%qinp, local%shat, local%d2qdr2, &
             local%kappa, local%kapprim, &
             local%tri, local%triprim, &
-            local%betaprim, local%betadbprim, dpsidrho
+            local%betaprim, local%betadbprim, dpsipdrho
          do j = -nz, nz
             write (1002, '(5e13.5)') theta(j), d2Rdr2(j), d2Zdr2(j), bmag(j), grho(j)
          end do
@@ -527,12 +528,12 @@ contains
       call get_dthet(bmag, dbdth)
 
       ! calculate b . grad theta
-      gradpar = dpsidrho / (bmag * jacrho)
+      gradpar = dpsipdrho / (bmag * jacrho)
       ! b . grad B
       gradparb = gradpar * dBdth
 
       ! get d|grad rho|^2/drho and d|grad psi|^2/drho
-      call get_dgr2dr(dpsidrho, grho)
+      call get_dgr2dr(dpsipdrho, grho)
 
       ! get dB/drho and d2B/drho2
       call get_dBdrho(bmag, dIdrho)
@@ -547,25 +548,25 @@ contains
       dgradparBdrho = dgradpardrho * dBdth + gradpar * d2Bdrdth
 
       ! obtain varthet = (I/(q*(dpsi/dr)) * int_0^theta dtheta' jacrho/R^2
-      call get_varthet(dpsidrho)
+      call get_varthet(dpsipdrho)
 
       ! obtain dvarthet/drho
-      call get_dvarthdr(dpsidrho, dIdrho)
+      call get_dvarthdr(dpsipdrho, dIdrho)
 
       ! get |grad theta|^2, grad r . grad theta, grad alpha . grad theta, etc.
-      call get_graddotgrad(dpsidrho, grho)
+      call get_graddotgrad(dpsipdrho, grho)
 
       call get_gds(gds2, gds21, gds22, gds23, gds24)
 
       ! this is (grad alpha x B) . grad theta
-      cross = dpsidrho * (gradrho_gradalph * gradalph_gradthet - gradalph2 * gradrho_gradthet)
+      cross = dpsipdrho * (gradrho_gradalph * gradalph_gradthet - gradalph2 * gradrho_gradthet)
 
       ! note that the definitions of gbdrift, gbdrift0, dgbdriftdr and dgbdrift0dr
       ! are such that it gets multiplied by vperp2, not mu.  This is in contrast to
       ! Michael's GS3 notes
 
       ! this is bhat/B x (grad B/B) . grad alpha * 2 * dpsiN/drho
-      gbdrift = 2.0 * (-dBdrho + cross * dBdth * dpsidrho / bmag**2) / bmag
+      gbdrift = 2.0 * (-dBdrho + cross * dBdth * dpsipdrho / bmag**2) / bmag
       ! this is bhat/B x (bhat . grad bhat) . grad alpha * 2 * dpsiN/drho
       ! this is assuming betaprim = 4*pi*ptot/B0^2 * (-d ln ptot / drho)
       cvdrift = (gbdrift + 2.0 * local%betaprim / bmag**2)
@@ -575,11 +576,11 @@ contains
       cvdrift0 = -2.*bi * dqdr / bmag**2
 
       ! this is 2*dpsiN/drho times the rho derivative (bhat/B x grad B / B) . (grad q)
-      dcvdrift0drho = cvdrift0 * (dgradparbdrho + gradparb * (dIdrho / bi - 2.*dBdrho / bmag - local%d2psidr2 / dpsidrho)) &
+      dcvdrift0drho = cvdrift0 * (dgradparbdrho + gradparb * (dIdrho / bi - 2.*dBdrho / bmag - local%d2psidr2 / dpsipdrho)) &
                       - 2.*bi * gradparb * local%d2qdr2 / bmag**2
       ! this is 2*dpsiN/drho/B times the rho derivative of (bhat x gradB/B) . (grad q)
       ! note that there's an extra factor of 1/B that's not expanded due to v_perp -> mu
-      dgbdrift0drho = cvdrift0 * (dgradparbdrho + gradparb * (dIdrho / bi - dBdrho / bmag - local%d2psidr2 / dpsidrho)) &
+      dgbdrift0drho = cvdrift0 * (dgradparbdrho + gradparb * (dIdrho / bi - dBdrho / bmag - local%d2psidr2 / dpsipdrho)) &
                       - 2.*bi * gradparb * local%d2qdr2 / bmag**2
 
       cvdrift0 = cvdrift0 * gradparb
@@ -590,37 +591,37 @@ contains
       call get_d2Idr2_d2jacdr2(grho, dIdrho)
 
       ! get d^2varhteta/drho^2
-      call get_d2varthdr2(dpsidrho, dIdrho)
+      call get_d2varthdr2(dpsipdrho, dIdrho)
 
       ! get d2B/drho^2
       call get_d2Bdr2(bmag, dIdrho)
 
       ! get d/dr [(grad alpha x B) . grad theta]
-      call get_dcrossdr(dpsidrho, dIdrho, grho)
+      call get_dcrossdr(dpsipdrho, dIdrho, grho)
 
       ! dgbdriftdrho is d/drho [(bhat/B x (grad B) . grad alpha) * 2 * dpsiN/drho] / B
       ! note that there's an extra factor of 1/B that's not expanded due to v_perp -> mu
-      dgbdriftdrho = 2.0 * (local%d2psidr2 * dBdrho / dpsidrho - d2Bdr2 &
-                            + dpsidrho * (dcrossdr * dBdth + cross * (d2Bdrdth - 2.*dBdth * dBdrho / bmag)) / bmag**2) / bmag
+      dgbdriftdrho = 2.0 * (local%d2psidr2 * dBdrho / dpsipdrho - d2Bdr2 &
+                            + dpsipdrho * (dcrossdr * dBdth + cross * (d2Bdrdth - 2.*dBdth * dBdrho / bmag)) / bmag**2) / bmag
       ! dcvdriftdrho is d/drho (bhat/B x [bhat . grad bhat] . grad alpha) * 2 * dpsiN/drho
       dcvdriftdrho = dgbdriftdrho - gbdrift * dBdrho / bmag &
                      + 2.0 * local%betadbprim / bmag**2 - 4.0 * local%betaprim * dBdrho / bmag**3 &
-                     - 2.0 * local%betaprim * local%d2psidr2 / dpsidrho
+                     - 2.0 * local%betaprim * local%d2psidr2 / dpsipdrho
 
       !the next two sets of lines are corrections needed for the side boxes in a multibox simulation
-      !gbdrift  = gbdrift *(dpsidrho_psi0/dpsidrho)*(bmag/bmag_psi0)
-      !gbdrift0 = gbdrift0*(dpsidrho_psi0/dpsidrho)*(bmag/bmag_psi0)
-      gbdrift = gbdrift * (dpsidrho_psi0 / dpsidrho)
-      gbdrift0 = gbdrift0 * (dpsidrho_psi0 / dpsidrho)
-      cvdrift = cvdrift * (dpsidrho_psi0 / dpsidrho)
-      cvdrift0 = cvdrift0 * (dpsidrho_psi0 / dpsidrho)
+      !gbdrift  = gbdrift *(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
+      !gbdrift0 = gbdrift0*(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
+      gbdrift = gbdrift * (dpsipdrho_psi0 / dpsipdrho)
+      gbdrift0 = gbdrift0 * (dpsipdrho_psi0 / dpsipdrho)
+      cvdrift = cvdrift * (dpsipdrho_psi0 / dpsipdrho)
+      cvdrift0 = cvdrift0 * (dpsipdrho_psi0 / dpsipdrho)
 
-      !dgbdriftdrho  = dgbdriftdrho *(dpsidrho_psi0/dpsidrho)*(bmag/bmag_psi0)
-      !dgbdrift0drho = dgbdrift0drho*(dpsidrho_psi0/dpsidrho)*(bmag/bmag_psi0)
-      dgbdriftdrho = dgbdriftdrho * (dpsidrho_psi0 / dpsidrho)
-      dgbdrift0drho = dgbdrift0drho * (dpsidrho_psi0 / dpsidrho)
-      dcvdriftdrho = dcvdriftdrho * (dpsidrho_psi0 / dpsidrho)
-      dcvdrift0drho = dcvdrift0drho * (dpsidrho_psi0 / dpsidrho)
+      !dgbdriftdrho  = dgbdriftdrho *(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
+      !dgbdrift0drho = dgbdrift0drho*(dpsipdrho_psi0/dpsipdrho)*(bmag/bmag_psi0)
+      dgbdriftdrho = dgbdriftdrho * (dpsipdrho_psi0 / dpsipdrho)
+      dgbdrift0drho = dgbdrift0drho * (dpsipdrho_psi0 / dpsipdrho)
+      dcvdriftdrho = dcvdriftdrho * (dpsipdrho_psi0 / dpsipdrho)
+      dcvdrift0drho = dcvdrift0drho * (dpsipdrho_psi0 / dpsipdrho)
 
       ! interpolate here
       if (zed_equal_arc) then
@@ -656,7 +657,7 @@ contains
          call geo_spline(theta, dgds2dr, zed_arc, dgds2dr_out)
          call geo_spline(theta, dgds21dr, zed_arc, dgds21dr_out)
          call geo_spline(theta, dgds22dr, zed_arc, dgds22dr_out)
-         call geo_spline(theta, djacdrho / dpsidrho, zed_arc, djacdrho_out)
+         call geo_spline(theta, djacdrho / dpsipdrho, zed_arc, djacdrho_out)
 
          deallocate (zed_arc)
       else
@@ -684,17 +685,17 @@ contains
          call geo_spline(theta, dgds2dr, zed_in, dgds2dr_out)
          call geo_spline(theta, dgds21dr, zed_in, dgds21dr_out)
          call geo_spline(theta, dgds22dr, zed_in, dgds22dr_out)
-         call geo_spline(theta, djacdrho / dpsidrho, zed_in, djacdrho_out)
+         call geo_spline(theta, djacdrho / dpsipdrho, zed_in, djacdrho_out)
       end if
 
       ! get the toroidal component of the magnetic field
       ! btor = B_toroidal/Bref = I/R Bref = rgeo * a/R
       btor_out = bi / rmajor_out
 
-      dpsidrho_out = dpsidrho
-      dpsidrho_psi0_out = dpsidrho_psi0
+      dpsipdrho_out = dpsipdrho
+      dpsipdrho_psi0_out = dpsipdrho_psi0
 
-      filename = "millerlocal."//trim(run_name)//".input"
+      filename = "miller_geometry."//trim(run_name)//".input"
       open (1002, file=trim(filename), status='unknown')
       write (1002, '(5a16)') '#1.rhoc', '2.rmaj', '3.rgeo', '4.shift', '5.qinp'
       write (1002, '(5e16.8)') local%rhoc, local%rmaj, local%rgeo, local%shift, local%qinp
@@ -710,9 +711,9 @@ contains
       write (1002, '(3a16)') '16.d2psidr2', '17.betadbprim', '18.psitor_lcfs'
       write (1002, '(3e16.8)') local%d2psidr2, local%betadbprim, local%psitor_lcfs
       close (1002)
-      filename = "millerlocal."//trim(run_name)//".output"
+      filename = "miller_geometry."//trim(run_name)//".output"
       open (1001, file=trim(filename), status='unknown')
-      write (1001, '(a9,e18.9,a11,e18.9,a11,e18.9)') '#dI/dr: ', dIdrho, 'd2I/dr2: ', d2Idr2, 'dpsi/dr: ', dpsidrho
+      write (1001, '(a9,e18.9,a11,e18.9,a11,e18.9)') '#dI/dr: ', dIdrho, 'd2I/dr2: ', d2Idr2, 'dpsi/dr: ', dpsipdrho
       write (1001, '(58a15)') '#1.theta', '2.R', '3.dR/dr', '4.d2Rdr2', '5.dR/dth', &
          '6.d2Rdrdth', '7.dZ/dr', '8.d2Zdr2', '9.dZ/dth', '10.d2Zdrdth', &
          '11.bmag', '12.dBdr', '13.d2Bdr2', '14.dB/dth', '15.d2Bdrdth', &
@@ -753,35 +754,33 @@ contains
       integer, intent(in) :: nr, nz
 
       ! periodic quantities can be computed on 2*pi grid and replicated
-      allocate (grho(-nz:nz), bmag(-nz:nz), gradpar(-nz:nz)); grho = 0.0; bmag = 0.0; gradpar = 0.0
-      allocate (gds2(-nz:nz), gds21(-nz:nz), gds22(-nz:nz)); gds2 = 0.0; gds21 = 0.0; gds21 = 0.0
-      allocate (gds23(-nz:nz), gds24(-nz:nz)); gds23 = 0.0; gds24 = 0.0
-      allocate (gbdrift0(-nz:nz), gbdrift(-nz:nz)); gbdrift0 = 0.0; gbdrift = 0.0
-      allocate (cvdrift0(-nz:nz), cvdrift(-nz:nz)); cvdrift0 = 0.0; cvdrift = 0.0
-      allocate (Rr(nr, -nz:nz), Zr(nr, -nz:nz)); Rr = 0.0; Zr = 0.0
-      allocate (jacrho(-nz:nz), djacdrho(-nz:nz)); jacrho = 0.0; djacdrho = 0.0
-      allocate (djacrdrho(-nz:nz), d2jacdr2(-nz:nz)); djacrdrho = 0.0; d2jacdr2 = 0.0
-      allocate (d2Rdrdth(-nz:nz), d2Zdrdth(-nz:nz), gpsi(-nz:nz)); d2Rdrdth = 0.0; d2Zdrdth = 0.0; gpsi = 0.0
-      allocate (dBdrho(-nz:nz), dgradpardrho(-nz:nz)); dBdrho = 0.0; dgradpardrho = 0.0
-      allocate (d2Bdrdth(-nz:nz), dgradparBdrho(-nz:nz)); d2Bdrdth = 0.0; dgradparBdrho = 0.0
-      allocate (dBdth(-nz:nz), gradparb(-nz:nz)); dBdth = 0.0; gradparb = 0.0
-      allocate (dcvdrift0drho(-nz:nz), dgbdrift0drho(-nz:nz)); dcvdrift0drho = 0.0; dgbdrift0drho = 0.0
-      allocate (theta(-nz:nz), gradpararc(-nz:nz), arc(-nz:nz)); theta = 0.0; gradpararc = 0.0; arc = 0.0
-      allocate (dRdrho(-nz:nz), dZdrho(-nz:nz)); dRdrho = 0.0; dZdrho = 0.0
-      allocate (dRdth(-nz:nz), dZdth(-nz:nz)); dRdth = 0.0; dZdth = 0.0
-      allocate (gradrho_gradthet(-nz:nz), gradthet2(-nz:nz)); gradrho_gradthet = 0.0; gradthet2 = 0.0
-      allocate (dgr2dr(-nz:nz), dgpsi2dr(-nz:nz)); dgr2dr = 0.0; dgpsi2dr = 0.0
-      allocate (dgrgt(-nz:nz), dgt2(-nz:nz), dgagr(-nz:nz)); dgrgt = 0.0; dgt2 = 0.0; dgagr = 0.0
-      allocate (dgagt(-nz:nz), dga2(-nz:nz)); dgagt = 0.0; dga2	= 0.0
-      allocate (d2Rdr2(-nz:nz), d2Zdr2(-nz:nz), d2Bdr2(-nz:nz));	d2Rdr2 = 0.0; d2Zdr2 = 0.0; d2Bdr2 = 0.0
-      allocate (drz(-nz:nz), drzdth(-nz:nz), d2Rdr2dth(-nz:nz)); drz = 0.0; drzdth = 0.0; d2Rdr2dth = 0.0
-      allocate (d2Zdr2dth(-nz:nz), d2Rdth2(-nz:nz), d2Zdth2(-nz:nz)); d2Zdr2dth = 0.0; d2Rdth2 = 0.0; d2Zdth2 = 0.0
-      allocate (d2gpsidr2(-nz:nz), gradalph_gradthet(-nz:nz)); d2gpsidr2 = 0.0; gradalph_gradthet = 0.0
-      allocate (gradalph2(-nz:nz), gradrho_gradalph(-nz:nz)); gradalph2 = 0.0; gradrho_gradalph = 0.0
-      allocate (dgds2dr(-nz:nz), dgds21dr(-nz:nz), dgds22dr(-nz:nz)); dgds2dr = 0.0; dgds21dr = 0.0; dgds22dr = 0.0
-      allocate (dcvdriftdrho(-nz:nz), dgbdriftdrho(-nz:nz)); dcvdriftdrho = 0.0; dgbdriftdrho = 0.0
-      allocate (varthet(-nz:nz), dvarthdr(-nz:nz), d2varthdr2(-nz:nz)); varthet = 0.0; dvarthdr = 0.0; d2varthdr2 = 0.0
-      allocate (cross(-nz:nz), dcrossdr(-nz:nz)); cross = 0.0; dcrossdr = 0.0
+      allocate (grho(-nz:nz), bmag(-nz:nz), gradpar(-nz:nz))
+      allocate (gds2(-nz:nz), gds21(-nz:nz), gds22(-nz:nz), gds23(-nz:nz), gds24(-nz:nz))
+      allocate (gbdrift0(-nz:nz), gbdrift(-nz:nz))
+      allocate (cvdrift0(-nz:nz), cvdrift(-nz:nz))
+      allocate (Rr(nr, -nz:nz), Zr(nr, -nz:nz))
+      allocate (jacrho(-nz:nz), djacdrho(-nz:nz), djacrdrho(-nz:nz), d2jacdr2(-nz:nz))
+      allocate (d2Rdrdth(-nz:nz), d2Zdrdth(-nz:nz), gpsi(-nz:nz))
+      allocate (dBdrho(-nz:nz), dgradpardrho(-nz:nz))
+      allocate (d2Bdrdth(-nz:nz), dgradparBdrho(-nz:nz), dBdth(-nz:nz), gradparb(-nz:nz))
+      allocate (dcvdrift0drho(-nz:nz), dgbdrift0drho(-nz:nz))
+      allocate (theta(-nz:nz))
+      allocate (gradpararc(-nz:nz))
+      allocate (arc(-nz:nz))
+      allocate (dRdrho(-nz:nz), dZdrho(-nz:nz), dRdth(-nz:nz), dZdth(-nz:nz))
+      allocate (gradrho_gradthet(-nz:nz), gradthet2(-nz:nz), dgr2dr(-nz:nz), dgpsi2dr(-nz:nz))
+      allocate (dgrgt(-nz:nz), dgt2(-nz:nz), dgagr(-nz:nz), dgagt(-nz:nz), dga2(-nz:nz))
+      allocate (d2Rdr2(-nz:nz), d2Zdr2(-nz:nz), d2Bdr2(-nz:nz))
+      allocate (drz(-nz:nz), drzdth(-nz:nz), d2Rdr2dth(-nz:nz), d2Zdr2dth(-nz:nz))
+      allocate (d2Rdth2(-nz:nz), d2Zdth2(-nz:nz))
+      allocate (d2gpsidr2(-nz:nz))
+      allocate (gradalph_gradthet(-nz:nz), gradalph2(-nz:nz), gradrho_gradalph(-nz:nz))
+      allocate (dgds2dr(-nz:nz), dgds21dr(-nz:nz))
+      allocate (dgds22dr(-nz:nz))
+      allocate (dcvdriftdrho(-nz:nz), dgbdriftdrho(-nz:nz))
+      allocate (varthet(-nz:nz), dvarthdr(-nz:nz), d2varthdr2(-nz:nz))
+      allocate (cross(-nz:nz))
+      allocate (dcrossdr(-nz:nz))
 
    end subroutine allocate_arrays
 
@@ -789,75 +788,43 @@ contains
 
       implicit none
 
-      if (allocated(grho)) deallocate (grho)
-      if (allocated(bmag)) deallocate (bmag)
-      if (allocated(gradpar)) deallocate (gradpar)
-      if (allocated(gds2)) deallocate (gds2)
-      if (allocated(gds21)) deallocate (gds21)
-      if (allocated(gds22)) deallocate (gds22)
-      if (allocated(gds23)) deallocate (gds23)
-      if (allocated(gds24)) deallocate (gds24)
-      if (allocated(gbdrift0)) deallocate (gbdrift0)
-      if (allocated(gbdrift)) deallocate (gbdrift)
-      if (allocated(cvdrift0)) deallocate (cvdrift0)
-      if (allocated(cvdrift)) deallocate (cvdrift)
-      if (allocated(Rr)) deallocate (Rr)
-      if (allocated(Zr)) deallocate (Zr)
-      if (allocated(jacrho)) deallocate (jacrho)
-      if (allocated(djacdrho)) deallocate (djacdrho)
-      if (allocated(djacrdrho)) deallocate (djacrdrho)
-      if (allocated(d2jacdr2)) deallocate (d2jacdr2)
-      if (allocated(d2Rdrdth)) deallocate (d2Rdrdth)
-      if (allocated(d2Zdrdth)) deallocate (d2Zdrdth)
-      if (allocated(gpsi)) deallocate (gpsi)
-      if (allocated(dBdrho)) deallocate (dBdrho)
-      if (allocated(dgradpardrho)) deallocate (dgradpardrho)
-      if (allocated(d2Bdrdth)) deallocate (d2Bdrdth)
-      if (allocated(dgradparBdrho)) deallocate (dgradparBdrho)
-      if (allocated(dBdth)) deallocate (dBdth)
-      if (allocated(gradparb)) deallocate (gradparb)
-      if (allocated(dcvdrift0drho)) deallocate (dcvdrift0drho)
-      if (allocated(dgbdrift0drho)) deallocate (dgbdrift0drho)
-      if (allocated(theta)) deallocate (theta)
-      if (allocated(gradpararc)) deallocate (gradpararc)
-      if (allocated(arc)) deallocate (arc)
-      if (allocated(dRdrho)) deallocate (dRdrho)
-      if (allocated(dZdrho)) deallocate (dZdrho)
-      if (allocated(dRdth)) deallocate (dRdth)
-      if (allocated(dZdth)) deallocate (dZdth)
-      if (allocated(gradrho_gradthet)) deallocate (gradrho_gradthet)
-      if (allocated(gradthet2)) deallocate (gradthet2)
-      if (allocated(dgr2dr)) deallocate (dgr2dr)
-      if (allocated(dgpsi2dr)) deallocate (dgpsi2dr)
-      if (allocated(dgrgt)) deallocate (dgrgt)
-      if (allocated(dgt2)) deallocate (dgt2)
-      if (allocated(dgagr)) deallocate (dgagr)
-      if (allocated(dgagt)) deallocate (dgagt)
-      if (allocated(dga2)) deallocate (dga2)
-      if (allocated(d2Rdr2)) deallocate (d2Rdr2)
-      if (allocated(d2Zdr2)) deallocate (d2Zdr2)
-      if (allocated(d2Bdr2)) deallocate (d2Bdr2)
-      if (allocated(drz)) deallocate (drz)
-      if (allocated(drzdth)) deallocate (drzdth)
-      if (allocated(d2Rdr2dth)) deallocate (d2Rdr2dth)
-      if (allocated(d2Zdr2dth)) deallocate (d2Zdr2dth)
-      if (allocated(d2Rdth2)) deallocate (d2Rdth2)
-      if (allocated(d2Zdth2)) deallocate (d2Zdth2)
-      if (allocated(d2gpsidr2)) deallocate (d2gpsidr2)
-      if (allocated(gradalph_gradthet)) deallocate (gradalph_gradthet)
-      if (allocated(gradalph2)) deallocate (gradalph2)
-      if (allocated(gradrho_gradalph)) deallocate (gradrho_gradalph)
-      if (allocated(dgds2dr)) deallocate (dgds2dr)
-      if (allocated(dgds21dr)) deallocate (dgds21dr)
-      if (allocated(dcvdriftdrho)) deallocate (dcvdriftdrho)
-      if (allocated(dgbdriftdrho)) deallocate (dgbdriftdrho)
-      if (allocated(varthet)) deallocate (varthet)
-      if (allocated(dvarthdr)) deallocate (dvarthdr)
-      if (allocated(d2varthdr2)) deallocate (d2varthdr2)
-      if (allocated(cross)) deallocate (cross)
-      if (allocated(dcrossdr)) deallocate (dcrossdr)
-      if (allocated(d2R)) deallocate (d2R)
-      if (allocated(d2Z)) deallocate(d2Z)
+      deallocate (grho)
+      deallocate (bmag)
+      deallocate (gradpar)
+
+      deallocate (gds2)
+      deallocate (gds21)
+      deallocate (gds22)
+      deallocate (gds23)
+      deallocate (gds24)
+      deallocate (gbdrift0)
+      deallocate (gbdrift)
+      deallocate (cvdrift0)
+      deallocate (cvdrift)
+      deallocate (Rr, Zr)
+      deallocate (jacrho, djacdrho, djacrdrho, d2jacdr2)
+      deallocate (d2Rdrdth, d2Zdrdth, gpsi)
+      deallocate (dBdrho, dgradpardrho)
+      deallocate (d2Bdrdth, dgradparBdrho, dBdth, gradparb)
+      deallocate (dcvdrift0drho, dgbdrift0drho)
+      deallocate (theta)
+      deallocate (gradpararc)
+      deallocate (arc)
+      deallocate (dRdrho, dZdrho, dRdth, dZdth)
+      deallocate (gradrho_gradthet, gradthet2, dgr2dr, dgpsi2dr)
+      deallocate (dgrgt, dgt2, dgagr, dgagt, dga2)
+      deallocate (d2Rdr2, d2Zdr2, d2Bdr2)
+      deallocate (drz, drzdth, d2Rdr2dth, d2Zdr2dth)
+      deallocate (d2Rdth2, d2Zdth2)
+      deallocate (d2gpsidr2)
+      deallocate (gradalph_gradthet, gradalph2, gradrho_gradalph)
+      deallocate (dgds2dr, dgds21dr)
+      deallocate (dgds22dr)
+      deallocate (dcvdriftdrho, dgbdriftdrho)
+      deallocate (varthet, dvarthdr, d2varthdr2)
+      deallocate (cross)
+      deallocate (dcrossdr)
+      deallocate (d2R, d2Z)
       if (allocated(delthet)) deallocate (delthet)
       if (allocated(bmag_psi0)) deallocate (bmag_psi0)
       if (allocated(grho_psi0)) deallocate (grho_psi0)
@@ -933,41 +900,41 @@ contains
    end subroutine get_jacrho
 
 !   ! get dpsinorm/drho = (I/2*pi*q)*int_0^{2*pi} dthet jacrho/R**2
-!   subroutine get_dpsidrho (dpsidrho)
+!   subroutine get_dpsipdrho (dpsipdrho)
 
 !     use constants, only: pi
 
 !     implicit none
 
-!     real, intent (out) :: dpsidrho
+!     real, intent (out) :: dpsipdrho
 
 !     ! theta_integrate returns integral from 0 -> 2*pi
-!     call theta_integrate (jacrho(-nz2pi:nz2pi)/Rr(2,-nz2pi:nz2pi)**2, dpsidrho)
+!     call theta_integrate (jacrho(-nz2pi:nz2pi)/Rr(2,-nz2pi:nz2pi)**2, dpsipdrho)
 
 !     ! integration done using trapezoidal rule
-!     dpsidrho = dpsidrho*bi/(2.*pi*local%qinp)
+!     dpsipdrho = dpsipdrho*bi/(2.*pi*local%qinp)
 
-!   end subroutine get_dpsidrho
+!   end subroutine get_dpsipdrho
 
-   subroutine get_gradrho(dpsidrho, grho)
+   subroutine get_gradrho(dpsipdrho, grho)
 
       implicit none
 
-      real, intent(in) :: dpsidrho
+      real, intent(in) :: dpsipdrho
       real, dimension(-nz:), intent(out) :: grho
 
       grho = Rr(2, :) * sqrt(dRdth**2 + dZdth**2) / jacrho
-      gpsi = grho * dpsidrho
+      gpsi = grho * dpsipdrho
 
    end subroutine get_gradrho
 
-   subroutine get_dIdrho(dpsidrho, grho, dIdrho)
+   subroutine get_dIdrho(dpsipdrho, grho, dIdrho)
 
       use constants, only: pi
 
       implicit none
 
-      real, intent(in) :: dpsidrho
+      real, intent(in) :: dpsipdrho
       real, dimension(-nz:), intent(in) :: grho
       real, intent(out) :: dIdrho
 
@@ -984,7 +951,7 @@ contains
 
       ! betaprim below is (4*pi*ptot/B0^2)*(-d ln ptot / drho)
       dum = (-2.*(dRdth * d2Rdrdth + dZdth * d2Zdrdth) / jacrho &
-             + drzdth + local%betaprim * jacrho / dpsidrho**2) / grho**2
+             + drzdth + local%betaprim * jacrho / dpsipdrho**2) / grho**2
       call theta_integrate(dum(-nz2pi:nz2pi), num2)
 
       dIdrho = bi * (num1 + num2) / denom
@@ -993,20 +960,20 @@ contains
 
    end subroutine get_dIdrho
 
-   subroutine get_djacdrho(dpsidrho, dIdrho, grho)
+   subroutine get_djacdrho(dpsipdrho, dIdrho, grho)
 
       implicit none
 
-      real, intent(in) :: dpsidrho, dIdrho
+      real, intent(in) :: dpsipdrho, dIdrho
       real, dimension(-nz:), intent(in) :: grho
 
       ! this is dpsi/dr * d/dr (jacobian)
       ! betaprim below is (4*pi*ptot/B0^2)*(-d ln ptot / drho)
       djacdrho = (Rr(2, :) / grho)**2 * (2.*(dRdth * d2Rdrdth + dZdth * d2Zdrdth) / jacrho &
-                                         - drzdth + jacrho * (bi * dIdrho / Rr(2, :)**2 - local%betaprim) / dpsidrho**2)
+                                         - drzdth + jacrho * (bi * dIdrho / Rr(2, :)**2 - local%betaprim) / dpsipdrho**2)
 
       ! this is d/dr (jacobian_r)
-      djacrdrho = djacdrho + jacrho * local%d2psidr2 / dpsidrho
+      djacrdrho = djacdrho + jacrho * local%d2psidr2 / dpsipdrho
 
    end subroutine get_djacdrho
 
@@ -1023,26 +990,26 @@ contains
 
    end subroutine get_d2RZdr2
 
-   subroutine get_dgr2dr(dpsidrho, grho)
+   subroutine get_dgr2dr(dpsipdrho, grho)
 
       implicit none
 
-      real, intent(in) :: dpsidrho
+      real, intent(in) :: dpsipdrho
       real, dimension(-nz:), intent(in) :: grho
 
       dgr2dr = 2.*(grho**2 * (dRdrho / Rr(2, :) - djacrdrho / jacrho) &
                    + (Rr(2, :) / jacrho)**2 * (dRdth * d2Rdrdth + d2Zdrdth * dZdth))
 
       dgpsi2dr = 2.*(gpsi**2 * (dRdrho / Rr(2, :) - djacdrho / jacrho) &
-                     + (Rr(2, :) / jacrho)**2 * (dRdth * d2Rdrdth + d2Zdrdth * dZdth) * dpsidrho**2)
+                     + (Rr(2, :) / jacrho)**2 * (dRdth * d2Rdrdth + d2Zdrdth * dZdth) * dpsipdrho**2)
 
    end subroutine get_dgr2dr
 
-   subroutine get_graddotgrad(dpsidrho, grho)
+   subroutine get_graddotgrad(dpsipdrho, grho)
 
       implicit none
 
-      real, intent(in) :: dpsidrho
+      real, intent(in) :: dpsipdrho
       real, dimension(-nz:), intent(in) :: grho
 
       ! grad theta . grad theta
@@ -1052,14 +1019,14 @@ contains
 
       ! grad alpha . grad theta
       gradalph_gradthet = -(varthet * dqdr + local%qinp * dvarthdr) * gradrho_gradthet &
-                          - bi * jacrho / (dpsidrho * Rr(2, :)**2) * gradthet2
+                          - bi * jacrho / (dpsipdrho * Rr(2, :)**2) * gradthet2
       ! grad rho . grad alpha
       gradrho_gradalph = -(varthet * dqdr + local%qinp * dvarthdr) * grho**2 &
-                         - bi * jacrho / (dpsidrho * Rr(2, :)**2) * gradrho_gradthet
+                         - bi * jacrho / (dpsipdrho * Rr(2, :)**2) * gradrho_gradthet
       ! grad alpha . grad alpha
       gradalph2 = (1./Rr(2, :)**2) + ((varthet * dqdr + local%qinp * dvarthdr) * grho)**2 &
-                  + 2.*bi * jacrho * (varthet * dqdr + local%qinp * dvarthdr) * gradrho_gradthet / (dpsidrho * Rr(2, :)**2) &
-                  + (bi * jacrho / (dpsidrho * Rr(2, :)**2))**2 * gradthet2
+                  + 2.*bi * jacrho * (varthet * dqdr + local%qinp * dvarthdr) * gradrho_gradthet / (dpsipdrho * Rr(2, :)**2) &
+                  + (bi * jacrho / (dpsipdrho * Rr(2, :)**2))**2 * gradthet2
 
    end subroutine get_graddotgrad
 
@@ -1070,16 +1037,16 @@ contains
       real, dimension(-nz:), intent(out) :: gds2, gds21, gds22, gds23, gds24
 
       ! |grad alpha|^2 * (dpsiN/drho)^2 (dpsiN/drho factor accounts for ky normalization)
-      gds2 = gradalph2 * dpsidrho_psi0**2
+      gds2 = gradalph2 * dpsipdrho_psi0**2
       ! (grad q . grad alpha) * (dpsiN/drho)^2
-      gds21 = gradrho_gradalph * dqdr * dpsidrho_psi0**2
+      gds21 = gradrho_gradalph * dqdr * dpsipdrho_psi0**2
       ! |grad q|^2 * (dpsiN/drho)^2
-      gds22 = (grho * dpsidrho_psi0 * dqdr)**2
+      gds22 = (grho * dpsipdrho_psi0 * dqdr)**2
       ! (grad rho . grad theta * |grad alpha|^2 - grad alpha . grad theta * grad rho . grad alpha) * (dpsiN/drho)^2 / B^2
-      gds23 = (gradrho_gradthet * gradalph2 - gradalph_gradthet * gradrho_gradalph) * (dpsidrho_psi0 / bmag)**2
+      gds23 = (gradrho_gradthet * gradalph2 - gradalph_gradthet * gradrho_gradalph) * (dpsipdrho_psi0 / bmag)**2
       ! (grad rho . grad theta * grad rho . grad alpha - grad alpha . grad theta * |grad rho|^2) * (dpsiN/drho)^2 / B^2 * q/rho
       gds24 = (gradrho_gradthet * gradrho_gradalph - gradalph_gradthet * grho**2) &
-              * (dpsidrho_psi0 / bmag)**2 * (local%qinp_psi0 / local%rhoc_psi0)
+              * (dpsipdrho_psi0 / bmag)**2 * (local%qinp_psi0 / local%rhoc_psi0)
 
       ! note that kperp2 = (n0/a)^2*(drho/dpsiN)^2*(gds2 + 2*theta0*gds21 + theta0^2*gds22)
       ! theta0 = kx/(ky*shat)
@@ -1099,29 +1066,29 @@ contains
 
    end subroutine get_dBdrho
 
-   subroutine get_varthet(dpsidrho)
+   subroutine get_varthet(dpsipdrho)
 
       implicit none
 
-      real, intent(in) :: dpsidrho
+      real, intent(in) :: dpsipdrho
 
       call theta_integrate_indef(jacrho / Rr(2, :)**2, varthet)
-      varthet = bi * varthet / (dpsidrho * local%qinp)
+      varthet = bi * varthet / (dpsipdrho * local%qinp)
 
    end subroutine get_varthet
 
-   subroutine get_dvarthdr(dpsidrho, dIdrho)
+   subroutine get_dvarthdr(dpsipdrho, dIdrho)
 
       implicit none
 
-      real, intent(in) :: dpsidrho, dIdrho
+      real, intent(in) :: dpsipdrho, dIdrho
 
       real, dimension(-nz:nz) :: dum
 
       dum = bi * jacrho * (dIdrho / bi - dqdr / local%qinp + djacdrho / jacrho &
                            - 2.*dRdrho / Rr(2, :)) / Rr(2, :)**2
       call theta_integrate_indef(dum, dvarthdr)
-      dvarthdr = dvarthdr / (dpsidrho * local%qinp)
+      dvarthdr = dvarthdr / (dpsipdrho * local%qinp)
 
    end subroutine get_dvarthdr
 
@@ -1150,7 +1117,7 @@ contains
             * (djacrdrho / jacrho - dIdrho / bi - 2.*dRdrho / Rr(2, :))
       call theta_integrate(tmp(-nz2pi:nz2pi), num1)
 
-      ! tmp = -jacrho/(dpsidrho*Rr(2,:)**2)*(djacdrho/jacrho - 2.*dRdrho/Rr(2,:))
+      ! tmp = -jacrho/(dpsipdrho*Rr(2,:)**2)*(djacdrho/jacrho - 2.*dRdrho/Rr(2,:))
       ! call theta_integrate (tmp(-nz2pi:nz2pi), num2)
       ! d2jacdr2 = d2jacdr2 - tmp*Rr(2,:)**2*local%d2psidr2
       ! num2 = local%d2psidr2 * (2*pi*local%qinp/bi*(dqdr/local%qinp - dIdrho/bi) + num2)
@@ -1180,20 +1147,20 @@ contains
 
    end subroutine get_d2Idr2_d2jacdr2
 
-   subroutine get_d2varthdr2(dpsidrho, dIdrho)
+   subroutine get_d2varthdr2(dpsipdrho, dIdrho)
 
       implicit none
 
-      real, intent(in) :: dpsidrho, dIdrho
+      real, intent(in) :: dpsipdrho, dIdrho
 
       real, dimension(-nz:nz) :: dum
 
-      dum = bi * jacrho / (local%qinp * dpsidrho * Rr(2, :)**2) * ((dIdrho / bi - dqdr / local%qinp &
+      dum = bi * jacrho / (local%qinp * dpsipdrho * Rr(2, :)**2) * ((dIdrho / bi - dqdr / local%qinp &
                                                                     !    dum = bi*jacrho/(local%qinp*Rr(2,:)**2)*( (dIdrho/bi - dqdr/local%qinp &
                                                                     + djacdrho / jacrho - 2.*dRdrho / Rr(2, :))**2 &
                                                                    + d2Idr2 / bi - (dIdrho / bi)**2 - local%d2qdr2 / local%qinp &
                                                                    + (dqdr / local%qinp)**2 + d2jacdr2 / jacrho - (djacdrho / jacrho)**2 &
-                                                                   - djacdrho * local%d2psidr2 / (dpsidrho * jacrho) &
+                                                                   - djacdrho * local%d2psidr2 / (dpsipdrho * jacrho) &
                                                                    - 2.*d2Rdr2 / Rr(2, :) + 2.*(dRdrho / Rr(2, :))**2)
       call theta_integrate_indef(dum, d2varthdr2)
 
@@ -1216,15 +1183,15 @@ contains
                   + 2.*(Rr(2, :) * gpsi / jacrho)**2 * (d2Rdrdth**2 + dRdth * d2Rdr2dth + d2Zdrdth**2 + dZdth * d2Zdr2dth &
                                                         + 2.*(dRdth * d2Rdrdth + dZdth * d2Zdrdth) * (dRdrho / Rr(2, :) - djacdrho / jacrho))
 
-      ! d2gpsidr2 = 2.*(dpsidrho*Rr(2,:)/jacrho)**2 &
+      ! d2gpsidr2 = 2.*(dpsipdrho*Rr(2,:)/jacrho)**2 &
       !      * (2.*(dRdrho/Rr(2,:)-djacdrho/jacrho) &
       !      * ((dRdrho/Rr(2,:)-djacdrho/jacrho)*(dRdth**2+dZdth**2) &
       !      + 2.*(dRdth*d2Rdrdth+dZdth*d2Zdrdth)) &
       !      + (dRdth**2+dZdth**2)*(d2rdr2/Rr(2,:) - (dRdrho/Rr(2,:))**2 &
       !      - d2jacdr2/jacrho + (djacdrho/jacrho)**2) &
       !      + d2Rdrdth**2 + dRdth*d2Rdr2dth + d2Zdrdth**2 + dZdth*d2Zdr2dth) &
-      !      + 4.*dpsidrho*local%d2psidr2*dgr2dr &
-      !      + 2.*grho**2*(local%d2psidr2**2 + dpsidrho*local%d3psidr3)
+      !      + 4.*dpsipdrho*local%d2psidr2*dgr2dr &
+      !      + 2.*grho**2*(local%d2psidr2**2 + dpsipdrho*local%d3psidr3)
 
       ! get d/drho (dB/drho)
       d2Bdr2 = -dBdrho * dRdrho / Rr(2, :) + bmag * (dRdrho / Rr(2, :))**2 &
@@ -1234,11 +1201,11 @@ contains
 
    end subroutine get_d2Bdr2
 
-   subroutine get_dcrossdr(dpsidrho, dIdrho, grho)
+   subroutine get_dcrossdr(dpsipdrho, dIdrho, grho)
 
       implicit none
 
-      real, intent(in) :: dpsidrho, dIdrho
+      real, intent(in) :: dpsipdrho, dIdrho
       real, dimension(-nz:), intent(in) :: grho
 
       ! dgr2 = d/drho (|grad rho|^2)
@@ -1253,37 +1220,37 @@ contains
       dgt2 = 2.*(Rr(2, :) / jacrho)**2 * ((dRdrho / Rr(2, :) - djacrdrho / jacrho) * (dRdrho**2 + dZdrho**2) &
                                           + dRdrho * d2Rdr2 + dZdrho * d2Zdr2)
       ! this is d/drho (|grad alph|^2)
-      ! will later multiply it by 0.5*dpsidrho**2
+      ! will later multiply it by 0.5*dpsipdrho**2
       dga2 = -2 * dRdrho / Rr(2, :)**3 + dgr2dr * (varthet * dqdr + local%qinp * dvarthdr)**2 &
              + (2.0 * grho**2 * (varthet * dqdr + local%qinp * dvarthdr) &
-                + 2.*bi * jacrho * gradrho_gradthet / (dpsidrho * Rr(2, :)**2)) &
+                + 2.*bi * jacrho * gradrho_gradthet / (dpsipdrho * Rr(2, :)**2)) &
              * (local%d2qdr2 * varthet + 2.*dqdr * dvarthdr + local%qinp * d2varthdr2) &
-             + 2.*(varthet * dqdr + local%qinp * dvarthdr) * bi * jacrho / (dpsidrho * Rr(2, :)**2) &
+             + 2.*(varthet * dqdr + local%qinp * dvarthdr) * bi * jacrho / (dpsipdrho * Rr(2, :)**2) &
              * (dgrgt + gradrho_gradthet * (dIdrho / bi + djacdrho / jacrho - 2.*dRdrho / Rr(2, :))) &
-             + (bi * jacrho / (dpsidrho * Rr(2, :)**2))**2 * (dgt2 + 2.*gradthet2 * (dIdrho / bi + djacdrho / jacrho &
+             + (bi * jacrho / (dpsipdrho * Rr(2, :)**2))**2 * (dgt2 + 2.*gradthet2 * (dIdrho / bi + djacdrho / jacrho &
                                                                                      - 2.*dRdrho / Rr(2, :)))
 
       ! dgagr = d/drho (grad alpha . grad rho)
       dgagr = -grho**2 * (2.*dvarthdr * dqdr + varthet * local%d2qdr2 + local%qinp * d2varthdr2) &
-              - dgr2dr * (varthet * dqdr + local%qinp * dvarthdr) - bi * jacrho / (dpsidrho * Rr(2, :)**2) &
+              - dgr2dr * (varthet * dqdr + local%qinp * dvarthdr) - bi * jacrho / (dpsipdrho * Rr(2, :)**2) &
               * (dgrgt + gradrho_gradthet * (dIdrho / bi + djacdrho / jacrho - 2.*dRdrho / Rr(2, :)))
 
       ! dgagt = d/drho (grad alpha . grad theta)
       dgagt = -gradrho_gradthet * (2.*dvarthdr * dqdr + varthet * local%d2qdr2 + local%qinp * d2varthdr2) &
-              - dgrgt * (varthet * dqdr + local%qinp * dvarthdr) - bi * jacrho / (dpsidrho * Rr(2, :)**2) &
+              - dgrgt * (varthet * dqdr + local%qinp * dvarthdr) - bi * jacrho / (dpsipdrho * Rr(2, :)**2) &
               * (dgt2 + gradthet2 * (dIdrho / bi + djacdrho / jacrho - 2.*dRdrho / Rr(2, :)))
 
       ! dcrossdr = d/drho [(grad alpha x B) . grad theta)]
-      dcrossdr = dpsidrho * (dgagr * gradalph_gradthet + gradrho_gradalph * dgagt &
-                             - dga2 * gradrho_gradthet - gradalph2 * dgrgt) + local%d2psidr2 * cross / dpsidrho
+      dcrossdr = dpsipdrho * (dgagr * gradalph_gradthet + gradrho_gradalph * dgagt &
+                             - dga2 * gradrho_gradthet - gradalph2 * dgrgt) + local%d2psidr2 * cross / dpsipdrho
 
       ! this is (dpsi/drho)^2*d|grad alpha|^2/dr
-      dgds2dr = dga2 * dpsidrho_psi0**2
+      dgds2dr = dga2 * dpsipdrho_psi0**2
       ! this is (dpsi/drho)^2*d(grad alpha . grad q)/dr
       ! note that there will be multiplication by 2 in dist_fn.fpp
-      dgds21dr = (dgagr * dqdr + local%d2qdr2 * gradrho_gradalph) * dpsidrho_psi0**2
+      dgds21dr = (dgagr * dqdr + local%d2qdr2 * gradrho_gradalph) * dpsipdrho_psi0**2
       ! this is (dpsi/drho)^2*d(|grad q|^2)/dr
-      dgds22dr = (dqdr**2 * dgr2dr + 2.*grho**2 * dqdr * local%d2qdr2) * dpsidrho_psi0**2
+      dgds22dr = (dqdr**2 * dgr2dr + 2.*grho**2 * dqdr * local%d2qdr2) * dpsipdrho_psi0**2
 
       ! note that dkperp2/dr = (n0/a)^2*(drho/dpsiN)^2*(dgds2dr + 2*theta0*dgds21dr + theta0^2*dgds22dr)
 
@@ -1412,4 +1379,4 @@ contains
 
    end function mod2pi
 
-end module millerlocal
+end module miller_geometry

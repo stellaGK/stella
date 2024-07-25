@@ -9,7 +9,7 @@ module run_parameters
    public :: nstep, tend, delt
    public :: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
    public :: delt_max, delt_min
-   public :: avail_cpu_time
+   public :: avail_cpu_time, autostop
    public :: stream_implicit, mirror_implicit
    public :: drifts_implicit
    public :: driftkinetic_implicit
@@ -46,8 +46,7 @@ module run_parameters
    logical :: fields_kxkyz, mat_gen, mat_read
    logical :: ky_solve_real
    logical :: use_deltaphi_for_response_matrix
-   logical :: maxwellian_normalization
-   logical :: print_extra_info_to_terminal
+   logical :: maxwellian_normalization, autostop
    real :: avail_cpu_time
    integer :: nstep, ky_solve_radial
    integer :: rng_seed
@@ -100,7 +99,7 @@ contains
       integer :: ierr, in_file
 
       namelist /knobs/ fphi, fapar, fbpar, delt, nstep, tend, &
-         delt_option, lu_option, &
+         delt_option, lu_option, autostop, &
          avail_cpu_time, delt_max, delt_min, &
          cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, &
          stream_implicit, mirror_implicit, &
@@ -146,6 +145,10 @@ contains
 
          ! Set the available wall time in seconds, 5 minutes before the wall, stella will make a clean exit
          avail_cpu_time = 1.e10
+
+         ! Stop linear simulations when gamma is constant (careful since we won't catch jumpers!)
+         ! It will check gamma over <navg> time steps
+         autostop = .true.
 
          ! code_dt needs to stay within [cfl_dt*cfl_cushion_upper, cfl_dt*cfl_cushion_lower]
          ! code_dt can be increased if cfl_dt increases, however, never increase above delt_max (=delt by default)
@@ -247,6 +250,14 @@ contains
             end if
          end if
 
+         ! Notify the user that rng_seed is set
+         if (rng_seed > 0) then 
+            write (*, '(A)') "############################################################"
+            write (*, '(A)') "                        RUN PARAMETERS"
+            write (*, '(A)') "############################################################"
+            write (*,*) ' '; write (*,'(A12, I2)') 'rng_seed = ', rng_seed; write (*,*) ' '; 
+         end if
+
          if (.not. full_flux_surface) then  
             nitt = 1
          end if
@@ -318,6 +329,7 @@ contains
       call broadcast(nstep)
       call broadcast(tend)
       call broadcast(avail_cpu_time)
+      call broadcast(autostop) 
       call broadcast(rng_seed)
       call broadcast(ky_solve_radial)
       call broadcast(ky_solve_real)

@@ -1,11 +1,20 @@
 # include "define.inc"
 
+
+!###############################################################################
+!######################### WRITE OUTPUT TO NETCDF FILE #########################
+!###############################################################################
+! 
+! The variable <nout> keeps track of the current time step.
+! 
+!###############################################################################
+
 module stella_io
 
-# ifdef NETCDF
+#ifdef NETCDF
    use netcdf, only: nf90_noerr
    use netcdf_utils, only: netcdf_error, kind_nf
-# endif
+#endif
 
    implicit none
 
@@ -100,7 +109,7 @@ contains
       use species, only: nspec
       use physics_flags, only: radial_variation
       use physics_parameters, only: rhostar
-      use stella_geometry, only: geo_surf, dxdXcoord, q_as_x
+      use stella_geometry, only: geo_surf, dxdpsi, q_as_x
       use mp, only: nproc
       use neasyf, only: neasyf_dim, neasyf_write
 # endif
@@ -155,13 +164,13 @@ contains
          if (q_as_x) then
             do ix = 1, nakx
                rg(1, ix) = x_d(ix)
-               rg(2, ix) = rhostar * x_d(ix) / dxdXcoord + geo_surf%qinp
+               rg(2, ix) = rhostar * x_d(ix) / dxdpsi + geo_surf%qinp
                rg(3, ix) = rho_d(ix) + geo_surf%rhoc
             end do
          else
             do ix = 1, nakx
                rg(1, ix) = x_d(ix)
-               rg(2, ix) = rhostar * x_d(ix) / dxdXcoord
+               rg(2, ix) = rhostar * x_d(ix) / dxdpsi
                rg(3, ix) = rho_d(ix) + geo_surf%rhoc
             end do
          end if
