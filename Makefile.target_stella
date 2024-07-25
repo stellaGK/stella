@@ -1,3 +1,5 @@
+# The "stella_all" target will first make the "modules" target and then the "stella" target
+# Here "modules" will make "utils_all" and then "mini_libstell_all"
 stella_all: modules stella
 
 # undefined reference to `get_git_state` or `get_git_hash`? You need to manually
@@ -6,6 +8,8 @@ stella_all: modules stella
 # file that needs the functions can find them. Yes this is unpleasant, no we
 # (probably?) can`t automate this like for the other dependencies. `fortdep`
 # doesn't understand Fortran submodules, so can't pick this up
+
+# "stella_mod" is defined in the Makefile.depend file, and contains all its dependencies
 stella: git_version_impl.o $(stella_mod)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
@@ -15,35 +19,24 @@ stella.x: git_version_impl.o $(stella_mod)
 automated-fortran-tests: git_version_impl.o
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-.PHONY: modules utils_all geo_all vmec
+.PHONY: modules utils_all mini_libstell_all
 
-modules: utils_all geo_all
+# When we call the target "modules" we want to gather/compile two submodules: "utils_all" and "mini_libstell_all"
+modules: utils_all mini_libstell_all
 
-### UTILS
+# Gather the <utils> scripts
 utils_all: utils.a
-
 UTIL_OBJ = spl.o constants.o file_utils.o netcdf_utils.o command_line.o
 utils.a: $(UTIL_OBJ)
 	$(ARCH) $(ARCHFLAGS) $@ $^
 	$(RANLIB) $@
 
-### VMEC interface
-vmec:
-	$(MAKE) -C $(VMEC)
-
+# Compile <mini_libstell>
+mini_libstell_all: mini_libstell.a
 mini_libstell.a:
-	$(MAKE) -C $(VMEC)/mini_libstell
+	$(MAKE) -C $(UTILS)/mini_libstell
 
-### GEO
-geo_all: vmec geo.a
-
-GEO_OBJ = stella_geometry.o inputprofiles_interface.o millerlocal.o vmec_geo.o
-
-geo.a:  $(GEO_OBJ)
-	$(ARCH) $(ARCHFLAGS) $@ $^
-	$(RANLIB) $@
-
+# Remove the executable
 distclean:
 	-rm -f stella stella.x
 
-vmec_to_stella_geometry_interface.o: | vmec

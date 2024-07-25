@@ -1,3 +1,8 @@
+
+############################################################
+#  Create the internal library <libstella>
+############################################################
+
 cmake_minimum_required(VERSION 3.16)
 project(stella
   VERSION 0.3
@@ -9,6 +14,9 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 include(BuildType)
 
 ############################################################
+#  Create some options for the compilation
+############################################################
+
 # Build options
 option(STELLA_ENABLE_LAPACK "Enable LAPACK wrappers" ON)
 option(STELLA_ENABLE_FFT "Enable FFTs" ON)
@@ -26,11 +34,11 @@ option(STELLA_ENABLE_F200X "Enable use of F2003/F2008 functionality" ON)
 # Options for testing
 option(STELLA_ENABLE_TESTS "Enable pFUnit-based tests" OFF)
 option(STELLA_DOWNLOAD_PFUNIT "Download and compile pFUnit at configure time" ON)
-
 option(STELLA_UPDATE_GIT_SUBMODULES "Check submodules are up-to-date during build" ON)
 
 ############################################################
-# Sources
+# Define the source files for stella
+############################################################
 
 # Sources that don't need preprocessing
 set(STELLA_SOURCES_f90
@@ -78,7 +86,7 @@ set(STELLA_SOURCES_f90
   geo/vmec_interface/fzero.f90
 )
 
-# Sources that _do_ need preprocessing
+# Sources that _do_ need preprocessing (because they have MPI flags, ...)
 set(STELLA_SOURCES_fpp
   fields.fpp
   response_matrix.fpp
@@ -87,11 +95,12 @@ set(STELLA_SOURCES_fpp
   stella_io.fpp
   stella_save.fpp
 )
+
 set_source_files_properties(${STELLA_SOURCES_fpp} PROPERTIES
   Fortran_PREPROCESS ON
   )
 
-# Internal library that we can link tests against
+# Internal library <libstella> that we can link tests against
 add_library(libstella OBJECT
   ${STELLA_SOURCES_f90}
   ${STELLA_SOURCES_fpp}
@@ -108,6 +117,7 @@ set_target_properties(libstella PROPERTIES
   Fortran_MODULE_DIRECTORY ${libstella_module_directory}
   )
 
+# Specifies include directories to use when compiling a given target
 target_include_directories(libstella PUBLIC
   $<BUILD_INTERFACE:${libstella_module_directory}>
   $<INSTALL_INTERFACE:${libstella_module_install_directory}>
@@ -122,10 +132,13 @@ target_compile_options(libstella PRIVATE
 add_executable(stella
   stella.f90
   )
+
+# Use <libstella> when linking the <stella> target
 target_link_libraries(stella PRIVATE libstella)
 
 ############################################################
 # Dependencies and build options
+############################################################
 
 # Adapted from https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html
 # Update submodules as needed
@@ -148,6 +161,10 @@ find_program(MPIEXEC_EXECUTABLE NAMES mpiexec mpirun)
 find_package(MPI REQUIRED)
 target_link_libraries(libstella PUBLIC MPI::MPI_Fortran)
 target_compile_definitions(libstella PUBLIC MPI)
+
+############################################################
+# Toggle the options defined at the start of this script
+############################################################
 
 if (STELLA_ENABLE_LAPACK)
   if (NOT CMAKE_SYSTEM_NAME STREQUAL "CrayLinuxEnvironment")
@@ -204,6 +221,7 @@ if (STELLA_ENABLE_PETSC)
   target_link_libraries(libstella PUBLIC PETSc::PETSc)
 endif()
 
+# Link the <git_version> program
 add_subdirectory(externals/git_version)
 target_link_libraries(libstella PUBLIC fortran_git::fortran_git)
 
@@ -216,6 +234,7 @@ target_compile_definitions(libstella PRIVATE
 
 ############################################################
 # Add some extra flags for Debug configs
+############################################################
 
 target_compile_options(libstella PRIVATE
   $<$<CONFIG:Debug>:
@@ -228,11 +247,12 @@ target_compile_options(libstella PRIVATE
     >
   )
 
-##################################################
-# Internal libraries
+############################################################
+# Internal libraries: <stella_utils> and <mini_libstell>
+############################################################
 
-add_subdirectory(geo/vmec_interface)
 add_subdirectory(utils)
+add_subdirectory(utils/mini_libstell)
 target_link_libraries(libstella PUBLIC mini_libstell stella_utils)
 
 ############################################################
@@ -308,13 +328,15 @@ else()
   set(STELLA_PFUNIT_LOCATION "Not used")
 endif()
 
-##################################################
+############################################################
 # Configure summary
 
 # The optimisation and/or debug flags are in the CMAKE_Fortran_FLAGS*
 # variables. We need both the common flags as well as those for the
 # build type actually being used. Note: this might behave weirdly on
 # Windows. Might need to expand CMAKE_CONFIGURATION_TYPES instead?
+############################################################
+
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE_UPPER "DEBUG")
 else()
