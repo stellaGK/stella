@@ -85,6 +85,7 @@ module stella_geometry
    integer, parameter :: geo_option_inputprof = 2
    integer, parameter :: geo_option_vmec = 3
    integer, parameter :: geo_option_multibox = 4
+   integer, parameter :: geo_option_zpinch = 5
 
    logical :: overwrite_geometry
    logical :: overwrite_bmag, overwrite_gradpar
@@ -108,6 +109,7 @@ contains
       use mp, only: proc0
       use millerlocal, only: read_local_parameters, get_local_geo
       use millerlocal, only: communicate_parameters_multibox
+      use zpinch, only: get_zpinch_geometry_coefficients
       use vmec_geo, only: read_vmec_parameters, get_vmec_geo
       use vmec_to_stella_geometry_interface_mod, only: desired_zmin
       use inputprofiles_interface, only: read_inputprof_geo
@@ -235,6 +237,37 @@ contains
             !>R^2 * b . grad zeta = R^2 * b. grad theta * dzeta/dtheta
             gradpar_zeta = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag
 
+         case (geo_option_zpinch)
+            ! allocate geometry arrays
+            call allocate_arrays(nalpha, nzgrid)
+            call get_zpinch_geometry_coefficients(nzgrid, bmag(1, :), gradpar, grho(1, :), geo_surf, &
+                                                  gds2(1, :), gds21(1, :), gds22(1, :), &
+                                                  gbdrift0(1, :), gbdrift(1, :), cvdrift0(1, :), cvdrift(1, :), btor, rmajor)
+
+            !> b_dot_grad_z is the alpha-dependent b . grad z,
+            !> and gradpar is the constant-in-alpha part of it.
+            !> for a z-pinch, b_dot_grad_z is independent of alpha.
+            b_dot_grad_z(1, :) = gradpar
+            ! effectively choose psi = x * B * a_ref = x * B * r0
+            dpsidrho = 1.0; dpsidrho_psi0 = 1.0
+            bmag_psi0 = bmag
+            ! note that psi here is meaningless
+            drhodpsi = 1./dpsidrho
+            drhodpsi_psi0 = 1./dpsidrho_psi0
+            ! dxdXcoord = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
+            dxdXcoord_sign = 1
+            sign_torflux = -1
+            dxdXcoord = 1.0
+            ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
+            dydalpha_sign = 1
+            dydalpha = dydalpha_sign * dpsidrho
+            grad_x = sqrt(gds22)
+            ! there is no magnetic shear in the z-pinch and thus no need for twist-and-shift
+            twist_and_shift_geo_fac = 1.0
+            ! aref and bref should not be needed, so set to 1
+            aref = 1.0; bref = 1.0
+            ! zeta should not be needed
+            zeta(1, :) = 0.0
          case (geo_option_multibox)
             ! read in Miller local parameters
             call read_local_parameters(nzed, nzgrid, geo_surf)
