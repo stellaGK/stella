@@ -208,28 +208,30 @@ contains
             zeta(1, :) = zed * geo_surf%qinp
 
             !!GA - Ensuring all arrays are filled with the alpha = 1 information
-            bmag = spread(bmag(1, :), 1, nalpha)
-            bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
-            gds2 = spread(gds2(1, :), 1, nalpha)
-            gds21 = spread(gds21(1, :), 1, nalpha)
-            gds22 = spread(gds22(1, :), 1, nalpha)
-            gds23 = spread(gds23(1, :), 1, nalpha)
-            gds24 = spread(gds24(1, :), 1, nalpha)
-            gbdrift0 = spread(gbdrift0(1, :), 1, nalpha)
-            gbdrift = spread(gbdrift(1, :), 1, nalpha)
-            cvdrift0 = spread(cvdrift0(1, :), 1, nalpha)
-            cvdrift = spread(cvdrift(1, :), 1, nalpha)
-            dcvdrift0drho = spread(dcvdrift0drho(1, :), 1, nalpha)
-            dcvdriftdrho = spread(dcvdriftdrho(1, :), 1, nalpha)
-            dgbdrift0drho = spread(dgbdrift0drho(1, :), 1, nalpha)
-            dgbdriftdrho = spread(dgbdriftdrho(1, :), 1, nalpha)
-            dgds2dr = spread(dgds2dr(1, :), 1, nalpha)
-            dgds21dr = spread(dgds21dr(1, :), 1, nalpha)
-            dgds22dr = spread(dgds22dr(1, :), 1, nalpha)
-            djacdrho = spread(djacdrho(1, :), 1, nalpha)
-            b_dot_grad_z = spread(b_dot_grad_z(1, :), 1, nalpha)
-            zeta = spread(zeta(1, :), 1, nalpha)
-
+            if (nalpha > 1) then
+               bmag = spread(bmag(1, :), 1, nalpha)
+               bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
+               gds2 = spread(gds2(1, :), 1, nalpha)
+               gds21 = spread(gds21(1, :), 1, nalpha)
+               gds22 = spread(gds22(1, :), 1, nalpha)
+               gds23 = spread(gds23(1, :), 1, nalpha)
+               gds24 = spread(gds24(1, :), 1, nalpha)
+               gbdrift0 = spread(gbdrift0(1, :), 1, nalpha)
+               gbdrift = spread(gbdrift(1, :), 1, nalpha)
+               cvdrift0 = spread(cvdrift0(1, :), 1, nalpha)
+               cvdrift = spread(cvdrift(1, :), 1, nalpha)
+               dcvdrift0drho = spread(dcvdrift0drho(1, :), 1, nalpha)
+               dcvdriftdrho = spread(dcvdriftdrho(1, :), 1, nalpha)
+               dgbdrift0drho = spread(dgbdrift0drho(1, :), 1, nalpha)
+               dgbdriftdrho = spread(dgbdriftdrho(1, :), 1, nalpha)
+               dgds2dr = spread(dgds2dr(1, :), 1, nalpha)
+               dgds21dr = spread(dgds21dr(1, :), 1, nalpha)
+               dgds22dr = spread(dgds22dr(1, :), 1, nalpha)
+               djacdrho = spread(djacdrho(1, :), 1, nalpha)
+               b_dot_grad_z = spread(b_dot_grad_z(1, :), 1, nalpha)
+               zeta = spread(zeta(1, :), 1, nalpha)
+            end if
+               
             !!GA - for correct momentum diagnostics
             !>R^2 * grad zeta . grad y / B^2
             gradzeta_grady = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
@@ -240,6 +242,7 @@ contains
          case (geo_option_zpinch)
             ! allocate geometry arrays
             call allocate_arrays(nalpha, nzgrid)
+            ! calculate the geometric coefficients for a z-pinch magnetic equilibrium
             call get_zpinch_geometry_coefficients(nzgrid, bmag(1, :), gradpar, grho(1, :), geo_surf, &
                                                   gds2(1, :), gds21(1, :), gds22(1, :), &
                                                   gbdrift0(1, :), gbdrift(1, :), cvdrift0(1, :), cvdrift(1, :), btor, rmajor)
@@ -878,10 +881,11 @@ contains
       logical :: exist
 
       character(20) :: geo_option
-      type(text_option), dimension(5), parameter :: geoopts = (/ &
+      type(text_option), dimension(6), parameter :: geoopts = (/ &
                                                     text_option('default', geo_option_local), &
                                                     text_option('miller', geo_option_local), &
                                                     text_option('local', geo_option_local), &
+                                                    text_option('zpinch', geo_option_zpinch), &
                                                     text_option('input.profiles', geo_option_inputprof), &
                                                     text_option('vmec', geo_option_vmec)/)
 
