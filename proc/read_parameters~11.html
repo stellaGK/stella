@@ -80,20 +80,20 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.1% of total for procedures.">25 statements</a>
+                 title=" 0.1% of total for procedures.">47 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
               <i class="fa fa-code"></i>
-              <a href="../src/zgrid.f90"> Source File</a>
+              <a href="../src/sources.fpp"> Source File</a>
             </li>
         </ul>
       </div>
       <div class="col">
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb justify-content-end mb-0">
-                <li class="breadcrumb-item"><a href='../sourcefile/zgrid.f90.html'>zgrid.f90</a></li>
-                <li class="breadcrumb-item"><a href='../module/zgrid.html'>zgrid</a></li>
+                <li class="breadcrumb-item"><a href='../sourcefile/sources.fpp.html'>sources.fpp</a></li>
+                <li class="breadcrumb-item"><a href='../module/sources.html'>sources</a></li>
             <li class="breadcrumb-item active" aria-current="page">read_parameters</li>
           </ol>
         </nav>
@@ -138,7 +138,7 @@
       </a>
       <div id="namelists-0" class="collapse">
         <div class="list-group list-group-flush">
-            <a class="list-group-item" href="../proc/read_parameters~11.html#namelist-zgrid_parameters">zgrid_parameters</a>
+            <a class="list-group-item" href="../proc/read_parameters~11.html#namelist-sources">sources</a>
         </div>
       </div>
     </div>
@@ -158,9 +158,12 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
                   <li class="list-inline-item"><a href='../module/file_utils.html'>file_utils</a></li>
                   <li class="list-inline-item"><a href='../module/text_options.html'>text_options</a></li>
-                  <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
+                  <li class="list-inline-item"><a href='../module/fields_arrays.html'>fields_arrays</a></li>
+                  <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
+                  <li class="list-inline-item"><a href='../module/kt_grids.html'>kt_grids</a></li>
               </ul>
             </li>
         </ul>
@@ -188,15 +191,15 @@
         <h2>Namelists</h2>
             <div class="card">
     <div class="card-header codesum">
-      <span class="anchor" id="namelist-zgrid_parameters"></span>
-      <h3>Namelist <a href='../namelist/zgrid_parameters.html'>zgrid_parameters</a></h3>
+      <span class="anchor" id="namelist-sources"></span>
+      <h3>Namelist <a href='../namelist/sources.html'>sources</a></h3>
     </div>
     <div class="card-body">
         
   <br class="visible-xs visible-sm hidden-md">
   <section>
     <h2>Variables</h2>
-    <table class="table table-striped" id="namelist-zgrid_parameters">
+    <table class="table table-striped" id="namelist-sources">
       <thead><tr>
           <th>Name</th>
           <th>Type</th>
@@ -204,58 +207,79 @@
           <th>Description</th>
       </tr></thead>
       <tbody>
-              <tr id="variable-nzed~3">
-      <td><a href="#variable-nzed~3">nzed</a></td>
-      <td>integer</td>
+              <tr id="variable-source_option">
+      <td><a href="#variable-source_option">source_option</a></td>
+      <td>character(len=30)</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-nperiod">
-      <td><a href="#variable-nperiod">nperiod</a></td>
-      <td>integer</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-ntubes~6">
-      <td><a href="#variable-ntubes~6">ntubes</a></td>
-      <td>integer</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-shat_zero">
-      <td><a href="#variable-shat_zero">shat_zero</a></td>
+              <tr id="variable-nu_krook">
+      <td><a href="#variable-nu_krook">nu_krook</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-boundary_option">
-      <td><a href="#variable-boundary_option">boundary_option</a></td>
-      <td>character(len=20)</td>
+              <tr id="variable-tcorr_source">
+      <td><a href="#variable-tcorr_source">tcorr_source</a></td>
+      <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-zed_equal_arc~2">
-      <td><a href="#variable-zed_equal_arc~2">zed_equal_arc</a></td>
+              <tr id="variable-ikxmax_source">
+      <td><a href="#variable-ikxmax_source">ikxmax_source</a></td>
+      <td>integer</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-krook_odd">
+      <td><a href="#variable-krook_odd">krook_odd</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-grad_x_grad_y_zero">
-      <td><a href="#variable-grad_x_grad_y_zero">grad_x_grad_y_zero</a></td>
+              <tr id="variable-exclude_boundary_regions">
+      <td><a href="#variable-exclude_boundary_regions">exclude_boundary_regions</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-tcorr_source_qn">
+      <td><a href="#variable-tcorr_source_qn">tcorr_source_qn</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-dkx_over_dky~2">
-      <td><a href="#variable-dkx_over_dky~2">dkx_over_dky</a></td>
-      <td>real</td>
+              <tr id="variable-exclude_boundary_regions_qn">
+      <td><a href="#variable-exclude_boundary_regions_qn">exclude_boundary_regions_qn</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-from_zero">
+      <td><a href="#variable-from_zero">from_zero</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-conserve_momentum">
+      <td><a href="#variable-conserve_momentum">conserve_momentum</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-conserve_density">
+      <td><a href="#variable-conserve_density">conserve_density</a></td>
+      <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
@@ -282,13 +306,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-353-geb25b57aa</small></p>
+<br /><small>v0.5.1-354-g51a3a734f</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-25T10:12:20.352806             </p>
+ on 2024-07-25T18:03:48.728508             </p>
           </div>
         </div>
         <br>
