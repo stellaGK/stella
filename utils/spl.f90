@@ -430,6 +430,8 @@ contains
       real sdiag1, diag1, delxnm, dx1, diag, sdiag2, dx2, diag2
       real delxn, slpp1, delx1, sigmap, c3, c2, c1, slppn, delx2
 
+      real zero
+      
       nm1 = n - 1
       np1 = n + 1
       ierr = 0
@@ -494,6 +496,11 @@ contains
          ibak = np1 - i
          yp(ibak) = yp(ibak) - temp(ibak) * yp(ibak + 1)
       end do
+
+      zero = 100*epsilon(0.0)
+      if(yp(1) <= zero) yp(1) = 0.0
+      if(yp(n) <= zero) yp(n) = 0.0
+      
       return
 !
 ! too few points
