@@ -85,6 +85,7 @@ module stella_geometry
    integer, parameter :: geo_option_inputprof = 2
    integer, parameter :: geo_option_vmec = 3
    integer, parameter :: geo_option_multibox = 4
+   integer, parameter :: geo_option_zpinch = 5
 
    logical :: overwrite_geometry
    logical :: overwrite_bmag, overwrite_gradpar
@@ -108,6 +109,7 @@ contains
       use mp, only: proc0
       use millerlocal, only: read_local_parameters, get_local_geo
       use millerlocal, only: communicate_parameters_multibox
+      use zpinch, only: get_zpinch_geometry_coefficients
       use vmec_geo, only: read_vmec_parameters, get_vmec_geo
       use vmec_to_stella_geometry_interface_mod, only: desired_zmin
       use inputprofiles_interface, only: read_inputprof_geo
@@ -206,28 +208,30 @@ contains
             zeta(1, :) = zed * geo_surf%qinp
 
             !!GA - Ensuring all arrays are filled with the alpha = 1 information
-            bmag = spread(bmag(1, :), 1, nalpha)
-            bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
-            gds2 = spread(gds2(1, :), 1, nalpha)
-            gds21 = spread(gds21(1, :), 1, nalpha)
-            gds22 = spread(gds22(1, :), 1, nalpha)
-            gds23 = spread(gds23(1, :), 1, nalpha)
-            gds24 = spread(gds24(1, :), 1, nalpha)
-            gbdrift0 = spread(gbdrift0(1, :), 1, nalpha)
-            gbdrift = spread(gbdrift(1, :), 1, nalpha)
-            cvdrift0 = spread(cvdrift0(1, :), 1, nalpha)
-            cvdrift = spread(cvdrift(1, :), 1, nalpha)
-            dcvdrift0drho = spread(dcvdrift0drho(1, :), 1, nalpha)
-            dcvdriftdrho = spread(dcvdriftdrho(1, :), 1, nalpha)
-            dgbdrift0drho = spread(dgbdrift0drho(1, :), 1, nalpha)
-            dgbdriftdrho = spread(dgbdriftdrho(1, :), 1, nalpha)
-            dgds2dr = spread(dgds2dr(1, :), 1, nalpha)
-            dgds21dr = spread(dgds21dr(1, :), 1, nalpha)
-            dgds22dr = spread(dgds22dr(1, :), 1, nalpha)
-            djacdrho = spread(djacdrho(1, :), 1, nalpha)
-            b_dot_grad_z = spread(b_dot_grad_z(1, :), 1, nalpha)
-            zeta = spread(zeta(1, :), 1, nalpha)
-
+            if (nalpha > 1) then
+               bmag = spread(bmag(1, :), 1, nalpha)
+               bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
+               gds2 = spread(gds2(1, :), 1, nalpha)
+               gds21 = spread(gds21(1, :), 1, nalpha)
+               gds22 = spread(gds22(1, :), 1, nalpha)
+               gds23 = spread(gds23(1, :), 1, nalpha)
+               gds24 = spread(gds24(1, :), 1, nalpha)
+               gbdrift0 = spread(gbdrift0(1, :), 1, nalpha)
+               gbdrift = spread(gbdrift(1, :), 1, nalpha)
+               cvdrift0 = spread(cvdrift0(1, :), 1, nalpha)
+               cvdrift = spread(cvdrift(1, :), 1, nalpha)
+               dcvdrift0drho = spread(dcvdrift0drho(1, :), 1, nalpha)
+               dcvdriftdrho = spread(dcvdriftdrho(1, :), 1, nalpha)
+               dgbdrift0drho = spread(dgbdrift0drho(1, :), 1, nalpha)
+               dgbdriftdrho = spread(dgbdriftdrho(1, :), 1, nalpha)
+               dgds2dr = spread(dgds2dr(1, :), 1, nalpha)
+               dgds21dr = spread(dgds21dr(1, :), 1, nalpha)
+               dgds22dr = spread(dgds22dr(1, :), 1, nalpha)
+               djacdrho = spread(djacdrho(1, :), 1, nalpha)
+               b_dot_grad_z = spread(b_dot_grad_z(1, :), 1, nalpha)
+               zeta = spread(zeta(1, :), 1, nalpha)
+            end if
+               
             !!GA - for correct momentum diagnostics
             !>R^2 * grad zeta . grad y / B^2
             gradzeta_grady = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
@@ -235,6 +239,38 @@ contains
             !>R^2 * b . grad zeta = R^2 * b. grad theta * dzeta/dtheta
             gradpar_zeta = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag
 
+         case (geo_option_zpinch)
+            ! allocate geometry arrays
+            call allocate_arrays(nalpha, nzgrid)
+            ! calculate the geometric coefficients for a z-pinch magnetic equilibrium
+            call get_zpinch_geometry_coefficients(nzgrid, bmag(1, :), gradpar, grho(1, :), geo_surf, &
+                                                  gds2(1, :), gds21(1, :), gds22(1, :), &
+                                                  gbdrift0(1, :), gbdrift(1, :), cvdrift0(1, :), cvdrift(1, :), btor, rmajor)
+
+            !> b_dot_grad_z is the alpha-dependent b . grad z,
+            !> and gradpar is the constant-in-alpha part of it.
+            !> for a z-pinch, b_dot_grad_z is independent of alpha.
+            b_dot_grad_z(1, :) = gradpar
+            ! effectively choose psi = x * B * a_ref = x * B * r0
+            dpsidrho = 1.0; dpsidrho_psi0 = 1.0
+            bmag_psi0 = bmag
+            ! note that psi here is meaningless
+            drhodpsi = 1./dpsidrho
+            drhodpsi_psi0 = 1./dpsidrho_psi0
+            ! dxdXcoord = a*Bref*dx/dpsi = sign(dx/dpsi) * a*q/r
+            dxdXcoord_sign = 1
+            sign_torflux = -1
+            dxdXcoord = 1.0
+            ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
+            dydalpha_sign = 1
+            dydalpha = dydalpha_sign * dpsidrho
+            grad_x = sqrt(gds22)
+            ! there is no magnetic shear in the z-pinch and thus no need for twist-and-shift
+            twist_and_shift_geo_fac = 1.0
+            ! aref and bref should not be needed, so set to 1
+            aref = 1.0; bref = 1.0
+            ! zeta should not be needed
+            zeta(1, :) = 0.0
          case (geo_option_multibox)
             ! read in Miller local parameters
             call read_local_parameters(nzed, nzgrid, geo_surf)
@@ -845,10 +881,11 @@ contains
       logical :: exist
 
       character(20) :: geo_option
-      type(text_option), dimension(5), parameter :: geoopts = (/ &
+      type(text_option), dimension(6), parameter :: geoopts = (/ &
                                                     text_option('default', geo_option_local), &
                                                     text_option('miller', geo_option_local), &
                                                     text_option('local', geo_option_local), &
+                                                    text_option('zpinch', geo_option_zpinch), &
                                                     text_option('input.profiles', geo_option_inputprof), &
                                                     text_option('vmec', geo_option_vmec)/)
 

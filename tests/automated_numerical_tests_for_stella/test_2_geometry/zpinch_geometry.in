@@ -1,0 +1,98 @@
+! Simple linear example with z-pinch magnetic equilibrium geometry
+
+&physics_flags
+  adiabatic_option = 'iphi00=2'
+  full_flux_surface = .false.
+  include_apar = .false.
+  nonlinear = .true.
+/
+&species_knobs
+  nspec = 2
+  species_option = 'stella'
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 3.0
+  type = 'ion'
+  z = 1.0
+/
+&species_parameters_2
+  dens = 1.0
+  fprim = 1.0
+  mass = 0.0005446
+  temp = 1.0
+  tprim = 3.0
+  type = 'electron'
+  z = -1.0
+/
+&parameters
+  beta = 0.01
+  rhostar = 0.01
+  vnew_ref = 0.01
+  zeff = 1.0
+/
+&kt_grids_box_parameters
+  nx = 6
+  ny = 9
+  y0 = 5.0
+  x0 = 5.0
+/
+&zgrid_parameters
+  boundary_option = 'periodic'
+  nperiod = 1
+  nzed = 4
+/
+&vpamu_grids_parameters
+  nmu = 2 
+  nvgrid = 3 
+  vpa_max = 3.0
+/
+&knobs
+  lu_option = 'local'
+  avail_cpu_time = 82800
+  delt = 0.01 
+  fphi = 1.0
+  mat_gen = .false.
+  nstep = 10
+  print_extra_info_to_terminal = .false. 
+/
+&stella_diagnostics_knobs
+  nsave = 10
+  nwrite = 1
+  save_for_restart = .false.
+  write_fluxes_kxkyz = .true.
+  write_gvmus = .true.
+  write_gzvs = .true.
+  write_kspectra = .true.
+  write_omega = .true.
+  write_phi_vs_time = .true.
+  write_radial_fluxes = .true.
+  write_radial_moments = .true.
+/
+&init_g_knobs
+  chop_side = .false.
+  ginit_option = 'default'
+  phiinit = 0.01
+  restart_dir = 'restart'
+  restart_file = 'nc/example.nc'
+  width0 = 1.0
+/
+&dissipation
+  hyper_dissipation = .true.
+/
+&geo_knobs
+  geo_option = 'zpinch'
+/
+&kt_grids_knobs
+  grid_option = 'box'
+/
+&time_advance_knobs
+  explicit_option = 'rk2'
+/
+&layouts_knobs
+  vms_layout = 'vms'
+  xyzs_layout = 'yxzs'
+/

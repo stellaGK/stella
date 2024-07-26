@@ -69,7 +69,8 @@ stella_mod = \
 	 vmec_to_stella_geometry_interface.o \
 	 volume_averages.o \
 	 vpamu_grids.o \
-	 zgrid.o 
+	 zgrid.o \
+	 zpinch.o 
 
 test_vmec_to_stella_geometry_interface_mod = \
 	 fzero.o \
@@ -468,6 +469,7 @@ response_matrix.o: \
 	 linear_solve.o \
 	 mp.o \
 	 mp_lu_decomposition.o \
+	 parallel_streaming.o \
 	 physics_flags.o \
 	 physics_parameters.o \
 	 run_parameters.o \
@@ -600,7 +602,8 @@ stella_geometry.o: \
 	 text_options.o \
 	 vmec_geo.o \
 	 vmec_to_stella_geometry_interface.o \
-	 zgrid.o 
+	 zgrid.o \
+	 zpinch.o 
 stella_io.o: \
 	 convert.o \
 	 dist_fn_arrays.o \
@@ -716,3 +719,5 @@ zgrid.o: \
 	 mp.o \
 	 physics_flags.o \
 	 text_options.o 
+zpinch.o: \
+	 common_types.o 
