@@ -80,20 +80,20 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.5% of total for procedures.">208 statements</a>
+                 title=" 0.1% of total for procedures.">42 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
               <i class="fa fa-code"></i>
-              <a href="../src/run_parameters.f90"> Source File</a>
+              <a href="../src/init_g.f90"> Source File</a>
             </li>
         </ul>
       </div>
       <div class="col">
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb justify-content-end mb-0">
-                <li class="breadcrumb-item"><a href='../sourcefile/run_parameters.f90.html'>run_parameters.f90</a></li>
-                <li class="breadcrumb-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
+                <li class="breadcrumb-item"><a href='../sourcefile/init_g.f90.html'>init_g.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/init_g.html'>init_g</a></li>
             <li class="breadcrumb-item active" aria-current="page">read_parameters</li>
           </ol>
         </nav>
@@ -138,7 +138,7 @@
       </a>
       <div id="namelists-0" class="collapse">
         <div class="list-group list-group-flush">
-            <a class="list-group-item" href="../proc/read_parameters~9.html#namelist-knobs">knobs</a>
+            <a class="list-group-item" href="../proc/read_parameters~9.html#namelist-init_g_knobs">init_g_knobs</a>
         </div>
       </div>
     </div>
@@ -158,12 +158,9 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
-                  <li class="list-inline-item"><a href='../module/file_utils.html'>file_utils</a></li>
                   <li class="list-inline-item"><a href='../module/text_options.html'>text_options</a></li>
-                  <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
-                  <li class="list-inline-item"><a href='../module/physics_parameters.html'>physics_parameters</a></li>
-                  <li class="list-inline-item"><a href='../module/species.html'>species</a></li>
+                  <li class="list-inline-item"><a href='../module/stella_save.html'>stella_save</a></li>
+                  <li class="list-inline-item"><a href='../module/file_utils.html'>file_utils</a></li>
               </ul>
             </li>
         </ul>
@@ -171,8 +168,6 @@
     </div>
 
 
-    <p>For FFS - need to delete 
-print warning messages and override inconsistent or unsupported options for full_flux_surface = T</p>
 
 
     <h3>Arguments</h3>
@@ -193,15 +188,15 @@ print warning messages and override inconsistent or unsupported options for full
         <h2>Namelists</h2>
             <div class="card">
     <div class="card-header codesum">
-      <span class="anchor" id="namelist-knobs"></span>
-      <h3>Namelist <a href='../namelist/knobs.html'>knobs</a></h3>
+      <span class="anchor" id="namelist-init_g_knobs"></span>
+      <h3>Namelist <a href='../namelist/init_g_knobs.html'>init_g_knobs</a></h3>
     </div>
     <div class="card-body">
         
   <br class="visible-xs visible-sm hidden-md">
   <section>
     <h2>Variables</h2>
-    <table class="table table-striped" id="namelist-knobs">
+    <table class="table table-striped" id="namelist-init_g_knobs">
       <thead><tr>
           <th>Name</th>
           <th>Type</th>
@@ -209,239 +204,204 @@ print warning messages and override inconsistent or unsupported options for full
           <th>Description</th>
       </tr></thead>
       <tbody>
-              <tr id="variable-fphi">
-      <td><a href="#variable-fphi">fphi</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-fapar">
-      <td><a href="#variable-fapar">fapar</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-fbpar">
-      <td><a href="#variable-fbpar">fbpar</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-delt~2">
-      <td><a href="#variable-delt~2">delt</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-nstep~2">
-      <td><a href="#variable-nstep~2">nstep</a></td>
-      <td>integer</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-tend">
-      <td><a href="#variable-tend">tend</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-delt_option">
-      <td><a href="#variable-delt_option">delt_option</a></td>
+              <tr id="variable-ginit_option">
+      <td><a href="#variable-ginit_option">ginit_option</a></td>
       <td>character(len=20)</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-lu_option">
-      <td><a href="#variable-lu_option">lu_option</a></td>
-      <td>character(len=20)</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-avail_cpu_time">
-      <td><a href="#variable-avail_cpu_time">avail_cpu_time</a></td>
+              <tr id="variable-width0">
+      <td><a href="#variable-width0">width0</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-delt_max">
-      <td><a href="#variable-delt_max">delt_max</a></td>
+              <tr id="variable-phiinit">
+      <td><a href="#variable-phiinit">phiinit</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-delt_min">
-      <td><a href="#variable-delt_min">delt_min</a></td>
+              <tr id="variable-chop_side">
+      <td><a href="#variable-chop_side">chop_side</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-restart_file~2">
+      <td><a href="#variable-restart_file~2">restart_file</a></td>
+      <td>character(len=300)</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-restart_dir">
+      <td><a href="#variable-restart_dir">restart_dir</a></td>
+      <td>character(len=150)</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-read_many">
+      <td><a href="#variable-read_many">read_many</a></td>
+      <td>logical</td>
+      <td>.true.</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-left">
+      <td><a href="#variable-left">left</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-scale~2">
+      <td><a href="#variable-scale~2">scale</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-cfl_cushion_upper">
-      <td><a href="#variable-cfl_cushion_upper">cfl_cushion_upper</a></td>
+              <tr id="variable-tstart~4">
+      <td><a href="#variable-tstart~4">tstart</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-cfl_cushion_middle">
-      <td><a href="#variable-cfl_cushion_middle">cfl_cushion_middle</a></td>
+              <tr id="variable-zf_init">
+      <td><a href="#variable-zf_init">zf_init</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-cfl_cushion_lower">
-      <td><a href="#variable-cfl_cushion_lower">cfl_cushion_lower</a></td>
+              <tr id="variable-den0">
+      <td><a href="#variable-den0">den0</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-stream_implicit">
-      <td><a href="#variable-stream_implicit">stream_implicit</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-mirror_implicit">
-      <td><a href="#variable-mirror_implicit">mirror_implicit</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-drifts_implicit">
-      <td><a href="#variable-drifts_implicit">drifts_implicit</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-use_deltaphi_for_response_matrix">
-      <td><a href="#variable-use_deltaphi_for_response_matrix">use_deltaphi_for_response_matrix</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-maxwellian_normalization">
-      <td><a href="#variable-maxwellian_normalization">maxwellian_normalization</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-stream_matrix_inversion">
-      <td><a href="#variable-stream_matrix_inversion">stream_matrix_inversion</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-maxwellian_inside_zed_derivative">
-      <td><a href="#variable-maxwellian_inside_zed_derivative">maxwellian_inside_zed_derivative</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-mirror_semi_lagrange">
-      <td><a href="#variable-mirror_semi_lagrange">mirror_semi_lagrange</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-mirror_linear_interp">
-      <td><a href="#variable-mirror_linear_interp">mirror_linear_interp</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-zed_upwind">
-      <td><a href="#variable-zed_upwind">zed_upwind</a></td>
+              <tr id="variable-upar0">
+      <td><a href="#variable-upar0">upar0</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-vpa_upwind">
-      <td><a href="#variable-vpa_upwind">vpa_upwind</a></td>
+              <tr id="variable-tpar0">
+      <td><a href="#variable-tpar0">tpar0</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-time_upwind">
-      <td><a href="#variable-time_upwind">time_upwind</a></td>
+              <tr id="variable-tperp0">
+      <td><a href="#variable-tperp0">tperp0</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-fields_kxkyz">
-      <td><a href="#variable-fields_kxkyz">fields_kxkyz</a></td>
+              <tr id="variable-imfac">
+      <td><a href="#variable-imfac">imfac</a></td>
+      <td>real</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-refac">
+      <td><a href="#variable-refac">refac</a></td>
+      <td>real</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-den1">
+      <td><a href="#variable-den1">den1</a></td>
+      <td>real</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-upar1">
+      <td><a href="#variable-upar1">upar1</a></td>
+      <td>real</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-tpar1">
+      <td><a href="#variable-tpar1">tpar1</a></td>
+      <td>real</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-tperp1">
+      <td><a href="#variable-tperp1">tperp1</a></td>
+      <td>real</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-den2">
+      <td><a href="#variable-den2">den2</a></td>
+      <td>real</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-upar2">
+      <td><a href="#variable-upar2">upar2</a></td>
+      <td>real</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-tpar2">
+      <td><a href="#variable-tpar2">tpar2</a></td>
+      <td>real</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-tperp2">
+      <td><a href="#variable-tperp2">tperp2</a></td>
+      <td>real</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-kxmax">
+      <td><a href="#variable-kxmax">kxmax</a></td>
+      <td>real</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-kxmin">
+      <td><a href="#variable-kxmin">kxmin</a></td>
+      <td>real</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-scale_to_phiinit">
+      <td><a href="#variable-scale_to_phiinit">scale_to_phiinit</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-mat_gen">
-      <td><a href="#variable-mat_gen">mat_gen</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-mat_read">
-      <td><a href="#variable-mat_read">mat_read</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-rng_seed">
-      <td><a href="#variable-rng_seed">rng_seed</a></td>
-      <td>integer</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-ky_solve_radial">
-      <td><a href="#variable-ky_solve_radial">ky_solve_radial</a></td>
-      <td>integer</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-ky_solve_real">
-      <td><a href="#variable-ky_solve_real">ky_solve_real</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-nitt">
-      <td><a href="#variable-nitt">nitt</a></td>
-      <td>integer</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-print_extra_info_to_terminal~2">
-      <td><a href="#variable-print_extra_info_to_terminal~2">print_extra_info_to_terminal</a></td>
+              <tr id="variable-oddparity">
+      <td><a href="#variable-oddparity">oddparity</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
@@ -469,13 +429,13 @@ print warning messages and override inconsistent or unsupported options for full
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-354-g51a3a734f</small></p>
+<br /><small>v0.5.1-355-gc4bada19f</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-25T18:03:48.728508             </p>
+ on 2024-07-26T12:30:11.564283             </p>
           </div>
         </div>
         <br>
