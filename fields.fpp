@@ -39,7 +39,7 @@ module fields
 #ifdef ISO_C_BINDING
    integer :: phi_shared_window = MPI_WIN_NULL
 #endif
-   logical :: debug = .false.
+   logical :: debug = .true.
 
    integer :: zm
    integer :: nfields

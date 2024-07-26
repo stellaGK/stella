@@ -56,13 +56,15 @@
 /
 &knobs
   lu_option = 'local'
-  delt = 0.03
+  delt = 0.1
   mirror_semi_lagrange = .false.
   nitt = 5
   nstep = 10
   time_upwind = 1.0
   vpa_upwind = 0.0
   zed_upwind = 0.0
+  stream_implicit = .false.
+  mirror_implicit = .false.
 /
 &stella_diagnostics_knobs
   nsave = 10
