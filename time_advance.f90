@@ -60,7 +60,7 @@ module time_advance
    real, dimension(2, 10) :: time_gke = 0.
    real, dimension(2, 2) :: time_parallel_nl = 0.
 
-   logical :: debug = .true.
+   logical :: debug = .fail.
 
 contains
 
