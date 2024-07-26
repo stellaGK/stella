@@ -909,9 +909,14 @@ contains
 
       real, dimension(:, -nz:), intent(in) :: f
       real, dimension(-nz:), intent(out) :: df
-
+      real :: zero
+      
       df = 0.5 * (f(3, :) - f(1, :)) / local%dr
 
+      zero = 1000 * epsilon(0.0)
+      if (abs(df(-nz)) .LT. zero) df(-nz) = 0.0
+      if (abs(df(nz)) .LT. zero) df(nz) = 0.0
+      
    end subroutine get_drho
 
    ! given function f(theta), calculate second derivative
@@ -923,7 +928,7 @@ contains
 
       real, dimension(-nz:), intent(in) :: f
       real, dimension(-nz:), intent(out) :: d2f
-
+      real :: zero
       ! assuming equal grid spacing in theta here
       d2f(-nz + 1:nz - 1) = (f(:nz - 2) - 2.*f(-nz + 1:nz - 1) + f(-nz + 2:)) / delthet(-nz + 1:nz - 1)**2
 
@@ -931,6 +936,10 @@ contains
       d2f(-nz) = (f(nz - 1) - 2.*f(-nz) + f(-nz + 1)) / delthet(-nz + 1)**2
       d2f(nz) = d2f(-nz)
 
+      zero = 1000 * epsilon(0.0)
+      if (abs(d2f(-nz)) .LT. zero) d2f(-nz) = 0.0
+      if (abs(d2f(nz)) .LT. zero) d2f(nz) = 0.0
+      
    end subroutine get_d2dthet2
 
    ! given function f(theta:-pi->pi), calculate theta derivative
@@ -942,7 +951,7 @@ contains
 
       real, dimension(-nz:), intent(in) :: f
       real, dimension(-nz:), intent(out) :: df
-
+      real :: zero
       ! assuming equal grid spacing in theta here
       df(-nz + 1:nz - 1) = (f(-nz + 2:) - f(:nz - 2)) / (delthet(:nz - 2) + delthet(-nz + 1:))
 
@@ -950,6 +959,10 @@ contains
       df(-nz) = (f(-nz + 1) - f(nz - 1)) / (delthet(-nz) + delthet(nz - 1))
       df(nz) = df(-nz)
 
+      zero = 1000 * epsilon(0.0)
+      if (abs(df(-nz)) .LT. zero) df(-nz) = 0.0
+      if (abs(df(nz)) .LT. zero) df(nz) = 0.0
+      
    end subroutine get_dthet
 
    subroutine get_jacrho
@@ -1339,7 +1352,8 @@ contains
       real, dimension(-nz:), intent(out) :: integral
 
       integer :: i
-
+      real :: zero
+      
       ! use trapezoidal rule to integrate in theta
       integral(0) = 0.0
       do i = 1, nz
@@ -1349,6 +1363,10 @@ contains
          integral(i) = integral(i + 1) - 0.5 * delthet(i) * (integrand(i + 1) + integrand(i))
       end do
 
+      zero = 10000 * epsilon(0.0) 
+      if(abs(integral(-nz)) .LT. zero) integral(-nz) = 0.0
+      if(abs(integral(nz)) .LT. zero) integral(nz) = 0.0
+      
    end subroutine theta_integrate_indef
 
    function Rpos(r, theta, j)
