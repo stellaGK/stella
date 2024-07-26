@@ -269,7 +269,7 @@ contains
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use stella_geometry, only: bmag, dBdrho
+      use geometry, only: bmag, dBdrho
       use dist_fn_arrays, only: kperp2, dkperp2dr
       use kt_grids, only: naky, nakx
       use kt_grids, only: multiply_by_rho
@@ -463,7 +463,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use stella_geometry, only: bmag, dBdrho
+      use geometry, only: bmag, dBdrho
       use dist_fn_arrays, only: kperp2, dkperp2dr
       use kt_grids, only: naky, nakx, multiply_by_rho
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, vperp2, mu, vpa

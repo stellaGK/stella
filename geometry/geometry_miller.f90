@@ -1,4 +1,4 @@
-module miller_geometry
+module geometry_miller
 
    use common_types, only: flux_surface_type
 
@@ -14,7 +14,7 @@ module miller_geometry
    private
    
    ! These routines are always called on the first processor only
-   logical :: debug = .true.
+   logical :: debug = .false.
 
    integer :: nzed_local
    real :: rhoc, rmaj, shift
@@ -128,7 +128,7 @@ contains
          nzed_local, read_profile_variation, write_profile_variation
 
 
-      if (debug) write (*, *) 'miller_geometry::read_local_parameters'
+      if (debug) write (*, *) 'geometry_miller::read_local_parameters'
       call init_local_defaults
 
       in_file = input_unit_exist("millergeo_parameters", exist)
@@ -233,7 +233,7 @@ contains
       !FLAG DSO -  I think d2psidrho2 needs to be communicated, but
       !            I'm unsure what quantity needs to be updated
 
-      if (debug) write (*, *) 'miller_geometry::communicate_parameters_multibox'
+      if (debug) write (*, *) 'geometry_miller::communicate_parameters_multibox'
       if (job == 1) then
          dqdr = local%shat * local%qinp / local%rhoc
 
@@ -369,7 +369,7 @@ contains
    !============================================================================
    !========================= CALCULATE MILLER GEOMETRY ========================
    !============================================================================ 
-	! gradpar_out is called b_dot_grad_zeta in stella_geometry
+	! gradpar_out is called b_dot_grad_zeta in geometry
    subroutine get_local_geo(nzed, nzgrid, zed_in, zed_equal_arc, &
                             dpsipdrho_out, dpsipdrho_psi0_out, dIdrho_out, grho_out, &
                             bmag_out, bmag_psi0_out, &
@@ -413,7 +413,7 @@ contains
       character(len=512) :: filename
 
       ! Track code
-      if (debug) write (*, *) 'miller_geometry::get_local_geo'
+      if (debug) write (*, *) 'geometry_miller::get_local_geo'
       
       ! number of grid points used for radial derivatives
       nr = 3
@@ -428,7 +428,7 @@ contains
       nz = nz2pi + nzed_local * (np - 1)
 
       ! Allocate arrays
-      if (debug) write (*, *) 'miller_geometry::get_local_geo'
+      if (debug) write (*, *) 'geometry_miller::get_local_geo'
       call allocate_arrays(nr, nz)
 
       dqdr = local%shat * local%qinp / local%rhoc
@@ -451,7 +451,7 @@ contains
       delthet = theta(-nz + 1:) - theta(:nz - 1)
       
       
-      if (debug) write (*, *) 'miller_geometry::radial_derivatives'
+      if (debug) write (*, *) 'geometry_miller::radial_derivatives'
 
       ! get dR/drho and dZ/drho
       call get_drho(Rr, dRdrho)
@@ -583,7 +583,7 @@ contains
       ! get |grad theta|^2, grad r . grad theta, grad alpha . grad theta, etc.
       call get_graddotgrad(dpsipdrho, grho)
       
-      if (debug) write (*, *) 'miller_geometry::get_gds'
+      if (debug) write (*, *) 'geometry_miller::get_gds'
       call get_gds(gds2, gds21, gds22, gds23, gds24)
 
       ! this is (grad alpha x B) . grad theta
@@ -616,7 +616,7 @@ contains
       gbdrift0 = cvdrift0
 
       ! get d^2I/drho^2 and d^2 Jac / dr^2
-      if (debug) write (*, *) 'miller_geometry::get_d2Idr2_d2jacdr2'
+      if (debug) write (*, *) 'geometry_miller::get_d2Idr2_d2jacdr2'
       call get_d2Idr2_d2jacdr2(grho, dIdrho)
 
       ! get d^2varhteta/drho^2
@@ -653,7 +653,7 @@ contains
       dcvdrift0drho = dcvdrift0drho * (dpsipdrho_psi0 / dpsipdrho)
 
       ! interpolate here
-      if (debug) write (*, *) 'miller_geometry::zed_equal_arc'
+      if (debug) write (*, *) 'geometry_miller::zed_equal_arc'
       if (zed_equal_arc) then
          call theta_integrate(1./gradpar, dum)
          gradpararc = (theta(nz) - theta(-nz)) / ((2 * np - 1) * dum)
@@ -725,8 +725,8 @@ contains
       dpsipdrho_out = dpsipdrho
       dpsipdrho_psi0_out = dpsipdrho_psi0
 
-      if (debug) write (*, *) 'miller_geometry::write_miller_geometry_txt_files'
-      filename = "miller_geometry."//trim(run_name)//".input"
+      if (debug) write (*, *) 'geometry_miller::write_geometry_miller_txt_files'
+      filename = "geometry_miller."//trim(run_name)//".input"
       open (1002, file=trim(filename), status='unknown')
       write (1002, '(5a16)') '#1.rhoc', '2.rmaj', '3.rgeo', '4.shift', '5.qinp'
       write (1002, '(5e16.8)') local%rhoc, local%rmaj, local%rgeo, local%shift, local%qinp
@@ -742,7 +742,7 @@ contains
       write (1002, '(3a16)') '16.d2psidr2', '17.betadbprim', '18.psitor_lcfs'
       write (1002, '(3e16.8)') local%d2psidr2, local%betadbprim, local%psitor_lcfs
       close (1002)
-      filename = "miller_geometry."//trim(run_name)//".output"
+      filename = "geometry_miller."//trim(run_name)//".output"
       open (1001, file=trim(filename), status='unknown')
       write (1001, '(a9,e18.9,a11,e18.9,a11,e18.9)') '#dI/dr: ', dIdrho, 'd2I/dr2: ', d2Idr2, 'dpsi/dr: ', dpsipdrho
       write (1001, '(58a15)') '#1.theta', '2.R', '3.dR/dr', '4.d2Rdr2', '5.dR/dth', &
@@ -758,7 +758,7 @@ contains
          '51.dgds2dr', '52.gds21', '53.dgds21dr', '54.gds22', '55.dgds22dr', &
          '56.gds23', '57.gds24', '58.Zr'
 
-      if (debug) write (*, *) 'miller_geometry::write_miller_geometry_txt_files::start_loop'
+      if (debug) write (*, *) 'geometry_miller::write_geometry_miller_txt_files::start_loop'
       if (debug) then 
          i = nz
          write(*,*) 'a', theta(i), Rr(2, i), dRdrho(i), d2Rdr2(i), dRdth(i)
@@ -789,7 +789,7 @@ contains
             Zr(2, i)
       end do
       close (1001)
-      if (debug) write (*, *) 'miller_geometry::write_miller_geometry_txt_files_finished'
+      if (debug) write (*, *) 'geometry_miller::write_geometry_miller_txt_files_finished'
 
       defaults_initialized = .false.
 
@@ -1441,4 +1441,4 @@ contains
 
    end function mod2pi
 
-end module miller_geometry
+end module geometry_miller

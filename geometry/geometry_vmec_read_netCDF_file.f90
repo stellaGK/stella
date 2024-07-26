@@ -3,7 +3,7 @@
 !###############################################################################
 ! 
 ! Routines for calculating the geometry needed by stella, from a VMEC file.
-! Inside the <stella_geometry> module we call:
+! Inside the <geometry> module we call:
 ! 
 ! call get_vmec_geometry(&
 !            nzgrid, nalpha, naky, geo_surf, grho, bmag, gradpar, &
@@ -27,7 +27,7 @@
 ! 
 !###############################################################################
 
-module read_vmec_file
+module geometry_vmec_read_netCDF_file
 
    implicit none
 
@@ -127,7 +127,7 @@ contains
       !---------------------------------------------------------------------- 
 
       ! Track the code 
-      if (debug) write (*, *) 'read_vmec_file::read_vmec_equilibrium'
+      if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::read_vmec_equilibrium'
  
       ! Print some key information about the VMEC file to the command prompt
       if (verbose .and. print_extra_info_to_terminal) then
@@ -449,7 +449,7 @@ contains
       call calculate_triple_products()
 
       ! Track the code  
-      if (debug) write (*, *) 'read_vmec_file::calculate_geometry_for_stella' 
+      if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::calculate_geometry_for_stella' 
 
       ! <bmag> = B̃ = B/Bref 
       bmag = B / Bref
@@ -530,7 +530,7 @@ contains
          !---------------------------------------------------------------------- 
 
          ! Track the code  
-         if (debug) write (*, *) 'read_vmec_file::calculate_triple_products' 
+         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::calculate_triple_products' 
 
          ! Allocate local arrays 
          allocate (B_cross_grad_B_dot_grad_alpha_v2(nalpha, -nzgrid:nzgrid))
@@ -661,7 +661,7 @@ contains
          !---------------------------------------------------------------------- 
 
          ! Track the code  
-         if (debug) write (*, *) 'read_vmec_file::calculate_cartesian_gradient_vectors' 
+         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::calculate_cartesian_gradient_vectors' 
    
          ! Iterate over the <zeta> grid
          do izeta = -nzgrid, nzgrid
@@ -801,7 +801,7 @@ contains
          !---------------------------------------------------------------------- 
 
          ! Track the code  
-         if (debug) write (*, *) 'read_vmec_file::perform_sinecosine_fouriertransforms' 
+         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::perform_sinecosine_fouriertransforms' 
 
          ! Allocate the local arrays, needed for the radial derivatives
          allocate (d_Lambda_d_s_mnc(ns)); allocate (d_Lambda_d_s_mns(ns))
@@ -1098,7 +1098,7 @@ contains
          !---------------------------------------------------------------------- 
 
          ! Track the code  
-         if (debug) write (*, *) 'read_vmec_file::calculate_quantities_on_fluxsurface' 
+         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::calculate_quantities_on_fluxsurface' 
 
          ! Allocate the local arrays
          allocate (d_iota_d_s_on_half_grid(ns)); d_iota_d_s_on_half_grid = 0
@@ -1166,7 +1166,7 @@ contains
          !---------------------------------------------------------------------- 
 
          ! Track the code  
-         if (debug) write (*, *) 'read_vmec_file::get_chosen_flux_surface' 
+         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::get_chosen_flux_surface' 
 
          ! Select the flux surface                    
          ! The radial coordinate used in VMEC is the normalized toroidal flux
@@ -1313,7 +1313,7 @@ contains
          !---------------------------------------------------------------------- 
 
          ! Track the code  
-         if (debug) write (*, *) 'read_vmec_file::print_variables_to_outputfile'
+         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::print_variables_to_outputfile'
 
          ! Only continue if <verbose> is True and <print_extra_info_to_terminal> is True
          if (.not. (verbose .and. print_extra_info_to_terminal)) return  
@@ -1351,7 +1351,7 @@ contains
          !---------------------------------------------------------------------- 
 
          ! Track the code  
-         if (debug) write (*, *) 'read_vmec_file::sanity_checks_inputs'
+         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::sanity_checks_inputs'
 
          ! Check the variables in the input file
          if (nalpha < 1) then
@@ -1392,7 +1392,7 @@ contains
          !---------------------------------------------------------------------- 
 
          ! Track the code  
-         if (debug) write (*, *) 'read_vmec_file::sanity_checks_vmec'
+         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::sanity_checks_vmec'
       
          ! There is a bug in libstell read_wout_file for ASCII-format wout files, in which the xm_nyq and xn_nyq 
          ! arrays are sometimes not populated. The next few lines here provide a workaround. 
@@ -1483,7 +1483,7 @@ contains
          !---------------------------------------------------------------------- 
 
          ! Track the code  
-         if (debug) write (*, *) 'read_vmec_file::sanity_check_iota'
+         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::sanity_check_iota'
          
          ! Allocate temporary arrays
          allocate (temp1_vs_alphazeta(nalpha, -nzgrid:nzgrid)) 
@@ -1527,7 +1527,7 @@ contains
          !---------------------------------------------------------------------- 
 
          ! Track the code  
-         if (debug) write (*, *) 'read_vmec_file::sanity_check_grad_zeta'
+         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::sanity_check_grad_zeta'
          
          ! Allocate temporary arrays 
          allocate (minus_sinzeta_over_R(nalpha, -nzgrid:nzgrid)) 
@@ -1576,7 +1576,7 @@ contains
          !---------------------------------------------------------------------- 
 
          ! Track the code  
-         if (debug) write (*, *) 'read_vmec_file::sanity_check_jacobian'
+         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::sanity_check_jacobian'
 
          ! Allocate temporary arrays 
          allocate (temp_vs_alphazeta(nalpha, -nzgrid:nzgrid))
@@ -1623,7 +1623,7 @@ contains
          !----------------------------------------------------------------------  
 
          ! Track the code  
-         if (debug) write (*, *) 'read_vmec_file::sanity_check_Bcomponents'
+         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::sanity_check_Bcomponents'
 
          ! Allocate temporary arrays 
          allocate (temp_vs_alphazeta(nalpha, -nzgrid:nzgrid))
@@ -1744,7 +1744,7 @@ contains
          !---------------------------------------------------------------------- 
 
          ! Track the code  
-         if (debug) write (*, *) 'read_vmec_file::allocate_geometry_arrays'
+         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::allocate_geometry_arrays'
 
          ! Set the already allocated arrays to zero (these enter the <calculate_vmec_geometry> routine) 
          gds23_psitalpha = 0.0; gds24_psitalpha = 0.0; gds25_psitalpha = 0.0; gds26_psitalpha = 0.0
@@ -1825,7 +1825,7 @@ contains
          !---------------------------------------------------------------------- 
 
          ! Track the code  
-         if (debug) write (*, *) 'read_vmec_file::deallocate_geometry_arrays'
+         if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::deallocate_geometry_arrays'
 
          deallocate (R, Z, B, sqrt_g) 
          deallocate (d_X_d_s, d_X_d_zeta, d_X_d_theta) 
@@ -1946,7 +1946,7 @@ contains
       !------------------------------------------------------------------------- 
 
       ! Track the code  
-      if (debug) write (*, *) 'read_vmec_file::calculate_theta' 
+      if (debug) write (*, *) 'geometry_vmec_read_netCDF_file::calculate_theta' 
 
       ! For each (alpha, zeta) we know <theta_pest> = alpha + iota * zeta
       ! and we use a root solver to find <theta> = theta_pest - Lambda
@@ -2122,4 +2122,4 @@ contains
 
    end subroutine calculate_theta
 
-end module read_vmec_file
+end module geometry_vmec_read_netCDF_file

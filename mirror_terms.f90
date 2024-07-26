@@ -38,8 +38,8 @@ contains
       use vpamu_grids, only: mu
       use zgrid, only: nzgrid, nztot
       use kt_grids, only: nalpha
-      use stella_geometry, only: dbdzed, b_dot_grad_z, gfac
-      use stella_geometry, only: d2Bdrdth, dgradpardrho
+      use geometry, only: dbdzed, b_dot_grad_z, gfac
+      use geometry, only: d2Bdrdth, dgradpardrho
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed
       use run_parameters, only: mirror_implicit, mirror_semi_lagrange
@@ -156,7 +156,7 @@ contains
       use physics_flags, only: full_flux_surface
       use species, only: spec
       use kt_grids, only: nalpha
-      use stella_geometry, only: dbdzed
+      use geometry, only: dbdzed
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed
       use run_parameters, only: vpa_upwind, time_upwind

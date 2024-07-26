@@ -57,7 +57,7 @@ contains
       use vpamu_grids, only: vperp2, vpa, mu
       use kt_grids, only: nalpha
       use zgrid, only: nzgrid, nztot
-      use stella_geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
+      use geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
       use run_parameters, only: stream_implicit, driftkinetic_implicit
       use physics_flags, only: include_parallel_streaming, radial_variation
 

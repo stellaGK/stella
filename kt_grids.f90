@@ -258,9 +258,9 @@ contains
       use mp, only: mp_abort, proc0, broadcast
       use common_types, only: flux_surface_type
       use constants, only: pi, zi
-      use stella_geometry, only: geo_surf, twist_and_shift_geo_fac, dydalpha
-      use stella_geometry, only: q_as_x, get_x_to_rho, dxdpsi, drhodpsi
-      use stella_geometry, only: geo_option_switch, geo_option_vmec
+      use geometry, only: geo_surf, twist_and_shift_geo_fac, dydalpha
+      use geometry, only: q_as_x, get_x_to_rho, dxdpsi, drhodpsi
+      use geometry, only: geo_option_switch, geo_option_vmec
       use physics_parameters, only: rhostar
       use physics_flags, only: full_flux_surface, radial_variation
       use file_utils, only: runtype_option_switch, runtype_multibox
@@ -472,7 +472,7 @@ contains
 
       use mp, only: mp_abort
       use common_types, only: flux_surface_type
-      use stella_geometry, only: geo_surf, q_as_x
+      use geometry, only: geo_surf, q_as_x
       use zgrid, only: shat_zero
 
       implicit none
@@ -612,7 +612,7 @@ contains
 
       use file_utils, only: run_name
       use physics_parameters, only: rhostar
-      use stella_geometry, only: q_as_x, geo_surf, dxdpsi, drhodpsip
+      use geometry, only: q_as_x, geo_surf, dxdpsi, drhodpsip
 
       implicit none
 

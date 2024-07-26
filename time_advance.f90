@@ -195,11 +195,11 @@ contains
       use species, only: spec
       use zgrid, only: nzgrid
       use kt_grids, only: nalpha
-      use stella_geometry, only: cvdrift, gbdrift
-      use stella_geometry, only: cvdrift0, gbdrift0
-      use stella_geometry, only: gds23, gds24
-      use stella_geometry, only: geo_surf, q_as_x
-      use stella_geometry, only: dxdpsi, drhodpsi, dydalpha
+      use geometry, only: cvdrift, gbdrift
+      use geometry, only: cvdrift0, gbdrift0
+      use geometry, only: gds23, gds24
+      use geometry, only: geo_surf, q_as_x
+      use geometry, only: dxdpsi, drhodpsi, dydalpha
       use vpamu_grids, only: vpa, vperp2, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use neoclassical_terms, only: include_neoclassical_terms
@@ -351,7 +351,7 @@ contains
       use species, only: spec
       use zgrid, only: nzgrid
       use kt_grids, only: nalpha
-      use stella_geometry, only: dydalpha, drhodpsi, clebsch_factor
+      use geometry, only: dydalpha, drhodpsi, clebsch_factor
       use vpamu_grids, only: vperp2, vpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use dist_fn_arrays, only: wstar
@@ -419,11 +419,11 @@ contains
       use physics_parameters, only: rhostar
       use species, only: spec, nspec
       use zgrid, only: nztot, nzgrid
-      use stella_geometry, only: geo_surf, drhodpsi, q_as_x
-      use stella_geometry, only: gradpar, dbdzed, bmag
-      use stella_geometry, only: cvdrift, cvdrift0
-      use stella_geometry, only: dIdrho, dgradpardrho, dBdrho, d2Bdrdth
-      use stella_geometry, only: dcvdriftdrho, dcvdrift0drho
+      use geometry, only: geo_surf, drhodpsi, q_as_x
+      use geometry, only: gradpar, dbdzed, bmag
+      use geometry, only: cvdrift, cvdrift0
+      use geometry, only: dIdrho, dgradpardrho, dBdrho, d2Bdrdth
+      use geometry, only: dcvdriftdrho, dcvdrift0drho
       use physics_flags, only: radial_variation
 
       implicit none
@@ -484,10 +484,10 @@ contains
       use species, only: spec, pfac
       use zgrid, only: nzgrid
       use kt_grids, only: nalpha
-      use stella_geometry, only: drhodpsi, dydalpha, gfac
-      use stella_geometry, only: dBdrho, geo_surf, q_as_x
-      use stella_geometry, only: dcvdriftdrho, dcvdrift0drho
-      use stella_geometry, only: dgbdriftdrho, dgbdrift0drho
+      use geometry, only: drhodpsi, dydalpha, gfac
+      use geometry, only: dBdrho, geo_surf, q_as_x
+      use geometry, only: dcvdriftdrho, dcvdrift0drho
+      use geometry, only: dgbdriftdrho, dgbdrift0drho
       use vpamu_grids, only: vperp2, vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use dist_fn_arrays, only: wstarp
@@ -1829,7 +1829,7 @@ contains
       use run_parameters, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, fphi
       use physics_parameters, only: g_exb, g_exbfac
       use zgrid, only: nzgrid, ntubes
-      use stella_geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
+      use geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
       use kt_grids, only: nakx, ikx_max, naky, naky_all, nx, ny
       use kt_grids, only: akx, aky, rho_clamped
       use physics_flags, only: full_flux_surface, radial_variation

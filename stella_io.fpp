@@ -157,7 +157,7 @@ contains
       use species, only: nspec
       use physics_flags, only: radial_variation
       use physics_parameters, only: rhostar
-      use stella_geometry, only: geo_surf, dxdpsi, q_as_x
+      use geometry, only: geo_surf, dxdpsi, q_as_x
       use mp, only: nproc
       use neasyf, only: neasyf_dim, neasyf_write
 #endif
@@ -1358,9 +1358,9 @@ contains
 
 #ifdef NETCDF
       use neasyf, only: neasyf_write
-      use stella_geometry, only: bmag, gradpar, gbdrift, gbdrift0
-      use stella_geometry, only: cvdrift, cvdrift0, gds2, gds21, gds22, grho, jacob
-      use stella_geometry, only: drhodpsi, djacdrho, b_dot_grad_z, geo_surf 
+      use geometry, only: bmag, gradpar, gbdrift, gbdrift0
+      use geometry, only: cvdrift, cvdrift0, gds2, gds21, gds22, grho, jacob
+      use geometry, only: drhodpsi, djacdrho, b_dot_grad_z, geo_surf 
       use physics_parameters, only: beta
       use dist_fn_arrays, only: kperp2
       use kt_grids, only: jtwist

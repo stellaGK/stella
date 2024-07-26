@@ -99,7 +99,7 @@ contains
       use physics_parameters, only: tite, nine, beta
       use physics_flags, only: radial_variation
       use species, only: spec, has_electron_species, ion_species
-      use stella_geometry, only: dl_over_b, dBdrho, bmag
+      use geometry, only: dl_over_b, dBdrho, bmag
       use zgrid, only: nzgrid
       use vpamu_grids, only: nvpa, nmu, mu
       use vpamu_grids, only: vpa, vperp2
@@ -638,7 +638,7 @@ contains
       use species, only: spec, nspec
       use species, only: adiabatic_electrons
       use zgrid, only: nzgrid, nztot
-      use stella_geometry, only: bmag
+      use geometry, only: bmag
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use kt_grids, only: nalpha, ikx_max, naky_all, naky
@@ -657,7 +657,7 @@ contains
       use species, only: has_electron_species, ion_species
       use kt_grids, only: zonal_mode , akx
       use physics_flags, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
-      use stella_geometry, only: dl_over_b
+      use geometry, only: dl_over_b
 
       implicit none
 
@@ -1394,7 +1394,7 @@ contains
       use species, only: spec, has_electron_species
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
-      use stella_geometry, only: dl_over_b
+      use geometry, only: dl_over_b
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1585,7 +1585,7 @@ contains
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use gyro_averages, only: gyro_average
       use run_parameters, only: fphi
-      use stella_geometry, only: dl_over_b
+      use geometry, only: dl_over_b
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: integrate_vmu
@@ -1661,7 +1661,7 @@ contains
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use gyro_averages, only: gyro_average
       use run_parameters, only: fphi
-      use stella_geometry, only: dl_over_b, bmag
+      use geometry, only: dl_over_b, bmag
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: vperp2, nvpa, nmu
       use vpamu_grids, only: integrate_vmu
@@ -1735,7 +1735,7 @@ contains
       use physics_flags, only: radial_variation
       use run_parameters, only: ky_solve_radial, ky_solve_real
       use zgrid, only: nzgrid, ntubes
-      use stella_geometry, only: dl_over_b
+      use geometry, only: dl_over_b
       use kt_grids, only: nakx, naky, zonal_mode
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
@@ -2078,7 +2078,7 @@ contains
 #endif
       use zgrid, only: nzgrid, ntubes
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
-      use stella_geometry, only: dl_over_b, d_dl_over_b_drho
+      use geometry, only: dl_over_b, d_dl_over_b_drho
       use kt_grids, only: nakx, boundary_size, rho_d_clamped
       use fields_arrays, only: phizf_solve, phi_ext
       use fields_arrays, only: phi_proj, phi_proj_stage, theta
@@ -2237,7 +2237,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, is_idx
       use gyro_averages, only: aj0x, aj1x
-      use stella_geometry, only: dBdrho, bmag
+      use geometry, only: dBdrho, bmag
       use dist_fn_arrays, only: kperp2, dkperp2dr
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: vperp2
@@ -2297,7 +2297,7 @@ contains
       use gyro_averages, only: gyro_average, gyro_average_j1
       use gyro_averages, only: aj0x, aj1x
       use run_parameters, only: fphi, ky_solve_radial
-      use stella_geometry, only: dl_over_b, d_dl_over_b_drho, bmag, dBdrho
+      use geometry, only: dl_over_b, d_dl_over_b_drho, bmag, dBdrho
       use stella_layouts, only: imu_idx, is_idx
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: integrate_species, vperp2

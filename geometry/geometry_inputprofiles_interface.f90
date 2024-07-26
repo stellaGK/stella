@@ -1,4 +1,4 @@
-module inputprofiles_interface
+module geometry_inputprofiles_interface
 
    implicit none
 
@@ -37,7 +37,7 @@ contains
       use common_types, only: flux_surface_type
       use finite_differences, only: fd3pt, d2_3pt
       use splines, only: geo_spline
-      use miller_geometry, only: local
+      use geometry_miller, only: local
 
       implicit none
 
@@ -201,7 +201,7 @@ contains
       use finite_differences, only: fd3pt, d2_3pt
       use splines, only: geo_spline
       use common_types, only: spec_type
-      use miller_geometry, only: local
+      use geometry_miller, only: local
       use physics_parameters, only: vnew_ref, rhostar
 
       implicit none
@@ -527,4 +527,4 @@ contains
 
    end subroutine deallocate_arrays_spec
 
-end module inputprofiles_interface
+end module geometry_inputprofiles_interface

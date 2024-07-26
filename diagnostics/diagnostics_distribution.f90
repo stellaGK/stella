@@ -238,7 +238,7 @@ contains
                   g2nozonal_vs_tzmus, g2nozonal_vs_zvpas, g2nozonal_vs_vpamus, g2nozonal_vs_zvpamus)
 
       ! Geometry
-      use stella_geometry, only: dl_over_b
+      use geometry, only: dl_over_b
 
       ! Dimensions
       use kt_grids, only: zonal_mode

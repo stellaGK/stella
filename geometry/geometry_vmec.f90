@@ -4,7 +4,7 @@
 !###############################################################################
 ! 
 ! Routines for calculating the geometry needed by stella, from a VMEC file.
-! Inside the <stella_geometry> module we call:
+! Inside the <geometry> module we call:
 ! 
 ! call get_vmec_geometry(&
 !            nzgrid, nalpha, naky, geo_surf, grho, bmag, b_dot_grad_z, &
@@ -181,7 +181,7 @@ contains
       use physics_flags, only: full_flux_surface, const_alpha_geo 
       use zgrid, only: zed_equal_arc, get_total_arc_length, get_arc_length_grid
       use zgrid, only: zed 
-      use read_vmec_file, only: calculate_vmec_geometry
+      use geometry_vmec_read_netCDF_file, only: calculate_vmec_geometry
       use file_utils, only: open_output_file
       use mp, only: mp_abort
 
@@ -201,7 +201,7 @@ contains
 
 
       ! These routines are always called on the first processor only
-      logical, parameter :: debug = .true.
+      logical, parameter :: debug = .false.
 
       integer :: ierr
       integer :: tmpunit
@@ -266,7 +266,7 @@ contains
       allocate (b_dot_grad_zeta_averaged(-nzgrid:nzgrid)); b_dot_grad_zeta_averaged = 0.0
       allocate (b_dot_grad_zeta(nalpha, -nzgrid:nzgrid)); b_dot_grad_zeta = 0.0
 
-      ! Calculate the geometry arrays from the VMEC file using read_vmec_file.f90
+      ! Calculate the geometry arrays from the VMEC file using geometry_vmec_read_netCDF_file.f90
       ! Some quantities will be assigned to the module variables such as <nfp>
       if (debug) write (*, *) 'get_vmec_geometry::calculate_vmec_geometry'
       call calculate_vmec_geometry(&

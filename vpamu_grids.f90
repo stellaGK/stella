@@ -781,7 +781,7 @@ contains
       use zgrid, only: nzgrid, nztot
       use kt_grids, only: nalpha
       use species, only: spec, nspec
-      use stella_geometry, only: bmag, bmag_psi0
+      use geometry, only: bmag, bmag_psi0
       use run_parameters, only: maxwellian_normalization
 
       use physics_flags, only: full_flux_surface

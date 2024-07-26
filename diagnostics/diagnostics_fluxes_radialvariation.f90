@@ -37,12 +37,12 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use species, only: spec
-      use stella_geometry, only: grho_norm, bmag, btor
-      use stella_geometry, only: drhodpsi
-      use stella_geometry, only: gds21, gds22
-      use stella_geometry, only: dgds21dr, dgds22dr
-      use stella_geometry, only: geo_surf
-      use stella_geometry, only: dBdrho, dIdrho
+      use geometry, only: grho_norm, bmag, btor
+      use geometry, only: drhodpsi
+      use geometry, only: gds21, gds22
+      use geometry, only: dgds21dr, dgds22dr
+      use geometry, only: geo_surf
+      use geometry, only: dBdrho, dIdrho
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: vperp2, vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -334,7 +334,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use species, only: nspec
       use volume_averages, only: mode_fac
-      use stella_geometry, only: dVolume
+      use geometry, only: dVolume
       use stella_transforms, only: transform_kx2x_unpadded
       use physics_flags, only: radial_variation
 
@@ -448,7 +448,7 @@ contains
    subroutine get_one_flux_radial(weights, gin, fld, flxout)
 
       use vpamu_grids, only: integrate_vmu
-      use stella_geometry, only: dVolume
+      use geometry, only: dVolume
       use stella_layouts, only: vmu_lo
       use kt_grids, only: aky, nakx, naky
       use zgrid, only: nzgrid, ntubes

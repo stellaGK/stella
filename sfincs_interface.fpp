@@ -40,7 +40,7 @@ contains
 # ifdef USE_SFINCS
       use mp, only: proc0, iproc
       use mp, only: comm_split, comm_free
-      use stella_geometry, only: geo_surf
+      use geometry, only: geo_surf
       use species, only: spec, nspec
 # endif
       use mp, only: mp_abort
@@ -402,7 +402,7 @@ contains
       use file_utils, only: input_unit_exist
       use species, only: nspec
       use physics_parameters, only: rhostar, vnew_ref
-      use stella_geometry, only: geo_surf, aref, bref
+      use geometry, only: geo_surf, aref, bref
 
       implicit none
 
@@ -587,7 +587,7 @@ contains
    subroutine pass_inputoptions_to_sfincs(delrho)
 
       use mp, only: mp_abort
-      use stella_geometry, only: geo_surf
+      use geometry, only: geo_surf
       use species, only: spec, nspec
       use zgrid, only: nzed
       use physics_parameters, only: nine, tite
@@ -700,9 +700,9 @@ contains
       use constants, only: pi
       use splines, only: linear_interp_periodic
       use zgrid, only: nz2pi, zed
-      use stella_geometry, only: bmag, dbdzed, gradpar
-      use stella_geometry, only: dBdrho, d2Bdrdth, dgradpardrho, dIdrho
-      use stella_geometry, only: geo_surf
+      use geometry, only: bmag, dbdzed, gradpar
+      use geometry, only: dBdrho, d2Bdrdth, dgradpardrho, dIdrho
+      use geometry, only: geo_surf
       use globalVariables, only: BHat
       use globalVariables, only: dBHatdtheta
       use globalVariables, only: iota
@@ -985,8 +985,8 @@ contains
 
       use constants, only: pi
       use zgrid, only: nz2pi, zed
-      use stella_geometry, only: dzetadz
-      use stella_geometry, only: alpha
+      use geometry, only: dzetadz
+      use geometry, only: alpha
       use kt_grids, only: nalpha
       use globalVariables, only: iota
 

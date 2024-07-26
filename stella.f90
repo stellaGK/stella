@@ -8,12 +8,12 @@ program stella
    use stella_time, only: update_time, code_time, code_dt, checkcodedt
    use dist_redistribute, only: kxkyz2vmu
    use time_advance, only: advance_stella
-   use diagnostics, only: diagnose_stella
+   use diagnostics, only: diagnostics_stella
    use stella_save, only: stella_save_for_restart
    use dist_fn_arrays, only: gnew, gvmu
    use file_utils, only: error_unit, flush_output_file
    use git_version, only: get_git_version, get_git_date
-   use diagnose_omega, only: checksaturation
+   use diagnostics_omega, only: checksaturation
    
    ! Input file
    use parameters_diagnostics, only: nsave
@@ -21,6 +21,7 @@ program stella
    implicit none
 
    logical :: debug = .false.
+   
    logical :: stop_stella = .false.
    logical :: mpi_initialized = .false.
 
@@ -44,8 +45,8 @@ program stella
    call init_stella(istep0, git_commit, git_date)
 
    !> Diagnose stella
-   if (debug) write (*, *) 'stella::diagnose_stella'
-   if (istep0 == 0) call diagnose_stella(istep0)
+   if (debug) write (*, *) 'stella::diagnostics_stella'
+   if (istep0 == 0) call diagnostics_stella(istep0)
 
    !> Advance stella until istep=nstep
    if (debug) write (*, *) 'stella::advance_stella'
@@ -66,8 +67,8 @@ program stella
          call scatter(kxkyz2vmu, gnew, gvmu)
          call stella_save_for_restart(gvmu, istep, code_time, code_dt, istatus)
       end if
-      call time_message(.false., time_diagnose_stella, ' diagnostics')
-      call diagnose_stella(istep)
+      call time_message(.false., time_diagnose_stella, ' diagnostics') 
+      call diagnostics_stella(istep) 
       call time_message(.false., time_diagnose_stella, ' diagnostics')
       ierr = error_unit()
       call flush_output_file(ierr)
@@ -104,8 +105,8 @@ contains
       use species, only: nspec
       use zgrid, only: init_zgrid
       use zgrid, only: nzgrid, ntubes
-      use stella_geometry, only: init_geometry
-      use stella_geometry, only: finish_init_geometry
+      use geometry, only: init_geometry
+      use geometry, only: finish_init_geometry
       use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
       use response_matrix, only: init_response_matrix, read_response_matrix
       use init_g, only: ginit, init_init_g, phiinit, scale_to_phiinit
@@ -259,7 +260,7 @@ contains
       if (debug) write (6, *) 'stella::init_stella::init_multibox_subcalls'
       call init_multibox_subcalls
       !> finish_init_geometry deallocates various geometric arrays that
-      !> were defined locally within the miller_geometry module when using Miller geometry
+      !> were defined locally within the geometry_miller module when using Miller geometry
       if (debug) write (6, *) 'stella::init_stella::finish_init_geometry'
       call finish_init_geometry
       !> setup the (vpa,mu) grids and associated integration weights
@@ -378,7 +379,7 @@ contains
 
       use mp, only: proc0, job
       use species, only: communicate_species_multibox
-      use stella_geometry, only: communicate_geo_multibox
+      use geometry, only: communicate_geo_multibox
       use kt_grids, only: communicate_ktgrids_multibox
       use file_utils, only: runtype_option_switch, runtype_multibox
       use physics_flags, only: radial_variation
@@ -571,7 +572,7 @@ contains
       use fields, only: time_field_solve
       use diagnostics, only: finish_diagnostics, time_diagnostics
       use response_matrix, only: finish_response_matrix
-      use stella_geometry, only: finish_geometry
+      use geometry, only: finish_geometry
       use extended_zgrid, only: finish_extended_zgrid
       use vpamu_grids, only: finish_vpamu_grids
       use kt_grids, only: finish_kt_grids

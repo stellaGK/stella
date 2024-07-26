@@ -27,8 +27,8 @@ contains
 
       use zgrid, only: nzgrid, nztot, delzed
       use kt_grids, only: nalpha, aky, nakx, naky, rho_d_clamped
-      use stella_geometry, only: geo_surf, drhodpsip
-      use stella_geometry, only: geo_surf, jacob, djacdrho, q_as_x, dVolume
+      use geometry, only: geo_surf, drhodpsip
+      use geometry, only: geo_surf, jacob, djacdrho, q_as_x, dVolume
       use physics_flags, only: full_flux_surface, radial_variation
 
       implicit none
@@ -76,7 +76,7 @@ contains
 
    subroutine finish_volume_averages
 
-      use stella_geometry, only: dVolume
+      use geometry, only: dVolume
       use physics_flags, only: full_flux_surface
 
       implicit none
@@ -96,7 +96,7 @@ contains
 
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, naky
-      use stella_geometry, only: dl_over_b
+      use geometry, only: dl_over_b
 
       implicit none
 
@@ -119,7 +119,7 @@ contains
 
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, naky
-      use stella_geometry, only: dl_over_b
+      use geometry, only: dl_over_b
 
       implicit none
 
@@ -145,7 +145,7 @@ contains
 
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
-      use stella_geometry, only: dl_over_b
+      use geometry, only: dl_over_b
 
       implicit none
 
@@ -176,7 +176,7 @@ contains
       use zgrid, only: nzgrid
       use kt_grids, only: naky
       use extended_zgrid, only: periodic
-      use stella_geometry, only: jacob
+      use geometry, only: jacob
       use stella_transforms, only: transform_alpha2kalpha
 
       implicit none

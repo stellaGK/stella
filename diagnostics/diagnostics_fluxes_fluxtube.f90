@@ -103,10 +103,10 @@ contains
       use run_parameters, only: fphi, fapar
       
       ! Geometry 
-      use stella_geometry, only: bmag, btor, gds2, gds21, gds22, geo_surf 
-      use stella_geometry, only: gradzeta_gradx_R2overB2
-      use stella_geometry, only: gradzeta_grady_R2overB2
-      use stella_geometry, only: b_dot_grad_zeta_RR 
+      use geometry, only: bmag, btor, gds2, gds21, gds22, geo_surf 
+      use geometry, only: gradzeta_gradx_R2overB2
+      use geometry, only: gradzeta_grady_R2overB2
+      use geometry, only: b_dot_grad_zeta_RR 
       
       ! Dimensions
       use vpamu_grids, only: vperp2, vpa, mu
@@ -347,7 +347,7 @@ contains
 
       use vpamu_grids, only: integrate_vmu
       use volume_averages, only: mode_fac
-      use stella_geometry, only: flux_fac
+      use geometry, only: flux_fac
       use kt_grids, only: aky
 
       implicit none
@@ -396,7 +396,7 @@ contains
    subroutine get_factor_for_fluxsurfaceaverage(fluxnorm_vs_z, one_over_nablarho) 
 
       use parameters_diagnostics, only: flux_norm
-      use stella_geometry, only: jacob, grho
+      use geometry, only: jacob, grho
       use zgrid, only: delzed, nzgrid  
 
       implicit none

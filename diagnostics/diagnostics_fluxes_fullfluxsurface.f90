@@ -36,7 +36,7 @@ contains
       use kt_grids, only: naky, nakx, ny
       use kt_grids, only: aky, dy
       use fields_arrays, only: phi
-      use stella_geometry, only: grad_x, jacob
+      use geometry, only: grad_x, jacob
 
       implicit none
 
@@ -148,7 +148,7 @@ contains
       use zgrid, only: nzgrid
       use kt_grids, only: ikx_max, naky_all, ny
       use kt_grids, only: swap_kxky_back
-      use stella_geometry, only: bmag
+      use geometry, only: bmag
       use stella_transforms, only: transform_y2ky
 
       implicit none
@@ -208,9 +208,9 @@ contains
 
       !> For momentum flux
       use gyro_averages, only: j1_ffs
-      use stella_geometry, only: gds21, gds22, gds2
-      use stella_geometry, only: geo_surf
-      use stella_geometry, only: gradzeta_grady_R2overB2, gradzeta_gradx_R2overB2, b_dot_grad_zeta_RR
+      use geometry, only: gds21, gds22, gds2
+      use geometry, only: geo_surf
+      use geometry, only: gradzeta_grady_R2overB2, gradzeta_gradx_R2overB2, b_dot_grad_zeta_RR
 
       implicit none
 

@@ -62,7 +62,7 @@ contains
       use kt_grids, only: ikx_max, nakx, naky
       use kt_grids, only: aky, akx, theta0
       use zgrid, only: nzgrid, zed
-      use stella_geometry, only: geo_surf, q_as_x
+      use geometry, only: geo_surf, q_as_x
       use dist_fn_arrays, only: kperp2
 
       implicit none

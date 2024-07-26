@@ -67,7 +67,7 @@ contains
 
       use species, only: spec, nspec
       use vpamu_grids, only: dvpa, dmu, mu, nmu
-      use stella_geometry, only: bmag
+      use geometry, only: bmag
 
       implicit none
 
@@ -106,7 +106,7 @@ contains
       use vpamu_grids, only: dvpa, vpa, nvpa
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-      use stella_geometry, only: bmag
+      use geometry, only: bmag
       use dist_fn_arrays, only: kperp2
 
       implicit none
@@ -145,7 +145,7 @@ contains
       use stella_time, only: code_dt
       use species, only: nspec, spec
       use zgrid, only: nzgrid
-      use stella_geometry, only: bmag
+      use geometry, only: bmag
       use vpamu_grids, only: dmu, nmu
       use vpamu_grids, only: dmu_cell, mu_cell, wgts_mu_bare
       use stella_layouts, only: kxkyz_lo
@@ -214,7 +214,7 @@ contains
       use kt_grids, only: naky, nakx, zonal_mode
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use stella_geometry, only: dl_over_b
+      use geometry, only: dl_over_b
       use dist_fn_arrays, only: gvmu
       use gyro_averages, only: aj0v
       use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h
@@ -466,7 +466,7 @@ contains
       use vpamu_grids, only: ztmax, maxwell_vpa, maxwell_mu
       use vpamu_grids, only: nvpa, vpa, vperp2
       use kt_grids, only: naky, nakx, zonal_mode
-      use stella_geometry, only: dl_over_b, bmag
+      use geometry, only: dl_over_b, bmag
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use dist_fn_arrays, only: gvmu, kperp2
@@ -915,7 +915,7 @@ contains
       use kt_grids, only: naky, nakx, multiply_by_rho, rho_d_clamped
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: set_vpa_weights
-      use stella_geometry, only: bmag, dBdrho
+      use geometry, only: bmag, dBdrho
       use stella_layouts, only: vmu_lo, kxkyz_lo
       use stella_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
       use dist_redistribute, only: kxkyz2vmu
@@ -1145,7 +1145,7 @@ contains
       use vpamu_grids, only: nmu, dmu
       use vpamu_grids, only: mu_cell, dmu_cell, wgts_mu_bare
       use vpamu_grids, only: equally_spaced_mu_grid
-      use stella_geometry, only: bmag
+      use geometry, only: bmag
 
       implicit none
 
@@ -1182,7 +1182,7 @@ contains
    subroutine conserve_momentum(iky, ikx, iz, is, ikxkyz, h, Ch)
 
       use species, only: spec
-      use stella_geometry, only: bmag
+      use geometry, only: bmag
       use vpamu_grids, only: integrate_vmu
       use vpamu_grids, only: vpa, nvpa, nmu, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu
@@ -1272,7 +1272,7 @@ contains
       use stella_layouts, only: imu_idx, iv_idx, is_idx
       use species, only: spec
       use physics_flags, only: radial_variation
-      use stella_geometry, only: bmag, dBdrho
+      use geometry, only: bmag, dBdrho
       use kt_grids, only: nakx, naky, multiply_by_rho
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: integrate_species, mu, vpa, vperp2
@@ -1406,7 +1406,7 @@ contains
       use stella_layouts, only: imu_idx, iv_idx, is_idx
       use species, only: spec
       use physics_flags, only: radial_variation
-      use stella_geometry, only: bmag, dBdrho
+      use geometry, only: bmag, dBdrho
       use kt_grids, only: nakx, naky, multiply_by_rho
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: integrate_species
@@ -1530,7 +1530,7 @@ contains
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
       use vpamu_grids, only: set_vpa_weights
       use kt_grids, only: naky, nakx, zonal_mode
-      use stella_geometry, only: dl_over_b
+      use geometry, only: dl_over_b
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use g_tofrom_h, only: g_to_h
@@ -1700,7 +1700,7 @@ contains
       use gyro_averages, only: aj0v, aj1v
       use g_tofrom_h, only: g_to_h
       use fields, only: get_fields, efac, gamtot_h
-      use stella_geometry, only: bmag, dl_over_b
+      use geometry, only: bmag, dl_over_b
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
 

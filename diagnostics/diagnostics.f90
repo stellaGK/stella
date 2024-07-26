@@ -70,8 +70,8 @@ contains
       call calculate_omega(istep, time_diagnostics(:, 1))    
 
       ! 0nly write data to the ascii and netcdf files every <nwrite> time steps
-      if (.not. write_to_ascii_files) return
-      if (debug) write (*, *) 'diagnostics::diagnostics_stella::txt_files' 
+      if (debug) write (*, *) 'diagnostics::diagnostics_stella::txt_files'
+      if (.not. write_to_ascii_files) return 
 
       ! Get the updated fields <phi>(ky,kx,z,tube) corresponding to <gnew>(ky,kx,z,tube,i[vpa,mu,s])
       if (radial_variation) fields_updated = .false. 

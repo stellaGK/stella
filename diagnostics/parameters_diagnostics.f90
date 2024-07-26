@@ -198,7 +198,9 @@ contains
          integer :: in_file 
 
          ! Define the namelist "diagnostics_knobs" in the input file.
-         namelist /diagnostics_knobs/ nwrite, navg, nsave, autostop, save_for_restart, flux_norm, nc_mult, &
+         ! TODO-HT Change <stella_diagnostics_knobs> to <diagnostics> (Change all input files in tests)
+         ! and mp_abort if <stella_diagnostics_knobs> is in the input file
+         namelist /stella_diagnostics_knobs/ nwrite, navg, nsave, autostop, save_for_restart, flux_norm, nc_mult, &
             write_phi2_vs_time, write_apar2_vs_time, write_bpar2_vs_time, write_fluxes_vs_time, &
             write_phi_vs_kxkyz, write_g2_vs_vpamus, write_g2_vs_zvpas, write_g2_vs_zmus, &
             write_g2_vs_kxkyzs, write_g2_vs_zvpamus, write_distribution_g, write_distribution_h, write_distribution_f, &
@@ -213,9 +215,9 @@ contains
          ! Track code 
          if (debug) write (*, *) 'read_diagnostics_parameters::read_input_file'
             
-         ! Read the namelist "diagnostics_knobs"in the input file and overwrite the default variables
-         in_file = input_unit_exist("diagnostics_knobs", exist)
-         if (exist) read (unit=in_file, nml=diagnostics_knobs)
+         ! Read the namelist "stella_diagnostics_knobs" in the input file and overwrite the default variables
+         in_file = input_unit_exist("stella_diagnostics_knobs", exist)
+         if (exist) read (unit=in_file, nml=stella_diagnostics_knobs)
 
          ! If <save_for_restart> = False then we need <nsave> = -1
          if (.not. save_for_restart) nsave = -1

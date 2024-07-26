@@ -18,7 +18,7 @@ with open(module_path, 'r') as file: exec(file.read())
 input_filename = 'miller_geometry.in'  
 stella_local_run_directory = 'Not/Run/Yet'
 input_file = input_filename.replace('.in','')
-miller_file_name = 'miller_geometry'
+miller_file_name = 'geometry_miller'
 
 #-------------------------------------------------------------------------------
 #                    Check whether output files are present                    #
@@ -27,7 +27,7 @@ def test_whether_miller_output_files_are_present(tmp_path, error=False):
     
     # Save the temporary folder <tmp_path> as a global variable so the
     # other tests can access the output files from the local stella run.
-    global stella_local_run_directory
+    global stella_local_run_directory, miller_file_name, input_file
     stella_local_run_directory = tmp_path
     
     # Run stella inside of <tmp_path> based on <input_filename>
@@ -37,7 +37,7 @@ def test_whether_miller_output_files_are_present(tmp_path, error=False):
     local_files = os.listdir(stella_local_run_directory)
     
     # Create a list of the output files we expect when stella has been run 
-    expected_files = [f'miller_geometry.{input_file}.input', f'miller_geometry.{input_file}.output', f'{input_file}.geometry']; new_names = True
+    expected_files = [f'{miller_file_name}.{input_file}.input', f'{miller_file_name}.{input_file}.output', f'{input_file}.geometry']; new_names = True
     
     # Check whether all these output files are present
     for expected_file in expected_files:

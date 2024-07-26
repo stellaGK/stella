@@ -239,7 +239,7 @@ contains
 
       ! Geometry 
       USE dist_fn_arrays, only: kperp2
-      use stella_geometry, only: zed_eqarc
+      use geometry, only: zed_eqarc
 
       ! Dimensions
       use kt_grids, only: naky, nakx, aky, akx, zed0

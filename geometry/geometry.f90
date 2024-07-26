@@ -5,7 +5,7 @@
 ! 
 ! Routines for calculating the geometry needed by stella.
 ! 
-! This routine will call the <vmec_geometry> or <miller_geometry> modules.
+! This routine will call the <vmec_geometry> or <geometry_miller> modules.
 ! Which each uses specific (x, psi) coordinates. Nonetheless, stella is 
 ! completely general, it just needs geometric variables as a function of
 ! <psi> as well as the factor <dxdpsi> and <dpsitdpsi>.
@@ -13,7 +13,7 @@
 !###############################################################################
 
 
-module stella_geometry
+module geometry
 
    use common_types, only: flux_surface_type
 
@@ -59,7 +59,7 @@ module stella_geometry
    private
    
    ! Debugging
-   logical :: debug = .true.
+   logical :: debug = .false.
 
    type(flux_surface_type) :: geo_surf
 
@@ -148,7 +148,7 @@ contains
       dzetadz = 1.0
       
       ! Track the code 
-      if (debug) write (*, *) 'stella_geometry::init_geometry'
+      if (debug) write (*, *) 'geometry::init_geometry'
 
       ! Only calculate the geometry on proc0
       if (proc0) then
@@ -182,7 +182,7 @@ contains
          call get_zed_eqarc(b_dot_grad_z_averaged, delzed, zed, b_dot_grad_z_averaged_eqarc, zed_eqarc)
 		   
 		   ! A lot of modules use <gradpar> even though <b_dot_grad_z_averaged> is a better name  
-         gradpar = b_dot_grad_z_averaged
+         gradpar = b_dot_grad_z_averaged 
 
       end if
  
@@ -191,7 +191,7 @@ contains
       !=========================================================================
       
       ! Track the code 
-      if (debug) write (*, *) 'stella_geometry::init_geometry::calculate_on_all_processors'
+      if (debug) write (*, *) 'geometry::init_geometry::calculate_on_all_processors'
 
       ! We calculated the geometric quantities on proc0, now allocate the arrays on 
       ! the other processors, and broadcast from proc0 to the other processors
@@ -384,7 +384,7 @@ contains
       ! Flux surface quantities that we need
       rho = geo_surf%rhotor 
       shat = geo_surf%shat
-      iota = geo_surf%qinp
+      iota = 1/geo_surf%qinp
 
       ! Define the (psi,alpha) and (x,y) coordinates
       if (radial_coordinate_option==radial_coordinate_sgnpsitpsit) then
@@ -518,7 +518,7 @@ contains
 
             ! dkx/dky * jtwist = -2*pi*P * (dψ/dx) (dy/dα) * (drho/dψ) * hat{s} (iota/rho)
             write (*, *) ' '; write (*, *) 'Standard twist and shift BC selected'
-            twist_and_shift_geo_fac = -2. * pi * field_period_ratio * dpsidx * dydalpha * drhodpsi * shat * iota / rho
+            twist_and_shift_geo_fac = -2. * pi * field_period_ratio * dpsidx * dydalpha * drhodpsi * shat * iota / rho  
 
          end select
 
@@ -609,9 +609,9 @@ contains
 
    subroutine get_geometry_arrays_from_Miller(nalpha)
 
-      use miller_geometry, only: read_local_parameters, get_local_geo
-      use miller_geometry, only: communicate_parameters_multibox
-      use inputprofiles_interface, only: read_inputprof_geo
+      use geometry_miller, only: read_local_parameters, get_local_geo
+      use geometry_miller, only: communicate_parameters_multibox
+      use geometry_inputprofiles_interface, only: read_inputprof_geo
       use zgrid, only: zed, nzed, nzgrid, zed_equal_arc
       use constants, only: pi
 
@@ -625,11 +625,11 @@ contains
       ! Read the <millergeo_parameters> namelist in the input file  
       ! <nzed> and <nzgrid> are inputs, and <geo_surf> is returned 
       ! which is a dictionary that contains all the geometry information 
-      if (debug) write (*, *) 'stella_geometry::Miller::read_local_parameters'
+      if (debug) write (*, *) 'geometry::Miller::read_local_parameters'
       call read_local_parameters(nzed, nzgrid, geo_surf)
 
       ! Allocate geometry arrays for stella
-      if (debug) write (*, *) 'stella_geometry::Miller::allocate_arrays'
+      if (debug) write (*, *) 'geometry::Miller::allocate_arrays'
       call allocate_arrays(nalpha, nzgrid)
 
       ! Overwrite parameters from the input file with those from the input.profiles file
@@ -645,11 +645,11 @@ contains
          call communicate_parameters_multibox(surf=geo_surf)
       end if
 
-      ! Call the <miller_geometry.f90> module to calculate the geometric coefficients 
+      ! Call the <geometry_miller.f90> module to calculate the geometric coefficients 
       ! needed by stella, based on the local Miller parameters. For Miller geometries
       ! each field line <alpha> has the same geometry, hence we will only pass on the 
       ! ialpha=1 arrays to the get_local_geo() routine. Note that in Miller z = theta.
-      if (debug) write (*, *) 'stella_geometry::Miller::get_local_geo'
+      if (debug) write (*, *) 'geometry::Miller::get_local_geo'
       call get_local_geo(nzed, nzgrid, zed, zed_equal_arc, &
                 dpsipdrho, dpsipdrho_psi0, dIdrho, grho(1, :), bmag(1, :), bmag_psi0(1, :), &
                 gds2(1, :), gds21(1, :), gds22(1, :), gds23(1, :), gds24(1, :), b_dot_grad_z(1, :), &
@@ -657,7 +657,7 @@ contains
                 dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
                 dcvdrift0drho(1, :), dcvdriftdrho(1, :), dgbdrift0drho(1, :), dgbdriftdrho(1, :), &
                 dgds2dr(1, :), dgds21dr(1, :), dgds22dr(1, :), djacdrho(1, :))
-      if (debug) write (*, *) 'stella_geometry::Miller::get_local_geo_finished'
+      if (debug) write (*, *) 'geometry::Miller::get_local_geo_finished'
 
       ! <drhodpsip> = drho/d(psip/a^2*Bref) = (a^2*Bref) * drho/dpsip = (a*Bref) * dr/dpsip   
       drhodpsip = 1./dpsipdrho 
@@ -725,7 +725,7 @@ contains
 
       ! For Miller each field line <alpha> has the same geometry so
       ! ensure that all arrays are filled with the ialpha = 1 information
-      if (debug) write (*, *) 'stella_geometry::Miller::spread_geometry'
+      if (debug) write (*, *) 'geometry::Miller::spread_geometry'
       bmag = spread(bmag(1, :), 1, nalpha)
       bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
       gds2 = spread(gds2(1, :), 1, nalpha)
@@ -747,6 +747,7 @@ contains
       djacdrho = spread(djacdrho(1, :), 1, nalpha)
       b_dot_grad_z = spread(b_dot_grad_z(1, :), 1, nalpha)
       zeta = spread(zeta(1, :), 1, nalpha)
+      b_dot_grad_z_averaged = b_dot_grad_z(1, :) ! For Miller <b_dot_grad_z> = <b_dot_grad_z_averaged> for ialpha=1
 
       ! For the momentum flux we need (R^2/B^2) ∇ζ . ∇y and (R^2/B^2) ∇ζ . ∇x
       ! For Miller or axi-symmetric devices we have: ∇ζ . ∇ψp = 0 and ∇ζ . ∇α = ∇ζ . ∇ζ = (1/R^2) 
@@ -759,7 +760,7 @@ contains
       !		R^2 * b . ∇ζ = R^2 * (1/B) (∇ζ x ∇ψ + I ∇ζ) . ∇ζ =  R^2/B * I * ∇ζ . ∇ζ
       !                  = R^2/B * I * (1/R^2) = I/B = (R/B) (I/R) = (R/B) * Btor
       b_dot_grad_zeta_RR = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag 
-      if (debug) write (*, *) 'stella_geometry::Miller::get_geometry_arrays_from_Miller_finished'
+      if (debug) write (*, *) 'geometry::Miller::get_geometry_arrays_from_Miller_finished'
 
    end subroutine get_geometry_arrays_from_Miller
 
@@ -1114,7 +1115,7 @@ contains
    !============================================================================
    subroutine communicate_geo_multibox(l_edge, r_edge)
 
-      use miller_geometry, only: communicate_parameters_multibox
+      use geometry_miller, only: communicate_parameters_multibox
       use mp, only: proc0
 
       implicit none
@@ -1310,7 +1311,7 @@ contains
    subroutine finish_init_geometry
 
       use mp, only: proc0
-      use miller_geometry, only: finish_local_geo
+      use geometry_miller, only: finish_local_geo
 
       implicit none
 
@@ -1386,4 +1387,4 @@ contains
 
    end subroutine finish_geometry
 
-end module stella_geometry
+end module geometry
