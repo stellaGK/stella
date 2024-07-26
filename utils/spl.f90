@@ -4255,8 +4255,8 @@ contains
       end do
 
       zero = 100 * epsilon(0.0)
-      if(yint(1) <= zero) yint(1) = 0.0
-      if(yint(size(xint)) <= zero) yint(size(xint)) = 0.0
+      if(abs(yint(1)) <= zero) yint(1) = 0.0
+      if(abs(yint(size(xint))) <= zero) yint(size(xint)) = 0.0
       
       deallocate (ypp, dum3)
    end subroutine geo_spline_array
