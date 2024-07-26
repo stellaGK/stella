@@ -103,8 +103,8 @@ contains
       
       ! Geometry 
       use stella_geometry, only: bmag, btor, gds2, gds21, gds22, geo_surf 
-      use stella_geometry, only: gradzeta_gradx_RRoverBB
-      use stella_geometry, only: gradzeta_grady_RRoverBB
+      use stella_geometry, only: gradzeta_gradx_R2overB2
+      use stella_geometry, only: gradzeta_grady_R2overB2
       use stella_geometry, only: b_dot_grad_zeta_RR
       use stella_geometry, only: jacob, grho, btor 
       
@@ -196,9 +196,9 @@ contains
             
             ! Next add the perpendicular component
             velocityintegrand_vs_vpamu = -df_vs_vpamuikxkyzs(:, :, ikxkyz) * spread(vperp2(ia, iz, :), 1, nvpa) * spec(is)%smz &
-                    * zi * aky(iky) * (gradzeta_grady_RRoverBB(ia, iz) * (gds21(ia, iz) &
+                    * zi * aky(iky) * (gradzeta_grady_R2overB2(ia, iz) * (gds21(ia, iz) &
                     + theta0(iky, ikx) * gds22(ia, iz)) / geo_surf%shat &
-                    - gradzeta_gradx_RRoverBB(ia, iz) * (theta0(iky, ikx) * gds21(ia, iz) + gds2(ia, iz)))
+                    - gradzeta_gradx_R2overB2(ia, iz) * (theta0(iky, ikx) * gds21(ia, iz) + gds2(ia, iz)))
             call gyro_average_j1(velocityintegrand_vs_vpamu, ikxkyz, temp2_vs_vpamu)
             
             ! Sum parallel and perpendicular components together

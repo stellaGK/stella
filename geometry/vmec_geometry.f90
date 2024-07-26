@@ -171,7 +171,7 @@ contains
                      grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, &
                      gds23_psitalpha , gds24_psitalpha, gds25_psitalpha, gds26_psitalpha, &
                      gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, &
-                     gradzeta_gradpsit_RRoverBB, gradzeta_gradalpha_RRoverBB, b_dot_grad_zeta_RR, &
+                     gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_grad_zeta_RR, &
                      sign_torflux, theta_vmec, dzetadz, L_reference, B_reference, alpha, zeta, &
                      field_period_ratio, psit_displacement_fac)
 
@@ -197,10 +197,11 @@ contains
                grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, &
                gds23_psitalpha , gds24_psitalpha , gds25_psitalpha , gds26_psitalpha , gbdrift_alpha, gbdrift0_psi, &
                cvdrift_alpha, cvdrift0_psi, theta_vmec, zeta, psit_displacement_fac, &
-               gradzeta_gradpsit_RRoverBB, gradzeta_gradalpha_RRoverBB, b_dot_grad_zeta_RR
+               gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_grad_zeta_RR
 
 
-      logical, parameter :: debug = .false.
+      ! These routines are always called on the first processor only
+      logical, parameter :: debug = .true.
 
       integer :: ierr
       integer :: tmpunit
@@ -219,8 +220,8 @@ contains
       real, dimension(:, :), allocatable :: gds23_psitalpha_vmec, gds24_psitalpha_vmec, gds25_psitalpha_vmec, gds26_psitalpha_vmec
       real, dimension(:, :), allocatable :: gbdrift_alpha_vmec, gbdrift0_psi_vmec, cvdrift_alpha_vmec, cvdrift0_psi_vmec 
       real, dimension(:, :), allocatable :: psit_displacement_fac_vmec       
-      real, dimension(:, :), allocatable :: gradzeta_gradpsit_RRoverBB_vmec
-      real, dimension(:, :), allocatable :: gradzeta_gradalpha_RRoverBB_vmec
+      real, dimension(:, :), allocatable :: gradzeta_gradpsit_R2overB2_vmec
+      real, dimension(:, :), allocatable :: gradzeta_gradalpha_R2overB2_vmec
       real, dimension(:, :), allocatable :: b_dot_grad_zeta_RR_vmec
       real, dimension(:, :), allocatable :: b_dot_grad_zeta, b_dot_grad_arclength
       real, dimension(:), allocatable :: b_dot_grad_zeta_averaged, b_dot_grad_arclength_averaged 
@@ -253,8 +254,8 @@ contains
       allocate (cvdrift_alpha_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); cvdrift_alpha_vmec = 0.0
       allocate (cvdrift0_psi_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); cvdrift0_psi_vmec = 0.0
       allocate (psit_displacement_fac_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); psit_displacement_fac_vmec = 0.0
-      allocate (gradzeta_gradpsit_RRoverBB_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); gradzeta_gradpsit_RRoverBB_vmec = 0.0
-      allocate (gradzeta_gradalpha_RRoverBB_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); gradzeta_gradalpha_RRoverBB_vmec = 0.0
+      allocate (gradzeta_gradpsit_R2overB2_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); gradzeta_gradpsit_R2overB2_vmec = 0.0
+      allocate (gradzeta_gradalpha_R2overB2_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); gradzeta_gradalpha_R2overB2_vmec = 0.0
       allocate (b_dot_grad_zeta_RR_vmec(nalpha, -nzgrid_vmec:nzgrid_vmec)); b_dot_grad_zeta_RR_vmec = 0.0
       allocate (arc_length(nalpha, -nzgrid_vmec:nzgrid_vmec)); arc_length = 0.0
       allocate (zed_domain_size(nalpha)); zed_domain_size = 0.0 
@@ -278,7 +279,7 @@ contains
                grad_alpha_grad_psit_vmec, grad_psit_grad_psit_vmec, gds23_psitalpha_vmec, gds24_psitalpha_vmec, &
                gds25_psitalpha_vmec, gds26_psitalpha_vmec, gbdrift_alpha_vmec, gbdrift0_psi_vmec, cvdrift_alpha_vmec, &
                cvdrift0_psi_vmec, thetamod_vmec, B_sub_zeta_mod, B_sub_theta_vmec_mod, psit_displacement_fac_vmec, &
-               gradzeta_gradpsit_RRoverBB_vmec, gradzeta_gradalpha_RRoverBB_vmec, &
+               gradzeta_gradpsit_R2overB2_vmec, gradzeta_gradalpha_R2overB2_vmec, &
                b_dot_grad_zeta_RR_vmec, ierr)
 
       ! Stop stella if we had too many errors when calculating the geometry arrays (TODO: I think this is broken now)
@@ -361,8 +362,8 @@ contains
             call geo_spline(arc_length(ia, :), B_sub_zeta_mod(ia, :), zed, B_sub_zeta(ia, :)) 
             call geo_spline(arc_length(ia, :), B_sub_theta_vmec_mod(ia, :), zed, B_sub_theta_vmec(ia, :)) 
             call geo_spline(arc_length(ia, :), psit_displacement_fac_vmec(ia, :), zed, psit_displacement_fac(ia, :))            
-            call geo_spline(arc_length(ia, :), gradzeta_gradpsit_RRoverBB_vmec(ia, :), zed, gradzeta_gradpsit_RRoverBB(ia, :))
-            call geo_spline(arc_length(ia, :), gradzeta_gradalpha_RRoverBB_vmec(ia, :), zed, gradzeta_gradalpha_RRoverBB(ia, :))
+            call geo_spline(arc_length(ia, :), gradzeta_gradpsit_R2overB2_vmec(ia, :), zed, gradzeta_gradpsit_R2overB2(ia, :))
+            call geo_spline(arc_length(ia, :), gradzeta_gradalpha_R2overB2_vmec(ia, :), zed, gradzeta_gradalpha_R2overB2(ia, :))
             call geo_spline(arc_length(ia, :), b_dot_grad_zeta_RR_vmec(ia, :), zed, b_dot_grad_zeta_RR(ia, :))
 
             ! Here we still have that <b_dot_grad_zeta> = b . ∇ζ but we want it to be b . ∇l = b . ∇ζ * dl/dζ.
@@ -423,8 +424,8 @@ contains
          gbdrift0_psi = gbdrift0_psi_vmec
          cvdrift_alpha = cvdrift_alpha_vmec
          cvdrift0_psi = cvdrift0_psi_vmec
-         gradzeta_gradpsit_RRoverBB = gradzeta_gradpsit_RRoverBB_vmec
-         gradzeta_gradalpha_RRoverBB = gradzeta_gradalpha_RRoverBB_vmec
+         gradzeta_gradpsit_R2overB2 = gradzeta_gradpsit_R2overB2_vmec
+         gradzeta_gradalpha_R2overB2 = gradzeta_gradalpha_R2overB2_vmec
          b_dot_grad_zeta_RR = b_dot_grad_zeta_RR_vmec
          
          ! TODO-HT Not sure what these are for
@@ -463,8 +464,8 @@ contains
       deallocate (gbdrift_alpha_vmec, gbdrift0_psi_vmec)
       deallocate (cvdrift_alpha_vmec, cvdrift0_psi_vmec)
       deallocate (psit_displacement_fac_vmec, arc_length) 
-      deallocate (gradzeta_gradpsit_RRoverBB_vmec)
-      deallocate (gradzeta_gradalpha_RRoverBB_vmec) 
+      deallocate (gradzeta_gradpsit_R2overB2_vmec)
+      deallocate (gradzeta_gradalpha_R2overB2_vmec) 
       deallocate (b_dot_grad_zeta_RR_vmec) 
 
       !> calculate_vmec_geometry returns psitor/psitor_lcfs as rhoc

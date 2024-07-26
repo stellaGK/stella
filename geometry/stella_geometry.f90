@@ -21,10 +21,11 @@ module stella_geometry
 
    public :: init_geometry, finish_init_geometry, finish_geometry
    public :: communicate_geo_multibox, x_displacement_fac 
+   
+   ! Geometric quantities for the gyrokinetic equations 
    public :: bmag, dbdzed, btor, bmag_psi0, grho, grho_norm, grad_x
    public :: dcvdriftdrho, dcvdrift0drho, dgbdriftdrho, dgbdrift0drho
    public :: gds2, gds21, gds22, gds23, gds24, gds25, gds26, gradpar
-   public :: b_dot_grad_zeta
    public :: cvdrift, cvdrift0, gbdrift, gbdrift0
    public :: dgds2dr, dgds21dr, dgds22dr
    public :: exb_nonlin_fac, exb_nonlin_fac_p, flux_fac
@@ -37,12 +38,23 @@ module stella_geometry
    public :: aref, bref, twist_and_shift_geo_fac
    public :: q_as_x, get_x_to_rho, gfac
    public :: dVolume, grad_x_grad_y_end  
-   public :: b_dot_grad_z_averaged_eqarc, zed_eqarc ! Extended z-grid for final fields diagnostics
-   public :: b_dot_grad_z ! Full flux surface
-   public :: gradzeta_gradx_RRoverBB ! Momentum flux
-   public :: gradzeta_grady_RRoverBB ! Momentum flux
-   public :: b_dot_grad_zeta_RR ! Momentum flux
-   public :: geo_option_switch, geo_option_vmec ! Used in kt_grids.f90
+   
+   ! Flux tube only needs b_dot_grad_z_averaged(z) = gradpar(z) 
+   public :: b_dot_grad_z_averaged
+   
+   ! Full flux surface needs b_dot_grad_z(alpha, z) 
+   public :: b_dot_grad_z 
+   
+   ! Extended z-grid for final fields diagnostics
+   public :: b_dot_grad_z_averaged_eqarc, zed_eqarc 
+   
+   ! Geometric quantities for momentum flux
+   public :: gradzeta_gradx_R2overB2 
+   public :: gradzeta_grady_R2overB2 
+   public :: b_dot_grad_zeta_RR 
+   
+   ! Used in kt_grids.f90
+   public :: geo_option_switch, geo_option_vmec 
 
    private
    
@@ -59,8 +71,8 @@ module stella_geometry
    real :: b_dot_grad_z_averaged_eqarc, dzetadz
    real :: twist_and_shift_geo_fac, gfac
 
-   ! Geometric quantities for the gyrokinetic equations (electrostatic, fluxtube)
-   real, dimension(:), allocatable :: zed_eqarc, b_dot_grad_zeta, alpha
+   ! Geometric quantities for the gyrokinetic equations
+   real, dimension(:), allocatable :: zed_eqarc, alpha
    real, dimension(:), allocatable :: gradpar, b_dot_grad_z_averaged
    real, dimension(:), allocatable :: dBdrho, d2Bdrdth, dgradpardrho, btor, Rmajor 
    real, dimension(:, :), allocatable :: bmag, bmag_psi0, dbdzed 
@@ -77,8 +89,8 @@ module stella_geometry
    real, dimension(:, :), allocatable :: b_dot_grad_z
    
    ! Geometric quantities for the momentum flux
-   real, dimension(:, :), allocatable :: gradzeta_gradx_RRoverBB
-   real, dimension(:, :), allocatable :: gradzeta_grady_RRoverBB
+   real, dimension(:, :), allocatable :: gradzeta_gradx_R2overB2
+   real, dimension(:, :), allocatable :: gradzeta_grady_R2overB2
    real, dimension(:, :), allocatable :: b_dot_grad_zeta_RR
 
    integer :: sign_torflux
@@ -167,7 +179,7 @@ contains
          ! In the diagnostics of final fields we want out extented z-grid in arc length units
 		   ! So here we calculate <zed_eqarc> which is z = arc length
          call get_b_dot_grad_z_averaged_eqarc(b_dot_grad_z_averaged, zed, delzed, b_dot_grad_z_averaged_eqarc)
-         call get_zed_eqarc(b_dot_grad_zeta, delzed, zed, b_dot_grad_z_averaged_eqarc, zed_eqarc)
+         call get_zed_eqarc(b_dot_grad_z_averaged, delzed, zed, b_dot_grad_z_averaged_eqarc, zed_eqarc)
 		   
 		   ! A lot of modules use <gradpar> even though <b_dot_grad_z_averaged> is a better name  
          gradpar = b_dot_grad_z_averaged
@@ -335,6 +347,7 @@ contains
 
       integer, intent(in) :: nalpha, naky
 
+      ! Local geometric arrays to construct <gds2>, <gds21>, <gds22>, ...
       real, dimension(:, :), allocatable :: psit_displacement_fac, grad_alpha_grad_alpha
       real, dimension(:, :), allocatable :: grad_alpha_grad_psit, grad_alpha_grad_psi 
       real, dimension(:, :), allocatable :: grad_psit_grad_psit, grad_psi_grad_psi
@@ -343,7 +356,7 @@ contains
       real, dimension(:, :), allocatable :: gds23_alphapsit, gds24_alphapsit
       real, dimension(:, :), allocatable :: gds25_alphapsit, gds26_alphapsit
       real, dimension(:, :), allocatable :: grad_x_grad_x, grad_y_grad_y, grad_y_grad_x
-      real, dimension(:, :), allocatable :: gradzeta_gradpsit_RRoverBB, gradzeta_gradalpha_RRoverBB, b_dot_grad_zeta_RR
+      real, dimension(:, :), allocatable :: gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2
 
       real :: rho, shat, iota, field_period_ratio
       real :: dpsidpsit, dpsidx, dpsitdx, dxdpsit 
@@ -364,7 +377,7 @@ contains
                grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, &
                gds23_alphapsit, gds24_alphapsit, gds25_alphapsit, gds26_alphapsit, & 
                gbdrift_alpha, gbdrift0_psit, cvdrift_alpha, cvdrift0_psit, &
-               gradzeta_gradpsit_RRoverBB, gradzeta_gradalpha_RRoverBB, b_dot_grad_zeta_RR, &
+               gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_grad_zeta_RR, &
                sign_torflux, theta_vmec, dzetadz, aref, bref, alpha, zeta, &
                field_period_ratio, psit_displacement_fac)
 
@@ -411,17 +424,22 @@ contains
       gds26 = gds26_alphapsit * dydalpha * dxdpsit * dxdpsit   
       gbdrift = gbdrift_alpha * dydalpha; gbdrift0 = gbdrift0_psit * dxdpsit 
       cvdrift = cvdrift_alpha * dydalpha; cvdrift0 = cvdrift0_psit * dxdpsit
+      
+      ! Deallocate all <psit> arrays since we have chosen our <psi> coordinate
 
       ! <grad_x> = |∇x|    <gds21> = hat{s} ∇x . ∇y  
       ! <gds2> = |∇y|^2    <gds22> = shat^2 * |∇x|^2 
+      ! TODO-HT stella should use <grad_x_grad_x>, <grad_y_grad_x>, ... 
+      ! instead of <gds2>, <gds21>, <gds22>. Careful cause they are deallocated
+      ! now in the <deallocate_temporary_arrays()> routine
       grad_x = sqrt(abs(grad_x_grad_x))
       gds2 = grad_y_grad_y
       gds21 = geo_surf%shat * grad_y_grad_x
       gds22 = (geo_surf%shat * grad_x)**2
       
       ! For the momentum flux we need (R^2/B^2) ∇ζ . ∇y and (R^2/B^2) ∇ζ . ∇x
-      gradzeta_gradx_RRoverBB = gradzeta_gradpsit_RRoverBB * dxdpsit
-      gradzeta_grady_RRoverBB = gradzeta_gradalpha_RRoverBB * dydalpha
+      gradzeta_gradx_R2overB2 = gradzeta_gradpsit_R2overB2 * dxdpsit
+      gradzeta_grady_R2overB2 = gradzeta_gradalpha_R2overB2 * dydalpha
 
       ! We want |ds/dx|*sqrt((dR/ds)^2+(dZ/ds)^2) so do dψ̃t/dx̃ * |ds̃/dψ̃t|*sqrt((dR/ds)^2+(dZ/ds)^2)  
       x_displacement_fac = dpsitdx*psit_displacement_fac
@@ -429,7 +447,8 @@ contains
       ! Calculate the <twist_and_shift_geo_fac> needed for the boundary conditions
       call calculate_twist_and_shift_geo_fac()
 
-      ! Deallocate arrays
+      ! Arrays as a function of <psi_t> are not needed in stella since we 
+      ! only need arrays as a function of <x> and <y>
       call deallocate_temporary_arrays
 
       ! Test FFS implementation by setting all geometric coefficients
@@ -521,7 +540,8 @@ contains
 
          integer, intent(in) :: nalpha, nzgrid
 
-         allocate (psit_displacement_fac(nalpha, -nzgrid:nzgrid)) 
+         ! We need the following arrays to construct <gds2>, <gds21>, <gds22>, ...
+         allocate (psit_displacement_fac(nalpha, -nzgrid:nzgrid))
          allocate (grad_alpha_grad_alpha(nalpha, -nzgrid:nzgrid))
          allocate (grad_alpha_grad_psi(nalpha, -nzgrid:nzgrid))
          allocate (grad_alpha_grad_psit(nalpha, -nzgrid:nzgrid))
@@ -538,6 +558,10 @@ contains
          allocate (grad_x_grad_x(nalpha, -nzgrid:nzgrid))
          allocate (grad_y_grad_y(nalpha, -nzgrid:nzgrid))
          allocate (grad_y_grad_x(nalpha, -nzgrid:nzgrid))
+         
+         ! Needed for the momentum flux diagnostic for non-axisymmetric devices
+         allocate (gradzeta_gradpsit_R2overB2(nalpha, -nzgrid:nzgrid)); gradzeta_gradpsit_R2overB2 = 0.0 ! Temp array
+         allocate (gradzeta_gradalpha_R2overB2(nalpha, -nzgrid:nzgrid)); gradzeta_gradalpha_R2overB2 = 0.0 ! Temp array
 
       end subroutine allocate_temporary_arrays
 
@@ -548,13 +572,15 @@ contains
 
          implicit none
 
-         deallocate (grad_y_grad_y, grad_x_grad_x, grad_y_grad_x)
          deallocate (psit_displacement_fac, grad_alpha_grad_alpha)
-         deallocate (grad_alpha_grad_psi, grad_psit_grad_psit)
+         deallocate (grad_alpha_grad_psi, grad_psi_grad_psi)
+         deallocate (grad_alpha_grad_psit, grad_psit_grad_psit)
          deallocate (gbdrift_alpha, cvdrift_alpha)
          deallocate (gbdrift0_psit, cvdrift0_psit)
          deallocate (gds23_alphapsit, gds24_alphapsit)
          deallocate (gds25_alphapsit, gds26_alphapsit)
+         deallocate (grad_y_grad_y, grad_x_grad_x, grad_y_grad_x)
+         deallocate (gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2)
 
       end subroutine deallocate_temporary_arrays
 
@@ -595,13 +621,15 @@ contains
       real :: dpsipdrho, dpsipdrho_psi0
 
       !---------------------------------------------------------------------- 
-
+     
       ! Read the <millergeo_parameters> namelist in the input file  
       ! <nzed> and <nzgrid> are inputs, and <geo_surf> is returned 
       ! which is a dictionary that contains all the geometry information 
+      if (debug) write (*, *) 'stella_geometry::Miller::read_local_parameters'
       call read_local_parameters(nzed, nzgrid, geo_surf)
 
       ! Allocate geometry arrays for stella
+      if (debug) write (*, *) 'stella_geometry::Miller::allocate_arrays'
       call allocate_arrays(nalpha, nzgrid)
 
       ! Overwrite parameters from the input file with those from the input.profiles file
@@ -621,6 +649,7 @@ contains
       ! needed by stella, based on the local Miller parameters. For Miller geometries
       ! each field line <alpha> has the same geometry, hence we will only pass on the 
       ! ialpha=1 arrays to the get_local_geo() routine. Note that in Miller z = theta.
+      if (debug) write (*, *) 'stella_geometry::Miller::get_local_geo'
       call get_local_geo(nzed, nzgrid, zed, zed_equal_arc, &
                 dpsipdrho, dpsipdrho_psi0, dIdrho, grho(1, :), bmag(1, :), bmag_psi0(1, :), &
                 gds2(1, :), gds21(1, :), gds22(1, :), gds23(1, :), gds24(1, :), b_dot_grad_z(1, :), &
@@ -628,6 +657,7 @@ contains
                 dBdrho, d2Bdrdth, dgradpardrho, btor, rmajor, &
                 dcvdrift0drho(1, :), dcvdriftdrho(1, :), dgbdrift0drho(1, :), dgbdriftdrho(1, :), &
                 dgds2dr(1, :), dgds21dr(1, :), dgds22dr(1, :), djacdrho(1, :))
+      if (debug) write (*, *) 'stella_geometry::Miller::get_local_geo_finished'
 
       ! <drhodpsip> = drho/d(psip/a^2*Bref) = (a^2*Bref) * drho/dpsip = (a*Bref) * dr/dpsip   
       drhodpsip = 1./dpsipdrho 
@@ -695,6 +725,7 @@ contains
 
       ! For Miller each field line <alpha> has the same geometry so
       ! ensure that all arrays are filled with the ialpha = 1 information
+      if (debug) write (*, *) 'stella_geometry::Miller::spread_geometry'
       bmag = spread(bmag(1, :), 1, nalpha)
       bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
       gds2 = spread(gds2(1, :), 1, nalpha)
@@ -720,14 +751,15 @@ contains
       ! For the momentum flux we need (R^2/B^2) ∇ζ . ∇y and (R^2/B^2) ∇ζ . ∇x
       ! For Miller or axi-symmetric devices we have: ∇ζ . ∇ψp = 0 and ∇ζ . ∇α = ∇ζ . ∇ζ = (1/R^2) 
       !		(R^2/B^2) * ∇ζ . ∇α * (dy/dα) = (R^2/B^2) (1/R^2) (dy/dα) = (1/B^2) (dy/dα) = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
-      gradzeta_grady_RRoverBB = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
-      gradzeta_gradx_RRoverBB = 0.0
+      gradzeta_grady_R2overB2 = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
+      gradzeta_gradx_R2overB2 = 0.0
 
       ! For the momentum flux we need R^2 * b . ∇ζ
       ! Note that in Miller z = theta, so b_dot_grad_z = b_dot_grad_theta
       !		R^2 * b . ∇ζ = R^2 * (1/B) (∇ζ x ∇ψ + I ∇ζ) . ∇ζ =  R^2/B * I * ∇ζ . ∇ζ
       !                  = R^2/B * I * (1/R^2) = I/B = (R/B) (I/R) = (R/B) * Btor
       b_dot_grad_zeta_RR = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag 
+      if (debug) write (*, *) 'stella_geometry::Miller::get_geometry_arrays_from_Miller_finished'
 
    end subroutine get_geometry_arrays_from_Miller
 
@@ -766,7 +798,7 @@ contains
                gds2_file, gds21_file, gds22_file, gds23_file, &
                gds24_file, gbdrift_file, cvdrift_file, gbdrift0_file
             if (overwrite_bmag) bmag(ia, iz) = bmag_file
-            if (overwrite_b_dot_grad_zeta) b_dot_grad_zeta(iz) = b_dot_grad_zeta_file
+            !if (overwrite_b_dot_grad_zeta) b_dot_grad_zeta(iz) = b_dot_grad_zeta_file
             ! assuming we are only reading in for a single alpha. Usually, b_dot_grad_zeta is the average of all b_dot_grad_z values.
             if (overwrite_b_dot_grad_zeta) b_dot_grad_z(1, iz) = b_dot_grad_zeta_file 
             if (overwrite_gds2) gds2(ia, iz) = gds2_file
@@ -813,8 +845,8 @@ contains
       call set_coef_constant(x_displacement_fac, nalpha)
       call set_coef_constant(zeta, nalpha)
       call set_coef_constant(b_dot_grad_z, nalpha)
-      call set_coef_constant(gradzeta_gradx_RRoverBB, nalpha)
-      call set_coef_constant(gradzeta_grady_RRoverBB, nalpha)
+      call set_coef_constant(gradzeta_gradx_R2overB2, nalpha)
+      call set_coef_constant(gradzeta_grady_R2overB2, nalpha)
       call set_coef_constant(b_dot_grad_zeta_RR, nalpha)
 
    end subroutine set_ffs_geo_coefs_constant
@@ -841,6 +873,10 @@ contains
 
       integer, intent(in) :: nalpha, nzgrid
 
+
+      ! It is possible to call <init_geometry> multiple times so we do not want to 
+      ! create more copies of the geometric arrays if they already exist, hence
+      ! we need to use if (.not. allocated(...)) statements
       if (.not. allocated(bmag)) allocate (bmag(nalpha, -nzgrid:nzgrid)); bmag = 0.0 
       if (.not. allocated(bmag_psi0)) allocate (bmag_psi0(nalpha, -nzgrid:nzgrid)); bmag_psi0 = 0.0
       if (.not. allocated(gds2)) allocate (gds2(nalpha, -nzgrid:nzgrid)); gds2 = 0.0
@@ -872,6 +908,7 @@ contains
       if (.not. allocated(b_dot_grad_z)) allocate (b_dot_grad_z(nalpha, -nzgrid:nzgrid)); b_dot_grad_z = 0.0
       if (.not. allocated(gradpar)) allocate (gradpar(-nzgrid:nzgrid)); gradpar = 0.0
       if (.not. allocated(zed_eqarc)) allocate (zed_eqarc(-nzgrid:nzgrid)); zed_eqarc = 0.0
+      if (.not. allocated(b_dot_grad_z_averaged)) allocate (b_dot_grad_z_averaged(-nzgrid:nzgrid)); b_dot_grad_z_averaged = 0.0
       if (.not. allocated(btor)) allocate (btor(-nzgrid:nzgrid)); btor = 0.0
       if (.not. allocated(rmajor)) allocate (rmajor(-nzgrid:nzgrid)); rmajor = 0.0
       if (.not. allocated(dBdrho)) allocate (dBdrho(-nzgrid:nzgrid)); dBdrho = 0.0
@@ -880,11 +917,11 @@ contains
       if (.not. allocated(alpha)) allocate (alpha(nalpha)); alpha = 0.0
       if (.not. allocated(zeta)) allocate (zeta(nalpha, -nzgrid:nzgrid)); zeta = 0.0
       if (.not. allocated(x_displacement_fac)) allocate (x_displacement_fac(nalpha, -nzgrid:nzgrid)); x_displacement_fac = 0.0
-
-      ! Needed for the momentum flux diagnostic for non-axisymmetric devices
-      if (.not. allocated(gradzeta_gradx_RRoverBB)) allocate (gradzeta_gradx_RRoverBB(nalpha, -nzgrid:nzgrid)); gradzeta_gradx_RRoverBB = 0.0
-      if (.not. allocated(gradzeta_grady_RRoverBB)) allocate (gradzeta_grady_RRoverBB(nalpha, -nzgrid:nzgrid)); gradzeta_grady_RRoverBB = 0.0
-      if (.not. allocated(b_dot_grad_zeta_RR)) allocate (b_dot_grad_zeta_RR(nalpha, -nzgrid:nzgrid)); b_dot_grad_zeta_RR = 0.0
+      
+      ! Needed for the momentum flux diagnostic for non-axisymmetric devices  
+      if (.not. allocated(gradzeta_gradx_R2overB2)) allocate (gradzeta_gradx_R2overB2(nalpha, -nzgrid:nzgrid)); gradzeta_gradx_R2overB2 = 0.0
+      if (.not. allocated(gradzeta_grady_R2overB2)) allocate (gradzeta_grady_R2overB2(nalpha, -nzgrid:nzgrid)); gradzeta_grady_R2overB2 = 0.0
+      if (.not. allocated(b_dot_grad_zeta_RR)) allocate (b_dot_grad_zeta_RR(nalpha, -nzgrid:nzgrid)); b_dot_grad_zeta_RR = 0.0 
 
    end subroutine allocate_arrays
 
@@ -1010,7 +1047,6 @@ contains
       call broadcast(bmag_psi0)
       call broadcast(btor)
       call broadcast(gradpar)
-      call broadcast(b_dot_grad_zeta)
       call broadcast(b_dot_grad_z)
       call broadcast(b_dot_grad_z_averaged) 
       call broadcast(gds2)
@@ -1037,8 +1073,8 @@ contains
       call broadcast(djacdrho)
       
       ! Arrays for the momentum flux
-      call broadcast(gradzeta_gradx_RRoverBB)
-      call broadcast(gradzeta_grady_RRoverBB)
+      call broadcast(gradzeta_gradx_R2overB2)
+      call broadcast(gradzeta_grady_R2overB2)
       call broadcast(b_dot_grad_zeta_RR)
    
       ! Geometric variables at the chosen radial location
@@ -1342,8 +1378,8 @@ contains
       if (allocated(x_displacement_fac)) deallocate (x_displacement_fac)
       
       ! Arrays for the momentum flux 
-      if (allocated(gradzeta_gradx_RRoverBB)) deallocate (gradzeta_gradx_RRoverBB)
-      if (allocated(gradzeta_grady_RRoverBB)) deallocate (gradzeta_grady_RRoverBB)
+      if (allocated(gradzeta_gradx_R2overB2)) deallocate (gradzeta_gradx_R2overB2)
+      if (allocated(gradzeta_grady_R2overB2)) deallocate (gradzeta_grady_R2overB2)
       if (allocated(b_dot_grad_zeta_RR)) deallocate (b_dot_grad_zeta_RR)
 
       geoinit = .false.

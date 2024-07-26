@@ -12,6 +12,9 @@ module miller_geometry
    public :: local
 
    private
+   
+   ! These routines are always called on the first processor only
+   logical :: debug = .true.
 
    integer :: nzed_local
    real :: rhoc, rmaj, shift
@@ -61,6 +64,9 @@ module miller_geometry
 
 contains
 
+   !============================================================================
+   !=========================== INIT LOCAL DEFAULTS ============================
+   !============================================================================ 
    subroutine init_local_defaults
 
       implicit none
@@ -98,6 +104,9 @@ contains
 
    end subroutine init_local_defaults
 
+   !============================================================================
+   !=========================== READ LOCAL PARAMETERS ==========================
+   !============================================================================ 
    subroutine read_local_parameters(nzed, nzgrid, local_out)
 
       use file_utils, only: input_unit_exist
@@ -112,11 +121,14 @@ contains
       integer :: in_file, np, j
       logical :: exist
 
+      
       namelist /millergeo_parameters/ rhoc, rmaj, shift, qinp, shat, &
          kappa, kapprim, tri, triprim, rgeo, betaprim, &
          betadbprim, d2qdr2, d2psidr2, &
          nzed_local, read_profile_variation, write_profile_variation
 
+
+      if (debug) write (*, *) 'miller_geometry::read_local_parameters'
       call init_local_defaults
 
       in_file = input_unit_exist("millergeo_parameters", exist)
@@ -198,6 +210,9 @@ contains
 
    end subroutine read_local_parameters
 
+   !============================================================================
+   !=========================== COMMUNICATE PARAMETERS =========================
+   !============================================================================ 
    subroutine communicate_parameters_multibox(surf, drl, drr)
       use mp, only: job, scope, mp_abort, &
                     crossdomprocs, subprocs, &
@@ -218,6 +233,7 @@ contains
       !FLAG DSO -  I think d2psidrho2 needs to be communicated, but
       !            I'm unsure what quantity needs to be updated
 
+      if (debug) write (*, *) 'miller_geometry::communicate_parameters_multibox'
       if (job == 1) then
          dqdr = local%shat * local%qinp / local%rhoc
 
@@ -350,6 +366,9 @@ contains
 
    end subroutine communicate_parameters_multibox
 
+   !============================================================================
+   !========================= CALCULATE MILLER GEOMETRY ========================
+   !============================================================================ 
 	! gradpar_out is called b_dot_grad_zeta in stella_geometry
    subroutine get_local_geo(nzed, nzgrid, zed_in, zed_equal_arc, &
                             dpsipdrho_out, dpsipdrho_psi0_out, dIdrho_out, grho_out, &
@@ -393,6 +412,9 @@ contains
       real, allocatable, dimension(:) :: zed_arc
       character(len=512) :: filename
 
+      ! Track code
+      if (debug) write (*, *) 'miller_geometry::get_local_geo'
+      
       ! number of grid points used for radial derivatives
       nr = 3
 
@@ -405,6 +427,8 @@ contains
       ! this is the equivalent of nzgrid on the local grid
       nz = nz2pi + nzed_local * (np - 1)
 
+      ! Allocate arrays
+      if (debug) write (*, *) 'miller_geometry::get_local_geo'
       call allocate_arrays(nr, nz)
 
       dqdr = local%shat * local%qinp / local%rhoc
@@ -425,6 +449,9 @@ contains
       if (.not. allocated(delthet)) allocate (delthet(-nz:nz - 1))
       ! get delta theta as a function of theta
       delthet = theta(-nz + 1:) - theta(:nz - 1)
+      
+      
+      if (debug) write (*, *) 'miller_geometry::radial_derivatives'
 
       ! get dR/drho and dZ/drho
       call get_drho(Rr, dRdrho)
@@ -555,7 +582,8 @@ contains
 
       ! get |grad theta|^2, grad r . grad theta, grad alpha . grad theta, etc.
       call get_graddotgrad(dpsipdrho, grho)
-
+      
+      if (debug) write (*, *) 'miller_geometry::get_gds'
       call get_gds(gds2, gds21, gds22, gds23, gds24)
 
       ! this is (grad alpha x B) . grad theta
@@ -588,6 +616,7 @@ contains
       gbdrift0 = cvdrift0
 
       ! get d^2I/drho^2 and d^2 Jac / dr^2
+      if (debug) write (*, *) 'miller_geometry::get_d2Idr2_d2jacdr2'
       call get_d2Idr2_d2jacdr2(grho, dIdrho)
 
       ! get d^2varhteta/drho^2
@@ -624,6 +653,7 @@ contains
       dcvdrift0drho = dcvdrift0drho * (dpsipdrho_psi0 / dpsipdrho)
 
       ! interpolate here
+      if (debug) write (*, *) 'miller_geometry::zed_equal_arc'
       if (zed_equal_arc) then
          call theta_integrate(1./gradpar, dum)
          gradpararc = (theta(nz) - theta(-nz)) / ((2 * np - 1) * dum)
@@ -695,6 +725,7 @@ contains
       dpsipdrho_out = dpsipdrho
       dpsipdrho_psi0_out = dpsipdrho_psi0
 
+      if (debug) write (*, *) 'miller_geometry::write_miller_geometry_txt_files'
       filename = "miller_geometry."//trim(run_name)//".input"
       open (1002, file=trim(filename), status='unknown')
       write (1002, '(5a16)') '#1.rhoc', '2.rmaj', '3.rgeo', '4.shift', '5.qinp'
@@ -727,6 +758,22 @@ contains
          '51.dgds2dr', '52.gds21', '53.dgds21dr', '54.gds22', '55.dgds22dr', &
          '56.gds23', '57.gds24', '58.Zr'
 
+      if (debug) write (*, *) 'miller_geometry::write_miller_geometry_txt_files::start_loop'
+      if (debug) then 
+         i = nz
+         write(*,*) 'a', theta(i), Rr(2, i), dRdrho(i), d2Rdr2(i), dRdth(i)
+         write(*,*) 'b', d2Rdrdth(i), dZdrho(i), d2Zdr2(i), dZdth(i), d2Zdrdth(i)
+         write(*,*) 'c', bmag(i), dBdrho(i), d2Bdr2(i), dBdth(i), d2Bdrdth(i)
+         write(*,*) 'd', varthet(i), dvarthdr(i), d2varthdr2(i), jacrho(i), djacrdrho(i)
+         write(*,*) 'e', djacdrho(i), d2jacdr2(i), grho(i)**2, dgr2dr(i), gradthet2(i)
+         write(*,*) 'f', dgt2(i), gradrho_gradthet(i), dgrgt(i), gradalph_gradthet(i), dgagt(i)
+         write(*,*) 'g', gradrho_gradalph(i), dgagr(i), gradalph2(i), dga2(i), cross(i)
+         write(*,*) 'h', dcrossdr(i), gbdrift0(i), dgbdrift0drho(i), cvdrift0(i), dcvdrift0drho(i)
+         write(*,*) 'i', gbdrift(i), dgbdriftdrho(i), cvdrift(i), dcvdriftdrho(i), drzdth(i)
+         write(*,*) 'j', gradpar(i), dgradpardrho(i), gradparB(i), dgradparBdrho(i), gds2(i)
+         write(*,*) 'k', dgds2dr(i), gds21(i), dgds21dr(i), gds22(i), dgds22dr(i), gds23(i), gds24(i)
+         write(*,*) 'l', Zr(2, i)
+      end if
       do i = -nz, nz
          write (1001, '(59e18.9)') theta(i), Rr(2, i), dRdrho(i), d2Rdr2(i), dRdth(i), &
             d2Rdrdth(i), dZdrho(i), d2Zdr2(i), dZdth(i), d2Zdrdth(i), &
@@ -742,11 +789,15 @@ contains
             Zr(2, i)
       end do
       close (1001)
+      if (debug) write (*, *) 'miller_geometry::write_miller_geometry_txt_files_finished'
 
       defaults_initialized = .false.
 
    end subroutine get_local_geo
 
+   !============================================================================
+   !============================== ALLOCATE ARRAYS =============================
+   !============================================================================ 
    subroutine allocate_arrays(nr, nz)
 
       implicit none
@@ -784,6 +835,9 @@ contains
 
    end subroutine allocate_arrays
 
+   !============================================================================
+   !============================= DEALLOCATE ARRAYS ============================
+   !============================================================================ 
    subroutine deallocate_arrays
 
       implicit none
@@ -831,6 +885,9 @@ contains
 
    end subroutine deallocate_arrays
 
+   !============================================================================
+   !================================== FINISH =================================
+   !============================================================================ 
    subroutine finish_local_geo
 
       implicit none
@@ -838,6 +895,11 @@ contains
       call deallocate_arrays
 
    end subroutine finish_local_geo
+   
+   
+   !============================================================================
+   !=============================== CALCULATIONS ===============================
+   !============================================================================ 
 
    ! takes in f(r), with r given at three radial locations
    ! and returns df = df/dr at the middle radius

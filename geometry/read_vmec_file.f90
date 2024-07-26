@@ -236,7 +236,7 @@ contains
                   grad_alpha_grad_psit, grad_psit_grad_psit, gds23_psitalpha, gds24_psitalpha, & 
                   gds25_psitalpha, gds26_psitalpha, gbdrift_alpha, gbdrift0_psit, cvdrift_alpha, & 
                   cvdrift0_psit,theta, B_sub_zeta, B_sub_theta, psit_displacement_fac, &
-                  gradzeta_gradpsit_RRoverBB, gradzeta_gradalpha_RRoverBB, &
+                  gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, &
                   b_dot_grad_zeta_RR, ierr)
 
       use mp, only: mp_abort
@@ -316,7 +316,7 @@ contains
       real, dimension(:, -nzgrid:), intent(out) :: grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit
       real, dimension(:, -nzgrid:), intent(out) :: gds23_psitalpha, gds24_psitalpha, gds25_psitalpha, gds26_psitalpha
       real, dimension(:, -nzgrid:), intent(out) :: gbdrift_alpha, cvdrift_alpha, gbdrift0_psit, cvdrift0_psit, B_sub_theta, B_sub_zeta 
-      real, dimension(:, -nzgrid:), intent(out) :: gradzeta_gradpsit_RRoverBB, gradzeta_gradalpha_RRoverBB 
+      real, dimension(:, -nzgrid:), intent(out) :: gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2 
       real, dimension(:, -nzgrid:), intent(out) :: b_dot_grad_zeta_RR
       real, dimension(-nzgrid:), intent(out) :: zeta
       real, dimension(:), intent(out) :: alpha 
@@ -475,8 +475,8 @@ contains
       gradthetap_gradalpha = a * (grad_theta_pest_X * grad_alpha_X + grad_theta_pest_Y * grad_alpha_Y + grad_theta_pest_Z * grad_alpha_Z)
       
       ! For the momentum flux we need (R^2/B^2) ∇ζ . ∇α and (R^2/B^2) ∇ζ . ∇ψt
-      gradzeta_gradpsit_RRoverBB = gradzeta_gradpsit * R**2 / (bmag*bmag)
-      gradzeta_gradalpha_RRoverBB = gradzeta_gradalpha * R**2 / (bmag*bmag)
+      gradzeta_gradpsit_R2overB2 = gradzeta_gradpsit * R**2 / (bmag*bmag)
+      gradzeta_gradalpha_R2overB2 = gradzeta_gradalpha * R**2 / (bmag*bmag)
       b_dot_grad_zeta_RR = b_dot_grad_zeta * R**2
 
       ! Define <gds23_psitalpha> = -1/B̃^2 * [(∇α . ∇ζ) * (∇ψt . ∇α)  - (∇ψt . ∇ζ) * |∇α|^2]
@@ -1751,7 +1751,7 @@ contains
          bmag = 0; b_dot_grad_zeta = 0.0; B_sub_theta = 0; B_sub_zeta = 0.0
          gbdrift_alpha = 0.0; gbdrift0_psit = 0.0; cvdrift_alpha = 0; cvdrift0_psit = 0.0
          grad_alpha_grad_alpha = 0.0; grad_alpha_grad_psit = 0.0; grad_psit_grad_psit = 0.0
-         gradzeta_gradpsit_RRoverBB = 0.0; gradzeta_gradpsit_RRoverBB = 0.0
+         gradzeta_gradpsit_R2overB2 = 0.0; gradzeta_gradpsit_R2overB2 = 0.0
          
          ! Allocate the arrays versus (nalpha, nz) along the chosen field line
          allocate (B(nalpha, -nzgrid:nzgrid)); B = 0.0
