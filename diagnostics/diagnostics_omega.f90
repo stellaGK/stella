@@ -12,23 +12,18 @@
 ! 
 !###############################################################################
 
-module diagnose_omega
+module diagnostics_omega
 
    implicit none 
 
    public :: calculate_omega 
-   public :: init_diagnose_omega 
-   public :: finish_diagnose_omega 
+   public :: init_diagnostics_omega 
+   public :: finish_diagnostics_omega 
    public :: checksaturation
    public :: write_omega_to_ascii_file 
    public :: write_omega_to_netcdf_file 
 
-   private   
-
-   ! Variables used to write diagnostics
-   logical :: write_omega
-   logical :: auto_stop
-   integer :: navg
+   private    
 
    ! The <units> are used to identify the external ascii files
    integer :: omega_unit
@@ -43,7 +38,10 @@ contains
    !========================================================================= 
 
    subroutine checksaturation(istep, stop_stella)
-
+   
+      use parameters_diagnostics, only: write_omega
+      use parameters_diagnostics, only: autostop
+      use parameters_diagnostics, only: navg
       use mp, only: proc0, broadcast
 
       integer, intent(in) :: istep  
@@ -56,10 +54,10 @@ contains
       !----------------------------------------------------------------------
 
       ! Only check if gamma is saturated if we want stella to stop automatically
-      if (.not. auto_stop) return 
+      if (.not. autostop) return 
 
       ! Check whether (omega, gamma) has saturated
-      if (proc0) then 
+      if (proc0 .and. write_omega) then 
          if (istep > navg+1) then
 
             ! Check whether all elements in <omega_vs_tkykx> are the same
@@ -89,7 +87,9 @@ contains
    !================== CALCULATE OMEGA AT EVERY TIME STEP ===================
    !========================================================================= 
    subroutine calculate_omega(istep, timer)
-     
+      
+      use parameters_diagnostics, only: navg
+      use parameters_diagnostics, only: write_omega
       use physics_flags, only: include_apar
       use fields_arrays, only: phi, phi_old, apar, apar_old
       use kt_grids, only: nakx, naky
@@ -164,6 +164,8 @@ contains
    !========================================================================= 
    subroutine write_omega_to_netcdf_file(istep, nout, timer, write_to_netcdf_file)
  
+      use parameters_diagnostics, only: navg
+      use parameters_diagnostics, only: write_omega
       use stella_io, only: write_omega_nc
       use job_manage, only: time_message
       use kt_grids, only: nakx, naky
@@ -217,43 +219,37 @@ contains
    !============================================================================
    !======================== INITALIZE THE DIAGNOSTICS =========================
    !============================================================================  
-   subroutine init_diagnose_omega(write_omega_in, navg_in, autostop_in, restart) 
+   subroutine init_diagnostics_omega(restart) 
    
+      use parameters_diagnostics, only: write_omega
+      use parameters_diagnostics, only: navg
       use kt_grids, only: nakx, naky
       use mp, only: proc0
 
       implicit none 
-
-      ! Save the module variables
-      logical, intent(in) :: write_omega_in
-      logical, intent(in) :: autostop_in
-      logical, intent(in) :: restart
-      integer, intent(in) :: navg_in
+ 
+      logical, intent(in) :: restart 
 
       !----------------------------------------------------------------------
-
-      ! Save the module variables
-      write_omega = write_omega_in 
-      auto_stop = autostop_in
-      navg = navg_in
 
       ! We only calculate/write data on the first processor and if <write_omega> = True 
       if ((.not. proc0) .or. (.not. write_omega)) return      
 
-      ! Allocate omega versus (<navg>, ky, kx) to calculate the running average  
+      ! Allocate omega versus (<navg>, ky, kx) to calculate the running average 
       allocate (omega_vs_tkykx(navg, naky, nakx))
       omega_vs_tkykx = 0. 
 
       ! Open the '.omega' ascii file  
       call open_omega_ascii_file(restart)
 
-   end subroutine init_diagnose_omega  
+   end subroutine init_diagnostics_omega  
 
    !============================================================================
    !======================== FINALIZE THE DIAGNOSTICS =========================
    !============================================================================  
-   subroutine finish_diagnose_omega  
+   subroutine finish_diagnostics_omega  
 
+      use parameters_diagnostics, only: write_omega
       use file_utils, only: close_output_file
       use mp, only: proc0 
 
@@ -265,7 +261,7 @@ contains
       if (allocated(omega_vs_tkykx)) deallocate (omega_vs_tkykx)  
       call close_output_file(omega_unit)
 
-   end subroutine finish_diagnose_omega
+   end subroutine finish_diagnostics_omega
 
 !###############################################################################
 !############################### ASCII FILES ###################################
@@ -278,6 +274,7 @@ contains
    ! or replace an old file. When restarting a simulation, append to the old files.
    subroutine open_omega_ascii_file(restart)
 
+      use parameters_diagnostics, only: write_omega
       use file_utils, only: open_output_file 
       use mp, only: proc0
 
@@ -310,6 +307,7 @@ contains
    !=========================================================================  
    subroutine write_omega_to_ascii_file(istep, omega_vs_kykx, omega_runningavg_vs_kykx)
 
+      use parameters_diagnostics, only: write_omega
       use stella_time, only: code_time 
       use kt_grids, only: naky, nakx
       use kt_grids, only: aky, akx
@@ -343,6 +341,6 @@ contains
 
    end subroutine write_omega_to_ascii_file
 
-end module diagnose_omega
+end module diagnostics_omega
 
 

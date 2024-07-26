@@ -11,11 +11,11 @@
 ! 
 !###############################################################################
  
-module diagnose_moments
+module diagnostics_moments
 
    implicit none
  
-   public :: init_diagnose_moments 
+   public :: init_diagnostics_moments 
    public :: write_moments_to_netcdf_file 
 
    private 
@@ -25,7 +25,7 @@ module diagnose_moments
    logical :: write_moments  
 
    ! Debugging
-   logical :: debug = .true.
+   logical :: debug = .false.
 
 contains
 
@@ -86,7 +86,7 @@ contains
       if (write_radial_moments) allocate (temp_kxs(nakx, nspec)) 
 
       ! Calculate the moments delta n(ky,kx,z,tube,s); delta T(ky,kx,z,tube,s); delta u_par(ky,kx,z,tube,s)
-      if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_moments'
+      if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_moments'
 
       ! Calculate the moments if <radial_variation> = True
       if (radial_variation) then 
@@ -497,7 +497,7 @@ contains
    !============================================================================
    !======================== INITALIZE THE DIAGNOSTICS =========================
    !============================================================================  
-   subroutine init_diagnose_moments(write_moments_in, write_radial_moments_in)  
+   subroutine init_diagnostics_moments(write_moments_in, write_radial_moments_in)  
 
       use mp, only: proc0
 
@@ -516,7 +516,7 @@ contains
       ! Only debug on the first processor
       debug = debug .and. proc0
 
-   end subroutine init_diagnose_moments 
+   end subroutine init_diagnostics_moments 
 
-end module diagnose_moments
+end module diagnostics_moments
 

@@ -3,7 +3,7 @@
 !#################### CALCULATE FLUXES FOR RADIAL VARIATION ####################
 !###############################################################################
  
-module diagnose_fluxes_radialvariation
+module diagnostics_fluxes_radialvariation
 
    implicit none
  
@@ -29,7 +29,7 @@ contains
    !============ GET FLUXES VMULO ================
    !==============================================
    subroutine calculate_fluxes_radialvariation(g, phi, pflux_vs_s, vflux_vs_s, qflux_vs_s, pflux_vs_kxs,  &
-         vflux_vs_kxs, qflux_vs_kxs, pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts, flux_norm, write_radial_fluxes)
+         vflux_vs_kxs, qflux_vs_kxs, pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts)
  
       use mp, only: sum_reduce
       use constants, only: zi
@@ -51,6 +51,10 @@ contains
       use kt_grids, only: aky, theta0, naky, nakx, multiply_by_rho
       use physics_flags, only: radial_variation
       use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
+      
+      ! Flags 
+      use parameters_diagnostics, only: write_radial_fluxes 
+      use parameters_diagnostics, only: flux_norm
 
       implicit none
 
@@ -58,13 +62,14 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
       real, dimension(:), intent(out) :: pflux_vs_s, vflux_vs_s, qflux_vs_s
       real, dimension(:, :), intent(out) :: pflux_vs_kxs, vflux_vs_kxs, qflux_vs_kxs
-      real, dimension(:, :, -nzgrid:, :, :), intent(out) :: pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts
-      logical, intent(in) :: write_radial_fluxes 
-      logical, intent(in) :: flux_norm 
+      real, dimension(:, :, -nzgrid:, :, :), intent(out) :: pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts 
 
       integer :: ivmu, imu, iv, iz, it, is, ia
       real :: flx_norm
       complex, dimension(:, :), allocatable :: g0k, g1k
+      
+      ! Track the code
+      if (debug) write (*, *) 'diagnostics::calculate_fluxes_radialvariation'
 
       pflux_vs_s = 0.; vflux_vs_s = 0.; qflux_vs_s = 0.
       pflux_vs_kxs = 0.; vflux_vs_kxs = 0.; qflux_vs_kxs = 0.
@@ -496,4 +501,4 @@ contains
    end subroutine get_one_flux_radial
 
 
-end module diagnose_fluxes_radialvariation
+end module diagnostics_fluxes_radialvariation

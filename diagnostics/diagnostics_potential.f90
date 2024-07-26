@@ -7,12 +7,12 @@
 ! 
 !###############################################################################
  
-module diagnose_potential
+module diagnostics_potential
 
    implicit none
  
-   public :: init_diagnose_potential
-   public :: finish_diagnose_potential
+   public :: init_diagnostics_potential
+   public :: finish_diagnostics_potential
    public :: write_potential_to_netcdf_file  
 
    private 
@@ -110,24 +110,24 @@ contains
       if (proc0 .and. write_to_netcdf_file) then
 
          ! Write the time axis to the netcdf file
-         if (debug) write (*, *) 'stella_diagnostics::write_time_nc'
+         if (debug) write (*, *) 'diagnostics::write_time_nc'
          call write_time_nc(nout, code_time)
 
          ! Write the phi2(t) to the netcdf file (always on)
-         if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_phi2_nc'
+         if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_phi2_nc'
          call write_phi2_nc(nout, phi2)
          call write_apar2_nc(nout, apar2)
          call write_bpar2_nc(nout, bpar2)
 
          ! Write phi(t,ky,kx,z,tube) to the netcdf file
          if (write_phi_vs_kxkyz) then
-            if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_phi_nc'
+            if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_phi_nc'
             call write_phi_nc(nout, phi_vs_kykxzt)
          end if
 
          ! Write phi2(t,ky,kx) to the netcdf file
          if (write_phi2_vs_kxky) then
-            if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_kspectra_nc'
+            if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_kspectra_nc'
             
             ! For phi2
             allocate (phi2_vs_kxky(naky, nakx))
@@ -326,22 +326,15 @@ contains
    !============================================================================
    !======================== INITALIZE THE DIAGNOSTICS =========================
    !============================================================================  
-   subroutine init_diagnose_potential(restart, write_phi_vs_kxkyz_in, write_phi2_vs_kxky_in)  
- 
+   subroutine init_diagnostics_potential(restart)  
+  
       use mp, only: proc0
 
       implicit none 
-
-      ! Save the module variables 
-      logical, intent(in) :: write_phi_vs_kxkyz_in 
-      logical, intent(in) :: write_phi2_vs_kxky_in 
+ 
       logical, intent(in) :: restart 
 
-      !----------------------------------------------------------------------
-
-      ! Save the module variables
-      write_phi_vs_kxkyz = write_phi_vs_kxkyz_in 
-      write_phi2_vs_kxky = write_phi2_vs_kxky_in  
+      !---------------------------------------------------------------------
 
       ! We only need the module arrays on the first processor 
       if (.not. proc0) return          
@@ -349,12 +342,12 @@ contains
       ! Open the '.out' ascii file  
       call open_potential_ascii_file(restart) 
 
-   end subroutine init_diagnose_potential
+   end subroutine init_diagnostics_potential
 
    !============================================================================
    !======================== FINALIZE THE DIAGNOSTICS =========================
    !============================================================================  
-   subroutine finish_diagnose_potential
+   subroutine finish_diagnostics_potential
 
       use file_utils, only: close_output_file
       use mp, only: proc0 
@@ -370,6 +363,6 @@ contains
       ! Write potential(z) at the last time step to an ascii file
       call write_potential_to_ascii_file_atfinaltimestep
 
-   end subroutine finish_diagnose_potential
+   end subroutine finish_diagnostics_potential
 
-end module diagnose_potential
+end module diagnostics_potential

@@ -4,7 +4,7 @@
 !###############################################################################
 ! TODO-GA-CLEANUP Fluxes and moments for FFS
  
-module diagnose_fluxes_fullfluxsurface
+module diagnostics_fluxes_fullfluxsurface
 
    implicit none
  
@@ -462,4 +462,4 @@ contains
       deallocate(g_store) 
    end subroutine g_to_f1
 
-end module diagnose_fluxes_fullfluxsurface
+end module diagnostics_fluxes_fullfluxsurface

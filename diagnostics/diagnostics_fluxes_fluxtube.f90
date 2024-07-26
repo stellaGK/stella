@@ -46,7 +46,7 @@
 ! This has been tested numerically, and gives the same fluxes.
 !###############################################################################
  
-module diagnose_fluxes_fluxtube
+module diagnostics_fluxes_fluxtube
 
    implicit none
  
@@ -92,10 +92,11 @@ contains
    ! <qflux> or <pflux>, but it does matter for <vflux>! Only <δf> is the correct options for <vflux> TODO is it? 
    !============================================================================ 
    subroutine calculate_fluxes_fluxtube(df_vs_vpamuikxkyzs, pflux_vs_s, vflux_vs_s, &
-      qflux_vs_s, pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts, flux_norm, write_fluxes_kxkyz)
+      qflux_vs_s, pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts)
 
       ! Flags
       use physics_flags, only: include_apar, include_bpar
+      use parameters_diagnostics, only: write_fluxes_kxkyz 
 
       ! Data 
       use fields_arrays, only: phi, apar, bpar
@@ -105,8 +106,7 @@ contains
       use stella_geometry, only: bmag, btor, gds2, gds21, gds22, geo_surf 
       use stella_geometry, only: gradzeta_gradx_R2overB2
       use stella_geometry, only: gradzeta_grady_R2overB2
-      use stella_geometry, only: b_dot_grad_zeta_RR
-      use stella_geometry, only: jacob, grho, btor 
+      use stella_geometry, only: b_dot_grad_zeta_RR 
       
       ! Dimensions
       use vpamu_grids, only: vperp2, vpa, mu
@@ -132,9 +132,6 @@ contains
       real, dimension(:, :, -nzgrid:, :, :), intent(out) :: pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts
       real, dimension(:), intent(out) :: pflux_vs_s, vflux_vs_s, qflux_vs_s
 
-      ! Toggle to include or not include the factor 1/<∇̃ρ>_ψ in the flux definition
-      logical, intent(in) :: flux_norm, write_fluxes_kxkyz
-
       ! Local variables
       complex, dimension(:, :), allocatable :: velocityintegrand_vs_vpamu, temp1_vs_vpamu, temp2_vs_vpamu
       real, dimension(:), allocatable :: fluxnorm_vs_z
@@ -151,7 +148,7 @@ contains
 
       ! Get <fluxnorm_vs_z> which takes care of the flux surface average, 
       ! and the factor <one_over_nablarho> which is used if <flux_norm> = True, otherwise its set to 1.
-      call get_factor_for_fluxsurfaceaverage(fluxnorm_vs_z, one_over_nablarho, flux_norm) 
+      call get_factor_for_fluxsurfaceaverage(fluxnorm_vs_z, one_over_nablarho) 
 
       ! We only have one flux tube since <radial_variation> = False
       ia = 1
@@ -396,8 +393,9 @@ contains
    ! If <flux_norm> = True then we absorb the factor 1/<∇̃ρ>_fluxsurface in the definition of <fluxnorm_vs_z> 
    !     fluxnorm_vs_z[iz] = < . >_ψ / <∇̃ρ>_ψ = jacob[iz]*delzed[iz] / sum(grho[iz]*jacob[iz]*delzed[iz]) 
    !============================================================================
-   subroutine get_factor_for_fluxsurfaceaverage(fluxnorm_vs_z, one_over_nablarho, flux_norm) 
+   subroutine get_factor_for_fluxsurfaceaverage(fluxnorm_vs_z, one_over_nablarho) 
 
+      use parameters_diagnostics, only: flux_norm
       use stella_geometry, only: jacob, grho
       use zgrid, only: delzed, nzgrid  
 
@@ -406,9 +404,6 @@ contains
       ! Construct the factor in front of the flux definition 
       real, dimension(:), allocatable, intent(out) :: fluxnorm_vs_z 
       real, intent(out) :: one_over_nablarho
-
-      ! Toggle to include or not include the factor 1/<∇̃ρ>_ψ in the flux definition
-      logical, intent(in) :: flux_norm
 
       ! Local variables
       real, dimension(:), allocatable :: jacob_times_delzed_vs_z 
@@ -438,4 +433,4 @@ contains
 
    end subroutine get_factor_for_fluxsurfaceaverage
 
-end module diagnose_fluxes_fluxtube
+end module diagnostics_fluxes_fluxtube

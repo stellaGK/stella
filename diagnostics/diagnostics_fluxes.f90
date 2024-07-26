@@ -11,21 +11,16 @@
 ! 
 !###############################################################################
  
-module diagnose_fluxes
+module diagnostics_fluxes
 
    implicit none
- 
-   public :: init_diagnose_fluxes 
-   public :: finish_diagnose_fluxes
+  
+   public :: init_diagnostics_fluxes
+   public :: finish_diagnostics_fluxes
    public :: write_fluxes_to_ascii_file 
    public :: write_fluxes_to_netcdf_file 
 
    private 
-
-   ! Variables used to write the fluxes diagnostics
-   logical :: write_fluxes_kxkyz
-   logical :: write_radial_fluxes
-   logical :: flux_norm 
 
    ! The <units> are used to identify the external ascii files
    integer :: fluxes_unit 
@@ -34,7 +29,7 @@ module diagnose_fluxes
    real, dimension(:), allocatable :: pflux_vs_s, qflux_vs_s, vflux_vs_s  
 
    ! Debugging
-   logical :: debug = .true.
+   logical :: debug = .false.
 
 contains
 
@@ -55,11 +50,17 @@ contains
       ! Flags 
       use physics_flags, only: radial_variation
       use physics_flags, only: full_flux_surface
+      use parameters_diagnostics, only: write_fluxes_vs_time
+      use parameters_diagnostics, only: write_fluxes_kxkyz
+      use parameters_diagnostics, only: write_radial_fluxes 
 
       ! Routines
-      use stella_io, only: write_fluxes_kxkyz_nc
       use job_manage, only: time_message
       use mp, only: proc0
+      
+      ! Write to netCDF file 
+      use stella_io, only: write_fluxes_kxkyz_nc
+      use stella_io, only: write_fluxes_vs_time_nc
 
       implicit none 
 
@@ -76,33 +77,57 @@ contains
       if (proc0) call time_message(.false., timer(:), 'Write fluxes')
 
       ! Allocate the arrays that we want to write to the netcdf file 
-      if (write_fluxes_kxkyz) allocate (pflux_kxkyzts(naky, nakx, nztot, ntubes, nspec))
-      if (write_fluxes_kxkyz) allocate (vflux_kxkyzts(naky, nakx, nztot, ntubes, nspec))
-      if (write_fluxes_kxkyz) allocate (qflux_kxkyzts(naky, nakx, nztot, ntubes, nspec))
+      if (write_fluxes_kxkyz) then; allocate (pflux_kxkyzts(naky, nakx, nztot, ntubes, nspec)); pflux_kxkyzts = 0.0; end if
+      if (write_fluxes_kxkyz) then; allocate (vflux_kxkyzts(naky, nakx, nztot, ntubes, nspec)); vflux_kxkyzts = 0.0; end if
+      if (write_fluxes_kxkyz) then; allocate (qflux_kxkyzts(naky, nakx, nztot, ntubes, nspec)); qflux_kxkyzts = 0.0; end if
+      
+      !**********************************************************************
+      !                          WRITE TO TXT FILE                          !
+      !**********************************************************************
+      ! Note that to obtain <pflux_vs_s>, <vflux_vs_s>, <qflux_vs_s> to write
+      ! the fluxes to the txt files, we already calculate fluxes(kx,ky,z,s)
+      !**********************************************************************
 
       ! Calculate the fluxes if <radial_variation> = True
       if (radial_variation .or. write_radial_fluxes) then
-         if (debug) write (*, *) 'diagnose_fluxes::write_fluxes_for_fluxtube_radialvariation'
+         if (debug) write (*, *) 'diagnostics::diagnostics_fluxes::write_fluxes_for_fluxtube_radialvariation'
          call write_fluxes_for_fluxtube_radialvariation(nout, pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts, write_to_netcdf_file)
 
       ! Calculate the fluxes if <full_flux_surface> = True
       else if (full_flux_surface) then 
-         if (debug) write (*, *) 'diagnose_fluxes::write_fluxes_for_fullfluxsurface'
+         if (debug) write (*, *) 'diagnostics::diagnostics_fluxes::write_fluxes_for_fullfluxsurface'
          call write_fluxes_for_fullfluxsurface(pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts)
 
       ! Calculate the fluxes for a flux tube simulation
       else
-         if (debug) write (*, *) 'diagnose_fluxes::write_fluxes_for_fluxtube' 
+         if (debug) write (*, *) 'diagnostics::diagnostics_fluxes::write_fluxes_for_fluxtube' 
          call write_fluxes_for_fluxtube(pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts)
       end if
 
       ! Write fluxes to the ascii files (these variables have been set along the way)
-      if (debug) write (*, *) 'diagnose_fluxes::write_fluxes_to_ascii_file'
+      if (debug) write (*, *) 'diagnostics::diagnostics_fluxes::write_fluxes_to_ascii_file'
       if (proc0) call write_fluxes_to_ascii_file(pflux_vs_s, vflux_vs_s, qflux_vs_s)
+      
+      !**********************************************************************
+      !                         WRITE TO NETCDF FILE                        !
+      !**********************************************************************
+      ! We already calculate fluxes(kx,ky,z,s) when we were calculating 
+      ! <pflux_vs_s>, <vflux_vs_s>, <qflux_vs_s> for the txt files so now
+      ! we simply need to write the fluxes to the netcdf file
+      !**********************************************************************
+      
+      ! Do not continue if we do not wish to write to the netCDF file right now
+      if (.not. write_to_netcdf_file) return  
 
-      ! Write fluxes to the netcdf file
-      if (write_fluxes_kxkyz .and. write_to_netcdf_file) then 
-         if (debug) write (*, *) 'diagnose_fluxes::write_fluxes_kxkyz_nc'
+      ! Write fluxes(s) to the netcdf file
+      if (write_fluxes_vs_time) then 
+         if (debug) write (*, *) 'diagnostics::diagnostics_fluxes::write_fluxes_nc'
+         if (proc0) call write_fluxes_vs_time_nc(nout, pflux_vs_s, vflux_vs_s, qflux_vs_s)  
+      end if
+
+      ! Write fluxes(kx,ky,z,s) to the netcdf file
+      if (write_fluxes_kxkyz) then 
+         if (debug) write (*, *) 'diagnostics::diagnostics_fluxes::write_fluxes_kxkyz_nc'
          if (proc0) call write_fluxes_kxkyz_nc(nout, pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts)  
       end if
 
@@ -132,7 +157,7 @@ contains
       use dist_redistribute, only: kxkyz2vmu
 
       ! Calculations 
-      use diagnose_fluxes_fluxtube, only: calculate_fluxes_fluxtube
+      use diagnostics_fluxes_fluxtube, only: calculate_fluxes_fluxtube
       use g_tofrom_h, only: g_to_h, g_to_f
 
       implicit none    
@@ -159,8 +184,7 @@ contains
       end if 
 
       ! Now calculate the fluxes explicitly
-      call calculate_fluxes_fluxtube(gvmu, pflux_vs_s, vflux_vs_s, qflux_vs_s, pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts, &
-               flux_norm, write_fluxes_kxkyz)
+      call calculate_fluxes_fluxtube(gvmu, pflux_vs_s, vflux_vs_s, qflux_vs_s, pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts)
 
       ! Convert <δf> back to <g> since it will be used by other routines 
       ! TODO-GA for electromagnetic stella the equations are written for f, for electromagnetic stella the equations are written for h
@@ -176,6 +200,9 @@ contains
    !============================= RADIAL VARIATION =============================
    !============================================================================
    subroutine write_fluxes_for_fluxtube_radialvariation(nout, pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts, write_to_netcdf_file)
+   
+      ! Flags 
+      use parameters_diagnostics, only: write_radial_fluxes 
 
       ! Data 
       use fields_arrays, only: phi, phi_corr_QN
@@ -192,7 +219,7 @@ contains
       use stella_io, only: write_radial_fluxes_nc
 
       ! Calculations 
-      use diagnose_fluxes_radialvariation, only: calculate_fluxes_radialvariation
+      use diagnostics_fluxes_radialvariation, only: calculate_fluxes_radialvariation
 
       ! Routines
       use job_manage, only: time_message
@@ -214,10 +241,10 @@ contains
       !---------------------------------------------------------------------- 
 
       ! Allocate the local arrays
-      allocate (phi_out(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate (pflux_vs_kxs(nakx, nspec))
-      allocate (vflux_vs_kxs(nakx, nspec))
-      allocate (qflux_vs_kxs(nakx, nspec))  
+      allocate (phi_out(naky, nakx, -nzgrid:nzgrid, ntubes)); phi_out = 0.0
+      allocate (pflux_vs_kxs(nakx, nspec)); pflux_vs_kxs = 0.0
+      allocate (vflux_vs_kxs(nakx, nspec)); vflux_vs_kxs = 0.0
+      allocate (qflux_vs_kxs(nakx, nspec)); qflux_vs_kxs = 0.0
 
       ! Get <phi_out>(ky,kx,z,tube)  
       phi_out = phi
@@ -227,11 +254,11 @@ contains
 
       ! Calculate the fluxes explicitly
       call calculate_fluxes_radialvariation(gnew, phi_out, pflux_vs_s, vflux_vs_s, qflux_vs_s,  pflux_vs_kxs, vflux_vs_kxs, & 
-            qflux_vs_kxs, pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts, flux_norm, write_radial_fluxes)
+            qflux_vs_kxs, pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts)
 
       ! Write fluxes to the netcdf file
       if (write_radial_fluxes .and. write_to_netcdf_file) then 
-         if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_radial_fluxes_nc'
+         if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_radial_fluxes_nc'
          if (proc0) call write_radial_fluxes_nc(nout, pflux_vs_kxs, vflux_vs_kxs, qflux_vs_kxs)
       end if
       
@@ -254,8 +281,8 @@ contains
       use zgrid, only: nzgrid
 
       ! Calculations
-      use diagnose_fluxes_fullfluxsurface, only: calculate_moments_fullfluxsurface
-      use diagnose_fluxes_fullfluxsurface, only: calculate_fluxes_fullfluxsurface
+      use diagnostics_fluxes_fullfluxsurface, only: calculate_moments_fullfluxsurface
+      use diagnostics_fluxes_fullfluxsurface, only: calculate_fluxes_fullfluxsurface
 
       ! Routines 
       use job_manage, only: time_message 
@@ -271,9 +298,9 @@ contains
       !---------------------------------------------------------------------- 
 
       ! Allocate the arrays 
-      allocate (dens_vs_ykxzs(ny, ikx_max, -nzgrid:nzgrid, nspec))
-      allocate (upar_vs_ykxzs(ny, ikx_max, -nzgrid:nzgrid, nspec))
-      allocate (pres_vs_ykxzs(ny, ikx_max, -nzgrid:nzgrid, nspec))
+      allocate (dens_vs_ykxzs(ny, ikx_max, -nzgrid:nzgrid, nspec)); dens_vs_ykxzs = 0.0
+      allocate (upar_vs_ykxzs(ny, ikx_max, -nzgrid:nzgrid, nspec)); upar_vs_ykxzs = 0.0
+      allocate (pres_vs_ykxzs(ny, ikx_max, -nzgrid:nzgrid, nspec)); pres_vs_ykxzs = 0.0
 
       ! Calculate the particle density, parallel flow and pressure in (y,kx,z) space for all species
       call calculate_moments_fullfluxsurface(gnew, dens_vs_ykxzs, upar_vs_ykxzs, pres_vs_ykxzs) 
@@ -375,25 +402,16 @@ contains
    !============================================================================
    !======================== INITALIZE THE DIAGNOSTICS =========================
    !============================================================================  
-   subroutine init_diagnose_fluxes(write_fluxes_kxkyz_in, write_radial_fluxes_in, flux_norm_in, restart)  
+   subroutine init_diagnostics_fluxes(restart)
   
       use species, only: nspec 
       use mp, only: proc0
 
       implicit none 
-
-      ! Save the module variables
-      logical, intent(in) :: write_fluxes_kxkyz_in
-      logical, intent(in) :: write_radial_fluxes_in
-      logical, intent(in) :: flux_norm_in
+ 
       logical, intent(in) :: restart 
 
       !----------------------------------------------------------------------
-
-      ! Save the module variables
-      write_radial_fluxes = write_radial_fluxes_in 
-      write_fluxes_kxkyz = write_fluxes_kxkyz_in 
-      flux_norm = flux_norm_in  
 
       ! Only debug on the first processor
       debug = debug .and. proc0
@@ -410,12 +428,12 @@ contains
       ! Open the '.fluxes' ascii file  
       call open_fluxes_ascii_file(restart) 
 
-   end subroutine init_diagnose_fluxes
+   end subroutine init_diagnostics_fluxes
 
    !============================================================================
    !======================== FINALIZE THE DIAGNOSTICS =========================
    !============================================================================  
-   subroutine finish_diagnose_fluxes  
+   subroutine finish_diagnostics_fluxes  
 
       use file_utils, only: close_output_file
       use mp, only: proc0 
@@ -433,7 +451,7 @@ contains
       ! Close the ascii file
       call close_output_file(fluxes_unit)
 
-   end subroutine finish_diagnose_fluxes 
+   end subroutine finish_diagnostics_fluxes 
 
-end module diagnose_fluxes
+end module diagnostics_fluxes
 
