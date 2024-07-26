@@ -8,14 +8,14 @@ stella_mod = \
 	 common_types.o \
 	 constants.o \
 	 convert.o \
-	 diagnose_distribution.o \
-	 diagnose_fluxes.o \
-	 diagnose_fluxes_fluxtube.o \
-	 diagnose_fluxes_fullfluxsurface.o \
-	 diagnose_fluxes_radialvariation.o \
-	 diagnose_moments.o \
-	 diagnose_omega.o \
-	 diagnose_potential.o \
+	 diagnostics_distribution.o \
+	 diagnostics_fluxes.o \
+	 diagnostics_fluxes_fluxtube.o \
+	 diagnostics_fluxes_fullfluxsurface.o \
+	 diagnostics_fluxes_radialvariation.o \
+	 diagnostics_moments.o \
+	 diagnostics_omega.o \
+	 diagnostics_potential.o \
 	 dissipation.o \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
@@ -50,6 +50,7 @@ stella_mod = \
 	 neoclassical_terms.o \
 	 netcdf_utils.o \
 	 parallel_streaming.o \
+	 parameters_diagnostics.o \
 	 physics_flags.o \
 	 physics_parameters.o \
 	 ran.o \
@@ -63,7 +64,7 @@ stella_mod = \
 	 spfunc.o \
 	 spl.o \
 	 stella.o \
-	 stella_diagnostics.o \
+	 diagnostics.o \
 	 stella_geometry.o \
 	 stella_io.o \
 	 stella_layouts.o \
@@ -130,7 +131,7 @@ command_line.o:
 common_types.o: 
 constants.o: 
 convert.o: 
-diagnose_distribution.o: \
+diagnostics_distribution.o: \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields_arrays.o \
@@ -147,10 +148,10 @@ diagnose_distribution.o: \
 	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-diagnose_fluxes.o: \
-	 diagnose_fluxes_fluxtube.o \
-	 diagnose_fluxes_fullfluxsurface.o \
-	 diagnose_fluxes_radialvariation.o \
+diagnostics_fluxes.o: \
+	 diagnostics_fluxes_fluxtube.o \
+	 diagnostics_fluxes_fullfluxsurface.o \
+	 diagnostics_fluxes_radialvariation.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields_arrays.o \
@@ -159,6 +160,7 @@ diagnose_fluxes.o: \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
+	 parameters_diagnostics.o \
 	 physics_flags.o \
 	 redistribute.o \
 	 run_parameters.o \
@@ -166,12 +168,13 @@ diagnose_fluxes.o: \
 	 stella_io.o \
 	 stella_time.o \
 	 zgrid.o 
-diagnose_fluxes_fluxtube.o: \
+diagnostics_fluxes_fluxtube.o: \
 	 constants.o \
 	 fields_arrays.o \
 	 gyro_averages.o \
 	 kt_grids.o \
 	 mp.o \
+	 parameters_diagnostics.o \
 	 physics_flags.o \
 	 run_parameters.o \
 	 species.o \
@@ -180,7 +183,7 @@ diagnose_fluxes_fluxtube.o: \
 	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-diagnose_fluxes_fullfluxsurface.o: \
+diagnostics_fluxes_fullfluxsurface.o: \
 	 constants.o \
 	 dist_fn_arrays.o \
 	 fields_arrays.o \
@@ -195,12 +198,13 @@ diagnose_fluxes_fullfluxsurface.o: \
 	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-diagnose_fluxes_radialvariation.o: \
+diagnostics_fluxes_radialvariation.o: \
 	 constants.o \
 	 dist_fn_arrays.o \
 	 gyro_averages.o \
 	 kt_grids.o \
 	 mp.o \
+	 parameters_diagnostics.o \
 	 physics_flags.o \
 	 run_parameters.o \
 	 species.o \
@@ -210,7 +214,7 @@ diagnose_fluxes_radialvariation.o: \
 	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-diagnose_moments.o: \
+diagnostics_moments.o: \
 	 dist_fn_arrays.o \
 	 fields_arrays.o \
 	 gyro_averages.o \
@@ -226,18 +230,19 @@ diagnose_moments.o: \
 	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-diagnose_omega.o: \
+diagnostics_omega.o: \
 	 constants.o \
 	 fields_arrays.o \
 	 file_utils.o \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
+	 parameters_diagnostics.o \
 	 physics_flags.o \
 	 stella_io.o \
 	 stella_time.o \
 	 volume_averages.o 
-diagnose_potential.o: \
+diagnostics_potential.o: \
 	 dist_fn_arrays.o \
 	 fields.o \
 	 fields_arrays.o \
@@ -570,6 +575,10 @@ parallel_streaming.o: \
 	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
+parameters_diagnostics.o: \
+	 file_utils.o \
+	 mp.o \
+	 physics_flags.o 
 physics_flags.o: \
 	 file_utils.o \
 	 mp.o \
@@ -657,7 +666,7 @@ spfunc.o: \
 spl.o: \
 	 constants.o 
 stella.o: \
-	 diagnose_omega.o \
+	 diagnostics_omega.o \
 	 dissipation.o \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
@@ -675,6 +684,7 @@ stella.o: \
 	 mp.o \
 	 multibox.o \
 	 parallel_streaming.o \
+	 parameters_diagnostics.o \
 	 physics_flags.o \
 	 physics_parameters.o \
 	 ran.o \
@@ -683,7 +693,7 @@ stella.o: \
 	 run_parameters.o \
 	 sources.o \
 	 species.o \
-	 stella_diagnostics.o \
+	 diagnostics.o \
 	 stella_geometry.o \
 	 stella_layouts.o \
 	 stella_save.o \
@@ -693,23 +703,23 @@ stella.o: \
 	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-stella_diagnostics.o: \
+diagnostics.o: \
 	 constants.o \
-	 diagnose_distribution.o \
-	 diagnose_fluxes.o \
-	 diagnose_moments.o \
-	 diagnose_omega.o \
-	 diagnose_potential.o \
+	 diagnostics_distribution.o \
+	 diagnostics_fluxes.o \
+	 diagnostics_moments.o \
+	 diagnostics_omega.o \
+	 diagnostics_potential.o \
 	 dist_fn.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields.o \
 	 fields_arrays.o \
-	 file_utils.o \
 	 init_g.o \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
+	 parameters_diagnostics.o \
 	 physics_flags.o \
 	 physics_parameters.o \
 	 redistribute.o \

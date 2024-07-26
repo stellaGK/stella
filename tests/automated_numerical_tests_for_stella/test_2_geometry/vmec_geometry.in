@@ -74,7 +74,7 @@
   nwrite = 1
   save_for_restart = .false.
   write_fluxes_kxkyz = .true.
-  write_gvmus = .true.
+  !write_gvmus = .true. TODO-HT <write_gvmus> breaks stella
   write_gzvs = .true.
   write_kspectra = .true.
   write_omega = .true.

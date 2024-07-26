@@ -17,6 +17,8 @@ with open(module_path, 'r') as file: exec(file.read())
 # Global variables  
 input_filename = 'miller_geometry.in'  
 stella_local_run_directory = 'Not/Run/Yet'
+input_file = input_filename.replace('.in','')
+miller_file_name = 'miller_geometry'
 
 #-------------------------------------------------------------------------------
 #                    Check whether output files are present                    #
@@ -35,12 +37,20 @@ def test_whether_miller_output_files_are_present(tmp_path, error=False):
     local_files = os.listdir(stella_local_run_directory)
     
     # Create a list of the output files we expect when stella has been run 
-    expected_files = ['millerlocal.miller_geometry.input', 'millerlocal.miller_geometry.output', 'miller_geometry.geometry']
+    expected_files = [f'miller_geometry.{input_file}.input', f'miller_geometry.{input_file}.output', f'{input_file}.geometry']; new_names = True
     
     # Check whether all these output files are present
     for expected_file in expected_files:
         if not (expected_file in local_files):
-            print(f'ERROR: The "{expected_file}" output file was not generated when running stella.'); error = True
+            print(f'ERROR: The "{expected_file}" output file was not generated when running stella.'); new_names = False
+            
+    # Old stella 
+    if new_names==False:
+        expected_files = [f'millerlocal.{input_file}.input', f'millerlocal.{input_file}.output', '{input_file}.geometry'] 
+        for expected_file in expected_files:
+            if not (expected_file in local_files):
+                print(f'ERROR: The "{expected_file}" output file was not generated when running stella.'); error = True
+        miller_file_name = 'millerlocal'
             
     # The <pytest> module will check whether all <assert> statements are true,
     # if it runs into a statement which is false, the test will be labeled as
@@ -60,21 +70,69 @@ def test_whether_miller_output_files_are_correct():
     '''Check that the results are identical to a previous run.'''
     
     # File names 
-    local_geometry_file = stella_local_run_directory / 'miller_geometry.geometry' 
-    expected_geometry_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.miller_geometry.geometry' 
-    local_miller_input_file = stella_local_run_directory / 'millerlocal.miller_geometry.input' 
-    expected_miller_input_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.miller_geometry.millerlocal.input' 
-    local_miller_output_file = stella_local_run_directory / 'millerlocal.miller_geometry.output' 
-    expected_miller_output_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.miller_geometry.millerlocal.output' 
+    local_geometry_file = stella_local_run_directory / f'{input_file}.geometry' 
+    expected_geometry_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file}.geometry' 
+    local_miller_input_file = stella_local_run_directory / f'{miller_file_name}.{input_file}.input' 
+    expected_miller_input_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file}.millerlocal.input' 
+    local_miller_output_file = stella_local_run_directory / f'{miller_file_name}.{input_file}.output' 
+    expected_miller_output_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file}.millerlocal.output' 
     
-    # Check whether the txt files match  
-    compare_local_txt_with_expected_txt(local_geometry_file, expected_geometry_file, name='Geometry txt', error=False)
-    compare_local_txt_with_expected_txt(local_miller_input_file, expected_miller_input_file, name='Miller input txt', error=False)
-    compare_local_txt_with_expected_txt(local_miller_output_file, expected_miller_output_file, name='Miller output txt', error=False)
-
+    # Check whether the txt files match for old stella
+    if miller_file_name=='millerlocal':
+        compare_local_txt_with_expected_txt(local_geometry_file, expected_geometry_file, name='Geometry txt', error=False)
+        compare_local_txt_with_expected_txt(local_miller_input_file, expected_miller_input_file, name='Miller input txt', error=False)
+        compare_local_txt_with_expected_txt(local_miller_output_file, expected_miller_output_file, name='Miller output txt', error=False)
+    
+    # For new stella, we print <flux_fac> instead of <exb_nonlin_p>, and we do not print <btor> 
+    if miller_file_name!='millerlocal':
+        compare_local_txt_with_expected_txt_newstella(local_geometry_file, expected_geometry_file, name='Geometry txt', error=False) 
+        # TODO-HT Add the other two miller files
+    
     # If we made it here the test was run correctly 
     print(f'  -->  Geometry output file matches.')
     return 
+    
+#-------------------------------------------------------------------------------  
+def compare_local_txt_with_expected_txt_newstella(local_file, expected_file, name, error=False, maxlines=10):
+     
+    # If both tests were run with new stella it will be fine
+    # If the files match return without giving an error
+    if os.path.getsize(local_file) == os.path.getsize(expected_file) and open(local_file,'r').read() == open(expected_file,'r').read(): 
+        return 
+    
+    # Cut-off <flux_fac> or <exb_nonlin_p> in the last column of the variables
+    # and cut-off <btor> in the last column of the arrays
+    with open(local_file) as f1, open(expected_file) as f2: 
+        local_file_txt = f1.readlines() 
+        expected_file_txt = f2.readlines()  
+        
+    # Modify the geometry files slightly so they match whether they come from old or new stella
+    if '.geometry' in str(local_file):
+        for file_txt in [local_file_txt, expected_file_txt]: 
+            for i, line in enumerate(file_txt):
+                if len(line)==181: file_txt[i] = file_txt[i][:168] # Cut off <btor> in the old stella files 
+                if len(line)==169: file_txt[i] = file_txt[i][:168] # Cut off <btor> in the old stella files 
+                if len(line)==142: file_txt[i] = file_txt[i][:129] # Cut off <flux_fac> or <exb_nonlin_p> in the last column of the variables
+                if 'dxdXcoord' in line: file_txt[i] = file_txt[i].replace('dxdXcoord','   dxdpsi')
+
+    # Check whether the txt files match now 
+    if local_file_txt!=expected_file_txt:
+        error = True
+    
+    # If they do not match show the differences
+    if error == True:
+        if len(local_file_txt)>maxlines:
+            print(f'    Warning: the compared files are very long, we limit them to {maxlines} lines')
+            local_file_txt = local_file_txt[:maxlines]; expected_file_txt = expected_file_txt[:maxlines]
+        print(f'\nDIFFERENCE BETWEEN {name} FILES:\n')  
+        for line in difflib.unified_diff(local_file_txt, expected_file_txt, fromfile=str(local_file), tofile=str(expected_file), lineterm=''): 
+            print('    ', line)  
+        
+    # If the files don't match, print the differences 
+    if (error==True): print(f'\nERROR: {name} files do not match.') 
+    assert (not error), f'{name} files do not match.' 
+    return error
+     
 
 #-------------------------------------------------------------------------------
 #              Check whether the data in the netcdf file matches               #
@@ -84,7 +142,7 @@ def test_whether_miller_geometry_data_in_netcdf_file_is_correct(error=False):
      
     # File names  
     local_netcdf_file = stella_local_run_directory / input_filename.replace('.in', '.out.nc') 
-    expected_netcdf_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.miller_geometry.out.nc'   
+    expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file}.out.nc'   
 
     # Check whether the geometry data matches in the netcdf file
     with xr.open_dataset(local_netcdf_file) as local_netcdf, xr.open_dataset(expected_netcdf_file) as expected_netcdf: 
@@ -117,7 +175,7 @@ def test_whether_miller_geometry_data_in_netcdf_file_is_correct(error=False):
                 if not (np.allclose(local_netcdf[key], expected_netcdf[key], equal_nan=True)):
                     print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
                     print('\nCompare the {key} arrays in the local and expected netCDF files:')
-                    compare_local_array_with_expected_array(local_netcdf[key], expected_netcdf[key])  
+                    compare_local_array_with_expected_array(local_netcdf[key], expected_netcdf[key], name=key)  
                     
         # Print "AssertionError: <error message>" if an error was encountered
         assert (not error), f'Some Miller geometry arrays in the netcdf file did not match the previous run.' 

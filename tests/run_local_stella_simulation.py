@@ -2,6 +2,7 @@
 import os
 import shutil
 import pathlib
+import difflib
 import subprocess   
 
 ################################################################################
@@ -148,10 +149,10 @@ def convert_byte_array(array):
     return '\n'.join((str(line, encoding='utf-8').strip() for line in array.data))
       
 #-------------------------------------------------------------------------------  
-def compare_local_array_with_expected_array(local_array, expected_array): 
-    print('                                       ')
-    print('                LOCAL       EXPECTED   ')
-    print('                -----       --------   ')
+def compare_local_array_with_expected_array(local_array, expected_array, name='phi2'): 
+    print(len(name)*' '+'                                   ')
+    print(len(name)*' '+'            LOCAL       EXPECTED   ')
+    print(len(name)*' '+'            -----       --------   ')
     for i in range(np.min([len(local_array.data),10])):
-        print(f' phi2[{i}]  =  {local_array.data[i]:8.5e}   {expected_array.data[i]:8.5e}')
+        print(f' {name}[{i}]  =  {local_array.data[i]:8.5e}   {expected_array.data[i]:8.5e}')
     print('                                       ')

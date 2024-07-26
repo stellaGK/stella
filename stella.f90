@@ -8,16 +8,19 @@ program stella
    use stella_time, only: update_time, code_time, code_dt, checkcodedt
    use dist_redistribute, only: kxkyz2vmu
    use time_advance, only: advance_stella
-   use stella_diagnostics, only: diagnose_stella, nsave
+   use diagnostics, only: diagnose_stella
    use stella_save, only: stella_save_for_restart
    use dist_fn_arrays, only: gnew, gvmu
    use file_utils, only: error_unit, flush_output_file
    use git_version, only: get_git_version, get_git_date
    use diagnose_omega, only: checksaturation
+   
+   ! Input file
+   use parameters_diagnostics, only: nsave
 
    implicit none
 
-   logical :: debug = .true.
+   logical :: debug = .false.
    logical :: stop_stella = .false.
    logical :: mpi_initialized = .false.
 
@@ -110,7 +113,8 @@ contains
       use fields, only: init_fields, advance_fields, get_radial_correction, fields_updated
       use fields, only: rescale_fields
       use stella_time, only: init_tstart, init_delt
-      use stella_diagnostics, only: read_stella_diagnostics_knobs, init_stella_diagnostics
+      use diagnostics, only: init_diagnostics
+      use parameters_diagnostics, only: read_diagnostics_knobs
       use fields_arrays, only: phi, apar, bpar
       use dist_fn_arrays, only: gnew
       use dist_fn, only: init_gxyz, init_dist_fn
@@ -202,8 +206,8 @@ contains
       call read_vpamu_grids_parameters
       if (debug) write (6, *) "stella::init_stella::read_multibox_parameters"
       call read_multibox_parameters
-      if (debug) write (6, *) "stella::init_stella::read_stella_diagnostics_knobs"
-      call read_stella_diagnostics_knobs
+      if (debug) write (6, *) "stella::init_stella::read_diagnostics_knobs"
+      call read_diagnostics_knobs
       !> setup the various data layouts for the distribution function;
       !> e.g., vmu_lo is the layout in which vpa, mu and species may be distributed
       !> amongst processors, depending on the number of phase space points and processors
@@ -350,10 +354,10 @@ contains
       !> rescale to phiinit if just beginning a new run
       if (.not. restarted .and. scale_to_phiinit) call rescale_fields(phiinit)
 
-      !> read stella_diagnostics_knob namelist from the input file,
+      !> read diagnostics_knob namelist from the input file,
       !> open ascii output files and initialise the neetcdf file with extension .out.nc
-      if (debug) write (6, *) 'stella::init_stella::init_stella_diagnostics'
-      call init_stella_diagnostics(restarted, tstart, git_commit, git_date)
+      if (debug) write (6, *) 'stella::init_stella::init_diagnostics'
+      call init_diagnostics(restarted, tstart, git_commit, git_date)
       !> initialise the code_time
       if (debug) write (6, *) 'stella::init_stella::init_tstart'
       call init_tstart(tstart)
@@ -411,8 +415,10 @@ contains
       use physics_flags, only: nonlinear, include_parallel_nonlinearity
       use physics_flags, only: radial_variation, full_flux_surface
       use physics_flags, only: hammett_flow_shear
-      use physics_parameters, only: g_exb, g_exbfac
-      use stella_diagnostics, only: write_radial_fluxes, write_radial_moments
+      use physics_parameters, only: g_exb, g_exbfac 
+      
+      ! Input file
+      use parameters_diagnostics, only: write_radial_moments, write_radial_fluxes
 
       implicit none
 
@@ -563,7 +569,7 @@ contains
       use dist_redistribute, only: finish_redistribute
       use fields, only: finish_fields
       use fields, only: time_field_solve
-      use stella_diagnostics, only: finish_stella_diagnostics, time_diagnostics
+      use diagnostics, only: finish_diagnostics, time_diagnostics
       use response_matrix, only: finish_response_matrix
       use stella_geometry, only: finish_geometry
       use extended_zgrid, only: finish_extended_zgrid
@@ -581,8 +587,8 @@ contains
       logical, intent(in), optional :: last_call
       real :: sum_timings
 
-      if (debug) write (*, *) 'stella::finish_stella::finish_stella_diagnostics'
-      call finish_stella_diagnostics(istep)
+      if (debug) write (*, *) 'stella::finish_stella::finish_diagnostics'
+      call finish_diagnostics(istep)
       if (debug) write (*, *) 'stella::finish_stella::finish_response_matrix'
       call finish_response_matrix
       if (debug) write (*, *) 'stella::finish_stella::finish_fields'
