@@ -4254,7 +4254,7 @@ contains
          yint(ix) = fitp_curv2(xint(ix), n, x, y, ypp, sigma)
       end do
 
-      zero = 100 * epsilon(0.0)
+      zero = 1000 * epsilon(0.0)
       if(abs(yint(1)) <= zero) yint(1) = 0.0
       if(abs(yint(size(xint))) <= zero) yint(size(xint)) = 0.0
       
