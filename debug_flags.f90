@@ -88,7 +88,6 @@ contains
         implicit none
         
         stella_debug = .false.
-        write(*,*) 'set_default_parameters', stella_debug
         ffs_solve_debug = .false.
         fields_debug = .false.
         implicit_solve_debug = .false.
@@ -127,10 +126,7 @@ contains
         !> Overwrite the default input parameters by those specified in the input file
         !> under the heading '&numerical'  
         in_file = input_unit_exist("debug_flags", nml_exist)
-        write(*,*) 'nml_exist', nml_exist
         if (nml_exist) read (unit=in_file, nml=debug_flags)
-        
-        write(*,*) 'in read input file', stella_debug
         
         if(debug_all) then
           stella_debug = .true.
