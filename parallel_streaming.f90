@@ -1,5 +1,6 @@
 module parallel_streaming
 
+   use debug_flags, only: debug => parallel_streaming_debug 
    implicit none
 
    public :: init_parallel_streaming, finish_parallel_streaming
@@ -45,8 +46,10 @@ module parallel_streaming
 
 contains
 
-   subroutine init_parallel_streaming
-
+  subroutine init_parallel_streaming
+    
+      use mp, only: proc0
+     
       use finite_differences, only: fd3pt
       use stella_time, only: code_dt
       use stella_layouts, only: vmu_lo
@@ -62,7 +65,7 @@ contains
       use physics_flags, only: include_parallel_streaming, radial_variation
       use physics_flags, only: full_flux_surface
       use run_parameters, only: tupwnd_m => time_upwind_minus
-      use mp, only: proc0
+
       implicit none
 
       integer :: iv, imu, is, ivmu
@@ -71,6 +74,9 @@ contains
       real, dimension(:), allocatable :: energy
       real, dimension(:, :, :), allocatable :: stream_store
 
+      debug = debug .and. proc0
+      if(debug) write (*,*) 'No debug messages for parallel_streaming.f90 yet'
+      
       if (parallel_streaming_initialized) return
       parallel_streaming_initialized = .true.
 

@@ -1,13 +1,15 @@
 
 module time_advance
 
+  use debug_flags, only: debug =>time_advance_debug
+  
    public :: init_time_advance, finish_time_advance
    public :: advance_stella
    public :: time_gke, time_parallel_nl
    public :: checksum
 
    private
-
+   
    interface get_dgdy
       module procedure get_dgdy_2d
       module procedure get_dgdy_3d
@@ -60,7 +62,6 @@ module time_advance
    real, dimension(2, 10) :: time_gke = 0.
    real, dimension(2, 2) :: time_parallel_nl = 0.
 
-   logical :: debug = .false.
 
 contains
 

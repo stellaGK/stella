@@ -1,9 +1,8 @@
 module fields
 
+   use debug_flags, only: debug => fields_debug
    use common_types, only: eigen_type
-
    use mpi
-
    use common_types, only: coupled_alpha_type, gam0_ffs_type
 
    implicit none
@@ -39,7 +38,6 @@ module fields
 #ifdef ISO_C_BINDING
    integer :: phi_shared_window = MPI_WIN_NULL
 #endif
-   logical :: debug = .false.
 
    integer :: zm
    integer :: nfields

@@ -1,10 +1,13 @@
 ! Routines for calculating and writing various physical diagnostics.
 module diagnostics
 
+  ! Debug Flags
+  use debug_flags, only: debug => diagnostics_main_debug
+
    implicit none
 
    public :: diagnostics_stella, init_diagnostics, finish_diagnostics 
-   public :: time_diagnostics, debug
+   public :: time_diagnostics
 
    private
 
@@ -17,9 +20,6 @@ module diagnostics
    ! Needed for timing various pieces of the diagnostics
    real, dimension(2, 6) :: time_diagnostics = 0.
 
-   ! Debugging
-   logical :: debug = .false.
-
 contains
 
 !###############################################################################
@@ -28,9 +28,6 @@ contains
 
    ! Calculate and write diagnostics.
    subroutine diagnostics_stella(istep)
-
-      ! Debug Flags
-      use debug_flags, only: debug => diagnostics_debug
      
       ! Data 
       use fields_arrays, only: phi, apar, bpar

@@ -5,6 +5,7 @@ module response_matrix
 #ifdef ISO_C_BINDING
    use, intrinsic :: iso_c_binding, only: c_intptr_t
 #endif
+   use debug_flags, only: debug => response_matrix_debug
 
    implicit none
 
@@ -23,7 +24,6 @@ module response_matrix
    real, dimension(2) :: time_dgdphi
    real, dimension(2) :: time_QN
    real, dimension(2) :: time_lu
-   logical :: debug = .false.
 
 contains
 

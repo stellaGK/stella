@@ -1,5 +1,7 @@
 module implicit_solve
 
+  use debug_flags, only: debug => implicit_solve_debug
+  
    implicit none
 
    public :: time_implicit_advance
@@ -16,7 +18,8 @@ contains
 
    subroutine advance_implicit_terms(g, phi, apar, bpar)
 
-      use mp, only: proc0
+     use mp, only: proc0
+     
       use job_manage, only: time_message
       use stella_layouts, only: vmu_lo
       use physics_flags, only: include_apar, include_bpar
@@ -64,6 +67,9 @@ contains
       logical :: modify
       real :: error, tol
 
+      debug = debug .and. proc0
+      if(debug) write (*,*) 'No debug messages for implicit_solve.f90 yet'
+      
       if(driftkinetic_implicit) then 
          if (.not. allocated(phi_source_ffs)) allocate (phi_source_ffs(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          phi_source_ffs = 0.0

@@ -1,5 +1,6 @@
 module neoclassical_terms
 
+  use debug_flags, only: debug => neoclassical_terms_debug
    implicit none
 
    public :: init_neoclassical_terms
@@ -21,12 +22,12 @@ module neoclassical_terms
    real, dimension(:, :), allocatable :: dphineo_dzed, dphineo_drho, dphineo_dalpha
 
    logical :: neoinit = .false.
-   logical :: debug = .false.
 
 contains
 
    subroutine init_neoclassical_terms
 
+     use mp, only: proc0 
       use zgrid, only: nzgrid
       use kt_grids, only: nalpha
       use vpamu_grids, only: nvpa, nmu
@@ -45,6 +46,8 @@ contains
       if (neoinit) return
       neoinit = .true.
 
+      debug = debug .and. proc0
+      
       call read_parameters
       if (include_neoclassical_terms) then
          allocate (f_neoclassical(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec, -nradii / 2:nradii / 2))

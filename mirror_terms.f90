@@ -1,5 +1,6 @@
 module mirror_terms
 
+  use debug_flags, only: debug => mirror_terms_debug 
    implicit none
 
    public :: mirror_initialized
@@ -30,8 +31,9 @@ module mirror_terms
 
 contains
 
-   subroutine init_mirror
-
+  subroutine init_mirror
+    
+    use mp, only: proc0 
       use stella_time, only: code_dt
       use species, only: spec, nspec
       use vpamu_grids, only: nmu
@@ -54,6 +56,9 @@ contains
       if (mirror_initialized) return
       mirror_initialized = .true.
 
+      debug = debug .and. proc0
+      if (debug) write(*,*) 'no debug messages for mirror_terms.f90 yet'
+      
       if (.not. allocated(mirror)) allocate (mirror(nalpha, -nzgrid:nzgrid, nmu, nspec)); mirror = 0.
       if (.not. allocated(mirror_sign)) allocate (mirror_sign(nalpha, -nzgrid:nzgrid)); mirror_sign = 0
 

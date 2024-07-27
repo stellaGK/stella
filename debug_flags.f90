@@ -19,11 +19,24 @@ module debug_flags
   
   !> Public debug flags
   public :: stella_debug
+
+  public :: fields_debug
+
+  public :: time_advance_debug
+  public :: implicit_solve_debug
+  public :: parallel_streaming_debug
+  public :: response_matrix_debug
+  public :: mirror_terms_debug
+  public :: neoclassical_terms_debug
+
+  public :: diagnostics_main_debug
+  public :: fluxes_debug
   
-  public :: ffs_solve_debug, fields_debug, implicit_solve_debug
-  public :: mirror_terms_debug, neoclassical_terms_debug, parallel_streaming_debug
-  public :: response_matrix_debug, diagnostics_debug, time_advance_debug
-  !> Public debug flug for debugging full flux surface
+  !> Debug flags for full flux surface
+  public :: ffs_solve_debug
+  !> Debug flug for debugging full flux surface
+  !> This will set the geometry of all field lines to be equation to
+  !> the geometry on alpha = 0 (i.e. the first field line) 
   public :: const_alpha_geo
   
   private
@@ -42,6 +55,7 @@ module debug_flags
   logical :: neoclassical_terms_debug
   !> Diagnostics debug flags
   logical :: diagnostics_debug
+  logical :: diagnostics_main_debug
   logical :: fluxes_debug
   !> For FFS
   logical :: ffs_solve_debug
@@ -61,8 +75,8 @@ contains
     implicit none
 
     namelist /debug_flags/ debug_all, stella_debug, ffs_solve_debug, fields_debug, &
-         implicit_solve_debug, mirror_terms_debug, neoclassical_terms_debug, parallel_streaming_debug, &
-         response_matrix_debug, time_advance_debug, diagnostics_debug, fluxes_debug, &
+         implicit_solve_debug, parallel_streaming_debug, mirror_terms_debug, neoclassical_terms_debug, &
+         response_matrix_debug, time_advance_debug, diagnostics_debug, diagnostics_main_debug, fluxes_debug, &
          const_alpha_geo
     
     if (initialised) return
@@ -99,6 +113,7 @@ contains
         
         !> Diagnostircs debug
         diagnostics_debug = .false.
+        diagnostics_main_debug = .false.
         fluxes_debug = .false.
  
         !###################################
@@ -132,18 +147,19 @@ contains
           stella_debug = .true.
           ffs_solve_debug = .true.
           fields_debug = .true.
+          time_advance_debug = .true.
           implicit_solve_debug = .true.
-          mirror_terms_debug = .true.
-          neoclassical_terms_debug = .true.
           parallel_streaming_debug = .true.
           response_matrix_debug = .true.
-          time_advance_debug = .true.
+          mirror_terms_debug = .true.
+          neoclassical_terms_debug = .true.
           !> Set all diagnostics flags to be on
           diagnostics_debug = .true.
         end if
 
         if(diagnostics_debug) then
-          fluxes_debug = .true.
+           diagnostics_main_debug = .true. 
+           fluxes_debug = .true.
         end if
       end subroutine read_input_file
 
@@ -166,10 +182,10 @@ contains
         call broadcast(neoclassical_terms_debug)
         call broadcast(parallel_streaming_debug)
         call broadcast(response_matrix_debug)
-        call broadcast(diagnostics_debug)
+        call broadcast(diagnostics_main_debug)
         call broadcast(time_advance_debug)
         call broadcast(const_alpha_geo) 
-       
+
       end subroutine broadcast_parameters
 
   end subroutine read_debug_flags

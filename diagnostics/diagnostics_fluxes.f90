@@ -10,9 +10,11 @@
 ! The heat flux is denoted by qflux.
 ! 
 !###############################################################################
- 
-module diagnostics_fluxes
 
+module diagnostics_fluxes
+  
+   use debug_flags, only: debug => fluxes_debug
+  
    implicit none
   
    public :: init_diagnostics_fluxes
@@ -28,9 +30,6 @@ module diagnostics_fluxes
    ! When writing the netcdf data, remember the fluxes versus time for the ascii file
    real, dimension(:), allocatable :: pflux_vs_s, qflux_vs_s, vflux_vs_s  
 
-   ! Debugging
-   logical :: debug = .false.
-
 contains
 
 !###############################################################################
@@ -41,6 +40,9 @@ contains
    !================= CALCULATE AND WRITE FLUXES TO NETCDF FILE ================
    !============================================================================
    subroutine write_fluxes_to_netcdf_file(nout, timer, write_to_netcdf_file)
+    
+      ! Knowledge of first processor  
+      use mp, only: proc0
 
       ! Dimensions
       use kt_grids, only: naky, nakx
@@ -72,7 +74,10 @@ contains
       real, dimension(:, :, :, :, :), allocatable :: pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts
 
       !---------------------------------------------------------------------- 
-
+      ! Debugging
+      debug = debug .and. proc0
+      !----------------------------------------------------------------------
+      
       ! Start timer
       if (proc0) call time_message(.false., timer(:), 'Write fluxes')
 
