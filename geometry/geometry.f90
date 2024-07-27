@@ -491,33 +491,38 @@ contains
       !**********************************************************************
 
       subroutine calculate_twist_and_shift_geo_fac()
- 
+  
          use zgrid, only: boundary_option_switch, boundary_option_linked_stellarator 
          use zgrid, only: shat_zero, grad_x_grad_y_zero
          use constants, only: pi
   
          implicit none  
+         
+         ! TODO-HT TODO-GA Circular dependency, change to use run_parameters, only: print_extra_info_to_terminal
+         logical :: print_extra_info_to_terminal = .false. 
 
          !---------------------------------------------------------------------- 
 
          ! Print the boundary condition information to the output file
-         write (*, '(A)') "############################################################"
-         write (*, '(A)') "                     BOUNDARY CONDITIONS"
-         write (*, '(A)') "############################################################"
+         if (print_extra_info_to_terminal) then 
+            write (*, '(A)') "############################################################"
+            write (*, '(A)') "                     BOUNDARY CONDITIONS"
+            write (*, '(A)') "############################################################"
+         end if
          select case (boundary_option_switch)
 
          ! Stellarator symmetric twist-and-shift BC (see Martin et al, 2018)
          case (boundary_option_linked_stellarator)
 
             ! dkx/dky * jtwist = -2  * (dψ/dx) (dy/dα) * (∇ψ . ∇α) / |∇ψ|^2
-            write (*, *) ' '; write (*, *) 'Stellarator symmetric twist and shift BC selected' 
+            if (print_extra_info_to_terminal) then; write (*, *) ' '; write (*, *) 'Stellarator symmetric twist and shift BC selected'; end if 
             twist_and_shift_geo_fac = -2. * dpsidx * dydalpha * (grad_alpha_grad_psi(1, nzgrid)) / (grad_psi_grad_psi(1, nzgrid))
 
          ! Standard twist-and-shift boundary conditions or unconnected BC (then twist_and_shift_geo_fac doesn't matter)
          case default
 
             ! dkx/dky * jtwist = -2*pi*P * (dψ/dx) (dy/dα) * (drho/dψ) * hat{s} (iota/rho)
-            write (*, *) ' '; write (*, *) 'Standard twist and shift BC selected'
+            if (print_extra_info_to_terminal) then; write (*, *) ' '; write (*, *) 'Standard twist and shift BC selected'; end if 
             twist_and_shift_geo_fac = -2. * pi * field_period_ratio * dpsidx * dydalpha * drhodpsi * shat * iota / rho  
 
          end select
@@ -526,7 +531,7 @@ contains
          grad_x_grad_y_end = grad_y_grad_x(1, nzgrid)
 
          ! Print this factor to the output file
-         write (*, *) 'twist_and_shift_geo_fac: ', twist_and_shift_geo_fac; write (*, *) ' '
+         if (print_extra_info_to_terminal) write (*, *) 'twist_and_shift_geo_fac: ', twist_and_shift_geo_fac; write (*, *) ' '
    
       end subroutine calculate_twist_and_shift_geo_fac
       

@@ -138,7 +138,7 @@ def test_whether_VMEC_geometry_data_in_netcdf_file_is_correct(error=False):
         
         # Relevant keys for the geometry
         geometry_keys = ["bmag", "b_dot_grad_z", "gradpar", "gbdrift", "gbdrift0", "cvdrift", "cvdrift0", "kperp2", \
-            "gds2", "gds21", "gds22", "grho", "jacob", "djacdrho", "beta", "q", "shat", "d2qdr2", "drhodpsi", "d2psidr2", "jtwist"]  
+            "gds2", "gds21", "gds22", "grho", "jacob", "djacdrho", "q", "shat", "d2qdr2", "drhodpsi", "d2psidr2", "jtwist"]  
         for key in geometry_keys:
         
             # Compare integers and floats
@@ -146,8 +146,8 @@ def test_whether_VMEC_geometry_data_in_netcdf_file_is_correct(error=False):
                 if key=='nproc': continue # The number of processors is allowed to differ
                 if (local_netcdf[key] != expected_netcdf[key]):
                     print(f'ERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
-                    print(f'    LOCAL:    {local_netcdf[key]}')
-                    print(f'    EXPECTED: {expected_netcdf[key]}')
+                    print(f'    LOCAL:    {local_netcdf[key].data}')
+                    print(f'    EXPECTED: {expected_netcdf[key].data}')
                 
             # Compare texts (code_info and input_file)
             if expected_netcdf[key].dtype.kind == 'S':

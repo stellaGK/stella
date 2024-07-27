@@ -78,6 +78,9 @@ contains
 
       integer :: in_file, ierr
       logical :: exist
+      
+      ! Backwards comptability, these parameters have been removed
+      real :: zgrid_scalefac
 
       ! Allow text options for <radial_coordinate> to choose sgn(psi_t)*psi_t; -psi_t or r
       type(text_option), dimension(5), parameter :: radial_coordinate_options = & 
@@ -92,7 +95,9 @@ contains
       ! Define the variables in the namelist
       namelist /vmec_parameters/ alpha0, zeta_center, rectangular_cross_section, nfield_periods, &
          torflux, zgrid_refinement_factor, surface_option, radial_coordinate, &
-         verbose, vmec_filename, n_tolerated_test_arrays_inconsistencies
+         verbose, vmec_filename, n_tolerated_test_arrays_inconsistencies, &
+         ! Backwards compatibility for old stella code
+         zgrid_scalefac
 
       ! Assign default variables
       call init_vmec_defaults
@@ -120,48 +125,56 @@ contains
          write (*, *) 'n_tolerated_test_arrays_inconsistencies = ', n_tolerated_test_arrays_inconsistencies
          call mp_abort('n_tolerated_test_arrays_inconsistencies should always be >= 0.  aborting')
       end if
+      
+      ! Backwards compatibility
+      if (zgrid_scalefac>0) write(*,*) 'WARNING: The parameter <zgrid_scalefac> in the <zgrid_parameters> knob has been removed.'
+   
+   contains
+
+       !=========================================================================
+       !========================= DEFAULT VMEC PARAMETERS =======================
+       !=========================================================================  
+       subroutine init_vmec_defaults
+
+          use zgrid, only: zed_equal_arc
+
+          implicit none
+
+          !----------------------------------------------------------------------- 
+
+          ! Default parameters for VMEC
+          vmec_filename = 'equilibria/wout_w7x_standardConfig.nc'
+          alpha0 = 0.0
+          zeta_center = 0.0
+          nfield_periods = -1.0
+          torflux = 0.6354167d+0
+          surface_option = 0
+          verbose = .true.
+          n_tolerated_test_arrays_inconsistencies = 0
+          zgrid_refinement_factor = 1
+          radial_coordinate = 'sgn(psi_t) psi_t'
+
+          ! If we use the normalized arc-length as the parallel coordinate, 
+          ! then use <zgrid_refinement_factor> more z-points to calculate
+          ! the geometry arrays in VMEC, by using a smaller step dzeta.
+          if (zed_equal_arc) then
+             zgrid_refinement_factor = 4
+          else
+             zgrid_refinement_factor = 1
+          end if
+
+          ! For alpha=0 the perpendicular cross-section is rectangular at zeta_center=0
+          ! For alpha!=0 it is not in the original stella, since alpha = theta_p - iota*zeta
+          ! To make the cross-section rectangular we need to define alpa = theta_p - iota(zeta-zeta_center) 
+          ! This is done by toggling <rectangular_cross_section> to .true.
+          rectangular_cross_section = .false.
+          
+          ! Backwards compatibility
+          zgrid_scalefac = -1.0
+
+      end subroutine init_vmec_defaults
 
    end subroutine read_vmec_parameters
-
-   !============================================================================
-   !========================= DEFAULT VMEC PARAMETERS ==========================
-   !============================================================================  
-   subroutine init_vmec_defaults
-
-      use zgrid, only: zed_equal_arc
-
-      implicit none
-
-      !---------------------------------------------------------------------- 
-
-      ! Default parameters for VMEC
-      vmec_filename = 'equilibria/wout_w7x_standardConfig.nc'
-      alpha0 = 0.0
-      zeta_center = 0.0
-      nfield_periods = -1.0
-      torflux = 0.6354167d+0
-      surface_option = 0
-      verbose = .true.
-      n_tolerated_test_arrays_inconsistencies = 0
-      zgrid_refinement_factor = 1
-      radial_coordinate = 'sgn(psi_t) psi_t'
-
-      ! If we use the normalized arc-length as the parallel coordinate, 
-      ! then use <zgrid_refinement_factor> more z-points to calculate
-      ! the geometry arrays in VMEC, by using a smaller step dzeta.
-      if (zed_equal_arc) then
-         zgrid_refinement_factor = 4
-      else
-         zgrid_refinement_factor = 1
-      end if
-
-      ! For alpha=0 the perpendicular cross-section is rectangular at zeta_center=0
-      ! For alpha!=0 it is not in the original stella, since alpha = theta_p - iota*zeta
-      ! To make the cross-section rectangular we need to define alpa = theta_p - iota(zeta-zeta_center) 
-      ! This is done by toggling <rectangular_cross_section> to .true.
-      rectangular_cross_section = .false.
-
-   end subroutine init_vmec_defaults
 
    !============================================================================
    !==================== GET THE GEOMETRY VECTORS FROM VMEC ====================
@@ -186,6 +199,9 @@ contains
       use mp, only: mp_abort
 
       implicit none
+      
+      ! TODO-HT TODO-GA Circular dependency, change to use run_parameters, only: print_extra_info_to_terminal
+      logical :: print_extra_info_to_terminal = .false. 
 
       integer, intent(in) :: nzgrid, nalpha, naky 
       integer, intent(out) :: sign_torflux
@@ -524,7 +540,7 @@ contains
       close (tmpunit)
 
       ! Write some information to the command prompt
-      if (verbose) then 
+      if (verbose .and. print_extra_info_to_terminal) then 
          if (radial_coordinate_option==radial_coordinate_r) write(*,*) '  The radial coordinate psi is chosen to be psi = r = a*sqrt(psi_t/psi_{t,LCFS})'
          if (radial_coordinate_option==radial_coordinate_minuspsit) write(*,*) '  The radial coordinate psi is chosen to be psi = -psi_t'
          if (radial_coordinate_option==radial_coordinate_sgnpsitpsit) write(*,*) '  The radial coordinate psi is chosen to be psi = sgn(psi_t) psi_t'

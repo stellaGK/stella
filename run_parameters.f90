@@ -73,7 +73,7 @@ contains
    end subroutine init_run_parameters
 
    subroutine read_parameters
-
+ 
       use file_utils, only: input_unit, error_unit, input_unit_exist
       use mp, only: mp_abort, proc0, broadcast
       use text_options, only: text_option, get_option_value
@@ -251,7 +251,7 @@ contains
          end if
 
          ! Notify the user that rng_seed is set
-         if (rng_seed > 0) then 
+         if ((rng_seed > 0) .and. print_extra_info_to_terminal) then 
             write (*, '(A)') "############################################################"
             write (*, '(A)') "                        RUN PARAMETERS"
             write (*, '(A)') "############################################################"

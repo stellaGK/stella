@@ -2,6 +2,9 @@ module parameters_diagnostics
 
    implicit none
    
+   ! Turn debugging on the diagnostics module
+   public :: debug
+   
    ! Routine to read "diagnostics_knobs" in the input file
    public :: read_diagnostics_knobs 
 
@@ -20,10 +23,12 @@ module parameters_diagnostics
    public :: write_phi2_vs_kxky
 
    ! Write omega in <diagnostics_omega>
-   public :: write_omega
+   public :: write_omega_vs_kxky
+   public :: write_omega_avg_vs_kxky
 
    ! Write fluxes in <diagnostics_fluxes>
    public :: write_fluxes_kxkyz
+   public :: write_fluxes_kxky
    public :: write_radial_fluxes
    public :: flux_norm 
 
@@ -42,6 +47,9 @@ module parameters_diagnostics
    public :: write_moments  
 
    private
+   
+   ! Debugging
+   logical :: debug 
 
    ! Variables used to write diagnostics
    integer :: nwrite, nsave, navg, nc_mult
@@ -58,10 +66,12 @@ module parameters_diagnostics
    logical :: write_phi2_vs_kxky
 
    ! Write omega in <diagnostics_omega>
-   logical :: write_omega
+   logical :: write_omega_vs_kxky
+   logical :: write_omega_avg_vs_kxky
 
    ! Write fluxes in <diagnostics_fluxes>
    logical :: write_fluxes_kxkyz
+   logical :: write_fluxes_kxky
    logical :: write_radial_fluxes
    logical :: flux_norm 
 
@@ -79,9 +89,6 @@ module parameters_diagnostics
    logical :: write_radial_moments
    logical :: write_moments     
 
-   ! Debugging
-   logical :: debug = .false.
-
 contains
 
    !============================================================================
@@ -98,7 +105,7 @@ contains
          
       ! Logical old variables for backwards compatibility
       logical :: write_phi_vs_time, write_apar_vs_time, write_bpar_vs_time 
-      logical :: write_kspectra, write_gvmus, write_gzvs
+      logical :: write_kspectra, write_gvmus, write_gzvs, write_omega
       
       ! Set the default parameters, read the namelist "diagnostics_knobs" 
       ! in the input file and broadcast the parameters to all processors
@@ -106,24 +113,28 @@ contains
       if (proc0) call read_input_file 
       call broadcast_parameters 
       
+      ! Debugging on first processor
+      debug = .false.
+      if (proc0) debug = .false.
+      
    contains 
    
    
       !**********************************************************************
       !                        SET DEFAULT PARAMETERS                       !
       !********************************************************************** 
+      ! Write the time traces by default, while we will not write any higher 
+      ! dimensional data by default to have a small netCDF file.
+      !********************************************************************** 
       subroutine set_default_parameters
 
          use physics_flags, only: radial_variation
+         use physics_flags, only: nonlinear
 
          implicit none
          
          ! Track code 
          if (debug) write (*, *) 'read_diagnostics_parameters::set_default_parameters'
-
-         ! Stop linear simulations when gamma is constant (careful since we won't catch jumpers!)
-         ! It will check gamma over <navg> time steps
-         autostop = .true.
 
          ! Write data to the ascii files at every <nwrite> time steps.
          ! Write data to the netcdf file every <nwrite*nc_mult> time steps.
@@ -134,32 +145,83 @@ contains
          ! From <gvmu> we can calculate <phi> through quasi-neutrality, so <gvmu> is all that we need to save.
          save_for_restart = .false.
          nsave = -1
-
-         ! We calculate running averages over <navg> time points.
-         navg = 50
          
-         ! Write the time traces by default, while we will not write any higher 
-         ! dimensional data by default so have a small netCDF file
+         ! Togggle all write statements together 
+         write_all = .false.
+         
+         !------------------------------
+         !          Potential          !
+         !------------------------------ 
+         
+         ! Write phi2(t), apar2(t), bpar2(t), phi(kx,ky,z), phi2(kx,ky)
          write_phi2_vs_time = .true.
          write_apar2_vs_time = .true.
-         write_bpar2_vs_time = .true.
-         write_fluxes_vs_time = .true.
-         write_all = .false.
-
-         ! By default, do not write any data (to save memory).
-         write_omega = .false.
+         write_bpar2_vs_time = .true. 
          write_phi_vs_kxkyz = .false.
-         write_phi2_vs_kxky = .true.
-         write_moments = .false.
-         write_fluxes_kxkyz = .true.  ! TODO-HT Note if you turn this off the code will break
+         write_phi2_vs_kxky = .false.
+          
+         !------------------------------
+         !    Distribution function    !
+         !------------------------------ 
+         
+         ! Write the distribution functions g, h and f 
+         ! Note that these arrays are very large 
          write_g2_vs_vpamus = .false.
          write_g2_vs_zvpas = .false.
          write_g2_vs_zmus = .false.
          write_g2_vs_kxkyzs = .false.
          write_g2_vs_zvpamus = .false.
-         write_distribution_g = .false.
+         write_distribution_g = .true.
          write_distribution_h = .false.
          write_distribution_f = .false. 
+         
+         !------------------------------
+         !            Omega            !
+         !------------------------------ 
+         
+         ! For linear simulations write omega by default 
+         write_omega_vs_kxky = .not. nonlinear
+         
+         ! We calculate running averages for omega over <navg> time points
+         write_omega_avg_vs_kxky = .false.
+         navg = 50
+
+         ! Stop linear simulations when gamma is constant (careful since we won't catch jumpers!)
+         ! It will check the growth rate gamma over <navg> time steps, hence we need 
+         ! <omega_vs_kykx> over the last <navg> time steps, written by <write_omega_avg_vs_kxky>
+         autostop = .false.
+                  
+         !------------------------------
+         !           Fluxes            !
+         !------------------------------ 
+         
+         ! Write the particle flux, heat flux and momentum flux
+         write_fluxes_vs_time = .true. 
+         write_fluxes_kxkyz = .false.   
+         write_fluxes_kxky = .false.   
+
+         ! Flux definition with an extra factor 1/<nabla rho> in front.
+         ! Toggle to include or not include the factor 1/<∇̃ρ>_ψ in the flux definition
+         flux_norm = .true.
+         
+         !------------------------------
+         !           Moments           !
+         !------------------------------ 
+         
+         ! Write the density, temperature and upar
+         write_moments = .false.
+         
+         !------------------------------
+         !      Radial variation       !
+         !------------------------------ 
+         
+         ! If <radial_variation> = True, automatically write the corresponding data
+         write_radial_fluxes = radial_variation
+         write_radial_moments = radial_variation
+         
+         !------------------------------
+         !   Backwards compatibility   !
+         !------------------------------ 
          
          ! Backwards compatibility, these flags have been removed
          write_phi_vs_time = .false.
@@ -168,14 +230,7 @@ contains
          write_gvmus = .false.
          write_gzvs = .false. 
          write_kspectra = .false.   
-
-         ! Flux definition with an extra factor 1/<nabla rho> in front.
-         ! Toggle to include or not include the factor 1/<∇̃ρ>_ψ in the flux definition
-         flux_norm = .true.
-
-         ! If <radial_variation> = True, automatically write the corresponding data
-         write_radial_fluxes = radial_variation
-         write_radial_moments = radial_variation
+         write_omega = .false.
 
       end subroutine set_default_parameters 
    
@@ -204,10 +259,10 @@ contains
             write_phi2_vs_time, write_apar2_vs_time, write_bpar2_vs_time, write_fluxes_vs_time, &
             write_phi_vs_kxkyz, write_g2_vs_vpamus, write_g2_vs_zvpas, write_g2_vs_zmus, &
             write_g2_vs_kxkyzs, write_g2_vs_zvpamus, write_distribution_g, write_distribution_h, write_distribution_f, &
-            write_omega, write_phi2_vs_kxky, write_moments, write_radial_fluxes, &
-            write_radial_moments, write_fluxes_kxkyz, write_all, flux_norm, nc_mult, &
+            write_omega_vs_kxky, write_omega_avg_vs_kxky, write_phi2_vs_kxky, write_moments, write_radial_fluxes, &
+            write_radial_moments, write_fluxes_kxkyz, write_fluxes_kxky, write_all, flux_norm, nc_mult, &
             ! Backwards compatibility for old stella code
-            write_phi_vs_time, write_apar_vs_time, write_bpar_vs_time, &
+            write_omega, write_phi_vs_time, write_apar_vs_time, write_bpar_vs_time, &
             write_kspectra, write_gvmus, write_gzvs
             
          !-------------------------------------------------------------------
@@ -223,7 +278,10 @@ contains
          if (.not. save_for_restart) nsave = -1
 
          ! For nonlinear simulations, don't stop automatically 
+         ! and if we want to <autostop> we need the <omega_vs_tkykx> 
+         ! which contains <omega_vs_kykx> over the last <navg> time steps
          if (nonlinear) autostop = .false.
+         if (autostop) write_omega_avg_vs_kxky = .true.
          
          ! Write all diagnostics
          if (write_all) then 
@@ -231,11 +289,13 @@ contains
             write_apar2_vs_time = .true.
             write_bpar2_vs_time = .true.
             write_fluxes_vs_time = .true. 
-            write_omega = .true.
+            write_omega_vs_kxky = .true.
+            write_omega_avg_vs_kxky = .true.
             write_phi_vs_kxkyz = .true.
             write_phi2_vs_kxky = .true.
             write_moments = .true.
             write_fluxes_kxkyz = .true.   
+            write_fluxes_kxky = .true.
             write_g2_vs_vpamus = .true.
             write_g2_vs_zvpas = .true.
             write_g2_vs_zmus = .true.
@@ -247,8 +307,7 @@ contains
          end if
          
          ! Backwards compatibility, these flags have been removed
-         ! TODO-HT write warnings for backwards compatibility
-         write_gvmus = .false. ! TODO-HT THIS IS BROKEN
+         ! TODO-HT write warnings for backwards compatibility 
          if (write_phi_vs_time) write_phi2_vs_time = .true.
          if (write_apar_vs_time) write_apar2_vs_time = .true.
          if (write_bpar_vs_time) write_bpar2_vs_time = .true.
@@ -256,7 +315,9 @@ contains
          if (write_gvmus) write_g2_vs_vpamus = .true.
          if (write_gzvs) write_distribution_g = .true.
          if (write_gzvs) write_g2_vs_zvpas = .true.
-         if (write_kspectra) write_fluxes_kxkyz= .true. 
+         if (write_kspectra) write_fluxes_kxky = .true. 
+         if (write_omega) write_omega_vs_kxky = .true.
+         if (write_omega) write_omega_avg_vs_kxky = .true.
 
       end subroutine read_input_file 
    
@@ -289,7 +350,8 @@ contains
 
          ! Broadcast the variables to all processors
          call broadcast(write_all)
-         call broadcast(write_omega)
+         call broadcast(write_omega_vs_kxky)
+         call broadcast(write_omega_avg_vs_kxky)
          call broadcast(write_phi2_vs_kxky)
          call broadcast(write_moments)
          call broadcast(write_phi_vs_kxkyz)
@@ -304,6 +366,7 @@ contains
          call broadcast(write_radial_fluxes)
          call broadcast(write_radial_moments)
          call broadcast(write_fluxes_kxkyz)
+         call broadcast(write_fluxes_kxky)
          
       end subroutine broadcast_parameters
 

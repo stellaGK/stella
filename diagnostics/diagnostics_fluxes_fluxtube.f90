@@ -91,12 +91,16 @@ contains
    ! It's been tested numerically, and whether we give <g>, <h> or <δf> does not make a difference for 
    ! <qflux> or <pflux>, but it does matter for <vflux>! Only <δf> is the correct options for <vflux> TODO is it? 
    !============================================================================ 
-   subroutine calculate_fluxes_fluxtube(df_vs_vpamuikxkyzs, pflux_vs_s, vflux_vs_s, &
-      qflux_vs_s, pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts)
+   subroutine calculate_fluxes_fluxtube(df_vs_vpamuikxkyzs, pflux_vs_s, vflux_vs_s, qflux_vs_s, &
+      pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts, pflux_vs_kxkys, vflux_vs_kxkys, qflux_vs_kxkys)
 
       ! Flags
       use physics_flags, only: include_apar, include_bpar
+      
+      ! Input file
       use parameters_diagnostics, only: write_fluxes_kxkyz 
+      use parameters_diagnostics, only: write_fluxes_kxky
+      use parameters_diagnostics, only: debug 
 
       ! Data 
       use fields_arrays, only: phi, apar, bpar
@@ -116,6 +120,7 @@ contains
       use species, only: spec, nspec
 
       ! Calculations
+      use volume_averages, only: fieldline_average
       use gyro_averages, only: gyro_average, gyro_average_j1
       use constants, only: zi
 
@@ -130,6 +135,7 @@ contains
 
       ! Return the fluxes in the flux tube 
       real, dimension(:, :, -nzgrid:, :, :), intent(out) :: pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts
+      real, dimension(:, :, :), intent(out) :: pflux_vs_kxkys, vflux_vs_kxkys, qflux_vs_kxkys
       real, dimension(:), intent(out) :: pflux_vs_s, vflux_vs_s, qflux_vs_s
 
       ! Local variables
@@ -142,12 +148,17 @@ contains
       allocate (fluxnorm_vs_z(-nzgrid:nzgrid))
       allocate (velocityintegrand_vs_vpamu(nvpa, nmu), temp1_vs_vpamu(nvpa, nmu), temp2_vs_vpamu(nvpa, nmu))
 
-      ! Make sure that the ararys we will fill are empty
-      pflux_vs_s = 0.; vflux_vs_s = 0.; qflux_vs_s = 0.
+      !-------------------------------------------------------------------------  
+      
+      ! Track the code 
+      if (debug) write (*, *) 'diagnostics::diagnostics_fluxes_fluxtube::calculate_fluxes_fluxtube'
+
+      ! Make sure that the ararys we will fill are empty 
+      pflux_vs_s = 0.; vflux_vs_s = 0.; qflux_vs_s = 0. 
       pflux_vs_kxkyzts = 0.; vflux_vs_kxkyzts = 0.; qflux_vs_kxkyzts = 0.
 
       ! Get <fluxnorm_vs_z> which takes care of the flux surface average, 
-      ! and the factor <one_over_nablarho> which is used if <flux_norm> = True, otherwise its set to 1.
+      ! and the factor <one_over_nablarho> which is used if <flux_norm> = True, otherwise its set to 1. 
       call get_factor_for_fluxsurfaceaverage(fluxnorm_vs_z, one_over_nablarho) 
 
       ! We only have one flux tube since <radial_variation> = False
@@ -158,6 +169,7 @@ contains
       !===================================
       ! Get electrostatic contributions to the fluxes
       ! TODO heat flux and particle flux should be the same with g or h, test both options!
+      if (debug) write (*, *) 'diagnostics::diagnostics_fluxes_fluxtube::calculate_fluxes_fluxtube::phi'
       if (fphi > epsilon(0.0)) then
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
 
@@ -201,7 +213,7 @@ contains
             ! Sum parallel and perpendicular components together
             velocityintegrand_vs_vpamu = temp1_vs_vpamu + temp2_vs_vpamu
 	
-				! Add the contribution (-sgn(psi_t)*(k̃_y/2)*Im[conj(phi)*integrate_vmu(VELOCITY_INTEGRAND)]*NORM) to the momentum flux
+			! Add the contribution (-sgn(psi_t)*(k̃_y/2)*Im[conj(phi)*integrate_vmu(VELOCITY_INTEGRAND)]*NORM) to the momentum flux
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, phi(iky, ikx, iz, it), vflux_vs_s(is))
             if (write_fluxes_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, phi(iky, ikx, iz, it), vflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
@@ -211,6 +223,7 @@ contains
       !===================================
       !          ELECTROMAGNETIC                    
       !===================================
+      if (debug) write (*, *) 'diagnostics::diagnostics_fluxes_fluxtube::calculate_fluxes_fluxtube::apar'
       if (include_apar) then
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -251,6 +264,7 @@ contains
       end if 
       
       
+      if (debug) write (*, *) 'diagnostics::diagnostics_fluxes_fluxtube::calculate_fluxes_fluxtube::bpar'
       if (include_bpar) then
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -300,7 +314,7 @@ contains
       ! Sum the values on all proccesors and send them to <proc0>
       call sum_reduce(pflux_vs_kxkyzts, 0)
       call sum_reduce(qflux_vs_kxkyzts, 0)
-      call sum_reduce(vflux_vs_kxkyzts, 0)
+      call sum_reduce(vflux_vs_kxkyzts, 0) 
 
       ! Add the CONSTANT to the fluxes (ñ_s for pflux; ñ_s*T̃_s for qflux and ñ_s*√(m̃_s*T̃_s) for vflux) 
       do is = 1, nspec
@@ -309,9 +323,21 @@ contains
          vflux_vs_kxkyzts(:, :, :, :, is) = vflux_vs_kxkyzts(:, :, :, :, is) * spec(is)%dens_psi0 * sqrt(spec(is)%mass * spec(is)%temp_psi0)
       end do
 
+      ! Field line average will average over <z> and <tube> 
+      if (write_fluxes_kxky) then 
+         do is = 1, nspec
+            call fieldline_average(pflux_vs_kxkyzts(:, :, :, :, is), pflux_vs_kxkys(:, :, is))
+            call fieldline_average(qflux_vs_kxkyzts(:, :, :, :, is), qflux_vs_kxkys(:, :, is))
+            call fieldline_average(vflux_vs_kxkyzts(:, :, :, :, is), vflux_vs_kxkys(:, :, is)) 
+         end do
+      end if 
+
       ! Deallocate the arrays
       deallocate (velocityintegrand_vs_vpamu, temp1_vs_vpamu, temp2_vs_vpamu)
-      deallocate (fluxnorm_vs_z)
+      deallocate (fluxnorm_vs_z) 
+      
+      ! Track code
+      if (debug) write (*, *) 'diagnostics::diagnostics_fluxes_fluxtube::calculate_fluxes_fluxtube::finished'
 
    end subroutine calculate_fluxes_fluxtube
 

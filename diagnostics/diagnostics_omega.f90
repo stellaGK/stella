@@ -16,88 +16,57 @@ module diagnostics_omega
 
    implicit none 
 
-   public :: calculate_omega 
-   public :: init_diagnostics_omega 
-   public :: finish_diagnostics_omega 
+   ! These routines are called from diagnostics.f90
+   public :: calculate_omega, write_omega_to_netcdf_file
+   public :: init_diagnostics_omega, finish_diagnostics_omega 
+   
+   ! This routine is called from stella.f90 to automatically stop
+   ! stella if <omega> has saturated during linear simulations
    public :: checksaturation
-   public :: write_omega_to_ascii_file 
-   public :: write_omega_to_netcdf_file 
 
    private    
 
    ! The <units> are used to identify the external ascii files
    integer :: omega_unit
 
-   ! Keep track of <omega>(t, ky, kx) to calculate the running average  
+   ! Keep track of <omega>(t, ky, kx) to calculate the running average   
+   ! These arrays are only allocated on the first processor
    complex, dimension(:, :, :), allocatable :: omega_vs_tkykx
+   complex, dimension(:, :), allocatable :: omega_vs_kykx
+   
+   ! Write omega diagnostics
+   logical :: write_omega
 
 contains
-
-   !=========================================================================
-   !=========================== CHECK SATURATION ============================
-   !========================================================================= 
-
-   subroutine checksaturation(istep, stop_stella)
-   
-      use parameters_diagnostics, only: write_omega
-      use parameters_diagnostics, only: autostop
-      use parameters_diagnostics, only: navg
-      use mp, only: proc0, broadcast
-
-      integer, intent(in) :: istep  
-      logical, intent(in out) :: stop_stella
-
-      logical :: equal
-      real :: max_difference
-      integer :: i
-
-      !----------------------------------------------------------------------
-
-      ! Only check if gamma is saturated if we want stella to stop automatically
-      if (.not. autostop) return 
-
-      ! Check whether (omega, gamma) has saturated
-      if (proc0 .and. write_omega) then 
-         if (istep > navg+1) then
-
-            ! Check whether all elements in <omega_vs_tkykx> are the same
-            equal = .true. 
-            do i = 1, navg
-               max_difference = maxval(abs(omega_vs_tkykx(i,:,:) - omega_vs_tkykx(1,:,:))) 
-               if (max_difference > 0.000001) then 
-                  equal = .false.; exit 
-               end if
-            end do  
-
-            ! If gamma has saturated, stop stella
-            if (equal) then 
-               write (*, *)
-               write (*, '(A, I0, A)') 'EXITING STELLA BECAUSE (OMEGA, GAMMA) HAS SATURATED OVER ', navg, ' TIMESTEPS' 
-               stop_stella = .true.
-            end if
-      
-         end if 
-      end if 
-
-      call broadcast(stop_stella)
-
-   end subroutine checksaturation
  
    !=========================================================================
    !================== CALCULATE OMEGA AT EVERY TIME STEP ===================
    !========================================================================= 
    subroutine calculate_omega(istep, timer)
       
-      use parameters_diagnostics, only: navg
-      use parameters_diagnostics, only: write_omega
-      use physics_flags, only: include_apar
-      use fields_arrays, only: phi, phi_old, apar, apar_old
-      use kt_grids, only: nakx, naky
-      use stella_time, only: code_dt
-      use volume_averages, only: fieldline_average
+      ! Multiprocessing
       use job_manage, only: time_message
-      use constants, only: zi
       use mp, only: proc0
+      
+      ! Physics flags
+      use physics_flags, only: include_apar
+      
+      ! Fields
+      use fields_arrays, only: phi, phi_old
+      use fields_arrays, only: apar, apar_old
+      
+      ! Grids
+      use kt_grids, only: nakx, naky 
+      use stella_time, only: code_dt
+      use constants, only: zi
+      
+      ! Calculations 
+      use volume_averages, only: fieldline_average
+      
+      ! Input file
+      use parameters_diagnostics, only: navg
+      use parameters_diagnostics, only: write_omega_vs_kxky
+      use parameters_diagnostics, only: write_omega_avg_vs_kxky
 
       implicit none 
 
@@ -112,16 +81,16 @@ contains
       !----------------------------------------------------------------------
 
       ! We only calculate omega on the first processor and if <write_omega> = True
-      if ((.not. proc0) .or. (.not. write_omega) .or. istep<=0) return  
+      if (.not. write_omega) return  
 
       ! Start the timer
       if (proc0) call time_message(.false., timer(:), 'calculate omega')
  
       ! Allocate temporary arrays and define a <zero>
-      allocate (phi_vs_kykx(naky, nakx))
-      allocate (phiold_vs_kykx(naky, nakx))
-      allocate (aparavg(naky, nakx))
-      allocate (aparoldavg(naky, nakx))
+      allocate (phi_vs_kykx(naky, nakx)); phi_vs_kykx = 0.0
+      allocate (phiold_vs_kykx(naky, nakx)); phiold_vs_kykx = 0.0
+      allocate (aparavg(naky, nakx)); aparavg = 0.0
+      allocate (aparoldavg(naky, nakx)); aparoldavg = 0.0
       zero = 100.*epsilon(0.) 
 
       ! Field line average <phi>(ky,kx,z,tube) to obtain <phi>(ky,kx)
@@ -164,11 +133,19 @@ contains
    !========================================================================= 
    subroutine write_omega_to_netcdf_file(istep, nout, timer, write_to_netcdf_file)
  
+      ! Input file
       use parameters_diagnostics, only: navg
-      use parameters_diagnostics, only: write_omega
+      use parameters_diagnostics, only: write_omega_vs_kxky
+      use parameters_diagnostics, only: write_omega_avg_vs_kxky
+      
+      ! Write to netCDF file
       use stella_io, only: write_omega_nc
-      use job_manage, only: time_message
+      
+      ! Grids
       use kt_grids, only: nakx, naky
+      
+      ! Parallelisation
+      use job_manage, only: time_message
       use mp, only: proc0
 
       implicit none 
@@ -178,19 +155,15 @@ contains
       logical, intent(in) :: write_to_netcdf_file    
       real, dimension(:), intent(in out) :: timer  
 
-      complex, dimension(:, :), allocatable :: omega_vs_kykx
       integer :: it_runningaverage
 
       !----------------------------------------------------------------------
 
-      ! We only calculate omega on the first processor and if <write_omega> = True
-      if ((.not. proc0) .or. (.not. write_omega)) return 
-
+      ! We only calculate omega on the first processor
+      if (.not. write_omega) return     
+      
       ! Start timer
       if (proc0) call time_message(.false., timer(:), 'write omega')
-
-      ! Allocate temporary arrays  
-      allocate (omega_vs_kykx(naky, nakx))
 
       ! Get the index of the current time point in <omega_vs_tkykx>
       it_runningaverage = mod(istep, navg) + 1
@@ -212,6 +185,55 @@ contains
 
    end subroutine write_omega_to_netcdf_file   
 
+   !=========================================================================
+   !=========================== CHECK SATURATION ============================
+   !========================================================================= 
+
+   subroutine checksaturation(istep, stop_stella)
+   
+      use parameters_diagnostics, only: autostop
+      use parameters_diagnostics, only: navg
+      use mp, only: proc0, broadcast
+
+      integer, intent(in) :: istep  
+      logical, intent(in out) :: stop_stella
+
+      logical :: equal
+      real :: max_difference
+      integer :: i
+
+      !----------------------------------------------------------------------
+
+      ! Only check if gamma is saturated if we want stella to stop automatically
+      if (.not. autostop) return 
+
+      ! Check whether (omega, gamma) has saturated
+      if (proc0) then 
+         if (istep > navg+1) then
+
+            ! Check whether all elements in <omega_vs_tkykx> are the same
+            equal = .true. 
+            do i = 1, navg
+               max_difference = maxval(abs(omega_vs_tkykx(i,:,:) - omega_vs_tkykx(1,:,:))) 
+               if (max_difference > 0.000001) then 
+                  equal = .false.; exit 
+               end if
+            end do  
+
+            ! If gamma has saturated, stop stella
+            if (equal) then 
+               write (*, *)
+               write (*, '(A, I0, A)') 'EXITING STELLA BECAUSE (OMEGA, GAMMA) HAS SATURATED OVER ', navg, ' TIMESTEPS' 
+               stop_stella = .true.
+            end if
+      
+         end if 
+      end if 
+
+      call broadcast(stop_stella)
+
+   end subroutine checksaturation
+
 !###############################################################################
 !############################# INITALIZE & FINALIZE ############################
 !###############################################################################
@@ -221,9 +243,15 @@ contains
    !============================================================================  
    subroutine init_diagnostics_omega(restart) 
    
-      use parameters_diagnostics, only: write_omega
+      ! Input file
+      use parameters_diagnostics, only: write_omega_avg_vs_kxky
+      use parameters_diagnostics, only: write_omega_vs_kxky
       use parameters_diagnostics, only: navg
+      
+      ! Grids
       use kt_grids, only: nakx, naky
+      
+      ! Multiprocessing
       use mp, only: proc0
 
       implicit none 
@@ -231,13 +259,18 @@ contains
       logical, intent(in) :: restart 
 
       !----------------------------------------------------------------------
+      
+      ! Determine whether we want to write any omega diagnostics. Only write
+      ! on the first processor. Here <write_omega> is a global variable
+      write_omega = write_omega_vs_kxky .or. write_omega_avg_vs_kxky
+      if (.not. proc0) write_omega = .false.
 
-      ! We only calculate/write data on the first processor and if <write_omega> = True 
-      if ((.not. proc0) .or. (.not. write_omega)) return      
+      ! If we don't write omega, we don't need to open the ASCII or allocate arrays
+      if (.not. write_omega) return     
 
       ! Allocate omega versus (<navg>, ky, kx) to calculate the running average 
-      allocate (omega_vs_tkykx(navg, naky, nakx))
-      omega_vs_tkykx = 0. 
+      allocate (omega_vs_tkykx(navg, naky, nakx)); omega_vs_tkykx = 0.0
+      allocate (omega_vs_kykx(naky, nakx)); omega_vs_kykx = 0.0
 
       ! Open the '.omega' ascii file  
       call open_omega_ascii_file(restart)
@@ -249,7 +282,7 @@ contains
    !============================================================================  
    subroutine finish_diagnostics_omega  
 
-      use parameters_diagnostics, only: write_omega
+      use parameters_diagnostics, only: write_omega_vs_kxky
       use file_utils, only: close_output_file
       use mp, only: proc0 
 
@@ -257,8 +290,9 @@ contains
 
       !----------------------------------------------------------------------
 
-      if ((.not. proc0) .or. (.not. write_omega)) return     
-      if (allocated(omega_vs_tkykx)) deallocate (omega_vs_tkykx)  
+      if (.not. write_omega) return     
+      if (allocated(omega_vs_tkykx)) deallocate (omega_vs_tkykx)   
+      if (allocated(omega_vs_kykx)) deallocate (omega_vs_kykx)  
       call close_output_file(omega_unit)
 
    end subroutine finish_diagnostics_omega
@@ -273,20 +307,20 @@ contains
    ! Open the '.omega' ascii files. When running a new simulation, create a new file
    ! or replace an old file. When restarting a simulation, append to the old files.
    subroutine open_omega_ascii_file(restart)
-
-      use parameters_diagnostics, only: write_omega
-      use file_utils, only: open_output_file 
-      use mp, only: proc0
+ 
+      ! Input file
+      use parameters_diagnostics, only: write_omega_avg_vs_kxky
+      use parameters_diagnostics, only: write_omega_vs_kxky
+      
+      ! ASCII files
+      use file_utils, only: open_output_file  
 
       implicit none
 
       logical, intent(in) :: restart 
       logical :: overwrite 
 
-      !----------------------------------------------------------------------
-
-      ! We only open the ascii file on the first processor and if <write_omega> = True
-      if ((.not. proc0) .or. (.not. write_omega)) return    
+      !---------------------------------------------------------------------- 
 
       ! For a new simulation <overwrite> = True since we wish to create a new ascii file.   
       ! For a restart <overwrite> = False since we wish to append to the existing file. 
@@ -297,7 +331,13 @@ contains
 
       ! Write the header to the '.omega' file
       if (.not. restart) then
-         write (omega_unit, '(a12,a14,a15,a20,a15,a18,a16)') '#time', 'ky', 'kx', 'Re[om]', 'Im[om]', 'Re[omavg]', 'Im[omavg]'
+         if (write_omega_avg_vs_kxky .and. write_omega_vs_kxky) then 
+            write (omega_unit, '(a12,a14,a15,a20,a15,a18,a16)') '#time', 'ky', 'kx', 'Re[om]', 'Im[om]', 'Re[omavg]', 'Im[omavg]'
+         else if (write_omega_avg_vs_kxky) then 
+            write (omega_unit, '(a12,a14,a15,a20,a15)') '#time', 'ky', 'kx', 'Re[omavg]', 'Im[omavg]'
+         else if (write_omega_vs_kxky) then 
+            write (omega_unit, '(a12,a14,a15,a20,a17)') '#time', 'ky', 'kx', 'frequency', 'growth rate'
+         end if 
       end if 
 
    end subroutine open_omega_ascii_file
@@ -306,31 +346,38 @@ contains
    !======================== WRITE LOOP ASCII FILES =========================
    !=========================================================================  
    subroutine write_omega_to_ascii_file(istep, omega_vs_kykx, omega_runningavg_vs_kykx)
-
-      use parameters_diagnostics, only: write_omega
+ 
+      use parameters_diagnostics, only: write_omega_avg_vs_kxky
+      use parameters_diagnostics, only: write_omega_vs_kxky
       use stella_time, only: code_time 
       use kt_grids, only: naky, nakx
-      use kt_grids, only: aky, akx
-      use mp, only: proc0
+      use kt_grids, only: aky, akx 
 
       implicit none
 
       integer, intent(in) :: istep ! The current time step   
       complex, dimension(:, :), intent(in) :: omega_vs_kykx, omega_runningavg_vs_kykx
-
       integer :: ikx, iky
 
-      !----------------------------------------------------------------------
-
-      ! We only write omega on the first processor and if <write_omega> = True
-      if ((.not. proc0) .or. (.not. write_omega) .or. istep<=0) return 
+      !--------------------------------------------------------------------
+      
+      ! Dont write omega for istep = 0
+      if (istep<=0) return
  
       ! For each mode (kx,ky) write <omega>(ky,kx) to the ascii file
       do iky = 1, naky
          do ikx = 1, nakx
-            write (omega_unit, '(7e16.8)') code_time, aky(iky), akx(ikx), &
-               real(omega_vs_kykx(iky, ikx)), aimag(omega_vs_kykx(iky, ikx)), &
-               real(omega_runningavg_vs_kykx(iky, ikx)), aimag(omega_runningavg_vs_kykx(iky, ikx))
+            if (write_omega_avg_vs_kxky .and. write_omega_vs_kxky) then 
+               write (omega_unit, '(7e16.8)') code_time, aky(iky), akx(ikx), &
+                  real(omega_vs_kykx(iky, ikx)), aimag(omega_vs_kykx(iky, ikx)), &
+                  real(omega_runningavg_vs_kykx(iky, ikx)), aimag(omega_runningavg_vs_kykx(iky, ikx))
+            else if (write_omega_avg_vs_kxky) then 
+               write (omega_unit, '(5e16.8)') code_time, aky(iky), akx(ikx), &
+                  real(omega_runningavg_vs_kykx(iky, ikx)), aimag(omega_runningavg_vs_kykx(iky, ikx))
+            else if (write_omega_vs_kxky) then 
+               write (omega_unit, '(5e16.8)') code_time, aky(iky), akx(ikx), &
+                  real(omega_vs_kykx(iky, ikx)), aimag(omega_vs_kykx(iky, ikx))
+            end if 
          end do
          if (nakx > 1) write (omega_unit, *)
       end do

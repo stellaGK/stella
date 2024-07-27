@@ -20,10 +20,6 @@ module diagnostics_moments
 
    private 
 
-   ! Variables used to write the moments diagnostics
-   logical :: write_radial_moments
-   logical :: write_moments  
-
    ! Debugging
    logical :: debug = .false.
 
@@ -57,6 +53,10 @@ contains
       ! Routines
       use job_manage, only: time_message
       use mp, only: proc0
+      
+      ! Input file
+      use parameters_diagnostics, only: write_radial_moments
+      use parameters_diagnostics, only: write_moments
 
       implicit none 
 
@@ -89,11 +89,12 @@ contains
       if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_moments'
 
       ! Calculate the moments if <radial_variation> = True
-      if (radial_variation) then 
+      if (radial_variation .or. write_radial_moments) then 
          call get_moments_radial_variation(gnew, dens_vs_kykxzts, upar_vs_kykxzts, temp_vs_kykxzts, dens_kxs, upar_kxs, temp_kxs, spitzer2_vs_kykxzts)
+      end if
       
       ! Calculate the moments if <full_flux_surface> = True
-      else if (full_flux_surface .and. write_moments) then  
+      if (full_flux_surface .and. write_moments) then  
          
          ! TODO-GA The moments for FFS are calculated in the fluxes routine
          ! Since the fluxes rely on the moments
@@ -269,6 +270,10 @@ contains
       use run_parameters, only: maxwellian_normalization
       use physics_flags, only: radial_variation
       use stella_transforms, only: transform_kx2x_unpadded
+      
+      ! Input file
+      use parameters_diagnostics, only: write_radial_moments
+      use parameters_diagnostics, only: write_moments
 
       implicit none
 
@@ -497,21 +502,13 @@ contains
    !============================================================================
    !======================== INITALIZE THE DIAGNOSTICS =========================
    !============================================================================  
-   subroutine init_diagnostics_moments(write_moments_in, write_radial_moments_in)  
+   subroutine init_diagnostics_moments()  
 
       use mp, only: proc0
 
       implicit none 
 
-      ! Save the module variables 
-      logical, intent(in) :: write_radial_moments_in 
-      logical, intent(in) :: write_moments_in  
-
       !----------------------------------------------------------------------
-
-      ! Save the module variables
-      write_radial_moments = write_radial_moments_in 
-      write_moments = write_moments_in   
       
       ! Only debug on the first processor
       debug = debug .and. proc0

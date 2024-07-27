@@ -496,18 +496,27 @@ contains
 
       use mp, only: proc0
       use run_parameters, only: print_extra_info_to_terminal
+      use physics_flags, only: include_apar
 
       implicit none
+      
+      ! Only print the header on the first processor
+      if (.not. proc0) return 
 
-      if (proc0 .and. print_extra_info_to_terminal) then
+      ! Note that the actual data is written in <diagnostics_potential.f90>
+      if (print_extra_info_to_terminal) then
          write (*, '(A)') "############################################################"
          write (*, '(A)') "                OVERVIEW OF THE SIMULATION"
          write (*, '(A)') "############################################################"
       end if
-      if (proc0) then
+      if (include_apar) then
          write (*, '(A)') " "
-         write (*, '(A)') "    istep       time          dt          |phi|^2          |apar|^2"
+         write (*, '(A)') "    istep       time          dt          |phi|^2       |apar|^2"
          write (*, '(A)') "--------------------------------------------------------------------"
+      else
+         write (*, '(A)') " "
+         write (*, '(A)') "    istep       time          dt          |phi|^2  "
+         write (*, '(A)') "------------------------------------------------------"
       end if
 
    end subroutine print_header

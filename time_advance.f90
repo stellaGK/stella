@@ -2149,6 +2149,9 @@ contains
       complex, dimension(:, :, :, :), allocatable :: phi_gyro, dphidz
       complex, dimension(:, :), allocatable :: g0k, g0kxy, g0k_swap
       complex, dimension(:, :), allocatable :: tmp
+      
+      ! WARNING this routine will probably break if neigen_max = 0
+      ! which happens when be set grid_option = 'range'
 
       ! alpha-component of magnetic drift (requires ky -> y)
       if (proc0) call time_message(.false., time_parallel_nl(:, 1), ' parallel nonlinearity advance')

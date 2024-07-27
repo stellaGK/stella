@@ -1,11 +1,11 @@
- 
+
 ! Simple linear example based on JET shot 92174
 
 &physics_flags
   nonlinear = .true.
 /
 &species_knobs
-  nspec = 2
+  nspec = 2 
 /
 &species_parameters_1
   dens = 1.0
@@ -26,7 +26,6 @@
   z = -1.0
 /
 &kt_grids_box_parameters
-  jtwist = 5
   nx = 6
   ny = 9
   y0 = 15
@@ -38,20 +37,20 @@
 /
 &vpamu_grids_parameters
   nmu = 2 
-  nvgrid = 3
+  nvgrid = 3  
 /
 &knobs
-  delt = 0.01 
+  delt = 0.01  
   nstep = 10
-  print_extra_info_to_terminal = .false. 
+  print_extra_info_to_terminal = .false.  
 /
 &stella_diagnostics_knobs
   nsave = 10
-  nwrite = 1
+  nwrite = 1  
 /
-&init_g_knobs
+&init_g_knobs 
   ginit_option = 'default'
-  phiinit = 0.01
+  phiinit = 0.01  
   width0 = 1.0
 /
 &dissipation

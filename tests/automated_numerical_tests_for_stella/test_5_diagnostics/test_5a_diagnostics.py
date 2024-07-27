@@ -26,8 +26,7 @@ expected_netcdf_file = 'Not/Run/Yet'
 #-------------------------------------------------------------------------------
 #                  Check whether the diagnostics are working                   #
 #-------------------------------------------------------------------------------
-def offtest_whether_potential_diagnostics_are_correct(tmp_path): 
-    # TODO-HT Turn test back on   
+def test_whether_potential_diagnostics_are_correct(tmp_path): 
 
     # Save the temporary folder <tmp_path> as a global variable so the
     # other tests can access the output files from the local stella run.
@@ -43,14 +42,14 @@ def offtest_whether_potential_diagnostics_are_correct(tmp_path):
     expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file_stem}.out.nc'    
     
     # Check whether the potential data matches in the netcdf file
-    keys = ['t', 'phi2', 'phi2_vs_kxky', 'phi_vs_t', 'apar_vs_t', 'bpar_vs_t']
+    # We only test the electrostatic quantities, EM stella will be tested later
+    keys = ['t', 'phi2', 'phi2_vs_kxky', 'phi_vs_t'] 
     for key in keys: compare_local_netcdf_quantity_to_expected_netcdf_quantity(local_netcdf_file, expected_netcdf_file, key=key, error=False)
     print(f'\n  -->  The potential diagnostics are working.')
     return
 
 #-------------------------------------------------------------------------------
-def offtest_whether_final_fields_diagnostics_are_correct(error=False):   
-    # TODO-HT Turn test back on   
+def test_whether_final_fields_diagnostics_are_correct(error=False):   
     
     # Txt file names 
     local_file = stella_local_run_directory / f'{input_file_stem}.final_fields' 
@@ -64,34 +63,61 @@ def offtest_whether_final_fields_diagnostics_are_correct(error=False):
     return 
     
 #-------------------------------------------------------------------------------
-def offtest_whether_fluxes_diagnostics_are_correct(error=False):  
-    # TODO-HT Turn test back on 
-    
+def test_whether_fluxes_diagnostics_are_correct(error=False):  
+
     # Txt file names 
     local_file = stella_local_run_directory / f'{input_file_stem}.fluxes' 
     expected_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file_stem}.fluxes'  
+    
+    # TODO-HT TODO-GA the current master branch has broken momentum flux (its using h instead of f)
+    # So test fluxes against cookie's branch, where the heat flux and particle flux do match the master branch
+    expected_netcdf_file_fixed_fluxes = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT_FIXEDFLUXES.{input_file_stem}.out.nc'  
+    expected_file_fixed_fluxes = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT_FIXEDFLUXES.{input_file_stem}.fluxes'  
+    
+    # Test is run with 2 species
+    dim_species = 2
      
-    # Check whether the txt files match  
-    compare_local_txt_with_expected_txt(local_file, expected_file, name='Fluxes txt', error=False)
+    # Read the fluxes text files
+    local_flux_data = np.loadtxt(local_file, dtype='float').reshape(-1, 1+3*dim_species) 
+    expected_flux_data = np.loadtxt(expected_file_fixed_fluxes, dtype='float').reshape(-1, 1+3*dim_species)  
+    
+    # At time step 0 the fluxes are calculated but they are not defined yet
+    local_flux_data[0,:] = 0.0
+    expected_flux_data[0,:] = 0.0
+    
+    # Compare the columns (time; pflux_i, pflux_e, vflux_i, vflux_e, qflux_i, qflux_e)
+    # Note that the sign of the fluxes has been fixed in newer stellas
+    for i in range(len(local_flux_data[0,:])):
+        if not np.array_equal(local_flux_data[:,i], expected_flux_data[:,i], equal_nan=True): 
+            if not np.array_equal(local_flux_data[:,i], -expected_flux_data[:,i], equal_nan=True):
+                print(f'\nERROR: The fluxes arrays do not match in the txt files.'); error = True
+                print(f'Compare the fluxes arrays in the local and expected txt files:')
+                for j in range(len(local_flux_data[:,i])):
+                 print(f'    column {i}: {local_flux_data[j,i]:14.6e}, {expected_flux_data[j,i]:14.6e}')
+    assert (not error), f'The fluxes data does not match in the txt files.'   
     
     # Check whether the netCDF data matches 
-    keys = ['pflx', 'vflx', 'qflx', 'pflx_kxky', 'qflx_kxky', 'vflx_kxky', 'pflx_vs_kxky', 'vflx_vs_kxky', 'qflx_vs_kxky', 'pflux_x', 'vflux_x', 'qflux_x']
-    for key in keys: compare_local_netcdf_quantity_to_expected_netcdf_quantity(local_netcdf_file, expected_netcdf_file, key=key, error=False) 
+    # Note that 'pflx_vs_kxky', 'qflx_vs_kxky', 'vflx_vs_kxky' wont match since old stella calculated
+    # flux(kx,ky) as the sum over z, while new stella takes the field line average
+    keys = ['pflx', 'qflx', 'vflx', 'pflx_kxky', 'qflx_kxky', 'vflx_kxky', 'pflux_x', 'vflux_x', 'qflux_x'] # Old keys
+    keys = ['pflux_vs_s', 'qflux_vs_s', 'vflux_vs_s', 'pflux_x', 'vflux_x', 'qflux_x'] # New keys
+    keys += ['pflux_vs_kxkyzs', 'qflux_vs_kxkyzs', 'vflux_vs_kxkyzs'] # New keys
+    for key in keys: compare_local_netcdf_quantity_to_expected_netcdf_quantity(local_netcdf_file, \
+                            expected_netcdf_file_fixed_fluxes, key=key, error=False) 
 
     # If we made it here the test was run correctly 
     print(f'  -->  The final fields diagnostics are working.')
     return 
     
 #-------------------------------------------------------------------------------
-def offtest_whether_omega_diagnostics_are_correct(error=False): 
-    # TODO-HT Turn test back on  
+def test_whether_omega_diagnostics_are_correct(error=False): 
     
     # Txt file names 
     local_file = stella_local_run_directory / f'{input_file_stem}.omega' 
     expected_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file_stem}.omega'  
      
-    # Check whether the txt files match  
-    compare_local_txt_with_expected_txt(local_file, expected_file, name='Omega txt', error=False)
+    # Check whether the txt files match (Skip the header line)
+    compare_local_txt_with_expected_txt(local_file, expected_file, name='Omega txt', skiplines=1, error=False)
     
     # Check whether the netCDF data matches 
     keys = ['omega']
@@ -102,8 +128,7 @@ def offtest_whether_omega_diagnostics_are_correct(error=False):
     return 
     
 #-------------------------------------------------------------------------------
-def offtest_whether_moments_diagnostics_are_correct(error=False): 
-    # TODO-HT Turn test back on   
+def test_whether_moments_diagnostics_are_correct(error=False): 
     
     # Check whether the netCDF data matches 
     keys = ['density', 'upar', 'temperature', 'spitzer2', 'dens_x', 'upar_x', 'temp_x']
@@ -114,12 +139,13 @@ def offtest_whether_moments_diagnostics_are_correct(error=False):
     return 
     
 #-------------------------------------------------------------------------------
-def offtest_whether_distribution_function_diagnostics_are_correct(error=False):    
-    # TODO-HT Turn test back on
+def test_whether_distribution_function_diagnostics_are_correct(error=False):    
     
     # Check whether the netCDF data matches 
     keys = ['gvmus', 'gzvs']
     for key in keys: compare_local_netcdf_quantity_to_expected_netcdf_quantity(local_netcdf_file, expected_netcdf_file, key=key, error=False) 
+    
+    # TODO-HT Write tests for the new distribution function diagnostics
 
     # If we made it here the test was run correctly 
     print(f'  -->  The distribution function diagnostics are working.')

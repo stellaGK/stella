@@ -66,7 +66,8 @@ module stella_io
    public :: write_moments_nc
    public :: write_radial_fluxes_nc
    public :: write_radial_moments_nc
-   public :: write_fluxes_kxkyz_nc
+   public :: write_fluxes_kxkyzs_nc
+   public :: write_fluxes_kxkys_nc
    public :: get_nout
    public :: sync_nc
 
@@ -620,8 +621,8 @@ contains
 
    end subroutine write_fluxes_vs_time_nc
 
-   !-------------------------- flux(ky,kx,z,tube,s,t) --------------------------
-   subroutine write_fluxes_kxkyz_nc(nout, pflux_kxkyz, vflux_kxkyz, qflux_kxkyz)
+   !-------------------------- flux(ky,kx,s,t) --------------------------
+   subroutine write_fluxes_kxkys_nc(nout, pflux_kxkys, vflux_kxkys, qflux_kxkys)
 
 #ifdef NETCDF
       use neasyf, only: neasyf_write
@@ -630,7 +631,35 @@ contains
       implicit none
 
       integer, intent(in) :: nout
-      real, dimension(:, :, :, :, :), intent(in) :: pflux_kxkyz, vflux_kxkyz, qflux_kxkyz
+      real, dimension(:, :, :), intent(in) :: pflux_kxkys, vflux_kxkys, qflux_kxkys
+
+#ifdef NETCDF
+
+      ! Define the dimensions and starting pointer
+      character(*), dimension(*), parameter :: dims = [character(len=7)::"ky", "kx", "species", "t"]
+      integer, dimension(4) :: start
+      start = [1, 1, 1, nout]
+
+      ! Write flux(ky,kx,s,t) 
+      call neasyf_write(ncid, "pflux_vs_kxkys", pflux_kxkys, dim_names=dims, start=start, long_name="Particle flux(ky,kx,s,t)")
+      call neasyf_write(ncid, "vflux_vs_kxkys", vflux_kxkys, dim_names=dims, start=start, long_name="Momentum flux(ky,kx,s,t)")
+      call neasyf_write(ncid, "qflux_vs_kxkys", qflux_kxkys, dim_names=dims, start=start, long_name="Heat flux(ky,kx,s,t)")
+
+#endif
+
+   end subroutine write_fluxes_kxkys_nc
+
+   !-------------------------- flux(ky,kx,z,tube,s,t) --------------------------
+   subroutine write_fluxes_kxkyzs_nc(nout, pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts)
+
+#ifdef NETCDF
+      use neasyf, only: neasyf_write
+#endif
+
+      implicit none
+
+      integer, intent(in) :: nout
+      real, dimension(:, :, :, :, :), intent(in) :: pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts
 
 #ifdef NETCDF
 
@@ -640,13 +669,13 @@ contains
       start = [1, 1, 1, 1, 1, nout]
 
       ! Write flux(ky,kx,z,tube,s,t)
-      call neasyf_write(ncid, "pflux_vs_kxkyzs", pflux_kxkyz, dim_names=dims, start=start, long_name="Particle flux(ky,kx,z,tube,s,t)")
-      call neasyf_write(ncid, "vflux_vs_kxkyzs", vflux_kxkyz, dim_names=dims, start=start, long_name="Momentum flux(ky,kx,z,tube,s,t)")
-      call neasyf_write(ncid, "qflux_vs_kxkyzs", qflux_kxkyz, dim_names=dims, start=start, long_name="Heat flux(ky,kx,z,tube,s,t)")
+      call neasyf_write(ncid, "pflux_vs_kxkyzs", pflux_kxkyzts, dim_names=dims, start=start, long_name="Particle flux(ky,kx,z,tube,s,t)")
+      call neasyf_write(ncid, "vflux_vs_kxkyzs", vflux_kxkyzts, dim_names=dims, start=start, long_name="Momentum flux(ky,kx,z,tube,s,t)")
+      call neasyf_write(ncid, "qflux_vs_kxkyzs", qflux_kxkyzts, dim_names=dims, start=start, long_name="Heat flux(ky,kx,z,tube,s,t)")
 
 #endif
 
-   end subroutine write_fluxes_kxkyz_nc
+   end subroutine write_fluxes_kxkyzs_nc
 
    !------------------------------ flux_x(kx,s,t) ------------------------------
    subroutine write_radial_fluxes_nc(nout, pflux, vflux, qflux)

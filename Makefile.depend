@@ -332,6 +332,7 @@ euterpe_interface.o: \
 extended_zgrid.o: \
 	 constants.o \
 	 kt_grids.o \
+	 mp.o \
 	 zgrid.o 
 ezcdf.o: \
 	 ezcdf_GenGet.o \

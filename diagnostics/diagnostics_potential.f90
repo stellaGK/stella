@@ -17,10 +17,6 @@ module diagnostics_potential
 
    private 
 
-   ! Variables used to write the potential diagnostics
-   logical :: write_phi_vs_kxkyz
-   logical :: write_phi2_vs_kxky 
-
    ! The <units> are used to identify the external ascii files
    integer :: stdout_unit     
 
@@ -65,6 +61,10 @@ contains
       ! Routines
       use job_manage, only: time_message
       use mp, only: proc0
+      
+      ! Input file
+      use parameters_diagnostics, only: write_phi_vs_kxkyz
+      use parameters_diagnostics, only: write_phi2_vs_kxky
 
       implicit none 
 
@@ -103,7 +103,11 @@ contains
          call volume_average(apar_vs_kykxzt, apar2) 
          call volume_average(bpar_vs_kykxzt, bpar2)
          call write_potential_to_ascii_file(istep, phi2, apar2, bpar2) 
-         write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4)') " ", istep, " ", code_time, " ", code_dt, " ", phi2
+         if (include_apar) then 
+            write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4)') " ", istep, " ", code_time, " ", code_dt, " ", phi2, " ", apar2
+         else
+            write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4)') " ", istep, " ", code_time, " ", code_dt, " ", phi2
+         end if
       end if
 
       ! Write the potential to the netcdf file 
@@ -130,7 +134,7 @@ contains
             if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_kspectra_nc'
             
             ! For phi2
-            allocate (phi2_vs_kxky(naky, nakx))
+            allocate (phi2_vs_kxky(naky, nakx)) 
             call fieldline_average(real(phi_vs_kykxzt * conjg(phi_vs_kykxzt)), phi2_vs_kxky)
             call write_kspectra_nc(nout, phi2_vs_kxky, "phi2_vs_kxky", "electrostatic potential")
             deallocate (phi2_vs_kxky)
@@ -313,7 +317,7 @@ contains
 
       ! Write the header for the '.out' file.
       if (.not. restart) then
-         write (stdout_unit, '(a10,a11,a15,a15)') 'istep', 'time', '|phi|^2', '|apar|^2' 
+         write (stdout_unit, '(a10,a11,a15)') 'istep', 'time', '|phi|^2', '|apar|^2' 
          write (stdout_unit, '(a)') '-------------------------------------------------------' 
       end if
 

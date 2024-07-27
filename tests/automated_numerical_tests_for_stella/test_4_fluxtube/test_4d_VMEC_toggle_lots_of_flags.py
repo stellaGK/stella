@@ -29,8 +29,7 @@ vmec_filename = 'wout_w7x_kjm.nc'
 #-------------------------------------------------------------------------------
 #               Check whether VMEC nonlinear evolves correctly                 #
 #-------------------------------------------------------------------------------
-def offtest_whether_a_mistake_was_introduced_in_an_extra_flag_1(tmp_path, error=False):
-    # TODO-HT Turn test back on
+def test_whether_a_mistake_was_introduced_in_an_extra_flag_1(tmp_path, error=False):
 
     # Input file name  
     input_filename = 'test_all_flags1.in'  
@@ -68,8 +67,7 @@ def offtest_whether_a_mistake_was_introduced_in_an_extra_flag_1(tmp_path, error=
     return
  
 #-------------------------------------------------------------------------------
-def offtest_whether_a_mistake_was_introduced_in_an_extra_flag_2(tmp_path, error=False):
-    # TODO-HT Turn test back on
+def test_whether_a_mistake_was_introduced_in_an_extra_flag_2(tmp_path, error=False):
 
     # Input file name  
     input_filename = 'test_all_flags2.in'  

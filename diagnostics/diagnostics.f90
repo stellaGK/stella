@@ -4,7 +4,7 @@ module diagnostics
    implicit none
 
    public :: diagnostics_stella, init_diagnostics, finish_diagnostics 
-   public :: time_diagnostics, debug
+   public :: time_diagnostics
 
    private
 
@@ -16,9 +16,6 @@ module diagnostics
 
    ! Needed for timing various pieces of the diagnostics
    real, dimension(2, 6) :: time_diagnostics = 0.
-
-   ! Debugging
-   logical :: debug = .false.
 
 contains
 
@@ -38,7 +35,7 @@ contains
       ! Flags  
       use physics_flags, only: radial_variation
       use fields, only: fields_updated    
-      use parameters_diagnostics, only: nc_mult, nwrite
+      use parameters_diagnostics, only: nc_mult, nwrite, debug
 
       ! Write data 
       use diagnostics_omega, only: write_omega_to_netcdf_file, calculate_omega
@@ -65,13 +62,21 @@ contains
       ! We only write data at every <nwrite> or every <nwrite>*<nc_mult> time steps
       write_to_ascii_files = (mod(istep, nwrite) == 0)
       write_to_netcdf_file = (mod(istep, nwrite * nc_mult) == 0)
+      
+      !**********************************************************************
+      !                 RUNNING AVERAGES AT EVERY TIME STEP                 !
+      !**********************************************************************
 
       ! Calculate Omega from <phi> = exp(-i*<0mega>*t) at every time step
       call calculate_omega(istep, time_diagnostics(:, 1))    
+      
+      !**********************************************************************
+      !                 WRITE TO ASCII FILES EVERY <NWRITE>                 !
+      !**********************************************************************
 
       ! 0nly write data to the ascii and netcdf files every <nwrite> time steps
-      if (debug) write (*, *) 'diagnostics::diagnostics_stella::txt_files'
       if (.not. write_to_ascii_files) return 
+      if (debug) write (*, *) 'diagnostics::diagnostics_stella::txt_files'
 
       ! Get the updated fields <phi>(ky,kx,z,tube) corresponding to <gnew>(ky,kx,z,tube,i[vpa,mu,s])
       if (radial_variation) fields_updated = .false. 
@@ -81,6 +86,10 @@ contains
       call write_potential_to_netcdf_file(istep, nout, time_diagnostics(:, 2), write_to_netcdf_file)
       call write_omega_to_netcdf_file(istep, nout, time_diagnostics(:, 3), write_to_netcdf_file)  
       call write_fluxes_to_netcdf_file(nout, time_diagnostics(:, 4), write_to_netcdf_file) 
+      
+      !**********************************************************************
+      !             WRITE TO NETCDF FILES EVERY <NWRITE*NC_MULT>            !
+      !**********************************************************************
 
       ! The ascii files are finished, the netcdf files are written every <nwrite*nc_mult> time steps
       if (.not. write_to_netcdf_file) return
@@ -142,9 +151,6 @@ contains
       ! Only initialize the diagnostics once
       if (diagnostics_initialized) return
       diagnostics_initialized = .true.
-
-      ! Only debug on the first processor
-      debug = debug .and. proc0
 
       ! Should have been taken care off in the <init_stella> subroutine in the <stella> module. 
       ! Nonetheless, make sure that the other routines are intialized.

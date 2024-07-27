@@ -1,11 +1,12 @@
  
 ! Simple linear example based on JET shot 92174
+! Only simulate a single mode to make a quick test
 
 &physics_flags
-  nonlinear = .true.
+  nonlinear = .false.
 /
 &species_knobs
-  nspec = 2
+  nspec = 1
 /
 &species_parameters_1
   dens = 1.0
@@ -16,25 +17,19 @@
   type = 'ion'
   z = 1.0
 /
-&species_parameters_2
-  dens = 1.0
-  fprim = 1.0
-  mass = 0.0005446
-  temp = 1.0
-  tprim = 3.0
-  type = 'electron'
-  z = -1.0
-/
-&kt_grids_box_parameters
-  jtwist = 5
-  nx = 6
-  ny = 9
-  y0 = 15
+&kt_grids_range_parameters
+  akx_max = 0.0
+  akx_min = 0.0
+  aky_max = 1.5
+  aky_min = 1.5
+  nakx = 1
+  naky = 1
 /
 &zgrid_parameters
   boundary_option = 'linked'
   nperiod = 1
   nzed = 24
+  zed_equal_arc = .true.
 /
 &vpamu_grids_parameters
   nmu = 2 
@@ -42,11 +37,11 @@
 /
 &knobs
   delt = 0.01 
-  nstep = 10
+  nstep = 2
   print_extra_info_to_terminal = .false. 
 /
 &stella_diagnostics_knobs
-  nsave = 10
+  nsave = 2
   nwrite = 1
 /
 &init_g_knobs
@@ -61,7 +56,7 @@
   geo_option = 'miller'
 /
 &kt_grids_knobs
-  grid_option = 'box'
+  grid_option = 'range'
 /
 &time_advance_knobs
   explicit_option = 'rk2'
