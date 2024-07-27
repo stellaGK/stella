@@ -66,7 +66,6 @@ set(STELLA_SOURCES_f90
   physics_parameters.f90
   run_parameters.f90
   species.f90
-  stella_diagnostics.f90
   stella_layouts.f90
   stella_time.f90
   stella_transforms.f90
@@ -74,16 +73,25 @@ set(STELLA_SOURCES_f90
   volume_averages.f90
   vpamu_grids.f90
   zgrid.f90
+  diagnostics/parameters_diagnostics.f90
+  diagnostics/diagnostics.f90
+  diagnostics/diagnostics_distribution.f90
+  diagnostics/diagnostics_fluxes_fluxtube.f90
+  diagnostics/diagnostics_fluxes_fullfluxsurface.f90 
+  diagnostics/diagnostics_fluxes_radialvariation.f90
+  diagnostics/diagnostics_fluxes.f90 
+  diagnostics/diagnostics_moments.f90
+  diagnostics/diagnostics_omega.f90
+  diagnostics/diagnostics_potential.f90
   dissipation/coll_dougherty.f90
   dissipation/coll_fokkerplanck.f90
   dissipation/dissipation.f90
   dissipation/hyper.f90
-  geo/geometry_inputprofiles_interface.f90
-  geo/millerlocal.f90
-  geo/geometry.f90
-  geo/vmec_geo.f90
-  geo/vmec_interface/vmec_to_geometry_interface.f90
-  geo/vmec_interface/fzero.f90
+  geometry/geometry.f90
+  geometry/geometry_miller.f90
+  geometry/geometry_vmec.f90
+  geometry/geometry_vmec_read_netCDF_file.f90 
+  geometry/geometry_inputprofiles_interface.f90
 )
 
 # Sources that _do_ need preprocessing (because they have MPI flags, ...)
