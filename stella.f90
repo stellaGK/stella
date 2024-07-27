@@ -97,7 +97,7 @@ contains
       use file_utils, only: flush_output_file, error_unit
       use job_manage, only: checktime, time_message
       use parameters_physics, only: read_parameters_physics
-      use physics_flags, only: init_physics_flags, radial_variation
+      use parameters_physics, only: radial_variation
       use run_parameters, only: init_run_parameters
       use run_parameters, only: avail_cpu_time, nstep, rng_seed, delt, delt_max, delt_min
       use run_parameters, only: stream_implicit, driftkinetic_implicit
@@ -190,9 +190,6 @@ contains
       call broadcast(cbuff)
       if (.not. proc0) call init_job_name(cbuff)
       
-      !> read the physics_flags namelist from the input file
-      if (debug) write (6, *) "stella::init_stella::init_physics_flags"
-      call init_physics_flags
       !> read the parameters_physics namelist from the input file
       if (debug) write (6, *) "stella::init_stella::read_parameters_physics"
       call read_parameters_physics
@@ -387,7 +384,7 @@ contains
       use geometry, only: communicate_geo_multibox
       use kt_grids, only: communicate_ktgrids_multibox
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use multibox, only: init_multibox, rhoL, rhoR
       use multibox, only: communicate_multibox_parameters, multibox_communicate
 
@@ -418,9 +415,9 @@ contains
    subroutine check_transforms(needs_transforms)
 
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use physics_flags, only: nonlinear, include_parallel_nonlinearity
-      use physics_flags, only: radial_variation, full_flux_surface
-      use physics_flags, only: hammett_flow_shear
+      use parameters_physics, only: nonlinear, include_parallel_nonlinearity
+      use parameters_physics, only: radial_variation, full_flux_surface
+      use parameters_physics, only: hammett_flow_shear
       use parameters_physics, only: g_exb, g_exbfac 
       
       ! Input file
@@ -560,7 +557,7 @@ contains
       use file_utils, only: finish_file_utils, runtype_option_switch, runtype_multibox
       use job_manage, only: time_message
       use parameters_physics, only: finish_read_parameters_physics
-      use physics_flags, only: finish_physics_flags, include_parallel_nonlinearity, radial_variation
+      use parameters_physics, only: include_parallel_nonlinearity, radial_variation
       use run_parameters, only: finish_run_parameters
       use zgrid, only: finish_zgrid
       use species, only: finish_species
@@ -623,8 +620,6 @@ contains
       call finish_run_parameters
       if (debug) write (*, *) 'stella::finish_stella::finish_species'
       call finish_species
-      if (debug) write (*, *) 'stella::finish_stella::finish_physics_flags'
-      call finish_physics_flags
       if (debug) write (*, *) 'stella::finish_stella::finish_parameters_physics'
       call finish_read_parameters_physics
       if (debug) write (*, *) 'stella::finish_stella::finish_geometry'

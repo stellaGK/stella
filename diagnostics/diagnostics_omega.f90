@@ -90,7 +90,7 @@ contains
       
       use parameters_diagnostics, only: navg
       use parameters_diagnostics, only: write_omega
-      use physics_flags, only: include_apar
+      use parameters_physics, only: include_apar
       use fields_arrays, only: phi, phi_old, apar, apar_old
       use kt_grids, only: nakx, naky
       use stella_time, only: code_dt

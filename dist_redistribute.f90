@@ -21,8 +21,8 @@ contains
 
    subroutine init_redistribute
 
-      use physics_flags, only: full_flux_surface
-      use physics_flags, only: include_parallel_nonlinearity
+      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: include_parallel_nonlinearity
 
       implicit none
 

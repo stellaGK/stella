@@ -798,7 +798,7 @@ contains
    subroutine init_mb_get_phi(has_elec, adiabatic_elec, efac, efacp)
       use kt_grids, only: nakx, naky, boundary_size
       use zgrid, only: nzgrid
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use run_parameters, only: ky_solve_radial
       use fields_arrays, only: phi_solve, phizf_solve, gamtot, dgamtotdr
@@ -1224,4 +1224,4 @@ contains
 
    end subroutine finish_mb_transforms
 
-end module multibox
+ end module multibox

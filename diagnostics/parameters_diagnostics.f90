@@ -114,7 +114,7 @@ contains
       !********************************************************************** 
       subroutine set_default_parameters
 
-         use physics_flags, only: radial_variation
+         use parameters_physics, only: radial_variation
 
          implicit none
          
@@ -190,7 +190,7 @@ contains
       subroutine read_input_file
 
          use file_utils, only: input_unit_exist
-         use physics_flags, only: nonlinear
+         use parameters_physics, only: nonlinear
 
          implicit none
 

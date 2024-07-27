@@ -22,7 +22,7 @@ contains
      
       use job_manage, only: time_message
       use stella_layouts, only: vmu_lo
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_physics, only: include_apar, include_bpar
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
       use dist_fn_arrays, only: g1, g2
@@ -359,7 +359,7 @@ contains
    !> involving phi and apar that appear on the RHS of the GK equation when g is the pdf
    subroutine get_contributions_from_fields(phi, apar, aparnew, bpar, ivmu, iky, ie, scratch, rhs)
 
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_physics, only: include_apar, include_bpar
       use extended_zgrid, only: map_to_iz_ikx_from_izext
 
       implicit none
@@ -902,7 +902,7 @@ contains
 
       use constants, only: zi
       use stella_time, only: code_dt
-      use physics_flags, only: include_apar
+      use parameters_physics, only: include_apar
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
@@ -1205,7 +1205,7 @@ contains
    subroutine invert_parstream_response(phi, apar, bpar)
 
       use linear_solve, only: lu_back_substitution
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_physics, only: include_apar, include_bpar
       use zgrid, only: nzgrid, ntubes
       use extended_zgrid, only: neigen
       use extended_zgrid, only: nsegments

@@ -46,8 +46,8 @@ contains
       use zgrid, only: ntubes, nzgrid 
 
       ! Flags 
-      use physics_flags, only: radial_variation
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_physics, only: radial_variation
+      use parameters_physics, only: include_apar, include_bpar
 
       ! Calculations 
       use volume_averages, only: volume_average, fieldline_average

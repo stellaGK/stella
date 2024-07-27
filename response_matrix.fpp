@@ -261,7 +261,7 @@ contains
 
       use mp, only: proc0
       use run_parameters, only: mat_gen
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_physics, only: include_apar, include_bpar
       use extended_zgrid, only: neigen, ikxmod
       use extended_zgrid, only: nsegments, nzed_segment
       use extended_zgrid, only: periodic
@@ -401,7 +401,7 @@ contains
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_physics, only: include_apar, include_bpar
       use extended_zgrid, only: neigen
       use extended_zgrid, only: nsegments, nzed_segment
       use extended_zgrid, only: periodic
@@ -688,12 +688,12 @@ contains
 
       use stella_layouts, only: vmu_lo
       use run_parameters, only: time_upwind_plus
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_physics, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use fields_arrays, only: response_matrix
       use extended_zgrid, only: periodic, phase_shift
       use parallel_streaming, only: stream_sign
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
@@ -776,7 +776,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use run_parameters, only: time_upwind_plus
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_physics, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use fields_arrays, only: response_matrix
       use extended_zgrid, only: periodic
@@ -862,7 +862,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use run_parameters, only: time_upwind_plus
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_physics, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use fields_arrays, only: response_matrix
       use extended_zgrid, only: periodic
@@ -946,7 +946,7 @@ contains
    subroutine integrate_over_velocity(g, phi, apar, bpar, iky, ie)
 
       use stella_layouts, only: vmu_lo
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_physics, only: include_apar, include_bpar
 
       implicit none
 
@@ -975,7 +975,7 @@ contains
       use run_parameters, only: driftkinetic_implicit
       use vpamu_grids, only: integrate_species_ffs_rm
 
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
 
       use geometry, only: bmag
       use kt_grids, only: nalpha
@@ -1178,7 +1178,7 @@ contains
 
    subroutine get_fields_for_response_matrix(phi, apar, bpar, iky, ie, dist)
 
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_physics, only: include_apar, include_bpar
 
       implicit none
 
@@ -1207,8 +1207,8 @@ contains
       use kt_grids, only: zonal_mode, akx
       use fields_arrays, only: gamtot, gamtot3
       use fields, only: gamtot_h, gamtot3_h
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
 
       implicit none
 
@@ -1287,8 +1287,8 @@ contains
       use kt_grids, only: zonal_mode, akx
       use fields_arrays, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
       use fields, only: gamtot_h
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
       use mp, only: mp_abort
       
       implicit none

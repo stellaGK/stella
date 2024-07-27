@@ -47,8 +47,8 @@ contains
       use species, only: nspec
       
       ! Flags 
-      use physics_flags, only: radial_variation
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: radial_variation
+      use parameters_physics, only: full_flux_surface
 
       ! Write to netcdf file 
       use stella_io, only: write_radial_moments_nc
@@ -141,7 +141,7 @@ contains
       use fields_arrays, only: phi
       use run_parameters, only: fphi
       use run_parameters, only: maxwellian_normalization
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use stella_transforms, only: transform_kx2x_unpadded
       
       ! Import temp arrays g1 and g2 with dimensions (nky, nkx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
@@ -267,7 +267,7 @@ contains
       use fields_arrays, only: phi, phi_corr_QN, phi_proj
       use run_parameters, only: fphi
       use run_parameters, only: maxwellian_normalization
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use stella_transforms, only: transform_kx2x_unpadded
 
       implicit none

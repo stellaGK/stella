@@ -77,8 +77,8 @@ contains
       use file_utils, only: input_unit, error_unit, input_unit_exist
       use mp, only: mp_abort, proc0, broadcast
       use text_options, only: text_option, get_option_value
-      use physics_flags, only: include_mirror, full_flux_surface, radial_variation
-      use physics_flags, only: nonlinear, include_apar, include_parallel_streaming
+      use parameters_physics, only: include_mirror, full_flux_surface, radial_variation
+      use parameters_physics, only: nonlinear, include_apar, include_parallel_streaming
       use parameters_physics, only: rhostar
       !> For FFS - need to delete 
       use species, only: has_electron_species, spec
@@ -205,7 +205,7 @@ contains
          if (fapar > -1.0 .or. fbpar > -1.0) then
             write (*, *) '!!!WARNING!!!'
             write (*, *) 'fapar and fbpar are deprecated:'
-            write (*, *) 'use include_apar and include_bpar instead in namelist physics_flags.'
+            write (*, *) 'use include_apar and include_bpar instead in namelist parameters_physics.'
             if (fapar > epsilon(0.0)) then
                write (*, *) 'to include apar, set include_apar = .true.'
             end if

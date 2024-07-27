@@ -118,6 +118,7 @@ coll_fokkerplanck.o: \
 	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
+	 parameters_physics.o \
 	 physics_flags.o \
 	 redistribute.o \
 	 run_parameters.o \
@@ -152,7 +153,7 @@ diagnostics.o: \
 	 kt_grids.o \
 	 mp.o \
 	 parameters_diagnostics.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
@@ -192,7 +193,7 @@ diagnostics_fluxes.o: \
 	 kt_grids.o \
 	 mp.o \
 	 parameters_diagnostics.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
@@ -207,7 +208,7 @@ diagnostics_fluxes_fluxtube.o: \
 	 kt_grids.o \
 	 mp.o \
 	 parameters_diagnostics.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
@@ -237,7 +238,7 @@ diagnostics_fluxes_radialvariation.o: \
 	 kt_grids.o \
 	 mp.o \
 	 parameters_diagnostics.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
@@ -253,7 +254,7 @@ diagnostics_moments.o: \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_io.o \
@@ -269,7 +270,7 @@ diagnostics_omega.o: \
 	 kt_grids.o \
 	 mp.o \
 	 parameters_diagnostics.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 stella_io.o \
 	 stella_time.o \
 	 volume_averages.o 
@@ -282,7 +283,7 @@ diagnostics_potential.o: \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 stella_io.o \
 	 stella_time.o \
 	 volume_averages.o \
@@ -310,7 +311,7 @@ dist_fn.o: \
 	 gyro_averages.o \
 	 kt_grids.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 redistribute.o \
 	 species.o \
 	 stella_layouts.o \
@@ -320,7 +321,7 @@ dist_fn.o: \
 dist_fn_arrays.o: 
 dist_redistribute.o: \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 redistribute.o \
 	 stella_layouts.o \
 	 vpamu_grids.o \
@@ -378,7 +379,6 @@ fields.o: \
 	 mp_lu_decomposition.o \
 	 multibox.o \
 	 parameters_physics.o \
-	 physics_flags.o \
 	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
@@ -403,7 +403,6 @@ flow_shear.o: \
 	 kt_grids.o \
 	 mp.o \
 	 parameters_physics.o \
-	 physics_flags.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
@@ -416,7 +415,7 @@ g_tofrom_h.o: \
 	 geometry.o \
 	 gyro_averages.o \
 	 kt_grids.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
@@ -430,12 +429,13 @@ gauss_quad.o: \
 geometry.o: \
 	 common_types.o \
 	 constants.o \
+	 debug_flags.o \
 	 file_utils.o \
 	 geometry_inputprofiles_interface.o \
 	 geometry_miller.o \
 	 geometry_vmec.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 text_options.o \
 	 zgrid.o 
 geometry_inputprofiles_interface.o: \
@@ -456,10 +456,11 @@ geometry_miller.o: \
 geometry_vmec.o: \
 	 common_types.o \
 	 constants.o \
+	 debug_flags.o \
 	 file_utils.o \
 	 geometry_vmec_read_netCDF_file.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 spl.o \
 	 stella_transforms.o \
 	 text_options.o \
@@ -473,7 +474,7 @@ gyro_averages.o: \
 	 geometry.o \
 	 kt_grids.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 species.o \
 	 spfunc.o \
 	 stella_layouts.o \
@@ -510,7 +511,7 @@ implicit_solve.o: \
 	 mp.o \
 	 neoclassical_terms.o \
 	 parallel_streaming.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
@@ -524,7 +525,7 @@ init_g.o: \
 	 file_utils.o \
 	 kt_grids.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 ran.o \
 	 run_parameters.o \
 	 species.o \
@@ -545,7 +546,6 @@ kt_grids.o: \
 	 job_manage.o \
 	 mp.o \
 	 parameters_physics.o \
-	 physics_flags.o \
 	 ran.o \
 	 stella_transforms.o \
 	 text_options.o \
@@ -566,7 +566,7 @@ mirror_terms.o: \
 	 kt_grids.o \
 	 mp.o \
 	 neoclassical_terms.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
@@ -591,6 +591,7 @@ multibox.o: \
 	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
+	 parameters_physics.o \
 	 physics_flags.o \
 	 run_parameters.o \
 	 stella_layouts.o \
@@ -626,7 +627,7 @@ parallel_streaming.o: \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
@@ -637,7 +638,7 @@ parallel_streaming.o: \
 parameters_diagnostics.o: \
 	 file_utils.o \
 	 mp.o \
-	 physics_flags.o 
+	 parameters_physics.o 
 parameters_physics.o: \
 	 file_utils.o \
 	 mp.o \
@@ -668,7 +669,6 @@ response_matrix.o: \
 	 mp_lu_decomposition.o \
 	 parallel_streaming.o \
 	 parameters_physics.o \
-	 physics_flags.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
@@ -679,7 +679,6 @@ run_parameters.o: \
 	 file_utils.o \
 	 mp.o \
 	 parameters_physics.o \
-	 physics_flags.o \
 	 species.o \
 	 text_options.o 
 sfincs_interface.o: \
@@ -698,7 +697,7 @@ sources.o: \
 	 linear_solve.o \
 	 mp.o \
 	 mp_lu_decomposition.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
@@ -717,7 +716,6 @@ species.o: \
 	 job_manage.o \
 	 mp.o \
 	 parameters_physics.o \
-	 physics_flags.o \
 	 text_options.o 
 spfunc.o: \
 	 constants.o 
@@ -747,7 +745,6 @@ stella.o: \
 	 parallel_streaming.o \
 	 parameters_diagnostics.o \
 	 parameters_physics.o \
-	 physics_flags.o \
 	 ran.o \
 	 redistribute.o \
 	 response_matrix.o \
@@ -772,7 +769,7 @@ stella_io.o: \
 	 mp.o \
 	 neasyf.o \
 	 netcdf_utils.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 species.o \
 	 vpamu_grids.o \
 	 zgrid.o 
@@ -796,7 +793,7 @@ stella_time.o: \
 	 mp.o 
 stella_transforms.o: \
 	 fft_work.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 stella_layouts.o 
 system_fortran.o: 
 text_options.o: \
@@ -825,7 +822,7 @@ time_advance.o: \
 	 multibox.o \
 	 neoclassical_terms.o \
 	 parallel_streaming.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 redistribute.o \
 	 response_matrix.o \
 	 run_parameters.o \
@@ -841,7 +838,7 @@ volume_averages.o: \
 	 extended_zgrid.o \
 	 geometry.o \
 	 kt_grids.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 stella_transforms.o \
 	 zgrid.o 
 vpamu_grids.o: \
@@ -851,7 +848,7 @@ vpamu_grids.o: \
 	 geometry.o \
 	 kt_grids.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
@@ -860,5 +857,5 @@ zgrid.o: \
 	 constants.o \
 	 file_utils.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 text_options.o 

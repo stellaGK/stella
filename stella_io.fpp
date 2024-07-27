@@ -155,7 +155,7 @@ contains
       use zgrid, only: nzgrid, ntubes, zed
       use vpamu_grids, only: nvpa, vpa, nmu, mu
       use species, only: nspec
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use parameters_physics, only: rhostar
       use geometry, only: geo_surf, dxdpsi, q_as_x
       use mp, only: nproc

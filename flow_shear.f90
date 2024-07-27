@@ -37,7 +37,7 @@ contains
       use parameters_physics, only: g_exb, g_exbfac, omprimfac
       use vpamu_grids, only: vperp2, vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use physics_flags, only: radial_variation, prp_shear_enabled, hammett_flow_shear
+      use parameters_physics, only: radial_variation, prp_shear_enabled, hammett_flow_shear
       use file_utils, only: runtype_option_switch, runtype_multibox
       use job_manage, only: njobs
       use mp, only: job, send, receive, crossdomprocs, subprocs, scope
@@ -145,7 +145,7 @@ contains
    subroutine advance_parallel_flow_shear(gout)
 
       use mp, only: proc0, mp_abort
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, naky
@@ -187,7 +187,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use constants, only: zi
-      use physics_flags, only: prp_shear_enabled, hammett_flow_shear
+      use parameters_physics, only: prp_shear_enabled, hammett_flow_shear
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use zgrid, only: nzgrid, ntubes
       use fields_arrays, only: shift_state

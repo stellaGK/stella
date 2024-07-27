@@ -45,8 +45,8 @@ contains
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed
       use run_parameters, only: mirror_implicit, mirror_semi_lagrange
-      use physics_flags, only: include_apar
-      use physics_flags, only: include_mirror, radial_variation
+      use parameters_physics, only: include_apar
+      use parameters_physics, only: include_mirror, radial_variation
 
       implicit none
 
@@ -158,7 +158,7 @@ contains
       use zgrid, only: nzgrid
       use vpamu_grids, only: dvpa, vpa, mu
       use vpamu_grids, only: nvpa, nmu
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
       use species, only: spec
       use kt_grids, only: nalpha
       use geometry, only: dbdzed
@@ -349,7 +349,7 @@ contains
       use stella_layouts, only: iv_idx, is_idx
       use stella_transforms, only: transform_ky2y
       use zgrid, only: nzgrid, ntubes
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
       use kt_grids, only: nakx, naky, naky_all, ny, ikx_max
       use kt_grids, only: swap_kxky
       use vpamu_grids, only: nvpa, nmu
@@ -460,7 +460,7 @@ contains
       use stella_layouts, only: kxkyz_lo, vmu_lo
       use stella_layouts, only: is_idx, imu_idx
       use zgrid, only: nzgrid, ntubes
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
       use vpamu_grids, only: nvpa, nmu
       use run_parameters, only: fields_kxkyz
       use dist_redistribute, only: kxkyz2vmu
@@ -642,14 +642,14 @@ contains
       use stella_transforms, only: transform_ky2y, transform_y2ky
       use zgrid, only: nzgrid, ntubes
       use dist_fn_arrays, only: gvmu
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
       use kt_grids, only: ny, nakx
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: maxwell_vpa
       use neoclassical_terms, only: include_neoclassical_terms
       use run_parameters, only: vpa_upwind, time_upwind
       use run_parameters, only: mirror_semi_lagrange, maxwellian_normalization
-      use physics_flags, only: include_apar
+      use parameters_physics, only: include_apar
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
       use fields, only: advance_apar, fields_updated
       use g_tofrom_h, only: gbar_to_g
@@ -883,7 +883,7 @@ contains
 
    subroutine get_mirror_rhs_g_contribution(g_in, apar, imu, ikxkyz, rhs)
 
-      use physics_flags, only: include_apar
+      use parameters_physics, only: include_apar
       use run_parameters, only: vpa_upwind, time_upwind_minus
       use run_parameters, only: maxwellian_normalization
       use g_tofrom_h, only: gbar_to_g

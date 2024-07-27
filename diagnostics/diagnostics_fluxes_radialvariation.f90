@@ -49,7 +49,7 @@ contains
       use run_parameters, only: fphi
       use run_parameters, only: maxwellian_normalization
       use kt_grids, only: aky, theta0, naky, nakx, multiply_by_rho
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
       
       ! Flags 
@@ -336,7 +336,7 @@ contains
       use volume_averages, only: mode_fac
       use geometry, only: dVolume
       use stella_transforms, only: transform_kx2x_unpadded
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
 
       implicit none
 

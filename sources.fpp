@@ -53,10 +53,10 @@ contains
       use stella_layouts, only: vmu_lo
       use dist_fn_arrays, only: g_krook, g_proj, g_symm
       use fields_arrays, only: phi_proj, phi_proj_stage
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use species, only: spec, has_electron_species
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
       use file_utils, only: runtype_option_switch, runtype_multibox
 
       implicit none
@@ -112,7 +112,7 @@ contains
    subroutine read_parameters
 
       use file_utils, only: input_unit_exist, error_unit
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use mp, only: proc0, broadcast
       use kt_grids, only: ikx_max, periodic_variation
       use fields_arrays, only: tcorr_source_qn, exclude_boundary_regions_qn
@@ -471,7 +471,7 @@ contains
 
       use mp, only: sum_allreduce
       use species, only: spec
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use vpamu_grids, only: integrate_species, mu, vpa, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use kt_grids, only: nakx, rho_d_clamped

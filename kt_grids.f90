@@ -125,7 +125,7 @@ contains
    subroutine read_kt_grids_box
 
       use file_utils, only: input_unit_exist
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
 
       implicit none
 
@@ -176,7 +176,7 @@ contains
 
       use mp, only: mp_abort, proc0
       use file_utils, only: input_unit, error_unit, input_unit_exist
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
       use text_options, only: text_option, get_option_value
 
       implicit none
@@ -262,7 +262,7 @@ contains
       use geometry, only: q_as_x, get_x_to_rho, dxdpsi, drhodpsi
       use geometry, only: geo_option_switch, geo_option_vmec
       use parameters_physics, only: rhostar
-      use physics_flags, only: full_flux_surface, radial_variation
+      use parameters_physics, only: full_flux_surface, radial_variation
       use file_utils, only: runtype_option_switch, runtype_multibox
       use zgrid, only: nperiod
       use zgrid, only: boundary_option_switch, boundary_option_linked

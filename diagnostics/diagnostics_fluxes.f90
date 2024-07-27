@@ -50,8 +50,8 @@ contains
       use species, only: nspec
 
       ! Flags 
-      use physics_flags, only: radial_variation
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: radial_variation
+      use parameters_physics, only: full_flux_surface
       use parameters_diagnostics, only: write_fluxes_vs_time
       use parameters_diagnostics, only: write_fluxes_kxkyz
       use parameters_diagnostics, only: write_radial_fluxes 
@@ -150,7 +150,7 @@ contains
    subroutine write_fluxes_for_fluxtube(pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts)
    
       ! Flags
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_physics, only: include_apar, include_bpar
 
       ! Load data 
       use dist_fn_arrays, only: gnew, gvmu
@@ -211,7 +211,7 @@ contains
 
       ! Data 
       use fields_arrays, only: phi, phi_corr_QN
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use dist_fn_arrays, only: gnew
    
       ! Dimensions

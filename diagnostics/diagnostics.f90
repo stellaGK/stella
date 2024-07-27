@@ -36,7 +36,7 @@ contains
       use constants, only: zi 
 
       ! Flags  
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use fields, only: fields_updated    
       use parameters_diagnostics, only: nc_mult, nwrite
 
