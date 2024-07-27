@@ -30,7 +30,7 @@ contains
    subroutine diagnostics_stella(istep)
 
       ! Debug Flags
-      use debug_flags, only: diagnostics_debug
+      use debug_flags, only: debug => diagnostics_debug
      
       ! Data 
       use fields_arrays, only: phi, apar, bpar
@@ -64,11 +64,6 @@ contains
       logical :: write_to_ascii_files, write_to_netcdf_file
 
       !---------------------------------------------------------------------- 
-
-      ! Set debug flad
-      if (diagnostics_debug) debug = .true.
-      
-      !----------------------------------------------------------------------
       
       ! We only write data at every <nwrite> or every <nwrite>*<nc_mult> time steps
       write_to_ascii_files = (mod(istep, nwrite) == 0)
