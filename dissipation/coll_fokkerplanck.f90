@@ -61,7 +61,7 @@ contains
    subroutine read_parameters_fp
 
       use file_utils, only: input_unit_exist
-      use physics_flags, only: full_flux_surface, radial_variation
+      use parameters_physics, only: full_flux_surface, radial_variation
       use mp, only: proc0, broadcast
 
       implicit none
@@ -158,7 +158,7 @@ contains
       use vpamu_grids, only: dvpa, dmu, mu, nmu
       use geometry, only: bmag
       use stella_layouts
-      use run_parameters, only: fully_explicit
+      use parameters_numerical, only: fully_explicit
       use common_types, only: spec_type
 
       implicit none
@@ -3296,8 +3296,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use redistribute, only: scatter, gather
       use stella_time, only: code_dt
       use zgrid, only: nzgrid, ntubes
-      use run_parameters, only: fphi
-      use physics_flags, only: full_flux_surface
+      use parameters_numerical, only: fphi
+      use parameters_physics, only: full_flux_surface
       use kt_grids, only: naky, nakx
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: set_vpa_weights
@@ -4021,7 +4021,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use finite_differences, only: tridag
       use linear_solve, only: lu_back_substitution
       use stella_time, only: code_dt
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use species, only: nspec, spec
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nmu, nvpa, integrate_vmu

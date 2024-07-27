@@ -114,7 +114,7 @@ contains
 
       implicit none
       
-      ! TODO-GA: import this from run_parameters as "use run_parameters, only: print_extra_info_to_terminal"
+      ! TODO-GA: import this from parameters_numerical as "use parameters_numerical, only: print_extra_info_to_terminal"
       logical :: print_extra_info_to_terminal = .false.
 
       ! vmec_filename is the vmec wout_* file that will be read.
@@ -243,7 +243,7 @@ contains
 
       implicit none
       
-      ! TODO-GA: import this from run_parameters as "use run_parameters, only: print_extra_info_to_terminal"
+      ! TODO-GA: import this from parameters_numerical as "use parameters_numerical, only: print_extra_info_to_terminal"
       logical :: print_extra_info_to_terminal = .false.
  
       !*************************************************************************

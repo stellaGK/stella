@@ -100,7 +100,7 @@ contains
 
       ! Data 
       use fields_arrays, only: phi, apar, bpar
-      use run_parameters, only: fphi, fapar
+      use parameters_numerical, only: fphi
       
       ! Geometry 
       use geometry, only: bmag, btor, gds2, gds21, gds22, geo_surf 

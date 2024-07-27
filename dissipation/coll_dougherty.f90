@@ -218,8 +218,8 @@ contains
       use dist_fn_arrays, only: gvmu
       use gyro_averages, only: aj0v
       use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
 
       implicit none
 
@@ -472,8 +472,8 @@ contains
       use dist_fn_arrays, only: gvmu, kperp2
       use gyro_averages, only: aj0v, aj1v
       use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
 
       implicit none
 
@@ -910,8 +910,8 @@ contains
       use stella_time, only: code_dt
       use zgrid, only: nzgrid, ntubes
       use species, only: spec
-      use run_parameters, only: fphi
-      use physics_flags, only: radial_variation, full_flux_surface
+      use parameters_numerical, only: fphi
+      use parameters_physics, only: radial_variation, full_flux_surface
       use kt_grids, only: naky, nakx, multiply_by_rho, rho_d_clamped
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: set_vpa_weights
@@ -1271,7 +1271,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, iv_idx, is_idx
       use species, only: spec
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use geometry, only: bmag, dBdrho
       use kt_grids, only: nakx, naky, multiply_by_rho
       use zgrid, only: nzgrid, ntubes
@@ -1405,7 +1405,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, iv_idx, is_idx
       use species, only: spec
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use geometry, only: bmag, dBdrho
       use kt_grids, only: nakx, naky, multiply_by_rho
       use zgrid, only: nzgrid, ntubes
@@ -1523,7 +1523,7 @@ contains
       use finite_differences, only: tridag
       use linear_solve, only: lu_back_substitution
       use stella_time, only: code_dt
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use species, only: nspec, spec, has_electron_species
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nmu, nvpa
@@ -1536,8 +1536,8 @@ contains
       use g_tofrom_h, only: g_to_h
       use gyro_averages, only: aj0v
       use fields, only: get_fields, efac, gamtot_h
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
 
       implicit none
 
@@ -1687,7 +1687,7 @@ contains
       use finite_differences, only: tridag
       use linear_solve, only: lu_back_substitution
       use stella_time, only: code_dt
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use species, only: nspec, spec, has_electron_species
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nmu, nvpa
@@ -1701,8 +1701,8 @@ contains
       use g_tofrom_h, only: g_to_h
       use fields, only: get_fields, efac, gamtot_h
       use geometry, only: bmag, dl_over_b
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
 
       ! TMP FOR TESTING
 !    use vpamu_grids, only: mu

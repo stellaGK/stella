@@ -42,14 +42,13 @@ module time_advance
    ! .true. during full_flux_surface simulations
 !  logical :: alpha_space = .false.
 
-   integer :: explicit_option_switch
+   !integer :: explicit_option_switch
    integer, parameter :: explicit_option_rk3 = 1, &
                          explicit_option_rk2 = 2, &
                          explicit_option_rk4 = 3, &
                          explicit_option_euler = 4
 
-   real :: xdriftknob, ydriftknob, wstarknob
-   logical :: flip_flop
+   !logical :: flip_flop
 
    ! factor multiplying parallel nonlinearity
    real, dimension(:, :), allocatable :: par_nl_fac, d_par_nl_fac_dr
@@ -84,11 +83,6 @@ contains
 
       debug = debug .and. proc0
 
-      !> read time_advance_knobs namelist from the input file;
-      !> sets the explicit time advance option, as well as allows for scaling of
-      !> the x and y components of the magnetic drifts and of the drive term
-      if (debug) write (6, *) 'time_advance::init_time_advance::read_parameters'
-      call read_parameters
       !> allocate distribution function sized arrays needed, e.g., for Runge-Kutta time advance
       if (debug) write (6, *) 'time_advance::init_time_advance::allocate_arrays'
       call allocate_arrays
@@ -132,58 +126,6 @@ contains
 
    end subroutine init_time_advance
 
-   subroutine read_parameters
-
-      use file_utils, only: error_unit, input_unit_exist
-      use text_options, only: text_option, get_option_value
-      use mp, only: proc0, broadcast
-      use run_parameters, only: fully_explicit
-
-      implicit none
-
-      logical :: taexist
-
-      type(text_option), dimension(5), parameter :: explicitopts = &
-                                                    (/text_option('default', explicit_option_rk3), &
-                                                      text_option('rk3', explicit_option_rk3), &
-                                                      text_option('rk2', explicit_option_rk2), &
-                                                      text_option('rk4', explicit_option_rk4), &
-                                                      text_option('euler', explicit_option_euler)/)
-      character(10) :: explicit_option
-
-      namelist /time_advance_knobs/ xdriftknob, ydriftknob, wstarknob, explicit_option, flip_flop
-
-      integer :: ierr, in_file
-
-      if (readinit) return
-      readinit = .true.
-
-      if (proc0) then
-         explicit_option = 'default'
-         xdriftknob = 1.0
-         ydriftknob = 1.0
-         wstarknob = 1.0
-         flip_flop = .false.
-
-         in_file = input_unit_exist("time_advance_knobs", taexist)
-         if (taexist) read (unit=in_file, nml=time_advance_knobs)
-
-         ierr = error_unit()
-         call get_option_value &
-            (explicit_option, explicitopts, explicit_option_switch, &
-             ierr, "explicit_option in time_advance_knobs")
-      end if
-
-      call broadcast(explicit_option_switch)
-      call broadcast(xdriftknob)
-      call broadcast(ydriftknob)
-      call broadcast(wstarknob)
-      call broadcast(flip_flop)
-
-      if (fully_explicit) flip_flop = .false.
-
-   end subroutine read_parameters
-
    subroutine init_wdrift
 
       use mp, only: mp_abort
@@ -206,8 +148,9 @@ contains
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
       use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
-      use run_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: maxwellian_normalization
 
+      use parameters_physics, only: xdriftknob, ydriftknob
       implicit none
 
       integer :: ivmu, iv, imu, is
@@ -358,8 +301,9 @@ contains
       use dist_fn_arrays, only: wstar
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_drho
-      use run_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: maxwellian_normalization
 
+      use parameters_physics, only: wstarknob
       implicit none
 
       integer :: is, imu, iv, ivmu
@@ -427,6 +371,7 @@ contains
       use geometry, only: dcvdriftdrho, dcvdrift0drho
       use parameters_physics, only: radial_variation
 
+      use parameters_physics, only: ydriftknob
       implicit none
 
       if (.not. allocated(par_nl_fac)) allocate (par_nl_fac(-nzgrid:nzgrid, nspec))
@@ -495,6 +440,9 @@ contains
       use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
       use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
       use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi!, adiabatic_phi
+
+      use parameters_physics, only: xdriftknob, ydriftknob, wstarknob
+      
 !   use neoclassical_terms, only: include_neoclassical_terms
 
       implicit none
@@ -612,6 +560,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
       use dist_fn_arrays, only: g0, g1, g2, g3
+      use parameters_numerical, only: explicit_option_switch
 
       implicit none
 
@@ -639,12 +588,12 @@ contains
       use mp, only: scope, allprocs, subprocs
       use dist_fn_arrays, only: wdriftx_g, wdrifty_g
       use stella_time, only: code_dt, write_dt, cfl_dt_linear
-      use run_parameters, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
+      use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
       use parameters_physics, only: radial_variation, prp_shear_enabled
       use zgrid, only: delzed
       use vpamu_grids, only: dvpa
       use kt_grids, only: akx, aky, nx, rho
-      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
+      use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
       use parallel_streaming, only: stream
       use parallel_streaming, only: stream_rad_var1, stream_rad_var2
       use mirror_terms, only: mirror
@@ -652,7 +601,7 @@ contains
       use file_utils, only: runtype_option_switch, runtype_multibox
       use dissipation, only: include_collisions, collisions_implicit
       use dissipation, only: cfl_dt_vpadiff, cfl_dt_mudiff
-      use run_parameters, only: print_extra_info_to_terminal
+      use parameters_numerical, only: print_extra_info_to_terminal
 
       implicit none
 
@@ -779,7 +728,7 @@ contains
       use parallel_streaming, only: parallel_streaming_initialized
       use parallel_streaming, only: init_parallel_streaming
       use dissipation, only: init_collisions, collisions_initialized, include_collisions
-      use run_parameters, only: stream_implicit, driftkinetic_implicit
+      use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use response_matrix, only: response_matrix_initialized
       use response_matrix, only: init_response_matrix
       use mirror_terms, only: mirror_initialized
@@ -842,7 +791,7 @@ contains
       use fields_arrays, only: phi, apar, bpar
       use fields_arrays, only: phi_old, apar_old
       use fields, only: advance_fields, fields_updated
-      use run_parameters, only: fully_explicit, fully_implicit
+      use parameters_numerical, only: fully_explicit, fully_implicit
       use multibox, only: RK_step
       use sources, only: include_qn_source, update_quasineutrality_source
       use sources, only: source_option_switch, source_option_projection
@@ -850,6 +799,7 @@ contains
       use sources, only: update_tcorr_krook, project_out_zero
       use mp, only: proc0, broadcast
 
+      use parameters_numerical, only: flip_flop
       implicit none
 
       integer, intent(in) :: istep
@@ -974,6 +924,7 @@ contains
       use fields, only: advance_fields
       use g_tofrom_h, only: gbar_to_g
 
+      use parameters_numerical, only: explicit_option_switch
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
@@ -1240,7 +1191,7 @@ contains
       use kt_grids, only: ikx_max, ny, naky_all
       use kt_grids, only: swap_kxky_back
       use kt_grids, only: zonal_mode, akx
-      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
+      use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
       use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
       use sources, only: source_option_switch, source_option_krook
       use sources, only: add_krook_operator
@@ -1827,7 +1778,7 @@ contains
       use stella_transforms, only: transform_y2ky, transform_x2kx
       use stella_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
       use stella_time, only: cfl_dt_ExB, cfl_dt_linear, code_dt, code_dt_max
-      use run_parameters, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, fphi
+      use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, fphi
       use parameters_physics, only: g_exb, g_exbfac
       use zgrid, only: nzgrid, ntubes
       use geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
@@ -2115,7 +2066,7 @@ contains
       use stella_transforms, only: transform_ky2y, transform_y2ky
       use stella_transforms, only: transform_kx2x, transform_x2kx
       use stella_time, only: cfl_dt_parallel, cfl_dt_linear, code_dt, code_dt_max
-      use run_parameters, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
+      use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
       use zgrid, only: nzgrid, delzed, ntubes
       use extended_zgrid, only: neigen, nsegments, ikxmod
       use extended_zgrid, only: iz_low, iz_up
@@ -2401,7 +2352,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, naky, multiply_by_rho
       use gyro_averages, only: gyro_average, gyro_average_j1
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use parameters_physics, only: full_flux_surface
       use parameters_physics, only: include_parallel_streaming, include_mirror
       use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
@@ -2741,7 +2692,7 @@ contains
       use parameters_physics, only: include_parallel_streaming
       use parameters_physics, only: radial_variation, full_flux_surface
       use parameters_physics, only: include_mirror, prp_shear_enabled
-      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
+      use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
       use implicit_solve, only: advance_implicit_terms
       use fields, only: advance_fields, fields_updated
       use mirror_terms, only: advance_mirror_implicit
@@ -2749,7 +2700,7 @@ contains
       use dissipation, only: advance_collisions_implicit
       use flow_shear, only: advance_perp_flow_shear
       use multibox, only: RK_step
-
+      use parameters_numerical, only: flip_flop
       implicit none
 
       integer, intent(in) :: istep

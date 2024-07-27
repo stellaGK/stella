@@ -61,10 +61,10 @@ contains
       use kt_grids, only: nalpha
       use zgrid, only: nzgrid, nztot
       use geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
-      use run_parameters, only: stream_implicit, driftkinetic_implicit
+      use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_physics, only: include_parallel_streaming, radial_variation
       use parameters_physics, only: full_flux_surface
-      use run_parameters, only: tupwnd_m => time_upwind_minus
+      use parameters_numerical, only: tupwnd_m => time_upwind_minus
 
       implicit none
 
@@ -189,7 +189,7 @@ contains
       use zgrid, only: delzed
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: nsegments
-      use run_parameters, only: zed_upwind_plus, zed_upwind_minus, time_upwind_plus
+      use parameters_numerical, only: zed_upwind_plus, zed_upwind_minus, time_upwind_plus
 
       implicit none
 
@@ -242,7 +242,7 @@ contains
       use species, only: spec
       use parameters_physics, only: full_flux_surface, include_bpar
       use gyro_averages, only: gyro_average, gyro_average_j1
-      use run_parameters, only: driftkinetic_implicit, maxwellian_normalization
+      use parameters_numerical, only: driftkinetic_implicit, maxwellian_normalization
 	
 	!! For FFS 
       use fields, only: advance_fields, fields_updated
@@ -536,7 +536,7 @@ contains
 !    use extended_zgrid, only: ikxmod
 !    use extended_zgrid, only: fill_zed_ghost_zones
 !    use extended_zgrid, only: periodic
-!    use run_parameters, only: zed_upwind
+!    use parameters_numerical, only: zed_upwind
 !    use kt_grids, only: naky
 
 !    implicit none
@@ -785,7 +785,7 @@ contains
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: fill_zed_ghost_zones
-      use run_parameters, only: zed_upwind
+      use parameters_numerical, only: zed_upwind
 
       implicit none
 
@@ -825,7 +825,7 @@ contains
    ! it is assumed that any function passed to this subroutine is periodic
    subroutine center_zed_segment_real(iv, f, llim)
 
-      use run_parameters, only: zed_upwind_plus, zed_upwind_minus
+      use parameters_numerical, only: zed_upwind_plus, zed_upwind_minus
 
       integer, intent(in) :: iv, llim
       real, dimension(llim:), intent(in out) :: f
@@ -849,8 +849,8 @@ contains
    !> and overwrites f with the cell-centered version;
    subroutine center_zed_segment_complex(iv, f, llim, periodic)
 
-      use run_parameters, only: zupwnd_p => zed_upwind_plus
-      use run_parameters, only: zupwnd_m => zed_upwind_minus
+      use parameters_numerical, only: zupwnd_p => zed_upwind_plus
+      use parameters_numerical, only: zupwnd_m => zed_upwind_minus
 
       integer, intent(in) :: iv, llim
       complex, dimension(llim:), intent(in out) :: f
@@ -898,7 +898,7 @@ contains
 
    subroutine finish_parallel_streaming
 
-      use run_parameters, only: stream_implicit, driftkinetic_implicit
+      use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_physics, only: full_flux_surface
       implicit none
 

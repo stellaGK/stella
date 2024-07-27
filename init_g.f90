@@ -105,7 +105,7 @@ contains
    subroutine ginit(restarted, istep0)
 
       use stella_save, only: init_tstart
-      use run_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: maxwellian_normalization
 
       logical, intent(out) :: restarted
       integer, intent(out) :: istep0

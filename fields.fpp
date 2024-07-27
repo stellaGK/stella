@@ -91,9 +91,9 @@ contains
       use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use dist_fn_arrays, only: kperp2, dkperp2dr
       use gyro_averages, only: aj0v, aj1v
-      use run_parameters, only: fphi
-      use run_parameters, only: ky_solve_radial
-      use run_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: fphi
+      use parameters_numerical, only: ky_solve_radial
+      use parameters_numerical, only: maxwellian_normalization
       use parameters_physics, only: tite, nine, beta
       use parameters_physics, only: radial_variation
       use species, only: spec, has_electron_species, ion_species
@@ -410,7 +410,7 @@ contains
       use mp, only: split_n_tasks, create_shared_memory_window
       use mpi
 #endif
-      use run_parameters, only: ky_solve_radial, ky_solve_real
+      use parameters_numerical, only: ky_solve_radial, ky_solve_real
       use species, only: spec, has_electron_species
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use zgrid, only: nzgrid, ntubes, nztot 
@@ -951,7 +951,7 @@ contains
       use dist_fn_arrays, only: gvmu
       use zgrid, only: nzgrid
       use dist_redistribute, only: kxkyz2vmu
-      use run_parameters, only: fields_kxkyz
+      use parameters_numerical, only: fields_kxkyz
       use parameters_physics, only: full_flux_surface
 
       implicit none
@@ -1006,7 +1006,7 @@ contains
       use job_manage, only: time_message
       use redistribute, only: scatter
       use zgrid, only: nzgrid
-      use run_parameters, only: fields_kxkyz
+      use parameters_numerical, only: fields_kxkyz
       use parameters_physics, only: full_flux_surface
 
       implicit none
@@ -1042,7 +1042,7 @@ contains
       use dist_fn_arrays, only: kperp2
       use gyro_averages, only: gyro_average, gyro_average_j1
       use parameters_physics, only: include_apar, include_bpar
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use parameters_physics, only: beta
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
@@ -1160,7 +1160,7 @@ contains
       use job_manage, only: time_message
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx
       use gyro_averages, only: gyro_average, gyro_average_j1
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use parameters_physics, only: beta
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: radial_variation
@@ -1379,7 +1379,7 @@ contains
       use parameters_physics, only: nine, tite
       use parameters_physics, only: include_apar
       use stella_layouts, only: vmu_lo
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use species, only: modified_adiabatic_electrons, adiabatic_electrons
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, ikx_max, naky, naky_all
@@ -1582,7 +1582,7 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use gyro_averages, only: gyro_average
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use geometry, only: dl_over_b
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
@@ -1658,7 +1658,7 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use gyro_averages, only: gyro_average
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use geometry, only: dl_over_b, bmag
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: vperp2, nvpa, nmu
@@ -1731,7 +1731,7 @@ contains
       use mp, only: proc0, mp_abort, job
       use job_manage, only: time_message
       use parameters_physics, only: radial_variation
-      use run_parameters, only: ky_solve_radial, ky_solve_real
+      use parameters_numerical, only: ky_solve_radial, ky_solve_real
       use zgrid, only: nzgrid, ntubes
       use geometry, only: dl_over_b
       use kt_grids, only: nakx, naky, zonal_mode
@@ -1895,7 +1895,7 @@ contains
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
-      use run_parameters, only: ky_solve_radial
+      use parameters_numerical, only: ky_solve_radial
       use zgrid, only: nzgrid, ntubes
       use species, only: spec, has_electron_species
       use kt_grids, only: nakx, naky, zonal_mode
@@ -2240,7 +2240,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: vperp2
       use kt_grids, only: nakx, naky, multiply_by_rho
-      use run_parameters, only: ky_solve_radial
+      use parameters_numerical, only: ky_solve_radial
       use species, only: spec
 
       implicit none
@@ -2294,7 +2294,7 @@ contains
       use stella_layouts, only: vmu_lo
       use gyro_averages, only: gyro_average, gyro_average_j1
       use gyro_averages, only: aj0x, aj1x
-      use run_parameters, only: fphi, ky_solve_radial
+      use parameters_numerical, only: fphi, ky_solve_radial
       use geometry, only: dl_over_b, d_dl_over_b_drho, bmag, dBdrho
       use stella_layouts, only: imu_idx, is_idx
       use zgrid, only: nzgrid, ntubes
@@ -2482,7 +2482,7 @@ contains
       use stella_layouts, only: is_idx, iv_idx, imu_idx
       use parameters_physics, only: include_apar
       use parameters_physics, only: include_bpar
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: vpa, mu
@@ -2545,7 +2545,7 @@ contains
       use stella_layouts, only: is_idx, iv_idx, imu_idx
       use parameters_physics, only: include_apar
       use parameters_physics, only: include_bpar
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use species, only: spec
       use vpamu_grids, only: vpa, mu
       use kt_grids, only: nakx, aky, naky
@@ -2600,7 +2600,7 @@ contains
       use stella_layouts, only: is_idx, iv_idx, imu_idx
       use parameters_physics, only: include_apar
       use parameters_physics, only: include_bpar
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use species, only: spec
       use vpamu_grids, only: vpa, mu
       use kt_grids, only: akx, naky, nakx

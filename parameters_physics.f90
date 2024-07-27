@@ -22,7 +22,7 @@ module parameters_physics
    public :: include_parallel_streaming
    public :: include_mirror
    public :: nonlinear
-   !!> TODO-GA public :: xdriftknob, ydriftknob, wstarknob
+   public :: xdriftknob, ydriftknob, wstarknob
    
    !> Adiabatic options: This is used when nspec = 1. The non-kinetic
    !> species (usually electrons) is set to have an adiabatic response.

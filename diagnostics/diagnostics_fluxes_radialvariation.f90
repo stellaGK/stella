@@ -46,8 +46,8 @@ contains
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: vperp2, vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use run_parameters, only: fphi
-      use run_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: fphi
+      use parameters_numerical, only: maxwellian_normalization
       use kt_grids, only: aky, theta0, naky, nakx, multiply_by_rho
       use parameters_physics, only: radial_variation
       use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x

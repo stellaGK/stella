@@ -155,7 +155,7 @@ contains
       ! Load data 
       use dist_fn_arrays, only: gnew, gvmu
       use fields_arrays, only: phi, bpar
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
 
       ! Redistribute data from  i[vpa,mu,s] to i[kx,ky,z,s] 
       use redistribute, only: scatter

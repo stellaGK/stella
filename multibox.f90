@@ -485,7 +485,7 @@ contains
       use file_utils, only: get_unused_unit
       use fields_arrays, only: phi, phi_corr_QN, shift_state
       use job_manage, only: njobs, time_message
-      use physics_flags, only: radial_variation, prp_shear_enabled, hammett_flow_shear
+      use parameters_physics, only: radial_variation, prp_shear_enabled, hammett_flow_shear
       use parameters_physics, only: g_exb, g_exbfac
       use stella_layouts, only: vmu_lo
       use geometry, only: dl_over_b
@@ -800,7 +800,7 @@ contains
       use zgrid, only: nzgrid
       use parameters_physics, only: radial_variation
       use geometry, only: dl_over_b, d_dl_over_b_drho
-      use run_parameters, only: ky_solve_radial
+      use parameters_numerical, only: ky_solve_radial
       use fields_arrays, only: phi_solve, phizf_solve, gamtot, dgamtotdr
       use linear_solve, only: lu_decomposition, lu_inverse
 
@@ -914,7 +914,7 @@ contains
       use kt_grids, only: akx, nakx, naky, zonal_mode, boundary_size
       use zgrid, only: nzgrid, ntubes
       use geometry, only: dl_over_b, d_dl_over_b_drho
-      use run_parameters, only: ky_solve_radial
+      use parameters_numerical, only: ky_solve_radial
       use fields_arrays, only: gamtot, dgamtotdr, phi_solve, phizf_solve
       use linear_solve, only: lu_back_substitution
 

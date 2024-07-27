@@ -56,12 +56,11 @@ stella_mod = \
 	 netcdf_utils.o \
 	 parallel_streaming.o \
 	 parameters_diagnostics.o \
+	 parameters_numerical.o \
 	 parameters_physics.o \
-	 physics_flags.o \
 	 ran.o \
 	 redistribute.o \
 	 response_matrix.o \
-	 run_parameters.o \
 	 sfincs_interface.o \
 	 sources.o \
 	 species.o \
@@ -94,9 +93,8 @@ coll_dougherty.o: \
 	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_numerical.o \
 	 redistribute.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_time.o \
@@ -118,10 +116,9 @@ coll_fokkerplanck.o: \
 	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
+	 parameters_numerical.o \
 	 parameters_physics.o \
-	 physics_flags.o \
 	 redistribute.o \
-	 run_parameters.o \
 	 species.o \
 	 spfunc.o \
 	 stella_layouts.o \
@@ -153,9 +150,9 @@ diagnostics.o: \
 	 kt_grids.o \
 	 mp.o \
 	 parameters_diagnostics.o \
+	 parameters_numerical.o \
 	 parameters_physics.o \
 	 redistribute.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_io.o \
 	 stella_save.o \
@@ -171,8 +168,8 @@ diagnostics_distribution.o: \
 	 kt_grids.o \
 	 mp.o \
 	 parameters_diagnostics.o \
+	 parameters_numerical.o \
 	 redistribute.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_io.o \
 	 stella_layouts.o \
@@ -193,9 +190,9 @@ diagnostics_fluxes.o: \
 	 kt_grids.o \
 	 mp.o \
 	 parameters_diagnostics.o \
+	 parameters_numerical.o \
 	 parameters_physics.o \
 	 redistribute.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_io.o \
 	 stella_time.o \
@@ -208,8 +205,6 @@ diagnostics_fluxes_fluxtube.o: \
 	 kt_grids.o \
 	 mp.o \
 	 parameters_diagnostics.o \
-	 parameters_physics.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
 	 volume_averages.o \
@@ -223,7 +218,7 @@ diagnostics_fluxes_fullfluxsurface.o: \
 	 geometry.o \
 	 gyro_averages.o \
 	 kt_grids.o \
-	 run_parameters.o \
+	 parameters_numerical.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_transforms.o \
@@ -238,8 +233,8 @@ diagnostics_fluxes_radialvariation.o: \
 	 kt_grids.o \
 	 mp.o \
 	 parameters_diagnostics.o \
+	 parameters_numerical.o \
 	 parameters_physics.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_transforms.o \
@@ -254,8 +249,8 @@ diagnostics_moments.o: \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
+	 parameters_numerical.o \
 	 parameters_physics.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_io.o \
 	 stella_layouts.o \
@@ -297,9 +292,8 @@ dissipation.o: \
 	 hyper.o \
 	 job_manage.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_numerical.o \
 	 redistribute.o \
-	 run_parameters.o \
 	 stella_layouts.o \
 	 vpamu_grids.o \
 	 zgrid.o 
@@ -380,7 +374,6 @@ fields.o: \
 	 multibox.o \
 	 parameters_physics.o \
 	 redistribute.o \
-	 run_parameters.o \
 	 species.o \
 	 spfunc.o \
 	 stella_layouts.o \
@@ -402,8 +395,8 @@ flow_shear.o: \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
+	 parameters_numerical.o \
 	 parameters_physics.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_time.o \
@@ -415,8 +408,8 @@ g_tofrom_h.o: \
 	 geometry.o \
 	 gyro_averages.o \
 	 kt_grids.o \
+	 parameters_numerical.o \
 	 parameters_physics.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_transforms.o \
@@ -490,7 +483,6 @@ hyper.o: \
 	 geometry.o \
 	 kt_grids.o \
 	 mp.o \
-	 physics_flags.o \
 	 redistribute.o \
 	 stella_layouts.o \
 	 stella_time.o \
@@ -511,8 +503,8 @@ implicit_solve.o: \
 	 mp.o \
 	 neoclassical_terms.o \
 	 parallel_streaming.o \
+	 parameters_numerical.o \
 	 parameters_physics.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_time.o \
@@ -525,9 +517,9 @@ init_g.o: \
 	 file_utils.o \
 	 kt_grids.o \
 	 mp.o \
+	 parameters_numerical.o \
 	 parameters_physics.o \
 	 ran.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_save.o \
@@ -566,9 +558,9 @@ mirror_terms.o: \
 	 kt_grids.o \
 	 mp.o \
 	 neoclassical_terms.o \
+	 parameters_numerical.o \
 	 parameters_physics.o \
 	 redistribute.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_time.o \
@@ -591,9 +583,8 @@ multibox.o: \
 	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
+	 parameters_numerical.o \
 	 parameters_physics.o \
-	 physics_flags.o \
-	 run_parameters.o \
 	 stella_layouts.o \
 	 stella_time.o \
 	 text_options.o \
@@ -627,8 +618,8 @@ parallel_streaming.o: \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
+	 parameters_numerical.o \
 	 parameters_physics.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_time.o \
@@ -639,11 +630,13 @@ parameters_diagnostics.o: \
 	 file_utils.o \
 	 mp.o \
 	 parameters_physics.o 
-parameters_physics.o: \
+parameters_numerical.o: \
 	 file_utils.o \
 	 mp.o \
+	 parameters_physics.o \
+	 species.o \
 	 text_options.o 
-physics_flags.o: \
+parameters_physics.o: \
 	 file_utils.o \
 	 mp.o \
 	 text_options.o 
@@ -668,19 +661,13 @@ response_matrix.o: \
 	 mp.o \
 	 mp_lu_decomposition.o \
 	 parallel_streaming.o \
+	 parameters_numerical.o \
 	 parameters_physics.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
 	 system_fortran.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-run_parameters.o: \
-	 file_utils.o \
-	 mp.o \
-	 parameters_physics.o \
-	 species.o \
-	 text_options.o 
 sfincs_interface.o: \
 	 mp.o \
 	 zgrid.o 
@@ -697,9 +684,9 @@ sources.o: \
 	 linear_solve.o \
 	 mp.o \
 	 mp_lu_decomposition.o \
+	 parameters_numerical.o \
 	 parameters_physics.o \
 	 redistribute.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_time.o \
@@ -748,7 +735,6 @@ stella.o: \
 	 ran.o \
 	 redistribute.o \
 	 response_matrix.o \
-	 run_parameters.o \
 	 sources.o \
 	 species.o \
 	 stella_layouts.o \
@@ -822,10 +808,10 @@ time_advance.o: \
 	 multibox.o \
 	 neoclassical_terms.o \
 	 parallel_streaming.o \
+	 parameters_numerical.o \
 	 parameters_physics.o \
 	 redistribute.o \
 	 response_matrix.o \
-	 run_parameters.o \
 	 sources.o \
 	 species.o \
 	 stella_layouts.o \
@@ -848,8 +834,8 @@ vpamu_grids.o: \
 	 geometry.o \
 	 kt_grids.o \
 	 mp.o \
+	 parameters_numerical.o \
 	 parameters_physics.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
 	 zgrid.o 

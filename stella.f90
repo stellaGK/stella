@@ -3,8 +3,6 @@ program stella
    use redistribute, only: scatter
    use job_manage, only: time_message, checkstop, job_fork
    use job_manage, only: checktime
-   use run_parameters, only: nstep, tend
-   use run_parameters, only: avail_cpu_time
    use stella_time, only: update_time, code_time, code_dt, checkcodedt
    use dist_redistribute, only: kxkyz2vmu
    use time_advance, only: advance_stella
@@ -18,11 +16,11 @@ program stella
    use debug_flags, only: debug => stella_debug
    ! Input file
    use parameters_diagnostics, only: nsave
-
+   use parameters_numerical, only: nstep, tend
+   use parameters_numerical, only: avail_cpu_time
+   
    implicit none
 
-!   logical :: debug = .false.
-   
    logical :: stop_stella = .false.
    logical :: mpi_initialized = .false.
 
@@ -52,6 +50,7 @@ program stella
    !> Advance stella until istep=nstep
    if (debug) write (*, *) 'stella::advance_stella'
    istep = istep0 + 1
+
    do while ((code_time <= tend .AND. tend > 0) .OR. (istep <= nstep .AND. nstep > 0))
       if (debug) write (*, *) 'istep = ', istep
       if (mod(istep, 10) == 0) then
@@ -98,11 +97,11 @@ contains
       use job_manage, only: checktime, time_message
       use parameters_physics, only: read_parameters_physics
       use parameters_physics, only: radial_variation
-      use run_parameters, only: init_run_parameters
-      use run_parameters, only: avail_cpu_time, nstep, rng_seed, delt, delt_max, delt_min
-      use run_parameters, only: stream_implicit, driftkinetic_implicit
-      use run_parameters, only: delt_option_switch, delt_option_auto
-      use run_parameters, only: mat_gen, mat_read
+      use parameters_numerical, only: read_parameters_numerical
+      use parameters_numerical, only: avail_cpu_time, nstep, rng_seed, delt, delt_max, delt_min
+      use parameters_numerical, only: stream_implicit, driftkinetic_implicit
+      use parameters_numerical, only: delt_option_switch, delt_option_auto
+      use parameters_numerical, only: mat_gen, mat_read
       use species, only: init_species, read_species_knobs
       use species, only: nspec
       use zgrid, only: init_zgrid
@@ -193,6 +192,8 @@ contains
       !> read the parameters_physics namelist from the input file
       if (debug) write (6, *) "stella::init_stella::read_parameters_physics"
       call read_parameters_physics
+      if (debug) write (6, *) "stella::init_stella::read_parameters_numerical"
+      call read_parameters_numerical 
       !> read the zgrid_parameters namelist from the input file and setup the z grid
       if (debug) write (6, *) "stella::init_stella::init_zgrid"
       call init_zgrid
@@ -239,7 +240,7 @@ contains
       !> read knobs namelist from the input file
       !> and the info to determine the mixture of implicit and explicit time advance
       if (debug) write (6, *) "stella::init_stella::init_run_parameters"
-      call init_run_parameters
+      call read_parameters_physics
 
       if (debug) write (6, *) "stella::init_stella::init_ranf"
       n = get_rnd_seed_length()
@@ -446,7 +447,7 @@ contains
    subroutine write_start_message(git_commit, git_date)
    
       use mp, only: proc0, nproc
-      use run_parameters, only: print_extra_info_to_terminal
+      use parameters_numerical, only: print_extra_info_to_terminal
 
       implicit none
 
@@ -497,7 +498,7 @@ contains
    subroutine print_header
 
       use mp, only: proc0
-      use run_parameters, only: print_extra_info_to_terminal
+      use parameters_numerical, only: print_extra_info_to_terminal
 
       implicit none
 
@@ -558,7 +559,7 @@ contains
       use job_manage, only: time_message
       use parameters_physics, only: finish_read_parameters_physics
       use parameters_physics, only: include_parallel_nonlinearity, radial_variation
-      use run_parameters, only: finish_run_parameters
+      use parameters_numerical, only: finish_read_parameters_numerical
       use zgrid, only: finish_zgrid
       use species, only: finish_species
       use time_advance, only: time_gke, time_parallel_nl
@@ -580,10 +581,10 @@ contains
       use kt_grids, only: finish_kt_grids
       use volume_averages, only: finish_volume_averages
       use multibox, only: finish_multibox, time_multibox
-      use run_parameters, only: stream_implicit, drifts_implicit, fields_kxkyz
+      use parameters_numerical, only: stream_implicit, drifts_implicit, fields_kxkyz
       use implicit_solve, only: time_implicit_advance
-      use run_parameters, only: print_extra_info_to_terminal
-      use run_parameters, only: fields_kxkyz
+      use parameters_numerical, only: print_extra_info_to_terminal
+      use parameters_numerical, only: fields_kxkyz
 
       implicit none
 
@@ -616,8 +617,8 @@ contains
       call finish_vpamu_grids
       if (debug) write (*, *) 'stella::finish_stella::finish_kt_grids'
       call finish_kt_grids
-      if (debug) write (*, *) 'stella::finish_stella::finish_run_parameters'
-      call finish_run_parameters
+      if (debug) write (*, *) 'stella::finish_stella::finish_read_parameters_numerical'
+      call finish_read_parameters_numerical
       if (debug) write (*, *) 'stella::finish_stella::finish_species'
       call finish_species
       if (debug) write (*, *) 'stella::finish_stella::finish_parameters_physics'
