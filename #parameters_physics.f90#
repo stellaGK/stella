@@ -125,9 +125,14 @@ contains
      
      !in_file = input_unit_exist("physics_flags", old_nml_exist)
      in_file = input_unit_exist("physics_parameters", old_nml_exist2)
-     !if (old_nml_exist) mp_abort('Aborting in parameters_physics.f90.& 
-      ! The namelist <physics_flags> does not exist. &
-       !Please replace this with the title <parameters_physics>')
+     ! if (old_nml_exist) then
+     !    write(*,*) "Aborting in parameters_physics.f90.&
+     !         The namelist <physics_flags> does not exist. &
+     !         !Please replace this with the title <parameters_physics>"
+     !    call mp_abort('Aborting in parameters_physics.f90.& 
+     !         The namelist <physics_flags> does not exist. &
+     !         !Please replace this with the title <parameters_physics>')
+     !         end if
      if (old_nml_exist2) then
         write(*,*) "Aborting in parameters_physics.f90.&
              The namelist <physics_parameters> does not exist. &

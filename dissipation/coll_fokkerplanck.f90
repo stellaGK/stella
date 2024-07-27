@@ -347,7 +347,7 @@ contains
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use geometry, only: bmag
       use dist_fn_arrays, only: kperp2
-      use physics_parameters, only: zeff
+      use parameters_physics, only: zeff
       use constants, only: pi
       use common_types, only: spec_type
       use kt_grids, only: naky, nakx

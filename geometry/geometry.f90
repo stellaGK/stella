@@ -1231,7 +1231,7 @@ contains
    !============================================================================
    subroutine get_x_to_rho(llim, x_in, rho_out)
 
-      use physics_parameters, only: rhostar
+      use parameters_physics, only: rhostar
 
       implicit none
 

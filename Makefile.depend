@@ -56,8 +56,8 @@ stella_mod = \
 	 netcdf_utils.o \
 	 parallel_streaming.o \
 	 parameters_diagnostics.o \
+	 parameters_physics.o \
 	 physics_flags.o \
-	 physics_parameters.o \
 	 ran.o \
 	 redistribute.o \
 	 response_matrix.o \
@@ -119,7 +119,6 @@ coll_fokkerplanck.o: \
 	 linear_solve.o \
 	 mp.o \
 	 physics_flags.o \
-	 physics_parameters.o \
 	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
@@ -137,6 +136,7 @@ debug_flags.o: \
 	 mp.o 
 diagnostics.o: \
 	 constants.o \
+	 debug_flags.o \
 	 diagnostics_distribution.o \
 	 diagnostics_fluxes.o \
 	 diagnostics_moments.o \
@@ -153,7 +153,6 @@ diagnostics.o: \
 	 mp.o \
 	 parameters_diagnostics.o \
 	 physics_flags.o \
-	 physics_parameters.o \
 	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
@@ -180,6 +179,7 @@ diagnostics_distribution.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 diagnostics_fluxes.o: \
+	 debug_flags.o \
 	 diagnostics_fluxes_fluxtube.o \
 	 diagnostics_fluxes_fullfluxsurface.o \
 	 diagnostics_fluxes_radialvariation.o \
@@ -331,7 +331,7 @@ euterpe_interface.o: \
 	 finite_differences.o \
 	 geometry.o \
 	 mp.o \
-	 physics_parameters.o \
+	 parameters_physics.o \
 	 spl.o 
 extended_zgrid.o: \
 	 constants.o \
@@ -364,6 +364,7 @@ fft_work.o: \
 fields.o: \
 	 common_types.o \
 	 constants.o \
+	 debug_flags.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields_arrays.o \
@@ -376,8 +377,8 @@ fields.o: \
 	 mp.o \
 	 mp_lu_decomposition.o \
 	 multibox.o \
+	 parameters_physics.o \
 	 physics_flags.o \
-	 physics_parameters.o \
 	 redistribute.o \
 	 run_parameters.o \
 	 species.o \
@@ -401,8 +402,8 @@ flow_shear.o: \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
+	 parameters_physics.o \
 	 physics_flags.o \
-	 physics_parameters.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
@@ -435,7 +436,6 @@ geometry.o: \
 	 geometry_vmec.o \
 	 mp.o \
 	 physics_flags.o \
-	 physics_parameters.o \
 	 text_options.o \
 	 zgrid.o 
 geometry_inputprofiles_interface.o: \
@@ -444,7 +444,7 @@ geometry_inputprofiles_interface.o: \
 	 finite_differences.o \
 	 geometry_miller.o \
 	 mp.o \
-	 physics_parameters.o \
+	 parameters_physics.o \
 	 spl.o 
 geometry_miller.o: \
 	 common_types.o \
@@ -497,6 +497,7 @@ hyper.o: \
 	 zgrid.o 
 implicit_solve.o: \
 	 constants.o \
+	 debug_flags.o \
 	 dist_fn_arrays.o \
 	 extended_zgrid.o \
 	 ffs_solve.o \
@@ -543,8 +544,8 @@ kt_grids.o: \
 	 geometry.o \
 	 job_manage.o \
 	 mp.o \
+	 parameters_physics.o \
 	 physics_flags.o \
-	 physics_parameters.o \
 	 ran.o \
 	 stella_transforms.o \
 	 text_options.o \
@@ -552,6 +553,7 @@ kt_grids.o: \
 linear_solve.o: 
 mirror_terms.o: \
 	 constants.o \
+	 debug_flags.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields.o \
@@ -590,7 +592,6 @@ multibox.o: \
 	 linear_solve.o \
 	 mp.o \
 	 physics_flags.o \
-	 physics_parameters.o \
 	 run_parameters.o \
 	 stella_layouts.o \
 	 stella_time.o \
@@ -598,6 +599,7 @@ multibox.o: \
 	 zgrid.o 
 neasyf.o: 
 neoclassical_terms.o: \
+	 debug_flags.o \
 	 file_utils.o \
 	 finite_differences.o \
 	 kt_grids.o \
@@ -613,6 +615,7 @@ netcdf_utils.o: \
 	 file_utils.o \
 	 mp.o 
 parallel_streaming.o: \
+	 debug_flags.o \
 	 dist_fn_arrays.o \
 	 extended_zgrid.o \
 	 fields.o \
@@ -635,14 +638,14 @@ parameters_diagnostics.o: \
 	 file_utils.o \
 	 mp.o \
 	 physics_flags.o 
+parameters_physics.o: \
+	 file_utils.o \
+	 mp.o \
+	 text_options.o 
 physics_flags.o: \
 	 file_utils.o \
 	 mp.o \
 	 text_options.o 
-physics_parameters.o: \
-	 file_utils.o \
-	 mp.o \
-	 physics_flags.o 
 ran.o: \
 	 mt19937.o 
 redistribute.o: \
@@ -650,6 +653,7 @@ redistribute.o: \
 	 mp.o 
 response_matrix.o: \
 	 common_types.o \
+	 debug_flags.o \
 	 dist_fn_arrays.o \
 	 extended_zgrid.o \
 	 fields.o \
@@ -663,8 +667,8 @@ response_matrix.o: \
 	 mp.o \
 	 mp_lu_decomposition.o \
 	 parallel_streaming.o \
+	 parameters_physics.o \
 	 physics_flags.o \
-	 physics_parameters.o \
 	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
@@ -674,8 +678,8 @@ response_matrix.o: \
 run_parameters.o: \
 	 file_utils.o \
 	 mp.o \
+	 parameters_physics.o \
 	 physics_flags.o \
-	 physics_parameters.o \
 	 species.o \
 	 text_options.o 
 sfincs_interface.o: \
@@ -712,8 +716,8 @@ species.o: \
 	 geometry_inputprofiles_interface.o \
 	 job_manage.o \
 	 mp.o \
+	 parameters_physics.o \
 	 physics_flags.o \
-	 physics_parameters.o \
 	 text_options.o 
 spfunc.o: \
 	 constants.o 
@@ -742,8 +746,8 @@ stella.o: \
 	 multibox.o \
 	 parallel_streaming.o \
 	 parameters_diagnostics.o \
+	 parameters_physics.o \
 	 physics_flags.o \
-	 physics_parameters.o \
 	 ran.o \
 	 redistribute.o \
 	 response_matrix.o \
@@ -769,7 +773,6 @@ stella_io.o: \
 	 neasyf.o \
 	 netcdf_utils.o \
 	 physics_flags.o \
-	 physics_parameters.o \
 	 species.o \
 	 vpamu_grids.o \
 	 zgrid.o 
@@ -800,6 +803,7 @@ text_options.o: \
 	 mp.o 
 time_advance.o: \
 	 constants.o \
+	 debug_flags.o \
 	 dissipation.o \
 	 dist_fn_arrays.o \
 	 dist_redistribute.o \
@@ -822,7 +826,6 @@ time_advance.o: \
 	 neoclassical_terms.o \
 	 parallel_streaming.o \
 	 physics_flags.o \
-	 physics_parameters.o \
 	 redistribute.o \
 	 response_matrix.o \
 	 run_parameters.o \

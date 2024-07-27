@@ -261,7 +261,7 @@ contains
       use geometry, only: geo_surf, twist_and_shift_geo_fac, dydalpha
       use geometry, only: q_as_x, get_x_to_rho, dxdpsi, drhodpsi
       use geometry, only: geo_option_switch, geo_option_vmec
-      use physics_parameters, only: rhostar
+      use parameters_physics, only: rhostar
       use physics_flags, only: full_flux_surface, radial_variation
       use file_utils, only: runtype_option_switch, runtype_multibox
       use zgrid, only: nperiod
@@ -611,7 +611,7 @@ contains
    subroutine dump_radial_grid
 
       use file_utils, only: run_name
-      use physics_parameters, only: rhostar
+      use parameters_physics, only: rhostar
       use geometry, only: q_as_x, geo_surf, dxdpsi, drhodpsip
 
       implicit none

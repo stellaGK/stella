@@ -50,7 +50,7 @@ contains
 
 !    use mp, only: trin_flag
       use mp, only: proc0, broadcast
-      use physics_parameters, only: vnew_ref, zeff
+      use parameters_physics, only: vnew_ref, zeff
       use physics_flags, only: include_pressure_variation
       use physics_flags, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       use geometry_inputprofiles_interface, only: read_inputprof_spec

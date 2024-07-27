@@ -96,7 +96,7 @@ contains
       use file_utils, only: run_name, init_job_name
       use file_utils, only: flush_output_file, error_unit
       use job_manage, only: checktime, time_message
-      use physics_parameters, only: init_physics_parameters
+      use parameters_physics, only: read_parameters_physics
       use physics_flags, only: init_physics_flags, radial_variation
       use run_parameters, only: init_run_parameters
       use run_parameters, only: avail_cpu_time, nstep, rng_seed, delt, delt_max, delt_min
@@ -193,9 +193,9 @@ contains
       !> read the physics_flags namelist from the input file
       if (debug) write (6, *) "stella::init_stella::init_physics_flags"
       call init_physics_flags
-      !> read the physics_parameters namelist from the input file
-      if (debug) write (6, *) "stella::init_stella::init_physics_parameters"
-      call init_physics_parameters
+      !> read the parameters_physics namelist from the input file
+      if (debug) write (6, *) "stella::init_stella::read_parameters_physics"
+      call read_parameters_physics
       !> read the zgrid_parameters namelist from the input file and setup the z grid
       if (debug) write (6, *) "stella::init_stella::init_zgrid"
       call init_zgrid
@@ -421,7 +421,7 @@ contains
       use physics_flags, only: nonlinear, include_parallel_nonlinearity
       use physics_flags, only: radial_variation, full_flux_surface
       use physics_flags, only: hammett_flow_shear
-      use physics_parameters, only: g_exb, g_exbfac 
+      use parameters_physics, only: g_exb, g_exbfac 
       
       ! Input file
       use parameters_diagnostics, only: write_radial_moments, write_radial_fluxes
@@ -559,7 +559,7 @@ contains
       use mp, only: proc0
       use file_utils, only: finish_file_utils, runtype_option_switch, runtype_multibox
       use job_manage, only: time_message
-      use physics_parameters, only: finish_physics_parameters
+      use parameters_physics, only: finish_read_parameters_physics
       use physics_flags, only: finish_physics_flags, include_parallel_nonlinearity, radial_variation
       use run_parameters, only: finish_run_parameters
       use zgrid, only: finish_zgrid
@@ -625,8 +625,8 @@ contains
       call finish_species
       if (debug) write (*, *) 'stella::finish_stella::finish_physics_flags'
       call finish_physics_flags
-      if (debug) write (*, *) 'stella::finish_stella::finish_physics_parameters'
-      call finish_physics_parameters
+      if (debug) write (*, *) 'stella::finish_stella::finish_parameters_physics'
+      call finish_read_parameters_physics
       if (debug) write (*, *) 'stella::finish_stella::finish_geometry'
       call finish_geometry
       if (debug) write (*, *) 'stella::finish_stella::finish_zgrid'

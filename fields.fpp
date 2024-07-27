@@ -94,7 +94,7 @@ contains
       use run_parameters, only: fphi
       use run_parameters, only: ky_solve_radial
       use run_parameters, only: maxwellian_normalization
-      use physics_parameters, only: tite, nine, beta
+      use parameters_physics, only: tite, nine, beta
       use physics_flags, only: radial_variation
       use species, only: spec, has_electron_species, ion_species
       use geometry, only: dl_over_b, dBdrho, bmag
@@ -632,7 +632,7 @@ contains
       use spfunc, only: j0
       use dist_fn_arrays, only: kperp2
       use stella_transforms, only: transform_alpha2kalpha
-      use physics_parameters, only: nine, tite
+      use parameters_physics, only: nine, tite
       use species, only: spec, nspec
       use species, only: adiabatic_electrons
       use zgrid, only: nzgrid, nztot
@@ -821,7 +821,7 @@ contains
    !> is stored in adiabatic_response_factor
    subroutine init_adiabatic_response_factor
 
-      use physics_parameters, only: nine, tite
+      use parameters_physics, only: nine, tite
       use zgrid, only: nzgrid
       use stella_transforms, only: transform_alpha2kalpha
       use kt_grids, only: naky, naky_all, ikx_max
@@ -1043,7 +1043,7 @@ contains
       use gyro_averages, only: gyro_average, gyro_average_j1
       use physics_flags, only: include_apar, include_bpar
       use run_parameters, only: fphi
-      use physics_parameters, only: beta
+      use parameters_physics, only: beta
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vpa, mu
@@ -1161,7 +1161,7 @@ contains
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx
       use gyro_averages, only: gyro_average, gyro_average_j1
       use run_parameters, only: fphi
-      use physics_parameters, only: beta
+      use parameters_physics, only: beta
       use physics_flags, only: include_apar, include_bpar
       use physics_flags, only: radial_variation
       use dist_fn_arrays, only: g_scratch
@@ -1376,7 +1376,7 @@ contains
    subroutine get_fields_ffs(g, phi, apar, implicit_solve)
 
       use mp, only: mp_abort
-      use physics_parameters, only: nine, tite
+      use parameters_physics, only: nine, tite
       use physics_flags, only: include_apar
       use stella_layouts, only: vmu_lo
       use run_parameters, only: fphi
@@ -2020,7 +2020,7 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use physics_flags, only: include_apar
-      use physics_parameters, only: beta
+      use parameters_physics, only: beta
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu, vpa

@@ -79,7 +79,7 @@ contains
       use text_options, only: text_option, get_option_value
       use physics_flags, only: include_mirror, full_flux_surface, radial_variation
       use physics_flags, only: nonlinear, include_apar, include_parallel_streaming
-      use physics_parameters, only: rhostar
+      use parameters_physics, only: rhostar
       !> For FFS - need to delete 
       use species, only: has_electron_species, spec
       implicit none

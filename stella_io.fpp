@@ -156,7 +156,7 @@ contains
       use vpamu_grids, only: nvpa, vpa, nmu, mu
       use species, only: nspec
       use physics_flags, only: radial_variation
-      use physics_parameters, only: rhostar
+      use parameters_physics, only: rhostar
       use geometry, only: geo_surf, dxdpsi, q_as_x
       use mp, only: nproc
       use neasyf, only: neasyf_dim, neasyf_write
@@ -1361,7 +1361,7 @@ contains
       use geometry, only: bmag, gradpar, gbdrift, gbdrift0
       use geometry, only: cvdrift, cvdrift0, gds2, gds21, gds22, grho, jacob
       use geometry, only: drhodpsi, djacdrho, b_dot_grad_z, geo_surf 
-      use physics_parameters, only: beta
+      use parameters_physics, only: beta
       use dist_fn_arrays, only: kperp2
       use kt_grids, only: jtwist
 #endif

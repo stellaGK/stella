@@ -116,7 +116,6 @@ contains
 
       use zgrid, only: init_zgrid
       use kt_grids, only: init_kt_grids
-      use physics_parameters, only: init_physics_parameters
       use run_parameters, only: init_run_parameters
       use species, only: init_species
       use dist_fn, only: init_dist_fn
@@ -149,7 +148,6 @@ contains
       ! Should have been taken care off in the <init_stella> subroutine in the <stella> module. 
       ! Nonetheless, make sure that the other routines are intialized.
       call init_zgrid
-      call init_physics_parameters
       call init_kt_grids
       call init_run_parameters
       call init_species

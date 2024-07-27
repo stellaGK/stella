@@ -417,7 +417,7 @@ contains
 
    subroutine init_parallel_nonlinearity
 
-      use physics_parameters, only: rhostar
+      use parameters_physics, only: rhostar
       use species, only: spec, nspec
       use zgrid, only: nztot, nzgrid
       use geometry, only: geo_surf, drhodpsi, q_as_x
@@ -1235,7 +1235,7 @@ contains
       use physics_flags, only: include_mirror, include_apar
       use physics_flags, only: nonlinear, include_bpar
       use physics_flags, only: full_flux_surface, radial_variation
-      use physics_parameters, only: g_exb
+      use parameters_physics, only: g_exb
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: ikx_max, ny, naky_all
       use kt_grids, only: swap_kxky_back
@@ -1828,7 +1828,7 @@ contains
       use stella_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
       use stella_time, only: cfl_dt_ExB, cfl_dt_linear, code_dt, code_dt_max
       use run_parameters, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, fphi
-      use physics_parameters, only: g_exb, g_exbfac
+      use parameters_physics, only: g_exb, g_exbfac
       use zgrid, only: nzgrid, ntubes
       use geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
       use kt_grids, only: nakx, ikx_max, naky, naky_all, nx, ny

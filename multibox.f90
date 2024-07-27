@@ -231,7 +231,7 @@ contains
       use kt_grids, only: boundary_size, krook_size
       use file_utils, only: runtype_option_switch, runtype_multibox
       use job_manage, only: njobs
-      use physics_parameters, only: rhostar
+      use parameters_physics, only: rhostar
       use mp, only: scope, crossdomprocs, subprocs, &
                     send, receive, job
 
@@ -486,7 +486,7 @@ contains
       use fields_arrays, only: phi, phi_corr_QN, shift_state
       use job_manage, only: njobs, time_message
       use physics_flags, only: radial_variation, prp_shear_enabled, hammett_flow_shear
-      use physics_parameters, only: g_exb, g_exbfac
+      use parameters_physics, only: g_exb, g_exbfac
       use stella_layouts, only: vmu_lo
       use geometry, only: dl_over_b
       use zgrid, only: nzgrid

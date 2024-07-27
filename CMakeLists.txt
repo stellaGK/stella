@@ -63,7 +63,7 @@ set(STELLA_SOURCES_f90
   neoclassical_terms.f90
   parallel_streaming.f90
   physics_flags.f90
-  physics_parameters.f90
+  parameters_physics.f90
   run_parameters.f90
   species.f90
   stella_diagnostics.f90

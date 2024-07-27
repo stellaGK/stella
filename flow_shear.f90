@@ -34,7 +34,7 @@ contains
       use fields_arrays, only: shift_state
       use geometry, only: q_as_x, geo_surf, bmag, btor, rmajor, dBdrho, dIdrho
       use geometry, only: dydalpha, drhodpsi
-      use physics_parameters, only: g_exb, g_exbfac, omprimfac
+      use parameters_physics, only: g_exb, g_exbfac, omprimfac
       use vpamu_grids, only: vperp2, vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use physics_flags, only: radial_variation, prp_shear_enabled, hammett_flow_shear

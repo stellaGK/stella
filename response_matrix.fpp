@@ -1052,7 +1052,7 @@ contains
 
       use stella_layouts, only: vmu_lo, imu_idx
       use species, only: nspec, spec
-      use physics_parameters, only: beta
+      use parameters_physics, only: beta
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
@@ -1114,7 +1114,7 @@ contains
    subroutine integrate_over_velocity_apar(g, apar, iky, ie)
 
       use stella_layouts, only: vmu_lo, iv_idx
-      use physics_parameters, only: beta
+      use parameters_physics, only: beta
       use species, only: nspec, spec
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
