@@ -29,6 +29,9 @@ contains
    ! Calculate and write diagnostics.
    subroutine diagnostics_stella(istep)
 
+      ! Debug Flags
+      use debug_flags, only: diagnostics_debug
+     
       ! Data 
       use fields_arrays, only: phi, apar, bpar
       use dist_fn_arrays, only: gnew 
@@ -62,6 +65,11 @@ contains
 
       !---------------------------------------------------------------------- 
 
+      ! Set debug flad
+      if (diagnostics_debug) debug = .true.
+      
+      !----------------------------------------------------------------------
+      
       ! We only write data at every <nwrite> or every <nwrite>*<nc_mult> time steps
       write_to_ascii_files = (mod(istep, nwrite) == 0)
       write_to_netcdf_file = (mod(istep, nwrite * nc_mult) == 0)

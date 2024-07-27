@@ -14,13 +14,14 @@ program stella
    use file_utils, only: error_unit, flush_output_file
    use git_version, only: get_git_version, get_git_date
    use diagnostics_omega, only: checksaturation
-   
+
+   use debug_flags, only: debug => stella_debug
    ! Input file
    use parameters_diagnostics, only: nsave
 
    implicit none
 
-   logical :: debug = .false.
+!   logical :: debug = .false.
    
    logical :: stop_stella = .false.
    logical :: mpi_initialized = .false.
@@ -89,6 +90,7 @@ contains
 
       use mp, only: init_mp, broadcast, sum_allreduce
       use mp, only: proc0, job
+      use debug_flags, only: read_debug_flags
       use file_utils, only: init_file_utils
       use file_utils, only: runtype_option_switch, runtype_multibox
       use file_utils, only: run_name, init_job_name
@@ -154,7 +156,6 @@ contains
       !> initialize mpi message passing
       if (.not. mpi_initialized) call init_mp
       mpi_initialized = .true.
-      debug = debug .and. proc0
 
       !> initialize timer
       if (debug) write (*, *) 'stella::init_stella::check_time'
@@ -169,12 +170,16 @@ contains
          call init_file_utils(list)
       end if
 
+      call read_debug_flags
+!      if(stella_debug) debug = .true. 
+      debug = debug .and. proc0
+
       call broadcast(list)
       call broadcast(runtype_option_switch)
       if (list) call job_fork
 
       !proc0 may have changed
-      debug = debug .and. proc0
+      !debug = debug .and. proc0
 
       if (proc0) then
          call time_message(.false., time_total, ' Total')
@@ -184,7 +189,7 @@ contains
       if (proc0) cbuff = trim(run_name)
       call broadcast(cbuff)
       if (.not. proc0) call init_job_name(cbuff)
-
+      
       !> read the physics_flags namelist from the input file
       if (debug) write (6, *) "stella::init_stella::init_physics_flags"
       call init_physics_flags

@@ -8,6 +8,7 @@ stella_mod = \
 	 common_types.o \
 	 constants.o \
 	 convert.o \
+	 debug_flags.o \
 	 diagnostics.o \
 	 diagnostics_distribution.o \
 	 diagnostics_fluxes.o \
@@ -131,6 +132,9 @@ command_line.o:
 common_types.o: 
 constants.o: 
 convert.o: 
+debug_flags.o: \
+	 file_utils.o \
+	 mp.o 
 diagnostics.o: \
 	 constants.o \
 	 diagnostics_distribution.o \
@@ -716,6 +720,7 @@ spfunc.o: \
 spl.o: \
 	 constants.o 
 stella.o: \
+	 debug_flags.o \
 	 diagnostics.o \
 	 diagnostics_omega.o \
 	 dissipation.o \

@@ -1,0 +1,181 @@
+!###############################################################################
+!############################### READ DEBUG FLAGS ##############################
+!###############################################################################
+! Namelist: &debug_flags
+! These flags will allow you to toggle the debug flags in each file of stella.
+! If you would like to debug a specific file then the corresponding flag to turn
+! the debug messages in that file will be <FileNameStem_debug>.
+! As an example, if you want to debug the fields.fpp debug flags then the
+! corresponding debug flag in the input file will be <fields_debug = .true.>.
+! If you would like all the debug flags on in every file then simply set 
+! <debug_all = .true.> in the input file; this will set every debug flag to true
+!###############################################################################
+module debug_flags
+
+  implicit none
+  
+  !> Publuc routines
+  public :: read_debug_flags
+  
+  !> Public debug flags
+  public :: stella_debug
+  
+  public :: ffs_solve_debug, fields_debug, implicit_solve_debug
+  public :: mirror_terms_debug, neoclassical_terms_debug, parallel_streaming_debug
+  public :: response_matrix_debug, diagnostics_debug, time_advance_debug
+  !> Public debug flug for debugging full flux surface
+  public :: const_alpha_geo
+  
+  private
+
+  logical :: debug_all
+  !> Main stella file debug flag
+  logical :: stella_debug
+  !> Fields debug flags
+  logical :: fields_debug
+  !> Gyrokinetic terms, debug flags
+  logical :: time_advance_debug
+  logical :: implicit_solve_debug
+  logical :: parallel_streaming_debug
+  logical :: response_matrix_debug
+  logical :: mirror_terms_debug
+  logical :: neoclassical_terms_debug
+  !> Diagnostics debug flags
+  logical :: diagnostics_debug
+  logical :: fluxes_debug
+  !> For FFS
+  logical :: ffs_solve_debug
+  logical :: const_alpha_geo
+
+  logical :: initialised = .false.
+
+contains
+
+  !======================================================================
+  !========================= READ DEBUG FLAGS  ==========================
+  !======================================================================
+  subroutine read_debug_flags
+
+    use mp, only: proc0
+    
+    implicit none
+
+    namelist /debug_flags/ debug_all, stella_debug, ffs_solve_debug, fields_debug, &
+         implicit_solve_debug, mirror_terms_debug, neoclassical_terms_debug, parallel_streaming_debug, &
+         response_matrix_debug, time_advance_debug, diagnostics_debug, fluxes_debug, &
+         const_alpha_geo
+    
+    if (initialised) return
+    initialised = .true.
+    
+    if (proc0) call set_default_parameters
+    if (proc0) call read_input_file
+    call broadcast_parameters
+
+
+  contains
+
+      !**********************************************************************
+      !                        SET DEFAULT PARAMETERS                       !
+      !**********************************************************************
+      ! If not specified in the input file these are the default options that 
+      ! will be set for all parameters under the namelist 
+      ! &debug_flags'.
+      ! The default here is that all debug flags are set to .false.
+      !**********************************************************************
+      subroutine set_default_parameters
+
+        implicit none
+        
+        stella_debug = .false.
+        write(*,*) 'set_default_parameters', stella_debug
+        ffs_solve_debug = .false.
+        fields_debug = .false.
+        implicit_solve_debug = .false.
+        mirror_terms_debug = .false.
+        neoclassical_terms_debug = .false.
+        parallel_streaming_debug = .false.
+        response_matrix_debug = .false.
+        time_advance_debug = .false.
+        
+        !> Diagnostircs debug
+        diagnostics_debug = .false.
+        fluxes_debug = .false.
+ 
+        !###################################
+        !     FOR THE PURPOSE OF DEBUGGING
+        !###################################
+        const_alpha_geo = .false. 
+
+      end subroutine set_default_parameters
+
+      !**********************************************************************
+      !                         READ INPUT OPTIONS                          !
+      !**********************************************************************
+      ! Overwrite any default options with those specified in the input file. 
+      ! Then change the other parameters consistently.
+      !**********************************************************************
+      subroutine read_input_file
+        
+        use file_utils, only: input_unit, error_unit, input_unit_exist
+        
+        implicit none 
+
+        integer :: in_file
+        logical :: nml_exist
+
+        !> Overwrite the default input parameters by those specified in the input file
+        !> under the heading '&numerical'  
+        in_file = input_unit_exist("debug_flags", nml_exist)
+        write(*,*) 'nml_exist', nml_exist
+        if (nml_exist) read (unit=in_file, nml=debug_flags)
+        
+        write(*,*) 'in read input file', stella_debug
+        
+        if(debug_all) then
+          stella_debug = .true.
+          ffs_solve_debug = .true.
+          fields_debug = .true.
+          implicit_solve_debug = .true.
+          mirror_terms_debug = .true.
+          neoclassical_terms_debug = .true.
+          parallel_streaming_debug = .true.
+          response_matrix_debug = .true.
+          time_advance_debug = .true.
+          !> Set all diagnostics flags to be on
+          diagnostics_debug = .true.
+        end if
+
+        if(diagnostics_debug) then
+          fluxes_debug = .true.
+        end if
+      end subroutine read_input_file
+
+      !**********************************************************************
+      !                         BROADCAST OPTIONS                           !
+      !**********************************************************************
+      ! Broadcast these parameters to all the processors - necessary because
+      ! the above was only done for the first processor (proc0).
+      !**********************************************************************
+      subroutine broadcast_parameters  
+
+        use mp, only: broadcast
+
+        call broadcast(stella_debug)
+        
+        call broadcast(ffs_solve_debug)
+        call broadcast(fields_debug)
+        call broadcast(implicit_solve_debug)
+        call broadcast(mirror_terms_debug)
+        call broadcast(neoclassical_terms_debug)
+        call broadcast(parallel_streaming_debug)
+        call broadcast(response_matrix_debug)
+        call broadcast(diagnostics_debug)
+        call broadcast(time_advance_debug)
+        call broadcast(const_alpha_geo) 
+       
+      end subroutine broadcast_parameters
+
+  end subroutine read_debug_flags
+   
+end module debug_flags
