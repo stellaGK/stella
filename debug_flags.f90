@@ -19,8 +19,9 @@ module debug_flags
   
   !> Public debug flags
   public :: stella_debug
-
+  
   public :: fields_debug
+  public :: fields_electromagnetic_debug
 
   public :: time_advance_debug
   public :: implicit_solve_debug
@@ -49,7 +50,9 @@ module debug_flags
   !> Main stella file debug flag
   logical :: stella_debug
   !> Fields debug flags
+  logical :: fields_all_debug
   logical :: fields_debug
+  logical :: fields_electromagnetic_debug
   !> Gyrokinetic terms, debug flags
   logical :: time_advance_debug
   logical :: implicit_solve_debug
@@ -58,8 +61,8 @@ module debug_flags
   logical :: mirror_terms_debug
   logical :: neoclassical_terms_debug
   !> Diagnostics debug flags
+  logical :: diagnostics__all_debug
   logical :: diagnostics_debug
-  logical :: diagnostics_main_debug
   logical :: fluxes_debug
 
   logical :: geometry_debug
@@ -83,9 +86,10 @@ contains
     
     implicit none
 
-    namelist /debug_flags/ debug_all, stella_debug, ffs_solve_debug, fields_debug, &
+    namelist /debug_flags/ debug_all, stella_debug, ffs_solve_debug, &
+         fields_all_debug, fields_debug, fields_electromagnetic_debug, &
          implicit_solve_debug, parallel_streaming_debug, mirror_terms_debug, neoclassical_terms_debug, &
-         response_matrix_debug, time_advance_debug, diagnostics_debug, diagnostics_main_debug, dist_fn_debug,&
+         response_matrix_debug, time_advance_debug, diagnostics_all_debug, diagnostics_debug, dist_fn_debug,&
          gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo
     
     if (initialised) return
@@ -112,7 +116,9 @@ contains
         
         stella_debug = .false.
         ffs_solve_debug = .false.
+        fields_all_debug = .false. 
         fields_debug = .false.
+        fields_electromagnetic_debug = .false.
         implicit_solve_debug = .false.
         mirror_terms_debug = .false.
         neoclassical_terms_debug = .false.
@@ -121,8 +127,8 @@ contains
         time_advance_debug = .false.
         
         !> Diagnostircs debug
+        diagnostics_all_debug = .false.
         diagnostics_debug = .false.
-        diagnostics_main_debug = .false.
         fluxes_debug = .false.
 
         geometry_debug = .true.
@@ -159,7 +165,7 @@ contains
         if(debug_all) then
           stella_debug = .true.
           ffs_solve_debug = .true.
-          fields_debug = .true.
+          fields_all_debug = .true.
           time_advance_debug = .true.
           implicit_solve_debug = .true.
           parallel_streaming_debug = .true.
@@ -167,15 +173,20 @@ contains
           mirror_terms_debug = .true.
           neoclassical_terms_debug = .true.
           !> Set all diagnostics flags to be on
-          diagnostics_debug = .true.
+          diagnostics_all_debug = .true.
 
           dist_fn_debug = .true.
           gyro_averages_debug = .true.
           geometry_debug = .true. 
         end if
 
-        if(diagnostics_debug) then
-           diagnostics_main_debug = .true. 
+        if(fields_all_debug) then
+           fields_debug = .true.
+           fields_electromagnetic_debug = .true.
+        end if
+                     
+        if(diagnostics_all_debug) then
+           diagnostics_debug = .true. 
            fluxes_debug = .true.
         end if
       end subroutine read_input_file
@@ -194,12 +205,13 @@ contains
         
         call broadcast(ffs_solve_debug)
         call broadcast(fields_debug)
+        call broadcast(fields_electromagnetic_debug) 
         call broadcast(implicit_solve_debug)
         call broadcast(mirror_terms_debug)
         call broadcast(neoclassical_terms_debug)
         call broadcast(parallel_streaming_debug)
         call broadcast(response_matrix_debug)
-        call broadcast(diagnostics_main_debug)
+        call broadcast(diagnostics_debug)
         call broadcast(time_advance_debug)
 
         call broadcast(dist_fn_debug)

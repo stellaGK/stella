@@ -2,7 +2,7 @@
 module diagnostics
 
   ! Debug Flags
-  use debug_flags, only: debug => diagnostics_main_debug
+  use debug_flags, only: debug => diagnostics_debug
 
    implicit none
 

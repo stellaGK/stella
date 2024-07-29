@@ -892,6 +892,7 @@ vpamu_grids.o: \
 	 stella_layouts.o \
 	 zgrid.o 
 write_radial_grid.o: \
+	 arrays_kxky.o \
 	 file_utils.o \
 	 geometry.o \
 	 parameters_physics.o 
