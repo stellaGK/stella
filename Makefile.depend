@@ -2,6 +2,7 @@
 # Auto-generated file by fortdep. Do not edit!
 #
 stella_mod = \
+	 arrays_dist_fn.o \
 	 arrays_fields.o \
 	 arrays_kxky.o \
 	 calculations_kxky.o \
@@ -23,7 +24,6 @@ stella_mod = \
 	 diagnostics_potential.o \
 	 dissipation.o \
 	 dist_fn.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 euterpe_interface.o \
 	 extended_zgrid.o \
@@ -85,6 +85,7 @@ stella_mod = \
 	 write_radial_grid.o \
 	 zgrid.o 
 
+arrays_dist_fn.o: 
 arrays_fields.o: \
 	 common_types.o 
 arrays_kxky.o: 
@@ -94,10 +95,10 @@ calculations_kxky.o: \
 	 mp.o \
 	 stella_transforms.o 
 coll_dougherty.o: \
+	 arrays_dist_fn.o \
 	 arrays_fields.o \
 	 arrays_kxky.o \
 	 calculations_kxky.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields.o \
 	 file_utils.o \
@@ -118,10 +119,10 @@ coll_dougherty.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 coll_fokkerplanck.o: \
+	 arrays_dist_fn.o \
 	 arrays_kxky.o \
 	 common_types.o \
 	 constants.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields.o \
 	 file_utils.o \
@@ -149,6 +150,7 @@ debug_flags.o: \
 	 file_utils.o \
 	 mp.o 
 diagnostics.o: \
+	 arrays_dist_fn.o \
 	 arrays_fields.o \
 	 constants.o \
 	 debug_flags.o \
@@ -158,7 +160,6 @@ diagnostics.o: \
 	 diagnostics_omega.o \
 	 diagnostics_potential.o \
 	 dist_fn.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields.o \
 	 init_g.o \
@@ -173,9 +174,9 @@ diagnostics.o: \
 	 stella_time.o \
 	 zgrid.o 
 diagnostics_distribution.o: \
+	 arrays_dist_fn.o \
 	 arrays_fields.o \
 	 arrays_kxky.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 g_tofrom_h.o \
 	 geometry.o \
@@ -191,13 +192,13 @@ diagnostics_distribution.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 diagnostics_fluxes.o: \
+	 arrays_dist_fn.o \
 	 arrays_fields.o \
 	 arrays_kxky.o \
 	 debug_flags.o \
 	 diagnostics_fluxes_fluxtube.o \
 	 diagnostics_fluxes_fullfluxsurface.o \
 	 diagnostics_fluxes_radialvariation.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 file_utils.o \
 	 g_tofrom_h.o \
@@ -227,11 +228,11 @@ diagnostics_fluxes_fluxtube.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 diagnostics_fluxes_fullfluxsurface.o: \
+	 arrays_dist_fn.o \
 	 arrays_fields.o \
 	 arrays_kxky.o \
 	 calculations_kxky.o \
 	 constants.o \
-	 dist_fn_arrays.o \
 	 g_tofrom_h.o \
 	 geometry.o \
 	 gyro_averages.o \
@@ -243,10 +244,10 @@ diagnostics_fluxes_fullfluxsurface.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 diagnostics_fluxes_radialvariation.o: \
+	 arrays_dist_fn.o \
 	 arrays_kxky.o \
 	 calculations_kxky.o \
 	 constants.o \
-	 dist_fn_arrays.o \
 	 geometry.o \
 	 gyro_averages.o \
 	 mp.o \
@@ -260,10 +261,10 @@ diagnostics_fluxes_radialvariation.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 diagnostics_moments.o: \
+	 arrays_dist_fn.o \
 	 arrays_fields.o \
 	 arrays_kxky.o \
 	 calculations_kxky.o \
-	 dist_fn_arrays.o \
 	 geometry.o \
 	 gyro_averages.o \
 	 job_manage.o \
@@ -289,9 +290,9 @@ diagnostics_omega.o: \
 	 stella_time.o \
 	 volume_averages.o 
 diagnostics_potential.o: \
+	 arrays_dist_fn.o \
 	 arrays_fields.o \
 	 arrays_kxky.o \
-	 dist_fn_arrays.o \
 	 fields.o \
 	 file_utils.o \
 	 geometry.o \
@@ -303,9 +304,9 @@ diagnostics_potential.o: \
 	 volume_averages.o \
 	 zgrid.o 
 dissipation.o: \
+	 arrays_dist_fn.o \
 	 coll_dougherty.o \
 	 coll_fokkerplanck.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 file_utils.o \
 	 hyper.o \
@@ -318,10 +319,10 @@ dissipation.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 dist_fn.o: \
+	 arrays_dist_fn.o \
 	 arrays_kxky.o \
 	 calculations_kxky.o \
 	 debug_flags.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 extended_zgrid.o \
 	 geometry.o \
@@ -334,7 +335,6 @@ dist_fn.o: \
 	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-dist_fn_arrays.o: 
 dist_redistribute.o: \
 	 mp.o \
 	 parameters_physics.o \
@@ -363,10 +363,10 @@ ezcdf_GenGet.o: \
 ezcdf_inqvar.o: 
 ezcdf_opncls.o: 
 ffs_solve.o: \
+	 arrays_dist_fn.o \
 	 arrays_kxky.o \
 	 calculations_kxky.o \
 	 constants.o \
-	 dist_fn_arrays.o \
 	 fields.o \
 	 gyro_averages.o \
 	 mp.o \
@@ -380,13 +380,13 @@ fft_work.o: \
 	 constants.o \
 	 mp.o 
 fields.o: \
+	 arrays_dist_fn.o \
 	 arrays_fields.o \
 	 arrays_kxky.o \
 	 calculations_kxky.o \
 	 common_types.o \
 	 constants.o \
 	 debug_flags.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 file_utils.o \
 	 geometry.o \
@@ -427,9 +427,9 @@ flow_shear.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 g_tofrom_h.o: \
+	 arrays_dist_fn.o \
 	 arrays_kxky.o \
 	 calculations_kxky.o \
-	 dist_fn_arrays.o \
 	 geometry.o \
 	 gyro_averages.o \
 	 parameters_numerical.o \
@@ -498,11 +498,11 @@ grids_kxky.o: \
 	 write_radial_grid.o \
 	 zgrid.o 
 gyro_averages.o: \
+	 arrays_dist_fn.o \
 	 arrays_kxky.o \
 	 calculations_kxky.o \
 	 common_types.o \
 	 debug_flags.o \
-	 dist_fn_arrays.o \
 	 geometry.o \
 	 mp.o \
 	 parameters_physics.o \
@@ -513,8 +513,8 @@ gyro_averages.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 hyper.o: \
+	 arrays_dist_fn.o \
 	 arrays_kxky.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 extended_zgrid.o \
 	 file_utils.o \
@@ -528,11 +528,11 @@ hyper.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 implicit_solve.o: \
+	 arrays_dist_fn.o \
 	 arrays_fields.o \
 	 arrays_kxky.o \
 	 constants.o \
 	 debug_flags.o \
-	 dist_fn_arrays.o \
 	 extended_zgrid.o \
 	 ffs_solve.o \
 	 fields.o \
@@ -550,9 +550,9 @@ implicit_solve.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 init_g.o: \
+	 arrays_dist_fn.o \
 	 arrays_kxky.o \
 	 constants.o \
-	 dist_fn_arrays.o \
 	 extended_zgrid.o \
 	 file_utils.o \
 	 mp.o \
@@ -571,12 +571,12 @@ job_manage.o: \
 	 mp.o 
 linear_solve.o: 
 mirror_terms.o: \
+	 arrays_dist_fn.o \
 	 arrays_fields.o \
 	 arrays_kxky.o \
 	 calculations_kxky.o \
 	 constants.o \
 	 debug_flags.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields.o \
 	 finite_differences.o \
@@ -635,11 +635,11 @@ netcdf_utils.o: \
 	 file_utils.o \
 	 mp.o 
 parallel_streaming.o: \
+	 arrays_dist_fn.o \
 	 arrays_fields.o \
 	 arrays_kxky.o \
 	 calculations_kxky.o \
 	 debug_flags.o \
-	 dist_fn_arrays.o \
 	 extended_zgrid.o \
 	 fields.o \
 	 finite_differences.o \
@@ -694,11 +694,11 @@ redistribute.o: \
 	 job_manage.o \
 	 mp.o 
 response_matrix.o: \
+	 arrays_dist_fn.o \
 	 arrays_fields.o \
 	 arrays_kxky.o \
 	 common_types.o \
 	 debug_flags.o \
-	 dist_fn_arrays.o \
 	 extended_zgrid.o \
 	 fields.o \
 	 geometry.o \
@@ -720,10 +720,10 @@ sfincs_interface.o: \
 	 mp.o \
 	 zgrid.o 
 sources.o: \
+	 arrays_dist_fn.o \
 	 arrays_fields.o \
 	 arrays_kxky.o \
 	 constants.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 file_utils.o \
 	 geometry.o \
@@ -757,6 +757,7 @@ spfunc.o: \
 spl.o: \
 	 constants.o 
 stella.o: \
+	 arrays_dist_fn.o \
 	 arrays_fields.o \
 	 arrays_kxky.o \
 	 calculations_kxky.o \
@@ -765,7 +766,6 @@ stella.o: \
 	 diagnostics_omega.o \
 	 dissipation.o \
 	 dist_fn.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 extended_zgrid.o \
 	 fields.o \
@@ -798,9 +798,9 @@ stella.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 stella_io.o: \
+	 arrays_dist_fn.o \
 	 arrays_kxky.o \
 	 convert.o \
-	 dist_fn_arrays.o \
 	 file_utils.o \
 	 geometry.o \
 	 git_version.o \
@@ -816,10 +816,10 @@ stella_layouts.o: \
 	 file_utils.o \
 	 mp.o 
 stella_save.o: \
+	 arrays_dist_fn.o \
 	 arrays_fields.o \
 	 arrays_kxky.o \
 	 common_types.o \
-	 dist_fn_arrays.o \
 	 file_utils.o \
 	 mp.o \
 	 netcdf_utils.o \
@@ -837,13 +837,13 @@ system_fortran.o:
 text_options.o: \
 	 mp.o 
 time_advance.o: \
+	 arrays_dist_fn.o \
 	 arrays_fields.o \
 	 arrays_kxky.o \
 	 calculations_kxky.o \
 	 constants.o \
 	 debug_flags.o \
 	 dissipation.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 extended_zgrid.o \
 	 fields.o \

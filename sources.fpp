@@ -51,7 +51,7 @@ contains
       use arrays_kxky, only: naky, nakx, zonal_mode
       use zgrid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
-      use dist_fn_arrays, only: g_krook, g_proj, g_symm
+      use arrays_dist_fn, only: g_krook, g_proj, g_symm
       use arrays_fields, only: phi_proj, phi_proj_stage
       use parameters_physics, only: radial_variation
       use species, only: spec, has_electron_species
@@ -204,7 +204,7 @@ contains
 
    subroutine finish_sources
 
-      use dist_fn_arrays, only: g_krook, g_proj, g_symm
+      use arrays_dist_fn, only: g_krook, g_proj, g_symm
       use arrays_fields, only: phi_proj, phi_proj_stage
 #ifdef ISO_C_BINDING
       use arrays_fields, only: qn_zf_window
@@ -243,7 +243,7 @@ contains
       use arrays_kxky, only: akx, nakx, zonal_mode, boundary_size
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
-      use dist_fn_arrays, only: g_krook, g_symm
+      use arrays_dist_fn, only: g_krook, g_symm
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
@@ -345,7 +345,7 @@ contains
       use mp, only: proc0
       use job_manage, only: time_message
       use constants, only: pi, zi
-      use dist_fn_arrays, only: g_krook, g_symm
+      use arrays_dist_fn, only: g_krook, g_symm
       use zgrid, only: nzgrid, ntubes
       use arrays_kxky, only: akx, nakx, zonal_mode, boundary_size
       use stella_layouts, only: vmu_lo
@@ -436,7 +436,7 @@ contains
       use stella_layouts, only: imu_idx, is_idx, iv_idx
       use vpamu_grids, only: nvgrid, nvpa, nmu
       use dist_redistribute, only: kxkyz2vmu
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use zgrid, only: nzgrid
 
       implicit none
@@ -478,7 +478,7 @@ contains
       use stella_layouts, only: vmu_lo, imu_idx, is_idx, iv_idx
       use geometry, only: bmag, dBdrho, dl_over_b, d_dl_over_b_drho
       use gyro_averages, only: gyro_average, aj0x, aj1x
-      use dist_fn_arrays, only: kperp2, dkperp2dr
+      use arrays_dist_fn, only: kperp2, dkperp2dr
       use zgrid, only: nzgrid, ntubes
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
@@ -565,7 +565,7 @@ contains
       use arrays_kxky, only: zonal_mode, akx, nakx, boundary_size
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
-      use dist_fn_arrays, only: g_proj, g_symm
+      use arrays_dist_fn, only: g_proj, g_symm
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none

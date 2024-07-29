@@ -25,7 +25,7 @@ contains
 
    subroutine init_gxyz(restarted)
 
-      use dist_fn_arrays, only: gvmu, gold, gnew
+      use arrays_dist_fn, only: gvmu, gold, gnew
       use redistribute, only: gather, scatter
       use dist_redistribute, only: kxkyz2vmu
       use parameters_physics, only: radial_variation
@@ -127,7 +127,7 @@ contains
    !> init_kperp2 allocates and initialises the kperp2 array
    subroutine init_kperp2
 
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
       use geometry, only: gds2, gds21, gds22
       use geometry, only: geo_surf, q_as_x
       use zgrid, only: nzgrid
@@ -178,7 +178,7 @@ contains
    !> init_dkperp2dr allocates and initialises the dkperp2dr array, needed for radial variation
    subroutine init_dkperp2dr
 
-      use dist_fn_arrays, only: kperp2, dkperp2dr
+      use arrays_dist_fn, only: kperp2, dkperp2dr
       use geometry, only: dgds2dr, dgds21dr, dgds22dr
       use geometry, only: geo_surf, q_as_x
       use zgrid, only: nzgrid
@@ -227,7 +227,7 @@ contains
 
    subroutine enforce_single_valued_kperp2
 
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
       use arrays_kxky, only: naky, nalpha
       use zgrid, only: nzgrid
       use extended_zgrid, only: neigen, nsegments, ikxmod
@@ -261,8 +261,8 @@ contains
       use zgrid, only: nzgrid, ntubes
       use arrays_kxky, only: naky, nakx
       use vpamu_grids, only: nvpa, nmu
-      use dist_fn_arrays, only: gnew, gold, g_scratch
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gnew, gold, g_scratch
+      use arrays_dist_fn, only: gvmu
 
       implicit none
 
@@ -322,7 +322,7 @@ contains
 
    subroutine deallocate_arrays
 
-      use dist_fn_arrays, only: gnew, gold, g_scratch, gvmu
+      use arrays_dist_fn, only: gnew, gold, g_scratch, gvmu
 
       implicit none
 
@@ -335,7 +335,7 @@ contains
 
    subroutine finish_kperp2
 
-      use dist_fn_arrays, only: kperp2, dkperp2dr
+      use arrays_dist_fn, only: kperp2, dkperp2dr
 
       implicit none
 

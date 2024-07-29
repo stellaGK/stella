@@ -57,7 +57,7 @@ contains
 
    subroutine init_bessel
 
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
       use parameters_physics, only: full_flux_surface
       use species, only: spec
       use geometry, only: bmag
@@ -269,7 +269,7 @@ contains
       use vpamu_grids, only: vperp2, maxwell_vpa, maxwell_mu
       use arrays_kxky, only: nalpha, naky, naky_all, ikx_max
       use calculations_kxky, only: swap_kxky_ordered
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
 
       use arrays_kxky, only: nakx
       use calculations_kxky, only: swap_kxky_back_ordered

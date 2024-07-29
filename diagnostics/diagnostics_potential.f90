@@ -238,7 +238,7 @@ contains
       use arrays_fields, only: phi, apar, bpar
 
       ! Geometry 
-      USE dist_fn_arrays, only: kperp2
+      USE arrays_dist_fn, only: kperp2
       use geometry, only: zed_eqarc
 
       ! Dimensions

@@ -33,7 +33,7 @@ contains
  
       use mp, only: sum_reduce
       use constants, only: zi
-      use dist_fn_arrays, only: g1, g2, kperp2, dkperp2dr
+      use arrays_dist_fn, only: g1, g2, kperp2, dkperp2dr
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use species, only: spec

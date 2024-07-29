@@ -250,7 +250,7 @@ contains
       use gyro_averages, only: j0_ffs, j0_const
       use arrays_kxky, only: aky, akx
       use zgrid, only: nztot
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g

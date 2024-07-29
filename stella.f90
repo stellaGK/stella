@@ -8,7 +8,7 @@ program stella
    use time_advance, only: advance_stella
    use diagnostics, only: diagnostics_stella
    use stella_save, only: stella_save_for_restart
-   use dist_fn_arrays, only: gnew, gvmu
+   use arrays_dist_fn, only: gnew, gvmu
    use file_utils, only: error_unit, flush_output_file
    use git_version, only: get_git_version, get_git_date
    use diagnostics_omega, only: checksaturation
@@ -120,7 +120,7 @@ contains
       use diagnostics, only: init_diagnostics
       use parameters_diagnostics, only: read_diagnostics_knobs
       use arrays_fields, only: phi, apar, bpar
-      use dist_fn_arrays, only: gnew
+      use arrays_dist_fn, only: gnew
       use dist_fn, only: init_gxyz, init_dist_fn
       use dist_redistribute, only: init_redistribute
       use time_advance, only: init_time_advance

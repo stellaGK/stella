@@ -199,7 +199,7 @@ contains
       use zgrid, only: nzgrid
       use vpamu_grids, only: set_vpa_weights
       use stella_layouts, only: vmu_lo
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use coll_dougherty, only: advance_collisions_dougherty_implicit
       use coll_fokkerplanck, only: advance_collisions_fp_implicit
 

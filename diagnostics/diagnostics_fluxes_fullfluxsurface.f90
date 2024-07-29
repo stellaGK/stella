@@ -194,7 +194,7 @@ contains
       use vpamu_grids, only: vpa, vperp2
       use arrays_kxky, only: naky_all, ikx_max, ny
       use calculations_kxky, only: swap_kxky
-      use dist_fn_arrays, only: g0, g1, g2
+      use arrays_dist_fn, only: g0, g1, g2
       use gyro_averages, only: gyro_average, j0_ffs
       use arrays_fields, only: phi
       use stella_transforms, only: transform_ky2y

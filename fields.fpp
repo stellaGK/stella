@@ -89,7 +89,7 @@ contains
       use mp, only: sum_allreduce
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
-      use dist_fn_arrays, only: kperp2, dkperp2dr
+      use arrays_dist_fn, only: kperp2, dkperp2dr
       use gyro_averages, only: aj0v, aj1v
       use parameters_numerical, only: fphi
       use parameters_numerical, only: ky_solve_radial
@@ -630,7 +630,7 @@ contains
    subroutine init_gamma0_factor_ffs
 
       use spfunc, only: j0
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
       use stella_transforms, only: transform_alpha2kalpha
       use parameters_physics, only: nine, tite
       use species, only: spec, nspec
@@ -948,7 +948,7 @@ contains
       use stella_layouts, only: vmu_lo
       use job_manage, only: time_message
       use redistribute, only: scatter
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use zgrid, only: nzgrid
       use dist_redistribute, only: kxkyz2vmu
       use parameters_numerical, only: fields_kxkyz
@@ -1039,7 +1039,7 @@ contains
       use job_manage, only: time_message
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
       use gyro_averages, only: gyro_average, gyro_average_j1
       use parameters_physics, only: include_apar, include_bpar
       use parameters_numerical, only: fphi
@@ -1164,7 +1164,7 @@ contains
       use parameters_physics, only: beta
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: radial_variation
-      use dist_fn_arrays, only: g_scratch
+      use arrays_dist_fn, only: g_scratch
       use zgrid, only: nzgrid
       use vpamu_grids, only: integrate_species
       use vpamu_grids, only: vpa, mu
@@ -1668,7 +1668,7 @@ contains
       use species, only: spec, nspec, has_electron_species
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
       use spfunc, only: j0
 
       implicit none
@@ -1988,7 +1988,7 @@ contains
 
       use mp, only: proc0, mp_abort
       use zgrid, only: nzgrid, ntubes
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
 
       implicit none
 
@@ -2236,7 +2236,7 @@ contains
       use stella_layouts, only: imu_idx, is_idx
       use gyro_averages, only: aj0x, aj1x
       use geometry, only: dBdrho, bmag
-      use dist_fn_arrays, only: kperp2, dkperp2dr
+      use arrays_dist_fn, only: kperp2, dkperp2dr
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: vperp2
       use arrays_kxky, only: nakx, naky
@@ -2307,7 +2307,7 @@ contains
       use arrays_fields, only: phi_corr_QN, phi_corr_GA
       use arrays_fields, only: gamtot, dgamtotdr
       use arrays_fields, only: gamtot3
-      use dist_fn_arrays, only: kperp2, dkperp2dr
+      use arrays_dist_fn, only: kperp2, dkperp2dr
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
@@ -2446,7 +2446,7 @@ contains
 
       use mp, only: scope, subprocs, crossdomprocs, sum_allreduce
       use arrays_fields, only: phi, apar
-      use dist_fn_arrays, only: gnew, gvmu
+      use arrays_dist_fn, only: gnew, gvmu
       use volume_averages, only: volume_average
       use job_manage, only: njobs
       use file_utils, only: runtype_option_switch, runtype_multibox

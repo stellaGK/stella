@@ -129,9 +129,9 @@ contains
    subroutine init_wdrift
 
       use mp, only: mp_abort
-      use dist_fn_arrays, only: wdriftx_g, wdrifty_g
-      use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
-      use dist_fn_arrays, only: wdriftx_bpar, wdrifty_bpar
+      use arrays_dist_fn, only: wdriftx_g, wdrifty_g
+      use arrays_dist_fn, only: wdriftx_phi, wdrifty_phi
+      use arrays_dist_fn, only: wdriftx_bpar, wdrifty_bpar
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_time, only: code_dt
@@ -298,7 +298,7 @@ contains
       use geometry, only: dydalpha, drhodpsi, clebsch_factor
       use vpamu_grids, only: vperp2, vpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use dist_fn_arrays, only: wstar
+      use arrays_dist_fn, only: wstar
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_drho
       use parameters_numerical, only: maxwellian_normalization
@@ -436,10 +436,10 @@ contains
       use geometry, only: dgbdriftdrho, dgbdrift0drho
       use vpamu_grids, only: vperp2, vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use dist_fn_arrays, only: wstarp
-      use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
-      use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
-      use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi!, adiabatic_phi
+      use arrays_dist_fn, only: wstarp
+      use arrays_dist_fn, only: wdriftx_phi, wdrifty_phi
+      use arrays_dist_fn, only: wdriftpx_g, wdriftpy_g
+      use arrays_dist_fn, only: wdriftpx_phi, wdriftpy_phi!, adiabatic_phi
 
       use parameters_physics, only: xdriftknob, ydriftknob, wstarknob
       
@@ -559,7 +559,7 @@ contains
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid, ntubes
       use arrays_kxky, only: naky, nakx
-      use dist_fn_arrays, only: g0, g1, g2, g3
+      use arrays_dist_fn, only: g0, g1, g2, g3
       use parameters_numerical, only: explicit_option_switch
 
       implicit none
@@ -586,7 +586,7 @@ contains
 
       use mp, only: proc0, nproc, max_allreduce, min_allreduce
       use mp, only: scope, allprocs, subprocs
-      use dist_fn_arrays, only: wdriftx_g, wdrifty_g
+      use arrays_dist_fn, only: wdriftx_g, wdrifty_g
       use stella_time, only: code_dt, write_dt, cfl_dt_linear
       use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
       use parameters_physics, only: radial_variation, prp_shear_enabled
@@ -787,7 +787,7 @@ contains
 
    subroutine advance_stella(istep, stop_stella)
 
-      use dist_fn_arrays, only: gold, gnew
+      use arrays_dist_fn, only: gold, gnew
       use arrays_fields, only: phi, apar, bpar
       use arrays_fields, only: phi_old, apar_old
       use fields, only: advance_fields, fields_updated
@@ -989,7 +989,7 @@ contains
    !> advance_explicit_euler uses forward Euler to advance one time step
    subroutine advance_explicit_euler(g, restart_time_step, istep)
 
-      use dist_fn_arrays, only: g0
+      use arrays_dist_fn, only: g0
       use zgrid, only: nzgrid
       use stella_layouts, only: vmu_lo
       use multibox, only: RK_step
@@ -1014,7 +1014,7 @@ contains
    !> advance_expliciit_rk2 uses strong stability-preserving RK2 to advance one time step
    subroutine advance_explicit_rk2(g, restart_time_step, istep)
 
-      use dist_fn_arrays, only: g0, g1
+      use arrays_dist_fn, only: g0, g1
       use zgrid, only: nzgrid
       use stella_layouts, only: vmu_lo
       use multibox, only: RK_step
@@ -1061,7 +1061,7 @@ contains
    !> strong stability-preserving RK3
    subroutine advance_explicit_rk3(g, restart_time_step, istep)
 
-      use dist_fn_arrays, only: g0, g1, g2
+      use arrays_dist_fn, only: g0, g1, g2
       use zgrid, only: nzgrid
       use stella_layouts, only: vmu_lo
       use multibox, only: RK_step
@@ -1112,7 +1112,7 @@ contains
    !> standard RK4
    subroutine advance_explicit_rk4(g, restart_time_step, istep)
 
-      use dist_fn_arrays, only: g0, g1, g2, g3
+      use arrays_dist_fn, only: g0, g1, g2, g3
       use zgrid, only: nzgrid
       use stella_layouts, only: vmu_lo
       use multibox, only: RK_step
@@ -1200,7 +1200,7 @@ contains
       use mirror_terms, only: advance_mirror_explicit
       use flow_shear, only: advance_parallel_flow_shear
       use multibox, only: include_multibox_krook, add_multibox_krook
-      use dist_fn_arrays, only: g_scratch
+      use arrays_dist_fn, only: g_scratch
       use gyro_averages, only: gyro_average, j0_ffs
       use g_tofrom_h, only: gbar_to_g 
       use dissipation, only: hyper_dissipation
@@ -1394,11 +1394,11 @@ contains
     !   use arrays_kxky, only: naky, naky_all, nakx, ikx_max, ny
     !   use calculations_kxky, only: swap_kxky, swap_kxky_back
     !   use gyro_averages, only: j0_ffs, gyro_average
-    !   use dist_fn_arrays, only: wstar
+    !   use arrays_dist_fn, only: wstar
 
-    !   use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
-    !   use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
-    !   use dist_fn_arrays, only: wstar
+    !   use arrays_dist_fn, only: wdriftx_g, wdriftx_phi
+    !   use arrays_dist_fn, only: wdrifty_g, wdrifty_phi
+    !   use arrays_dist_fn, only: wstar
 
     !   implicit none 
 
@@ -1498,7 +1498,7 @@ contains
       use arrays_kxky, only: naky, naky_all, nakx, ikx_max, ny
       use calculations_kxky, only: swap_kxky
       use parameters_physics, only: full_flux_surface
-      use dist_fn_arrays, only: wstar, g_scratch
+      use arrays_dist_fn, only: wstar, g_scratch
       use gyro_averages, only: gyro_average
 
       implicit none
@@ -1567,8 +1567,8 @@ contains
       use calculations_kxky, only: swap_kxky
       use parameters_physics, only: full_flux_surface, include_bpar
       use gyro_averages, only: gyro_average, gyro_average_j1
-      use dist_fn_arrays, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
-      use dist_fn_arrays, only: g_scratch
+      use arrays_dist_fn, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
+      use arrays_dist_fn, only: g_scratch
 
       implicit none
 
@@ -1673,8 +1673,8 @@ contains
       use calculations_kxky, only: swap_kxky
       use parameters_physics, only: full_flux_surface, include_bpar
       use gyro_averages, only: gyro_average
-      use dist_fn_arrays, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
-      use dist_fn_arrays, only: g_scratch
+      use arrays_dist_fn, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
+      use arrays_dist_fn, only: g_scratch
 
       implicit none
 
@@ -1792,7 +1792,7 @@ contains
       use constants, only: pi, zi
       use file_utils, only: runtype_option_switch, runtype_multibox
       use parameters_physics, only: suppress_zonal_interaction
-      use dist_fn_arrays, only: g_scratch
+      use arrays_dist_fn, only: g_scratch
       use g_tofrom_h, only: g_to_h
 
       implicit none
@@ -2357,10 +2357,10 @@ contains
       use parameters_numerical, only: fphi
       use parameters_physics, only: full_flux_surface
       use parameters_physics, only: include_parallel_streaming, include_mirror
-      use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
-      use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
-      use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi !, adiabatic_phi
-      use dist_fn_arrays, only: wstar, wstarp
+      use arrays_dist_fn, only: wdriftx_phi, wdrifty_phi
+      use arrays_dist_fn, only: wdriftpx_g, wdriftpy_g
+      use arrays_dist_fn, only: wdriftpx_phi, wdriftpy_phi !, adiabatic_phi
+      use arrays_dist_fn, only: wstar, wstarp
       use mirror_terms, only: add_mirror_radial_variation
       use flow_shear, only: prl_shear, prl_shear_p
       use parallel_streaming, only: add_parallel_streaming_radial_variation
@@ -2989,11 +2989,11 @@ contains
 
    subroutine finish_wdrift
 
-      use dist_fn_arrays, only: wdriftx_g, wdrifty_g
-      use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
-      use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
-      use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
-!   use dist_fn_arrays, only: adiabatic_phi
+      use arrays_dist_fn, only: wdriftx_g, wdrifty_g
+      use arrays_dist_fn, only: wdriftx_phi, wdrifty_phi
+      use arrays_dist_fn, only: wdriftpx_g, wdriftpy_g
+      use arrays_dist_fn, only: wdriftpx_phi, wdriftpy_phi
+!   use arrays_dist_fn, only: adiabatic_phi
 
       implicit none
 
@@ -3013,7 +3013,7 @@ contains
 
    subroutine finish_wstar
 
-      use dist_fn_arrays, only: wstar, wstarp
+      use arrays_dist_fn, only: wstar, wstarp
 
       implicit none
 
@@ -3026,7 +3026,7 @@ contains
 
    subroutine deallocate_arrays
 
-      use dist_fn_arrays, only: g0, g1, g2, g3
+      use arrays_dist_fn, only: g0, g1, g2, g3
 
       implicit none
 

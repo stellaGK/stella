@@ -153,7 +153,7 @@ contains
       use parameters_physics, only: include_apar, include_bpar
 
       ! Load data 
-      use dist_fn_arrays, only: gnew, gvmu
+      use arrays_dist_fn, only: gnew, gvmu
       use arrays_fields, only: phi, bpar
       use parameters_numerical, only: fphi
 
@@ -212,7 +212,7 @@ contains
       ! Data 
       use arrays_fields, only: phi, phi_corr_QN
       use parameters_physics, only: radial_variation
-      use dist_fn_arrays, only: gnew
+      use arrays_dist_fn, only: gnew
    
       ! Dimensions
       use arrays_kxky, only: nakx, naky
@@ -278,7 +278,7 @@ contains
    subroutine write_fluxes_for_fullfluxsurface(pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts)
 
       ! Data 
-      use dist_fn_arrays, only: gnew
+      use arrays_dist_fn, only: gnew
 
       ! Dimensions 
       use arrays_kxky, only: ny, ikx_max

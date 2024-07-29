@@ -39,7 +39,7 @@ contains
    subroutine write_moments_to_netcdf_file(nout, timer)
 
       ! Data
-      use dist_fn_arrays, only: gnew
+      use arrays_dist_fn, only: gnew
 
       ! Dimensions
       use arrays_kxky, only: naky, nakx
@@ -146,8 +146,8 @@ contains
       use stella_transforms, only: transform_kx2x_unpadded
       
       ! Import temp arrays g1 and g2 with dimensions (nky, nkx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
-      use dist_fn_arrays, only: g_gyro => g1 
-      use dist_fn_arrays, only: integrand => g2 
+      use arrays_dist_fn, only: g_gyro => g1 
+      use arrays_dist_fn, only: integrand => g2 
 
       implicit none
 
@@ -262,7 +262,7 @@ contains
       use calculations_kxky, only: multiply_by_rho
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use dist_fn_arrays, only: g1, g2, kperp2, dkperp2dr
+      use arrays_dist_fn, only: g1, g2, kperp2, dkperp2dr
       use geometry, only: bmag, dBdrho
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use gyro_averages, only: aj0x, aj1x, gyro_average

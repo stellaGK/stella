@@ -1378,7 +1378,7 @@ contains
       use extended_zgrid, only: nsegments
       use arrays_kxky, only: zonal_mode, akx
       use fields, only: apar_denom
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
 
       implicit none
 

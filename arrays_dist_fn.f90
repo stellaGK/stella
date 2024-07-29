@@ -2,7 +2,7 @@
 !!  These need to be accessible at a lower dependency level than the dist_fn module itself.
 !! These arrays are allocated in the function dist_fn::allocate_arrays.
 
-module dist_fn_arrays
+module arrays_dist_fn
 
    public :: gnew, gold, g_symm, g_scratch
    public :: g0, g1, g2, g3
@@ -53,4 +53,4 @@ module dist_fn_arrays
    ! (naky, nakx, nalpha, -nzgrid:nzgrid)
    ! note: dkperp2dr is divided by kperp2
 
-end module dist_fn_arrays
+end module arrays_dist_fn

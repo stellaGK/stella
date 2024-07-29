@@ -220,7 +220,7 @@ contains
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
       use ran, only: ranf
 
@@ -296,7 +296,7 @@ contains
 !     use zgrid, only: nzgrid, bmag
 !     use arrays_kxky, only: naky, ntheta0
 !     use vpamu_grids, only: nvgrid, vpa, mu
-!     use dist_fn_arrays, only: gnew, gold
+!     use arrays_dist_fn, only: gnew, gold
 !     use stella_layouts, only: gxyz_lo, iv_idx, is_idx, imu_idx
 
 !     implicit none
@@ -340,7 +340,7 @@ contains
 !     use zgrid, only: itor_over_b
 !     use arrays_kxky, only: ntheta0, akx, naky
 !     use vpamu_grids, only: nvgrid, energy, vpa
-!     use dist_fn_arrays, only: gnew, gold
+!     use arrays_dist_fn, only: gnew, gold
 !     use stella_layouts, only: gxyz_lo, iv_idx, is_idx, imu_idx
 
 !     implicit none
@@ -398,7 +398,7 @@ contains
    subroutine ginit_noise
 
       use mp, only: proc0, broadcast
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
       use extended_zgrid, only: ikxmod, nsegments, neigen
@@ -407,7 +407,7 @@ contains
       use arrays_kxky, only: naky, nakx, reality, zonal_mode
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use mp, only: proc0, broadcast, max_allreduce
@@ -546,7 +546,7 @@ contains
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vpa, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx
       use constants, only: zi
 
@@ -615,7 +615,7 @@ contains
    subroutine ginit_rh
 
       use species, only: spec
-      use dist_fn_arrays, only: gvmu, kperp2
+      use arrays_dist_fn, only: gvmu, kperp2
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -650,7 +650,7 @@ contains
    subroutine ginit_remap
 
       use species, only: spec
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -682,7 +682,7 @@ contains
 
    subroutine ginit_restart_many
 
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use stella_save, only: stella_restore
       use mp, only: proc0
       use file_utils, only: error_unit
@@ -706,7 +706,7 @@ contains
    subroutine normalize_by_maxwellian
 
       use stella_layouts, only: kxkyz_lo, is_idx, iz_idx
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use vpamu_grids, only: nmu
       use vpamu_grids, only: maxwell_mu, maxwell_vpa, maxwell_fac
 
