@@ -41,7 +41,7 @@ contains
 !     use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
 !     use stella_layouts, only: vmu_lo
 !     use stella_layouts, only: iv_idx, imu_idx, is_idx
-!     use kt_grids, only: naky, nakx
+!     use arrays_kxky, only: naky, nakx
 !     use gyro_averages, only: aj0x
 
 !     implicit none
@@ -203,8 +203,8 @@ contains
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use kt_grids, only: naky, nakx
-      use kt_grids, only: multiply_by_rho
+      use arrays_kxky, only: naky, nakx
+      use calculations_kxky, only: multiply_by_rho
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: vpa
       use gyro_averages, only: gyro_average
@@ -271,8 +271,8 @@ contains
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use geometry, only: bmag, dBdrho
       use dist_fn_arrays, only: kperp2, dkperp2dr
-      use kt_grids, only: naky, nakx
-      use kt_grids, only: multiply_by_rho
+      use arrays_kxky, only: naky, nakx
+      use calculations_kxky, only: multiply_by_rho
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: vpa, vperp2, mu
       use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
@@ -465,7 +465,8 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use geometry, only: bmag, dBdrho
       use dist_fn_arrays, only: kperp2, dkperp2dr
-      use kt_grids, only: naky, nakx, multiply_by_rho
+      use arrays_kxky, only: naky, nakx
+      use calculations_kxky, only: multiply_by_rho
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, vperp2, mu, vpa
       use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
       use gyro_averages, only: gyro_average, aj0x, aj1x
@@ -583,8 +584,8 @@ contains
 !     use vpamu_grids, only: vpa
 !     use stella_layouts, only: vmu_lo
 !     use stella_layouts, only: iv_idx, is_idx
-!     use kt_grids, only: naky, nakx
-!     use kt_grids, only: aky
+!     use arrays_kxky, only: naky, nakx
+!     use arrays_kxky, only: aky
 !     use gyro_averages, only: aj0x
 
 !     implicit none

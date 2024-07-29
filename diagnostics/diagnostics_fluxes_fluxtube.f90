@@ -112,7 +112,7 @@ contains
       use vpamu_grids, only: vperp2, vpa, mu
       use vpamu_grids, only: nvpa, nmu
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: aky, theta0
+      use arrays_kxky, only: aky, theta0
       use species, only: spec, nspec
 
       ! Calculations
@@ -348,7 +348,7 @@ contains
       use vpamu_grids, only: integrate_vmu
       use volume_averages, only: mode_fac
       use geometry, only: flux_fac
-      use kt_grids, only: aky
+      use arrays_kxky, only: aky
 
       implicit none
       

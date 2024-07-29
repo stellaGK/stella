@@ -28,10 +28,14 @@ module debug_flags
   public :: response_matrix_debug
   public :: mirror_terms_debug
   public :: neoclassical_terms_debug
-
+  
   public :: diagnostics_main_debug
   public :: fluxes_debug
+
+  public :: geometry_debug
   
+  public :: dist_fn_debug
+  public :: gyro_averages_debug
   !> Debug flags for full flux surface
   public :: ffs_solve_debug
   !> Debug flug for debugging full flux surface
@@ -57,6 +61,11 @@ module debug_flags
   logical :: diagnostics_debug
   logical :: diagnostics_main_debug
   logical :: fluxes_debug
+
+  logical :: geometry_debug
+
+  logical :: dist_fn_debug
+  logical :: gyro_averages_debug
   !> For FFS
   logical :: ffs_solve_debug
   logical :: const_alpha_geo
@@ -76,8 +85,8 @@ contains
 
     namelist /debug_flags/ debug_all, stella_debug, ffs_solve_debug, fields_debug, &
          implicit_solve_debug, parallel_streaming_debug, mirror_terms_debug, neoclassical_terms_debug, &
-         response_matrix_debug, time_advance_debug, diagnostics_debug, diagnostics_main_debug, fluxes_debug, &
-         const_alpha_geo
+         response_matrix_debug, time_advance_debug, diagnostics_debug, diagnostics_main_debug, dist_fn_debug,&
+         gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo
     
     if (initialised) return
     initialised = .true.
@@ -115,7 +124,11 @@ contains
         diagnostics_debug = .false.
         diagnostics_main_debug = .false.
         fluxes_debug = .false.
- 
+
+        geometry_debug = .true.
+        
+        dist_fn_debug = .false.
+        gyro_averages_debug = .false.
         !###################################
         !     FOR THE PURPOSE OF DEBUGGING
         !###################################
@@ -155,6 +168,10 @@ contains
           neoclassical_terms_debug = .true.
           !> Set all diagnostics flags to be on
           diagnostics_debug = .true.
+
+          dist_fn_debug = .true.
+          gyro_averages_debug = .true.
+          geometry_debug = .true. 
         end if
 
         if(diagnostics_debug) then
@@ -184,6 +201,12 @@ contains
         call broadcast(response_matrix_debug)
         call broadcast(diagnostics_main_debug)
         call broadcast(time_advance_debug)
+
+        call broadcast(dist_fn_debug)
+        call broadcast(gyro_averages_debug)
+
+        call broadcast(fluxes_debug) 
+        call broadcast(geometry_debug)
         call broadcast(const_alpha_geo) 
 
       end subroutine broadcast_parameters

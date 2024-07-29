@@ -109,13 +109,12 @@ contains
    !======================== INITALIZE THE DIAGNOSTICS =========================
    !============================================================================ 
    ! Initialize the <diagnostics> module. Make sure that the other modules
-   ! are initialized (zgrid, kt_grids, ...). Open/append the netcdf file with
+   ! are initialized (zgrid, arrays_kxky, ...). Open/append the netcdf file with
    ! extension '.out.nc'. Open/append the ascii files ('.out'; '.fluxes'; '.omega').
    ! Gets called in the <init_stella> subroutine in the <stella> module. 
    subroutine init_diagnostics(restart, tstart, git_commit, git_date)
 
       use zgrid, only: init_zgrid
-      use kt_grids, only: init_kt_grids
       use species, only: init_species
       use dist_fn, only: init_dist_fn
       use init_g, only: init_init_g
@@ -147,7 +146,6 @@ contains
       ! Should have been taken care off in the <init_stella> subroutine in the <stella> module. 
       ! Nonetheless, make sure that the other routines are intialized.
       call init_zgrid
-      call init_kt_grids
       call init_species
       call init_init_g
       call init_dist_fn

@@ -75,7 +75,7 @@ contains
 # ifdef NETCDF
       use fields_arrays, only: shift_state, phi_proj
       use dist_fn_arrays, only: g_krook, g_proj
-      use kt_grids, only: naky, nakx
+      use arrays_kxky, only: naky, nakx
 # else
       use mp, only: proc0
 # endif
@@ -709,7 +709,7 @@ contains
 # ifdef NETCDF
       use fields_arrays, only: shift_state, phi_proj
       use dist_fn_arrays, only: g_krook, g_proj
-      use kt_grids, only: naky, nakx
+      use arrays_kxky, only: naky, nakx
 # endif
 # ifdef NETCDF_PARALLEL
       use zgrid, only: nztot

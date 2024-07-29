@@ -214,9 +214,9 @@ contains
       use constants, only: zi
       use species, only: spec
       use zgrid, only: nzgrid, zed
-      use kt_grids, only: naky, nakx, ikx_max
-      use kt_grids, only: theta0, akx
-      use kt_grids, only: reality, zonal_mode
+      use arrays_kxky, only: naky, nakx, ikx_max
+      use arrays_kxky, only: theta0, akx
+      use arrays_kxky, only: reality, zonal_mode
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -294,7 +294,7 @@ contains
 !     use mp, only: proc0
 !     use species, only: spec
 !     use zgrid, only: nzgrid, bmag
-!     use kt_grids, only: naky, ntheta0
+!     use arrays_kxky, only: naky, ntheta0
 !     use vpamu_grids, only: nvgrid, vpa, mu
 !     use dist_fn_arrays, only: gnew, gold
 !     use stella_layouts, only: gxyz_lo, iv_idx, is_idx, imu_idx
@@ -338,7 +338,7 @@ contains
 !     use constants, only: zi
 !     use species, only: spec
 !     use zgrid, only: itor_over_b
-!     use kt_grids, only: ntheta0, akx, naky
+!     use arrays_kxky, only: ntheta0, akx, naky
 !     use vpamu_grids, only: nvgrid, energy, vpa
 !     use dist_fn_arrays, only: gnew, gold
 !     use stella_layouts, only: gxyz_lo, iv_idx, is_idx, imu_idx
@@ -367,7 +367,7 @@ contains
 
 !   subroutine single_initial_kx(phi)
 !     use zgrid, only: nzgrid
-!     use kt_grids, only: naky, ntheta0
+!     use arrays_kxky, only: naky, ntheta0
 !     use mp, only: mp_abort
 !     implicit none
 !     complex, dimension (-nzgrid:nzgrid,ntheta0,naky), intent(inout) :: phi
@@ -404,7 +404,7 @@ contains
       use extended_zgrid, only: ikxmod, nsegments, neigen
       use extended_zgrid, only: it_right
       use extended_zgrid, only: periodic, phase_shift
-      use kt_grids, only: naky, nakx, reality, zonal_mode
+      use arrays_kxky, only: naky, nakx, reality, zonal_mode
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use dist_fn_arrays, only: gvmu
@@ -542,7 +542,7 @@ contains
 
 !    use species, only: spec, has_electron_species
       use zgrid, only: nzgrid, zed
-      use kt_grids, only: naky, nakx, theta0
+      use arrays_kxky, only: naky, nakx, theta0
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vpa, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -620,7 +620,7 @@ contains
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: nvpa, nmu
-      use kt_grids, only: akx
+      use arrays_kxky, only: akx
 
       implicit none
 
@@ -739,7 +739,7 @@ contains
 
 !     use species, only: spec, electron_species
 !     use zgrid, only: nzgrid, delthet, jacob
-!     use kt_grids, only: aky, ntheta0
+!     use arrays_kxky, only: aky, ntheta0
 !     use vpamu_grids, only: nvgrid
 !     use stella_layouts, only: gxyz_lo, is_idx
 !     complex, dimension (-nzgrid:,:,:,gxyz_lo%llim_proc:), intent (in) :: g

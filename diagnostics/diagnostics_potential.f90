@@ -42,7 +42,7 @@ contains
       use fields_arrays, only: phi, apar, bpar, phi_corr_QN
 
       ! Dimensions
-      use kt_grids, only: naky, nakx
+      use arrays_kxky, only: naky, nakx
       use zgrid, only: ntubes, nzgrid 
 
       ! Flags 
@@ -242,7 +242,7 @@ contains
       use geometry, only: zed_eqarc
 
       ! Dimensions
-      use kt_grids, only: naky, nakx, aky, akx, zed0
+      use arrays_kxky, only: naky, nakx, aky, akx, zed0
       use zgrid, only: nzgrid, ntubes, zed
 
       ! Routines 

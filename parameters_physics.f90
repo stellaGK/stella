@@ -193,7 +193,7 @@ contains
 
      if (irhostar > 0) rhostar = 1./irhostar
      !> Don't allow people to set rhostar when its not full flux                                                                                                                                        
-     !> Otherwise phase_shift_angle will be changed in kt_grids.f90
+     !> Otherwise phase_shift_angle will be changed in grids_kxky.f90
      if (.not. full_flux_surface) rhostar = 0
 
      ierr = error_unit()

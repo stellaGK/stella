@@ -15,6 +15,7 @@
 
 module geometry
 
+   use debug_flags, only: debug => geometry_debug
    use common_types, only: flux_surface_type
 
    implicit none
@@ -58,9 +59,6 @@ module geometry
 
    private
    
-   ! Debugging
-   logical :: debug = .false.
-
    type(flux_surface_type) :: geo_surf
 
    real :: grad_x_grad_y_end, clebsch_factor

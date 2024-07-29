@@ -48,7 +48,8 @@ contains
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use parameters_numerical, only: fphi
       use parameters_numerical, only: maxwellian_normalization
-      use kt_grids, only: aky, theta0, naky, nakx, multiply_by_rho
+      use arrays_kxky, only: aky, theta0, naky, nakx
+      use calculations_kxky, only: multiply_by_rho
       use parameters_physics, only: radial_variation
       use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
       
@@ -330,7 +331,7 @@ contains
 
       use vpamu_grids, only: integrate_vmu
       use stella_layouts, only: vmu_lo
-      use kt_grids, only: aky, nakx, naky, boundary_size
+      use arrays_kxky, only: aky, nakx, naky, boundary_size
       use zgrid, only: nzgrid, ntubes
       use species, only: nspec
       use volume_averages, only: mode_fac
@@ -408,7 +409,7 @@ contains
 
       use vpamu_grids, only: integrate_vmu
       use stella_layouts, only: vmu_lo
-      use kt_grids, only: aky, nakx, naky
+      use arrays_kxky, only: aky, nakx, naky
       use zgrid, only: nzgrid, ntubes
       use species, only: nspec
       use volume_averages, only: mode_fac
@@ -450,7 +451,7 @@ contains
       use vpamu_grids, only: integrate_vmu
       use geometry, only: dVolume
       use stella_layouts, only: vmu_lo
-      use kt_grids, only: aky, nakx, naky
+      use arrays_kxky, only: aky, nakx, naky
       use zgrid, only: nzgrid, ntubes
       use species, only: nspec
       use volume_averages, only: mode_fac

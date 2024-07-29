@@ -211,7 +211,7 @@ contains
       use vpamu_grids, only: ztmax, maxwell_vpa, maxwell_mu
       use vpamu_grids, only: nmu, vpa, vperp2
       use vpamu_grids, only: set_vpa_weights
-      use kt_grids, only: naky, nakx, zonal_mode
+      use arrays_kxky, only: naky, nakx, zonal_mode
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use geometry, only: dl_over_b
@@ -465,7 +465,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: ztmax, maxwell_vpa, maxwell_mu
       use vpamu_grids, only: nvpa, vpa, vperp2
-      use kt_grids, only: naky, nakx, zonal_mode
+      use arrays_kxky, only: naky, nakx, zonal_mode
       use geometry, only: dl_over_b, bmag
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
@@ -912,7 +912,8 @@ contains
       use species, only: spec
       use parameters_numerical, only: fphi
       use parameters_physics, only: radial_variation, full_flux_surface
-      use kt_grids, only: naky, nakx, multiply_by_rho, rho_d_clamped
+      use arrays_kxky, only: naky, nakx, rho_d_clamped
+      use calculations_kxky, only: multiply_by_rho
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: set_vpa_weights
       use geometry, only: bmag, dBdrho
@@ -1273,7 +1274,8 @@ contains
       use species, only: spec
       use parameters_physics, only: radial_variation
       use geometry, only: bmag, dBdrho
-      use kt_grids, only: nakx, naky, multiply_by_rho
+      use arrays_kxky, only: nakx, naky
+      use calculations_kxky, only: multiply_by_rho
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: integrate_species, mu, vpa, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -1407,7 +1409,8 @@ contains
       use species, only: spec
       use parameters_physics, only: radial_variation
       use geometry, only: bmag, dBdrho
-      use kt_grids, only: nakx, naky, multiply_by_rho
+      use arrays_kxky, only: nakx, naky
+      use calculations_kxky, only: multiply_by_rho
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: integrate_species
       use vpamu_grids, only: mu, vpa, nmu, vperp2
@@ -1529,7 +1532,7 @@ contains
       use vpamu_grids, only: nmu, nvpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
       use vpamu_grids, only: set_vpa_weights
-      use kt_grids, only: naky, nakx, zonal_mode
+      use arrays_kxky, only: naky, nakx, zonal_mode
       use geometry, only: dl_over_b
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
@@ -1693,7 +1696,7 @@ contains
       use vpamu_grids, only: nmu, nvpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
       use vpamu_grids, only: set_vpa_weights
-      use kt_grids, only: naky, nakx, zonal_mode
+      use arrays_kxky, only: naky, nakx, zonal_mode
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use dist_fn_arrays, only: kperp2

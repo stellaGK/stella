@@ -151,7 +151,7 @@ contains
    ! Ensure the netCDF file contains all the dimensions and grids, creating them if necessary
    subroutine write_grids(file_id)
 #ifdef NETCDF
-      use kt_grids, only: nakx, naky, akx, aky, nalpha, theta0, phase_shift_angle, x_d, rho_d
+      use arrays_kxky, only: nakx, naky, akx, aky, nalpha, theta0, phase_shift_angle, x_d, rho_d
       use zgrid, only: nzgrid, ntubes, zed
       use vpamu_grids, only: nvpa, vpa, nmu, mu
       use species, only: nspec
@@ -281,11 +281,11 @@ contains
       character(line_length), dimension(:), allocatable ::  input_file_array
       integer :: n, unit, status, dim_id, previous_nlines
 
-      ! Don't attempt to write zero-sized arrays
+      ! Dont attempt to write zero-sized arrays
       if (num_input_lines <= 0) return
 
       ! If the existing input file in the output file was longer than
-      ! the current one, blank out the whole thing so that we're not
+      ! the current one, blank out the whole thing so that we are not
       ! left with "extra" bits at the end
       status = nf90_inq_dimid(file_id, "nlines", dim_id)
       if (status == NF90_NOERR) then
@@ -1363,7 +1363,7 @@ contains
       use geometry, only: drhodpsi, djacdrho, b_dot_grad_z, geo_surf 
       use parameters_physics, only: beta
       use dist_fn_arrays, only: kperp2
-      use kt_grids, only: jtwist
+      use arrays_kxky, only: jtwist
 #endif
 
       implicit none

@@ -58,7 +58,7 @@ contains
       use vpamu_grids, only: nvpa, nvpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: vperp2, vpa, mu
-      use kt_grids, only: nalpha
+      use arrays_kxky, only: nalpha
       use zgrid, only: nzgrid, nztot
       use geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
@@ -235,8 +235,8 @@ contains
       use job_manage, only: time_message
       use stella_transforms, only: transform_ky2y
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
-      use kt_grids, only: swap_kxky
+      use arrays_kxky, only: naky, naky_all, nakx, ikx_max, ny
+      use calculations_kxky, only: swap_kxky
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
       use vpamu_grids, only: mu
       use species, only: spec
@@ -248,7 +248,7 @@ contains
       use fields, only: advance_fields, fields_updated
       use fields_arrays, only: apar
       use gyro_averages, only: j0_ffs, j0_const
-      use kt_grids, only: aky, akx
+      use arrays_kxky, only: aky, akx
       use zgrid, only: nztot
       use dist_fn_arrays, only: kperp2
       implicit none
@@ -366,7 +366,7 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use job_manage, only: time_message
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: naky, nakx
+      use arrays_kxky, only: naky, nakx
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use species, only: spec
       use gyro_averages, only: gyro_average, gyro_average_j1
@@ -453,7 +453,7 @@ contains
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: fill_zed_ghost_zones
       use extended_zgrid, only: periodic
-      use kt_grids, only: naky
+      use arrays_kxky, only: naky
 
       implicit none
 
@@ -495,7 +495,7 @@ contains
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: fill_zed_ghost_zones
       use extended_zgrid, only: periodic
-      use kt_grids, only: naky
+      use arrays_kxky, only: naky
 
       implicit none
 
@@ -537,7 +537,7 @@ contains
 !    use extended_zgrid, only: fill_zed_ghost_zones
 !    use extended_zgrid, only: periodic
 !    use parameters_numerical, only: zed_upwind
-!    use kt_grids, only: naky
+!    use arrays_kxky, only: naky
 
 !    implicit none
 
@@ -593,7 +593,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
       use zgrid, only: nzgrid
-      use kt_grids, only: ny
+      use arrays_kxky, only: ny
 
       implicit none
 
@@ -618,7 +618,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
       use zgrid, only: nzgrid
-      use kt_grids, only: ny
+      use arrays_kxky, only: ny
 
       implicit none
 
@@ -643,7 +643,7 @@ contains
      use stella_layouts, only: vmu_lo
      use stella_layouts, only: iv_idx, is_idx
      use zgrid, only: nzgrid
-     use kt_grids, only: ny
+     use arrays_kxky, only: ny
      
      implicit none
      complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
@@ -725,7 +725,7 @@ contains
    subroutine get_dzed(iv, g, dgdz)
 
       use finite_differences, only: fd_cell_centres_zed
-      use kt_grids, only: naky
+      use arrays_kxky, only: naky
       use zgrid, only: nzgrid, delzed, ntubes
       use extended_zgrid, only: neigen, nsegments
       use extended_zgrid, only: iz_low, iz_up
@@ -779,7 +779,7 @@ contains
    subroutine center_zed_extended(iv, g)
 
       use finite_differences, only: cell_centres_zed
-      use kt_grids, only: naky, nakx
+      use arrays_kxky, only: naky, nakx
       use zgrid, only: nzgrid, ntubes
       use extended_zgrid, only: neigen, nsegments
       use extended_zgrid, only: iz_low, iz_up

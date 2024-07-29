@@ -24,7 +24,7 @@ contains
       use stella_layouts, only: vmu_lo
       use parameters_physics, only: include_apar, include_bpar
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: naky, nakx
+      use arrays_kxky, only: naky, nakx
       use dist_fn_arrays, only: g1, g2
       use parameters_numerical, only: stream_matrix_inversion
       use parameters_numerical, only: use_deltaphi_for_response_matrix
@@ -315,7 +315,7 @@ contains
    !> for 'pdf', 'phi', 'apar', 'aparnew' and 'aparold'
    subroutine get_gke_rhs(ivmu, iky, ie, pdf, phi, apar, aparnew, aparold, bpar, rhs, phi_ffs)
 
-      use kt_grids, only: naky, nakx
+      use arrays_kxky, only: naky, nakx
 
       implicit none
 
@@ -405,7 +405,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
       use vpamu_grids, only: vpa
-      use kt_grids, only: naky, nakx
+      use arrays_kxky, only: naky, nakx
       use parameters_numerical, only: driftkinetic_implicit, maxwellian_normalization
       use parameters_numerical, only: maxwellian_inside_zed_derivative
       use parameters_numerical, only: drifts_implicit
@@ -519,8 +519,8 @@ contains
       subroutine add_drifts_contribution_phi
 
          use constants, only: zi
-         use kt_grids, only: nakx, naky
-         use kt_grids, only: aky, akx
+         use arrays_kxky, only: nakx, naky
+         use arrays_kxky, only: aky, akx
          use dist_fn_arrays, only: wstar, wdriftx_phi, wdrifty_phi
          use parallel_streaming, only: center_zed
          use extended_zgrid, only: periodic
@@ -552,7 +552,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: vpa, mu
-      use kt_grids, only: naky, nakx
+      use arrays_kxky, only: naky, nakx
       use parameters_numerical, only: driftkinetic_implicit, maxwellian_normalization
       use parameters_numerical, only: maxwellian_inside_zed_derivative
       use parameters_numerical, only: drifts_implicit
@@ -659,8 +659,8 @@ contains
       subroutine add_drifts_contribution_bpar
 
          use constants, only: zi
-         use kt_grids, only: nakx, naky
-         use kt_grids, only: aky, akx
+         use arrays_kxky, only: nakx, naky
+         use arrays_kxky, only: aky, akx
          use dist_fn_arrays, only: wstar, wdriftx_bpar, wdrifty_bpar
          use parallel_streaming, only: center_zed
          use extended_zgrid, only: periodic
@@ -781,7 +781,7 @@ contains
 
       use constants, only: zi
       use species, only: spec
-      use kt_grids, only: aky
+      use arrays_kxky, only: aky
       use dist_fn_arrays, only: wstar
       use parallel_streaming, only: center_zed
       use extended_zgrid, only: periodic
@@ -905,8 +905,8 @@ contains
       use parameters_physics, only: include_apar
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: naky, nakx
-      use kt_grids, only: aky, akx
+      use arrays_kxky, only: naky, nakx
+      use arrays_kxky, only: aky, akx
       use vpamu_grids, only: vpa
       use stella_layouts, only: vmu_lo, iv_idx, is_idx
       use parameters_numerical, only: time_upwind_minus
@@ -1013,7 +1013,7 @@ contains
       use parameters_numerical, only: drifts_implicit
       use parameters_numerical, only: zed_upwind_plus, zed_upwind_minus
       use parameters_numerical, only: time_upwind_plus
-      use kt_grids, only: nakx, akx, aky
+      use arrays_kxky, only: nakx, akx, aky
       use dist_fn_arrays, only: wdriftx_g, wdrifty_g
       use extended_zgrid, only: map_to_extended_zgrid
       use extended_zgrid, only: periodic, phase_shift
@@ -1214,7 +1214,7 @@ contains
       use extended_zgrid, only: map_from_extended_zgrid
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: periodic, phase_shift
-      use kt_grids, only: naky
+      use arrays_kxky, only: naky
       use fields, only: nfields
       use fields_arrays, only: response_matrix
 

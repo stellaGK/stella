@@ -87,7 +87,6 @@ module parameters_numerical
    logical :: print_extra_info_to_terminal
    
    logical :: initialised = .false.
-   logical :: read_parameters_exists
 
    !> REMOVE
    integer :: rng_seed

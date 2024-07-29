@@ -90,7 +90,7 @@ contains
       use file_utils, only: runtype_option_switch, runtype_multibox
       use text_options, only: text_option, get_option_value
       use mp, only: broadcast, proc0
-      use kt_grids, only: nx, nakx, boundary_size, copy_size, krook_size
+      use arrays_kxky, only: nx, nakx, boundary_size, copy_size, krook_size
       use job_manage, only: njobs
       use mp, only: scope, crossdomprocs, subprocs, &
                     send, receive, job
@@ -225,10 +225,10 @@ contains
       use geometry, only: geo_surf, q_as_x, get_x_to_rho
       use geometry, only: drhodpsi, dxdpsi
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: nakx, naky, akx, aky, nx, x, x_d, x0
-      use kt_grids, only: centered_in_rho, rho_clamped, rho_d, rho_d_clamped
-      use kt_grids, only: periodic_variation
-      use kt_grids, only: boundary_size, krook_size
+      use arrays_kxky, only: nakx, naky, akx, aky, nx, x, x_d, x0
+      use arrays_kxky, only: centered_in_rho, rho_clamped, rho_d, rho_d_clamped
+      use arrays_kxky, only: periodic_variation
+      use arrays_kxky, only: boundary_size, krook_size
       use file_utils, only: runtype_option_switch, runtype_multibox
       use job_manage, only: njobs
       use parameters_physics, only: rhostar
@@ -479,8 +479,8 @@ contains
    subroutine multibox_communicate(gin)
 
       use constants, only: zi
-      use kt_grids, only: nakx, naky, naky_all, akx, aky, nx, ny, dx, dy, zonal_mode
-      use kt_grids, only: periodic_variation, boundary_size
+      use arrays_kxky, only: nakx, naky, naky_all, akx, aky, nx, ny, dx, dy, zonal_mode
+      use arrays_kxky, only: periodic_variation, boundary_size
       use file_utils, only: runtype_option_switch, runtype_multibox
       use file_utils, only: get_unused_unit
       use fields_arrays, only: phi, phi_corr_QN, shift_state
@@ -663,8 +663,8 @@ contains
 
    subroutine apply_radial_boundary_conditions(gin)
 
-      use kt_grids, only: naky, zonal_mode
-      use kt_grids, only: periodic_variation, boundary_size
+      use arrays_kxky, only: naky, zonal_mode
+      use arrays_kxky, only: periodic_variation, boundary_size
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid
 
@@ -729,7 +729,7 @@ contains
 
       use stella_time, only: code_dt
       use stella_layouts, only: vmu_lo
-      use kt_grids, only: nakx, naky, periodic_variation, boundary_size
+      use arrays_kxky, only: nakx, naky, periodic_variation, boundary_size
       use zgrid, only: nzgrid, ntubes
       use mp, only: job, proc0
       use job_manage, only: time_message
@@ -796,7 +796,7 @@ contains
 !!       It is done here because the radial grid may include an extra point
 
    subroutine init_mb_get_phi(has_elec, adiabatic_elec, efac, efacp)
-      use kt_grids, only: nakx, naky, boundary_size
+      use arrays_kxky, only: nakx, naky, boundary_size
       use zgrid, only: nzgrid
       use parameters_physics, only: radial_variation
       use geometry, only: dl_over_b, d_dl_over_b_drho
@@ -911,7 +911,7 @@ contains
 
    subroutine mb_get_phi(phi, has_elec, adiabatic_elec)
       use constants, only: zi
-      use kt_grids, only: akx, nakx, naky, zonal_mode, boundary_size
+      use arrays_kxky, only: akx, nakx, naky, zonal_mode, boundary_size
       use zgrid, only: nzgrid, ntubes
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use parameters_numerical, only: ky_solve_radial
@@ -1081,7 +1081,7 @@ contains
    subroutine init_mb_transforms
 
       use stella_layouts, only: init_stella_layouts
-      use kt_grids, only: nakx, naky, naky_all
+      use arrays_kxky, only: nakx, naky, naky_all
 
       implicit none
 
@@ -1113,7 +1113,7 @@ contains
 
    subroutine init_y_fft
 
-      use kt_grids, only: naky, naky_all
+      use arrays_kxky, only: naky, naky_all
       use fft_work, only: init_crfftw, init_rcfftw, FFT_BACKWARD, FFT_FORWARD
 
       implicit none
@@ -1132,7 +1132,7 @@ contains
 
    subroutine transform_kx2x(gkx, gx)
 
-      use kt_grids, only: ikx_max
+      use arrays_kxky, only: ikx_max
 
       implicit none
 
@@ -1153,7 +1153,7 @@ contains
 
    subroutine transform_x2kx(gx, gkx)
 
-      use kt_grids, only: ikx_max
+      use arrays_kxky, only: ikx_max
 
       implicit none
 

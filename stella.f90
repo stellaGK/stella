@@ -18,7 +18,8 @@ program stella
    use parameters_diagnostics, only: nsave
    use parameters_numerical, only: nstep, tend
    use parameters_numerical, only: avail_cpu_time
-   
+
+   use geometry, only: twist_and_shift_geo_fac
    implicit none
 
    logical :: stop_stella = .false.
@@ -42,7 +43,7 @@ program stella
 
    !> Initialize stella
    call init_stella(istep0, git_commit, git_date)
-
+   
    !> Diagnose stella
    if (debug) write (*, *) 'stella::diagnostics_stella'
    if (istep0 == 0) call diagnostics_stella(istep0)
@@ -102,6 +103,7 @@ contains
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_numerical, only: delt_option_switch, delt_option_auto
       use parameters_numerical, only: mat_gen, mat_read
+      use parameters_kxky_grids, only: read_kxky_grid_parameters
       use species, only: init_species, read_species_knobs
       use species, only: nspec
       use zgrid, only: init_zgrid
@@ -123,8 +125,8 @@ contains
       use dist_redistribute, only: init_redistribute
       use time_advance, only: init_time_advance
       use extended_zgrid, only: init_extended_zgrid
-      use kt_grids, only: init_kt_grids, read_kt_grids_parameters
-      use kt_grids, only: naky, nakx, ny, nx, nalpha
+      use grids_kxky, only: init_grids_kxky
+      use arrays_kxky, only: naky, nakx, ny, nx, nalpha
       use vpamu_grids, only: init_vpamu_grids, read_vpamu_grids_parameters
       use vpamu_grids, only: nvgrid, nmu
       use stella_transforms, only: init_transforms
@@ -200,11 +202,12 @@ contains
       !> read the species_knobs namelist from the input file
       if (debug) write (6, *) "stella::init_stella::read_species_knobs"
       call read_species_knobs
-      !> read the grid option from the kt_grids_knobs namelist in the input file;
-      !> depending on the grid option chosen, read the corresponding kt_grids_XXXX_parameters
+      !> read the grid option from the grids_kxky_knobs namelist in the input file;
+      !> depending on the grid option chosen, read the corresponding grids_kxky_XXXX_parameters
       !> namelist from the input file and allocate some kx and ky arrays
-      if (debug) write (6, *) "stella::init_stella::read_kt_grids_parameters"
-      call read_kt_grids_parameters
+      if (debug) write (6, *) "stella::init_stella::read_kxky_grid_parameters"
+      call read_kxky_grid_parameters
+      write(*,*) nalpha, 'nalpha' 
       !> read the vpamu_grids_parameters namelist from the input file
       if (debug) write (6, *) "stella::init_stella::read_vpamu_grids_parameters"
       call read_vpamu_grids_parameters
@@ -229,6 +232,8 @@ contains
       !> and use it to calculate all of the required geometric coefficients
       if (debug) write (6, *) "stella::init_stella::init_geometry"
       call init_geometry(nalpha, naky)
+      if (debug) write (6, *) 'stella::init_stella::init_grids_kxky'
+      call init_grids_kxky
       !> read species_parameters from input file and use the info to, e.g.,
       !> determine if a modified Boltzmann response is to be used
       if (debug) write (6, *) 'stella::init_stella::init_species'
@@ -258,8 +263,6 @@ contains
       if (debug) write (6, *) 'stella::init_stella::init_stella_layouts'
       call init_stella_layouts
       !> setup the (kx,ky) grids and (x,y) grids, if applicable
-      if (debug) write (6, *) 'stella::init_stella::init_kt_grids'
-      call init_kt_grids
       if (debug) write (6, *) 'stella::init_stella::init_multibox_subcalls'
       call init_multibox_subcalls
       !> finish_init_geometry deallocates various geometric arrays that
@@ -383,7 +386,7 @@ contains
       use mp, only: proc0, job
       use species, only: communicate_species_multibox
       use geometry, only: communicate_geo_multibox
-      use kt_grids, only: communicate_ktgrids_multibox
+      use calculations_kxky, only: communicate_ktgrids_multibox
       use file_utils, only: runtype_option_switch, runtype_multibox
       use parameters_physics, only: radial_variation
       use multibox, only: init_multibox, rhoL, rhoR
@@ -578,7 +581,7 @@ contains
       use geometry, only: finish_geometry
       use extended_zgrid, only: finish_extended_zgrid
       use vpamu_grids, only: finish_vpamu_grids
-      use kt_grids, only: finish_kt_grids
+      use grids_kxky, only: finish_grids_kxky
       use volume_averages, only: finish_volume_averages
       use multibox, only: finish_multibox, time_multibox
       use parameters_numerical, only: stream_implicit, drifts_implicit, fields_kxkyz
@@ -615,8 +618,8 @@ contains
       call finish_init_g
       if (debug) write (*, *) 'stella::finish_stella::finish_vpamu_grids'
       call finish_vpamu_grids
-      if (debug) write (*, *) 'stella::finish_stella::finish_kt_grids'
-      call finish_kt_grids
+      if (debug) write (*, *) 'stella::finish_stella::finish_grids_kxky'
+      call finish_grids_kxky
       if (debug) write (*, *) 'stella::finish_stella::finish_read_parameters_numerical'
       call finish_read_parameters_numerical
       if (debug) write (*, *) 'stella::finish_stella::finish_species'
@@ -744,7 +747,7 @@ contains
    !   use stella_layouts, only: kxyz_lo, vmu_lo
    !   use zgrid, only: nzgrid, ntubes
    !   use vpamu_grids, only: nvpa, nmu
-   !   use kt_grids, only: ny, ikx_max
+   !   use grids_kxky, only: ny, ikx_max
    !   use dist_redistribute, only: kxyz2vmu
    !   use redistribute, only: scatter
 

@@ -45,9 +45,9 @@ contains
       use zgrid, only: boundary_option_linked
       use zgrid, only: boundary_option_linked_stellarator
       use zgrid, only: nperiod, nzgrid, nzed, ntubes
-      use kt_grids, only: nakx, naky
-      use kt_grids, only: jtwist, ikx_twist_shift, phase_shift_angle
-      use kt_grids, only: aky, ikx_max
+      use arrays_kxky, only: nakx, naky
+      use arrays_kxky, only: jtwist, ikx_twist_shift, phase_shift_angle
+      use arrays_kxky, only: aky, ikx_max
       use constants, only: zi
 
       implicit none

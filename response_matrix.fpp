@@ -33,7 +33,7 @@ contains
       use fields_arrays, only: response_matrix
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
-      use kt_grids, only: naky
+      use arrays_kxky, only: naky
       use mp, only: proc0
       use parameters_numerical, only: mat_gen
 #ifdef ISO_C_BINDING
@@ -104,7 +104,7 @@ contains
       use mp, only: proc0, job
       use parameters_numerical, only: mat_gen
       use system_fortran, only: systemf
-      use kt_grids, only: naky
+      use arrays_kxky, only: naky
 
       implicit none
 
@@ -134,7 +134,7 @@ contains
       use mp, only: create_shared_memory_window
       use fields_arrays, only: response_window
       use fields, only: nfields
-      use kt_grids, only: naky
+      use arrays_kxky, only: naky
       use extended_zgrid, only: neigen, nsegments, nzed_segment
       use extended_zgrid, only: periodic
 
@@ -176,7 +176,7 @@ contains
       use job_manage, only: time_message
       use parameters_numerical, only: mat_gen
       use fields_arrays, only: response_matrix
-      use kt_grids, only: naky
+      use arrays_kxky, only: naky
       use extended_zgrid, only: neigen
 #ifdef ISO_C_BINDING
       use fields_arrays, only: response_window
@@ -587,7 +587,7 @@ contains
 
       use fields_arrays, only: response_matrix
       use common_types, only: response_matrix_type
-      use kt_grids, only: naky
+      use arrays_kxky, only: naky
       use extended_zgrid, only: neigen
       use extended_zgrid, only: nsegments
       use extended_zgrid, only: nzed_segment
@@ -978,7 +978,7 @@ contains
       use parameters_physics, only: full_flux_surface
 
       use geometry, only: bmag
-      use kt_grids, only: nalpha
+      use arrays_kxky, only: nalpha
 
       use gyro_averages, only: j0_B_const
 
@@ -1204,7 +1204,7 @@ contains
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
-      use kt_grids, only: zonal_mode, akx
+      use arrays_kxky, only: zonal_mode, akx
       use fields_arrays, only: gamtot, gamtot3
       use fields, only: gamtot_h, gamtot3_h
       use parameters_physics, only: adiabatic_option_switch
@@ -1284,7 +1284,7 @@ contains
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
-      use kt_grids, only: zonal_mode, akx
+      use arrays_kxky, only: zonal_mode, akx
       use fields_arrays, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
       use fields, only: gamtot_h
       use parameters_physics, only: adiabatic_option_switch
@@ -1376,7 +1376,7 @@ contains
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
-      use kt_grids, only: zonal_mode, akx
+      use arrays_kxky, only: zonal_mode, akx
       use fields, only: apar_denom
       use dist_fn_arrays, only: kperp2
 

@@ -59,8 +59,8 @@ contains
 
    subroutine init_hyper
 
-      use kt_grids, only: ikx_max, nakx, naky
-      use kt_grids, only: aky, akx, theta0
+      use arrays_kxky, only: ikx_max, nakx, naky
+      use arrays_kxky, only: aky, akx, theta0
       use zgrid, only: nzgrid, zed
       use geometry, only: geo_surf, q_as_x
       use dist_fn_arrays, only: kperp2
@@ -113,8 +113,8 @@ contains
       use zgrid, only: nzgrid, ntubes, zed
       use stella_layouts, only: vmu_lo
       use dist_fn_arrays, only: kperp2
-      use kt_grids, only: naky
-      use kt_grids, only: aky, akx, theta0, zonal_mode
+      use arrays_kxky, only: naky
+      use arrays_kxky, only: aky, akx, theta0, zonal_mode
 
       implicit none
 
@@ -235,7 +235,7 @@ contains
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: fill_zed_ghost_zones
       use extended_zgrid, only: periodic
-      use kt_grids, only: naky
+      use arrays_kxky, only: naky
 
       use stella_layouts, only: iv_idx, imu_idx, is_idx
 

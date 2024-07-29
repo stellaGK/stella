@@ -103,8 +103,8 @@ contains
       use vpamu_grids, only: vpa, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: integrate_vmu 
-      use kt_grids, only: naky, nakx, akx
-      use kt_grids, only: zonal_mode
+      use arrays_kxky, only: naky, nakx, akx
+      use arrays_kxky, only: zonal_mode
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
@@ -414,8 +414,8 @@ contains
       use species, only: spec, has_electron_species
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use zgrid, only: nzgrid, ntubes, nztot 
-      use kt_grids, only: naky, nakx
-      use kt_grids, only: zonal_mode, rho_d_clamped
+      use arrays_kxky, only: naky, nakx
+      use arrays_kxky, only: zonal_mode, rho_d_clamped
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
       use linear_solve, only: lu_decomposition, lu_inverse
@@ -639,21 +639,21 @@ contains
       use geometry, only: bmag
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use kt_grids, only: nalpha, ikx_max, naky_all, naky
-      use kt_grids, only: swap_kxky_ordered
+      use arrays_kxky, only: nalpha, ikx_max, naky_all, naky
+      use calculations_kxky, only: swap_kxky_ordered
       use vpamu_grids, only: vperp2, maxwell_vpa, maxwell_mu
       use vpamu_grids, only: integrate_species
       use gyro_averages, only: band_lu_factorisation_ffs
 
-      use kt_grids, only: nakx
+      use arrays_kxky, only: nakx
       use fields_arrays, only: gamtot, gamtot3 
       use mp, only: sum_allreduce, proc0
-      use kt_grids, only: swap_kxky_back_ordered
+      use calculations_kxky, only: swap_kxky_back_ordered
       use gyro_averages, only: find_max_required_kalpha_index
 
       !! For gamtot3 - clean up 
       use species, only: has_electron_species, ion_species
-      use kt_grids, only: zonal_mode , akx
+      use arrays_kxky, only: zonal_mode , akx
       use parameters_physics, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       use geometry, only: dl_over_b
 
@@ -824,7 +824,7 @@ contains
       use parameters_physics, only: nine, tite
       use zgrid, only: nzgrid
       use stella_transforms, only: transform_alpha2kalpha
-      use kt_grids, only: naky, naky_all, ikx_max
+      use arrays_kxky, only: naky, naky_all, ikx_max
       use gyro_averages, only: band_lu_solve_ffs
       use volume_averages, only: flux_surface_average_ffs
 
@@ -868,7 +868,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
       use parameters_physics, only: radial_variation
-      use kt_grids, only: naky, nakx
+      use arrays_kxky, only: naky, nakx
 
       implicit none
 
@@ -925,7 +925,7 @@ contains
 !     as these modes should be stable, but I made this function (and
 !     its relative in the dist file) just in case
 
-      use kt_grids, only: nakx
+      use arrays_kxky, only: nakx
       use zgrid, only: nzgrid
 
       implicit none
@@ -1252,7 +1252,7 @@ contains
          ! MRH remove optimisation for ease of including bpar
          call gyro_average(g, g_scratch)
 
-         ! for parallel Ampere's Law, need to calculate parallel current rather than density,
+         ! for parallel Amperes Law, need to calculate parallel current rather than density,
          ! so multiply <g> by vpa before integrating
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             ! get the vpa index
@@ -1281,9 +1281,9 @@ contains
 
      use stella_layouts, only: vmu_lo 
      use zgrid, only: nzgrid, ntubes
-     use kt_grids, only: naky, nakx
+     use arrays_kxky, only: naky, nakx
      use fields_arrays, only: gamtot
-     use kt_grids, only: akx
+     use arrays_kxky, only: akx
      use gyro_averages, only: gyro_average
 
      implicit none
@@ -1330,7 +1330,7 @@ contains
      use stella_layouts, only: vmu_lo
      use species, only: spec
      use zgrid, only: nzgrid
-     use kt_grids, only: naky, nakx
+     use arrays_kxky, only: naky, nakx
      use vpamu_grids, only: integrate_species_ffs
      use gyro_averages, only: gyro_average, j0_B_ffs
      
@@ -1382,11 +1382,11 @@ contains
       use parameters_numerical, only: fphi
       use species, only: modified_adiabatic_electrons, adiabatic_electrons
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: nakx, ikx_max, naky, naky_all
-      use kt_grids, only: swap_kxky_ordered, swap_kxky_back_ordered
+      use arrays_kxky, only: nakx, ikx_max, naky, naky_all
+      use calculations_kxky, only: swap_kxky_ordered, swap_kxky_back_ordered
       use volume_averages, only: flux_surface_average_ffs
       use fields_arrays, only: gamtot
-      use kt_grids, only: akx, zonal_mode
+      use arrays_kxky, only: akx, zonal_mode
 
       use fields_arrays, only: gamtot3
       use species, only: spec, has_electron_species
@@ -1528,7 +1528,7 @@ contains
          use stella_layouts, only: vmu_lo
          use species, only: spec
          use zgrid, only: nzgrid
-         use kt_grids, only: naky, nakx
+         use arrays_kxky, only: naky, nakx
          use vpamu_grids, only: integrate_species_ffs
          use gyro_averages, only: gyro_average, j0_B_ffs
 
@@ -1587,8 +1587,8 @@ contains
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: integrate_vmu
-      use kt_grids, only: nakx
-      use kt_grids, only: zonal_mode
+      use arrays_kxky, only: nakx
+      use arrays_kxky, only: zonal_mode
       use species, only: spec, nspec, has_electron_species
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
@@ -1663,8 +1663,8 @@ contains
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: vperp2, nvpa, nmu
       use vpamu_grids, only: integrate_vmu
-      use kt_grids, only: nakx
-      use kt_grids, only: zonal_mode
+      use arrays_kxky, only: nakx
+      use arrays_kxky, only: zonal_mode
       use species, only: spec, nspec, has_electron_species
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
@@ -1734,7 +1734,7 @@ contains
       use parameters_numerical, only: ky_solve_radial, ky_solve_real
       use zgrid, only: nzgrid, ntubes
       use geometry, only: dl_over_b
-      use kt_grids, only: nakx, naky, zonal_mode
+      use arrays_kxky, only: nakx, naky, zonal_mode
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
       use species, only: spec, has_electron_species
@@ -1838,7 +1838,7 @@ contains
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
       use zgrid, only: nzgrid, ntubes 
-      use kt_grids, only: nakx, naky
+      use arrays_kxky, only: nakx, naky
       use fields_arrays, only: gamtotinv11, gamtotinv13, gamtotinv33, gamtotinv31
 
       implicit none
@@ -1898,7 +1898,7 @@ contains
       use parameters_numerical, only: ky_solve_radial
       use zgrid, only: nzgrid, ntubes
       use species, only: spec, has_electron_species
-      use kt_grids, only: nakx, naky, zonal_mode
+      use arrays_kxky, only: nakx, naky, zonal_mode
       use linear_solve, only: lu_back_substitution
       use fields_arrays, only: gamtot, phi_solve
 
@@ -2077,7 +2077,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use geometry, only: dl_over_b, d_dl_over_b_drho
-      use kt_grids, only: nakx, boundary_size, rho_d_clamped
+      use arrays_kxky, only: nakx, boundary_size, rho_d_clamped
       use fields_arrays, only: phizf_solve, phi_ext
       use fields_arrays, only: phi_proj, phi_proj_stage, theta
       use fields_arrays, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
@@ -2194,8 +2194,8 @@ contains
    subroutine get_phi_ffs(rhs, phi)
 
       use zgrid, only: nzgrid
-      use kt_grids, only: swap_kxky_ordered, swap_kxky_back_ordered
-      use kt_grids, only: naky_all, ikx_max
+      use calculations_kxky, only: swap_kxky_ordered, swap_kxky_back_ordered
+      use arrays_kxky, only: naky_all, ikx_max
       use gyro_averages, only: band_lu_solve_ffs
 
       implicit none
@@ -2239,7 +2239,8 @@ contains
       use dist_fn_arrays, only: kperp2, dkperp2dr
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: vperp2
-      use kt_grids, only: nakx, naky, multiply_by_rho
+      use arrays_kxky, only: nakx, naky
+      use calculations_kxky, only: multiply_by_rho
       use parameters_numerical, only: ky_solve_radial
       use species, only: spec
 
@@ -2299,8 +2300,9 @@ contains
       use stella_layouts, only: imu_idx, is_idx
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: integrate_species, vperp2
-      use kt_grids, only: nakx, nx, naky, rho_d_clamped
-      use kt_grids, only: zonal_mode, multiply_by_rho
+      use arrays_kxky, only: nakx, nx, naky, rho_d_clamped
+      use arrays_kxky, only: zonal_mode
+      use calculations_kxky, only: multiply_by_rho
       use species, only: spec, has_electron_species
       use fields_arrays, only: phi_corr_QN, phi_corr_GA
       use fields_arrays, only: gamtot, dgamtotdr
@@ -2486,7 +2488,7 @@ contains
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: vpa, mu
-      use kt_grids, only: nakx, aky, naky
+      use arrays_kxky, only: nakx, aky, naky
 
       use gyro_averages, only: j0_ffs
       use parameters_physics, only: full_flux_surface
@@ -2548,7 +2550,7 @@ contains
       use parameters_numerical, only: fphi
       use species, only: spec
       use vpamu_grids, only: vpa, mu
-      use kt_grids, only: nakx, aky, naky
+      use arrays_kxky, only: nakx, aky, naky
 
       use gyro_averages, only: j0_ffs
       use parameters_physics, only: full_flux_surface
@@ -2603,7 +2605,7 @@ contains
       use parameters_numerical, only: fphi
       use species, only: spec
       use vpamu_grids, only: vpa, mu
-      use kt_grids, only: akx, naky, nakx
+      use arrays_kxky, only: akx, naky, nakx
 
       use gyro_averages, only: j0_ffs
       use parameters_physics, only: full_flux_surface

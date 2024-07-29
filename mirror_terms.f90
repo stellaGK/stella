@@ -39,7 +39,7 @@ contains
       use vpamu_grids, only: nmu
       use vpamu_grids, only: mu
       use zgrid, only: nzgrid, nztot
-      use kt_grids, only: nalpha
+      use arrays_kxky, only: nalpha
       use geometry, only: dbdzed, b_dot_grad_z, gfac
       use geometry, only: d2Bdrdth, dgradpardrho
       use neoclassical_terms, only: include_neoclassical_terms
@@ -132,7 +132,7 @@ contains
       use zgrid, only: nzgrid
       use vpamu_grids, only: nmu, dvpa
       use species, only: nspec
-      use kt_grids, only: nalpha
+      use arrays_kxky, only: nalpha
 
       implicit none
 
@@ -160,7 +160,7 @@ contains
       use vpamu_grids, only: nvpa, nmu
       use parameters_physics, only: full_flux_surface
       use species, only: spec
-      use kt_grids, only: nalpha
+      use arrays_kxky, only: nalpha
       use geometry, only: dbdzed
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed
@@ -294,7 +294,7 @@ contains
       use stella_layouts, only: kxkyz_lo
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nmu, nvpa
-      use kt_grids, only: naky, nakx
+      use arrays_kxky, only: naky, nakx
       use fields, only: advance_apar
 
       implicit none
@@ -350,8 +350,8 @@ contains
       use stella_transforms, only: transform_ky2y
       use zgrid, only: nzgrid, ntubes
       use parameters_physics, only: full_flux_surface
-      use kt_grids, only: nakx, naky, naky_all, ny, ikx_max
-      use kt_grids, only: swap_kxky
+      use arrays_kxky, only: nakx, naky, naky_all, ny, ikx_max
+      use calculations_kxky, only: swap_kxky
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vpa, maxwell_vpa
       use parameters_numerical, only: fields_kxkyz, maxwellian_normalization
@@ -575,7 +575,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, is_idx
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: nakx
+      use arrays_kxky, only: nakx
 
       implicit none
 
@@ -604,7 +604,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, is_idx
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: ikx_max
+      use arrays_kxky, only: ikx_max
 
       implicit none
 
@@ -643,7 +643,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use dist_fn_arrays, only: gvmu
       use parameters_physics, only: full_flux_surface
-      use kt_grids, only: ny, nakx
+      use arrays_kxky, only: ny, nakx
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: maxwell_vpa
       use neoclassical_terms, only: include_neoclassical_terms
@@ -657,8 +657,8 @@ contains
       use parameters_numerical, only: time_upwind
       use vpamu_grids, only: vpa, dvpa
       use stella_layouts, only: iy_idx
-      use kt_grids, only: swap_kxky, swap_kxky_back
-      use kt_grids, only: naky_all, ikx_max, naky
+      use calculations_kxky, only: swap_kxky, swap_kxky_back
+      use arrays_kxky, only: naky_all, ikx_max, naky
       implicit none
 
       logical, intent(in) :: collisions_implicit
@@ -1180,7 +1180,7 @@ contains
    ! subroutine checksum_field (field, total)
 
    !   use zgrid, only: nzgrid, ntubes
-   !   use kt_grids, only: naky
+   !   use arrays_kxky, only: naky
    !   use extended_zgrid, only: neigen, nsegments, ikxmod
    !   use extended_zgrid, only: iz_low, iz_up
 
@@ -1217,7 +1217,7 @@ contains
    !   use mp, only: sum_allreduce
    !   use zgrid, only: nzgrid, ntubes
    !   use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-   !   use kt_grids, only: naky, nakx
+   !   use arrays_kxky, only: naky, nakx
    !   use vpamu_grids, only: maxwell_vpa, maxwell_mu
 
    !   implicit none

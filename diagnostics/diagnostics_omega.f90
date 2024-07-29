@@ -92,7 +92,7 @@ contains
       use parameters_diagnostics, only: write_omega
       use parameters_physics, only: include_apar
       use fields_arrays, only: phi, phi_old, apar, apar_old
-      use kt_grids, only: nakx, naky
+      use arrays_kxky, only: nakx, naky
       use stella_time, only: code_dt
       use volume_averages, only: fieldline_average
       use job_manage, only: time_message
@@ -168,7 +168,7 @@ contains
       use parameters_diagnostics, only: write_omega
       use stella_io, only: write_omega_nc
       use job_manage, only: time_message
-      use kt_grids, only: nakx, naky
+      use arrays_kxky, only: nakx, naky
       use mp, only: proc0
 
       implicit none 
@@ -223,7 +223,7 @@ contains
    
       use parameters_diagnostics, only: write_omega
       use parameters_diagnostics, only: navg
-      use kt_grids, only: nakx, naky
+      use arrays_kxky, only: nakx, naky
       use mp, only: proc0
 
       implicit none 
@@ -309,8 +309,8 @@ contains
 
       use parameters_diagnostics, only: write_omega
       use stella_time, only: code_time 
-      use kt_grids, only: naky, nakx
-      use kt_grids, only: aky, akx
+      use arrays_kxky, only: naky, nakx
+      use arrays_kxky, only: aky, akx
       use mp, only: proc0
 
       implicit none

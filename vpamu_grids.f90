@@ -779,7 +779,7 @@ contains
 
       use gauss_quad, only: get_laguerre_grids
       use zgrid, only: nzgrid, nztot
-      use kt_grids, only: nalpha
+      use arrays_kxky, only: nalpha
       use species, only: spec, nspec
       use geometry, only: bmag, bmag_psi0
       use parameters_numerical, only: maxwellian_normalization

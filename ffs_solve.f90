@@ -11,7 +11,7 @@ contains
   subroutine add_correction_ffs (phiin, gin, source_out) 
 
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky, nakx
+    use arrays_kxky, only: naky, nakx
     use stella_layouts, only: vmu_lo
 
     implicit none 
@@ -44,15 +44,15 @@ contains
      use stella_layouts, only: iv_idx, imu_idx, is_idx
      use stella_transforms, only: transform_ky2y
      use zgrid, only: nzgrid, ntubes
-     use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
-     use kt_grids, only: swap_kxky
+     use arrays_kxky, only: naky, naky_all, nakx, ikx_max, ny
+     use calculations_kxky, only: swap_kxky
      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
      use species, only: spec
 
      use fields, only: advance_fields, fields_updated
      use gyro_averages, only: j0_ffs, j0_const, gyro_average
 
-     use kt_grids, only: swap_kxky_back
+     use calculations_kxky, only: swap_kxky_back
      use stella_transforms, only: transform_y2ky
      
      use parallel_streaming, only: center_zed, get_dgdz_centered, get_dzed
@@ -183,8 +183,8 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_transforms, only: transform_ky2y,transform_y2ky
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
-      use kt_grids, only: swap_kxky, swap_kxky_back
+      use arrays_kxky, only: naky, naky_all, nakx, ikx_max, ny
+      use calculations_kxky, only: swap_kxky, swap_kxky_back
       use gyro_averages, only: j0_ffs, gyro_average
 
       use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
@@ -276,7 +276,7 @@ contains
 
       use constants, only: zi
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: nakx, aky
+      use arrays_kxky, only: nakx, aky
 
       implicit none
 
@@ -299,7 +299,7 @@ contains
 
       use constants, only: zi
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: akx, nakx
+      use arrays_kxky, only: akx, nakx
 
       implicit none
 
@@ -322,7 +322,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: ikx_max, nalpha
+      use arrays_kxky, only: ikx_max, nalpha
 
       implicit none
 

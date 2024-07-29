@@ -1,7 +1,8 @@
 module gyro_averages
 
    use common_types, only: coupled_alpha_type
-
+   use debug_flags, only: debug => gyro_averages_debug
+   
    public :: aj0x, aj0v, aj1x, aj1v
    public :: init_bessel, finish_bessel
    public :: gyro_average
@@ -49,8 +50,6 @@ module gyro_averages
 
    logical :: bessinit = .false.
 
-   logical :: debug = .false.
-
    type(coupled_alpha_type), dimension(:, :, :, :), allocatable :: j1_ffs
    real, dimension(:, :, :, :), allocatable :: j0_const, j0_B_const, j0max_const
 
@@ -64,7 +63,7 @@ contains
       use geometry, only: bmag
       use zgrid, only: nzgrid
       use vpamu_grids, only: vperp2, nmu
-      use kt_grids, only: naky, nakx
+      use arrays_kxky, only: naky, nakx
       use stella_layouts, only: kxkyz_lo, vmu_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, imu_idx
       use spfunc, only: j0, j1
@@ -89,6 +88,10 @@ contains
       end if
 
       if (debug) write (*, *) 'gyro_averages::init_bessel::calculate_aj0v_aj1v'
+
+      write(*,*) kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+      write(*,*) size(aj0v)
+      
       ia = 1
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -103,10 +106,12 @@ contains
          end do
       end do
 
-      if (debug) write (*, *) 'gyro_averages::init_bessel::full_flux_surface'
+      write(*,*) 'done'
       if (full_flux_surface) then
+         if (debug) write (*, *) 'gyro_averages::init_bessel::full_flux_surface'
          call init_bessel_ffs 
       else
+         if (debug) write (*, *) 'gyro_averages::init_bessel::fluxtube' 
          if (.not. allocated(aj0x)) then
             allocate (aj0x(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
             aj0x = 0.
@@ -145,9 +150,9 @@ contains
 !     subroutine test_gyro_average
 
 !       use constants, only: pi
-!       use kt_grids, only: ny, nx, x, x0, y, y0
-!       use kt_grids, only: nakx, ikx_max, naky, naky_all
-!       use kt_grids, only: swap_kxky, swap_kxky_back
+!       use arrays_kxky, only: ny, nx, x, x0, y, y0
+!       use arrays_kxky, only: nakx, ikx_max, naky, naky_all
+!       use calculations_kxky, only: swap_kxky, swap_kxky_back
 !       use stella_transforms, only: transform_x2kx, transform_y2ky
 !       use stella_transforms, only: transform_kx2x, transform_ky2y
 !       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
@@ -265,11 +270,12 @@ contains
       use zgrid, only: nzgrid, nztot
       use vpamu_grids, only: nmu, nvpa
       use vpamu_grids, only: vperp2, maxwell_vpa, maxwell_mu
-      use kt_grids, only: nalpha, naky, naky_all, ikx_max
-      use kt_grids, only: swap_kxky_ordered
+      use arrays_kxky, only: nalpha, naky, naky_all, ikx_max
+      use calculations_kxky, only: swap_kxky_ordered
       use dist_fn_arrays, only: kperp2
 
-      use kt_grids, only: nakx, swap_kxky_back_ordered
+      use arrays_kxky, only: nakx
+      use calculations_kxky, only: swap_kxky_back_ordered
       use spfunc, only: j1
 
       implicit none
@@ -491,7 +497,7 @@ contains
 
       !   use constants, only: pi
       !   use zgrid, only: nzgrid, zed
-      !   use kt_grids, only: naky, nalpha, aky_all_ordered
+      !   use arrays_kxky, only: naky, nalpha, aky_all_ordered
       !   use vpamu_grids, only: mu
       !   use stella_transforms, only: transform_kalpha2alpha
       !   use geometry, only: alpha
@@ -721,9 +727,9 @@ contains
 
    subroutine gyro_average_ffs_kxky_local(field, gyro_field, coefs)
 
-      use kt_grids, only: naky
-      use kt_grids, only: naky_all, ikx_max
-      use kt_grids, only: swap_kxky_ordered, swap_kxky_back_ordered
+      use arrays_kxky, only: naky
+      use arrays_kxky, only: naky_all, ikx_max
+      use calculations_kxky, only: swap_kxky_ordered, swap_kxky_back_ordered
 
       implicit none
 
@@ -999,7 +1005,7 @@ contains
 
       use common_types, only: gam0_ffs_type
       use zgrid, only: nzgrid
-      use kt_grids, only: ikx_max
+      use arrays_kxky, only: ikx_max
 
       implicit none
 
@@ -1019,7 +1025,7 @@ contains
    subroutine band_lu_solve_ffs_single(lu, solvec)
 
       use common_types, only: gam0_ffs_type
-      use kt_grids, only: naky
+      use arrays_kxky, only: naky
 
       implicit none
 
@@ -1052,7 +1058,7 @@ contains
 
       use common_types, only: coupled_alpha_type, gam0_ffs_type
       use zgrid, only: nzgrid
-      use kt_grids, only: ikx_max, naky_all, naky
+      use arrays_kxky, only: ikx_max, naky_all, naky
 
       implicit none
 
@@ -1082,7 +1088,7 @@ contains
    subroutine band_lu_factorisation_single(gam0, lu_gam0)
 
       use common_types, only: gam0_ffs_type
-      use kt_grids, only: naky, naky_all
+      use arrays_kxky, only: naky, naky_all
 
       implicit none
 
@@ -1138,7 +1144,7 @@ contains
 
    !   use common_types, only: coupled_alpha_type, gam0_ffs_type
    !   use zgrid, only: nzgrid
-   !   use kt_grids, only: naky_all, naky
+   !   use arrays_kxky, only: naky_all, naky
 
    !   implicit none
 

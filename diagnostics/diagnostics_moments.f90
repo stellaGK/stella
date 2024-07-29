@@ -42,7 +42,7 @@ contains
       use dist_fn_arrays, only: gnew
 
       ! Dimensions
-      use kt_grids, only: naky, nakx
+      use arrays_kxky, only: naky, nakx
       use zgrid, only: nztot, ntubes
       use species, only: nspec
       
@@ -134,7 +134,8 @@ contains
       use species, only: spec, nspec
       use vpamu_grids, only: vpa, vperp2, integrate_vmu
       use vpamu_grids, only: maxwell_mu, ztmax, maxwell_fac, maxwell_vpa
-      use kt_grids, only: naky, nakx, multiply_by_rho
+      use arrays_kxky, only: naky, nakx
+      use calculations_kxky, only: multiply_by_rho
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use gyro_averages, only: aj0x, gyro_average
@@ -257,7 +258,8 @@ contains
       use vpamu_grids, only: integrate_vmu
       use vpamu_grids, only: vpa, vperp2, mu
       use vpamu_grids, only: maxwell_mu, ztmax, maxwell_fac, maxwell_vpa
-      use kt_grids, only: naky, nakx, multiply_by_rho, rho_d_clamped
+      use arrays_kxky, only: naky, nakx, rho_d_clamped
+      use calculations_kxky, only: multiply_by_rho
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use dist_fn_arrays, only: g1, g2, kperp2, dkperp2dr
