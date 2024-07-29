@@ -145,15 +145,6 @@ contains
 
       !> allocate the kperp2 array to contain |k_perp|^2
       allocate (kperp2(naky, nakx, nalpha, -nzgrid:nzgrid))
-
-      write(*,*) 'akx', akx
-      write(*,*) 'aky', aky
-      write(*,*) 'nakx', nakx
-      write(*,*) 'naky', naky
-      write(*,*) 'gds22', gds22
-      write(*,*) 'geo_surf%shat', geo_surf%shat
-      write(*,*) 'gds2', gds2
-      write(*,*)'theta0', theta0
       
       do iky = 1, naky
          if (zonal_mode(iky)) then

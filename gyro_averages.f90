@@ -89,8 +89,6 @@ contains
 
       if (debug) write (*, *) 'gyro_averages::init_bessel::calculate_aj0v_aj1v'
 
-      write(*,*) kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-      write(*,*) size(aj0v)
       
       ia = 1
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -106,7 +104,6 @@ contains
          end do
       end do
 
-      write(*,*) 'done'
       if (full_flux_surface) then
          if (debug) write (*, *) 'gyro_averages::init_bessel::full_flux_surface'
          call init_bessel_ffs 
