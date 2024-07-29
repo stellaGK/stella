@@ -52,7 +52,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
       use dist_fn_arrays, only: g_krook, g_proj, g_symm
-      use fields_arrays, only: phi_proj, phi_proj_stage
+      use arrays_fields, only: phi_proj, phi_proj_stage
       use parameters_physics, only: radial_variation
       use species, only: spec, has_electron_species
       use parameters_physics, only: adiabatic_option_switch
@@ -115,7 +115,7 @@ contains
       use parameters_physics, only: radial_variation
       use mp, only: proc0, broadcast
       use arrays_kxky, only: ikx_max, periodic_variation
-      use fields_arrays, only: tcorr_source_qn, exclude_boundary_regions_qn
+      use arrays_fields, only: tcorr_source_qn, exclude_boundary_regions_qn
       use text_options, only: text_option, get_option_value
 
       implicit none
@@ -184,7 +184,7 @@ contains
    subroutine init_source_timeaverage
 
       use stella_time, only: code_dt
-      use fields_arrays, only: tcorr_source_qn, exp_fac_qn
+      use arrays_fields, only: tcorr_source_qn, exp_fac_qn
 
       implicit none
 
@@ -205,11 +205,11 @@ contains
    subroutine finish_sources
 
       use dist_fn_arrays, only: g_krook, g_proj, g_symm
-      use fields_arrays, only: phi_proj, phi_proj_stage
+      use arrays_fields, only: phi_proj, phi_proj_stage
 #ifdef ISO_C_BINDING
-      use fields_arrays, only: qn_zf_window
+      use arrays_fields, only: qn_zf_window
 #else
-      use fields_arrays, only: phizf_solve, phi_ext
+      use arrays_fields, only: phizf_solve, phi_ext
 #endif
 
       implicit none
@@ -684,7 +684,7 @@ contains
 
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
-      use fields_arrays, only: qn_zf_window
+      use arrays_fields, only: qn_zf_window
       use mp, only: sgproc0, sharedsubprocs, comm_sgroup
       use mp, only: real_size, nbytes_real, create_shared_memory_window
       use mp_lu_decomposition, only: lu_decomposition_local, lu_inverse_local
@@ -695,8 +695,8 @@ contains
       use zgrid, only: nzgrid, nztot
       use arrays_kxky, only: nakx, rho_d_clamped, boundary_size
       use linear_solve, only: lu_decomposition
-      use fields_arrays, only: phizf_solve, c_mat, theta, phi_ext
-      use fields_arrays, only: tcorr_source_qn, exclude_boundary_regions_qn, exp_fac_qn
+      use arrays_fields, only: phizf_solve, c_mat, theta, phi_ext
+      use arrays_fields, only: tcorr_source_qn, exclude_boundary_regions_qn, exp_fac_qn
 
       implicit none
 
@@ -878,8 +878,8 @@ contains
 
    subroutine update_quasineutrality_source
 
-      use fields_arrays, only: phi_proj, phi_proj_stage
-      use fields_arrays, only: tcorr_source_qn, exp_fac_qn
+      use arrays_fields, only: phi_proj, phi_proj_stage
+      use arrays_fields, only: tcorr_source_qn, exp_fac_qn
 
       implicit none
 

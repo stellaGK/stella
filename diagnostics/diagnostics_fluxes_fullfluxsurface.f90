@@ -35,7 +35,7 @@ contains
       use zgrid, only: nzgrid, delzed
       use arrays_kxky, only: naky, nakx, ny
       use arrays_kxky, only: aky, dy
-      use fields_arrays, only: phi
+      use arrays_fields, only: phi
       use geometry, only: grad_x, jacob
 
       implicit none
@@ -196,7 +196,7 @@ contains
       use calculations_kxky, only: swap_kxky
       use dist_fn_arrays, only: g0, g1, g2
       use gyro_averages, only: gyro_average, j0_ffs
-      use fields_arrays, only: phi
+      use arrays_fields, only: phi
       use stella_transforms, only: transform_ky2y
       use arrays_kxky, only: akx, aky
       use arrays_kxky, only: nakx, theta0, naky

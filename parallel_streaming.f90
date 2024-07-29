@@ -246,7 +246,7 @@ contains
 	
 	!! For FFS 
       use fields, only: advance_fields, fields_updated
-      use fields_arrays, only: apar
+      use arrays_fields, only: apar
       use gyro_averages, only: j0_ffs, j0_const
       use arrays_kxky, only: aky, akx
       use zgrid, only: nztot
@@ -370,7 +370,7 @@ contains
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use species, only: spec
       use gyro_averages, only: gyro_average, gyro_average_j1
-      use fields_arrays, only: phi, phi_corr_QN, phi_corr_GA
+      use arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
 
       implicit none
 

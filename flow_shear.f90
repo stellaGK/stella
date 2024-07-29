@@ -31,7 +31,7 @@ contains
       use constants, only: zi, pi
       use zgrid, only: nzgrid
       use arrays_kxky, only: x, x_d, nalpha, nx, nakx, naky, akx, aky, ikx_max, zonal_mode, box
-      use fields_arrays, only: shift_state
+      use arrays_fields, only: shift_state
       use geometry, only: q_as_x, geo_surf, bmag, btor, rmajor, dBdrho, dIdrho
       use geometry, only: dydalpha, drhodpsi
       use parameters_physics, only: g_exb, g_exbfac, omprimfac
@@ -150,7 +150,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use arrays_kxky, only: nakx, naky
       use fields, only: get_dchidy
-      use fields_arrays, only: phi, apar, bpar
+      use arrays_fields, only: phi, apar, bpar
 
       implicit none
 
@@ -190,7 +190,7 @@ contains
       use parameters_physics, only: prp_shear_enabled, hammett_flow_shear
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use zgrid, only: nzgrid, ntubes
-      use fields_arrays, only: shift_state
+      use arrays_fields, only: shift_state
       use arrays_kxky, only: aky, nakx, naky, ikx_max, zonal_mode
       use file_utils, only: runtype_option_switch, runtype_multibox
       use stella_time, only: code_dt
@@ -289,7 +289,7 @@ contains
    end subroutine advance_perp_flow_shear
 
    subroutine finish_flow_shear
-      use fields_arrays, only: shift_state
+      use arrays_fields, only: shift_state
 
       implicit none
 

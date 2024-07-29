@@ -30,7 +30,7 @@ contains
    subroutine diagnostics_stella(istep)
      
       ! Data 
-      use fields_arrays, only: phi, apar, bpar
+      use arrays_fields, only: phi, apar, bpar
       use dist_fn_arrays, only: gnew 
       use fields, only: advance_fields 
       use constants, only: zi 

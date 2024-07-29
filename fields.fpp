@@ -108,9 +108,9 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
-      use fields_arrays, only: gamtot, dgamtotdr, gamtot3
-      use fields_arrays, only: gamtot13, gamtot31, gamtot33
-      use fields_arrays, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
+      use arrays_fields, only: gamtot, dgamtotdr, gamtot3
+      use arrays_fields, only: gamtot13, gamtot31, gamtot33
+      use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
 
       implicit none
 
@@ -404,7 +404,7 @@ contains
       use mp, only: job
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
-      use fields_arrays, only: qn_window, phi_shared
+      use arrays_fields, only: qn_window, phi_shared
       use mp, only: sgproc0, curr_focus, sharedsubprocs
       use mp, only: scope, real_size, nbytes_real
       use mp, only: split_n_tasks, create_shared_memory_window
@@ -420,8 +420,8 @@ contains
       use parameters_physics, only: adiabatic_option_fieldlineavg
       use linear_solve, only: lu_decomposition, lu_inverse
       use multibox, only: init_mb_get_phi
-      use fields_arrays, only: gamtot, dgamtotdr
-      use fields_arrays, only: phi_solve, c_mat, theta
+      use arrays_fields, only: gamtot, dgamtotdr
+      use arrays_fields, only: phi_solve, c_mat, theta
       use file_utils, only: runtype_option_switch, runtype_multibox
 
       implicit none
@@ -646,7 +646,7 @@ contains
       use gyro_averages, only: band_lu_factorisation_ffs
 
       use arrays_kxky, only: nakx
-      use fields_arrays, only: gamtot, gamtot3 
+      use arrays_fields, only: gamtot, gamtot3 
       use mp, only: sum_allreduce, proc0
       use calculations_kxky, only: swap_kxky_back_ordered
       use gyro_averages, only: find_max_required_kalpha_index
@@ -860,11 +860,11 @@ contains
 
    subroutine allocate_arrays
 
-      use fields_arrays, only: phi, phi_old
-      use fields_arrays, only: apar, apar_old
-      use fields_arrays, only: bpar, bpar_old
-      use fields_arrays, only: phi_corr_QN, phi_corr_GA
-      use fields_arrays, only: apar_corr_QN, apar_corr_GA
+      use arrays_fields, only: phi, phi_old
+      use arrays_fields, only: apar, apar_old
+      use arrays_fields, only: bpar, bpar_old
+      use arrays_fields, only: phi_corr_QN, phi_corr_GA
+      use arrays_fields, only: apar_corr_QN, apar_corr_GA
       use zgrid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
       use parameters_physics, only: radial_variation
@@ -1282,7 +1282,7 @@ contains
      use stella_layouts, only: vmu_lo 
      use zgrid, only: nzgrid, ntubes
      use arrays_kxky, only: naky, nakx
-     use fields_arrays, only: gamtot
+     use arrays_fields, only: gamtot
      use arrays_kxky, only: akx
      use gyro_averages, only: gyro_average
 
@@ -1385,10 +1385,10 @@ contains
       use arrays_kxky, only: nakx, ikx_max, naky, naky_all
       use calculations_kxky, only: swap_kxky_ordered, swap_kxky_back_ordered
       use volume_averages, only: flux_surface_average_ffs
-      use fields_arrays, only: gamtot
+      use arrays_fields, only: gamtot
       use arrays_kxky, only: akx, zonal_mode
 
-      use fields_arrays, only: gamtot3
+      use arrays_fields, only: gamtot3
       use species, only: spec, has_electron_species
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
@@ -1739,7 +1739,7 @@ contains
       use parameters_physics, only: adiabatic_option_fieldlineavg
       use species, only: spec, has_electron_species
       use multibox, only: mb_get_phi
-      use fields_arrays, only: gamtot, gamtot3
+      use arrays_fields, only: gamtot, gamtot3
       use file_utils, only: runtype_option_switch, runtype_multibox
 
       implicit none
@@ -1839,7 +1839,7 @@ contains
       use job_manage, only: time_message
       use zgrid, only: nzgrid, ntubes 
       use arrays_kxky, only: nakx, naky
-      use fields_arrays, only: gamtotinv11, gamtotinv13, gamtotinv33, gamtotinv31
+      use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv33, gamtotinv31
 
       implicit none
 
@@ -1889,7 +1889,7 @@ contains
       use mp, only: curr_focus, sharedsubprocs, scope
       use mp, only: split_n_tasks, sgproc0
       use zgrid, only: nztot
-      use fields_arrays, only: phi_shared
+      use arrays_fields, only: phi_shared
       use mp_lu_decomposition, only: lu_matrix_multiply_local
 #endif
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
@@ -1900,7 +1900,7 @@ contains
       use species, only: spec, has_electron_species
       use arrays_kxky, only: nakx, naky, zonal_mode
       use linear_solve, only: lu_back_substitution
-      use fields_arrays, only: gamtot, phi_solve
+      use arrays_fields, only: gamtot, phi_solve
 
       implicit none
 
@@ -2069,7 +2069,7 @@ contains
 #ifdef ISO_C_BINDING
       use mpi
       use mp, only: sgproc0, comm_sgroup
-      use fields_arrays, only: qn_zf_window
+      use arrays_fields, only: qn_zf_window
       use mp_lu_decomposition, only: lu_matrix_multiply_local
 #else
       use linear_solve, only: lu_back_substitution
@@ -2078,9 +2078,9 @@ contains
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use arrays_kxky, only: nakx, boundary_size, rho_d_clamped
-      use fields_arrays, only: phizf_solve, phi_ext
-      use fields_arrays, only: phi_proj, phi_proj_stage, theta
-      use fields_arrays, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
+      use arrays_fields, only: phizf_solve, phi_ext
+      use arrays_fields, only: phi_proj, phi_proj_stage, theta
+      use arrays_fields, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
 
       implicit none
 
@@ -2304,9 +2304,9 @@ contains
       use arrays_kxky, only: zonal_mode
       use calculations_kxky, only: multiply_by_rho
       use species, only: spec, has_electron_species
-      use fields_arrays, only: phi_corr_QN, phi_corr_GA
-      use fields_arrays, only: gamtot, dgamtotdr
-      use fields_arrays, only: gamtot3
+      use arrays_fields, only: phi_corr_QN, phi_corr_GA
+      use arrays_fields, only: gamtot, dgamtotdr
+      use arrays_fields, only: gamtot3
       use dist_fn_arrays, only: kperp2, dkperp2dr
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
@@ -2445,7 +2445,7 @@ contains
    subroutine rescale_fields(target_amplitude)
 
       use mp, only: scope, subprocs, crossdomprocs, sum_allreduce
-      use fields_arrays, only: phi, apar
+      use arrays_fields, only: phi, apar
       use dist_fn_arrays, only: gnew, gvmu
       use volume_averages, only: volume_average
       use job_manage, only: njobs
@@ -2649,19 +2649,19 @@ contains
 
    subroutine finish_fields
 
-      use fields_arrays, only: phi, phi_old
-      use fields_arrays, only: apar, apar_old
-      use fields_arrays, only: bpar, bpar_old
-      use fields_arrays, only: phi_corr_QN, phi_corr_GA
-      use fields_arrays, only: apar_corr_QN, apar_corr_GA
-      use fields_arrays, only: gamtot, dgamtotdr, gamtot3
-      use fields_arrays, only: gamtot13, gamtot33, gamtot31
-      use fields_arrays, only: c_mat, theta
+      use arrays_fields, only: phi, phi_old
+      use arrays_fields, only: apar, apar_old
+      use arrays_fields, only: bpar, bpar_old
+      use arrays_fields, only: phi_corr_QN, phi_corr_GA
+      use arrays_fields, only: apar_corr_QN, apar_corr_GA
+      use arrays_fields, only: gamtot, dgamtotdr, gamtot3
+      use arrays_fields, only: gamtot13, gamtot33, gamtot31
+      use arrays_fields, only: c_mat, theta
 #ifdef ISO_C_BINDING
-      use fields_arrays, only: qn_window
+      use arrays_fields, only: qn_window
       use mpi
 #else
-      use fields_arrays, only: phi_solve
+      use arrays_fields, only: phi_solve
 #endif
       implicit none
 

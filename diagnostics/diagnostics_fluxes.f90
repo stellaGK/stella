@@ -154,7 +154,7 @@ contains
 
       ! Load data 
       use dist_fn_arrays, only: gnew, gvmu
-      use fields_arrays, only: phi, bpar
+      use arrays_fields, only: phi, bpar
       use parameters_numerical, only: fphi
 
       ! Redistribute data from  i[vpa,mu,s] to i[kx,ky,z,s] 
@@ -210,7 +210,7 @@ contains
       use parameters_diagnostics, only: write_radial_fluxes 
 
       ! Data 
-      use fields_arrays, only: phi, phi_corr_QN
+      use arrays_fields, only: phi, phi_corr_QN
       use parameters_physics, only: radial_variation
       use dist_fn_arrays, only: gnew
    

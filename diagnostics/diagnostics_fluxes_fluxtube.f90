@@ -99,7 +99,7 @@ contains
       use parameters_diagnostics, only: write_fluxes_kxkyz 
 
       ! Data 
-      use fields_arrays, only: phi, apar, bpar
+      use arrays_fields, only: phi, apar, bpar
       use parameters_numerical, only: fphi
       
       ! Geometry 

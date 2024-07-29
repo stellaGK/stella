@@ -921,7 +921,7 @@ contains
       use stella_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
       use dist_redistribute, only: kxkyz2vmu
       use dist_fn_arrays, only: gvmu, kperp2, dkperp2dr
-      use fields_arrays, only: phi_corr_QN
+      use arrays_fields, only: phi_corr_QN
       use g_tofrom_h, only: g_to_h
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 

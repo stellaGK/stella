@@ -1216,7 +1216,7 @@ contains
       use extended_zgrid, only: periodic, phase_shift
       use arrays_kxky, only: naky
       use fields, only: nfields
-      use fields_arrays, only: response_matrix
+      use arrays_fields, only: response_matrix
 
       implicit none
 

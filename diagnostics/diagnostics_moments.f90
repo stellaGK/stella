@@ -139,7 +139,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use gyro_averages, only: aj0x, gyro_average
-      use fields_arrays, only: phi
+      use arrays_fields, only: phi
       use parameters_numerical, only: fphi
       use parameters_numerical, only: maxwellian_normalization
       use parameters_physics, only: radial_variation
@@ -266,7 +266,7 @@ contains
       use geometry, only: bmag, dBdrho
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use gyro_averages, only: aj0x, aj1x, gyro_average
-      use fields_arrays, only: phi, phi_corr_QN, phi_proj
+      use arrays_fields, only: phi, phi_corr_QN, phi_proj
       use parameters_numerical, only: fphi
       use parameters_numerical, only: maxwellian_normalization
       use parameters_physics, only: radial_variation

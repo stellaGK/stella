@@ -1,4 +1,4 @@
-module fields_arrays
+module arrays_fields
 
    use mpi
    use common_types, only: response_matrix_type, eigen_type
@@ -56,4 +56,4 @@ module fields_arrays
    real :: tcorr_source_qn, exp_fac_qn
    integer :: qn_window = MPI_WIN_NULL, qn_zf_window = MPI_WIN_NULL
 
-end module fields_arrays
+end module arrays_fields

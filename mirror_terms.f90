@@ -890,7 +890,7 @@ contains
       use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
       use finite_differences, only: fd_variable_upwinding_vpa
       use vpamu_grids, only: dvpa, vpa, nvpa
-      use fields_arrays, only: phi
+      use arrays_fields, only: phi
 
       implicit none
 

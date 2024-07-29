@@ -73,7 +73,7 @@ contains
       (g, istep0, t0, delt0, istatus, exit_in, fileopt)
 
 # ifdef NETCDF
-      use fields_arrays, only: shift_state, phi_proj
+      use arrays_fields, only: shift_state, phi_proj
       use dist_fn_arrays, only: g_krook, g_proj
       use arrays_kxky, only: naky, nakx
 # else
@@ -707,7 +707,7 @@ contains
 
    subroutine stella_restore_many(g, scale, istatus)
 # ifdef NETCDF
-      use fields_arrays, only: shift_state, phi_proj
+      use arrays_fields, only: shift_state, phi_proj
       use dist_fn_arrays, only: g_krook, g_proj
       use arrays_kxky, only: naky, nakx
 # endif

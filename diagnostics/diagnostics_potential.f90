@@ -39,7 +39,7 @@ contains
    subroutine write_potential_to_netcdf_file(istep, nout, timer, write_to_netcdf_file)
 
       ! Data 
-      use fields_arrays, only: phi, apar, bpar, phi_corr_QN
+      use arrays_fields, only: phi, apar, bpar, phi_corr_QN
 
       ! Dimensions
       use arrays_kxky, only: naky, nakx
@@ -235,7 +235,7 @@ contains
    subroutine write_potential_to_ascii_file_atfinaltimestep
 
       ! Data 
-      use fields_arrays, only: phi, apar, bpar
+      use arrays_fields, only: phi, apar, bpar
 
       ! Geometry 
       USE dist_fn_arrays, only: kperp2

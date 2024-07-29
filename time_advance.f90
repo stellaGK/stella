@@ -788,8 +788,8 @@ contains
    subroutine advance_stella(istep, stop_stella)
 
       use dist_fn_arrays, only: gold, gnew
-      use fields_arrays, only: phi, apar, bpar
-      use fields_arrays, only: phi_old, apar_old
+      use arrays_fields, only: phi, apar, bpar
+      use arrays_fields, only: phi_old, apar_old
       use fields, only: advance_fields, fields_updated
       use parameters_numerical, only: fully_explicit, fully_implicit
       use multibox, only: RK_step
@@ -920,7 +920,7 @@ contains
       use stella_layouts, only: vmu_lo, iv_idx
       use parameters_physics, only: include_apar
       use parallel_streaming, only: stream_sign
-      use fields_arrays, only: phi, apar, bpar
+      use arrays_fields, only: phi, apar, bpar
       use fields, only: advance_fields
       use g_tofrom_h, only: gbar_to_g
 
@@ -1177,7 +1177,7 @@ contains
    subroutine solve_gke(pdf, rhs_ky, restart_time_step, istep)
 
       use job_manage, only: time_message
-      use fields_arrays, only: phi, apar, bpar
+      use arrays_fields, only: phi, apar, bpar
       use stella_layouts, only: vmu_lo
       use stella_transforms, only: transform_y2ky
       use redistribute, only: gather, scatter
@@ -1491,7 +1491,7 @@ contains
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
       use fields, only: get_dchidy
-      use fields_arrays, only: apar, bpar
+      use arrays_fields, only: apar, bpar
       use stella_layouts, only: vmu_lo
       use stella_transforms, only: transform_ky2y
       use zgrid, only: nzgrid, ntubes
@@ -1772,9 +1772,9 @@ contains
       use job_manage, only: time_message
       use gyro_averages, only: gyro_average
       use fields, only: get_dchidx, get_dchidy
-      use fields_arrays, only: phi, apar, bpar, shift_state
-      use fields_arrays, only: phi_corr_QN, phi_corr_GA
-!   use fields_arrays, only: apar_corr_QN, apar_corr_GA
+      use arrays_fields, only: phi, apar, bpar, shift_state
+      use arrays_fields, only: phi_corr_QN, phi_corr_GA
+!   use arrays_fields, only: apar_corr_QN, apar_corr_GA
       use stella_transforms, only: transform_y2ky, transform_x2kx
       use stella_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
       use stella_time, only: cfl_dt_ExB, cfl_dt_linear, code_dt, code_dt_max
@@ -2063,7 +2063,7 @@ contains
       use finite_differences, only: second_order_centered_zed
       use finite_differences, only: third_order_upwind
       use redistribute, only: gather, scatter
-      use fields_arrays, only: phi, phi_corr_QN, phi_corr_GA
+      use arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
       use stella_transforms, only: transform_ky2y, transform_y2ky
       use stella_transforms, only: transform_kx2x, transform_x2kx
       use stella_time, only: cfl_dt_parallel, cfl_dt_linear, code_dt, code_dt_max
@@ -2344,9 +2344,9 @@ contains
       use mp, only: mp_abort, proc0
       use job_manage, only: time_message
       use fields, only: get_dchidy
-      use fields_arrays, only: phi, apar, bpar
-      use fields_arrays, only: phi_corr_QN, phi_corr_GA
-!   use fields_arrays, only: apar_corr_QN, apar_corr_GA
+      use arrays_fields, only: phi, apar, bpar
+      use arrays_fields, only: phi_corr_QN, phi_corr_GA
+!   use arrays_fields, only: apar_corr_QN, apar_corr_GA
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
@@ -2835,7 +2835,7 @@ contains
       use zgrid, only: nzgrid
       use multibox, only: multibox_communicate, use_dirichlet_bc, apply_radial_boundary_conditions
       use fields, only: fields_updated, advance_fields
-      use fields_arrays, only: phi, apar, bpar
+      use arrays_fields, only: phi, apar, bpar
       use file_utils, only: runtype_option_switch, runtype_multibox
 
       implicit none

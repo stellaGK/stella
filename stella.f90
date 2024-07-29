@@ -119,7 +119,7 @@ contains
       use stella_time, only: init_tstart, init_delt
       use diagnostics, only: init_diagnostics
       use parameters_diagnostics, only: read_diagnostics_knobs
-      use fields_arrays, only: phi, apar, bpar
+      use arrays_fields, only: phi, apar, bpar
       use dist_fn_arrays, only: gnew
       use dist_fn, only: init_gxyz, init_dist_fn
       use dist_redistribute, only: init_redistribute
