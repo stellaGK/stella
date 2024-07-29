@@ -255,17 +255,14 @@ contains
 
            !> get the grid spacing in ky and then in kx using twist-and-shift BC
            dky = 1./y0
-           write(*,*) 'dky', dky
            
            ! kx = ky * twist_shift_geo_fac / jtwist for every linked boundary condition
            ! except for the periodic ones
            select case (boundary_option_switch)
            case (boundary_option_linked)
               dkx = (2 * nperiod - 1) * dky * abs(twist_and_shift_geo_fac) / real(jtwist)
-              write(*,*) 'dkx', 'boundary_option_linked', nperiod, dky, twist_and_shift_geo_fac, jtwist, dkx
            case (boundary_option_linked_stellarator)
               dkx = dky * abs(twist_and_shift_geo_fac) / real(jtwist)
-              write(*,*) 'dkx', 'boundary_option_linked_stellarator', dky, twist_and_shift_geo_fac, jtwist, dkx
            case default
               if (x0 < epsilon(0.0)) then
                  dkx = dky
@@ -273,14 +270,9 @@ contains
                  dkx = 1./x0
               end if
            end select
-
-           write(*,*) 'x0', x0
-           write(*,*) 'dkx', dkx
            
            x0 = 1./dkx
 
-           write(*,*) 'x0'
-           
            !> ky goes from zero to aky_max
            do iky = 1, naky
               aky(iky) = real(iky - 1) * dky
@@ -326,9 +318,7 @@ contains
                  theta0(2:, ikx) = akx(ikx) / (aky(2:) * geo_surf%shat)
               end do
            end if
-           write(*,*) 'theta0 in grids', theta0
-           write(*,*) 'aky', aky
-           write(*,*) 'akx', akx
+
            norm = 1.
            if (naky > 1) norm = aky(2)
            if (rhostar > 0.) then
