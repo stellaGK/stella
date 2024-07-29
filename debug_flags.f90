@@ -30,8 +30,8 @@ module debug_flags
   public :: mirror_terms_debug
   public :: neoclassical_terms_debug
   
-  public :: diagnostics_main_debug
-  public :: fluxes_debug
+  public :: diagnostics_debug
+  public :: diagnostics_fluxes_debug
 
   public :: geometry_debug
   
@@ -61,9 +61,9 @@ module debug_flags
   logical :: mirror_terms_debug
   logical :: neoclassical_terms_debug
   !> Diagnostics debug flags
-  logical :: diagnostics__all_debug
+  logical :: diagnostics_all_debug
   logical :: diagnostics_debug
-  logical :: fluxes_debug
+  logical :: diagnostics_fluxes_debug
 
   logical :: geometry_debug
 
@@ -90,7 +90,7 @@ contains
          fields_all_debug, fields_debug, fields_electromagnetic_debug, &
          implicit_solve_debug, parallel_streaming_debug, mirror_terms_debug, neoclassical_terms_debug, &
          response_matrix_debug, time_advance_debug, diagnostics_all_debug, diagnostics_debug, dist_fn_debug,&
-         gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo
+         gyro_averages_debug, diagnostics_fluxes_debug, geometry_debug,  const_alpha_geo
     
     if (initialised) return
     initialised = .true.
@@ -129,7 +129,7 @@ contains
         !> Diagnostircs debug
         diagnostics_all_debug = .false.
         diagnostics_debug = .false.
-        fluxes_debug = .false.
+        diagnostics_fluxes_debug = .false.
 
         geometry_debug = .true.
         
@@ -187,7 +187,7 @@ contains
                      
         if(diagnostics_all_debug) then
            diagnostics_debug = .true. 
-           fluxes_debug = .true.
+           diagnostics_fluxes_debug = .true.
         end if
       end subroutine read_input_file
 
@@ -211,13 +211,13 @@ contains
         call broadcast(neoclassical_terms_debug)
         call broadcast(parallel_streaming_debug)
         call broadcast(response_matrix_debug)
-        call broadcast(diagnostics_debug)
         call broadcast(time_advance_debug)
 
         call broadcast(dist_fn_debug)
         call broadcast(gyro_averages_debug)
 
-        call broadcast(fluxes_debug) 
+        call broadcast(diagnostics_debug)
+        call broadcast(diagnostics_fluxes_debug) 
         call broadcast(geometry_debug)
         call broadcast(const_alpha_geo) 
 

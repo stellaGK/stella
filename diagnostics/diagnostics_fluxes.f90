@@ -13,7 +13,7 @@
 
 module diagnostics_fluxes
   
-   use debug_flags, only: debug => fluxes_debug
+   use debug_flags, only: debug => diagnostics_fluxes_debug
   
    implicit none
   
