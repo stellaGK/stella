@@ -7,12 +7,13 @@ module write_radial_grid
   
 contains
   
-    subroutine dump_radial_grid (x, rho, nx) 
+    subroutine dump_radial_grid 
 
         use file_utils, only: run_name
         use parameters_physics, only: rhostar
         use geometry, only: q_as_x, geo_surf, dxdpsi, drhodpsip
 
+        use arrays_kxky, only: x, rho, nx
         implicit none
 
         integer :: ix

@@ -6,25 +6,6 @@ module grids_kxky
 
    public :: init_grids_kxky, finish_grids_kxky
 
-   ! public :: box
-   ! public :: aky, theta0, akx, zed0
-   ! public :: aky_all, aky_all_ordered
-   ! public :: naky, nakx, nx, ny, reality
-   ! public :: dx, dy, dkx, dky, dx_d
-   ! public :: jtwist, jtwistfac, ikx_twist_shift, x0, y0
-   ! public :: x, x_d, y
-   ! public :: rho, rho_d, rho_clamped, rho_d_clamped
-   ! public :: nalpha
-   ! public :: ikx_max, naky_all
-   ! public :: phase_shift_angle
-   ! public :: zonal_mode
-   ! public :: centered_in_rho
-   ! public :: periodic_variation
-
-   ! public :: boundary_size, copy_size, krook_size
-
-   !!> MOVE TODO-GA
-   !! public :: g0x 
    private 
 
    logical :: initialised
@@ -403,7 +384,7 @@ contains
      
            zed0 = theta0 * geo_surf%zed0_fac
      
-           if (radial_variation) call dump_radial_grid (x, rho, nx) 
+           if (radial_variation) call dump_radial_grid 
      
            if (radial_variation .and. (any((rho + geo_surf%rhoc) < 0.0) &
                                        .or. any((rho + geo_surf%rhoc) > 1.0))) then
