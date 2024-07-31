@@ -1,3 +1,8 @@
+############################################################
+#  Create the internal library <stella_utils>
+############################################################
+
+# Source files that don't need preprocessing
 set(STELLA_UTILS_SOURCES_f90
   convert.f90
   fft_work.f90
@@ -11,6 +16,7 @@ set(STELLA_UTILS_SOURCES_f90
   text_options.f90
   )
 
+# Source files that need preprocessing
 set(STELLA_UTILS_SOURCES_fpp
   command_line.fpp
   constants.fpp
@@ -22,12 +28,14 @@ set(STELLA_UTILS_SOURCES_fpp
   spfunc.fpp
   system_fortran.fpp
   )
+
 set_source_files_properties(
   ${STELLA_UTILS_SOURCES_fpp}
   PROPERTIES
   Fortran_PREPROCESS ON
   )
 
+# Create the <stella_utils> library
 add_library(stella_utils
   ${STELLA_UTILS_SOURCES_f90}
   ${STELLA_UTILS_SOURCES_fpp}
@@ -48,6 +56,10 @@ target_include_directories(stella_utils PUBLIC
   $<BUILD_INTERFACE:${stella_utils_module_directory}>
   $<INSTALL_INTERFACE:${stella_utils_module_install_directory}>
   )
+
+############################################################
+# Toggle the options defined in stella/CMakeLists.txt
+############################################################
 
 if (STELLA_ENABLE_F200X AND STELLA_ENABLE_LOCAL_SPFUNC)
   message(FATAL_ERROR "STELLA_ENABLE_F200X is incompatible with STELLA_ENABLE_LOCAL_SPFUNC")

@@ -24,8 +24,7 @@ module g_tofrom_h
    interface g_to_h
       module procedure g_to_h_kxkyz
       module procedure g_to_h_vmu
-      module procedure g_to_h_vmu_single
-      !     module procedure g_to_h_vmu_zext
+      module procedure g_to_h_vmu_single 
    end interface
 
    interface g_to_f
@@ -270,7 +269,7 @@ contains
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use stella_geometry, only: bmag, dBdrho
+      use geometry, only: bmag, dBdrho
       use dist_fn_arrays, only: kperp2, dkperp2dr
       use kt_grids, only: naky, nakx
       use kt_grids, only: multiply_by_rho
@@ -347,56 +346,6 @@ contains
 
    end subroutine g_to_h_vmu_single
 
-!   subroutine g_to_h_vmu_zext (gext, phiext, facphi, iky, ie)
-
-!     use species, only: spec
-!     use extended_zgrid, only: ikxmod
-!     use extended_zgrid, only: iz_low, iz_up
-!     use extended_zgrid, only: nsegments
-!     use vpamu_grids, only: maxwell_vpa, maxwell_mu
-!     use stella_layouts, only: vmu_lo
-!     use stella_layouts, only: iv_idx, imu_idx, is_idx
-!     use gyro_averages, only: aj0x
-
-!     implicit none
-!     complex, dimension (:,vmu_lo%llim_proc:), intent (in out) :: gext
-!     complex, dimension (:), intent (in) :: phiext
-!     real, intent (in) :: facphi
-!     integer, intent (in) :: iky, ie
-
-!     integer :: ivmu, iseg, iz, ikx, is, imu, iv
-!     integer :: idx
-!     complex :: adj
-
-!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-!        iv = iv_idx(vmu_lo,ivmu)
-!        imu = imu_idx(vmu_lo,ivmu)
-!        is = is_idx(vmu_lo,ivmu)
-
-!        idx = 0
-!        iseg = 1
-!        ikx = ikxmod(iseg,ie,iky)
-!        do iz = iz_low(iseg), iz_up(iseg)
-!           idx = idx + 1
-!           adj = aj0x(iky,ikx,iz,ivmu)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(1,iz,imu) &
-!                * facphi*phiext(idx)
-!           gext(idx,ivmu) = gext(idx,ivmu) + adj
-!        end do
-!        if (nsegments(ie,iky) > 1) then
-!           do iseg = 2, nsegments(ie,iky)
-!              do iz = iz_low(iseg)+1, iz_up(iseg)
-!                 adj = aj0x(iky,ikx,iz,ivmu)*spec(is)%zt*maxwell_vpa(iv)*maxwell_mu(1,iz,imu) &
-!                      * facphi*phiext(idx)
-!                 gext(idx,ivmu) = gext(idx,ivmu) + adj
-!                 idx = idx + 1
-!              end do
-!           end do
-!        end if
-
-!     end do
-
-!   end subroutine g_to_h_vmu_zext
-
    subroutine g_to_h_kxkyz(g, phi, bpar, facphi)
 
       use species, only: spec
@@ -464,7 +413,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use stella_geometry, only: bmag, dBdrho
+      use geometry, only: bmag, dBdrho
       use dist_fn_arrays, only: kperp2, dkperp2dr
       use kt_grids, only: naky, nakx, multiply_by_rho
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, vperp2, mu, vpa

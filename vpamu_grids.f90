@@ -5,7 +5,7 @@ module vpamu_grids
    public :: init_vpamu_grids, finish_vpamu_grids
    public :: read_vpamu_grids_parameters
    public :: calculate_velocity_integrals
-   public :: integrate_vmu, integrate_species
+   public :: integrate_vmu, integrate_vpa, integrate_species
    public :: integrate_species_ffs, integrate_vmu_ffs
    public :: integrate_mu
    public :: vpa, nvgrid, nvpa
@@ -64,6 +64,10 @@ module vpamu_grids
    interface integrate_mu
       module procedure integrate_mu_local
       module procedure integrate_mu_nonlocal
+   end interface
+
+   interface integrate_vpa
+      module procedure integrate_vpa_nonlocal 
    end interface
 
 contains
@@ -305,7 +309,48 @@ contains
       if (nproc > 1) call sum_reduce(total, 0)
 
    end subroutine integrate_mu_nonlocal
+ 
+   !============================================================================
+   !=========================== Integrate over (vpa) ===========================
+   !============================================================================
 
+   ! Nonlocal means we have g(i[vpa, mu, s]) 
+   subroutine integrate_vpa_nonlocal(g_vs_ivmus, g_vs_mus)
+
+      use mp, only: nproc, sum_reduce
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: is_idx, imu_idx, iv_idx
+
+      implicit none
+
+      real, dimension(vmu_lo%llim_proc:), intent(in) :: g_vs_ivmus
+      real, dimension(:, :), intent(out) :: g_vs_mus
+      integer :: is, imu, iv, ivmus
+
+      ! Initialize
+      g_vs_mus = 0. 
+
+      ! Iterate over the i[vpa, mu, s] points
+      do ivmus = vmu_lo%llim_proc, vmu_lo%ulim_proc
+
+         ! Obtain the [ivpa, imu, is] indices from [ivmus]
+         is = is_idx(vmu_lo, ivmus)
+         imu = imu_idx(vmu_lo, ivmus)
+         iv = iv_idx(vmu_lo, ivmus)
+
+         ! Integrate over the parallel velocity
+         g_vs_mus(imu, is) = g_vs_mus(imu, is) + wgts_vpa(iv) * g_vs_ivmus(ivmus)
+
+      end do
+
+      ! Each processor has a few [ivmu] points, so sum all calculations
+      if (nproc > 1) call sum_reduce(g_vs_mus, 0)
+
+   end subroutine integrate_vpa_nonlocal
+
+   !============================================================================
+   !========================= Integrate over (mu, vpa) =========================
+   !============================================================================
    subroutine integrate_vmu_local_real(g, iz, total)
 
       implicit none
@@ -736,7 +781,7 @@ contains
       use zgrid, only: nzgrid, nztot
       use kt_grids, only: nalpha
       use species, only: spec, nspec
-      use stella_geometry, only: bmag, bmag_psi0
+      use geometry, only: bmag, bmag_psi0
       use run_parameters, only: maxwellian_normalization
 
       use physics_flags, only: full_flux_surface

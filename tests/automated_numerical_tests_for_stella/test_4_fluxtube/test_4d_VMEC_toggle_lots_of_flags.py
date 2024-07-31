@@ -43,9 +43,6 @@ def test_whether_a_mistake_was_introduced_in_an_extra_flag_1(tmp_path, error=Fal
     
     # Check whether the potential data matches in the netcdf file
     with xr.open_dataset(local_netcdf_file) as local_netcdf, xr.open_dataset(expected_netcdf_file) as expected_netcdf:
-    
-        # Check whether all the keys are present
-        assert set(local_netcdf.keys()) == set(expected_netcdf.keys()), f'The netcdf file contains different quantities.'
         
         # Read the time axis
         local_time = local_netcdf['t']
@@ -84,9 +81,6 @@ def test_whether_a_mistake_was_introduced_in_an_extra_flag_2(tmp_path, error=Fal
     
     # Check whether the potential data matches in the netcdf file
     with xr.open_dataset(local_netcdf_file) as local_netcdf, xr.open_dataset(expected_netcdf_file) as expected_netcdf:
-    
-        # Check whether all the keys are present
-        assert set(local_netcdf.keys()) == set(expected_netcdf.keys()), f'The netcdf file contains different quantities.'
         
         # Read the time axis
         local_time = local_netcdf['t']

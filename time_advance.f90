@@ -195,11 +195,11 @@ contains
       use species, only: spec
       use zgrid, only: nzgrid
       use kt_grids, only: nalpha
-      use stella_geometry, only: cvdrift, gbdrift
-      use stella_geometry, only: cvdrift0, gbdrift0
-      use stella_geometry, only: gds23, gds24
-      use stella_geometry, only: geo_surf, q_as_x
-      use stella_geometry, only: dxdXcoord, drhodpsi, dydalpha
+      use geometry, only: cvdrift, gbdrift
+      use geometry, only: cvdrift0, gbdrift0
+      use geometry, only: gds23, gds24
+      use geometry, only: geo_surf, q_as_x
+      use geometry, only: dxdpsi, drhodpsi, dydalpha
       use vpamu_grids, only: vpa, vperp2, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use neoclassical_terms, only: include_neoclassical_terms
@@ -270,8 +270,7 @@ contains
          !> if including neoclassical correction to equilibrium Maxwellian,
          !> then add in v_E^{nc} . grad y dg/dy coefficient here
          if (include_neoclassical_terms) then
-            wdrifty_g(:, :, ivmu) = wdrifty_g(:, :, ivmu) + code_dt * 0.5 * (gds23 * dphineo_dzed &
-                                                                             + drhodpsi * dydalpha * dphineo_drho)
+            wdrifty_g(:, :, ivmu) = wdrifty_g(:, :, ivmu) + code_dt * 0.5 * (gds23 * dphineo_dzed + drhodpsi * dydalpha * dphineo_drho)
          end if
 
          wdrifty_phi(:, :, ivmu) = spec(is)%zt * (wgbdrifty + wcvdrifty * vpa(iv))
@@ -312,8 +311,7 @@ contains
          !> if including neoclassical correction to equilibrium Maxwellian,
          !> then add in v_E^{nc} . grad x dg/dx coefficient here
          if (include_neoclassical_terms) then
-            wdriftx_g(:, :, ivmu) = wdriftx_g(:, :, ivmu) + code_dt * 0.5 * (gds24 * dphineo_dzed &
-                                                                             - dxdXcoord * dphineo_dalpha)
+            wdriftx_g(:, :, ivmu) = wdriftx_g(:, :, ivmu) + code_dt * 0.5 * (gds24 * dphineo_dzed - dxdpsi * dphineo_dalpha)
          end if
          wdriftx_phi(:, :, ivmu) = spec(is)%zt * (wgbdriftx + wcvdriftx * vpa(iv))
          !> if maxwellian_normalizatiion = .true., evolved distribution function is normalised by a Maxwellian
@@ -335,7 +333,7 @@ contains
             end if
             wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) &
                                       - 0.5 * spec(is)%zt * dfneo_dvpa(:, :, ivmu) * wcvdriftx &
-                                      + code_dt * 0.5 * (dfneo_dalpha(:, :, ivmu) * dxdXcoord - dfneo_dzed(:, :, ivmu) * gds24)
+                                      + code_dt * 0.5 * (dfneo_dalpha(:, :, ivmu) * dxdpsi - dfneo_dzed(:, :, ivmu) * gds24)
          end if
 
       end do
@@ -353,7 +351,7 @@ contains
       use species, only: spec
       use zgrid, only: nzgrid
       use kt_grids, only: nalpha
-      use stella_geometry, only: dydalpha, drhodpsi, sign_torflux
+      use geometry, only: dydalpha, drhodpsi, clebsch_factor
       use vpamu_grids, only: vperp2, vpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use dist_fn_arrays, only: wstar
@@ -374,6 +372,21 @@ contains
 
       allocate (energy(nalpha, -nzgrid:nzgrid))
 
+      ! We have wstar = - (1/C) (a*Bref) (dy/dalpha) (d/dpsi) ... 
+      ! The profile gradients are given with respect to r, i.e., <fprim> = -(a/n)(dn/dr)
+      ! wstar = - (1/C) (a*Bref) (dy/dalpha) (1/n) (dn/dpsi) ... 
+      !       = - (1/C) (a*Bref) (dy/dalpha) (dr/dpsi) (1/n) (dn/dr) ... 
+      !       = - (1/C) * (1/a) (dy/dalpha) * (a*Bref) (dr/dpsi) * (a/n) (dn/dr) ... 
+      !       = - (1/<clebsch_factor>) * <dydalpha> * <drhodpsi> * <fprim> ...
+      ! Note that for psi=psit we have B = sign_torflux ∇ψ x ∇α 
+      ! Note that for psi=psip we have B = - ∇ψ x ∇α  
+      !     <dydalpha> = (rhor/a)(d(y/rhor)/dalpha) = (1/a)(dy/dalpha) 
+      !     <drhodpsi> = drho/dψ̃ = d(r/a)/d(psi/(a^2*Br)) = (a*Bref) * dr/dpsi
+      !     1/<clebsch_factor> = -1 or sign_torflux
+      ! Note that for psi=q we have B = - (dpsi_p/dq) ∇ψ x ∇α and,
+      !     <drhodpsi> = drho/dq = d(r/a)/dq = (1/a) * dr/dq
+      !     <dydalpha> = (rhor/a)(d(y/rhor)/dalpha) = (1/a)(dy/dalpha) 
+      !     1/<clebsch_factor> = - dq/d(psip/(a^2*Br)) = - (a^2*Bref) (qd/dpsi_p) 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          is = is_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
@@ -383,13 +396,13 @@ contains
             if (maxwellian_normalization) then
                call mp_abort("include_neoclassical_terms = T not yet supported for maxwellian_normalization = T. Aborting.")
             else
-               wstar(:, :, ivmu) = -sign_torflux * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
+               wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
                                    * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
                                       * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) &
                                       - dfneo_drho(:, :, ivmu))
             end if
          else
-            wstar(:, :, ivmu) = -sign_torflux * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
+            wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
                                 * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))
          end if
          if (.not. maxwellian_normalization) then
@@ -406,11 +419,11 @@ contains
       use physics_parameters, only: rhostar
       use species, only: spec, nspec
       use zgrid, only: nztot, nzgrid
-      use stella_geometry, only: geo_surf, drhodpsi, q_as_x
-      use stella_geometry, only: gradpar, dbdzed, bmag
-      use stella_geometry, only: cvdrift, cvdrift0
-      use stella_geometry, only: dIdrho, dgradpardrho, dBdrho, d2Bdrdth
-      use stella_geometry, only: dcvdriftdrho, dcvdrift0drho
+      use geometry, only: geo_surf, drhodpsi, q_as_x
+      use geometry, only: gradpar, dbdzed, bmag
+      use geometry, only: cvdrift, cvdrift0
+      use geometry, only: dIdrho, dgradpardrho, dBdrho, d2Bdrdth
+      use geometry, only: dcvdriftdrho, dcvdrift0drho
       use physics_flags, only: radial_variation
 
       implicit none
@@ -471,10 +484,10 @@ contains
       use species, only: spec, pfac
       use zgrid, only: nzgrid
       use kt_grids, only: nalpha
-      use stella_geometry, only: drhodpsi, dydalpha, gfac
-      use stella_geometry, only: dBdrho, geo_surf, q_as_x
-      use stella_geometry, only: dcvdriftdrho, dcvdrift0drho
-      use stella_geometry, only: dgbdriftdrho, dgbdrift0drho
+      use geometry, only: drhodpsi, dydalpha, gfac
+      use geometry, only: dBdrho, geo_surf, q_as_x
+      use geometry, only: dcvdriftdrho, dcvdrift0drho
+      use geometry, only: dgbdriftdrho, dgbdrift0drho
       use vpamu_grids, only: vperp2, vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use dist_fn_arrays, only: wstarp
@@ -630,8 +643,8 @@ contains
       use zgrid, only: delzed
       use vpamu_grids, only: dvpa
       use kt_grids, only: akx, aky, nx, rho
-      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit, driftkinetic_implicit
-      use parallel_streaming, only: stream, stream_correction
+      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
+      use parallel_streaming, only: stream
       use parallel_streaming, only: stream_rad_var1, stream_rad_var2
       use mirror_terms, only: mirror
       use flow_shear, only: prl_shear, shift_times
@@ -1237,8 +1250,7 @@ contains
       use multibox, only: include_multibox_krook, add_multibox_krook
       use dist_fn_arrays, only: g_scratch
       use gyro_averages, only: gyro_average, j0_ffs
-      use g_tofrom_h, only: gbar_to_g
-      use run_parameters, only: driftkinetic_implicit
+      use g_tofrom_h, only: gbar_to_g 
       use dissipation, only: hyper_dissipation
       ! TMP FOR TESTING -- MAB
       use fields, only: fields_updated
@@ -1535,8 +1547,7 @@ contains
       use kt_grids, only: swap_kxky
       use physics_flags, only: full_flux_surface
       use dist_fn_arrays, only: wstar, g_scratch
-
-      use gyro_averages, only: gyro_average, j0_ffs
+      use gyro_averages, only: gyro_average
 
       implicit none
 
@@ -1603,7 +1614,7 @@ contains
       use kt_grids, only: nakx, ikx_max, naky, naky_all, ny
       use kt_grids, only: swap_kxky
       use physics_flags, only: full_flux_surface, include_bpar
-      use gyro_averages, only: gyro_average, j0_ffs, gyro_average_j1
+      use gyro_averages, only: gyro_average, gyro_average_j1
       use dist_fn_arrays, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
       use dist_fn_arrays, only: g_scratch
 
@@ -1709,7 +1720,7 @@ contains
       use kt_grids, only: nakx, ikx_max, naky, naky_all, ny, akx
       use kt_grids, only: swap_kxky
       use physics_flags, only: full_flux_surface, include_bpar
-      use gyro_averages, only: gyro_average, j0_ffs
+      use gyro_averages, only: gyro_average
       use dist_fn_arrays, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
       use dist_fn_arrays, only: g_scratch
 
@@ -1818,7 +1829,7 @@ contains
       use run_parameters, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, fphi
       use physics_parameters, only: g_exb, g_exbfac
       use zgrid, only: nzgrid, ntubes
-      use stella_geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
+      use geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
       use kt_grids, only: nakx, ikx_max, naky, naky_all, nx, ny
       use kt_grids, only: akx, aky, rho_clamped
       use physics_flags, only: full_flux_surface, radial_variation
@@ -1827,6 +1838,7 @@ contains
       use kt_grids, only: x, swap_kxky, swap_kxky_back
       use constants, only: pi, zi
       use file_utils, only: runtype_option_switch, runtype_multibox
+      use physics_flags, only: suppress_zonal_interaction
       use dist_fn_arrays, only: g_scratch
       use g_tofrom_h, only: g_to_h
 
@@ -1901,6 +1913,10 @@ contains
                else
                   call get_dchidx(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
                end if
+               !> zero out the zonal contribution to d<chi>/dx if requested
+               if (suppress_zonal_interaction) then
+                  g0k(1,:) = 0.0
+               end if
                !> if running with equilibrium flow shear, make adjustment to
                !> the term multiplying dg/dy
                if (prp_shear_enabled .and. hammett_flow_shear) then
@@ -1932,6 +1948,10 @@ contains
 
                !> compute dg/dx in k-space (= i*kx*g)
                call get_dgdx(g(:, :, iz, it, ivmu), g0k)
+               !> zero out the zonal contribution to dg/dx if requested
+               if (suppress_zonal_interaction) then
+                  g0k(1,:) = 0.0
+               end if
                !> if running with equilibrium flow shear, correct dg/dx term
                if (prp_shear_enabled .and. hammett_flow_shear) then
                   call get_dgdy(g(:, :, iz, it, ivmu), g0a)
@@ -2129,6 +2149,9 @@ contains
       complex, dimension(:, :, :, :), allocatable :: phi_gyro, dphidz
       complex, dimension(:, :), allocatable :: g0k, g0kxy, g0k_swap
       complex, dimension(:, :), allocatable :: tmp
+      
+      ! WARNING this routine will probably break if neigen_max = 0
+      ! which happens when be set grid_option = 'range'
 
       ! alpha-component of magnetic drift (requires ky -> y)
       if (proc0) call time_message(.false., time_parallel_nl(:, 1), ' parallel nonlinearity advance')
@@ -2726,7 +2749,6 @@ contains
       use mirror_terms, only: advance_mirror_implicit
       use dissipation, only: collisions_implicit, include_collisions
       use dissipation, only: advance_collisions_implicit
-      use run_parameters, only: driftkinetic_implicit
       use flow_shear, only: advance_perp_flow_shear
       use multibox, only: RK_step
 
@@ -2736,7 +2758,6 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
 
-      logical :: implicit_fields
 !    complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in out), target :: g
 
 !    complex, dimension (:,:,:,:,:), pointer :: gk, gy

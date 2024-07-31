@@ -1,0 +1,80 @@
+ 
+! Simple linear example based on JET shot 92174
+! Only simulate a single mode to make a quick test
+
+&physics_flags
+  nonlinear = .false.
+/
+&species_knobs
+  nspec = 1
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 3.0
+  type = 'ion'
+  z = 1.0
+/
+&kt_grids_range_parameters
+  akx_max = 0.0
+  akx_min = 0.0
+  aky_max = 1.5
+  aky_min = 1.5
+  nakx = 1
+  naky = 1
+/
+&zgrid_parameters
+  boundary_option = 'linked'
+  nperiod = 1
+  nzed = 24
+  zed_equal_arc = .true.
+/
+&vpamu_grids_parameters
+  nmu = 2 
+  nvgrid = 3
+/
+&knobs
+  delt = 0.01 
+  nstep = 2
+  print_extra_info_to_terminal = .false. 
+/
+&stella_diagnostics_knobs
+  nsave = 2
+  nwrite = 1
+/
+&init_g_knobs
+  ginit_option = 'default'
+  phiinit = 0.01
+  width0 = 1.0
+/
+&dissipation
+  hyper_dissipation = .true.
+/
+&geo_knobs
+  geo_option = 'miller'
+/
+&kt_grids_knobs
+  grid_option = 'range'
+/
+&time_advance_knobs
+  explicit_option = 'rk2'
+/
+&millergeo_parameters
+  betadbprim = 0.0
+  betaprim = 0.058
+  d2psidr2 = 0.0
+  d2qdr2 = 0.0
+  kappa = 1.5504
+  kapprim = 0.94963
+  nzed_local = 128
+  qinp = 5.0848
+  rgeo = 3.1191
+  rhoc = 0.97427 
+  rmaj = 3.134
+  shat = 3.3594
+  shift = -0.34508
+  tri = 0.26253
+  triprim = 0.7368
+/ 

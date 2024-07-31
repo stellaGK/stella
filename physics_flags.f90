@@ -19,6 +19,7 @@ module physics_flags
    public :: adiabatic_option_switch
    public :: adiabatic_option_fieldlineavg
    public :: const_alpha_geo
+   public :: suppress_zonal_interaction
 
    private
 
@@ -35,7 +36,8 @@ module physics_flags
    logical :: prp_shear_enabled
    logical :: hammett_flow_shear
    logical :: const_alpha_geo
-
+   logical :: suppress_zonal_interaction
+ 
    integer :: adiabatic_option_switch
    integer, parameter :: adiabatic_option_default = 1, &
                          adiabatic_option_zero = 2, &
@@ -80,7 +82,7 @@ contains
          include_parallel_nonlinearity, include_parallel_streaming, &
          include_mirror, include_apar, include_bpar, nonlinear, &
          include_pressure_variation, include_geometric_variation, &
-         adiabatic_option, const_alpha_geo
+         adiabatic_option, const_alpha_geo, suppress_zonal_interaction
 
       if (proc0) then
          full_flux_surface = .false.
@@ -95,6 +97,7 @@ contains
          nonlinear = .false.
          adiabatic_option = 'default'
          const_alpha_geo = .false.
+         suppress_zonal_interaction = .false.
 
          in_file = input_unit_exist("physics_flags", rpexist)
          if (rpexist) read (unit=in_file, nml=physics_flags)
@@ -120,6 +123,7 @@ contains
       call broadcast(nonlinear)
       call broadcast(adiabatic_option_switch)
       call broadcast(const_alpha_geo)
+      call broadcast(suppress_zonal_interaction)
 
    end subroutine read_parameters
 

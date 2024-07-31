@@ -61,7 +61,7 @@ contains
       use dist_fn_arrays, only: kperp2
       use physics_flags, only: full_flux_surface
       use species, only: spec
-      use stella_geometry, only: bmag
+      use geometry, only: bmag
       use zgrid, only: nzgrid
       use vpamu_grids, only: vperp2, nmu
       use kt_grids, only: naky, nakx
@@ -153,7 +153,7 @@ contains
 !       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 !       use vpamu_grids, only: nmu
 !       use species, only: nspec, spec
-!       use stella_geometry, only: alpha, bmag, x_displacement_fac
+!       use geometry, only: alpha, bmag, x_displacement_fac
 !       use spfunc, only: bessi0
 
 !       implicit none
@@ -261,7 +261,7 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_transforms, only: transform_alpha2kalpha
       use species, only: nspec, spec
-      use stella_geometry, only: bmag
+      use geometry, only: bmag
       use zgrid, only: nzgrid, nztot
       use vpamu_grids, only: nmu, nvpa
       use vpamu_grids, only: vperp2, maxwell_vpa, maxwell_mu
@@ -494,7 +494,7 @@ contains
       !   use kt_grids, only: naky, nalpha, aky_all_ordered
       !   use vpamu_grids, only: mu
       !   use stella_transforms, only: transform_kalpha2alpha
-      !   use stella_geometry, only: alpha
+      !   use geometry, only: alpha
 
       !   implicit none
 

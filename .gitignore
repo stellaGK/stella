@@ -5,7 +5,7 @@
 *.swp
 stella
 .DS_Store
-geo/vmec_interface/test_vmec_to_stella_geometry_interface
+geo/vmec_interface/test_vmec_to_geometry_interface
 post_processing/clean_hist
 build*/
 
