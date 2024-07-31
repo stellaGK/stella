@@ -476,7 +476,7 @@ contains
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use kt_grids, only: nakx, rho_d_clamped
       use stella_layouts, only: vmu_lo, imu_idx, is_idx, iv_idx
-      use stella_geometry, only: bmag, dBdrho, dl_over_b, d_dl_over_b_drho
+      use geometry, only: bmag, dBdrho, dl_over_b, d_dl_over_b_drho
       use gyro_averages, only: gyro_average, aj0x, aj1x
       use dist_fn_arrays, only: kperp2, dkperp2dr
       use zgrid, only: nzgrid, ntubes
@@ -690,7 +690,7 @@ contains
       use mp_lu_decomposition, only: lu_decomposition_local, lu_inverse_local
       use mpi
 #endif
-      use stella_geometry, only: dl_over_b, d_dl_over_b_drho
+      use geometry, only: dl_over_b, d_dl_over_b_drho
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use zgrid, only: nzgrid, nztot
       use kt_grids, only: nakx, rho_d_clamped, boundary_size

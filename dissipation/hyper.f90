@@ -62,7 +62,7 @@ contains
       use kt_grids, only: ikx_max, nakx, naky
       use kt_grids, only: aky, akx, theta0
       use zgrid, only: nzgrid, zed
-      use stella_geometry, only: geo_surf, q_as_x
+      use geometry, only: geo_surf, q_as_x
       use dist_fn_arrays, only: kperp2
 
       implicit none
@@ -260,7 +260,7 @@ contains
                      call fourth_derivative_second_centered_zed(iz_low(iseg), iseg, nsegments(ie, iky), &
                                                                 g(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it, ivmu), &
                                                                 delzed(0), gleft, gright, periodic(iky), &
-                                                                dgdz(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it, ivmu), .false.)
+                                                                dgdz(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it, ivmu))
                   end do
                end do
             end do

@@ -2,14 +2,10 @@
 ! Simple linear example based on JET shot 92174
 
 &physics_flags
-  adiabatic_option = 'iphi00=2'
-  full_flux_surface = .false.
-  include_apar = .false.
   nonlinear = .true.
 /
 &species_knobs
   nspec = 2
-  species_option = 'stella'
 /
 &species_parameters_1
   dens = 1.0
@@ -29,12 +25,6 @@
   type = 'electron'
   z = -1.0
 /
-&parameters
-  beta = 0.01
-  rhostar = 0.01
-  vnew_ref = 0.01
-  zeff = 1.0
-/
 &kt_grids_box_parameters
   jtwist = 5
   nx = 6
@@ -48,37 +38,20 @@
 /
 &vpamu_grids_parameters
   nmu = 2 
-  nvgrid = 3 
-  vpa_max = 3.0
+  nvgrid = 3
 /
 &knobs
-  lu_option = 'local'
-  avail_cpu_time = 82800
   delt = 0.01 
-  fphi = 1.0
-  mat_gen = .false.
   nstep = 10
   print_extra_info_to_terminal = .false. 
 /
 &stella_diagnostics_knobs
   nsave = 10
   nwrite = 1
-  save_for_restart = .false.
-  write_fluxes_kxkyz = .true.
-  write_gvmus = .true.
-  write_gzvs = .true.
-  write_kspectra = .true.
-  write_omega = .true.
-  write_phi_vs_time = .true.
-  write_radial_fluxes = .true.
-  write_radial_moments = .true.
 /
 &init_g_knobs
-  chop_side = .false.
   ginit_option = 'default'
   phiinit = 0.01
-  restart_dir = 'restart'
-  restart_file = 'nc/example.nc'
   width0 = 1.0
 /
 &dissipation
@@ -92,10 +65,6 @@
 /
 &time_advance_knobs
   explicit_option = 'rk2'
-/
-&layouts_knobs
-  vms_layout = 'vms'
-  xyzs_layout = 'yxzs'
 /
 &millergeo_parameters
   betadbprim = 0.0

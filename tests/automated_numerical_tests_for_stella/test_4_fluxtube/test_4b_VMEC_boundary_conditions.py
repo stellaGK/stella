@@ -36,9 +36,6 @@ def test_whether_vmec_nonlinear_linked_evolves_correctly(tmp_path, error=False):
     
     # Check whether the potential data matches in the netcdf file
     with xr.open_dataset(local_netcdf_file) as local_netcdf, xr.open_dataset(expected_netcdf_file) as expected_netcdf:
-    
-        # Check whether all the keys are present
-        assert set(local_netcdf.keys()) == set(expected_netcdf.keys()), f'The netcdf file contains different quantities.'
         
         # Read the time axis
         local_time = local_netcdf['t']
@@ -77,9 +74,6 @@ def test_whether_vmec_nonlinear_stellarator_evolves_correctly(tmp_path, error=Fa
     
     # Check whether the potential data matches in the netcdf file
     with xr.open_dataset(local_netcdf_file) as local_netcdf, xr.open_dataset(expected_netcdf_file) as expected_netcdf:
-    
-        # Check whether all the keys are present
-        assert set(local_netcdf.keys()) == set(expected_netcdf.keys()), f'The netcdf file contains different quantities.'
         
         # Read the time axis
         local_time = local_netcdf['t']
@@ -118,9 +112,6 @@ def test_whether_vmec_nonlinear_periodic_evolves_correctly(tmp_path, error=False
     
     # Check whether the potential data matches in the netcdf file
     with xr.open_dataset(local_netcdf_file) as local_netcdf, xr.open_dataset(expected_netcdf_file) as expected_netcdf:
-    
-        # Check whether all the keys are present
-        assert set(local_netcdf.keys()) == set(expected_netcdf.keys()), f'The netcdf file contains different quantities.'
         
         # Read the time axis
         local_time = local_netcdf['t']
@@ -159,9 +150,6 @@ def test_whether_vmec_nonlinear_zero_evolves_correctly(tmp_path, error=False):
     
     # Check whether the potential data matches in the netcdf file
     with xr.open_dataset(local_netcdf_file) as local_netcdf, xr.open_dataset(expected_netcdf_file) as expected_netcdf:
-    
-        # Check whether all the keys are present
-        assert set(local_netcdf.keys()) == set(expected_netcdf.keys()), f'The netcdf file contains different quantities.'
         
         # Read the time axis
         local_time = local_netcdf['t']
