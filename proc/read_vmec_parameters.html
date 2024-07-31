@@ -80,20 +80,20 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.1% of total for procedures.">30 statements</a>
+                 title=" 0.1% of total for procedures.">51 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
               <i class="fa fa-code"></i>
-              <a href="../src/vmec_geo.f90"> Source File</a>
+              <a href="../src/geometry_vmec.f90"> Source File</a>
             </li>
         </ul>
       </div>
       <div class="col">
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb justify-content-end mb-0">
-                <li class="breadcrumb-item"><a href='../sourcefile/vmec_geo.f90.html'>vmec_geo.f90</a></li>
-                <li class="breadcrumb-item"><a href='../module/vmec_geo.html'>vmec_geo</a></li>
+                <li class="breadcrumb-item"><a href='../sourcefile/geometry_vmec.f90.html'>geometry_vmec.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/vmec_geometry.html'>vmec_geometry</a></li>
             <li class="breadcrumb-item active" aria-current="page">read_vmec_parameters</li>
           </ol>
         </nav>
@@ -158,9 +158,10 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/zgrid.html'>zgrid</a></li>
                   <li class="list-inline-item"><a href='../module/file_utils.html'>file_utils</a></li>
+                  <li class="list-inline-item"><a href='../module/text_options.html'>text_options</a></li>
                   <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
+                  <li class="list-inline-item"><a href='../module/zgrid.html'>zgrid</a></li>
               </ul>
             </li>
         </ul>
@@ -204,16 +205,23 @@
           <th>Description</th>
       </tr></thead>
       <tbody>
-              <tr id="variable-alpha0~3">
-      <td><a href="#variable-alpha0~3">alpha0</a></td>
+              <tr id="variable-alpha0">
+      <td><a href="#variable-alpha0">alpha0</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-zeta_center~4">
-      <td><a href="#variable-zeta_center~4">zeta_center</a></td>
+              <tr id="variable-zeta_center">
+      <td><a href="#variable-zeta_center">zeta_center</a></td>
       <td>real</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-rectangular_cross_section">
+      <td><a href="#variable-rectangular_cross_section">rectangular_cross_section</a></td>
+      <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
@@ -227,13 +235,6 @@
 
               <tr id="variable-torflux">
       <td><a href="#variable-torflux">torflux</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-zgrid_scalefac">
-      <td><a href="#variable-zgrid_scalefac">zgrid_scalefac</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
@@ -253,23 +254,23 @@
       <td></td>
     </tr>
 
-              <tr id="variable-verbose~4">
-      <td><a href="#variable-verbose~4">verbose</a></td>
+              <tr id="variable-radial_coordinate">
+      <td><a href="#variable-radial_coordinate">radial_coordinate</a></td>
+      <td>character(len=20)</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-verbose">
+      <td><a href="#variable-verbose">verbose</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-vmec_filename~3">
-      <td><a href="#variable-vmec_filename~3">vmec_filename</a></td>
+              <tr id="variable-vmec_filename">
+      <td><a href="#variable-vmec_filename">vmec_filename</a></td>
       <td>character(len=2000)</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-gradpar_zeta_prefac~3">
-      <td><a href="#variable-gradpar_zeta_prefac~3">gradpar_zeta_prefac</a></td>
-      <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
@@ -277,6 +278,13 @@
               <tr id="variable-n_tolerated_test_arrays_inconsistencies">
       <td><a href="#variable-n_tolerated_test_arrays_inconsistencies">n_tolerated_test_arrays_inconsistencies</a></td>
       <td>integer</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-zgrid_scalefac">
+      <td><a href="#variable-zgrid_scalefac">zgrid_scalefac</a></td>
+      <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
@@ -303,13 +311,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-357-g361c476dc</small></p>
+<br /><small>v0.5.1-358-g37ea79d5a</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-26T14:23:17.832754             </p>
+ on 2024-07-31T19:09:27.376749             </p>
           </div>
         </div>
         <br>

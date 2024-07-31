@@ -1,0 +1,1929 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="stella is a flux tube gyrokinetic code for micro-stability and turbulence simulations of strongly magnetised plasma">
+    <meta name="author" content="The stella team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>geometry_vmec_read_netCDF_file &ndash; stella</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+      <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">stella </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                <li class="nav-item"><a class="nav-link" href="../page/index.html">Manual</a></li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/programs.html">Programs</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>geometry_vmec_read_netCDF_file
+      <small>Module</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 2.9% of total for modules and submodules.">1182 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/geometry_vmec_read_netCDF_file.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/geometry_vmec_read_netcdf_file.f90.html'>geometry_vmec_read_netCDF_file.f90</a></li>
+            <li class="breadcrumb-item active" aria-current="page">geometry_vmec_read_netCDF_file</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(function () {
+    $('[data-bs-toggle="tooltip"]').tooltip()
+    })
+  </script>
+
+  </div>
+
+  <div class="row">
+    <div class="col-md-3">
+        <div id="sidebar">
+      <h3>Contents</h3>
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#vars-0"
+         aria-expanded="false" aria-controls="vars-0">
+         <h4 class="card-header bg-primary text-white">Variables</h4>
+      </a>
+      <div id="vars-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-debug~13">debug</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-lasym~2">lasym</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-nfp~3">nfp</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-isigng~2">isigng</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-ns~2">ns</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-mnmax~2">mnmax</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-mnmax_nyq~2">mnmax_nyq</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-mpol~2">mpol</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-ntor~2">ntor</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-aminor~2">Aminor</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-xm~7">xm</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-xn~2">xn</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-xm_nyq~2">xm_nyq</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-xn_nyq~2">xn_nyq</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-rmnc~2">rmnc</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-rmns~2">rmns</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-lmnc~2">lmnc</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-lmns~2">lmns</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-zmnc~2">zmnc</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-zmns~2">zmns</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-bmnc~2">bmnc</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-bmns~2">bmns</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-gmnc~2">gmnc</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-gmns~2">gmns</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-bsupumnc~2">bsupumnc</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-bsupumns~2">bsupumns</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-bsupvmnc~2">bsupvmnc</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-bsupvmns~2">bsupvmns</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-bsubumnc~2">bsubumnc</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-bsubumns~2">bsubumns</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-bsubvmnc~2">bsubvmnc</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-bsubvmns~2">bsubvmns</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-bsubsmnc~2">bsubsmnc</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-bsubsmns~2">bsubsmns</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-phi~42">phi</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-phip~2">phip</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-iotas~2">iotas</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-iotaf~2">iotaf</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-presf~2">presf</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-weight_full">weight_full</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-weight_half">weight_half</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-index_full">index_full</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#variable-index_half">index_half</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#subs-0"
+         aria-expanded="false" aria-controls="subs-0">
+         <h4 class="card-header bg-primary text-white">Subroutines</h4>
+      </a>
+      <div id="subs-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#proc-read_vmec_equilibrium">read_vmec_equilibrium</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#proc-calculate_vmec_geometry">calculate_vmec_geometry</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#proc-radial_interpolation">radial_interpolation</a>
+            <a class="list-group-item" href="../module/geometry_vmec_read_netcdf_file.html#proc-calculate_theta">calculate_theta</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+  
+
+
+  </div>
+
+    </div>
+
+    <div class="col-md-9" id='text'>
+      <hr>
+<div class="codehilite"><pre><span></span><code>            INTERPOLATE QUANTITIES ON THE RADIAL GRID               !
+</code></pre></div>
+
+<hr>
+      
+      
+      <br>
+
+
+        <section>
+          <h2>Variables</h2>
+            <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-debug~13"></span>
+              logical,
+            </td>
+              <td>private,</td>
+            <td>
+parameter               
+            </td>
+            <td>::</td>
+            <td><strong>debug</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-lasym~2"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>lasym</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nfp~3"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nfp</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-isigng~2"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>isigng</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ns~2"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ns</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-mnmax~2"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>mnmax</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-mnmax_nyq~2"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>mnmax_nyq</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-mpol~2"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>mpol</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ntor~2"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ntor</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-aminor~2"></span>
+              real,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>Aminor</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-xm~7"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>xm</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-xn~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>xn</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-xm_nyq~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>xm_nyq</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-xn_nyq~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>xn_nyq</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-rmnc~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>rmnc</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-rmns~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>rmns</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-lmnc~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>lmnc</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-lmns~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>lmns</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-zmnc~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>zmnc</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-zmns~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>zmns</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bmnc~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bmnc</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bmns~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bmns</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gmnc~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>gmnc</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gmns~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>gmns</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bsupumnc~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bsupumnc</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bsupumns~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bsupumns</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bsupvmnc~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bsupvmnc</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bsupvmns~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bsupvmns</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bsubumnc~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bsubumnc</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bsubumns~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bsubumns</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bsubvmnc~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bsubvmnc</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bsubvmns~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bsubvmns</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bsubsmnc~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bsubsmnc</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bsubsmns~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:, :), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bsubsmns</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-phi~42"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>phi</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-phip~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>phip</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iotas~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>iotas</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iotaf~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>iotaf</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-presf~2"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(:), allocatable
+            </td>
+            <td>::</td>
+            <td><strong>presf</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-weight_full"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(2)
+            </td>
+            <td>::</td>
+            <td><strong>weight_full</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-weight_half"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(2)
+            </td>
+            <td>::</td>
+            <td><strong>weight_half</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-index_full"></span>
+              integer,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(2)
+            </td>
+            <td>::</td>
+            <td><strong>index_full</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-index_half"></span>
+              integer,
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(2)
+            </td>
+            <td>::</td>
+            <td><strong>index_half</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+        </section>
+        <br>
+
+
+
+
+
+
+        <section>
+          <h2>Subroutines</h2>
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-read_vmec_equilibrium"></span> <h3>private  subroutine <a href='../proc/read_vmec_equilibrium.html'>read_vmec_equilibrium</a>(vmec_filename, verbose, ierr)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vmec_filename~2"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>vmec_filename</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-verbose~2"></span>
+              logical,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>verbose</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ierr~47"></span>
+              integer,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ierr</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-calculate_vmec_geometry"></span> <h3>public  subroutine <a href='../proc/calculate_vmec_geometry.html'>calculate_vmec_geometry</a>(vmec_filename, nalpha, alpha0, nzgrid, zeta_center, rectangular_cross_section, number_of_field_periods_inputfile, s_inputfile, vmec_surface_option, verbose, s, safety_factor_q, shat, L_reference, B_reference, nfp_out, sign_toroidal_flux, alpha, zeta, bmag, b_dot_grad_zeta, grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, gds23_psitalpha, gds24_psitalpha, gds25_psitalpha, gds26_psitalpha, gbdrift_alpha, gbdrift0_psit, cvdrift_alpha, cvdrift0_psit, theta, B_sub_zeta, B_sub_theta, psit_displacement_fac, gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_grad_zeta_RR, ierr)  
+</h3></div>
+    <div class="card-body">
+          
+  <p>Use R(ialpha,izeta) and Z(ialpha,izeta), to compute 
+     X = R * cos(zeta)
+     Y = R * sin(zeta)</p><a href="../proc/calculate_vmec_geometry.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vmec_filename~3"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>vmec_filename</strong></td>
+            <td>
+<p>On exit, <s> = psi_toroidal / psi_{toroidal,edge} holds the 
+ flux surface that was actually used for the geometry, </p><a href="../proc/calculate_vmec_geometry.html#variable-vmec_filename~3" class="pull-right"><emph>Read more&hellip;</emph></a>
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nalpha~14"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nalpha</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-alpha0~2"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>alpha0</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nzgrid~17"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nzgrid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-zeta_center~2"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>zeta_center</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-rectangular_cross_section~2"></span>
+              logical,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>rectangular_cross_section</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-number_of_field_periods_inputfile"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>number_of_field_periods_inputfile</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-s_inputfile"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>s_inputfile</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vmec_surface_option"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>vmec_surface_option</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-verbose~3"></span>
+              logical,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>verbose</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-s~23"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>s</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-safety_factor_q"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>safety_factor_q</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-shat~6"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>shat</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-l_reference~2"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>L_reference</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-b_reference~2"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>B_reference</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nfp_out"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nfp_out</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-sign_toroidal_flux"></span>
+              integer,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>sign_toroidal_flux</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-alpha~6"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>alpha</strong></td>
+            <td>
+<p>VMEC variables of interest:
+ ns = number of flux surfaces used by VMEC
+ nfp = number of field periods, e.g. 5 for W7-X, 4 for HSX
+ iotas = rotational transform (1/q) on the half grid.
+ iotaf = rotational transform on the full grid.
+ presf = pressure on the full grid.</p><a href="../proc/calculate_vmec_geometry.html#variable-alpha~6" class="pull-right"><emph>Read more&hellip;</emph></a>
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-zeta~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(-nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>zeta</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bmag~6"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>bmag</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-b_dot_grad_zeta~2"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>b_dot_grad_zeta</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-grad_alpha_grad_alpha~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>grad_alpha_grad_alpha</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-grad_alpha_grad_psit~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>grad_alpha_grad_psit</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-grad_psit_grad_psit~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>grad_psit_grad_psit</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gds23_psitalpha~2"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gds23_psitalpha</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gds24_psitalpha~2"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gds24_psitalpha</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gds25_psitalpha~2"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gds25_psitalpha</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gds26_psitalpha~2"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gds26_psitalpha</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gbdrift_alpha~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gbdrift_alpha</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gbdrift0_psit~2"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gbdrift0_psit</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-cvdrift_alpha~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>cvdrift_alpha</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-cvdrift0_psit~2"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>cvdrift0_psit</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-theta~7"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>theta</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-b_sub_zeta~2"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>B_sub_zeta</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-b_sub_theta"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>B_sub_theta</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-psit_displacement_fac~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>psit_displacement_fac</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gradzeta_gradpsit_r2overb2~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gradzeta_gradpsit_R2overB2</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gradzeta_gradalpha_r2overb2~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gradzeta_gradalpha_R2overB2</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-b_dot_grad_zeta_rr~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>b_dot_grad_zeta_RR</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ierr~48"></span>
+              integer,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ierr</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-radial_interpolation"></span> <h3>private  subroutine <a href='../proc/radial_interpolation.html'>radial_interpolation</a>(quantity, interpolated_quantity, grid)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-quantity"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>quantity</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-interpolated_quantity"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>interpolated_quantity</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-grid~2"></span>
+              character(len=4),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>grid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-calculate_theta"></span> <h3>private  subroutine <a href='../proc/calculate_theta.html'>calculate_theta</a>(nzgrid, zeta, nalpha, alpha, iota, theta, ierr)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nzgrid~19"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nzgrid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-zeta~4"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(-nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>zeta</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nalpha~16"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nalpha</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-alpha~7"></span>
+              real,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>alpha</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-iota~4"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>iota</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-theta~8"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>theta</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ierr~50"></span>
+              integer,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ierr</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+        </section>
+        <br>
+
+
+
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              stella
+ was developed by The stella team<br>              &copy; 2024 
+<br /><small>v0.5.1-358-g37ea79d5a</small></p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2024-07-31T19:09:27.376749             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>    
+
+    <!-- MathJax JavaScript
+             ================================================== -->
+             <!-- Placed at the end of the document so the pages load faster -->
+        <script type="text/x-mathjax-config">
+          MathJax.Hub.Config({
+          TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+          jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+          extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+          });
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+          <script src="../tipuesearch/tipuesearch_content.js"></script>
+          <script src="../tipuesearch/tipuesearch_set.js"></script>
+          <script src="../tipuesearch/tipuesearch.js"></script>
+
+  </body>
+</html>

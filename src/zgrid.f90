@@ -159,6 +159,9 @@ contains
 
    end subroutine finish_zgrid
 
+   !============================================================================
+   !======================== CALCULATE TOTAL ARC LENGTH ========================
+   !============================================================================  
    subroutine get_total_arc_length(nz, gp, dz, length)
 
       implicit none
@@ -168,21 +171,30 @@ contains
       real, intent(in) :: dz
       real, intent(out) :: length
 
+      !----------------------------------------------------------------------
+
+      ! <nz> is the number of positive or negative z-points, i.e., f(-nz:nz)
+      ! <dz> is the step size along z  
+      ! 1/<gp> is the function to integration along z
       call integrate_zed(nz, dz, 1./gp, length)
 
    end subroutine get_total_arc_length
 
+   !============================================================================
+   !======================== CALCULATE ARC LENGTH GRID =========================
+   !============================================================================  
    subroutine get_arc_length_grid(nz_max, nzext_max, zboundary, gp, dz, zarc)
 
       implicit none
 
       integer, intent(in) :: nz_max, nzext_max
-      real, intent(in) :: zboundary
-      real, dimension(-nzext_max:), intent(in) :: gp
-      real, intent(in) :: dz
+      real, intent(in) :: zboundary, dz
+      real, dimension(-nzext_max:), intent(in) :: gp 
       real, dimension(-nzext_max:), intent(out) :: zarc
 
       integer :: iz
+
+      !---------------------------------------------------------------------- 
 
       zarc(-nz_max) = zboundary
       if (nz_max /= nzext_max) then
@@ -191,7 +203,7 @@ contains
             zarc(iz) = zarc(-nz_max) - zarc(iz)
          end do
       end if
-      ! this seems very inefficient -- could just add incremental change at each zed,
+      ! TODO: this seems very inefficient -- could just add incremental change at each zed,
       ! rather than recomputing from the boundary each time
       do iz = -nz_max + 1, nzext_max
          call integrate_zed(nz_max, dz, 1./gp(-nz_max:iz), zarc(iz))
@@ -200,7 +212,10 @@ contains
 
    end subroutine get_arc_length_grid
 
-   ! trapezoidal rule to integrate in zed
+   !============================================================================
+   !============================ INTEGRATE ALONG Z =============================
+   !============================================================================  
+   ! Use the trapezoidal rule to integrate in zed
    subroutine integrate_zed(nz, dz, f, intf)
 
       implicit none
@@ -212,8 +227,15 @@ contains
 
       integer :: iz, iz_max
 
+      !---------------------------------------------------------------------- 
+
+      ! <nz> is the number of positive or negative z-points, i.e., f(-nz:nz)
       iz_max = -nz + size(f) - 1
+
+      ! Initialize the intgration
       intf = 0.
+
+      ! For each z-point add ( f(iz) + f(iz-1) ) * dz / 2
       do iz = -nz + 1, iz_max
          intf = intf + dz * (f(iz - 1) + f(iz))
       end do

@@ -79,7 +79,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title="67.8% of total for programs.">500 statements</a>
+                 title="88.9% of total for programs.">560 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -118,16 +118,18 @@
       </a>
       <div id="vars-0" class="collapse">
         <div class="list-group list-group-flush">
-            <a class="list-group-item" href="../program/stella.html#variable-debug~7">debug</a>
-            <a class="list-group-item" href="../program/stella.html#variable-stop_stella~2">stop_stella</a>
+            <a class="list-group-item" href="../program/stella.html#variable-debug~11">debug</a>
+            <a class="list-group-item" href="../program/stella.html#variable-stop_stella~3">stop_stella</a>
             <a class="list-group-item" href="../program/stella.html#variable-mpi_initialized">mpi_initialized</a>
-            <a class="list-group-item" href="../program/stella.html#variable-istep0~2">istep0</a>
-            <a class="list-group-item" href="../program/stella.html#variable-istep~4">istep</a>
+            <a class="list-group-item" href="../program/stella.html#variable-istep0~4">istep0</a>
+            <a class="list-group-item" href="../program/stella.html#variable-istep~7">istep</a>
             <a class="list-group-item" href="../program/stella.html#variable-ierr~45">ierr</a>
-            <a class="list-group-item" href="../program/stella.html#variable-istatus~5">istatus</a>
+            <a class="list-group-item" href="../program/stella.html#variable-istatus~9">istatus</a>
             <a class="list-group-item" href="../program/stella.html#variable-time_init">time_init</a>
-            <a class="list-group-item" href="../program/stella.html#variable-time_diagnostics">time_diagnostics</a>
+            <a class="list-group-item" href="../program/stella.html#variable-time_diagnose_stella">time_diagnose_stella</a>
             <a class="list-group-item" href="../program/stella.html#variable-time_total">time_total</a>
+            <a class="list-group-item" href="../program/stella.html#variable-git_commit~2">git_commit</a>
+            <a class="list-group-item" href="../program/stella.html#variable-git_date~2">git_date</a>
         </div>
       </div>
     </div>
@@ -180,17 +182,19 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/time_advance.html'>time_advance</a></li>
-                  <li class="list-inline-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
-                  <li class="list-inline-item"><a href='../module/job_manage.html'>job_manage</a></li>
-                  <li class="list-inline-item">git_version</li>
-                  <li class="list-inline-item"><a href='../module/stella_save.html'>stella_save</a></li>
-                  <li class="list-inline-item"><a href='../module/redistribute.html'>redistribute</a></li>
-                  <li class="list-inline-item"><a href='../module/file_utils.html'>file_utils</a></li>
-                  <li class="list-inline-item"><a href='../module/dist_redistribute.html'>dist_redistribute</a></li>
-                  <li class="list-inline-item"><a href='../module/stella_time.html'>stella_time</a></li>
+                  <li class="list-inline-item"><a href='../module/diagnostics.html'>diagnostics</a></li>
                   <li class="list-inline-item"><a href='../module/dist_fn_arrays.html'>dist_fn_arrays</a></li>
-                  <li class="list-inline-item"><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></li>
+                  <li class="list-inline-item"><a href='../module/file_utils.html'>file_utils</a></li>
+                  <li class="list-inline-item"><a href='../module/redistribute.html'>redistribute</a></li>
+                  <li class="list-inline-item"><a href='../module/stella_save.html'>stella_save</a></li>
+                  <li class="list-inline-item"><a href='../module/job_manage.html'>job_manage</a></li>
+                  <li class="list-inline-item"><a href='../module/time_advance.html'>time_advance</a></li>
+                  <li class="list-inline-item">git_version</li>
+                  <li class="list-inline-item"><a href='../module/diagnostics_omega.html'>diagnostics_omega</a></li>
+                  <li class="list-inline-item"><a href='../module/dist_redistribute.html'>dist_redistribute</a></li>
+                  <li class="list-inline-item"><a href='../module/parameters_diagnostics.html'>parameters_diagnostics</a></li>
+                  <li class="list-inline-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
+                  <li class="list-inline-item"><a href='../module/stella_time.html'>stella_time</a></li>
               </ul>
             </li>
         </ul>
@@ -217,7 +221,7 @@ Finish stella</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-debug~7"></span>
+              <span class="anchor" id="variable-debug~11"></span>
               logical
             </td>
             <td>
@@ -233,7 +237,7 @@ Finish stella</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-stop_stella~2"></span>
+              <span class="anchor" id="variable-stop_stella~3"></span>
               logical
             </td>
             <td>
@@ -265,7 +269,7 @@ Finish stella</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep0~2"></span>
+              <span class="anchor" id="variable-istep0~4"></span>
               integer
             </td>
             <td>
@@ -281,7 +285,7 @@ Finish stella</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep~4"></span>
+              <span class="anchor" id="variable-istep~7"></span>
               integer
             </td>
             <td>
@@ -313,7 +317,7 @@ Finish stella</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-istatus~5"></span>
+              <span class="anchor" id="variable-istatus~9"></span>
               integer
             </td>
             <td>
@@ -345,14 +349,14 @@ Finish stella</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-time_diagnostics"></span>
+              <span class="anchor" id="variable-time_diagnose_stella"></span>
               real,
             </td>
             <td>
               dimension(2)
             </td>
             <td>::</td>
-            <td><strong>time_diagnostics</strong></td>
+            <td><strong>time_diagnose_stella</strong></td>
 <td> =</td>
                 <td>0.</td>
             <td>
@@ -375,6 +379,38 @@ Finish stella</p>
                 
             </td>
         </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-git_commit~2"></span>
+              character(len=40)
+            </td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>git_commit</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-git_date~2"></span>
+              character(len=10)
+            </td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>git_date</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
     </tbody>
   </table>
 
@@ -390,7 +426,7 @@ Finish stella</p>
     <section>
     <h2>Subroutines</h2>
       <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-init_stella"></span> <h3> subroutine <a href='../proc/init_stella.html'>init_stella</a>(istep0, VERNUM, VERDATE)  
+    <div class="card-header codesum"><span class="anchor" id="proc-init_stella"></span> <h3> subroutine <a href='../proc/init_stella.html'>init_stella</a>(istep0, git_commit, git_date)  
 </h3></div>
     <div class="card-body">
           
@@ -409,7 +445,7 @@ Finish stella</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep0~3"></span>
+              <span class="anchor" id="variable-istep0~5"></span>
               integer,
             </td>
 <td>intent(out)</td>
@@ -424,22 +460,22 @@ Finish stella</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-vernum"></span>
-              character(len=*),
+              <span class="anchor" id="variable-git_commit~3"></span>
+              character(len=40),
             </td>
 <td>intent(in)</td>
               <td></td>            <td>
               
             </td>
             <td>::</td>
-            <td><strong>VERNUM</strong></td>
+            <td><strong>git_commit</strong></td>
             <td>
-<p>stella version number</p>
+
             </td>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-verdate"></span>
+              <span class="anchor" id="variable-git_date~3"></span>
               character(len=10),
             </td>
 <td>intent(in)</td>
@@ -447,9 +483,9 @@ Finish stella</p>
               
             </td>
             <td>::</td>
-            <td><strong>VERDATE</strong></td>
+            <td><strong>git_date</strong></td>
             <td>
-<p>Release date</p>
+
             </td>
         </tr>
     </tbody>
@@ -515,7 +551,7 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
   </div>
 
       <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-write_start_message"></span> <h3> subroutine <a href='../proc/write_start_message.html'>write_start_message</a>(VERNUM, VERDATE)  
+    <div class="card-header codesum"><span class="anchor" id="proc-write_start_message"></span> <h3> subroutine <a href='../proc/write_start_message.html'>write_start_message</a>(git_commit, git_date)  
 </h3></div>
     <div class="card-body">
           
@@ -534,22 +570,22 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-vernum~2"></span>
-              character(len=*),
+              <span class="anchor" id="variable-git_commit~4"></span>
+              character(len=40),
             </td>
 <td>intent(in)</td>
               <td></td>            <td>
               
             </td>
             <td>::</td>
-            <td><strong>VERNUM</strong></td>
+            <td><strong>git_commit</strong></td>
             <td>
-<p>stella version number</p>
+
             </td>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-verdate~2"></span>
+              <span class="anchor" id="variable-git_date~4"></span>
               character(len=10),
             </td>
 <td>intent(in)</td>
@@ -557,9 +593,9 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
               
             </td>
             <td>::</td>
-            <td><strong>VERDATE</strong></td>
+            <td><strong>git_date</strong></td>
             <td>
-<p>Release date</p>
+
             </td>
         </tr>
     </tbody>
@@ -651,13 +687,13 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-357-g361c476dc</small></p>
+<br /><small>v0.5.1-358-g37ea79d5a</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-26T14:23:17.832754             </p>
+ on 2024-07-31T19:09:27.376749             </p>
           </div>
         </div>
         <br>

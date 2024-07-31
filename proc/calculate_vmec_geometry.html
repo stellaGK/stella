@@ -1,0 +1,1052 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="stella is a flux tube gyrokinetic code for micro-stability and turbulence simulations of strongly magnetised plasma">
+    <meta name="author" content="The stella team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>calculate_vmec_geometry &ndash; stella</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+      <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">stella </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                <li class="nav-item"><a class="nav-link" href="../page/index.html">Manual</a></li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/programs.html">Programs</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>calculate_vmec_geometry
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 2.2% of total for procedures.">856 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/geometry_vmec_read_netCDF_file.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/geometry_vmec_read_netcdf_file.f90.html'>geometry_vmec_read_netCDF_file.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/geometry_vmec_read_netcdf_file.html'>geometry_vmec_read_netCDF_file</a></li>
+            <li class="breadcrumb-item active" aria-current="page">calculate_vmec_geometry</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(function () {
+    $('[data-bs-toggle="tooltip"]').tooltip()
+    })
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine calculate_vmec_geometry(vmec_filename, nalpha, alpha0, nzgrid, zeta_center, rectangular_cross_section, number_of_field_periods_inputfile, s_inputfile, vmec_surface_option, verbose, s, safety_factor_q, shat, L_reference, B_reference, nfp_out, sign_toroidal_flux, alpha, zeta, bmag, b_dot_grad_zeta, grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, gds23_psitalpha, gds24_psitalpha, gds25_psitalpha, gds26_psitalpha, gbdrift_alpha, gbdrift0_psit, cvdrift_alpha, cvdrift0_psit, theta, B_sub_zeta, B_sub_theta, psit_displacement_fac, gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_grad_zeta_RR, ierr)  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
+              </ul>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+    <hr>
+<div class="codehilite"><pre><span></span><code>             CALCULATE TRIPLE PRODUCTS OF B, ∇s, ∇α                !
+</code></pre></div>
+
+<hr>
+<hr>
+<div class="codehilite"><pre><span></span><code>   CALCULATE THE CARTESIAN COMPONENTS OF THE GRADIENT VECTORS       !
+</code></pre></div>
+
+<hr>
+<p>Use R(ialpha,izeta) and Z(ialpha,izeta), to compute 
+     X = R * cos(zeta)
+     Y = R * sin(zeta)</p>
+<p>We can write the magnetic field in covariant representation
+ (the components transform like the transformation of the reference axes)
+     B = B_s ∇s + B_theta ∇θ + B_zeta ∇ζ
+ Where be assume that B_s = 0 for a vacuum magnetic field
+     B = B_theta ∇θ + B_zeta ∇ζ</p>
+<p>We can also write the magnetic field in contravariant representation
+ (the components transform inversely to the transformation of the reference axes)
+     B = (1/sqrt(g)) (dpsi_t/ds) (iota * e_theta + e_zeta)
+ So we have a tangent basis (∇s, ∇θ, ∇ζ) and the dual basis (e_s, e_theta, e_zeta)
+     ∇s . e_s = 1         ∇θ . e_theta = 1     ∇ζ . e_zeta = 1
+     ∇s . e_theta = 0     ∇s . e_zeta = 0      ∇θ . e_s = 0      ...
+     e_s = (dX/ds) e_X + (dY/ds) e_Y + (dZ/ds) e_Z
+     e_ζ = (dX/dζ) e_X + (dY/dζ) e_Y + (dZ/dζ) e_Z
+     e_θ = (dX/dθ) e_X + (dY/dθ) e_Y + (dZ/dθ) e_Z</p>
+<p>The two bases are related through the dual relations
+     sqrt(g) = 1 / (∇s . ∇θ x ∇ζ)<br>
+     e_i = sqrt(g) (e^j x e^k)
+     e_s = sqrt(g) (∇θ x ∇ζ)
+     e_ζ = sqrt(g) (∇s x ∇θ)
+     e_θ = sqrt(g) (∇ζ x ∇s)
+     ∇s = 1/sqrt(g) (e_θ x e_ζ)
+     ∇ζ = 1/sqrt(g) (e_s x e_θ)
+     ∇θ = 1/sqrt(g) (e_ζ x e_s)</p>
+<p>If we multiply the covariant representation with the contravariant representation we get
+     B^2 = (1/sqrt(g)) (dpsi_t/ds) (iota<em>B_theta + B_zeta)
+ The Jacobian sqrt(g) of the magnetic coordinate system can thus be calculated as
+     sqrt(g) = (dpsi_t/ds) (iota</em>B_theta + B_zeta)/B^2</p>
+<p>Use the dual relations to get the Cartesian components of ∇s, ∇θ, and ∇ζ
+     ∇s = 1/sqrt(g) (e_θ x e_ζ) = 1/sqrt(g) ((dX/dθ)e_X + (dY/dθ)e_Y + (dZ/dθ)e_Z) x ((dX/dζ)e_X + (dY/dζ)e_Y + (dZ/dζ)e_Z)
+     ∇s . e_X = 1/sqrt(g) ( dY/dθ * dZ/dζ - dZ/dθ * dY/dζ ) 
+     ∇s . e_Y = 1/sqrt(g) ( dZ/dθ * dX/dζ - dX/dθ * dZ/dζ )
+     ∇s . e_Z = 1/sqrt(g) ( dX/dθ * dY/dζ - dY/dθ * dX/dζ ) </p>
+<hr>
+<hr>
+<div class="codehilite"><pre><span></span><code>        PERFORM THE SINE/COSINE FOURIER TRANSFORMATIONS             !
+</code></pre></div>
+
+<hr>
+<p>We constructed the arrays <zeta> and <theta> along the chosen
+ field lines, so now we can perform the sine/consine fourier 
+ transformations along these field lines.</p>
+<p>Note that R, Z, and Lambda use the (xm,xn) mode numbers, while all the
+ other quantities use the (xm_nyq,xn_nyq) mode numbers. 
+ B and Lambda are on the half mesh, so their radial derivatives are on the full mesh.
+ R and Z are on the full mesh, so their radial derivatives are on the half mesh.</p>
+<p>For the derivatives with respect to <theta> and <zeta> we have, e.g.,
+     R = sum_{imn} R_{imn}<em>cos(angle)
+     dR/dtheta = sum_{imn} d(R_{imn}</em>cos(angle))/dtheta = - m * sum_{imn} R_{imn}<em>sin(angle)
+     dR/dzeta = sum_{imn} d(R_{imn}</em>cos(angle))/dzeta = n * sum_{imn} R_{imn}*sin(angle)</p>
+<hr>
+<hr>
+<div class="codehilite"><pre><span></span><code>                 QUANTITIES ON THE FLUX SURFACE                     !
+</code></pre></div>
+
+<hr>
+<p>Evaluate several radial-profile functions at the flux surface we ended up choosing
+ in the <get_chosen_flux_surface> routine. Here <ns>, <iotas>, <iotaf> and 
+ <presf> and is a module variables</p>
+<hr>
+<hr>
+<div class="codehilite"><pre><span></span><code>                    Choose the flux surface                         !
+</code></pre></div>
+
+<hr>
+<p>Determine which flux surface to use, based on <s_inputfile> 
+ and <vmec_surface_option>. Possible values of vmec_surface_option:
+     0 = Use the exact radius requested.
+     1 = Use the nearest value of the VMEC half grid.
+     2 = Use the nearest value of the VMEC full grid.
+ Here <ns> is a module variable, and <zero>, <weight_full>, 
+ <weight_half>, <index_full>, <index_half>
+ are subroutine variables.</p>
+<hr>
+<hr>
+<div class="codehilite"><pre><span></span><code>              Print information of the output file                  !
+</code></pre></div>
+
+<hr>
+<hr>
+<div class="codehilite"><pre><span></span><code><span class="w">                    </span><span class="n">Test</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">input</span><span class="w"> </span><span class="n">variables</span><span class="w">                        </span><span class="o">!</span>
+</code></pre></div>
+
+<hr>
+<hr>
+<div class="codehilite"><pre><span></span><code>                      Test the VMEC arrays                          !
+</code></pre></div>
+
+<hr>
+<p>Do some sanity checking to ensure the VMEC arrays have some expected properties.
+ Here <xm>, <xn>, <xm_nyq>, <xn_nyq>, <phi>, <ns> are module variables</p>
+<hr>
+<div class="codehilite"><pre><span></span><code>                          Test iota                              !
+</code></pre></div>
+
+<hr>
+<p>If the conversion to <theta_pest> has been done correctly, we should find that
+     iota = (B dot grad theta_pest) / (B dot grad zeta)    </p>
+<hr>
+<hr>
+<div class="codehilite"><pre><span></span><code>                           Test ∇ζ                               !
+</code></pre></div>
+
+<hr>
+<p>We have the following relations
+     X = R<em>cos(ζ)      ζ = arccos(X/R)
+     Y = R</em>sin(ζ)      ζ = arcsin(Y/R)
+     R^2 = X^2 + Y^2
+ Therefore, we should have
+     dζ/dX = d(arccos(X/R))/dX = -Y/R^2 = -sin(ζ)/R<br>
+     dζ/dY = d(arcsin(Y/R))/dX = X/R^2 = cos(ζ)/R<br>
+     dζ/dZ = 0</p>
+<hr>
+<hr>
+<div class="codehilite"><pre><span></span><code>                        Test Jacobian                            !
+</code></pre></div>
+
+<hr>
+<p>sqrt(g) = 1 / (∇s . ∇θ x ∇ζ) 
+         = dX/ds dY/dθ dZ/dζ + dY/ds dZ/dθ dX/dζ + dZ/ds dX/dθ dY/dζ
+         - dX/ds dZ/dθ dY/dζ - dY/ds dX/dθ dZ/dζ - dZ/ds dY/dθ dX/dζ
+ 1/sqrt(g) = (∇s . ∇θ x ∇ζ) 
+           = (∇s.e_X) (∇θ.e_Y) (∇ζ.e_Z) + (∇s.e_Y) (∇θ.e_Z) (∇ζ.e_X) + (∇s.e_Z) (∇θ.e_X) (∇ζ.e_Y) 
+           - (∇s.e_X) (∇θ.e_Z) (∇ζ.e_Y) + (∇s.e_Y) (∇θ.e_X) (∇ζ.e_Z) + (∇s.e_Z) (∇θ.e_Y) (∇ζ.e_X) </p>
+<hr>
+<hr>
+<div class="codehilite"><pre><span></span><code><span class="w">       </span><span class="n">Test</span><span class="w"> </span><span class="n">covariant</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="n">contravariant</span><span class="w"> </span><span class="n">componets</span><span class="w"> </span><span class="n">of</span><span class="w"> </span><span class="n">B</span><span class="w">           </span><span class="o">!</span>
+</code></pre></div>
+
+<hr>
+<p>We have the following dual basis
+     e_s = (dX/ds) e_X + (dY/ds) e_Y + (dZ/ds) e_Z
+     e_ζ = (dX/dζ) e_X + (dY/dζ) e_Y + (dZ/dζ) e_Z
+     e_θ = (dX/dθ) e_X + (dY/dθ) e_Y + (dZ/dθ) e_Z
+ Therefore, the covariant components of the magnetic field are 
+     B_sub_s = B . e_s = B_X * dX/ds + B_Y * dY/ds + B_Z * dZ/ds
+     B_sub_zeta = B . e_ζ = B_X * dX/dzeta + B_Y * dY/dzeta + B_Z * dZ/dzeta
+     B_sub_theta = B . e_θ = B_X * dX/dtheta + B_Y * dY/dtheta + B_Z * dZ/dtheta
+ And the contravariant components are
+     B_sup_s = B . ∇s = (B.e_X)(∇s.e_X) + (B.e_Y)(∇s.e_Y) + (B.e_Z)(∇s.e_Z) 
+     B_sup_zeta = B . ∇ζ = (B.e_X)(∇ζ.e_X) + (B.e_Y)(∇ζ.e_Y) + (B.e_Z)(∇ζ.e_Z) 
+     B_sup_theta = B . ∇θ = (B.e_X)(∇θ.e_X) + (B.e_Y)(∇θ.e_Y) + (B.e_Z)(∇θ.e_Z) </p>
+<hr>
+<hr>
+<div class="codehilite"><pre><span></span><code>                  Check that two arrays match                       !
+</code></pre></div>
+
+<hr>
+<p>Verify that array1 = array2 to within a relative tolerance.
+ Verify that |array1| = 0 to within a relative tolerance.</p>
+<hr>
+<hr>
+<div class="codehilite"><pre><span></span><code>                   Initialize geometry arrays                       !
+</code></pre></div>
+
+<hr>
+<hr>
+<div class="codehilite"><pre><span></span><code>                   Deallocate geometry arrays                       !
+</code></pre></div>
+
+<hr>
+
+
+    <h3>Arguments</h3>
+        <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vmec_filename~3"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>vmec_filename</strong></td>
+            <td>
+                <hr>
+<div class="codehilite"><pre><span></span><code>                        Output quantities                           !
+</code></pre></div>
+
+<hr>
+<p>On exit, <s> = psi_toroidal / psi_{toroidal,edge} holds the 
+ flux surface that was actually used for the geometry, </p>
+<p>The reference length (in meters) and reference magnetic field (in Tesla) are 
+     <L_reference> = a = Aminor = Aminor_p =minor radius calculated by VMEC
+     <B_reference> = Bref = 2 * abs(edge_toroidal_flux_over_2pi) / (L_reference * L_reference)</p>
+<p>VMEC uses the radial coordinate <s> which is related to the coordinates <rho>, <r> and <psi_t>, 
+     s = psi_toroidal / psi_{toroidal,edge}
+     rho = sqrt(psi_toroidal / psi_{toroidal,edge})<br>
+     r = a * sqrt(s) = a * rho </p>
+<p>Other VMEC quantities of interest
+     <nfp> is the number of field periods of the device (e.g. 5 in W7-X)
+     <iota> = rotational transform
+     <safety_factor_q> = 1/iota
+     <shat> = magnetic shear = (r/q)(dq/dr) = -(r/iota)(diota/dr) = -2(s/iota)(diota/ds)</p>
+<p>Coordinate grids
+     <theta_p> = PEST toroidal angle
+     <zeta> = ζ = toroidal angle zeta
+     <alpha> = theta_p - iota * zeta</p>
+<p>Geometric arrays
+     <b_dot_grad_zeta> = b . ∇ζ  (increases in the counter-clockwise direction)
+     <grad_alpha_grad_alpha> = a^2 ∇α . ∇α<br>
+     <grad_alpha_grad_psit> = (1/Bref) ∇α . ∇ψt<br>
+     <grad_psit_grad_psit> = 1/(a^2 Bref^2) ∇ψt . ∇ψt<br>
+     <gbdrift_alpha> = 2<em>a^2</em>Bref/B^3 * B x ∇B . ∇α 
+     <cvdrift_alpha> = 2<em>a</em>Bref/B^2 * B x kappa . ∇α 
+     <kappa> = (bhat . ∇bhat) </p>
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nalpha~14"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nalpha</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-alpha0~2"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>alpha0</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nzgrid~17"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nzgrid</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-zeta_center~2"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>zeta_center</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-rectangular_cross_section~2"></span>
+              logical,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>rectangular_cross_section</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-number_of_field_periods_inputfile"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>number_of_field_periods_inputfile</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-s_inputfile"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>s_inputfile</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vmec_surface_option"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>vmec_surface_option</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-verbose~3"></span>
+              logical,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>verbose</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-s~23"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>s</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-safety_factor_q"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>safety_factor_q</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-shat~6"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>shat</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-l_reference~2"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>L_reference</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-b_reference~2"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>B_reference</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nfp_out"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nfp_out</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-sign_toroidal_flux"></span>
+              integer,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>sign_toroidal_flux</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-alpha~6"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:)
+            </td>
+            <td>::</td>
+            <td><strong>alpha</strong></td>
+            <td>
+                <hr>
+<div class="codehilite"><pre><span></span><code><span class="w">                       </span><span class="n">Internal</span><span class="w"> </span><span class="n">variables</span><span class="w">                           </span><span class="o">!</span>
+</code></pre></div>
+
+<h2 id="_1"><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong>**</h2>
+<hr>
+<p>VMEC variables of interest:
+ ns = number of flux surfaces used by VMEC
+ nfp = number of field periods, e.g. 5 for W7-X, 4 for HSX
+ iotas = rotational transform (1/q) on the half grid.
+ iotaf = rotational transform on the full grid.
+ presf = pressure on the full grid.</p>
+<p>All VMEC quantities (B, pressure, etc) are in SI units.</p>
+<p>In VMEC, quantities on the half grid have the same number of array elements (ns) as quantities on the full grid,
+ but the first array element is 0.</p>
+<hr>
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-zeta~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(-nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>zeta</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bmag~6"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>bmag</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-b_dot_grad_zeta~2"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>b_dot_grad_zeta</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-grad_alpha_grad_alpha~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>grad_alpha_grad_alpha</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-grad_alpha_grad_psit~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>grad_alpha_grad_psit</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-grad_psit_grad_psit~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>grad_psit_grad_psit</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gds23_psitalpha~2"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gds23_psitalpha</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gds24_psitalpha~2"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gds24_psitalpha</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gds25_psitalpha~2"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gds25_psitalpha</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gds26_psitalpha~2"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gds26_psitalpha</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gbdrift_alpha~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gbdrift_alpha</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gbdrift0_psit~2"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gbdrift0_psit</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-cvdrift_alpha~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>cvdrift_alpha</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-cvdrift0_psit~2"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>cvdrift0_psit</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-theta~7"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>theta</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-b_sub_zeta~2"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>B_sub_zeta</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-b_sub_theta"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>B_sub_theta</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-psit_displacement_fac~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>psit_displacement_fac</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gradzeta_gradpsit_r2overb2~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gradzeta_gradpsit_R2overB2</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-gradzeta_gradalpha_r2overb2~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>gradzeta_gradalpha_R2overB2</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-b_dot_grad_zeta_rr~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, -nzgrid:)
+            </td>
+            <td>::</td>
+            <td><strong>b_dot_grad_zeta_RR</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ierr~48"></span>
+              integer,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ierr</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              stella
+ was developed by The stella team<br>              &copy; 2024 
+<br /><small>v0.5.1-358-g37ea79d5a</small></p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2024-07-31T19:09:27.376749             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>    
+
+    <!-- MathJax JavaScript
+             ================================================== -->
+             <!-- Placed at the end of the document so the pages load faster -->
+        <script type="text/x-mathjax-config">
+          MathJax.Hub.Config({
+          TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+          jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+          extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+          });
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+          <script src="../tipuesearch/tipuesearch_content.js"></script>
+          <script src="../tipuesearch/tipuesearch_set.js"></script>
+          <script src="../tipuesearch/tipuesearch.js"></script>
+
+  </body>
+</html>

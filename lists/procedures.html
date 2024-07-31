@@ -243,6 +243,7 @@ in the time derivative;</p></td>
 compute i<em>ky</em>g
 FFT to get dg/dy in (y,x) space
 compute i<em>kx</em><chi>
+zero out the zonal contribution to d<chi>/dx if requested
 if running with equilibrium flow shear, make adjustment to
 the term multiplying dg/dy
 FFT to get d<chi>/dx in (y,x) space
@@ -464,31 +465,31 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
                </tr>
 			   <tr>
                  <td><a href='../proc/allocate_arrays.html'>allocate_arrays</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
-                 <td><p>Allocate the module-level arrays</p></td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/allocate_arrays~2.html'>allocate_arrays</a></td>
-                 <td><a href='../module/stella_geometry.html'>stella_geometry</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/allocate_arrays~3.html'>allocate_arrays</a></td>
-                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/allocate_arrays~4.html'>allocate_arrays</a></td>
                  <td><a href='../module/fields.html'>fields</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/allocate_arrays~3.html'>allocate_arrays</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/allocate_arrays~4.html'>allocate_arrays</a></td>
+                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
                  <td><a href='../proc/allocate_arrays~5.html'>allocate_arrays</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -499,20 +500,14 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/allocate_arrays~7.html'>allocate_arrays</a></td>
-                 <td><a href='../module/time_advance.html'>time_advance</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
                  <td><a href='../proc/allocate_arrays_geo.html'>allocate_arrays_geo</a></td>
-                 <td><a href='../module/inputprofiles_interface.html'>inputprofiles_interface</a></td>
+                 <td><a href='../module/geometry_inputprofiles_interface.html'>geometry_inputprofiles_interface</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/allocate_arrays_spec.html'>allocate_arrays_spec</a></td>
-                 <td><a href='../module/inputprofiles_interface.html'>inputprofiles_interface</a></td>
+                 <td><a href='../module/geometry_inputprofiles_interface.html'>geometry_inputprofiles_interface</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -646,7 +641,7 @@ the size of the response matrix</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/broadcast_arrays.html'>broadcast_arrays</a></td>
-                 <td><a href='../module/stella_geometry.html'>stella_geometry</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -951,10 +946,66 @@ the size of the response matrix</p></td>
                  <td></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/calculate_distribution.html'>calculate_distribution</a></td>
+                 <td><a href='../module/diagnostics_distribution.html'>diagnostics_distribution</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/calculate_fluxes_fluxtube.html'>calculate_fluxes_fluxtube</a></td>
+                 <td><a href='../module/diagnostics_fluxes_fluxtube.html'>diagnostics_fluxes_fluxtube</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/calculate_fluxes_fullfluxsurface.html'>calculate_fluxes_fullfluxsurface</a></td>
+                 <td><a href='../module/diagnostics_fluxes_fullfluxsurface.html'>diagnostics_fluxes_fullfluxsurface</a></td>
+                 <td>Subroutine</td>
+                 <td><p>Calculate the total particle, momentum and heat fluxes (pflux_vs_s, vflux_vs_s, qflux_vs_s)
+and the contributions from a given (kx,ky,z) location (pflux_kxkyz, vflux_kxkyz, qflux_kxkyz)
+inputs are the particle density (dens), parallel flow (upar) and pressure (pres)</p><a href="../proc/calculate_fluxes_fullfluxsurface.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/calculate_fluxes_radialvariation.html'>calculate_fluxes_radialvariation</a></td>
+                 <td><a href='../module/diagnostics_fluxes_radialvariation.html'>diagnostics_fluxes_radialvariation</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/calculate_moments_fullfluxsurface.html'>calculate_moments_fullfluxsurface</a></td>
+                 <td><a href='../module/diagnostics_fluxes_fullfluxsurface.html'>diagnostics_fluxes_fullfluxsurface</a></td>
+                 <td>Subroutine</td>
+                 <td><p>For momentum flux
+species-dependent factor by which velocity moments must be multiplied
+to get density, pressure, etc.
+set species-dependent factors needed for density, parallel flow and pressure
+Already allocated arrays (allocated in time_advance.f90). Set to zero just in case</p><a href="../proc/calculate_moments_fullfluxsurface.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/calculate_omega.html'>calculate_omega</a></td>
+                 <td><a href='../module/diagnostics_omega.html'>diagnostics_omega</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/calculate_theta.html'>calculate_theta</a></td>
+                 <td><a href='../module/geometry_vmec_read_netcdf_file.html'>geometry_vmec_read_netCDF_file</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
                  <td><a href='../proc/calculate_velocity_integrals.html'>calculate_velocity_integrals</a></td>
                  <td><a href='../module/vpamu_grids.html'>vpamu_grids</a></td>
                  <td>Subroutine</td>
                  <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/calculate_vmec_geometry.html'>calculate_vmec_geometry</a></td>
+                 <td><a href='../module/geometry_vmec_read_netcdf_file.html'>geometry_vmec_read_netCDF_file</a></td>
+                 <td>Subroutine</td>
+                 <td><p>Use R(ialpha,izeta) and Z(ialpha,izeta), to compute 
+     X = R * cos(zeta)
+     Y = R * sin(zeta)</p><a href="../proc/calculate_vmec_geometry.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/calculate_vspace_integrated_response.html'>calculate_vspace_integrated_response</a></td>
@@ -1274,6 +1325,12 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
                  <td></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/checksaturation.html'>checksaturation</a></td>
+                 <td><a href='../module/diagnostics_omega.html'>diagnostics_omega</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
                  <td><a href='../proc/checkstop.html'>checkstop</a></td>
                  <td><a href='../module/job_manage.html'>job_manage</a></td>
                  <td>Subroutine</td>
@@ -1334,12 +1391,6 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/close_loop_ascii_files.html'>close_loop_ascii_files</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
-                 <td>Subroutine</td>
-                 <td><p>Close the text files opened by <a href="../proc/open_loop_ascii_files.html">open_loop_ascii_files</a></p></td>
-               </tr>
-			   <tr>
                  <td><a href='../proc/close_output_file.html'>close_output_file</a></td>
                  <td><a href='../module/file_utils.html'>file_utils</a></td>
                  <td>Subroutine</td>
@@ -1359,7 +1410,7 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
                </tr>
 			   <tr>
                  <td><a href='../proc/communicate_geo_multibox.html'>communicate_geo_multibox</a></td>
-                 <td><a href='../module/stella_geometry.html'>stella_geometry</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -1377,7 +1428,7 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
                </tr>
 			   <tr>
                  <td><a href='../proc/communicate_parameters_multibox.html'>communicate_parameters_multibox</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -1509,7 +1560,7 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
                </tr>
 			   <tr>
                  <td><a href='../proc/deallocate_arrays.html'>deallocate_arrays</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -1521,25 +1572,19 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
                </tr>
 			   <tr>
                  <td><a href='../proc/deallocate_arrays~3.html'>deallocate_arrays</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/deallocate_arrays~4.html'>deallocate_arrays</a></td>
                  <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/deallocate_arrays_geo.html'>deallocate_arrays_geo</a></td>
-                 <td><a href='../module/inputprofiles_interface.html'>inputprofiles_interface</a></td>
+                 <td><a href='../module/geometry_inputprofiles_interface.html'>geometry_inputprofiles_interface</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/deallocate_arrays_spec.html'>deallocate_arrays_spec</a></td>
-                 <td><a href='../module/inputprofiles_interface.html'>inputprofiles_interface</a></td>
+                 <td><a href='../module/geometry_inputprofiles_interface.html'>geometry_inputprofiles_interface</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -1574,16 +1619,10 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/desired_zmin.html'>desired_zmin</a></td>
-                 <td><a href='../module/vmec_to_stella_geometry_interface_mod.html'>vmec_to_stella_geometry_interface_mod</a></td>
+                 <td><a href='../proc/diagnostics_stella.html'>diagnostics_stella</a></td>
+                 <td><a href='../module/diagnostics.html'>diagnostics</a></td>
                  <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/diagnose_stella.html'>diagnose_stella</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
-                 <td>Subroutine</td>
-                 <td><p>Calculate and write diagnostics</p><a href="../proc/diagnose_stella.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+                 <td><a href="../proc/diagnostics_stella.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/distribute_vmus_over_procs.html'>distribute_vmus_over_procs</a></td>
@@ -1761,7 +1800,7 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
                </tr>
 			   <tr>
                  <td><a href='../proc/filter_geo_coef.html'>filter_geo_coef</a></td>
-                 <td><a href='../module/vmec_geo.html'>vmec_geo</a></td>
+                 <td><a href='../module/vmec_geometry.html'>vmec_geometry</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -1817,6 +1856,30 @@ below a specified tolerance (tol_floor)</p></td>
                  <td></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/finish_diagnostics.html'>finish_diagnostics</a></td>
+                 <td><a href='../module/diagnostics.html'>diagnostics</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/finish_diagnostics_fluxes.html'>finish_diagnostics_fluxes</a></td>
+                 <td><a href='../module/diagnostics_fluxes.html'>diagnostics_fluxes</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/finish_diagnostics_omega.html'>finish_diagnostics_omega</a></td>
+                 <td><a href='../module/diagnostics_omega.html'>diagnostics_omega</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/finish_diagnostics_potential.html'>finish_diagnostics_potential</a></td>
+                 <td><a href='../module/diagnostics_potential.html'>diagnostics_potential</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
                  <td><a href='../proc/finish_dissipation.html'>finish_dissipation</a></td>
                  <td><a href='../module/dissipation.html'>dissipation</a></td>
                  <td>Subroutine</td>
@@ -1866,7 +1929,7 @@ below a specified tolerance (tol_floor)</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/finish_geometry.html'>finish_geometry</a></td>
-                 <td><a href='../module/stella_geometry.html'>stella_geometry</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -1878,7 +1941,7 @@ below a specified tolerance (tol_floor)</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/finish_init_geometry.html'>finish_init_geometry</a></td>
-                 <td><a href='../module/stella_geometry.html'>stella_geometry</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -1914,7 +1977,7 @@ below a specified tolerance (tol_floor)</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/finish_local_geo.html'>finish_local_geo</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -2049,12 +2112,6 @@ below a specified tolerance (tol_floor)</p></td>
                  <td><a href='../program/stella.html'>stella</a></td>
                  <td>Subroutine</td>
                  <td><p>Finish a simulation, call the finialisation routines of all modules</p></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/finish_stella_diagnostics.html'>finish_stella_diagnostics</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/finish_stella_io.html'>finish_stella_io</a></td>
@@ -2363,28 +2420,6 @@ below a specified tolerance (tol_floor)</p></td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/fzero.html'>FZERO</a></td>
-                 <td><a href='../module/fzero_mod.html'>fzero_mod</a></td>
-                 <td>Subroutine</td>
-                 <td><p><strong>BEGIN PROLOGUE  FZERO
-</strong>PURPOSE  Search for a zero of a function F(X) in a given interval
-            (B,C).  It is designed primarily for problems where F(B)
-            and F(C) have opposite signs.
-<strong>LIBRARY   SLATEC
-</strong>CATEGORY  F1B
-<strong>TYPE      SINGLE PRECISION (FZERO-S, DFZERO-D)
-</strong>KEYWORDS  BISECTION, NONLINEAR EQUATIONS, ROOTS, ZEROS
-<strong>AUTHOR  Shampine, L. F., (SNLA)
-           Watts, H. A., (SNLA)
-</strong>DESCRIPTION</p><a href="../proc/fzero.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/fzero_residual.html'>fzero_residual</a></td>
-                 <td><a href='../module/vmec_to_stella_geometry_interface_mod.html'>vmec_to_stella_geometry_interface_mod</a></td>
-                 <td>Function</td>
-                 <td></td>
-               </tr>
-			   <tr>
                  <td><a href='../interface/g_to_f.html'>g_to_f</a></td>
                  <td><a href='../module/g_tofrom_h.html'>g_tofrom_h</a></td>
                  <td>Interface</td>
@@ -2392,7 +2427,7 @@ below a specified tolerance (tol_floor)</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/g_to_f0.html'>g_to_f0</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
+                 <td><a href='../module/diagnostics_fluxes_fullfluxsurface.html'>diagnostics_fluxes_fullfluxsurface</a></td>
                  <td>Subroutine</td>
                  <td><p>the Fourier components of the guiding centre distribution function
 normalized by the equilibrium Maxwellian is passed in as g,
@@ -2403,7 +2438,7 @@ f = g + (Ze/T)*(<phi>_R - phi)</p><a href="../proc/g_to_f0.html" class="pull-rig
                </tr>
 			   <tr>
                  <td><a href='../proc/g_to_f1.html'>g_to_f1</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
+                 <td><a href='../module/diagnostics_fluxes_fullfluxsurface.html'>diagnostics_fluxes_fullfluxsurface</a></td>
                  <td>Subroutine</td>
                  <td><p>compute phi * maxwellian in real space and transform back to k-space
 phiy = maxwellian * phi 
@@ -2540,6 +2575,12 @@ f = g + J0 * phi * maxwellian</p></td>
                  <td></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/get_b_dot_grad_z_averaged_eqarc.html'>get_b_dot_grad_z_averaged_eqarc</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
                  <td><a href='../proc/get_contributions_from_apar.html'>get_contributions_from_apar</a></td>
                  <td><a href='../module/implicit_solve.html'>implicit_solve</a></td>
                  <td>Subroutine</td>
@@ -2582,37 +2623,37 @@ involving phi that appear on the RHS of the GK equation when g is the pdf</p><a 
                </tr>
 			   <tr>
                  <td><a href='../proc/get_d2bdr2.html'>get_d2Bdr2</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_d2dthet2.html'>get_d2dthet2</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_d2idr2_d2jacdr2.html'>get_d2Idr2_d2jacdr2</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_d2rzdr2.html'>get_d2RZdr2</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_d2varthdr2.html'>get_d2varthdr2</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_dbdrho.html'>get_dBdrho</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -2642,7 +2683,7 @@ involving phi that appear on the RHS of the GK equation when g is the pdf</p><a 
                </tr>
 			   <tr>
                  <td><a href='../proc/get_dcrossdr.html'>get_dcrossdr</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -2768,19 +2809,19 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_dgr2dr.html'>get_dgr2dr</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_didrho.html'>get_dIdrho</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_djacdrho.html'>get_djacdrho</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -2817,7 +2858,7 @@ parallel_streaming phase shift</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_drho.html'>get_drho</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -2829,25 +2870,31 @@ parallel_streaming phase shift</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_dthet.html'>get_dthet</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_dvarthdr.html'>get_dvarthdr</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_dzed.html'>get_dzed</a></td>
-                 <td><a href='../module/stella_geometry.html'>stella_geometry</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_dzed~2.html'>get_dzed</a></td>
                  <td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/get_factor_for_fluxsurfaceaverage.html'>get_factor_for_fluxsurfaceaverage</a></td>
+                 <td><a href='../module/diagnostics_fluxes_fluxtube.html'>diagnostics_fluxes_fluxtube</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -2899,26 +2946,6 @@ store result in bpar, which will be further modified below to account for polari
 store result in apar, which will be further modified below to account for apar pre-factor</p></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/get_fluxes.html'>get_fluxes</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
-                 <td>Subroutine</td>
-                 <td><p>Calculate fluxes</p><a href="../proc/get_fluxes.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/get_fluxes_ffs.html'>get_fluxes_ffs</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
-                 <td>Subroutine</td>
-                 <td><p>Calculate the total particle, momentum and heat fluxes (pflx, vflx, qflx)
-and the contributions from a given (kx,ky,z) location (pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
-inputs are the particle density (dens), parallel flow (upar) and pressure (pres)</p><a href="../proc/get_fluxes_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/get_fluxes_vmulo.html'>get_fluxes_vmulo</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
                  <td><a href='../proc/get_g_integral_contribution_source.html'>get_g_integral_contribution_source</a></td>
                  <td><a href='../module/fields.html'>fields</a></td>
                  <td>Subroutine</td>
@@ -2932,9 +2959,23 @@ no longer need <g>, so deallocate</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_gds.html'>get_gds</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/get_geometry_arrays_from_miller.html'>get_geometry_arrays_from_Miller</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/get_geometry_arrays_from_vmec.html'>get_geometry_arrays_from_VMEC</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
+                 <td>Subroutine</td>
+                 <td><p>Calculate <twist_and_shift_geo_fac> = dkx/dky * jtwist 
+ Minus its sign gives the direction of the shift in kx for the twist-and-shift BC
+ Note that the default BC are the unconnected BC in the <zgrid> module </p><a href="../proc/get_geometry_arrays_from_vmec.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_gke_rhs.html'>get_gke_rhs</a></td>
@@ -2948,31 +2989,13 @@ for 'pdf', 'phi', 'apar', 'aparnew' and 'aparold'</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_graddotgrad.html'>get_graddotgrad</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/get_gradpar_eqarc.html'>get_gradpar_eqarc</a></td>
-                 <td><a href='../module/stella_geometry.html'>stella_geometry</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_gradrho.html'>get_gradrho</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/get_gvmus.html'>get_gvmus</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/get_gzvs.html'>get_gzvs</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -2990,7 +3013,7 @@ for 'pdf', 'phi', 'apar', 'aparnew' and 'aparold'</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_jacrho.html'>get_jacrho</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -3008,7 +3031,7 @@ for 'pdf', 'phi', 'apar', 'aparnew' and 'aparold'</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_local_geo.html'>get_local_geo</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -3026,43 +3049,21 @@ for 'pdf', 'phi', 'apar', 'aparnew' and 'aparold'</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_modified_fourier_coefficient.html'>get_modified_fourier_coefficient</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
+                 <td><a href='../module/diagnostics_fluxes_fullfluxsurface.html'>diagnostics_fluxes_fullfluxsurface</a></td>
                  <td>Subroutine</td>
                  <td><p>is_end is either nspec for fluxes, or ntubes when calcualting |phi|^2</p><a href="../proc/get_modified_fourier_coefficient.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/get_modified_vmec_zeta_grid.html'>get_modified_vmec_zeta_grid</a></td>
-                 <td><a href='../module/vmec_geo.html'>vmec_geo</a></td>
-                 <td>Subroutine</td>
-                 <td><p>need to extend the maximum and minimum zeta values
-by zgrid_scalefac to ensure that we have information
-about geometric coefficients everywhere on a fixed
-equal-arc grid in zed
-first figure out how many extra zeta grid points are
-required at the nominal grid spacing to get out
-to the ends of the extended zeta domain
-first calculate the nominal zeta grid used for vmec
-note that nfield_periods is the number of field periods
-sampled in stella, while nfield_periods_device
-is the number of field periods in the device
-nfield_periods may be reasonably bigger than nfield_periods_device
-as the former is sampled while keeping alpha fixed (rather than theta)</p><a href="../proc/get_modified_vmec_zeta_grid.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/get_moments.html'>get_moments</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
+                 <td><a href='../proc/get_moments_fluxtube.html'>get_moments_fluxtube</a></td>
+                 <td><a href='../module/diagnostics_moments.html'>diagnostics_moments</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/get_moments_ffs.html'>get_moments_ffs</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
+                 <td><a href='../proc/get_moments_radial_variation.html'>get_moments_radial_variation</a></td>
+                 <td><a href='../module/diagnostics_moments.html'>diagnostics_moments</a></td>
                  <td>Subroutine</td>
-                 <td><p>For momentum flux
-species-dependent factor by which velocity moments must be multiplied
-to get density, pressure, etc.
-set species-dependent factors needed for density, parallel flow and pressure
-Already allocated arrays (allocated in time_advance.f90). Set to zero just in case</p><a href="../proc/get_moments_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_neo_from_sfincs.html'>get_neo_from_sfincs</a></td>
@@ -3077,12 +3078,6 @@ Already allocated arrays (allocated in time_advance.f90). Set to zero just in ca
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/get_nominal_vmec_zeta_grid.html'>get_nominal_vmec_zeta_grid</a></td>
-                 <td><a href='../module/vmec_to_stella_geometry_interface_mod.html'>vmec_to_stella_geometry_interface_mod</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
                  <td><a href='../proc/get_nout.html'>get_nout</a></td>
                  <td><a href='../module/stella_io.html'>stella_io</a></td>
                  <td>Subroutine</td>
@@ -3091,13 +3086,13 @@ a time no larger than <code>tstart</code></p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_one_flux.html'>get_one_flux</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
+                 <td><a href='../module/diagnostics_fluxes_fluxtube.html'>diagnostics_fluxes_fluxtube</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_one_flux_ffs.html'>get_one_flux_ffs</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
+                 <td><a href='../module/diagnostics_fluxes_fullfluxsurface.html'>diagnostics_fluxes_fullfluxsurface</a></td>
                  <td>Subroutine</td>
                  <td><p>Multiply input moment (e.g. density, momentum, or energy) but Jacobian (called flxfac)
 Need to do this because Jacobian has y-dependence 
@@ -3109,25 +3104,25 @@ in the numerator of the flux surface average</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_one_flux_radial.html'>get_one_flux_radial</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
+                 <td><a href='../module/diagnostics_fluxes_radialvariation.html'>diagnostics_fluxes_radialvariation</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../interface/get_one_flux_vmulo.html'>get_one_flux_vmulo</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
+                 <td><a href='../module/diagnostics_fluxes_radialvariation.html'>diagnostics_fluxes_radialvariation</a></td>
                  <td>Interface</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_one_flux_vmulo_int.html'>get_one_flux_vmulo_int</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
+                 <td><a href='../module/diagnostics_fluxes_radialvariation.html'>diagnostics_fluxes_radialvariation</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_one_flux_vmulo_kxkyz.html'>get_one_flux_vmulo_kxkyz</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
+                 <td><a href='../module/diagnostics_fluxes_radialvariation.html'>diagnostics_fluxes_radialvariation</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -3212,12 +3207,6 @@ global simulations</p></td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/get_root.html'>get_root</a></td>
-                 <td><a href='../module/vmec_to_stella_geometry_interface_mod.html'>vmec_to_stella_geometry_interface_mod</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
                  <td><a href='../proc/get_source_ffs_itteration.html'>get_source_ffs_itteration</a></td>
                  <td><a href='../module/ffs_solve.html'>ffs_solve</a></td>
                  <td>Subroutine</td>
@@ -3273,25 +3262,20 @@ global simulations</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_varthet.html'>get_varthet</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/get_vmec_geo.html'>get_vmec_geo</a></td>
-                 <td><a href='../module/vmec_geo.html'>vmec_geo</a></td>
+                 <td><a href='../proc/get_vmec_geometry.html'>get_vmec_geometry</a></td>
+                 <td><a href='../module/vmec_geometry.html'>vmec_geometry</a></td>
                  <td>Subroutine</td>
-                 <td><p>To avoid writting twice in the output file when recomputing zeta.
-first read in equilibrium information from vmec file
-this is stored as a set of global variables in read_wout_mod
-in mini_libstell.  it will be accessible
-if desired, increase number of sampled zeta grid points in VMEC data
-to increase accuracy of later integration in zeta and interpolation
-onto stella zed grid</p><a href="../proc/get_vmec_geo.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+                 <td><p>calculate_vmec_geometry returns psitor/psitor_lcfs as rhoc
+stella uses rhoc = rho = sqrt(psitor/psitor_lcfs) = rhotor</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_x_to_rho.html'>get_x_to_rho</a></td>
-                 <td><a href='../module/stella_geometry.html'>stella_geometry</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -3303,7 +3287,7 @@ onto stella zed grid</p><a href="../proc/get_vmec_geo.html" class="pull-right"><
                </tr>
 			   <tr>
                  <td><a href='../proc/get_zed_eqarc.html'>get_zed_eqarc</a></td>
-                 <td><a href='../module/stella_geometry.html'>stella_geometry</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -3788,6 +3772,42 @@ calculate the argument of the Bessel function, which depends on both alpha and k
                  <td></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/init_diagnostics.html'>init_diagnostics</a></td>
+                 <td><a href='../module/diagnostics.html'>diagnostics</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/init_diagnostics_distribution.html'>init_diagnostics_distribution</a></td>
+                 <td><a href='../module/diagnostics_distribution.html'>diagnostics_distribution</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/init_diagnostics_fluxes.html'>init_diagnostics_fluxes</a></td>
+                 <td><a href='../module/diagnostics_fluxes.html'>diagnostics_fluxes</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/init_diagnostics_moments.html'>init_diagnostics_moments</a></td>
+                 <td><a href='../module/diagnostics_moments.html'>diagnostics_moments</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/init_diagnostics_omega.html'>init_diagnostics_omega</a></td>
+                 <td><a href='../module/diagnostics_omega.html'>diagnostics_omega</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/init_diagnostics_potential.html'>init_diagnostics_potential</a></td>
+                 <td><a href='../module/diagnostics_potential.html'>diagnostics_potential</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
                  <td><a href='../proc/init_dissipation.html'>init_dissipation</a></td>
                  <td><a href='../module/dissipation.html'>dissipation</a></td>
                  <td>Subroutine</td>
@@ -3905,11 +3925,9 @@ this involves the factor 1-Gamma_0(kperp(alpha))</p><a href="../proc/init_gamma0
                </tr>
 			   <tr>
                  <td><a href='../proc/init_geometry.html'>init_geometry</a></td>
-                 <td><a href='../module/stella_geometry.html'>stella_geometry</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
                  <td>Subroutine</td>
-                 <td><p>b_dot_grad_z is the alpha-dependent b . grad z,
- and gradpar is the constant-in-alpha part of it.
- for axisymmetric systems, b_dot_grad_z is independent of alpha.</p><a href="../proc/init_geometry.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/init_gxyz.html'>init_gxyz</a></td>
@@ -4036,7 +4054,7 @@ signed version of jtwist, with sign determined by, e.g., magnetic shear</p><a hr
                </tr>
 			   <tr>
                  <td><a href='../proc/init_local_defaults.html'>init_local_defaults</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -4147,7 +4165,7 @@ the appropriate information</p></td>
 NB: stream_sign = -1 corresponds to positive advection velocity
 only need to consider ia=1, iz=0 and is=1 because alpha, z and species dependences
 do not lead to change in sign of the streaming pre-factor
-get gradpar centred in zed for negative vpa (affects upwinding)
+get gradpar centred in zed for negative vpa (affects upwinding) 
 get gradpar centred in zed for positive vpa (affects upwinding)</p></td>
                </tr>
 			   <tr>
@@ -4253,12 +4271,6 @@ get gradpar centred in zed for positive vpa (affects upwinding)</p></td>
                  <td><p>Initialise stella</p><a href="../proc/init_stella.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/init_stella_diagnostics.html'>init_stella_diagnostics</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
-                 <td>Subroutine</td>
-                 <td><p>Initialise the <a href="../module/stella_diagnostics.html">stella_diagnostics</a> module</p><a href="../proc/init_stella_diagnostics.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
-               </tr>
-			   <tr>
                  <td><a href='../proc/init_stella_io.html'>init_stella_io</a></td>
                  <td><a href='../module/stella_io.html'>stella_io</a></td>
                  <td>Subroutine</td>
@@ -4297,13 +4309,13 @@ allocate and calculate the factor multiplying dphi/dy in the gradient drive term
                </tr>
 			   <tr>
                  <td><a href='../proc/init_tstart.html'>init_tstart</a></td>
-                 <td><a href='../module/stella_time.html'>stella_time</a></td>
+                 <td><a href='../module/stella_save.html'>stella_save</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/init_tstart~2.html'>init_tstart</a></td>
-                 <td><a href='../module/stella_save.html'>stella_save</a></td>
+                 <td><a href='../module/stella_time.html'>stella_time</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -4322,12 +4334,6 @@ allocate and calculate the factor multiplying dphi/dy in the gradient drive term
 			   <tr>
                  <td><a href='../proc/init_vgrid.html'>init_vgrid</a></td>
                  <td><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/init_vmec_defaults.html'>init_vmec_defaults</a></td>
-                 <td><a href='../module/vmec_geo.html'>vmec_geo</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -4432,13 +4438,13 @@ if running with maxwellian_normalzation = .true.</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/init_x_fft.html'>init_x_fft</a></td>
-                 <td><a href='../module/multibox.html'>multibox</a></td>
+                 <td><a href='../module/stella_transforms.html'>stella_transforms</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/init_x_fft~2.html'>init_x_fft</a></td>
-                 <td><a href='../module/stella_transforms.html'>stella_transforms</a></td>
+                 <td><a href='../module/multibox.html'>multibox</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -4462,13 +4468,13 @@ if running with maxwellian_normalzation = .true.</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/init_y_fft.html'>init_y_fft</a></td>
-                 <td><a href='../module/multibox.html'>multibox</a></td>
+                 <td><a href='../module/stella_transforms.html'>stella_transforms</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/init_y_fft~2.html'>init_y_fft</a></td>
-                 <td><a href='../module/stella_transforms.html'>stella_transforms</a></td>
+                 <td><a href='../module/multibox.html'>multibox</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -4625,14 +4631,26 @@ g/F is evolved for FFS</p></td>
                  <td></td>
                </tr>
 			   <tr>
+                 <td><a href='../interface/integrate_vpa.html'>integrate_vpa</a></td>
+                 <td><a href='../module/vpamu_grids.html'>vpamu_grids</a></td>
+                 <td>Interface</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/integrate_vpa_nonlocal.html'>integrate_vpa_nonlocal</a></td>
+                 <td><a href='../module/vpamu_grids.html'>vpamu_grids</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
                  <td><a href='../proc/integrate_zed.html'>integrate_zed</a></td>
-                 <td><a href='../module/stella_geometry.html'>stella_geometry</a></td>
+                 <td><a href='../module/zgrid.html'>zgrid</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/integrate_zed~2.html'>integrate_zed</a></td>
-                 <td><a href='../module/zgrid.html'>zgrid</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -5227,7 +5245,7 @@ g/F is evolved for FFS</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/mod2pi.html'>mod2pi</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Function</td>
                  <td></td>
                </tr>
@@ -5277,13 +5295,13 @@ g/F is evolved for FFS</p></td>
                  <td><a href='../proc/nc_geo.html'>nc_geo</a></td>
                  <td><a href='../module/stella_io.html'>stella_io</a></td>
                  <td>Subroutine</td>
-                 <td><p>Write various geometric quantities to output netCDF file</p></td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/nc_species.html'>nc_species</a></td>
                  <td><a href='../module/stella_io.html'>stella_io</a></td>
                  <td>Subroutine</td>
-                 <td><p>Write <a href="../module/species.html#variable-spec~3">spec</a> to output netCDF file</p></td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/netcdf_error.html'>netcdf_error</a></td>
@@ -5312,14 +5330,32 @@ with the Maxwellian evaluated at ia = 1
 we are undoing that weighting here, so also need to use ia = 1</p></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/open_loop_ascii_files.html'>open_loop_ascii_files</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
+                 <td><a href='../proc/open_fluxes_ascii_file.html'>open_fluxes_ascii_file</a></td>
+                 <td><a href='../module/diagnostics_fluxes.html'>diagnostics_fluxes</a></td>
                  <td>Subroutine</td>
-                 <td><p>Open the '.out' and the '.fluxes' file.</p><a href="../proc/open_loop_ascii_files.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/open_omega_ascii_file.html'>open_omega_ascii_file</a></td>
+                 <td><a href='../module/diagnostics_omega.html'>diagnostics_omega</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/open_output_file.html'>open_output_file</a></td>
                  <td><a href='../module/file_utils.html'>file_utils</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/open_potential_ascii_file.html'>open_potential_ascii_file</a></td>
+                 <td><a href='../module/diagnostics_potential.html'>diagnostics_potential</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/overwrite_selected_geometric_coefficients.html'>overwrite_selected_geometric_coefficients</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -5480,10 +5516,23 @@ we are undoing that weighting here, so also need to use ia = 1</p></td>
                  <td></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/radial_interpolation.html'>radial_interpolation</a></td>
+                 <td><a href='../module/geometry_vmec_read_netcdf_file.html'>geometry_vmec_read_netCDF_file</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
                  <td><a href='../proc/ranf.html'>ranf</a></td>
                  <td><a href='../module/ran.html'>ran</a></td>
                  <td>Function</td>
                  <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/read_diagnostics_knobs.html'>read_diagnostics_knobs</a></td>
+                 <td><a href='../module/parameters_diagnostics.html'>parameters_diagnostics</a></td>
+                 <td>Subroutine</td>
+                 <td><p>Write the time traces by default, while we will not write any higher 
+ dimensional data by default to have a small netCDF file.</p><a href="../proc/read_diagnostics_knobs.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_euterpe_parameters.html'>read_euterpe_parameters</a></td>
@@ -5499,13 +5548,13 @@ we are undoing that weighting here, so also need to use ia = 1</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_inputprof_geo.html'>read_inputprof_geo</a></td>
-                 <td><a href='../module/inputprofiles_interface.html'>inputprofiles_interface</a></td>
+                 <td><a href='../module/geometry_inputprofiles_interface.html'>geometry_inputprofiles_interface</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_inputprof_spec.html'>read_inputprof_spec</a></td>
-                 <td><a href='../module/inputprofiles_interface.html'>inputprofiles_interface</a></td>
+                 <td><a href='../module/geometry_inputprofiles_interface.html'>geometry_inputprofiles_interface</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -5529,7 +5578,7 @@ we are undoing that weighting here, so also need to use ia = 1</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_local_parameters.html'>read_local_parameters</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -5541,74 +5590,68 @@ we are undoing that weighting here, so also need to use ia = 1</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_parameters.html'>read_parameters</a></td>
-                 <td><a href='../module/init_g.html'>init_g</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/read_parameters~2.html'>read_parameters</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
-                 <td>Subroutine</td>
-                 <td><p>Read the diagnostic input parameters from the input file</p><a href="../proc/read_parameters~2.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/read_parameters~3.html'>read_parameters</a></td>
-                 <td><a href='../module/stella_geometry.html'>stella_geometry</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/read_parameters~4.html'>read_parameters</a></td>
-                 <td><a href='../module/physics_flags.html'>physics_flags</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/read_parameters~5.html'>read_parameters</a></td>
-                 <td><a href='../module/stella_layouts.html'>stella_layouts</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/read_parameters~6.html'>read_parameters</a></td>
-                 <td><a href='../module/zgrid.html'>zgrid</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/read_parameters~7.html'>read_parameters</a></td>
                  <td><a href='../module/physics_parameters.html'>physics_parameters</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/read_parameters~8.html'>read_parameters</a></td>
+                 <td><a href='../proc/read_parameters~2.html'>read_parameters</a></td>
+                 <td><a href='../module/zgrid.html'>zgrid</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/read_parameters~3.html'>read_parameters</a></td>
+                 <td><a href='../module/init_g.html'>init_g</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/read_parameters~4.html'>read_parameters</a></td>
                  <td><a href='../module/run_parameters.html'>run_parameters</a></td>
                  <td>Subroutine</td>
                  <td><p>For FFS - need to delete 
 print warning messages and override inconsistent or unsupported options for full_flux_surface = T</p></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/read_parameters~9.html'>read_parameters</a></td>
-                 <td><a href='../module/sources.html'>sources</a></td>
+                 <td><a href='../proc/read_parameters~5.html'>read_parameters</a></td>
+                 <td><a href='../module/dissipation.html'>dissipation</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/read_parameters~10.html'>read_parameters</a></td>
+                 <td><a href='../proc/read_parameters~6.html'>read_parameters</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/read_parameters~7.html'>read_parameters</a></td>
+                 <td><a href='../module/stella_layouts.html'>stella_layouts</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/read_parameters~8.html'>read_parameters</a></td>
                  <td><a href='../module/neoclassical_terms.html'>neoclassical_terms</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/read_parameters~11.html'>read_parameters</a></td>
+                 <td><a href='../proc/read_parameters~9.html'>read_parameters</a></td>
                  <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/read_parameters~12.html'>read_parameters</a></td>
-                 <td><a href='../module/dissipation.html'>dissipation</a></td>
+                 <td><a href='../proc/read_parameters~10.html'>read_parameters</a></td>
+                 <td><a href='../module/physics_flags.html'>physics_flags</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/read_parameters~11.html'>read_parameters</a></td>
+                 <td><a href='../module/sources.html'>sources</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -5655,20 +5698,14 @@ print warning messages and override inconsistent or unsupported options for full
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/read_stella_diagnostics_knobs.html'>read_stella_diagnostics_knobs</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
-                 <td>Subroutine</td>
-                 <td><p>Read-in the parameters for the <a href="../module/stella_diagnostics.html">stella_diagnostics</a> module</p><a href="../proc/read_stella_diagnostics_knobs.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
-               </tr>
-			   <tr>
                  <td><a href='../proc/read_vmec_equilibrium.html'>read_vmec_equilibrium</a></td>
-                 <td><a href='../module/vmec_to_stella_geometry_interface_mod.html'>vmec_to_stella_geometry_interface_mod</a></td>
+                 <td><a href='../module/geometry_vmec_read_netcdf_file.html'>geometry_vmec_read_netCDF_file</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_vmec_parameters.html'>read_vmec_parameters</a></td>
-                 <td><a href='../module/vmec_geo.html'>vmec_geo</a></td>
+                 <td><a href='../module/vmec_geometry.html'>vmec_geometry</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -5818,7 +5855,7 @@ print warning messages and override inconsistent or unsupported options for full
                </tr>
 			   <tr>
                  <td><a href='../proc/rpos.html'>Rpos</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Function</td>
                  <td></td>
                </tr>
@@ -5957,6 +5994,18 @@ print warning messages and override inconsistent or unsupported options for full
 			   <tr>
                  <td><a href='../proc/send_real_array_2d.html'>send_real_array_2d</a></td>
                  <td><a href='../module/mp.html'>mp</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/set_coef_constant.html'>set_coef_constant</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/set_ffs_geo_coefs_constant.html'>set_ffs_geo_coefs_constant</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -6428,13 +6477,13 @@ indices for a given processor. Assumes indices start at 1</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/theta_integrate.html'>theta_integrate</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/theta_integrate_indef.html'>theta_integrate_indef</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -6497,15 +6546,15 @@ the highest 1/3 of the ky modes from the FFT have been discarded to avoid de-ali
                </tr>
 			   <tr>
                  <td><a href='../proc/transform_kx2x.html'>transform_kx2x</a></td>
-                 <td><a href='../module/multibox.html'>multibox</a></td>
-                 <td>Subroutine</td>
-                 <td><p>transform routines start here</p></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/transform_kx2x~2.html'>transform_kx2x</a></td>
                  <td><a href='../module/stella_transforms.html'>stella_transforms</a></td>
                  <td>Subroutine</td>
                  <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/transform_kx2x~2.html'>transform_kx2x</a></td>
+                 <td><a href='../module/multibox.html'>multibox</a></td>
+                 <td>Subroutine</td>
+                 <td><p>transform routines start here</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/transform_kx2x_unpadded.html'>transform_kx2x_unpadded</a></td>
@@ -6520,15 +6569,15 @@ the highest 1/3 of the ky modes from the FFT have been discarded to avoid de-ali
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/transform_ky2y.html'>transform_ky2y</a></td>
-                 <td><a href='../module/multibox.html'>multibox</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
                  <td><a href='../interface/transform_ky2y.html'>transform_ky2y</a></td>
                  <td><a href='../module/stella_transforms.html'>stella_transforms</a></td>
                  <td>Interface</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/transform_ky2y.html'>transform_ky2y</a></td>
+                 <td><a href='../module/multibox.html'>multibox</a></td>
+                 <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
@@ -6557,13 +6606,13 @@ the highest 1/3 of the ky modes from the FFT have been discarded to avoid de-ali
                </tr>
 			   <tr>
                  <td><a href='../proc/transform_x2kx.html'>transform_x2kx</a></td>
-                 <td><a href='../module/multibox.html'>multibox</a></td>
+                 <td><a href='../module/stella_transforms.html'>stella_transforms</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/transform_x2kx~2.html'>transform_x2kx</a></td>
-                 <td><a href='../module/stella_transforms.html'>stella_transforms</a></td>
+                 <td><a href='../module/multibox.html'>multibox</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -6658,13 +6707,6 @@ the highest 1/3 of the ky modes from the FFT have been discarded to avoid de-ali
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/vmec_to_stella_geometry_interface.html'>vmec_to_stella_geometry_interface</a></td>
-                 <td><a href='../module/vmec_to_stella_geometry_interface_mod.html'>vmec_to_stella_geometry_interface_mod</a></td>
-                 <td>Subroutine</td>
-                 <td><p>Determine which flux surface to use, based on
- desired_normalized_toroidal_flux and vmec_surface_option.</p><a href="../proc/vmec_to_stella_geometry_interface.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
-               </tr>
-			   <tr>
                  <td><a href='../proc/volume_average.html'>volume_average</a></td>
                  <td><a href='../module/volume_averages.html'>volume_averages</a></td>
                  <td>Subroutine</td>
@@ -6743,32 +6785,178 @@ the highest 1/3 of the ky modes from the FFT have been discarded to avoid de-ali
                  <td></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/write_distribution_to_netcdf_file.html'>write_distribution_to_netcdf_file</a></td>
+                 <td><a href='../module/diagnostics_distribution.html'>diagnostics_distribution</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
                  <td><a href='../proc/write_dt.html'>write_dt</a></td>
                  <td><a href='../module/stella_time.html'>stella_time</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/write_final_ascii_files.html'>write_final_ascii_files</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/write_fluxes_kxkyz_nc.html'>write_fluxes_kxkyz_nc</a></td>
+                 <td><a href='../proc/write_f2_vs_vpamus_nc.html'>write_f2_vs_vpamus_nc</a></td>
                  <td><a href='../module/stella_io.html'>stella_io</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/write_fluxes_nc.html'>write_fluxes_nc</a></td>
+                 <td><a href='../proc/write_f2_vs_zkykxs_nc.html'>write_f2_vs_zkykxs_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_f2_vs_zmus_nc.html'>write_f2_vs_zmus_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_f2_vs_zvpamus_nc.html'>write_f2_vs_zvpamus_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_f2_vs_zvpas_nc.html'>write_f2_vs_zvpas_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_f2nozonal_vs_vpamus_nc.html'>write_f2nozonal_vs_vpamus_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_f2nozonal_vs_zmus_nc.html'>write_f2nozonal_vs_zmus_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_f2nozonal_vs_zvpamus_nc.html'>write_f2nozonal_vs_zvpamus_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_f2nozonal_vs_zvpas_nc.html'>write_f2nozonal_vs_zvpas_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_fluxes_for_fluxtube.html'>write_fluxes_for_fluxtube</a></td>
+                 <td><a href='../module/diagnostics_fluxes.html'>diagnostics_fluxes</a></td>
+                 <td>Subroutine</td>
+                 <td><p>TODO-GA: use g to f routine rather than g to h -- but check first 
+TODO-GA: use g to f routine rather than g to h -- but check first </p></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_fluxes_for_fluxtube_radialvariation.html'>write_fluxes_for_fluxtube_radialvariation</a></td>
+                 <td><a href='../module/diagnostics_fluxes.html'>diagnostics_fluxes</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_fluxes_for_fullfluxsurface.html'>write_fluxes_for_fullfluxsurface</a></td>
+                 <td><a href='../module/diagnostics_fluxes.html'>diagnostics_fluxes</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_fluxes_kxkys_nc.html'>write_fluxes_kxkys_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_fluxes_kxkyzs_nc.html'>write_fluxes_kxkyzs_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_fluxes_to_ascii_file.html'>write_fluxes_to_ascii_file</a></td>
+                 <td><a href='../module/diagnostics_fluxes.html'>diagnostics_fluxes</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_fluxes_to_netcdf_file.html'>write_fluxes_to_netcdf_file</a></td>
+                 <td><a href='../module/diagnostics_fluxes.html'>diagnostics_fluxes</a></td>
+                 <td>Subroutine</td>
+                 <td><p>Note that to obtain <pflux_vs_s>, <vflux_vs_s>, <qflux_vs_s> to write
+ the fluxes to the txt files, we already calculate fluxes(kx,ky,z,s)</p><a href="../proc/write_fluxes_to_netcdf_file.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_fluxes_vs_time_nc.html'>write_fluxes_vs_time_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_g2_vs_vpamus_nc.html'>write_g2_vs_vpamus_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_g2_vs_zkykxs_nc.html'>write_g2_vs_zkykxs_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_g2_vs_zmus_nc.html'>write_g2_vs_zmus_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_g2_vs_zvpamus_nc.html'>write_g2_vs_zvpamus_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_g2_vs_zvpas_nc.html'>write_g2_vs_zvpas_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_g2nozonal_vs_vpamus_nc.html'>write_g2nozonal_vs_vpamus_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_g2nozonal_vs_zmus_nc.html'>write_g2nozonal_vs_zmus_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_g2nozonal_vs_zvpamus_nc.html'>write_g2nozonal_vs_zvpamus_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_g2nozonal_vs_zvpas_nc.html'>write_g2nozonal_vs_zvpas_nc</a></td>
                  <td><a href='../module/stella_io.html'>stella_io</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/write_geometric_coefficients.html'>write_geometric_coefficients</a></td>
-                 <td><a href='../module/stella_geometry.html'>stella_geometry</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -6776,20 +6964,61 @@ the highest 1/3 of the ky modes from the FFT have been discarded to avoid de-ali
                  <td><a href='../proc/write_grids.html'>write_grids</a></td>
                  <td><a href='../module/stella_io.html'>stella_io</a></td>
                  <td>Subroutine</td>
-                 <td><p>Ensure the netCDF file contains all the dimensions and grids,
-creating them if necessary</p></td>
+                 <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/write_gvmus_nc.html'>write_gvmus_nc</a></td>
+                 <td><a href='../proc/write_h2_vs_vpamus_nc.html'>write_h2_vs_vpamus_nc</a></td>
                  <td><a href='../module/stella_io.html'>stella_io</a></td>
                  <td>Subroutine</td>
-                 <td><p>Write guiding center distribution function averaged over real space</p></td>
+                 <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/write_gzvs_nc.html'>write_gzvs_nc</a></td>
+                 <td><a href='../proc/write_h2_vs_zkykxs_nc.html'>write_h2_vs_zkykxs_nc</a></td>
                  <td><a href='../module/stella_io.html'>stella_io</a></td>
                  <td>Subroutine</td>
-                 <td><p>Write guiding center distribution function averaged over (kx, ky, mu)</p></td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_h2_vs_zmus_nc.html'>write_h2_vs_zmus_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_h2_vs_zvpamus_nc.html'>write_h2_vs_zvpamus_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_h2_vs_zvpas_nc.html'>write_h2_vs_zvpas_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_h2nozonal_vs_vpamus_nc.html'>write_h2nozonal_vs_vpamus_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_h2nozonal_vs_zmus_nc.html'>write_h2nozonal_vs_zmus_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_h2nozonal_vs_zvpamus_nc.html'>write_h2nozonal_vs_zvpamus_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_h2nozonal_vs_zvpas_nc.html'>write_h2nozonal_vs_zvpas_nc</a></td>
+                 <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/write_kspectra_nc.html'>write_kspectra_nc</a></td>
@@ -6798,20 +7027,14 @@ creating them if necessary</p></td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/write_kspectra_species_nc.html'>write_kspectra_species_nc</a></td>
-                 <td><a href='../module/stella_io.html'>stella_io</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/write_loop_ascii_files.html'>write_loop_ascii_files</a></td>
-                 <td><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
                  <td><a href='../proc/write_moments_nc.html'>write_moments_nc</a></td>
                  <td><a href='../module/stella_io.html'>stella_io</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_moments_to_netcdf_file.html'>write_moments_to_netcdf_file</a></td>
+                 <td><a href='../module/diagnostics_moments.html'>diagnostics_moments</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -6825,31 +7048,61 @@ creating them if necessary</p></td>
                  <td><a href='../proc/write_omega_nc.html'>write_omega_nc</a></td>
                  <td><a href='../module/stella_io.html'>stella_io</a></td>
                  <td>Subroutine</td>
-                 <td><p>Write the complex frequency to netCDF</p></td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_omega_to_ascii_file.html'>write_omega_to_ascii_file</a></td>
+                 <td><a href='../module/diagnostics_omega.html'>diagnostics_omega</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_omega_to_netcdf_file.html'>write_omega_to_netcdf_file</a></td>
+                 <td><a href='../module/diagnostics_omega.html'>diagnostics_omega</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/write_phi2_nc.html'>write_phi2_nc</a></td>
                  <td><a href='../module/stella_io.html'>stella_io</a></td>
                  <td>Subroutine</td>
-                 <td><p>Write amplitude of electrostatic potential to netCDF</p></td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/write_phi_nc.html'>write_phi_nc</a></td>
                  <td><a href='../module/stella_io.html'>stella_io</a></td>
                  <td>Subroutine</td>
-                 <td><p>Write time trace of electrostatic potential to netCDF</p></td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_potential_to_ascii_file.html'>write_potential_to_ascii_file</a></td>
+                 <td><a href='../module/diagnostics_potential.html'>diagnostics_potential</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_potential_to_ascii_file_atfinaltimestep.html'>write_potential_to_ascii_file_atfinaltimestep</a></td>
+                 <td><a href='../module/diagnostics_potential.html'>diagnostics_potential</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/write_potential_to_netcdf_file.html'>write_potential_to_netcdf_file</a></td>
+                 <td><a href='../module/diagnostics_potential.html'>diagnostics_potential</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/write_radial_fluxes_nc.html'>write_radial_fluxes_nc</a></td>
                  <td><a href='../module/stella_io.html'>stella_io</a></td>
                  <td>Subroutine</td>
-                 <td><p>Write fluxes to netCDF</p></td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/write_radial_moments_nc.html'>write_radial_moments_nc</a></td>
                  <td><a href='../module/stella_io.html'>stella_io</a></td>
                  <td>Subroutine</td>
-                 <td><p>Write radial moments to netCDF</p></td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/write_response_matrix_message.html'>write_response_matrix_message</a></td>
@@ -6867,7 +7120,7 @@ creating them if necessary</p></td>
                  <td><a href='../proc/write_time_nc.html'>write_time_nc</a></td>
                  <td><a href='../module/stella_io.html'>stella_io</a></td>
                  <td>Subroutine</td>
-                 <td><p>Write simulation time to netCDF output file</p><a href="../proc/write_time_nc.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/write_wout_text.html'>write_wout_text</a></td>
@@ -6949,7 +7202,7 @@ creating them if necessary</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/zpos.html'>Zpos</a></td>
-                 <td><a href='../module/millerlocal.html'>millerlocal</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Function</td>
                  <td></td>
                </tr>
@@ -6966,13 +7219,13 @@ creating them if necessary</p></td>
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-357-g361c476dc</small></p>
+<br /><small>v0.5.1-358-g37ea79d5a</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-26T14:23:17.832754             </p>
+ on 2024-07-31T19:09:27.376749             </p>
           </div>
         </div>
         <br>

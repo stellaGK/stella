@@ -220,7 +220,7 @@
 <a id="ln-61" name="ln-61" href="#ln-61"></a><span class="w">      </span><span class="k">use </span><span class="n">dist_fn_arrays</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">kperp2</span>
 <a id="ln-62" name="ln-62" href="#ln-62"></a><span class="w">      </span><span class="k">use </span><span class="n">physics_flags</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">full_flux_surface</span>
 <a id="ln-63" name="ln-63" href="#ln-63"></a><span class="w">      </span><span class="k">use </span><span class="n">species</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">spec</span>
-<a id="ln-64" name="ln-64" href="#ln-64"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_geometry</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">bmag</span>
+<a id="ln-64" name="ln-64" href="#ln-64"></a><span class="w">      </span><span class="k">use </span><span class="n">geometry</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">bmag</span>
 <a id="ln-65" name="ln-65" href="#ln-65"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nzgrid</span>
 <a id="ln-66" name="ln-66" href="#ln-66"></a><span class="w">      </span><span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">vperp2</span><span class="p">,</span><span class="w"> </span><span class="n">nmu</span>
 <a id="ln-67" name="ln-67" href="#ln-67"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">naky</span><span class="p">,</span><span class="w"> </span><span class="n">nakx</span>
@@ -312,7 +312,7 @@
 <a id="ln-153" name="ln-153" href="#ln-153"></a><span class="c">!       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx</span>
 <a id="ln-154" name="ln-154" href="#ln-154"></a><span class="c">!       use vpamu_grids, only: nmu</span>
 <a id="ln-155" name="ln-155" href="#ln-155"></a><span class="c">!       use species, only: nspec, spec</span>
-<a id="ln-156" name="ln-156" href="#ln-156"></a><span class="c">!       use stella_geometry, only: alpha, bmag, x_displacement_fac</span>
+<a id="ln-156" name="ln-156" href="#ln-156"></a><span class="c">!       use geometry, only: alpha, bmag, x_displacement_fac</span>
 <a id="ln-157" name="ln-157" href="#ln-157"></a><span class="c">!       use spfunc, only: bessi0</span>
 <a id="ln-158" name="ln-158" href="#ln-158"></a>
 <a id="ln-159" name="ln-159" href="#ln-159"></a><span class="c">!       implicit none</span>
@@ -420,7 +420,7 @@
 <a id="ln-261" name="ln-261" href="#ln-261"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">iv_idx</span><span class="p">,</span><span class="w"> </span><span class="n">imu_idx</span><span class="p">,</span><span class="w"> </span><span class="n">is_idx</span>
 <a id="ln-262" name="ln-262" href="#ln-262"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_transforms</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">transform_alpha2kalpha</span>
 <a id="ln-263" name="ln-263" href="#ln-263"></a><span class="w">      </span><span class="k">use </span><span class="n">species</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nspec</span><span class="p">,</span><span class="w"> </span><span class="n">spec</span>
-<a id="ln-264" name="ln-264" href="#ln-264"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_geometry</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">bmag</span>
+<a id="ln-264" name="ln-264" href="#ln-264"></a><span class="w">      </span><span class="k">use </span><span class="n">geometry</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">bmag</span>
 <a id="ln-265" name="ln-265" href="#ln-265"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nzgrid</span><span class="p">,</span><span class="w"> </span><span class="n">nztot</span>
 <a id="ln-266" name="ln-266" href="#ln-266"></a><span class="w">      </span><span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nmu</span><span class="p">,</span><span class="w"> </span><span class="n">nvpa</span>
 <a id="ln-267" name="ln-267" href="#ln-267"></a><span class="w">      </span><span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">vperp2</span><span class="p">,</span><span class="w"> </span><span class="n">maxwell_vpa</span><span class="p">,</span><span class="w"> </span><span class="n">maxwell_mu</span>
@@ -653,7 +653,7 @@
 <a id="ln-494" name="ln-494" href="#ln-494"></a><span class="w">      </span><span class="c">!   use kt_grids, only: naky, nalpha, aky_all_ordered</span>
 <a id="ln-495" name="ln-495" href="#ln-495"></a><span class="w">      </span><span class="c">!   use vpamu_grids, only: mu</span>
 <a id="ln-496" name="ln-496" href="#ln-496"></a><span class="w">      </span><span class="c">!   use stella_transforms, only: transform_kalpha2alpha</span>
-<a id="ln-497" name="ln-497" href="#ln-497"></a><span class="w">      </span><span class="c">!   use stella_geometry, only: alpha</span>
+<a id="ln-497" name="ln-497" href="#ln-497"></a><span class="w">      </span><span class="c">!   use geometry, only: alpha</span>
 <a id="ln-498" name="ln-498" href="#ln-498"></a>
 <a id="ln-499" name="ln-499" href="#ln-499"></a><span class="w">      </span><span class="c">!   implicit none</span>
 <a id="ln-500" name="ln-500" href="#ln-500"></a>
@@ -1345,13 +1345,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-357-g361c476dc</small></p>
+<br /><small>v0.5.1-358-g37ea79d5a</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-26T14:23:17.832754             </p>
+ on 2024-07-31T19:09:27.376749             </p>
           </div>
         </div>
         <br>

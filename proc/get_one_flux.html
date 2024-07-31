@@ -85,15 +85,15 @@
 
             <li class="list-inline-item" id="source-file">
               <i class="fa fa-code"></i>
-              <a href="../src/stella_diagnostics.f90"> Source File</a>
+              <a href="../src/diagnostics_fluxes_fluxtube.f90"> Source File</a>
             </li>
         </ul>
       </div>
       <div class="col">
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb justify-content-end mb-0">
-                <li class="breadcrumb-item"><a href='../sourcefile/stella_diagnostics.f90.html'>stella_diagnostics.f90</a></li>
-                <li class="breadcrumb-item"><a href='../module/stella_diagnostics.html'>stella_diagnostics</a></li>
+                <li class="breadcrumb-item"><a href='../sourcefile/diagnostics_fluxes_fluxtube.f90.html'>diagnostics_fluxes_fluxtube.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/diagnostics_fluxes_fluxtube.html'>diagnostics_fluxes_fluxtube</a></li>
             <li class="breadcrumb-item active" aria-current="page">get_one_flux</li>
           </ol>
         </nav>
@@ -139,7 +139,7 @@
     </div>
     
     <div class="col-md-9" id='text'>
-    <h2>private  subroutine get_one_flux(iky, iz, norm, gin, fld, flxout)  
+    <h2>private  subroutine get_one_flux(iky, iz, norm, velocityintegrand_vs_vpamu, phi, flux_out)  
 </h2>
         <div class="card mb-4">
       <h3 class="card-header card-title bg-light">Uses</h3>
@@ -147,10 +147,10 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/kt_grids.html'>kt_grids</a></li>
-                  <li class="list-inline-item"><a href='../module/volume_averages.html'>volume_averages</a></li>
-                  <li class="list-inline-item"><a href='../module/stella_geometry.html'>stella_geometry</a></li>
+                  <li class="list-inline-item"><a href='../module/geometry.html'>geometry</a></li>
                   <li class="list-inline-item"><a href='../module/vpamu_grids.html'>vpamu_grids</a></li>
+                  <li class="list-inline-item"><a href='../module/volume_averages.html'>volume_averages</a></li>
+                  <li class="list-inline-item"><a href='../module/kt_grids.html'>kt_grids</a></li>
               </ul>
             </li>
         </ul>
@@ -173,7 +173,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-iky~24"></span>
+              <span class="anchor" id="variable-iky~50"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -188,7 +188,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-iz~26"></span>
+              <span class="anchor" id="variable-iz~79"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -203,7 +203,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-norm~2"></span>
+              <span class="anchor" id="variable-norm"></span>
               real,
             </td>
 <td>intent(in)</td>
@@ -218,7 +218,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gin"></span>
+              <span class="anchor" id="variable-velocityintegrand_vs_vpamu~2"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -226,14 +226,14 @@
               dimension(:, :)
             </td>
             <td>::</td>
-            <td><strong>gin</strong></td>
+            <td><strong>velocityintegrand_vs_vpamu</strong></td>
             <td>
                 
             </td>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-fld"></span>
+              <span class="anchor" id="variable-phi~27"></span>
               complex,
             </td>
 <td>intent(in)</td>
@@ -241,14 +241,14 @@
               
             </td>
             <td>::</td>
-            <td><strong>fld</strong></td>
+            <td><strong>phi</strong></td>
             <td>
                 
             </td>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-flxout"></span>
+              <span class="anchor" id="variable-flux_out"></span>
               real,
             </td>
 <td>intent(inout)</td>
@@ -256,7 +256,7 @@
               
             </td>
             <td>::</td>
-            <td><strong>flxout</strong></td>
+            <td><strong>flux_out</strong></td>
             <td>
                 
             </td>
@@ -289,13 +289,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-357-g361c476dc</small></p>
+<br /><small>v0.5.1-358-g37ea79d5a</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-26T14:23:17.832754             </p>
+ on 2024-07-31T19:09:27.376749             </p>
           </div>
         </div>
         <br>

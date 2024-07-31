@@ -977,7 +977,7 @@ contains
 
       use physics_flags, only: full_flux_surface
 
-      use stella_geometry, only: bmag
+      use geometry, only: bmag
       use kt_grids, only: nalpha
 
       use gyro_averages, only: j0_B_const
@@ -1200,7 +1200,7 @@ contains
       use zgrid, only: nzgrid
       use species, only: spec
       use species, only: has_electron_species
-      use stella_geometry, only: dl_over_b
+      use geometry, only: dl_over_b
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments

@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.5% of total for source files.">193 statements</a>
+                 title=" 0.4% of total for source files.">193 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -221,7 +221,7 @@
 <a id="ln-62" name="ln-62" href="#ln-62"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">ikx_max</span><span class="p">,</span><span class="w"> </span><span class="n">nakx</span><span class="p">,</span><span class="w"> </span><span class="n">naky</span>
 <a id="ln-63" name="ln-63" href="#ln-63"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">aky</span><span class="p">,</span><span class="w"> </span><span class="n">akx</span><span class="p">,</span><span class="w"> </span><span class="n">theta0</span>
 <a id="ln-64" name="ln-64" href="#ln-64"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nzgrid</span><span class="p">,</span><span class="w"> </span><span class="n">zed</span>
-<a id="ln-65" name="ln-65" href="#ln-65"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_geometry</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">geo_surf</span><span class="p">,</span><span class="w"> </span><span class="n">q_as_x</span>
+<a id="ln-65" name="ln-65" href="#ln-65"></a><span class="w">      </span><span class="k">use </span><span class="n">geometry</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">geo_surf</span><span class="p">,</span><span class="w"> </span><span class="n">q_as_x</span>
 <a id="ln-66" name="ln-66" href="#ln-66"></a><span class="w">      </span><span class="k">use </span><span class="n">dist_fn_arrays</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">kperp2</span>
 <a id="ln-67" name="ln-67" href="#ln-67"></a>
 <a id="ln-68" name="ln-68" href="#ln-68"></a><span class="w">      </span><span class="k">implicit none</span>
@@ -419,7 +419,7 @@
 <a id="ln-260" name="ln-260" href="#ln-260"></a><span class="w">                     </span><span class="k">call </span><span class="n">fourth_derivative_second_centered_zed</span><span class="p">(</span><span class="n">iz_low</span><span class="p">(</span><span class="n">iseg</span><span class="p">),</span><span class="w"> </span><span class="n">iseg</span><span class="p">,</span><span class="w"> </span><span class="n">nsegments</span><span class="p">(</span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">iky</span><span class="p">),</span><span class="w"> </span><span class="p">&amp;</span>
 <a id="ln-261" name="ln-261" href="#ln-261"></a><span class="w">                                                                </span><span class="n">g</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="w"> </span><span class="n">ikxmod</span><span class="p">(</span><span class="n">iseg</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">iky</span><span class="p">),</span><span class="w"> </span><span class="n">iz_low</span><span class="p">(</span><span class="n">iseg</span><span class="p">):</span><span class="n">iz_up</span><span class="p">(</span><span class="n">iseg</span><span class="p">),</span><span class="w"> </span><span class="n">it</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span><span class="p">),</span><span class="w"> </span><span class="p">&amp;</span>
 <a id="ln-262" name="ln-262" href="#ln-262"></a><span class="w">                                                                </span><span class="n">delzed</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span><span class="w"> </span><span class="n">gleft</span><span class="p">,</span><span class="w"> </span><span class="n">gright</span><span class="p">,</span><span class="w"> </span><span class="n">periodic</span><span class="p">(</span><span class="n">iky</span><span class="p">),</span><span class="w"> </span><span class="p">&amp;</span>
-<a id="ln-263" name="ln-263" href="#ln-263"></a><span class="w">                                                                </span><span class="n">dgdz</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="w"> </span><span class="n">ikxmod</span><span class="p">(</span><span class="n">iseg</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">iky</span><span class="p">),</span><span class="w"> </span><span class="n">iz_low</span><span class="p">(</span><span class="n">iseg</span><span class="p">):</span><span class="n">iz_up</span><span class="p">(</span><span class="n">iseg</span><span class="p">),</span><span class="w"> </span><span class="n">it</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span><span class="p">),</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.)</span>
+<a id="ln-263" name="ln-263" href="#ln-263"></a><span class="w">                                                                </span><span class="n">dgdz</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="w"> </span><span class="n">ikxmod</span><span class="p">(</span><span class="n">iseg</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">iky</span><span class="p">),</span><span class="w"> </span><span class="n">iz_low</span><span class="p">(</span><span class="n">iseg</span><span class="p">):</span><span class="n">iz_up</span><span class="p">(</span><span class="n">iseg</span><span class="p">),</span><span class="w"> </span><span class="n">it</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span><span class="p">))</span>
 <a id="ln-264" name="ln-264" href="#ln-264"></a><span class="w">                  </span><span class="k">end do</span>
 <a id="ln-265" name="ln-265" href="#ln-265"></a><span class="k">               end do</span>
 <a id="ln-266" name="ln-266" href="#ln-266"></a><span class="k">            end do</span>
@@ -443,13 +443,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-357-g361c476dc</small></p>
+<br /><small>v0.5.1-358-g37ea79d5a</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-26T14:23:17.832754             </p>
+ on 2024-07-31T19:09:27.376749             </p>
           </div>
         </div>
         <br>

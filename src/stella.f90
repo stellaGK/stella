@@ -8,32 +8,45 @@ program stella
    use stella_time, only: update_time, code_time, code_dt, checkcodedt
    use dist_redistribute, only: kxkyz2vmu
    use time_advance, only: advance_stella
-   use stella_diagnostics, only: diagnose_stella, nsave
+   use diagnostics, only: diagnostics_stella
    use stella_save, only: stella_save_for_restart
    use dist_fn_arrays, only: gnew, gvmu
    use file_utils, only: error_unit, flush_output_file
    use git_version, only: get_git_version, get_git_date
+   use diagnostics_omega, only: checksaturation
+   
+   ! Input file
+   use parameters_diagnostics, only: nsave
 
    implicit none
 
    logical :: debug = .false.
+   
    logical :: stop_stella = .false.
    logical :: mpi_initialized = .false.
 
    integer :: istep0, istep, ierr
    integer :: istatus
    real, dimension(2) :: time_init = 0.
-   real, dimension(2) :: time_diagnostics = 0.
+   real, dimension(2) :: time_diagnose_stella = 0.
    real, dimension(2) :: time_total = 0.
+
+   ! Stella version number and release date 
+   character(len=40) :: git_commit 
+   character(len=10) :: git_date
 
    call parse_command_line()
 
+   ! Set git data automatically or manually
+   git_commit = get_git_version()
+   git_date = get_git_date()
+
    !> Initialize stella
-   call init_stella(istep0, get_git_version(), get_git_date())
+   call init_stella(istep0, git_commit, git_date)
 
    !> Diagnose stella
-   if (debug) write (*, *) 'stella::diagnose_stella'
-   if (istep0 == 0) call diagnose_stella(istep0)
+   if (debug) write (*, *) 'stella::diagnostics_stella'
+   if (istep0 == 0) call diagnostics_stella(istep0)
 
    !> Advance stella until istep=nstep
    if (debug) write (*, *) 'stella::advance_stella'
@@ -44,6 +57,7 @@ program stella
          call checkstop(stop_stella)
          call checktime(avail_cpu_time, stop_stella)
          call checkcodedt(stop_stella)
+         call checksaturation(istep, stop_stella)
       end if
       if (stop_stella) exit
       call advance_stella(istep, stop_stella)
@@ -53,9 +67,9 @@ program stella
          call scatter(kxkyz2vmu, gnew, gvmu)
          call stella_save_for_restart(gvmu, istep, code_time, code_dt, istatus)
       end if
-      call time_message(.false., time_diagnostics, ' diagnostics')
-      call diagnose_stella(istep)
-      call time_message(.false., time_diagnostics, ' diagnostics')
+      call time_message(.false., time_diagnose_stella, ' diagnostics') 
+      call diagnostics_stella(istep) 
+      call time_message(.false., time_diagnose_stella, ' diagnostics')
       ierr = error_unit()
       call flush_output_file(ierr)
       istep = istep + 1
@@ -71,7 +85,7 @@ contains
    !>
    !> Calls the initialisation routines for all the geometry, physics, and
    !> diagnostic modules
-   subroutine init_stella(istep0, VERNUM, VERDATE)
+   subroutine init_stella(istep0, git_commit, git_date)
 
       use mp, only: init_mp, broadcast, sum_allreduce
       use mp, only: proc0, job
@@ -91,8 +105,8 @@ contains
       use species, only: nspec
       use zgrid, only: init_zgrid
       use zgrid, only: nzgrid, ntubes
-      use stella_geometry, only: init_geometry
-      use stella_geometry, only: finish_init_geometry
+      use geometry, only: init_geometry
+      use geometry, only: finish_init_geometry
       use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
       use response_matrix, only: init_response_matrix, read_response_matrix
       use init_g, only: ginit, init_init_g, phiinit, scale_to_phiinit
@@ -100,7 +114,8 @@ contains
       use fields, only: init_fields, advance_fields, get_radial_correction, fields_updated
       use fields, only: rescale_fields
       use stella_time, only: init_tstart, init_delt
-      use stella_diagnostics, only: read_stella_diagnostics_knobs, init_stella_diagnostics
+      use diagnostics, only: init_diagnostics
+      use parameters_diagnostics, only: read_diagnostics_knobs
       use fields_arrays, only: phi, apar, bpar
       use dist_fn_arrays, only: gnew
       use dist_fn, only: init_gxyz, init_dist_fn
@@ -125,10 +140,10 @@ contains
 
       !> Starting timestep: zero unless the simulation has been restarted
       integer, intent(out) :: istep0
-      !> stella version number
-      character(len=*), intent(in) :: VERNUM
-      !> Release date
-      character(len=10), intent(in) :: VERDATE
+
+      ! Stella version number and release date 
+      character(len=40), intent(in) :: git_commit 
+      character(len=10), intent(in) :: git_date
 
       logical :: exit, list, restarted, needs_transforms
       character(500), target :: cbuff
@@ -148,7 +163,7 @@ contains
       if (proc0) then
          !> write message to screen with useful info regarding start of simulation
          if (debug) write (*, *) 'stella::init_stella::write_start_message'
-         call write_start_message(VERNUM, VERDATE)
+         call write_start_message(git_commit, git_date)
          !> initialize file i/o
          if (debug) write (*, *) 'stella::init_stella::init_file_utils'
          call init_file_utils(list)
@@ -192,8 +207,8 @@ contains
       call read_vpamu_grids_parameters
       if (debug) write (6, *) "stella::init_stella::read_multibox_parameters"
       call read_multibox_parameters
-      if (debug) write (6, *) "stella::init_stella::read_stella_diagnostics_knobs"
-      call read_stella_diagnostics_knobs
+      if (debug) write (6, *) "stella::init_stella::read_diagnostics_knobs"
+      call read_diagnostics_knobs
       !> setup the various data layouts for the distribution function;
       !> e.g., vmu_lo is the layout in which vpa, mu and species may be distributed
       !> amongst processors, depending on the number of phase space points and processors
@@ -245,7 +260,7 @@ contains
       if (debug) write (6, *) 'stella::init_stella::init_multibox_subcalls'
       call init_multibox_subcalls
       !> finish_init_geometry deallocates various geometric arrays that
-      !> were defined locally within the millerlocal module when using Miller geometry
+      !> were defined locally within the geometry_miller module when using Miller geometry
       if (debug) write (6, *) 'stella::init_stella::finish_init_geometry'
       call finish_init_geometry
       !> setup the (vpa,mu) grids and associated integration weights
@@ -340,10 +355,10 @@ contains
       !> rescale to phiinit if just beginning a new run
       if (.not. restarted .and. scale_to_phiinit) call rescale_fields(phiinit)
 
-      !> read stella_diagnostics_knob namelist from the input file,
+      !> read diagnostics_knob namelist from the input file,
       !> open ascii output files and initialise the neetcdf file with extension .out.nc
-      if (debug) write (6, *) 'stella::init_stella::init_stella_diagnostics'
-      call init_stella_diagnostics(restarted, tstart)
+      if (debug) write (6, *) 'stella::init_stella::init_diagnostics'
+      call init_diagnostics(restarted, tstart, git_commit, git_date)
       !> initialise the code_time
       if (debug) write (6, *) 'stella::init_stella::init_tstart'
       call init_tstart(tstart)
@@ -364,7 +379,7 @@ contains
 
       use mp, only: proc0, job
       use species, only: communicate_species_multibox
-      use stella_geometry, only: communicate_geo_multibox
+      use geometry, only: communicate_geo_multibox
       use kt_grids, only: communicate_ktgrids_multibox
       use file_utils, only: runtype_option_switch, runtype_multibox
       use physics_flags, only: radial_variation
@@ -401,8 +416,10 @@ contains
       use physics_flags, only: nonlinear, include_parallel_nonlinearity
       use physics_flags, only: radial_variation, full_flux_surface
       use physics_flags, only: hammett_flow_shear
-      use physics_parameters, only: g_exb, g_exbfac
-      use stella_diagnostics, only: write_radial_fluxes, write_radial_moments
+      use physics_parameters, only: g_exb, g_exbfac 
+      
+      ! Input file
+      use parameters_diagnostics, only: write_radial_moments, write_radial_fluxes
 
       implicit none
 
@@ -424,44 +441,40 @@ contains
    end subroutine check_transforms
 
    !> Write the start message to screen
-   subroutine write_start_message(VERNUM, VERDATE)
+   subroutine write_start_message(git_commit, git_date)
+   
       use mp, only: proc0, nproc
       use run_parameters, only: print_extra_info_to_terminal
 
       implicit none
 
-      !> stella version number
-      character(len=*), intent(in) :: VERNUM
-      !> Release date
-      character(len=10), intent(in) :: VERDATE
+      ! Stella version number and release date 
+      character(len=40), intent(in) :: git_commit 
+      character(len=10), intent(in) :: git_date
+
+      ! Strings to format data
       character(len=23) :: str
-
-      character(len=50) :: version_format
-      integer :: version_text_length
-
+      
+      ! Print the stella header
       if (proc0 .and. print_extra_info_to_terminal) then
-         version_text_length = 60 - (len("Version ") + len_trim(VERNUM) + 1)
-         write (version_format, '("('' '', ", i2, "x, ''Version '', a)")') version_text_length / 2
-
          write (*, *) ' '
          write (*, *) ' '
-         write (*, *) "            I8            ,dPYb, ,dPYb,            "
-         write (*, *) "            I8            IP'`Yb IP'`Yb            "
-         write (*, *) "         88888888         I8  8I I8  8I            "
-         write (*, *) "            I8            I8  8' I8  8'            "
-         write (*, *) "   ,g,      I8    ,ggg,   I8 dP  I8 dP    ,gggg,gg "
-         write (*, *) "  ,8'8,     I8   i8' '8i  I8dP   I8dP    dP'  'Y8I "
-         write (*, *) " ,8'  Yb   ,I8,  I8, ,8I  I8P    I8P    i8'    ,8I "
-         write (*, *) ",8'_   8) ,d88b, `YbadP' ,d8b,_ ,d8b,_ ,d8,   ,d8b,"
-         write (*, *) 'P` "YY8P8P8P""Y8888P"Y8888P`"Y888P`"Y88P"Y8888P"`Y8'
+         write (*, *) "              I8            ,dPYb, ,dPYb,            "
+         write (*, *) "              I8            IP'`Yb IP'`Yb            "
+         write (*, *) "           88888888         I8  8I I8  8I            "
+         write (*, *) "              I8            I8  8' I8  8'            "
+         write (*, *) "     ,g,      I8    ,ggg,   I8 dP  I8 dP    ,gggg,gg "
+         write (*, *) "    ,8'8,     I8   i8' '8i  I8dP   I8dP    dP'  'Y8I "
+         write (*, *) "   ,8'  Yb   ,I8,  I8, ,8I  I8P    I8P    i8'    ,8I "
+         write (*, *) "  ,8'_   8) ,d88b, `YbadP' ,d8b,_ ,d8b,_ ,d8,   ,d8b,"
+         write (*, *) '  P` "YY8P8P8P""Y8888P"Y8888P`"Y888P`"Y88P"Y8888P"`Y8'
          write (*, *) ' '
          write (*, *) ' '
-         write (*, version_format) VERNUM
-         write (*, *) '                        ', VERDATE
+         write (*, '(a48)') git_commit
+         write (*, *) '                      ', git_date
          write (*, *) ' '
-         write (*, *) '                     The stella team'
-         write (*, *) ' '
-         write (*, *) '                   University of Oxford'
+         write (*, *) '                   The stella team' 
+         write (*, *) '                 University of Oxford'
          write (*, *) ' '
          write (*, *) ' '
          write (*, '(A)') "############################################################"
@@ -469,7 +482,7 @@ contains
          write (*, '(A)') "############################################################"
          if (nproc == 1) then
             write (str, '(I10, A)') nproc, " processor."
-            write (*, '(A,A,A)') " Running on ", adjustl(trim(str))
+            write (*,*) ' '; write (*, '(A,A,A)') " Running on ", adjustl(trim(str))
          else
             write (str, '(I10, A)') nproc, " processors."
             write (*, '(A,A,A)') " Running on ", adjustl(trim(str))
@@ -483,18 +496,27 @@ contains
 
       use mp, only: proc0
       use run_parameters, only: print_extra_info_to_terminal
+      use physics_flags, only: include_apar
 
       implicit none
+      
+      ! Only print the header on the first processor
+      if (.not. proc0) return 
 
-      if (proc0 .and. print_extra_info_to_terminal) then
+      ! Note that the actual data is written in <diagnostics_potential.f90>
+      if (print_extra_info_to_terminal) then
          write (*, '(A)') "############################################################"
          write (*, '(A)') "                OVERVIEW OF THE SIMULATION"
          write (*, '(A)') "############################################################"
       end if
-      if (proc0) then
+      if (include_apar) then
          write (*, '(A)') " "
-         write (*, '(A)') "    istep       time          dt          CFL ExB       |phi|^2"
-         write (*, '(A)') "-----------------------------------------------------------------"
+         write (*, '(A)') "    istep       time          dt          |phi|^2       |apar|^2"
+         write (*, '(A)') "--------------------------------------------------------------------"
+      else
+         write (*, '(A)') " "
+         write (*, '(A)') "    istep       time          dt          |phi|^2  "
+         write (*, '(A)') "------------------------------------------------------"
       end if
 
    end subroutine print_header
@@ -539,10 +561,10 @@ contains
 
       use mp, only: finish_mp
       use mp, only: proc0
-      use file_utils, only: finish_file_utils
+      use file_utils, only: finish_file_utils, runtype_option_switch, runtype_multibox
       use job_manage, only: time_message
       use physics_parameters, only: finish_physics_parameters
-      use physics_flags, only: finish_physics_flags
+      use physics_flags, only: finish_physics_flags, include_parallel_nonlinearity, radial_variation
       use run_parameters, only: finish_run_parameters
       use zgrid, only: finish_zgrid
       use species, only: finish_species
@@ -550,31 +572,33 @@ contains
       use time_advance, only: finish_time_advance
       use parallel_streaming, only: time_parallel_streaming
       use mirror_terms, only: time_mirror
-      use dissipation, only: time_collisions
-      use sources, only: finish_sources, time_sources
+      use dissipation, only: time_collisions, include_collisions 
+      use sources, only: finish_sources, time_sources, source_option_switch, source_option_none
       use init_g, only: finish_init_g
       use dist_fn, only: finish_dist_fn
       use dist_redistribute, only: finish_redistribute
       use fields, only: finish_fields
       use fields, only: time_field_solve
-      use stella_diagnostics, only: finish_stella_diagnostics
+      use diagnostics, only: finish_diagnostics, time_diagnostics
       use response_matrix, only: finish_response_matrix
-      use stella_geometry, only: finish_geometry
+      use geometry, only: finish_geometry
       use extended_zgrid, only: finish_extended_zgrid
       use vpamu_grids, only: finish_vpamu_grids
       use kt_grids, only: finish_kt_grids
       use volume_averages, only: finish_volume_averages
       use multibox, only: finish_multibox, time_multibox
-      use run_parameters, only: stream_implicit, driftkinetic_implicit, drifts_implicit
+      use run_parameters, only: stream_implicit, drifts_implicit, fields_kxkyz
       use implicit_solve, only: time_implicit_advance
       use run_parameters, only: print_extra_info_to_terminal
+      use run_parameters, only: fields_kxkyz
 
       implicit none
 
       logical, intent(in), optional :: last_call
+      real :: sum_timings
 
-      if (debug) write (*, *) 'stella::finish_stella::finish_stella_diagnostics'
-      call finish_stella_diagnostics(istep)
+      if (debug) write (*, *) 'stella::finish_stella::finish_diagnostics'
+      call finish_diagnostics(istep)
       if (debug) write (*, *) 'stella::finish_stella::finish_response_matrix'
       call finish_response_matrix
       if (debug) write (*, *) 'stella::finish_stella::finish_fields'
@@ -619,43 +643,100 @@ contains
          write (*, '(A)') "############################################################"
          write (*, '(A)') "                        ELAPSED TIME"
          write (*, '(A)') "############################################################"
-         write (*, fmt=101) 'initialization:', time_init(1) / 60., 'min'
-         write (*, fmt=101) 'diagnostics:', time_diagnostics(1) / 60., 'min'
-         write (*, fmt=101) 'fields:', time_field_solve(1, 1) / 60., 'min'
-         write (*, fmt=101) '(redistribute):', time_field_solve(1, 2) / 60., 'min'
-         write (*, fmt=101) '(int_dv_g):', time_field_solve(1, 3) / 60., 'min'
-         write (*, fmt=101) '(get_phi):', time_field_solve(1, 4) / 60., 'min'
-         write (*, fmt=101) '(phi_adia_elec):', time_field_solve(1, 5) / 60., 'min'
-         write (*, fmt=101) 'mirror:', time_mirror(1, 1) / 60., 'min'
-         write (*, fmt=101) '(redistribute):', time_mirror(1, 2) / 60., 'min'
+
+         sum_timings = time_mirror(1, 1) + time_mirror(1, 2) 
+         sum_timings = sum_timings + time_implicit_advance(1, 1) + time_parallel_streaming(1, 1)  
+         sum_timings = sum_timings + time_gke(1, 4) + time_gke(1, 5) + time_gke(1, 6) + time_gke(1, 7) + time_gke(1, 10)
+         sum_timings = sum_timings + time_parallel_nl(1, 1) + time_parallel_nl(1, 2)
+         write (*, fmt='(A)') ' '
+         write (*, fmt='(A)') '                    GYROKINETIC EQUATION'
+         write (*, fmt='(A)') '                    ---------------------' 
+         write (*, fmt=101) 'mirror:', time_mirror(1, 1) / 60., 'min', time_mirror(1, 1)/sum_timings*100., '%'
+         write (*, fmt=101) '(redistribute):', time_mirror(1, 2) / 60., 'min', time_mirror(1, 2)/sum_timings*100., '%'
+         write (*, fmt=101) 'ExB nonlin:', time_gke(1, 7) / 60., 'min', time_gke(1, 7)/sum_timings*100., '%'
          if (stream_implicit) then
-            write (*, fmt=101) 'implicit advance: ', time_implicit_advance(1, 1) / 60., 'min'
-            write (*, fmt=101) '(bidiagonal)', time_parallel_streaming(1, 2) / 60., 'min'
-            write (*, fmt=101) '(backwards sub)', time_parallel_streaming(1, 3) / 60., 'min'
+            write (*, fmt=101) 'implicit advance:', time_implicit_advance(1, 1) / 60., 'min', & 
+               time_implicit_advance(1, 1)/sum_timings*100., '%' 
          else
-            write (*, fmt=101) 'stream:', time_parallel_streaming(1, 1) / 60., 'min'
+            write (*, fmt=101) 'stream:', time_parallel_streaming(1, 1) / 60., 'min', & 
+               time_parallel_streaming(1, 1)/sum_timings*100., '%'
          end if
          if (.not. drifts_implicit) then
-            write (*, fmt=101) 'dgdx:', time_gke(1, 5) / 60., 'min'
-            write (*, fmt=101) 'dgdy:', time_gke(1, 4) / 60., 'min'
-            write (*, fmt=101) 'wstar:', time_gke(1, 6) / 60., 'min'
+            write (*, fmt=101) 'dgdx:', time_gke(1, 5) / 60., 'min', time_gke(1, 5)/sum_timings*100., '%'
+            write (*, fmt=101) 'dgdy:', time_gke(1, 4) / 60., 'min', time_gke(1, 4)/sum_timings*100., '%'
+            write (*, fmt=101) 'wstar:', time_gke(1, 6) / 60., 'min', time_gke(1, 6)/sum_timings*100., '%'
          end if
-         write (*, fmt=101) 'collisions:', time_collisions(1, 1) / 60., 'min'
-         write (*, fmt=101) '(redistribute):', time_collisions(1, 2) / 60., 'min'
-         write (*, fmt=101) 'sources:', time_sources(1, 1) / 60., 'min'
-         write (*, fmt=101) '(redistribute):', time_sources(1, 2) / 60., 'min'
-         write (*, fmt=101) 'ExB nonlin:', time_gke(1, 7) / 60., 'min'
-         write (*, fmt=101) 'parallel nonlin:', time_parallel_nl(1, 1) / 60., 'min'
-         write (*, fmt=101) '(redistribute):', time_parallel_nl(1, 2) / 60., 'min'
-         write (*, fmt=101) 'radial var:', time_gke(1, 10) / 60., 'min'
-         write (*, fmt=101) 'multibox comm:', time_multibox(1, 1) / 60., 'min'
-         write (*, fmt=101) 'multibox krook:', time_multibox(1, 2) / 60., 'min'
-         write (*, fmt=101) 'total implicit:', time_gke(1, 9) / 60., 'min'
-         write (*, fmt=101) 'total explicit:', time_gke(1, 8) / 60., 'min'
-         write (*, fmt=101) 'total:', time_total(1) / 60., 'min'
+         if (include_parallel_nonlinearity) then  
+            write (*, fmt=101) 'parallel nonlin:', time_parallel_nl(1, 1) / 60., 'min'
+            write (*, fmt=101) '(redistribute):', time_parallel_nl(1, 2) / 60., 'min'
+         end if
+         if (radial_variation) then 
+            write (*, fmt=101) 'radial var:', time_gke(1, 10) / 60., 'min'
+         end if 
+         write (*, fmt=101) 'sum:', sum_timings / 60., 'min', sum_timings/time_total(1)*100., '%'
+
+         sum_timings = time_field_solve(1, 1) + time_field_solve(1, 2) + time_field_solve(1, 3) & 
+                        + time_field_solve(1, 4) + time_field_solve(1, 5)
+         write (*, fmt='(A)') ' '
+         write (*, fmt='(A)') '                           FIELDS'
+         write (*, fmt='(A)') '                           ------' 
+         write (*, fmt=101) 'fields:', time_field_solve(1, 1) / 60., 'min', time_field_solve(1, 1)/sum_timings*100., '%'
+         write (*, fmt=101) '(int_dv_g):', time_field_solve(1, 3) / 60., 'min', time_field_solve(1, 3)/sum_timings*100., '%'
+         write (*, fmt=101) '(get_phi):', time_field_solve(1, 4) / 60., 'min', time_field_solve(1, 4)/sum_timings*100., '%'
+         write (*, fmt=101) '(phi_adia_elec):', time_field_solve(1, 5) / 60., 'min', time_field_solve(1, 5)/sum_timings*100., '%'
+         if (fields_kxkyz) then
+            write (*, fmt=101) '(redistribute):', time_field_solve(1, 2) / 60., 'min', sum_timings/time_total(1)*100., '%'
+         end if
+         write (*, fmt=101) 'sum:', sum_timings / 60., 'min', sum_timings/time_total(1)*100., '%'
+
+         sum_timings = time_diagnostics(1, 1) + time_diagnostics(1, 2) + time_diagnostics(1, 3)  
+         sum_timings = sum_timings + time_diagnostics(1, 4) + time_diagnostics(1, 5) + time_diagnostics(1, 6)  
+         write (*, fmt='(A)') ' '
+         write (*, fmt='(A)') '                        DIAGNOSTICS'
+         write (*, fmt='(A)') '                        -----------' 
+         write (*, fmt=101) 'calculate omega:', time_diagnostics(1, 1) / 60., 'min', time_diagnostics(1, 1)/sum_timings*100., '%'
+         write (*, fmt=101) 'write phi:', time_diagnostics(1, 2) / 60., 'min', time_diagnostics(1, 3)/sum_timings*100., '%'
+         write (*, fmt=101) 'write omega:', time_diagnostics(1, 3) / 60., 'min', time_diagnostics(1, 2)/sum_timings*100., '%'
+         write (*, fmt=101) 'write fluxes:', time_diagnostics(1, 4) / 60., 'min', time_diagnostics(1, 4)/sum_timings*100., '%'
+         write (*, fmt=101) 'write moments:', time_diagnostics(1, 5) / 60., 'min', time_diagnostics(1, 5)/sum_timings*100., '%'
+         write (*, fmt=101) 'write distribution:', time_diagnostics(1, 6) / 60., 'min', time_diagnostics(1, 6)/sum_timings*100., '%'
+         write (*, fmt=101) 'sum:', sum_timings / 60., 'min', sum_timings/time_total(1)*100., '%'
+
+         sum_timings = time_collisions(1, 1) +time_collisions(1, 2)
+         sum_timings = sum_timings + time_sources(1, 1) + time_sources(1, 2)
+         sum_timings = sum_timings + time_sources(1, 1) + time_sources(1, 2)
+         sum_timings = sum_timings + time_multibox(1, 1) + time_multibox(1, 2)
+         write (*, fmt='(A)') ' '
+         write (*, fmt='(A)') '                           OTHER'
+         write (*, fmt='(A)') '                           -----' 
+         if (include_collisions) then
+            write (*, fmt=101) 'collisions:', time_collisions(1, 1) / 60., 'min'
+            write (*, fmt=101) '(redistribute):', time_collisions(1, 2) / 60., 'min'
+         end if
+         if (source_option_switch /= source_option_none) then
+            write (*, fmt=101) 'sources:', time_sources(1, 1) / 60., 'min'
+            write (*, fmt=101) '(redistribute):', time_sources(1, 2) / 60., 'min'
+         end if
+         if (runtype_option_switch == runtype_multibox) then    
+            write (*, fmt=101) 'multibox comm:', time_multibox(1, 1) / 60., 'min'
+            write (*, fmt=101) 'multibox krook:', time_multibox(1, 2) / 60., 'min'
+         end if
+         write (*, fmt=101) 'sum:', sum_timings / 60., 'min', sum_timings/time_total(1)*100., '%'
+ 
+         sum_timings = time_init(1) + time_diagnose_stella(1) + time_gke(1, 9) + time_gke(1, 8) 
+         write (*, fmt='(A)') ' '
+         write (*, fmt='(A)') '                          TOTALS'
+         write (*, fmt='(A)') '                          ------'
+         write (*, fmt=101) 'initialization:', time_init(1) / 60., 'min', time_init(1)/time_total(1)*100., '%'
+         write (*, fmt=101) 'diagnostics:', time_diagnose_stella(1) / 60., 'min', time_diagnose_stella(1)/time_total(1)*100., '%' 
+         write (*, fmt=101) 'total implicit:', time_gke(1, 9) / 60., 'min', time_gke(1, 9)/time_total(1)*100., '%'
+         write (*, fmt=101) 'total explicit:', time_gke(1, 8) / 60., 'min', time_gke(1, 8)/time_total(1)*100., '%'
+         write (*, fmt=101) 'sum:', sum_timings / 60., 'min', sum_timings/time_total(1)*100., '%'
+         write (*, fmt=101) 'total:', time_total(1) / 60., 'min', time_total(1)/time_total(1)*100., '%'
          write (*, *)
+
       end if
-101   format(a17, 0pf8.2, a4)
+101   format(a20, f9.2, a4, f9.2, a1)
 
       if (debug) write (*, *) 'stella::finish_stella::finish_mp'
       ! finish (clean up) mpi message passing

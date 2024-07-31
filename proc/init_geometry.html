@@ -80,20 +80,20 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 1.0% of total for procedures.">375 statements</a>
+                 title=" 0.2% of total for procedures.">74 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
               <i class="fa fa-code"></i>
-              <a href="../src/stella_geometry.f90"> Source File</a>
+              <a href="../src/geometry.f90"> Source File</a>
             </li>
         </ul>
       </div>
       <div class="col">
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb justify-content-end mb-0">
-                <li class="breadcrumb-item"><a href='../sourcefile/stella_geometry.f90.html'>stella_geometry.f90</a></li>
-                <li class="breadcrumb-item"><a href='../module/stella_geometry.html'>stella_geometry</a></li>
+                <li class="breadcrumb-item"><a href='../sourcefile/geometry.f90.html'>geometry.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/geometry.html'>geometry</a></li>
             <li class="breadcrumb-item active" aria-current="page">init_geometry</li>
           </ol>
         </nav>
@@ -147,15 +147,11 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/vmec_geo.html'>vmec_geo</a></li>
+                  <li class="list-inline-item"><a href='../module/file_utils.html'>file_utils</a></li>
                   <li class="list-inline-item"><a href='../module/zgrid.html'>zgrid</a></li>
-                  <li class="list-inline-item"><a href='../module/millerlocal.html'>millerlocal</a></li>
+                  <li class="list-inline-item"><a href='../module/vmec_geometry.html'>vmec_geometry</a></li>
                   <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
                   <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
-                  <li class="list-inline-item"><a href='../module/inputprofiles_interface.html'>inputprofiles_interface</a></li>
-                  <li class="list-inline-item"><a href='../module/file_utils.html'>file_utils</a></li>
-                  <li class="list-inline-item"><a href='../module/constants.html'>constants</a></li>
-                  <li class="list-inline-item"><a href='../module/vmec_to_stella_geometry_interface_mod.html'>vmec_to_stella_geometry_interface_mod</a></li>
               </ul>
             </li>
         </ul>
@@ -163,62 +159,6 @@
     </div>
 
 
-    <p>b_dot_grad_z is the alpha-dependent b . grad z,
- and gradpar is the constant-in-alpha part of it.
- for axisymmetric systems, b_dot_grad_z is independent of alpha.</p>
-<p>| grad x |  = dx/drho * | grad rho | = dx/dpsi * dpsi/drho * | grad rho |
- = q/rho * dpsidrho * grho</p>
-<p>R^2 * grad zeta . grad y / B^2
-R^2 * b . grad zeta = R^2 * b. grad theta * dzeta/dtheta</p>
-<p>b_dot_grad_z is the alpha-dependent b . grad z,
- and gradpar is the constant-in-alpha part of it.
- for axisymmetric systems, b_dot_grad_z is independent of alpha.</p>
-<p>| grad x |  = dx/drho * | grad rho | = dx/dpsi * dpsi/drho * | grad rho |
- = q/rho * dpsidrho * grho</p>
-<p>R^2 * grad zeta . grad y / B^2
-R^2 * b . grad zeta = R^2 * b. grad theta * dzeta/dtheta</p>
-<p>b_dot_grad_z is the alpha-dependent b . grad z,
- and gradpar is the constant-in-alpha part of it.
- for axisymmetric systems, b_dot_grad_z is independent of alpha.</p>
-<p>| grad x |  = dx/drho * | grad rho | = dx/dpsi * dpsi/drho * | grad rho |
- = q/rho * dpsidrho * grho</p>
-<p>R^2 * grad zeta . grad y / B^2
-R^2 * b . grad zeta = R^2 * b. grad theta * dzeta/dtheta</p>
-<p>read in input parameters for vmec
- nalpha may be specified via input file
- allocate geometry arrays
- get geometry coefficients from vmec
- abs(twist_and_shift_geo_fac) is dkx/dky * jtwist
- minus its sign gives the direction of the shift in kx
- to be used for twist-and-shift BC
- The code will start computing for the initial zgrid
- Define <dxdXcoord> = (ρref/a)(dx̃/dψ̃) and use dx/dψ = 1/(a<em>ρ0</em>Bref)
- dxdXcoord = (ρref/a)(dx̃/dψ̃) = (ρref/a)(d(x/ρref)/d(ψ/(a^2 Bref)) = a Bref (dx/dψ) = 1/ρ0</p>
-<p>Define <dydalpha> = (ρref/a)(dỹ/dα̃) and use dy/dα = a*ρ0
- dydalpha = (ρref/a)(dỹ/dα̃) = (ρref/a)(d(y/ρref)/dα) = (1/a) (dy/dα) = ρ0</p>
-<p>Define <drhodpsi> = dρ0/dψ̃ and use ρ0 = sqrt(psi_t/psi_{t,LCFS}) and ψ = sgn(psi_t)*psi_t
- Use dρ0/dpsi_t = d(sqrt(psi_t/psi_{t,LCFS}))/dpsi_t = sgn(psi_t)/(a^2 ρ0 Bref) with Bref = 2 |psi_{t,LCFS}| / a^2
- drhodpsi = dρ0/dψ̃ = dρ0/d(ψ/(a^2 Bref)) = a^2 Bref sgn(psi_t) dρ0/dpsi_t = 1/ρ0
- grad_x = | grad x |</p>
-<p>gds2 = |grad y|^2 = |grad alpha|^2 * (dy/dalpha)^2
- note that rhotor = sqrt(psi/psi_LCFS)</p>
-<p>Define <gds21> = hat{s} ∇x . ∇y
- Use (dx/dψ)*(dy/dα) = 1/(a ρ0 Bref) * (a ρ0) = 1/Bref
- Use ∇x . ∇y = (dx/dψ)(dy/dα) ∇ψ . ∇α = (1/Bref) ∇ψ . ∇α = <grad_alpha_grad_psi></p>
-<p>gds22 = shat^2 * |grad x|^2 = shat^2 * |grad psi_t|^2 * (dx/dpsi_t)^2</p>
-<p>gbdrift_alpha and cvdrift_alpha contain
- the grad-B and curvature drifts projected onto
- the grad alpha direction
- need the projections on grad y
- gbdrift0_psi and cvdrift0_psi contain
- the grad-B and curvature drifts projected onto
- the grad psi direction
- need the projections on grad x
- can test FFS implementation by setting all geometric coefficients
- to their values at a given alpha; i.e., make the system axisymmetric
- jacob is the Jacobian from Cartesian coordinates to (y,x,z) coordinates
- is ((grad y x grad x) . grad z)^(-1) = Lref<em>(dalpha/dy)</em>(dpsi/dx)/(Lref<em>Bref)</em>(B/Bref . grad z)^(-1)
- Lref<em>(dalpha/dy) = 1/dydalpha; (dpsi/dx)/(Lref</em>Bref) = 1 / dxdXcoord ; (B/Bref . grad z) = gradpar*bmag</p>
 
 
     <h3>Arguments</h3>
@@ -249,7 +189,7 @@ R^2 * b . grad zeta = R^2 * b. grad theta * dzeta/dtheta</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-naky"></span>
+              <span class="anchor" id="variable-naky~7"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -290,13 +230,13 @@ R^2 * b . grad zeta = R^2 * b. grad theta * dzeta/dtheta</p>
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-357-g361c476dc</small></p>
+<br /><small>v0.5.1-358-g37ea79d5a</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-26T14:23:17.832754             </p>
+ on 2024-07-31T19:09:27.376749             </p>
           </div>
         </div>
         <br>

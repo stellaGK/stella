@@ -3,7 +3,7 @@ module extended_zgrid
    implicit none
 
    public :: nsegments
-   public :: neigen
+   public :: neigen, neigen_max
    public :: ikxmod
    public :: iz_low, iz_mid, iz_up
    public :: it_right
@@ -17,6 +17,8 @@ module extended_zgrid
    public :: map_to_iz_ikx_from_izext
 
    private
+   
+   logical :: debug = .false.
 
    !> these arrays needed to keep track of connections between different
    !> 2pi segments
@@ -35,6 +37,7 @@ module extended_zgrid
    logical, dimension(:), allocatable :: periodic
 
    logical :: extended_zgrid_initialized = .false.
+   integer :: neigen_max
 
 contains
 
@@ -49,17 +52,21 @@ contains
       use kt_grids, only: jtwist, ikx_twist_shift, phase_shift_angle
       use kt_grids, only: aky, ikx_max
       use constants, only: zi
+      use mp, only: proc0
 
       implicit none
 
       integer :: iseg, iky, ie, ikx, it
-      integer :: nseg_max, neigen_max
+      integer :: nseg_max
       integer, dimension(:), allocatable :: ikx_shift_end
       integer, dimension(:, :), allocatable :: ikx_shift
+      
+      debug = debug .and. proc0
 
       if (extended_zgrid_initialized) return
       extended_zgrid_initialized = .true.
-
+ 
+      if (debug) write (*, *) 'extended_zgrid::allocate_arrays'  
       if (.not. allocated(neigen)) allocate (neigen(naky))
       if (.not. allocated(periodic)) allocate (periodic(naky)); periodic = .false.
       if (.not. allocated(phase_shift)) allocate (phase_shift(naky))
@@ -76,6 +83,7 @@ contains
       !> magnetic shear that use periodic boundary conditions everywhere
       phase_shift = exp(zi * aky * phase_shift_angle)
 
+      if (debug) write (*, *) 'extended_zgrid::boundary_option_switch'  
       if (boundary_option_switch == boundary_option_linked .or. boundary_option_switch == boundary_option_linked_stellarator) then
 
          !> all periodic modes (e.g., the zonal mode) have no connections
@@ -203,9 +211,8 @@ contains
             end if
          end do
 
-         nseg_max = maxval(nsegments)
-
-         if (.not. allocated(iz_low)) then
+         nseg_max = maxval(nsegments) 
+         if ((.not. allocated(iz_low)) .and. (neigen_max>0)) then
             allocate (iz_low(nseg_max)); iz_low = -nzgrid
             allocate (iz_mid(nseg_max)); iz_mid = 0
             allocate (iz_up(nseg_max)); iz_up = nzgrid
@@ -247,6 +254,7 @@ contains
 
       end if
 
+      if (debug) write (*, *) 'extended_zgrid::ikxmod_1'  
       if (.not. allocated(ikxmod)) then
          allocate (ikxmod(nseg_max, neigen_max, naky))
          !> initialize ikxmod to nakx
@@ -255,6 +263,7 @@ contains
          ikxmod = nakx
       end if
 
+      if (debug) write (*, *) 'extended_zgrid::ikxmod_2'  
       do iky = 1, naky
          !> only do the following once for each independent set of theta0s
          !> the assumption here is that all kx are on processor and sequential
@@ -271,6 +280,7 @@ contains
          end do
       end do
 
+      if (debug) write (*, *) 'extended_zgrid::deallocate'  
       if (allocated(ikx_shift_end)) deallocate (ikx_shift_end)
       if (allocated(ikx_shift)) deallocate (ikx_shift)
 
@@ -294,8 +304,12 @@ contains
       !> this is the number of unique zed values in all segments but the first
       !> the first has one extra unique zed value (all others have one grid common
       !> with the previous segment due to periodicity)
-      nzed_segment = iz_up(1) - iz_low(1)
-
+      if (neigen_max>0) then 
+         nzed_segment = iz_up(1) - iz_low(1)
+      else 
+         nzed_segment = 0
+      end if 
+      
    end subroutine init_extended_zgrid
 
    subroutine fill_zed_ghost_zones(it, iseg, ie, iky, g, gleft, gright)

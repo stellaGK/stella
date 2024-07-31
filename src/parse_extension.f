@@ -20,7 +20,7 @@
 !     OR AN EXTENSION
 !
       index_path = INDEX(file_or_extension, TRIM(file_to_parse))
-	index_comp = index_path
+      index_comp = index_path
 
       IF (index_path .gt. 0) THEN
 !
@@ -58,7 +58,7 @@
             temp = TRIM(path) // file_or_extension
          ELSE IF (index_comp == 0) THEN
             temp = TRIM(path) // '_' // file_or_extension
-	   ELSE
+         ELSE
             temp = TRIM(file_or_extension)
          END IF
 

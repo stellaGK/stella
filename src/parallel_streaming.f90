@@ -43,6 +43,8 @@ module parallel_streaming
    integer, dimension(:,:), allocatable :: stream_correction_sign, stream_full_sign
    real, dimension(:, :, :, :), allocatable :: stream_correction, stream_store_full
 
+   logical :: debug = .false.
+   
 contains
 
    subroutine init_parallel_streaming
@@ -57,7 +59,7 @@ contains
       use vpamu_grids, only: vperp2, vpa, mu
       use kt_grids, only: nalpha
       use zgrid, only: nzgrid, nztot
-      use stella_geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
+      use geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
       use run_parameters, only: stream_implicit, driftkinetic_implicit
       use physics_flags, only: include_parallel_streaming, radial_variation
       use physics_flags, only: full_flux_surface
@@ -73,7 +75,10 @@ contains
 
       if (parallel_streaming_initialized) return
       parallel_streaming_initialized = .true.
+      
+      debug = debug .and. proc0
 
+      if (debug) write (6, *) 'parallel_streaming::init_parallel_streaming'
       if (.not. allocated(stream)) allocate (stream(nalpha, -nzgrid:nzgrid, nvpa, nspec)); stream = 0.
       if (.not. allocated(stream_sign)) allocate (stream_sign(nvpa)); stream_sign = 0
 
@@ -169,7 +174,7 @@ contains
          end do
          if (.not. allocated(gradpar_c)) allocate (gradpar_c(-nzgrid:nzgrid, -1:1))
          gradpar_c = spread(gradpar, 2, 3)
-         !> get gradpar centred in zed for negative vpa (affects upwinding)
+         !> get gradpar centred in zed for negative vpa (affects upwinding) 
          call center_zed(1, gradpar_c(:, -stream_sign(1)), -nzgrid)
          !> get gradpar centred in zed for positive vpa (affects upwinding)
          call center_zed(nvpa, gradpar_c(:, -stream_sign(nvpa)), -nzgrid)
@@ -182,15 +187,22 @@ contains
 
       use zgrid, only: delzed
       use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: nsegments
+      use extended_zgrid, only: nsegments, neigen_max
       use run_parameters, only: zed_upwind_plus, zed_upwind_minus, time_upwind_plus
 
       implicit none
 
       integer :: nz, nseg_max
-
-      nz = maxval(iz_up - iz_low)
-      nseg_max = maxval(nsegments)
+ 
+        
+      ! <iz_up> and <iz_low> are not defined when we dont have any connections  
+      if (neigen_max>0) then 
+          nz = maxval(iz_up - iz_low)
+          nseg_max = maxval(nsegments)
+      else 
+          nz = 0
+          nseg_max = 0
+      end if
 
       if (.not. allocated(stream_tri_a1)) then
          allocate (stream_tri_a1(nz * nseg_max + 1, -1:1)); stream_tri_a1 = 0.

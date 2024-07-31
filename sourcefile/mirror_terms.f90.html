@@ -197,8 +197,8 @@
 <a id="ln-38" name="ln-38" href="#ln-38"></a><span class="w">      </span><span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">mu</span>
 <a id="ln-39" name="ln-39" href="#ln-39"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nzgrid</span><span class="p">,</span><span class="w"> </span><span class="n">nztot</span>
 <a id="ln-40" name="ln-40" href="#ln-40"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nalpha</span>
-<a id="ln-41" name="ln-41" href="#ln-41"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_geometry</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">dbdzed</span><span class="p">,</span><span class="w"> </span><span class="n">b_dot_grad_z</span><span class="p">,</span><span class="w"> </span><span class="n">gfac</span>
-<a id="ln-42" name="ln-42" href="#ln-42"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_geometry</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">d2Bdrdth</span><span class="p">,</span><span class="w"> </span><span class="n">dgradpardrho</span>
+<a id="ln-41" name="ln-41" href="#ln-41"></a><span class="w">      </span><span class="k">use </span><span class="n">geometry</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">dbdzed</span><span class="p">,</span><span class="w"> </span><span class="n">b_dot_grad_z</span><span class="p">,</span><span class="w"> </span><span class="n">gfac</span>
+<a id="ln-42" name="ln-42" href="#ln-42"></a><span class="w">      </span><span class="k">use </span><span class="n">geometry</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">d2Bdrdth</span><span class="p">,</span><span class="w"> </span><span class="n">dgradpardrho</span>
 <a id="ln-43" name="ln-43" href="#ln-43"></a><span class="w">      </span><span class="k">use </span><span class="n">neoclassical_terms</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">include_neoclassical_terms</span>
 <a id="ln-44" name="ln-44" href="#ln-44"></a><span class="w">      </span><span class="k">use </span><span class="n">neoclassical_terms</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">dphineo_dzed</span>
 <a id="ln-45" name="ln-45" href="#ln-45"></a><span class="w">      </span><span class="k">use </span><span class="n">run_parameters</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">mirror_implicit</span><span class="p">,</span><span class="w"> </span><span class="n">mirror_semi_lagrange</span>
@@ -315,7 +315,7 @@
 <a id="ln-156" name="ln-156" href="#ln-156"></a><span class="w">      </span><span class="k">use </span><span class="n">physics_flags</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">full_flux_surface</span>
 <a id="ln-157" name="ln-157" href="#ln-157"></a><span class="w">      </span><span class="k">use </span><span class="n">species</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">spec</span>
 <a id="ln-158" name="ln-158" href="#ln-158"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nalpha</span>
-<a id="ln-159" name="ln-159" href="#ln-159"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_geometry</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">dbdzed</span>
+<a id="ln-159" name="ln-159" href="#ln-159"></a><span class="w">      </span><span class="k">use </span><span class="n">geometry</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">dbdzed</span>
 <a id="ln-160" name="ln-160" href="#ln-160"></a><span class="w">      </span><span class="k">use </span><span class="n">neoclassical_terms</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">include_neoclassical_terms</span>
 <a id="ln-161" name="ln-161" href="#ln-161"></a><span class="w">      </span><span class="k">use </span><span class="n">neoclassical_terms</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">dphineo_dzed</span>
 <a id="ln-162" name="ln-162" href="#ln-162"></a><span class="w">      </span><span class="k">use </span><span class="n">run_parameters</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">vpa_upwind</span><span class="p">,</span><span class="w"> </span><span class="n">time_upwind</span>
@@ -1331,91 +1331,7 @@
 <a id="ln-1172" name="ln-1172" href="#ln-1172"></a>
 <a id="ln-1173" name="ln-1173" href="#ln-1173"></a><span class="w">   </span><span class="k">end subroutine </span><span class="n">finish_mirror_response</span>
 <a id="ln-1174" name="ln-1174" href="#ln-1174"></a>
-<a id="ln-1175" name="ln-1175" href="#ln-1175"></a><span class="w">   </span><span class="c">! subroutine checksum_field (field, total)</span>
-<a id="ln-1176" name="ln-1176" href="#ln-1176"></a>
-<a id="ln-1177" name="ln-1177" href="#ln-1177"></a><span class="w">   </span><span class="c">!   use zgrid, only: nzgrid, ntubes</span>
-<a id="ln-1178" name="ln-1178" href="#ln-1178"></a><span class="w">   </span><span class="c">!   use kt_grids, only: naky</span>
-<a id="ln-1179" name="ln-1179" href="#ln-1179"></a><span class="w">   </span><span class="c">!   use extended_zgrid, only: neigen, nsegments, ikxmod</span>
-<a id="ln-1180" name="ln-1180" href="#ln-1180"></a><span class="w">   </span><span class="c">!   use extended_zgrid, only: iz_low, iz_up</span>
-<a id="ln-1181" name="ln-1181" href="#ln-1181"></a>
-<a id="ln-1182" name="ln-1182" href="#ln-1182"></a><span class="w">   </span><span class="c">!   implicit none</span>
-<a id="ln-1183" name="ln-1183" href="#ln-1183"></a>
-<a id="ln-1184" name="ln-1184" href="#ln-1184"></a><span class="w">   </span><span class="c">!   complex, dimension (:,:,-nzgrid:,:), intent (in) :: field</span>
-<a id="ln-1185" name="ln-1185" href="#ln-1185"></a><span class="w">   </span><span class="c">!   real, intent (out) :: total</span>
-<a id="ln-1186" name="ln-1186" href="#ln-1186"></a>
-<a id="ln-1187" name="ln-1187" href="#ln-1187"></a><span class="w">   </span><span class="c">!   integer :: it, iky, ie, iseg</span>
-<a id="ln-1188" name="ln-1188" href="#ln-1188"></a><span class="w">   </span><span class="c">!   integer :: ikx</span>
-<a id="ln-1189" name="ln-1189" href="#ln-1189"></a>
-<a id="ln-1190" name="ln-1190" href="#ln-1190"></a><span class="w">   </span><span class="c">!   total = 0.</span>
-<a id="ln-1191" name="ln-1191" href="#ln-1191"></a>
-<a id="ln-1192" name="ln-1192" href="#ln-1192"></a><span class="w">   </span><span class="c">!   do iky = 1, naky</span>
-<a id="ln-1193" name="ln-1193" href="#ln-1193"></a><span class="w">   </span><span class="c">!      do it = 1, ntubes</span>
-<a id="ln-1194" name="ln-1194" href="#ln-1194"></a><span class="w">   </span><span class="c">!         do ie = 1, neigen(iky)</span>
-<a id="ln-1195" name="ln-1195" href="#ln-1195"></a><span class="w">   </span><span class="c">!            iseg = 1</span>
-<a id="ln-1196" name="ln-1196" href="#ln-1196"></a><span class="w">   </span><span class="c">!            ikx = ikxmod(iseg,ie,iky)</span>
-<a id="ln-1197" name="ln-1197" href="#ln-1197"></a><span class="w">   </span><span class="c">!            total = total + sum(cabs(field(iky,ikx,iz_low(iseg):iz_up(iseg),it)))</span>
-<a id="ln-1198" name="ln-1198" href="#ln-1198"></a><span class="w">   </span><span class="c">!            if (nsegments(ie,iky) &gt; 1) then</span>
-<a id="ln-1199" name="ln-1199" href="#ln-1199"></a><span class="w">   </span><span class="c">!               do iseg = 2, nsegments(ie,iky)</span>
-<a id="ln-1200" name="ln-1200" href="#ln-1200"></a><span class="w">   </span><span class="c">!                  ikx = ikxmod(iseg,ie,iky)</span>
-<a id="ln-1201" name="ln-1201" href="#ln-1201"></a><span class="w">   </span><span class="c">!                  total = total + sum(cabs(field(iky,ikx,iz_low(iseg)+1:iz_up(iseg),it)))</span>
-<a id="ln-1202" name="ln-1202" href="#ln-1202"></a><span class="w">   </span><span class="c">!               end do</span>
-<a id="ln-1203" name="ln-1203" href="#ln-1203"></a><span class="w">   </span><span class="c">!            end if</span>
-<a id="ln-1204" name="ln-1204" href="#ln-1204"></a><span class="w">   </span><span class="c">!         end do</span>
-<a id="ln-1205" name="ln-1205" href="#ln-1205"></a><span class="w">   </span><span class="c">!      end do</span>
-<a id="ln-1206" name="ln-1206" href="#ln-1206"></a><span class="w">   </span><span class="c">!   end do</span>
-<a id="ln-1207" name="ln-1207" href="#ln-1207"></a>
-<a id="ln-1208" name="ln-1208" href="#ln-1208"></a><span class="w">   </span><span class="c">! end subroutine checksum_field</span>
-<a id="ln-1209" name="ln-1209" href="#ln-1209"></a>
-<a id="ln-1210" name="ln-1210" href="#ln-1210"></a><span class="w">   </span><span class="c">! subroutine checksum_dist (dist, total, norm)</span>
-<a id="ln-1211" name="ln-1211" href="#ln-1211"></a>
-<a id="ln-1212" name="ln-1212" href="#ln-1212"></a><span class="w">   </span><span class="c">!   use mp, only: sum_allreduce</span>
-<a id="ln-1213" name="ln-1213" href="#ln-1213"></a><span class="w">   </span><span class="c">!   use zgrid, only: nzgrid, ntubes</span>
-<a id="ln-1214" name="ln-1214" href="#ln-1214"></a><span class="w">   </span><span class="c">!   use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx</span>
-<a id="ln-1215" name="ln-1215" href="#ln-1215"></a><span class="w">   </span><span class="c">!   use kt_grids, only: naky, nakx</span>
-<a id="ln-1216" name="ln-1216" href="#ln-1216"></a><span class="w">   </span><span class="c">!   use vpamu_grids, only: maxwell_vpa, maxwell_mu</span>
-<a id="ln-1217" name="ln-1217" href="#ln-1217"></a>
-<a id="ln-1218" name="ln-1218" href="#ln-1218"></a><span class="w">   </span><span class="c">!   implicit none</span>
-<a id="ln-1219" name="ln-1219" href="#ln-1219"></a>
-<a id="ln-1220" name="ln-1220" href="#ln-1220"></a><span class="w">   </span><span class="c">!   complex, dimension (:,:,-nzgrid:,:,vmu_lo%llim_proc:), intent (in) :: dist</span>
-<a id="ln-1221" name="ln-1221" href="#ln-1221"></a><span class="w">   </span><span class="c">!   real, intent (out) :: total</span>
-<a id="ln-1222" name="ln-1222" href="#ln-1222"></a><span class="w">   </span><span class="c">!   logical, intent (in), optional :: norm</span>
-<a id="ln-1223" name="ln-1223" href="#ln-1223"></a>
-<a id="ln-1224" name="ln-1224" href="#ln-1224"></a><span class="w">   </span><span class="c">!   integer :: ivmu, iv, imu, is</span>
-<a id="ln-1225" name="ln-1225" href="#ln-1225"></a><span class="w">   </span><span class="c">!   integer :: iky, ikx, it</span>
-<a id="ln-1226" name="ln-1226" href="#ln-1226"></a><span class="w">   </span><span class="c">!   real :: subtotal</span>
-<a id="ln-1227" name="ln-1227" href="#ln-1227"></a>
-<a id="ln-1228" name="ln-1228" href="#ln-1228"></a><span class="w">   </span><span class="c">!   complex, dimension (:,:,:,:), allocatable :: dist_single</span>
-<a id="ln-1229" name="ln-1229" href="#ln-1229"></a>
-<a id="ln-1230" name="ln-1230" href="#ln-1230"></a><span class="w">   </span><span class="c">!   total = 0.</span>
-<a id="ln-1231" name="ln-1231" href="#ln-1231"></a>
-<a id="ln-1232" name="ln-1232" href="#ln-1232"></a><span class="w">   </span><span class="c">!   allocate (dist_single(naky,nakx,-nzgrid:nzgrid,ntubes))</span>
-<a id="ln-1233" name="ln-1233" href="#ln-1233"></a><span class="w">   </span><span class="c">!   do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc</span>
-<a id="ln-1234" name="ln-1234" href="#ln-1234"></a><span class="w">   </span><span class="c">!      dist_single = dist(:,:,:,:,ivmu)</span>
-<a id="ln-1235" name="ln-1235" href="#ln-1235"></a><span class="w">   </span><span class="c">!      if (present(norm)) then</span>
-<a id="ln-1236" name="ln-1236" href="#ln-1236"></a><span class="w">   </span><span class="c">!         if (norm) then</span>
-<a id="ln-1237" name="ln-1237" href="#ln-1237"></a><span class="w">   </span><span class="c">!            iv = iv_idx(vmu_lo,ivmu)</span>
-<a id="ln-1238" name="ln-1238" href="#ln-1238"></a><span class="w">   </span><span class="c">!            imu = imu_idx(vmu_lo,ivmu)</span>
-<a id="ln-1239" name="ln-1239" href="#ln-1239"></a><span class="w">   </span><span class="c">!            is = is_idx(vmu_lo,ivmu)</span>
-<a id="ln-1240" name="ln-1240" href="#ln-1240"></a><span class="w">   </span><span class="c">!            do it = 1, ntubes</span>
-<a id="ln-1241" name="ln-1241" href="#ln-1241"></a><span class="w">   </span><span class="c">!               do ikx = 1, nakx</span>
-<a id="ln-1242" name="ln-1242" href="#ln-1242"></a><span class="w">   </span><span class="c">!                  do iky = 1, naky</span>
-<a id="ln-1243" name="ln-1243" href="#ln-1243"></a><span class="w">   </span><span class="c">!                     dist_single(iky,ikx,:,it) = dist_single(iky,ikx,:,it) * maxwell_vpa(iv,is) * maxwell_mu(1,:,imu,is)</span>
-<a id="ln-1244" name="ln-1244" href="#ln-1244"></a><span class="w">   </span><span class="c">!                  end do</span>
-<a id="ln-1245" name="ln-1245" href="#ln-1245"></a><span class="w">   </span><span class="c">!               end do</span>
-<a id="ln-1246" name="ln-1246" href="#ln-1246"></a><span class="w">   </span><span class="c">!            end do</span>
-<a id="ln-1247" name="ln-1247" href="#ln-1247"></a><span class="w">   </span><span class="c">!         else</span>
-<a id="ln-1248" name="ln-1248" href="#ln-1248"></a><span class="w">   </span><span class="c">!         end if</span>
-<a id="ln-1249" name="ln-1249" href="#ln-1249"></a><span class="w">   </span><span class="c">!      end if</span>
-<a id="ln-1250" name="ln-1250" href="#ln-1250"></a><span class="w">   </span><span class="c">!      call checksum (dist_single, subtotal)</span>
-<a id="ln-1251" name="ln-1251" href="#ln-1251"></a><span class="w">   </span><span class="c">!      total = total + subtotal</span>
-<a id="ln-1252" name="ln-1252" href="#ln-1252"></a><span class="w">   </span><span class="c">!   end do</span>
-<a id="ln-1253" name="ln-1253" href="#ln-1253"></a><span class="w">   </span><span class="c">!   deallocate (dist_single)</span>
-<a id="ln-1254" name="ln-1254" href="#ln-1254"></a>
-<a id="ln-1255" name="ln-1255" href="#ln-1255"></a><span class="w">   </span><span class="c">!   call sum_allreduce (total)</span>
-<a id="ln-1256" name="ln-1256" href="#ln-1256"></a>
-<a id="ln-1257" name="ln-1257" href="#ln-1257"></a><span class="w">   </span><span class="c">! end subroutine checksum_dist</span>
-<a id="ln-1258" name="ln-1258" href="#ln-1258"></a>
-<a id="ln-1259" name="ln-1259" href="#ln-1259"></a><span class="k">end module </span><span class="n">mirror_terms</span>
+<a id="ln-1175" name="ln-1175" href="#ln-1175"></a><span class="k">end module </span><span class="n">mirror_terms</span>
 </pre></div>
 
       </section>
@@ -1431,13 +1347,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-357-g361c476dc</small></p>
+<br /><small>v0.5.1-358-g37ea79d5a</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-26T14:23:17.832754             </p>
+ on 2024-07-31T19:09:27.376749             </p>
           </div>
         </div>
         <br>
