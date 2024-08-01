@@ -19,9 +19,6 @@ contains
         integer :: ix
         character(300) :: filename
 
-        real, dimension(:), intent (in)  :: x, rho
-        integer, intent (in) :: nx
-        
         filename = trim(trim(run_name)//'.radial_grid')
         open (1047, file=filename, status='unknown')
         if (q_as_x) then
