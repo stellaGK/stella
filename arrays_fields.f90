@@ -56,4 +56,7 @@ module arrays_fields
    real :: tcorr_source_qn, exp_fac_qn
    integer :: qn_window = MPI_WIN_NULL, qn_zf_window = MPI_WIN_NULL
 
+   real :: gamtot_h, gamtot3_h, efac, efacp
+   real, dimension(2, 5) :: time_field_solve = 0.
+   
 end module arrays_fields
