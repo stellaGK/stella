@@ -114,8 +114,9 @@ contains
       use response_matrix, only: init_response_matrix, read_response_matrix
       use init_g, only: ginit, init_init_g, phiinit, scale_to_phiinit
       use init_g, only: tstart
-      use fields, only: init_fields, advance_fields, get_radial_correction, fields_updated
+      use fields, only: init_fields, advance_fields, fields_updated
       use fields, only: rescale_fields
+      use fields_radial_variation, only: get_radial_correction
       use stella_time, only: init_tstart, init_delt
       use diagnostics, only: init_diagnostics
       use parameters_diagnostics, only: read_diagnostics_knobs

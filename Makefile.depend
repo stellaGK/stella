@@ -30,6 +30,10 @@ stella_mod = \
 	 ffs_solve.o \
 	 fft_work.o \
 	 fields.o \
+	 fields_collisions.o \
+	 fields_fluxtube.o \
+	 fields_fullfluxsurface.o \
+	 fields_radialvariation.o \
 	 file_utils.o \
 	 finite_differences.o \
 	 flow_shear.o \
@@ -101,6 +105,7 @@ coll_dougherty.o: \
 	 calculations_kxky.o \
 	 dist_redistribute.o \
 	 fields.o \
+	 fields_collisions.o \
 	 file_utils.o \
 	 finite_differences.o \
 	 g_tofrom_h.o \
@@ -125,6 +130,7 @@ coll_fokkerplanck.o: \
 	 constants.o \
 	 dist_redistribute.o \
 	 fields.o \
+	 fields_collisions.o \
 	 file_utils.o \
 	 finite_differences.o \
 	 g_tofrom_h.o \
@@ -380,6 +386,37 @@ fft_work.o: \
 	 constants.o \
 	 mp.o 
 fields.o: \
+	 arrays_fields.o \
+	 arrays_kxky.o \
+	 common_types.o \
+	 constants.o \
+	 debug_flags.o \
+	 fields_fluxtube.o \
+	 fields_fullfluxsurface.o \
+	 fields_radialvariation.o \
+	 file_utils.o \
+	 geometry.o \
+	 gyro_averages.o \
+	 job_manage.o \
+	 linear_solve.o \
+	 mp.o \
+	 multibox.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
+	 species.o \
+	 stella_layouts.o \
+	 volume_averages.o \
+	 vpamu_grids.o \
+	 zgrid.o 
+fields_collisions.o: \
+	 gyro_averages.o \
+	 mp.o \
+	 species.o \
+	 spfunc.o \
+	 stella_layouts.o \
+	 vpamu_grids.o \
+	 zgrid.o 
+fields_copy.o: \
 	 arrays_dist_fn.o \
 	 arrays_fields.o \
 	 arrays_kxky.o \
@@ -404,6 +441,69 @@ fields.o: \
 	 stella_layouts.o \
 	 stella_transforms.o \
 	 volume_averages.o \
+	 vpamu_grids.o \
+	 zgrid.o 
+fields_electromagnetic.o: \
+	 arrays_dist_fn.o \
+	 arrays_fields.o \
+	 arrays_kxky.o \
+	 debug_flags.o \
+	 gyro_averages.o \
+	 job_manage.o \
+	 mp.o \
+	 parameters_physics.o \
+	 species.o \
+	 stella_layouts.o \
+	 vpamu_grids.o \
+	 zgrid.o 
+fields_fluxtube.o: \
+	 arrays_dist_fn.o \
+	 dist_redistribute.o \
+	 fields_radialvariation.o \
+	 file_utils.o \
+	 gyro_averages.o \
+	 job_manage.o \
+	 mp.o \
+	 multibox.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
+	 redistribute.o \
+	 species.o \
+	 stella_layouts.o \
+	 vpamu_grids.o \
+	 zgrid.o 
+fields_fullfluxsurface.o: \
+	 arrays_fields.o \
+	 arrays_kxky.o \
+	 calculations_kxky.o \
+	 common_types.o \
+	 geometry.o \
+	 grids_kxky.o \
+	 gyro_averages.o \
+	 mp.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
+	 species.o \
+	 spfunc.o \
+	 stella_layouts.o \
+	 stella_transforms.o \
+	 volume_averages.o \
+	 vpamu_grids.o \
+	 zgrid.o 
+fields_radialvariation.o: \
+	 file_utils.o \
+	 grids_kxky.o \
+	 gyro_averages.o \
+	 job_manage.o \
+	 linear_solve.o \
+	 mp.o \
+	 mp_lu_decomposition.o \
+	 multibox.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
+	 species.o \
+	 stella_layouts.o \
+	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 file_utils.o: \
@@ -769,6 +869,7 @@ stella.o: \
 	 dist_redistribute.o \
 	 extended_zgrid.o \
 	 fields.o \
+	 fields_radialvariation.o \
 	 file_utils.o \
 	 geometry.o \
 	 git_version.o \

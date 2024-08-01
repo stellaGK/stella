@@ -1206,7 +1206,7 @@ contains
       use extended_zgrid, only: nsegments
       use arrays_kxky, only: zonal_mode, akx
       use arrays_fields, only: gamtot, gamtot3
-      use fields, only: gamtot_h, gamtot3_h
+      use arrays_fields, only: gamtot_h, gamtot3_h
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
 
@@ -1286,7 +1286,7 @@ contains
       use extended_zgrid, only: nsegments
       use arrays_kxky, only: zonal_mode, akx
       use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
-      use fields, only: gamtot_h
+      use arrays_fields, only: gamtot_h
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
       use mp, only: mp_abort
@@ -1377,7 +1377,7 @@ contains
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
       use arrays_kxky, only: zonal_mode, akx
-      use fields, only: apar_denom
+      use fields_electromagnetic, only: apar_denom
       use arrays_dist_fn, only: kperp2
 
       implicit none
