@@ -42,6 +42,11 @@ contains
 
       if (proc0) then
          beta = 0.0 ! beta = 8 * pi * p_ref / B_ref^2
+         ! vnew_ref is the reference collision frequency for stella, which
+         ! uses the mass, density and temperature of the reference species,
+         ! along with the proton charge in the expression
+         ! vnew_ref = (aref/vtref)*(4/3)sqrt(2pi)/(4pi*epsilon_0)**2 * nref * e**4 * loglam / sqrt(mref) / Tref**1.5
+         ! note that all quantities are given in SI units and epsilon_0 is permittivity of vacuum
          vnew_ref = -1.0 ! various input options will override this value if it is negative
          rhostar = -1.0 ! = m_ref * vt_ref / (e * B_ref * a_ref), with refs in SI
          irhostar = -1.0
