@@ -1,5 +1,6 @@
 module mirror_terms
 
+  use debug_flags, only: debug => mirror_terms_debug 
    implicit none
 
    public :: mirror_initialized
@@ -30,21 +31,22 @@ module mirror_terms
 
 contains
 
-   subroutine init_mirror
-
+  subroutine init_mirror
+    
+      use mp, only: proc0 
       use stella_time, only: code_dt
       use species, only: spec, nspec
       use vpamu_grids, only: nmu
       use vpamu_grids, only: mu
       use zgrid, only: nzgrid, nztot
-      use kt_grids, only: nalpha
+      use parameters_kxky_grids, only: nalpha
       use geometry, only: dbdzed, b_dot_grad_z, gfac
       use geometry, only: d2Bdrdth, dgradpardrho
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed
-      use run_parameters, only: mirror_implicit, mirror_semi_lagrange
-      use physics_flags, only: include_apar
-      use physics_flags, only: include_mirror, radial_variation
+      use parameters_numerical, only: mirror_implicit, mirror_semi_lagrange
+      use parameters_physics, only: include_apar
+      use parameters_physics, only: include_mirror, radial_variation
 
       implicit none
 
@@ -54,6 +56,9 @@ contains
       if (mirror_initialized) return
       mirror_initialized = .true.
 
+      debug = debug .and. proc0
+      if (debug) write(*,*) 'no debug messages for mirror_terms.f90 yet'
+      
       if (.not. allocated(mirror)) allocate (mirror(nalpha, -nzgrid:nzgrid, nmu, nspec)); mirror = 0.
       if (.not. allocated(mirror_sign)) allocate (mirror_sign(nalpha, -nzgrid:nzgrid)); mirror_sign = 0
 
@@ -127,7 +132,7 @@ contains
       use zgrid, only: nzgrid
       use vpamu_grids, only: nmu, dvpa
       use species, only: nspec
-      use kt_grids, only: nalpha
+      use parameters_kxky_grids, only: nalpha
 
       implicit none
 
@@ -153,14 +158,14 @@ contains
       use zgrid, only: nzgrid
       use vpamu_grids, only: dvpa, vpa, mu
       use vpamu_grids, only: nvpa, nmu
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
       use species, only: spec
-      use kt_grids, only: nalpha
+      use parameters_kxky_grids, only: nalpha
       use geometry, only: dbdzed
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed
-      use run_parameters, only: vpa_upwind, time_upwind
-      use run_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: vpa_upwind, time_upwind
+      use parameters_numerical, only: maxwellian_normalization
 
       implicit none
 
@@ -289,7 +294,7 @@ contains
       use stella_layouts, only: kxkyz_lo
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nmu, nvpa
-      use kt_grids, only: naky, nakx
+      use parameters_kxky_grids, only: naky, nakx
       use fields, only: advance_apar
 
       implicit none
@@ -338,18 +343,18 @@ contains
 
       use mp, only: proc0
       use redistribute, only: gather, scatter
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use job_manage, only: time_message
       use stella_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
       use stella_layouts, only: iv_idx, is_idx
       use stella_transforms, only: transform_ky2y
       use zgrid, only: nzgrid, ntubes
-      use physics_flags, only: full_flux_surface
-      use kt_grids, only: nakx, naky, naky_all, ny, ikx_max
-      use kt_grids, only: swap_kxky
+      use parameters_physics, only: full_flux_surface
+      use parameters_kxky_grids, only: nakx, naky, naky_all, ny, ikx_max
+      use calculations_kxky, only: swap_kxky
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vpa, maxwell_vpa
-      use run_parameters, only: fields_kxkyz, maxwellian_normalization
+      use parameters_numerical, only: fields_kxkyz, maxwellian_normalization
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
 
       implicit none
@@ -450,14 +455,14 @@ contains
 
       use mp, only: proc0
       use redistribute, only: gather, scatter
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use job_manage, only: time_message
       use stella_layouts, only: kxkyz_lo, vmu_lo
       use stella_layouts, only: is_idx, imu_idx
       use zgrid, only: nzgrid, ntubes
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
       use vpamu_grids, only: nvpa, nmu
-      use run_parameters, only: fields_kxkyz
+      use parameters_numerical, only: fields_kxkyz
       use dist_redistribute, only: kxkyz2vmu
 
       implicit none
@@ -570,7 +575,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, is_idx
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: nakx
+      use parameters_kxky_grids, only: nakx
 
       implicit none
 
@@ -599,7 +604,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, is_idx
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: ikx_max
+      use parameters_kxky_grids, only: ikx_max
 
       implicit none
 
@@ -636,24 +641,24 @@ contains
       use stella_layouts, only: iv_idx, imu_idx
       use stella_transforms, only: transform_ky2y, transform_y2ky
       use zgrid, only: nzgrid, ntubes
-      use dist_fn_arrays, only: gvmu
-      use physics_flags, only: full_flux_surface
-      use kt_grids, only: ny, nakx
+      use arrays_dist_fn, only: gvmu
+      use parameters_physics, only: full_flux_surface
+      use parameters_kxky_grids, only: ny, nakx
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: maxwell_vpa
       use neoclassical_terms, only: include_neoclassical_terms
-      use run_parameters, only: vpa_upwind, time_upwind
-      use run_parameters, only: mirror_semi_lagrange, maxwellian_normalization
-      use physics_flags, only: include_apar
+      use parameters_numerical, only: vpa_upwind, time_upwind
+      use parameters_numerical, only: mirror_semi_lagrange, maxwellian_normalization
+      use parameters_physics, only: include_apar
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
       use fields, only: advance_apar, fields_updated
       use g_tofrom_h, only: gbar_to_g
 
-      use run_parameters, only: time_upwind
+      use parameters_numerical, only: time_upwind
       use vpamu_grids, only: vpa, dvpa
       use stella_layouts, only: iy_idx
-      use kt_grids, only: swap_kxky, swap_kxky_back
-      use kt_grids, only: naky_all, ikx_max, naky
+      use calculations_kxky, only: swap_kxky, swap_kxky_back
+      use parameters_kxky_grids, only: naky_all, ikx_max, naky
       implicit none
 
       logical, intent(in) :: collisions_implicit
@@ -878,14 +883,14 @@ contains
 
    subroutine get_mirror_rhs_g_contribution(g_in, apar, imu, ikxkyz, rhs)
 
-      use physics_flags, only: include_apar
-      use run_parameters, only: vpa_upwind, time_upwind_minus
-      use run_parameters, only: maxwellian_normalization
+      use parameters_physics, only: include_apar
+      use parameters_numerical, only: vpa_upwind, time_upwind_minus
+      use parameters_numerical, only: maxwellian_normalization
       use g_tofrom_h, only: gbar_to_g
       use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
       use finite_differences, only: fd_variable_upwinding_vpa
       use vpamu_grids, only: dvpa, vpa, nvpa
-      use fields_arrays, only: phi
+      use arrays_fields, only: phi
 
       implicit none
 
@@ -936,7 +941,7 @@ contains
       use species, only: spec
       use vpamu_grids, only: nvpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
-      use run_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: maxwellian_normalization
       use stella_layouts, only: kxkyz_lo, is_idx, iz_idx
       use gyro_averages, only: gyro_average
 
@@ -973,7 +978,7 @@ contains
       use vpamu_grids, only: nvpa, nmu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, is_idx
-      use run_parameters, only: mirror_linear_interp
+      use parameters_numerical, only: mirror_linear_interp
 
       implicit none
 
@@ -1120,7 +1125,7 @@ contains
 
    subroutine finish_mirror
 
-      use run_parameters, only: mirror_implicit, mirror_semi_lagrange
+      use parameters_numerical, only: mirror_implicit, mirror_semi_lagrange
 
       implicit none
 

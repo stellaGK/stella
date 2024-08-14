@@ -26,10 +26,11 @@ contains
    subroutine init_volume_averages
 
       use zgrid, only: nzgrid, nztot, delzed
-      use kt_grids, only: nalpha, aky, nakx, naky, rho_d_clamped
+      use parameters_kxky_grids, only: nalpha, nakx, naky
+      use grids_kxky, only: rho_d_clamped, aky
       use geometry, only: geo_surf, drhodpsip
       use geometry, only: geo_surf, jacob, djacdrho, q_as_x, dVolume
-      use physics_flags, only: full_flux_surface, radial_variation
+      use parameters_physics, only: full_flux_surface, radial_variation
 
       implicit none
 
@@ -77,7 +78,7 @@ contains
    subroutine finish_volume_averages
 
       use geometry, only: dVolume
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
 
       implicit none
 
@@ -95,7 +96,7 @@ contains
    subroutine fieldline_average_real(unavg, avg)
 
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: nakx, naky
+      use parameters_kxky_grids, only: nakx, naky
       use geometry, only: dl_over_b
 
       implicit none
@@ -118,7 +119,7 @@ contains
    subroutine fieldline_average_complex(unavg, avg)
 
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: nakx, naky
+      use parameters_kxky_grids, only: nakx, naky
       use geometry, only: dl_over_b
 
       implicit none
@@ -144,7 +145,7 @@ contains
    subroutine volume_average(unavg, avg)
 
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: naky, nakx
+      use parameters_kxky_grids, only: naky, nakx
       use geometry, only: dl_over_b
 
       implicit none
@@ -174,7 +175,7 @@ contains
    subroutine init_flux_surface_average_ffs
 
       use zgrid, only: nzgrid
-      use kt_grids, only: naky
+      use parameters_kxky_grids, only: naky
       use extended_zgrid, only: periodic
       use geometry, only: jacob
       use stella_transforms, only: transform_alpha2kalpha
@@ -199,7 +200,7 @@ contains
    subroutine flux_surface_average_ffs(no_fsa, fsa)
 
       use zgrid, only: nzgrid, delzed 
-      use kt_grids, only: naky, naky_all 
+      use parameters_kxky_grids, only: naky, naky_all 
 
       implicit none
 

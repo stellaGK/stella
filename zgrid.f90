@@ -71,7 +71,7 @@ contains
 
       use file_utils, only: input_unit_exist, error_unit
       use text_options, only: text_option, get_option_value
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
 
       implicit none
 

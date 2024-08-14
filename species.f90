@@ -50,9 +50,9 @@ contains
 
 !    use mp, only: trin_flag
       use mp, only: proc0, broadcast
-      use physics_parameters, only: vnew_ref, zeff
-      use physics_flags, only: include_pressure_variation
-      use physics_flags, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
+      use parameters_physics, only: vnew_ref, zeff
+      use parameters_physics, only: include_pressure_variation
+      use parameters_physics, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       use geometry_inputprofiles_interface, only: read_inputprof_spec
       use euterpe_interface, only: read_species_euterpe
 
@@ -137,7 +137,7 @@ contains
       use mp, only: proc0, job, broadcast, mp_abort
       use file_utils, only: error_unit, input_unit_exist
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use text_options, only: text_option, get_option_value
 
       implicit none

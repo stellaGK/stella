@@ -2,12 +2,16 @@
 # Auto-generated file by fortdep. Do not edit!
 #
 stella_mod = \
+	 arrays_dist_fn.o \
+	 arrays_fields.o \
+	 calculations_kxky.o \
 	 coll_dougherty.o \
 	 coll_fokkerplanck.o \
 	 command_line.o \
 	 common_types.o \
 	 constants.o \
 	 convert.o \
+	 debug_flags.o \
 	 diagnostics.o \
 	 diagnostics_distribution.o \
 	 diagnostics_fluxes.o \
@@ -19,14 +23,12 @@ stella_mod = \
 	 diagnostics_potential.o \
 	 dissipation.o \
 	 dist_fn.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 euterpe_interface.o \
 	 extended_zgrid.o \
 	 ffs_solve.o \
 	 fft_work.o \
 	 fields.o \
-	 fields_arrays.o \
 	 file_utils.o \
 	 finite_differences.o \
 	 flow_shear.o \
@@ -38,12 +40,12 @@ stella_mod = \
 	 geometry_vmec.o \
 	 geometry_vmec_read_netCDF_file.o \
 	 git_version.o \
+	 grids_kxky.o \
 	 gyro_averages.o \
 	 hyper.o \
 	 implicit_solve.o \
 	 init_g.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 linear_solve.o \
 	 mirror_terms.o \
 	 mp.o \
@@ -55,12 +57,14 @@ stella_mod = \
 	 netcdf_utils.o \
 	 parallel_streaming.o \
 	 parameters_diagnostics.o \
-	 physics_flags.o \
-	 physics_parameters.o \
+	 parameters_kxky_grids.o \
+	 parameters_kxky_grids_box.o \
+	 parameters_kxky_grids_range.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 ran.o \
 	 redistribute.o \
 	 response_matrix.o \
-	 run_parameters.o \
 	 sfincs_interface.o \
 	 sources.o \
 	 species.o \
@@ -77,25 +81,37 @@ stella_mod = \
 	 time_advance.o \
 	 volume_averages.o \
 	 vpamu_grids.o \
+	 write_radial_grid.o \
 	 zgrid.o 
 
+arrays_dist_fn.o: 
+arrays_fields.o: \
+	 common_types.o 
+calculations_kxky.o: \
+	 grids_kxky.o \
+	 job_manage.o \
+	 mp.o \
+	 parameters_kxky_grids.o \
+	 stella_transforms.o 
 coll_dougherty.o: \
-	 dist_fn_arrays.o \
+	 arrays_dist_fn.o \
+	 arrays_fields.o \
+	 calculations_kxky.o \
 	 dist_redistribute.o \
 	 fields.o \
-	 fields_arrays.o \
 	 file_utils.o \
 	 finite_differences.o \
 	 g_tofrom_h.o \
 	 geometry.o \
+	 grids_kxky.o \
 	 gyro_averages.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 redistribute.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_time.o \
@@ -103,9 +119,9 @@ coll_dougherty.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 coll_fokkerplanck.o: \
+	 arrays_dist_fn.o \
 	 common_types.o \
 	 constants.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields.o \
 	 file_utils.o \
@@ -114,13 +130,12 @@ coll_fokkerplanck.o: \
 	 geometry.o \
 	 gyro_averages.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
-	 physics_flags.o \
-	 physics_parameters.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 redistribute.o \
-	 run_parameters.o \
 	 species.o \
 	 spfunc.o \
 	 stella_layouts.o \
@@ -131,44 +146,48 @@ command_line.o:
 common_types.o: 
 constants.o: 
 convert.o: 
+debug_flags.o: \
+	 file_utils.o \
+	 mp.o 
 diagnostics.o: \
+	 arrays_dist_fn.o \
+	 arrays_fields.o \
 	 constants.o \
+	 debug_flags.o \
 	 diagnostics_distribution.o \
 	 diagnostics_fluxes.o \
 	 diagnostics_moments.o \
 	 diagnostics_omega.o \
 	 diagnostics_potential.o \
 	 dist_fn.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 fields.o \
-	 fields_arrays.o \
+	 grids_kxky.o \
 	 init_g.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 mp.o \
 	 parameters_diagnostics.o \
-	 physics_flags.o \
-	 physics_parameters.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 redistribute.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_io.o \
 	 stella_save.o \
 	 stella_time.o \
 	 zgrid.o 
 diagnostics_distribution.o: \
-	 dist_fn_arrays.o \
+	 arrays_dist_fn.o \
+	 arrays_fields.o \
 	 dist_redistribute.o \
-	 fields_arrays.o \
 	 g_tofrom_h.o \
 	 geometry.o \
+	 grids_kxky.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 mp.o \
 	 parameters_diagnostics.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
 	 redistribute.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_io.o \
 	 stella_layouts.o \
@@ -176,49 +195,52 @@ diagnostics_distribution.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 diagnostics_fluxes.o: \
+	 arrays_dist_fn.o \
+	 arrays_fields.o \
+	 debug_flags.o \
 	 diagnostics_fluxes_fluxtube.o \
 	 diagnostics_fluxes_fullfluxsurface.o \
 	 diagnostics_fluxes_radialvariation.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
-	 fields_arrays.o \
 	 file_utils.o \
 	 g_tofrom_h.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 mp.o \
 	 parameters_diagnostics.o \
-	 physics_flags.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 redistribute.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_io.o \
 	 stella_time.o \
 	 zgrid.o 
 diagnostics_fluxes_fluxtube.o: \
+	 arrays_fields.o \
 	 constants.o \
-	 fields_arrays.o \
 	 geometry.o \
+	 grids_kxky.o \
 	 gyro_averages.o \
-	 kt_grids.o \
 	 mp.o \
 	 parameters_diagnostics.o \
-	 physics_flags.o \
-	 run_parameters.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 species.o \
 	 stella_layouts.o \
 	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 diagnostics_fluxes_fullfluxsurface.o: \
+	 arrays_dist_fn.o \
+	 arrays_fields.o \
+	 calculations_kxky.o \
 	 constants.o \
-	 dist_fn_arrays.o \
-	 fields_arrays.o \
 	 g_tofrom_h.o \
 	 geometry.o \
+	 grids_kxky.o \
 	 gyro_averages.o \
-	 kt_grids.o \
-	 run_parameters.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_transforms.o \
@@ -226,15 +248,17 @@ diagnostics_fluxes_fullfluxsurface.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 diagnostics_fluxes_radialvariation.o: \
+	 arrays_dist_fn.o \
+	 calculations_kxky.o \
 	 constants.o \
-	 dist_fn_arrays.o \
 	 geometry.o \
+	 grids_kxky.o \
 	 gyro_averages.o \
-	 kt_grids.o \
 	 mp.o \
 	 parameters_diagnostics.o \
-	 physics_flags.o \
-	 run_parameters.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_transforms.o \
@@ -242,15 +266,18 @@ diagnostics_fluxes_radialvariation.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 diagnostics_moments.o: \
-	 dist_fn_arrays.o \
-	 fields_arrays.o \
+	 arrays_dist_fn.o \
+	 arrays_fields.o \
+	 calculations_kxky.o \
 	 geometry.o \
+	 grids_kxky.o \
 	 gyro_averages.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 mp.o \
-	 physics_flags.o \
-	 run_parameters.o \
+	 parameters_diagnostics.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 species.o \
 	 stella_io.o \
 	 stella_layouts.o \
@@ -258,65 +285,70 @@ diagnostics_moments.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 diagnostics_omega.o: \
+	 arrays_fields.o \
 	 constants.o \
-	 fields_arrays.o \
 	 file_utils.o \
+	 grids_kxky.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 mp.o \
 	 parameters_diagnostics.o \
-	 physics_flags.o \
+	 parameters_kxky_grids.o \
+	 parameters_physics.o \
 	 stella_io.o \
 	 stella_time.o \
 	 volume_averages.o 
 diagnostics_potential.o: \
-	 dist_fn_arrays.o \
+	 arrays_dist_fn.o \
+	 arrays_fields.o \
 	 fields.o \
-	 fields_arrays.o \
 	 file_utils.o \
 	 geometry.o \
+	 grids_kxky.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_diagnostics.o \
+	 parameters_kxky_grids.o \
+	 parameters_physics.o \
 	 stella_io.o \
 	 stella_time.o \
 	 volume_averages.o \
 	 zgrid.o 
 dissipation.o: \
+	 arrays_dist_fn.o \
 	 coll_dougherty.o \
 	 coll_fokkerplanck.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 file_utils.o \
 	 hyper.o \
 	 job_manage.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 redistribute.o \
-	 run_parameters.o \
 	 stella_layouts.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 dist_fn.o: \
-	 dist_fn_arrays.o \
+	 arrays_dist_fn.o \
+	 calculations_kxky.o \
+	 debug_flags.o \
 	 dist_redistribute.o \
 	 extended_zgrid.o \
 	 geometry.o \
+	 grids_kxky.o \
 	 gyro_averages.o \
-	 kt_grids.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_kxky_grids.o \
+	 parameters_physics.o \
 	 redistribute.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_transforms.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-dist_fn_arrays.o: 
 dist_redistribute.o: \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 redistribute.o \
 	 stella_layouts.o \
 	 vpamu_grids.o \
@@ -327,29 +359,38 @@ euterpe_interface.o: \
 	 finite_differences.o \
 	 geometry.o \
 	 mp.o \
-	 physics_parameters.o \
+	 parameters_physics.o \
 	 spl.o 
 extended_zgrid.o: \
 	 constants.o \
-	 kt_grids.o \
+	 debug_flags.o \
+	 grids_kxky.o \
 	 mp.o \
+	 parameters_kxky_grids.o \
 	 zgrid.o 
+ezcdf 2.o: \
+	 ezcdf_GenGet 2.o \
+	 ezcdf_opncls 2.o 
 ezcdf.o: \
-	 ezcdf_GenGet.o \
-	 ezcdf_opncls.o 
+	 ezcdf_GenGet 2.o \
+	 ezcdf_opncls 2.o 
+ezcdf_GenGet 2.o: \
+	 ezcdf_inqvar 2.o \
+	 ezcdf_opncls 2.o 
 ezcdf_GenGet.o: \
-	 ezcdf_inqvar.o \
-	 ezcdf_opncls.o 
-ezcdf_inqvar.o: 
-ezcdf_opncls.o: 
+	 ezcdf_inqvar 2.o \
+	 ezcdf_opncls 2.o 
+ezcdf_inqvar 2.o: 
+ezcdf_opncls 2.o: 
 ffs_solve.o: \
+	 arrays_dist_fn.o \
+	 calculations_kxky.o \
 	 constants.o \
-	 dist_fn_arrays.o \
 	 fields.o \
 	 gyro_averages.o \
-	 kt_grids.o \
 	 mp.o \
 	 parallel_streaming.o \
+	 parameters_kxky_grids.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_transforms.o \
@@ -359,24 +400,26 @@ fft_work.o: \
 	 constants.o \
 	 mp.o 
 fields.o: \
+	 arrays_dist_fn.o \
+	 arrays_fields.o \
+	 calculations_kxky.o \
 	 common_types.o \
 	 constants.o \
-	 dist_fn_arrays.o \
+	 debug_flags.o \
 	 dist_redistribute.o \
-	 fields_arrays.o \
 	 file_utils.o \
 	 geometry.o \
+	 grids_kxky.o \
 	 gyro_averages.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
 	 mp_lu_decomposition.o \
 	 multibox.o \
-	 physics_flags.o \
-	 physics_parameters.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 redistribute.o \
-	 run_parameters.o \
 	 species.o \
 	 spfunc.o \
 	 stella_layouts.o \
@@ -384,23 +427,21 @@ fields.o: \
 	 volume_averages.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-fields_arrays.o: \
-	 common_types.o 
 file_utils.o: \
 	 command_line.o 
 finite_differences.o: 
 flow_shear.o: \
+	 arrays_fields.o \
 	 constants.o \
 	 fields.o \
-	 fields_arrays.o \
 	 file_utils.o \
 	 geometry.o \
+	 grids_kxky.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 mp.o \
-	 physics_flags.o \
-	 physics_parameters.o \
-	 run_parameters.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_time.o \
@@ -408,12 +449,13 @@ flow_shear.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 g_tofrom_h.o: \
-	 dist_fn_arrays.o \
+	 arrays_dist_fn.o \
+	 calculations_kxky.o \
 	 geometry.o \
 	 gyro_averages.o \
-	 kt_grids.o \
-	 physics_flags.o \
-	 run_parameters.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_transforms.o \
@@ -426,13 +468,13 @@ gauss_quad.o: \
 geometry.o: \
 	 common_types.o \
 	 constants.o \
+	 debug_flags.o \
 	 file_utils.o \
 	 geometry_inputprofiles_interface.o \
 	 geometry_miller.o \
 	 geometry_vmec.o \
 	 mp.o \
-	 physics_flags.o \
-	 physics_parameters.o \
+	 parameters_physics.o \
 	 text_options.o \
 	 zgrid.o 
 geometry_inputprofiles_interface.o: \
@@ -441,7 +483,7 @@ geometry_inputprofiles_interface.o: \
 	 finite_differences.o \
 	 geometry_miller.o \
 	 mp.o \
-	 physics_parameters.o \
+	 parameters_physics.o \
 	 spl.o 
 geometry_miller.o: \
 	 common_types.o \
@@ -453,10 +495,11 @@ geometry_miller.o: \
 geometry_vmec.o: \
 	 common_types.o \
 	 constants.o \
+	 debug_flags.o \
 	 file_utils.o \
 	 geometry_vmec_read_netCDF_file.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 spl.o \
 	 stella_transforms.o \
 	 text_options.o \
@@ -464,13 +507,26 @@ geometry_vmec.o: \
 geometry_vmec_read_netCDF_file.o: \
 	 mp.o 
 git_version.o: 
-gyro_averages.o: \
+grids_kxky.o: \
 	 common_types.o \
-	 dist_fn_arrays.o \
+	 constants.o \
+	 file_utils.o \
 	 geometry.o \
-	 kt_grids.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_kxky_grids.o \
+	 parameters_physics.o \
+	 ran.o \
+	 write_radial_grid.o \
+	 zgrid.o 
+gyro_averages.o: \
+	 arrays_dist_fn.o \
+	 calculations_kxky.o \
+	 common_types.o \
+	 debug_flags.o \
+	 geometry.o \
+	 mp.o \
+	 parameters_kxky_grids.o \
+	 parameters_physics.o \
 	 species.o \
 	 spfunc.o \
 	 stella_layouts.o \
@@ -478,51 +534,55 @@ gyro_averages.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 hyper.o: \
-	 dist_fn_arrays.o \
+	 arrays_dist_fn.o \
 	 dist_redistribute.o \
 	 extended_zgrid.o \
 	 file_utils.o \
 	 finite_differences.o \
 	 geometry.o \
-	 kt_grids.o \
+	 grids_kxky.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_kxky_grids.o \
+	 parameters_physics.o \
 	 redistribute.o \
 	 stella_layouts.o \
 	 stella_time.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 implicit_solve.o: \
+	 arrays_dist_fn.o \
+	 arrays_fields.o \
 	 constants.o \
-	 dist_fn_arrays.o \
+	 debug_flags.o \
 	 extended_zgrid.o \
 	 ffs_solve.o \
 	 fields.o \
-	 fields_arrays.o \
+	 grids_kxky.o \
 	 gyro_averages.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
 	 neoclassical_terms.o \
 	 parallel_streaming.o \
-	 physics_flags.o \
-	 run_parameters.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_time.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 init_g.o: \
+	 arrays_dist_fn.o \
 	 constants.o \
-	 dist_fn_arrays.o \
 	 extended_zgrid.o \
 	 file_utils.o \
-	 kt_grids.o \
+	 grids_kxky.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 ran.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_save.o \
@@ -533,37 +593,26 @@ init_g.o: \
 job_manage.o: \
 	 file_utils.o \
 	 mp.o 
-kt_grids.o: \
-	 common_types.o \
-	 constants.o \
-	 file_utils.o \
-	 geometry.o \
-	 job_manage.o \
-	 mp.o \
-	 physics_flags.o \
-	 physics_parameters.o \
-	 ran.o \
-	 stella_transforms.o \
-	 text_options.o \
-	 zgrid.o 
 linear_solve.o: 
 mirror_terms.o: \
+	 arrays_dist_fn.o \
+	 arrays_fields.o \
+	 calculations_kxky.o \
 	 constants.o \
-	 dist_fn_arrays.o \
+	 debug_flags.o \
 	 dist_redistribute.o \
 	 fields.o \
-	 fields_arrays.o \
 	 finite_differences.o \
 	 g_tofrom_h.o \
 	 geometry.o \
 	 gyro_averages.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 mp.o \
 	 neoclassical_terms.o \
-	 physics_flags.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 redistribute.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_time.o \
@@ -577,28 +626,29 @@ mp_lu_decomposition.o: \
 	 linear_solve.o 
 mt19937.o: 
 multibox.o: \
+	 arrays_fields.o \
 	 constants.o \
 	 fft_work.o \
-	 fields_arrays.o \
 	 file_utils.o \
 	 geometry.o \
+	 grids_kxky.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
-	 physics_flags.o \
-	 physics_parameters.o \
-	 run_parameters.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 stella_layouts.o \
 	 stella_time.o \
 	 text_options.o \
 	 zgrid.o 
 neasyf.o: 
 neoclassical_terms.o: \
+	 debug_flags.o \
 	 file_utils.o \
 	 finite_differences.o \
-	 kt_grids.o \
 	 mp.o \
+	 parameters_kxky_grids.o \
 	 sfincs_interface.o \
 	 species.o \
 	 stella_layouts.o \
@@ -610,18 +660,21 @@ netcdf_utils.o: \
 	 file_utils.o \
 	 mp.o 
 parallel_streaming.o: \
-	 dist_fn_arrays.o \
+	 arrays_dist_fn.o \
+	 arrays_fields.o \
+	 calculations_kxky.o \
+	 debug_flags.o \
 	 extended_zgrid.o \
 	 fields.o \
-	 fields_arrays.o \
 	 finite_differences.o \
 	 geometry.o \
+	 grids_kxky.o \
 	 gyro_averages.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 mp.o \
-	 physics_flags.o \
-	 run_parameters.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_time.o \
@@ -629,71 +682,87 @@ parallel_streaming.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 parameters_diagnostics.o: \
+	 debug_flags.o \
 	 file_utils.o \
 	 mp.o \
-	 physics_flags.o 
-physics_flags.o: \
+	 parameters_physics.o 
+parameters_kxky_grids.o: \
+	 file_utils.o \
+	 mp.o \
+	 parameters_kxky_grids_box.o \
+	 parameters_kxky_grids_range.o \
+	 text_options.o 
+parameters_kxky_grids_box.o: \
+	 file_utils.o \
+	 mp.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
+	 text_options.o 
+parameters_kxky_grids_range.o: \
+	 file_utils.o \
+	 mp.o \
+	 parameters_physics.o \
+	 text_options.o 
+parameters_numerical.o: \
+	 file_utils.o \
+	 mp.o \
+	 parameters_physics.o \
+	 species.o \
+	 text_options.o 
+parameters_physics.o: \
+	 debug_flags.o \
 	 file_utils.o \
 	 mp.o \
 	 text_options.o 
-physics_parameters.o: \
-	 file_utils.o \
-	 mp.o \
-	 physics_flags.o 
 ran.o: \
 	 mt19937.o 
 redistribute.o: \
 	 job_manage.o \
 	 mp.o 
 response_matrix.o: \
+	 arrays_dist_fn.o \
+	 arrays_fields.o \
 	 common_types.o \
-	 dist_fn_arrays.o \
+	 debug_flags.o \
 	 extended_zgrid.o \
 	 fields.o \
-	 fields_arrays.o \
 	 geometry.o \
+	 grids_kxky.o \
 	 gyro_averages.o \
 	 implicit_solve.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
 	 mp_lu_decomposition.o \
 	 parallel_streaming.o \
-	 physics_flags.o \
-	 physics_parameters.o \
-	 run_parameters.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 species.o \
 	 stella_layouts.o \
 	 system_fortran.o \
 	 vpamu_grids.o \
 	 zgrid.o 
-run_parameters.o: \
-	 file_utils.o \
-	 mp.o \
-	 physics_flags.o \
-	 physics_parameters.o \
-	 species.o \
-	 text_options.o 
 sfincs_interface.o: \
 	 mp.o \
 	 zgrid.o 
 sources.o: \
+	 arrays_dist_fn.o \
+	 arrays_fields.o \
 	 constants.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
-	 fields_arrays.o \
 	 file_utils.o \
 	 geometry.o \
+	 grids_kxky.o \
 	 gyro_averages.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 linear_solve.o \
 	 mp.o \
 	 mp_lu_decomposition.o \
-	 physics_flags.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 redistribute.o \
-	 run_parameters.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_time.o \
@@ -709,41 +778,42 @@ species.o: \
 	 geometry_inputprofiles_interface.o \
 	 job_manage.o \
 	 mp.o \
-	 physics_flags.o \
-	 physics_parameters.o \
+	 parameters_physics.o \
 	 text_options.o 
 spfunc.o: \
 	 constants.o 
 spl.o: \
 	 constants.o 
 stella.o: \
+	 arrays_dist_fn.o \
+	 arrays_fields.o \
+	 calculations_kxky.o \
+	 debug_flags.o \
 	 diagnostics.o \
 	 diagnostics_omega.o \
 	 dissipation.o \
 	 dist_fn.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 extended_zgrid.o \
 	 fields.o \
-	 fields_arrays.o \
 	 file_utils.o \
 	 geometry.o \
 	 git_version.o \
+	 grids_kxky.o \
 	 implicit_solve.o \
 	 init_g.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 mirror_terms.o \
 	 mp.o \
 	 multibox.o \
 	 parallel_streaming.o \
 	 parameters_diagnostics.o \
-	 physics_flags.o \
-	 physics_parameters.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 ran.o \
 	 redistribute.o \
 	 response_matrix.o \
-	 run_parameters.o \
 	 sources.o \
 	 species.o \
 	 stella_layouts.o \
@@ -755,17 +825,17 @@ stella.o: \
 	 vpamu_grids.o \
 	 zgrid.o 
 stella_io.o: \
+	 arrays_dist_fn.o \
 	 convert.o \
-	 dist_fn_arrays.o \
 	 file_utils.o \
 	 geometry.o \
 	 git_version.o \
-	 kt_grids.o \
+	 grids_kxky.o \
 	 mp.o \
 	 neasyf.o \
 	 netcdf_utils.o \
-	 physics_flags.o \
-	 physics_parameters.o \
+	 parameters_kxky_grids.o \
+	 parameters_physics.o \
 	 species.o \
 	 vpamu_grids.o \
 	 zgrid.o 
@@ -774,13 +844,13 @@ stella_layouts.o: \
 	 file_utils.o \
 	 mp.o 
 stella_save.o: \
+	 arrays_dist_fn.o \
+	 arrays_fields.o \
 	 common_types.o \
-	 dist_fn_arrays.o \
-	 fields_arrays.o \
 	 file_utils.o \
-	 kt_grids.o \
 	 mp.o \
 	 netcdf_utils.o \
+	 parameters_kxky_grids.o \
 	 sources.o \
 	 stella_layouts.o \
 	 vpamu_grids.o \
@@ -789,52 +859,54 @@ stella_time.o: \
 	 mp.o 
 stella_transforms.o: \
 	 fft_work.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 stella_layouts.o 
 system_fortran.o: 
 text_options.o: \
 	 mp.o 
 time_advance.o: \
+	 arrays_dist_fn.o \
+	 arrays_fields.o \
+	 calculations_kxky.o \
 	 constants.o \
+	 debug_flags.o \
 	 dissipation.o \
-	 dist_fn_arrays.o \
 	 dist_redistribute.o \
 	 extended_zgrid.o \
 	 fields.o \
-	 fields_arrays.o \
 	 file_utils.o \
 	 finite_differences.o \
 	 flow_shear.o \
 	 g_tofrom_h.o \
 	 geometry.o \
+	 grids_kxky.o \
 	 gyro_averages.o \
 	 hyper.o \
 	 implicit_solve.o \
 	 job_manage.o \
-	 kt_grids.o \
 	 mirror_terms.o \
 	 mp.o \
 	 multibox.o \
 	 neoclassical_terms.o \
 	 parallel_streaming.o \
-	 physics_flags.o \
-	 physics_parameters.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 redistribute.o \
 	 response_matrix.o \
-	 run_parameters.o \
 	 sources.o \
 	 species.o \
 	 stella_layouts.o \
 	 stella_time.o \
 	 stella_transforms.o \
-	 text_options.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 volume_averages.o: \
 	 extended_zgrid.o \
 	 geometry.o \
-	 kt_grids.o \
-	 physics_flags.o \
+	 grids_kxky.o \
+	 parameters_kxky_grids.o \
+	 parameters_physics.o \
 	 stella_transforms.o \
 	 zgrid.o 
 vpamu_grids.o: \
@@ -842,16 +914,20 @@ vpamu_grids.o: \
 	 file_utils.o \
 	 gauss_quad.o \
 	 geometry.o \
-	 kt_grids.o \
 	 mp.o \
-	 physics_flags.o \
-	 run_parameters.o \
+	 parameters_kxky_grids.o \
+	 parameters_numerical.o \
+	 parameters_physics.o \
 	 species.o \
 	 stella_layouts.o \
 	 zgrid.o 
+write_radial_grid.o: \
+	 file_utils.o \
+	 geometry.o \
+	 parameters_physics.o 
 zgrid.o: \
 	 constants.o \
 	 file_utils.o \
 	 mp.o \
-	 physics_flags.o \
+	 parameters_physics.o \
 	 text_options.o 

@@ -35,15 +35,15 @@ contains
    subroutine write_potential_to_netcdf_file(istep, nout, timer, write_to_netcdf_file)
 
       ! Data 
-      use fields_arrays, only: phi, apar, bpar, phi_corr_QN
+      use arrays_fields, only: phi, apar, bpar, phi_corr_QN
 
       ! Dimensions
-      use kt_grids, only: naky, nakx
+      use parameters_kxky_grids, only: naky, nakx
       use zgrid, only: ntubes, nzgrid 
 
       ! Flags 
-      use physics_flags, only: radial_variation
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_physics, only: radial_variation
+      use parameters_physics, only: include_apar, include_bpar
 
       ! Calculations 
       use volume_averages, only: volume_average, fieldline_average
@@ -239,14 +239,15 @@ contains
    subroutine write_potential_to_ascii_file_atfinaltimestep
 
       ! Data 
-      use fields_arrays, only: phi, apar, bpar
+      use arrays_fields, only: phi, apar, bpar
 
       ! Geometry 
-      USE dist_fn_arrays, only: kperp2
+      USE arrays_dist_fn, only: kperp2
       use geometry, only: zed_eqarc
 
       ! Dimensions
-      use kt_grids, only: naky, nakx, aky, akx, zed0
+      use parameters_kxky_grids, only: naky, nakx
+      use grids_kxky, only: aky, akx, zed0
       use zgrid, only: nzgrid, ntubes, zed
 
       ! Routines 

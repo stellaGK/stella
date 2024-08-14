@@ -105,7 +105,7 @@ contains
    subroutine ginit(restarted, istep0)
 
       use stella_save, only: init_tstart
-      use run_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: maxwellian_normalization
 
       logical, intent(out) :: restarted
       integer, intent(out) :: istep0
@@ -214,13 +214,13 @@ contains
       use constants, only: zi
       use species, only: spec
       use zgrid, only: nzgrid, zed
-      use kt_grids, only: naky, nakx, ikx_max
-      use kt_grids, only: theta0, akx
-      use kt_grids, only: reality, zonal_mode
+      use parameters_kxky_grids, only: naky, nakx, ikx_max
+      use grids_kxky, only: theta0, akx, zonal_mode
+      use parameters_kxky_grids, only: reality
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
       use ran, only: ranf
 
@@ -398,22 +398,23 @@ contains
    subroutine ginit_noise
 
       use mp, only: proc0, broadcast
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
       use extended_zgrid, only: ikxmod, nsegments, neigen
       use extended_zgrid, only: it_right
       use extended_zgrid, only: periodic, phase_shift
-      use kt_grids, only: naky, nakx, reality, zonal_mode
+      use parameters_kxky_grids, only: naky, nakx, reality
+      use grids_kxky, only: zonal_mode
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use mp, only: proc0, broadcast, max_allreduce
       use mp, only: scope, crossdomprocs, subprocs
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use physics_flags, only: nonlinear 
+      use parameters_physics, only: nonlinear 
       use ran
 
       implicit none
@@ -542,11 +543,12 @@ contains
 
 !    use species, only: spec, has_electron_species
       use zgrid, only: nzgrid, zed
-      use kt_grids, only: naky, nakx, theta0
+      use parameters_kxky_grids, only: naky, nakx
+      use grids_kxky, only: theta0
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vpa, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx
       use constants, only: zi
 
@@ -615,12 +617,12 @@ contains
    subroutine ginit_rh
 
       use species, only: spec
-      use dist_fn_arrays, only: gvmu, kperp2
+      use arrays_dist_fn, only: gvmu, kperp2
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: nvpa, nmu
-      use kt_grids, only: akx
+      use grids_kxky, only: akx
 
       implicit none
 
@@ -650,7 +652,7 @@ contains
    subroutine ginit_remap
 
       use species, only: spec
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -682,7 +684,7 @@ contains
 
    subroutine ginit_restart_many
 
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use stella_save, only: stella_restore
       use mp, only: proc0
       use file_utils, only: error_unit
@@ -706,7 +708,7 @@ contains
    subroutine normalize_by_maxwellian
 
       use stella_layouts, only: kxkyz_lo, is_idx, iz_idx
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use vpamu_grids, only: nmu
       use vpamu_grids, only: maxwell_mu, maxwell_vpa, maxwell_fac
 

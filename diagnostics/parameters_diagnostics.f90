@@ -1,10 +1,9 @@
 module parameters_diagnostics
 
+   use debug_flags, only: debug => diagnostics_parameters
+
    implicit none
-   
-   ! Turn debugging on the diagnostics module
-   public :: debug
-   
+
    ! Routine to read "diagnostics_knobs" in the input file
    public :: read_diagnostics_knobs 
 
@@ -47,9 +46,6 @@ module parameters_diagnostics
    public :: write_moments  
 
    private
-   
-   ! Debugging
-   logical :: debug 
 
    ! Variables used to write diagnostics
    integer :: nwrite, nsave, navg, nc_mult
@@ -113,10 +109,6 @@ contains
       if (proc0) call read_input_file 
       call broadcast_parameters 
       
-      ! Debugging on first processor
-      debug = .false.
-      if (proc0) debug = .false.
-      
    contains 
    
    
@@ -128,8 +120,8 @@ contains
       !********************************************************************** 
       subroutine set_default_parameters
 
-         use physics_flags, only: radial_variation
-         use physics_flags, only: nonlinear
+         use parameters_physics, only: radial_variation
+         use parameters_physics, only: nonlinear
 
          implicit none
          
@@ -245,7 +237,7 @@ contains
       subroutine read_input_file
 
          use file_utils, only: input_unit_exist
-         use physics_flags, only: nonlinear
+         use parameters_physics, only: nonlinear
 
          implicit none
 

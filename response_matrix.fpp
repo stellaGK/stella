@@ -5,6 +5,7 @@ module response_matrix
 #ifdef ISO_C_BINDING
    use, intrinsic :: iso_c_binding, only: c_intptr_t
 #endif
+   use debug_flags, only: debug => response_matrix_debug
 
    implicit none
 
@@ -23,21 +24,20 @@ module response_matrix
    real, dimension(2) :: time_dgdphi
    real, dimension(2) :: time_QN
    real, dimension(2) :: time_lu
-   logical :: debug = .false.
 
 contains
 
    subroutine init_response_matrix
 
       use linear_solve, only: lu_decomposition
-      use fields_arrays, only: response_matrix
+      use arrays_fields, only: response_matrix
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
-      use kt_grids, only: naky
+      use parameters_kxky_grids, only: naky
       use mp, only: proc0
-      use run_parameters, only: mat_gen
+      use parameters_numerical, only: mat_gen
 #ifdef ISO_C_BINDING
-      use fields_arrays, only: response_window
+      use arrays_fields, only: response_window
 #endif
 
       implicit none
@@ -102,9 +102,9 @@ contains
    subroutine setup_response_matrix_file_io
 
       use mp, only: proc0, job
-      use run_parameters, only: mat_gen
+      use parameters_numerical, only: mat_gen
       use system_fortran, only: systemf
-      use kt_grids, only: naky
+      use parameters_kxky_grids, only: naky
 
       implicit none
 
@@ -132,9 +132,9 @@ contains
       use, intrinsic :: iso_c_binding, only: c_intptr_t
       use mp, only: sgproc0, real_size
       use mp, only: create_shared_memory_window
-      use fields_arrays, only: response_window
+      use arrays_fields, only: response_window
       use fields, only: nfields
-      use kt_grids, only: naky
+      use parameters_kxky_grids, only: naky
       use extended_zgrid, only: neigen, nsegments, nzed_segment
       use extended_zgrid, only: periodic
 
@@ -174,12 +174,12 @@ contains
 
       use mp, only: proc0
       use job_manage, only: time_message
-      use run_parameters, only: mat_gen
-      use fields_arrays, only: response_matrix
-      use kt_grids, only: naky
+      use parameters_numerical, only: mat_gen
+      use arrays_fields, only: response_matrix
+      use parameters_kxky_grids, only: naky
       use extended_zgrid, only: neigen
 #ifdef ISO_C_BINDING
-      use fields_arrays, only: response_window
+      use arrays_fields, only: response_window
 #endif
 
       implicit none
@@ -260,8 +260,8 @@ contains
    subroutine calculate_vspace_integrated_response(iky)
 
       use mp, only: proc0
-      use run_parameters, only: mat_gen
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_numerical, only: mat_gen
+      use parameters_physics, only: include_apar, include_bpar
       use extended_zgrid, only: neigen, ikxmod
       use extended_zgrid, only: nsegments, nzed_segment
       use extended_zgrid, only: periodic
@@ -357,7 +357,7 @@ contains
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
       use mp, only: nbytes_real
 #endif
-      use fields_arrays, only: response_matrix
+      use arrays_fields, only: response_matrix
 
       implicit none
 
@@ -401,11 +401,11 @@ contains
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_physics, only: include_apar, include_bpar
       use extended_zgrid, only: neigen
       use extended_zgrid, only: nsegments, nzed_segment
       use extended_zgrid, only: periodic
-      use fields_arrays, only: response_matrix
+      use arrays_fields, only: response_matrix
 
       implicit none
 
@@ -542,9 +542,9 @@ contains
       use mp, only: sgproc0
 #endif
       use mp, only: mp_abort
-      use fields_arrays, only: response_matrix
-      use run_parameters, only: lu_option_switch
-      use run_parameters, only: lu_option_none, lu_option_local, lu_option_global
+      use arrays_fields, only: response_matrix
+      use parameters_numerical, only: lu_option_switch
+      use parameters_numerical, only: lu_option_none, lu_option_local, lu_option_global
       use extended_zgrid, only: neigen
       use linear_solve, only: lu_decomposition
 
@@ -585,9 +585,9 @@ contains
 
    subroutine read_response_matrix
 
-      use fields_arrays, only: response_matrix
+      use arrays_fields, only: response_matrix
       use common_types, only: response_matrix_type
-      use kt_grids, only: naky
+      use parameters_kxky_grids, only: naky
       use extended_zgrid, only: neigen
       use extended_zgrid, only: nsegments
       use extended_zgrid, only: nzed_segment
@@ -687,13 +687,13 @@ contains
    subroutine get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
 
       use stella_layouts, only: vmu_lo
-      use run_parameters, only: time_upwind_plus
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_numerical, only: time_upwind_plus
+      use parameters_physics, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
-      use fields_arrays, only: response_matrix
+      use arrays_fields, only: response_matrix
       use extended_zgrid, only: periodic, phase_shift
       use parallel_streaming, only: stream_sign
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
@@ -775,10 +775,10 @@ contains
    subroutine get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
 
       use stella_layouts, only: vmu_lo
-      use run_parameters, only: time_upwind_plus
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_numerical, only: time_upwind_plus
+      use parameters_physics, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
-      use fields_arrays, only: response_matrix
+      use arrays_fields, only: response_matrix
       use extended_zgrid, only: periodic
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
@@ -861,10 +861,10 @@ contains
    subroutine get_dpdf_dbpar_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
 
       use stella_layouts, only: vmu_lo
-      use run_parameters, only: time_upwind_plus
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_numerical, only: time_upwind_plus
+      use parameters_physics, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
-      use fields_arrays, only: response_matrix
+      use arrays_fields, only: response_matrix
       use extended_zgrid, only: periodic
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
@@ -946,7 +946,7 @@ contains
    subroutine integrate_over_velocity(g, phi, apar, bpar, iky, ie)
 
       use stella_layouts, only: vmu_lo
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_physics, only: include_apar, include_bpar
 
       implicit none
 
@@ -972,13 +972,13 @@ contains
       use mp, only: sum_allreduce
 
       use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use run_parameters, only: driftkinetic_implicit
+      use parameters_numerical, only: driftkinetic_implicit
       use vpamu_grids, only: integrate_species_ffs_rm
 
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
 
       use geometry, only: bmag
-      use kt_grids, only: nalpha
+      use parameters_kxky_grids, only: nalpha
 
       use gyro_averages, only: j0_B_const
 
@@ -1052,7 +1052,7 @@ contains
 
       use stella_layouts, only: vmu_lo, imu_idx
       use species, only: nspec, spec
-      use physics_parameters, only: beta
+      use parameters_physics, only: beta
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
@@ -1114,7 +1114,7 @@ contains
    subroutine integrate_over_velocity_apar(g, apar, iky, ie)
 
       use stella_layouts, only: vmu_lo, iv_idx
-      use physics_parameters, only: beta
+      use parameters_physics, only: beta
       use species, only: nspec, spec
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
@@ -1178,7 +1178,7 @@ contains
 
    subroutine get_fields_for_response_matrix(phi, apar, bpar, iky, ie, dist)
 
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_physics, only: include_apar, include_bpar
 
       implicit none
 
@@ -1204,11 +1204,11 @@ contains
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
-      use kt_grids, only: zonal_mode, akx
-      use fields_arrays, only: gamtot, gamtot3
+      use grids_kxky, only: zonal_mode, akx
+      use arrays_fields, only: gamtot, gamtot3
       use fields, only: gamtot_h, gamtot3_h
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
 
       implicit none
 
@@ -1284,11 +1284,11 @@ contains
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
-      use kt_grids, only: zonal_mode, akx
-      use fields_arrays, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
+      use grids_kxky, only: zonal_mode, akx
+      use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
       use fields, only: gamtot_h
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
       use mp, only: mp_abort
       
       implicit none
@@ -1376,9 +1376,9 @@ contains
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
-      use kt_grids, only: zonal_mode, akx
+      use grids_kxky, only: zonal_mode, akx
       use fields, only: apar_denom
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
 
       implicit none
 
@@ -1433,13 +1433,13 @@ contains
 
    subroutine finish_response_matrix
 
-      use fields_arrays, only: response_matrix
+      use arrays_fields, only: response_matrix
 #if !defined ISO_C_BINDING
 
       implicit none
 
 #else
-      use fields_arrays, only: response_window
+      use arrays_fields, only: response_window
       use mpi
 
       implicit none
@@ -1469,7 +1469,7 @@ contains
    subroutine parallel_LU_decomposition_local(iky)
 
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
-      use fields_arrays, only: response_matrix
+      use arrays_fields, only: response_matrix
       use mp, only: barrier, broadcast, sum_allreduce
       use mp, only: mp_comm, scope, allprocs, sharedprocs, curr_focus
       use mp, only: scrossdomprocs, sgproc0, mp_abort, real_size
@@ -1624,7 +1624,7 @@ contains
    !all cores. Ideal speed up: ncores
    subroutine parallel_LU_decomposition_global(iky)
 
-      use fields_arrays, only: response_matrix
+      use arrays_fields, only: response_matrix
       use mp, only: barrier, broadcast, sum_allreduce
       use mp, only: mp_comm, scope, allprocs, sharedprocs, curr_focus
       use mp, only: job, iproc, proc0, nproc, mpicmplx

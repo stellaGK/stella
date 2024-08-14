@@ -49,14 +49,14 @@ contains
       use mp, only: proc0
       
       ! Physics flags
-      use physics_flags, only: include_apar
+      use parameters_physics, only: include_apar
       
       ! Fields
-      use fields_arrays, only: phi, phi_old
-      use fields_arrays, only: apar, apar_old
+      use arrays_fields, only: phi, phi_old
+      use arrays_fields, only: apar, apar_old
       
       ! Grids
-      use kt_grids, only: nakx, naky 
+      use parameters_kxky_grids, only: nakx, naky 
       use stella_time, only: code_dt
       use constants, only: zi
       
@@ -142,7 +142,7 @@ contains
       use stella_io, only: write_omega_nc
       
       ! Grids
-      use kt_grids, only: nakx, naky
+      use parameters_kxky_grids, only: nakx, naky
       
       ! Parallelisation
       use job_manage, only: time_message
@@ -249,7 +249,7 @@ contains
       use parameters_diagnostics, only: navg
       
       ! Grids
-      use kt_grids, only: nakx, naky
+      use parameters_kxky_grids, only: nakx, naky
       
       ! Multiprocessing
       use mp, only: proc0
@@ -350,8 +350,8 @@ contains
       use parameters_diagnostics, only: write_omega_avg_vs_kxky
       use parameters_diagnostics, only: write_omega_vs_kxky
       use stella_time, only: code_time 
-      use kt_grids, only: naky, nakx
-      use kt_grids, only: aky, akx 
+      use parameters_kxky_grids, only: naky, nakx
+      use grids_kxky, only: aky, akx 
 
       implicit none
 
