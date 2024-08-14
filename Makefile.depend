@@ -218,6 +218,7 @@ diagnostics_fluxes.o: \
 diagnostics_fluxes_fluxtube.o: \
 	 arrays_fields.o \
 	 constants.o \
+	 debug_flags.o \
 	 geometry.o \
 	 grids_kxky.o \
 	 gyro_averages.o \
@@ -368,27 +369,21 @@ extended_zgrid.o: \
 	 mp.o \
 	 parameters_kxky_grids.o \
 	 zgrid.o 
-ezcdf 2.o: \
-	 ezcdf_GenGet 2.o \
-	 ezcdf_opncls 2.o 
 ezcdf.o: \
-	 ezcdf_GenGet 2.o \
-	 ezcdf_opncls 2.o 
-ezcdf_GenGet 2.o: \
-	 ezcdf_inqvar 2.o \
-	 ezcdf_opncls 2.o 
+	 ezcdf_GenGet.o \
+	 ezcdf_opncls.o 
 ezcdf_GenGet.o: \
-	 ezcdf_inqvar 2.o \
-	 ezcdf_opncls 2.o 
-ezcdf_inqvar 2.o: 
-ezcdf_opncls 2.o: 
+	 ezcdf_inqvar.o \
+	 ezcdf_opncls.o 
+ezcdf_inqvar.o: 
+ezcdf_opncls.o: 
 ffs_solve.o: \
 	 arrays_dist_fn.o \
 	 calculations_kxky.o \
 	 constants.o \
 	 fields.o \
+	 grids_kxky.o \
 	 gyro_averages.o \
-	 mp.o \
 	 parallel_streaming.o \
 	 parameters_kxky_grids.o \
 	 species.o \
