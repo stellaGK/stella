@@ -102,11 +102,11 @@ module parameters_kxky_grids_box
             ! depend on information from the geometry module,
             ! which itself may rely on ny from here (number of alphas)
 
-            call check_backwards_compatability_box
-
             in_file = input_unit_exist("parameters_kxky_grids_box", exist)
             if (exist) read (in_file, nml=parameters_kxky_grids_box)
 
+            call check_backwards_compatability_box
+            
             !> Get the number of de-aliased modes in y and x, using reality to halve the number of ky modes
             naky = (ny - 1) / 3 + 1
             nakx = 2 * ((nx - 1) / 3) + 1
@@ -150,7 +150,7 @@ module parameters_kxky_grids_box
 
             in_file = input_unit_exist("kt_grids_box_parameters", old_nml_exist)
             if (old_nml_exist) then
-               if (old_nml_exist) read (in_file, nml=kt_grids_box_parameters)
+               read (in_file, nml=kt_grids_box_parameters)
                if (print_extra_info_to_terminal) then 
                   write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
                   write(*,*) 'Please replace the namelist <kt_grids_box_parameters> in the'

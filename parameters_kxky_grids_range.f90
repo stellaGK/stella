@@ -106,11 +106,11 @@ module parameters_kxky_grids_range
             ! depend on information from the geometry module,
             ! which itself may rely on ny from here (number of alphas)
 
-            call check_backwards_compatability_range
-
             in_file = input_unit_exist("parameters_kxky_grids_range", exist)
             if (exist) read (in_file, nml=kt_grids_range_parameters)
 
+            call check_backwards_compatability_range
+            
             if (full_flux_surface) then
                 write (*, *) '!!! ERROR !!!'
                 write (*, *) 'kt_grids "range" option is not supported for full_flux_surface = T. aborting'
@@ -133,26 +133,46 @@ module parameters_kxky_grids_range
 
         subroutine check_backwards_compatability_range
 
-            use file_utils, only: input_unit, input_unit_exist
-
+            use file_utils, only: input_unit, error_unit, input_unit_exist
+            use parameters_numerical, only: print_extra_info_to_terminal
+            use text_options, only: text_option, get_option_value
+            
             implicit none
+
+            type(text_option), dimension(3), parameter :: kyspacingopts = &
+                 (/text_option('default', kyspacing_linear), &
+                 text_option('linear', kyspacing_linear), &
+                 text_option('exponential', kyspacing_exponential)/)
+      
+            character(20) :: kyspacing_option = 'default'
             
             logical :: old_nml_exist
-            integer :: in_file
+            integer :: ierr, in_file
+            logical :: exist
             
             !> akx -> kx and aky -> ky 
             !> TODO-GA: make this back compatible
 
+            namelist /kt_grids_range_parameters/ naky, nakx, &
+                 aky_min, aky_max, theta0_min, theta0_max, akx_min, akx_max, kyspacing_option
+
             in_file = input_unit_exist("kt_grids_range_parameters", old_nml_exist)
-            if (old_nml_exist) then 
-            write(*,*) "Aborting in parameters_kxky_grids_range.f90. & 
-                    The namelist <kt_grids_range_parameters> does not exist. & 
-                    Please replace this with the title <parameters_kxky_grids_range>"
-            call mp_abort("Aborting in parameters_kxky_grids_range.f90. &
-                    The namelist <kt_grids_range_parameters> does not exist. & 
-                    Please replace this with the title <parameters_kxky_grids_range>")
-            end if 
+            if (old_nml_exist) then
+               read (in_file, nml=kt_grids_range_parameters)
+               
+               ierr = error_unit()
+               call get_option_value(kyspacing_option, kyspacingopts, kyspacing_option_switch, &
+                    ierr, "kyspacing_option in kt_grids_range_parameters", .true.)
             
+               if (print_extra_info_to_terminal) then
+                  write(*,*) "Aborting in parameters_kxky_grids_range.f90. & 
+                       The namelist <kt_grids_range_parameters> does not exist. & 
+                       Please replace this with the title <parameters_kxky_grids_range>"
+!                  call mp_abort("Aborting in parameters_kxky_grids_range.f90. &
+ !                      The namelist <kt_grids_range_parameters> does not exist. & 
+  !                     Please replace this with the title <parameters_kxky_grids_range>")
+               end if
+            end if
         end subroutine check_backwards_compatability_range
 
     end subroutine read_kxky_grids_range

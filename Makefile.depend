@@ -696,6 +696,7 @@ parameters_kxky_grids_box.o: \
 parameters_kxky_grids_range.o: \
 	 file_utils.o \
 	 mp.o \
+	 parameters_numerical.o \
 	 parameters_physics.o \
 	 text_options.o 
 parameters_numerical.o: \
