@@ -288,6 +288,7 @@ diagnostics_moments.o: \
 diagnostics_omega.o: \
 	 arrays_fields.o \
 	 constants.o \
+	 debug_flags.o \
 	 file_utils.o \
 	 grids_kxky.o \
 	 job_manage.o \
@@ -591,7 +592,6 @@ job_manage.o: \
 linear_solve.o: 
 mirror_terms.o: \
 	 arrays_dist_fn.o \
-	 arrays_fields.o \
 	 calculations_kxky.o \
 	 constants.o \
 	 debug_flags.o \
@@ -730,7 +730,6 @@ response_matrix.o: \
 	 linear_solve.o \
 	 mp.o \
 	 mp_lu_decomposition.o \
-	 parallel_streaming.o \
 	 parameters_kxky_grids.o \
 	 parameters_numerical.o \
 	 parameters_physics.o \

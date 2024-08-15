@@ -26,8 +26,9 @@ module parameters_numerical
    public :: vpa_upwind
    
    !> Time options -> TODO-GA or TODO-HT need better description
-   public :: nstep, delt, tend
-   public :: explicit_option_switch, flip_flop
+   public :: nstep, delt, tend, nitt
+   
+   public :: flip_flop
    public :: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
    public :: avail_cpu_time
    public :: delt_max, delt_min
@@ -39,8 +40,19 @@ module parameters_numerical
    public :: fields_kxkyz, mat_gen, mat_read
 
    public :: print_extra_info_to_terminal
-   public :: nitt 
 
+   !> Explicit time-stepping option 
+   public :: explicit_option_switch, explicit_option_rk3, explicit_option_rk2
+   public :: explicit_option_rk4, explicit_option_euler
+
+   !> Delt-options
+   public :: delt_option_switch
+   public :: delt_option_hand, delt_option_auto
+
+   !> LU-option
+   public :: lu_option_switch
+   public :: lu_option_local, lu_option_none, lu_option_global
+   
    !> TODO-GA - REMOVE
    public :: rng_seed
    
@@ -59,12 +71,12 @@ module parameters_numerical
    real :: zed_upwind, zed_upwind_plus, zed_upwind_minus
    real :: vpa_upwind
 
-   integer, public :: delt_option_switch, lu_option_switch
-   integer, public, parameter :: delt_option_hand = 1, delt_option_auto = 2
+   integer :: delt_option_switch, lu_option_switch
+   integer, parameter :: delt_option_hand = 1, delt_option_auto = 2
 
-   integer, public, parameter :: lu_option_none = 1, &
-                                 lu_option_local = 2, &
-                                 lu_option_global = 3
+   integer, parameter :: lu_option_none = 1, &
+        lu_option_local = 2, &
+        lu_option_global = 3
 
    !> For CFL conditions
    integer :: nstep 
@@ -75,9 +87,9 @@ module parameters_numerical
    integer :: explicit_option_switch
    logical :: flip_flop
    integer, parameter :: explicit_option_rk3 = 1, &
-                         explicit_option_rk2 = 2, &
-                         explicit_option_rk4 = 3, &
-                         explicit_option_euler = 4
+        explicit_option_rk2 = 2, &
+        explicit_option_rk4 = 3, &
+        explicit_option_euler = 4
 
    logical :: autostop
    real :: fphi
@@ -204,6 +216,7 @@ contains
             (/text_option('default', delt_option_auto), &
             text_option('set_by_hand', delt_option_hand), &
             text_option('check_restart', delt_option_auto)/)
+         
          type(text_option), dimension(4), parameter :: lu_opts = &
             (/text_option('default', lu_option_local), &
             text_option('none', lu_option_none), &
@@ -467,53 +480,61 @@ contains
 
          call broadcast(stream_implicit)
          call broadcast(stream_iterative_implicit)
-         call broadcast(mirror_implicit)
-         call broadcast(drifts_implicit)
-         call broadcast(driftkinetic_implicit)
          call broadcast(stream_matrix_inversion)
+         call broadcast(driftkinetic_implicit)
+         call broadcast(mirror_implicit)
          call broadcast(mirror_semi_lagrange)
          call broadcast(mirror_linear_interp)
+         call broadcast(drifts_implicit)
+         call broadcast(fully_explicit)
+         call broadcast(fully_implicit)
+
          call broadcast(maxwellian_inside_zed_derivative)
          call broadcast(use_deltaphi_for_response_matrix)
          call broadcast(maxwellian_normalization)
-         call broadcast(zed_upwind)
-         call broadcast(vpa_upwind)
-         call broadcast(time_upwind)
-         call broadcast(fphi)
-         call broadcast(nstep) 
-         call broadcast(delt)
-         call broadcast(tend)
-         call broadcast(delt_option_switch)
-         call broadcast(lu_option_switch)
-         call broadcast(avail_cpu_time)
-         call broadcast(cfl_cushion_upper)
-         call broadcast(cfl_cushion_middle)
-         call broadcast(cfl_cushion_lower)
-         call broadcast(delt_max)
-         call broadcast(delt_min)
-         call broadcast(fields_kxkyz)
-         call broadcast(mat_gen)
-         call broadcast(mat_read)
-         call broadcast(ky_solve_radial)
-         call broadcast(ky_solve_real)
-         call broadcast(nitt)
-         call broadcast(print_extra_info_to_terminal)
-         !!GA: may remove from input
-         call broadcast(nitt)
-         call broadcast(explicit_option_switch)
-         call broadcast(flip_flop)
-         call broadcast(autostop)
-         
+
          call broadcast(time_upwind_plus)
          call broadcast(time_upwind_minus)
          call broadcast(zed_upwind_plus)
          call broadcast(zed_upwind_minus)
-         call broadcast(fully_explicit)
-         call broadcast(fully_implicit)
+         call broadcast(zed_upwind)
+         call broadcast(vpa_upwind)
+         call broadcast(time_upwind)
 
+         call broadcast(nstep) 
+         call broadcast(delt)
+         call broadcast(tend)
+         call broadcast(nitt)
+         
+         call broadcast(explicit_option_switch)
+         call broadcast(flip_flop)
+
+         call broadcast(cfl_cushion_upper)
+         call broadcast(cfl_cushion_middle)
+         call broadcast(cfl_cushion_lower)
+         call broadcast(avail_cpu_time)
+         
+         call broadcast(delt_max)
+         call broadcast(delt_min)
+         call broadcast(autostop)
+         call broadcast(fphi)
+
+         call broadcast(ky_solve_radial)
+         call broadcast(ky_solve_real)
+         call broadcast(fields_kxkyz)
+         
+         call broadcast(delt_option_switch)
+         call broadcast(lu_option_switch)
+
+         call broadcast(mat_gen)
+         call broadcast(mat_read)
+
+         call broadcast(print_extra_info_to_terminal)
+         
          !> GA REMOVE
          call broadcast(rng_seed)
-         
+
+   
       end subroutine broadcast_parameters
     
     end subroutine read_parameters_numerical

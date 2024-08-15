@@ -14,7 +14,7 @@
 
 module diagnostics_omega
 
-   use debug_flags, only:: debug => diagnostics_omega_debug
+   use debug_flags, only: debug => diagnostics_omega_debug
   
    implicit none 
 

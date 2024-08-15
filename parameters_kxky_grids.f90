@@ -26,8 +26,10 @@ module parameters_kxky_grids
   public :: aky_min, aky_max
   public :: akx_min, akx_max
   public :: theta0_min, theta0_max
-  public :: kyspacing_option_switch, kyspacing_linear, kyspacing_exponential
   public :: x0, y0
+  
+  !> ky spaction options
+  public :: kyspacing_option_switch, kyspacing_linear, kyspacing_exponential
   
   private
 

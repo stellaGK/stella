@@ -36,17 +36,6 @@ module time_advance
    logical :: radialinit = .false.
    logical :: driftimpinit = .false.
 
-   ! if .true., dist fn is represented on alpha grid
-   ! if .false., dist fn is given on k-alpha grid
-   ! default is .false.; will only ever be set to
-   ! .true. during full_flux_surface simulations
-!  logical :: alpha_space = .false.
-
-   integer, parameter :: explicit_option_rk3 = 1, &
-                         explicit_option_rk2 = 2, &
-                         explicit_option_rk4 = 3, &
-                         explicit_option_euler = 4
-
    ! factor multiplying parallel nonlinearity
    real, dimension(:, :), allocatable :: par_nl_fac, d_par_nl_fac_dr
    ! factor multiplying higher order linear term in parallel acceleration
@@ -558,7 +547,8 @@ contains
       use zgrid, only: nzgrid, ntubes
       use parameters_kxky_grids, only: naky, nakx
       use arrays_dist_fn, only: g0, g1, g2, g3
-      use parameters_numerical, only: explicit_option_switch
+      use parameters_numerical, only: explicit_option_switch, explicit_option_rk3, &
+           explicit_option_rk2,	explicit_option_rk4, explicit_option_euler
 
       implicit none
 
@@ -923,7 +913,10 @@ contains
       use fields, only: advance_fields
       use g_tofrom_h, only: gbar_to_g
 
-      use parameters_numerical, only: explicit_option_switch
+      use parameters_numerical, only: explicit_option_switch, explicit_option_rk3, &
+           explicit_option_rk2, explicit_option_rk4, explicit_option_euler
+      
+      
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
