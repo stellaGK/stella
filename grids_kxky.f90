@@ -60,7 +60,6 @@ contains
 
  
        call init_zgrid
-       call allocate_arrays
        
        select case (gridopt_switch)
        case (gridopt_range)
@@ -102,7 +101,8 @@ contains
            real :: zero
    
            box = .false.
-   
+           call allocate_arrays
+           
            ! NB: we are assuming here that all ky are positive
            ! when running in range mode
            dky = 0.0
@@ -232,6 +232,7 @@ contains
            real :: x_shift, dqdrho, pfac, norm
      
            box = .true.
+           call allocate_arrays
            
            !> set jtwist and y0 for cases where they have not been specified
            !> and for which it makes sense to set them automatically
