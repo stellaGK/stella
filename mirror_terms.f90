@@ -372,8 +372,6 @@ contains
       !> start the timer for this subroutine
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
-      write(*,*) 'In mirror explicit'
-      
       if (full_flux_surface) then
          !> assume we are simulating a single flux surface
          it = 1

@@ -64,7 +64,6 @@ contains
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_physics, only: include_parallel_streaming, radial_variation
       use parameters_physics, only: full_flux_surface
-      use parameters_numerical, only: tupwnd_m => time_upwind_minus
 
       implicit none
 
@@ -247,7 +246,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use parameters_kxky_grids, only: naky, naky_all, nakx, ikx_max, ny
       use calculations_kxky, only: swap_kxky
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: mu
       use species, only: spec
       use parameters_physics, only: full_flux_surface, include_bpar
@@ -255,12 +254,8 @@ contains
       use parameters_numerical, only: driftkinetic_implicit, maxwellian_normalization
 	
 	!! For FFS 
-      use fields, only: advance_fields, fields_updated
-      use arrays_fields, only: apar
-      use gyro_averages, only: j0_ffs, j0_const
-      use grids_kxky, only: aky, akx
-      use zgrid, only: nztot
-      use arrays_dist_fn, only: kperp2
+      use gyro_averages, only: j0_ffs
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -272,9 +267,6 @@ contains
       complex, dimension(:, :, :, :), allocatable :: g0y, g1y
       complex, dimension(:, :), allocatable :: g0_swap
 
-      logical :: implicit_solve = .true.
-
-      integer :: iky, ikx 
       !> if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
       !> if full flux surface (flux annulus), will need to calculate in y space
 
@@ -598,31 +590,6 @@ contains
 
    end subroutine add_stream_term
 
-   subroutine add_stream_term_ffs(g, ivmu, src)
-
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, is_idx
-      use zgrid, only: nzgrid
-      use parameters_kxky_grids, only: ny
-
-      implicit none
-
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: src
-      integer, intent(in) :: ivmu
-
-      integer :: iz, iy, iv, is
-
-      iv = iv_idx(vmu_lo, ivmu)
-      is = is_idx(vmu_lo, ivmu)
-      do iz = -nzgrid, nzgrid
-         do iy = 1, ny
-            src(iy, :, iz, :) = src(iy, :, iz, :) + stream(iy, iz, iv, is) * g(iy, :, iz, :)
-         end do
-      end do
-
-   end subroutine add_stream_term_ffs
-
    subroutine add_stream_term_full_ffs(g, ivmu, src)
 
       use stella_layouts, only: vmu_lo
@@ -647,30 +614,6 @@ contains
       end do
 
    end subroutine add_stream_term_full_ffs
-
-   subroutine add_stream_term_ffs_correction(g, ivmu, src)
-
-     use stella_layouts, only: vmu_lo
-     use stella_layouts, only: iv_idx, is_idx
-     use zgrid, only: nzgrid
-     use parameters_kxky_grids, only: ny
-     
-     implicit none
-     complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
-     complex, dimension(:, :, -nzgrid:, :), intent(in out) :: src
-     integer, intent(in) :: ivmu
-     integer :: iz, iy, iv, is
-
-     iv = iv_idx(vmu_lo, ivmu)
-     is = is_idx(vmu_lo, ivmu)
-      do iz = -nzgrid, nzgrid
-          do iy = 1, ny
-             src(iy, :, iz, :) = src(iy, :, iz, :) + stream_correction(iy, iz, iv, is) * g(iy, :, iz, :)
-          end do
-       end do
-
-     end subroutine add_stream_term_ffs_correction
-
 
    subroutine stream_tridiagonal_solve(iky, ie, iv, is, g)
 
@@ -888,23 +831,6 @@ contains
       end if
 
    end subroutine center_zed_segment_complex
-
-   subroutine center_zed_midpoint(iv, g)
-
-      use zgrid, only: nzgrid
-
-      integer, intent(in) :: iv
-      real, dimension(-nzgrid:), intent(in out) :: g
-
-      if (stream_sign(iv) > 0) then
-         g(:nzgrid - 1) = 0.5 * (g(:nzgrid - 1) + g(-nzgrid + 1:))
-         g(nzgrid) = g(-nzgrid)
-      else
-         g(-nzgrid + 1:) = 0.5 * (g(:nzgrid - 1) + g(-nzgrid + 1:))
-         g(-nzgrid) = g(nzgrid)
-      end if
-
-   end subroutine center_zed_midpoint
 
    subroutine finish_parallel_streaming
 

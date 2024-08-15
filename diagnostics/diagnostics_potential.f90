@@ -140,23 +140,23 @@ contains
             deallocate (phi2_vs_kxky)
             
             ! For apar
-				if (include_apar) then
-					allocate (apar2_vs_kxky(naky, nakx))
-					call fieldline_average(real(apar_vs_kykxzt * conjg(apar_vs_kykxzt)), apar2_vs_kxky)
-					call write_kspectra_nc(nout, apar2_vs_kxky, "apar2_vs_kxky", "parallel vector potential")
-					deallocate (apar2_vs_kxky)
-				end if
-				
-				! For bpar
-				if (include_bpar) then
-					allocate (bpar2_vs_kxky(naky, nakx))
-					call fieldline_average(real(bpar_vs_kykxzt * conjg(bpar_vs_kykxzt)), bpar2_vs_kxky)
-					call write_kspectra_nc(nout, bpar2_vs_kxky, "bpar2_vs_kxky", "parallel magnetic field fluctuation")
-					deallocate (bpar2_vs_kxky)
-				end if  
+            if (include_apar) then
+               allocate (apar2_vs_kxky(naky, nakx))
+               call fieldline_average(real(apar_vs_kykxzt * conjg(apar_vs_kykxzt)), apar2_vs_kxky)
+               call write_kspectra_nc(nout, apar2_vs_kxky, "apar2_vs_kxky", "parallel vector potential")
+               deallocate (apar2_vs_kxky)
+            end if
+            
+            ! For bpar
+            if (include_bpar) then
+               allocate (bpar2_vs_kxky(naky, nakx))
+               call fieldline_average(real(bpar_vs_kykxzt * conjg(bpar_vs_kykxzt)), bpar2_vs_kxky)
+               call write_kspectra_nc(nout, bpar2_vs_kxky, "bpar2_vs_kxky", "parallel magnetic field fluctuation")
+               deallocate (bpar2_vs_kxky)
+            end if
             
          end if
-
+         
       end if
       
       

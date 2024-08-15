@@ -36,12 +36,9 @@ contains
       use extended_zgrid, only: nsegments, nzed_segment
 
       use parameters_numerical, only: driftkinetic_implicit
-      use gyro_averages, only: gyro_average, j0_ffs, j0_const
-      use parallel_streaming, only: stream
+      use gyro_averages, only: gyro_average
       use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use species, only: spec
 
-      use arrays_dist_fn, only: g0 
       use fields, only: get_fields_source
       use parameters_numerical, only: nitt
 
@@ -57,15 +54,12 @@ contains
       complex, dimension(:, :, :, :), allocatable :: phi_source, apar_source, bpar_source
       character(5) :: dist_choice
 
-      logical :: implicit_solve = .false.
       complex, dimension(:, :, :, :, :), allocatable :: phi_source_ffs
       complex, dimension(:, :, :, :), allocatable :: fields_source_ffs
       complex, dimension(:, :, :, :, :), allocatable :: drifts_source_ffs
 
-      integer :: ikx, iky, iz
       integer :: itt
       logical :: modify
-      real :: error, tol
 
       debug = debug .and. proc0
       if(debug) write (*,*) 'No debug messages for implicit_solve.f90 yet'
@@ -295,7 +289,7 @@ contains
                      ! to the standard zed domain; the mapped pdf is called 'g'
                      call map_from_extended_zgrid(it, ie, iky, pdf2, g(iky, :, :, :, ivmu))
                      deallocate (pdf1, pdf2, phiext, aparext, aparext_new, aparext_old, bparext)
-		               if (present(mod)) deallocate(phiffsext)
+                     if (present(mod)) deallocate(phiffsext)
                   end do
                end do
             end do
@@ -314,8 +308,6 @@ contains
    !> and the full GKE, which RHS is obtained depends on the input values
    !> for 'pdf', 'phi', 'apar', 'aparnew' and 'aparold'
    subroutine get_gke_rhs(ivmu, iky, ie, pdf, phi, apar, aparnew, aparold, bpar, rhs, phi_ffs)
-
-      use parameters_kxky_grids, only: naky, nakx
 
       implicit none
 
@@ -405,7 +397,6 @@ contains
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
       use vpamu_grids, only: vpa
-      use parameters_kxky_grids, only: naky, nakx
       use parameters_numerical, only: driftkinetic_implicit, maxwellian_normalization
       use parameters_numerical, only: maxwellian_inside_zed_derivative
       use parameters_numerical, only: drifts_implicit
@@ -481,8 +472,8 @@ contains
                ! and store in dummy variable z_scratch
                z_scratch = maxwell_mu(ia, :, imu, is)
                call center_zed(iv, z_scratch, -nzgrid)
-	         else
-	            z_scratch = 1.0
+            else
+               z_scratch = 1.0
             end if
          end if
          ! multiply by Maxwellian factor
@@ -519,7 +510,6 @@ contains
       subroutine add_drifts_contribution_phi
 
          use constants, only: zi
-         use parameters_kxky_grids, only: nakx, naky
          use grids_kxky, only: aky, akx
          use arrays_dist_fn, only: wstar, wdriftx_phi, wdrifty_phi
          use parallel_streaming, only: center_zed
@@ -552,7 +542,6 @@ contains
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: vpa, mu
-      use parameters_kxky_grids, only: naky, nakx
       use parameters_numerical, only: driftkinetic_implicit, maxwellian_normalization
       use parameters_numerical, only: maxwellian_inside_zed_derivative
       use parameters_numerical, only: drifts_implicit
@@ -659,7 +648,6 @@ contains
       subroutine add_drifts_contribution_bpar
 
          use constants, only: zi
-         use parameters_kxky_grids, only: nakx, naky
          use grids_kxky, only: aky, akx
          use arrays_dist_fn, only: wstar, wdriftx_bpar, wdrifty_bpar
          use parallel_streaming, only: center_zed
@@ -905,7 +893,6 @@ contains
       use parameters_physics, only: include_apar
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
-      use parameters_kxky_grids, only: naky, nakx
       use grids_kxky, only: aky, akx
       use vpamu_grids, only: vpa
       use stella_layouts, only: vmu_lo, iv_idx, is_idx

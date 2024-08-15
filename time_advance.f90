@@ -1,7 +1,7 @@
 
 module time_advance
 
-  use debug_flags, only: debug =>time_advance_debug
+  use debug_flags, only: debug => time_advance_debug
   
    public :: init_time_advance, finish_time_advance
    public :: advance_stella
@@ -548,7 +548,7 @@ contains
       use parameters_kxky_grids, only: naky, nakx
       use arrays_dist_fn, only: g0, g1, g2, g3
       use parameters_numerical, only: explicit_option_switch, explicit_option_rk3, &
-           explicit_option_rk2,	explicit_option_rk4, explicit_option_euler
+           explicit_option_rk2, explicit_option_rk4, explicit_option_euler
 
       implicit none
 

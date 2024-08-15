@@ -267,7 +267,6 @@ contains
       in_file = input_unit_exist("parameters", old_nml_exist)
       if (old_nml_exist) then
          read (unit=in_file, nml=parameters)
-         time_advance_knob_exists = .true. 
          if(debug) then
             write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
             write(*,*) 'Please change the namelist <parameters> in the input file'
@@ -285,8 +284,10 @@ contains
 
       in_file = input_unit_exist("time_advance_knobs", old_nml_exist)
       if (old_nml_exist) then
+         time_advance_knob_exists = .true. 
          read(unit=in_file, nml=time_advance_knobs)
          explicit_option_old = explicit_option
+         write(*,*) 'explicit_option_old', explicit_option_old
          flip_flop_old = flip_flop
       end if
 
@@ -340,7 +341,7 @@ contains
      !> TODO-GA: FIX PLEASE
      call broadcast(flip_flop_old)
      call broadcast(explicit_option_old)
-     
+     call broadcast(time_advance_knob_exists) 
    end subroutine broadcast_parameters
 
  end subroutine read_parameters_physics
