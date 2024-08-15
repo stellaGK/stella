@@ -34,6 +34,7 @@ module debug_flags
   public :: diagnostics_main_debug
   public :: diagnostics_parameters
   public :: diagnostics_fluxes_fluxtube_debug
+  public :: diagnostics_omega_debug
   public :: fluxes_debug
 
   public :: geometry_debug
@@ -67,6 +68,7 @@ module debug_flags
   logical :: diagnostics_debug
   logical :: diagnostics_parameters
   logical :: diagnostics_fluxes_fluxtube_debug
+  logical :: diagnostics_omega_debug
   logical :: diagnostics_main_debug
   logical :: fluxes_debug
 
@@ -95,7 +97,7 @@ contains
          implicit_solve_debug, parallel_streaming_debug, mirror_terms_debug, neoclassical_terms_debug, &
          response_matrix_debug, time_advance_debug, extended_grid_debug, &
          diagnostics_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
-         diagnostics_main_debug, dist_fn_debug,&
+         diagnostics_omega_debug, diagnostics_main_debug, dist_fn_debug,&
          gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo
     
     if (initialised) return
@@ -136,6 +138,7 @@ contains
         diagnostics_debug = .false.
         diagnostics_main_debug = .false.
         diagnostics_parameters = .false.
+        diagnostics_omega_debug = .false. 
         diagnostics_fluxes_fluxtube_debug = .false. 
         fluxes_debug = .false.
 
@@ -192,7 +195,8 @@ contains
         if(diagnostics_debug) then
            diagnostics_main_debug = .true.
            diagnostics_parameters = .true.
-           diagnostics_fluxes_fluxtube_debug = .true. 
+           diagnostics_fluxes_fluxtube_debug = .true.
+           diagnostics_omega_debug = .true. 
            fluxes_debug = .true.
         end if
       end subroutine read_input_file
@@ -219,6 +223,7 @@ contains
         call broadcast(diagnostics_main_debug)
         call broadcast(diagnostics_parameters)
         call broadcast(diagnostics_fluxes_fluxtube_debug)
+        call braodcast(diagnostics_omega_debug) 
         call broadcast(time_advance_debug)
         call broadcast(extended_grid_debug)
         

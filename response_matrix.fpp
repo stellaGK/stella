@@ -31,7 +31,6 @@ contains
 
       use linear_solve, only: lu_decomposition
       use arrays_fields, only: response_matrix
-      use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
       use parameters_kxky_grids, only: naky
       use mp, only: proc0
@@ -692,7 +691,6 @@ contains
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use arrays_fields, only: response_matrix
       use extended_zgrid, only: periodic, phase_shift
-      use parallel_streaming, only: stream_sign
       use parameters_physics, only: full_flux_surface
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
@@ -976,9 +974,6 @@ contains
       use vpamu_grids, only: integrate_species_ffs_rm
 
       use parameters_physics, only: full_flux_surface
-
-      use geometry, only: bmag
-      use parameters_kxky_grids, only: nalpha
 
       use gyro_averages, only: j0_B_const
 

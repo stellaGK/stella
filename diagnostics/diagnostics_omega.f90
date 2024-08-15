@@ -14,6 +14,8 @@
 
 module diagnostics_omega
 
+   use debug_flags, only:: debug => diagnostics_omega_debug
+  
    implicit none 
 
    ! These routines are called from diagnostics.f90
@@ -37,6 +39,8 @@ module diagnostics_omega
    ! Write omega diagnostics
    logical :: write_omega
 
+   logical :: debug
+   
 contains
  
    !=========================================================================
@@ -80,6 +84,8 @@ contains
 
       !----------------------------------------------------------------------
 
+      debug = debug .and. proc0
+      
       ! We only calculate omega on the first processor and if <write_omega> = True
       if (.not. write_omega) return  
 

@@ -367,7 +367,7 @@ contains
       complex, dimension(:, :), allocatable :: dgdv, g_swap
 
       integer :: ikxyz, iz, it
-      integer :: ivmu, iv, imu, is
+      integer :: ivmu, iv, is
 
       !> start the timer for this subroutine
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
@@ -655,10 +655,11 @@ contains
       use g_tofrom_h, only: gbar_to_g
 
       use parameters_numerical, only: time_upwind
-      use vpamu_grids, only: vpa, dvpa
+      use vpamu_grids, only: dvpa
       use stella_layouts, only: iy_idx
       use calculations_kxky, only: swap_kxky, swap_kxky_back
-      use parameters_kxky_grids, only: naky_all, ikx_max, naky
+      use parameters_kxky_grids, only: naky_all, ikx_max
+      
       implicit none
 
       logical, intent(in) :: collisions_implicit
@@ -667,7 +668,7 @@ contains
 
       integer :: ikxyz, ikxkyz, ivmu
       integer :: iky, ikx, iz, it, is
-      integer :: iv, imu
+      integer :: imu
       character(5) :: dist
       real :: tupwnd
       complex, dimension(:), allocatable :: rhs
@@ -676,7 +677,7 @@ contains
 
       !! GA - arrays for FFS
       complex, dimension(:, :, :), allocatable :: dgdvpa
-      integer :: iy, ia
+      integer :: iy
       complex, dimension(:, :), allocatable :: g_swap
 
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
@@ -889,8 +890,7 @@ contains
       use g_tofrom_h, only: gbar_to_g
       use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
       use finite_differences, only: fd_variable_upwinding_vpa
-      use vpamu_grids, only: dvpa, vpa, nvpa
-      use arrays_fields, only: phi
+      use vpamu_grids, only: dvpa, vpa, nvpaxs
 
       implicit none
 
