@@ -82,8 +82,8 @@ contains
               kyspacing_option_switch, phase_shift_angle, ikx_max, naky_all)
       case (gridopt_box)
          call read_kxky_grids_box (nx, ny, ikx_max, naky_all, naky, nakx, nalpha, &
-         x0, y0, jtwist, jtwistfac, phase_shift_angle, &
-         centered_in_rho, randomize_phase_shift, periodic_variation, reality)
+              x0, y0, jtwist, jtwistfac, phase_shift_angle, &
+              centered_in_rho, randomize_phase_shift, periodic_variation, reality)
       end select
     end if
             
@@ -145,6 +145,7 @@ contains
       call broadcast(naky_all)
       call broadcast(ikx_max)
       call broadcast(reality)
+      call broadcast(phase_shift_angle)
       call broadcast(jtwist)
       call broadcast(jtwistfac)
       call broadcast(ikx_twist_shift)
@@ -160,7 +161,7 @@ contains
       call broadcast(kyspacing_option_switch)
       call broadcast(x0)
       call broadcast(y0)  
-      
+
     end subroutine broadcast_parameters
     
   end subroutine read_kxky_grid_parameters

@@ -208,7 +208,7 @@ contains
       complex, intent(out) :: fsa
 
       integer :: iky, ikymod
-      real :: area
+      complex :: area
 
       ! the normalising factor int dy dz Jacobian
       area = 0.0

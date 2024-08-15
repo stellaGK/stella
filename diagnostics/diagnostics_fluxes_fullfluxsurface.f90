@@ -42,7 +42,6 @@ contains
       real, dimension(:, :, -nzgrid:, :, :), intent(out) :: pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts
 
       integer :: iky, it
-      integer :: iy, iz
       real, dimension(:, :), allocatable :: flxfac 
 
       complex, dimension(:, :, :), allocatable :: dphidy
@@ -86,7 +85,7 @@ contains
    subroutine get_one_flux_ffs(mom, dphidy, flxfac, flx, flx_vs_kxkyz)
 
       use species, only: nspec
-      use zgrid, only: nzgrid, delzed
+      use zgrid, only: nzgrid
       use parameters_kxky_grids, only: naky, nakx
       use volume_averages, only: mode_fac
 
@@ -100,7 +99,6 @@ contains
 
       integer :: iky, ikx, iz, is
       complex, dimension(:, :, :, :), allocatable :: mom_ky
-      complex, dimension (:,:), allocatable :: flx_x
 
       allocate (mom_ky(naky, nakx, -nzgrid:nzgrid, nspec))
 
@@ -145,7 +143,6 @@ contains
       use zgrid, only: nzgrid
       use parameters_kxky_grids, only: ikx_max, naky_all, ny
       use calculations_kxky, only: swap_kxky_back
-      use geometry, only: bmag
       use stella_transforms, only: transform_y2ky
 
       implicit none
@@ -195,8 +192,8 @@ contains
       use gyro_averages, only: gyro_average, j0_ffs
       use arrays_fields, only: phi
       use stella_transforms, only: transform_ky2y
-      use grids_kxky, only: akx, aky, theta0
-      use parameters_kxky_grids, only: nakx, naky
+      use grids_kxky, only: aky, theta0
+      use parameters_kxky_grids, only: nakx
       use constants, only: zi, pi
       use zgrid, only: ntubes
 
