@@ -69,7 +69,6 @@ set(STELLA_SOURCES_f90
   parameters_kxky_grids_range.f90
   parameters_numerical.f90
   parameters_physics.f90
-  run_parameters.f90
   species.f90
   stella_layouts.f90
   stella_time.f90
