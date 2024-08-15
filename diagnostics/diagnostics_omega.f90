@@ -39,8 +39,6 @@ module diagnostics_omega
    ! Write omega diagnostics
    logical :: write_omega
 
-   logical :: debug
-   
 contains
  
    !=========================================================================

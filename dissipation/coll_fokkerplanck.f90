@@ -2899,7 +2899,6 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use zgrid, only: ntubes
       use vpamu_grids, only: nmu, nvpa
       use vpamu_grids, only: set_vpa_weights
-      use parameters_kxky_grids, only: naky, nakx
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
       use fields, only: get_fields, get_fields_by_spec
