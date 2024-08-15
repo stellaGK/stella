@@ -393,7 +393,10 @@ contains
      
            call get_x_to_rho(1, x, rho)
            call get_x_to_rho(1, x_d, rho_d)
-          
+
+           rho_clamped = rho
+           rho_d_clamped = rho_d
+           
            zed0 = theta0 * geo_surf%zed0_fac
      
            if (radial_variation) call dump_radial_grid (x, rho, nx)
