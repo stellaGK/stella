@@ -145,9 +145,6 @@ contains
       ! Write to netCDF file
       use stella_io, only: write_omega_nc
       
-      ! Grids
-      use parameters_kxky_grids, only: nakx, naky
-      
       ! Parallelisation
       use job_manage, only: time_message
       use mp, only: proc0

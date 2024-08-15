@@ -892,7 +892,7 @@ contains
       use g_tofrom_h, only: gbar_to_g
       use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
       use finite_differences, only: fd_variable_upwinding_vpa
-      use vpamu_grids, only: dvpa, vpa, nvpaxs
+      use vpamu_grids, only: dvpa, vpa, nvpa
 
       implicit none
 

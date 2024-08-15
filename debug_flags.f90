@@ -223,7 +223,7 @@ contains
         call broadcast(diagnostics_main_debug)
         call broadcast(diagnostics_parameters)
         call broadcast(diagnostics_fluxes_fluxtube_debug)
-        call braodcast(diagnostics_omega_debug) 
+        call broadcast(diagnostics_omega_debug) 
         call broadcast(time_advance_debug)
         call broadcast(extended_grid_debug)
         
