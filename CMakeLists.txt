@@ -42,28 +42,33 @@ option(STELLA_UPDATE_GIT_SUBMODULES "Check submodules are up-to-date during buil
 
 # Sources that don't need preprocessing
 set(STELLA_SOURCES_f90
+  arrays_dist_fn.f90
+  arrays_fields.f90
+  calculations_kxky.f90
   common_types.f90
+  debug_flags.f90
   define.inc
   dist_fn.f90
-  dist_fn_arrays.f90
   dist_redistribute.f90
   euterpe_interface.f90
   extended_zgrid.f90
   ffs_solve.f90
-  fields_arrays.f90
   finite_differences.f90
   flow_shear.f90
   g_tofrom_h.f90
+  grids_kxky.f90
   gyro_averages.f90
   implicit_solve.f90
   init_g.f90
-  kt_grids.f90
   mirror_terms.f90
   multibox.f90
   neoclassical_terms.f90
   parallel_streaming.f90
-  physics_flags.f90
-  physics_parameters.f90
+  parameters_kxky_grids.f90
+  parameters_kxky_grids_box.f90
+  parameters_kxky_grids_range.f90
+  parameters_numerical.f90
+  parameters_physics.f90
   run_parameters.f90
   species.f90
   stella_layouts.f90
@@ -72,6 +77,7 @@ set(STELLA_SOURCES_f90
   time_advance.f90
   volume_averages.f90
   vpamu_grids.f90
+  write_radial_grid.f90
   zgrid.f90
   diagnostics/parameters_diagnostics.f90
   diagnostics/diagnostics.f90
