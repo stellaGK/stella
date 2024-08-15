@@ -67,7 +67,7 @@ contains
        case (gridopt_box)
           call init_grids_kxky_box
        end select
- 
+
        !> determine if iky corresponds to zonal mode
        if (.not. allocated(zonal_mode)) allocate (zonal_mode(naky))
        zonal_mode = .false.
@@ -406,7 +406,9 @@ contains
            do iky = 1, ny
               y(iky) = (iky - 1) * dy
            end do
-     
+
+           call broadcast_parameters
+           
        end subroutine init_grids_kxky_box
        
        !**********************************************************************
@@ -415,36 +417,61 @@ contains
        !> DESCRIPTION
        !**********************************************************************
 
-        subroutine allocate_arrays
-
-           use parameters_kxky_grids, only: nakx, naky, naky_all, nx , ny 
+       subroutine allocate_arrays
+         
+         use parameters_kxky_grids, only: nakx, naky, naky_all, nx , ny 
+         
+         implicit none
+         
+         if(.not. allocated(akx)) allocate (akx(nakx))
+         if(.not. allocated(aky)) allocate (aky(naky))
+         if(.not. allocated(aky_all)) allocate(aky_all(naky_all))
+         if(.not. allocated(aky_all_ordered)) allocate (aky_all_ordered(naky_all))
+         if(.not. allocated(theta0)) allocate (theta0(naky, nakx))
+         if(.not. allocated(zed0)) allocate (zed0(naky, nakx))
+         
+         if (box) then
+            if (.not. allocated(x_d)) allocate (x_d(nakx))
+            if (.not. allocated(rho)) allocate (rho(nx))
+            if (.not. allocated(rho_d)) allocate (rho_d(nakx))
+            if (.not. allocated(rho_clamped)) allocate (rho_clamped(nx))
+            if (.not. allocated(rho_d_clamped)) allocate (rho_d_clamped(nakx))
+            
+            if (.not. allocated(x)) allocate (x(nx))
+            if (.not. allocated(y)) allocate (y(ny))
+            
+         end if
+         
+       end subroutine allocate_arrays
+       
+       
+     end subroutine init_grids_kxky
           
-           implicit none
-     
-           if(.not. allocated(akx)) allocate (akx(nakx))
-           if(.not. allocated(aky)) allocate (aky(naky))
-           if(.not. allocated(aky_all)) allocate(aky_all(naky_all))
-           if(.not. allocated(aky_all_ordered)) allocate (aky_all_ordered(naky_all))
-           if(.not. allocated(theta0)) allocate (theta0(naky, nakx))
-           if(.not. allocated(zed0)) allocate (zed0(naky, nakx))
+     subroutine broadcast_parameters
+       
+       use mp, only: broadcast
 
-           if (box) then
-              if (.not. allocated(x_d)) allocate (x_d(nakx))
-              if (.not. allocated(rho)) allocate (rho(nx))
-              if (.not. allocated(rho_d)) allocate (rho_d(nakx))
-              if (.not. allocated(rho_clamped)) allocate (rho_clamped(nx))
-              if (.not. allocated(rho_d_clamped)) allocate (rho_d_clamped(nakx))
-              
-              if (.not. allocated(x)) allocate (x(nx))
-              if (.not. allocated(y)) allocate (y(ny))
-           
-           end if
-           
-        end subroutine allocate_arrays
+       implicit none
 
-        
-   end subroutine init_grids_kxky
+       ! call broadcast(akx)
+       ! call broadcast(aky)
+       ! call broadcast(aky_all)
+       ! call broadcast(aky_all_ordered)
+       ! call broadcast(theta0)
+       ! call broadcast(zed0)
 
+!       if(box) then
+       call broadcast(x_d)
+       call broadcast(rho)
+       call broadcast(rho_d)
+       call broadcast(rho_clamped)
+       call broadcast(rho_d_clamped)
+!          call broadcast(x)
+!          call broadcast(y)
+!       end if
+             
+     end subroutine broadcast_parameters
+   
    !======================================================================
    !======================= INITIALISE KXKY GRIDS ========================
    !======================================================================
