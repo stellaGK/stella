@@ -32,9 +32,11 @@ module grids_kxky
    !> Not allocated here - need to work out where to put these 
    integer :: boundary_size, copy_size, krook_size
 
-   !> Internal calculations
-   real :: dx, dy, dkx, dky, dx_d
+   !> Required for flux calculations
+   real :: dx, dy
 
+   !> Internal Calculations
+   real :: dkx, dky, dx_d
    logical :: box
    
    logical :: initialised
@@ -58,6 +60,7 @@ contains
 
  
        call init_zgrid
+       call allocate_arrays
        
        select case (gridopt_switch)
        case (gridopt_range)
@@ -90,7 +93,7 @@ contains
            use parameters_kxky_grids, only: naky, nakx, aky_min, aky_max, &
                 akx_min, akx_max, theta0_min, theta0_max, &
                 kyspacing_option_switch, kyspacing_linear, kyspacing_exponential, &
-                phase_shift_angle, ikx_max, naky_all
+                ikx_max, naky_all
            
            implicit none
    
@@ -103,8 +106,6 @@ contains
            ! NB: we are assuming here that all ky are positive
            ! when running in range mode
            dky = 0.0
-
-           call allocate_arrays
            
            if (naky > 1) then
            select case (kyspacing_option_switch)
@@ -133,64 +134,67 @@ contains
            ! if theta0_min and theta0_max have been specified,
            ! use them to determine akx_min and akx_max
            if (theta0_max > theta0_min - zero) then
-           if (geo_surf%shat > epsilon(0.)) then
-               akx_min = theta0_min * tfac * aky(1)
-               akx_max = theta0_max * tfac * aky(1)
-           else
-               akx_min = theta0_max * tfac * aky(1)
-               akx_max = theta0_min * tfac * aky(1)
-           end if
+              if (geo_surf%shat > epsilon(0.)) then
+                 akx_min = theta0_min * tfac * aky(1)
+                 akx_max = theta0_max * tfac * aky(1)
+              else
+                 akx_min = theta0_max * tfac * aky(1)
+                 akx_max = theta0_min * tfac * aky(1)
+              end if
            end if
    
            ! shat_zero is minimum shat value below which periodic BC is enforced
            if (abs(geo_surf%shat) > shat_zero) then  ! ie assumes boundary_option .eq. 'linked'
            ! if kx_min and akx_max specified in input
-           ! instead of theta0_min and theta0_max,
-           ! use them to get theta0_min and theta0_max
-           if (theta0_min > theta0_max + zero .and. abs(aky(1)) > zero) then
-               theta0_min = akx_min / (tfac * aky(1))
-               theta0_max = akx_max / (tfac * aky(1))
-               dtheta0 = 0.0
-               if (nakx > 1) dtheta0 = (theta0_max - theta0_min) / real(nakx - 1)
+              ! instead of theta0_min and theta0_max,
+              ! use them to get theta0_min and theta0_max
+              if (theta0_min > theta0_max + zero .and. abs(aky(1)) > zero) then
+                 theta0_min = akx_min / (tfac * aky(1))
+                 theta0_max = akx_max / (tfac * aky(1))
+                 dtheta0 = 0.0
+                 if (nakx > 1) dtheta0 = (theta0_max - theta0_min) / real(nakx - 1)
    
-               do j = 1, naky
-                   theta0(j, :) &
-                       = (/(theta0_min + dtheta0 * real(i), i=0, nakx - 1)/)
-               end do
-               akx= theta0(1, :) * tfac * aky(1)
-           else if (akx_max > akx_min - zero .or. nakx == 1) then
-               dkx = 0.0
-               if (nakx > 1) dkx = (akx_max - akx_min) / real(nakx - 1)
-               akx = (/(akx_min + dkx * real(i), i=0, nakx - 1)/)
-   
-               dtheta0 = 0.0
-               if (nakx > 1) dtheta0 = (theta0_max - theta0_min) / real(nakx - 1)
-   
-               if (geo_surf%shat > epsilon(0.)) then
-                   do j = 1, naky
+                 do j = 1, naky
+                    theta0(j, :) &
+                         = (/(theta0_min + dtheta0 * real(i), i=0, nakx - 1)/)
+                 end do
+                 akx= theta0(1, :) * tfac * aky(1)
+              else if (akx_max > akx_min - zero .or. nakx == 1) then
+                 dkx = 0.0
+                 if (nakx > 1) dkx = (akx_max - akx_min) / real(nakx - 1)
+                 akx = (/(akx_min + dkx * real(i), i=0, nakx - 1)/)
+                 
+                 dtheta0 = 0.0
+                 if (nakx > 1) dtheta0 = (theta0_max - theta0_min) / real(nakx - 1)
+                 
+                 if (geo_surf%shat > epsilon(0.)) then
+                    do j = 1, naky
                        theta0(j, :) &
-                       = (/(theta0_min + dtheta0 * real(i), i=0, nakx - 1)/)
-                   end do
-               else
-                   do j = 1, naky
+                            = (/(theta0_min + dtheta0 * real(i), i=0, nakx - 1)/)
+                    end do
+                 else
+                    do j = 1, naky
                        theta0(j, :) &
-                       = (/(theta0_min + dtheta0 * real(i), i=nakx - 1, 0, -1)/)
-                   end do
-               end if
-           else
-               call mp_abort('ky=0 is inconsistent with akx_min different from akx_max. aborting.')
-           end if
+                            = (/(theta0_min + dtheta0 * real(i), i=nakx - 1, 0, -1)/)
+                    end do
+                 end if
+              else
+                 call mp_abort('ky=0 is inconsistent with akx_min different from akx_max. aborting.')
+              end if
    
            else
            ! here assume boundary_option .eq. 'periodic'
            ! used for periodic finite kx ballooning space runs with shat=0
-           dkx = 0.0
-           if (nakx > 1) dkx = (akx_max - akx_min) / real(nakx - 1)
-           akx = (/(akx_min + dkx * real(i), i=0, nakx - 1)/)
+              dkx = 0.0
+              if (nakx > 1) dkx = (akx_max - akx_min) / real(nakx - 1)
+              akx = (/(akx_min + dkx * real(i), i=0, nakx - 1)/)
            end if
    
            zed0 = theta0 * geo_surf%zed0_fac
-      
+
+           ikx_max = nakx
+           naky_all = naky
+           
        end subroutine init_grids_kxky_range
 
     
@@ -217,7 +221,7 @@ contains
 
            use write_radial_grid, only: dump_radial_grid
 
-           use parameters_kxky_grids, only: nx, ny, ikx_max, naky_all, naky, nakx, nalpha, &
+           use parameters_kxky_grids, only: nx, ny, ikx_max, naky_all, naky, nakx, &
                 x0, y0, jtwist, jtwistfac, phase_shift_angle, ikx_twist_shift, &
                 centered_in_rho, randomize_phase_shift, periodic_variation
            
@@ -228,8 +232,6 @@ contains
            real :: x_shift, dqdrho, pfac, norm
      
            box = .true.
-
-           call	allocate_arrays
            
            !> set jtwist and y0 for cases where they have not been specified
            !> and for which it makes sense to set them automatically
@@ -390,10 +392,7 @@ contains
      
            call get_x_to_rho(1, x, rho)
            call get_x_to_rho(1, x_d, rho_d)
-     
-           if (.not. allocated(rho_clamped)) allocate (rho_clamped(nx)); rho_clamped = rho
-           if (.not. allocated(rho_d_clamped)) allocate (rho_d_clamped(nakx)); rho_d_clamped = rho_d
-     
+          
            zed0 = theta0 * geo_surf%zed0_fac
      
            if (radial_variation) call dump_radial_grid (x, rho, nx)
@@ -434,7 +433,7 @@ contains
               if (.not. allocated(rho_d)) allocate (rho_d(nakx))
               if (.not. allocated(rho_clamped)) allocate (rho_clamped(nx))
               if (.not. allocated(rho_d_clamped)) allocate (rho_d_clamped(nakx))
-                   
+              
               if (.not. allocated(x)) allocate (x(nx))
               if (.not. allocated(y)) allocate (y(ny))
            
@@ -451,6 +450,7 @@ contains
 
    subroutine finish_grids_kxky
 
+       use parameters_kxky_grids, only: reality 
        implicit none
  
        if (allocated(aky)) deallocate (aky)
@@ -470,7 +470,8 @@ contains
        if (allocated(rho_d_clamped)) deallocate (rho_d_clamped)
  
        if (allocated(g0x)) deallocate (g0x)
- 
+
+       reality = .false. 
        initialised = .false.
      end subroutine finish_grids_kxky
 

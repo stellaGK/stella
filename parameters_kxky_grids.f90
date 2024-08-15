@@ -71,8 +71,6 @@ contains
     
     implicit none
 
-    logical :: error = .false.
-
     if (initialised) return
 
     if (proc0) then
@@ -85,7 +83,7 @@ contains
       case (gridopt_box)
          call read_kxky_grids_box (nx, ny, ikx_max, naky_all, naky, nakx, nalpha, &
          x0, y0, jtwist, jtwistfac, phase_shift_angle, &
-         centered_in_rho, randomize_phase_shift, periodic_variation)
+         centered_in_rho, randomize_phase_shift, periodic_variation, reality)
       end select
     end if
             
@@ -93,7 +91,7 @@ contains
     initialised = .true.
 
   contains
-
+    
     !**********************************************************************
     !                       READ GRID OPTION FOR KXK                      !
     !**********************************************************************

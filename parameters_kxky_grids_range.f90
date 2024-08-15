@@ -32,7 +32,6 @@ module parameters_kxky_grids_range
         real, intent (out) :: phase_shift_angle
         integer, intent (out) :: ikx_max, naky_all
         
-        logical :: error = .false.
         integer, parameter :: kyspacing_linear = 1, kyspacing_exponential = 2
         
         if (initialised) return
@@ -122,6 +121,9 @@ module parameters_kxky_grids_range
             call get_option_value(kyspacing_option, kyspacingopts, kyspacing_option_switch, &
                 ierr, "kyspacing_option in kt_grids_range_parameters", .true.)
 
+            naky_all = naky
+            ikx_max = nakx
+            
         end subroutine read_input_file_range
 
         !**********************************************************************
@@ -148,7 +150,6 @@ module parameters_kxky_grids_range
             
             logical :: old_nml_exist
             integer :: ierr, in_file
-            logical :: exist
             
             !> akx -> kx and aky -> ky 
             !> TODO-GA: make this back compatible

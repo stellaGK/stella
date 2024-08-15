@@ -20,9 +20,9 @@ module parameters_kxky_grids_box
     !======================================================================
     subroutine read_kxky_grids_box (nx, ny, ikx_max, naky_all, naky, nakx, nalpha, &
          x0, y0, jtwist, jtwistfac, phase_shift_angle, &
-         centered_in_rho, randomize_phase_shift, periodic_variation)
+         centered_in_rho, randomize_phase_shift, periodic_variation, reality)
 
-        use mp, only: proc0, mp_abort
+        use mp, only: mp_abort
         use text_options, only: text_option, get_option_value
         use file_utils, only: input_unit, error_unit, input_unit_exist
     
@@ -36,8 +36,7 @@ module parameters_kxky_grids_box
         real, intent (out) :: phase_shift_angle
         real, intent (out) :: x0, y0
         logical, intent (out) :: centered_in_rho, periodic_variation, randomize_phase_shift
-        
-        logical :: error = .false.
+        logical, intent (out) :: reality
     
         if (initialised) return
         
@@ -60,7 +59,6 @@ module parameters_kxky_grids_box
 
             implicit none 
 
-            nalpha = 1
             nx = 1
             ny = 1
             jtwist = -1
@@ -111,15 +109,12 @@ module parameters_kxky_grids_box
             naky = (ny - 1) / 3 + 1
             nakx = 2 * ((nx - 1) / 3) + 1
 
-            !> Get the total number of ky values, including negative ky;
-            !> this is approximately 2/3 ny because ny includes padding to avoid aliasing
-            naky_all = 2 * naky - 1
-
             if (full_flux_surface) nalpha = ny
             
             !> Get the ikx index corresponding to kx_max 
             ikx_max = nakx / 2 + 1
-            
+
+            reality = .true.
             !> Get the total number of ky values, including negative ky; 
             !> this is approximately 2/3 ny because ny includes padding to avoid aliasing
             naky_all = 2 * naky - 1
