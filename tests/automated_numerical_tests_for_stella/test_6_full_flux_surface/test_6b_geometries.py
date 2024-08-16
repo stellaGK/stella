@@ -60,9 +60,9 @@ def test_whether_miller_output_files_are_present(tmp_path, error=False):
     # File names 
     local_geometry_file = stella_local_run_directory / 'miller_geometry.geometry' 
     expected_geometry_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.miller_geometry.geometry' 
-    local_miller_input_file = stella_local_run_directory / 'millerlocal.miller_geometry.input' 
+    local_miller_input_file = stella_local_run_directory / 'geometry_miller.miller_geometry.input' 
     expected_miller_input_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.miller_geometry.millerlocal.input' 
-    local_miller_output_file = stella_local_run_directory / 'millerlocal.miller_geometry.output' 
+    local_miller_output_file = stella_local_run_directory / 'geometry_miller.miller_geometry.output' 
     expected_miller_output_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.miller_geometry.millerlocal.output' 
     
     # Check whether the txt files match  
