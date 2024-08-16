@@ -35,7 +35,7 @@ def test_whether_miller_output_files_are_present(tmp_path, error=False):
     local_files = os.listdir(stella_local_run_directory)
     
     # Create a list of the output files we expect when stella has been run 
-    expected_files = ['millerlocal.miller_geometry.input', 'millerlocal.miller_geometry.output', 'miller_geometry.geometry']
+    expected_files = ['geometry_miller.miller_geometry.input', 'geometry_miller.miller_geometry.output', 'miller_geometry.geometry']
     
     # Check whether all these output files are present
     for expected_file in expected_files:
