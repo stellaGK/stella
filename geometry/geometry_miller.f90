@@ -990,10 +990,6 @@ contains
       if (abs(df(-nz)) .LT. zero) df(-nz) = 0.0
       if (abs(df(nz)) .LT. zero) df(nz) = 0.0
 
-      do i = -nz, nz
-         df(i) = round(df(i), 14)
-      end do
-
    end subroutine get_drho
 
    ! given function f(theta), calculate second derivative
@@ -1018,10 +1014,6 @@ contains
       zero = 1000 * epsilon(0.0)
       if (abs(d2f(-nz)) .LT. zero) d2f(-nz) = 0.0
       if (abs(d2f(nz)) .LT. zero) d2f(nz) = 0.0
-
-      do i = -nz, nz
-         d2f(i) = round(d2f(i), 14)
-      end do
 
    end subroutine get_d2dthet2
 
@@ -1455,10 +1447,6 @@ contains
       zero = 10000 * epsilon(0.0) 
       if(abs(integral(-nz)) .LT. zero) integral(-nz) = 0.0
       if(abs(integral(nz)) .LT. zero) integral(nz) = 0.0
-
-      do i = -nz, nz
-         integral(i) = round(integral(i), 14)
-      end do
 
    end subroutine theta_integrate_indef
 
