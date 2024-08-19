@@ -120,7 +120,6 @@ contains
       real :: dum
       integer :: in_file, np, j
       logical :: exist
-
       
       namelist /millergeo_parameters/ rhoc, rmaj, shift, qinp, shat, &
          kappa, kapprim, tri, triprim, rgeo, betaprim, &
@@ -725,6 +724,68 @@ contains
       dpsipdrho_out = dpsipdrho
       dpsipdrho_psi0_out = dpsipdrho_psi0
 
+      do i = -nz, nz
+         theta(i) = round(theta(i), 14)
+         Rr(2, i) = round(Rr(2, i), 14)
+         dRdrho(i) = round(dRdrho(i), 14)
+         d2Rdr2(i) = round(d2Rdr2(i), 14) 
+         dRdth(i) = round(dRdth(i), 14) 
+         d2Rdrdth(i) = round(d2Rdrdth(i), 14) 
+         dZdrho(i) = round(dZdrho(i), 14) 
+         d2Zdr2(i) = round(d2Zdr2(i), 14)
+         dZdth(i) = round(dZdth(i), 14)
+         d2Zdrdth(i) = round(d2Zdrdth(i), 14) 
+         bmag(i) = round(bmag(i), 14) 
+         dBdrho(i) = round(dBdrho(i), 14) 
+         d2Bdr2(i) = round(d2Bdr2(i), 14)
+         dBdth(i) = round(dBdth(i), 14) 
+         d2Bdrdth(i) = round(d2Bdrdth(i), 14) 
+         varthet(i) = round(varthet(i), 14) 
+         dvarthdr(i) = round(dvarthdr(i), 14)
+         d2varthdr2(i) = round(d2varthdr2(i), 14)
+         jacrho(i) = round(jacrho(i), 14) 
+         djacrdrho(i) = round(djacrdrho(i), 14) 
+         djacdrho(i) = round(djacdrho(i), 14) 
+         d2jacdr2(i) = round(d2jacdr2(i), 14)
+         grho(i) = round(grho(i), 14)
+         dgr2dr(i) = round(dgr2dr(i), 14) 
+         gradthet2(i) = round(gradthet2(i), 14)                                                                                                  
+         dgt2(i) = round(dgt2(i), 14) 
+         gradrho_gradthet(i) = round(gradrho_gradthet(i), 14) 
+         dgrgt(i) = round(dgrgt(i), 14) 
+         gradalph_gradthet(i) = round(gradalph_gradthet(i), 14) 
+         dgagt(i) = round(dgagt(i), 14) 
+         gradrho_gradalph(i) = round(gradrho_gradalph(i), 14) 
+         dgagr(i) = round(dgagr(i), 14) 
+         gradalph2(i) = round(gradalph2(i), 14) 
+         dga2(i) = round(dga2(i), 14) 
+         cross(i) = round(cross(i), 14) 
+         dcrossdr(i) = round(dcrossdr(i), 14) 
+         gbdrift0(i) = round(gbdrift0(i), 14) 
+         dgbdrift0drho(i) = round(dgbdrift0drho(i), 14) 
+         cvdrift0(i) = round(cvdrift0(i), 14) 
+         dcvdrift0drho(i) = round(dcvdrift0drho(i), 14) 
+         gbdrift(i) = round(gbdrift(i), 14) 
+         dgbdriftdrho(i) = round(dgbdriftdrho(i), 14) 
+         cvdrift(i) = round(cvdrift(i), 14) 
+         dcvdriftdrho(i) = round(dcvdriftdrho(i), 14) 
+         drzdth(i) = round(drzdth(i), 14) 
+         gradpar(i) = round(gradpar(i), 14) 
+         dgradpardrho(i) = round(dgradpardrho(i), 14) 
+         gradparB(i) = round(gradparB(i), 14) 
+         dgradparBdrho(i) = round(dgradparBdrho(i), 14) 
+         gds2(i) = round(gds2(i), 14) 
+         dgds2dr(i) = round(dgds2dr(i), 14) 
+         gds21(i) = round(gds21(i), 14) 
+         dgds21dr(i) = round(dgds21dr(i), 14) 
+         gds22(i) = round(gds22(i), 14) 
+         dgds22dr(i) = round(dgds22dr(i), 14) 
+         gds23(i) = round(gds23(i), 14) 
+         gds24(i) = round(gds24(i), 14) 
+         Zr(2, i) = round(Zr(2,i), 14)
+      end do
+
+      
       if (debug) write (*, *) 'geometry_miller::write_geometry_miller_txt_files'
       filename = "geometry_miller."//trim(run_name)//".input"
       open (1002, file=trim(filename), status='unknown')
