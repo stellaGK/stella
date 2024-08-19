@@ -53,29 +53,26 @@ def test_whether_vmec_output_files_are_present(tmp_path, error=False):
     # will only reach this final line of code if the test ran successfully
     print(f'  -->  All the expected files for FFS (.vmec.geo, .geometry) are generated.')
 
-#-------------------------------------------------------------------------------
-#                     Check whether VMEC output files match                    #
-#-------------------------------------------------------------------------------
+    #-------------------------------------------------------------------------------
+    #                     Check whether VMEC output files match                    #
+    #-------------------------------------------------------------------------------
     '''Check that the results are identical to a previous run.'''
 
-    vmec_files_match = True
-    geometry_files_match = True
-    
     # File names
     local_geometry_file = stella_local_run_directory / 'vmec_geometry.geometry'
     expected_geometry_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.vmec_geometry.geometry'
     local_vmec_file = stella_local_run_directory / 'vmec_geometry.vmec.geo'
     expected_vmec_file = get_stella_expected_run_directory() / 'EXPECTED_OUTPUT.vmec_geometry.vmec.geo'
     
-    # For new stella, we print <flux_fac> instead of <exb_nonlin_p>, and we do not print <btor>
+    # ForGeometry new stella, we print <flux_fac> instead of <exb_nonlin_p>, and we do not print <btor>
     compare_local_txt_with_expected_txt_newstella(local_geometry_file, expected_geometry_file, name='Geometry txt', error=False)
     
     # If we made it here the test was run correctly 
     print(f'  -->  Geometry output file matches.')
 
-#-------------------------------------------------------------------------------
-#              Check whether the data in the netcdf file matches               #
-#-------------------------------------------------------------------------------
+    #-------------------------------------------------------------------------------
+    #              Check whether the data in the netcdf file matches               #
+    #-------------------------------------------------------------------------------
     '''Check that the results are identical to a previous run.'''
      
     # File names
