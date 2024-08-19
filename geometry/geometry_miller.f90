@@ -982,8 +982,7 @@ contains
       real, dimension(:, -nz:), intent(in) :: f
       real, dimension(-nz:), intent(out) :: df
       real :: zero
-      integer :: i
-      
+
       df = 0.5 * (f(3, :) - f(1, :)) / local%dr
 
       zero = 1000 * epsilon(0.0)
@@ -1002,7 +1001,6 @@ contains
       real, dimension(-nz:), intent(in) :: f
       real, dimension(-nz:), intent(out) :: d2f
       real :: zero
-      integer :: i 
       
       ! assuming equal grid spacing in theta here
       d2f(-nz + 1:nz - 1) = (f(:nz - 2) - 2.*f(-nz + 1:nz - 1) + f(-nz + 2:)) / delthet(-nz + 1:nz - 1)**2
@@ -1027,7 +1025,6 @@ contains
       real, dimension(-nz:), intent(in) :: f
       real, dimension(-nz:), intent(out) :: df
       real :: zero
-      integer :: i
       
       ! assuming equal grid spacing in theta here
       df(-nz + 1:nz - 1) = (f(-nz + 2:) - f(:nz - 2)) / (delthet(:nz - 2) + delthet(-nz + 1:))
@@ -1036,13 +1033,9 @@ contains
       df(-nz) = (f(-nz + 1) - f(nz - 1)) / (delthet(-nz) + delthet(nz - 1))
       df(nz) = df(-nz)
 
-      zero = 10000 * epsilon(0.0)
+      zero = 1000 * epsilon(0.0)
       if (abs(df(-nz)) .LT. zero) df(-nz) = 0.0
       if (abs(df(nz)) .LT. zero) df(nz) = 0.0
-
-      do i = -nz, nz
-         df(i) = round(df(i), 14)
-      end do
       
    end subroutine get_dthet
 
@@ -1543,8 +1536,13 @@ contains
    function round(val, n)
      implicit none
      real :: val, round
+     real :: scaled, remainder
      integer :: n
-     round = anint(val*10.0**n)/10.0**n
+
+     scaled = val*10.0**n
+     remainder = modulo(scaled, 10.0)
+     round = (scaled - remainder )/ 10.0**n
+     !aint(val*10.0**n)/10.0**n
    end function round
 
 end module geometry_miller
