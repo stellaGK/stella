@@ -985,9 +985,9 @@ contains
 
       df = 0.5 * (f(3, :) - f(1, :)) / local%dr
 
-      zero = 1000 * epsilon(0.0)
-      if (abs(df(-nz)) .LT. zero) df(-nz) = 0.0
-      if (abs(df(nz)) .LT. zero) df(nz) = 0.0
+      ! zero = 1000 * epsilon(0.0)
+      ! if (abs(df(-nz)) .LT. zero) df(-nz) = 0.0
+      ! if (abs(df(nz)) .LT. zero) df(nz) = 0.0
 
    end subroutine get_drho
 
@@ -1009,9 +1009,9 @@ contains
       d2f(-nz) = (f(nz - 1) - 2.*f(-nz) + f(-nz + 1)) / delthet(-nz + 1)**2
       d2f(nz) = d2f(-nz)
 
-      zero = 1000 * epsilon(0.0)
-      if (abs(d2f(-nz)) .LT. zero) d2f(-nz) = 0.0
-      if (abs(d2f(nz)) .LT. zero) d2f(nz) = 0.0
+      ! zero = 1000 * epsilon(0.0)
+      ! if (abs(d2f(-nz)) .LT. zero) d2f(-nz) = 0.0
+      ! if (abs(d2f(nz)) .LT. zero) d2f(nz) = 0.0
 
    end subroutine get_d2dthet2
 
@@ -1033,9 +1033,9 @@ contains
       df(-nz) = (f(-nz + 1) - f(nz - 1)) / (delthet(-nz) + delthet(nz - 1))
       df(nz) = df(-nz)
 
-      zero = 1000 * epsilon(0.0)
-      if (abs(df(-nz)) .LT. zero) df(-nz) = 0.0
-      if (abs(df(nz)) .LT. zero) df(nz) = 0.0
+      ! zero = 1000 * epsilon(0.0)
+      ! if (abs(df(-nz)) .LT. zero) df(-nz) = 0.0
+      ! if (abs(df(nz)) .LT. zero) df(nz) = 0.0
       
    end subroutine get_dthet
 
@@ -1437,9 +1437,9 @@ contains
          integral(i) = integral(i + 1) - 0.5 * delthet(i) * (integrand(i + 1) + integrand(i))
       end do
 
-      zero = 10000 * epsilon(0.0) 
-      if(abs(integral(-nz)) .LT. zero) integral(-nz) = 0.0
-      if(abs(integral(nz)) .LT. zero) integral(nz) = 0.0
+      ! zero = 1000 * epsilon(0.0) 
+      ! if(abs(integral(-nz)) .LT. zero) integral(-nz) = 0.0
+      ! if(abs(integral(nz)) .LT. zero) integral(nz) = 0.0
 
    end subroutine theta_integrate_indef
 
