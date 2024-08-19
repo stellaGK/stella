@@ -726,7 +726,7 @@ contains
       dpsipdrho_out = dpsipdrho
       dpsipdrho_psi0_out = dpsipdrho_psi0
 
-      n = 11
+      n = 12
       do i = -nz, nz
          theta(i) = round(theta(i), n)
          Rr(2, i) = round(Rr(2, i), n)
@@ -1538,10 +1538,12 @@ contains
      real :: val, round
      real :: scaled, remainder
      integer :: n
+     integer :: sgn
 
      scaled = val*10.0**n
-     remainder = modulo(scaled, 10.0)
-     round = (scaled - remainder )/ 10.0**n
+     sgn = sign(1.0, scaled)
+     remainder = modulo(abs(scaled), 10.0)
+     round = (scaled - sgn * remainder )/ 10.0**n
      !aint(val*10.0**n)/10.0**n
    end function round
 
