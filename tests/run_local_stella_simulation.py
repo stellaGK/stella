@@ -276,9 +276,10 @@ def compare_geometry_in_netcdf_files(run_data, error=False):
             # Compare integers and floats
             if expected_netcdf[key].shape == ():
                 if key=='nproc': continue # The number of processors is allowed to differ
+                if(key=='drhodpsi'):
+                    local_netcdf[key].data = np.round(local_netcdf[key].data, 15)
+                    expected_netcdf[key].data = np.round(expected_netcdf[key].data, 15)
                 if (local_netcdf[key] != expected_netcdf[key]):
-                    if(local_netcdf[key]=='drhodpsi'):
-                       local_netcdf[key].data = np.round(local_netcdf[key].data,14)
                     print(f'\nERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
                     print(f'    LOCAL:    {local_netcdf[key].data}')
                     print(f'    EXPECTED: {expected_netcdf[key].data}')
