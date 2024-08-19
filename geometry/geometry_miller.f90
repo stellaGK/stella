@@ -726,7 +726,7 @@ contains
       dpsipdrho_out = dpsipdrho
       dpsipdrho_psi0_out = dpsipdrho_psi0
 
-      n = 12
+      n = 11
       do i = -nz, nz
          theta(i) = round(theta(i), n)
          Rr(2, i) = round(Rr(2, i), n)
