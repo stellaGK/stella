@@ -510,7 +510,7 @@ contains
       ! quantity needed in calculation of dI/drho and djacrho/drho
       drz = (dRdrho * dRdth + dZdrho * dZdth) / jacrho
       call get_dthet(drz, drzdth)
-
+      
       ! get dI/drho
       call get_dIdrho(dpsipdrho, grho, dIdrho)
       dIdrho_out = dIdrho
@@ -918,6 +918,7 @@ contains
       real, dimension(:, -nz:), intent(in) :: f
       real, dimension(-nz:), intent(out) :: df
       real :: zero
+      integer :: i
       
       df = 0.5 * (f(3, :) - f(1, :)) / local%dr
 
@@ -925,8 +926,10 @@ contains
       if (abs(df(-nz)) .LT. zero) df(-nz) = 0.0
       if (abs(df(nz)) .LT. zero) df(nz) = 0.0
 
-      if(sum(abs(df)) .LT. zero) df = 0.0
-      
+      do i = -nz, nz
+         df(i) = round(df(i), 14)
+      end do
+
    end subroutine get_drho
 
    ! given function f(theta), calculate second derivative
@@ -939,6 +942,8 @@ contains
       real, dimension(-nz:), intent(in) :: f
       real, dimension(-nz:), intent(out) :: d2f
       real :: zero
+      integer :: i 
+      
       ! assuming equal grid spacing in theta here
       d2f(-nz + 1:nz - 1) = (f(:nz - 2) - 2.*f(-nz + 1:nz - 1) + f(-nz + 2:)) / delthet(-nz + 1:nz - 1)**2
 
@@ -950,7 +955,10 @@ contains
       if (abs(d2f(-nz)) .LT. zero) d2f(-nz) = 0.0
       if (abs(d2f(nz)) .LT. zero) d2f(nz) = 0.0
 
-      if (sum(abs(d2f)) .LT. zero) d2f = 0.0
+      do i = -nz, nz
+         d2f(i) = round(d2f(i), 14)
+      end do
+
    end subroutine get_d2dthet2
 
    ! given function f(theta:-pi->pi), calculate theta derivative
@@ -963,6 +971,8 @@ contains
       real, dimension(-nz:), intent(in) :: f
       real, dimension(-nz:), intent(out) :: df
       real :: zero
+      integer :: i
+      
       ! assuming equal grid spacing in theta here
       df(-nz + 1:nz - 1) = (f(-nz + 2:) - f(:nz - 2)) / (delthet(:nz - 2) + delthet(-nz + 1:))
 
@@ -970,10 +980,13 @@ contains
       df(-nz) = (f(-nz + 1) - f(nz - 1)) / (delthet(-nz) + delthet(nz - 1))
       df(nz) = df(-nz)
 
-      zero = 1000 * epsilon(0.0)
+      zero = 10000 * epsilon(0.0)
       if (abs(df(-nz)) .LT. zero) df(-nz) = 0.0
       if (abs(df(nz)) .LT. zero) df(nz) = 0.0
-      if (sum(abs(df)) .LT. zero) df = 0.0
+
+      do i = -nz, nz
+         df(i) = round(df(i), 14)
+      end do
       
    end subroutine get_dthet
 
@@ -1379,8 +1392,10 @@ contains
       if(abs(integral(-nz)) .LT. zero) integral(-nz) = 0.0
       if(abs(integral(nz)) .LT. zero) integral(nz) = 0.0
 
-      if (sum(abs(integral)) .LT. zero) integral = 0.0
-      
+      do i = -nz, nz
+         integral(i) = round(integral(i), 14)
+      end do
+
    end subroutine theta_integrate_indef
 
    function Rpos(r, theta, j)
@@ -1472,5 +1487,12 @@ contains
       mod2pi = th
 
    end function mod2pi
+
+   function round(val, n)
+     implicit none
+     real :: val, round
+     integer :: n
+     round = anint(val*10.0**n)/10.0**n
+   end function round
 
 end module geometry_miller
