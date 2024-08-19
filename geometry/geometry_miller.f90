@@ -833,7 +833,7 @@ contains
       allocate (d2Rdth2(-nz:nz), d2Zdth2(-nz:nz)); d2Rdth2 = 0.0; d2Zdth2 = 0.0
       allocate (d2gpsidr2(-nz:nz)); d2gpsidr2 = 0.0
       allocate (gradalph_gradthet(-nz:nz), gradalph2(-nz:nz), gradrho_gradalph(-nz:nz))
-      gradalph_gradthet = 0.0; gradalph2 = 0.0;	gradrho_gradalph = 0.0
+      gradalph_gradthet = 0.0; gradalph2 = 0.0; gradrho_gradalph = 0.0
       allocate (dgds2dr(-nz:nz), dgds21dr(-nz:nz)); dgds2dr = 0.0; dgds21dr = 0.0
       allocate (dgds22dr(-nz:nz)); dgds22dr = 0.0
       allocate (dcvdriftdrho(-nz:nz), dgbdriftdrho(-nz:nz)); dcvdriftdrho = 0.0; dgbdriftdrho = 0.0
@@ -924,6 +924,8 @@ contains
       zero = 1000 * epsilon(0.0)
       if (abs(df(-nz)) .LT. zero) df(-nz) = 0.0
       if (abs(df(nz)) .LT. zero) df(nz) = 0.0
+
+      if(sum(abs(df)) .LT. zero) df = 0.0
       
    end subroutine get_drho
 
@@ -947,7 +949,8 @@ contains
       zero = 1000 * epsilon(0.0)
       if (abs(d2f(-nz)) .LT. zero) d2f(-nz) = 0.0
       if (abs(d2f(nz)) .LT. zero) d2f(nz) = 0.0
-      
+
+      if (sum(abs(d2f)) .LT. zero) d2f = 0.0
    end subroutine get_d2dthet2
 
    ! given function f(theta:-pi->pi), calculate theta derivative
@@ -970,6 +973,7 @@ contains
       zero = 1000 * epsilon(0.0)
       if (abs(df(-nz)) .LT. zero) df(-nz) = 0.0
       if (abs(df(nz)) .LT. zero) df(nz) = 0.0
+      if (sum(abs(df)) .LT. zero) df = 0.0
       
    end subroutine get_dthet
 
@@ -1374,6 +1378,8 @@ contains
       zero = 10000 * epsilon(0.0) 
       if(abs(integral(-nz)) .LT. zero) integral(-nz) = 0.0
       if(abs(integral(nz)) .LT. zero) integral(nz) = 0.0
+
+      if (sum(abs(integral)) .LT. zero) integral = 0.0
       
    end subroutine theta_integrate_indef
 
