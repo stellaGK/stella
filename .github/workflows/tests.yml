@@ -204,7 +204,7 @@ jobs:
         config:
           - name: "Run stella and check the outputs numerically using MacOs operating system" 
     steps:
-	run: brew install gfortran
+	run: brew install gcc
 	
       - name: System information
         run: |
