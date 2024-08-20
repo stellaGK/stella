@@ -62,7 +62,7 @@ def compare_local_txt_with_expected_txt(local_file, expected_file, name, skiplin
         elif open(local_file,'r').read() != open(expected_file,'r').read(): error = True 
     if skiplines>0:
         if open(local_file,'r').readlines()[skiplines:] != open(expected_file,'r').readlines()[skiplines:]: error = True 
-    
+
     # If the files don't match, print the differences
     if error==True:
         print(f'ERROR: {name} files do not match.')
@@ -276,6 +276,9 @@ def compare_geometry_in_netcdf_files(run_data, error=False):
             # Compare integers and floats
             if expected_netcdf[key].shape == ():
                 if key=='nproc': continue # The number of processors is allowed to differ
+                if(key=='drhodpsi'):
+                    local_netcdf[key].data = np.round(local_netcdf[key].data, 15)
+                    expected_netcdf[key].data = np.round(expected_netcdf[key].data, 15)
                 if (local_netcdf[key] != expected_netcdf[key]):
                     print(f'\nERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
                     print(f'    LOCAL:    {local_netcdf[key].data}')

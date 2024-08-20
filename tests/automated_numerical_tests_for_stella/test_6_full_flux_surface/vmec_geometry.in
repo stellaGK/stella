@@ -1,0 +1,81 @@
+! Simple linear example based on a VMEC equillibrium at rho=0.7 using stellarator symmetric boundary conditions
+! We use nfield_periods = 6.073867 to ensure that dkx = dky when using stellarator symmetric boundary conditions
+
+&physics_flags
+  adiabatic_option = 'field-line-average-term'
+  const_alpha_geo = .false.
+  full_flux_surface = .true.
+  include_apar = .false.
+  include_bpar = .false.
+  nonlinear = .true.
+/
+&species_knobs
+  nspec = 1
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 3.0
+  type = 'ion'
+  z = 1.0
+/
+&species_parameters_2
+  dens = 1.0
+  fprim = 1.0
+  mass = 0.0005446
+  temp = 1.0
+  tprim = 3.0
+  type = 'electron'
+  z = -1.0
+/
+&parameters
+  rhostar = 0.02
+/
+&vmec_parameters
+  nfield_periods = 6.073867
+  torflux = 0.49
+  vmec_filename = 'wout_w7x_kjm.nc'
+/
+&kt_grids_box_parameters
+  jtwist = 5
+  nx = 4
+  ny = 6
+/
+&zgrid_parameters
+  boundary_option = 'stellarator'
+  nperiod = 1
+  nzed = 24
+/
+&vpamu_grids_parameters
+  nmu = 2 
+  nvgrid = 3 
+/
+&knobs
+  mirror_semi_lagrange = .false.
+  delt = 0.01 
+  nstep = 10
+  print_extra_info_to_terminal = .false. 
+/
+&stella_diagnostics_knobs
+  nsave = 10
+  nwrite = 1
+/
+&init_g_knobs
+  ginit_option = 'default'
+  phiinit = 0.01
+  width0 = 1.0
+/
+&dissipation
+  hyper_dissipation = .true.
+/
+&geo_knobs
+  geo_option = 'vmec'
+/
+&kt_grids_knobs
+  grid_option = 'box'
+/
+&time_advance_knobs
+  explicit_option = 'rk2'
+/
