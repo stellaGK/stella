@@ -205,7 +205,6 @@ jobs:
           - name: "Run stella and check the outputs numerically using MacOs operating system" 
     steps:
       - name: Install dependencies
-        run: brew update 
 	run: brew install
                  gfortran
                  make
