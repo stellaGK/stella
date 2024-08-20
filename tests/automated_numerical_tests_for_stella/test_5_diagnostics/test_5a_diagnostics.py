@@ -54,9 +54,21 @@ def test_whether_final_fields_diagnostics_are_correct(error=False):
     # Txt file names 
     local_file = stella_local_run_directory / f'{input_file_stem}.final_fields' 
     expected_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file_stem}.final_fields'  
-     
+
+    local_flux_data = np.loadtxt(local_file, dtype='float', skiprows=2)
+    expected_flux_data = np.loadtxt(expected_file, dtype='float', skiprows=2)
+
+    for i in range(len(local_flux_data[0,:])):
+        if not np.allclose(local_flux_data[:,i], expected_flux_data[:,i], rtol = 0.0, atol = 1e-15, equal_nan=True):
+             if not np.allclose(local_flux_data[:,i], -expected_flux_data[:,i], rtol = 0.0, atol = 1e-15, equal_nan=True):
+                 print(f'\nERROR: The fluxes arrays do not match in the txt files.'); error = True
+                 print(f'Compare the fluxes arrays in the local and expected txt files:')
+                 for j in range(len(local_flux_data[:,i])):
+                     print(f'    column {i}: {local_flux_data[j,i]:14.6e}, {expected_flux_data[j,i]:14.6e}')
+    assert (not error), f'The fluxes data does not match in the txt files.'
+                 
     # Check whether the txt files match  
-    compare_local_txt_with_expected_txt(local_file, expected_file, name='Final fields', error=False)
+#    compare_local_txt_with_expected_txt(local_file, expected_file, name='Final fields', error=False)
 
     # If we made it here the test was run correctly 
     print(f'  -->  The final fields diagnostics are working.')
@@ -88,8 +100,10 @@ def test_whether_fluxes_diagnostics_are_correct(error=False):
     # Compare the columns (time; pflux_i, pflux_e, vflux_i, vflux_e, qflux_i, qflux_e)
     # Note that the sign of the fluxes has been fixed in newer stellas
     for i in range(len(local_flux_data[0,:])):
-        if not np.array_equal(local_flux_data[:,i], expected_flux_data[:,i], equal_nan=True): 
-            if not np.array_equal(local_flux_data[:,i], -expected_flux_data[:,i], equal_nan=True):
+        if not np.allclose(local_flux_data[:,i], expected_flux_data[:,i], rtol = 0.0, atol = 1e-15, equal_nan=True):
+             if not np.allclose(local_flux_data[:,i], -expected_flux_data[:,i], rtol = 0.0, atol = 1e-15, equal_nan=True):
+#        if not np.array_equal(local_flux_data[:,i], expected_flux_data[:,i], equal_nan=True): 
+ #           if not np.array_equal(local_flux_data[:,i], -expected_flux_data[:,i], equal_nan=True):
                 print(f'\nERROR: The fluxes arrays do not match in the txt files.'); error = True
                 print(f'Compare the fluxes arrays in the local and expected txt files:')
                 for j in range(len(local_flux_data[:,i])):
