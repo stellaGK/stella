@@ -205,8 +205,8 @@ jobs:
           - name: "Run stella and check the outputs numerically using MacOs operating system" 
     steps:
       - name: Install dependencies
-        run: sudo apt update &&
-             sudo apt install -y
+        run: brew update &&
+	         brew install
                  gfortran
                  make
                  libfftw3-dev
