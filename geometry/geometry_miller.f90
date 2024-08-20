@@ -120,7 +120,6 @@ contains
       real :: dum
       integer :: in_file, np, j
       logical :: exist
-
       
       namelist /millergeo_parameters/ rhoc, rmaj, shift, qinp, shat, &
          kappa, kapprim, tri, triprim, rgeo, betaprim, &
@@ -411,7 +410,8 @@ contains
       real, dimension(3) :: dr
       real, allocatable, dimension(:) :: zed_arc
       character(len=512) :: filename
-
+      integer :: n
+      
       ! Track code
       if (debug) write (*, *) 'geometry_miller::get_local_geo'
       
@@ -725,6 +725,69 @@ contains
       dpsipdrho_out = dpsipdrho
       dpsipdrho_psi0_out = dpsipdrho_psi0
 
+      n = 12
+      do i = -nz, nz
+         theta(i) = round(theta(i), n)
+         Rr(2, i) = round(Rr(2, i), n)
+         dRdrho(i) = round(dRdrho(i), n)
+         d2Rdr2(i) = round(d2Rdr2(i), n) 
+         dRdth(i) = round(dRdth(i), n) 
+         d2Rdrdth(i) = round(d2Rdrdth(i), n) 
+         dZdrho(i) = round(dZdrho(i), n)
+         d2Zdr2(i) = round(d2Zdr2(i), n)
+         dZdth(i) = round(dZdth(i), n)
+         d2Zdrdth(i) = round(d2Zdrdth(i), n) 
+         bmag(i) = round(bmag(i), n) 
+         dBdrho(i) = round(dBdrho(i), n)
+         d2Bdr2(i) = round(d2Bdr2(i), n)
+         dBdth(i) = round(dBdth(i), n) 
+         d2Bdrdth(i) = round(d2Bdrdth(i), n)
+         varthet(i) = round(varthet(i), n) 
+         dvarthdr(i) = round(dvarthdr(i), n)
+         d2varthdr2(i) = round(d2varthdr2(i), n)
+         jacrho(i) = round(jacrho(i), n)
+         djacrdrho(i) = round(djacrdrho(i), n) 
+         djacdrho(i) = round(djacdrho(i), n) 
+         d2jacdr2(i) = round(d2jacdr2(i), n)
+         grho(i) = round(grho(i), n)
+         dgr2dr(i) = round(dgr2dr(i), n)
+         gradthet2(i) = round(gradthet2(i), n)
+         dgt2(i) = round(dgt2(i), n)
+         gradrho_gradthet(i) = round(gradrho_gradthet(i), n)
+         dgrgt(i) = round(dgrgt(i), n)
+         gradalph_gradthet(i) = round(gradalph_gradthet(i), n)
+         dgagt(i) = round(dgagt(i), n) 
+         gradrho_gradalph(i) = round(gradrho_gradalph(i), n) 
+         dgagr(i) = round(dgagr(i), n) 
+         gradalph2(i) = round(gradalph2(i), n) 
+         dga2(i) = round(dga2(i), n)
+         cross(i) = round(cross(i), n) 
+         dcrossdr(i) = round(dcrossdr(i), n) 
+         gbdrift0(i) = round(gbdrift0(i), n) 
+         dgbdrift0drho(i) = round(dgbdrift0drho(i), n) 
+         cvdrift0(i) = round(cvdrift0(i), n) 
+         dcvdrift0drho(i) = round(dcvdrift0drho(i), n)
+         gbdrift(i) = round(gbdrift(i), n)
+         dgbdriftdrho(i) = round(dgbdriftdrho(i), n)
+         cvdrift(i) = round(cvdrift(i), n)
+         dcvdriftdrho(i) = round(dcvdriftdrho(i), n)
+         drzdth(i) = round(drzdth(i), n)
+         gradpar(i) = round(gradpar(i), n)
+         dgradpardrho(i) = round(dgradpardrho(i), n)
+         gradparB(i) = round(gradparB(i), n)
+         dgradparBdrho(i) = round(dgradparBdrho(i), n)
+         gds2(i) = round(gds2(i), n)
+         dgds2dr(i) = round(dgds2dr(i), n)
+         gds21(i) = round(gds21(i), n)
+         dgds21dr(i) = round(dgds21dr(i), n)
+         gds22(i) = round(gds22(i), n)
+         dgds22dr(i) = round(dgds22dr(i), n)
+         gds23(i) = round(gds23(i), n)
+         gds24(i) = round(gds24(i), n) 
+         Zr(2, i) = round(Zr(2,i), n)
+      end do
+
+      
       if (debug) write (*, *) 'geometry_miller::write_geometry_miller_txt_files'
       filename = "geometry_miller."//trim(run_name)//".input"
       open (1002, file=trim(filename), status='unknown')
@@ -805,33 +868,41 @@ contains
       integer, intent(in) :: nr, nz
 
       ! periodic quantities can be computed on 2*pi grid and replicated
-      allocate (grho(-nz:nz), bmag(-nz:nz), gradpar(-nz:nz))
+      allocate (grho(-nz:nz), bmag(-nz:nz), gradpar(-nz:nz)); grho = 0.0; bmag = 0.0; gradpar = 0.0
       allocate (gds2(-nz:nz), gds21(-nz:nz), gds22(-nz:nz), gds23(-nz:nz), gds24(-nz:nz))
-      allocate (gbdrift0(-nz:nz), gbdrift(-nz:nz))
-      allocate (cvdrift0(-nz:nz), cvdrift(-nz:nz))
-      allocate (Rr(nr, -nz:nz), Zr(nr, -nz:nz))
+      gds2 = 0.0; gds21 = 0.0; gds22 = 0.0; gds23 = 0.0; gds24 = 0.0
+      allocate (gbdrift0(-nz:nz), gbdrift(-nz:nz)); gbdrift0 = 0.0; gbdrift = 0.0
+      allocate (cvdrift0(-nz:nz), cvdrift(-nz:nz)); cvdrift0 = 0.0; cvdrift = 0.0
+      allocate (Rr(nr, -nz:nz), Zr(nr, -nz:nz)); Rr = 0.0; Zr = 0.0
       allocate (jacrho(-nz:nz), djacdrho(-nz:nz), djacrdrho(-nz:nz), d2jacdr2(-nz:nz))
-      allocate (d2Rdrdth(-nz:nz), d2Zdrdth(-nz:nz), gpsi(-nz:nz))
-      allocate (dBdrho(-nz:nz), dgradpardrho(-nz:nz))
+      jacrho = 0.0; djacdrho = 0.0; djacrdrho = 0.0; d2jacdr2 = 0.0
+      allocate (d2Rdrdth(-nz:nz), d2Zdrdth(-nz:nz), gpsi(-nz:nz)); d2Rdrdth = 0.0; d2Zdrdth = 0.0; gpsi = 0.0
+      allocate (dBdrho(-nz:nz), dgradpardrho(-nz:nz)); dBdrho = 0.0; dgradpardrho = 0.0
       allocate (d2Bdrdth(-nz:nz), dgradparBdrho(-nz:nz), dBdth(-nz:nz), gradparb(-nz:nz))
-      allocate (dcvdrift0drho(-nz:nz), dgbdrift0drho(-nz:nz))
-      allocate (theta(-nz:nz))
-      allocate (gradpararc(-nz:nz))
-      allocate (arc(-nz:nz))
+      d2Bdrdth = 0.0; dgradparBdrho = 0.0; dBdth = 0.0; gradparb = 0.0
+      allocate (dcvdrift0drho(-nz:nz), dgbdrift0drho(-nz:nz)); dcvdrift0drho = 0.0; dgbdrift0drho = 0.0
+      allocate (theta(-nz:nz)); theta = 0.0
+      allocate (gradpararc(-nz:nz)); gradpararc = 0.0
+      allocate (arc(-nz:nz)); arc = 0.0
       allocate (dRdrho(-nz:nz), dZdrho(-nz:nz), dRdth(-nz:nz), dZdth(-nz:nz))
+      dRdrho = 0.0; dZdrho = 0.0; dRdth  = 0.0; dZdth= 0.0
       allocate (gradrho_gradthet(-nz:nz), gradthet2(-nz:nz), dgr2dr(-nz:nz), dgpsi2dr(-nz:nz))
+      gradrho_gradthet = 0.0; gradthet2 = 0.0; dgr2dr = 0.0; dgpsi2dr = 0.0
       allocate (dgrgt(-nz:nz), dgt2(-nz:nz), dgagr(-nz:nz), dgagt(-nz:nz), dga2(-nz:nz))
-      allocate (d2Rdr2(-nz:nz), d2Zdr2(-nz:nz), d2Bdr2(-nz:nz))
+      dgrgt = 0.0; dgt2 = 0.0; dgagr = 0.0; dgagt = 0.0; dga2 = 0.0
+      allocate (d2Rdr2(-nz:nz), d2Zdr2(-nz:nz), d2Bdr2(-nz:nz)); d2Rdr2 = 0.0; d2Zdr2 = 0.0; d2Bdr2 = 0.0
       allocate (drz(-nz:nz), drzdth(-nz:nz), d2Rdr2dth(-nz:nz), d2Zdr2dth(-nz:nz))
-      allocate (d2Rdth2(-nz:nz), d2Zdth2(-nz:nz))
-      allocate (d2gpsidr2(-nz:nz))
+      drz = 0.0; drzdth = 0.0; d2Rdr2dth = 0.0; d2Zdr2dth = 0.0
+      allocate (d2Rdth2(-nz:nz), d2Zdth2(-nz:nz)); d2Rdth2 = 0.0; d2Zdth2 = 0.0
+      allocate (d2gpsidr2(-nz:nz)); d2gpsidr2 = 0.0
       allocate (gradalph_gradthet(-nz:nz), gradalph2(-nz:nz), gradrho_gradalph(-nz:nz))
-      allocate (dgds2dr(-nz:nz), dgds21dr(-nz:nz))
-      allocate (dgds22dr(-nz:nz))
-      allocate (dcvdriftdrho(-nz:nz), dgbdriftdrho(-nz:nz))
-      allocate (varthet(-nz:nz), dvarthdr(-nz:nz), d2varthdr2(-nz:nz))
-      allocate (cross(-nz:nz))
-      allocate (dcrossdr(-nz:nz))
+      gradalph_gradthet = 0.0; gradalph2 = 0.0; gradrho_gradalph = 0.0
+      allocate (dgds2dr(-nz:nz), dgds21dr(-nz:nz)); dgds2dr = 0.0; dgds21dr = 0.0
+      allocate (dgds22dr(-nz:nz)); dgds22dr = 0.0
+      allocate (dcvdriftdrho(-nz:nz), dgbdriftdrho(-nz:nz)); dcvdriftdrho = 0.0; dgbdriftdrho = 0.0
+      allocate (varthet(-nz:nz), dvarthdr(-nz:nz), d2varthdr2(-nz:nz)); varthet = 0.0; dvarthdr = 0.0; d2varthdr2 = 0.0
+      allocate (cross(-nz:nz)); cross = 0.0
+      allocate (dcrossdr(-nz:nz)); dcrossdr = 0.0
 
    end subroutine allocate_arrays
 
@@ -912,10 +983,6 @@ contains
       real :: zero
       
       df = 0.5 * (f(3, :) - f(1, :)) / local%dr
-
-      zero = 1000 * epsilon(0.0)
-      if (abs(df(-nz)) .LT. zero) df(-nz) = 0.0
-      if (abs(df(nz)) .LT. zero) df(nz) = 0.0
       
    end subroutine get_drho
 
@@ -929,16 +996,13 @@ contains
       real, dimension(-nz:), intent(in) :: f
       real, dimension(-nz:), intent(out) :: d2f
       real :: zero
+      
       ! assuming equal grid spacing in theta here
       d2f(-nz + 1:nz - 1) = (f(:nz - 2) - 2.*f(-nz + 1:nz - 1) + f(-nz + 2:)) / delthet(-nz + 1:nz - 1)**2
 
       ! use periodicity at boundary
       d2f(-nz) = (f(nz - 1) - 2.*f(-nz) + f(-nz + 1)) / delthet(-nz + 1)**2
       d2f(nz) = d2f(-nz)
-
-      zero = 1000 * epsilon(0.0)
-      if (abs(d2f(-nz)) .LT. zero) d2f(-nz) = 0.0
-      if (abs(d2f(nz)) .LT. zero) d2f(nz) = 0.0
       
    end subroutine get_d2dthet2
 
@@ -952,6 +1016,7 @@ contains
       real, dimension(-nz:), intent(in) :: f
       real, dimension(-nz:), intent(out) :: df
       real :: zero
+      
       ! assuming equal grid spacing in theta here
       df(-nz + 1:nz - 1) = (f(-nz + 2:) - f(:nz - 2)) / (delthet(:nz - 2) + delthet(-nz + 1:))
 
@@ -959,10 +1024,6 @@ contains
       df(-nz) = (f(-nz + 1) - f(nz - 1)) / (delthet(-nz) + delthet(nz - 1))
       df(nz) = df(-nz)
 
-      zero = 1000 * epsilon(0.0)
-      if (abs(df(-nz)) .LT. zero) df(-nz) = 0.0
-      if (abs(df(nz)) .LT. zero) df(nz) = 0.0
-      
    end subroutine get_dthet
 
    subroutine get_jacrho
@@ -1362,10 +1423,6 @@ contains
       do i = -1, -nz, -1
          integral(i) = integral(i + 1) - 0.5 * delthet(i) * (integrand(i + 1) + integrand(i))
       end do
-
-      zero = 10000 * epsilon(0.0) 
-      if(abs(integral(-nz)) .LT. zero) integral(-nz) = 0.0
-      if(abs(integral(nz)) .LT. zero) integral(nz) = 0.0
       
    end subroutine theta_integrate_indef
 
@@ -1458,5 +1515,19 @@ contains
       mod2pi = th
 
    end function mod2pi
+
+   function round(val, n)
+     implicit none
+     real :: val, round
+     real :: scaled, remainder
+     integer :: n
+     integer :: sgn
+
+     scaled = val*10.0**n
+     sgn = sign(1.0, scaled)
+     remainder = modulo(abs(scaled), 10.0)
+     round = (scaled - sgn * remainder )/ 10.0**n
+     !aint(val*10.0**n)/10.0**n
+   end function round
 
 end module geometry_miller

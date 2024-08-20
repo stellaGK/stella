@@ -349,7 +349,10 @@ contains
       zed_upwind_minus = 0.5 * (1.0 - zed_upwind)
 
       if (.not. include_mirror) mirror_implicit = .false.
-      if (.not. include_parallel_streaming) stream_implicit = .false.
+      if (.not. include_parallel_streaming) then
+         stream_implicit = .false.
+         driftkinetic_implicit = .false.
+      end if
 
       if (mirror_implicit .or. stream_implicit .or. drifts_implicit) then
          fully_explicit = .false.

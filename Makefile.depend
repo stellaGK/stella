@@ -249,6 +249,7 @@ diagnostics_moments.o: \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
+	 parameters_diagnostics.o \
 	 physics_flags.o \
 	 run_parameters.o \
 	 species.o \
@@ -278,6 +279,7 @@ diagnostics_potential.o: \
 	 job_manage.o \
 	 kt_grids.o \
 	 mp.o \
+	 parameters_diagnostics.o \
 	 physics_flags.o \
 	 stella_io.o \
 	 stella_time.o \
