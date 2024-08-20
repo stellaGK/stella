@@ -205,17 +205,16 @@ jobs:
           - name: "Run stella and check the outputs numerically using MacOs operating system" 
     steps:
       - name: Install dependencies
-	run: brew install
-                 gfortran
-                 make
-                 libfftw3-dev
-                 libnetcdf-dev
-                 libnetcdff-dev
-                 netcdf-bin
-                 python3
-                 python3-pip
-                 openmpi-bin
-                 libopenmpi-dev
+	run: brew install gfortran
+	run: brew install make
+	run: brew install libfftw3-dev
+	run: brew install libnetcdf-dev
+	run: brew install libnetcdff-dev
+	run: brew install netcdf-bin
+	run: brew install python3
+	run: brew install python3-pip
+	run: brew install openmpi-bin
+	run: brew install libopenmpi-dev
 
       - name: System information
         run: |
