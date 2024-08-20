@@ -55,21 +55,22 @@ def test_whether_final_fields_diagnostics_are_correct(error=False):
     local_file = stella_local_run_directory / f'{input_file_stem}.final_fields' 
     expected_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file_stem}.final_fields'  
 
-    local_flux_data = np.loadtxt(local_file, dtype='float', skiprows=2)
-    expected_flux_data = np.loadtxt(expected_file, dtype='float', skiprows=2)
+    local_fields_data = np.loadtxt(local_file, dtype='float', skiprows=2)
+    expected_fields_data = np.loadtxt(expected_file, dtype='float', skiprows=2)
 
-    for i in range(len(local_flux_data[0,:])):
-        if not np.allclose(local_flux_data[:,i], expected_flux_data[:,i], rtol = 0.0, atol = 1e-15, equal_nan=True):
-             if not np.allclose(local_flux_data[:,i], -expected_flux_data[:,i], rtol = 0.0, atol = 1e-15, equal_nan=True):
-                 print(f'\nERROR: The fluxes arrays do not match in the txt files.'); error = True
-                 print(f'Compare the fluxes arrays in the local and expected txt files:')
-                 for j in range(len(local_flux_data[:,i])):
-                     print(f'    column {i}: {local_flux_data[j,i]:14.6e}, {expected_flux_data[j,i]:14.6e}')
-    assert (not error), f'The fluxes data does not match in the txt files.'
-                 
     # Check whether the txt files match  
-#    compare_local_txt_with_expected_txt(local_file, expected_file, name='Final fields', error=False)
+    for i in range(len(local_fields_data[0,:])):
+        # Add in a tolerance here to allow for a small differences in the final fields data due to numerical noise
+        # This is needd because there are operations with zero's in the final fields for zed = 0.0, which can lead to
+        # which can lead to different values for zeros for different operating systems.
+        if not np.allclose(local_fields_data[:,i], expected_fields_data[:,i], rtol = 0.0, atol = 1e-15, equal_nan=True):
+            print(f'\nERROR: The final fields do not match in the txt files.'); error = True
+            print(f'Compare the final fields in the local and expected txt files:')
+            for j in range(len(local_fields_data[:,i])):
+                print(f'    column {i}: {local_fields_data[j,i]:14.6e}, {expected_fields_data[j,i]:14.6e}')
 
+    assert (not error), f'The final fields data does not match in the txt files.'
+                 
     # If we made it here the test was run correctly 
     print(f'  -->  The final fields diagnostics are working.')
     return 
