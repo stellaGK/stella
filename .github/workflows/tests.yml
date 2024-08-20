@@ -191,10 +191,10 @@ jobs:
           set -ex
           export GK_SYSTEM=gnu_ubuntu
           make -I Makefiles run-automated-numerical-tests-for-stella
-        
-  # Build stella with Make and run automatic python tests using MacOs operating system
+
+# Build stella with Make and run automatic python tests
   test5:
-    runs-on: macOS-latest
+    runs-on: ubuntu-latest
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
       MPIRUN: mpiexec -np
@@ -202,18 +202,21 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - name: "Run stella and check the outputs numerically using MacOs operating system" 
+          - name: "Run stella and check the outputs numerically" 
     steps:
-	run: brew install gfortran
-	run: brew install make
-	run: brew install libfftw3-dev
-	run: brew install libnetcdf-dev
-	run: brew install libnetcdff-dev
-	run: brew install netcdf-bin
-	run: brew install python3
-	run: brew install python3-pip
-	run: brew install openmpi-bin
-	run: brew install libopenmpi-dev
+      - name: Install dependencies
+        run: sudo apt update &&
+             sudo apt install -y
+                 gfortran
+                 make
+                 libfftw3-dev
+                 libnetcdf-dev
+                 libnetcdff-dev
+                 netcdf-bin
+                 python3
+                 python3-pip
+                 openmpi-bin
+                 libopenmpi-dev
 
       - name: System information
         run: |
@@ -228,12 +231,11 @@ jobs:
       - name: Build stella 
         run: |
           set -ex
-          export GK_SYSTEM=macosx
+          export GK_SYSTEM=gnu_ubuntu
           make -I Makefiles -j4 
 
       - name: Perform numerical tests for stella with Python
         run: |
           set -ex
-          export GK_SYSTEM=macosx
+          export GK_SYSTEM=gnu_ubuntu
           make -I Makefiles run-automated-numerical-tests-for-stella
-        
