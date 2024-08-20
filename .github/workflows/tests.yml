@@ -204,7 +204,6 @@ jobs:
         config:
           - name: "Run stella and check the outputs numerically using MacOs operating system" 
     steps:
-      - name: Install dependencies
 	run: brew install gfortran
 	run: brew install make
 	run: brew install libfftw3-dev
