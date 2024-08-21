@@ -49,13 +49,14 @@ contains
    subroutine init_species
 
 !    use mp, only: trin_flag
-      use mp, only: proc0, broadcast
+      use mp, only: proc0, broadcast, mp_abort
       use parameters_physics, only: vnew_ref, zeff
       use parameters_physics, only: include_pressure_variation
       use parameters_physics, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       use geometry_inputprofiles_interface, only: read_inputprof_spec
       use euterpe_interface, only: read_species_euterpe
 
+      use parameters_physics, only: full_flux_surface
       implicit none
 
       integer :: is, is2
@@ -128,6 +129,10 @@ contains
       modified_adiabatic_electrons = adiabatic_electrons &
                                      .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
 
+      if(has_electron_species(spec) .and. full_flux_surface) then
+         write (*,*) 'full_flux_surface is not set up for kinetic electrons yet'
+         call mp_abort('full_flux_surface is not set up for kinetic electrons yet')
+      end if
 !    if (trin_flag) call reinit_species (ntspec_trin, dens_trin, &
 !         temp_trin, fprim_trin, tprim_trin, nu_trin)
    end subroutine init_species

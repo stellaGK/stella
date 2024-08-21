@@ -180,11 +180,11 @@ contains
       upar0 = 0. ! Used for <ginit_options> = {default, kpar}
       tpar0 = 0. ! Used for <ginit_options> = {kpar}
       tperp0 = 0. ! Used for <ginit_options> = {kpar}
-      den1 = 0.	! Used for <ginit_options> = {kpar}
+      den1 = 0. ! Used for <ginit_options> = {kpar}
       upar1 = 0. ! Used for <ginit_options> = {kpar}	
       tpar1 = 0. ! Used for <ginit_options> = {kpar}
       tperp1 = 0. ! Used for <ginit_options> = {kpar}
-      den2 = 0.	! Used for <ginit_options> = {kpar}
+      den2 = 0. ! Used for <ginit_options> = {kpar}
       upar2 = 0. ! Used for <ginit_options> = {kpar}
       tpar2 = 0. ! Used for <ginit_options> = {kpar}
       tperp2 = 0. ! Used for <ginit_options> = {kpar}

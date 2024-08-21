@@ -285,7 +285,6 @@ contains
 
       use parameters_diagnostics, only: write_omega_vs_kxky
       use file_utils, only: close_output_file
-      use mp, only: proc0 
 
       implicit none  
 

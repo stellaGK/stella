@@ -208,7 +208,6 @@ contains
          use parameters_physics, only: nonlinear
          use parameters_physics, only: rhostar
          !> For FFS - need to delete
-         use species, only: has_electron_species, spec
          
          implicit none 
 
@@ -329,7 +328,6 @@ contains
 
          !> Print warning messages and override inconsistent or unsupported options for full_flux_surface = T
          if (full_flux_surface) then
-            if (has_electron_species(spec)) call mp_abort('FFS not set up for kinetic electrons yet')
             if (fields_kxkyz) then
                write (*, *)
                write (*, *) '!!!WARNING!!!'
