@@ -223,7 +223,7 @@ jobs:
       - name: Build stella
         run: |
           set -ex
-          make -I Makefiles -j1
+          make -I Makefiles -j4
 
       - name: Perform numerical tests for stella with Python
         run: |
