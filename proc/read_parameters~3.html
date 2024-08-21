@@ -80,20 +80,20 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.1% of total for procedures.">42 statements</a>
+                 title=" 0.1% of total for procedures.">47 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
               <i class="fa fa-code"></i>
-              <a href="../src/init_g.f90"> Source File</a>
+              <a href="../src/sources.fpp"> Source File</a>
             </li>
         </ul>
       </div>
       <div class="col">
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb justify-content-end mb-0">
-                <li class="breadcrumb-item"><a href='../sourcefile/init_g.f90.html'>init_g.f90</a></li>
-                <li class="breadcrumb-item"><a href='../module/init_g.html'>init_g</a></li>
+                <li class="breadcrumb-item"><a href='../sourcefile/sources.fpp.html'>sources.fpp</a></li>
+                <li class="breadcrumb-item"><a href='../module/sources.html'>sources</a></li>
             <li class="breadcrumb-item active" aria-current="page">read_parameters</li>
           </ol>
         </nav>
@@ -138,7 +138,7 @@
       </a>
       <div id="namelists-0" class="collapse">
         <div class="list-group list-group-flush">
-            <a class="list-group-item" href="../proc/read_parameters~3.html#namelist-init_g_knobs">init_g_knobs</a>
+            <a class="list-group-item" href="../proc/read_parameters~3.html#namelist-sources">sources</a>
         </div>
       </div>
     </div>
@@ -158,9 +158,12 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/stella_save.html'>stella_save</a></li>
+                  <li class="list-inline-item"><a href='../module/fields_arrays.html'>fields_arrays</a></li>
                   <li class="list-inline-item"><a href='../module/text_options.html'>text_options</a></li>
                   <li class="list-inline-item"><a href='../module/file_utils.html'>file_utils</a></li>
+                  <li class="list-inline-item"><a href='../module/kt_grids.html'>kt_grids</a></li>
+                  <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
+                  <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
               </ul>
             </li>
         </ul>
@@ -188,15 +191,15 @@
         <h2>Namelists</h2>
             <div class="card">
     <div class="card-header codesum">
-      <span class="anchor" id="namelist-init_g_knobs"></span>
-      <h3>Namelist <a href='../namelist/init_g_knobs.html'>init_g_knobs</a></h3>
+      <span class="anchor" id="namelist-sources"></span>
+      <h3>Namelist <a href='../namelist/sources.html'>sources</a></h3>
     </div>
     <div class="card-body">
         
   <br class="visible-xs visible-sm hidden-md">
   <section>
     <h2>Variables</h2>
-    <table class="table table-striped" id="namelist-init_g_knobs">
+    <table class="table table-striped" id="namelist-sources">
       <thead><tr>
           <th>Name</th>
           <th>Type</th>
@@ -204,204 +207,78 @@
           <th>Description</th>
       </tr></thead>
       <tbody>
-              <tr id="variable-ginit_option">
-      <td><a href="#variable-ginit_option">ginit_option</a></td>
-      <td>character(len=20)</td>
+              <tr id="variable-source_option">
+      <td><a href="#variable-source_option">source_option</a></td>
+      <td>character(len=30)</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-width0">
-      <td><a href="#variable-width0">width0</a></td>
+              <tr id="variable-nu_krook">
+      <td><a href="#variable-nu_krook">nu_krook</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-phiinit">
-      <td><a href="#variable-phiinit">phiinit</a></td>
+              <tr id="variable-tcorr_source">
+      <td><a href="#variable-tcorr_source">tcorr_source</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-chop_side">
-      <td><a href="#variable-chop_side">chop_side</a></td>
+              <tr id="variable-ikxmax_source">
+      <td><a href="#variable-ikxmax_source">ikxmax_source</a></td>
+      <td>integer</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-krook_odd">
+      <td><a href="#variable-krook_odd">krook_odd</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-restart_file">
-      <td><a href="#variable-restart_file">restart_file</a></td>
-      <td>character(len=300)</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-restart_dir">
-      <td><a href="#variable-restart_dir">restart_dir</a></td>
-      <td>character(len=150)</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-read_many">
-      <td><a href="#variable-read_many">read_many</a></td>
-      <td>logical</td>
-      <td>.true.</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-left">
-      <td><a href="#variable-left">left</a></td>
+              <tr id="variable-exclude_boundary_regions">
+      <td><a href="#variable-exclude_boundary_regions">exclude_boundary_regions</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-scale">
-      <td><a href="#variable-scale">scale</a></td>
+              <tr id="variable-tcorr_source_qn">
+      <td><a href="#variable-tcorr_source_qn">tcorr_source_qn</a></td>
       <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-tstart">
-      <td><a href="#variable-tstart">tstart</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-zf_init">
-      <td><a href="#variable-zf_init">zf_init</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-den0">
-      <td><a href="#variable-den0">den0</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-upar0">
-      <td><a href="#variable-upar0">upar0</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-tpar0">
-      <td><a href="#variable-tpar0">tpar0</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-tperp0">
-      <td><a href="#variable-tperp0">tperp0</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-imfac">
-      <td><a href="#variable-imfac">imfac</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-refac">
-      <td><a href="#variable-refac">refac</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-den1">
-      <td><a href="#variable-den1">den1</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-upar1">
-      <td><a href="#variable-upar1">upar1</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-tpar1">
-      <td><a href="#variable-tpar1">tpar1</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-tperp1">
-      <td><a href="#variable-tperp1">tperp1</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-den2">
-      <td><a href="#variable-den2">den2</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-upar2">
-      <td><a href="#variable-upar2">upar2</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-tpar2">
-      <td><a href="#variable-tpar2">tpar2</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-tperp2">
-      <td><a href="#variable-tperp2">tperp2</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-kxmax">
-      <td><a href="#variable-kxmax">kxmax</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-kxmin">
-      <td><a href="#variable-kxmin">kxmin</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-scale_to_phiinit">
-      <td><a href="#variable-scale_to_phiinit">scale_to_phiinit</a></td>
+              <tr id="variable-exclude_boundary_regions_qn">
+      <td><a href="#variable-exclude_boundary_regions_qn">exclude_boundary_regions_qn</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-oddparity">
-      <td><a href="#variable-oddparity">oddparity</a></td>
+              <tr id="variable-from_zero">
+      <td><a href="#variable-from_zero">from_zero</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-conserve_momentum">
+      <td><a href="#variable-conserve_momentum">conserve_momentum</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-conserve_density">
+      <td><a href="#variable-conserve_density">conserve_density</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
@@ -429,13 +306,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-360-g668b75605c</small></p>
+<br /><small>v0.5.1-361-g0919910b30</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-08-20T11:20:16.690149             </p>
+ on 2024-08-21T15:15:10.338813             </p>
           </div>
         </div>
         <br>

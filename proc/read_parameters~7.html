@@ -80,20 +80,20 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.6% of total for procedures.">221 statements</a>
+                 title=" 0.1% of total for procedures.">36 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
               <i class="fa fa-code"></i>
-              <a href="../src/run_parameters.f90"> Source File</a>
+              <a href="../src/dissipation.f90"> Source File</a>
             </li>
         </ul>
       </div>
       <div class="col">
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb justify-content-end mb-0">
-                <li class="breadcrumb-item"><a href='../sourcefile/run_parameters.f90.html'>run_parameters.f90</a></li>
-                <li class="breadcrumb-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
+                <li class="breadcrumb-item"><a href='../sourcefile/dissipation.f90.html'>dissipation.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/dissipation.html'>dissipation</a></li>
             <li class="breadcrumb-item active" aria-current="page">read_parameters</li>
           </ol>
         </nav>
@@ -138,7 +138,7 @@
       </a>
       <div id="namelists-0" class="collapse">
         <div class="list-group list-group-flush">
-            <a class="list-group-item" href="../proc/read_parameters~7.html#namelist-knobs">knobs</a>
+            <a class="list-group-item" href="../proc/read_parameters~7.html#namelist-dissipation">dissipation</a>
         </div>
       </div>
     </div>
@@ -150,7 +150,7 @@
     </div>
     
     <div class="col-md-9" id='text'>
-    <h2>private  subroutine read_parameters()  
+    <h2>public  subroutine read_parameters()  
 </h2>
         <div class="card mb-4">
       <h3 class="card-header card-title bg-light">Uses</h3>
@@ -158,12 +158,12 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/species.html'>species</a></li>
-                  <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
-                  <li class="list-inline-item"><a href='../module/physics_parameters.html'>physics_parameters</a></li>
-                  <li class="list-inline-item"><a href='../module/text_options.html'>text_options</a></li>
+                  <li class="list-inline-item"><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></li>
                   <li class="list-inline-item"><a href='../module/file_utils.html'>file_utils</a></li>
-                  <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
+                  <li class="list-inline-item"><a href='../module/hyper.html'>hyper</a></li>
+                  <li class="list-inline-item"><a href='../module/coll_dougherty.html'>coll_dougherty</a></li>
+                  <li class="list-inline-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
+                  <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
               </ul>
             </li>
         </ul>
@@ -171,8 +171,6 @@
     </div>
 
 
-    <p>For FFS - need to delete 
-print warning messages and override inconsistent or unsupported options for full_flux_surface = T</p>
 
 
     <h3>Arguments</h3>
@@ -193,15 +191,15 @@ print warning messages and override inconsistent or unsupported options for full
         <h2>Namelists</h2>
             <div class="card">
     <div class="card-header codesum">
-      <span class="anchor" id="namelist-knobs"></span>
-      <h3>Namelist <a href='../namelist/knobs.html'>knobs</a></h3>
+      <span class="anchor" id="namelist-dissipation"></span>
+      <h3>Namelist <a href='../namelist/dissipation.html'>dissipation</a></h3>
     </div>
     <div class="card-body">
         
   <br class="visible-xs visible-sm hidden-md">
   <section>
     <h2>Variables</h2>
-    <table class="table table-striped" id="namelist-knobs">
+    <table class="table table-striped" id="namelist-dissipation">
       <thead><tr>
           <th>Name</th>
           <th>Type</th>
@@ -209,246 +207,29 @@ print warning messages and override inconsistent or unsupported options for full
           <th>Description</th>
       </tr></thead>
       <tbody>
-              <tr id="variable-fphi">
-      <td><a href="#variable-fphi">fphi</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-fapar">
-      <td><a href="#variable-fapar">fapar</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-fbpar">
-      <td><a href="#variable-fbpar">fbpar</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-delt~2">
-      <td><a href="#variable-delt~2">delt</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-nstep~2">
-      <td><a href="#variable-nstep~2">nstep</a></td>
-      <td>integer</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-tend">
-      <td><a href="#variable-tend">tend</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-delt_option">
-      <td><a href="#variable-delt_option">delt_option</a></td>
-      <td>character(len=20)</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-lu_option">
-      <td><a href="#variable-lu_option">lu_option</a></td>
-      <td>character(len=20)</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-autostop">
-      <td><a href="#variable-autostop">autostop</a></td>
+              <tr id="variable-include_collisions">
+      <td><a href="#variable-include_collisions">include_collisions</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-avail_cpu_time">
-      <td><a href="#variable-avail_cpu_time">avail_cpu_time</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-delt_max">
-      <td><a href="#variable-delt_max">delt_max</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-delt_min">
-      <td><a href="#variable-delt_min">delt_min</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-cfl_cushion_upper">
-      <td><a href="#variable-cfl_cushion_upper">cfl_cushion_upper</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-cfl_cushion_middle">
-      <td><a href="#variable-cfl_cushion_middle">cfl_cushion_middle</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-cfl_cushion_lower">
-      <td><a href="#variable-cfl_cushion_lower">cfl_cushion_lower</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-stream_implicit">
-      <td><a href="#variable-stream_implicit">stream_implicit</a></td>
+              <tr id="variable-collisions_implicit~4">
+      <td><a href="#variable-collisions_implicit~4">collisions_implicit</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-mirror_implicit">
-      <td><a href="#variable-mirror_implicit">mirror_implicit</a></td>
-      <td>logical</td>
+              <tr id="variable-collision_model">
+      <td><a href="#variable-collision_model">collision_model</a></td>
+      <td>character(len=30)</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-drifts_implicit">
-      <td><a href="#variable-drifts_implicit">drifts_implicit</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-use_deltaphi_for_response_matrix">
-      <td><a href="#variable-use_deltaphi_for_response_matrix">use_deltaphi_for_response_matrix</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-maxwellian_normalization">
-      <td><a href="#variable-maxwellian_normalization">maxwellian_normalization</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-stream_matrix_inversion">
-      <td><a href="#variable-stream_matrix_inversion">stream_matrix_inversion</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-maxwellian_inside_zed_derivative">
-      <td><a href="#variable-maxwellian_inside_zed_derivative">maxwellian_inside_zed_derivative</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-mirror_semi_lagrange">
-      <td><a href="#variable-mirror_semi_lagrange">mirror_semi_lagrange</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-mirror_linear_interp">
-      <td><a href="#variable-mirror_linear_interp">mirror_linear_interp</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-zed_upwind">
-      <td><a href="#variable-zed_upwind">zed_upwind</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-vpa_upwind">
-      <td><a href="#variable-vpa_upwind">vpa_upwind</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-time_upwind">
-      <td><a href="#variable-time_upwind">time_upwind</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-fields_kxkyz">
-      <td><a href="#variable-fields_kxkyz">fields_kxkyz</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-mat_gen">
-      <td><a href="#variable-mat_gen">mat_gen</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-mat_read">
-      <td><a href="#variable-mat_read">mat_read</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-rng_seed">
-      <td><a href="#variable-rng_seed">rng_seed</a></td>
-      <td>integer</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-ky_solve_radial">
-      <td><a href="#variable-ky_solve_radial">ky_solve_radial</a></td>
-      <td>integer</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-ky_solve_real">
-      <td><a href="#variable-ky_solve_real">ky_solve_real</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-nitt">
-      <td><a href="#variable-nitt">nitt</a></td>
-      <td>integer</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-print_extra_info_to_terminal">
-      <td><a href="#variable-print_extra_info_to_terminal">print_extra_info_to_terminal</a></td>
+              <tr id="variable-hyper_dissipation">
+      <td><a href="#variable-hyper_dissipation">hyper_dissipation</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
@@ -476,13 +257,13 @@ print warning messages and override inconsistent or unsupported options for full
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-360-g668b75605c</small></p>
+<br /><small>v0.5.1-361-g0919910b30</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-08-20T11:20:16.690149             </p>
+ on 2024-08-21T15:15:10.338813             </p>
           </div>
         </div>
         <br>
