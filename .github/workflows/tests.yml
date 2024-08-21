@@ -103,8 +103,48 @@ jobs:
           make -I Makefiles -j4 build-pfunit-library
           make -I Makefiles -j4 run-automated-fortran-tests 
 
-  # Build stella with Make and run automatic python tests
+  # Build stella with CMake and run automatic Fortran tests
+  # Cmake has to run on 1 node or it will run into parallelisation errors
   test3:
+    runs-on: ubuntu-latest
+    env:
+      OMPI_MCA_rmaps_base_oversubscribe: yes
+      MPIRUN: mpiexec -np
+    strategy:
+      fail-fast: false
+      matrix:
+        config: 
+          - name: "CMake stella"
+    steps:
+      - name: Install dependencies
+        run: sudo apt update &&
+             sudo apt install -y
+                 gfortran
+                 make
+                 libfftw3-dev
+                 libnetcdf-dev
+                 libnetcdff-dev
+                 netcdf-bin
+                 python3
+                 python3-pip
+                 openmpi-bin
+                 libopenmpi-dev
+
+      - name: System information
+        run: |
+          cat /etc/*release
+          gfortran --version
+          nf-config --all
+      - uses: actions/checkout@v2  
+
+      - name: Build stella (CMake)
+        run: |
+          set -ex
+          cmake . -B build -DSTELLA_ENABLE_TESTS=on
+          cmake --build build -j1 --target check
+
+  # Build stella with Make and run automatic python tests
+  test4:
     runs-on: ubuntu-latest
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
@@ -151,42 +191,45 @@ jobs:
           export GK_SYSTEM=gnu_ubuntu
           make -I Makefiles run-automated-numerical-tests-for-stella
         
-  # Build stella with CMake and run automatic Fortran tests
-  # Cmake has to run on 1 node or it will run into parallelisation errors
-  test4:
-    runs-on: ubuntu-latest
+  # Build stella with Make and run automatic python tests
+  test5:
+    runs-on: macos-latest
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
       MPIRUN: mpiexec -np
+      GK_SYSTEM: macosx
+      FFTW_LIB_DIR: /opt/homebrew/lib/
+      FFTW_INC_DIR: /opt/homebrew/include/
+      NETCDF_LIB_DIR: /opt/homebrew/lib/
+      NETCDF_INC_DIR: /opt/homebrew/include/
     strategy:
       fail-fast: false
       matrix:
-        config: 
-          - name: "CMake stella"
+        config:
+          - name: "Run stella and check the outputs numerically"
     steps:
-      - name: Install dependencies
-        run: sudo apt update &&
-             sudo apt install -y
-                 gfortran
-                 make
-                 libfftw3-dev
-                 libnetcdf-dev
-                 libnetcdff-dev
-                 netcdf-bin
-                 python3
-                 python3-pip
-                 openmpi-bin
-                 libopenmpi-dev
-
-      - name: System information
+      - name: Install Homebrew
         run: |
-          cat /etc/*release
-          gfortran --version
-          nf-config --all
-      - uses: actions/checkout@v2  
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-      - name: Build stella (CMake)
+      - name: Install dependencies
+        run: |
+          brew update
+          brew install gcc fftw netcdf netcdf-fortran open-mpi python
+          ln -s /opt/homebrew/bin/gfortran-12 /opt/homebrew/bin/gfortran
+
+      - uses: actions/checkout@v2
+
+      - name: Build stella
         run: |
           set -ex
-          cmake . -B build -DSTELLA_ENABLE_TESTS=on
-          cmake --build build -j1 --target check
+          make -I Makefiles -j4
+
+      - name: Perform numerical tests for stella with Python
+        run: |
+          set -ex
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install netCDF4 numpy pytest importlib_metadata xarray setuptools
+          make -I Makefiles run-automated-numerical-tests-for-stella
