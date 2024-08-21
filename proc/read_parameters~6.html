@@ -80,20 +80,20 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.1% of total for procedures.">35 statements</a>
+                 title=" 0.1% of total for procedures.">25 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
               <i class="fa fa-code"></i>
-              <a href="../src/geometry.f90"> Source File</a>
+              <a href="../src/zgrid.f90"> Source File</a>
             </li>
         </ul>
       </div>
       <div class="col">
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb justify-content-end mb-0">
-                <li class="breadcrumb-item"><a href='../sourcefile/geometry.f90.html'>geometry.f90</a></li>
-                <li class="breadcrumb-item"><a href='../module/geometry.html'>geometry</a></li>
+                <li class="breadcrumb-item"><a href='../sourcefile/zgrid.f90.html'>zgrid.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/zgrid.html'>zgrid</a></li>
             <li class="breadcrumb-item active" aria-current="page">read_parameters</li>
           </ol>
         </nav>
@@ -138,7 +138,7 @@
       </a>
       <div id="namelists-0" class="collapse">
         <div class="list-group list-group-flush">
-            <a class="list-group-item" href="../proc/read_parameters~6.html#namelist-geo_knobs">geo_knobs</a>
+            <a class="list-group-item" href="../proc/read_parameters~6.html#namelist-zgrid_parameters">zgrid_parameters</a>
         </div>
       </div>
     </div>
@@ -158,10 +158,9 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
-                  <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
-                  <li class="list-inline-item"><a href='../module/text_options.html'>text_options</a></li>
                   <li class="list-inline-item"><a href='../module/file_utils.html'>file_utils</a></li>
+                  <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
+                  <li class="list-inline-item"><a href='../module/text_options.html'>text_options</a></li>
               </ul>
             </li>
         </ul>
@@ -189,15 +188,15 @@
         <h2>Namelists</h2>
             <div class="card">
     <div class="card-header codesum">
-      <span class="anchor" id="namelist-geo_knobs"></span>
-      <h3>Namelist <a href='../namelist/geo_knobs.html'>geo_knobs</a></h3>
+      <span class="anchor" id="namelist-zgrid_parameters"></span>
+      <h3>Namelist <a href='../namelist/zgrid_parameters.html'>zgrid_parameters</a></h3>
     </div>
     <div class="card-body">
         
   <br class="visible-xs visible-sm hidden-md">
   <section>
     <h2>Variables</h2>
-    <table class="table table-striped" id="namelist-geo_knobs">
+    <table class="table table-striped" id="namelist-zgrid_parameters">
       <thead><tr>
           <th>Name</th>
           <th>Type</th>
@@ -205,100 +204,58 @@
           <th>Description</th>
       </tr></thead>
       <tbody>
-              <tr id="variable-geo_option">
-      <td><a href="#variable-geo_option">geo_option</a></td>
+              <tr id="variable-nzed~3">
+      <td><a href="#variable-nzed~3">nzed</a></td>
+      <td>integer</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-nperiod">
+      <td><a href="#variable-nperiod">nperiod</a></td>
+      <td>integer</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-ntubes">
+      <td><a href="#variable-ntubes">ntubes</a></td>
+      <td>integer</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-shat_zero">
+      <td><a href="#variable-shat_zero">shat_zero</a></td>
+      <td>real</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-boundary_option">
+      <td><a href="#variable-boundary_option">boundary_option</a></td>
       <td>character(len=20)</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-geo_file">
-      <td><a href="#variable-geo_file">geo_file</a></td>
-      <td>character(len=100)</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-overwrite_bmag">
-      <td><a href="#variable-overwrite_bmag">overwrite_bmag</a></td>
+              <tr id="variable-zed_equal_arc~2">
+      <td><a href="#variable-zed_equal_arc~2">zed_equal_arc</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-overwrite_b_dot_grad_zeta">
-      <td><a href="#variable-overwrite_b_dot_grad_zeta">overwrite_b_dot_grad_zeta</a></td>
-      <td>logical</td>
+              <tr id="variable-grad_x_grad_y_zero">
+      <td><a href="#variable-grad_x_grad_y_zero">grad_x_grad_y_zero</a></td>
+      <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-overwrite_gds2">
-      <td><a href="#variable-overwrite_gds2">overwrite_gds2</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-overwrite_gds21">
-      <td><a href="#variable-overwrite_gds21">overwrite_gds21</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-overwrite_gds22">
-      <td><a href="#variable-overwrite_gds22">overwrite_gds22</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-overwrite_gds23">
-      <td><a href="#variable-overwrite_gds23">overwrite_gds23</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-overwrite_gds24">
-      <td><a href="#variable-overwrite_gds24">overwrite_gds24</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-overwrite_gbdrift">
-      <td><a href="#variable-overwrite_gbdrift">overwrite_gbdrift</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-overwrite_cvdrift">
-      <td><a href="#variable-overwrite_cvdrift">overwrite_cvdrift</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-overwrite_gbdrift0">
-      <td><a href="#variable-overwrite_gbdrift0">overwrite_gbdrift0</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-q_as_x">
-      <td><a href="#variable-q_as_x">q_as_x</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-set_bmag_const">
-      <td><a href="#variable-set_bmag_const">set_bmag_const</a></td>
-      <td>logical</td>
+              <tr id="variable-dkx_over_dky">
+      <td><a href="#variable-dkx_over_dky">dkx_over_dky</a></td>
+      <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
@@ -325,13 +282,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-361-g0919910b30</small></p>
+<br /><small>v0.5.1-362-g6ab35ff881</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-08-21T15:15:10.338813             </p>
+ on 2024-08-21T15:17:16.871657             </p>
           </div>
         </div>
         <br>
