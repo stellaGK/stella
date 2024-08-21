@@ -188,3 +188,6 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Mac icloud files
+*.icloud
