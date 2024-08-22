@@ -153,7 +153,6 @@ export DIAG=$(GK_HEAD_DIR)/diagnostics
 export COLL=$(GK_HEAD_DIR)/dissipation
 export UTILS=$(GK_HEAD_DIR)/utils
 export GEO=$(GK_HEAD_DIR)/geometry
-export FIELDS=$(GK_HEAD_DIR)/fields
 export LIBSTELL=$(UTILS)/mini_libstell
 
 # We make extra libraries <mini_libstell> and <stella_utils>
@@ -288,9 +287,6 @@ endif
 ifeq ($(notdir $(CURDIR)), $(GEO))
 	TOPDIR=$(subst /$(GEO),,$(CURDIR))
 endif
-ifeq ($(notdir $(CURDIR)), $(FIELDS))
-        TOPDIR=$(subst /$(FIELDS),,$(CURDIR))
-endif
 ifeq ($(notdir $(CURDIR)), $(LIBSTELL))
 	TOPDIR=$(subst /$(LIBSTELL),,$(CURDIR))
 endif
@@ -299,7 +295,7 @@ ifneq ($(TOPDIR),$(CURDIR))
 endif
 
 # VPATH is a list of directories to be searched for missing source files
-VPATH = $(DIAG):$(COLL):$(UTILS):$(GEO):$(FIELDS):$(LIBSTELL):$(GIT_VERSION_DIR)/src:$(NEASYF)
+VPATH = $(DIAG):$(COLL):$(UTILS):$(GEO):$(LIBSTELL):$(GIT_VERSION_DIR)/src:$(NEASYF)
 
 # Removes non-existing directories from VPATH
 VPATH_tmp := $(foreach tmpvp,$(subst :, ,$(VPATH)),$(shell [ -d $(tmpvp) ] && echo $(tmpvp)))
@@ -320,7 +316,7 @@ DEPEND=Makefile.depend
 DEPEND_CMD=$(PERL) fortdep
 
 # Most common include and library directories
-DEFAULT_INC_LIST = . $(DIAG) $(COLL) $(UTILS) $(LIBSTELL) $(GEO) $(NEASYF) $(FIELDS)
+DEFAULT_INC_LIST = . $(DIAG) $(COLL) $(UTILS) $(LIBSTELL) $(GEO) $(NEASYF)
 DEFAULT_LIB_LIST =
 DEFAULT_INC=$(foreach tmpinc,$(DEFAULT_INC_LIST),$(shell [ -d $(tmpinc) ] && echo -I$(tmpinc)))
 DEFAULT_LIB=$(foreach tmplib,$(DEFAULT_LIB_LIST),$(shell [ -d $(tmplib) ] && echo -L$(tmplib)))
@@ -456,7 +452,6 @@ clean:
 	-rm -f Makefiles/*~
 	-rm -f $(UTILS)/*.o $(UTILS)/*~
 	-rm -f $(COLL)/*.o $(COLL)/*~
-	-rm -f $(FIELDS)/*.o $(FIELDS)/*~
 	-rm -f $(DIAG)/*.o $(DIAG)/*~
 	-rm -f .compiler_flags
 	$(MAKE) -C $(LIBSTELL) clean
