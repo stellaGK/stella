@@ -37,6 +37,7 @@ module arrays_fields
    real, dimension(:, :, :), allocatable :: gamtot13, gamtot31, gamtot33
    real, dimension(:, :, :), allocatable :: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
    real, dimension(:, :), allocatable :: gamtot3
+   real, dimension(:, :, :), allocatable ::  apar_denom
    !real :: gamtot_h, gamtot3_h, efac, efacp
 
    complex, dimension(:, :, :), allocatable :: theta
@@ -55,5 +56,8 @@ module arrays_fields
    logical :: exclude_boundary_regions_qn
    real :: tcorr_source_qn, exp_fac_qn
    integer :: qn_window = MPI_WIN_NULL, qn_zf_window = MPI_WIN_NULL
+
+   real :: gamtot_h, gamtot3_h, efac, efacp
+   real, dimension(2, 5) :: time_field_solve = 0.
 
 end module arrays_fields

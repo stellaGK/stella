@@ -295,7 +295,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nmu, nvpa
       use parameters_kxky_grids, only: naky, nakx
-      use fields, only: advance_apar
+      use fields_electromagnetic, only: advance_apar
 
       implicit none
 
@@ -651,7 +651,8 @@ contains
       use parameters_numerical, only: mirror_semi_lagrange, maxwellian_normalization
       use parameters_physics, only: include_apar
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
-      use fields, only: advance_apar, fields_updated
+      use fields_electromagnetic, only: advance_apar
+      use fields, only: fields_updated
       use g_tofrom_h, only: gbar_to_g
 
       use parameters_numerical, only: time_upwind
