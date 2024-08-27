@@ -216,7 +216,6 @@ jobs:
         run: |
           brew update
           brew install gcc fftw netcdf netcdf-fortran open-mpi python
-          ln -s /opt/homebrew/bin/gfortran-12 /opt/homebrew/bin/gfortran
 
       - uses: actions/checkout@v2
 
