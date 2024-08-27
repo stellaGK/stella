@@ -102,6 +102,11 @@ set(STELLA_SOURCES_f90
 # Sources that _do_ need preprocessing (because they have MPI flags, ...)
 set(STELLA_SOURCES_fpp
   fields.fpp
+  fields_fluxtube.fpp
+  fields_electromagnetic.fpp
+  fields_fullfluxsurface.fpp
+  fields_collisions.fpp
+  fields_radialvariation.fpp
   response_matrix.fpp
   sfincs_interface.fpp
   sources.fpp
