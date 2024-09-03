@@ -186,7 +186,7 @@
             <a class="list-group-item" href="../module/time_advance.html#proc-init_wstar">init_wstar</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-init_parallel_nonlinearity">init_parallel_nonlinearity</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-init_radial_variation">init_radial_variation</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-allocate_arrays~5">allocate_arrays</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-allocate_arrays~6">allocate_arrays</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-init_cfl">init_cfl</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-reset_dt">reset_dt</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-advance_stella">advance_stella</a>
@@ -219,7 +219,7 @@
             <a class="list-group-item" href="../module/time_advance.html#proc-finish_parallel_nonlinearity">finish_parallel_nonlinearity</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-finish_wdrift">finish_wdrift</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-finish_wstar">finish_wstar</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-deallocate_arrays~2">deallocate_arrays</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-deallocate_arrays~3">deallocate_arrays</a>
         </div>
       </div>
     </div>
@@ -753,7 +753,7 @@ accepts g(ky,kx)</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~101"></span>
+              <span class="anchor" id="variable-g~103"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -768,7 +768,7 @@ accepts g(ky,kx)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdy~2"></span>
+              <span class="anchor" id="variable-dgdy"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -808,7 +808,7 @@ accepts g(ky,kx,z,tube)</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~102"></span>
+              <span class="anchor" id="variable-g~104"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -823,7 +823,7 @@ accepts g(ky,kx,z,tube)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdy~3"></span>
+              <span class="anchor" id="variable-dgdy~2"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -863,7 +863,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~103"></span>
+              <span class="anchor" id="variable-g~105"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -878,7 +878,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdy~4"></span>
+              <span class="anchor" id="variable-dgdy~3"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -928,7 +928,7 @@ accepts g(ky,kx)</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~104"></span>
+              <span class="anchor" id="variable-g~106"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -943,7 +943,7 @@ accepts g(ky,kx)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdx~2"></span>
+              <span class="anchor" id="variable-dgdx"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -983,7 +983,7 @@ accepts g(ky,kx,z,tube)</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~105"></span>
+              <span class="anchor" id="variable-g~107"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -998,7 +998,7 @@ accepts g(ky,kx,z,tube)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdx~3"></span>
+              <span class="anchor" id="variable-dgdx~2"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -1038,7 +1038,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~106"></span>
+              <span class="anchor" id="variable-g~108"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1053,7 +1053,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdx~4"></span>
+              <span class="anchor" id="variable-dgdx~3"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -1102,7 +1102,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-field~29"></span>
+              <span class="anchor" id="variable-field~31"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1341,7 +1341,7 @@ if running with maxwellian_normalzation = .true.</p>
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-allocate_arrays~5"></span> <h3>private  subroutine <a href='../proc/allocate_arrays~5.html'>allocate_arrays</a>()  
+    <div class="card-header codesum"><span class="anchor" id="proc-allocate_arrays~6"></span> <h3>private  subroutine <a href='../proc/allocate_arrays~6.html'>allocate_arrays</a>()  
 </h3></div>
     <div class="card-body">
           
@@ -1463,7 +1463,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~91"></span>
+              <span class="anchor" id="variable-g~93"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1533,7 +1533,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~92"></span>
+              <span class="anchor" id="variable-g~94"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1603,7 +1603,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~93"></span>
+              <span class="anchor" id="variable-g~95"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1673,7 +1673,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~94"></span>
+              <span class="anchor" id="variable-g~96"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1743,7 +1743,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~95"></span>
+              <span class="anchor" id="variable-g~97"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1901,7 +1901,7 @@ note that if include_apar = T, then the input pdf is actually gbar = g + (Ze/T)<
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-gin~22"></span>
+              <span class="anchor" id="variable-gin~19"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2012,7 +2012,7 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~96"></span>
+              <span class="anchor" id="variable-g~98"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2042,7 +2042,7 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-bpar~30"></span>
+              <span class="anchor" id="variable-bpar~32"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2098,7 +2098,7 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~97"></span>
+              <span class="anchor" id="variable-g~99"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2128,7 +2128,7 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-bpar~31"></span>
+              <span class="anchor" id="variable-bpar~33"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2193,7 +2193,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~98"></span>
+              <span class="anchor" id="variable-g~100"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2278,7 +2278,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~99"></span>
+              <span class="anchor" id="variable-g~101"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2348,7 +2348,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~100"></span>
+              <span class="anchor" id="variable-g~102"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2404,7 +2404,7 @@ accepts g(ky,kx)</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~101"></span>
+              <span class="anchor" id="variable-g~103"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2419,7 +2419,7 @@ accepts g(ky,kx)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdy~2"></span>
+              <span class="anchor" id="variable-dgdy"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -2460,7 +2460,7 @@ accepts g(ky,kx,z,tube)</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~102"></span>
+              <span class="anchor" id="variable-g~104"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2475,7 +2475,7 @@ accepts g(ky,kx,z,tube)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdy~3"></span>
+              <span class="anchor" id="variable-dgdy~2"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -2516,7 +2516,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~103"></span>
+              <span class="anchor" id="variable-g~105"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2531,7 +2531,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdy~4"></span>
+              <span class="anchor" id="variable-dgdy~3"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -2572,7 +2572,7 @@ accepts g(ky,kx)</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~104"></span>
+              <span class="anchor" id="variable-g~106"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2587,7 +2587,7 @@ accepts g(ky,kx)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdx~2"></span>
+              <span class="anchor" id="variable-dgdx"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -2628,7 +2628,7 @@ accepts g(ky,kx,z,tube)</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~105"></span>
+              <span class="anchor" id="variable-g~107"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2643,7 +2643,7 @@ accepts g(ky,kx,z,tube)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdx~3"></span>
+              <span class="anchor" id="variable-dgdx~2"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -2684,7 +2684,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~106"></span>
+              <span class="anchor" id="variable-g~108"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2699,7 +2699,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdx~4"></span>
+              <span class="anchor" id="variable-dgdx~3"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -2739,7 +2739,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~107"></span>
+              <span class="anchor" id="variable-g~109"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2754,7 +2754,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-pre_factor~3"></span>
+              <span class="anchor" id="variable-pre_factor~2"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -2769,7 +2769,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-src~30"></span>
+              <span class="anchor" id="variable-src~29"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2809,7 +2809,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~108"></span>
+              <span class="anchor" id="variable-g~110"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2824,7 +2824,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-pre_factor~4"></span>
+              <span class="anchor" id="variable-pre_factor~3"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -2839,7 +2839,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-src~31"></span>
+              <span class="anchor" id="variable-src~30"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2909,7 +2909,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-apar~36"></span>
+              <span class="anchor" id="variable-apar~37"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2924,7 +2924,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-bpar~32"></span>
+              <span class="anchor" id="variable-bpar~34"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2939,7 +2939,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~109"></span>
+              <span class="anchor" id="variable-g~111"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2979,7 +2979,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g_in~5"></span>
+              <span class="anchor" id="variable-g_in~6"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -3019,7 +3019,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-field~29"></span>
+              <span class="anchor" id="variable-field~31"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -3177,7 +3177,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-deallocate_arrays~2"></span> <h3>private  subroutine <a href='../proc/deallocate_arrays~2.html'>deallocate_arrays</a>()  
+    <div class="card-header codesum"><span class="anchor" id="proc-deallocate_arrays~3"></span> <h3>private  subroutine <a href='../proc/deallocate_arrays~3.html'>deallocate_arrays</a>()  
 </h3></div>
     <div class="card-body">
           
@@ -3206,13 +3206,13 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-363-g8d3243651a</small></p>
+<br /><small>v0.5.1-364-ge7435f4ef1</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-08-27T13:08:32.264318             </p>
+ on 2024-09-03T11:20:52.070717             </p>
           </div>
         </div>
         <br>

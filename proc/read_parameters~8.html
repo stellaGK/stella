@@ -80,20 +80,20 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.1% of total for procedures.">42 statements</a>
+                 title=" 0.1% of total for procedures.">36 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
               <i class="fa fa-code"></i>
-              <a href="../src/init_g.f90"> Source File</a>
+              <a href="../src/dissipation.f90"> Source File</a>
             </li>
         </ul>
       </div>
       <div class="col">
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb justify-content-end mb-0">
-                <li class="breadcrumb-item"><a href='../sourcefile/init_g.f90.html'>init_g.f90</a></li>
-                <li class="breadcrumb-item"><a href='../module/init_g.html'>init_g</a></li>
+                <li class="breadcrumb-item"><a href='../sourcefile/dissipation.f90.html'>dissipation.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/dissipation.html'>dissipation</a></li>
             <li class="breadcrumb-item active" aria-current="page">read_parameters</li>
           </ol>
         </nav>
@@ -138,7 +138,7 @@
       </a>
       <div id="namelists-0" class="collapse">
         <div class="list-group list-group-flush">
-            <a class="list-group-item" href="../proc/read_parameters~8.html#namelist-init_g_knobs">init_g_knobs</a>
+            <a class="list-group-item" href="../proc/read_parameters~8.html#namelist-dissipation">dissipation</a>
         </div>
       </div>
     </div>
@@ -150,7 +150,7 @@
     </div>
     
     <div class="col-md-9" id='text'>
-    <h2>private  subroutine read_parameters()  
+    <h2>public  subroutine read_parameters()  
 </h2>
         <div class="card mb-4">
       <h3 class="card-header card-title bg-light">Uses</h3>
@@ -158,9 +158,12 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/text_options.html'>text_options</a></li>
+                  <li class="list-inline-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
+                  <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
                   <li class="list-inline-item"><a href='../module/file_utils.html'>file_utils</a></li>
-                  <li class="list-inline-item"><a href='../module/stella_save.html'>stella_save</a></li>
+                  <li class="list-inline-item"><a href='../module/coll_fokkerplanck.html'>coll_fokkerplanck</a></li>
+                  <li class="list-inline-item"><a href='../module/coll_dougherty.html'>coll_dougherty</a></li>
+                  <li class="list-inline-item"><a href='../module/hyper.html'>hyper</a></li>
               </ul>
             </li>
         </ul>
@@ -188,15 +191,15 @@
         <h2>Namelists</h2>
             <div class="card">
     <div class="card-header codesum">
-      <span class="anchor" id="namelist-init_g_knobs"></span>
-      <h3>Namelist <a href='../namelist/init_g_knobs.html'>init_g_knobs</a></h3>
+      <span class="anchor" id="namelist-dissipation"></span>
+      <h3>Namelist <a href='../namelist/dissipation.html'>dissipation</a></h3>
     </div>
     <div class="card-body">
         
   <br class="visible-xs visible-sm hidden-md">
   <section>
     <h2>Variables</h2>
-    <table class="table table-striped" id="namelist-init_g_knobs">
+    <table class="table table-striped" id="namelist-dissipation">
       <thead><tr>
           <th>Name</th>
           <th>Type</th>
@@ -204,204 +207,29 @@
           <th>Description</th>
       </tr></thead>
       <tbody>
-              <tr id="variable-ginit_option">
-      <td><a href="#variable-ginit_option">ginit_option</a></td>
-      <td>character(len=20)</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-width0">
-      <td><a href="#variable-width0">width0</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-phiinit">
-      <td><a href="#variable-phiinit">phiinit</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-chop_side">
-      <td><a href="#variable-chop_side">chop_side</a></td>
+              <tr id="variable-include_collisions">
+      <td><a href="#variable-include_collisions">include_collisions</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-restart_file~2">
-      <td><a href="#variable-restart_file~2">restart_file</a></td>
-      <td>character(len=300)</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-restart_dir">
-      <td><a href="#variable-restart_dir">restart_dir</a></td>
-      <td>character(len=150)</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-read_many">
-      <td><a href="#variable-read_many">read_many</a></td>
-      <td>logical</td>
-      <td>.true.</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-left">
-      <td><a href="#variable-left">left</a></td>
+              <tr id="variable-collisions_implicit~4">
+      <td><a href="#variable-collisions_implicit~4">collisions_implicit</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-scale~3">
-      <td><a href="#variable-scale~3">scale</a></td>
-      <td>real</td>
+              <tr id="variable-collision_model">
+      <td><a href="#variable-collision_model">collision_model</a></td>
+      <td>character(len=30)</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-tstart~6">
-      <td><a href="#variable-tstart~6">tstart</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-zf_init">
-      <td><a href="#variable-zf_init">zf_init</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-den0">
-      <td><a href="#variable-den0">den0</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-upar0">
-      <td><a href="#variable-upar0">upar0</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-tpar0">
-      <td><a href="#variable-tpar0">tpar0</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-tperp0">
-      <td><a href="#variable-tperp0">tperp0</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-imfac">
-      <td><a href="#variable-imfac">imfac</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-refac">
-      <td><a href="#variable-refac">refac</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-den1">
-      <td><a href="#variable-den1">den1</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-upar1">
-      <td><a href="#variable-upar1">upar1</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-tpar1">
-      <td><a href="#variable-tpar1">tpar1</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-tperp1">
-      <td><a href="#variable-tperp1">tperp1</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-den2">
-      <td><a href="#variable-den2">den2</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-upar2">
-      <td><a href="#variable-upar2">upar2</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-tpar2">
-      <td><a href="#variable-tpar2">tpar2</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-tperp2">
-      <td><a href="#variable-tperp2">tperp2</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-kxmax">
-      <td><a href="#variable-kxmax">kxmax</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-kxmin">
-      <td><a href="#variable-kxmin">kxmin</a></td>
-      <td>real</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-scale_to_phiinit">
-      <td><a href="#variable-scale_to_phiinit">scale_to_phiinit</a></td>
-      <td>logical</td>
-      <td>None</td>
-      <td></td>
-    </tr>
-
-              <tr id="variable-oddparity">
-      <td><a href="#variable-oddparity">oddparity</a></td>
+              <tr id="variable-hyper_dissipation">
+      <td><a href="#variable-hyper_dissipation">hyper_dissipation</a></td>
       <td>logical</td>
       <td>None</td>
       <td></td>
@@ -429,13 +257,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-363-g8d3243651a</small></p>
+<br /><small>v0.5.1-364-ge7435f4ef1</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-08-27T13:08:32.264318             </p>
+ on 2024-09-03T11:20:52.070717             </p>
           </div>
         </div>
         <br>
