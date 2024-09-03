@@ -1,12 +1,18 @@
  
-! Simple nonlinear example using CBC, including only the explicit mirror term
+! Simple linear example using CBC, including only the explicit mirror term
 
 &physics_flags
-  nonlinear = .true.
+  nonlinear = .false.
   include_parallel_streaming = .false.
   include_mirror = .true.
   include_apar = .true.
   include_bpar = .true.
+/
+&parameters
+  zeff = 1.0
+  beta = 0.04
+  vnew_ref = 0.01
+  rhostar = 0.01
 /
 &species_knobs
   nspec = 2
@@ -46,7 +52,6 @@
 &knobs
   delt = 0.01 
   nstep = 100
-  print_extra_info_to_terminal = .false.  
   stream_implicit = .false.
   mirror_implicit = .false.
   drifts_implicit = .false.
