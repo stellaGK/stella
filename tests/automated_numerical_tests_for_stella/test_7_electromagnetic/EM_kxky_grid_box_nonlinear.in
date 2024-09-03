@@ -1,10 +1,16 @@
 
-! Simple linear example based on JET shot 92174
+! Simple nonlinear example based on JET shot 92174
 
 &physics_flags
   nonlinear = .true.
   include_apar = .true.
   include_bpar = .true.
+/
+&parameters
+  zeff = 1.0
+  beta = 0.04
+  vnew_ref = 0.01
+  rhostar = 0.01
 /
 &species_knobs
   nspec = 2 
@@ -44,7 +50,6 @@
 &knobs
   delt = 0.01  
   nstep = 10
-  print_extra_info_to_terminal = .false.  
 /
 &stella_diagnostics_knobs
   nsave = 10
@@ -65,7 +70,7 @@
   grid_option = 'box'
 /
 &time_advance_knobs
-  explicit_option = 'rk2'
+  explicit_option = 'rk3'
 /
 &millergeo_parameters
   betadbprim = 0.0

@@ -48,27 +48,27 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
     global stella_local_run_directory
     stella_local_run_directory = tmp_path
     
-    # input_filename = input_filename_stem + '_no_time_evolution.in'
-    # # Run stella inside of <tmp_path> based on <input_filename>
-    # run_local_stella_simulation(input_filename, tmp_path)
+    input_filename = input_filename_stem + '_no_time_evolution.in'
+    # Run stella inside of <tmp_path> based on <input_filename>
+    run_local_stella_simulation(input_filename, tmp_path)
      
-    # # File names  
-    # local_netcdf_file = stella_local_run_directory / (input_filename_stem + '_no_time_evolution.out.nc')
+    # File names  
+    local_netcdf_file = stella_local_run_directory / (input_filename_stem + '_no_time_evolution.out.nc')
 
-    # # Check whether the geometry data matches in the netcdf file
-    # with xr.open_dataset(local_netcdf_file) as local_netcdf:
+    # Check whether the geometry data matches in the netcdf file
+    with xr.open_dataset(local_netcdf_file) as local_netcdf:
         
-    #     # Read the potential axis
-    #     local_phi2 = local_netcdf['phi2']
+        # Read the potential axis
+        local_phi2 = local_netcdf['phi2']
         
-    #     # Check whether the potential did not evolve in time
-    #     if not (np.all(local_phi2 == local_phi2[0])):
-    #         print(f'ERROR: The potential is evolving in time, while it should not.')
-    #         for i in range(len(local_phi2)):
-    #             print(f'phi2 = {float(local_phi2.data[i]):.5e}')
-    #         assert False, f'The potential is evolving in time, while it should not.'
+        # Check whether the potential did not evolve in time
+        if not (np.all(local_phi2 == local_phi2[0])):
+            print(f'ERROR: The potential is evolving in time, while it should not.')
+            for i in range(len(local_phi2)):
+                print(f'phi2 = {float(local_phi2.data[i]):.5e}')
+            assert False, f'The potential is evolving in time, while it should not.'
                 
-    # print(f'  -->  Without gyrokinetic terms the potential in EM stella does not evolve in time ({int(local_netcdf["nproc"])} CPUs).')
+    print(f'  -->  Without gyrokinetic terms the potential in EM stella does not evolve in time ({int(local_netcdf["nproc"])} CPUs).')
 
 #-------------------------------------------------------------------------------
 #     Check whether the implicit parallel streaming term evolves correctly     #
@@ -85,19 +85,6 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
     print('  -->  The parallel streaming term for EM stella, implemented implicitly, is evolving correctly.') 
 
 #-------------------------------------------------------------------------------
-#     Check whether the explicit parallel streaming term evolves correctly     #
-#-------------------------------------------------------------------------------
-    # Run stella inside of <tmp_path> based on <input_filename>
-    input_filename = input_filename_stem + '_parallel_streaming_explicit.in'
-    run_local_stella_simulation(input_filename, tmp_path)
-     
-    # Compare phi2(t) in the netCDF files
-    local_netcdf_file = tmp_path / (input_filename_stem + '_parallel_streaming_explicit.out.nc') 
-    expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'   
-    compare_local_potential_with_expected_potential(local_netcdf_file, expected_netcdf_file, error=False)    
-    print('  -->  The parallel streaming term for EM stella, implemented explicitly, is evolving correctly.')
-
-#-------------------------------------------------------------------------------
 #           Check whether the implicit mirror term evolves correctly           #
 #-------------------------------------------------------------------------------
     # Run stella inside of <tmp_path> based on <input_filename>
@@ -109,6 +96,19 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
     expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'    
     compare_local_potential_with_expected_potential(local_netcdf_file, expected_netcdf_file, error=False)    
     print('  -->  The mirror term for EM stella, implemented implicitly, is evolving correctly.')
+
+#-------------------------------------------------------------------------------
+#     Check whether the explicit parallel streaming term evolves correctly     #
+#-------------------------------------------------------------------------------
+    # Run stella inside of <tmp_path> based on <input_filename>
+    input_filename = input_filename_stem + '_parallel_streaming_explicit.in'
+    run_local_stella_simulation(input_filename, tmp_path)
+     
+    # Compare phi2(t) in the netCDF files
+    local_netcdf_file = tmp_path / (input_filename_stem + '_parallel_streaming_explicit.out.nc') 
+    expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'   
+    compare_local_potential_with_expected_potential(local_netcdf_file, expected_netcdf_file, error=False)    
+    print('  -->  The parallel streaming term for EM stella, implemented explicitly, is evolving correctly.')
 
 #-------------------------------------------------------------------------------
 #           Check whether the explicit mirror term evolves correctly           #
@@ -149,19 +149,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
     expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'    
     compare_local_potential_with_expected_potential(local_netcdf_file, expected_netcdf_file, error=False)    
     print('  -->  The magnetic drift terms for EM is evolving correctly.')
-    
-#-------------------------------------------------------------------------------
-#              Check whether the nonlinear term evolves correctly              #
-#-------------------------------------------------------------------------------
-    # Run stella inside of <tmp_path> based on <input_filename>
-    input_filename = input_filename_stem + '_nonlinear_term.in'
-    run_local_stella_simulation(input_filename, tmp_path)
 
-    # Compare phi2(t) in the netCDF files  
-    local_netcdf_file = tmp_path / (input_filename_stem + '_nonlinear_term.out.nc')
-    expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'
-    compare_local_potential_with_expected_potential(local_netcdf_file, expected_netcdf_file, error=False)
-    print('  -->  The nonlinear term is being evolved correctly .')
 
 #-------------------------------------------------------------------------------
 #       Check whether the all the terms combined term evolves correctly        #

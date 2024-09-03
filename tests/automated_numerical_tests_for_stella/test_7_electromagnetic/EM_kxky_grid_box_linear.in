@@ -6,6 +6,12 @@
   include_apar = .true.
   include_bpar = .true.
 /
+&parameters
+  zeff = 1.0
+  beta = 0.04
+  vnew_ref = 0.01
+  rhostar = 0.01
+/
 &species_knobs
   nspec = 2 
 /
@@ -34,7 +40,7 @@
 /
 &zgrid_parameters
   boundary_option = 'linked'
-  nperiod = 1
+  nperiod = 2
   nzed = 24
 /
 &vpamu_grids_parameters
@@ -42,9 +48,10 @@
   nvgrid = 3  
 /
 &knobs
+  mirror_semi_lagrange = .false.
+  drifts_implicit = .false.
   delt = 0.01  
   nstep = 10
-  print_extra_info_to_terminal = .false.  
 /
 &stella_diagnostics_knobs
   nsave = 10
