@@ -48,27 +48,16 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
     global stella_local_run_directory
     stella_local_run_directory = tmp_path
     
-    # input_filename = input_filename_stem + '_no_time_evolution.in'
-    # # Run stella inside of <tmp_path> based on <input_filename>
-    # run_local_stella_simulation(input_filename, tmp_path)
+    input_filename = input_filename_stem + '_no_time_evolution.in'
+    # Run stella inside of <tmp_path> based on <input_filename>
+    run_local_stella_simulation(input_filename, tmp_path)
      
-    # # File names  
-    # local_netcdf_file = stella_local_run_directory / (input_filename_stem + '_no_time_evolution.out.nc')
-
-    # # Check whether the geometry data matches in the netcdf file
-    # with xr.open_dataset(local_netcdf_file) as local_netcdf:
-        
-    #     # Read the potential axis
-    #     local_phi2 = local_netcdf['phi2']
-        
-    #     # Check whether the potential did not evolve in time
-    #     if not (np.all(local_phi2 == local_phi2[0])):
-    #         print(f'ERROR: The potential is evolving in time, while it should not.')
-    #         for i in range(len(local_phi2)):
-    #             print(f'phi2 = {float(local_phi2.data[i]):.5e}')
-    #         assert False, f'The potential is evolving in time, while it should not.'
-                
-    # print(f'  -->  Without gyrokinetic terms the potential in EM stella does not evolve in time ({int(local_netcdf["nproc"])} CPUs).')
+    # File names  
+    local_netcdf_file = tmp_path / (input_filename_stem + '_no_time_evolution.out.nc') 
+    expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'   
+    compare_local_potential_with_expected_potential(local_netcdf_file, expected_netcdf_file, error=False)
+            
+    print(f'  -->  Without gyrokinetic terms the potential in EM stella does not evolve in time.')
 
 #-------------------------------------------------------------------------------
 #     Check whether the implicit parallel streaming term evolves correctly     #
