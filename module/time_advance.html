@@ -181,7 +181,7 @@
       <div id="subs-0" class="collapse">
         <div class="list-group list-group-flush">
             <a class="list-group-item" href="../module/time_advance.html#proc-init_time_advance">init_time_advance</a>
-            <a class="list-group-item" href="../module/time_advance.html#proc-read_parameters~9">read_parameters</a>
+            <a class="list-group-item" href="../module/time_advance.html#proc-read_parameters~11">read_parameters</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-init_wdrift">init_wdrift</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-init_wstar">init_wstar</a>
             <a class="list-group-item" href="../module/time_advance.html#proc-init_parallel_nonlinearity">init_parallel_nonlinearity</a>
@@ -768,7 +768,7 @@ accepts g(ky,kx)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdy"></span>
+              <span class="anchor" id="variable-dgdy~2"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -823,7 +823,7 @@ accepts g(ky,kx,z,tube)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdy~2"></span>
+              <span class="anchor" id="variable-dgdy~3"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -878,7 +878,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdy~3"></span>
+              <span class="anchor" id="variable-dgdy~4"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -943,7 +943,7 @@ accepts g(ky,kx)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdx"></span>
+              <span class="anchor" id="variable-dgdx~2"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -998,7 +998,7 @@ accepts g(ky,kx,z,tube)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdx~2"></span>
+              <span class="anchor" id="variable-dgdx~3"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -1053,7 +1053,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdx~3"></span>
+              <span class="anchor" id="variable-dgdx~4"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -1242,7 +1242,7 @@ allocate and calculate the factor multiplying dphi/dy in the gradient drive term
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-read_parameters~9"></span> <h3>private  subroutine <a href='../proc/read_parameters~9.html'>read_parameters</a>()  
+    <div class="card-header codesum"><span class="anchor" id="proc-read_parameters~11"></span> <h3>private  subroutine <a href='../proc/read_parameters~11.html'>read_parameters</a>()  
 </h3></div>
     <div class="card-body">
           
@@ -1406,7 +1406,7 @@ this is needed to ensure 2nd order accuracy in time</p><a href="../proc/advance_
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep~10"></span>
+              <span class="anchor" id="variable-istep~8"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1493,7 +1493,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep~11"></span>
+              <span class="anchor" id="variable-istep~9"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1563,7 +1563,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep~12"></span>
+              <span class="anchor" id="variable-istep~10"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1633,7 +1633,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep~13"></span>
+              <span class="anchor" id="variable-istep~11"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1703,7 +1703,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep~14"></span>
+              <span class="anchor" id="variable-istep~12"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1773,7 +1773,7 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep~15"></span>
+              <span class="anchor" id="variable-istep~13"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1861,7 +1861,7 @@ note that if include_apar = T, then the input pdf is actually gbar = g + (Ze/T)<
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep~16"></span>
+              <span class="anchor" id="variable-istep~14"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -1901,7 +1901,7 @@ note that if include_apar = T, then the input pdf is actually gbar = g + (Ze/T)<
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-gin~19"></span>
+              <span class="anchor" id="variable-gin~22"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1916,7 +1916,7 @@ note that if include_apar = T, then the input pdf is actually gbar = g + (Ze/T)<
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gout~19"></span>
+              <span class="anchor" id="variable-gout~18"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -1956,7 +1956,7 @@ note that if include_apar = T, then the input pdf is actually gbar = g + (Ze/T)<
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~50"></span>
+              <span class="anchor" id="variable-phi~53"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -1971,7 +1971,7 @@ note that if include_apar = T, then the input pdf is actually gbar = g + (Ze/T)<
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gout~20"></span>
+              <span class="anchor" id="variable-gout~19"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2027,7 +2027,7 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~51"></span>
+              <span class="anchor" id="variable-phi~54"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2042,7 +2042,7 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-bpar~32"></span>
+              <span class="anchor" id="variable-bpar~33"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2057,7 +2057,7 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gout~21"></span>
+              <span class="anchor" id="variable-gout~20"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2113,7 +2113,7 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~52"></span>
+              <span class="anchor" id="variable-phi~55"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2128,7 +2128,7 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-bpar~33"></span>
+              <span class="anchor" id="variable-bpar~34"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -2143,7 +2143,7 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gout~22"></span>
+              <span class="anchor" id="variable-gout~21"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2208,7 +2208,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gout~23"></span>
+              <span class="anchor" id="variable-gout~22"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2238,7 +2238,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep~17"></span>
+              <span class="anchor" id="variable-istep~15"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -2293,7 +2293,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gout~24"></span>
+              <span class="anchor" id="variable-gout~23"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2363,7 +2363,7 @@ compute the contribution to the Poisson bracket from dg/dy*d<chi>/dx</p><a href=
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-gout~25"></span>
+              <span class="anchor" id="variable-gout~24"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2419,7 +2419,7 @@ accepts g(ky,kx)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdy"></span>
+              <span class="anchor" id="variable-dgdy~2"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -2475,7 +2475,7 @@ accepts g(ky,kx,z,tube)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdy~2"></span>
+              <span class="anchor" id="variable-dgdy~3"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -2531,7 +2531,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdy~3"></span>
+              <span class="anchor" id="variable-dgdy~4"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -2587,7 +2587,7 @@ accepts g(ky,kx)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdx"></span>
+              <span class="anchor" id="variable-dgdx~2"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -2643,7 +2643,7 @@ accepts g(ky,kx,z,tube)</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdx~2"></span>
+              <span class="anchor" id="variable-dgdx~3"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -2699,7 +2699,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dgdx~3"></span>
+              <span class="anchor" id="variable-dgdx~4"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -2754,7 +2754,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-pre_factor~2"></span>
+              <span class="anchor" id="variable-pre_factor~3"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -2769,7 +2769,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-src~29"></span>
+              <span class="anchor" id="variable-src~30"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2824,7 +2824,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-pre_factor~3"></span>
+              <span class="anchor" id="variable-pre_factor~4"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -2839,7 +2839,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-src~30"></span>
+              <span class="anchor" id="variable-src~31"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2879,7 +2879,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep~18"></span>
+              <span class="anchor" id="variable-istep~16"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -2894,7 +2894,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~53"></span>
+              <span class="anchor" id="variable-phi~56"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2909,7 +2909,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-apar~37"></span>
+              <span class="anchor" id="variable-apar~38"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -2924,7 +2924,7 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-bpar~34"></span>
+              <span class="anchor" id="variable-bpar~35"></span>
               complex,
             </td>
 <td>intent(inout),</td>
@@ -3206,13 +3206,13 @@ accepts g(ky,kx,z,tube,(vpa,mu,spec))</p>
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-364-ge7435f4ef1</small></p>
+<br /><small>v0.5.1-365-gf7e8e47374</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-09-03T11:20:52.070717             </p>
+ on 2024-09-04T15:06:28.413369             </p>
           </div>
         </div>
         <br>
