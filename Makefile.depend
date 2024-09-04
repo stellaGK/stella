@@ -463,7 +463,6 @@ fields_fluxtube.o: \
 	 dist_redistribute.o \
 	 fields_electromagnetic.o \
 	 fields_radialvariation.o \
-	 file_utils.o \
 	 geometry.o \
 	 grids_kxky.o \
 	 gyro_averages.o \
@@ -483,6 +482,7 @@ fields_fullfluxsurface.o: \
 	 arrays_fields.o \
 	 calculations_kxky.o \
 	 common_types.o \
+	 debug_flags.o \
 	 geometry.o \
 	 grids_kxky.o \
 	 gyro_averages.o \

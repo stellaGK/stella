@@ -412,6 +412,8 @@ contains
       if (include_apar) nfields = nfields + 1
       if (include_bpar) nfields = nfields + 1
 
+      call allocate_fields_electromagnetic
+      
       ia = 1 
       if (include_apar) then
          allocate (g0(nvpa, nmu))
