@@ -48,8 +48,9 @@
   nvgrid = 3  
 /
 &knobs
+  rng_seed = 1
   mirror_semi_lagrange = .false.
-!  print_extra_info_to_terminal = .false.
+  print_extra_info_to_terminal = .false.
   delt = 0.01  
   nstep = 10
 /
@@ -58,7 +59,7 @@
   nwrite = 1  
 /
 &init_g_knobs 
-  ginit_option = 'default'
+  ginit_option = 'noise'
   phiinit = 0.01  
   width0 = 1.0
 /
