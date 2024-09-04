@@ -207,6 +207,60 @@ def compare_local_potential_with_expected_potential(local_netcdf_file='', expect
         assert (not error), f'The potential data does not match in the netCDF files.' 
     
     return error
+        
+#-------------------------------------------------------------------------------  
+def compare_local_potential_with_expected_potential_em(local_netcdf_file='', expected_netcdf_file='', run_data={}, error=False): 
+
+    # Make sure we have enough data to find the files 
+    if (local_netcdf_file=='' or expected_netcdf_file=='') and len(run_data.keys())==0:
+        print('\nERROR: The test has been set up badly in compare_local_potential_with_expected_potential().'); error = True
+        print('\n       Make sure the path to the netCDF files is defined.')
+        assert (not error), f'The test has been set up badly in compare_local_potential_with_expected_potential().' 
+    
+    # If the input file name is given, use it to set the netCDF files
+    if (local_netcdf_file=='' or expected_netcdf_file=='') and len(run_data.keys())>0:
+        input_file = run_data['input_file']; tmp_path = run_data['tmp_path']
+        local_netcdf_file = tmp_path / input_file.replace('.in', '.out.nc') 
+        expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file.replace(".in","")}.out.nc'    
+    
+    # Check whether the potential data matches in the netCDF file
+    with xr.open_dataset(local_netcdf_file) as local_netcdf, xr.open_dataset(expected_netcdf_file) as expected_netcdf:
+        
+        # Read the time axis
+        local_time = local_netcdf['t']
+        expected_time = expected_netcdf['t']
+        
+        # Read the potential axis
+        local_phi2 = local_netcdf['phi2']
+        expected_phi2 = expected_netcdf['phi2'] 
+
+        local_apar2 = local_netcdf['apar2']
+        expected_apar2 = local_netcdf['apar2']
+
+        local_bpar2 = local_netcdf['bpar2']
+        expected_bpar2 = local_netcdf['bpar2']
+        
+        # Check whether we have the same time and potential data
+        if not (np.allclose(local_time, expected_time, equal_nan=True)):
+            print('\nERROR: The time axis does not match in the netCDF files.'); error = True
+            print('\nCompare the time arrays in the local and expected netCDF files:')
+            compare_local_array_with_expected_array(local_time, expected_time)  
+        if not (np.allclose(local_phi2, expected_phi2, equal_nan=True)):
+            print('\nERROR: The <phi potential data does not match in the netCDF files.'); error = True 
+            print('\nCompare the <phi> potential arrays in the local and expected netCDF files:')
+            compare_local_array_with_expected_array(local_phi2, expected_phi2)
+        if not (np.allclose(local_apar2, expected_apar2, equal_nan=True)):
+            print('\nERROR: The <A_parallel> potential data does not match in the netCDF files.'); error = True 
+            print('\nCompare the <A_parallel> potential arrays in the local and expected netCDF files:')
+            compare_local_array_with_expected_array(local_apar2, expected_apar2)
+        if not (np.allclose(local_bpar2, expected_bpar2, equal_nan=True)):
+            print('\nERROR: The <B_parallel> potential data does not match in the netCDF files.'); error = True 
+            print('\nCompare the <B_parallel> potential arrays in the local and expected netCDF files:')
+            compare_local_array_with_expected_array(local_bar2, expected_bpar2)
+        
+        assert (not error), f'The potential data does not match in the netCDF files.' 
+    
+    return error
     
 #-------------------------------------------------------------------------------
 def convert_byte_array(array):
