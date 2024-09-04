@@ -171,7 +171,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
     run_local_stella_simulation(input_filename, tmp_path)
      
     # Compare phi2(t) in the netCDF files
-    local_netcdf_file = tmp_path / (input_filename_stem + '_kxky_grid_box_nonlinear.out.nc') 
+    local_netcdf_file = tmp_path / (input_filename_stem + '_kxky_grid_box_linear.out.nc') 
     expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'    
     compare_local_potential_with_expected_potential(local_netcdf_file, expected_netcdf_file, error=False)    
     print('  -->  All terms are running as they should when simulated together for EM when running linearly in box mode.') 

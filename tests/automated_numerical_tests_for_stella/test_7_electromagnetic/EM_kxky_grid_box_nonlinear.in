@@ -48,6 +48,8 @@
   nvgrid = 3  
 /
 &knobs
+  mirror_semi_lagrange = .false.
+!  print_extra_info_to_terminal = .false.
   delt = 0.01  
   nstep = 10
 /

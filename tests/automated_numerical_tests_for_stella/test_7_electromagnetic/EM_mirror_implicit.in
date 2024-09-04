@@ -52,6 +52,8 @@
 &knobs
   delt = 0.01 
   nstep = 100
+  mirror_semi_lagrange = .false.
+!  print_extra_info_to_terminal = .false.
   stream_implicit = .false.
   mirror_implicit = .true.
   drifts_implicit = .false.
