@@ -55,7 +55,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
     # File names  
     local_netcdf_file = tmp_path / (input_filename_stem + '_no_time_evolution.out.nc') 
     expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'   
-    compare_local_potential_with_expected_potential(local_netcdf_file, expected_netcdf_file, error=False)
+    compare_local_potential_with_expected_potential_em(local_netcdf_file, expected_netcdf_file, error=False)
             
     print(f'  -->  Without gyrokinetic terms the potential in EM stella does not evolve in time.')
 
@@ -69,7 +69,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
     # Compare phi2(t) in the netCDF files
     local_netcdf_file = tmp_path / (input_filename_stem + '_parallel_streaming_implicit.out.nc') 
     expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'   
-    compare_local_potential_with_expected_potential(local_netcdf_file, expected_netcdf_file, error=False)
+    compare_local_potential_with_expected_potential_em(local_netcdf_file, expected_netcdf_file, error=False)
 
     print('  -->  The parallel streaming term for EM stella, implemented implicitly, is evolving correctly.') 
 
@@ -83,7 +83,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
     # Compare phi2(t) in the netCDF files
     local_netcdf_file = tmp_path / (input_filename_stem + '_parallel_streaming_explicit.out.nc') 
     expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'   
-    compare_local_potential_with_expected_potential(local_netcdf_file, expected_netcdf_file, error=False)    
+    compare_local_potential_with_expected_potential_em(local_netcdf_file, expected_netcdf_file, error=False)    
     print('  -->  The parallel streaming term for EM stella, implemented explicitly, is evolving correctly.')
 
 #-------------------------------------------------------------------------------
@@ -96,7 +96,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
     # Compare phi2(t) in the netCDF files
     local_netcdf_file = tmp_path / (input_filename_stem + '_mirror_implicit.out.nc')  
     expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'    
-    compare_local_potential_with_expected_potential(local_netcdf_file, expected_netcdf_file, error=False)    
+    compare_local_potential_with_expected_potential_em(local_netcdf_file, expected_netcdf_file, error=False)    
     print('  -->  The mirror term for EM stella, implemented implicitly, is evolving correctly.')
 
 #-------------------------------------------------------------------------------
@@ -109,7 +109,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
     # Compare phi2(t) in the netCDF files
     local_netcdf_file = tmp_path / (input_filename_stem + '_mirror_explicit.out.nc') 
     expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'    
-    compare_local_potential_with_expected_potential(local_netcdf_file, expected_netcdf_file, error=False)  
+    compare_local_potential_with_expected_potential_em(local_netcdf_file, expected_netcdf_file, error=False)  
     print('  -->  The mirror term for EM stella, implemented explicitly, is evolving correctly.')
 
 #-------------------------------------------------------------------------------
@@ -122,7 +122,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
     # Compare phi2(t) in the netCDF files
     local_netcdf_file = tmp_path / (input_filename_stem + '_diagmagnetic_drift.out.nc') 
     expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'    
-    compare_local_potential_with_expected_potential(local_netcdf_file, expected_netcdf_file, error=False)    
+    compare_local_potential_with_expected_potential_em(local_netcdf_file, expected_netcdf_file, error=False)    
     print('  -->  The diagmagnetic drift term for EM stella is evolving correctly.')
 
 
@@ -136,7 +136,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
     # Compare phi2(t) in the netCDF files
     local_netcdf_file = tmp_path / (input_filename_stem + '_magnetic_drifts.out.nc') 
     expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'    
-    compare_local_potential_with_expected_potential(local_netcdf_file, expected_netcdf_file, error=False)    
+    compare_local_potential_with_expected_potential_em(local_netcdf_file, expected_netcdf_file, error=False)    
     print('  -->  The magnetic drift terms for EM is evolving correctly.')
     
 #-------------------------------------------------------------------------------
@@ -149,7 +149,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
     # Compare phi2(t) in the netCDF files  
     local_netcdf_file = tmp_path / (input_filename_stem + '_nonlinear_term.out.nc')
     expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'
-    compare_local_potential_with_expected_potential(local_netcdf_file, expected_netcdf_file, error=False)
+    compare_local_potential_with_expected_potential_em(local_netcdf_file, expected_netcdf_file, error=False)
     print('  -->  The nonlinear term is being evolved correctly .')
 
 #-------------------------------------------------------------------------------
@@ -162,7 +162,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
     # Compare phi2(t) in the netCDF files
     local_netcdf_file = tmp_path / (input_filename_stem + '_kxky_grid_box_linear.out.nc') 
     expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'    
-    compare_local_potential_with_expected_potential(local_netcdf_file, expected_netcdf_file, error=False)    
+    compare_local_potential_with_expected_potential_em(local_netcdf_file, expected_netcdf_file, error=False)    
     print('  -->  All terms are running as they should when simulated together for EM when running linearly in box mode.') 
 
 #-------------------------------------------------------------------------------
@@ -175,7 +175,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
     # Compare phi2(t) in the netCDF files
     local_netcdf_file = tmp_path / (input_filename_stem + '_kxky_grid_box_nonlinear.out.nc') 
     expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'    
-    compare_local_potential_with_expected_potential(local_netcdf_file, expected_netcdf_file, error=False)    
+    compare_local_potential_with_expected_potential_em(local_netcdf_file, expected_netcdf_file, error=False)    
     print('  -->  All terms are running as they should when simulated together for EM stella when running nonlinearly in box mode.') 
 
     return
