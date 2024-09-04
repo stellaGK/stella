@@ -45,4 +45,15 @@ def test_TAE_physics_for_Electromagnetic_stella(tmp_path):
             
     print(f'  --> The TAE (Kinetic Ballooning Mode) physics is not captured correctly.')
 
+    #-------------------------------------------------------------------------------
+    #   Check whether the growth rate and frequency data for the TAE mode matches  #
+    #-------------------------------------------------------------------------------
+    
+    # Check whether the netCDF data matches
+    keys = ['omega']
+    for key in keys: compare_local_netcdf_quantity_to_expected_netcdf_quantity(local_netcdf_file, expected_netcdf_file, key=key, error=False)
+
+    # If we made it here the test was run correctly
+    print(f'  -->  The growth rate and frequency for the TAE are the same.')
+
     return
