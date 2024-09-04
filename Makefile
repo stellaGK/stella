@@ -1,14 +1,13 @@
 ####################################################################
+#                                                                  #
+#       Makefile for the stella gyrokinetic turbulence code        # 
+#                                                                  #
+####################################################################
 #
-#  Makefile for stella gyrokinetic turbulence code 
+# Makefile written by Bill Dorland and Ryusuke Numata
 #
-#  (requires GNU's gmake)
-#
-GK_PROJECT ?= stella
-#
-#  Makefile written by Bill Dorland and Ryusuke Numata
-#
-#  LAST UPDATE: 10/12/09
+# In the ~/.source.sh or ~/.bashrc file of your computer define, e.g., 
+# export GK_SYSTEM='marconi', which matches stella/Makefiles/Makefile.$GK_SYSTEM
 #
 # * Available Compilers (tested on limited hosts)
 #   (must be Fortran 95 Standard compliant)
@@ -28,91 +27,65 @@ GK_PROJECT ?= stella
 # Franklin at NERSC and Jaguar at NCCS (Cray XT4 with PGI)
 # Bassi at NERSC (IBM Power 5 with IBM XL Fortran)
 # Ranger (Sun Constellation Linux Cluster with Intel)
-#
-# * Switches:
-#
-# Here is a list of switches with simple explanation.
-# In the brackets, values accepted are shown,
-# where "undefined" means blank.
-# Switches with (bin) are checked if they are defined or not
-# What values they have do not matter.
-# Be careful that DEBUG=off means DEBUG=on.
-#
-# turns on debug mode (bin)
-DEBUG ?=
-# turns on test mode (bin)
-TEST ?=
-# optimization (on,aggressive,undefined)
-OPT ?= on
-# prevents linking with shared libraries (bin)
-STATIC ?=
-# promotes precisions of real and complex (bin)
-DBLE ?= on
-# which FFT library to use (fftw,fftw3,mkl_fftw,undefined) 
-USE_FFT ?= fftw3
-# uses netcdf library (bin)
-USE_NETCDF ?= on
-# uses parallel netcdf library
-USE_PARALLEL_NETCDF ?=
-# uses hdf5 library (bin)
-USE_HDF5 ?= 
-# Use local random number generator (mt,undefined)
-# see also README
-USE_LOCAL_RAN ?=
-# Use local special functions (bin)
-USE_LOCAL_SPFUNC ?=
-# Use nag libraray (spfunc,undefined)
-USE_NAGLIB ?=
-# link to sfincs library at compilation
-USE_SFINCS ?=
-# Use LAPACK, needed for test particle collisions
-USE_LAPACK ?= on
-# does the compiler support the iso_c_binding features of Fortran? 
-# (needed for local parallel LU decomposition) 
-HAS_ISO_C_BINDING ?= on
-#
-# * Targets:
-#
-#  depend: generate dependency
-#  test_make: print values of variables
-#  clean: clean up
-#  distclean: does "make clean" + removes platform links & executables
-#  tar: pack
-#
-############################################################### DEFAULT VALUE
-#
-# These variables can be set in platform-dependent Makefile.
-#
+####################################################################
 
-MAKE		= make
-CPP		= cpp
-#CPPFLAGS	= -C -P -traditional
-CPPFLAGS	= -P -traditional
-export FC	= f90
-#MPIFC		?= mpif90-mpich-gcc48
+
+####################################################################
+#                             Switches                             #
+####################################################################
+# In the brackets, the accepted values are shown, where "undefined" means blank.
+# Note that switches with (bin) only check whether they are defined or not,
+# hence the value you give it does not matter, e.g., DEBUG=off means DEBUG=on.
+# The "?=" sets a variable if it does not already have a value. 
+####################################################################
+
+DEBUG ?= on                # Turns on debug mode (bin) 
+TEST ?=                    # Turns on test mode (bin) 
+OPT ?= on                  # Optimization (on, aggressive, undefined)
+STATIC ?=                  # Prevents linking with shared libraries (bin)
+DBLE ?= on                 # Promotes precisions of real and complex (bin) 
+USE_NETCDF ?= on           # Uses netcdf library (bin)
+USE_PARALLEL_NETCDF ?=     # Uses parallel netcdf library
+USE_HDF5 ?=                # Uses hdf5 library (bin)
+USE_LOCAL_RAN ?=           # Use local random number generator (mt,undefined) (see also README)
+USE_LOCAL_SPFUNC ?=        # Use local special functions (bin)
+USE_NAGLIB ?=              # Use nag libraray (spfunc,undefined)
+USE_SFINCS ?=              # Link to sfincs library at compilation
+USE_LAPACK ?= on           # Use LAPACK, needed for test particle collisions
+HAS_ISO_C_BINDING ?= on    # Does the compiler support the iso_c_binding features of Fortran? (needed for local parallel LU decomposition) 
+
+# Which FFT library to use (fftw,fftw3,mkl_fftw,undefined)
+# We can't have any spaces behind 'fftw3' so we can't put the comment behind it
+USE_FFT ?= fftw3
+
+# The following variables can be set in platform-dependent Makefile's
+# For example, inside stella/Makefiles/Makefile.marconi
+
+MAKE		 = make
+CPP		 = cpp
+CPPFLAGS	 = -P -traditional
+export FC	 = f90
 export MPIFC	?= mpif90
-#export MPIFC	?= mpifort
 H5FC		?= h5fc
 H5FC_par	?= h5pfc
-F90FLAGS	= 
-F90OPTFLAGS	=
-CC		= cc
-#MPICC		?= mpicc-mpich-gcc48
+F90FLAGS	 =
+F90OPTFLAGS	 =
+CC		 = cc
 MPICC		?= mpicc
 H5CC		?= h5cc
 H5CC_par	?= h5pcc
-CFLAGS		=
-COPTFLAGS 	=
-LD 		= $(FC)
-LDFLAGS 	= $(F90FLAGS)
-ARCH 		= ar
-ARCHFLAGS 	= cr
-RANLIB		= ranlib
-AWK 		= awk
-PERL		= perl
+CFLAGS		 =
+COPTFLAGS 	 =
+LD 		 = $(FC)
+LDFLAGS 	 = $(F90FLAGS)
+ARCH 		 = ar
+ARCHFLAGS 	 = cr
+RANLIB		 = ranlib
+AWK 		 = awk
+PERL		 = perl
 FORD       	?= ford
 
-MPI_INC	?=
+MPI_INC ?=
 MPI_LIB ?=
 FFT_INC ?=
 FFT_LIB ?=
@@ -136,16 +109,20 @@ LIBSTELL_LIB ?=
 GK_THIS_MAKEFILE := $(abspath $(lastword $(MAKEFILE_LIST)))
 GK_HEAD_DIR := $(realpath $(dir $(GK_THIS_MAKEFILE)))
 
-######################################################### PLATFORM DEPENDENCE
-
-# compile mode switches (DEBUG, TEST, OPT, STATIC, DBLE)
-# must be set before loading Makefile.$(GK_SYSTEM) because they may affect
-# compiler options.
+####################################################################
+#                        PLATFORM DEPENDENCE                       #
+####################################################################
+# The compiler mode switches (DEBUG, TEST, OPT, STATIC, DBLE) must be set
+# before loading Makefile.$(GK_SYSTEM) because they may affect compiler options.
 # However, Makefile.local may override some options set in Makefile.$(GK_SYSTEM),
 # thus it is included before and after Makefile.$(GK_SYSTEM)
+####################################################################
+
+# Here "sinclude" will include the file, without an error if it doesn't exist
 sinclude Makefile.local
 
-# include system-dependent make variables
+# Include system-dependent make variables, defined in stella/Makefiles/Makefile.$GK_SYSTEM 
+# where e.g., export GK_SYSTEM='marconi' inside e.g. ~/.bashrc defined this system variable on your computer 
 ifndef GK_SYSTEM
 	ifdef SYSTEM
 $(warning SYSTEM environment variable is obsolete)
@@ -155,30 +132,47 @@ $(warning use GK_SYSTEM instead)
 $(error GK_SYSTEM is not set)
 	endif
 endif
+
+# Read the stella/Makefiles/Makefile.$GK_SYSTEM file
 include Makefile.$(GK_SYSTEM)
 
+# Overwrite the file with the local file, if it exists
 sinclude Makefile.local
 
-#############################################################################
+####################################################################
+#                        PLATFORM DEPENDENCE                       #
+####################################################################
 
+# Export some variables, so they become available to all child processes
 export F90FLAGS
 export NETCDF_INC
 export NETCDF_LIB
+
+# Export the subdirectories
+export DIAG=$(GK_HEAD_DIR)/diagnostics
 export COLL=$(GK_HEAD_DIR)/dissipation
 export UTILS=$(GK_HEAD_DIR)/utils
-export GEO=$(GK_HEAD_DIR)/geo
-export VMEC=$(GEO)/vmec_interface
-export LIBSTELL=$(VMEC)/mini_libstell
+export GEO=$(GK_HEAD_DIR)/geometry
+export LIBSTELL=$(UTILS)/mini_libstell
+
+# We make extra libraries <mini_libstell> and <stella_utils>
 LIBSTELL_LIB=$(LIBSTELL)/mini_libstell.a
+
+# External libraries
 GIT_VERSION_DIR := $(GK_HEAD_DIR)/externals/git_version
 NEASYF := $(GK_HEAD_DIR)/externals/neasyf/src
 
+####################################################################
+#                        PROCESS SOME FLAGS                        #
+####################################################################
+
+# Must invoke full functionality when we do >> make depend
 ifeq ($(MAKECMDGOALS),depend)
-# must invoke full functionality when make depend
 	MAKE += USE_HDF5=on USE_FFT=fftw3 USE_NETCDF=on \
 		USE_LOCAL_BESSEL=on USE_LOCAL_RAN=mt
 endif
 
+# Warning that we can't do nonlinear sims without fourier transformations
 ifndef USE_FFT
 $(warning USE_FFT is off)
 $(warning Be sure that nonlinear run makes no sense)
@@ -192,20 +186,19 @@ FC = $(MPIFC)
 CC = $(MPICC)
 CPPFLAGS += -DMPI
 
+# Flags for <USE_FFT> are (fftw,fftw3,mkl_fftw,undefined)
 ifeq ($(USE_FFT),fftw)
 	CPPFLAGS += -DFFT=_FFTW_
 	ifeq ($(FFT_LIB),)
 		FFT_LIB = -lfftw -lrfftw
 	endif
 endif
-
 ifeq ($(USE_FFT),fftw3)
 	CPPFLAGS += -DFFT=_FFTW3_
 	ifeq ($(FFT_LIB),)
 		FFT_LIB = -lfftw3
 	endif
 endif
-
 ifeq ($(USE_FFT),mkl_fftw)
 	CPPFLAGS += -DFFT=_FFTW_
 endif
@@ -216,19 +209,21 @@ ifdef USE_NETCDF
         endif
 	CPPFLAGS += -DNETCDF
 endif
+
 ifdef USE_LAPACK
         LAPACK_LIB ?= -llapack
 	CPPFLAGS += -DLAPACK
 endif
+
 ifdef USE_HDF5
 	FC = $(H5FC_par)
 	CC = $(H5CC_par)
 	ifdef USE_PARALLEL_NETCDF
 		CPPFLAGS += -DNETCDF_PARALLEL
 	endif
-
 	CPPFLAGS += -DHDF
 endif
+
 ifeq ($(USE_LOCAL_RAN),mt)
 	CPPFLAGS += -DRANDOM=_RANMT_
 endif
@@ -239,6 +234,7 @@ else
 		CPPFLAGS += -DSPFUNC=_SPNAG_
 	endif
 endif
+
 ifdef USE_NAGLIB
 	ifeq ($(NAG_PREC),dble)
 		ifndef DBLE
@@ -253,23 +249,37 @@ $(warning Precision mismatch with NAG libarray)
 		CPPFLAGS += -DNAG_PREC=_NAGSNGL_
 	endif
 endif
+
 ifdef USE_SFINCS
 	CPPFLAGS += -DUSE_SFINCS
 endif
 
+# List of all the used libraries, where $LIBSTELL_LIB is our own library
 LIBS	+= $(DEFAULT_LIB) $(MPI_LIB) $(FFT_LIB) $(NETCDF_LIB) $(HDF5_LIB) \
-		$(NAG_LIB) $(SFINCS_LIB) $(PETSC_LIB) $(LIBSTELL_LIB) \
-		$(LAPACK_LIB)
-F90FLAGS+= $(F90OPTFLAGS)
+		$(NAG_LIB) $(SFINCS_LIB) $(PETSC_LIB) $(LIBSTELL_LIB) $(LAPACK_LIB)
+
+# Include flags
 INC_FLAGS= $(DEFAULT_INC) $(MPI_INC) $(FFT_INC) $(NETCDF_INC) $(HDF5_INC) \
 	   $(SFINCS_INC) $(PETSC_INC) $(LAPACK_INC)
+
+# Flags for the fortran compiler and the C compiler
+F90FLAGS+= $(F90OPTFLAGS)
 CFLAGS += $(COPTFLAGS)
 
+####################################################################
+#                        PROCESS DIRECTORIES                       #
+####################################################################
+
 DATE=$(shell date +%y%m%d)
-TARDIR=$(GK_PROJECT)_$(DATE)
+TARDIR=stella_$(DATE)
+
+# If we called make in a subdirectory, get the directory above it
 TOPDIR=$(CURDIR)
 ifeq ($(notdir $(CURDIR)), $(COLL))
 	TOPDIR=$(subst /$(COLL),,$(CURDIR))
+endif
+ifeq ($(notdir $(CURDIR)), $(DIAG))
+	TOPDIR=$(subst /$(DIAG),,$(CURDIR))
 endif
 ifeq ($(notdir $(CURDIR)), $(UTILS))
 	TOPDIR=$(subst /$(UTILS),,$(CURDIR))
@@ -277,36 +287,49 @@ endif
 ifeq ($(notdir $(CURDIR)), $(GEO))
 	TOPDIR=$(subst /$(GEO),,$(CURDIR))
 endif
+ifeq ($(notdir $(CURDIR)), $(LIBSTELL))
+	TOPDIR=$(subst /$(LIBSTELL),,$(CURDIR))
+endif
 ifneq ($(TOPDIR),$(CURDIR))
 	SUBDIR=true
 endif
 
-VPATH = $(COLL):$(UTILS):$(GEO):$(VMEC):$(GIT_VERSION_DIR)/src:$(NEASYF)
-# this just removes non-existing directory from VPATH
+# VPATH is a list of directories to be searched for missing source files
+VPATH = $(DIAG):$(COLL):$(UTILS):$(GEO):$(LIBSTELL):$(GIT_VERSION_DIR)/src:$(NEASYF)
+
+# Removes non-existing directories from VPATH
 VPATH_tmp := $(foreach tmpvp,$(subst :, ,$(VPATH)),$(shell [ -d $(tmpvp) ] && echo $(tmpvp)))
 VPATH = .:$(shell echo $(VPATH_tmp) | sed "s/ /:/g")
-#
+
+# If we're in a subdirectory, add the parent directory 
 ifdef SUBDIR
 	VPATH +=:..
 endif
+
+####################################################################
+#            READ THE DEPENDENCIES OF THE SOURCE FILES             #
+####################################################################
+
+# The dependencies of one source file on other source files
+# is given in the file stella/Makefile.depend
 DEPEND=Makefile.depend
 DEPEND_CMD=$(PERL) fortdep
 
-# most common include and library directories
-DEFAULT_INC_LIST = . $(COLL) $(UTILS) $(LIBSTELL) $(VMEC) $(GEO) $(NEASYF)
+# Most common include and library directories
+DEFAULT_INC_LIST = . $(DIAG) $(COLL) $(UTILS) $(LIBSTELL) $(GEO) $(NEASYF)
 DEFAULT_LIB_LIST =
 DEFAULT_INC=$(foreach tmpinc,$(DEFAULT_INC_LIST),$(shell [ -d $(tmpinc) ] && echo -I$(tmpinc)))
 DEFAULT_LIB=$(foreach tmplib,$(DEFAULT_LIB_LIST),$(shell [ -d $(tmplib) ] && echo -L$(tmplib)))
 
-# list of intermediate f90 files generated by preprocessor
+# List of intermediate f90 files generated by preprocessor
 F90FROMFPP = $(patsubst %.fpp,%.f90,$(notdir $(wildcard *.fpp */*.fpp)))
 
 # Files that we know are going to be in the submodule directories.
-# This is in case the directories exist but the submodules haven't
-# actually been initialised
+# This is in case the directories exist but the submodules haven't actually been initialised
 GIT_VERSION_SENTINEL := $(GIT_VERSION_DIR)/Makefile
 NEASYF_SENTINEL := $(NEASYF)/neasyf.f90
 
+# If make is killed or interrupted during the execution of their recipes, the targets in ".PRECIOUS" are not deleted.
 .PRECIOUS: $(GIT_VERSION_SENTINEL) $(NEASYF_SENTINEL)
 
 # Make sure the submodules exist; they all currently share the same recipe
@@ -325,51 +348,70 @@ COMPILER_FLAGS_CONTENTS += "\n FORTRAN_GIT_DEFS = $(FORTRAN_GIT_DEFS)"
 .compiler_flags: force
 	@echo -e $(COMPILER_FLAGS_CONTENTS) | cmp -s - $@ || echo -e $(COMPILER_FLAGS_CONTENTS) > $@
 
-# Use the make rules from fortran-git-version, which requires ensuring
-# the submodules exist
+# Use the make rules from fortran-git-version, which requires ensuring the submodules exist
 include $(GIT_VERSION_DIR)/Makefile
 
 # We have some extra macros to add when preprocessing this file. We'll
 # need the submodule to exist first
 git_version_impl.f90: $(GIT_VERSION_DIR)/src/git_version_impl.F90 | $(GIT_VERSION_SENTINEL)
 	$(CPP) $(CPPFLAGS) $(FORTRAN_GIT_DEFS) $< $@
+
 # The fortdep script doesn't know about Fortran submodules, so we need
 # to write the dependency ourselves
 git_version_impl.o: git_version_impl.f90 git_version.o .compiler_flags
 $(GIT_VERSION_DIR)/src/git_version_impl.F90: .compiler_flags
 
-####################################################################### RULES
 
+####################################################################
+#                              RULES                               #
+#################################################################### 
+
+# We process the following files
 .SUFFIXES: .fpp .f90 .F90 .c .o
 
+# Use Fortran f90 compiler for ".f90.o" files, e.g., ifort = The Intel Fortran compiler
 .f90.o:
 	$(FC) $(F90FLAGS) $(INC_FLAGS) -c $<
+
+# Use C preprocessor (CPP) compiler for ".fpp.f90" files
 .fpp.f90:
 	$(CPP) $(CPPFLAGS) $< $@
+
+# Use Fortran f90 compiler for ".F90.o" files, but also use the C preprocessor
 .F90.o:
 	$(FC) $(F90FLAGS) $(CPPFLAGS) $(INC_FLAGS) -c $<
+
+# Use a C compiler for ".c.o" files
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 
-##################################################################### TARGETS
+####################################################################
+#                              Targets                             #
+####################################################################
+# Targets represent executables, libraries, and utilities built by CMake
+#     depend: generate dependency
+#     clean: clean up
+#     distclean: does "make clean" + removes platform links & executables
+# "stella_all" is defined in stella/Makefile.target_stella
+####################################################################
 
-# .DEFAULT_GOAL works for GNU make 3.81 (or higher)
-# For 3.80 or less, see all target
-.DEFAULT_GOAL := $(GK_PROJECT)_all
-ifeq ($(notdir $(CURDIR)),utils)
+# .DEFAULT_GOAL works for GNU make 3.81 (or higher).  For 3.80 or less, see all target
+# If we're in the top folder, our target is <stella_all>, otherwise it is <utils_all> or <mini_libstell_all>
+.DEFAULT_GOAL := stella_all
+ifeq ($(notdir $(CURDIR)),utils) 
 	.DEFAULT_GOAL := utils_all
 endif
-ifeq ($(notdir $(CURDIR)),geo)
-	.DEFAULT_GOAL := geo_all
+ifeq ($(notdir $(CURDIR)),mini_libstell)
+	.DEFAULT_GOAL := mini_libstell_all
 endif
 
-.PHONY: all $(GK_PROJECT)_all
+.PHONY: all stella_all
 
 all: $(.DEFAULT_GOAL)
 
 include $(DEPEND)
 
-sinclude Makefile.target_$(GK_PROJECT)
+sinclude Makefile.target_stella
 
 # Include the automated Fortran tests
 # Inside 'tests/automated_fortran_tests/Makefile' we define the commands 
@@ -389,25 +431,30 @@ check: run-automated-fortran-tests run-automated-numerical-tests-for-stella
 # comment this out to keep intermediate .f90 files
 #.PRECIOUS: $(F90FROMFPP)
 
-.INTERMEDIATE: $(GK_PROJECT)_transforms.f90 $(GK_PROJECT)_io.f90 $(GK_PROJECT)_save.f90 \
+.INTERMEDIATE: stella_transforms.f90 stella_io.f90 stella_save.f90 \
 		mp.f90 fft_work.f90 response_matrix.f90 sources.f90 \
 		fields.f90 mp_lu_decomposition.f90 git_version_impl.f90
 
 ############################################################# MORE DIRECTIVES
 
-.PHONY: depend clean distclean tar test_make
+.PHONY: depend clean distclean
 
 depend: $(GIT_VERSION_SENTINEL) $(NEASYF)
 	@$(DEPEND_CMD) -m "$(MAKE)" -1 -o -v=0 $(VPATH)
 
+
+# To compile correctly it is very important to remove the previously build
+# *.o and *.mod files. Here '$(MAKE) -C $(LIBSTELL) clean' will look at 
+# utils/mini_libstell/makefile and it will its clean target as well.
 clean:
 	-rm -f *.o *.mod *.g90 *.h core */core *~ *.smod
 	-rm -f $(GEO)/*.o $(GEO)/*~
 	-rm -f Makefiles/*~
 	-rm -f $(UTILS)/*.o $(UTILS)/*~
 	-rm -f $(COLL)/*.o $(COLL)/*~
+	-rm -f $(DIAG)/*.o $(DIAG)/*~
 	-rm -f .compiler_flags
-	$(MAKE) -C $(VMEC) clean
+	$(MAKE) -C $(LIBSTELL) clean
 
 cleanlib:
 	-rm -f *.a
@@ -415,50 +462,6 @@ cleanlib:
 distclean: unlink clean cleanlib
 
 %.o: %.mod
-
-tar:
-	@[ ! -d $(TARDIR) ] || echo "ERROR: directory $(TARDIR) exists. Stop."
-	@[ -d $(TARDIR) ] || $(MAKE) tar_exec
-
-test_make:
-	@echo GK_SYSTEM is $(GK_SYSTEM)
-	@echo .DEFAULT_GOAL is $(.DEFAULT_GOAL)
-	@echo VPATH is $(VPATH)
-	@echo CURDIR is $(CURDIR)
-	@echo TOPDIR is $(TOPDIR)
-	@echo NETCDF_DIR is $(NETCDF_DIR)
-	@echo FFTW_DIR is $(FFTW_DIR)
-	@echo
-	@echo Compile mode:
-	@echo  DEBUG is $(DEBUG)
-	@echo  TEST is $(TEST)
-	@echo  OPT is $(OPT)
-	@echo  STATIC is $(STATIC)
-	@echo  DBLE is $(DBLE)
-	@echo
-	@echo Functions:
-	@echo  USE_FFT is $(USE_FFT)
-	@echo  USE_NETCDF is $(USE_NETCDF)
-	@echo  USE_HDF5 is $(USE_HDF5)
-	@echo  USE_LOCAL_RAN is $(USE_LOCAL_RAN)
-	@echo  USE_LOCAL_SPFUNC is $(USE_LOCAL_SPFUNC)
-	@echo  USE_NAGLIB is $(USE_NAGLIB)
-	@echo  USE_LAPACK is $(USE_LAPACK)
-	@echo  DEFAULT_LIB is $(DEFAULT_LIB)
-	@echo  MPI_LIB is $(MPI_LIB)
-	@echo
-	@echo FC is $(FC)
-	@echo F90FLAGS is $(F90FLAGS)
-	@echo F90OPTFLAGS is $(F90OPTFLAGS)
-	@echo CC is $(CC)
-	@echo CFLAGS is $(CFLAGS)
-	@echo COPTFLAGS is $(COPTFLAGS)
-	@echo LD is $(LD)
-	@echo LDFLAGS is $(LDFLAGS)
-	@echo CPP is $(CPP)
-	@echo CPPFLAGS is $(CPPFLAGS)
-	@echo LIBS is $(LIBS)
-	$(MAKE) -C $(VMEC) test_make
 
 unlink:
 	-rm -f $(F90FROMFPP)

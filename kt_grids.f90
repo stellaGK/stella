@@ -258,9 +258,9 @@ contains
       use mp, only: mp_abort, proc0, broadcast
       use common_types, only: flux_surface_type
       use constants, only: pi, zi
-      use stella_geometry, only: geo_surf, twist_and_shift_geo_fac, dydalpha
-      use stella_geometry, only: q_as_x, get_x_to_rho, dxdXcoord, drhodpsi
-      use stella_geometry, only: geo_option_switch, geo_option_vmec
+      use geometry, only: geo_surf, twist_and_shift_geo_fac, dydalpha
+      use geometry, only: q_as_x, get_x_to_rho, dxdpsi, drhodpsi
+      use geometry, only: geo_option_switch, geo_option_vmec
       use physics_parameters, only: rhostar
       use physics_flags, only: full_flux_surface, radial_variation
       use file_utils, only: runtype_option_switch, runtype_multibox
@@ -408,11 +408,9 @@ contains
       if (centered_in_rho) then
          if (q_as_x) then
             dqdrho = geo_surf%shat * geo_surf%qinp / geo_surf%rhoc
-            x_shift = pi * x0 * (1.0 &
-                                 - 0.5 * pfac * rhostar * pi * x0 * geo_surf%d2qdr2 / (dqdrho**2 * dxdXcoord))
+            x_shift = pi * x0 * (1.0 - 0.5 * pfac * rhostar * pi * x0 * geo_surf%d2qdr2 / (dqdrho**2 * dxdpsi))
          else
-            x_shift = pi * x0 * (1.0 &
-                                 - 0.5 * pfac * rhostar * pi * x0 * geo_surf%d2psidr2 * drhodpsi**2 / dxdXcoord)
+            x_shift = pi * x0 * (1.0 - 0.5 * pfac * rhostar * pi * x0 * geo_surf%d2psidr2 * drhodpsi**2 / dxdpsi)
          end if
       end if
 
@@ -474,7 +472,7 @@ contains
 
       use mp, only: mp_abort
       use common_types, only: flux_surface_type
-      use stella_geometry, only: geo_surf, q_as_x
+      use geometry, only: geo_surf, q_as_x
       use zgrid, only: shat_zero
 
       implicit none
@@ -614,7 +612,7 @@ contains
 
       use file_utils, only: run_name
       use physics_parameters, only: rhostar
-      use stella_geometry, only: q_as_x, geo_surf, dxdXcoord, drhodpsi
+      use geometry, only: q_as_x, geo_surf, dxdpsi, drhodpsip
 
       implicit none
 
@@ -625,7 +623,7 @@ contains
       open (1047, file=filename, status='unknown')
       if (q_as_x) then
          write (1047, '(1a12,1e12.4,1a12,1e12.4,1a12,1e12.4,1a12,1e12.4)') &
-            '#dxdXcoord = ', dxdXcoord, &
+            '#dxdpsi = ', dxdpsi, &
             ' q    = ', geo_surf%qinp, &
             ' dqdr = ', geo_surf%shat * geo_surf%qinp / geo_surf%rhoc, &
             ' d2qdr2 = ', geo_surf%d2qdr2
@@ -633,19 +631,19 @@ contains
          do ix = 1, nx
             write (1047, '(3e12.4,i9)') &
                x(ix), &
-               rhostar * x(ix) / dxdXcoord + geo_surf%qinp, &
+               rhostar * x(ix) / dxdpsi + geo_surf%qinp, &
                rho(ix) + geo_surf%rhoc
          end do
       else
          write (1047, '(1a12,1e12.4,1a12,1e12.4,1a12,1e12.4,1a12,1e12.4)') &
-            '#dxdXcoord = ', dxdXcoord, &
-            ' dpsidr    = ', 1.0 / drhodpsi, &
+            '#dxdpsi = ', dxdpsi, &
+            ' dpsidr    = ', 1.0 / drhodpsip, &
             ' d2psidr2 = ', geo_surf%d2psidr2
          write (1047, '(3a12,a9)') '#1.x', '2.psi-psi0', '3.rho'
          do ix = 1, nx
             write (1047, '(3e12.4,i9)') &
                x(ix), &
-               rhostar * x(ix) / dxdXcoord, &
+               rhostar * x(ix) / dxdpsi, &
                rho(ix) + geo_surf%rhoc
          end do
       end if

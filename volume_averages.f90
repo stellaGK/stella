@@ -27,8 +27,8 @@ contains
 
       use zgrid, only: nzgrid, nztot, delzed
       use kt_grids, only: nalpha, aky, nakx, naky, rho_d_clamped
-      use stella_geometry, only: geo_surf, drhodpsi
-      use stella_geometry, only: geo_surf, jacob, djacdrho, q_as_x, dVolume
+      use geometry, only: geo_surf, drhodpsip
+      use geometry, only: geo_surf, jacob, djacdrho, q_as_x, dVolume
       use physics_flags, only: full_flux_surface, radial_variation
 
       implicit none
@@ -50,14 +50,14 @@ contains
       ! NB: dVolume does not contain the factor dx, as this should always be uniform
       dVolume = spread(jacob * spread(delzed, 1, nalpha), 2, nakx)
       if (q_as_x) then
-         dVolume = dVolume / (dqdrho * drhodpsi)
+         dVolume = dVolume / (dqdrho * drhodpsip)
       end if
 
       if (radial_variation) then
          if (q_as_x) then
             dVolume = dVolume * (1.+spread(spread(rho_d_clamped, 1, nalpha), 3, nztot) &
                                  * (spread(djacdrho / jacob, 2, nakx) - geo_surf%d2qdr2 / dqdrho &
-                                    + geo_surf%d2psidr2 * drhodpsi))
+                                    + geo_surf%d2psidr2 * drhodpsip))
          else
             dVolume = dVolume * (1.+spread(spread(rho_d_clamped, 1, nalpha), 3, nztot) &
                                  * spread(djacdrho / jacob, 2, nakx))
@@ -76,7 +76,7 @@ contains
 
    subroutine finish_volume_averages
 
-      use stella_geometry, only: dVolume
+      use geometry, only: dVolume
       use physics_flags, only: full_flux_surface
 
       implicit none
@@ -96,7 +96,7 @@ contains
 
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, naky
-      use stella_geometry, only: dl_over_b
+      use geometry, only: dl_over_b
 
       implicit none
 
@@ -119,7 +119,7 @@ contains
 
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, naky
-      use stella_geometry, only: dl_over_b
+      use geometry, only: dl_over_b
 
       implicit none
 
@@ -145,7 +145,7 @@ contains
 
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
-      use stella_geometry, only: dl_over_b
+      use geometry, only: dl_over_b
 
       implicit none
 
@@ -176,7 +176,7 @@ contains
       use zgrid, only: nzgrid
       use kt_grids, only: naky
       use extended_zgrid, only: periodic
-      use stella_geometry, only: jacob
+      use geometry, only: jacob
       use stella_transforms, only: transform_alpha2kalpha
 
       implicit none
@@ -198,10 +198,8 @@ contains
 
    subroutine flux_surface_average_ffs(no_fsa, fsa)
 
-      use zgrid, only: nzgrid, delzed
-      use stella_geometry, only: jacob
-      use kt_grids, only: naky, naky_all, nalpha
-      use kt_grids, only: dy
+      use zgrid, only: nzgrid, delzed 
+      use kt_grids, only: naky, naky_all 
 
       implicit none
 
@@ -235,6 +233,7 @@ contains
          ikymod = iky - naky + 1
          ! for each ky, add the integral over zed
          fsa = fsa + sum(delzed * no_fsa(iky, :) * conjg(jacobian_ky(ikymod, :)))
+         ! TODO-GA: WARNING: Possible change of value in conversion from COMPLEX(8) to REAL(8)
          area = area + sum(delzed * jacobian_ky(ikymod, :))
       end do
       ! normalise by the flux surface area

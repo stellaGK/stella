@@ -4244,6 +4244,8 @@ contains
       integer :: n, ierr, ix
       real :: dum1, dum2, sigma
       real, dimension(:), allocatable :: ypp, dum3
+      real :: zero 
+      
       n = size(x)
       allocate (ypp(n), dum3(n))
       sigma = 1.0
@@ -4251,6 +4253,11 @@ contains
       do ix = 1, size(xint)
          yint(ix) = fitp_curv2(xint(ix), n, x, y, ypp, sigma)
       end do
+
+      zero = 1000 * epsilon(0.0)
+      if(abs(yint(1)) <= zero) yint(1) = 0.0
+      if(abs(yint(size(xint))) <= zero) yint(size(xint)) = 0.0
+      
       deallocate (ypp, dum3)
    end subroutine geo_spline_array
 

@@ -50,6 +50,7 @@
 &stella_diagnostics_knobs
   nsave = 100
   nwrite = 10 
+  write_all = .true.
   write_omega = .true.
   write_moments = .true.
   write_phi_vs_time = .true.

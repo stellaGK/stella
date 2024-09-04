@@ -9,7 +9,7 @@ module run_parameters
    public :: nstep, tend, delt
    public :: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
    public :: delt_max, delt_min
-   public :: avail_cpu_time
+   public :: avail_cpu_time, autostop
    public :: stream_implicit, mirror_implicit
    public :: drifts_implicit
    public :: driftkinetic_implicit
@@ -26,7 +26,6 @@ module run_parameters
    public :: time_upwind_plus, time_upwind_minus
    public :: zed_upwind_plus, zed_upwind_minus
    public :: print_extra_info_to_terminal
-
    public :: nitt 
 
    private
@@ -46,8 +45,7 @@ module run_parameters
    logical :: fields_kxkyz, mat_gen, mat_read
    logical :: ky_solve_real
    logical :: use_deltaphi_for_response_matrix
-   logical :: maxwellian_normalization
-   logical :: print_extra_info_to_terminal
+   logical :: maxwellian_normalization, autostop
    real :: avail_cpu_time
    integer :: nstep, ky_solve_radial
    integer :: rng_seed
@@ -58,8 +56,9 @@ module run_parameters
                                  lu_option_global = 3
    logical :: initialized = .false.
    logical :: knexist
-
+   logical :: print_extra_info_to_terminal
    integer :: nitt
+   
 contains
 
    subroutine init_run_parameters
@@ -74,7 +73,7 @@ contains
    end subroutine init_run_parameters
 
    subroutine read_parameters
-
+ 
       use file_utils, only: input_unit, error_unit, input_unit_exist
       use mp, only: mp_abort, proc0, broadcast
       use text_options, only: text_option, get_option_value
@@ -100,7 +99,7 @@ contains
       integer :: ierr, in_file
 
       namelist /knobs/ fphi, fapar, fbpar, delt, nstep, tend, &
-         delt_option, lu_option, &
+         delt_option, lu_option, autostop, &
          avail_cpu_time, delt_max, delt_min, &
          cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, &
          stream_implicit, mirror_implicit, &
@@ -146,6 +145,10 @@ contains
 
          ! Set the available wall time in seconds, 5 minutes before the wall, stella will make a clean exit
          avail_cpu_time = 1.e10
+
+         ! Stop linear simulations when gamma is constant (careful since we won't catch jumpers!)
+         ! It will check gamma over <navg> time steps
+         autostop = .true.
 
          ! code_dt needs to stay within [cfl_dt*cfl_cushion_upper, cfl_dt*cfl_cushion_lower]
          ! code_dt can be increased if cfl_dt increases, however, never increase above delt_max (=delt by default)
@@ -247,6 +250,14 @@ contains
             end if
          end if
 
+         ! Notify the user that rng_seed is set
+         if ((rng_seed > 0) .and. print_extra_info_to_terminal) then 
+            write (*, '(A)') "############################################################"
+            write (*, '(A)') "                        RUN PARAMETERS"
+            write (*, '(A)') "############################################################"
+            write (*,*) ' '; write (*,'(A12, I2)') 'rng_seed = ', rng_seed; write (*,*) ' '; 
+         end if
+
          if (.not. full_flux_surface) then  
             nitt = 1
          end if
@@ -274,7 +285,7 @@ contains
             if (stream_implicit) then
                driftkinetic_implicit = .true.
             end if
-	         if (maxwellian_normalization) then 
+            if (maxwellian_normalization) then 
                write (*, *)
                write (*, *) '!!!WARNING!!!'
                write (*, *) 'The option maxwellian_normalisation=T is not consistent with full_flux_surface=T.'
@@ -318,6 +329,7 @@ contains
       call broadcast(nstep)
       call broadcast(tend)
       call broadcast(avail_cpu_time)
+      call broadcast(autostop) 
       call broadcast(rng_seed)
       call broadcast(ky_solve_radial)
       call broadcast(ky_solve_real)
@@ -337,7 +349,10 @@ contains
       zed_upwind_minus = 0.5 * (1.0 - zed_upwind)
 
       if (.not. include_mirror) mirror_implicit = .false.
-      if (.not. include_parallel_streaming) stream_implicit = .false.
+      if (.not. include_parallel_streaming) then
+         stream_implicit = .false.
+         driftkinetic_implicit = .false.
+      end if
 
       if (mirror_implicit .or. stream_implicit .or. drifts_implicit) then
          fully_explicit = .false.

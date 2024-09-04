@@ -11,7 +11,7 @@ contains
       use common_types, only: spec_type
       use splines, only: geo_spline
       use physics_parameters, only: vnew_ref, rhostar, tite, nine
-      use stella_geometry, only: geo_surf, aref, bref
+      use geometry, only: geo_surf, aref, bref
 
       implicit none
 

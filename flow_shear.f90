@@ -32,8 +32,8 @@ contains
       use zgrid, only: nzgrid
       use kt_grids, only: x, x_d, nalpha, nx, nakx, naky, akx, aky, ikx_max, zonal_mode, box
       use fields_arrays, only: shift_state
-      use stella_geometry, only: q_as_x, geo_surf, bmag, btor, rmajor, dBdrho, dIdrho
-      use stella_geometry, only: dydalpha, drhodpsi
+      use geometry, only: q_as_x, geo_surf, bmag, btor, rmajor, dBdrho, dIdrho
+      use geometry, only: dydalpha, drhodpsi
       use physics_parameters, only: g_exb, g_exbfac, omprimfac
       use vpamu_grids, only: vperp2, vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac

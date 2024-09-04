@@ -222,8 +222,8 @@ contains
    subroutine init_multibox
       use constants, only: pi
       use stella_layouts, only: vmu_lo
-      use stella_geometry, only: geo_surf, q_as_x, get_x_to_rho
-      use stella_geometry, only: drhodpsi, dxdXcoord
+      use geometry, only: geo_surf, q_as_x, get_x_to_rho
+      use geometry, only: drhodpsi, dxdpsi
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: nakx, naky, akx, aky, nx, x, x_d, x0
       use kt_grids, only: centered_in_rho, rho_clamped, rho_d, rho_d_clamped
@@ -346,10 +346,10 @@ contains
             if (q_as_x) then
                dqdrho = geo_surf%shat * geo_surf%qinp / geo_surf%rhoc
                x_shift = pi * x0 * (1.0 &
-                                    - 0.5 * rhostar * pi * x0 * geo_surf%d2qdr2 / (pfac * dqdrho**2 * dxdXcoord))
+                                    - 0.5 * rhostar * pi * x0 * geo_surf%d2qdr2 / (pfac * dqdrho**2 * dxdpsi))
             else
                x_shift = pi * x0 * (1.0 &
-                                    - 0.5 * rhostar * pi * x0 * geo_surf%d2psidr2 * drhodpsi**2 / (pfac * dxdXcoord))
+                                    - 0.5 * rhostar * pi * x0 * geo_surf%d2psidr2 * drhodpsi**2 / (pfac * dxdpsi))
             end if
          end if
          do i = 1, x_fft_size
@@ -488,7 +488,7 @@ contains
       use physics_flags, only: radial_variation, prp_shear_enabled, hammett_flow_shear
       use physics_parameters, only: g_exb, g_exbfac
       use stella_layouts, only: vmu_lo
-      use stella_geometry, only: dl_over_b
+      use geometry, only: dl_over_b
       use zgrid, only: nzgrid
       use mp, only: job, scope, mp_abort, &
                     crossdomprocs, subprocs, allprocs, &
@@ -799,7 +799,7 @@ contains
       use kt_grids, only: nakx, naky, boundary_size
       use zgrid, only: nzgrid
       use physics_flags, only: radial_variation
-      use stella_geometry, only: dl_over_b, d_dl_over_b_drho
+      use geometry, only: dl_over_b, d_dl_over_b_drho
       use run_parameters, only: ky_solve_radial
       use fields_arrays, only: phi_solve, phizf_solve, gamtot, dgamtotdr
       use linear_solve, only: lu_decomposition, lu_inverse
@@ -913,7 +913,7 @@ contains
       use constants, only: zi
       use kt_grids, only: akx, nakx, naky, zonal_mode, boundary_size
       use zgrid, only: nzgrid, ntubes
-      use stella_geometry, only: dl_over_b, d_dl_over_b_drho
+      use geometry, only: dl_over_b, d_dl_over_b_drho
       use run_parameters, only: ky_solve_radial
       use fields_arrays, only: gamtot, dgamtotdr, phi_solve, phizf_solve
       use linear_solve, only: lu_back_substitution

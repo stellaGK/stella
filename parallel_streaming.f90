@@ -43,6 +43,8 @@ module parallel_streaming
    integer, dimension(:,:), allocatable :: stream_correction_sign, stream_full_sign
    real, dimension(:, :, :, :), allocatable :: stream_correction, stream_store_full
 
+   logical :: debug = .false.
+   
 contains
 
    subroutine init_parallel_streaming
@@ -57,10 +59,10 @@ contains
       use vpamu_grids, only: vperp2, vpa, mu
       use kt_grids, only: nalpha
       use zgrid, only: nzgrid, nztot
-      use stella_geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
+      use geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
       use run_parameters, only: stream_implicit, driftkinetic_implicit
       use physics_flags, only: include_parallel_streaming, radial_variation
-
+      use physics_flags, only: full_flux_surface
       use run_parameters, only: tupwnd_m => time_upwind_minus
       use mp, only: proc0
       implicit none
@@ -73,16 +75,21 @@ contains
 
       if (parallel_streaming_initialized) return
       parallel_streaming_initialized = .true.
+      
+      debug = debug .and. proc0
 
+      if (debug) write (6, *) 'parallel_streaming::init_parallel_streaming'
       if (.not. allocated(stream)) allocate (stream(nalpha, -nzgrid:nzgrid, nvpa, nspec)); stream = 0.
       if (.not. allocated(stream_sign)) allocate (stream_sign(nvpa)); stream_sign = 0
 
-      if (driftkinetic_implicit) then
-         if (.not. allocated(stream_correction)) allocate (stream_correction(nalpha, -nzgrid:nzgrid, nvpa, nspec)); stream_correction = 0.
-         if (.not. allocated(stream_store)) allocate (stream_store(-nzgrid:nzgrid, nvpa, nspec)); stream_store = 0.
-         if (.not. allocated(stream_correction_sign)) allocate (stream_correction_sign(nalpha, nvpa)); stream_correction_sign = 0.0
+      if(full_flux_surface) then 
          if (.not. allocated(stream_store_full)) allocate (stream_store_full(nalpha,-nzgrid:nzgrid, nvpa, nspec)); stream_store_full = 0.
          if (.not. allocated(stream_full_sign)) allocate(stream_full_sign(nalpha, nvpa)); stream_full_sign = 0.0
+         if (driftkinetic_implicit) then
+            if (.not. allocated(stream_correction)) allocate (stream_correction(nalpha, -nzgrid:nzgrid, nvpa, nspec)); stream_correction = 0.
+            if (.not. allocated(stream_store)) allocate (stream_store(-nzgrid:nzgrid, nvpa, nspec)); stream_store = 0.
+            if (.not. allocated(stream_correction_sign)) allocate (stream_correction_sign(nalpha, nvpa)); stream_correction_sign = 0.0
+         end if
       end if
 
       ! sign of stream corresponds to appearing on RHS of GK equation
@@ -104,11 +111,13 @@ contains
          stream = 0.0
       end if
 
-      if (driftkinetic_implicit) then
-         stream_correction = stream - spread(stream_store, 1, nalpha)
-         stream_store_full = stream 
-         stream = spread(stream_store, 1, nalpha)
-         deallocate (stream_store)
+      if(full_flux_surface) then 
+         stream_store_full = stream
+         if (driftkinetic_implicit) then
+            stream_correction = stream - spread(stream_store, 1, nalpha)
+            stream = spread(stream_store, 1, nalpha)
+            deallocate (stream_store)
+         end if
       end if
 
       if (radial_variation) then
@@ -144,11 +153,13 @@ contains
       !> do not lead to change in sign of the streaming pre-factor
       do iv = 1, nvpa
          stream_sign(iv) = int(sign(1.0, stream(1, 0, iv, 1)))
-         if (driftkinetic_implicit) then
+         if(full_flux_surface) then 
             do ia = 1, nalpha
-                stream_correction_sign(ia,:) =  int(sign(1.0, stream_correction(ia, 0, iv, 1)))
-                stream_full_sign(ia,:) = int(sign(1.0, stream_store_full(ia, 0, iv, 1)))
-            end do
+               stream_full_sign(ia,:) = int(sign(1.0, stream_store_full(ia, 0, iv, 1)))
+               if (driftkinetic_implicit) then         
+                   stream_correction_sign(ia,:) =  int(sign(1.0, stream_correction(ia, 0, iv, 1)))
+               end if
+            end do 
          end if
       end do
 
@@ -163,7 +174,7 @@ contains
          end do
          if (.not. allocated(gradpar_c)) allocate (gradpar_c(-nzgrid:nzgrid, -1:1))
          gradpar_c = spread(gradpar, 2, 3)
-         !> get gradpar centred in zed for negative vpa (affects upwinding)
+         !> get gradpar centred in zed for negative vpa (affects upwinding) 
          call center_zed(1, gradpar_c(:, -stream_sign(1)), -nzgrid)
          !> get gradpar centred in zed for positive vpa (affects upwinding)
          call center_zed(nvpa, gradpar_c(:, -stream_sign(nvpa)), -nzgrid)
@@ -176,15 +187,22 @@ contains
 
       use zgrid, only: delzed
       use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: nsegments
+      use extended_zgrid, only: nsegments, neigen_max
       use run_parameters, only: zed_upwind_plus, zed_upwind_minus, time_upwind_plus
 
       implicit none
 
       integer :: nz, nseg_max
-
-      nz = maxval(iz_up - iz_low)
-      nseg_max = maxval(nsegments)
+ 
+        
+      ! <iz_up> and <iz_low> are not defined when we dont have any connections  
+      if (neigen_max>0) then 
+          nz = maxval(iz_up - iz_low)
+          nseg_max = maxval(nsegments)
+      else 
+          nz = 0
+          nseg_max = 0
+      end if
 
       if (.not. allocated(stream_tri_a1)) then
          allocate (stream_tri_a1(nz * nseg_max + 1, -1:1)); stream_tri_a1 = 0.
@@ -887,7 +905,7 @@ contains
    subroutine finish_parallel_streaming
 
       use run_parameters, only: stream_implicit, driftkinetic_implicit
-
+      use physics_flags, only: full_flux_surface
       implicit none
 
       if (allocated(stream)) deallocate (stream)
@@ -898,11 +916,13 @@ contains
       if (allocated(stream_rad_var2)) deallocate (stream_rad_var2)
 
       if (stream_implicit .or. driftkinetic_implicit) call finish_invert_stream_operator
-      if (driftkinetic_implicit) then 
-         if(allocated(stream_correction)) deallocate(stream_correction)
-         if(allocated(stream_correction_sign)) deallocate(stream_correction_sign)
+      if(full_flux_surface) then 
          if(allocated(stream_store_full)) deallocate(stream_store_full)
          if(allocated(stream_full_sign)) deallocate(stream_full_sign)
+         if (driftkinetic_implicit) then 
+            if(allocated(stream_correction)) deallocate(stream_correction)
+            if(allocated(stream_correction_sign)) deallocate(stream_correction_sign)
+         end if
       end if
 
       parallel_streaming_initialized = .false.
