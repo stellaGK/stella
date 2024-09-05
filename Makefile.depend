@@ -37,6 +37,7 @@ stella_mod = \
 	 geometry_miller.o \
 	 geometry_vmec.o \
 	 geometry_vmec_read_netCDF_file.o \
+	 geometry_zpinch.o \
 	 git_version.o \
 	 gyro_averages.o \
 	 hyper.o \
@@ -77,8 +78,7 @@ stella_mod = \
 	 time_advance.o \
 	 volume_averages.o \
 	 vpamu_grids.o \
-	 zgrid.o \
-	 zpinch.o 
+	 zgrid.o 
 
 coll_dougherty.o: \
 	 dist_fn_arrays.o \
@@ -433,6 +433,7 @@ geometry.o: \
 	 geometry_inputprofiles_interface.o \
 	 geometry_miller.o \
 	 geometry_vmec.o \
+	 geometry_zpinch.o \
 	 mp.o \
 	 physics_flags.o \
 	 physics_parameters.o \
@@ -466,6 +467,8 @@ geometry_vmec.o: \
 	 zgrid.o 
 geometry_vmec_read_netCDF_file.o: \
 	 mp.o 
+geometry_zpinch.o: \
+	 common_types.o 
 git_version.o: 
 gyro_averages.o: \
 	 common_types.o \
@@ -858,5 +861,3 @@ zgrid.o: \
 	 mp.o \
 	 physics_flags.o \
 	 text_options.o 
-zpinch.o: \
-	 common_types.o 
