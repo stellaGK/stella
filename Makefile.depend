@@ -39,6 +39,7 @@ stella_mod = \
 	 geometry_miller.o \
 	 geometry_vmec.o \
 	 geometry_vmec_read_netCDF_file.o \
+	 geometry_zpinch.o \
 	 git_version.o \
 	 grids_kxky.o \
 	 gyro_averages.o \
@@ -469,6 +470,7 @@ geometry.o: \
 	 geometry_inputprofiles_interface.o \
 	 geometry_miller.o \
 	 geometry_vmec.o \
+	 geometry_zpinch.o \
 	 mp.o \
 	 parameters_physics.o \
 	 text_options.o \
@@ -502,6 +504,8 @@ geometry_vmec.o: \
 	 zgrid.o 
 geometry_vmec_read_netCDF_file.o: \
 	 mp.o 
+geometry_zpinch.o: \
+	 common_types.o 
 git_version.o: 
 grids_kxky.o: \
 	 common_types.o \
