@@ -120,9 +120,9 @@
       <div id="vars-0" class="collapse">
         <div class="list-group list-group-flush">
             <a class="list-group-item" href="../module/diagnostics_fluxes.html#variable-fluxes_unit">fluxes_unit</a>
-            <a class="list-group-item" href="../module/diagnostics_fluxes.html#variable-pflux_vs_s">pflux_vs_s</a>
-            <a class="list-group-item" href="../module/diagnostics_fluxes.html#variable-qflux_vs_s">qflux_vs_s</a>
-            <a class="list-group-item" href="../module/diagnostics_fluxes.html#variable-vflux_vs_s">vflux_vs_s</a>
+            <a class="list-group-item" href="../module/diagnostics_fluxes.html#variable-pflux_vs_s~3">pflux_vs_s</a>
+            <a class="list-group-item" href="../module/diagnostics_fluxes.html#variable-qflux_vs_s~3">qflux_vs_s</a>
+            <a class="list-group-item" href="../module/diagnostics_fluxes.html#variable-vflux_vs_s~3">vflux_vs_s</a>
         </div>
       </div>
     </div>
@@ -207,7 +207,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-pflux_vs_s"></span>
+              <span class="anchor" id="variable-pflux_vs_s~3"></span>
               real,
             </td>
               <td>private,</td>
@@ -224,7 +224,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-qflux_vs_s"></span>
+              <span class="anchor" id="variable-qflux_vs_s~3"></span>
               real,
             </td>
               <td>private,</td>
@@ -241,7 +241,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-vflux_vs_s"></span>
+              <span class="anchor" id="variable-vflux_vs_s~3"></span>
               real,
             </td>
               <td>private,</td>
@@ -290,7 +290,7 @@
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-nout"></span>
+              <span class="anchor" id="variable-nout~48"></span>
               integer,
             </td>
 <td>intent(in)</td>
@@ -305,7 +305,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-timer"></span>
+              <span class="anchor" id="variable-timer~5"></span>
               real,
             </td>
 <td>intent(inout),</td>
@@ -320,7 +320,7 @@
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-write_to_netcdf_file"></span>
+              <span class="anchor" id="variable-write_to_netcdf_file~3"></span>
               logical,
             </td>
 <td>intent(in)</td>
@@ -359,136 +359,6 @@ TODO-GA: use g to f routine rather than g to h -- but check first </p>
         <th scope="col"></th>
     </thead>
     <tbody>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-pflux_vs_kxkyzts~2"></span>
-              real,
-            </td>
-<td>intent(out),</td>
-              <td></td>            <td>
-              dimension(:, :, :, :, :)
-            </td>
-            <td>::</td>
-            <td><strong>pflux_vs_kxkyzts</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-vflux_vs_kxkyzts~2"></span>
-              real,
-            </td>
-<td>intent(out),</td>
-              <td></td>            <td>
-              dimension(:, :, :, :, :)
-            </td>
-            <td>::</td>
-            <td><strong>vflux_vs_kxkyzts</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-qflux_vs_kxkyzts~2"></span>
-              real,
-            </td>
-<td>intent(out),</td>
-              <td></td>            <td>
-              dimension(:, :, :, :, :)
-            </td>
-            <td>::</td>
-            <td><strong>qflux_vs_kxkyzts</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-pflux_vs_kxkys~2"></span>
-              real,
-            </td>
-<td>intent(out),</td>
-              <td></td>            <td>
-              dimension(:, :, :)
-            </td>
-            <td>::</td>
-            <td><strong>pflux_vs_kxkys</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-vflux_vs_kxkys~2"></span>
-              real,
-            </td>
-<td>intent(out),</td>
-              <td></td>            <td>
-              dimension(:, :, :)
-            </td>
-            <td>::</td>
-            <td><strong>vflux_vs_kxkys</strong></td>
-            <td>
-
-            </td>
-        </tr>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-qflux_vs_kxkys~2"></span>
-              real,
-            </td>
-<td>intent(out),</td>
-              <td></td>            <td>
-              dimension(:, :, :)
-            </td>
-            <td>::</td>
-            <td><strong>qflux_vs_kxkys</strong></td>
-            <td>
-
-            </td>
-        </tr>
-    </tbody>
-  </table>
-
-
-    </div>
-  </div>
-
-              <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-write_fluxes_for_fluxtube_radialvariation"></span> <h3>private  subroutine <a href='../proc/write_fluxes_for_fluxtube_radialvariation.html'>write_fluxes_for_fluxtube_radialvariation</a>(nout, pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts, write_to_netcdf_file)  
-</h3></div>
-    <div class="card-body">
-          
-  
-
-  <h4>Arguments</h4>
-      <table class="table table-striped varlist">
-    <thead>
-      <tr>
-        <th scope="col">Type</th>
-<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
-        <th scope="col"></th>
-        <th scope="col">Name</th>
-        <th scope="col"></th>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-nout~2"></span>
-              integer,
-            </td>
-<td>intent(in)</td>
-              <td></td>            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>nout</strong></td>
-            <td>
-
-            </td>
-        </tr>
         <tr>
             <td>
               <span class="anchor" id="variable-pflux_vs_kxkyzts~3"></span>
@@ -536,15 +406,45 @@ TODO-GA: use g to f routine rather than g to h -- but check first </p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-write_to_netcdf_file~2"></span>
-              logical,
+              <span class="anchor" id="variable-pflux_vs_kxkys~3"></span>
+              real,
             </td>
-<td>intent(in)</td>
+<td>intent(out),</td>
               <td></td>            <td>
-              
+              dimension(:, :, :)
             </td>
             <td>::</td>
-            <td><strong>write_to_netcdf_file</strong></td>
+            <td><strong>pflux_vs_kxkys</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vflux_vs_kxkys~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, :)
+            </td>
+            <td>::</td>
+            <td><strong>vflux_vs_kxkys</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-qflux_vs_kxkys~3"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, :)
+            </td>
+            <td>::</td>
+            <td><strong>qflux_vs_kxkys</strong></td>
             <td>
 
             </td>
@@ -557,7 +457,7 @@ TODO-GA: use g to f routine rather than g to h -- but check first </p>
   </div>
 
               <div class="card">
-    <div class="card-header codesum"><span class="anchor" id="proc-write_fluxes_for_fullfluxsurface"></span> <h3>private  subroutine <a href='../proc/write_fluxes_for_fullfluxsurface.html'>write_fluxes_for_fullfluxsurface</a>(pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts)  
+    <div class="card-header codesum"><span class="anchor" id="proc-write_fluxes_for_fluxtube_radialvariation"></span> <h3>private  subroutine <a href='../proc/write_fluxes_for_fluxtube_radialvariation.html'>write_fluxes_for_fluxtube_radialvariation</a>(nout, pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts, write_to_netcdf_file)  
 </h3></div>
     <div class="card-body">
           
@@ -574,6 +474,21 @@ TODO-GA: use g to f routine rather than g to h -- but check first </p>
         <th scope="col"></th>
     </thead>
     <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nout~49"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nout</strong></td>
+            <td>
+
+            </td>
+        </tr>
         <tr>
             <td>
               <span class="anchor" id="variable-pflux_vs_kxkyzts~4"></span>
@@ -619,6 +534,91 @@ TODO-GA: use g to f routine rather than g to h -- but check first </p>
 
             </td>
         </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-write_to_netcdf_file~4"></span>
+              logical,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>write_to_netcdf_file</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-write_fluxes_for_fullfluxsurface"></span> <h3>private  subroutine <a href='../proc/write_fluxes_for_fullfluxsurface.html'>write_fluxes_for_fullfluxsurface</a>(pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-pflux_vs_kxkyzts~5"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, :, :, :)
+            </td>
+            <td>::</td>
+            <td><strong>pflux_vs_kxkyzts</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vflux_vs_kxkyzts~5"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, :, :, :)
+            </td>
+            <td>::</td>
+            <td><strong>vflux_vs_kxkyzts</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-qflux_vs_kxkyzts~5"></span>
+              real,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, :, :, :)
+            </td>
+            <td>::</td>
+            <td><strong>qflux_vs_kxkyzts</strong></td>
+            <td>
+
+            </td>
+        </tr>
     </tbody>
   </table>
 
@@ -646,7 +646,7 @@ TODO-GA: use g to f routine rather than g to h -- but check first </p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-pflux_vs_s~2"></span>
+              <span class="anchor" id="variable-pflux_vs_s~4"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -661,7 +661,7 @@ TODO-GA: use g to f routine rather than g to h -- but check first </p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-vflux_vs_s~2"></span>
+              <span class="anchor" id="variable-vflux_vs_s~4"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -676,7 +676,7 @@ TODO-GA: use g to f routine rather than g to h -- but check first </p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-qflux_vs_s~2"></span>
+              <span class="anchor" id="variable-qflux_vs_s~4"></span>
               real,
             </td>
 <td>intent(in),</td>
@@ -716,7 +716,7 @@ TODO-GA: use g to f routine rather than g to h -- but check first </p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-restart"></span>
+              <span class="anchor" id="variable-restart~5"></span>
               logical,
             </td>
 <td>intent(in)</td>
@@ -756,7 +756,7 @@ TODO-GA: use g to f routine rather than g to h -- but check first </p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-restart~2"></span>
+              <span class="anchor" id="variable-restart~6"></span>
               logical,
             </td>
 <td>intent(in)</td>
@@ -806,13 +806,13 @@ TODO-GA: use g to f routine rather than g to h -- but check first </p>
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-365-gf7e8e47374</small></p>
+<br /><small>v0.5.1-366-g28271dc5c0</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-09-04T15:06:28.413369             </p>
+ on 2024-09-05T08:36:26.008130             </p>
           </div>
         </div>
         <br>

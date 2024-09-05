@@ -465,13 +465,13 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
                </tr>
 			   <tr>
                  <td><a href='../proc/allocate_arrays.html'>allocate_arrays</a></td>
-                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
+                 <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/allocate_arrays~2.html'>allocate_arrays</a></td>
-                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
+                 <td><a href='../module/kt_grids.html'>kt_grids</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -489,13 +489,13 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
                </tr>
 			   <tr>
                  <td><a href='../proc/allocate_arrays~5.html'>allocate_arrays</a></td>
-                 <td><a href='../module/kt_grids.html'>kt_grids</a></td>
+                 <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/allocate_arrays~6.html'>allocate_arrays</a></td>
-                 <td><a href='../module/time_advance.html'>time_advance</a></td>
+                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -713,13 +713,13 @@ the size of the response matrix</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/broadcast_parameters.html'>broadcast_parameters</a></td>
-                 <td><a href='../module/species.html'>species</a></td>
+                 <td><a href='../module/zgrid.html'>zgrid</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/broadcast_parameters~2.html'>broadcast_parameters</a></td>
-                 <td><a href='../module/zgrid.html'>zgrid</a></td>
+                 <td><a href='../module/species.html'>species</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -1338,37 +1338,37 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
                </tr>
 			   <tr>
                  <td><a href='../interface/checksum.html'>checksum</a></td>
-                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
+                 <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Interface</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../interface/checksum~2.html'>checksum</a></td>
-                 <td><a href='../module/time_advance.html'>time_advance</a></td>
+                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
                  <td>Interface</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/checksum_dist.html'>checksum_dist</a></td>
-                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
+                 <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/checksum_dist~2.html'>checksum_dist</a></td>
-                 <td><a href='../module/time_advance.html'>time_advance</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/checksum_field.html'>checksum_field</a></td>
                  <td><a href='../module/dist_fn.html'>dist_fn</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/checksum_field~2.html'>checksum_field</a></td>
+                 <td><a href='../proc/checksum_field.html'>checksum_field</a></td>
                  <td><a href='../module/time_advance.html'>time_advance</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/checksum_field~2.html'>checksum_field</a></td>
+                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -1560,7 +1560,7 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
                </tr>
 			   <tr>
                  <td><a href='../proc/deallocate_arrays.html'>deallocate_arrays</a></td>
-                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
+                 <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -1572,7 +1572,7 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
                </tr>
 			   <tr>
                  <td><a href='../proc/deallocate_arrays~3.html'>deallocate_arrays</a></td>
-                 <td><a href='../module/time_advance.html'>time_advance</a></td>
+                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -2978,6 +2978,14 @@ no longer need <g>, so deallocate</p></td>
  Note that the default BC are the unconnected BC in the <zgrid> module </p><a href="../proc/get_geometry_arrays_from_vmec.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/get_geometry_arrays_from_zpinch.html'>get_geometry_arrays_from_zpinch</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
+                 <td>Subroutine</td>
+                 <td><p>b_dot_grad_z is the alpha-dependent b . grad z,
+and gradpar is the constant-in-alpha part of it.
+for a z-pinch, b_dot_grad_z is independent of alpha.</p></td>
+               </tr>
+			   <tr>
                  <td><a href='../proc/get_gke_rhs.html'>get_gke_rhs</a></td>
                  <td><a href='../module/implicit_solve.html'>implicit_solve</a></td>
                  <td>Subroutine</td>
@@ -3288,6 +3296,12 @@ stella uses rhoc = rho = sqrt(psitor/psitor_lcfs) = rhotor</p></td>
 			   <tr>
                  <td><a href='../proc/get_zed_eqarc.html'>get_zed_eqarc</a></td>
                  <td><a href='../module/geometry.html'>geometry</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/get_zpinch_geometry_coefficients.html'>get_zpinch_geometry_coefficients</a></td>
+                 <td><a href='../module/zpinch.html'>zpinch</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -4309,13 +4323,13 @@ allocate and calculate the factor multiplying dphi/dy in the gradient drive term
                </tr>
 			   <tr>
                  <td><a href='../proc/init_tstart.html'>init_tstart</a></td>
-                 <td><a href='../module/stella_save.html'>stella_save</a></td>
+                 <td><a href='../module/stella_time.html'>stella_time</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/init_tstart~2.html'>init_tstart</a></td>
-                 <td><a href='../module/stella_time.html'>stella_time</a></td>
+                 <td><a href='../module/stella_save.html'>stella_save</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -4644,13 +4658,13 @@ g/F is evolved for FFS</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/integrate_zed.html'>integrate_zed</a></td>
-                 <td><a href='../module/geometry.html'>geometry</a></td>
+                 <td><a href='../module/zgrid.html'>zgrid</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/integrate_zed~2.html'>integrate_zed</a></td>
-                 <td><a href='../module/zgrid.html'>zgrid</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -5590,70 +5604,70 @@ we are undoing that weighting here, so also need to use ia = 1</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_parameters.html'>read_parameters</a></td>
-                 <td><a href='../module/stella_layouts.html'>stella_layouts</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/read_parameters~2.html'>read_parameters</a></td>
-                 <td><a href='../module/init_g.html'>init_g</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/read_parameters~3.html'>read_parameters</a></td>
-                 <td><a href='../module/physics_flags.html'>physics_flags</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/read_parameters~4.html'>read_parameters</a></td>
-                 <td><a href='../module/geometry.html'>geometry</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/read_parameters~5.html'>read_parameters</a></td>
-                 <td><a href='../module/sources.html'>sources</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/read_parameters~6.html'>read_parameters</a></td>
-                 <td><a href='../module/dissipation.html'>dissipation</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/read_parameters~7.html'>read_parameters</a></td>
-                 <td><a href='../module/neoclassical_terms.html'>neoclassical_terms</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/read_parameters~8.html'>read_parameters</a></td>
-                 <td><a href='../module/physics_parameters.html'>physics_parameters</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/read_parameters~9.html'>read_parameters</a></td>
                  <td><a href='../module/zgrid.html'>zgrid</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/read_parameters~2.html'>read_parameters</a></td>
+                 <td><a href='../module/stella_layouts.html'>stella_layouts</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/read_parameters~3.html'>read_parameters</a></td>
+                 <td><a href='../module/init_g.html'>init_g</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/read_parameters~4.html'>read_parameters</a></td>
+                 <td><a href='../module/dissipation.html'>dissipation</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/read_parameters~5.html'>read_parameters</a></td>
+                 <td><a href='../module/time_advance.html'>time_advance</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/read_parameters~6.html'>read_parameters</a></td>
+                 <td><a href='../module/sources.html'>sources</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/read_parameters~7.html'>read_parameters</a></td>
+                 <td><a href='../module/physics_parameters.html'>physics_parameters</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/read_parameters~8.html'>read_parameters</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/read_parameters~9.html'>read_parameters</a></td>
+                 <td><a href='../module/physics_flags.html'>physics_flags</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
                  <td><a href='../proc/read_parameters~10.html'>read_parameters</a></td>
+                 <td><a href='../module/neoclassical_terms.html'>neoclassical_terms</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/read_parameters~11.html'>read_parameters</a></td>
                  <td><a href='../module/run_parameters.html'>run_parameters</a></td>
                  <td>Subroutine</td>
                  <td><p>For FFS - need to delete 
 print warning messages and override inconsistent or unsupported options for full_flux_surface = T</p></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/read_parameters~11.html'>read_parameters</a></td>
-                 <td><a href='../module/time_advance.html'>time_advance</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_parameters_dougherty.html'>read_parameters_dougherty</a></td>
@@ -7225,13 +7239,13 @@ TODO-GA: use g to f routine rather than g to h -- but check first </p></td>
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-365-gf7e8e47374</small></p>
+<br /><small>v0.5.1-366-g28271dc5c0</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-09-04T15:06:28.413369             </p>
+ on 2024-09-05T08:36:26.008130             </p>
           </div>
         </div>
         <br>
