@@ -97,6 +97,7 @@ module geometry
    integer, parameter :: geo_option_inputprof = 2
    integer, parameter :: geo_option_vmec = 3
    integer, parameter :: geo_option_multibox = 4
+   integer, parameter :: geo_option_zpinch = 5
  
    logical :: overwrite_bmag, overwrite_b_dot_grad_zeta, overwrite_geometry
    logical :: overwrite_gds2, overwrite_gds21, overwrite_gds22
@@ -159,7 +160,8 @@ contains
          if (geo_option_switch==geo_option_inputprof) call get_geometry_arrays_from_Miller(nalpha)
          if (geo_option_switch==geo_option_multibox)  call get_geometry_arrays_from_Miller(nalpha)
          if (geo_option_switch==geo_option_vmec)      call get_geometry_arrays_from_VMEC(nalpha, naky) 
-
+         if (geo_option_switch==geo_option_zpinch)    call get_geometry_arrays_from_zpinch(nalpha)
+         
          ! Overwrite the selected geometric coefficients
          if (overwrite_geometry) call overwrite_selected_geometric_coefficients(nalpha)
 
@@ -768,6 +770,54 @@ contains
    end subroutine get_geometry_arrays_from_Miller
 
    !=========================================================================
+   !========================== ZPINCH EQUILIBRIUM  ==========================
+   !=========================================================================
+
+   subroutine get_geometry_arrays_from_zpinch (nalpha)
+
+     use zpinch, only: get_zpinch_geometry_coefficients
+     use zgrid, only: nzgrid
+     implicit none
+
+     integer, intent (in) :: nalpha
+     real :: dpsipdrho, dpsipdrho_psi0
+     
+     call allocate_arrays(nalpha, nzgrid)
+
+     ! Calculate the geometric coefficients for a z-pinch magnetic equilibrium
+     call get_zpinch_geometry_coefficients(nzgrid, bmag(1, :), gradpar, grho(1, :), geo_surf, &
+          gds2(1, :), gds21(1, :), gds22(1, :), &
+          gbdrift0(1, :), gbdrift(1, :), cvdrift0(1, :), cvdrift(1, :), btor, rmajor)
+
+     !> b_dot_grad_z is the alpha-dependent b . grad z,
+     !> and gradpar is the constant-in-alpha part of it.
+     !> for a z-pinch, b_dot_grad_z is independent of alpha.
+     b_dot_grad_z_averaged = gradpar
+     b_dot_grad_z(1, :) = gradpar
+
+     ! effectively choose psi = x * B * a_ref = x * B * r0
+     dpsipdrho = 1.0; dpsipdrho_psi0 = 1.0
+     bmag_psi0 = bmag
+     ! note that psi here is meaningless
+     drhodpsi = 1./dpsipdrho
+     drhodpsip_psi0 = 1./dpsipdrho_psi0
+     
+     dxdpsi = 1.0 
+     sign_torflux = -1
+     clebsch_factor = sign_torflux
+     ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
+     dydalpha = dpsipdrho
+     grad_x = sqrt(gds22)
+     ! there is no magnetic shear in the z-pinch and thus no need for twist-and-shift
+     twist_and_shift_geo_fac = 1.0
+     ! aref and bref should not be needed, so set to 1
+     aref = 1.0; bref = 1.0
+     ! zeta should not be needed
+     zeta(1, :) = 0.0
+     
+   end subroutine get_geometry_arrays_from_zpinch
+   
+   !=========================================================================
    !================== OVERWRITE GEOMETRIC COEFFICIENTS  ====================
    !=========================================================================
    subroutine overwrite_selected_geometric_coefficients(nalpha)
@@ -952,10 +1002,11 @@ contains
       logical :: exist
 
       ! Text options for <geo_option> in the <geo_knobs> namrlist
-      type(text_option), dimension(5), parameter :: geoopts = (/ &
+      type(text_option), dimension(6), parameter :: geoopts = (/ &
              text_option('default', geo_option_local), &
              text_option('miller', geo_option_local), &
              text_option('local', geo_option_local), &
+             text_option('zpinch', geo_option_zpinch), &
              text_option('input.profiles', geo_option_inputprof), &
              text_option('vmec', geo_option_vmec)/)
 

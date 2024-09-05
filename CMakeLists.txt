@@ -97,6 +97,7 @@ set(STELLA_SOURCES_f90
   geometry/geometry_vmec.f90
   geometry/geometry_vmec_read_netCDF_file.f90 
   geometry/geometry_inputprofiles_interface.f90
+  geometry/geometry_zpinch.f90
 )
 
 # Sources that _do_ need preprocessing (because they have MPI flags, ...)
