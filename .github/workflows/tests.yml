@@ -1,7 +1,7 @@
 # Run these tests automatically on Github
-# on every push and pull request.
+# on every push.
 name: StellaTests
-on: [push, pull_request]
+on: [push]
 
 # We run the in a bash shell
 defaults:
