@@ -9,7 +9,8 @@ PFUNIT_NPROC = 4
 PFUNIT_VERSION_MAJOR ?= 4
 # Installation directory of pFUnit
 # Default is the directory where `scripts/build_pfunit` puts it
-PFUNIT_DIR ?= $(GK_HEAD_DIR)/externals/pFUnit_build/install/PFUNIT-4.2
+# Note that the folder was called PFUNIT-4.2 when a previous version of pFUnit was used.
+PFUNIT_DIR ?= $(GK_HEAD_DIR)/externals/pFUnit_build/install/PFUNIT-4.10
 
 PFUNIT_LOG:=pfunit.log
 PFUNIT_ERROR:=pfunit.error
