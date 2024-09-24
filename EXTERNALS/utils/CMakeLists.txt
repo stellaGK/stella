@@ -10,8 +10,6 @@ set(STELLA_UTILS_SOURCES_f90
   linear_solve.f90
   mt19937.f90
   redistribute.f90
-  smooth_step.f90
-  sort.f90
   spl.f90
   text_options.f90
   )
