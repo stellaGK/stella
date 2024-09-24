@@ -1,0 +1,9 @@
+&species_parameters
+  dens = 1.0
+  fprim = 0.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 0.0
+  type = 'ion'
+  z = 1.0
+/
