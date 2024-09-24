@@ -9,11 +9,11 @@ author_description:
     file](https://github.com/stellaGK/stella/blob/master/CITATION.cff)
     for a complete list
 src_dir: ..
-page_dir: pages
-exclude_dir: ../externals
+page_dir: automatic_documentation_manual_pages
+exclude_dir: ../EXTERNALS
              ../tests
-             ./html
-output_dir: ./html
+             ./automatic_documentation_FORD
+output_dir: ./automatic_documentation_FORD
 predocmark: >
 docmark: <
 fpp_extensions: fpp

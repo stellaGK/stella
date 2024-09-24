@@ -8,7 +8,7 @@ project(stella
   VERSION 0.3
   LANGUAGES Fortran)
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/COMPILATION/cmake" ${CMAKE_MODULE_PATH})
 
 # Sets default build type to RelWithDebInfo
 include(BuildType)
@@ -42,77 +42,78 @@ option(STELLA_UPDATE_GIT_SUBMODULES "Check submodules are up-to-date during buil
 
 # Sources that don't need preprocessing
 set(STELLA_SOURCES_f90
-  arrays_dist_fn.f90
-  arrays_fields.f90
-  calculations_kxky.f90
-  common_types.f90
-  debug_flags.f90
-  define.inc
-  dist_fn.f90
-  dist_redistribute.f90
-  euterpe_interface.f90
-  extended_zgrid.f90
-  ffs_solve.f90
-  finite_differences.f90
-  flow_shear.f90
-  g_tofrom_h.f90
-  grids_kxky.f90
-  gyro_averages.f90
-  implicit_solve.f90
-  init_g.f90
-  mirror_terms.f90
-  multibox.f90
-  neoclassical_terms.f90
-  parallel_streaming.f90
-  parameters_kxky_grids.f90
-  parameters_kxky_grids_box.f90
-  parameters_kxky_grids_range.f90
-  parameters_numerical.f90
-  parameters_physics.f90
-  species.f90
-  stella_layouts.f90
-  stella_time.f90
-  stella_transforms.f90
-  time_advance.f90
-  volume_averages.f90
-  vpamu_grids.f90
-  write_radial_grid.f90
-  zgrid.f90
-  diagnostics/parameters_diagnostics.f90
-  diagnostics/diagnostics.f90
-  diagnostics/diagnostics_distribution.f90
-  diagnostics/diagnostics_fluxes_fluxtube.f90
-  diagnostics/diagnostics_fluxes_fullfluxsurface.f90 
-  diagnostics/diagnostics_fluxes_radialvariation.f90
-  diagnostics/diagnostics_fluxes.f90 
-  diagnostics/diagnostics_moments.f90
-  diagnostics/diagnostics_omega.f90
-  diagnostics/diagnostics_potential.f90
-  dissipation/coll_dougherty.f90
-  dissipation/coll_fokkerplanck.f90
-  dissipation/dissipation.f90
-  dissipation/hyper.f90
-  geometry/geometry.f90
-  geometry/geometry_miller.f90
-  geometry/geometry_vmec.f90
-  geometry/geometry_vmec_read_netCDF_file.f90 
-  geometry/geometry_inputprofiles_interface.f90
-  geometry/geometry_zpinch.f90
+  ../EXTERNALS/utils/define.inc
+  ../STELLA_CODE/arrays_dist_fn.f90
+  ../STELLA_CODE/arrays_fields.f90
+  ../STELLA_CODE/calculations_kxky.f90
+  ../STELLA_CODE/common_types.f90
+  ../STELLA_CODE/debug_flags.f90
+  ../STELLA_CODE/define.inc
+  ../STELLA_CODE/dist_fn.f90
+  ../STELLA_CODE/dist_redistribute.f90
+  ../STELLA_CODE/euterpe_interface.f90
+  ../STELLA_CODE/extended_zgrid.f90
+  ../STELLA_CODE/ffs_solve.f90
+  ../STELLA_CODE/finite_differences.f90
+  ../STELLA_CODE/flow_shear.f90
+  ../STELLA_CODE/g_tofrom_h.f90
+  ../STELLA_CODE/grids_kxky.f90
+  ../STELLA_CODE/gyro_averages.f90
+  ../STELLA_CODE/implicit_solve.f90
+  ../STELLA_CODE/init_g.f90
+  ../STELLA_CODE/mirror_terms.f90
+  ../STELLA_CODE/multibox.f90
+  ../STELLA_CODE/neoclassical_terms.f90
+  ../STELLA_CODE/parallel_streaming.f90
+  ../STELLA_CODE/parameters_kxky_grids.f90
+  ../STELLA_CODE/parameters_kxky_grids_box.f90
+  ../STELLA_CODE/parameters_kxky_grids_range.f90
+  ../STELLA_CODE/parameters_numerical.f90
+  ../STELLA_CODE/parameters_physics.f90
+  ../STELLA_CODE/species.f90
+  ../STELLA_CODE/stella_layouts.f90
+  ../STELLA_CODE/stella_time.f90
+  ../STELLA_CODE/stella_transforms.f90
+  ../STELLA_CODE/time_advance.f90
+  ../STELLA_CODE/volume_averages.f90
+  ../STELLA_CODE/vpamu_grids.f90
+  ../STELLA_CODE/write_radial_grid.f90
+  ../STELLA_CODE/zgrid.f90
+  ../STELLA_CODE/diagnostics/parameters_diagnostics.f90
+  ../STELLA_CODE/diagnostics/diagnostics.f90
+  ../STELLA_CODE/diagnostics/diagnostics_distribution.f90
+  ../STELLA_CODE/diagnostics/diagnostics_fluxes_fluxtube.f90
+  ../STELLA_CODE/diagnostics/diagnostics_fluxes_fullfluxsurface.f90 
+  ../STELLA_CODE/diagnostics/diagnostics_fluxes_radialvariation.f90
+  ../STELLA_CODE/diagnostics/diagnostics_fluxes.f90 
+  ../STELLA_CODE/diagnostics/diagnostics_moments.f90
+  ../STELLA_CODE/diagnostics/diagnostics_omega.f90
+  ../STELLA_CODE/diagnostics/diagnostics_potential.f90
+  ../STELLA_CODE/dissipation/coll_dougherty.f90
+  ../STELLA_CODE/dissipation/coll_fokkerplanck.f90
+  ../STELLA_CODE/dissipation/dissipation.f90
+  ../STELLA_CODE/dissipation/hyper.f90
+  ../STELLA_CODE/geometry/geometry.f90
+  ../STELLA_CODE/geometry/geometry_miller.f90
+  ../STELLA_CODE/geometry/geometry_vmec.f90
+  ../STELLA_CODE/geometry/geometry_vmec_read_netCDF_file.f90 
+  ../STELLA_CODE/geometry/geometry_inputprofiles_interface.f90
+  ../STELLA_CODE/geometry/geometry_zpinch.f90
 )
 
 # Sources that _do_ need preprocessing (because they have MPI flags, ...)
 set(STELLA_SOURCES_fpp
-  fields.fpp
-  fields_fluxtube.fpp
-  fields_electromagnetic.fpp
-  fields_fullfluxsurface.fpp
-  fields_collisions.fpp
-  fields_radialvariation.fpp
-  response_matrix.fpp
-  sfincs_interface.fpp
-  sources.fpp
-  stella_io.fpp
-  stella_save.fpp
+  ../STELLA_CODE/fields.fpp
+  ../STELLA_CODE/fields_fluxtube.fpp
+  ../STELLA_CODE/fields_electromagnetic.fpp
+  ../STELLA_CODE/fields_fullfluxsurface.fpp
+  ../STELLA_CODE/fields_collisions.fpp
+  ../STELLA_CODE/fields_radialvariation.fpp
+  ../STELLA_CODE/response_matrix.fpp
+  ../STELLA_CODE/sfincs_interface.fpp
+  ../STELLA_CODE/sources.fpp
+  ../STELLA_CODE/stella_io.fpp
+  ../STELLA_CODE/stella_save.fpp
 )
 
 set_source_files_properties(${STELLA_SOURCES_fpp} PROPERTIES
@@ -149,11 +150,29 @@ target_compile_options(libstella PRIVATE
 
 # Main executable
 add_executable(stella
-  stella.f90
+  ../STELLA_CODE/stella.f90
   )
 
 # Use <libstella> when linking the <stella> target
 target_link_libraries(stella PRIVATE libstella)
+
+# The include.inc file is located in EXTERNALS/utils/
+include_directories("${CMAKE_SOURCE_DIR}/EXTERNALS/utils")
+
+# When target `stella` is built, a symlink will be created
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+add_custom_command(TARGET stella POST_BUILD
+    COMMAND echo Create symbolic link to stella in the directory above COMPILATION/build_cmake
+    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_BINARY_DIR}/stella ${CMAKE_CURRENT_BINARY_DIR}/../../stella
+    DEPENDS stella
+    VERBATIM ON
+)
+add_custom_command(TARGET stella POST_BUILD
+    COMMAND echo Create symbolic link to stella in the directory above COMPILATION
+    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_BINARY_DIR}/stella ${CMAKE_CURRENT_BINARY_DIR}/../../../stella
+    DEPENDS stella
+    VERBATIM ON
+)
 
 ############################################################
 # Dependencies and build options
@@ -211,7 +230,7 @@ endif()
 
 if (STELLA_ENABLE_NETCDF)
   find_package(netCDFFortran REQUIRED)
-  add_subdirectory(externals/neasyf)
+  add_subdirectory(../EXTERNALS/neasyf ${CMAKE_CURRENT_BINARY_DIR}/EXTERNALS/neasyf)
   target_link_libraries(libstella PUBLIC netCDF::netcdff neasyf::neasyf)
   target_compile_definitions(libstella PUBLIC NETCDF=_DEFAULT_)
 endif()
@@ -241,7 +260,7 @@ if (STELLA_ENABLE_PETSC)
 endif()
 
 # Link the <git_version> program
-add_subdirectory(externals/git_version)
+add_subdirectory(../EXTERNALS/git_version ${CMAKE_CURRENT_BINARY_DIR}/EXTERNALS/git_version)
 target_link_libraries(libstella PUBLIC fortran_git::fortran_git)
 
 # Ensure FCOMPILER is set
@@ -270,8 +289,8 @@ target_compile_options(libstella PRIVATE
 # Internal libraries: <stella_utils> and <mini_libstell>
 ############################################################
 
-add_subdirectory(utils)
-add_subdirectory(utils/mini_libstell)
+add_subdirectory(../EXTERNALS/utils ${CMAKE_CURRENT_BINARY_DIR}/EXTERNALS/utils)
+add_subdirectory(../EXTERNALS/mini_libstell ${CMAKE_CURRENT_BINARY_DIR}/EXTERNALS/mini_libstell)
 target_link_libraries(libstella PUBLIC mini_libstell stella_utils)
 
 ############################################################

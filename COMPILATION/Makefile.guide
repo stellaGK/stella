@@ -1,0 +1,102 @@
+####################################################################
+#                          STELLA MAKEFILE                         #
+#################################################################### 
+# The 'Makefile' defines the compiler options and flags, 
+# the 'Makefile.externals' compiles the external libraries, and
+# the 'Makefile.stella' builds the stella executable. 
+#
+# ------------------------ STELLA EXECUTABLE -----------------------
+# When the 'make' command is used, without any additional arguments,
+# it should build the stella executable. Therefore, the DEFAULT_GOAL
+# is set to 'stella_all' which will first build the target 'modules'
+# and then the target 'stella'. 
+#
+# In short, this Makefile will define:
+#       .DEFAULT_GOAL := stella_all
+#       stella_all: modules stella
+#       stella: $(external_modules) $(stella_mod) 
+#               $(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+#
+# To stella executable is build by the target 'stella' 
+# On the first line of the target 'stella' we define the dependencies
+# On the second line we define the compilation or build commands
+#
+# ----------------------- USEFUL MAKE COMMANDS ---------------------
+# >> make clean; make depend; make
+# >> make clean; make depend -j 10; make -j 10 
+# >> make mini_libstell; make mini_libstell_clean 
+# >> make numerical-tests; make benchmarks
+####################################################################
+
+#===================================================================
+#                         MAKEFILE SYNTAX                          #
+#===================================================================
+# @ supresses the output in the command prompt, remove this to debug	
+# -o is a compiler option that specifies the name of the output file
+# -c is a compiler option that tells the compiler to generate an object file
+# $@ is the name of the target being generated -> 'stella'
+# $< is the first prerequisite -> the first file in '$(external_modules_dependencies)'
+# $^ are all the prerequisites -> all files in '$(external_modules_dependencies)' and '$(stella_mod)'
+# $? are the prerequisites that were out of date
+#===================================================================
+
+
+#===================================================================
+#                     FORTRAN COMPILER SYNTAX                      #
+#===================================================================
+# https://docs.oracle.com/cd/E19059-01/stud.10/819-0492/3_options.html
+# -c  compile only, do not produce an executable file 
+# -I  add directory to include file search path 
+# -J  save *.mod files to this directory instead of the current directory
+# -o  output file of the executable 
+# -w0 shows just error messages. This is equivalent to -w
+# -w1 shows errors and warnings. This is the default without -w.
+# -w2 shows errors, warnings, and cautions.
+# -w3 shows errors, warnings, cautions, and notes.
+# -w4 shows errors, warnings, cautions, notes, and comments.
+# Note that -I, -L, and -R, accumulate values rather than override 
+# previous values when repeated on the same command line. 
+#===================================================================
+
+
+#===================================================================
+#                          PATTERN RULES                           #
+#===================================================================
+ 
+# For the external libraries, and for stella, we need to build *.o files from *.f90 files
+# Build object files '*.o' from '*.f90' files using the Fortran f90 compiler, e.g., ifort = The Intel Fortran compiler
+# @ supresses the output in the command prompt, remove this to debug	
+# -o is a compiler option that specifies the name of the output file
+# -c is a compiler option that tells the compiler to generate an object file
+# $@ is the name of the target being generated -> 'stella'
+# $< is the first prerequisite -> the first file in '$(external_modules_dependencies)'
+# $^ are all the prerequisites -> all files in '$(external_modules_dependencies)' and '$(stella_mod)'
+MOD_DIR = $(COMPILATION_DIR)/build_make/mini_libstell/modules
+$(BUILD_OBJECTS_DIR)/%.o: $(STELLA_DIR)/%.f90 $(external_modules) | $(BUILD_OBJECTS_DIR)
+	@echo "       (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) -I $(BUILD_MODULES_DIR) -I $(MOD_DIR) -J $(BUILD_MODULES_DIR) -o $@ -c $< 
+$(BUILD_OBJECTS_DIR)/%.o: $(DIAG)/%.f90  $(external_modules) | $(BUILD_OBJECTS_DIR)
+	@echo "       (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) -I $(BUILD_MODULES_DIR) -I $(MOD_DIR) -J $(BUILD_MODULES_DIR) -o $@ -c $< 
+$(BUILD_OBJECTS_DIR)/%.o: $(GEO)/%.f90 $(external_modules) | $(BUILD_OBJECTS_DIR)
+	@echo "       (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) -I $(BUILD_MODULES_DIR) -I $(MOD_DIR) -J $(BUILD_MODULES_DIR) -o $@ -c $< 
+$(BUILD_OBJECTS_DIR)/%.o: $(COLL)/%.f90 $(external_modules) | $(BUILD_OBJECTS_DIR)
+	@echo "       (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) -I $(BUILD_MODULES_DIR) -I $(MOD_DIR) -J $(BUILD_MODULES_DIR) -o $@ -c $< 
+$(BUILD_OBJECTS_DIR)/%.o: $(BUILD_F90_DIR)/%.f90 $(external_modules) | $(BUILD_OBJECTS_DIR)
+	@echo "       (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) -I $(BUILD_MODULES_DIR) -I $(MOD_DIR) -J $(BUILD_MODULES_DIR) -o $@ -c $< 
+
+
+#===================================================================
+#                          MAKEFILE_PATH                           #
+#===================================================================
+# As make reads various makefiles, including any obtained from the 
+# MAKEFILES variable, the command line, the default files, or from 
+# include directives, their names will be automatically appended to 
+# the MAKEFILE_LIST variable. They are added right before make begins
+# to parse them. This means that if the first thing a makefile does 
+# is examine the last word in this variable, it will be the name of 
+# the current makefile. Once the current makefile has used include, 
+# however, the last word will be the just-included makefile. 

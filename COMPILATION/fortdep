@@ -9,6 +9,10 @@
 #
 # $Id: fortdep 561 2008-05-08 22:39:39Z numata $
 #
+# Modified on 29/07/2024 by Hanne Thienpondt (see 'MODIFIED-HT' flags)
+# To keep the preprocessor files seperate from the main code
+# in a subfolder, whoes name is given to 'fppfolder'
+#
 use strict;
 
 my $DEPFILE="Makefile.depend";
@@ -22,6 +26,7 @@ my $DEPFILE="Makefile.depend";
 	                  # module/program files (otherwise, ask which to use)
 	"verbose" => 2, # verbose level (0: silent, 1: info, 
 	                # 2: warning [default], 3: debug)
+	"fppfolder" => "", # directory where *.fpp files are processed
 	);
 
     # store search path;
@@ -113,10 +118,12 @@ sub process_options {
 #  out \%option: store option values
 #  out \@path: store search pathes
 #
+# MODIFIED-HT: added 'opt_fppfolder' so compile fpp files in a seperate folder
+#
     use Getopt::Long;
 
     my ($option, $path) = @_;
-    my ($opt_makecmd,$opt_file,$opt_overwrite,$opt_first,$opt_verb,$opt_help);
+    my ($opt_makecmd,$opt_file,$opt_overwrite,$opt_first,$opt_verb,$opt_help,$opt_fppfolder);
 
     &GetOptions(
 	'makecmd=s' => \$opt_makecmd,
@@ -124,6 +131,7 @@ sub process_options {
 	'overwrite' => \$opt_overwrite,
 	'1' => \$opt_first,
 	'verbose=i' => \$opt_verb,
+	'fppfolder=s' => \$opt_fppfolder,
 	'help' => \$opt_help
 	);
     die ("Invalid argument, bye.\n") if ($#ARGV > 0);
@@ -134,6 +142,7 @@ sub process_options {
     $$option{'overwrite'} = $opt_overwrite if ( $opt_overwrite );
     $$option{'first'} = $opt_first if ( $opt_first );
     $$option{'verbose'} = $opt_verb if ( $opt_verb ne "" && $opt_verb >=0 );
+    $$option{'fppfolder'} = $opt_fppfolder if ( $opt_fppfolder ne "" );
     &usage if ( $opt_help );
 
     return;
@@ -176,8 +185,11 @@ sub find_source{
 		    $f90file =~ s/\.(fpp|F90)/\.f90/;
 		    # if preprocessed file already exists, that file is used
 		    if ( ! -f "$dir/$f90file" ){
-			$$source{$file}{'dir'} = $dir;
-			$$source{$file}{'type'}="prep";
+		    	# MODIFIED-HT: Process *.fpp files in a 'fppfolder' directory
+		    	if ( $dir =~ /$$option{'fppfolder'}$/ ){
+				$$source{$file}{'dir'} = $dir;
+				$$source{$file}{'type'}="prep";
+				}
 		    }
 		} elsif ( $file =~ /^[a-zA-Z].*\.(h|inc|finc)$/ ) {
 		    $$source{$file}{'dir'} = $dir;
@@ -714,11 +726,15 @@ sub preprocess{
     foreach my $file ( keys %$source ){
 #	&message($$msgtype{'info'},".");
 	if($$source{$file}{'type'} eq "prep"){
+		# MODIFIED-HT: Process *.fpp files in a 'fppfolder' directory
+		# MODIFIED-HT: Note that here we do 'cpp *.fpp' to build the '*.f90* files 
+		if ( $$source{$file}{'dir'} =~ /$$option{'fppfolder'}$/ ){
 	    my $f90file = $file;
 	    $f90file =~ s/\.(fpp|F90)/\.f90/;
 	    system("$$option{'makecmd'} $f90file >/dev/null");
-	    $$source{$f90file}{'dir'} = ".";
+	    $$source{$f90file}{'dir'} = $$source{$file}{'dir'};
 	    $$source{$f90file}{'type'} = "fort";
+		}
 	}
     }
 #    &message($$msgtype{'info'},"end\n");
@@ -831,14 +847,16 @@ sub write_dependency{
     open(DEP,">$$option{'depfile'}") ||
 	die ( "cannot open file: $$option{'depfile'}!" );
     print DEP "#\n";
-    print DEP "# Auto-generated file by fortdep. Do not edit!\n";
+    print DEP "# Auto-generated file by fortdep. Do not edit manually!\n";
+    print DEP "# Instead run the following command in the project folder:\n";
+    print DEP "# >> make depend\n";
     print DEP "#\n";
 
     foreach my $key ( sort ( keys %$objlist ) ){
 	print DEP "$key\_mod = ";
 	foreach my $obj ( sort ( keys %{$$objlist{$key}} ) ){
 	    print DEP "\\\n";
-	    print DEP "\t $obj ";
+	    print DEP "\t \$(OBJ_DIR)\/$obj ";
 	}
 	print DEP "\n\n";
     }
@@ -846,12 +864,12 @@ sub write_dependency{
     foreach my $key ( sort ( keys %$reqfile ) ){
 	my $keyo=$key;
 	$keyo =~ s/\.f90$/\.o/g;
-	print DEP "$keyo: ";
+	print DEP "\$(OBJ_DIR)\/$keyo: ";
 	foreach my $obj ( sort ( keys %{$$reqfile{$key}} ) ){
 	    my $objo = $obj;
 	    $objo =~ s/\.f90$/\.o/g;
 	    print DEP "\\\n";
-	    print DEP "\t $objo ";
+	    print DEP "\t \$(OBJ_DIR)\/$objo ";
 	}
 	print DEP "\n";
     }

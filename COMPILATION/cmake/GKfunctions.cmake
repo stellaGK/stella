@@ -36,14 +36,14 @@ function(stella_add_test test_source test_name)
 endfunction()
 
 # Helper function to easily add multiple separate
-# tests provided they exist at tests/automated_fortran_tests/test_${name}.pf
+# tests provided they exist at AUTOMATIC_TESTS/test_fortran_routines/test_${name}.pf
 # and we're happy to identify them as stella_tests_${name}
 function(stella_add_standard_tests)
   cmake_parse_arguments(
         STELLA_ADD "" "" "TEST_NAMES" ${ARGN}
     )
   foreach(name ${STELLA_ADD_TEST_NAMES})
-    stella_add_test("tests/automated_fortran_tests/test_${name}.pf" ${name})
+    stella_add_test("../AUTOMATIC_TESTS/test_fortran_routines/test_${name}.pf" ${name})
   endforeach()
   set(STELLA_CTEST_CASES ${STELLA_CTEST_CASES} PARENT_SCOPE)
 endfunction()
