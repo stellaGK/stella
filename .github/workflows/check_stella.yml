@@ -1,0 +1,356 @@
+# Run these tests automatically on Github on every push and pull request.
+# Use the macOS operating system, which has 4 cores.
+name: Check stella
+on: [push, pull_request]
+
+# We always run in a bash shell
+defaults:
+  run:
+    shell: bash
+
+# First build stella, and then perform python tests
+jobs:
+
+#-----------------------------------------------------------------------
+#              Build stella on different operating systems              
+#-----------------------------------------------------------------------
+  build-stella:
+  
+    # Turn this job off for now !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    #if: false
+  
+    # Set environment variables
+    env:
+      OMPI_MCA_rmaps_base_oversubscribe: yes
+      MPIRUN: mpiexec -np
+    
+    # Run the same set-up multiple times
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-12, macos-13, macos-14, ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        compiler: [Make, CMake]
+    
+    # Operating system
+    runs-on: ${{ matrix.os }}
+      
+    # Steps
+    steps:
+    
+      # Set environment variables as echo "{name}={value}" >> $GITHUB_ENV
+      - name: Set environment variables
+        run: |
+          # Set environment variables
+          if [ ${{ matrix.os }} == 'macos-12' ] || [ ${{ matrix.os }} == 'macos-13' ]; then
+            echo "Set STELLA_SYSTEM = macos"
+            echo "STELLA_SYSTEM=macos" >> $GITHUB_ENV 
+            echo "Set FFTW_LIB_DIR = /usr/local/Cellar/fftw/3.3.10_1/lib/"
+            echo "FFTW_LIB_DIR=/usr/local/Cellar/fftw/3.3.10_1/lib/" >> $GITHUB_ENV
+            echo "Set FFTW_INC_DIR = /usr/local/include/" 
+            echo "FFTW_INC_DIR=/usr/local/include/" >> $GITHUB_ENV
+            echo "Set NETCDF_LIB_DIR = /usr/local/lib -L/usr/local/Cellar/netcdf-fortran/4.6.1/lib/"
+            echo "NETCDF_LIB_DIR=/usr/local/lib -L/usr/local/Cellar/netcdf-fortran/4.6.1/lib/" >> $GITHUB_ENV
+            echo "Set NETCDF_INC_DIR = /usr/local/Cellar/netcdf-fortran/4.6.1/include/"
+            echo "NETCDF_INC_DIR=/usr/local/Cellar/netcdf-fortran/4.6.1/include/" >> $GITHUB_ENV 
+          elif [ ${{ matrix.os }} == 'macos-14' ]; then 
+            echo "Set STELLA_SYSTEM = macos"
+            echo "STELLA_SYSTEM=macos" >> $GITHUB_ENV 
+            echo "Set FFTW_LIB_DIR = /opt/homebrew/Cellar/fftw/3.3.10_1/lib/"
+            echo "FFTW_LIB_DIR=/opt/homebrew/Cellar/fftw/3.3.10_1/lib/" >> $GITHUB_ENV
+            echo "Set FFTW_INC_DIR = /opt/homebrew/include/" 
+            echo "FFTW_INC_DIR=/opt/homebrew/include/" >> $GITHUB_ENV
+            echo "Set NETCDF_LIB_DIR = /opt/homebrew/lib -L/opt/homebrew/Cellar/netcdf-fortran/4.6.1/lib/"
+            echo "NETCDF_LIB_DIR=/opt/homebrew/lib -L/opt/homebrew/Cellar/netcdf-fortran/4.6.1/lib/" >> $GITHUB_ENV
+            echo "Set NETCDF_INC_DIR = /opt/homebrew/Cellar/netcdf-fortran/4.6.1/include/"
+            echo "NETCDF_INC_DIR=/opt/homebrew/Cellar/netcdf-fortran/4.6.1/include/" >> $GITHUB_ENV 
+          elif ${{ contains(matrix.os, 'ubuntu') }}; then  
+            echo "Set STELLA_SYSTEM = gnu_ubuntu"
+            echo "STELLA_SYSTEM=gnu_ubuntu" >> $GITHUB_ENV
+          fi
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          # Install dependencies
+          if ${{ contains(matrix.os, 'macos') }}; then  
+            brew install gcc@11 make openmpi fftw netcdf-fortran gnu-sed
+            if [ ${{ matrix.os }} == 'macos-12' ] || [ ${{ matrix.os }} == 'macos-13' ]; then
+              sudo ln -s /usr/local/bin/gfortran-11 /usr/local/bin/gfortran
+              sudo mkdir /usr/local/gfortran; sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib 
+            elif [ ${{ matrix.os }} == 'macos-14' ]; then 
+              sudo ln -s /opt/homebrew/bin/gfortran-11 /opt/homebrew/bin/gfortran
+            fi
+          elif ${{ contains(matrix.os, 'ubuntu') }}; then  
+            sudo apt update
+            sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
+            sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev 
+            if [ ${{ matrix.os }} == 'ubuntu-24.04' ]; then sudo apt install -y libblas-dev liblapack-dev; fi
+          fi
+
+      # Print system information
+      - name: System information
+        run: |
+          if ${{ contains(matrix.os, 'macos') }}; then  
+            echo " "; echo "System information:"; echo "$(system_profiler SPHardwareDataType | sed 's/^/  /')"
+            echo " "; echo "Gfortran version:"; echo "$(gfortran --version | sed 's/^/  /')"
+            echo " "; echo "Clang version:"; echo "$(clang --version | sed 's/^/  /')"
+          elif ${{ contains(matrix.os, 'ubuntu') }}; then  
+            echo " "; echo "System information:"; echo "$(cat /etc/*release | sed 's/^/  /')"
+            echo " "; echo "Number of cores:"; echo "$(lscpu | egrep 'Model name|Socket|Thread|NUMA|CPU\(s\)' | sed 's/^/  /')"
+            echo " "; echo "Gfortran version:"; echo "$(gfortran --version | sed 's/^/  /')"
+            echo " "; echo "Netcdf version:"; echo "$(nf-config --all | sed 's/^/  /')"
+          fi
+
+      # Check-out repository under $GITHUB_WORKSPACE
+      - name: Check-out repository
+        uses: actions/checkout@v4 
+          
+      # Build stella executable
+      - name: Build stella
+        run: |
+          
+          # Check system variables needed for Make
+          if ${{ contains(matrix.os, 'macos') }}; then  
+            echo " "; echo "System variables:" 
+            echo "   FFTW_LIB_DIR = $FFTW_LIB_DIR"
+            echo "   FFTW_INC_DIR = $FFTW_INC_DIR"
+            echo "   NETCDF_LIB_DIR = $NETCDF_LIB_DIR"
+            echo "   NETCDF_INC_DIR = $NETCDF_INC_DIR"
+          fi
+          
+          # Download the submodules
+          echo " "; echo "Download submodules:" 
+          git submodule update --init --recursive
+          
+          # Build stella with Make or CMake
+          echo " "; echo "Build stella with ${{ matrix.compiler }}:" 
+          if [ ${{ matrix.compiler }} == 'Make' ]; then 
+             make -j 4
+          fi
+          if [ ${{ matrix.compiler }} == 'CMake' ]; then 
+             cmake . -B COMPILATION/build_cmake
+             cmake --build COMPILATION/build_cmake -j 4
+          fi
+          
+      # Check $GITHUB_WORKSPACE
+      - name: Check Github Workspace
+        run: | 
+          echo " "; echo "Running directory:"; echo "  $(pwd)"
+          echo " "; echo "Files in directory:"; echo "$(ls -la | sed 's/^/  /')"
+          
+      # Install python environment
+      - name: Install python virtual environment
+        run: |
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then 
+            python3 -m venv COMPILATION/venv
+            source COMPILATION/venv/bin/activate
+            pip3 install -r AUTOMATIC_TESTS/requirements.txt
+          else
+            pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
+          fi
+          if ${{ contains(matrix.os, 'macos') }}; then  
+            gsed -i 's/nproc = 16/nproc = 4/g' AUTOMATIC_TESTS/config.ini 
+          fi
+        
+      # Perform python tests  
+      # Turn this job off for now !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      - name: Numerical python tests
+        if: false
+        run: make numerical-tests
+
+
+#-----------------------------------------------------------------------
+#                              Quick build                              
+#-----------------------------------------------------------------------
+
+  # Build stella to perform python and fortran tests
+  build-stella-quick: 
+    runs-on: ubuntu-22.04
+    env:
+      OMPI_MCA_rmaps_base_oversubscribe: yes
+      MPIRUN: mpiexec -np
+      STELLA_SYSTEM: gnu_ubuntu
+
+    steps:
+
+      # Check-out repository under $GITHUB_WORKSPACE
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
+          sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev
+
+      # Build stella executable
+      - name: Build stella
+        run: |
+          git submodule update --init --recursive
+          cmake . -B COMPILATION/build_cmake
+          cmake --build COMPILATION/build_cmake -j 4
+
+      # Upload stella
+      - name: Upload stella  
+        uses: actions/upload-artifact@v4
+        with:
+          name: stella-executable
+          path: stella
+          retention-days: 1
+
+
+#-----------------------------------------------------------------------
+#                             Python tests                              
+#-----------------------------------------------------------------------
+
+  # Perform python tests one by one
+  python-tests: 
+    runs-on: ubuntu-22.04
+    needs: build-stella-quick
+    env:
+      OMPI_MCA_rmaps_base_oversubscribe: yes
+      MPIRUN: mpiexec -np
+      STELLA_SYSTEM: gnu_ubuntu
+    
+    # Run the same set-up multiple times
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - name: "1 - Does stella run "
+          - name: "2 - Geometry"
+          - name: "3 - Gyrokinetic equation"
+          - name: "4 - Flux tube"
+          - name: "5 - Diagnostics"
+
+    steps:
+
+      # Check-out repository under $GITHUB_WORKSPACE
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Install dependencies
+      - name: Install dependencies and python virtual environment
+        run: |
+          sudo apt update
+          sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
+          sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev
+          pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
+
+      # Download stella executable from previous job
+      - name: Download stella 
+        uses: actions/download-artifact@v4
+        with:
+           name: stella-executable
+    
+      # Perform python tests  
+      - name: Numerical python tests
+        run: |
+          # Make stella executable
+          chmod +x stella
+          
+          # Run one of the python tests
+          if ${{ contains(matrix.config.name, '1 -') }}; then make numerical-tests-1; fi
+          if ${{ contains(matrix.config.name, '2 -') }}; then make numerical-tests-2; fi
+          if ${{ contains(matrix.config.name, '3 -') }}; then make numerical-tests-3; fi
+          if ${{ contains(matrix.config.name, '4 -') }}; then make numerical-tests-4; fi
+          if ${{ contains(matrix.config.name, '5 -') }}; then make numerical-tests-5; fi
+
+
+#-----------------------------------------------------------------------
+#                             Fortran tests                              
+#-----------------------------------------------------------------------
+
+  fortran-tests:
+    runs-on: ubuntu-22.04
+    name: "Automated Fortran tests"  
+    env:
+      OMPI_MCA_rmaps_base_oversubscribe: yes
+      MPIRUN: mpiexec -np 
+      STELLA_SYSTEM: gnu_ubuntu
+
+    # Turn this job off for now !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    if: false
+
+    steps:
+
+      # Check-out repository under $GITHUB_WORKSPACE
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev netcdf-bin 
+          sudo apt install -y python3 python3-pip openmpi-bin libopenmpi-dev libblas-dev liblapack-dev
+          pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
+      
+      # Build stella executable and pFUnit library
+      - name: Build stella
+        run: |
+          git submodule update --init --recursive
+          make -j 4 compile-stella
+          make -j 4 build-pfunit-library
+      
+      # Automated Fortran tests
+      - name: Perform automated Fortran tests
+        run: make -j 4 run-automated-fortran-tests
+
+
+
+
+#-----------------------------------------------------------------------
+#                          Build in debug mode                          
+#-----------------------------------------------------------------------
+
+  # Build stella with Make in debug mode, here the python tests do not work!
+  # Specifically, the flush statement in mini_libstell's 
+  # read_wout_mod.F module in the readw_and_open() routine breaks 
+  # when reading a VMEC equilibirium during the python tests.
+  debug-build:
+    runs-on: ubuntu-22.04
+    name: "Build stella in debug mode"  
+    env:
+      OMPI_MCA_rmaps_base_oversubscribe: yes
+      MPIRUN: mpiexec -np 
+      STELLA_SYSTEM: gnu_ubuntu_debug
+
+    # Turn this job off for now !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    if: false
+
+    steps:
+
+      # Check-out repository under $GITHUB_WORKSPACE
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev netcdf-bin 
+          sudo apt install -y python3 python3-pip openmpi-bin libopenmpi-dev libblas-dev liblapack-dev 
+           
+      # Build stella executable
+      - name: Build stella in debug mode
+        run: make -j 4
+
+
+# If the operating system is changed, we can check where modules are installed
+# by reading the CMake cache file:
+#    echo " "; echo "--------- DIRECTORIES ----------"
+#    cat COMPILATION/build_cmake/CMakeCache.txt
+
+# We can also install Homebrew and use the following lines of code
+#    echo "Install Homebrew:"
+#    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; brew update
+#    echo "FFTW_LIB_DIR=/opt/homebrew/lib/" >> $GITHUB_ENV; echo "Set FFTW_LIB_DIR"
+#    echo "FFTW_INC_DIR=/opt/homebrew/include/" >> $GITHUB_ENV; echo "Set FFTW_INC_DIR"
+#    echo "NETCDF_LIB_DIR=/opt/homebrew/lib/" >> $GITHUB_ENV; echo "Set NETCDF_LIB_DIR"
+#    echo "NETCDF_INC_DIR=/opt/homebrew/include/" >> $GITHUB_ENV; echo "Set NETCDF_INC_DIR"
+#    brew install gcc fftw netcdf netcdf-fortran open-mpi python
+#    ln -sn /opt/homebrew/bin/gfortran-12 /opt/homebrew/bin/gfortran
+
+# if:  github.event_name == 'push'
