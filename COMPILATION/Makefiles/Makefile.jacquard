@@ -22,7 +22,7 @@ ifdef PGPLOT
 	PGPLOT_LIB = $$PGPLOT
 endif
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 ifeq ($(USE_FFT),fftw)
 	FFT_INC = $$FFTW

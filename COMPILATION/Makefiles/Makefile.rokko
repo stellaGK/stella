@@ -8,7 +8,7 @@ ifndef USE_MIC
 	CHIP=haswell
 endif
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 ifdef USE_MIC
 	MPIFC = mpiifort

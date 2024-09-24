@@ -2,7 +2,7 @@
 
 COMPILER=intel
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 ifeq ($(USE_FFT),fftw)
 	FFT_LIB = -L/usr/local/shared/lib -lrfftw -lfftw

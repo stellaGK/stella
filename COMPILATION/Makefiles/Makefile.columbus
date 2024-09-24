@@ -1,6 +1,6 @@
 # Culham columbus makefile
 COMPILER = intel
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 FC = mpif90
 DEFAULT_LIB_LIST=$(subst :, ,$(LD_LIBRARY_PATH))
 FFT_INC=-I$(subst /lib,/include,$(subst :, -I,$(LD_LIBRARY_PATH)))	# unnecessary if FPATH is set correspondingly to LD_LIBRARY_PATH

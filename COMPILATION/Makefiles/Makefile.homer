@@ -6,4 +6,4 @@ COMPILER= nag
 override USE_FFT=
 override USE_NETCDF=
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)

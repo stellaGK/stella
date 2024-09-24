@@ -8,7 +8,7 @@
 
 COMPILER=gcc-intel
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 #FFTW libraries using Intel MKL wrapper for gcc and ifort compilers
 USE_FFT =  fftw

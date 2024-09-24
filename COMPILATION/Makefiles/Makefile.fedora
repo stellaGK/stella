@@ -5,7 +5,7 @@
 #        netcdf, openmpi
 
 COMPILER=gnu-gfortran
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 USE_LOCAL_SPFUNC=on
 USE_FFT=fftw3

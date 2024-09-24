@@ -21,7 +21,7 @@ ifdef PGPLOT_DIR
 	PGPLOT_LIB = -lpgplot -L$$PGPLOT_DIR
 endif
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 ifeq ($(USE_FFT),fftw)
 #	FFT_LIB = -L/u/local/apps/fftw2/2.1.5-DO-NOT-USE-THIS-JUNK/lib -lrfftw -lfftw

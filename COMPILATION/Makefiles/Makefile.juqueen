@@ -35,6 +35,6 @@ endif
 USE_LOCAL_SPFUNC=on
 
 ###################
-include Makefile.xl
+include $(COMPILATION_DIR)/Makefiles/Makefile.xl
 ###################
 

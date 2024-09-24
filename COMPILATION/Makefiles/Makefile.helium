@@ -12,7 +12,7 @@
 
 COMPILER=intel
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 #Turn off HDF5
 USE_HDF5 ?=	

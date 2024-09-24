@@ -3,7 +3,7 @@
 COMPILER=pgi
 #COMPILER=intel
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 F90FLAGS += -i-static -static-libcxa -w -r8
 

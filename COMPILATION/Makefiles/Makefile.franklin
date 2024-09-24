@@ -48,9 +48,8 @@ $(warning IPM module is not loaded)
 	endif
 endif
 
-include Makefile.XT4
-
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Makefile.XT4
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 FC=ftn
 CC=cc

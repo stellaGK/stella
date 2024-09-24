@@ -10,7 +10,7 @@ FFT_INC = -I$(FFT_DIR)/include
 
 COMPILER=intel
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 FC=ifort
 MPIFC=mpif90

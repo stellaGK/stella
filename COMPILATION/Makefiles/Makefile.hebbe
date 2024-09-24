@@ -36,7 +36,7 @@ ifdef PGPLOT_DIR
 	PGPLOT_LIB = -lpgplot -L$$PGPLOT_DIR /usr/lib64/libpng.so.3
 endif
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 ifdef USE_NETCDF
 	NETCDF_INC = -I$$EBROOTNETCDF/include

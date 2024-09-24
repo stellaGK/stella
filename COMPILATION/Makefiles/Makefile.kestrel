@@ -17,7 +17,7 @@ else
 	override USE_NETCDF =
 endif
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 LIBS += -lmpichf90
 

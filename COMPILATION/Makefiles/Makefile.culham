@@ -1,6 +1,6 @@
 # Culham makefile: modified for newer Culham linux boxes
 COMPILER = intel
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 FC = mpif90
 #FFT_INC=-I/usr/local/intellibs/include
 #FFT_LIB=-lrfftw -lfftw

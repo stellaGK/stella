@@ -1,4 +1,4 @@
 # simplest example of your local makefile
 
-COMPILER= set your compiler
-include Makefile.$(COMPILER)
+COMPILER = set your compiler
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)

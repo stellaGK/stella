@@ -7,7 +7,7 @@
 
 COMPILER=fuj
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 #ifdef USE_NETCDF
 #	NETCDF_INC = -I$$NETCDF_DIR/include

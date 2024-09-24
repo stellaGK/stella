@@ -68,9 +68,8 @@ ifdef PGPLOT_DIR
 	PGPLOT_LIB = -lpgplot -L$$PGPLOT_DIR
 endif
 
-include Makefile.XT5
-
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Makefile.XT5
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 FC=ftn
 CC=cc

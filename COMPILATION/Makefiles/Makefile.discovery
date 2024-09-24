@@ -27,7 +27,7 @@ ifdef PGPLOT_DIR
 	PGPLOT_LIB = $$PGPLOT_LIBRARY -L/usr/X11/lib -lX11 -lsvml
 endif
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 ifeq ($(USE_FFT),fftw)
         FFT_LIB = $$FFTW_LIB

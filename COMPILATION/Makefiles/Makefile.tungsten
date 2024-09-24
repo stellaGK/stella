@@ -4,7 +4,7 @@
 COMPILER=intel
 CHIP=xeon
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 MPIFC = cmpif90c
 

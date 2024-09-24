@@ -31,7 +31,7 @@ ifdef PGPLOT_DIR
 	PGPLOT_LIB = -lpgplot -L$$PGPLOT_DIR
 endif
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 MPIFC := $(FC)
 MPICC := $(CC)

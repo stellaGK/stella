@@ -3,7 +3,7 @@
 
 COMPILER=xl
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 MPIFC = mpxlf90
 MPICC = mpcc

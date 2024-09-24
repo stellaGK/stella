@@ -19,7 +19,7 @@ ifneq ($(findstring spfunc,$(USE_NAGLIB)),spfunc)
 endif
 endif
 
-include Makefile.gnu-gcc
+include $(COMPILATION_DIR)/Makefiles/Makefile.gnu-gcc
 
 ifdef DBLE
 	DBLEFLAGS = -r8

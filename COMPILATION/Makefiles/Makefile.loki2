@@ -1,5 +1,5 @@
 COMPILER=pathscale
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 FC = mpif90 -fPIC 
 

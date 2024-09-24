@@ -23,7 +23,7 @@ endif
 USE_NETCDF = on
 USE_HDF5 = 
 MPIINC = on
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 MPIFC := $(FC)
 MPICC := $(CC)

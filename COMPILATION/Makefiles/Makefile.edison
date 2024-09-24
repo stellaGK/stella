@@ -69,7 +69,7 @@ endif
 # doesn't work in interactive mode
 DBLESIZEOPT = -double-size 128
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 FC=ftn
 CC=cc

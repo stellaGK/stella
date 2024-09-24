@@ -29,7 +29,7 @@ USE_NETCDF = on
 # of the intel version which is slow
 DBLESIZEOPT = -double-size 128
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 FC=ifort
 CC=icc

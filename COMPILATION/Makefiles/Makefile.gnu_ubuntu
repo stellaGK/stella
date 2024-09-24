@@ -26,7 +26,7 @@ endef
 
 COMPILER=gnu-gfortran
 USE_HDF5=
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 USE_LOCAL_SPFUNC=on
 

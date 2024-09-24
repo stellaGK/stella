@@ -24,7 +24,7 @@ export USE_NETCDF=on
 endef
 
 COMPILER=gnu-gfortran
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 F90FLAGS += -m64 -Wall
 CFLAGS += -m64

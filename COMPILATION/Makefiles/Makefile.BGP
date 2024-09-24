@@ -1,6 +1,6 @@
 #Makefile for IDRIS BGP - Babel
 COMPILER=mpixl
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 	 
 NETCDF_INC = -I/bglocal/prod/tools_ibm/netcdf-3.6.1/include
 NETCDF_LIB = -L/bglocal/prod/tools_ibm/netcdf-3.6.1/lib -lnetcdf
