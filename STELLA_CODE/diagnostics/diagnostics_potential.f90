@@ -318,8 +318,8 @@ contains
 
       ! Write the header for the '.out' file.
       if (.not. restart) then
-         write (stdout_unit, '(a10,a11,a15)') 'istep', 'time', '|phi|^2', '|apar|^2' 
-         write (stdout_unit, '(a)') '-------------------------------------------------------' 
+         write (stdout_unit, '(a10,a11,a15,a15,a15)') 'istep', 'time', '|phi|^2', '|apar|^2', '|bpar|^2' 
+         write (stdout_unit, '(a)') '---------------------------------------------------------------------' 
       end if
 
    end subroutine open_potential_ascii_file
