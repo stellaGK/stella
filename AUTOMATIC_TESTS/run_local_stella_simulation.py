@@ -4,6 +4,7 @@ import shutil
 import pathlib
 import difflib
 import subprocess   
+import configparser
 
 ################################################################################
 #                 Routines to launch a local stella simulation                 #
@@ -11,6 +12,19 @@ import subprocess
 # Note that the argument of any test function is the temporary path where the 
 # test is performed, i.e., test_*(tmp_path) executes stella in <tmp_path>. 
 ################################################################################
+ 
+#-------------------------------------------------------------------------------
+def read_nproc():
+    test_directory = get_automatic_tests_directory() 
+    config = configparser.ConfigParser() 
+    config.read(test_directory / 'config.ini')
+    nproc = config['DEFAULT']['nproc']
+    return nproc
+    
+#-------------------------------------------------------------------------------
+def get_automatic_tests_directory():
+    '''Get the directory of the test modules'''
+    return pathlib.Path(str(pathlib.Path(__file__)).split('AUTOMATIC_TESTS')[0]) / 'AUTOMATIC_TESTS'
  
 #-------------------------------------------------------------------------------
 def get_stella_expected_run_directory():
@@ -28,7 +42,8 @@ def get_stella_path():
 #-------------------------------------------------------------------------------
 def run_stella(stella_path, input_file):
     '''Run stella with a given input file.''' 
-    subprocess.run(['mpirun', '-np', '2', stella_path, input_file], check=True)
+    nproc = read_nproc()
+    subprocess.run(['mpirun', '-np', f'{nproc}', stella_path, input_file], check=True)
 
 #-------------------------------------------------------------------------------
 def copy_input_file(input_file: str, destination):
@@ -62,7 +77,7 @@ def compare_local_txt_with_expected_txt(local_file, expected_file, name, skiplin
         elif open(local_file,'r').read() != open(expected_file,'r').read(): error = True 
     if skiplines>0:
         if open(local_file,'r').readlines()[skiplines:] != open(expected_file,'r').readlines()[skiplines:]: error = True 
-
+    
     # If the files don't match, print the differences
     if error==True:
         print(f'ERROR: {name} files do not match.')
@@ -207,60 +222,6 @@ def compare_local_potential_with_expected_potential(local_netcdf_file='', expect
         assert (not error), f'The potential data does not match in the netCDF files.' 
     
     return error
-        
-#-------------------------------------------------------------------------------  
-def compare_local_potential_with_expected_potential_em(local_netcdf_file='', expected_netcdf_file='', run_data={}, error=False): 
-
-    # Make sure we have enough data to find the files 
-    if (local_netcdf_file=='' or expected_netcdf_file=='') and len(run_data.keys())==0:
-        print('\nERROR: The test has been set up badly in compare_local_potential_with_expected_potential().'); error = True
-        print('\n       Make sure the path to the netCDF files is defined.')
-        assert (not error), f'The test has been set up badly in compare_local_potential_with_expected_potential().' 
-    
-    # If the input file name is given, use it to set the netCDF files
-    if (local_netcdf_file=='' or expected_netcdf_file=='') and len(run_data.keys())>0:
-        input_file = run_data['input_file']; tmp_path = run_data['tmp_path']
-        local_netcdf_file = tmp_path / input_file.replace('.in', '.out.nc') 
-        expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file.replace(".in","")}.out.nc'    
-    
-    # Check whether the potential data matches in the netCDF file
-    with xr.open_dataset(local_netcdf_file) as local_netcdf, xr.open_dataset(expected_netcdf_file) as expected_netcdf:
-        
-        # Read the time axis
-        local_time = local_netcdf['t']
-        expected_time = expected_netcdf['t']
-        
-        # Read the potential axis
-        local_phi2 = local_netcdf['phi2']
-        expected_phi2 = expected_netcdf['phi2'] 
-
-        local_apar2 = local_netcdf['apar2']
-        expected_apar2 = local_netcdf['apar2']
-
-        local_bpar2 = local_netcdf['bpar2']
-        expected_bpar2 = local_netcdf['bpar2']
-        
-        # Check whether we have the same time and potential data
-        if not (np.allclose(local_time, expected_time, equal_nan=True)):
-            print('\nERROR: The time axis does not match in the netCDF files.'); error = True
-            print('\nCompare the time arrays in the local and expected netCDF files:')
-            compare_local_array_with_expected_array(local_time, expected_time)  
-        if not (np.allclose(local_phi2, expected_phi2, equal_nan=True)):
-            print('\nERROR: The <phi potential data does not match in the netCDF files.'); error = True 
-            print('\nCompare the <phi> potential arrays in the local and expected netCDF files:')
-            compare_local_array_with_expected_array(local_phi2, expected_phi2)
-        if not (np.allclose(local_apar2, expected_apar2, equal_nan=True)):
-            print('\nERROR: The <A_parallel> potential data does not match in the netCDF files.'); error = True 
-            print('\nCompare the <A_parallel> potential arrays in the local and expected netCDF files:')
-            compare_local_array_with_expected_array(local_apar2, expected_apar2)
-        if not (np.allclose(local_bpar2, expected_bpar2, equal_nan=True)):
-            print('\nERROR: The <B_parallel> potential data does not match in the netCDF files.'); error = True 
-            print('\nCompare the <B_parallel> potential arrays in the local and expected netCDF files:')
-            compare_local_array_with_expected_array(local_bar2, expected_bpar2)
-        
-        assert (not error), f'The potential data does not match in the netCDF files.' 
-    
-    return error
     
 #-------------------------------------------------------------------------------
 def convert_byte_array(array):
@@ -330,9 +291,6 @@ def compare_geometry_in_netcdf_files(run_data, error=False):
             # Compare integers and floats
             if expected_netcdf[key].shape == ():
                 if key=='nproc': continue # The number of processors is allowed to differ
-                if(key=='drhodpsi'):
-                    local_netcdf[key].data = np.round(local_netcdf[key].data, 15)
-                    expected_netcdf[key].data = np.round(expected_netcdf[key].data, 15)
                 if (local_netcdf[key] != expected_netcdf[key]):
                     print(f'\nERROR: The quantity <{key}> does not match in the netcdf files.'); error = True
                     print(f'    LOCAL:    {local_netcdf[key].data}')

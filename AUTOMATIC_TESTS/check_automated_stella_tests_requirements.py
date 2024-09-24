@@ -15,7 +15,7 @@ for line in contents:
     if line.startswith("#"):
         continue
     module = line.split("=")[0]
-    requirements.append(module.replace(">", "").replace("~", ""))
+    requirements.append(module.replace(">", "").replace("~", "").replace("\n", ""))
 
 failed_modules = []
 for requirement in requirements:
@@ -24,7 +24,7 @@ for requirement in requirements:
     except ImportError:
         failed_modules.append(requirement)
 
-if failed_modules:
+if failed_modules: 
     list_of_failed_modules = ", ".join(failed_modules)
     print(
         textwrap.dedent(
@@ -32,7 +32,7 @@ if failed_modules:
             Could not import: {list_of_failed_modules}
             Run:
                 make create-test-virtualenv
-                source tests/venv/bin/activate
+                source AUTOMATIC_TESTS/venv/bin/activate
             to install and activate test dependencies
             """
         )
