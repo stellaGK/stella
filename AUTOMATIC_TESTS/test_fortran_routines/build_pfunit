@@ -23,11 +23,12 @@ make_jobs=1
 
 # Locations of various things
 stella_directory=$(pwd)
-externals_directory="${stella_directory}/externals"
+externals_directory="${stella_directory}/EXTERNALS"
 pfunit_directory="${externals_directory}/pFUnit"
+compilation_directory="${stella_directory}/COMPILATION"
 pfunit_version_directory="${externals_directory}/pFUnit-${pfunit_version}"
-pfunit_build_directory="${externals_directory}/pFUnit_build"
-pfunit_install_directory="${externals_directory}/pFUnit_build/install"
+pfunit_build_directory="${compilation_directory}/pFUnit_build"
+pfunit_install_directory="${compilation_directory}/pFUnit_build/install"
 
 function usage {
     echo "usage: ${0##*/} [-m] [-v ARG] [-b ARG] [-i ARG] [-j ARG] [-r] [-h|--help]"
@@ -131,7 +132,7 @@ fi
 # Check if we're in a git repo and, if so, that the pFUnit submodule is up-to-date
 if [[ ! $(git rev-parse --git-dir >/dev/null 2>&1 || [[ -d ${stella_directory}/.git ]]) ]]; then
     echo "Making sure pFUnit submodule is up-to-date"
-    git submodule update --init --recursive externals/pFUnit
+    git submodule update --init --recursive EXTERNALS/pFUnit
 fi
 
 # If we're not in a git repo and the pFUnit submodule isn't there, best download it
