@@ -50,7 +50,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/calculations/gyro_averages.f90
   ../STELLA_CODE/calculations/stella_transforms.f90
   ../STELLA_CODE/calculations/volume_averages.f90
-  ../STELLA_CODE/diagnostics/parameters_diagnostics.f90
   ../STELLA_CODE/diagnostics/diagnostics.f90
   ../STELLA_CODE/diagnostics/diagnostics_distribution.f90
   ../STELLA_CODE/diagnostics/diagnostics_fluxes_fluxtube.f90
@@ -92,6 +91,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/neoclassical/euterpe_interface.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
   ../STELLA_CODE/parameters/debug_flags.f90
+  ../STELLA_CODE/parameters/parameters_diagnostics.f90
   ../STELLA_CODE/parameters/parameters_kxky_grids.f90
   ../STELLA_CODE/parameters/parameters_kxky_grids_box.f90
   ../STELLA_CODE/parameters/parameters_kxky_grids_range.f90
