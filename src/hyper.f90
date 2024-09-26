@@ -24,7 +24,7 @@ contains
    subroutine read_parameters_hyper
 
       use file_utils, only: input_unit_exist
-      use physics_flags, only: full_flux_surface, radial_variation
+      use parameters_physics, only: full_flux_surface, radial_variation
       use mp, only: proc0, broadcast
 
       implicit none
@@ -59,11 +59,11 @@ contains
 
    subroutine init_hyper
 
-      use kt_grids, only: ikx_max, nakx, naky
-      use kt_grids, only: aky, akx, theta0
+      use parameters_kxky_grids, only: ikx_max, nakx, naky
+      use grids_kxky, only: aky, akx, theta0
       use zgrid, only: nzgrid, zed
       use geometry, only: geo_surf, q_as_x
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
 
       implicit none
 
@@ -112,9 +112,9 @@ contains
       use stella_time, only: code_dt
       use zgrid, only: nzgrid, ntubes, zed
       use stella_layouts, only: vmu_lo
-      use dist_fn_arrays, only: kperp2
-      use kt_grids, only: naky
-      use kt_grids, only: aky, akx, theta0, zonal_mode
+      use arrays_dist_fn, only: kperp2
+      use parameters_kxky_grids, only: naky
+      use grids_kxky, only: aky, akx, theta0, zonal_mode
 
       implicit none
 
@@ -235,7 +235,7 @@ contains
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: fill_zed_ghost_zones
       use extended_zgrid, only: periodic
-      use kt_grids, only: naky
+      use parameters_kxky_grids, only: naky
 
       use stella_layouts, only: iv_idx, imu_idx, is_idx
 

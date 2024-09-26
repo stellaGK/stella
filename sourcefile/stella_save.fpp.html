@@ -232,9 +232,9 @@
 <a id="ln-73" name="ln-73" href="#ln-73"></a><span class="w">      </span><span class="p">(</span><span class="n">g</span><span class="p">,</span><span class="w"> </span><span class="n">istep0</span><span class="p">,</span><span class="w"> </span><span class="n">t0</span><span class="p">,</span><span class="w"> </span><span class="n">delt0</span><span class="p">,</span><span class="w"> </span><span class="n">istatus</span><span class="p">,</span><span class="w"> </span><span class="n">exit_in</span><span class="p">,</span><span class="w"> </span><span class="n">fileopt</span><span class="p">)</span>
 <a id="ln-74" name="ln-74" href="#ln-74"></a>
 <a id="ln-75" name="ln-75" href="#ln-75"></a><span class="cp"># ifdef NETCDF</span>
-<a id="ln-76" name="ln-76" href="#ln-76"></a><span class="w">      </span><span class="k">use </span><span class="n">fields_arrays</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">shift_state</span><span class="p">,</span><span class="w"> </span><span class="n">phi_proj</span>
-<a id="ln-77" name="ln-77" href="#ln-77"></a><span class="w">      </span><span class="k">use </span><span class="n">dist_fn_arrays</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">g_krook</span><span class="p">,</span><span class="w"> </span><span class="n">g_proj</span>
-<a id="ln-78" name="ln-78" href="#ln-78"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">naky</span><span class="p">,</span><span class="w"> </span><span class="n">nakx</span>
+<a id="ln-76" name="ln-76" href="#ln-76"></a><span class="w">      </span><span class="k">use </span><span class="n">arrays_fields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">shift_state</span><span class="p">,</span><span class="w"> </span><span class="n">phi_proj</span>
+<a id="ln-77" name="ln-77" href="#ln-77"></a><span class="w">      </span><span class="k">use </span><span class="n">arrays_dist_fn</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">g_krook</span><span class="p">,</span><span class="w"> </span><span class="n">g_proj</span>
+<a id="ln-78" name="ln-78" href="#ln-78"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_kxky_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">naky</span><span class="p">,</span><span class="w"> </span><span class="n">nakx</span>
 <a id="ln-79" name="ln-79" href="#ln-79"></a><span class="cp"># else</span>
 <a id="ln-80" name="ln-80" href="#ln-80"></a><span class="w">      </span><span class="k">use </span><span class="n">mp</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">proc0</span>
 <a id="ln-81" name="ln-81" href="#ln-81"></a><span class="cp"># endif</span>
@@ -866,9 +866,9 @@
 <a id="ln-707" name="ln-707" href="#ln-707"></a>
 <a id="ln-708" name="ln-708" href="#ln-708"></a><span class="w">   </span><span class="k">subroutine </span><span class="n">stella_restore_many</span><span class="p">(</span><span class="n">g</span><span class="p">,</span><span class="w"> </span><span class="nb">scale</span><span class="p">,</span><span class="w"> </span><span class="n">istatus</span><span class="p">)</span>
 <a id="ln-709" name="ln-709" href="#ln-709"></a><span class="cp"># ifdef NETCDF</span>
-<a id="ln-710" name="ln-710" href="#ln-710"></a><span class="w">      </span><span class="k">use </span><span class="n">fields_arrays</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">shift_state</span><span class="p">,</span><span class="w"> </span><span class="n">phi_proj</span>
-<a id="ln-711" name="ln-711" href="#ln-711"></a><span class="w">      </span><span class="k">use </span><span class="n">dist_fn_arrays</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">g_krook</span><span class="p">,</span><span class="w"> </span><span class="n">g_proj</span>
-<a id="ln-712" name="ln-712" href="#ln-712"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">naky</span><span class="p">,</span><span class="w"> </span><span class="n">nakx</span>
+<a id="ln-710" name="ln-710" href="#ln-710"></a><span class="w">      </span><span class="k">use </span><span class="n">arrays_fields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">shift_state</span><span class="p">,</span><span class="w"> </span><span class="n">phi_proj</span>
+<a id="ln-711" name="ln-711" href="#ln-711"></a><span class="w">      </span><span class="k">use </span><span class="n">arrays_dist_fn</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">g_krook</span><span class="p">,</span><span class="w"> </span><span class="n">g_proj</span>
+<a id="ln-712" name="ln-712" href="#ln-712"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_kxky_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">naky</span><span class="p">,</span><span class="w"> </span><span class="n">nakx</span>
 <a id="ln-713" name="ln-713" href="#ln-713"></a><span class="cp"># endif</span>
 <a id="ln-714" name="ln-714" href="#ln-714"></a><span class="cp"># ifdef NETCDF_PARALLEL</span>
 <a id="ln-715" name="ln-715" href="#ln-715"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nztot</span>
@@ -1371,13 +1371,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.7-23-gd0790329c2</small></p>
+<br /><small>v0.7-24-gc0992ea3bb</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-09-19T15:17:35.676529             </p>
+ on 2024-09-26T09:56:17.317360             </p>
           </div>
         </div>
         <br>

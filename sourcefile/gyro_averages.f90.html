@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 1.4% of total for source files.">605 statements</a>
+                 title=" 1.4% of total for source files.">606 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -160,275 +160,275 @@
         <div class="hl codehilite"><pre><span></span><a id="ln-1" name="ln-1" href="#ln-1"></a><span class="k">module </span><span class="n">gyro_averages</span>
 <a id="ln-2" name="ln-2" href="#ln-2"></a>
 <a id="ln-3" name="ln-3" href="#ln-3"></a><span class="w">   </span><span class="k">use </span><span class="n">common_types</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">coupled_alpha_type</span>
-<a id="ln-4" name="ln-4" href="#ln-4"></a>
-<a id="ln-5" name="ln-5" href="#ln-5"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">aj0x</span><span class="p">,</span><span class="w"> </span><span class="n">aj0v</span><span class="p">,</span><span class="w"> </span><span class="n">aj1x</span><span class="p">,</span><span class="w"> </span><span class="n">aj1v</span>
-<a id="ln-6" name="ln-6" href="#ln-6"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">init_bessel</span><span class="p">,</span><span class="w"> </span><span class="n">finish_bessel</span>
-<a id="ln-7" name="ln-7" href="#ln-7"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">gyro_average</span>
-<a id="ln-8" name="ln-8" href="#ln-8"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">gyro_average_j1</span>
-<a id="ln-9" name="ln-9" href="#ln-9"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">j0_B_ffs</span><span class="p">,</span><span class="w"> </span><span class="n">j0_ffs</span>
-<a id="ln-10" name="ln-10" href="#ln-10"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">band_lu_solve_ffs</span><span class="p">,</span><span class="w"> </span><span class="n">band_lu_factorisation_ffs</span>
-<a id="ln-11" name="ln-11" href="#ln-11"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">find_max_required_kalpha_index</span>
-<a id="ln-12" name="ln-12" href="#ln-12"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">j1_ffs</span>
-<a id="ln-13" name="ln-13" href="#ln-13"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">j0_const</span><span class="p">,</span><span class="w"> </span><span class="n">j0_B_const</span>
-<a id="ln-14" name="ln-14" href="#ln-14"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">j0max_const</span>
-<a id="ln-15" name="ln-15" href="#ln-15"></a>
-<a id="ln-16" name="ln-16" href="#ln-16"></a><span class="w">   </span><span class="k">private</span>
-<a id="ln-17" name="ln-17" href="#ln-17"></a>
-<a id="ln-18" name="ln-18" href="#ln-18"></a><span class="k">   interface </span><span class="n">gyro_average</span>
-<a id="ln-19" name="ln-19" href="#ln-19"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_local</span>
-<a id="ln-20" name="ln-20" href="#ln-20"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_kxky_local</span>
-<a id="ln-21" name="ln-21" href="#ln-21"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_kxkyz_local</span>
-<a id="ln-22" name="ln-22" href="#ln-22"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_kxkyzv_local</span>
-<a id="ln-23" name="ln-23" href="#ln-23"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_v_local</span>
-<a id="ln-24" name="ln-24" href="#ln-24"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_vmu_local</span>
-<a id="ln-25" name="ln-25" href="#ln-25"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_vmus_nonlocal</span>
-<a id="ln-26" name="ln-26" href="#ln-26"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_ffs_kxky_local</span>
-<a id="ln-27" name="ln-27" href="#ln-27"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_ffs_kxkyz_local</span>
-<a id="ln-28" name="ln-28" href="#ln-28"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_ffs_field</span>
-<a id="ln-29" name="ln-29" href="#ln-29"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_ffs</span>
-<a id="ln-30" name="ln-30" href="#ln-30"></a><span class="w">   </span><span class="k">end interface </span><span class="n">gyro_average</span>
-<a id="ln-31" name="ln-31" href="#ln-31"></a>
-<a id="ln-32" name="ln-32" href="#ln-32"></a><span class="w">   </span><span class="k">interface </span><span class="n">gyro_average_j1</span>
-<a id="ln-33" name="ln-33" href="#ln-33"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_j1_vmus_nonlocal</span>
-<a id="ln-34" name="ln-34" href="#ln-34"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_j1_local</span>
-<a id="ln-35" name="ln-35" href="#ln-35"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_j1_kxky_local</span>
-<a id="ln-36" name="ln-36" href="#ln-36"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_j1_kxkyz_local</span>
-<a id="ln-37" name="ln-37" href="#ln-37"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_j1_v_local</span>
-<a id="ln-38" name="ln-38" href="#ln-38"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_j1_vmu_local</span>
-<a id="ln-39" name="ln-39" href="#ln-39"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_j1_kxkyzv_local</span>
-<a id="ln-40" name="ln-40" href="#ln-40"></a><span class="w">   </span><span class="k">end interface</span>
-<a id="ln-41" name="ln-41" href="#ln-41"></a>
-<a id="ln-42" name="ln-42" href="#ln-42"></a><span class="k">   </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="p">:),</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">aj0x</span><span class="p">,</span><span class="w"> </span><span class="n">aj1x</span>
-<a id="ln-43" name="ln-43" href="#ln-43"></a><span class="w">   </span><span class="c">! (naky, nakx, nalpha, -nzgrid:nzgrid, -vmu-layout-)</span>
-<a id="ln-44" name="ln-44" href="#ln-44"></a>
-<a id="ln-45" name="ln-45" href="#ln-45"></a><span class="w">   </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(:,</span><span class="w"> </span><span class="p">:),</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">aj0v</span><span class="p">,</span><span class="w"> </span><span class="n">aj1v</span>
-<a id="ln-46" name="ln-46" href="#ln-46"></a><span class="w">   </span><span class="c">! (nmu, -kxkyz-layout-)</span>
-<a id="ln-47" name="ln-47" href="#ln-47"></a>
-<a id="ln-48" name="ln-48" href="#ln-48"></a><span class="w">   </span><span class="k">type</span><span class="p">(</span><span class="n">coupled_alpha_type</span><span class="p">),</span><span class="w"> </span><span class="k">dimension</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="p">:),</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">j0_ffs</span><span class="p">,</span><span class="w"> </span><span class="n">j0_B_ffs</span>
-<a id="ln-49" name="ln-49" href="#ln-49"></a>
-<a id="ln-50" name="ln-50" href="#ln-50"></a><span class="w">   </span><span class="kt">logical</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">bessinit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a id="ln-51" name="ln-51" href="#ln-51"></a>
-<a id="ln-52" name="ln-52" href="#ln-52"></a><span class="w">   </span><span class="kt">logical</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a id="ln-53" name="ln-53" href="#ln-53"></a>
-<a id="ln-54" name="ln-54" href="#ln-54"></a><span class="w">   </span><span class="k">type</span><span class="p">(</span><span class="n">coupled_alpha_type</span><span class="p">),</span><span class="w"> </span><span class="k">dimension</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="p">:),</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">j1_ffs</span>
-<a id="ln-55" name="ln-55" href="#ln-55"></a><span class="w">   </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="p">:),</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">j0_const</span><span class="p">,</span><span class="w"> </span><span class="n">j0_B_const</span><span class="p">,</span><span class="w"> </span><span class="n">j0max_const</span>
-<a id="ln-56" name="ln-56" href="#ln-56"></a>
-<a id="ln-57" name="ln-57" href="#ln-57"></a><span class="k">contains</span>
-<a id="ln-58" name="ln-58" href="#ln-58"></a>
-<a id="ln-59" name="ln-59" href="#ln-59"></a><span class="k">   subroutine </span><span class="n">init_bessel</span>
-<a id="ln-60" name="ln-60" href="#ln-60"></a>
-<a id="ln-61" name="ln-61" href="#ln-61"></a><span class="w">      </span><span class="k">use </span><span class="n">dist_fn_arrays</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">kperp2</span>
-<a id="ln-62" name="ln-62" href="#ln-62"></a><span class="w">      </span><span class="k">use </span><span class="n">physics_flags</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">full_flux_surface</span>
-<a id="ln-63" name="ln-63" href="#ln-63"></a><span class="w">      </span><span class="k">use </span><span class="n">species</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">spec</span>
-<a id="ln-64" name="ln-64" href="#ln-64"></a><span class="w">      </span><span class="k">use </span><span class="n">geometry</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">bmag</span>
-<a id="ln-65" name="ln-65" href="#ln-65"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nzgrid</span>
-<a id="ln-66" name="ln-66" href="#ln-66"></a><span class="w">      </span><span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">vperp2</span><span class="p">,</span><span class="w"> </span><span class="n">nmu</span>
-<a id="ln-67" name="ln-67" href="#ln-67"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">naky</span><span class="p">,</span><span class="w"> </span><span class="n">nakx</span>
-<a id="ln-68" name="ln-68" href="#ln-68"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">kxkyz_lo</span><span class="p">,</span><span class="w"> </span><span class="n">vmu_lo</span>
-<a id="ln-69" name="ln-69" href="#ln-69"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">iky_idx</span><span class="p">,</span><span class="w"> </span><span class="n">ikx_idx</span><span class="p">,</span><span class="w"> </span><span class="n">iz_idx</span><span class="p">,</span><span class="w"> </span><span class="n">is_idx</span><span class="p">,</span><span class="w"> </span><span class="n">imu_idx</span>
-<a id="ln-70" name="ln-70" href="#ln-70"></a><span class="w">      </span><span class="k">use </span><span class="n">spfunc</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">j0</span><span class="p">,</span><span class="w"> </span><span class="n">j1</span>
-<a id="ln-71" name="ln-71" href="#ln-71"></a>
-<a id="ln-72" name="ln-72" href="#ln-72"></a><span class="w">      </span><span class="k">implicit none</span>
-<a id="ln-73" name="ln-73" href="#ln-73"></a>
-<a id="ln-74" name="ln-74" href="#ln-74"></a><span class="k">      </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">iz</span><span class="p">,</span><span class="w"> </span><span class="n">iky</span><span class="p">,</span><span class="w"> </span><span class="n">ikx</span><span class="p">,</span><span class="w"> </span><span class="n">imu</span><span class="p">,</span><span class="w"> </span><span class="k">is</span><span class="p">,</span><span class="w"> </span><span class="n">ia</span>
-<a id="ln-75" name="ln-75" href="#ln-75"></a><span class="w">      </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ikxkyz</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span>
-<a id="ln-76" name="ln-76" href="#ln-76"></a><span class="w">      </span><span class="kt">real</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">arg</span>
-<a id="ln-77" name="ln-77" href="#ln-77"></a>
-<a id="ln-78" name="ln-78" href="#ln-78"></a><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">bessinit</span><span class="p">)</span><span class="w"> </span><span class="k">return</span>
-<a id="ln-79" name="ln-79" href="#ln-79"></a><span class="k">      </span><span class="n">bessinit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
-<a id="ln-80" name="ln-80" href="#ln-80"></a>
-<a id="ln-81" name="ln-81" href="#ln-81"></a><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">debug</span><span class="p">)</span><span class="w"> </span><span class="k">write</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;gyro_averages::init_bessel::allocate_aj0v_aj1v&#39;</span>
-<a id="ln-82" name="ln-82" href="#ln-82"></a><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="nb">allocated</span><span class="p">(</span><span class="n">aj0v</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
-<a id="ln-83" name="ln-83" href="#ln-83"></a><span class="k">         allocate</span><span class="w"> </span><span class="p">(</span><span class="n">aj0v</span><span class="p">(</span><span class="n">nmu</span><span class="p">,</span><span class="w"> </span><span class="n">kxkyz_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:</span><span class="n">kxkyz_lo</span><span class="p">%</span><span class="n">ulim_alloc</span><span class="p">))</span>
-<a id="ln-84" name="ln-84" href="#ln-84"></a><span class="w">         </span><span class="n">aj0v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
-<a id="ln-85" name="ln-85" href="#ln-85"></a><span class="w">      </span><span class="k">end if</span>
-<a id="ln-86" name="ln-86" href="#ln-86"></a><span class="k">      if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="nb">allocated</span><span class="p">(</span><span class="n">aj1v</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
-<a id="ln-87" name="ln-87" href="#ln-87"></a><span class="k">         allocate</span><span class="w"> </span><span class="p">(</span><span class="n">aj1v</span><span class="p">(</span><span class="n">nmu</span><span class="p">,</span><span class="w"> </span><span class="n">kxkyz_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:</span><span class="n">kxkyz_lo</span><span class="p">%</span><span class="n">ulim_alloc</span><span class="p">))</span>
-<a id="ln-88" name="ln-88" href="#ln-88"></a><span class="w">         </span><span class="n">aj1v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
-<a id="ln-89" name="ln-89" href="#ln-89"></a><span class="w">      </span><span class="k">end if</span>
-<a id="ln-90" name="ln-90" href="#ln-90"></a>
-<a id="ln-91" name="ln-91" href="#ln-91"></a><span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">debug</span><span class="p">)</span><span class="w"> </span><span class="k">write</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;gyro_averages::init_bessel::calculate_aj0v_aj1v&#39;</span>
-<a id="ln-92" name="ln-92" href="#ln-92"></a><span class="w">      </span><span class="n">ia</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
-<a id="ln-93" name="ln-93" href="#ln-93"></a><span class="w">      </span><span class="k">do </span><span class="n">ikxkyz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kxkyz_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">,</span><span class="w"> </span><span class="n">kxkyz_lo</span><span class="p">%</span><span class="n">ulim_proc</span>
-<a id="ln-94" name="ln-94" href="#ln-94"></a><span class="w">         </span><span class="n">iky</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">iky_idx</span><span class="p">(</span><span class="n">kxkyz_lo</span><span class="p">,</span><span class="w"> </span><span class="n">ikxkyz</span><span class="p">)</span>
-<a id="ln-95" name="ln-95" href="#ln-95"></a><span class="w">         </span><span class="n">ikx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ikx_idx</span><span class="p">(</span><span class="n">kxkyz_lo</span><span class="p">,</span><span class="w"> </span><span class="n">ikxkyz</span><span class="p">)</span>
-<a id="ln-96" name="ln-96" href="#ln-96"></a><span class="w">         </span><span class="n">iz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">iz_idx</span><span class="p">(</span><span class="n">kxkyz_lo</span><span class="p">,</span><span class="w"> </span><span class="n">ikxkyz</span><span class="p">)</span>
-<a id="ln-97" name="ln-97" href="#ln-97"></a><span class="w">         </span><span class="k">is</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">is_idx</span><span class="p">(</span><span class="n">kxkyz_lo</span><span class="p">,</span><span class="w"> </span><span class="n">ikxkyz</span><span class="p">)</span>
-<a id="ln-98" name="ln-98" href="#ln-98"></a><span class="w">         </span><span class="k">do </span><span class="n">imu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">nmu</span>
-<a id="ln-99" name="ln-99" href="#ln-99"></a><span class="w">            </span><span class="n">arg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">spec</span><span class="p">(</span><span class="k">is</span><span class="p">)%</span><span class="n">bess_fac</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">spec</span><span class="p">(</span><span class="k">is</span><span class="p">)%</span><span class="n">smz_psi0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nb">sqrt</span><span class="p">(</span><span class="n">vperp2</span><span class="p">(</span><span class="n">ia</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">,</span><span class="w"> </span><span class="n">imu</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">kperp2</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="w"> </span><span class="n">ikx</span><span class="p">,</span><span class="w"> </span><span class="n">ia</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">))</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">bmag</span><span class="p">(</span><span class="n">ia</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">)</span>
-<a id="ln-100" name="ln-100" href="#ln-100"></a><span class="w">            </span><span class="n">aj0v</span><span class="p">(</span><span class="n">imu</span><span class="p">,</span><span class="w"> </span><span class="n">ikxkyz</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j0</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
-<a id="ln-101" name="ln-101" href="#ln-101"></a><span class="w">            </span><span class="c">! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)),</span>
-<a id="ln-102" name="ln-102" href="#ln-102"></a><span class="w">            </span><span class="n">aj1v</span><span class="p">(</span><span class="n">imu</span><span class="p">,</span><span class="w"> </span><span class="n">ikxkyz</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j1</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
-<a id="ln-103" name="ln-103" href="#ln-103"></a><span class="w">         </span><span class="k">end do</span>
-<a id="ln-104" name="ln-104" href="#ln-104"></a><span class="k">      end do</span>
-<a id="ln-105" name="ln-105" href="#ln-105"></a>
-<a id="ln-106" name="ln-106" href="#ln-106"></a><span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">debug</span><span class="p">)</span><span class="w"> </span><span class="k">write</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;gyro_averages::init_bessel::full_flux_surface&#39;</span>
-<a id="ln-107" name="ln-107" href="#ln-107"></a><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">full_flux_surface</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
-<a id="ln-108" name="ln-108" href="#ln-108"></a><span class="k">         call </span><span class="n">init_bessel_ffs</span><span class="w"> </span>
-<a id="ln-109" name="ln-109" href="#ln-109"></a><span class="w">      </span><span class="k">else</span>
-<a id="ln-110" name="ln-110" href="#ln-110"></a><span class="k">         if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="nb">allocated</span><span class="p">(</span><span class="n">aj0x</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
-<a id="ln-111" name="ln-111" href="#ln-111"></a><span class="k">            allocate</span><span class="w"> </span><span class="p">(</span><span class="n">aj0x</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span><span class="w"> </span><span class="n">nakx</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">,</span><span class="w"> </span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">ulim_alloc</span><span class="p">))</span>
-<a id="ln-112" name="ln-112" href="#ln-112"></a><span class="w">            </span><span class="n">aj0x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
-<a id="ln-113" name="ln-113" href="#ln-113"></a><span class="w">         </span><span class="k">end if</span>
-<a id="ln-114" name="ln-114" href="#ln-114"></a><span class="k">         </span>
-<a id="ln-115" name="ln-115" href="#ln-115"></a><span class="k">         if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="nb">allocated</span><span class="p">(</span><span class="n">aj1x</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
-<a id="ln-116" name="ln-116" href="#ln-116"></a><span class="k">            allocate</span><span class="w"> </span><span class="p">(</span><span class="n">aj1x</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span><span class="w"> </span><span class="n">nakx</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">,</span><span class="w"> </span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">ulim_alloc</span><span class="p">))</span>
-<a id="ln-117" name="ln-117" href="#ln-117"></a><span class="w">            </span><span class="n">aj1x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
-<a id="ln-118" name="ln-118" href="#ln-118"></a><span class="w">         </span><span class="k">end if</span>
-<a id="ln-119" name="ln-119" href="#ln-119"></a>
-<a id="ln-120" name="ln-120" href="#ln-120"></a><span class="k">         </span><span class="n">ia</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
-<a id="ln-121" name="ln-121" href="#ln-121"></a><span class="w">         </span><span class="k">do </span><span class="n">ivmu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">,</span><span class="w"> </span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">ulim_proc</span>
-<a id="ln-122" name="ln-122" href="#ln-122"></a><span class="w">            </span><span class="k">is</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">is_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span><span class="p">)</span>
-<a id="ln-123" name="ln-123" href="#ln-123"></a><span class="w">            </span><span class="n">imu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">imu_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span><span class="p">)</span>
-<a id="ln-124" name="ln-124" href="#ln-124"></a><span class="w">            </span><span class="k">do </span><span class="n">iz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">nzgrid</span><span class="p">,</span><span class="w"> </span><span class="n">nzgrid</span>
-<a id="ln-125" name="ln-125" href="#ln-125"></a><span class="w">               </span><span class="k">do </span><span class="n">ikx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">nakx</span>
-<a id="ln-126" name="ln-126" href="#ln-126"></a><span class="w">                  </span><span class="k">do </span><span class="n">iky</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">naky</span>
-<a id="ln-127" name="ln-127" href="#ln-127"></a><span class="w">                     </span><span class="n">arg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">spec</span><span class="p">(</span><span class="k">is</span><span class="p">)%</span><span class="n">bess_fac</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">spec</span><span class="p">(</span><span class="k">is</span><span class="p">)%</span><span class="n">smz_psi0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nb">sqrt</span><span class="p">(</span><span class="n">vperp2</span><span class="p">(</span><span class="n">ia</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">,</span><span class="w"> </span><span class="n">imu</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">kperp2</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="w"> </span><span class="n">ikx</span><span class="p">,</span><span class="w"> </span><span class="n">ia</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">))</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">bmag</span><span class="p">(</span><span class="n">ia</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">)</span>
-<a id="ln-128" name="ln-128" href="#ln-128"></a><span class="w">                     </span><span class="n">aj0x</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="w"> </span><span class="n">ikx</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j0</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
-<a id="ln-129" name="ln-129" href="#ln-129"></a><span class="w">                     </span><span class="c">! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)),</span>
-<a id="ln-130" name="ln-130" href="#ln-130"></a><span class="w">                     </span><span class="n">aj1x</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="w"> </span><span class="n">ikx</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j1</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
-<a id="ln-131" name="ln-131" href="#ln-131"></a><span class="w">                  </span><span class="k">end do</span>
-<a id="ln-132" name="ln-132" href="#ln-132"></a><span class="k">               end do</span>
-<a id="ln-133" name="ln-133" href="#ln-133"></a><span class="k">            end do</span>
-<a id="ln-134" name="ln-134" href="#ln-134"></a><span class="k">         end do</span>
-<a id="ln-135" name="ln-135" href="#ln-135"></a><span class="k">      end if</span>
-<a id="ln-136" name="ln-136" href="#ln-136"></a><span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">debug</span><span class="p">)</span><span class="w"> </span><span class="k">write</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;gyro_averages::init_bessel::test_gyro_average&#39;</span>
-<a id="ln-137" name="ln-137" href="#ln-137"></a><span class="c">!    call test_gyro_average</span>
-<a id="ln-138" name="ln-138" href="#ln-138"></a>
-<a id="ln-139" name="ln-139" href="#ln-139"></a><span class="w">   </span><span class="k">contains</span>
-<a id="ln-140" name="ln-140" href="#ln-140"></a>
-<a id="ln-141" name="ln-141" href="#ln-141"></a><span class="c">!     ! set up field that varies as x^2 = rho^2 * cos(angle)^2,</span>
-<a id="ln-142" name="ln-142" href="#ln-142"></a><span class="c">!     ! with rho the distance from the origin, and &#39;angle&#39; is the angle made with the horizontal</span>
-<a id="ln-143" name="ln-143" href="#ln-143"></a><span class="c">!     ! if considering a particle at x=0, then rho is thee gyro-radius and angle is the gyro-angle</span>
-<a id="ln-144" name="ln-144" href="#ln-144"></a><span class="c">!     ! the gyro-average should theen be 1/(2pi) * int_0^2pi dangle rho^2 * cos(angle)^2 = rho^2/2</span>
-<a id="ln-145" name="ln-145" href="#ln-145"></a><span class="c">!     subroutine test_gyro_average</span>
-<a id="ln-146" name="ln-146" href="#ln-146"></a>
-<a id="ln-147" name="ln-147" href="#ln-147"></a><span class="c">!       use constants, only: pi</span>
-<a id="ln-148" name="ln-148" href="#ln-148"></a><span class="c">!       use kt_grids, only: ny, nx, x, x0, y, y0</span>
-<a id="ln-149" name="ln-149" href="#ln-149"></a><span class="c">!       use kt_grids, only: nakx, ikx_max, naky, naky_all</span>
-<a id="ln-150" name="ln-150" href="#ln-150"></a><span class="c">!       use kt_grids, only: swap_kxky, swap_kxky_back</span>
-<a id="ln-151" name="ln-151" href="#ln-151"></a><span class="c">!       use stella_transforms, only: transform_x2kx, transform_y2ky</span>
-<a id="ln-152" name="ln-152" href="#ln-152"></a><span class="c">!       use stella_transforms, only: transform_kx2x, transform_ky2y</span>
-<a id="ln-153" name="ln-153" href="#ln-153"></a><span class="c">!       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx</span>
-<a id="ln-154" name="ln-154" href="#ln-154"></a><span class="c">!       use vpamu_grids, only: nmu</span>
-<a id="ln-155" name="ln-155" href="#ln-155"></a><span class="c">!       use species, only: nspec, spec</span>
-<a id="ln-156" name="ln-156" href="#ln-156"></a><span class="c">!       use geometry, only: alpha, bmag, x_displacement_fac</span>
-<a id="ln-157" name="ln-157" href="#ln-157"></a><span class="c">!       use spfunc, only: bessi0</span>
-<a id="ln-158" name="ln-158" href="#ln-158"></a>
-<a id="ln-159" name="ln-159" href="#ln-159"></a><span class="c">!       implicit none</span>
-<a id="ln-160" name="ln-160" href="#ln-160"></a>
-<a id="ln-161" name="ln-161" href="#ln-161"></a><span class="c">!       real, dimension (:,:), allocatable :: fld_yx</span>
-<a id="ln-162" name="ln-162" href="#ln-162"></a><span class="c">!       complex, dimension (:,:), allocatable :: fld_ykx</span>
-<a id="ln-163" name="ln-163" href="#ln-163"></a><span class="c">!       complex, dimension (:,:), allocatable :: fld_kykx_swapped</span>
-<a id="ln-164" name="ln-164" href="#ln-164"></a><span class="c">!       complex, dimension (:,:), allocatable :: fld_kykx, gyro_fld</span>
-<a id="ln-165" name="ln-165" href="#ln-165"></a><span class="c">!       real, dimension (:,:,:,:), allocatable :: gyro_fld_yx</span>
-<a id="ln-166" name="ln-166" href="#ln-166"></a><span class="c">!       real :: gyroradius</span>
-<a id="ln-167" name="ln-167" href="#ln-167"></a><span class="c">!       integer :: iy, ix, ivmu, iv, imu, is</span>
-<a id="ln-168" name="ln-168" href="#ln-168"></a>
-<a id="ln-169" name="ln-169" href="#ln-169"></a><span class="c">!       integer, parameter :: iz = 0</span>
-<a id="ln-170" name="ln-170" href="#ln-170"></a>
-<a id="ln-171" name="ln-171" href="#ln-171"></a><span class="c">!       allocate (fld_yx(ny,nx))</span>
-<a id="ln-172" name="ln-172" href="#ln-172"></a><span class="c">!       allocate (fld_ykx(ny,ikx_max))</span>
-<a id="ln-173" name="ln-173" href="#ln-173"></a><span class="c">!       allocate (fld_kykx_swapped(naky_all,ikx_max))</span>
-<a id="ln-174" name="ln-174" href="#ln-174"></a><span class="c">!       allocate (fld_kykx(naky,nakx))</span>
-<a id="ln-175" name="ln-175" href="#ln-175"></a><span class="c">!       allocate (gyro_fld(naky,nakx))</span>
-<a id="ln-176" name="ln-176" href="#ln-176"></a><span class="c">!       allocate (gyro_fld_yx(ny,nx,nmu,nspec))</span>
-<a id="ln-177" name="ln-177" href="#ln-177"></a>
-<a id="ln-178" name="ln-178" href="#ln-178"></a><span class="c">!       if (debug) write (*,*) &#39;gyro_averages::init_bessel::test_gyro_averages::fld_yx&#39;</span>
-<a id="ln-179" name="ln-179" href="#ln-179"></a><span class="c">!       ! set up field that varies as x^2 = rho^2 * cos(angle)^2 and is constant in y</span>
-<a id="ln-180" name="ln-180" href="#ln-180"></a><span class="c">! !      fld_yx = spread(0.1*(x-pi*x0),1,ny)**2</span>
-<a id="ln-181" name="ln-181" href="#ln-181"></a><span class="c">!       fld_yx = spread(cos(50.0*(x/x0-pi)),1,ny)</span>
-<a id="ln-182" name="ln-182" href="#ln-182"></a><span class="c">! !      fld_yx = spread(exp(-0.1*(x-pi*x0)**2),1,ny)</span>
-<a id="ln-183" name="ln-183" href="#ln-183"></a><span class="c">!       if (debug) write (*,*) &#39;gyro_averages::init_bessel::test_gyro_averages::transform_x2kx&#39;</span>
-<a id="ln-184" name="ln-184" href="#ln-184"></a><span class="c">!       ! transform from (y,x) to (y,kx), with kx going from 0 to kxmax</span>
-<a id="ln-185" name="ln-185" href="#ln-185"></a><span class="c">!       call transform_x2kx (fld_yx, fld_ykx)</span>
-<a id="ln-186" name="ln-186" href="#ln-186"></a><span class="c">!       if (debug) write (*,*) &#39;gyro_averages::init_bessel::test_gyro_averages::transform_y2ky&#39;</span>
-<a id="ln-187" name="ln-187" href="#ln-187"></a><span class="c">!       ! transform from (y,kx) to (ky,kx), with ky going from (0,...,kymax,-kymax,...,-dky)</span>
-<a id="ln-188" name="ln-188" href="#ln-188"></a><span class="c">!       ! and kx going from 0 to kxmax</span>
-<a id="ln-189" name="ln-189" href="#ln-189"></a><span class="c">!       call transform_y2ky (fld_ykx, fld_kykx_swapped)</span>
-<a id="ln-190" name="ln-190" href="#ln-190"></a><span class="c">!       if (debug) write (*,*) &#39;gyro_averages::init_bessel::test_gyro_averages::swap_kxky_back&#39;</span>
-<a id="ln-191" name="ln-191" href="#ln-191"></a><span class="c">!       ! use reality condition to re-arrange array so that ky goes from 0 to kymax</span>
-<a id="ln-192" name="ln-192" href="#ln-192"></a><span class="c">!       ! and kx goes from (0,...,kxmax,-kxmax,...,-dkx)</span>
-<a id="ln-193" name="ln-193" href="#ln-193"></a><span class="c">!       call swap_kxky_back (fld_kykx_swapped, fld_kykx)</span>
-<a id="ln-194" name="ln-194" href="#ln-194"></a>
-<a id="ln-195" name="ln-195" href="#ln-195"></a><span class="c">!       ! gyro-average the field at z=0 for different values of mu</span>
-<a id="ln-196" name="ln-196" href="#ln-196"></a><span class="c">!       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc</span>
-<a id="ln-197" name="ln-197" href="#ln-197"></a><span class="c">!          ! get the vpa index</span>
-<a id="ln-198" name="ln-198" href="#ln-198"></a><span class="c">!          iv = iv_idx(vmu_lo,ivmu)</span>
-<a id="ln-199" name="ln-199" href="#ln-199"></a><span class="c">!          ! as J0 independent of vpa, pick only one vpa to test</span>
-<a id="ln-200" name="ln-200" href="#ln-200"></a><span class="c">!          if (iv /= 1) cycle</span>
-<a id="ln-201" name="ln-201" href="#ln-201"></a><span class="c">!          ! get the species index</span>
-<a id="ln-202" name="ln-202" href="#ln-202"></a><span class="c">!          is = is_idx(vmu_lo,ivmu)</span>
-<a id="ln-203" name="ln-203" href="#ln-203"></a><span class="c">!          ! get the mu index</span>
-<a id="ln-204" name="ln-204" href="#ln-204"></a><span class="c">!          imu = imu_idx(vmu_lo,ivmu)</span>
-<a id="ln-205" name="ln-205" href="#ln-205"></a><span class="c">! !         if (debug) write (*,*) &#39;gyro_averages::init_bessel::test_gyro_averages::gyro_average&#39;</span>
-<a id="ln-206" name="ln-206" href="#ln-206"></a><span class="c">!          if (full_flux_surface) then</span>
-<a id="ln-207" name="ln-207" href="#ln-207"></a><span class="c">!             call gyro_average (fld_kykx, gyro_fld, j0_ffs(:,:,iz,ivmu))</span>
-<a id="ln-208" name="ln-208" href="#ln-208"></a><span class="c">!          else</span>
-<a id="ln-209" name="ln-209" href="#ln-209"></a><span class="c">!             call gyro_average (fld_kykx, iz, ivmu, gyro_fld)</span>
-<a id="ln-210" name="ln-210" href="#ln-210"></a><span class="c">!          end if</span>
-<a id="ln-211" name="ln-211" href="#ln-211"></a><span class="c">!          ! use reality to re-arrange array entries so that ky goes from (0,...,kymax,-kymax,...,-dky)</span>
-<a id="ln-212" name="ln-212" href="#ln-212"></a><span class="c">!          ! and kx goes from 0 to kxmax</span>
-<a id="ln-213" name="ln-213" href="#ln-213"></a><span class="c">!          call swap_kxky (gyro_fld, fld_kykx_swapped)</span>
-<a id="ln-214" name="ln-214" href="#ln-214"></a><span class="c">!          ! transform from (ky,kx) to (y,kx)</span>
-<a id="ln-215" name="ln-215" href="#ln-215"></a><span class="c">!          call transform_ky2y (fld_kykx_swapped, fld_ykx)</span>
-<a id="ln-216" name="ln-216" href="#ln-216"></a><span class="c">!          ! transform from (y,kx) to (y,x)</span>
-<a id="ln-217" name="ln-217" href="#ln-217"></a><span class="c">!          call transform_kx2x (fld_ykx, gyro_fld_yx(:,:,imu,is))</span>
-<a id="ln-218" name="ln-218" href="#ln-218"></a><span class="c">!       end do</span>
-<a id="ln-219" name="ln-219" href="#ln-219"></a><span class="c">!       if (debug) write (*,*) &#39;gyro_averages::init_bessel::test_gyro_averages::write_to_screen&#39;</span>
-<a id="ln-220" name="ln-220" href="#ln-220"></a><span class="c">!       ! NB: this is only set up to work on a single processor at the moment</span>
-<a id="ln-221" name="ln-221" href="#ln-221"></a><span class="c">!       ! NB: to extend, must move information about gyro_fld onto proc0</span>
-<a id="ln-222" name="ln-222" href="#ln-222"></a><span class="c">!       do is = 1, nspec</span>
-<a id="ln-223" name="ln-223" href="#ln-223"></a><span class="c">!          do imu = 1, nmu</span>
-<a id="ln-224" name="ln-224" href="#ln-224"></a><span class="c">!             do ix = 1, nx</span>
-<a id="ln-225" name="ln-225" href="#ln-225"></a><span class="c">!                do iy = 1, ny</span>
-<a id="ln-226" name="ln-226" href="#ln-226"></a><span class="c">!                   ! gyro-radius/reference gyro-radius is v_perp/Omega/rho_ref = (v_perp/vths)*(rho_s/rho_ref)</span>
-<a id="ln-227" name="ln-227" href="#ln-227"></a><span class="c">!                   ! = vperp * sqrt(T_s/T_ref*m_s/m_ref)(B_ref/Z*B) = vperp / (spec%zstm*bmag)</span>
-<a id="ln-228" name="ln-228" href="#ln-228"></a><span class="c">!                   gyroradius = sqrt(vperp2(iy,iz,imu))/(spec(is)%zstm*bmag(iy,iz))</span>
-<a id="ln-229" name="ln-229" href="#ln-229"></a><span class="c">! !                  gyroradius = sqrt(vperp2(1,iz,imu))/(spec(is)%zstm*bmag(1,iz))</span>
-<a id="ln-230" name="ln-230" href="#ln-230"></a><span class="c">!                   write (42,*) &#39;y: &#39;, y(iy), &#39;x: &#39;, x(ix)-x0*pi, &#39;gyro_fld: &#39;, gyro_fld_yx(iy,ix,imu,is), &#39;gyroradius: &#39;, gyroradius, &#39;spec: &#39;, is, &amp;</span>
-<a id="ln-231" name="ln-231" href="#ln-231"></a><span class="c">!                        &#39;alpha: &#39;, alpha(iy), &#39;x_displacement_fac: &#39;, x_displacement_fac(iy,iz)</span>
-<a id="ln-232" name="ln-232" href="#ln-232"></a><span class="c">!                end do</span>
-<a id="ln-233" name="ln-233" href="#ln-233"></a><span class="c">!                write (42,*)</span>
-<a id="ln-234" name="ln-234" href="#ln-234"></a><span class="c">!             end do</span>
-<a id="ln-235" name="ln-235" href="#ln-235"></a><span class="c">!             write (42,*)</span>
-<a id="ln-236" name="ln-236" href="#ln-236"></a><span class="c">!          end do</span>
-<a id="ln-237" name="ln-237" href="#ln-237"></a><span class="c">!          write (42,*)</span>
-<a id="ln-238" name="ln-238" href="#ln-238"></a><span class="c">!       end do</span>
-<a id="ln-239" name="ln-239" href="#ln-239"></a><span class="c">!       do iy = 1, 1000</span>
-<a id="ln-240" name="ln-240" href="#ln-240"></a><span class="c">!          gyroradius = (iy-1)*15.0/999.</span>
-<a id="ln-241" name="ln-241" href="#ln-241"></a><span class="c">!          !         write (43,*) &#39;gyroradius: &#39;, gyroradius, &#39;bes: &#39;, bessi0(0.1*0.5*(gyroradius/x_displacement_fac(1,iz))**2)*exp(-0.1*0.5*(gyroradius/x_displacement_fac(1,iz))**2)</span>
-<a id="ln-242" name="ln-242" href="#ln-242"></a><span class="c">!          !         write (43,*) &#39;gyroradius: &#39;, gyroradius, &#39;analytical: &#39;, 0.5*(0.1*gyroradius/x_displacement_fac(1,iz))**2</span>
-<a id="ln-243" name="ln-243" href="#ln-243"></a><span class="c">!          write (43,*) &#39;gyroradius: &#39;, gyroradius, &#39;analytical: &#39;, j0(50.*gyroradius/(x0*x_displacement_fac(1,iz)))</span>
-<a id="ln-244" name="ln-244" href="#ln-244"></a><span class="c">!       end do</span>
-<a id="ln-245" name="ln-245" href="#ln-245"></a><span class="c">!       ! TMP FOR TESTING</span>
-<a id="ln-246" name="ln-246" href="#ln-246"></a><span class="c">! !      stop</span>
-<a id="ln-247" name="ln-247" href="#ln-247"></a>
-<a id="ln-248" name="ln-248" href="#ln-248"></a><span class="c">!       deallocate (fld_yx, fld_ykx)</span>
-<a id="ln-249" name="ln-249" href="#ln-249"></a><span class="c">!       deallocate (fld_kykx_swapped, fld_kykx)</span>
-<a id="ln-250" name="ln-250" href="#ln-250"></a><span class="c">!       deallocate (gyro_fld, gyro_fld_yx)</span>
-<a id="ln-251" name="ln-251" href="#ln-251"></a>
-<a id="ln-252" name="ln-252" href="#ln-252"></a><span class="c">!     end subroutine test_gyro_average</span>
-<a id="ln-253" name="ln-253" href="#ln-253"></a>
-<a id="ln-254" name="ln-254" href="#ln-254"></a><span class="w">   </span><span class="k">end subroutine </span><span class="n">init_bessel</span>
-<a id="ln-255" name="ln-255" href="#ln-255"></a>
-<a id="ln-256" name="ln-256" href="#ln-256"></a><span class="w">   </span><span class="k">subroutine </span><span class="n">init_bessel_ffs</span>
-<a id="ln-257" name="ln-257" href="#ln-257"></a>
-<a id="ln-258" name="ln-258" href="#ln-258"></a><span class="w">      </span><span class="k">use </span><span class="n">mp</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">sum_allreduce</span><span class="p">,</span><span class="w"> </span><span class="n">proc0</span>
-<a id="ln-259" name="ln-259" href="#ln-259"></a><span class="w">      </span><span class="k">use </span><span class="n">spfunc</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">j0</span>
-<a id="ln-260" name="ln-260" href="#ln-260"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">vmu_lo</span>
-<a id="ln-261" name="ln-261" href="#ln-261"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">iv_idx</span><span class="p">,</span><span class="w"> </span><span class="n">imu_idx</span><span class="p">,</span><span class="w"> </span><span class="n">is_idx</span>
-<a id="ln-262" name="ln-262" href="#ln-262"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_transforms</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">transform_alpha2kalpha</span>
-<a id="ln-263" name="ln-263" href="#ln-263"></a><span class="w">      </span><span class="k">use </span><span class="n">species</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nspec</span><span class="p">,</span><span class="w"> </span><span class="n">spec</span>
-<a id="ln-264" name="ln-264" href="#ln-264"></a><span class="w">      </span><span class="k">use </span><span class="n">geometry</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">bmag</span>
-<a id="ln-265" name="ln-265" href="#ln-265"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nzgrid</span><span class="p">,</span><span class="w"> </span><span class="n">nztot</span>
-<a id="ln-266" name="ln-266" href="#ln-266"></a><span class="w">      </span><span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nmu</span><span class="p">,</span><span class="w"> </span><span class="n">nvpa</span>
-<a id="ln-267" name="ln-267" href="#ln-267"></a><span class="w">      </span><span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">vperp2</span><span class="p">,</span><span class="w"> </span><span class="n">maxwell_vpa</span><span class="p">,</span><span class="w"> </span><span class="n">maxwell_mu</span>
-<a id="ln-268" name="ln-268" href="#ln-268"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nalpha</span><span class="p">,</span><span class="w"> </span><span class="n">naky</span><span class="p">,</span><span class="w"> </span><span class="n">naky_all</span><span class="p">,</span><span class="w"> </span><span class="n">ikx_max</span>
-<a id="ln-269" name="ln-269" href="#ln-269"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">swap_kxky_ordered</span>
-<a id="ln-270" name="ln-270" href="#ln-270"></a><span class="w">      </span><span class="k">use </span><span class="n">dist_fn_arrays</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">kperp2</span>
-<a id="ln-271" name="ln-271" href="#ln-271"></a>
-<a id="ln-272" name="ln-272" href="#ln-272"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nakx</span><span class="p">,</span><span class="w"> </span><span class="n">swap_kxky_back_ordered</span>
+<a id="ln-4" name="ln-4" href="#ln-4"></a><span class="w">   </span><span class="k">use </span><span class="n">debug_flags</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">debug</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">gyro_averages_debug</span>
+<a id="ln-5" name="ln-5" href="#ln-5"></a><span class="w">   </span>
+<a id="ln-6" name="ln-6" href="#ln-6"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">aj0x</span><span class="p">,</span><span class="w"> </span><span class="n">aj0v</span><span class="p">,</span><span class="w"> </span><span class="n">aj1x</span><span class="p">,</span><span class="w"> </span><span class="n">aj1v</span>
+<a id="ln-7" name="ln-7" href="#ln-7"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">init_bessel</span><span class="p">,</span><span class="w"> </span><span class="n">finish_bessel</span>
+<a id="ln-8" name="ln-8" href="#ln-8"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">gyro_average</span>
+<a id="ln-9" name="ln-9" href="#ln-9"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">gyro_average_j1</span>
+<a id="ln-10" name="ln-10" href="#ln-10"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">j0_B_ffs</span><span class="p">,</span><span class="w"> </span><span class="n">j0_ffs</span>
+<a id="ln-11" name="ln-11" href="#ln-11"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">band_lu_solve_ffs</span><span class="p">,</span><span class="w"> </span><span class="n">band_lu_factorisation_ffs</span>
+<a id="ln-12" name="ln-12" href="#ln-12"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">find_max_required_kalpha_index</span>
+<a id="ln-13" name="ln-13" href="#ln-13"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">j1_ffs</span>
+<a id="ln-14" name="ln-14" href="#ln-14"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">j0_const</span><span class="p">,</span><span class="w"> </span><span class="n">j0_B_const</span>
+<a id="ln-15" name="ln-15" href="#ln-15"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">j0max_const</span>
+<a id="ln-16" name="ln-16" href="#ln-16"></a>
+<a id="ln-17" name="ln-17" href="#ln-17"></a><span class="w">   </span><span class="k">private</span>
+<a id="ln-18" name="ln-18" href="#ln-18"></a>
+<a id="ln-19" name="ln-19" href="#ln-19"></a><span class="k">   interface </span><span class="n">gyro_average</span>
+<a id="ln-20" name="ln-20" href="#ln-20"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_local</span>
+<a id="ln-21" name="ln-21" href="#ln-21"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_kxky_local</span>
+<a id="ln-22" name="ln-22" href="#ln-22"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_kxkyz_local</span>
+<a id="ln-23" name="ln-23" href="#ln-23"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_kxkyzv_local</span>
+<a id="ln-24" name="ln-24" href="#ln-24"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_v_local</span>
+<a id="ln-25" name="ln-25" href="#ln-25"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_vmu_local</span>
+<a id="ln-26" name="ln-26" href="#ln-26"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_vmus_nonlocal</span>
+<a id="ln-27" name="ln-27" href="#ln-27"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_ffs_kxky_local</span>
+<a id="ln-28" name="ln-28" href="#ln-28"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_ffs_kxkyz_local</span>
+<a id="ln-29" name="ln-29" href="#ln-29"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_ffs_field</span>
+<a id="ln-30" name="ln-30" href="#ln-30"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_ffs</span>
+<a id="ln-31" name="ln-31" href="#ln-31"></a><span class="w">   </span><span class="k">end interface </span><span class="n">gyro_average</span>
+<a id="ln-32" name="ln-32" href="#ln-32"></a>
+<a id="ln-33" name="ln-33" href="#ln-33"></a><span class="w">   </span><span class="k">interface </span><span class="n">gyro_average_j1</span>
+<a id="ln-34" name="ln-34" href="#ln-34"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_j1_vmus_nonlocal</span>
+<a id="ln-35" name="ln-35" href="#ln-35"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_j1_local</span>
+<a id="ln-36" name="ln-36" href="#ln-36"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_j1_kxky_local</span>
+<a id="ln-37" name="ln-37" href="#ln-37"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_j1_kxkyz_local</span>
+<a id="ln-38" name="ln-38" href="#ln-38"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_j1_v_local</span>
+<a id="ln-39" name="ln-39" href="#ln-39"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_j1_vmu_local</span>
+<a id="ln-40" name="ln-40" href="#ln-40"></a><span class="w">      </span><span class="k">module procedure </span><span class="n">gyro_average_j1_kxkyzv_local</span>
+<a id="ln-41" name="ln-41" href="#ln-41"></a><span class="w">   </span><span class="k">end interface</span>
+<a id="ln-42" name="ln-42" href="#ln-42"></a>
+<a id="ln-43" name="ln-43" href="#ln-43"></a><span class="k">   </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="p">:),</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">aj0x</span><span class="p">,</span><span class="w"> </span><span class="n">aj1x</span>
+<a id="ln-44" name="ln-44" href="#ln-44"></a><span class="w">   </span><span class="c">! (naky, nakx, nalpha, -nzgrid:nzgrid, -vmu-layout-)</span>
+<a id="ln-45" name="ln-45" href="#ln-45"></a>
+<a id="ln-46" name="ln-46" href="#ln-46"></a><span class="w">   </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(:,</span><span class="w"> </span><span class="p">:),</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">aj0v</span><span class="p">,</span><span class="w"> </span><span class="n">aj1v</span>
+<a id="ln-47" name="ln-47" href="#ln-47"></a><span class="w">   </span><span class="c">! (nmu, -kxkyz-layout-)</span>
+<a id="ln-48" name="ln-48" href="#ln-48"></a>
+<a id="ln-49" name="ln-49" href="#ln-49"></a><span class="w">   </span><span class="k">type</span><span class="p">(</span><span class="n">coupled_alpha_type</span><span class="p">),</span><span class="w"> </span><span class="k">dimension</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="p">:),</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">j0_ffs</span><span class="p">,</span><span class="w"> </span><span class="n">j0_B_ffs</span>
+<a id="ln-50" name="ln-50" href="#ln-50"></a>
+<a id="ln-51" name="ln-51" href="#ln-51"></a><span class="w">   </span><span class="kt">logical</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">bessinit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a id="ln-52" name="ln-52" href="#ln-52"></a>
+<a id="ln-53" name="ln-53" href="#ln-53"></a><span class="w">   </span><span class="k">type</span><span class="p">(</span><span class="n">coupled_alpha_type</span><span class="p">),</span><span class="w"> </span><span class="k">dimension</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="p">:),</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">j1_ffs</span>
+<a id="ln-54" name="ln-54" href="#ln-54"></a><span class="w">   </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">dimension</span><span class="p">(:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="p">:,</span><span class="w"> </span><span class="p">:),</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">j0_const</span><span class="p">,</span><span class="w"> </span><span class="n">j0_B_const</span><span class="p">,</span><span class="w"> </span><span class="n">j0max_const</span>
+<a id="ln-55" name="ln-55" href="#ln-55"></a>
+<a id="ln-56" name="ln-56" href="#ln-56"></a><span class="k">contains</span>
+<a id="ln-57" name="ln-57" href="#ln-57"></a>
+<a id="ln-58" name="ln-58" href="#ln-58"></a><span class="k">   subroutine </span><span class="n">init_bessel</span>
+<a id="ln-59" name="ln-59" href="#ln-59"></a>
+<a id="ln-60" name="ln-60" href="#ln-60"></a><span class="w">      </span><span class="k">use </span><span class="n">arrays_dist_fn</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">kperp2</span>
+<a id="ln-61" name="ln-61" href="#ln-61"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_physics</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">full_flux_surface</span>
+<a id="ln-62" name="ln-62" href="#ln-62"></a><span class="w">      </span><span class="k">use </span><span class="n">species</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">spec</span>
+<a id="ln-63" name="ln-63" href="#ln-63"></a><span class="w">      </span><span class="k">use </span><span class="n">geometry</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">bmag</span>
+<a id="ln-64" name="ln-64" href="#ln-64"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nzgrid</span>
+<a id="ln-65" name="ln-65" href="#ln-65"></a><span class="w">      </span><span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">vperp2</span><span class="p">,</span><span class="w"> </span><span class="n">nmu</span>
+<a id="ln-66" name="ln-66" href="#ln-66"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_kxky_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">naky</span><span class="p">,</span><span class="w"> </span><span class="n">nakx</span>
+<a id="ln-67" name="ln-67" href="#ln-67"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">kxkyz_lo</span><span class="p">,</span><span class="w"> </span><span class="n">vmu_lo</span>
+<a id="ln-68" name="ln-68" href="#ln-68"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">iky_idx</span><span class="p">,</span><span class="w"> </span><span class="n">ikx_idx</span><span class="p">,</span><span class="w"> </span><span class="n">iz_idx</span><span class="p">,</span><span class="w"> </span><span class="n">is_idx</span><span class="p">,</span><span class="w"> </span><span class="n">imu_idx</span>
+<a id="ln-69" name="ln-69" href="#ln-69"></a><span class="w">      </span><span class="k">use </span><span class="n">spfunc</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">j0</span><span class="p">,</span><span class="w"> </span><span class="n">j1</span>
+<a id="ln-70" name="ln-70" href="#ln-70"></a>
+<a id="ln-71" name="ln-71" href="#ln-71"></a><span class="w">      </span><span class="k">implicit none</span>
+<a id="ln-72" name="ln-72" href="#ln-72"></a>
+<a id="ln-73" name="ln-73" href="#ln-73"></a><span class="k">      </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">iz</span><span class="p">,</span><span class="w"> </span><span class="n">iky</span><span class="p">,</span><span class="w"> </span><span class="n">ikx</span><span class="p">,</span><span class="w"> </span><span class="n">imu</span><span class="p">,</span><span class="w"> </span><span class="k">is</span><span class="p">,</span><span class="w"> </span><span class="n">ia</span>
+<a id="ln-74" name="ln-74" href="#ln-74"></a><span class="w">      </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ikxkyz</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span>
+<a id="ln-75" name="ln-75" href="#ln-75"></a><span class="w">      </span><span class="kt">real</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">arg</span>
+<a id="ln-76" name="ln-76" href="#ln-76"></a>
+<a id="ln-77" name="ln-77" href="#ln-77"></a><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">bessinit</span><span class="p">)</span><span class="w"> </span><span class="k">return</span>
+<a id="ln-78" name="ln-78" href="#ln-78"></a><span class="k">      </span><span class="n">bessinit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<a id="ln-79" name="ln-79" href="#ln-79"></a>
+<a id="ln-80" name="ln-80" href="#ln-80"></a><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">debug</span><span class="p">)</span><span class="w"> </span><span class="k">write</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;gyro_averages::init_bessel::allocate_aj0v_aj1v&#39;</span>
+<a id="ln-81" name="ln-81" href="#ln-81"></a><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="nb">allocated</span><span class="p">(</span><span class="n">aj0v</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+<a id="ln-82" name="ln-82" href="#ln-82"></a><span class="k">         allocate</span><span class="w"> </span><span class="p">(</span><span class="n">aj0v</span><span class="p">(</span><span class="n">nmu</span><span class="p">,</span><span class="w"> </span><span class="n">kxkyz_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:</span><span class="n">kxkyz_lo</span><span class="p">%</span><span class="n">ulim_alloc</span><span class="p">))</span>
+<a id="ln-83" name="ln-83" href="#ln-83"></a><span class="w">         </span><span class="n">aj0v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<a id="ln-84" name="ln-84" href="#ln-84"></a><span class="w">      </span><span class="k">end if</span>
+<a id="ln-85" name="ln-85" href="#ln-85"></a><span class="k">      if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="nb">allocated</span><span class="p">(</span><span class="n">aj1v</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+<a id="ln-86" name="ln-86" href="#ln-86"></a><span class="k">         allocate</span><span class="w"> </span><span class="p">(</span><span class="n">aj1v</span><span class="p">(</span><span class="n">nmu</span><span class="p">,</span><span class="w"> </span><span class="n">kxkyz_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:</span><span class="n">kxkyz_lo</span><span class="p">%</span><span class="n">ulim_alloc</span><span class="p">))</span>
+<a id="ln-87" name="ln-87" href="#ln-87"></a><span class="w">         </span><span class="n">aj1v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<a id="ln-88" name="ln-88" href="#ln-88"></a><span class="w">      </span><span class="k">end if</span>
+<a id="ln-89" name="ln-89" href="#ln-89"></a>
+<a id="ln-90" name="ln-90" href="#ln-90"></a><span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">debug</span><span class="p">)</span><span class="w"> </span><span class="k">write</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;gyro_averages::init_bessel::calculate_aj0v_aj1v&#39;</span>
+<a id="ln-91" name="ln-91" href="#ln-91"></a><span class="w">      </span><span class="n">ia</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-92" name="ln-92" href="#ln-92"></a><span class="w">      </span><span class="k">do </span><span class="n">ikxkyz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kxkyz_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">,</span><span class="w"> </span><span class="n">kxkyz_lo</span><span class="p">%</span><span class="n">ulim_proc</span>
+<a id="ln-93" name="ln-93" href="#ln-93"></a><span class="w">         </span><span class="n">iky</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">iky_idx</span><span class="p">(</span><span class="n">kxkyz_lo</span><span class="p">,</span><span class="w"> </span><span class="n">ikxkyz</span><span class="p">)</span>
+<a id="ln-94" name="ln-94" href="#ln-94"></a><span class="w">         </span><span class="n">ikx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ikx_idx</span><span class="p">(</span><span class="n">kxkyz_lo</span><span class="p">,</span><span class="w"> </span><span class="n">ikxkyz</span><span class="p">)</span>
+<a id="ln-95" name="ln-95" href="#ln-95"></a><span class="w">         </span><span class="n">iz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">iz_idx</span><span class="p">(</span><span class="n">kxkyz_lo</span><span class="p">,</span><span class="w"> </span><span class="n">ikxkyz</span><span class="p">)</span>
+<a id="ln-96" name="ln-96" href="#ln-96"></a><span class="w">         </span><span class="k">is</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">is_idx</span><span class="p">(</span><span class="n">kxkyz_lo</span><span class="p">,</span><span class="w"> </span><span class="n">ikxkyz</span><span class="p">)</span>
+<a id="ln-97" name="ln-97" href="#ln-97"></a><span class="w">         </span><span class="k">do </span><span class="n">imu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">nmu</span>
+<a id="ln-98" name="ln-98" href="#ln-98"></a><span class="w">            </span><span class="n">arg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">spec</span><span class="p">(</span><span class="k">is</span><span class="p">)%</span><span class="n">bess_fac</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">spec</span><span class="p">(</span><span class="k">is</span><span class="p">)%</span><span class="n">smz_psi0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nb">sqrt</span><span class="p">(</span><span class="n">vperp2</span><span class="p">(</span><span class="n">ia</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">,</span><span class="w"> </span><span class="n">imu</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">kperp2</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="w"> </span><span class="n">ikx</span><span class="p">,</span><span class="w"> </span><span class="n">ia</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">))</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">bmag</span><span class="p">(</span><span class="n">ia</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">)</span>
+<a id="ln-99" name="ln-99" href="#ln-99"></a><span class="w">            </span><span class="n">aj0v</span><span class="p">(</span><span class="n">imu</span><span class="p">,</span><span class="w"> </span><span class="n">ikxkyz</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j0</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+<a id="ln-100" name="ln-100" href="#ln-100"></a><span class="w">            </span><span class="c">! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)),</span>
+<a id="ln-101" name="ln-101" href="#ln-101"></a><span class="w">            </span><span class="n">aj1v</span><span class="p">(</span><span class="n">imu</span><span class="p">,</span><span class="w"> </span><span class="n">ikxkyz</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j1</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+<a id="ln-102" name="ln-102" href="#ln-102"></a><span class="w">         </span><span class="k">end do</span>
+<a id="ln-103" name="ln-103" href="#ln-103"></a><span class="k">      end do</span>
+<a id="ln-104" name="ln-104" href="#ln-104"></a>
+<a id="ln-105" name="ln-105" href="#ln-105"></a><span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">debug</span><span class="p">)</span><span class="w"> </span><span class="k">write</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;gyro_averages::init_bessel::full_flux_surface&#39;</span>
+<a id="ln-106" name="ln-106" href="#ln-106"></a><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">full_flux_surface</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<a id="ln-107" name="ln-107" href="#ln-107"></a><span class="k">         call </span><span class="n">init_bessel_ffs</span><span class="w"> </span>
+<a id="ln-108" name="ln-108" href="#ln-108"></a><span class="w">      </span><span class="k">else</span>
+<a id="ln-109" name="ln-109" href="#ln-109"></a><span class="k">         if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="nb">allocated</span><span class="p">(</span><span class="n">aj0x</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+<a id="ln-110" name="ln-110" href="#ln-110"></a><span class="k">            allocate</span><span class="w"> </span><span class="p">(</span><span class="n">aj0x</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span><span class="w"> </span><span class="n">nakx</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">,</span><span class="w"> </span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">ulim_alloc</span><span class="p">))</span>
+<a id="ln-111" name="ln-111" href="#ln-111"></a><span class="w">            </span><span class="n">aj0x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<a id="ln-112" name="ln-112" href="#ln-112"></a><span class="w">         </span><span class="k">end if</span>
+<a id="ln-113" name="ln-113" href="#ln-113"></a><span class="k">         </span>
+<a id="ln-114" name="ln-114" href="#ln-114"></a><span class="k">         if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="nb">allocated</span><span class="p">(</span><span class="n">aj1x</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+<a id="ln-115" name="ln-115" href="#ln-115"></a><span class="k">            allocate</span><span class="w"> </span><span class="p">(</span><span class="n">aj1x</span><span class="p">(</span><span class="n">naky</span><span class="p">,</span><span class="w"> </span><span class="n">nakx</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="n">nzgrid</span><span class="p">:</span><span class="n">nzgrid</span><span class="p">,</span><span class="w"> </span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">:</span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">ulim_alloc</span><span class="p">))</span>
+<a id="ln-116" name="ln-116" href="#ln-116"></a><span class="w">            </span><span class="n">aj1x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<a id="ln-117" name="ln-117" href="#ln-117"></a><span class="w">         </span><span class="k">end if</span>
+<a id="ln-118" name="ln-118" href="#ln-118"></a>
+<a id="ln-119" name="ln-119" href="#ln-119"></a><span class="k">         </span><span class="n">ia</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+<a id="ln-120" name="ln-120" href="#ln-120"></a><span class="w">         </span><span class="k">do </span><span class="n">ivmu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">llim_proc</span><span class="p">,</span><span class="w"> </span><span class="n">vmu_lo</span><span class="p">%</span><span class="n">ulim_proc</span>
+<a id="ln-121" name="ln-121" href="#ln-121"></a><span class="w">            </span><span class="k">is</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">is_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span><span class="p">)</span>
+<a id="ln-122" name="ln-122" href="#ln-122"></a><span class="w">            </span><span class="n">imu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">imu_idx</span><span class="p">(</span><span class="n">vmu_lo</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span><span class="p">)</span>
+<a id="ln-123" name="ln-123" href="#ln-123"></a><span class="w">            </span><span class="k">do </span><span class="n">iz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">nzgrid</span><span class="p">,</span><span class="w"> </span><span class="n">nzgrid</span>
+<a id="ln-124" name="ln-124" href="#ln-124"></a><span class="w">               </span><span class="k">do </span><span class="n">ikx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">nakx</span>
+<a id="ln-125" name="ln-125" href="#ln-125"></a><span class="w">                  </span><span class="k">do </span><span class="n">iky</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">naky</span>
+<a id="ln-126" name="ln-126" href="#ln-126"></a><span class="w">                     </span><span class="n">arg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">spec</span><span class="p">(</span><span class="k">is</span><span class="p">)%</span><span class="n">bess_fac</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">spec</span><span class="p">(</span><span class="k">is</span><span class="p">)%</span><span class="n">smz_psi0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nb">sqrt</span><span class="p">(</span><span class="n">vperp2</span><span class="p">(</span><span class="n">ia</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">,</span><span class="w"> </span><span class="n">imu</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">kperp2</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="w"> </span><span class="n">ikx</span><span class="p">,</span><span class="w"> </span><span class="n">ia</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">))</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">bmag</span><span class="p">(</span><span class="n">ia</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">)</span>
+<a id="ln-127" name="ln-127" href="#ln-127"></a><span class="w">                     </span><span class="n">aj0x</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="w"> </span><span class="n">ikx</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j0</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+<a id="ln-128" name="ln-128" href="#ln-128"></a><span class="w">                     </span><span class="c">! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)),</span>
+<a id="ln-129" name="ln-129" href="#ln-129"></a><span class="w">                     </span><span class="n">aj1x</span><span class="p">(</span><span class="n">iky</span><span class="p">,</span><span class="w"> </span><span class="n">ikx</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j1</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+<a id="ln-130" name="ln-130" href="#ln-130"></a><span class="w">                  </span><span class="k">end do</span>
+<a id="ln-131" name="ln-131" href="#ln-131"></a><span class="k">               end do</span>
+<a id="ln-132" name="ln-132" href="#ln-132"></a><span class="k">            end do</span>
+<a id="ln-133" name="ln-133" href="#ln-133"></a><span class="k">         end do</span>
+<a id="ln-134" name="ln-134" href="#ln-134"></a><span class="k">      end if</span>
+<a id="ln-135" name="ln-135" href="#ln-135"></a><span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">debug</span><span class="p">)</span><span class="w"> </span><span class="k">write</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s1">&#39;gyro_averages::init_bessel::test_gyro_average&#39;</span>
+<a id="ln-136" name="ln-136" href="#ln-136"></a><span class="c">!    call test_gyro_average</span>
+<a id="ln-137" name="ln-137" href="#ln-137"></a>
+<a id="ln-138" name="ln-138" href="#ln-138"></a><span class="w">   </span><span class="k">contains</span>
+<a id="ln-139" name="ln-139" href="#ln-139"></a>
+<a id="ln-140" name="ln-140" href="#ln-140"></a><span class="c">!     ! set up field that varies as x^2 = rho^2 * cos(angle)^2,</span>
+<a id="ln-141" name="ln-141" href="#ln-141"></a><span class="c">!     ! with rho the distance from the origin, and &#39;angle&#39; is the angle made with the horizontal</span>
+<a id="ln-142" name="ln-142" href="#ln-142"></a><span class="c">!     ! if considering a particle at x=0, then rho is thee gyro-radius and angle is the gyro-angle</span>
+<a id="ln-143" name="ln-143" href="#ln-143"></a><span class="c">!     ! the gyro-average should theen be 1/(2pi) * int_0^2pi dangle rho^2 * cos(angle)^2 = rho^2/2</span>
+<a id="ln-144" name="ln-144" href="#ln-144"></a><span class="c">!     subroutine test_gyro_average</span>
+<a id="ln-145" name="ln-145" href="#ln-145"></a>
+<a id="ln-146" name="ln-146" href="#ln-146"></a><span class="c">!       use constants, only: pi</span>
+<a id="ln-147" name="ln-147" href="#ln-147"></a><span class="c">!       use kt_grids, only: ny, nx, x, x0, y, y0</span>
+<a id="ln-148" name="ln-148" href="#ln-148"></a><span class="c">!       use kt_grids, only: nakx, ikx_max, naky, naky_all</span>
+<a id="ln-149" name="ln-149" href="#ln-149"></a><span class="c">!       use kt_grids, only: swap_kxky, swap_kxky_back</span>
+<a id="ln-150" name="ln-150" href="#ln-150"></a><span class="c">!       use stella_transforms, only: transform_x2kx, transform_y2ky</span>
+<a id="ln-151" name="ln-151" href="#ln-151"></a><span class="c">!       use stella_transforms, only: transform_kx2x, transform_ky2y</span>
+<a id="ln-152" name="ln-152" href="#ln-152"></a><span class="c">!       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx</span>
+<a id="ln-153" name="ln-153" href="#ln-153"></a><span class="c">!       use vpamu_grids, only: nmu</span>
+<a id="ln-154" name="ln-154" href="#ln-154"></a><span class="c">!       use species, only: nspec, spec</span>
+<a id="ln-155" name="ln-155" href="#ln-155"></a><span class="c">!       use geometry, only: alpha, bmag, x_displacement_fac</span>
+<a id="ln-156" name="ln-156" href="#ln-156"></a><span class="c">!       use spfunc, only: bessi0</span>
+<a id="ln-157" name="ln-157" href="#ln-157"></a>
+<a id="ln-158" name="ln-158" href="#ln-158"></a><span class="c">!       implicit none</span>
+<a id="ln-159" name="ln-159" href="#ln-159"></a>
+<a id="ln-160" name="ln-160" href="#ln-160"></a><span class="c">!       real, dimension (:,:), allocatable :: fld_yx</span>
+<a id="ln-161" name="ln-161" href="#ln-161"></a><span class="c">!       complex, dimension (:,:), allocatable :: fld_ykx</span>
+<a id="ln-162" name="ln-162" href="#ln-162"></a><span class="c">!       complex, dimension (:,:), allocatable :: fld_kykx_swapped</span>
+<a id="ln-163" name="ln-163" href="#ln-163"></a><span class="c">!       complex, dimension (:,:), allocatable :: fld_kykx, gyro_fld</span>
+<a id="ln-164" name="ln-164" href="#ln-164"></a><span class="c">!       real, dimension (:,:,:,:), allocatable :: gyro_fld_yx</span>
+<a id="ln-165" name="ln-165" href="#ln-165"></a><span class="c">!       real :: gyroradius</span>
+<a id="ln-166" name="ln-166" href="#ln-166"></a><span class="c">!       integer :: iy, ix, ivmu, iv, imu, is</span>
+<a id="ln-167" name="ln-167" href="#ln-167"></a>
+<a id="ln-168" name="ln-168" href="#ln-168"></a><span class="c">!       integer, parameter :: iz = 0</span>
+<a id="ln-169" name="ln-169" href="#ln-169"></a>
+<a id="ln-170" name="ln-170" href="#ln-170"></a><span class="c">!       allocate (fld_yx(ny,nx))</span>
+<a id="ln-171" name="ln-171" href="#ln-171"></a><span class="c">!       allocate (fld_ykx(ny,ikx_max))</span>
+<a id="ln-172" name="ln-172" href="#ln-172"></a><span class="c">!       allocate (fld_kykx_swapped(naky_all,ikx_max))</span>
+<a id="ln-173" name="ln-173" href="#ln-173"></a><span class="c">!       allocate (fld_kykx(naky,nakx))</span>
+<a id="ln-174" name="ln-174" href="#ln-174"></a><span class="c">!       allocate (gyro_fld(naky,nakx))</span>
+<a id="ln-175" name="ln-175" href="#ln-175"></a><span class="c">!       allocate (gyro_fld_yx(ny,nx,nmu,nspec))</span>
+<a id="ln-176" name="ln-176" href="#ln-176"></a>
+<a id="ln-177" name="ln-177" href="#ln-177"></a><span class="c">!       if (debug) write (*,*) &#39;gyro_averages::init_bessel::test_gyro_averages::fld_yx&#39;</span>
+<a id="ln-178" name="ln-178" href="#ln-178"></a><span class="c">!       ! set up field that varies as x^2 = rho^2 * cos(angle)^2 and is constant in y</span>
+<a id="ln-179" name="ln-179" href="#ln-179"></a><span class="c">! !      fld_yx = spread(0.1*(x-pi*x0),1,ny)**2</span>
+<a id="ln-180" name="ln-180" href="#ln-180"></a><span class="c">!       fld_yx = spread(cos(50.0*(x/x0-pi)),1,ny)</span>
+<a id="ln-181" name="ln-181" href="#ln-181"></a><span class="c">! !      fld_yx = spread(exp(-0.1*(x-pi*x0)**2),1,ny)</span>
+<a id="ln-182" name="ln-182" href="#ln-182"></a><span class="c">!       if (debug) write (*,*) &#39;gyro_averages::init_bessel::test_gyro_averages::transform_x2kx&#39;</span>
+<a id="ln-183" name="ln-183" href="#ln-183"></a><span class="c">!       ! transform from (y,x) to (y,kx), with kx going from 0 to kxmax</span>
+<a id="ln-184" name="ln-184" href="#ln-184"></a><span class="c">!       call transform_x2kx (fld_yx, fld_ykx)</span>
+<a id="ln-185" name="ln-185" href="#ln-185"></a><span class="c">!       if (debug) write (*,*) &#39;gyro_averages::init_bessel::test_gyro_averages::transform_y2ky&#39;</span>
+<a id="ln-186" name="ln-186" href="#ln-186"></a><span class="c">!       ! transform from (y,kx) to (ky,kx), with ky going from (0,...,kymax,-kymax,...,-dky)</span>
+<a id="ln-187" name="ln-187" href="#ln-187"></a><span class="c">!       ! and kx going from 0 to kxmax</span>
+<a id="ln-188" name="ln-188" href="#ln-188"></a><span class="c">!       call transform_y2ky (fld_ykx, fld_kykx_swapped)</span>
+<a id="ln-189" name="ln-189" href="#ln-189"></a><span class="c">!       if (debug) write (*,*) &#39;gyro_averages::init_bessel::test_gyro_averages::swap_kxky_back&#39;</span>
+<a id="ln-190" name="ln-190" href="#ln-190"></a><span class="c">!       ! use reality condition to re-arrange array so that ky goes from 0 to kymax</span>
+<a id="ln-191" name="ln-191" href="#ln-191"></a><span class="c">!       ! and kx goes from (0,...,kxmax,-kxmax,...,-dkx)</span>
+<a id="ln-192" name="ln-192" href="#ln-192"></a><span class="c">!       call swap_kxky_back (fld_kykx_swapped, fld_kykx)</span>
+<a id="ln-193" name="ln-193" href="#ln-193"></a>
+<a id="ln-194" name="ln-194" href="#ln-194"></a><span class="c">!       ! gyro-average the field at z=0 for different values of mu</span>
+<a id="ln-195" name="ln-195" href="#ln-195"></a><span class="c">!       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc</span>
+<a id="ln-196" name="ln-196" href="#ln-196"></a><span class="c">!          ! get the vpa index</span>
+<a id="ln-197" name="ln-197" href="#ln-197"></a><span class="c">!          iv = iv_idx(vmu_lo,ivmu)</span>
+<a id="ln-198" name="ln-198" href="#ln-198"></a><span class="c">!          ! as J0 independent of vpa, pick only one vpa to test</span>
+<a id="ln-199" name="ln-199" href="#ln-199"></a><span class="c">!          if (iv /= 1) cycle</span>
+<a id="ln-200" name="ln-200" href="#ln-200"></a><span class="c">!          ! get the species index</span>
+<a id="ln-201" name="ln-201" href="#ln-201"></a><span class="c">!          is = is_idx(vmu_lo,ivmu)</span>
+<a id="ln-202" name="ln-202" href="#ln-202"></a><span class="c">!          ! get the mu index</span>
+<a id="ln-203" name="ln-203" href="#ln-203"></a><span class="c">!          imu = imu_idx(vmu_lo,ivmu)</span>
+<a id="ln-204" name="ln-204" href="#ln-204"></a><span class="c">! !         if (debug) write (*,*) &#39;gyro_averages::init_bessel::test_gyro_averages::gyro_average&#39;</span>
+<a id="ln-205" name="ln-205" href="#ln-205"></a><span class="c">!          if (full_flux_surface) then</span>
+<a id="ln-206" name="ln-206" href="#ln-206"></a><span class="c">!             call gyro_average (fld_kykx, gyro_fld, j0_ffs(:,:,iz,ivmu))</span>
+<a id="ln-207" name="ln-207" href="#ln-207"></a><span class="c">!          else</span>
+<a id="ln-208" name="ln-208" href="#ln-208"></a><span class="c">!             call gyro_average (fld_kykx, iz, ivmu, gyro_fld)</span>
+<a id="ln-209" name="ln-209" href="#ln-209"></a><span class="c">!          end if</span>
+<a id="ln-210" name="ln-210" href="#ln-210"></a><span class="c">!          ! use reality to re-arrange array entries so that ky goes from (0,...,kymax,-kymax,...,-dky)</span>
+<a id="ln-211" name="ln-211" href="#ln-211"></a><span class="c">!          ! and kx goes from 0 to kxmax</span>
+<a id="ln-212" name="ln-212" href="#ln-212"></a><span class="c">!          call swap_kxky (gyro_fld, fld_kykx_swapped)</span>
+<a id="ln-213" name="ln-213" href="#ln-213"></a><span class="c">!          ! transform from (ky,kx) to (y,kx)</span>
+<a id="ln-214" name="ln-214" href="#ln-214"></a><span class="c">!          call transform_ky2y (fld_kykx_swapped, fld_ykx)</span>
+<a id="ln-215" name="ln-215" href="#ln-215"></a><span class="c">!          ! transform from (y,kx) to (y,x)</span>
+<a id="ln-216" name="ln-216" href="#ln-216"></a><span class="c">!          call transform_kx2x (fld_ykx, gyro_fld_yx(:,:,imu,is))</span>
+<a id="ln-217" name="ln-217" href="#ln-217"></a><span class="c">!       end do</span>
+<a id="ln-218" name="ln-218" href="#ln-218"></a><span class="c">!       if (debug) write (*,*) &#39;gyro_averages::init_bessel::test_gyro_averages::write_to_screen&#39;</span>
+<a id="ln-219" name="ln-219" href="#ln-219"></a><span class="c">!       ! NB: this is only set up to work on a single processor at the moment</span>
+<a id="ln-220" name="ln-220" href="#ln-220"></a><span class="c">!       ! NB: to extend, must move information about gyro_fld onto proc0</span>
+<a id="ln-221" name="ln-221" href="#ln-221"></a><span class="c">!       do is = 1, nspec</span>
+<a id="ln-222" name="ln-222" href="#ln-222"></a><span class="c">!          do imu = 1, nmu</span>
+<a id="ln-223" name="ln-223" href="#ln-223"></a><span class="c">!             do ix = 1, nx</span>
+<a id="ln-224" name="ln-224" href="#ln-224"></a><span class="c">!                do iy = 1, ny</span>
+<a id="ln-225" name="ln-225" href="#ln-225"></a><span class="c">!                   ! gyro-radius/reference gyro-radius is v_perp/Omega/rho_ref = (v_perp/vths)*(rho_s/rho_ref)</span>
+<a id="ln-226" name="ln-226" href="#ln-226"></a><span class="c">!                   ! = vperp * sqrt(T_s/T_ref*m_s/m_ref)(B_ref/Z*B) = vperp / (spec%zstm*bmag)</span>
+<a id="ln-227" name="ln-227" href="#ln-227"></a><span class="c">!                   gyroradius = sqrt(vperp2(iy,iz,imu))/(spec(is)%zstm*bmag(iy,iz))</span>
+<a id="ln-228" name="ln-228" href="#ln-228"></a><span class="c">! !                  gyroradius = sqrt(vperp2(1,iz,imu))/(spec(is)%zstm*bmag(1,iz))</span>
+<a id="ln-229" name="ln-229" href="#ln-229"></a><span class="c">!                   write (42,*) &#39;y: &#39;, y(iy), &#39;x: &#39;, x(ix)-x0*pi, &#39;gyro_fld: &#39;, gyro_fld_yx(iy,ix,imu,is), &#39;gyroradius: &#39;, gyroradius, &#39;spec: &#39;, is, &amp;</span>
+<a id="ln-230" name="ln-230" href="#ln-230"></a><span class="c">!                        &#39;alpha: &#39;, alpha(iy), &#39;x_displacement_fac: &#39;, x_displacement_fac(iy,iz)</span>
+<a id="ln-231" name="ln-231" href="#ln-231"></a><span class="c">!                end do</span>
+<a id="ln-232" name="ln-232" href="#ln-232"></a><span class="c">!                write (42,*)</span>
+<a id="ln-233" name="ln-233" href="#ln-233"></a><span class="c">!             end do</span>
+<a id="ln-234" name="ln-234" href="#ln-234"></a><span class="c">!             write (42,*)</span>
+<a id="ln-235" name="ln-235" href="#ln-235"></a><span class="c">!          end do</span>
+<a id="ln-236" name="ln-236" href="#ln-236"></a><span class="c">!          write (42,*)</span>
+<a id="ln-237" name="ln-237" href="#ln-237"></a><span class="c">!       end do</span>
+<a id="ln-238" name="ln-238" href="#ln-238"></a><span class="c">!       do iy = 1, 1000</span>
+<a id="ln-239" name="ln-239" href="#ln-239"></a><span class="c">!          gyroradius = (iy-1)*15.0/999.</span>
+<a id="ln-240" name="ln-240" href="#ln-240"></a><span class="c">!          !         write (43,*) &#39;gyroradius: &#39;, gyroradius, &#39;bes: &#39;, bessi0(0.1*0.5*(gyroradius/x_displacement_fac(1,iz))**2)*exp(-0.1*0.5*(gyroradius/x_displacement_fac(1,iz))**2)</span>
+<a id="ln-241" name="ln-241" href="#ln-241"></a><span class="c">!          !         write (43,*) &#39;gyroradius: &#39;, gyroradius, &#39;analytical: &#39;, 0.5*(0.1*gyroradius/x_displacement_fac(1,iz))**2</span>
+<a id="ln-242" name="ln-242" href="#ln-242"></a><span class="c">!          write (43,*) &#39;gyroradius: &#39;, gyroradius, &#39;analytical: &#39;, j0(50.*gyroradius/(x0*x_displacement_fac(1,iz)))</span>
+<a id="ln-243" name="ln-243" href="#ln-243"></a><span class="c">!       end do</span>
+<a id="ln-244" name="ln-244" href="#ln-244"></a><span class="c">!       ! TMP FOR TESTING</span>
+<a id="ln-245" name="ln-245" href="#ln-245"></a><span class="c">! !      stop</span>
+<a id="ln-246" name="ln-246" href="#ln-246"></a>
+<a id="ln-247" name="ln-247" href="#ln-247"></a><span class="c">!       deallocate (fld_yx, fld_ykx)</span>
+<a id="ln-248" name="ln-248" href="#ln-248"></a><span class="c">!       deallocate (fld_kykx_swapped, fld_kykx)</span>
+<a id="ln-249" name="ln-249" href="#ln-249"></a><span class="c">!       deallocate (gyro_fld, gyro_fld_yx)</span>
+<a id="ln-250" name="ln-250" href="#ln-250"></a>
+<a id="ln-251" name="ln-251" href="#ln-251"></a><span class="c">!     end subroutine test_gyro_average</span>
+<a id="ln-252" name="ln-252" href="#ln-252"></a>
+<a id="ln-253" name="ln-253" href="#ln-253"></a><span class="w">   </span><span class="k">end subroutine </span><span class="n">init_bessel</span>
+<a id="ln-254" name="ln-254" href="#ln-254"></a>
+<a id="ln-255" name="ln-255" href="#ln-255"></a><span class="w">   </span><span class="k">subroutine </span><span class="n">init_bessel_ffs</span>
+<a id="ln-256" name="ln-256" href="#ln-256"></a>
+<a id="ln-257" name="ln-257" href="#ln-257"></a><span class="w">      </span><span class="k">use </span><span class="n">mp</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">sum_allreduce</span><span class="p">,</span><span class="w"> </span><span class="n">proc0</span>
+<a id="ln-258" name="ln-258" href="#ln-258"></a><span class="w">      </span><span class="k">use </span><span class="n">spfunc</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">j0</span>
+<a id="ln-259" name="ln-259" href="#ln-259"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">vmu_lo</span>
+<a id="ln-260" name="ln-260" href="#ln-260"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">iv_idx</span><span class="p">,</span><span class="w"> </span><span class="n">imu_idx</span><span class="p">,</span><span class="w"> </span><span class="n">is_idx</span>
+<a id="ln-261" name="ln-261" href="#ln-261"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_transforms</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">transform_alpha2kalpha</span>
+<a id="ln-262" name="ln-262" href="#ln-262"></a><span class="w">      </span><span class="k">use </span><span class="n">species</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nspec</span><span class="p">,</span><span class="w"> </span><span class="n">spec</span>
+<a id="ln-263" name="ln-263" href="#ln-263"></a><span class="w">      </span><span class="k">use </span><span class="n">geometry</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">bmag</span>
+<a id="ln-264" name="ln-264" href="#ln-264"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nzgrid</span><span class="p">,</span><span class="w"> </span><span class="n">nztot</span>
+<a id="ln-265" name="ln-265" href="#ln-265"></a><span class="w">      </span><span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nmu</span><span class="p">,</span><span class="w"> </span><span class="n">nvpa</span>
+<a id="ln-266" name="ln-266" href="#ln-266"></a><span class="w">      </span><span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">vperp2</span><span class="p">,</span><span class="w"> </span><span class="n">maxwell_vpa</span><span class="p">,</span><span class="w"> </span><span class="n">maxwell_mu</span>
+<a id="ln-267" name="ln-267" href="#ln-267"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_kxky_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nalpha</span><span class="p">,</span><span class="w"> </span><span class="n">naky</span><span class="p">,</span><span class="w"> </span><span class="n">naky_all</span><span class="p">,</span><span class="w"> </span><span class="n">ikx_max</span>
+<a id="ln-268" name="ln-268" href="#ln-268"></a><span class="w">      </span><span class="k">use </span><span class="n">calculations_kxky</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">swap_kxky_ordered</span>
+<a id="ln-269" name="ln-269" href="#ln-269"></a><span class="w">      </span><span class="k">use </span><span class="n">arrays_dist_fn</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">kperp2</span>
+<a id="ln-270" name="ln-270" href="#ln-270"></a>
+<a id="ln-271" name="ln-271" href="#ln-271"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_kxky_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nakx</span>
+<a id="ln-272" name="ln-272" href="#ln-272"></a><span class="w">      </span><span class="k">use </span><span class="n">calculations_kxky</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">swap_kxky_back_ordered</span>
 <a id="ln-273" name="ln-273" href="#ln-273"></a><span class="w">      </span><span class="k">use </span><span class="n">spfunc</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">j1</span>
 <a id="ln-274" name="ln-274" href="#ln-274"></a>
 <a id="ln-275" name="ln-275" href="#ln-275"></a><span class="w">      </span><span class="k">implicit none</span>
@@ -812,7 +812,7 @@
 <a id="ln-653" name="ln-653" href="#ln-653"></a>
 <a id="ln-654" name="ln-654" href="#ln-654"></a><span class="w">   </span><span class="k">subroutine </span><span class="n">gyro_average_kxky_local</span><span class="p">(</span><span class="n">field</span><span class="p">,</span><span class="w"> </span><span class="n">iz</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span><span class="p">,</span><span class="w"> </span><span class="n">gyro_field</span><span class="p">)</span>
 <a id="ln-655" name="ln-655" href="#ln-655"></a>
-<a id="ln-656" name="ln-656" href="#ln-656"></a><span class="w">      </span><span class="k">use </span><span class="n">physics_flags</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">full_flux_surface</span>
+<a id="ln-656" name="ln-656" href="#ln-656"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_physics</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">full_flux_surface</span>
 <a id="ln-657" name="ln-657" href="#ln-657"></a>
 <a id="ln-658" name="ln-658" href="#ln-658"></a><span class="w">      </span><span class="k">implicit none</span>
 <a id="ln-659" name="ln-659" href="#ln-659"></a>
@@ -833,7 +833,7 @@
 <a id="ln-674" name="ln-674" href="#ln-674"></a>
 <a id="ln-675" name="ln-675" href="#ln-675"></a><span class="w">   </span><span class="k">subroutine </span><span class="n">gyro_average_kxkyz_local</span><span class="p">(</span><span class="n">field</span><span class="p">,</span><span class="w"> </span><span class="n">ivmu</span><span class="p">,</span><span class="w"> </span><span class="n">gyro_field</span><span class="p">)</span>
 <a id="ln-676" name="ln-676" href="#ln-676"></a>
-<a id="ln-677" name="ln-677" href="#ln-677"></a><span class="w">      </span><span class="k">use </span><span class="n">physics_flags</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">full_flux_surface</span>
+<a id="ln-677" name="ln-677" href="#ln-677"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_physics</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">full_flux_surface</span>
 <a id="ln-678" name="ln-678" href="#ln-678"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nzgrid</span><span class="p">,</span><span class="w"> </span><span class="n">ntubes</span>
 <a id="ln-679" name="ln-679" href="#ln-679"></a>
 <a id="ln-680" name="ln-680" href="#ln-680"></a><span class="w">      </span><span class="k">implicit none</span>
@@ -855,7 +855,7 @@
 <a id="ln-696" name="ln-696" href="#ln-696"></a>
 <a id="ln-697" name="ln-697" href="#ln-697"></a><span class="w">   </span><span class="k">subroutine </span><span class="n">gyro_average_kxkyzv_local</span><span class="p">(</span><span class="n">field</span><span class="p">,</span><span class="w"> </span><span class="n">gyro_field</span><span class="p">)</span>
 <a id="ln-698" name="ln-698" href="#ln-698"></a>
-<a id="ln-699" name="ln-699" href="#ln-699"></a><span class="w">      </span><span class="k">use </span><span class="n">physics_flags</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">full_flux_surface</span>
+<a id="ln-699" name="ln-699" href="#ln-699"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_physics</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">full_flux_surface</span>
 <a id="ln-700" name="ln-700" href="#ln-700"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nzgrid</span>
 <a id="ln-701" name="ln-701" href="#ln-701"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">vmu_lo</span>
 <a id="ln-702" name="ln-702" href="#ln-702"></a>
@@ -880,9 +880,9 @@
 <a id="ln-721" name="ln-721" href="#ln-721"></a>
 <a id="ln-722" name="ln-722" href="#ln-722"></a><span class="w">   </span><span class="k">subroutine </span><span class="n">gyro_average_ffs_kxky_local</span><span class="p">(</span><span class="n">field</span><span class="p">,</span><span class="w"> </span><span class="n">gyro_field</span><span class="p">,</span><span class="w"> </span><span class="n">coefs</span><span class="p">)</span>
 <a id="ln-723" name="ln-723" href="#ln-723"></a>
-<a id="ln-724" name="ln-724" href="#ln-724"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">naky</span>
-<a id="ln-725" name="ln-725" href="#ln-725"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">naky_all</span><span class="p">,</span><span class="w"> </span><span class="n">ikx_max</span>
-<a id="ln-726" name="ln-726" href="#ln-726"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">swap_kxky_ordered</span><span class="p">,</span><span class="w"> </span><span class="n">swap_kxky_back_ordered</span>
+<a id="ln-724" name="ln-724" href="#ln-724"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_kxky_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">naky</span>
+<a id="ln-725" name="ln-725" href="#ln-725"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_kxky_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">naky_all</span><span class="p">,</span><span class="w"> </span><span class="n">ikx_max</span>
+<a id="ln-726" name="ln-726" href="#ln-726"></a><span class="w">      </span><span class="k">use </span><span class="n">calculations_kxky</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">swap_kxky_ordered</span><span class="p">,</span><span class="w"> </span><span class="n">swap_kxky_back_ordered</span>
 <a id="ln-727" name="ln-727" href="#ln-727"></a>
 <a id="ln-728" name="ln-728" href="#ln-728"></a><span class="w">      </span><span class="k">implicit none</span>
 <a id="ln-729" name="ln-729" href="#ln-729"></a>
@@ -1131,7 +1131,7 @@
 <a id="ln-972" name="ln-972" href="#ln-972"></a><span class="w">      </span><span class="k">use </span><span class="n">mp</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">proc0</span><span class="p">,</span><span class="w"> </span><span class="n">mp_abort</span>
 <a id="ln-973" name="ln-973" href="#ln-973"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nzgrid</span>
 <a id="ln-974" name="ln-974" href="#ln-974"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">vmu_lo</span>
-<a id="ln-975" name="ln-975" href="#ln-975"></a><span class="w">      </span><span class="k">use </span><span class="n">physics_flags</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">full_flux_surface</span>
+<a id="ln-975" name="ln-975" href="#ln-975"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_physics</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">full_flux_surface</span>
 <a id="ln-976" name="ln-976" href="#ln-976"></a><span class="w">      </span>
 <a id="ln-977" name="ln-977" href="#ln-977"></a><span class="w">      </span><span class="k">implicit none</span>
 <a id="ln-978" name="ln-978" href="#ln-978"></a>
@@ -1158,7 +1158,7 @@
 <a id="ln-999" name="ln-999" href="#ln-999"></a>
 <a id="ln-1000" name="ln-1000" href="#ln-1000"></a><span class="w">      </span><span class="k">use </span><span class="n">common_types</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">gam0_ffs_type</span>
 <a id="ln-1001" name="ln-1001" href="#ln-1001"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nzgrid</span>
-<a id="ln-1002" name="ln-1002" href="#ln-1002"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">ikx_max</span>
+<a id="ln-1002" name="ln-1002" href="#ln-1002"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_kxky_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">ikx_max</span>
 <a id="ln-1003" name="ln-1003" href="#ln-1003"></a>
 <a id="ln-1004" name="ln-1004" href="#ln-1004"></a><span class="w">      </span><span class="k">implicit none</span>
 <a id="ln-1005" name="ln-1005" href="#ln-1005"></a>
@@ -1178,7 +1178,7 @@
 <a id="ln-1019" name="ln-1019" href="#ln-1019"></a><span class="w">   </span><span class="k">subroutine </span><span class="n">band_lu_solve_ffs_single</span><span class="p">(</span><span class="n">lu</span><span class="p">,</span><span class="w"> </span><span class="n">solvec</span><span class="p">)</span>
 <a id="ln-1020" name="ln-1020" href="#ln-1020"></a>
 <a id="ln-1021" name="ln-1021" href="#ln-1021"></a><span class="w">      </span><span class="k">use </span><span class="n">common_types</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">gam0_ffs_type</span>
-<a id="ln-1022" name="ln-1022" href="#ln-1022"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">naky</span>
+<a id="ln-1022" name="ln-1022" href="#ln-1022"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_kxky_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">naky</span>
 <a id="ln-1023" name="ln-1023" href="#ln-1023"></a>
 <a id="ln-1024" name="ln-1024" href="#ln-1024"></a><span class="w">      </span><span class="k">implicit none</span>
 <a id="ln-1025" name="ln-1025" href="#ln-1025"></a>
@@ -1211,7 +1211,7 @@
 <a id="ln-1052" name="ln-1052" href="#ln-1052"></a>
 <a id="ln-1053" name="ln-1053" href="#ln-1053"></a><span class="w">      </span><span class="k">use </span><span class="n">common_types</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">coupled_alpha_type</span><span class="p">,</span><span class="w"> </span><span class="n">gam0_ffs_type</span>
 <a id="ln-1054" name="ln-1054" href="#ln-1054"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nzgrid</span>
-<a id="ln-1055" name="ln-1055" href="#ln-1055"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">ikx_max</span><span class="p">,</span><span class="w"> </span><span class="n">naky_all</span><span class="p">,</span><span class="w"> </span><span class="n">naky</span>
+<a id="ln-1055" name="ln-1055" href="#ln-1055"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_kxky_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">ikx_max</span><span class="p">,</span><span class="w"> </span><span class="n">naky_all</span><span class="p">,</span><span class="w"> </span><span class="n">naky</span>
 <a id="ln-1056" name="ln-1056" href="#ln-1056"></a>
 <a id="ln-1057" name="ln-1057" href="#ln-1057"></a><span class="w">      </span><span class="k">implicit none</span>
 <a id="ln-1058" name="ln-1058" href="#ln-1058"></a>
@@ -1241,7 +1241,7 @@
 <a id="ln-1082" name="ln-1082" href="#ln-1082"></a><span class="w">   </span><span class="k">subroutine </span><span class="n">band_lu_factorisation_single</span><span class="p">(</span><span class="n">gam0</span><span class="p">,</span><span class="w"> </span><span class="n">lu_gam0</span><span class="p">)</span>
 <a id="ln-1083" name="ln-1083" href="#ln-1083"></a>
 <a id="ln-1084" name="ln-1084" href="#ln-1084"></a><span class="w">      </span><span class="k">use </span><span class="n">common_types</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">gam0_ffs_type</span>
-<a id="ln-1085" name="ln-1085" href="#ln-1085"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">naky</span><span class="p">,</span><span class="w"> </span><span class="n">naky_all</span>
+<a id="ln-1085" name="ln-1085" href="#ln-1085"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_kxky_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">naky</span><span class="p">,</span><span class="w"> </span><span class="n">naky_all</span>
 <a id="ln-1086" name="ln-1086" href="#ln-1086"></a>
 <a id="ln-1087" name="ln-1087" href="#ln-1087"></a><span class="w">      </span><span class="k">implicit none</span>
 <a id="ln-1088" name="ln-1088" href="#ln-1088"></a>
@@ -1345,13 +1345,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.7-23-gd0790329c2</small></p>
+<br /><small>v0.7-24-gc0992ea3bb</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-09-19T15:17:35.676529             </p>
+ on 2024-09-26T09:56:17.317360             </p>
           </div>
         </div>
         <br>

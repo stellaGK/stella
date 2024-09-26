@@ -192,7 +192,7 @@
 <a id="ln-33" name="ln-33" href="#ln-33"></a>
 <a id="ln-34" name="ln-34" href="#ln-34"></a><span class="w">      </span><span class="k">use </span><span class="n">mp</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">proc0</span>
 <a id="ln-35" name="ln-35" href="#ln-35"></a><span class="w">      </span><span class="k">use </span><span class="n">hyper</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">init_hyper</span>
-<a id="ln-36" name="ln-36" href="#ln-36"></a><span class="w">      </span><span class="k">use </span><span class="n">run_parameters</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">print_extra_info_to_terminal</span>
+<a id="ln-36" name="ln-36" href="#ln-36"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_numerical</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">print_extra_info_to_terminal</span>
 <a id="ln-37" name="ln-37" href="#ln-37"></a>
 <a id="ln-38" name="ln-38" href="#ln-38"></a><span class="w">      </span><span class="k">implicit none</span>
 <a id="ln-39" name="ln-39" href="#ln-39"></a>
@@ -235,7 +235,7 @@
 <a id="ln-76" name="ln-76" href="#ln-76"></a>
 <a id="ln-77" name="ln-77" href="#ln-77"></a><span class="w">      </span><span class="k">use </span><span class="n">file_utils</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">input_unit_exist</span>
 <a id="ln-78" name="ln-78" href="#ln-78"></a><span class="w">      </span><span class="k">use </span><span class="n">mp</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">proc0</span><span class="p">,</span><span class="w"> </span><span class="n">broadcast</span>
-<a id="ln-79" name="ln-79" href="#ln-79"></a><span class="w">      </span><span class="k">use </span><span class="n">run_parameters</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">fully_explicit</span>
+<a id="ln-79" name="ln-79" href="#ln-79"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_numerical</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">fully_explicit</span>
 <a id="ln-80" name="ln-80" href="#ln-80"></a><span class="w">      </span><span class="k">use </span><span class="n">coll_dougherty</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">read_parameters_dougherty</span>
 <a id="ln-81" name="ln-81" href="#ln-81"></a><span class="w">      </span><span class="k">use </span><span class="n">coll_fokkerplanck</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">read_parameters_fp</span>
 <a id="ln-82" name="ln-82" href="#ln-82"></a><span class="w">      </span><span class="k">use </span><span class="n">hyper</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">read_parameters_hyper</span>
@@ -325,7 +325,7 @@
 <a id="ln-166" name="ln-166" href="#ln-166"></a><span class="w">   </span><span class="k">subroutine </span><span class="n">advance_collisions_explicit</span><span class="p">(</span><span class="n">g</span><span class="p">,</span><span class="w"> </span><span class="n">phi</span><span class="p">,</span><span class="w"> </span><span class="n">bpar</span><span class="p">,</span><span class="w"> </span><span class="n">gke_rhs</span><span class="p">)</span>
 <a id="ln-167" name="ln-167" href="#ln-167"></a>
 <a id="ln-168" name="ln-168" href="#ln-168"></a><span class="w">      </span><span class="k">use </span><span class="n">mp</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">mp_abort</span>
-<a id="ln-169" name="ln-169" href="#ln-169"></a><span class="w">      </span><span class="k">use </span><span class="n">physics_flags</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">full_flux_surface</span>
+<a id="ln-169" name="ln-169" href="#ln-169"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_physics</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">full_flux_surface</span>
 <a id="ln-170" name="ln-170" href="#ln-170"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">vmu_lo</span>
 <a id="ln-171" name="ln-171" href="#ln-171"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nzgrid</span>
 <a id="ln-172" name="ln-172" href="#ln-172"></a><span class="w">      </span><span class="k">use </span><span class="n">coll_dougherty</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">advance_collisions_dougherty_explicit</span>
@@ -358,7 +358,7 @@
 <a id="ln-199" name="ln-199" href="#ln-199"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nzgrid</span>
 <a id="ln-200" name="ln-200" href="#ln-200"></a><span class="w">      </span><span class="k">use </span><span class="n">vpamu_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">set_vpa_weights</span>
 <a id="ln-201" name="ln-201" href="#ln-201"></a><span class="w">      </span><span class="k">use </span><span class="n">stella_layouts</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">vmu_lo</span>
-<a id="ln-202" name="ln-202" href="#ln-202"></a><span class="w">      </span><span class="k">use </span><span class="n">dist_fn_arrays</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">gvmu</span>
+<a id="ln-202" name="ln-202" href="#ln-202"></a><span class="w">      </span><span class="k">use </span><span class="n">arrays_dist_fn</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">gvmu</span>
 <a id="ln-203" name="ln-203" href="#ln-203"></a><span class="w">      </span><span class="k">use </span><span class="n">coll_dougherty</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">advance_collisions_dougherty_implicit</span>
 <a id="ln-204" name="ln-204" href="#ln-204"></a><span class="w">      </span><span class="k">use </span><span class="n">coll_fokkerplanck</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">advance_collisions_fp_implicit</span>
 <a id="ln-205" name="ln-205" href="#ln-205"></a>
@@ -416,13 +416,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.7-23-gd0790329c2</small></p>
+<br /><small>v0.7-24-gc0992ea3bb</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-09-19T15:17:35.676529             </p>
+ on 2024-09-26T09:56:17.317360             </p>
           </div>
         </div>
         <br>

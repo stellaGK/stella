@@ -46,17 +46,18 @@ contains
    subroutine init_sources
 
       use mp, only: job, proc0
-      use run_parameters, only: fphi
-      use run_parameters, only: ky_solve_radial, ky_solve_real
-      use kt_grids, only: naky, nakx, zonal_mode
+      use parameters_numerical, only: fphi
+      use parameters_numerical, only: ky_solve_radial, ky_solve_real
+      use parameters_kxky_grids, only: naky, nakx
+      use grids_kxky, only: zonal_mode
       use zgrid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
-      use dist_fn_arrays, only: g_krook, g_proj, g_symm
-      use fields_arrays, only: phi_proj, phi_proj_stage
-      use physics_flags, only: radial_variation
+      use arrays_dist_fn, only: g_krook, g_proj, g_symm
+      use arrays_fields, only: phi_proj, phi_proj_stage
+      use parameters_physics, only: radial_variation
       use species, only: spec, has_electron_species
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
       use file_utils, only: runtype_option_switch, runtype_multibox
 
       implicit none
@@ -112,10 +113,10 @@ contains
    subroutine read_parameters
 
       use file_utils, only: input_unit_exist, error_unit
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use mp, only: proc0, broadcast
-      use kt_grids, only: ikx_max, periodic_variation
-      use fields_arrays, only: tcorr_source_qn, exclude_boundary_regions_qn
+      use parameters_kxky_grids, only: ikx_max, periodic_variation
+      use arrays_fields, only: tcorr_source_qn, exclude_boundary_regions_qn
       use text_options, only: text_option, get_option_value
 
       implicit none
@@ -184,7 +185,7 @@ contains
    subroutine init_source_timeaverage
 
       use stella_time, only: code_dt
-      use fields_arrays, only: tcorr_source_qn, exp_fac_qn
+      use arrays_fields, only: tcorr_source_qn, exp_fac_qn
 
       implicit none
 
@@ -204,12 +205,12 @@ contains
 
    subroutine finish_sources
 
-      use dist_fn_arrays, only: g_krook, g_proj, g_symm
-      use fields_arrays, only: phi_proj, phi_proj_stage
+      use arrays_dist_fn, only: g_krook, g_proj, g_symm
+      use arrays_fields, only: phi_proj, phi_proj_stage
 #ifdef ISO_C_BINDING
-      use fields_arrays, only: qn_zf_window
+      use arrays_fields, only: qn_zf_window
 #else
-      use fields_arrays, only: phizf_solve, phi_ext
+      use arrays_fields, only: phizf_solve, phi_ext
 #endif
 
       implicit none
@@ -240,10 +241,11 @@ contains
       use job_manage, only: time_message
       use zgrid, only: nzgrid, ntubes
       use constants, only: pi, zi
-      use kt_grids, only: akx, nakx, zonal_mode, boundary_size
+      use grids_kxky, only: akx, zonal_mode, boundary_size
+      use parameters_kxky_grids, only: nakx
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
-      use dist_fn_arrays, only: g_krook, g_symm
+      use arrays_dist_fn, only: g_krook, g_symm
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
@@ -345,9 +347,10 @@ contains
       use mp, only: proc0
       use job_manage, only: time_message
       use constants, only: pi, zi
-      use dist_fn_arrays, only: g_krook, g_symm
+      use arrays_dist_fn, only: g_krook, g_symm
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: akx, nakx, zonal_mode, boundary_size
+      use grids_kxky, only: akx, zonal_mode, boundary_size
+      use parameters_kxky_grids, only: nakx
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
@@ -436,7 +439,7 @@ contains
       use stella_layouts, only: imu_idx, is_idx, iv_idx
       use vpamu_grids, only: nvgrid, nvpa, nmu
       use dist_redistribute, only: kxkyz2vmu
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use zgrid, only: nzgrid
 
       implicit none
@@ -471,14 +474,15 @@ contains
 
       use mp, only: sum_allreduce
       use species, only: spec
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use vpamu_grids, only: integrate_species, mu, vpa, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use kt_grids, only: nakx, rho_d_clamped
+      use parameters_kxky_grids, only: nakx
+      use grids_kxky, only: rho_d_clamped
       use stella_layouts, only: vmu_lo, imu_idx, is_idx, iv_idx
       use geometry, only: bmag, dBdrho, dl_over_b, d_dl_over_b_drho
       use gyro_averages, only: gyro_average, aj0x, aj1x
-      use dist_fn_arrays, only: kperp2, dkperp2dr
+      use arrays_dist_fn, only: kperp2, dkperp2dr
       use zgrid, only: nzgrid, ntubes
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
@@ -562,10 +566,11 @@ contains
       use job_manage, only: time_message
       use zgrid, only: nzgrid, ntubes
       use constants, only: pi, zi
-      use kt_grids, only: zonal_mode, akx, nakx, boundary_size
+      use grids_kxky, only: zonal_mode, akx, boundary_size
+      use parameters_kxky_grids, only: nakx
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
-      use dist_fn_arrays, only: g_proj, g_symm
+      use arrays_dist_fn, only: g_proj, g_symm
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
@@ -684,7 +689,7 @@ contains
 
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
-      use fields_arrays, only: qn_zf_window
+      use arrays_fields, only: qn_zf_window
       use mp, only: sgproc0, sharedsubprocs, comm_sgroup
       use mp, only: real_size, nbytes_real, create_shared_memory_window
       use mp_lu_decomposition, only: lu_decomposition_local, lu_inverse_local
@@ -693,10 +698,11 @@ contains
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use zgrid, only: nzgrid, nztot
-      use kt_grids, only: nakx, rho_d_clamped, boundary_size
+      use parameters_kxky_grids, only: nakx
+      use grids_kxky, only: rho_d_clamped, boundary_size
       use linear_solve, only: lu_decomposition
-      use fields_arrays, only: phizf_solve, c_mat, theta, phi_ext
-      use fields_arrays, only: tcorr_source_qn, exclude_boundary_regions_qn, exp_fac_qn
+      use arrays_fields, only: phizf_solve, c_mat, theta, phi_ext
+      use arrays_fields, only: tcorr_source_qn, exclude_boundary_regions_qn, exp_fac_qn
 
       implicit none
 
@@ -878,8 +884,8 @@ contains
 
    subroutine update_quasineutrality_source
 
-      use fields_arrays, only: phi_proj, phi_proj_stage
-      use fields_arrays, only: tcorr_source_qn, exp_fac_qn
+      use arrays_fields, only: phi_proj, phi_proj_stage
+      use arrays_fields, only: tcorr_source_qn, exp_fac_qn
 
       implicit none
 

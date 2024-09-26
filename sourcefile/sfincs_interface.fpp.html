@@ -971,7 +971,7 @@
 <a id="ln-812" name="ln-812" href="#ln-812"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nzgrid</span><span class="p">,</span><span class="w"> </span><span class="n">nz2pi</span>
 <a id="ln-813" name="ln-813" href="#ln-813"></a><span class="w">      </span><span class="k">use </span><span class="n">export_f</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">h_sfincs</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">delta_f</span>
 <a id="ln-814" name="ln-814" href="#ln-814"></a><span class="w">      </span><span class="k">use </span><span class="n">globalVariables</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">Phi1Hat</span>
-<a id="ln-815" name="ln-815" href="#ln-815"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nalpha</span>
+<a id="ln-815" name="ln-815" href="#ln-815"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_kxky_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nalpha</span>
 <a id="ln-816" name="ln-816" href="#ln-816"></a>
 <a id="ln-817" name="ln-817" href="#ln-817"></a><span class="w">      </span><span class="k">implicit none</span>
 <a id="ln-818" name="ln-818" href="#ln-818"></a>
@@ -1146,7 +1146,7 @@
 <a id="ln-987" name="ln-987" href="#ln-987"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nz2pi</span><span class="p">,</span><span class="w"> </span><span class="n">zed</span>
 <a id="ln-988" name="ln-988" href="#ln-988"></a><span class="w">      </span><span class="k">use </span><span class="n">geometry</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">dzetadz</span>
 <a id="ln-989" name="ln-989" href="#ln-989"></a><span class="w">      </span><span class="k">use </span><span class="n">geometry</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">alpha</span>
-<a id="ln-990" name="ln-990" href="#ln-990"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nalpha</span>
+<a id="ln-990" name="ln-990" href="#ln-990"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_kxky_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nalpha</span>
 <a id="ln-991" name="ln-991" href="#ln-991"></a><span class="w">      </span><span class="k">use </span><span class="n">globalVariables</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">iota</span>
 <a id="ln-992" name="ln-992" href="#ln-992"></a>
 <a id="ln-993" name="ln-993" href="#ln-993"></a><span class="w">      </span><span class="k">implicit none</span>
@@ -1380,7 +1380,7 @@
 <a id="ln-1221" name="ln-1221" href="#ln-1221"></a><span class="w">   </span><span class="k">subroutine </span><span class="n">get_field_on_extended_zed</span><span class="p">(</span><span class="n">field_stella</span><span class="p">,</span><span class="w"> </span><span class="n">field_neoclassical</span><span class="p">)</span>
 <a id="ln-1222" name="ln-1222" href="#ln-1222"></a>
 <a id="ln-1223" name="ln-1223" href="#ln-1223"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nzgrid</span><span class="p">,</span><span class="w"> </span><span class="n">nz2pi</span><span class="p">,</span><span class="w"> </span><span class="n">nperiod</span>
-<a id="ln-1224" name="ln-1224" href="#ln-1224"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nalpha</span>
+<a id="ln-1224" name="ln-1224" href="#ln-1224"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_kxky_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nalpha</span>
 <a id="ln-1225" name="ln-1225" href="#ln-1225"></a>
 <a id="ln-1226" name="ln-1226" href="#ln-1226"></a><span class="w">      </span><span class="k">implicit none</span>
 <a id="ln-1227" name="ln-1227" href="#ln-1227"></a>
@@ -1754,13 +1754,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.7-23-gd0790329c2</small></p>
+<br /><small>v0.7-24-gc0992ea3bb</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-09-19T15:17:35.676529             </p>
+ on 2024-09-26T09:56:17.317360             </p>
           </div>
         </div>
         <br>

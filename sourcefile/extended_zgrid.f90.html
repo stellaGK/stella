@@ -159,25 +159,25 @@
         <h2><span class="anchor" id="src"></span>Source Code</h2>
         <div class="hl codehilite"><pre><span></span><a id="ln-1" name="ln-1" href="#ln-1"></a><span class="k">module </span><span class="n">extended_zgrid</span>
 <a id="ln-2" name="ln-2" href="#ln-2"></a>
-<a id="ln-3" name="ln-3" href="#ln-3"></a><span class="w">   </span><span class="k">implicit none</span>
+<a id="ln-3" name="ln-3" href="#ln-3"></a><span class="w">   </span><span class="k">use </span><span class="n">debug_flags</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">debug</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">extended_grid_debug</span>
 <a id="ln-4" name="ln-4" href="#ln-4"></a>
-<a id="ln-5" name="ln-5" href="#ln-5"></a><span class="k">   public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">nsegments</span>
-<a id="ln-6" name="ln-6" href="#ln-6"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">neigen</span><span class="p">,</span><span class="w"> </span><span class="n">neigen_max</span>
-<a id="ln-7" name="ln-7" href="#ln-7"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ikxmod</span>
-<a id="ln-8" name="ln-8" href="#ln-8"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">iz_low</span><span class="p">,</span><span class="w"> </span><span class="n">iz_mid</span><span class="p">,</span><span class="w"> </span><span class="n">iz_up</span>
-<a id="ln-9" name="ln-9" href="#ln-9"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">it_right</span>
-<a id="ln-10" name="ln-10" href="#ln-10"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">periodic</span>
-<a id="ln-11" name="ln-11" href="#ln-11"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">phase_shift</span>
-<a id="ln-12" name="ln-12" href="#ln-12"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">nzed_segment</span>
-<a id="ln-13" name="ln-13" href="#ln-13"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">fill_zed_ghost_zones</span><span class="p">,</span><span class="w"> </span><span class="n">fill_zext_ghost_zones</span>
-<a id="ln-14" name="ln-14" href="#ln-14"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">init_extended_zgrid</span><span class="p">,</span><span class="w"> </span><span class="n">finish_extended_zgrid</span>
-<a id="ln-15" name="ln-15" href="#ln-15"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">map_to_extended_zgrid</span>
-<a id="ln-16" name="ln-16" href="#ln-16"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">map_from_extended_zgrid</span>
-<a id="ln-17" name="ln-17" href="#ln-17"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">map_to_iz_ikx_from_izext</span>
-<a id="ln-18" name="ln-18" href="#ln-18"></a>
-<a id="ln-19" name="ln-19" href="#ln-19"></a><span class="w">   </span><span class="k">private</span>
-<a id="ln-20" name="ln-20" href="#ln-20"></a><span class="k">   </span>
-<a id="ln-21" name="ln-21" href="#ln-21"></a><span class="k">   </span><span class="kt">logical</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">debug</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a id="ln-5" name="ln-5" href="#ln-5"></a><span class="w">   </span><span class="k">implicit none</span>
+<a id="ln-6" name="ln-6" href="#ln-6"></a>
+<a id="ln-7" name="ln-7" href="#ln-7"></a><span class="k">   public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">nsegments</span>
+<a id="ln-8" name="ln-8" href="#ln-8"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">neigen</span><span class="p">,</span><span class="w"> </span><span class="n">neigen_max</span>
+<a id="ln-9" name="ln-9" href="#ln-9"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ikxmod</span>
+<a id="ln-10" name="ln-10" href="#ln-10"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">iz_low</span><span class="p">,</span><span class="w"> </span><span class="n">iz_mid</span><span class="p">,</span><span class="w"> </span><span class="n">iz_up</span>
+<a id="ln-11" name="ln-11" href="#ln-11"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">it_right</span>
+<a id="ln-12" name="ln-12" href="#ln-12"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">periodic</span>
+<a id="ln-13" name="ln-13" href="#ln-13"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">phase_shift</span>
+<a id="ln-14" name="ln-14" href="#ln-14"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">nzed_segment</span>
+<a id="ln-15" name="ln-15" href="#ln-15"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">fill_zed_ghost_zones</span><span class="p">,</span><span class="w"> </span><span class="n">fill_zext_ghost_zones</span>
+<a id="ln-16" name="ln-16" href="#ln-16"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">init_extended_zgrid</span><span class="p">,</span><span class="w"> </span><span class="n">finish_extended_zgrid</span>
+<a id="ln-17" name="ln-17" href="#ln-17"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">map_to_extended_zgrid</span>
+<a id="ln-18" name="ln-18" href="#ln-18"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">map_from_extended_zgrid</span>
+<a id="ln-19" name="ln-19" href="#ln-19"></a><span class="w">   </span><span class="k">public</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">map_to_iz_ikx_from_izext</span>
+<a id="ln-20" name="ln-20" href="#ln-20"></a>
+<a id="ln-21" name="ln-21" href="#ln-21"></a><span class="w">   </span><span class="k">private</span>
 <a id="ln-22" name="ln-22" href="#ln-22"></a>
 <a id="ln-23" name="ln-23" href="#ln-23"></a><span class="w">   </span><span class="c">!&gt; these arrays needed to keep track of connections between different</span>
 <a id="ln-24" name="ln-24" href="#ln-24"></a><span class="w">   </span><span class="c">!&gt; 2pi segments</span>
@@ -207,9 +207,9 @@
 <a id="ln-48" name="ln-48" href="#ln-48"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">boundary_option_linked</span>
 <a id="ln-49" name="ln-49" href="#ln-49"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">boundary_option_linked_stellarator</span>
 <a id="ln-50" name="ln-50" href="#ln-50"></a><span class="w">      </span><span class="k">use </span><span class="n">zgrid</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nperiod</span><span class="p">,</span><span class="w"> </span><span class="n">nzgrid</span><span class="p">,</span><span class="w"> </span><span class="n">nzed</span><span class="p">,</span><span class="w"> </span><span class="n">ntubes</span>
-<a id="ln-51" name="ln-51" href="#ln-51"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nakx</span><span class="p">,</span><span class="w"> </span><span class="n">naky</span>
-<a id="ln-52" name="ln-52" href="#ln-52"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">jtwist</span><span class="p">,</span><span class="w"> </span><span class="n">ikx_twist_shift</span><span class="p">,</span><span class="w"> </span><span class="n">phase_shift_angle</span>
-<a id="ln-53" name="ln-53" href="#ln-53"></a><span class="w">      </span><span class="k">use </span><span class="n">kt_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">aky</span><span class="p">,</span><span class="w"> </span><span class="n">ikx_max</span>
+<a id="ln-51" name="ln-51" href="#ln-51"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_kxky_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">nakx</span><span class="p">,</span><span class="w"> </span><span class="n">naky</span><span class="p">,</span><span class="w"> </span><span class="n">ikx_max</span>
+<a id="ln-52" name="ln-52" href="#ln-52"></a><span class="w">      </span><span class="k">use </span><span class="n">parameters_kxky_grids</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">jtwist</span><span class="p">,</span><span class="w"> </span><span class="n">ikx_twist_shift</span><span class="p">,</span><span class="w"> </span><span class="n">phase_shift_angle</span>
+<a id="ln-53" name="ln-53" href="#ln-53"></a><span class="w">      </span><span class="k">use </span><span class="n">grids_kxky</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">aky</span>
 <a id="ln-54" name="ln-54" href="#ln-54"></a><span class="w">      </span><span class="k">use </span><span class="n">constants</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">zi</span>
 <a id="ln-55" name="ln-55" href="#ln-55"></a><span class="w">      </span><span class="k">use </span><span class="n">mp</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">proc0</span>
 <a id="ln-56" name="ln-56" href="#ln-56"></a>
@@ -669,13 +669,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.7-23-gd0790329c2</small></p>
+<br /><small>v0.7-24-gc0992ea3bb</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-09-19T15:17:35.676529             </p>
+ on 2024-09-26T09:56:17.317360             </p>
           </div>
         </div>
         <br>

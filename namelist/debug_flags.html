@@ -1,0 +1,378 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="stella is a flux tube gyrokinetic code for micro-stability and turbulence simulations of strongly magnetised plasma">
+    <meta name="author" content="The stella team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>  debug_flags &ndash; stella
+</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+      <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">stella </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                <li class="nav-item"><a class="nav-link" href="../page/index.html">Manual</a></li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/programs.html">Programs</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>debug_flags</h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/debug_flags.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/debug_flags.f90.html'>debug_flags.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/debug_flags.html'>debug_flags</a></li>
+                <li class="breadcrumb-item"><a href='../proc/read_debug_flags.html'>read_debug_flags</a></li>
+            <li class="breadcrumb-item active" aria-current="page">debug_flags</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(function () {
+    $('[data-bs-toggle="tooltip"]').tooltip()
+    })
+  </script>
+
+  </div>
+
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+        <div id="sidebar">
+      <h3>Contents</h3>
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#vars-0"
+         aria-expanded="false" aria-controls="vars-0">
+         <h4 class="card-header bg-primary text-white">Variables</h4>
+      </a>
+      <div id="vars-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-debug_all">debug_all</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-stella_debug">stella_debug</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-ffs_solve_debug">ffs_solve_debug</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-fields_debug">fields_debug</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-implicit_solve_debug">implicit_solve_debug</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-parallel_streaming_debug">parallel_streaming_debug</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-mirror_terms_debug">mirror_terms_debug</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-neoclassical_terms_debug">neoclassical_terms_debug</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-response_matrix_debug">response_matrix_debug</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-time_advance_debug">time_advance_debug</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-extended_grid_debug">extended_grid_debug</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-diagnostics_debug">diagnostics_debug</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-diagnostics_parameters">diagnostics_parameters</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-diagnostics_fluxes_fluxtube_debug">diagnostics_fluxes_fluxtube_debug</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-diagnostics_omega_debug">diagnostics_omega_debug</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-diagnostics_main_debug">diagnostics_main_debug</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-dist_fn_debug">dist_fn_debug</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-gyro_averages_debug">gyro_averages_debug</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-fluxes_debug">fluxes_debug</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-geometry_debug">geometry_debug</a>
+            <a class="list-group-item" href="../namelist/debug_flags.html#variable-const_alpha_geo">const_alpha_geo</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+
+  </div>
+
+    </div>
+
+    <div class="col-md-9" id='text'>
+        
+  <br class="visible-xs visible-sm hidden-md">
+  <section>
+    <h2>Variables</h2>
+    <table class="table table-striped" id="namelist-debug_flags">
+      <thead><tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Default</th>
+          <th>Description</th>
+      </tr></thead>
+      <tbody>
+              <tr id="variable-debug_all">
+      <td><a href="#variable-debug_all">debug_all</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-stella_debug">
+      <td><a href="#variable-stella_debug">stella_debug</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td><p>Main stella file debug flag</p></td>
+    </tr>
+
+              <tr id="variable-ffs_solve_debug">
+      <td><a href="#variable-ffs_solve_debug">ffs_solve_debug</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td><p>For FFS</p></td>
+    </tr>
+
+              <tr id="variable-fields_debug">
+      <td><a href="#variable-fields_debug">fields_debug</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td><p>Fields debug flags</p></td>
+    </tr>
+
+              <tr id="variable-implicit_solve_debug">
+      <td><a href="#variable-implicit_solve_debug">implicit_solve_debug</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-parallel_streaming_debug">
+      <td><a href="#variable-parallel_streaming_debug">parallel_streaming_debug</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-mirror_terms_debug">
+      <td><a href="#variable-mirror_terms_debug">mirror_terms_debug</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-neoclassical_terms_debug">
+      <td><a href="#variable-neoclassical_terms_debug">neoclassical_terms_debug</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-response_matrix_debug">
+      <td><a href="#variable-response_matrix_debug">response_matrix_debug</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-time_advance_debug">
+      <td><a href="#variable-time_advance_debug">time_advance_debug</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td><p>Gyrokinetic terms, debug flags</p></td>
+    </tr>
+
+              <tr id="variable-extended_grid_debug">
+      <td><a href="#variable-extended_grid_debug">extended_grid_debug</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-diagnostics_debug">
+      <td><a href="#variable-diagnostics_debug">diagnostics_debug</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td><p>Diagnostics debug flags</p></td>
+    </tr>
+
+              <tr id="variable-diagnostics_parameters">
+      <td><a href="#variable-diagnostics_parameters">diagnostics_parameters</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-diagnostics_fluxes_fluxtube_debug">
+      <td><a href="#variable-diagnostics_fluxes_fluxtube_debug">diagnostics_fluxes_fluxtube_debug</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-diagnostics_omega_debug">
+      <td><a href="#variable-diagnostics_omega_debug">diagnostics_omega_debug</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-diagnostics_main_debug">
+      <td><a href="#variable-diagnostics_main_debug">diagnostics_main_debug</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-dist_fn_debug">
+      <td><a href="#variable-dist_fn_debug">dist_fn_debug</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-gyro_averages_debug">
+      <td><a href="#variable-gyro_averages_debug">gyro_averages_debug</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-fluxes_debug">
+      <td><a href="#variable-fluxes_debug">fluxes_debug</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-geometry_debug">
+      <td><a href="#variable-geometry_debug">geometry_debug</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-const_alpha_geo">
+      <td><a href="#variable-const_alpha_geo">const_alpha_geo</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+      </tbody>
+    </table>
+  </section>
+
+      <br>
+    </div>
+  </div>
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              stella
+ was developed by The stella team<br>              &copy; 2024 
+<br /><small>v0.7-24-gc0992ea3bb</small></p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2024-09-26T09:56:17.317360             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>    
+
+    <!-- MathJax JavaScript
+             ================================================== -->
+             <!-- Placed at the end of the document so the pages load faster -->
+        <script type="text/x-mathjax-config">
+          MathJax.Hub.Config({
+          TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+          jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+          extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+          });
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+          <script src="../tipuesearch/tipuesearch_content.js"></script>
+          <script src="../tipuesearch/tipuesearch_set.js"></script>
+          <script src="../tipuesearch/tipuesearch.js"></script>
+
+  </body>
+</html>

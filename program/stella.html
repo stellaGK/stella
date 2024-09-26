@@ -118,13 +118,12 @@
       </a>
       <div id="vars-0" class="collapse">
         <div class="list-group list-group-flush">
-            <a class="list-group-item" href="../program/stella.html#variable-debug~14">debug</a>
             <a class="list-group-item" href="../program/stella.html#variable-stop_stella~4">stop_stella</a>
             <a class="list-group-item" href="../program/stella.html#variable-mpi_initialized">mpi_initialized</a>
-            <a class="list-group-item" href="../program/stella.html#variable-istep0~2">istep0</a>
-            <a class="list-group-item" href="../program/stella.html#variable-istep~16">istep</a>
-            <a class="list-group-item" href="../program/stella.html#variable-ierr~44">ierr</a>
-            <a class="list-group-item" href="../program/stella.html#variable-istatus~5">istatus</a>
+            <a class="list-group-item" href="../program/stella.html#variable-istep0~4">istep0</a>
+            <a class="list-group-item" href="../program/stella.html#variable-istep~18">istep</a>
+            <a class="list-group-item" href="../program/stella.html#variable-ierr~56">ierr</a>
+            <a class="list-group-item" href="../program/stella.html#variable-istatus~9">istatus</a>
             <a class="list-group-item" href="../program/stella.html#variable-time_init">time_init</a>
             <a class="list-group-item" href="../program/stella.html#variable-time_diagnose_stella">time_diagnose_stella</a>
             <a class="list-group-item" href="../program/stella.html#variable-time_total">time_total</a>
@@ -182,18 +181,19 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/dist_fn_arrays.html'>dist_fn_arrays</a></li>
-                  <li class="list-inline-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
-                  <li class="list-inline-item"><a href='../module/diagnostics.html'>diagnostics</a></li>
-                  <li class="list-inline-item"><a href='../module/time_advance.html'>time_advance</a></li>
-                  <li class="list-inline-item"><a href='../module/diagnostics_omega.html'>diagnostics_omega</a></li>
-                  <li class="list-inline-item"><a href='../module/dist_redistribute.html'>dist_redistribute</a></li>
-                  <li class="list-inline-item">git_version</li>
-                  <li class="list-inline-item"><a href='../module/parameters_diagnostics.html'>parameters_diagnostics</a></li>
+                  <li class="list-inline-item"><a href='../module/redistribute.html'>redistribute</a></li>
+                  <li class="list-inline-item">parameters_numerical</li>
+                  <li class="list-inline-item"><a href='../module/arrays_dist_fn.html'>arrays_dist_fn</a></li>
                   <li class="list-inline-item"><a href='../module/file_utils.html'>file_utils</a></li>
                   <li class="list-inline-item"><a href='../module/stella_time.html'>stella_time</a></li>
-                  <li class="list-inline-item"><a href='../module/redistribute.html'>redistribute</a></li>
+                  <li class="list-inline-item"><a href='../module/time_advance.html'>time_advance</a></li>
+                  <li class="list-inline-item">git_version</li>
                   <li class="list-inline-item"><a href='../module/stella_save.html'>stella_save</a></li>
+                  <li class="list-inline-item"><a href='../module/parameters_diagnostics.html'>parameters_diagnostics</a></li>
+                  <li class="list-inline-item"><a href='../module/diagnostics.html'>diagnostics</a></li>
+                  <li class="list-inline-item"><a href='../module/debug_flags.html'>debug_flags</a></li>
+                  <li class="list-inline-item"><a href='../module/diagnostics_omega.html'>diagnostics_omega</a></li>
+                  <li class="list-inline-item"><a href='../module/dist_redistribute.html'>dist_redistribute</a></li>
                   <li class="list-inline-item"><a href='../module/job_manage.html'>job_manage</a></li>
               </ul>
             </li>
@@ -219,22 +219,6 @@ Finish stella</p>
 <th></th><th scope="col">Initial</th>        <th scope="col"></th>
     </thead>
     <tbody>
-        <tr>
-            <td>
-              <span class="anchor" id="variable-debug~14"></span>
-              logical
-            </td>
-            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>debug</strong></td>
-<td> =</td>
-                <td>.false.</td>
-            <td>
-                
-            </td>
-        </tr>
         <tr>
             <td>
               <span class="anchor" id="variable-stop_stella~4"></span>
@@ -269,7 +253,7 @@ Finish stella</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep0~2"></span>
+              <span class="anchor" id="variable-istep0~4"></span>
               integer
             </td>
             <td>
@@ -285,7 +269,7 @@ Finish stella</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep~16"></span>
+              <span class="anchor" id="variable-istep~18"></span>
               integer
             </td>
             <td>
@@ -301,7 +285,7 @@ Finish stella</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-ierr~44"></span>
+              <span class="anchor" id="variable-ierr~56"></span>
               integer
             </td>
             <td>
@@ -317,7 +301,7 @@ Finish stella</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-istatus~5"></span>
+              <span class="anchor" id="variable-istatus~9"></span>
               integer
             </td>
             <td>
@@ -445,7 +429,7 @@ Finish stella</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-istep0~3"></span>
+              <span class="anchor" id="variable-istep0~5"></span>
               integer,
             </td>
 <td>intent(out)</td>
@@ -687,13 +671,13 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.7-23-gd0790329c2</small></p>
+<br /><small>v0.7-24-gc0992ea3bb</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-09-19T15:17:35.676529             </p>
+ on 2024-09-26T09:56:17.317360             </p>
           </div>
         </div>
         <br>
