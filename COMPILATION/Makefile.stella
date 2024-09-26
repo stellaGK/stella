@@ -46,9 +46,20 @@ export EXTERNALS_DIR
 
 # Define the subfolders within the STELLA_DIR directory and  
 # export the directories so they are available to child processes 
-export DIAG=$(STELLA_DIR)/diagnostics
-export GEO=$(STELLA_DIR)/geometry
-export COLL=$(STELLA_DIR)/dissipation
+export CALCULATIONS=$(STELLA_DIR)/calculations
+export DIAGNOSTICS=$(STELLA_DIR)/diagnostics
+export COLLISIONS=$(STELLA_DIR)/dissipation
+export FIELDS=$(STELLA_DIR)/fields
+export GEOMETRY=$(STELLA_DIR)/geometry
+export GRIDS=$(STELLA_DIR)/grids
+export GYROKINETIC_TERMS=$(STELLA_DIR)/gyrokinetic_terms
+export NEOCLASSICAL=$(STELLA_DIR)/neoclassical
+export PARAMETERS=$(STELLA_DIR)/parameters
+export RADIAL_VARIATION=$(STELLA_DIR)/radial_variation
+SUBFOLDERS := $(CALCULATIONS) $(DIAGNOSTICS) $(COLLISIONS) $(FIELDS) $(GEOMETRY) $(GRIDS)
+SUBFOLDERS := $(SUBFOLDERS) $(GYROKINETIC_TERMS) $(NEOCLASSICAL) $(PARAMETERS) $(RADIAL_VARIATION)
+VPATH_SUBFOLDERS := :$(CALCULATIONS):$(DIAGNOSTICS):$(COLLISIONS):$(FIELDS):$(GEOMETRY):$(GRIDS):
+VPATH_SUBFOLDERS := :$(VPATH_SUBFOLDERS):$(GYROKINETIC_TERMS):$(NEOCLASSICAL):$(PARAMETERS):$(RADIAL_VARIATION):
 
 # Check directories
 .PHONY: print-directories
@@ -99,8 +110,7 @@ $(BUILD_DIR) $(OBJ) $(MOD) $(FPP):
 
 # VPATH is a list of directories to be searched for missing source files
 # The value of the make variable VPATH specifies a list of directories that make should search.
-VPATH := :$(STELLA_DIR):$(DIAG):$(COLL):$(GEO):
-VPATH := $(VPATH):$(OBJ):$(MOD):$(FPP):
+VPATH := :$(STELLA_DIR):$(VPATH_SUBFOLDERS):$(OBJ):$(MOD):$(FPP):
  
 #===================================================================
 #                         EXTERNAL MODULES                         #
@@ -142,7 +152,7 @@ depend: $(GIT_VERSION_DIR)/git_version.f90 $(NEASYF_DIR)/neasyf.f90 $(BUILD_DIR)
 
 # Most common include and library directories
 # Important to include the external libraries 'utils.a', 'mini_libstell.a' and 'neasyf.a'
-DEFAULT_INC_LIST = . $(STELLA_DIR) $(DIAG) $(COLL) $(GEO) $(UTILS_DIR) $(MINILIBSTELL_DIR) $(NEASYF_DIR) $(OBJ) $(MOD) $(FPP)
+DEFAULT_INC_LIST = . $(STELLA_DIR) $(SUBFOLDERS) $(UTILS_DIR) $(MINILIBSTELL_DIR) $(NEASYF_DIR) $(OBJ) $(MOD) $(FPP)
 DEFAULT_LIB_LIST =
 DEFAULT_INC = $(foreach tmpinc,$(DEFAULT_INC_LIST),$(shell [ -d $(tmpinc) ] && echo -I$(tmpinc)))
 DEFAULT_LIB = $(foreach tmplib,$(DEFAULT_LIB_LIST),$(shell [ -d $(tmplib) ] && echo -L$(tmplib)))
@@ -225,20 +235,38 @@ MOD_FLAGS_STELLA := -I $(MOD) -I $(UTILS_MOD) -I $(MINILIBSTELL_MOD) -J $(MOD)
 $(OBJ)/%.o: $(STELLA_DIR)/%.f90 $(external_modules) | $(OBJ)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
-	
-$(OBJ)/%.o: $(DIAG)/%.f90 $(external_modules) | $(OBJ)
-	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
-	
-$(OBJ)/%.o: $(GEO)/%.f90 $(external_modules) | $(OBJ)
-	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
-	
-$(OBJ)/%.o: $(COLL)/%.f90 $(external_modules) | $(OBJ)
-	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
-	
 $(OBJ)/%.o: $(FPP)/%.f90 $(external_modules) | $(OBJ)
+	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+	
+$(OBJ)/%.o: $(CALCULATIONS)/%.f90 $(external_modules) | $(OBJ)
+	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+$(OBJ)/%.o: $(DIAGNOSTICS)/%.f90 $(external_modules) | $(OBJ)
+	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+$(OBJ)/%.o: $(COLLISIONS)/%.f90 $(external_modules) | $(OBJ)
+	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+$(OBJ)/%.o: $(FIELDS)/%.f90 $(external_modules) | $(OBJ)
+	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+$(OBJ)/%.o: $(GEOMETRY)/%.f90 $(external_modules) | $(OBJ)
+	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+$(OBJ)/%.o: $(GRIDS)/%.f90 $(external_modules) | $(OBJ)
+	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+$(OBJ)/%.o: $(GYROKINETIC_TERMS)/%.f90 $(external_modules) | $(OBJ)
+	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+$(OBJ)/%.o: $(NEOCLASSICAL)/%.f90 $(external_modules) | $(OBJ)
+	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+$(OBJ)/%.o: $(PARAMETERS)/%.f90 $(external_modules) | $(OBJ)
+	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+$(OBJ)/%.o: $(RADIAL_VARIATION)/%.f90 $(external_modules) | $(OBJ)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 
@@ -249,7 +277,8 @@ $(OBJ)/%.o: $(FPP)/%.f90 $(external_modules) | $(OBJ)
 # In STELLA_CODE/* and EXTERNALS/utils/*, we have *.fpp files, that need to be preprocessed into *.f90 files
 # We will use a pattern rule to create symbolic links of these *.fpp files in the $(FPP) directory
 # And we define the *.f90 file paths inside $(FPP), since we will preprocess $(FPP)/*.fpp to $(FPP)/*.f90
-existing_fpp_files = $(wildcard $(STELLA_DIR)/*.fpp) $(UTILS_DIR)/define.inc
+existing_fpp_files := $(wildcard $(FIELDS)/*.fpp) $(wildcard $(DIAGNOSTICS)/*.fpp) $(wildcard $(GYROKINETIC_TERMS)/*.fpp) 
+existing_fpp_files := $(existing_fpp_files) $(wildcard $(NEOCLASSICAL)/*.fpp) $(UTILS_DIR)/define.inc
 existing_fpp_file_names := $(notdir $(existing_fpp_files))
 fpp_files_in_build_directory := $(addprefix $(FPP)/, $(existing_fpp_file_names)) 
 f90_from_fpp_files = $(fpp_files_in_build_directory:.fpp=.f90)
@@ -274,8 +303,17 @@ $(FPP)/%.f90: $(FPP)/%.fpp $(FPP)/define.inc | $(FPP)
 	@echo "       (stella) *.fpp to *.f90: $(notdir $<)"
 	@$(CPP) $(CPPFLAGS) $< $@
 	
-# Create symbolic links from STELLA_CODE/*.fpp and EXTERNALS/utils/*.fpp to $(FPP)/*.fpp 
-$(FPP)/%.fpp: $(STELLA_DIR)/%.fpp | $(FPP)
+# Create symbolic links from STELLA_CODE/*/*.fpp to $(FPP)/*.fpp 
+$(FPP)/%.fpp: $(FIELDS)/%.fpp | $(FPP)
+	@echo "       (stella) ln -s STELLA_CODE/$(notdir $<) COMPILATION/$(FPP_NAME)/$(notdir $<)"	
+	@ln -sf $< $(FPP)
+$(FPP)/%.fpp: $(DIAGNOSTICS)/%.fpp | $(FPP)
+	@echo "       (stella) ln -s STELLA_CODE/$(notdir $<) COMPILATION/$(FPP_NAME)/$(notdir $<)"	
+	@ln -sf $< $(FPP)
+$(FPP)/%.fpp: $(GYROKINETIC_TERMS)/%.fpp | $(FPP)
+	@echo "       (stella) ln -s STELLA_CODE/$(notdir $<) COMPILATION/$(FPP_NAME)/$(notdir $<)"	
+	@ln -sf $< $(FPP)
+$(FPP)/%.fpp: $(NEOCLASSICAL)/%.fpp | $(FPP)
 	@echo "       (stella) ln -s STELLA_CODE/$(notdir $<) COMPILATION/$(FPP_NAME)/$(notdir $<)"	
 	@ln -sf $< $(FPP)
 	
@@ -371,9 +409,10 @@ remove-stella-files:
 	@if [ -d "$(FPP)" ]; then rmdir $(FPP); fi 
 remove-temp-files:
 	@echo "   - remove temp files" 
-	@-rm -f $(GEO)/*~ $(UTILS)/*~ $(COLL)/*~ $(DIAG)/*~ 
-	
-	
+	@-rm -f $(UTILS)/*~ $(CALCULATIONS)/*~ $(DIAGNOSTICS)/*~ $(COLLISIONS)/*~ 
+	@-rm -f $(FIELDS)/*~ $(GEOMETRY)/*~ $(GRIDS)/*~ $(GYROKINETIC_TERMS)/*~ 
+	@-rm -f $(NEOCLASSICAL)/*~ $(PARAMETERS)/*~ $(RADIAL_VARIATION)/*~ 
+
 # In case cmake was used, clean it up as well
 CMAKE := $(COMPILATION_DIR)/build_cmake
 CMAKE1 := $(COMPILATION_DIR)/build_cmake/CMakeFiles
