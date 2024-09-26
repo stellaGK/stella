@@ -2,24 +2,29 @@
 
 [![Check stella](https://github.com/stellaGK/stella/actions/workflows/check_stella.yml/badge.svg)](https://github.com/stellaGK/stella/actions/workflows/check_stella.yml)
 
-stella solves the gyrokinetic-Poisson system of equations in the local limit
+`stella` solves the gyrokinetic-Poisson system of equations in the local limit
 using an operator-split, implicit-explicit numerical scheme. It is capable of
 evolving electrostatic fluctuations with fully kinetic electrons and an
 arbitrary number of ion species in general magnetic geometry, including
 stellarators.
 
 
-## Table of contents
-  * [Dependencies](#dependencies)
-  * [Installation and Compilation](#installation-and-compilation)
-    + [CMake](#cmake)
-    + [Make](#make)
-  * [Verification of stella output](#verification-of-stella-output)
-    + [Set-up](#set-up)
-    + [Numerical tests](#numerical-tests)
+## Table of contents 
+  * [Code](#code)
+    + [stella.f90](#stellaf90)
+    + [Calculations](#calculations)
+    + [Diagnostics](#diagnostics)
+    + [Dissipation](#dissipation)
+    + [Fields](#fields)
+    + [Geometry](#geometry)
+    + [Grids](#grids)
+    + [Gyrokinetic_terms](#gyrokinetic-terms)
+    + [Neoclassical](#neoclassical)
+    + [Parameters](#parameters)
+    + [Radial_variation](#radial-variation)
 
 
-## Structure
+## Code
 
 The code is organized in the following folders:
 - calculations
