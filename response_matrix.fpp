@@ -732,7 +732,8 @@ contains
       ! need to check, but think this is okay as the homogeneous equation solved here for the
       ! response matrix construction is the same for all flux tubes in the flux tube train
       it = 1
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc         
          ! calculate the RHS of the GK equation (using dum=0 as the pdf at the previous time level,
          ! and phi_ext as the potential) and store it in pdf_ext
          call get_gke_rhs(ivmu, iky, ie, dum, phi_ext, dum, dum, dum, dum, pdf_ext(:, ivmu))
@@ -1201,7 +1202,7 @@ contains
       use extended_zgrid, only: nsegments
       use grids_kxky, only: zonal_mode, akx
       use arrays_fields, only: gamtot, gamtot3
-      use fields, only: gamtot_h, gamtot3_h
+      use arrays_fields, only: gamtot_h, gamtot3_h
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
 
@@ -1281,7 +1282,7 @@ contains
       use extended_zgrid, only: nsegments
       use grids_kxky, only: zonal_mode, akx
       use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
-      use fields, only: gamtot_h
+      use arrays_fields, only: gamtot_h
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
       use mp, only: mp_abort
@@ -1372,7 +1373,7 @@ contains
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
       use grids_kxky, only: zonal_mode, akx
-      use fields, only: apar_denom
+      use arrays_fields, only: apar_denom
       use arrays_dist_fn, only: kperp2
 
       implicit none
