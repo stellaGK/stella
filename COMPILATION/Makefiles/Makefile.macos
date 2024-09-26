@@ -1,0 +1,21 @@
+# Makefile for maxOS or Mac OS X
+# In your bashrc file, set the following environment variables:
+#    $(FFTW_LIB_DIR)
+#    $(FFTW_INC_DIR)
+#    $(NETCDF_INC_DIR)
+#    $(NETCDF_LIB_DIR)
+
+COMPILER=gnu-gfortran
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
+
+USE_LOCAL_SPFUNC=on
+
+ifeq ($(USE_FFT),fftw3)
+	FFT_INC = -I$(FFTW_INC_DIR)
+	FFT_LIB = -L$(FFTW_LIB_DIR) -lfftw3 -lfftw3f
+endif
+
+ifdef USE_NETCDF
+	NETCDF_INC = -I$(NETCDF_INC_DIR)
+	NETCDF_LIB = -L$(NETCDF_LIB_DIR) -lnetcdf -lnetcdff
+endif

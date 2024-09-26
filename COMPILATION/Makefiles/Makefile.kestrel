@@ -1,0 +1,36 @@
+# Host: kestrel at PPPL (Opteron cluster)
+
+COMPILER=pathscale
+CHIP=opteron
+ifdef FFTWHOME
+	ifdef DBLE
+		USE_FFT = fftw
+	else
+		override USE_FFT =
+	endif
+else
+	override  USE_FFT =
+endif
+ifdef NETCDFHOME
+	USE_NETCDF = on
+else
+	override USE_NETCDF =
+endif
+
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
+
+LIBS += -lmpichf90
+
+ifeq ($(USE_FFT),fftw)
+	FFT_INC = -I${FFTWHOME}/include
+	ifdef DBLE
+# The double precision versions of FFTW are default, don't use dfftw,...
+		FFT_LIB = -L${FFTWHOME}/lib -lrfftw -lfftw
+	endif
+endif
+
+ifdef USE_NETCDF
+	NETCDF_INC = -I${NETCDFHOME}/include
+	NETCDF_LIB = -L${NETCDFHOME}/lib -lnetcdf
+endif
+

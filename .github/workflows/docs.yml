@@ -1,4 +1,4 @@
-name: Documenation
+name: Documentation
 on:
   push:
     branches:
@@ -26,22 +26,28 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.8'
+        
     - name: Install FORD
       run: |
         python -m pip install --upgrade pip
         pip install ford
         ford --version
+        
     - name: Build documentation
       run: |
         export GK_SYSTEM=gnu_ubuntu
+        git submodule update --init --recursive
         make -I Makefiles doc
+        
     - name: Checkout pages branch
       run: |
         git checkout -b gh-pages --track origin/gh-pages
+        
     - name: Move built documentation
       run: |
-        cp -vr docs/html/* .
-        rm -rf docs/html
+        cp -vr DOCUMENTATION/automatic_documentation_manual_pages/* .
+        rm -rf DOCUMENTATION/automatic_documentation_manual_pages
+        
     - uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_message: Add built documentation

@@ -1,14 +1,23 @@
+
+# Compiled files
 *.o
 *.a
 *.mod
 *.smod
 *.swp
+*.so
 stella
 .DS_Store
 geo/vmec_interface/test_vmec_to_geometry_interface
 post_processing/clean_hist
 build*/
 
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# *.fpp files will create *.f90 files
 command_line.f90
 constants.f90
 file_utils.f90
@@ -29,17 +38,19 @@ system_fortran.f90
 # Stellapy
 !stellapy/data/stella
 
-externals/pFUnit_build
-tests/automated_fortran_tests/*.F90
-docs/html/
-docs/pages/user_manual/namelists.md
+# Fortran tests
+automated-fortran-tests
+COMPILATION/pFUnit_build
+AUTOMATIC_TESTS/test_fortran_routines/*.F90
+AUTOMATIC_TESTS/test_fortran_routines/*.f90
 .compiler_flags
 .fortran_git_version
 
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+# Automatic documentation
+docs/html/
+docs/pages/user_manual/namelists.md
+DOCUMENTATION/automatic_documentation_FORD/
+DOCUMENTATION/automatic_documentation_manual_pages/user_manual/namelists.md
 
 # C extensions
 *.so

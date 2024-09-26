@@ -1,0 +1,76 @@
+
+
+
+
+&physics_flags
+  adiabatic_option = 'field-line-average-term'
+  nonlinear = .false.
+/
+&species_knobs
+  nspec = 1
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 0.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 0.0
+  type = 'ion'
+  z = 1.0
+/
+&kt_grids_range_parameters
+  naky = 1
+  aky_min = 0.0
+  akx_min = 0.05
+/
+&zgrid_parameters
+  boundary_option = 'unconnected'
+  nperiod = 1
+  nzed = 48
+/
+&vpamu_grids_parameters
+  nmu = 12
+  nvgrid = 48
+/
+&knobs
+  delt = 0.1
+  nstep = 3000
+  print_extra_info_to_terminal = .false.
+/
+&stella_diagnostics_knobs
+  nsave = 3000
+  nwrite = 30
+  save_for_restart = .false.
+  write_all = .false.
+/
+&init_g_knobs
+  ginit_option = 'rh'
+  phiinit = 1.0
+  width0 = 1.0
+/
+&geo_knobs
+  geo_option = 'miller'
+/
+&kt_grids_knobs
+  grid_option = 'range'
+/
+&time_advance_knobs
+  explicit_option = 'rk3'
+/
+&millergeo_parameters
+  nzed_local = 128
+  rhoc = 0.5
+  shat = 0.796
+  qinp = 1.4
+  rmaj = 2.77778
+  rgeo = 2.77778
+  shift = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  betaprim = 0.0
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  betadbprim = 0.0
+/
