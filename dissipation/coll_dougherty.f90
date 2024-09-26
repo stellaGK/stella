@@ -218,7 +218,9 @@ contains
       use geometry, only: dl_over_b
       use arrays_dist_fn, only: gvmu
       use gyro_averages, only: aj0v
-      use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h
+      use fields_fluxtube, only: get_fields_fluxtube
+      use fields_collisions, only: get_fields_by_spec
+      use arrays_fields, only: efac, gamtot_h
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
 
@@ -277,7 +279,7 @@ contains
       ! for phi equation, need 1-P[dhs/dphi]
       ! for upar equations, need -Us[dhs/dphi]
       ! for energy conservation, need -Qs[dhs/dphi]
-      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h', skip_fsa=.true.)
+      call get_fields_fluxtube(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h', skip_fsa=.true.)
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -473,7 +475,9 @@ contains
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use arrays_dist_fn, only: gvmu, kperp2
       use gyro_averages, only: aj0v, aj1v
-      use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h
+      use fields_fluxtube, only: get_fields_fluxtube
+      use fields_collisions, only: get_fields_by_spec
+      use arrays_fields, only: efac, gamtot_h
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
 
@@ -524,7 +528,7 @@ contains
       ! for phi equation, need 1-P[dhs/dphi]
       ! for uperp equations, need -Us[dhs/dphi]
       ! for energy conservation, need -Qs[dhs/dphi]
-      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h', skip_fsa=.true.)
+      call get_fields_fluxtube(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h', skip_fsa=.true.)
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -1542,7 +1546,8 @@ contains
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use g_tofrom_h, only: g_to_h
       use gyro_averages, only: aj0v
-      use fields, only: get_fields, efac, gamtot_h
+      use fields_fluxtube, only: get_fields_fluxtube
+      use arrays_fields, only: efac, gamtot_h
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
 
@@ -1579,7 +1584,7 @@ contains
 
       ! need to obtain phi^{n+1} and conservation terms using response matrix approach
       ! first get phi_inh^{n+1}
-      call get_fields(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
+      call get_fields_fluxtube(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
       flds(:, :, :, :, 1) = phi
 
       idx = 2
@@ -1707,7 +1712,8 @@ contains
       use arrays_dist_fn, only: kperp2
       use gyro_averages, only: aj0v, aj1v
       use g_tofrom_h, only: g_to_h
-      use fields, only: get_fields, efac, gamtot_h
+      use fields_fluxtube, only: get_fields_fluxtube
+      use arrays_fields, only: efac, gamtot_h
       use geometry, only: bmag, dl_over_b
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
@@ -1762,7 +1768,7 @@ contains
 
       ! need to obtain phi^{n+1} and conservation terms using response matrix approach
       ! first get phi_inh^{n+1}
-      call get_fields(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
+      call get_fields_fluxtube(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
       flds(:, :, :, :, 1) = phi
 
       idx = 2

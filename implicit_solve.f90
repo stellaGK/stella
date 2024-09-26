@@ -39,7 +39,7 @@ contains
       use gyro_averages, only: gyro_average
       use stella_layouts, only: iv_idx, imu_idx, is_idx
 
-      use fields, only: get_fields_source
+      use fields_ffs, only: get_fields_source
       use parameters_numerical, only: nitt
 
       use ffs_solve, only: get_source_ffs_itteration, get_drifts_ffs_itteration

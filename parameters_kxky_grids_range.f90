@@ -166,9 +166,9 @@ module parameters_kxky_grids_range
                     ierr, "kyspacing_option in kt_grids_range_parameters", .true.)
             
                if (print_extra_info_to_terminal) then
-                  write(*,*) "Aborting in parameters_kxky_grids_range.f90. & 
-                       The namelist <kt_grids_range_parameters> does not exist. & 
-                       Please replace this with the title <parameters_kxky_grids_range>"
+                    write(*,*) "Aborting in parameters_kxky_grids_range.f90."
+                    write(*,*) "The namelist <kt_grids_range_parameters> does not exist."
+                    write(*,*) "Please replace this with the title <parameters_kxky_grids_range>"
 !                  call mp_abort("Aborting in parameters_kxky_grids_range.f90. &
  !                      The namelist <kt_grids_range_parameters> does not exist. & 
   !                     Please replace this with the title <parameters_kxky_grids_range>")

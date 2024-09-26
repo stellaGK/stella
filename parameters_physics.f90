@@ -271,7 +271,7 @@ contains
             write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
             write(*,*) 'Please change the namelist <parameters> in the input file'
             write(*,*) 'to <parameters_physics>. You can inlclude the old flags under'
-            write(*,*) 'this new namelist'	
+            write(*,*) 'this new namelist'
             write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
          end if
          ! write(*,*) "Aborting in parameters_physics.f90.&
