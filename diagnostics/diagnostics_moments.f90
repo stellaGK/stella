@@ -35,16 +35,16 @@ contains
    subroutine write_moments_to_netcdf_file(nout, timer)
 
       ! Data
-      use dist_fn_arrays, only: gnew
+      use arrays_dist_fn, only: gnew
 
       ! Dimensions
-      use kt_grids, only: naky, nakx
+      use parameters_kxky_grids, only: naky, nakx
       use zgrid, only: nztot, ntubes
       use species, only: nspec
       
       ! Flags 
-      use physics_flags, only: radial_variation
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: radial_variation
+      use parameters_physics, only: full_flux_surface
 
       ! Write to netcdf file 
       use stella_io, only: write_radial_moments_nc
@@ -135,19 +135,20 @@ contains
       use species, only: spec, nspec
       use vpamu_grids, only: vpa, vperp2, integrate_vmu
       use vpamu_grids, only: maxwell_mu, ztmax, maxwell_fac, maxwell_vpa
-      use kt_grids, only: naky, nakx, multiply_by_rho
+      use parameters_kxky_grids, only: naky, nakx
+      use calculations_kxky, only: multiply_by_rho
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use gyro_averages, only: aj0x, gyro_average
-      use fields_arrays, only: phi
-      use run_parameters, only: fphi
-      use run_parameters, only: maxwellian_normalization
-      use physics_flags, only: radial_variation
+      use arrays_fields, only: phi
+      use parameters_numerical, only: fphi
+      use parameters_numerical, only: maxwellian_normalization
+      use parameters_physics, only: radial_variation
       use stella_transforms, only: transform_kx2x_unpadded
       
       ! Import temp arrays g1 and g2 with dimensions (nky, nkx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
-      use dist_fn_arrays, only: g_gyro => g1 
-      use dist_fn_arrays, only: integrand => g2 
+      use arrays_dist_fn, only: g_gyro => g1 
+      use arrays_dist_fn, only: integrand => g2 
 
       implicit none
 
@@ -258,17 +259,19 @@ contains
       use vpamu_grids, only: integrate_vmu
       use vpamu_grids, only: vpa, vperp2, mu
       use vpamu_grids, only: maxwell_mu, ztmax, maxwell_fac, maxwell_vpa
-      use kt_grids, only: naky, nakx, multiply_by_rho, rho_d_clamped
+      use parameters_kxky_grids, only: naky, nakx
+      use grids_kxky, only: rho_d_clamped
+      use calculations_kxky, only: multiply_by_rho
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use dist_fn_arrays, only: g1, g2, kperp2, dkperp2dr
+      use arrays_dist_fn, only: g1, g2, kperp2, dkperp2dr
       use geometry, only: bmag, dBdrho
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use gyro_averages, only: aj0x, aj1x, gyro_average
-      use fields_arrays, only: phi, phi_corr_QN, phi_proj
-      use run_parameters, only: fphi
-      use run_parameters, only: maxwellian_normalization
-      use physics_flags, only: radial_variation
+      use arrays_fields, only: phi, phi_corr_QN, phi_proj
+      use parameters_numerical, only: fphi
+      use parameters_numerical, only: maxwellian_normalization
+      use parameters_physics, only: radial_variation
       use stella_transforms, only: transform_kx2x_unpadded
       
       ! Input file

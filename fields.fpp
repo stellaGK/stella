@@ -1,5 +1,6 @@
 module fields
 
+   use debug_flags, only: debug => fields_debug
    use common_types, only: eigen_type
 
    use mpi
@@ -39,7 +40,6 @@ module fields
 #ifdef ISO_C_BINDING
    integer :: phi_shared_window = MPI_WIN_NULL
 #endif
-   logical :: debug = .false.
 
    integer :: zm
    integer :: nfields
@@ -62,8 +62,8 @@ contains
 
       use mp, only: proc0
       use linear_solve, only: lu_decomposition
-      use physics_flags, only: full_flux_surface
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: include_apar, include_bpar
 
       implicit none
 
@@ -91,13 +91,13 @@ contains
       use mp, only: sum_allreduce
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
-      use dist_fn_arrays, only: kperp2, dkperp2dr
+      use arrays_dist_fn, only: kperp2, dkperp2dr
       use gyro_averages, only: aj0v, aj1v
-      use run_parameters, only: fphi
-      use run_parameters, only: ky_solve_radial
-      use run_parameters, only: maxwellian_normalization
-      use physics_parameters, only: tite, nine, beta
-      use physics_flags, only: radial_variation
+      use parameters_numerical, only: fphi
+      use parameters_numerical, only: ky_solve_radial
+      use parameters_numerical, only: maxwellian_normalization
+      use parameters_physics, only: tite, nine, beta
+      use parameters_physics, only: radial_variation
       use species, only: spec, has_electron_species, ion_species
       use geometry, only: dl_over_b, dBdrho, bmag
       use zgrid, only: nzgrid
@@ -105,14 +105,14 @@ contains
       use vpamu_grids, only: vpa, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: integrate_vmu 
-      use kt_grids, only: naky, nakx, akx
-      use kt_grids, only: zonal_mode
-      use physics_flags, only: include_apar, include_bpar
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
-      use fields_arrays, only: gamtot, dgamtotdr, gamtot3
-      use fields_arrays, only: gamtot13, gamtot31, gamtot33
-      use fields_arrays, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
+      use parameters_kxky_grids, only: naky, nakx
+      use grids_kxky, only: zonal_mode, akx
+      use parameters_physics, only: include_apar, include_bpar
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use arrays_fields, only: gamtot, dgamtotdr, gamtot3
+      use arrays_fields, only: gamtot13, gamtot31, gamtot33
+      use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
 
       implicit none
 
@@ -406,24 +406,24 @@ contains
       use mp, only: job
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
-      use fields_arrays, only: qn_window, phi_shared
+      use arrays_fields, only: qn_window, phi_shared
       use mp, only: sgproc0, curr_focus, sharedsubprocs
       use mp, only: scope, real_size, nbytes_real
       use mp, only: split_n_tasks, create_shared_memory_window
       use mpi
 #endif
-      use run_parameters, only: ky_solve_radial, ky_solve_real
+      use parameters_numerical, only: ky_solve_radial, ky_solve_real
       use species, only: spec, has_electron_species
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use zgrid, only: nzgrid, ntubes, nztot 
-      use kt_grids, only: naky, nakx
-      use kt_grids, only: zonal_mode, rho_d_clamped
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use parameters_kxky_grids, only: naky, nakx
+      use grids_kxky, only: zonal_mode, rho_d_clamped
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
       use linear_solve, only: lu_decomposition, lu_inverse
       use multibox, only: init_mb_get_phi
-      use fields_arrays, only: gamtot, dgamtotdr
-      use fields_arrays, only: phi_solve, c_mat, theta
+      use arrays_fields, only: gamtot, dgamtotdr
+      use arrays_fields, only: phi_solve, c_mat, theta
       use file_utils, only: runtype_option_switch, runtype_multibox
 
       implicit none
@@ -632,31 +632,31 @@ contains
    subroutine init_gamma0_factor_ffs
 
       use spfunc, only: j0
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
       use stella_transforms, only: transform_alpha2kalpha
-      use physics_parameters, only: nine, tite
+      use parameters_physics, only: nine, tite
       use species, only: spec, nspec
       use species, only: adiabatic_electrons
       use zgrid, only: nzgrid, nztot
       use geometry, only: bmag
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use kt_grids, only: nalpha, ikx_max, naky_all, naky
-      use kt_grids, only: swap_kxky_ordered
+      use parameters_kxky_grids, only: nalpha, ikx_max, naky_all, naky
+      use calculations_kxky, only: swap_kxky_ordered
       use vpamu_grids, only: vperp2, maxwell_vpa, maxwell_mu
       use vpamu_grids, only: integrate_species
       use gyro_averages, only: band_lu_factorisation_ffs
 
-      use kt_grids, only: nakx
-      use fields_arrays, only: gamtot, gamtot3 
+      use parameters_kxky_grids, only: nakx
+      use arrays_fields, only: gamtot, gamtot3 
       use mp, only: sum_allreduce, proc0
-      use kt_grids, only: swap_kxky_back_ordered
+      use calculations_kxky, only: swap_kxky_back_ordered
       use gyro_averages, only: find_max_required_kalpha_index
 
       !! For gamtot3 - clean up 
       use species, only: has_electron_species, ion_species
-      use kt_grids, only: zonal_mode , akx
-      use physics_flags, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
+      use grids_kxky, only: zonal_mode , akx
+      use parameters_physics, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       use geometry, only: dl_over_b
 
       implicit none
@@ -823,10 +823,10 @@ contains
    !> is stored in adiabatic_response_factor
    subroutine init_adiabatic_response_factor
 
-      use physics_parameters, only: nine, tite
+      use parameters_physics, only: nine, tite
       use zgrid, only: nzgrid
       use stella_transforms, only: transform_alpha2kalpha
-      use kt_grids, only: naky, naky_all, ikx_max
+      use parameters_kxky_grids, only: naky, naky_all, ikx_max
       use gyro_averages, only: band_lu_solve_ffs
       use volume_averages, only: flux_surface_average_ffs
 
@@ -862,15 +862,15 @@ contains
 
    subroutine allocate_arrays
 
-      use fields_arrays, only: phi, phi_old
-      use fields_arrays, only: apar, apar_old
-      use fields_arrays, only: bpar, bpar_old
-      use fields_arrays, only: phi_corr_QN, phi_corr_GA
-      use fields_arrays, only: apar_corr_QN, apar_corr_GA
+      use arrays_fields, only: phi, phi_old
+      use arrays_fields, only: apar, apar_old
+      use arrays_fields, only: bpar, bpar_old
+      use arrays_fields, only: phi_corr_QN, phi_corr_GA
+      use arrays_fields, only: apar_corr_QN, apar_corr_GA
       use zgrid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
-      use physics_flags, only: radial_variation
-      use kt_grids, only: naky, nakx
+      use parameters_physics, only: radial_variation
+      use parameters_kxky_grids, only: naky, nakx
 
       implicit none
 
@@ -927,7 +927,7 @@ contains
 !     as these modes should be stable, but I made this function (and
 !     its relative in the dist file) just in case
 
-      use kt_grids, only: nakx
+      use parameters_kxky_grids, only: nakx
       use zgrid, only: nzgrid
 
       implicit none
@@ -950,11 +950,11 @@ contains
       use stella_layouts, only: vmu_lo
       use job_manage, only: time_message
       use redistribute, only: scatter
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use zgrid, only: nzgrid
       use dist_redistribute, only: kxkyz2vmu
-      use run_parameters, only: fields_kxkyz
-      use physics_flags, only: full_flux_surface
+      use parameters_numerical, only: fields_kxkyz
+      use parameters_physics, only: full_flux_surface
 
       implicit none
 
@@ -1008,8 +1008,8 @@ contains
       use job_manage, only: time_message
       use redistribute, only: scatter
       use zgrid, only: nzgrid
-      use run_parameters, only: fields_kxkyz
-      use physics_flags, only: full_flux_surface
+      use parameters_numerical, only: fields_kxkyz
+      use parameters_physics, only: full_flux_surface
 
       implicit none
 
@@ -1041,11 +1041,11 @@ contains
       use job_manage, only: time_message
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
       use gyro_averages, only: gyro_average, gyro_average_j1
-      use physics_flags, only: include_apar, include_bpar
-      use run_parameters, only: fphi
-      use physics_parameters, only: beta
+      use parameters_physics, only: include_apar, include_bpar
+      use parameters_numerical, only: fphi
+      use parameters_physics, only: beta
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vpa, mu
@@ -1162,11 +1162,11 @@ contains
       use job_manage, only: time_message
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx
       use gyro_averages, only: gyro_average, gyro_average_j1
-      use run_parameters, only: fphi
-      use physics_parameters, only: beta
-      use physics_flags, only: include_apar, include_bpar
-      use physics_flags, only: radial_variation
-      use dist_fn_arrays, only: g_scratch
+      use parameters_numerical, only: fphi
+      use parameters_physics, only: beta
+      use parameters_physics, only: include_apar, include_bpar
+      use parameters_physics, only: radial_variation
+      use arrays_dist_fn, only: g_scratch
       use zgrid, only: nzgrid
       use vpamu_grids, only: integrate_species
       use vpamu_grids, only: vpa, mu
@@ -1254,7 +1254,7 @@ contains
          ! MRH remove optimisation for ease of including bpar
          call gyro_average(g, g_scratch)
 
-         ! for parallel Ampere's Law, need to calculate parallel current rather than density,
+         ! for parallel Amperes Law, need to calculate parallel current rather than density,
          ! so multiply <g> by vpa before integrating
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             ! get the vpa index
@@ -1283,9 +1283,9 @@ contains
 
      use stella_layouts, only: vmu_lo 
      use zgrid, only: nzgrid, ntubes
-     use kt_grids, only: naky, nakx
-     use fields_arrays, only: gamtot
-     use kt_grids, only: akx
+     use parameters_kxky_grids, only: naky, nakx
+     use arrays_fields, only: gamtot
+     use grids_kxky, only: akx
      use gyro_averages, only: gyro_average
 
      implicit none
@@ -1332,7 +1332,7 @@ contains
      use stella_layouts, only: vmu_lo
      use species, only: spec
      use zgrid, only: nzgrid
-     use kt_grids, only: naky, nakx
+     use parameters_kxky_grids, only: naky, nakx
      use vpamu_grids, only: integrate_species_ffs
      use gyro_averages, only: gyro_average, j0_B_ffs
      
@@ -1378,22 +1378,22 @@ contains
    subroutine get_fields_ffs(g, phi, apar, implicit_solve)
 
       use mp, only: mp_abort
-      use physics_parameters, only: nine, tite
-      use physics_flags, only: include_apar
+      use parameters_physics, only: nine, tite
+      use parameters_physics, only: include_apar
       use stella_layouts, only: vmu_lo
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use species, only: modified_adiabatic_electrons, adiabatic_electrons
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: nakx, ikx_max, naky, naky_all
-      use kt_grids, only: swap_kxky_ordered, swap_kxky_back_ordered
+      use parameters_kxky_grids, only: nakx, ikx_max, naky, naky_all
+      use calculations_kxky, only: swap_kxky_ordered, swap_kxky_back_ordered
       use volume_averages, only: flux_surface_average_ffs
-      use fields_arrays, only: gamtot
-      use kt_grids, only: akx, zonal_mode
+      use arrays_fields, only: gamtot
+      use grids_kxky, only: akx, zonal_mode
 
-      use fields_arrays, only: gamtot3
+      use arrays_fields, only: gamtot3
       use species, only: spec, has_electron_species
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
       use geometry, only: dl_over_b
       implicit none
 
@@ -1530,7 +1530,7 @@ contains
          use stella_layouts, only: vmu_lo
          use species, only: spec
          use zgrid, only: nzgrid
-         use kt_grids, only: naky, nakx
+         use parameters_kxky_grids, only: naky, nakx
          use vpamu_grids, only: integrate_species_ffs
          use gyro_averages, only: gyro_average, j0_B_ffs
 
@@ -1584,16 +1584,16 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use gyro_averages, only: gyro_average
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use geometry, only: dl_over_b
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: integrate_vmu
-      use kt_grids, only: nakx
-      use kt_grids, only: zonal_mode
+      use parameters_kxky_grids, only: nakx
+      use grids_kxky, only: zonal_mode
       use species, only: spec, nspec, has_electron_species
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
 
       implicit none
 
@@ -1660,17 +1660,17 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use gyro_averages, only: gyro_average
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use geometry, only: dl_over_b, bmag
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: vperp2, nvpa, nmu
       use vpamu_grids, only: integrate_vmu
-      use kt_grids, only: nakx
-      use kt_grids, only: zonal_mode
+      use parameters_kxky_grids, only: nakx
+      use grids_kxky, only: zonal_mode
       use species, only: spec, nspec, has_electron_species
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
-      use dist_fn_arrays, only: kperp2
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use arrays_dist_fn, only: kperp2
       use spfunc, only: j0
 
       implicit none
@@ -1732,16 +1732,17 @@ contains
 
       use mp, only: proc0, mp_abort, job
       use job_manage, only: time_message
-      use physics_flags, only: radial_variation
-      use run_parameters, only: ky_solve_radial, ky_solve_real
+      use parameters_physics, only: radial_variation
+      use parameters_numerical, only: ky_solve_radial, ky_solve_real
       use zgrid, only: nzgrid, ntubes
       use geometry, only: dl_over_b
-      use kt_grids, only: nakx, naky, zonal_mode
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use parameters_kxky_grids, only: nakx, naky
+      use grids_kxky, only: zonal_mode
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
       use species, only: spec, has_electron_species
       use multibox, only: mb_get_phi
-      use fields_arrays, only: gamtot, gamtot3
+      use arrays_fields, only: gamtot, gamtot3
       use file_utils, only: runtype_option_switch, runtype_multibox
 
       implicit none
@@ -1840,8 +1841,8 @@ contains
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
       use zgrid, only: nzgrid, ntubes 
-      use kt_grids, only: nakx, naky
-      use fields_arrays, only: gamtotinv11, gamtotinv13, gamtotinv33, gamtotinv31
+      use parameters_kxky_grids, only: nakx, naky
+      use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv33, gamtotinv31
 
       implicit none
 
@@ -1891,18 +1892,19 @@ contains
       use mp, only: curr_focus, sharedsubprocs, scope
       use mp, only: split_n_tasks, sgproc0
       use zgrid, only: nztot
-      use fields_arrays, only: phi_shared
+      use arrays_fields, only: phi_shared
       use mp_lu_decomposition, only: lu_matrix_multiply_local
 #endif
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
-      use run_parameters, only: ky_solve_radial
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use parameters_numerical, only: ky_solve_radial
       use zgrid, only: nzgrid, ntubes
       use species, only: spec, has_electron_species
-      use kt_grids, only: nakx, naky, zonal_mode
+      use parameters_kxky_grids, only: nakx, naky
+      use grids_kxky, only: zonal_mode
       use linear_solve, only: lu_back_substitution
-      use fields_arrays, only: gamtot, phi_solve
+      use arrays_fields, only: gamtot, phi_solve
 
       implicit none
 
@@ -1990,7 +1992,7 @@ contains
 
       use mp, only: proc0, mp_abort
       use zgrid, only: nzgrid, ntubes
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
 
       implicit none
 
@@ -2021,8 +2023,8 @@ contains
       use mp, only: mp_abort, sum_allreduce
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use physics_flags, only: include_apar
-      use physics_parameters, only: beta
+      use parameters_physics, only: include_apar
+      use parameters_physics, only: beta
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu, vpa
@@ -2071,7 +2073,7 @@ contains
 #ifdef ISO_C_BINDING
       use mpi
       use mp, only: sgproc0, comm_sgroup
-      use fields_arrays, only: qn_zf_window
+      use arrays_fields, only: qn_zf_window
       use mp_lu_decomposition, only: lu_matrix_multiply_local
 #else
       use linear_solve, only: lu_back_substitution
@@ -2079,10 +2081,11 @@ contains
       use zgrid, only: nzgrid, ntubes
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use geometry, only: dl_over_b, d_dl_over_b_drho
-      use kt_grids, only: nakx, boundary_size, rho_d_clamped
-      use fields_arrays, only: phizf_solve, phi_ext
-      use fields_arrays, only: phi_proj, phi_proj_stage, theta
-      use fields_arrays, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
+      use parameters_kxky_grids, only: nakx
+      use grids_kxky, only: boundary_size, rho_d_clamped
+      use arrays_fields, only: phizf_solve, phi_ext
+      use arrays_fields, only: phi_proj, phi_proj_stage, theta
+      use arrays_fields, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
 
       implicit none
 
@@ -2196,8 +2199,8 @@ contains
    subroutine get_phi_ffs(rhs, phi)
 
       use zgrid, only: nzgrid
-      use kt_grids, only: swap_kxky_ordered, swap_kxky_back_ordered
-      use kt_grids, only: naky_all, ikx_max
+      use calculations_kxky, only: swap_kxky_ordered, swap_kxky_back_ordered
+      use parameters_kxky_grids, only: naky_all, ikx_max
       use gyro_averages, only: band_lu_solve_ffs
 
       implicit none
@@ -2238,11 +2241,12 @@ contains
       use stella_layouts, only: imu_idx, is_idx
       use gyro_averages, only: aj0x, aj1x
       use geometry, only: dBdrho, bmag
-      use dist_fn_arrays, only: kperp2, dkperp2dr
+      use arrays_dist_fn, only: kperp2, dkperp2dr
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: vperp2
-      use kt_grids, only: nakx, naky, multiply_by_rho
-      use run_parameters, only: ky_solve_radial
+      use parameters_kxky_grids, only: nakx, naky
+      use calculations_kxky, only: multiply_by_rho
+      use parameters_numerical, only: ky_solve_radial
       use species, only: spec
 
       implicit none
@@ -2296,20 +2300,21 @@ contains
       use stella_layouts, only: vmu_lo
       use gyro_averages, only: gyro_average, gyro_average_j1
       use gyro_averages, only: aj0x, aj1x
-      use run_parameters, only: fphi, ky_solve_radial
+      use parameters_numerical, only: fphi, ky_solve_radial
       use geometry, only: dl_over_b, d_dl_over_b_drho, bmag, dBdrho
       use stella_layouts, only: imu_idx, is_idx
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: integrate_species, vperp2
-      use kt_grids, only: nakx, nx, naky, rho_d_clamped
-      use kt_grids, only: zonal_mode, multiply_by_rho
+      use parameters_kxky_grids, only: nakx, naky
+      use grids_kxky, only: zonal_mode, rho_d_clamped
+      use calculations_kxky, only: multiply_by_rho
       use species, only: spec, has_electron_species
-      use fields_arrays, only: phi_corr_QN, phi_corr_GA
-      use fields_arrays, only: gamtot, dgamtotdr
-      use fields_arrays, only: gamtot3
-      use dist_fn_arrays, only: kperp2, dkperp2dr
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use arrays_fields, only: phi_corr_QN, phi_corr_GA
+      use arrays_fields, only: gamtot, dgamtotdr
+      use arrays_fields, only: gamtot3
+      use arrays_dist_fn, only: kperp2, dkperp2dr
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
@@ -2445,8 +2450,8 @@ contains
    subroutine rescale_fields(target_amplitude)
 
       use mp, only: scope, subprocs, crossdomprocs, sum_allreduce
-      use fields_arrays, only: phi, apar
-      use dist_fn_arrays, only: gnew, gvmu
+      use arrays_fields, only: phi, apar
+      use arrays_dist_fn, only: gnew, gvmu
       use volume_averages, only: volume_average
       use job_manage, only: njobs
       use file_utils, only: runtype_option_switch, runtype_multibox
@@ -2482,16 +2487,17 @@ contains
       use gyro_averages, only: gyro_average_j1
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: is_idx, iv_idx, imu_idx
-      use physics_flags, only: include_apar
-      use physics_flags, only: include_bpar
-      use run_parameters, only: fphi
+      use parameters_physics, only: include_apar
+      use parameters_physics, only: include_bpar
+      use parameters_numerical, only: fphi
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: vpa, mu
-      use kt_grids, only: nakx, aky, naky
+      use parameters_kxky_grids, only: nakx, naky
+      use grids_kxky, only: aky
 
       use gyro_averages, only: j0_ffs
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
 
       implicit none
 
@@ -2545,15 +2551,16 @@ contains
       use gyro_averages, only: gyro_average_j1
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: is_idx, iv_idx, imu_idx
-      use physics_flags, only: include_apar
-      use physics_flags, only: include_bpar
-      use run_parameters, only: fphi
+      use parameters_physics, only: include_apar
+      use parameters_physics, only: include_bpar
+      use parameters_numerical, only: fphi
       use species, only: spec
       use vpamu_grids, only: vpa, mu
-      use kt_grids, only: nakx, aky, naky
+      use parameters_kxky_grids, only: nakx, naky
+      use grids_kxky, only: aky
 
       use gyro_averages, only: j0_ffs
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
 
       implicit none
 
@@ -2600,15 +2607,16 @@ contains
       use gyro_averages, only: gyro_average_j1
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: is_idx, iv_idx, imu_idx
-      use physics_flags, only: include_apar
-      use physics_flags, only: include_bpar
-      use run_parameters, only: fphi
+      use parameters_physics, only: include_apar
+      use parameters_physics, only: include_bpar
+      use parameters_numerical, only: fphi
       use species, only: spec
       use vpamu_grids, only: vpa, mu
-      use kt_grids, only: akx, naky, nakx
+      use grids_kxky, only: akx
+      use parameters_kxky_grids, only: naky, nakx
 
       use gyro_averages, only: j0_ffs
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
 
       implicit none
 
@@ -2649,19 +2657,19 @@ contains
 
    subroutine finish_fields
 
-      use fields_arrays, only: phi, phi_old
-      use fields_arrays, only: apar, apar_old
-      use fields_arrays, only: bpar, bpar_old
-      use fields_arrays, only: phi_corr_QN, phi_corr_GA
-      use fields_arrays, only: apar_corr_QN, apar_corr_GA
-      use fields_arrays, only: gamtot, dgamtotdr, gamtot3
-      use fields_arrays, only: gamtot13, gamtot33, gamtot31
-      use fields_arrays, only: c_mat, theta
+      use arrays_fields, only: phi, phi_old
+      use arrays_fields, only: apar, apar_old
+      use arrays_fields, only: bpar, bpar_old
+      use arrays_fields, only: phi_corr_QN, phi_corr_GA
+      use arrays_fields, only: apar_corr_QN, apar_corr_GA
+      use arrays_fields, only: gamtot, dgamtotdr, gamtot3
+      use arrays_fields, only: gamtot13, gamtot33, gamtot31
+      use arrays_fields, only: c_mat, theta
 #ifdef ISO_C_BINDING
-      use fields_arrays, only: qn_window
+      use arrays_fields, only: qn_window
       use mpi
 #else
-      use fields_arrays, only: phi_solve
+      use arrays_fields, only: phi_solve
 #endif
       implicit none
 

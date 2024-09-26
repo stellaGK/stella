@@ -30,18 +30,19 @@ contains
       use species, only: spec
       use constants, only: zi, pi
       use zgrid, only: nzgrid
-      use kt_grids, only: x, x_d, nalpha, nx, nakx, naky, akx, aky, ikx_max, zonal_mode, box
-      use fields_arrays, only: shift_state
+      use grids_kxky, only: x, x_d, akx, aky, zonal_mode, box
+      use parameters_kxky_grids, only: nalpha, nx, nakx, naky, ikx_max
+      use arrays_fields, only: shift_state
       use geometry, only: q_as_x, geo_surf, bmag, btor, rmajor, dBdrho, dIdrho
       use geometry, only: dydalpha, drhodpsi
-      use physics_parameters, only: g_exb, g_exbfac, omprimfac
+      use parameters_physics, only: g_exb, g_exbfac, omprimfac
       use vpamu_grids, only: vperp2, vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use physics_flags, only: radial_variation, prp_shear_enabled, hammett_flow_shear
+      use parameters_physics, only: radial_variation, prp_shear_enabled, hammett_flow_shear
       use file_utils, only: runtype_option_switch, runtype_multibox
       use job_manage, only: njobs
       use mp, only: job, send, receive, crossdomprocs, subprocs, scope
-      use run_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: maxwellian_normalization
 
       implicit none
 
@@ -145,12 +146,12 @@ contains
    subroutine advance_parallel_flow_shear(gout)
 
       use mp, only: proc0, mp_abort
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: nakx, naky
+      use parameters_kxky_grids, only: nakx, naky
       use fields, only: get_dchidy
-      use fields_arrays, only: phi, apar, bpar
+      use arrays_fields, only: phi, apar, bpar
 
       implicit none
 
@@ -187,11 +188,12 @@ contains
 
       use stella_layouts, only: vmu_lo
       use constants, only: zi
-      use physics_flags, only: prp_shear_enabled, hammett_flow_shear
+      use parameters_physics, only: prp_shear_enabled, hammett_flow_shear
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use zgrid, only: nzgrid, ntubes
-      use fields_arrays, only: shift_state
-      use kt_grids, only: aky, nakx, naky, ikx_max, zonal_mode
+      use arrays_fields, only: shift_state
+      use grids_kxky, only: aky, zonal_mode
+      use parameters_kxky_grids, only: nakx, naky, ikx_max
       use file_utils, only: runtype_option_switch, runtype_multibox
       use stella_time, only: code_dt
 
@@ -289,7 +291,7 @@ contains
    end subroutine advance_perp_flow_shear
 
    subroutine finish_flow_shear
-      use fields_arrays, only: shift_state
+      use arrays_fields, only: shift_state
 
       implicit none
 

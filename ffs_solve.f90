@@ -11,7 +11,7 @@ contains
   subroutine add_correction_ffs (phiin, gin, source_out) 
 
     use zgrid, only: nzgrid, ntubes
-    use kt_grids, only: naky, nakx
+    use parameters_kxky_grids, only: naky, nakx
     use stella_layouts, only: vmu_lo
 
     implicit none 
@@ -39,24 +39,23 @@ contains
 
   subroutine get_source_ffs_itteration (phi, g, source) 
 
-     use mp, only: proc0
      use stella_layouts, only: vmu_lo
      use stella_layouts, only: iv_idx, imu_idx, is_idx
      use stella_transforms, only: transform_ky2y
      use zgrid, only: nzgrid, ntubes
-     use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
-     use kt_grids, only: swap_kxky
+     use parameters_kxky_grids, only: naky, naky_all, nakx, ikx_max, ny
+     use calculations_kxky, only: swap_kxky
      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
      use species, only: spec
 
-     use fields, only: advance_fields, fields_updated
-     use gyro_averages, only: j0_ffs, j0_const, gyro_average
+     use fields, only: advance_fields
+     use gyro_averages, only: j0_ffs, gyro_average
 
-     use kt_grids, only: swap_kxky_back
+     use calculations_kxky, only: swap_kxky_back
      use stella_transforms, only: transform_y2ky
      
      use parallel_streaming, only: center_zed, get_dgdz_centered, get_dzed
-     use parallel_streaming, only: stream_correction, stream, stream_store_full
+     use parallel_streaming, only: stream_correction, stream_store_full
      
      use species, only: has_electron_species
      implicit none
@@ -65,8 +64,8 @@ contains
      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent (out) :: source
 
-     integer :: ivmu, iv, imu, is, ia, iz, it, ikx
-     complex, dimension(:, :, :, :), allocatable :: g0, g1
+     integer :: ivmu, iv, imu, is, ia, iz, it
+     complex, dimension(:, :, :, :), allocatable :: g0
      complex, dimension(:, :, :, :), allocatable :: dgphi_dz, dphi_dz, dgdz
      complex, dimension(:, :, :, :), allocatable :: g0y, g1y, g2y, g3y
      complex, dimension(:, :), allocatable :: g_swap
@@ -178,18 +177,17 @@ contains
 
     subroutine get_drifts_ffs_itteration (phi, g, source) 
 
-      use mp, only: proc0
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_transforms, only: transform_ky2y,transform_y2ky
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
-      use kt_grids, only: swap_kxky, swap_kxky_back
+      use parameters_kxky_grids, only: naky, naky_all, nakx, ikx_max, ny
+      use calculations_kxky, only: swap_kxky, swap_kxky_back
       use gyro_averages, only: j0_ffs, gyro_average
 
-      use dist_fn_arrays, only: wdriftx_g, wdriftx_phi
-      use dist_fn_arrays, only: wdrifty_g, wdrifty_phi
-      use dist_fn_arrays, only: wstar
+      use arrays_dist_fn, only: wdriftx_g, wdriftx_phi
+      use arrays_dist_fn, only: wdrifty_g, wdrifty_phi
+      use arrays_dist_fn, only: wstar
 
       use parallel_streaming, only: center_zed
 
@@ -276,7 +274,8 @@ contains
 
       use constants, only: zi
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: nakx, aky
+      use parameters_kxky_grids, only: nakx
+      use grids_kxky, only: aky
 
       implicit none
 
@@ -299,7 +298,8 @@ contains
 
       use constants, only: zi
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: akx, nakx
+      use parameters_kxky_grids, only: nakx
+      use grids_kxky, only: akx
 
       implicit none
 
@@ -320,9 +320,8 @@ contains
 
    subroutine add_explicit_term_ffs_fields(g, pre_factor, src)
 
-      use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: ikx_max, nalpha
+      use parameters_kxky_grids, only: ikx_max, nalpha
 
       implicit none
 
@@ -330,7 +329,6 @@ contains
       real, dimension(:, -nzgrid:), intent(in) :: pre_factor
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: src
 
-      integer :: ivmu
       integer :: ia, ikx, iz, it
 
       do it = 1, ntubes
