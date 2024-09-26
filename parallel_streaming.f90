@@ -1,5 +1,6 @@
 module parallel_streaming
 
+   use debug_flags, only: debug => parallel_streaming_debug 
    implicit none
 
    public :: init_parallel_streaming, finish_parallel_streaming
@@ -43,12 +44,12 @@ module parallel_streaming
    integer, dimension(:,:), allocatable :: stream_correction_sign, stream_full_sign
    real, dimension(:, :, :, :), allocatable :: stream_correction, stream_store_full
 
-   logical :: debug = .false.
-   
 contains
 
-   subroutine init_parallel_streaming
-
+  subroutine init_parallel_streaming
+    
+      use mp, only: proc0
+     
       use finite_differences, only: fd3pt
       use stella_time, only: code_dt
       use stella_layouts, only: vmu_lo
@@ -57,14 +58,13 @@ contains
       use vpamu_grids, only: nvpa, nvpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: vperp2, vpa, mu
-      use kt_grids, only: nalpha
+      use parameters_kxky_grids, only: nalpha
       use zgrid, only: nzgrid, nztot
       use geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
-      use run_parameters, only: stream_implicit, driftkinetic_implicit
-      use physics_flags, only: include_parallel_streaming, radial_variation
-      use physics_flags, only: full_flux_surface
-      use run_parameters, only: tupwnd_m => time_upwind_minus
-      use mp, only: proc0
+      use parameters_numerical, only: stream_implicit, driftkinetic_implicit
+      use parameters_physics, only: include_parallel_streaming, radial_variation
+      use parameters_physics, only: full_flux_surface
+
       implicit none
 
       integer :: iv, imu, is, ivmu
@@ -73,6 +73,9 @@ contains
       real, dimension(:), allocatable :: energy
       real, dimension(:, :, :), allocatable :: stream_store
 
+      debug = debug .and. proc0
+      if(debug) write (*,*) 'No debug messages for parallel_streaming.f90 yet'
+      
       if (parallel_streaming_initialized) return
       parallel_streaming_initialized = .true.
       
@@ -188,7 +191,7 @@ contains
       use zgrid, only: delzed
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: nsegments, neigen_max
-      use run_parameters, only: zed_upwind_plus, zed_upwind_minus, time_upwind_plus
+      use parameters_numerical, only: zed_upwind_plus, zed_upwind_minus, time_upwind_plus
 
       implicit none
 
@@ -241,22 +244,18 @@ contains
       use job_manage, only: time_message
       use stella_transforms, only: transform_ky2y
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
-      use kt_grids, only: swap_kxky
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
+      use parameters_kxky_grids, only: naky, naky_all, nakx, ikx_max, ny
+      use calculations_kxky, only: swap_kxky
+      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: mu
       use species, only: spec
-      use physics_flags, only: full_flux_surface, include_bpar
+      use parameters_physics, only: full_flux_surface, include_bpar
       use gyro_averages, only: gyro_average, gyro_average_j1
-      use run_parameters, only: driftkinetic_implicit, maxwellian_normalization
+      use parameters_numerical, only: driftkinetic_implicit, maxwellian_normalization
 	
 	!! For FFS 
-      use fields, only: advance_fields, fields_updated
-      use fields_arrays, only: apar
-      use gyro_averages, only: j0_ffs, j0_const
-      use kt_grids, only: aky, akx
-      use zgrid, only: nztot
-      use dist_fn_arrays, only: kperp2
+      use gyro_averages, only: j0_ffs
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -268,9 +267,6 @@ contains
       complex, dimension(:, :, :, :), allocatable :: g0y, g1y
       complex, dimension(:, :), allocatable :: g0_swap
 
-      logical :: implicit_solve = .true.
-
-      integer :: iky, ikx 
       !> if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
       !> if full flux surface (flux annulus), will need to calculate in y space
 
@@ -372,11 +368,11 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use job_manage, only: time_message
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: naky, nakx
+      use parameters_kxky_grids, only: naky, nakx
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use species, only: spec
       use gyro_averages, only: gyro_average, gyro_average_j1
-      use fields_arrays, only: phi, phi_corr_QN, phi_corr_GA
+      use arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
 
       implicit none
 
@@ -459,7 +455,7 @@ contains
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: fill_zed_ghost_zones
       use extended_zgrid, only: periodic
-      use kt_grids, only: naky
+      use parameters_kxky_grids, only: naky
 
       implicit none
 
@@ -501,7 +497,7 @@ contains
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: fill_zed_ghost_zones
       use extended_zgrid, only: periodic
-      use kt_grids, only: naky
+      use parameters_kxky_grids, only: naky
 
       implicit none
 
@@ -594,37 +590,12 @@ contains
 
    end subroutine add_stream_term
 
-   subroutine add_stream_term_ffs(g, ivmu, src)
-
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, is_idx
-      use zgrid, only: nzgrid
-      use kt_grids, only: ny
-
-      implicit none
-
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :), intent(in out) :: src
-      integer, intent(in) :: ivmu
-
-      integer :: iz, iy, iv, is
-
-      iv = iv_idx(vmu_lo, ivmu)
-      is = is_idx(vmu_lo, ivmu)
-      do iz = -nzgrid, nzgrid
-         do iy = 1, ny
-            src(iy, :, iz, :) = src(iy, :, iz, :) + stream(iy, iz, iv, is) * g(iy, :, iz, :)
-         end do
-      end do
-
-   end subroutine add_stream_term_ffs
-
    subroutine add_stream_term_full_ffs(g, ivmu, src)
 
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
       use zgrid, only: nzgrid
-      use kt_grids, only: ny
+      use parameters_kxky_grids, only: ny
 
       implicit none
 
@@ -643,30 +614,6 @@ contains
       end do
 
    end subroutine add_stream_term_full_ffs
-
-   subroutine add_stream_term_ffs_correction(g, ivmu, src)
-
-     use stella_layouts, only: vmu_lo
-     use stella_layouts, only: iv_idx, is_idx
-     use zgrid, only: nzgrid
-     use kt_grids, only: ny
-     
-     implicit none
-     complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
-     complex, dimension(:, :, -nzgrid:, :), intent(in out) :: src
-     integer, intent(in) :: ivmu
-     integer :: iz, iy, iv, is
-
-     iv = iv_idx(vmu_lo, ivmu)
-     is = is_idx(vmu_lo, ivmu)
-      do iz = -nzgrid, nzgrid
-          do iy = 1, ny
-             src(iy, :, iz, :) = src(iy, :, iz, :) + stream_correction(iy, iz, iv, is) * g(iy, :, iz, :)
-          end do
-       end do
-
-     end subroutine add_stream_term_ffs_correction
-
 
    subroutine stream_tridiagonal_solve(iky, ie, iv, is, g)
 
@@ -731,7 +678,7 @@ contains
    subroutine get_dzed(iv, g, dgdz)
 
       use finite_differences, only: fd_cell_centres_zed
-      use kt_grids, only: naky
+      use parameters_kxky_grids, only: naky
       use zgrid, only: nzgrid, delzed, ntubes
       use extended_zgrid, only: neigen, nsegments
       use extended_zgrid, only: iz_low, iz_up
@@ -785,13 +732,13 @@ contains
    subroutine center_zed_extended(iv, g)
 
       use finite_differences, only: cell_centres_zed
-      use kt_grids, only: naky, nakx
+      use parameters_kxky_grids, only: naky, nakx
       use zgrid, only: nzgrid, ntubes
       use extended_zgrid, only: neigen, nsegments
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: fill_zed_ghost_zones
-      use run_parameters, only: zed_upwind
+      use parameters_numerical, only: zed_upwind
 
       implicit none
 
@@ -831,7 +778,7 @@ contains
    ! it is assumed that any function passed to this subroutine is periodic
    subroutine center_zed_segment_real(iv, f, llim)
 
-      use run_parameters, only: zed_upwind_plus, zed_upwind_minus
+      use parameters_numerical, only: zed_upwind_plus, zed_upwind_minus
 
       integer, intent(in) :: iv, llim
       real, dimension(llim:), intent(in out) :: f
@@ -855,8 +802,8 @@ contains
    !> and overwrites f with the cell-centered version;
    subroutine center_zed_segment_complex(iv, f, llim, periodic)
 
-      use run_parameters, only: zupwnd_p => zed_upwind_plus
-      use run_parameters, only: zupwnd_m => zed_upwind_minus
+      use parameters_numerical, only: zupwnd_p => zed_upwind_plus
+      use parameters_numerical, only: zupwnd_m => zed_upwind_minus
 
       integer, intent(in) :: iv, llim
       complex, dimension(llim:), intent(in out) :: f
@@ -885,27 +832,10 @@ contains
 
    end subroutine center_zed_segment_complex
 
-   subroutine center_zed_midpoint(iv, g)
-
-      use zgrid, only: nzgrid
-
-      integer, intent(in) :: iv
-      real, dimension(-nzgrid:), intent(in out) :: g
-
-      if (stream_sign(iv) > 0) then
-         g(:nzgrid - 1) = 0.5 * (g(:nzgrid - 1) + g(-nzgrid + 1:))
-         g(nzgrid) = g(-nzgrid)
-      else
-         g(-nzgrid + 1:) = 0.5 * (g(:nzgrid - 1) + g(-nzgrid + 1:))
-         g(-nzgrid) = g(nzgrid)
-      end if
-
-   end subroutine center_zed_midpoint
-
    subroutine finish_parallel_streaming
 
-      use run_parameters, only: stream_implicit, driftkinetic_implicit
-      use physics_flags, only: full_flux_surface
+      use parameters_numerical, only: stream_implicit, driftkinetic_implicit
+      use parameters_physics, only: full_flux_surface
       implicit none
 
       if (allocated(stream)) deallocate (stream)

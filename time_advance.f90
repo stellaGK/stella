@@ -1,6 +1,8 @@
 
 module time_advance
 
+  use debug_flags, only: debug => time_advance_debug
+  
    public :: init_time_advance, finish_time_advance
    public :: advance_stella
    public :: time_gke, time_parallel_nl
@@ -34,21 +36,6 @@ module time_advance
    logical :: radialinit = .false.
    logical :: driftimpinit = .false.
 
-   ! if .true., dist fn is represented on alpha grid
-   ! if .false., dist fn is given on k-alpha grid
-   ! default is .false.; will only ever be set to
-   ! .true. during full_flux_surface simulations
-!  logical :: alpha_space = .false.
-
-   integer :: explicit_option_switch
-   integer, parameter :: explicit_option_rk3 = 1, &
-                         explicit_option_rk2 = 2, &
-                         explicit_option_rk4 = 3, &
-                         explicit_option_euler = 4
-
-   real :: xdriftknob, ydriftknob, wstarknob
-   logical :: flip_flop
-
    ! factor multiplying parallel nonlinearity
    real, dimension(:, :), allocatable :: par_nl_fac, d_par_nl_fac_dr
    ! factor multiplying higher order linear term in parallel acceleration
@@ -59,16 +46,13 @@ module time_advance
    ! needed for timing various pieces of gke solve
    real, dimension(2, 10) :: time_gke = 0.
    real, dimension(2, 2) :: time_parallel_nl = 0.
-
-   logical :: debug = .false.
-
 contains
 
    subroutine init_time_advance
 
       use mp, only: proc0
-      use physics_flags, only: radial_variation
-      use physics_flags, only: include_parallel_nonlinearity
+      use parameters_physics, only: radial_variation
+      use parameters_physics, only: include_parallel_nonlinearity
       use neoclassical_terms, only: init_neoclassical_terms
       use dissipation, only: init_collisions, include_collisions
       use parallel_streaming, only: init_parallel_streaming
@@ -86,8 +70,6 @@ contains
       !> read time_advance_knobs namelist from the input file;
       !> sets the explicit time advance option, as well as allows for scaling of
       !> the x and y components of the magnetic drifts and of the drive term
-      if (debug) write (6, *) 'time_advance::init_time_advance::read_parameters'
-      call read_parameters
       !> allocate distribution function sized arrays needed, e.g., for Runge-Kutta time advance
       if (debug) write (6, *) 'time_advance::init_time_advance::allocate_arrays'
       call allocate_arrays
@@ -131,70 +113,18 @@ contains
 
    end subroutine init_time_advance
 
-   subroutine read_parameters
-
-      use file_utils, only: error_unit, input_unit_exist
-      use text_options, only: text_option, get_option_value
-      use mp, only: proc0, broadcast
-      use run_parameters, only: fully_explicit
-
-      implicit none
-
-      logical :: taexist
-
-      type(text_option), dimension(5), parameter :: explicitopts = &
-                                                    (/text_option('default', explicit_option_rk3), &
-                                                      text_option('rk3', explicit_option_rk3), &
-                                                      text_option('rk2', explicit_option_rk2), &
-                                                      text_option('rk4', explicit_option_rk4), &
-                                                      text_option('euler', explicit_option_euler)/)
-      character(10) :: explicit_option
-
-      namelist /time_advance_knobs/ xdriftknob, ydriftknob, wstarknob, explicit_option, flip_flop
-
-      integer :: ierr, in_file
-
-      if (readinit) return
-      readinit = .true.
-
-      if (proc0) then
-         explicit_option = 'default'
-         xdriftknob = 1.0
-         ydriftknob = 1.0
-         wstarknob = 1.0
-         flip_flop = .false.
-
-         in_file = input_unit_exist("time_advance_knobs", taexist)
-         if (taexist) read (unit=in_file, nml=time_advance_knobs)
-
-         ierr = error_unit()
-         call get_option_value &
-            (explicit_option, explicitopts, explicit_option_switch, &
-             ierr, "explicit_option in time_advance_knobs")
-      end if
-
-      call broadcast(explicit_option_switch)
-      call broadcast(xdriftknob)
-      call broadcast(ydriftknob)
-      call broadcast(wstarknob)
-      call broadcast(flip_flop)
-
-      if (fully_explicit) flip_flop = .false.
-
-   end subroutine read_parameters
-
    subroutine init_wdrift
 
       use mp, only: mp_abort
-      use dist_fn_arrays, only: wdriftx_g, wdrifty_g
-      use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
-      use dist_fn_arrays, only: wdriftx_bpar, wdrifty_bpar
+      use arrays_dist_fn, only: wdriftx_g, wdrifty_g
+      use arrays_dist_fn, only: wdriftx_phi, wdrifty_phi
+      use arrays_dist_fn, only: wdriftx_bpar, wdrifty_bpar
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_time, only: code_dt
       use species, only: spec
       use zgrid, only: nzgrid
-      use kt_grids, only: nalpha
+      use parameters_kxky_grids, only: nalpha
       use geometry, only: cvdrift, gbdrift
       use geometry, only: cvdrift0, gbdrift0
       use geometry, only: gds23, gds24
@@ -205,8 +135,9 @@ contains
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
       use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
-      use run_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: maxwellian_normalization
 
+      use parameters_physics, only: xdriftknob, ydriftknob
       implicit none
 
       integer :: ivmu, iv, imu, is
@@ -350,15 +281,16 @@ contains
       use stella_time, only: code_dt
       use species, only: spec
       use zgrid, only: nzgrid
-      use kt_grids, only: nalpha
+      use parameters_kxky_grids, only: nalpha
       use geometry, only: dydalpha, drhodpsi, clebsch_factor
       use vpamu_grids, only: vperp2, vpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use dist_fn_arrays, only: wstar
+      use arrays_dist_fn, only: wstar
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_drho
-      use run_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: maxwellian_normalization
 
+      use parameters_physics, only: wstarknob
       implicit none
 
       integer :: is, imu, iv, ivmu
@@ -416,7 +348,7 @@ contains
 
    subroutine init_parallel_nonlinearity
 
-      use physics_parameters, only: rhostar
+      use parameters_physics, only: rhostar
       use species, only: spec, nspec
       use zgrid, only: nztot, nzgrid
       use geometry, only: geo_surf, drhodpsi, q_as_x
@@ -424,8 +356,9 @@ contains
       use geometry, only: cvdrift, cvdrift0
       use geometry, only: dIdrho, dgradpardrho, dBdrho, d2Bdrdth
       use geometry, only: dcvdriftdrho, dcvdrift0drho
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
 
+      use parameters_physics, only: ydriftknob
       implicit none
 
       if (.not. allocated(par_nl_fac)) allocate (par_nl_fac(-nzgrid:nzgrid, nspec))
@@ -483,17 +416,20 @@ contains
       use stella_time, only: code_dt
       use species, only: spec, pfac
       use zgrid, only: nzgrid
-      use kt_grids, only: nalpha
+      use parameters_kxky_grids, only: nalpha
       use geometry, only: drhodpsi, dydalpha, gfac
       use geometry, only: dBdrho, geo_surf, q_as_x
       use geometry, only: dcvdriftdrho, dcvdrift0drho
       use geometry, only: dgbdriftdrho, dgbdrift0drho
       use vpamu_grids, only: vperp2, vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use dist_fn_arrays, only: wstarp
-      use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
-      use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
-      use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi!, adiabatic_phi
+      use arrays_dist_fn, only: wstarp
+      use arrays_dist_fn, only: wdriftx_phi, wdrifty_phi
+      use arrays_dist_fn, only: wdriftpx_g, wdriftpy_g
+      use arrays_dist_fn, only: wdriftpx_phi, wdriftpy_phi!, adiabatic_phi
+
+      use parameters_physics, only: xdriftknob, ydriftknob, wstarknob
+      
 !   use neoclassical_terms, only: include_neoclassical_terms
 
       implicit none
@@ -609,8 +545,10 @@ contains
 
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: naky, nakx
-      use dist_fn_arrays, only: g0, g1, g2, g3
+      use parameters_kxky_grids, only: naky, nakx
+      use arrays_dist_fn, only: g0, g1, g2, g3
+      use parameters_numerical, only: explicit_option_switch, explicit_option_rk3, &
+           explicit_option_rk2, explicit_option_rk4, explicit_option_euler
 
       implicit none
 
@@ -636,14 +574,15 @@ contains
 
       use mp, only: proc0, nproc, max_allreduce, min_allreduce
       use mp, only: scope, allprocs, subprocs
-      use dist_fn_arrays, only: wdriftx_g, wdrifty_g
+      use arrays_dist_fn, only: wdriftx_g, wdrifty_g
       use stella_time, only: code_dt, write_dt, cfl_dt_linear
-      use run_parameters, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
-      use physics_flags, only: radial_variation, prp_shear_enabled
+      use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
+      use parameters_physics, only: radial_variation, prp_shear_enabled
       use zgrid, only: delzed
       use vpamu_grids, only: dvpa
-      use kt_grids, only: akx, aky, nx, rho
-      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
+      use grids_kxky, only: akx, aky, rho
+      use parameters_kxky_grids, only: nx
+      use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
       use parallel_streaming, only: stream
       use parallel_streaming, only: stream_rad_var1, stream_rad_var2
       use mirror_terms, only: mirror
@@ -651,7 +590,7 @@ contains
       use file_utils, only: runtype_option_switch, runtype_multibox
       use dissipation, only: include_collisions, collisions_implicit
       use dissipation, only: cfl_dt_vpadiff, cfl_dt_mudiff
-      use run_parameters, only: print_extra_info_to_terminal
+      use parameters_numerical, only: print_extra_info_to_terminal
 
       implicit none
 
@@ -778,14 +717,14 @@ contains
       use parallel_streaming, only: parallel_streaming_initialized
       use parallel_streaming, only: init_parallel_streaming
       use dissipation, only: init_collisions, collisions_initialized, include_collisions
-      use run_parameters, only: stream_implicit, driftkinetic_implicit
+      use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use response_matrix, only: response_matrix_initialized
       use response_matrix, only: init_response_matrix
       use mirror_terms, only: mirror_initialized
       use mirror_terms, only: init_mirror
       use flow_shear, only: flow_shear_initialized
       use flow_shear, only: init_flow_shear
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use sources, only: init_source_timeaverage
       use sources, only: init_quasineutrality_source, qn_source_initialized
 
@@ -837,11 +776,11 @@ contains
 
    subroutine advance_stella(istep, stop_stella)
 
-      use dist_fn_arrays, only: gold, gnew
-      use fields_arrays, only: phi, apar, bpar
-      use fields_arrays, only: phi_old, apar_old
+      use arrays_dist_fn, only: gold, gnew
+      use arrays_fields, only: phi, apar, bpar
+      use arrays_fields, only: phi_old, apar_old
       use fields, only: advance_fields, fields_updated
-      use run_parameters, only: fully_explicit, fully_implicit
+      use parameters_numerical, only: fully_explicit, fully_implicit
       use multibox, only: RK_step
       use sources, only: include_qn_source, update_quasineutrality_source
       use sources, only: source_option_switch, source_option_projection
@@ -849,6 +788,7 @@ contains
       use sources, only: update_tcorr_krook, project_out_zero
       use mp, only: proc0, broadcast
 
+      use parameters_numerical, only: flip_flop
       implicit none
 
       integer, intent(in) :: istep
@@ -965,14 +905,18 @@ contains
       use job_manage, only: time_message
       use zgrid, only: nzgrid
       use extended_zgrid, only: periodic, phase_shift
-      use kt_grids, only: naky
+      use parameters_kxky_grids, only: naky
       use stella_layouts, only: vmu_lo, iv_idx
-      use physics_flags, only: include_apar
+      use parameters_physics, only: include_apar
       use parallel_streaming, only: stream_sign
-      use fields_arrays, only: phi, apar, bpar
+      use arrays_fields, only: phi, apar, bpar
       use fields, only: advance_fields
       use g_tofrom_h, only: gbar_to_g
 
+      use parameters_numerical, only: explicit_option_switch, explicit_option_rk3, &
+           explicit_option_rk2, explicit_option_rk4, explicit_option_euler
+      
+      
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
@@ -1037,7 +981,7 @@ contains
    !> advance_explicit_euler uses forward Euler to advance one time step
    subroutine advance_explicit_euler(g, restart_time_step, istep)
 
-      use dist_fn_arrays, only: g0
+      use arrays_dist_fn, only: g0
       use zgrid, only: nzgrid
       use stella_layouts, only: vmu_lo
       use multibox, only: RK_step
@@ -1062,7 +1006,7 @@ contains
    !> advance_expliciit_rk2 uses strong stability-preserving RK2 to advance one time step
    subroutine advance_explicit_rk2(g, restart_time_step, istep)
 
-      use dist_fn_arrays, only: g0, g1
+      use arrays_dist_fn, only: g0, g1
       use zgrid, only: nzgrid
       use stella_layouts, only: vmu_lo
       use multibox, only: RK_step
@@ -1109,7 +1053,7 @@ contains
    !> strong stability-preserving RK3
    subroutine advance_explicit_rk3(g, restart_time_step, istep)
 
-      use dist_fn_arrays, only: g0, g1, g2
+      use arrays_dist_fn, only: g0, g1, g2
       use zgrid, only: nzgrid
       use stella_layouts, only: vmu_lo
       use multibox, only: RK_step
@@ -1160,7 +1104,7 @@ contains
    !> standard RK4
    subroutine advance_explicit_rk4(g, restart_time_step, istep)
 
-      use dist_fn_arrays, only: g0, g1, g2, g3
+      use arrays_dist_fn, only: g0, g1, g2, g3
       use zgrid, only: nzgrid
       use stella_layouts, only: vmu_lo
       use multibox, only: RK_step
@@ -1225,21 +1169,21 @@ contains
    subroutine solve_gke(pdf, rhs_ky, restart_time_step, istep)
 
       use job_manage, only: time_message
-      use fields_arrays, only: phi, apar, bpar
+      use arrays_fields, only: phi, apar, bpar
       use stella_layouts, only: vmu_lo
       use stella_transforms, only: transform_y2ky
       use redistribute, only: gather, scatter
-      use physics_flags, only: include_parallel_nonlinearity
-      use physics_flags, only: include_parallel_streaming
-      use physics_flags, only: include_mirror, include_apar
-      use physics_flags, only: nonlinear, include_bpar
-      use physics_flags, only: full_flux_surface, radial_variation
-      use physics_parameters, only: g_exb
+      use parameters_physics, only: include_parallel_nonlinearity
+      use parameters_physics, only: include_parallel_streaming
+      use parameters_physics, only: include_mirror, include_apar
+      use parameters_physics, only: nonlinear, include_bpar
+      use parameters_physics, only: full_flux_surface, radial_variation
+      use parameters_physics, only: g_exb
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: ikx_max, ny, naky_all
-      use kt_grids, only: swap_kxky_back
-      use kt_grids, only: zonal_mode, akx
-      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
+      use parameters_kxky_grids, only: ikx_max, ny, naky_all
+      use calculations_kxky, only: swap_kxky_back
+      use grids_kxky, only: zonal_mode, akx
+      use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
       use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
       use sources, only: source_option_switch, source_option_krook
       use sources, only: add_krook_operator
@@ -1248,7 +1192,7 @@ contains
       use mirror_terms, only: advance_mirror_explicit
       use flow_shear, only: advance_parallel_flow_shear
       use multibox, only: include_multibox_krook, add_multibox_krook
-      use dist_fn_arrays, only: g_scratch
+      use arrays_dist_fn, only: g_scratch
       use gyro_averages, only: gyro_average, j0_ffs
       use g_tofrom_h, only: gbar_to_g 
       use dissipation, only: hyper_dissipation
@@ -1407,7 +1351,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: naky, nakx
+      use parameters_kxky_grids, only: naky, nakx
       use hyper, only: advance_hyper_vpa, advance_hyper_zed
       use hyper, only: hyp_zed, hyp_vpa
 
@@ -1539,14 +1483,14 @@ contains
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
       use fields, only: get_dchidy
-      use fields_arrays, only: apar, bpar
+      use arrays_fields, only: apar, bpar
       use stella_layouts, only: vmu_lo
       use stella_transforms, only: transform_ky2y
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
-      use kt_grids, only: swap_kxky
-      use physics_flags, only: full_flux_surface
-      use dist_fn_arrays, only: wstar, g_scratch
+      use parameters_kxky_grids, only: naky, naky_all, nakx, ikx_max, ny
+      use calculations_kxky, only: swap_kxky
+      use parameters_physics, only: full_flux_surface
+      use arrays_dist_fn, only: wstar, g_scratch
       use gyro_averages, only: gyro_average
 
       implicit none
@@ -1611,12 +1555,12 @@ contains
       use job_manage, only: time_message
       use stella_transforms, only: transform_ky2y
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: nakx, ikx_max, naky, naky_all, ny
-      use kt_grids, only: swap_kxky
-      use physics_flags, only: full_flux_surface, include_bpar
+      use parameters_kxky_grids, only: nakx, ikx_max, naky, naky_all, ny
+      use calculations_kxky, only: swap_kxky
+      use parameters_physics, only: full_flux_surface, include_bpar
       use gyro_averages, only: gyro_average, gyro_average_j1
-      use dist_fn_arrays, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
-      use dist_fn_arrays, only: g_scratch
+      use arrays_dist_fn, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
+      use arrays_dist_fn, only: g_scratch
 
       implicit none
 
@@ -1717,12 +1661,13 @@ contains
       use job_manage, only: time_message
       use stella_transforms, only: transform_ky2y
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: nakx, ikx_max, naky, naky_all, ny, akx
-      use kt_grids, only: swap_kxky
-      use physics_flags, only: full_flux_surface, include_bpar
+      use parameters_kxky_grids, only: nakx, ikx_max, naky, naky_all, ny
+      use grids_kxky, only: akx
+      use calculations_kxky, only: swap_kxky
+      use parameters_physics, only: full_flux_surface, include_bpar
       use gyro_averages, only: gyro_average
-      use dist_fn_arrays, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
-      use dist_fn_arrays, only: g_scratch
+      use arrays_dist_fn, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
+      use arrays_dist_fn, only: g_scratch
 
       implicit none
 
@@ -1820,26 +1765,27 @@ contains
       use job_manage, only: time_message
       use gyro_averages, only: gyro_average
       use fields, only: get_dchidx, get_dchidy
-      use fields_arrays, only: phi, apar, bpar, shift_state
-      use fields_arrays, only: phi_corr_QN, phi_corr_GA
-!   use fields_arrays, only: apar_corr_QN, apar_corr_GA
+      use arrays_fields, only: phi, apar, bpar, shift_state
+      use arrays_fields, only: phi_corr_QN, phi_corr_GA
+!   use arrays_fields, only: apar_corr_QN, apar_corr_GA
       use stella_transforms, only: transform_y2ky, transform_x2kx
       use stella_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
       use stella_time, only: cfl_dt_ExB, cfl_dt_linear, code_dt, code_dt_max
-      use run_parameters, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, fphi
-      use physics_parameters, only: g_exb, g_exbfac
+      use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, fphi
+      use parameters_physics, only: g_exb, g_exbfac
       use zgrid, only: nzgrid, ntubes
       use geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
-      use kt_grids, only: nakx, ikx_max, naky, naky_all, nx, ny
-      use kt_grids, only: akx, aky, rho_clamped
-      use physics_flags, only: full_flux_surface, radial_variation
-      use physics_flags, only: prp_shear_enabled, hammett_flow_shear
-      use physics_flags, only: include_apar, include_bpar
-      use kt_grids, only: x, swap_kxky, swap_kxky_back
+      use parameters_kxky_grids, only: nakx, ikx_max, naky, naky_all, nx, ny
+      use grids_kxky, only: akx, aky, rho_clamped
+      use parameters_physics, only: full_flux_surface, radial_variation
+      use parameters_physics, only: prp_shear_enabled, hammett_flow_shear
+      use parameters_physics, only: include_apar, include_bpar
+      use grids_kxky, only: x
+      use calculations_kxky, only: swap_kxky, swap_kxky_back
       use constants, only: pi, zi
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use physics_flags, only: suppress_zonal_interaction
-      use dist_fn_arrays, only: g_scratch
+      use parameters_physics, only: suppress_zonal_interaction
+      use arrays_dist_fn, only: g_scratch
       use g_tofrom_h, only: g_to_h
 
       implicit none
@@ -2110,18 +2056,19 @@ contains
       use finite_differences, only: second_order_centered_zed
       use finite_differences, only: third_order_upwind
       use redistribute, only: gather, scatter
-      use fields_arrays, only: phi, phi_corr_QN, phi_corr_GA
+      use arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
       use stella_transforms, only: transform_ky2y, transform_y2ky
       use stella_transforms, only: transform_kx2x, transform_x2kx
       use stella_time, only: cfl_dt_parallel, cfl_dt_linear, code_dt, code_dt_max
-      use run_parameters, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
+      use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
       use zgrid, only: nzgrid, delzed, ntubes
       use extended_zgrid, only: neigen, nsegments, ikxmod
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: periodic
-      use physics_flags, only: full_flux_surface, radial_variation
-      use kt_grids, only: akx, aky, nakx, naky, nx, ny, ikx_max
-      use kt_grids, only: swap_kxky, swap_kxky_back, rho_clamped
+      use parameters_physics, only: full_flux_surface, radial_variation
+      use grids_kxky, only: akx, aky, rho_clamped
+      use parameters_kxky_grids, only: nakx, naky, nx, ny, ikx_max
+      use calculations_kxky, only: swap_kxky, swap_kxky_back
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: dvpa, vpa, mu
       use gyro_averages, only: gyro_average
@@ -2394,22 +2341,23 @@ contains
       use mp, only: mp_abort, proc0
       use job_manage, only: time_message
       use fields, only: get_dchidy
-      use fields_arrays, only: phi, apar, bpar
-      use fields_arrays, only: phi_corr_QN, phi_corr_GA
-!   use fields_arrays, only: apar_corr_QN, apar_corr_GA
+      use arrays_fields, only: phi, apar, bpar
+      use arrays_fields, only: phi_corr_QN, phi_corr_GA
+!   use arrays_fields, only: apar_corr_QN, apar_corr_GA
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: nakx, naky, multiply_by_rho
+      use parameters_kxky_grids, only: nakx, naky
+      use calculations_kxky, only: multiply_by_rho
       use gyro_averages, only: gyro_average, gyro_average_j1
-      use run_parameters, only: fphi
-      use physics_flags, only: full_flux_surface
-      use physics_flags, only: include_parallel_streaming, include_mirror
-      use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
-      use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
-      use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi !, adiabatic_phi
-      use dist_fn_arrays, only: wstar, wstarp
+      use parameters_numerical, only: fphi
+      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: include_parallel_streaming, include_mirror
+      use arrays_dist_fn, only: wdriftx_phi, wdrifty_phi
+      use arrays_dist_fn, only: wdriftpx_g, wdriftpy_g
+      use arrays_dist_fn, only: wdriftpx_phi, wdriftpy_phi !, adiabatic_phi
+      use arrays_dist_fn, only: wstar, wstarp
       use mirror_terms, only: add_mirror_radial_variation
       use flow_shear, only: prl_shear, prl_shear_p
       use parallel_streaming, only: add_parallel_streaming_radial_variation
@@ -2540,7 +2488,8 @@ contains
    subroutine get_dgdy_2d(g, dgdy)
 
       use constants, only: zi
-      use kt_grids, only: nakx, aky
+      use parameters_kxky_grids, only: nakx
+      use grids_kxky, only: aky
 
       implicit none
 
@@ -2556,9 +2505,10 @@ contains
    subroutine get_dgdy_3d(g, dgdy)
 
       use constants, only: zi
+      use parameters_kxky_grids, only: nakx
+      use grids_kxky, only: aky
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: nakx, aky
-
+      
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: g
@@ -2583,7 +2533,8 @@ contains
       use constants, only: zi
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: nakx, aky
+      use parameters_kxky_grids, only: nakx
+      use grids_kxky, only: aky
 
       implicit none
 
@@ -2609,7 +2560,8 @@ contains
    subroutine get_dgdx_2d(g, dgdx)
 
       use constants, only: zi
-      use kt_grids, only: naky, akx
+      use parameters_kxky_grids, only: naky
+      use grids_kxky, only: akx
 
       implicit none
 
@@ -2626,7 +2578,8 @@ contains
 
       use constants, only: zi
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: akx, nakx
+      use parameters_kxky_grids, only: nakx
+      use grids_kxky, only: akx
 
       implicit none
 
@@ -2652,7 +2605,8 @@ contains
       use constants, only: zi
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: akx, nakx
+      use parameters_kxky_grids, only: nakx
+      use grids_kxky, only: akx
 
       implicit none
 
@@ -2677,7 +2631,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: naky, nakx
+      use parameters_kxky_grids, only: naky, nakx
 
       implicit none
 
@@ -2707,7 +2661,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: ikx_max, nalpha
+      use parameters_kxky_grids, only: ikx_max, nalpha
 
       implicit none
 
@@ -2740,10 +2694,10 @@ contains
       use zgrid, only: nzgrid
       use dissipation, only: hyper_dissipation
       use hyper, only: advance_hyper_dissipation
-      use physics_flags, only: include_parallel_streaming
-      use physics_flags, only: radial_variation, full_flux_surface
-      use physics_flags, only: include_mirror, prp_shear_enabled
-      use run_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
+      use parameters_physics, only: include_parallel_streaming
+      use parameters_physics, only: radial_variation, full_flux_surface
+      use parameters_physics, only: include_mirror, prp_shear_enabled
+      use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
       use implicit_solve, only: advance_implicit_terms
       use fields, only: advance_fields, fields_updated
       use mirror_terms, only: advance_mirror_implicit
@@ -2751,7 +2705,7 @@ contains
       use dissipation, only: advance_collisions_implicit
       use flow_shear, only: advance_perp_flow_shear
       use multibox, only: RK_step
-
+      use parameters_numerical, only: flip_flop
       implicit none
 
       integer, intent(in) :: istep
@@ -2884,7 +2838,7 @@ contains
       use zgrid, only: nzgrid
       use multibox, only: multibox_communicate, use_dirichlet_bc, apply_radial_boundary_conditions
       use fields, only: fields_updated, advance_fields
-      use fields_arrays, only: phi, apar, bpar
+      use arrays_fields, only: phi, apar, bpar
       use file_utils, only: runtype_option_switch, runtype_multibox
 
       implicit none
@@ -2913,7 +2867,7 @@ contains
    subroutine checksum_field(field, total)
 
       use zgrid, only: nzgrid, ntubes
-      use kt_grids, only: naky
+      use parameters_kxky_grids, only: naky
       use extended_zgrid, only: neigen, nsegments, ikxmod
       use extended_zgrid, only: iz_low, iz_up
 
@@ -2950,7 +2904,7 @@ contains
       use mp, only: sum_allreduce
       use zgrid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use kt_grids, only: naky, nakx
+      use parameters_kxky_grids, only: naky, nakx
       use vpamu_grids, only: maxwell_vpa, maxwell_mu
 
       implicit none
@@ -2997,7 +2951,7 @@ contains
    subroutine finish_time_advance
 
       use stella_transforms, only: finish_transforms
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
       use extended_zgrid, only: finish_extended_zgrid
       use parallel_streaming, only: finish_parallel_streaming
       use mirror_terms, only: finish_mirror
@@ -3038,11 +2992,11 @@ contains
 
    subroutine finish_wdrift
 
-      use dist_fn_arrays, only: wdriftx_g, wdrifty_g
-      use dist_fn_arrays, only: wdriftx_phi, wdrifty_phi
-      use dist_fn_arrays, only: wdriftpx_g, wdriftpy_g
-      use dist_fn_arrays, only: wdriftpx_phi, wdriftpy_phi
-!   use dist_fn_arrays, only: adiabatic_phi
+      use arrays_dist_fn, only: wdriftx_g, wdrifty_g
+      use arrays_dist_fn, only: wdriftx_phi, wdrifty_phi
+      use arrays_dist_fn, only: wdriftpx_g, wdriftpy_g
+      use arrays_dist_fn, only: wdriftpx_phi, wdriftpy_phi
+!   use arrays_dist_fn, only: adiabatic_phi
 
       implicit none
 
@@ -3062,7 +3016,7 @@ contains
 
    subroutine finish_wstar
 
-      use dist_fn_arrays, only: wstar, wstarp
+      use arrays_dist_fn, only: wstar, wstarp
 
       implicit none
 
@@ -3075,7 +3029,7 @@ contains
 
    subroutine deallocate_arrays
 
-      use dist_fn_arrays, only: g0, g1, g2, g3
+      use arrays_dist_fn, only: g0, g1, g2, g3
 
       implicit none
 

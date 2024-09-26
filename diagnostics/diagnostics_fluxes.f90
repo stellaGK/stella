@@ -10,9 +10,11 @@
 ! The heat flux is denoted by qflux.
 ! 
 !###############################################################################
- 
-module diagnostics_fluxes
 
+module diagnostics_fluxes
+  
+   use debug_flags, only: debug => fluxes_debug
+  
    implicit none
   
    public :: init_diagnostics_fluxes
@@ -38,22 +40,22 @@ contains
    !================= CALCULATE AND WRITE FLUXES TO NETCDF FILE ================
    !============================================================================
    subroutine write_fluxes_to_netcdf_file(nout, timer, write_to_netcdf_file)
+    
+      ! Knowledge of first processor  
+      use mp, only: proc0
 
       ! Dimensions
-      use kt_grids, only: naky, nakx
+      use parameters_kxky_grids, only: naky, nakx
       use zgrid, only: nztot, ntubes
       use species, only: nspec
 
       ! Flags 
-      use physics_flags, only: radial_variation
-      use physics_flags, only: full_flux_surface
-      
-      ! Input file
+      use parameters_physics, only: radial_variation
+      use parameters_physics, only: full_flux_surface
       use parameters_diagnostics, only: write_fluxes_vs_time
       use parameters_diagnostics, only: write_fluxes_kxkyz
       use parameters_diagnostics, only: write_fluxes_kxky
       use parameters_diagnostics, only: write_radial_fluxes 
-      use parameters_diagnostics, only: debug 
 
       ! Routines
       use job_manage, only: time_message
@@ -75,7 +77,10 @@ contains
       real, dimension(:, :, :), allocatable :: pflux_vs_kxkys, vflux_vs_kxkys, qflux_vs_kxkys
 
       !---------------------------------------------------------------------- 
-
+      ! Debugging
+      debug = debug .and. proc0
+      !----------------------------------------------------------------------
+      
       ! Start timer
       if (proc0) call time_message(.false., timer(:), 'Write fluxes')
 
@@ -174,12 +179,12 @@ contains
    subroutine write_fluxes_for_fluxtube(pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts, pflux_vs_kxkys, vflux_vs_kxkys, qflux_vs_kxkys)
    
       ! Flags
-      use physics_flags, only: include_apar, include_bpar
+      use parameters_physics, only: include_apar, include_bpar
 
       ! Load data 
-      use dist_fn_arrays, only: gnew, gvmu
-      use fields_arrays, only: phi, bpar
-      use run_parameters, only: fphi
+      use arrays_dist_fn, only: gnew, gvmu
+      use arrays_fields, only: phi, bpar
+      use parameters_numerical, only: fphi
 
       ! Redistribute data from  i[vpa,mu,s] to i[kx,ky,z,s] 
       use redistribute, only: scatter
@@ -236,15 +241,14 @@ contains
    
       ! Input file 
       use parameters_diagnostics, only: write_radial_fluxes 
-      use parameters_diagnostics, only: debug 
 
       ! Data 
-      use fields_arrays, only: phi, phi_corr_QN
-      use physics_flags, only: radial_variation
-      use dist_fn_arrays, only: gnew
+      use arrays_fields, only: phi, phi_corr_QN
+      use parameters_physics, only: radial_variation
+      use arrays_dist_fn, only: gnew
    
       ! Dimensions
-      use kt_grids, only: nakx, naky
+      use parameters_kxky_grids, only: nakx, naky
       use zgrid, only: nzgrid, ntubes
       use species, only: nspec
    
@@ -307,10 +311,10 @@ contains
    subroutine write_fluxes_for_fullfluxsurface(pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts)
 
       ! Data 
-      use dist_fn_arrays, only: gnew
+      use arrays_dist_fn, only: gnew
 
       ! Dimensions 
-      use kt_grids, only: ny, ikx_max
+      use parameters_kxky_grids, only: ny, ikx_max
       use species, only: nspec
       use zgrid, only: nzgrid
 
@@ -446,6 +450,9 @@ contains
       logical, intent(in) :: restart 
 
       !----------------------------------------------------------------------
+
+      ! Only debug on the first processor
+      debug = debug .and. proc0
 
       ! Allocate the arrays for the fluxes
       ! These are needed on all processors since <get_one_flux> will add data to it from each processor

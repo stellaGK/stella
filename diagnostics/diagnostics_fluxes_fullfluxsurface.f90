@@ -13,9 +13,6 @@ module diagnostics_fluxes_fullfluxsurface
 
    private     
 
-   ! Debugging
-   logical :: debug = .false.
-
 contains
 
 !###############################################################################
@@ -33,9 +30,9 @@ contains
 
       use constants, only: zi
       use zgrid, only: nzgrid, delzed
-      use kt_grids, only: naky, nakx, ny
-      use kt_grids, only: aky, dy
-      use fields_arrays, only: phi
+      use parameters_kxky_grids, only: naky, nakx, ny
+      use grids_kxky, only: aky, dy
+      use arrays_fields, only: phi
       use geometry, only: grad_x, jacob
 
       implicit none
@@ -45,7 +42,6 @@ contains
       real, dimension(:, :, -nzgrid:, :, :), intent(out) :: pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts
 
       integer :: iky, it
-      integer :: iy, iz
       real, dimension(:, :), allocatable :: flxfac 
 
       complex, dimension(:, :, :), allocatable :: dphidy
@@ -89,8 +85,8 @@ contains
    subroutine get_one_flux_ffs(mom, dphidy, flxfac, flx, flx_vs_kxkyz)
 
       use species, only: nspec
-      use zgrid, only: nzgrid, delzed
-      use kt_grids, only: naky, nakx
+      use zgrid, only: nzgrid
+      use parameters_kxky_grids, only: naky, nakx
       use volume_averages, only: mode_fac
 
       implicit none
@@ -103,7 +99,6 @@ contains
 
       integer :: iky, ikx, iz, is
       complex, dimension(:, :, :, :), allocatable :: mom_ky
-      complex, dimension (:,:), allocatable :: flx_x
 
       allocate (mom_ky(naky, nakx, -nzgrid:nzgrid, nspec))
 
@@ -146,9 +141,8 @@ contains
 
       use species, only: nspec
       use zgrid, only: nzgrid
-      use kt_grids, only: ikx_max, naky_all, ny
-      use kt_grids, only: swap_kxky_back
-      use geometry, only: bmag
+      use parameters_kxky_grids, only: ikx_max, naky_all, ny
+      use calculations_kxky, only: swap_kxky_back
       use stella_transforms, only: transform_y2ky
 
       implicit none
@@ -192,18 +186,18 @@ contains
       use zgrid, only: nzgrid
       use vpamu_grids, only: integrate_vmu_ffs
       use vpamu_grids, only: vpa, vperp2
-      use kt_grids, only: naky_all, ikx_max, ny
-      use kt_grids, only: swap_kxky
-      use dist_fn_arrays, only: g0, g1, g2
+      use parameters_kxky_grids, only: naky_all, ikx_max, ny
+      use calculations_kxky, only: swap_kxky
+      use arrays_dist_fn, only: g0, g1, g2
       use gyro_averages, only: gyro_average, j0_ffs
-      use fields_arrays, only: phi
+      use arrays_fields, only: phi
       use stella_transforms, only: transform_ky2y
-      use kt_grids, only: akx, aky
-      use kt_grids, only: nakx, theta0, naky
+      use grids_kxky, only: aky, theta0
+      use parameters_kxky_grids, only: nakx
       use constants, only: zi, pi
       use zgrid, only: ntubes
 
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use g_tofrom_h, only: g_to_h
 
       !> For momentum flux
@@ -337,9 +331,9 @@ contains
       use gyro_averages, only: gyro_average, j0_ffs
 
       use stella_transforms, only: transform_ky2y, transform_y2ky
-      use kt_grids, only: swap_kxky, swap_kxky_back
+      use calculations_kxky, only: swap_kxky, swap_kxky_back
       use vpamu_grids, only: maxwell_vpa, maxwell_mu
-      use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
+      use parameters_kxky_grids, only: naky, naky_all, nakx, ikx_max, ny
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       implicit none
 
@@ -404,9 +398,9 @@ contains
       use gyro_averages, only: gyro_average, j0_ffs
 
       use stella_transforms, only: transform_ky2y, transform_y2ky
-      use kt_grids, only: swap_kxky, swap_kxky_back
+      use calculations_kxky, only: swap_kxky, swap_kxky_back
       use vpamu_grids, only: maxwell_vpa, maxwell_mu
-      use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
+      use parameters_kxky_grids, only: naky, naky_all, nakx, ikx_max, ny
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       implicit none
 

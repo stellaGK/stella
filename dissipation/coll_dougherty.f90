@@ -107,7 +107,7 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use geometry, only: bmag
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
 
       implicit none
 
@@ -150,7 +150,7 @@ contains
       use vpamu_grids, only: dmu_cell, mu_cell, wgts_mu_bare
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
 
       implicit none
 
@@ -211,15 +211,16 @@ contains
       use vpamu_grids, only: ztmax, maxwell_vpa, maxwell_mu
       use vpamu_grids, only: nmu, vpa, vperp2
       use vpamu_grids, only: set_vpa_weights
-      use kt_grids, only: naky, nakx, zonal_mode
+      use parameters_kxky_grids, only: naky, nakx
+      use grids_kxky, only: zonal_mode
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use geometry, only: dl_over_b
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use gyro_averages, only: aj0v
       use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
 
       implicit none
 
@@ -465,15 +466,16 @@ contains
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: ztmax, maxwell_vpa, maxwell_mu
       use vpamu_grids, only: nvpa, vpa, vperp2
-      use kt_grids, only: naky, nakx, zonal_mode
+      use parameters_kxky_grids, only: naky, nakx
+      use grids_kxky, only: zonal_mode
       use geometry, only: dl_over_b, bmag
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use dist_fn_arrays, only: gvmu, kperp2
+      use arrays_dist_fn, only: gvmu, kperp2
       use gyro_averages, only: aj0v, aj1v
       use fields, only: get_fields, get_fields_by_spec, efac, gamtot_h
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
 
       implicit none
 
@@ -910,17 +912,19 @@ contains
       use stella_time, only: code_dt
       use zgrid, only: nzgrid, ntubes
       use species, only: spec
-      use run_parameters, only: fphi
-      use physics_flags, only: radial_variation, full_flux_surface
-      use kt_grids, only: naky, nakx, multiply_by_rho, rho_d_clamped
+      use parameters_numerical, only: fphi
+      use parameters_physics, only: radial_variation, full_flux_surface
+      use parameters_kxky_grids, only: naky, nakx
+      use grids_kxky, only: rho_d_clamped
+      use calculations_kxky, only: multiply_by_rho
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: set_vpa_weights
       use geometry, only: bmag, dBdrho
       use stella_layouts, only: vmu_lo, kxkyz_lo
       use stella_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
       use dist_redistribute, only: kxkyz2vmu
-      use dist_fn_arrays, only: gvmu, kperp2, dkperp2dr
-      use fields_arrays, only: phi_corr_QN
+      use arrays_dist_fn, only: gvmu, kperp2, dkperp2dr
+      use arrays_fields, only: phi_corr_QN
       use g_tofrom_h, only: g_to_h
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
@@ -1187,7 +1191,7 @@ contains
       use vpamu_grids, only: vpa, nvpa, nmu, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu
 !     use vpamu_grids, only: int_vpa2
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
       use gyro_averages, only: aj0v, aj1v
 
       implicit none
@@ -1271,13 +1275,14 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, iv_idx, is_idx
       use species, only: spec
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use geometry, only: bmag, dBdrho
-      use kt_grids, only: nakx, naky, multiply_by_rho
+      use parameters_kxky_grids, only: nakx, naky
+      use calculations_kxky, only: multiply_by_rho
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: integrate_species, mu, vpa, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use dist_fn_arrays, only: kperp2, dkperp2dr
+      use arrays_dist_fn, only: kperp2, dkperp2dr
       use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
 
       implicit none
@@ -1405,14 +1410,15 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, iv_idx, is_idx
       use species, only: spec
-      use physics_flags, only: radial_variation
+      use parameters_physics, only: radial_variation
       use geometry, only: bmag, dBdrho
-      use kt_grids, only: nakx, naky, multiply_by_rho
+      use parameters_kxky_grids, only: nakx, naky
+      use calculations_kxky, only: multiply_by_rho
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: integrate_species
       use vpamu_grids, only: mu, vpa, nmu, vperp2
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use dist_fn_arrays, only: kperp2, dkperp2dr
+      use arrays_dist_fn, only: kperp2, dkperp2dr
       use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
 
       implicit none
@@ -1506,7 +1512,7 @@ contains
    subroutine advance_collisions_dougherty_implicit(phi, apar, bpar)
 
       use zgrid, only: nzgrid
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
 
       implicit none
 
@@ -1523,21 +1529,22 @@ contains
       use finite_differences, only: tridag
       use linear_solve, only: lu_back_substitution
       use stella_time, only: code_dt
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use species, only: nspec, spec, has_electron_species
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nmu, nvpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
       use vpamu_grids, only: set_vpa_weights
-      use kt_grids, only: naky, nakx, zonal_mode
+      use parameters_kxky_grids, only: naky, nakx
+      use grids_kxky, only: zonal_mode
       use geometry, only: dl_over_b
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use g_tofrom_h, only: g_to_h
       use gyro_averages, only: aj0v
       use fields, only: get_fields, efac, gamtot_h
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
 
       implicit none
 
@@ -1687,22 +1694,23 @@ contains
       use finite_differences, only: tridag
       use linear_solve, only: lu_back_substitution
       use stella_time, only: code_dt
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use species, only: nspec, spec, has_electron_species
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nmu, nvpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
       use vpamu_grids, only: set_vpa_weights
-      use kt_grids, only: naky, nakx, zonal_mode
+      use parameters_kxky_grids, only: naky, nakx
+      use grids_kxky, only: zonal_mode
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
       use gyro_averages, only: aj0v, aj1v
       use g_tofrom_h, only: g_to_h
       use fields, only: get_fields, efac, gamtot_h
       use geometry, only: bmag, dl_over_b
-      use physics_flags, only: adiabatic_option_switch
-      use physics_flags, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
 
       ! TMP FOR TESTING
 !    use vpamu_grids, only: mu

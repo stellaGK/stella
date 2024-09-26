@@ -202,7 +202,7 @@ contains
       use splines, only: geo_spline
       use common_types, only: spec_type
       use geometry_miller, only: local
-      use physics_parameters, only: vnew_ref, rhostar
+      use parameters_physics, only: vnew_ref, rhostar
 
       implicit none
 

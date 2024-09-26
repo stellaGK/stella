@@ -191,7 +191,8 @@ contains
       use constants, only: pi
       use common_types, only: flux_surface_type
       use splines, only: geo_spline
-      use physics_flags, only: full_flux_surface, const_alpha_geo 
+      use parameters_physics, only: full_flux_surface
+      use debug_flags, only: const_alpha_geo 
       use zgrid, only: zed_equal_arc, get_total_arc_length, get_arc_length_grid
       use zgrid, only: zed 
       use geometry_vmec_read_netCDF_file, only: calculate_vmec_geometry

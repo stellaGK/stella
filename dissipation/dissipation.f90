@@ -33,7 +33,7 @@ contains
 
       use mp, only: proc0
       use hyper, only: init_hyper
-      use run_parameters, only: print_extra_info_to_terminal
+      use parameters_numerical, only: print_extra_info_to_terminal
 
       implicit none
 
@@ -76,7 +76,7 @@ contains
 
       use file_utils, only: input_unit_exist
       use mp, only: proc0, broadcast
-      use run_parameters, only: fully_explicit
+      use parameters_numerical, only: fully_explicit
       use coll_dougherty, only: read_parameters_dougherty
       use coll_fokkerplanck, only: read_parameters_fp
       use hyper, only: read_parameters_hyper
@@ -166,7 +166,7 @@ contains
    subroutine advance_collisions_explicit(g, phi, bpar, gke_rhs)
 
       use mp, only: mp_abort
-      use physics_flags, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid
       use coll_dougherty, only: advance_collisions_dougherty_explicit
@@ -199,7 +199,7 @@ contains
       use zgrid, only: nzgrid
       use vpamu_grids, only: set_vpa_weights
       use stella_layouts, only: vmu_lo
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use coll_dougherty, only: advance_collisions_dougherty_implicit
       use coll_fokkerplanck, only: advance_collisions_fp_implicit
 

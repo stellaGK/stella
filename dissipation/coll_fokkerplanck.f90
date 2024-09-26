@@ -61,7 +61,7 @@ contains
    subroutine read_parameters_fp
 
       use file_utils, only: input_unit_exist
-      use physics_flags, only: full_flux_surface, radial_variation
+      use parameters_physics, only: full_flux_surface, radial_variation
       use mp, only: proc0, broadcast
 
       implicit none
@@ -158,7 +158,7 @@ contains
       use vpamu_grids, only: dvpa, dmu, mu, nmu
       use geometry, only: bmag
       use stella_layouts
-      use run_parameters, only: fully_explicit
+      use parameters_numerical, only: fully_explicit
       use common_types, only: spec_type
 
       implicit none
@@ -346,11 +346,11 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use geometry, only: bmag
-      use dist_fn_arrays, only: kperp2
-      use physics_parameters, only: zeff
+      use arrays_dist_fn, only: kperp2
+      use parameters_physics, only: zeff
       use constants, only: pi
       use common_types, only: spec_type
-      use kt_grids, only: naky, nakx
+      use parameters_kxky_grids, only: naky, nakx
       use spfunc, only: erf => erf_ext
       use file_utils, only: open_output_file, close_output_file
 
@@ -1599,8 +1599,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use gyro_averages, only: aj0v
       use species, only: spec, nspec
       use geometry, only: bmag
-      use kt_grids, only: naky, nakx
-      use dist_fn_arrays, only: kperp2
+      use parameters_kxky_grids, only: naky, nakx
+      use arrays_dist_fn, only: kperp2
       use file_utils, only: open_output_file, close_output_file
 
       implicit none
@@ -1964,7 +1964,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use constants, only: pi
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx, it_idx
       use stella_time, only: code_dt
-      use kt_grids, only: naky
+      use parameters_kxky_grids, only: naky
 
       implicit none
 
@@ -2558,9 +2558,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use species, only: nspec
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: ztmax, maxwell_mu, nmu, nvpa, set_vpa_weights
-      use kt_grids, only: naky, nakx
+      use parameters_kxky_grids, only: naky, nakx
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx, it_idx
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use fields, only: get_fields, get_fields_by_spec_idx
       use job_manage, only: time_message, timer_local
       use file_utils, only: open_output_file, close_output_file
@@ -2899,7 +2899,6 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use zgrid, only: ntubes
       use vpamu_grids, only: nmu, nvpa
       use vpamu_grids, only: set_vpa_weights
-      use kt_grids, only: naky, nakx
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
       use fields, only: get_fields, get_fields_by_spec
@@ -3296,15 +3295,15 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use redistribute, only: scatter, gather
       use stella_time, only: code_dt
       use zgrid, only: nzgrid, ntubes
-      use run_parameters, only: fphi
-      use physics_flags, only: full_flux_surface
-      use kt_grids, only: naky, nakx
+      use parameters_numerical, only: fphi
+      use parameters_physics, only: full_flux_surface
+      use parameters_kxky_grids, only: naky, nakx
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: set_vpa_weights
       use stella_layouts, only: vmu_lo, kxkyz_lo
       use stella_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
       use dist_redistribute, only: kxkyz2vmu
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
       use g_tofrom_h, only: g_to_h
 
       implicit none
@@ -3538,7 +3537,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use vpamu_grids, only: nmu, mu, dmu, vpa, dvpa, nvpa, maxwell_vpa, equally_spaced_mu_grid
       use geometry, only: bmag
       use species, only: spec
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
       use constants, only: pi
       use job_manage, only: timer_local, time_message
 
@@ -3834,7 +3833,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use vpamu_grids, only: nmu, mu, dmu, vpa, dvpa, nvpa, maxwell_vpa, equally_spaced_mu_grid
       use geometry, only: bmag
       use species, only: spec
-      use dist_fn_arrays, only: kperp2
+      use arrays_dist_fn, only: kperp2
       use constants, only: pi
       use job_manage, only: timer_local, time_message
 
@@ -3994,7 +3993,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       use zgrid, only: nzgrid
       use vpamu_grids, only: set_vpa_weights
-      use dist_fn_arrays, only: gvmu
+      use arrays_dist_fn, only: gvmu
 
       implicit none
 
@@ -4021,13 +4020,13 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use finite_differences, only: tridag
       use linear_solve, only: lu_back_substitution
       use stella_time, only: code_dt
-      use run_parameters, only: fphi
+      use parameters_numerical, only: fphi
       use species, only: nspec, spec
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nmu, nvpa, integrate_vmu
       use vpamu_grids, only: vpa
       use vpamu_grids, only: set_vpa_weights
-      use kt_grids, only: naky, nakx
+      use parameters_kxky_grids, only: naky, nakx
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
       use g_tofrom_h, only: g_to_h

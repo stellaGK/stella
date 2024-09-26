@@ -1,5 +1,7 @@
 module extended_zgrid
 
+   use debug_flags, only: debug => extended_grid_debug
+
    implicit none
 
    public :: nsegments
@@ -17,8 +19,6 @@ module extended_zgrid
    public :: map_to_iz_ikx_from_izext
 
    private
-   
-   logical :: debug = .false.
 
    !> these arrays needed to keep track of connections between different
    !> 2pi segments
@@ -48,9 +48,9 @@ contains
       use zgrid, only: boundary_option_linked
       use zgrid, only: boundary_option_linked_stellarator
       use zgrid, only: nperiod, nzgrid, nzed, ntubes
-      use kt_grids, only: nakx, naky
-      use kt_grids, only: jtwist, ikx_twist_shift, phase_shift_angle
-      use kt_grids, only: aky, ikx_max
+      use parameters_kxky_grids, only: nakx, naky, ikx_max
+      use parameters_kxky_grids, only: jtwist, ikx_twist_shift, phase_shift_angle
+      use grids_kxky, only: aky
       use constants, only: zi
       use mp, only: proc0
 
