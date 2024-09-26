@@ -53,7 +53,7 @@
   delt = 0.01 
   nstep = 100
   mirror_semi_lagrange = .false.
-!  print_extra_info_to_terminal = .false.
+  print_extra_info_to_terminal = .false.
   stream_implicit = .true.
   mirror_implicit = .false.
   drifts_implicit = .false.

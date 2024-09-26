@@ -161,14 +161,11 @@ contains
       if (debug) write (*, *) 'stella::init_stella::check_time'
       call checktime(avail_cpu_time, exit)
 
-      if (proc0) then
-         !> write message to screen with useful info regarding start of simulation
-         if (debug) write (*, *) 'stella::init_stella::write_start_message'
-         call write_start_message(git_commit, git_date)
+      if (proc0) then 
          !> initialize file i/o
          if (debug) write (*, *) 'stella::init_stella::init_file_utils'
          call init_file_utils(list)
-      end if
+      end if  
 
       call read_debug_flags
 !      if(stella_debug) debug = .true. 
@@ -192,6 +189,9 @@ contains
       call read_parameters_physics
       if (debug) write (6, *) "stella::init_stella::read_parameters_numerical"
       call read_parameters_numerical 
+      !> write message to screen with useful info regarding start of simulation
+      if (debug) write (*, *) 'stella::init_stella::write_start_message'
+      call write_start_message(git_commit, git_date) 
       !> read the zgrid_parameters namelist from the input file and setup the z grid
       if (debug) write (6, *) "stella::init_stella::init_zgrid"
       call init_zgrid
@@ -456,8 +456,11 @@ contains
       ! Strings to format data
       character(len=23) :: str
       
+      ! Only print the header on the first processor
+      if (.not. proc0) return 
+      
       ! Print the stella header
-      if (proc0 .and. print_extra_info_to_terminal) then
+      if (print_extra_info_to_terminal) then
          write (*, *) ' '
          write (*, *) ' '
          write (*, *) "              I8            ,dPYb, ,dPYb,            "
@@ -481,15 +484,15 @@ contains
          write (*, '(A)') "############################################################"
          write (*, '(A)') "                     PARALLEL COMPUTING"
          write (*, '(A)') "############################################################"
-         if (nproc == 1) then
-            write (str, '(I10, A)') nproc, " processor."
-            write (*,*) ' '; write (*, '(A,A,A)') " Running on ", adjustl(trim(str))
-         else
-            write (str, '(I10, A)') nproc, " processors."
-            write (*, '(A,A,A)') " Running on ", adjustl(trim(str))
-         end if
-         write (*, *)
       end if
+      if (nproc == 1) then
+         write (str, '(I10, A)') nproc, " processor."
+         write (*,*) ' '; write (*, '(A,A,A)') " Running on ", adjustl(trim(str))
+      else
+         write (str, '(I10, A)') nproc, " processors."
+         write (*, '(A,A,A)') " Running on ", adjustl(trim(str))
+      end if
+      write (*, *)
 
    end subroutine write_start_message
 

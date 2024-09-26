@@ -46,7 +46,7 @@
 &knobs
   delt = 0.01 
   nstep = 100
-  print_extra_info_to_terminal = .false.  
+  print_extra_info_to_terminal = .false.
   stream_implicit = .false.
   mirror_implicit = .false.
   drifts_implicit = .false.

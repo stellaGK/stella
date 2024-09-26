@@ -46,11 +46,7 @@ module parameters_physics
    public :: radial_variation
    
    public :: beta, zeff, tite, nine, rhostar, vnew_ref
-   public :: g_exb, g_exbfac, omprimfac
-
-   public :: flip_flop_old
-   public :: explicit_option_old
-   public :: time_advance_knob_exists
+   public :: g_exb, g_exbfac, omprimfac 
    
    private
 
@@ -84,10 +80,6 @@ module parameters_physics
    !!> Need to fix for the warning messages
    logical :: debug = .false.
 
-   !!> TODO-GA: need to fix somehow
-   logical :: flip_flop_old
-   character(10) :: explicit_option_old
-   logical :: time_advance_knob_exists    
 contains
 
   !======================================================================
@@ -159,11 +151,8 @@ contains
       g_exb = 0.0
       g_exbfac = 1.0
       omprimfac = 1.0
-      irhostar = -1.0
-
-      flip_flop_old = .false.
-      explicit_option_old = 'default'
-      time_advance_knob_exists = .false. 
+      irhostar = -1.0 
+      
    end subroutine set_default_parameters
 
    !**********************************************************************
@@ -232,6 +221,8 @@ contains
       logical :: old_nml_exist
       integer :: in_file
 
+      ! These variables belonged to <time_advance_knobs> and are now read in <run_parameters>
+      ! We define them here so we can read the namelist, but we will not use them.
       character(10) :: explicit_option
       logical :: flip_flop
       
@@ -281,16 +272,26 @@ contains
          !      The namelist <physics_parameters> does not exist. &
          !      Please replace this with the title <parameters_physics>")
       end if
-
+      
       in_file = input_unit_exist("time_advance_knobs", old_nml_exist)
       if (old_nml_exist) then
-         time_advance_knob_exists = .true. 
-         read(unit=in_file, nml=time_advance_knobs)
-         explicit_option_old = explicit_option
-         write(*,*) 'explicit_option_old', explicit_option_old
-         flip_flop_old = flip_flop
-      end if
+         read(unit=in_file, nml=time_advance_knobs) 
+         if (debug) then 
+            write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+            write(*,*) 'Please replace the namelist <time_advance_knobs> in the input file.'
+           write(*,*) 'Refer to the input paramters text file as to which namelist to use.'
+            write(*,*) 'Some of these parameters have been moved to <run_parameters>'
+            write(*,*) 'and others have been moves to <physics_parameters>.'
+            write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+         end if
 
+           ! write(*,*) "Aborting in run_parameters.f90.&
+         !      The namelist <time_advance_knobs> does not exist.&
+         !      Please replace this with the title <numerical>"
+         ! call mp_abort("Aborting in run_parameters.f90.&
+         !      The namelist <time_advance_knobs> does not exist.&
+         !      Please replace this with the title <run_parameters>")
+      end if
 
    end subroutine check_backwards_compatability
     
@@ -337,11 +338,6 @@ contains
      call broadcast(g_exbfac)
      call broadcast(omprimfac)
 
-
-     !> TODO-GA: FIX PLEASE
-     call broadcast(flip_flop_old)
-     call broadcast(explicit_option_old)
-     call broadcast(time_advance_knob_exists) 
    end subroutine broadcast_parameters
 
  end subroutine read_parameters_physics

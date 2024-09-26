@@ -85,6 +85,7 @@
  vpa_upwind = 0.0
  delt = 0.5e-2
  nstep = 1000
+ print_extra_info_to_terminal = .false.
 /
 &species_knobs
  nspec= 2

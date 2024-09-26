@@ -63,6 +63,7 @@
   time_upwind = 1.0
   vpa_upwind = 0.0
   zed_upwind = 0.0
+  print_extra_info_to_terminal = .false.
 /
 &stella_diagnostics_knobs
   nsave = 10

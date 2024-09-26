@@ -48,7 +48,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/calculations_kxky.f90
   ../STELLA_CODE/common_types.f90
   ../STELLA_CODE/debug_flags.f90
-  ../STELLA_CODE/define.inc
   ../STELLA_CODE/dist_fn.f90
   ../STELLA_CODE/dist_redistribute.f90
   ../STELLA_CODE/euterpe_interface.f90

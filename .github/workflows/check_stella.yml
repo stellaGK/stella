@@ -16,9 +16,6 @@ jobs:
 #-----------------------------------------------------------------------
   build-stella:
   
-    # Turn this job off for now !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    #if: false
-  
     # Set environment variables
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
@@ -87,20 +84,6 @@ jobs:
             if [ ${{ matrix.os }} == 'ubuntu-24.04' ]; then sudo apt install -y libblas-dev liblapack-dev; fi
           fi
 
-      # Print system information
-      - name: System information
-        run: |
-          if ${{ contains(matrix.os, 'macos') }}; then  
-            echo " "; echo "System information:"; echo "$(system_profiler SPHardwareDataType | sed 's/^/  /')"
-            echo " "; echo "Gfortran version:"; echo "$(gfortran --version | sed 's/^/  /')"
-            echo " "; echo "Clang version:"; echo "$(clang --version | sed 's/^/  /')"
-          elif ${{ contains(matrix.os, 'ubuntu') }}; then  
-            echo " "; echo "System information:"; echo "$(cat /etc/*release | sed 's/^/  /')"
-            echo " "; echo "Number of cores:"; echo "$(lscpu | egrep 'Model name|Socket|Thread|NUMA|CPU\(s\)' | sed 's/^/  /')"
-            echo " "; echo "Gfortran version:"; echo "$(gfortran --version | sed 's/^/  /')"
-            echo " "; echo "Netcdf version:"; echo "$(nf-config --all | sed 's/^/  /')"
-          fi
-
       # Check-out repository under $GITHUB_WORKSPACE
       - name: Check-out repository
         uses: actions/checkout@v4 
@@ -131,6 +114,22 @@ jobs:
              cmake . -B COMPILATION/build_cmake
              cmake --build COMPILATION/build_cmake -j 4
           fi
+
+      # Print system information
+      - name: System information
+        run: |
+          if ${{ contains(matrix.os, 'macos') }}; then  
+            echo " "; echo "System information:"; echo "$(system_profiler SPHardwareDataType | sed 's/^/  /')"
+            echo " "; echo "Gfortran version:"; echo "$(gfortran --version | sed 's/^/  /')"
+            echo " "; echo "Clang version:"; echo "$(clang --version | sed 's/^/  /')"
+            make numerical-tests-system
+          elif ${{ contains(matrix.os, 'ubuntu') }}; then  
+            echo " "; echo "System information:"; echo "$(cat /etc/*release | sed 's/^/  /')"
+            echo " "; echo "Number of cores:"; echo "$(lscpu | egrep 'Model name|Socket|Thread|NUMA|CPU\(s\)' | sed 's/^/  /')"
+            echo " "; echo "Gfortran version:"; echo "$(gfortran --version | sed 's/^/  /')"
+            echo " "; echo "Netcdf version:"; echo "$(nf-config --all | sed 's/^/  /')"
+            make numerical-tests-system
+          fi
           
       # Check $GITHUB_WORKSPACE
       - name: Check Github Workspace
@@ -142,8 +141,8 @@ jobs:
       - name: Install python virtual environment
         run: |
           if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then 
-            python3 -m venv COMPILATION/venv
-            source COMPILATION/venv/bin/activate
+            python3 -m venv AUTOMATIC_TESTS/venv
+            source AUTOMATIC_TESTS/venv/bin/activate
             pip3 install -r AUTOMATIC_TESTS/requirements.txt
           else
             pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
@@ -153,11 +152,46 @@ jobs:
           fi
         
       # Perform python tests  
-      # Turn this job off for now !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      - name: Numerical python tests
-        if: false
-        run: make numerical-tests
-
+      - name: Python tests 1 - Does stella run
+        run: |
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          make numerical-tests-1
+          
+      - name: Python tests 2 - Geometry
+        if: success() || failure() 
+        run: |
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          make numerical-tests-2
+          
+      - name: Python tests 3 - Gyrokinetic equation
+        if: success() || failure() 
+        run: |
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          make numerical-tests-3
+          
+      - name: Python tests 4 - Flux tube
+        if: success() || failure() 
+        run: |
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          make numerical-tests-4
+          
+      - name: Python tests 5 - Diagnostics
+        if: success() || failure() 
+        run: |
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          make numerical-tests-5
+          
+      - name: Python tests 6 - Full Flux Surface
+        if: success() || failure() 
+        run: |
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          make numerical-tests-6
+          
+      - name: Python tests 7 - Electromagnetic effects"
+        if: success() || failure() 
+        run: |
+          if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then source AUTOMATIC_TESTS/venv/bin/activate; fi
+          make numerical-tests-7
 
 #-----------------------------------------------------------------------
 #                              Quick build                              
@@ -165,6 +199,7 @@ jobs:
 
   # Build stella to perform python and fortran tests
   build-stella-quick: 
+    name: Build stella quickly
     runs-on: ubuntu-22.04
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
@@ -188,8 +223,12 @@ jobs:
       - name: Build stella
         run: |
           git submodule update --init --recursive
-          cmake . -B COMPILATION/build_cmake
-          cmake --build COMPILATION/build_cmake -j 4
+          make -j 12
+          
+          # Stella is bugged when compiling without the falg debug = on
+          # So the python tests will break when compiling with CMake
+          #cmake . -B COMPILATION/build_cmake
+          #cmake --build COMPILATION/build_cmake -j 4
 
       # Upload stella
       - name: Upload stella  
@@ -198,7 +237,6 @@ jobs:
           name: stella-executable
           path: stella
           retention-days: 1
-
 
 #-----------------------------------------------------------------------
 #                             Python tests                              
@@ -223,6 +261,8 @@ jobs:
           - name: "3 - Gyrokinetic equation"
           - name: "4 - Flux tube"
           - name: "5 - Diagnostics"
+          - name: "6 - Full Flux Surface"
+          - name: "7 - Electromagnetic effects"
 
     steps:
 
@@ -237,6 +277,7 @@ jobs:
           sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
           sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev
           pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
+          sed -i 's/nproc = 16/nproc = 4/g' AUTOMATIC_TESTS/config.ini 
 
       # Download stella executable from previous job
       - name: Download stella 
@@ -256,7 +297,73 @@ jobs:
           if ${{ contains(matrix.config.name, '3 -') }}; then make numerical-tests-3; fi
           if ${{ contains(matrix.config.name, '4 -') }}; then make numerical-tests-4; fi
           if ${{ contains(matrix.config.name, '5 -') }}; then make numerical-tests-5; fi
+          if ${{ contains(matrix.config.name, '6 -') }}; then make numerical-tests-6; fi
+          if ${{ contains(matrix.config.name, '7 -') }}; then make numerical-tests-7; fi
 
+
+
+  # Perform python on 1 processor.
+  python-tests-nproc1: 
+    name: Python tests on 1 processor
+    runs-on: ubuntu-22.04
+    needs: build-stella-quick
+    env:
+      OMPI_MCA_rmaps_base_oversubscribe: yes
+      MPIRUN: mpiexec -np
+      STELLA_SYSTEM: gnu_ubuntu
+
+    steps:
+
+      # Check-out repository under $GITHUB_WORKSPACE
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Install dependencies
+      - name: Install dependencies and python virtual environment
+        run: |
+          sudo apt update
+          sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
+          sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev
+          pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
+          sed -i 's/nproc = 16/nproc = 1/g' AUTOMATIC_TESTS/config.ini 
+
+      # Download stella executable from previous job
+      - name: Download stella 
+        uses: actions/download-artifact@v4
+        with:
+           name: stella-executable
+    
+      # Make stella executable  
+      - name: Make stella executable
+        run: chmod +x stella
+        
+      # Perform python tests  
+      - name: Python tests 1 - Does stella run
+        run: make numerical-tests-1
+          
+      - name: Python tests 2 - Geometry
+        if: success() || failure() 
+        run: make numerical-tests-2
+          
+      - name: Python tests 3 - Gyrokinetic equation
+        if: success() || failure() 
+        run: make numerical-tests-3
+          
+      - name: Python tests 4 - Flux tube
+        if: success() || failure() 
+        run: make numerical-tests-4
+          
+      - name: Python tests 5 - Diagnostics
+        if: success() || failure() 
+        run: make numerical-tests-5
+          
+      - name: Python tests 6 - Full Flux Surface
+        if: success() || failure() 
+        run: make numerical-tests-6
+          
+      - name: Python tests 7 - Electromagnetic effects"
+        if: success() || failure() 
+        run: make numerical-tests-7
 
 #-----------------------------------------------------------------------
 #                             Fortran tests                              
@@ -269,9 +376,6 @@ jobs:
       OMPI_MCA_rmaps_base_oversubscribe: yes
       MPIRUN: mpiexec -np 
       STELLA_SYSTEM: gnu_ubuntu
-
-    # Turn this job off for now !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    if: false
 
     steps:
 
@@ -288,18 +392,11 @@ jobs:
           pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
       
       # Build stella executable and pFUnit library
-      - name: Build stella
+      - name: Build stella and perform automated Fortran tests
         run: |
           git submodule update --init --recursive
-          make -j 4 compile-stella
-          make -j 4 build-pfunit-library
-      
-      # Automated Fortran tests
-      - name: Perform automated Fortran tests
-        run: make -j 4 run-automated-fortran-tests
-
-
-
+          cmake . -B build -DSTELLA_ENABLE_TESTS=on
+          cmake --build build -j1 --target check
 
 #-----------------------------------------------------------------------
 #                          Build in debug mode                          
@@ -316,9 +413,6 @@ jobs:
       OMPI_MCA_rmaps_base_oversubscribe: yes
       MPIRUN: mpiexec -np 
       STELLA_SYSTEM: gnu_ubuntu_debug
-
-    # Turn this job off for now !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    if: false
 
     steps:
 
@@ -354,3 +448,6 @@ jobs:
 #    ln -sn /opt/homebrew/bin/gfortran-12 /opt/homebrew/bin/gfortran
 
 # if:  github.event_name == 'push'
+
+    # Turn this job off for now !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    #if: false

@@ -365,7 +365,7 @@ remove-stella-files:
 	@-rm -f $(BUILD_DIR)/.compiler_flags
 	@-rm -f $(FPP)/*.f90 $(FPP)/*.fpp $(FPP)/*.inc
 	@-rm -f $(MOD)/*.mod $(MOD)/*.smod $(MOD)/*.mod0
-	@-rm -f $(OBJ)/*.o *.mod
+	@-rm -f $(OBJ)/*.o *.mod *.o *.smod .compiler_flags utils.a
 	@if [ -d "$(OBJ)" ]; then rmdir $(OBJ); fi
 	@if [ -d "$(MOD)" ]; then rmdir $(MOD); fi
 	@if [ -d "$(FPP)" ]; then rmdir $(FPP); fi 

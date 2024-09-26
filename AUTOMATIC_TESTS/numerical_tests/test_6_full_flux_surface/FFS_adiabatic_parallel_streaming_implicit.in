@@ -65,6 +65,7 @@
   zed_upwind = 0.0
   stream_implicit = .true.
   mirror_implicit = .false.
+  print_extra_info_to_terminal = .false.
 /
 &stella_diagnostics_knobs
   nsave = 10

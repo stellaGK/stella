@@ -399,11 +399,14 @@ contains
        subroutine check_backwards_compatability
          
          use file_utils, only: input_unit, input_unit_exist
-         use parameters_physics, only: explicit_option_old, flip_flop_old, time_advance_knob_exists
          
          implicit none
          
          integer :: in_file
+         
+         ! These variables belonged to <time_advance_knobs> and are now read in <parameters_physics>
+         ! We define them here so we can read the namelist, but we will not use them.
+         real :: xdriftknob, ydriftknob, wstarknob
 
          namelist /knobs/ fphi, delt, nstep, tend, &
               delt_option, lu_option, autostop, &
@@ -418,7 +421,7 @@ contains
               fields_kxkyz, mat_gen, mat_read, rng_seed, &
               ky_solve_radial, ky_solve_real, nitt, print_extra_info_to_terminal
          
-!!         namelist /time_advance_knobs/ xdriftknob, ydriftknob, wstarknob, explicit_option, flip_flop
+         namelist /time_advance_knobs/ xdriftknob, ydriftknob, wstarknob, explicit_option, flip_flop
          
          in_file = input_unit_exist("knobs", old_nml_exist)
          if (old_nml_exist) then
@@ -438,27 +441,24 @@ contains
             !      Please replace this with the title <parameters_numerical>")
          end if 
 
-  !!       in_file = input_unit_exist("time_advance_knobs", old_nml_exist)
-!!         if (old_nml_exist) then
-         if (time_advance_knob_exists) then 
-!!            read(unit=in_file, nml=time_advance_knobs)
-            explicit_option = explicit_option_old
-            flip_flop = flip_flop_old 
+         in_file = input_unit_exist("time_advance_knobs", old_nml_exist)
+         if (old_nml_exist) then
+            read(unit=in_file, nml=time_advance_knobs) 
             if (print_extra_info_to_terminal) then 
                write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
                write(*,*) 'Please replace the namelist <time_advance_knobs> in the input file.'
                write(*,*) 'Refer to the input paramters text file as to which namelist to use.'
-               write(*,*) 'Some of these parameters have been moved to <parameters_numerical>'
-               write(*,*) 'and others have been moves to <parameters_physics>.'
+               write(*,*) 'Some of these parameters have been moved to <run_parameters>'
+               write(*,*) 'and others have been moves to <physics_parameters>.'
                write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
             end if
   
-              ! write(*,*) "Aborting in parameters_numerical.f90.&
+              ! write(*,*) "Aborting in run_parameters.f90.&
             !      The namelist <time_advance_knobs> does not exist.&
             !      Please replace this with the title <numerical>"
-            ! call mp_abort("Aborting in parameters_numerical.f90.&
+            ! call mp_abort("Aborting in run_parameters.f90.&
             !      The namelist <time_advance_knobs> does not exist.&
-            !      Please replace this with the title <parameters_numerical>")
+            !      Please replace this with the title <run_parameters>")
          end if
          
       end subroutine check_backwards_compatability
@@ -472,7 +472,6 @@ contains
       subroutine broadcast_parameters
 
          use mp, only: broadcast
-         !use parameters_physics, only: xdriftknob, ydriftknob, wstarknob
          
          implicit none    
          !> Exit stella if we ran into an error

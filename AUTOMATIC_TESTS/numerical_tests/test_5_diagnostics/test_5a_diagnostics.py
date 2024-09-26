@@ -102,9 +102,7 @@ def test_whether_fluxes_diagnostics_are_correct(error=False):
     # Note that the sign of the fluxes has been fixed in newer stellas
     for i in range(len(local_flux_data[0,:])):
         if not np.allclose(local_flux_data[:,i], expected_flux_data[:,i], rtol = 0.0, atol = 1e-15, equal_nan=True):
-             if not np.allclose(local_flux_data[:,i], -expected_flux_data[:,i], rtol = 0.0, atol = 1e-15, equal_nan=True):
-#        if not np.array_equal(local_flux_data[:,i], expected_flux_data[:,i], equal_nan=True): 
- #           if not np.array_equal(local_flux_data[:,i], -expected_flux_data[:,i], equal_nan=True):
+             if not np.allclose(local_flux_data[:,i], -expected_flux_data[:,i], rtol = 0.0, atol = 1e-15, equal_nan=True): 
                 print(f'\nERROR: The fluxes arrays do not match in the txt files.'); error = True
                 print(f'Compare the fluxes arrays in the local and expected txt files:')
                 for j in range(len(local_flux_data[:,i])):

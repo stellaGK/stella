@@ -88,6 +88,7 @@
  !nstep = 4000
  tend = 12.0
  !avail_cpu_time = 3600
+  print_extra_info_to_terminal = .false.
 /
 &species_knobs
  nspec= 3
