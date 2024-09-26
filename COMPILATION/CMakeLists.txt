@@ -65,6 +65,12 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/dissipation/hyper.f90
   ../STELLA_CODE/fields/dist_fn.f90
   ../STELLA_CODE/fields/init_g.f90
+  ../STELLA_CODE/geometry/geometry.f90
+  ../STELLA_CODE/geometry/geometry_miller.f90
+  ../STELLA_CODE/geometry/geometry_vmec.f90
+  ../STELLA_CODE/geometry/geometry_vmec_read_netCDF_file.f90 
+  ../STELLA_CODE/geometry/geometry_inputprofiles_interface.f90
+  ../STELLA_CODE/geometry/geometry_zpinch.f90
   ../STELLA_CODE/grids/arrays_dist_fn.f90
   ../STELLA_CODE/grids/arrays_fields.f90
   ../STELLA_CODE/grids/common_types.f90
@@ -393,3 +399,4 @@ message("
    Build type               : ${CMAKE_BUILD_TYPE}
    Compiler                 : ${CMAKE_Fortran_COMPILER}
 ")
+
