@@ -1,0 +1,4 @@
+DEBUG=on
+F90FLAGS+=-fcheck=all -ffpe-trap=invalid,zero -finit-integer=-12345 -finit-logical=true -finit-character=95 -finit-derived
+
+include $(COMPILATION_DIR)/Makefiles/Makefile.gnu_ubuntu

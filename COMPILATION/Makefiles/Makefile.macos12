@@ -1,0 +1,16 @@
+# Makefile for Max OS X on github
+
+COMPILER=gnu-gfortran
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
+
+USE_LOCAL_SPFUNC=on
+
+ifeq ($(USE_FFT),fftw3)
+	FFT_INC = -I/usr/local/include
+	FFT_LIB = -L/usr/local/Cellar/fftw/3.3.10_1/lib -lfftw3 -lfftw3f
+endif
+
+ifdef USE_NETCDF
+	NETCDF_INC = -I/usr/local/Cellar/netcdf-fortran/4.6.1/include/
+	NETCDF_LIB = -L/usr/local/lib -L/usr/local/Cellar/netcdf-fortran/4.6.1/lib -lnetcdf -lnetcdff
+endif

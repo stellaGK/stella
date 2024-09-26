@@ -1,0 +1,9 @@
+# Host: homer Dartmouth local Linux machine
+# WARNING: This is not even parallelized. Minimal compilation.
+
+COMPILER= nag
+
+override USE_FFT=
+override USE_NETCDF=
+
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
