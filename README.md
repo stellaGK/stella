@@ -1,6 +1,6 @@
 # stella
 
-![Github Actions badge](https://github.com/stellaGK/stella/actions/workflows/tests.yml/badge.svg)
+[![Check stella](https://github.com/stellaGK/stella/actions/workflows/check_stella.yml/badge.svg)](https://github.com/stellaGK/stella/actions/workflows/check_stella.yml)
 
 stella solves the gyrokinetic-Poisson system of equations in the local limit
 using an operator-split, implicit-explicit numerical scheme. It is capable of
@@ -8,6 +8,11 @@ evolving electrostatic fluctuations with fully kinetic electrons and an
 arbitrary number of ion species in general magnetic geometry, including
 stellarators.
 
+Automatic documentation is created based on the `stella` code, however this is a work in progress.
+
+https://stellagk.github.io/stella/
+
+<br>
 
 ## Table of contents
   * [Dependencies](#dependencies)
@@ -19,6 +24,8 @@ stellarators.
     + [Numerical tests](#numerical-tests)
 
 
+<br>
+
 ## Dependencies
 
 stella requires MPI, and has several optional dependencies:
@@ -28,6 +35,7 @@ stella requires MPI, and has several optional dependencies:
 - LAPACK
 
 
+<br>
 
 ## Installation and Compilation
 
@@ -132,6 +140,8 @@ make clean-quick        # only removes the compiled stella files, not the utils 
 make clean-submodules   # clean + remove git_version, neasyf and pFUnit folders
 make distclean          # clean + remove stelle executable + invoke clean on pFUnit
 ```
+
+<br>
 
 ## Verification of stella output
 
