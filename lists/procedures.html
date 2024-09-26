@@ -83,7 +83,7 @@
                </tr>
 			   <tr>
                  <td><a href='../proc/add_adiabatic_response_radial.html'>add_adiabatic_response_radial</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../module/fields_radial_variation.html'>fields_radial_variation</a></td>
                  <td>Subroutine</td>
                  <td><p>Add the adiabatic eletron contribution for globally radial simulations.
 This actually entails solving for the whole ky = 0 slice of phi at once (not really adding!)</p></td>
@@ -164,7 +164,7 @@ in the time derivative;</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/add_radial_correction_int_species.html'>add_radial_correction_int_species</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../module/fields_radial_variation.html'>fields_radial_variation</a></td>
                  <td>Subroutine</td>
                  <td><p>Add radial variation of the Jacobian and gyroaveraing in the velocity integration of
 <g>, needed for radially global simulations</p></td>
@@ -183,9 +183,12 @@ in the time derivative;</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/advance_apar.html'>advance_apar</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../module/fields_electromagnetic.html'>fields_electromagnetic</a></td>
                  <td>Subroutine</td>
-                 <td></td>
+                 <td><p>Layouts
+Parameters
+Grids
+Calculations</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/advance_collisions_dougherty_explicit.html'>advance_collisions_dougherty_explicit</a></td>
@@ -272,29 +275,23 @@ are advanced explicitly in time</p><a href="../proc/advance_explicit.html" class
                  <td><p>standard RK4</p><a href="../proc/advance_explicit_rk4.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
-                 <td><a href='../interface/advance_fields.html'>advance_fields</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
-                 <td>Interface</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/advance_fields_kxkyz_lo.html'>advance_fields_kxkyz_lo</a></td>
+                 <td><a href='../proc/advance_fields.html'>advance_fields</a></td>
                  <td><a href='../module/fields.html'>fields</a></td>
                  <td>Subroutine</td>
-                 <td><p>time the communications + field solve</p><a href="../proc/advance_fields_kxkyz_lo.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+                 <td><p>This calls the appropriate routines needed to all fields in the main code.
+This routine calls the appropriate update depending on the effects
+included in the simulation (e.g. Electrostatic, Full Flux surface effects
+or Radiatl Variation effects).</p><a href="../proc/advance_fields.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/advance_fields_vmu_lo.html'>advance_fields_vmu_lo</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../proc/advance_fields_fluxtube.html'>advance_fields_fluxtube</a></td>
+                 <td><a href='../module/fields_fluxtube.html'>fields_fluxtube</a></td>
                  <td>Subroutine</td>
-                 <td><p>time the communications + field solve
-fields_kxkyz = F is the default
-first gather (vpa,mu) onto processor for v-space operations
-v-space operations are field solve, dg/dvpa, and collisions
-given gvmu with vpa and mu local, calculate the corresponding fields
-set a flag to indicate that the fields have been updated
-this helps avoid unnecessary field solves
-time the communications + field solve</p></td>
+                 <td><p>This calls the appropriate routines needed to advance phi in the main code
+when using fluxtube stella, depending on the distribution (i.e. if the
+information is parallelised over (kx,ky,z) or (vpa,mu) ).
+Note that Apar and Bpar are only advanced when using EM so these are in
+fields_electromagnetic.fpp</p><a href="../proc/advance_fields_fluxtube.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/advance_hyper_dissipation.html'>advance_hyper_dissipation</a></td>
@@ -453,33 +450,33 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
                </tr>
 			   <tr>
                  <td><a href='../proc/allocate_arrays.html'>allocate_arrays</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/allocate_arrays~2.html'>allocate_arrays</a></td>
-                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/allocate_arrays~3.html'>allocate_arrays</a></td>
-                 <td><a href='../module/geometry.html'>geometry</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/allocate_arrays~4.html'>allocate_arrays</a></td>
                  <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/allocate_arrays~5.html'>allocate_arrays</a></td>
+                 <td><a href='../proc/allocate_arrays~2.html'>allocate_arrays</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/allocate_arrays~3.html'>allocate_arrays</a></td>
                  <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
                  <td>Subroutine</td>
                  <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/allocate_arrays~4.html'>allocate_arrays</a></td>
+                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/allocate_arrays~5.html'>allocate_arrays</a></td>
+                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td>Subroutine</td>
+                 <td><p>Allocate arrays needed for solving fields for all versions of stella</p><a href="../proc/allocate_arrays~5.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/allocate_arrays_geo.html'>allocate_arrays_geo</a></td>
@@ -488,10 +485,23 @@ magnetic drift term to the RHS of the GK equation</p><a href="../proc/advance_wd
                  <td></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/allocate_arrays_radial_variation.html'>allocate_arrays_radial_variation</a></td>
+                 <td><a href='../module/fields_radial_variation.html'>fields_radial_variation</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
                  <td><a href='../proc/allocate_arrays_spec.html'>allocate_arrays_spec</a></td>
                  <td><a href='../module/geometry_inputprofiles_interface.html'>geometry_inputprofiles_interface</a></td>
                  <td>Subroutine</td>
                  <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/allocate_fields_electromagnetic.html'>allocate_fields_electromagnetic</a></td>
+                 <td><a href='../module/fields_electromagnetic.html'>fields_electromagnetic</a></td>
+                 <td>Subroutine</td>
+                 <td><p>Allocate arrays needed for solving electromagnetic fields
+This includes Apar and Bpar</p><a href="../proc/allocate_fields_electromagnetic.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/alpha_numeric.html'>alpha_numeric</a></td>
@@ -689,19 +699,19 @@ the size of the response matrix</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/broadcast_parameters.html'>broadcast_parameters</a></td>
-                 <td><a href='../module/species.html'>species</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/broadcast_parameters~2.html'>broadcast_parameters</a></td>
                  <td><a href='../module/zgrid.html'>zgrid</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/broadcast_parameters~3.html'>broadcast_parameters</a></td>
+                 <td><a href='../proc/broadcast_parameters~2.html'>broadcast_parameters</a></td>
                  <td><a href='../module/grids_kxky.html'>grids_kxky</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/broadcast_parameters~3.html'>broadcast_parameters</a></td>
+                 <td><a href='../module/species.html'>species</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -1314,37 +1324,37 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
                </tr>
 			   <tr>
                  <td><a href='../interface/checksum.html'>checksum</a></td>
-                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
+                 <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Interface</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../interface/checksum~2.html'>checksum</a></td>
-                 <td><a href='../module/time_advance.html'>time_advance</a></td>
+                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
                  <td>Interface</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/checksum_dist.html'>checksum_dist</a></td>
-                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
+                 <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/checksum_dist~2.html'>checksum_dist</a></td>
-                 <td><a href='../module/time_advance.html'>time_advance</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/checksum_field.html'>checksum_field</a></td>
                  <td><a href='../module/dist_fn.html'>dist_fn</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/checksum_field~2.html'>checksum_field</a></td>
+                 <td><a href='../proc/checksum_field.html'>checksum_field</a></td>
                  <td><a href='../module/time_advance.html'>time_advance</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/checksum_field~2.html'>checksum_field</a></td>
+                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -1536,19 +1546,19 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
                </tr>
 			   <tr>
                  <td><a href='../proc/deallocate_arrays.html'>deallocate_arrays</a></td>
-                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/deallocate_arrays~2.html'>deallocate_arrays</a></td>
                  <td><a href='../module/time_advance.html'>time_advance</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/deallocate_arrays~3.html'>deallocate_arrays</a></td>
+                 <td><a href='../proc/deallocate_arrays~2.html'>deallocate_arrays</a></td>
                  <td><a href='../module/geometry_miller.html'>geometry_miller</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/deallocate_arrays~3.html'>deallocate_arrays</a></td>
+                 <td><a href='../module/dist_fn.html'>dist_fn</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -1627,12 +1637,6 @@ to determine if FFTs are needed for the simulation</p><a href="../proc/check_tra
 			   <tr>
                  <td><a href='../proc/enforce_momentum_conservation.html'>enforce_momentum_conservation</a></td>
                  <td><a href='../module/sources.html'>sources</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/enforce_reality_field.html'>enforce_reality_field</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -1877,6 +1881,24 @@ below a specified tolerance (tol_floor)</p></td>
                  <td><a href='../proc/finish_fields.html'>finish_fields</a></td>
                  <td><a href='../module/fields.html'>fields</a></td>
                  <td>Subroutine</td>
+                 <td><p>Parameters
+Arrays
+TODO-GA: move apar stuff to EM fields
+Routines for deallocating arrays fields depending on the physics being simulated
+TODO-GA: REMOVE
+TODO-GA: move the above deallocations into 'finish_fields_electromagnetic' when
+EM is decoupled</p></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/finish_fields_electromagnetic.html'>finish_fields_electromagnetic</a></td>
+                 <td><a href='../module/fields_electromagnetic.html'>fields_electromagnetic</a></td>
+                 <td>Subroutine</td>
+                 <td><p>TODO-GA:</p></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/finish_fields_ffs.html'>finish_fields_ffs</a></td>
+                 <td><a href='../module/fields_ffs.html'>fields_ffs</a></td>
+                 <td>Subroutine</td>
                  <td><p>arrays only allocated/used if simulating a full flux surface</p></td>
                </tr>
 			   <tr>
@@ -2032,6 +2054,12 @@ below a specified tolerance (tol_floor)</p></td>
 			   <tr>
                  <td><a href='../proc/finish_parallel_streaming.html'>finish_parallel_streaming</a></td>
                  <td><a href='../module/parallel_streaming.html'>parallel_streaming</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/finish_radial_fields.html'>finish_radial_fields</a></td>
+                 <td><a href='../module/fields_radial_variation.html'>fields_radial_variation</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -2522,9 +2550,13 @@ f = g + J0 * phi * maxwellian</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_apar.html'>get_apar</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../module/fields_electromagnetic.html'>fields_electromagnetic</a></td>
                  <td>Subroutine</td>
-                 <td></td>
+                 <td><p>Get_apar solves pre-factor * Apar = beta_ref * sum_s Z_s n_s vth_s int d3v vpa * J0 * pdf
+for apar, with pdf being either g or gbar (specified by dist input).
+the input apar is the RHS of the above equation and is overwritten by the true apar
+the pre-factor depends on whether g or gbar is used (kperp2 in former case, with additional
+term appearing in latter case)</p><a href="../proc/get_apar.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_apar_for_response_matrix.html'>get_apar_for_response_matrix</a></td>
@@ -2625,25 +2657,31 @@ involving phi that appear on the RHS of the GK equation when g is the pdf</p><a 
                  <td><a href='../proc/get_dchidx.html'>get_dchidx</a></td>
                  <td><a href='../module/fields.html'>fields</a></td>
                  <td>Subroutine</td>
-                 <td><p>compute d<chi>/dx in (ky,kx) space</p><a href="../proc/get_dchidx.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+                 <td><p>Compute d<chi>/dx in (ky,kx) space</p><a href="../proc/get_dchidx.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../interface/get_dchidy.html'>get_dchidy</a></td>
                  <td><a href='../module/fields.html'>fields</a></td>
                  <td>Interface</td>
-                 <td></td>
+                 <td><p>TODO-GA: MOVE</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_dchidy_2d.html'>get_dchidy_2d</a></td>
                  <td><a href='../module/fields.html'>fields</a></td>
                  <td>Subroutine</td>
-                 <td><p>compute d<chi>/dy in (ky,kx) space</p><a href="../proc/get_dchidy_2d.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+                 <td><p>Compute d<chi>/dy in (ky,kx) space</p><a href="../proc/get_dchidy_2d.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_dchidy_4d.html'>get_dchidy_4d</a></td>
                  <td><a href='../module/fields.html'>fields</a></td>
                  <td>Subroutine</td>
-                 <td><p>compute d<chi>/dy in (ky,kx,z,tube) space</p><a href="../proc/get_dchidy_4d.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+                 <td><p>Compute d<chi>/dy and d<chi>/dx in (ky,kx) space where &lt;.&gt; is a gyroaverage
+   d<chi>/dy = i * ky * J0 * chi
+   d<chi>/dx = i * kx * J0 * chi
+   chi = phi - Z/T * vpa * apar
+There are different routines depending on the size of the input array
+TODO-GA: maybe separate for EM and electrostatic
+Compute d<chi>/dy in (ky,kx,z,tube) space</p><a href="../proc/get_dchidy_4d.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_dcrossdr.html'>get_dcrossdr</a></td>
@@ -2863,30 +2901,84 @@ parallel_streaming phase shift</p></td>
                  <td></td>
                </tr>
 			   <tr>
-                 <td><a href='../proc/get_fields.html'>get_fields</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
-                 <td>Subroutine</td>
-                 <td><p>integrate g to get sum_s Z_s n_s J0 g and store in phi
-integrate g to get - 2 beta sum_s n_s T_s J1 mu g and store in bpar</p></td>
-               </tr>
-			   <tr>
                  <td><a href='../proc/get_fields_by_spec.html'>get_fields_by_spec</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../module/fields_collisions.html'>fields_collisions</a></td>
                  <td>Subroutine</td>
-                 <td></td>
+                 <td><p>Note that these advance fields routines are only needed when advancing the
+collision operators
+This is used in coll_dougherty.f90</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_fields_by_spec_idx.html'>get_fields_by_spec_idx</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../module/fields_collisions.html'>fields_collisions</a></td>
                  <td>Subroutine</td>
+                 <td><p>This is used in coll_fokkerplanck.f90
+Note that is looks identical to the routine above - we don't know why they
+are separated</p></td>
+               </tr>
+			   <tr>
+                 <td><a href='../interface/get_fields_electromagnetic.html'>get_fields_electromagnetic</a></td>
+                 <td><a href='../module/fields_electromagnetic.html'>fields_electromagnetic</a></td>
+                 <td>Interface</td>
                  <td></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/get_fields_electromagnetic_kxkyzlo.html'>get_fields_electromagnetic_kxkyzlo</a></td>
+                 <td><a href='../module/fields_electromagnetic.html'>fields_electromagnetic</a></td>
+                 <td>Subroutine</td>
+                 <td><p>Layouts
+Arrays
+Parameters
+Grids
+Calculations</p><a href="../proc/get_fields_electromagnetic_kxkyzlo.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/get_fields_electromagnetic_vmulo.html'>get_fields_electromagnetic_vmulo</a></td>
+                 <td><a href='../module/fields_electromagnetic.html'>fields_electromagnetic</a></td>
+                 <td>Subroutine</td>
+                 <td><p>If we are parallelising over (vpa,mu) then this subroutine is called
+This is the more common version used compared with parallelising over
+(kx,ky,z) and is the default for stella.
+This advances the fields when Electromagnetic effects are included, so
+we advance <phi>, <B_parallel>, and <A_parallel>.</p><a href="../proc/get_fields_electromagnetic_vmulo.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+               </tr>
+			   <tr>
                  <td><a href='../proc/get_fields_ffs.html'>get_fields_ffs</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../module/fields_ffs.html'>fields_ffs</a></td>
                  <td>Subroutine</td>
                  <td><p>get_fields_ffs accepts as input the guiding centre distribution function g
 and calculates/returns the electronstatic potential phi for full_flux_surface simulations</p><a href="../proc/get_fields_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+               </tr>
+			   <tr>
+                 <td><a href='../interface/get_fields_fluxtube.html'>get_fields_fluxtube</a></td>
+                 <td><a href='../module/fields_fluxtube.html'>fields_fluxtube</a></td>
+                 <td>Interface</td>
+                 <td></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/get_fields_fluxtube_kxkyzlo.html'>get_fields_fluxtube_kxkyzlo</a></td>
+                 <td><a href='../module/fields_fluxtube.html'>fields_fluxtube</a></td>
+                 <td>Subroutine</td>
+                 <td><p>If we are parallelising over (kx,ky,z) then this subroutine is called
+This is the less common version used compared with parallelising over
+(vpa, mu). This is NOT the default routine for stella, and the flag
+<fields_kxkyz = .True.> must be set to use this routine.
+Here we calculate:
+   sum_s int dv (J0 * g)
+and then call get_phi which divides this by the appropriate gamtot factor
+TODO-GA: remove apar from this and make it only needed for EM stella</p><a href="../proc/get_fields_fluxtube_kxkyzlo.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/get_fields_fluxtube_vmlo.html'>get_fields_fluxtube_vmlo</a></td>
+                 <td><a href='../module/fields_fluxtube.html'>fields_fluxtube</a></td>
+                 <td>Subroutine</td>
+                 <td><p>If we are parallelising over (vpa,mu) then this subroutine is called
+This is the more common version used compared with parallelising over
+(kx,ky,z) and is the default for stella.
+Here we calculate:
+   sum_s int dv (J0 * g)
+and then call get_phi which divides this by the appropriate gamtot factor
+TODO-GA: remove apar from this and make it only needed for EM stella</p><a href="../proc/get_fields_fluxtube_vmlo.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_fields_for_response_matrix.html'>get_fields_for_response_matrix</a></td>
@@ -2896,24 +2988,23 @@ and calculates/returns the electronstatic potential phi for full_flux_surface si
                </tr>
 			   <tr>
                  <td><a href='../proc/get_fields_source.html'>get_fields_source</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../module/fields_ffs.html'>fields_ffs</a></td>
                  <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/get_fields_vmulo.html'>get_fields_vmulo</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
-                 <td>Subroutine</td>
-                 <td><p>store result in phi, which will be further modified below to account for polarization term
-store result in phi, which will be further modified below to account for polarization term
-store result in bpar, which will be further modified below to account for polarization term
-store result in apar, which will be further modified below to account for apar pre-factor</p></td>
+                 <td><p>Layouts
+Parameters
+Arrays
+Grids
+Calculations</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_g_integral_contribution_source.html'>get_g_integral_contribution_source</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../module/fields_ffs.html'>fields_ffs</a></td>
                  <td>Subroutine</td>
-                 <td><p>assume there is only a single flux surface being simulated
+                 <td><p>Layouts
+Parameters
+Grids
+Calculations
+assume there is only a single flux surface being simulated
 integrate <g> over velocity space and sum over species within each processor
 as v-space and species possibly spread over processors, wlil need to
 gather sums from each proceessor and sum them all together below
@@ -3106,18 +3197,22 @@ in the numerator of the flux surface average</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_phi.html'>get_phi</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../module/fields_fluxtube.html'>fields_fluxtube</a></td>
                  <td>Subroutine</td>
-                 <td></td>
+                 <td><p>The 'phi' variable passed in is:
+   sum_s int dv (J0 * g)
+This routine divides by the appropriate gamtot factor depending on if we
+have kinetic or adiabatic electrons, and also on whether we are using 'g'
+or 'h' as our distribution function that we are evolving.
+Note that this routine is only called in the Electrostatic, Fluxtube case.</p><a href="../proc/get_phi.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_phi_and_bpar.html'>get_phi_and_bpar</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../module/fields_electromagnetic.html'>fields_electromagnetic</a></td>
                  <td>Subroutine</td>
-                 <td><p>divide sum ( Zs int J0 h d^3 v) by sum(Zs^2 ns / Ts)
-do nothing for bpar because
-bpar = - 2 * beta * sum(Ts ns int (J1/bs) mu h d^3 v)
-which is already stored in bpar when dist = 'h'.</p></td>
+                 <td><p>Arrays
+Parameters
+Grids</p><a href="../proc/get_phi_and_bpar.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_phi_and_bpar_for_response_matrix.html'>get_phi_and_bpar_for_response_matrix</a></td>
@@ -3127,13 +3222,19 @@ which is already stored in bpar when dist = 'h'.</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_phi_ffs.html'>get_phi_ffs</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../module/fields_ffs.html'>fields_ffs</a></td>
                  <td>Subroutine</td>
                  <td><p>change from rhs defined on grid with ky &gt;=0 and kx from 0,...,kxmax,-kxmax,...,-dkx
 to rhs_swap defined on grid with ky = -kymax,...,kymax and kx &gt;= 0
 solve sum_s Z_s int d^3v <g> = gam0*phi
 where sum_s Z_s int d^3v <g> is initially passed in as rhs_swap
 and then rhs_swap is over-written with the solution to the linear system</p><a href="../proc/get_phi_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/get_phi_for_radial.html'>get_phi_for_radial</a></td>
+                 <td><a href='../module/fields_radial_variation.html'>fields_radial_variation</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_phi_for_response_matrix.html'>get_phi_for_response_matrix</a></td>
@@ -3143,7 +3244,7 @@ and then rhs_swap is over-written with the solution to the linear system</p><a h
                </tr>
 			   <tr>
                  <td><a href='../proc/get_phi_radial.html'>get_phi_radial</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../module/fields_radial_variation.html'>fields_radial_variation</a></td>
                  <td>Subroutine</td>
                  <td><p>Non-perturbative approach to solving quasineutrality for radially
 global simulations</p></td>
@@ -3162,7 +3263,7 @@ global simulations</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/get_radial_correction.html'>get_radial_correction</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../module/fields_radial_variation.html'>fields_radial_variation</a></td>
                  <td>Subroutine</td>
                  <td><p>the following routine gets the correction in phi both from gyroaveraging and quasineutrality</p><a href="../proc/get_radial_correction.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
@@ -3665,7 +3766,7 @@ and returns the gyro-average of that field;</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/init_adiabatic_response_factor.html'>init_adiabatic_response_factor</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../module/fields_ffs.html'>fields_ffs</a></td>
                  <td>Subroutine</td>
                  <td><p>solves Delta * phi_hom = -delta_{ky,0} * ne/Te for phi_hom
 this is the vector describing the response of phi_hom to a unit impulse in phi_fsa
@@ -3839,23 +3940,39 @@ magnetic shear that use periodic boundary conditions everywhere</p><a href="../p
                  <td><a href='../proc/init_fields.html'>init_fields</a></td>
                  <td><a href='../module/fields.html'>fields</a></td>
                  <td>Subroutine</td>
-                 <td></td>
+                 <td><p>Parameters
+Routined needed to initialise the different field arrays depending on the
+physics being simulated
+Allocate arrays such as phi that are needed throughout the simulation</p></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/init_fields_electromagnetic.html'>init_fields_electromagnetic</a></td>
+                 <td><a href='../module/fields_electromagnetic.html'>fields_electromagnetic</a></td>
+                 <td>Subroutine</td>
+                 <td><p>Fill arrays needed for the electromagnetic calculations</p><a href="../proc/init_fields_electromagnetic.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/init_fields_ffs.html'>init_fields_ffs</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../module/fields_ffs.html'>fields_ffs</a></td>
                  <td>Subroutine</td>
-                 <td><p>init_fields_ffs allocates and fills arrays needed during main time advance
-loop for the field solve for full_flux_surface simulations</p><a href="../proc/init_fields_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+                 <td><p>Grids</p><a href="../proc/init_fields_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/init_fields_fluxtube.html'>init_fields_fluxtube</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../module/fields_fluxtube.html'>fields_fluxtube</a></td>
                  <td>Subroutine</td>
-                 <td><p>would be tidier if the code related to radial profile variation
-were gathered into a separate subroutine or subroutines
-init_fields_fluxtube allocates and fills arrays needed during main time advance
-loop for the field solve for flux tube simulations</p><a href="../proc/init_fields_fluxtube.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+                 <td><p>Initialise arrays that are needed during the main time advance loop in the
+field solve for the flux tube simulations only
+These are initialised once and then used throughout the rest of the simulation
+   gamtot = 1 - gamma0 = Z^2*n/T * int e^(-v^2) * (1 - J0^2) dv
+If using adiabatic electrons then this factor is modified and we use gamtot3
+which includes the Boltmann response</p><a href="../proc/init_fields_fluxtube.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
+               </tr>
+			   <tr>
+                 <td><a href='../proc/init_fields_radial_variation.html'>init_fields_radial_variation</a></td>
+                 <td><a href='../module/fields_radial_variation.html'>fields_radial_variation</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/init_file_utils.html'>init_file_utils</a></td>
@@ -3896,7 +4013,7 @@ this is needed in the computation of the flux surface average of phi</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/init_gamma0_factor_ffs.html'>init_gamma0_factor_ffs</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
+                 <td><a href='../module/fields_ffs.html'>fields_ffs</a></td>
                  <td>Subroutine</td>
                  <td><p>calculate and LU factorise the matrix multiplying the electrostatic potential in quasineutrality
 this involves the factor 1-Gamma_0(kperp(alpha))</p><a href="../proc/init_gamma0_factor_ffs.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
@@ -4135,12 +4252,6 @@ get gradpar centred in zed for positive vpa (affects upwinding)</p></td>
 			   <tr>
                  <td><a href='../proc/init_quasineutrality_source.html'>init_quasineutrality_source</a></td>
                  <td><a href='../module/sources.html'>sources</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/init_radial_field_solve.html'>init_radial_field_solve</a></td>
-                 <td><a href='../module/fields.html'>fields</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -4590,13 +4701,13 @@ g/F is evolved for FFS</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/integrate_zed.html'>integrate_zed</a></td>
-                 <td><a href='../module/geometry.html'>geometry</a></td>
+                 <td><a href='../module/zgrid.html'>zgrid</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/integrate_zed~2.html'>integrate_zed</a></td>
-                 <td><a href='../module/zgrid.html'>zgrid</a></td>
+                 <td><a href='../module/geometry.html'>geometry</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -5543,7 +5654,7 @@ we are undoing that weighting here, so also need to use ia = 1</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_parameters.html'>read_parameters</a></td>
-                 <td><a href='../module/stella_layouts.html'>stella_layouts</a></td>
+                 <td><a href='../module/zgrid.html'>zgrid</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -5567,19 +5678,19 @@ we are undoing that weighting here, so also need to use ia = 1</p></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/read_parameters~5.html'>read_parameters</a></td>
-                 <td><a href='../module/init_g.html'>init_g</a></td>
-                 <td>Subroutine</td>
-                 <td></td>
-               </tr>
-			   <tr>
-                 <td><a href='../proc/read_parameters~6.html'>read_parameters</a></td>
                  <td><a href='../module/geometry.html'>geometry</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
 			   <tr>
+                 <td><a href='../proc/read_parameters~6.html'>read_parameters</a></td>
+                 <td><a href='../module/init_g.html'>init_g</a></td>
+                 <td>Subroutine</td>
+                 <td></td>
+               </tr>
+			   <tr>
                  <td><a href='../proc/read_parameters~7.html'>read_parameters</a></td>
-                 <td><a href='../module/zgrid.html'>zgrid</a></td>
+                 <td><a href='../module/stella_layouts.html'>stella_layouts</a></td>
                  <td>Subroutine</td>
                  <td></td>
                </tr>
@@ -5775,7 +5886,7 @@ we are undoing that weighting here, so also need to use ia = 1</p></td>
                  <td><a href='../proc/rescale_fields.html'>rescale_fields</a></td>
                  <td><a href='../module/fields.html'>fields</a></td>
                  <td>Subroutine</td>
-                 <td><p>rescale fields, including the distribution function</p></td>
+                 <td><p>Rescale fields, including the distribution function</p><a href="../proc/rescale_fields.html" class="pull-right"><emph>Read more&hellip;</emph></a></td>
                </tr>
 			   <tr>
                  <td><a href='../proc/reset_dt.html'>reset_dt</a></td>
@@ -7161,13 +7272,13 @@ TODO-GA: use g to f routine rather than g to h -- but check first </p></td>
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.7-24-gc0992ea3bb</small></p>
+<br /><small>v0.7-25-g02354a5dca</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-09-26T09:56:17.317360             </p>
+ on 2024-09-26T10:04:50.051200             </p>
           </div>
         </div>
         <br>

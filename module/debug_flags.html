@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.3% of total for modules and submodules.">134 statements</a>
+                 title=" 0.4% of total for modules and submodules.">154 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -121,7 +121,11 @@
         <div class="list-group list-group-flush">
             <a class="list-group-item" href="../module/debug_flags.html#variable-debug_all">debug_all</a>
             <a class="list-group-item" href="../module/debug_flags.html#variable-stella_debug">stella_debug</a>
+            <a class="list-group-item" href="../module/debug_flags.html#variable-fields_all_debug">fields_all_debug</a>
             <a class="list-group-item" href="../module/debug_flags.html#variable-fields_debug">fields_debug</a>
+            <a class="list-group-item" href="../module/debug_flags.html#variable-fields_fluxtube_debug">fields_fluxtube_debug</a>
+            <a class="list-group-item" href="../module/debug_flags.html#variable-fields_electromagnetic_debug">fields_electromagnetic_debug</a>
+            <a class="list-group-item" href="../module/debug_flags.html#variable-fields_ffs_debug">fields_ffs_debug</a>
             <a class="list-group-item" href="../module/debug_flags.html#variable-time_advance_debug">time_advance_debug</a>
             <a class="list-group-item" href="../module/debug_flags.html#variable-implicit_solve_debug">implicit_solve_debug</a>
             <a class="list-group-item" href="../module/debug_flags.html#variable-parallel_streaming_debug">parallel_streaming_debug</a>
@@ -129,18 +133,18 @@
             <a class="list-group-item" href="../module/debug_flags.html#variable-mirror_terms_debug">mirror_terms_debug</a>
             <a class="list-group-item" href="../module/debug_flags.html#variable-neoclassical_terms_debug">neoclassical_terms_debug</a>
             <a class="list-group-item" href="../module/debug_flags.html#variable-extended_grid_debug">extended_grid_debug</a>
+            <a class="list-group-item" href="../module/debug_flags.html#variable-diagnostics_all_debug">diagnostics_all_debug</a>
             <a class="list-group-item" href="../module/debug_flags.html#variable-diagnostics_debug">diagnostics_debug</a>
             <a class="list-group-item" href="../module/debug_flags.html#variable-diagnostics_parameters">diagnostics_parameters</a>
             <a class="list-group-item" href="../module/debug_flags.html#variable-diagnostics_fluxes_fluxtube_debug">diagnostics_fluxes_fluxtube_debug</a>
             <a class="list-group-item" href="../module/debug_flags.html#variable-diagnostics_omega_debug">diagnostics_omega_debug</a>
-            <a class="list-group-item" href="../module/debug_flags.html#variable-diagnostics_main_debug">diagnostics_main_debug</a>
             <a class="list-group-item" href="../module/debug_flags.html#variable-fluxes_debug">fluxes_debug</a>
             <a class="list-group-item" href="../module/debug_flags.html#variable-geometry_debug">geometry_debug</a>
             <a class="list-group-item" href="../module/debug_flags.html#variable-dist_fn_debug">dist_fn_debug</a>
             <a class="list-group-item" href="../module/debug_flags.html#variable-gyro_averages_debug">gyro_averages_debug</a>
             <a class="list-group-item" href="../module/debug_flags.html#variable-ffs_solve_debug">ffs_solve_debug</a>
             <a class="list-group-item" href="../module/debug_flags.html#variable-const_alpha_geo">const_alpha_geo</a>
-            <a class="list-group-item" href="../module/debug_flags.html#variable-initialised~3">initialised</a>
+            <a class="list-group-item" href="../module/debug_flags.html#variable-initialised~6">initialised</a>
         </div>
       </div>
     </div>
@@ -181,8 +185,13 @@
     </div>
 
     <div class="col-md-9" id='text'>
-      <p>Publuc routines</p>
-<p>Public debug flags</p>
+      <p>Publuc routines
+Public debug flags
+Fields debug flags
+Gyrokinetic term debug flags
+Grids debug flags 
+Diagnostics debug flags 
+Geometry debug flags</p>
 <p>Debug flags for full flux surface
 Debug flug for debugging full flux surface
 This will set the geometry of all field lines to be equation to
@@ -240,6 +249,23 @@ the geometry on alpha = 0 (i.e. the first field line) </p>
         </tr>
         <tr>
             <td>
+              <span class="anchor" id="variable-fields_all_debug"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>fields_all_debug</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                <p>Fields debug flags</p>
+            </td>
+        </tr>
+        <tr>
+            <td>
               <span class="anchor" id="variable-fields_debug"></span>
               logical,
             </td>
@@ -252,7 +278,58 @@ the geometry on alpha = 0 (i.e. the first field line) </p>
                 <td></td>
                 <td></td>
             <td>
-                <p>Fields debug flags</p>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-fields_fluxtube_debug"></span>
+              logical,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>fields_fluxtube_debug</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-fields_electromagnetic_debug"></span>
+              logical,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>fields_electromagnetic_debug</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-fields_ffs_debug"></span>
+              logical,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>fields_ffs_debug</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
             </td>
         </tr>
         <tr>
@@ -269,7 +346,7 @@ the geometry on alpha = 0 (i.e. the first field line) </p>
                 <td></td>
                 <td></td>
             <td>
-                <p>Gyrokinetic terms, debug flags</p>
+                <p>Gyrokinetic term debug flags</p>
             </td>
         </tr>
         <tr>
@@ -376,10 +453,27 @@ the geometry on alpha = 0 (i.e. the first field line) </p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-diagnostics_debug"></span>
+              <span class="anchor" id="variable-diagnostics_all_debug"></span>
               logical,
             </td>
               <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>diagnostics_all_debug</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                <p>Diagnostics debug flags</p>
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-diagnostics_debug"></span>
+              logical,
+            </td>
+              <td>public</td>
             <td>
               
             </td>
@@ -388,7 +482,7 @@ the geometry on alpha = 0 (i.e. the first field line) </p>
                 <td></td>
                 <td></td>
             <td>
-                <p>Diagnostics debug flags</p>
+                
             </td>
         </tr>
         <tr>
@@ -444,23 +538,6 @@ the geometry on alpha = 0 (i.e. the first field line) </p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-diagnostics_main_debug"></span>
-              logical,
-            </td>
-              <td>public</td>
-            <td>
-              
-            </td>
-            <td>::</td>
-            <td><strong>diagnostics_main_debug</strong></td>
-                <td></td>
-                <td></td>
-            <td>
-                
-            </td>
-        </tr>
-        <tr>
-            <td>
               <span class="anchor" id="variable-fluxes_debug"></span>
               logical,
             </td>
@@ -490,7 +567,7 @@ the geometry on alpha = 0 (i.e. the first field line) </p>
                 <td></td>
                 <td></td>
             <td>
-                
+                <p>Geometry debug flags</p>
             </td>
         </tr>
         <tr>
@@ -563,7 +640,7 @@ the geometry on alpha = 0 (i.e. the first field line) </p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-initialised~3"></span>
+              <span class="anchor" id="variable-initialised~6"></span>
               logical,
             </td>
               <td>private</td>
@@ -624,13 +701,13 @@ the geometry on alpha = 0 (i.e. the first field line) </p>
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.7-24-gc0992ea3bb</small></p>
+<br /><small>v0.7-25-g02354a5dca</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-09-26T09:56:17.317360             </p>
+ on 2024-09-26T10:04:50.051200             </p>
           </div>
         </div>
         <br>

@@ -80,20 +80,20 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.0% of total for procedures.">17 statements</a>
+                 title=" 0.1% of total for procedures.">25 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
               <i class="fa fa-code"></i>
-              <a href="../src/stella_layouts.f90"> Source File</a>
+              <a href="../src/zgrid.f90"> Source File</a>
             </li>
         </ul>
       </div>
       <div class="col">
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb justify-content-end mb-0">
-                <li class="breadcrumb-item"><a href='../sourcefile/stella_layouts.f90.html'>stella_layouts.f90</a></li>
-                <li class="breadcrumb-item"><a href='../module/stella_layouts.html'>stella_layouts</a></li>
+                <li class="breadcrumb-item"><a href='../sourcefile/zgrid.f90.html'>zgrid.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/zgrid.html'>zgrid</a></li>
             <li class="breadcrumb-item active" aria-current="page">read_parameters</li>
           </ol>
         </nav>
@@ -138,7 +138,7 @@
       </a>
       <div id="namelists-0" class="collapse">
         <div class="list-group list-group-flush">
-            <a class="list-group-item" href="../proc/read_parameters.html#namelist-layouts_knobs">layouts_knobs</a>
+            <a class="list-group-item" href="../proc/read_parameters.html#namelist-zgrid_parameters">zgrid_parameters</a>
         </div>
       </div>
     </div>
@@ -159,7 +159,8 @@
             <li class="list-group-item">
               <ul class="list-inline">
                   <li class="list-inline-item"><a href='../module/file_utils.html'>file_utils</a></li>
-                  <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
+                  <li class="list-inline-item"><a href='../module/parameters_physics.html'>parameters_physics</a></li>
+                  <li class="list-inline-item"><a href='../module/text_options.html'>text_options</a></li>
               </ul>
             </li>
         </ul>
@@ -187,15 +188,15 @@
         <h2>Namelists</h2>
             <div class="card">
     <div class="card-header codesum">
-      <span class="anchor" id="namelist-layouts_knobs"></span>
-      <h3>Namelist <a href='../namelist/layouts_knobs.html'>layouts_knobs</a></h3>
+      <span class="anchor" id="namelist-zgrid_parameters"></span>
+      <h3>Namelist <a href='../namelist/zgrid_parameters.html'>zgrid_parameters</a></h3>
     </div>
     <div class="card-body">
         
   <br class="visible-xs visible-sm hidden-md">
   <section>
     <h2>Variables</h2>
-    <table class="table table-striped" id="namelist-layouts_knobs">
+    <table class="table table-striped" id="namelist-zgrid_parameters">
       <thead><tr>
           <th>Name</th>
           <th>Type</th>
@@ -203,16 +204,58 @@
           <th>Description</th>
       </tr></thead>
       <tbody>
-              <tr id="variable-xyzs_layout">
-      <td><a href="#variable-xyzs_layout">xyzs_layout</a></td>
-      <td>character(len=4)</td>
+              <tr id="variable-nzed">
+      <td><a href="#variable-nzed">nzed</a></td>
+      <td>integer</td>
       <td>None</td>
       <td></td>
     </tr>
 
-              <tr id="variable-vms_layout">
-      <td><a href="#variable-vms_layout">vms_layout</a></td>
-      <td>character(len=3)</td>
+              <tr id="variable-nperiod">
+      <td><a href="#variable-nperiod">nperiod</a></td>
+      <td>integer</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-ntubes">
+      <td><a href="#variable-ntubes">ntubes</a></td>
+      <td>integer</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-shat_zero">
+      <td><a href="#variable-shat_zero">shat_zero</a></td>
+      <td>real</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-boundary_option">
+      <td><a href="#variable-boundary_option">boundary_option</a></td>
+      <td>character(len=20)</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-zed_equal_arc">
+      <td><a href="#variable-zed_equal_arc">zed_equal_arc</a></td>
+      <td>logical</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-grad_x_grad_y_zero">
+      <td><a href="#variable-grad_x_grad_y_zero">grad_x_grad_y_zero</a></td>
+      <td>real</td>
+      <td>None</td>
+      <td></td>
+    </tr>
+
+              <tr id="variable-dkx_over_dky">
+      <td><a href="#variable-dkx_over_dky">dkx_over_dky</a></td>
+      <td>real</td>
       <td>None</td>
       <td></td>
     </tr>
@@ -239,13 +282,13 @@
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.7-24-gc0992ea3bb</small></p>
+<br /><small>v0.7-25-g02354a5dca</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-09-26T09:56:17.317360             </p>
+ on 2024-09-26T10:04:50.051200             </p>
           </div>
         </div>
         <br>

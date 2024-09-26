@@ -2561,7 +2561,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use parameters_kxky_grids, only: naky, nakx
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx, it_idx
       use arrays_dist_fn, only: gvmu
-      use fields, only: get_fields, get_fields_by_spec_idx
+      use fields_fluxtube, only: get_fields_fluxtube
+      use fields_collisions, only: get_fields_by_spec_idx
       use job_manage, only: time_message, timer_local
       use file_utils, only: open_output_file, close_output_file
       use constants, only: pi
@@ -2626,7 +2627,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! gvmu contains dhs/dphi
       ! for phi equation, need 1-P[dhs/dphi]
-      call get_fields(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h') ! note that get_fields sums over species, as required in response matrix
+      call get_fields_fluxtube(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h') ! note that get_fields sums over species, as required in response matrix
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -2901,7 +2902,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use vpamu_grids, only: set_vpa_weights
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
-      use fields, only: get_fields, get_fields_by_spec
+      use fields_fluxtube, only: get_fields_fluxtube
+      use fields_collisions, only: get_fields_by_spec_idx
       use job_manage, only: time_message, timer_local
       use constants, only: pi
       use file_utils, only: open_output_file, close_output_file
@@ -4030,7 +4032,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
       use g_tofrom_h, only: g_to_h
-      use fields, only: get_fields
+      use fields_fluxtube, only: get_fields_fluxtube
       use constants, only: pi
       use stella_time, only: code_dt
 
@@ -4112,7 +4114,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! first get phi_inh^{n+1}
       if (advfield_coll) then
-         call get_fields(g, phi, apar, bpar, dist='h')
+         call get_fields_fluxtube(g, phi, apar, bpar, dist='h')
          flds(:, :, :, :, 1) = phi
       end if
 

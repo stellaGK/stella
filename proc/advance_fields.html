@@ -80,7 +80,7 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.1% of total for procedures.">34 statements</a>
+                 title=" 0.1% of total for procedures.">32 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
@@ -139,7 +139,7 @@
     </div>
     
     <div class="col-md-9" id='text'>
-    <h2>public  subroutine advance_fields(g, phi, apar, dist)  
+    <h2>public  subroutine advance_fields(g, phi, apar, bpar, dist, implicit_solve)  
 </h2>
         <div class="card mb-4">
       <h3 class="card-header card-title bg-light">Uses</h3>
@@ -148,14 +148,13 @@
             <li class="list-group-item">
               <ul class="list-inline">
                   <li class="list-inline-item"><a href='../module/job_manage.html'>job_manage</a></li>
-                  <li class="list-inline-item"><a href='../module/dist_fn_arrays.html'>dist_fn_arrays</a></li>
-                  <li class="list-inline-item"><a href='../module/dist_redistribute.html'>dist_redistribute</a></li>
-                  <li class="list-inline-item"><a href='../module/redistribute.html'>redistribute</a></li>
-                  <li class="list-inline-item"><a href='../module/run_parameters.html'>run_parameters</a></li>
-                  <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
-                  <li class="list-inline-item"><a href='../module/zgrid.html'>zgrid</a></li>
-                  <li class="list-inline-item"><a href='../module/physics_flags.html'>physics_flags</a></li>
+                  <li class="list-inline-item"><a href='../module/fields_ffs.html'>fields_ffs</a></li>
+                  <li class="list-inline-item"><a href='../module/arrays_fields.html'>arrays_fields</a></li>
+                  <li class="list-inline-item"><a href='../module/fields_fluxtube.html'>fields_fluxtube</a></li>
                   <li class="list-inline-item"><a href='../module/stella_layouts.html'>stella_layouts</a></li>
+                  <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
+                  <li class="list-inline-item"><a href='../module/parameters_physics.html'>parameters_physics</a></li>
+                  <li class="list-inline-item"><a href='../module/zgrid.html'>zgrid</a></li>
               </ul>
             </li>
         </ul>
@@ -163,14 +162,27 @@
     </div>
 
 
-    <p>time the communications + field solve
-fields_kxkyz = F is the default
-first gather (vpa,mu) onto processor for v-space operations
-v-space operations are field solve, dg/dvpa, and collisions
-given gvmu with vpa and mu local, calculate the corresponding fields
-set a flag to indicate that the fields have been updated
+    <p>This calls the appropriate routines needed to all fields in the main code.
+This routine calls the appropriate update depending on the effects
+included in the simulation (e.g. Electrostatic, Full Flux surface effects
+or Radiatl Variation effects).</p>
+<p>Layouts
+Arrays
+Parameters
+Grids
+Routines from other field modules
+Time the communications + field solve</p>
+<p>Do we need Full Flux surface effects?
+This is the routine for advancing fields in fluxtube.
+Note that this will include Electrostatic and Electromagnetic effects
+as well as any radial variation effects
+This is if Full Flux Surface effects are included
+This routine is only needed in the 'implicit_solve' algorithm
+This routine is for advancing the full <phi> field in the code with
+FFS effects
+Set a flag to indicate that the fields have been updated
 this helps avoid unnecessary field solves
-time the communications + field solve</p>
+Time the communications + field solve</p>
 
 
     <h3>Arguments</h3>
@@ -186,7 +198,7 @@ time the communications + field solve</p>
     <tbody>
         <tr>
             <td>
-              <span class="anchor" id="variable-g~6"></span>
+              <span class="anchor" id="variable-g~106"></span>
               complex,
             </td>
 <td>intent(in),</td>
@@ -201,7 +213,7 @@ time the communications + field solve</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-phi~7"></span>
+              <span class="anchor" id="variable-phi~46"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -216,7 +228,7 @@ time the communications + field solve</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-apar~2"></span>
+              <span class="anchor" id="variable-apar~29"></span>
               complex,
             </td>
 <td>intent(out),</td>
@@ -231,7 +243,22 @@ time the communications + field solve</p>
         </tr>
         <tr>
             <td>
-              <span class="anchor" id="variable-dist~2"></span>
+              <span class="anchor" id="variable-bpar~27"></span>
+              complex,
+            </td>
+<td>intent(out),</td>
+              <td></td>            <td>
+              dimension(:, :, -nzgrid:, :)
+            </td>
+            <td>::</td>
+            <td><strong>bpar</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dist~12"></span>
               character(len=*),
             </td>
 <td>intent(in)</td>
@@ -240,6 +267,21 @@ time the communications + field solve</p>
             </td>
             <td>::</td>
             <td><strong>dist</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-implicit_solve~3"></span>
+              logical,
+            </td>
+<td>intent(in),</td>
+              <td>optional</td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>implicit_solve</strong></td>
             <td>
                 
             </td>
@@ -272,13 +314,13 @@ time the communications + field solve</p>
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.5.1-242-g2fc9f395b</small></p>
+<br /><small>v0.7-25-g02354a5dca</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-07-16T17:55:20.489058             </p>
+ on 2024-09-26T10:04:50.051200             </p>
           </div>
         </div>
         <br>

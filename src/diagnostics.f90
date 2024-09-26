@@ -1,8 +1,8 @@
 ! Routines for calculating and writing various physical diagnostics.
 module diagnostics
 
-  ! Debug Flags
-  use debug_flags, only: debug => diagnostics_main_debug
+   ! Debug Flags
+   use debug_flags, only: debug => diagnostics_debug
 
    implicit none
 

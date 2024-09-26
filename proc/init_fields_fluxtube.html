@@ -80,20 +80,20 @@
 
             <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
               <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
-                 title=" 0.7% of total for procedures.">265 statements</a>
+                 title=" 0.2% of total for procedures.">72 statements</a>
             </li>
 
             <li class="list-inline-item" id="source-file">
               <i class="fa fa-code"></i>
-              <a href="../src/fields.fpp"> Source File</a>
+              <a href="../src/fields_fluxtube.fpp"> Source File</a>
             </li>
         </ul>
       </div>
       <div class="col">
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb justify-content-end mb-0">
-                <li class="breadcrumb-item"><a href='../sourcefile/fields.fpp.html'>fields.fpp</a></li>
-                <li class="breadcrumb-item"><a href='../module/fields.html'>fields</a></li>
+                <li class="breadcrumb-item"><a href='../sourcefile/fields_fluxtube.fpp.html'>fields_fluxtube.fpp</a></li>
+                <li class="breadcrumb-item"><a href='../module/fields_fluxtube.html'>fields_fluxtube</a></li>
             <li class="breadcrumb-item active" aria-current="page">init_fields_fluxtube</li>
           </ol>
         </nav>
@@ -140,7 +140,7 @@
     </div>
     
     <div class="col-md-9" id='text'>
-    <h2>private  subroutine init_fields_fluxtube()  
+    <h2>public  subroutine init_fields_fluxtube()  
 </h2>
         <div class="card mb-4">
       <h3 class="card-header card-title bg-light">Uses</h3>
@@ -148,19 +148,17 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
               <ul class="list-inline">
-                  <li class="list-inline-item"><a href='../module/stella_layouts.html'>stella_layouts</a></li>
                   <li class="list-inline-item"><a href='../module/geometry.html'>geometry</a></li>
-                  <li class="list-inline-item"><a href='../module/zgrid.html'>zgrid</a></li>
                   <li class="list-inline-item"><a href='../module/arrays_fields.html'>arrays_fields</a></li>
-                  <li class="list-inline-item">parameters_numerical</li>
                   <li class="list-inline-item"><a href='../module/grids_kxky.html'>grids_kxky</a></li>
-                  <li class="list-inline-item"><a href='../module/parameters_kxky_grids.html'>parameters_kxky_grids</a></li>
-                  <li class="list-inline-item"><a href='../module/parameters_physics.html'>parameters_physics</a></li>
-                  <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
-                  <li class="list-inline-item"><a href='../module/species.html'>species</a></li>
-                  <li class="list-inline-item"><a href='../module/vpamu_grids.html'>vpamu_grids</a></li>
                   <li class="list-inline-item"><a href='../module/gyro_averages.html'>gyro_averages</a></li>
-                  <li class="list-inline-item"><a href='../module/arrays_dist_fn.html'>arrays_dist_fn</a></li>
+                  <li class="list-inline-item">parameters_numerical</li>
+                  <li class="list-inline-item"><a href='../module/vpamu_grids.html'>vpamu_grids</a></li>
+                  <li class="list-inline-item"><a href='../module/stella_layouts.html'>stella_layouts</a></li>
+                  <li class="list-inline-item"><a href='../module/mp.html'>mp</a></li>
+                  <li class="list-inline-item"><a href='../module/parameters_physics.html'>parameters_physics</a></li>
+                  <li class="list-inline-item"><a href='../module/parameters_kxky_grids.html'>parameters_kxky_grids</a></li>
+                  <li class="list-inline-item"><a href='../module/species.html'>species</a></li>
               </ul>
             </li>
         </ul>
@@ -168,16 +166,27 @@
     </div>
 
 
-    <div class="alert alert-success">
-<p class="alert-title h4">Todo</p>
-<p>would be tidier if the code related to radial profile variation
-were gathered into a separate subroutine or subroutines
-init_fields_fluxtube allocates and fills arrays needed during main time advance
-loop for the field solve for flux tube simulations</p>
-</div>
-<p>compute coefficients for even part of field solve (phi, bpar)
-gamtotinv11
-gamtotinv13, gamtotinv31, gamtotinv33</p>
+    <p>Initialise arrays that are needed during the main time advance loop in the
+field solve for the flux tube simulations only
+These are initialised once and then used throughout the rest of the simulation
+   gamtot = 1 - gamma0 = Z^2*n/T * int e^(-v^2) * (1 - J0^2) dv
+If using adiabatic electrons then this factor is modified and we use gamtot3
+which includes the Boltmann response</p>
+<p>Layouts
+Arrays
+Parameters
+Grids
+Calculations
+Geometry</p>
+<p>Initialise gamtot
+Gamtot does not depend on flux tube index, so only compute for one flux tube index
+Calculate (1- j0^2) for each kx,ky,z
+TODO-GA: remove maxwellian_normalisation flag
+Integrate over vpa mu with weight = Z^2*n/T
+Avoid divide by zero when kx=ky=0
+We do not evolve this mode, so the value is irrelevant
+Initialise gamtot3
+Avoid divide by zero for kx=ky=0 mode, which we do not need anyway</p>
 
 
     <h3>Arguments</h3>
@@ -208,13 +217,13 @@ gamtotinv13, gamtotinv31, gamtotinv33</p>
             <p>
               stella
  was developed by The stella team<br>              &copy; 2024 
-<br /><small>v0.7-24-gc0992ea3bb</small></p>
+<br /><small>v0.7-25-g02354a5dca</small></p>
           </div>
           <div class="col">
             <p class="text-end">
               Documentation generated by
               <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
- on 2024-09-26T09:56:17.317360             </p>
+ on 2024-09-26T10:04:50.051200             </p>
           </div>
         </div>
         <br>
