@@ -43,42 +43,13 @@ option(STELLA_UPDATE_GIT_SUBMODULES "Check submodules are up-to-date during buil
 # Sources that don't need preprocessing
 set(STELLA_SOURCES_f90
   ../EXTERNALS/utils/define.inc
-  ../STELLA_CODE/arrays_dist_fn.f90
-  ../STELLA_CODE/arrays_fields.f90
-  ../STELLA_CODE/calculations_kxky.f90
-  ../STELLA_CODE/common_types.f90
-  ../STELLA_CODE/debug_flags.f90
-  ../STELLA_CODE/dist_fn.f90
-  ../STELLA_CODE/dist_redistribute.f90
-  ../STELLA_CODE/euterpe_interface.f90
-  ../STELLA_CODE/extended_zgrid.f90
-  ../STELLA_CODE/ffs_solve.f90
-  ../STELLA_CODE/finite_differences.f90
-  ../STELLA_CODE/flow_shear.f90
-  ../STELLA_CODE/g_tofrom_h.f90
-  ../STELLA_CODE/grids_kxky.f90
-  ../STELLA_CODE/gyro_averages.f90
-  ../STELLA_CODE/implicit_solve.f90
-  ../STELLA_CODE/init_g.f90
-  ../STELLA_CODE/mirror_terms.f90
-  ../STELLA_CODE/multibox.f90
-  ../STELLA_CODE/neoclassical_terms.f90
-  ../STELLA_CODE/parallel_streaming.f90
-  ../STELLA_CODE/parameters_kxky_grids.f90
-  ../STELLA_CODE/parameters_kxky_grids_box.f90
-  ../STELLA_CODE/parameters_kxky_grids_range.f90
-  ../STELLA_CODE/parameters_numerical.f90
-  ../STELLA_CODE/parameters_physics.f90
-  ../STELLA_CODE/species.f90
-  ../STELLA_CODE/stella_layouts.f90
-  ../STELLA_CODE/stella_time.f90
-  ../STELLA_CODE/stella_transforms.f90
-  ../STELLA_CODE/time_advance.f90
-  ../STELLA_CODE/volume_averages.f90
-  ../STELLA_CODE/vpamu_grids.f90
-  ../STELLA_CODE/write_radial_grid.f90
-  ../STELLA_CODE/zgrid.f90
-  ../STELLA_CODE/diagnostics/parameters_diagnostics.f90
+  ../STELLA_CODE/calculations/calculations_kxky.f90
+  ../STELLA_CODE/calculations/dist_redistribute.f90
+  ../STELLA_CODE/calculations/finite_differences.f90
+  ../STELLA_CODE/calculations/g_tofrom_h.f90
+  ../STELLA_CODE/calculations/gyro_averages.f90
+  ../STELLA_CODE/calculations/stella_transforms.f90
+  ../STELLA_CODE/calculations/volume_averages.f90
   ../STELLA_CODE/diagnostics/diagnostics.f90
   ../STELLA_CODE/diagnostics/diagnostics_distribution.f90
   ../STELLA_CODE/diagnostics/diagnostics_fluxes_fluxtube.f90
@@ -92,27 +63,50 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/dissipation/coll_fokkerplanck.f90
   ../STELLA_CODE/dissipation/dissipation.f90
   ../STELLA_CODE/dissipation/hyper.f90
-  ../STELLA_CODE/geometry/geometry.f90
-  ../STELLA_CODE/geometry/geometry_miller.f90
-  ../STELLA_CODE/geometry/geometry_vmec.f90
-  ../STELLA_CODE/geometry/geometry_vmec_read_netCDF_file.f90 
-  ../STELLA_CODE/geometry/geometry_inputprofiles_interface.f90
-  ../STELLA_CODE/geometry/geometry_zpinch.f90
+  ../STELLA_CODE/fields/dist_fn.f90
+  ../STELLA_CODE/fields/init_g.f90
+  ../STELLA_CODE/grids/arrays_dist_fn.f90
+  ../STELLA_CODE/grids/arrays_fields.f90
+  ../STELLA_CODE/grids/common_types.f90
+  ../STELLA_CODE/grids/extended_zgrid.f90
+  ../STELLA_CODE/grids/grids_kxky.f90
+  ../STELLA_CODE/grids/species.f90
+  ../STELLA_CODE/grids/stella_layouts.f90
+  ../STELLA_CODE/grids/stella_time.f90
+  ../STELLA_CODE/grids/vpamu_grids.f90
+  ../STELLA_CODE/grids/write_radial_grid.f90
+  ../STELLA_CODE/grids/zgrid.f90
+  ../STELLA_CODE/gyrokinetic_terms/ffs_solve.f90
+  ../STELLA_CODE/gyrokinetic_terms/flow_shear.f90
+  ../STELLA_CODE/gyrokinetic_terms/implicit_solve.f90
+  ../STELLA_CODE/gyrokinetic_terms/mirror_terms.f90
+  ../STELLA_CODE/gyrokinetic_terms/parallel_streaming.f90
+  ../STELLA_CODE/gyrokinetic_terms/time_advance.f90
+  ../STELLA_CODE/neoclassical/euterpe_interface.f90
+  ../STELLA_CODE/neoclassical/neoclassical_terms.f90
+  ../STELLA_CODE/parameters/debug_flags.f90
+  ../STELLA_CODE/parameters/parameters_diagnostics.f90
+  ../STELLA_CODE/parameters/parameters_kxky_grids.f90
+  ../STELLA_CODE/parameters/parameters_kxky_grids_box.f90
+  ../STELLA_CODE/parameters/parameters_kxky_grids_range.f90
+  ../STELLA_CODE/parameters/parameters_numerical.f90
+  ../STELLA_CODE/parameters/parameters_physics.f90
+  ../STELLA_CODE/radial_variation/multibox.f90
 )
 
 # Sources that _do_ need preprocessing (because they have MPI flags, ...)
 set(STELLA_SOURCES_fpp
-  ../STELLA_CODE/fields.fpp
-  ../STELLA_CODE/fields_fluxtube.fpp
-  ../STELLA_CODE/fields_electromagnetic.fpp
-  ../STELLA_CODE/fields_fullfluxsurface.fpp
-  ../STELLA_CODE/fields_collisions.fpp
-  ../STELLA_CODE/fields_radialvariation.fpp
-  ../STELLA_CODE/response_matrix.fpp
-  ../STELLA_CODE/sfincs_interface.fpp
-  ../STELLA_CODE/sources.fpp
-  ../STELLA_CODE/stella_io.fpp
-  ../STELLA_CODE/stella_save.fpp
+  ../STELLA_CODE/diagnostics/stella_io.fpp
+  ../STELLA_CODE/diagnostics/stella_save.fpp
+  ../STELLA_CODE/fields/fields.fpp
+  ../STELLA_CODE/fields/fields_fluxtube.fpp
+  ../STELLA_CODE/fields/fields_electromagnetic.fpp
+  ../STELLA_CODE/fields/fields_fullfluxsurface.fpp
+  ../STELLA_CODE/fields/fields_collisions.fpp
+  ../STELLA_CODE/fields/fields_radialvariation.fpp
+  ../STELLA_CODE/gyrokinetic_terms/response_matrix.fpp
+  ../STELLA_CODE/gyrokinetic_terms/sources.fpp
+  ../STELLA_CODE/neoclassical/sfincs_interface.fpp
 )
 
 set_source_files_properties(${STELLA_SOURCES_fpp} PROPERTIES
