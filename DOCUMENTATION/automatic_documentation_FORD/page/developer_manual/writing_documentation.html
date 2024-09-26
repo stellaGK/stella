@@ -1,0 +1,430 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="stella is a flux tube gyrokinetic code for micro-stability and turbulence simulations of strongly magnetised plasma">
+    <meta name="author" content="The stella team" >
+    <link rel="icon" href="../../favicon.png">
+
+    <title>Writing Documentation &ndash; stella</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="../../css/pygments.css" rel="stylesheet">
+    <link href="../../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../../css/local.css" rel="stylesheet">
+      <link  href="../../tipuesearch/tipuesearch.css" rel="stylesheet">
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="../../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../../index.html">stella </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                <li class="nav-item"><a class="nav-link" href="../index.html">Manual</a></li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="../../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../../lists/programs.html">Programs</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>Writing Documentation</h1>
+    <div class="container p-2 mb-4 bg-light border rounded-3">
+      <div class="row align-items-center justify-content-between">
+        <div class="col">
+          <ul class="list-inline" style="margin-bottom:0px; display:inline">
+          </ul>
+        </div>
+        <div class="col">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../index.html'>Manual</a></li>
+                <li class="breadcrumb-item"><a href='index.html'>Developer guide</a></li>
+              <li class="breadcrumb-item active" aria-current="page">Writing Documentation</li>
+            </ol>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+      <div class="col-3">
+        <div class="card card-body bg-light" id="sidebar-toc">
+          <ul class="nav flex-column align-items">
+            <li class="nav-item">
+              <a class="nav-link" href="../index.html">Manual</a>
+            </li>
+          </ul>
+          <hr>
+          <nav class="nav nav-pills flex-column">
+              <a class="nav-link" href="index.html">Developer guide</a>
+                <nav class="nav nav-pills flex-column">
+                                <a class="nav-link" href="CMake.html">CMake in stella</a>
+              <a class="nav-link active disabled" href="writing_documentation.html">Writing Documentation</a>
+
+                </nav>
+              <a class="nav-link" href="../user_manual/index.html">User Guide</a>
+                <nav class="nav nav-pills flex-column">
+                                <a class="nav-link" href="../user_manual/download_and_compiling.html">Downloading and Compiling</a>
+              <a class="nav-link" href="../user_manual/running_stella.html">Running stella</a>
+              <a class="nav-link" href="../user_manual/input_files.html">Input files</a>
+              <a class="nav-link" href="../user_manual/namelists.html">Namelist parameters</a>
+              <a class="nav-link" href="../user_manual/output.html">Output in stella</a>
+              <a class="nav-link" href="../user_manual/algorithm.html">stella's algorithm</a>
+              <a class="nav-link" href="../user_manual/parallelization.html">Parallelism in stella</a>
+              <a class="nav-link" href="../user_manual/coordinates.html">Coordinate system</a>
+              <a class="nav-link" href="../user_manual/radial_stella.html">Radially global stella</a>
+              <a class="nav-link" href="../user_manual/ffs_stella.html">Full-flux-surface stella</a>
+
+                </nav>
+          </nav>
+        </div>
+      </div>
+
+    <div class="col-9" id='text'>
+      <div class="toc">
+<ul>
+<li><a href="#in-source-documentation">In-source documentation</a></li>
+<li><a href="#out-of-source-documentation">Out-of-source documentation</a><ul>
+<li><a href="#add-a-new-page">Add a new page</a></li>
+<li><a href="#converting-latex-to-markdown">Converting LaTeX to Markdown</a></li>
+<li><a href="#linking-to-sections">Linking to sections</a></li>
+<li><a href="#linking-to-source-documentation">Linking to source documentation</a></li>
+<li><a href="#building-the-documentation-locally">Building the documentation locally</a></li>
+<li><a href="#cheat-sheet">Cheat sheet</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<p>stella uses <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a> to automatically build this online documentation. There are two
+sorts of documentation that get built: in-source and out-of-source. This page describes
+how to write both sorts. The website will get built automatically when your changes are
+merged into <code>master</code>.</p>
+<h1 id="in-source-documentation">In-source documentation</h1>
+<p>Special Fortran comments of the form <code>!&gt;</code> are used to document procedures, variables and
+programs using <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>. These comments are sometimes called "docstrings". FORD can
+understand these comments before, after or in-line with the thing to be documented, but
+the preferred style in stella is to put the comment before the entity, like in this example:</p>
+<div class="codehilite"><pre><span></span><code><span class="c">!&gt; This is module-level documentation, describing the overall purpose of this module.</span>
+<span class="c">!&gt; Documentation comments can be over several lines.</span>
+<span class="k">module </span><span class="n">my_module</span>
+<span class="w">    </span><span class="k">implicit none</span>
+
+<span class="w">    </span><span class="c">!&gt; Docstrings can go on derived types</span>
+<span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">my_type</span>
+<span class="w">        </span><span class="c">!&gt; Docstrings can include in-line LaTeX like this: \(R\)</span>
+<span class="w">        </span><span class="kt">real</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">R_major</span>
+<span class="w">        </span><span class="c">!&gt; Or as a displayed equation:</span>
+<span class="w">        </span><span class="c">!&gt;   $$\frac{\partial R}{\partial \psi}$$</span>
+<span class="w">        </span><span class="kt">real</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">R_major_prime</span>
+<span class="w">        </span><span class="c">!&gt; Code-formatting uses `backticks`</span>
+<span class="w">        </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">n_R</span>
+<span class="w">    </span><span class="k">end type </span><span class="n">my_type</span>
+
+<span class="k">contains</span>
+
+<span class="w">    </span><span class="c">!&gt; We can document functions/subroutines</span>
+<span class="w">    </span><span class="kt">real </span><span class="k">function </span><span class="n">gradient</span><span class="p">(</span><span class="n">R</span><span class="p">,</span><span class="w"> </span><span class="n">psi</span><span class="p">)</span>
+<span class="w">        </span><span class="c">!&gt; In order to separate the docstring for each argument...</span>
+<span class="w">        </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">R</span>
+<span class="w">        </span><span class="c">!&gt; ...it&#39;s best to have each argument on its own line</span>
+<span class="w">        </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">psi</span>
+<span class="w">    </span><span class="k">end function </span><span class="n">gradient</span>
+
+<span class="k">end module </span><span class="n">my_module</span>
+</code></pre></div>
+
+<p>The <a href="https://github.com/Fortran-FOSS-Programmers/ford/wiki">FORD wiki</a> has more documentation on how to write these docstrings. Please
+note that while FORD accepts <code>!&lt;</code> comments <em>after</em> or in-line with the thing to be
+documented, the stella style is to stick to <code>!&gt;</code> <em>before</em> and on a separate line.</p>
+<h1 id="out-of-source-documentation">Out-of-source documentation</h1>
+<p>As well as the code documentation, we also have some extra documentation. The source for
+these pages in still kept in the stella git repository, and are built into the website at the
+same time. These extra pages are written in <a href="https://www.markdownguide.org">Markdown</a>, with some
+extensions (see <a href="https://python-markdown.github.io/">the Python markdown implementation</a>). There's a short
+<a href="#cheat-sheet">cheat sheet</a> at the bottom of this page.</p>
+<h2 id="add-a-new-page">Add a new page</h2>
+<p>All the out-of-source documentation is under <code>docs/pages</code>. FORD converts the directory
+hierarchy in to a hierarchy of HTML pages. To add a new page, simply create a new file
+under <code>docs/pages</code>, and use the file extension <code>.md</code>. <strong>Your file must contain the
+following at the very top</strong>:</p>
+<div class="codehilite"><pre><span></span><code>---
+<span class="gu">title: Page title</span>
+<span class="gu">---</span>
+</code></pre></div>
+
+<p>Without this metadata section, FORD will not parse the file as part of the documentation.</p>
+<p>In this metadata section, you can also have <code>author</code> and <code>date</code> items.</p>
+<p>Another useful feature, is put <code>[TOC]</code> on its own line after the metadata section. This
+produces a hyperlinked table of contents.</p>
+<p>See the <a href="https://github.com/Fortran-FOSS-Programmers/ford/wiki/Writing-Pages">FORD wiki</a> for a more detailed description.</p>
+<h2 id="converting-latex-to-markdown">Converting LaTeX to Markdown</h2>
+<p>The easiest way to convert LaTeX to Markdown is to use <a href="https://pandoc.org/">Pandoc</a>. This nifty tool
+understands tons of text formats and can convert between them easily, and will get the
+vast majority of the heavy lifting done for you. Due to the complexities of LaTeX and the
+simplicity of Markdown, it may require some manual tidying up after the initial
+conversion.</p>
+<p>To get started, run Pandoc:</p>
+<div class="codehilite"><pre><span></span><code>$<span class="w"> </span>pandoc<span class="w"> </span>--standalone<span class="w"> </span>--from<span class="o">=</span>latex<span class="w"> </span>--to<span class="o">=</span>gfm<span class="w"> </span>my_docs.tex<span class="w"> </span>--output<span class="w"> </span>docs/pages/my_docs.md
+</code></pre></div>
+
+<p>FORD is a bit fussier about the metadata section at the top, compared to what Pandoc
+produces, so you may need to manually adjust it.</p>
+<p>Acceptable:</p>
+<div class="codehilite"><pre><span></span><code>---
+title: On the Electrodynamics of Moving Bodies
+<span class="gu">author: A. Einstein</span>
+<span class="gu">---</span>
+</code></pre></div>
+
+<p>Unacceptable:</p>
+<div class="codehilite"><pre><span></span><code>---
+title: Does the Inertia of a Body Depend upon its Energy Content?
+author: 
+<span class="gu">- &#39;A. Einstein&#39;</span>
+<span class="gu">---</span>
+</code></pre></div>
+
+<p>which is a possible output from Pandoc.</p>
+<p>FORD can render LaTeX included in the markdown, with just a couple of gotchas. The most
+important one is that in-line maths <strong>must</strong> use <code>\(...\)</code> rather than <code>$...$</code>. Displayed
+equations can be written between <code>$$...$$</code>, but note that this does not number the
+resulting equation.</p>
+<p>Normal <code>\begin{equation} ... \end{equation}</code> environments can be used to get numbered
+equations, along with <code>\label{eq:something}</code> and <code>\eqref{eq:something}</code> to refer to them.</p>
+<p>This example:</p>
+<div class="codehilite"><pre><span></span><code><span class="nv">To</span><span class="w"> </span><span class="nv">obtain</span><span class="w"> </span><span class="nv">the</span><span class="w"> </span><span class="nv">distribution</span><span class="w"> </span><span class="nv">function</span><span class="w"> </span><span class="nv">at</span><span class="w"> </span><span class="nv">the</span><span class="w"> </span><span class="nv">next</span><span class="w"> </span><span class="nv">time</span><span class="w"> </span><span class="k">step</span><span class="p">,</span><span class="w"> </span>\<span class="p">(</span><span class="nv">g</span><span class="o">^</span><span class="p">{</span><span class="nv">n</span><span class="o">+</span><span class="mi">1</span><span class="p">}</span>\<span class="p">),</span><span class="w"> </span><span class="nv">we</span><span class="w"> </span><span class="nv">could</span><span class="w"> </span><span class="nv">combine</span>
+<span class="nv">these</span><span class="w"> </span><span class="nv">equations</span>
+
+<span class="p">$$</span><span class="nv">A</span><span class="w"> </span><span class="nv">g</span><span class="o">^</span><span class="p">{</span><span class="nv">n</span><span class="o">+</span><span class="mi">1</span><span class="p">}</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nv">B</span><span class="w"> </span><span class="nv">g</span><span class="o">^</span><span class="p">{</span><span class="nv">n</span><span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">DF</span><span class="o">^</span><span class="p">{</span><span class="o">-</span><span class="mi">1</span><span class="p">}</span><span class="nv">Gg</span><span class="o">^</span><span class="p">{</span><span class="nv">n</span><span class="o">+</span><span class="mi">1</span><span class="p">}</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nv">E</span>\<span class="nv">phi</span><span class="o">^</span><span class="p">{</span><span class="nv">n</span><span class="p">},$$</span>
+</code></pre></div>
+
+<p>is rendered as:</p>
+<blockquote>
+<p>To obtain the distribution function at the next time step, <script type="math/tex">g^{n+1}</script>, we could combine
+these equations</p>
+<p>
+<script type="math/tex; mode=display">A g^{n+1} + B g^{n} = DF^{-1}Gg^{n+1} + E\phi^{n},</script>
+</p>
+</blockquote>
+<p>while</p>
+<div class="codehilite"><pre><span></span><code>\<span class="nv">begin</span>{<span class="nv">equation</span>}
+<span class="nv">F</span><span class="w"> </span>\<span class="nv">phi</span><span class="o">^</span>{<span class="nv">n</span><span class="o">+</span><span class="mi">1</span>}<span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">G</span><span class="w"> </span><span class="nv">g</span><span class="o">^</span>{<span class="nv">n</span><span class="o">+</span><span class="mi">1</span>}
+\<span class="nv">label</span>{<span class="nv">eq</span>:<span class="nv">QN</span>}
+\<span class="k">end</span>{<span class="nv">equation</span>}
+
+\<span class="nv">eqref</span>{<span class="nv">eq</span>:<span class="nv">QN</span>}<span class="w"> </span><span class="nv">is</span><span class="w"> </span><span class="nv">the</span><span class="w"> </span><span class="nv">quasi</span><span class="o">-</span><span class="nv">neutrality</span><span class="w"> </span><span class="nv">equation</span>
+</code></pre></div>
+
+<p>is rendered as</p>
+<blockquote>
+<p>
+<script type="math/tex; mode=display">\begin{equation}
+F \phi^{n+1} = G g^{n+1}
+\label{eq:QN}
+\end{equation}</script>
+</p>
+<p>\eqref{eq:QN} is the quasi-neutrality equation</p>
+</blockquote>
+<h2 id="linking-to-sections">Linking to sections</h2>
+<p>Section titles within a page get converted into HTML "anchors" which can be linked to. The
+section names are first converted to lowercase and spaces replaced with hyphens. To link
+to a section, use the usual link syntax and add <code>#</code> in front of the converted section
+name.</p>
+<p>This:</p>
+<div class="codehilite"><pre><span></span><code>Link to [<span class="nt">this section</span>](<span class="na">#linking-to-sections</span>)
+</code></pre></div>
+
+<p>becomes:</p>
+<blockquote>
+<p>Link to <a href="#linking-to-sections">this section</a></p>
+</blockquote>
+<h2 id="linking-to-source-documentation">Linking to source documentation</h2>
+<p>Linking directly to the code documentation is possible using FORD's syntax, which is
+described
+<a href="https://github.com/Fortran-FOSS-Programmers/ford/wiki/Writing-Documentation#links">here</a>:</p>
+<p>This:</p>
+<div class="codehilite"><pre><span></span><code>The two linear steps \(L\) are performed by the function [[dist_fn:invert_rhs]] in [[dist_fn.fpp(file)]]
+</code></pre></div>
+
+<p>is rendered as:</p>
+<blockquote>
+<p>The two linear steps <script type="math/tex">L</script> are performed by the function <a href="../../module/dist_fn.html">dist_fn</a> in <a>dist_fn.fpp</a></p>
+</blockquote>
+<h2 id="building-the-documentation-locally">Building the documentation locally</h2>
+<p><a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a> can be easily installed with <code>pip</code>:</p>
+<div class="codehilite"><pre><span></span><code>$<span class="w"> </span>pip3<span class="w"> </span>install<span class="w"> </span>--user<span class="w"> </span>ford
+</code></pre></div>
+
+<p>After installing FORD, simply run <code>make doc</code>. This will build the documentation under
+<code>docs/html</code>:</p>
+<div class="codehilite"><pre><span></span><code>$<span class="w"> </span>make<span class="w"> </span>doc
+</code></pre></div>
+
+<p>Then open <code>docs/html/index.html</code> in your favourite browser.</p>
+<h2 id="cheat-sheet">Cheat sheet</h2>
+<p><a href="https://www.markdownguide.org">See here</a> for a comprehensive guide to Markdown.</p>
+<p>Here's a quick little cheat sheet:</p>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Syntax</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Heading</td>
+<td><code># Top-level</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>## Section</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>### Sub-section</code></td>
+</tr>
+<tr>
+<td>Bold</td>
+<td><code>**bold text**</code></td>
+</tr>
+<tr>
+<td>Italic</td>
+<td><code>*italicised text*</code></td>
+</tr>
+<tr>
+<td>Code</td>
+<td><code>`code`</code></td>
+</tr>
+<tr>
+<td>Blockquote</td>
+<td><code>&gt; Block quote</code></td>
+</tr>
+<tr>
+<td>Ordered lists</td>
+<td><code>1. First item</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>2. Second item</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>3. Third item</code></td>
+</tr>
+<tr>
+<td>Unordered lists</td>
+<td><code>- First item</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>- Second item</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>- Third item</code></td>
+</tr>
+<tr>
+<td>Link</td>
+<td><code>[title](www.example.com)</code></td>
+</tr>
+<tr>
+<td>Image</td>
+<td><code>![alt text](image.jpg)</code></td>
+</tr>
+</tbody>
+</table>
+<!-- Local Variables: -->
+<!-- mode: gfm -->
+<!-- fill-column: 90 -->
+<!-- End: -->
+    </div>
+  </div>
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              stella
+ was developed by The stella team<br>              &copy; 2024 
+<br /><small>v0.7-26-gcf608fe7f8</small></p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2024-09-26T10:53:28.392052             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>    
+
+    <!-- MathJax JavaScript
+             ================================================== -->
+             <!-- Placed at the end of the document so the pages load faster -->
+        <script type="text/x-mathjax-config">
+          MathJax.Hub.Config({
+          TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+          jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+          extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+          });
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+          <script src="../../tipuesearch/tipuesearch_content.js"></script>
+          <script src="../../tipuesearch/tipuesearch_set.js"></script>
+          <script src="../../tipuesearch/tipuesearch.js"></script>
+
+  </body>
+</html>

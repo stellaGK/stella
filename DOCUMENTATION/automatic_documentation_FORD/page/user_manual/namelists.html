@@ -1,0 +1,2247 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="stella is a flux tube gyrokinetic code for micro-stability and turbulence simulations of strongly magnetised plasma">
+    <meta name="author" content="The stella team" >
+    <link rel="icon" href="../../favicon.png">
+
+    <title>Namelist parameters &ndash; stella</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="../../css/pygments.css" rel="stylesheet">
+    <link href="../../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../../css/local.css" rel="stylesheet">
+      <link  href="../../tipuesearch/tipuesearch.css" rel="stylesheet">
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="../../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../../index.html">stella </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                <li class="nav-item"><a class="nav-link" href="../index.html">Manual</a></li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="../../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../../lists/programs.html">Programs</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>Namelist parameters</h1>
+    <div class="container p-2 mb-4 bg-light border rounded-3">
+      <div class="row align-items-center justify-content-between">
+        <div class="col">
+          <ul class="list-inline" style="margin-bottom:0px; display:inline">
+          </ul>
+        </div>
+        <div class="col">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../index.html'>Manual</a></li>
+                <li class="breadcrumb-item"><a href='index.html'>User Guide</a></li>
+              <li class="breadcrumb-item active" aria-current="page">Namelist parameters</li>
+            </ol>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+      <div class="col-3">
+        <div class="card card-body bg-light" id="sidebar-toc">
+          <ul class="nav flex-column align-items">
+            <li class="nav-item">
+              <a class="nav-link" href="../index.html">Manual</a>
+            </li>
+          </ul>
+          <hr>
+          <nav class="nav nav-pills flex-column">
+              <a class="nav-link" href="../developer_manual/index.html">Developer guide</a>
+                <nav class="nav nav-pills flex-column">
+                                <a class="nav-link" href="../developer_manual/CMake.html">CMake in stella</a>
+              <a class="nav-link" href="../developer_manual/writing_documentation.html">Writing Documentation</a>
+
+                </nav>
+              <a class="nav-link" href="index.html">User Guide</a>
+                <nav class="nav nav-pills flex-column">
+                                <a class="nav-link" href="download_and_compiling.html">Downloading and Compiling</a>
+              <a class="nav-link" href="running_stella.html">Running stella</a>
+              <a class="nav-link" href="input_files.html">Input files</a>
+              <a class="nav-link active disabled" href="namelists.html">Namelist parameters</a>
+              <a class="nav-link" href="output.html">Output in stella</a>
+              <a class="nav-link" href="algorithm.html">stella's algorithm</a>
+              <a class="nav-link" href="parallelization.html">Parallelism in stella</a>
+              <a class="nav-link" href="coordinates.html">Coordinate system</a>
+              <a class="nav-link" href="radial_stella.html">Radially global stella</a>
+              <a class="nav-link" href="ffs_stella.html">Full-flux-surface stella</a>
+
+                </nav>
+          </nav>
+        </div>
+      </div>
+
+    <div class="col-9" id='text'>
+      <h1 id="namelist-geo_knobs">namelist <code>geo_knobs</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>geo_option</code></td>
+<td>string</td>
+<td><code>'local'</code></td>
+<td>Selects the geometry module. Should be one of <ul><li><code>local</code> Miller equilibrium.</li><li>  <code>vmec</code> VMEC stellarator equilibrium. Requires VMEC netcdf input file. </li><li> <code>input.profiles</code> Reads in General Atomics <code>input.gacode</code> file. <strong>This may need to be updated for newer <code>gacode</code> files.</strong></li><li><code>miller</code>same as <code>local</code></li><li><code>default</code> same as <code>miller</code></li></ul></td>
+</tr>
+<tr>
+<td><code>geo_file</code></td>
+<td>string</td>
+<td><code>'input.geometry'</code></td>
+<td>input file used to overwrite selected geometric coefficients below. File uses the same formatting as <code>.geometry</code> output.</td>
+</tr>
+<tr>
+<td><code>q_as_x</code></td>
+<td>boolean</td>
+<td><code>radial_variation</code></td>
+<td>Uses the safety factor \( q \) as the radial coordinate, rather than \( \psi \). Used for radially global simulations.</td>
+</tr>
+<tr>
+<td><code>set_bmag_const</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Sets \( B \) uniformly to its value at the outboard midplane</td>
+</tr>
+<tr>
+<td><code>overwrite_bmag</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>overwrite \( B \).</td>
+</tr>
+<tr>
+<td><code>overwrite_gradpar</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>overwrite \( \boldsymbol{ b \cdot \nabla z} \).</td>
+</tr>
+<tr>
+<td><code>overwrite_gds2</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>overwrite \(  \lvert \nabla \alpha \rvert^2 (\textrm{d}\psi / \textrm{d}r)^2 \).</td>
+</tr>
+<tr>
+<td><code>overwrite_gds21</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>overwrite \( \lvert \nabla q \cdot \nabla \alpha \rvert (\textrm{d}\psi / \textrm{d}r)^2 \).</td>
+</tr>
+<tr>
+<td><code>overwrite_gds22</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>overwrite \( \lvert \nabla q \rvert^2 (\textrm{d}\psi / \textrm{d}r)^2 \).</td>
+</tr>
+<tr>
+<td><code>overwrite_gds23</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>overwrite \(  \nabla \theta \cdot [\nabla \alpha \times (\nabla r \times \nabla \alpha)] (\textrm{d}\psi / \textrm{d}r)^2 / B^2 \).</td>
+</tr>
+<tr>
+<td><code>overwrite_gds24</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>overwrite \( \nabla \theta \cdot [\nabla r \times (\nabla r \times \nabla \alpha)] (\textrm{d}\psi / \textrm{d}r)^2 (q/r) / B^2\).</td>
+</tr>
+<tr>
+<td><code>overwrite_gbdrift</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>overwrite \( 2 (\boldsymbol{b} \times \nabla B \cdot \nabla \alpha) (\textrm{d}\psi / \textrm{d}r) /B^2 \).</td>
+</tr>
+<tr>
+<td><code>overwrite_gbdrift0</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>overwrite \( 2 (\boldsymbol{b} \times \nabla B \cdot \nabla q) (\textrm{d}\psi / \textrm{d}r) /B^2  \).</td>
+</tr>
+<tr>
+<td><code>overwrite_cvdrift</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>overwrite \( 2(\textrm{d}\psi / \textrm{d}r)[\boldsymbol{b} \times (\boldsymbol{b \cdot \nabla b})]\cdot \nabla \alpha / B \)</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-millergeo_parameters">namelist <code>millergeo_parameters</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rhoc</code></td>
+<td>real</td>
+<td>0.5</td>
+<td>radial position of fluxtube \( r \)</td>
+</tr>
+<tr>
+<td><code>rmaj</code></td>
+<td>real</td>
+<td>3.0</td>
+<td>device major radius \( R_0 \)</td>
+</tr>
+<tr>
+<td><code>shift</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Shafranov shift</td>
+</tr>
+<tr>
+<td><code>qinp</code></td>
+<td>real</td>
+<td>1.4</td>
+<td>magnetic safety factor \( q \)</td>
+</tr>
+<tr>
+<td><code>shat</code></td>
+<td>real</td>
+<td>0.8</td>
+<td>magnetic shear \( \hat{s} = (r/q) \textrm{d}q/\textrm{d}r \)</td>
+</tr>
+<tr>
+<td><code>kappa</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>elongation</td>
+</tr>
+<tr>
+<td><code>tri</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>triangularity</td>
+</tr>
+<tr>
+<td><code>rgeo</code></td>
+<td>real</td>
+<td>3.0</td>
+<td>geometric center-point of the flux-tube</td>
+</tr>
+<tr>
+<td><code>betaprim</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Normalized pressure gradient \( \beta' \)</td>
+</tr>
+<tr>
+<td><code>kapprim</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>radial derivative of elongation (for radially global simulation)</td>
+</tr>
+<tr>
+<td><code>triprim</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>radial derivative of triangularity (for radially global simulation)</td>
+</tr>
+<tr>
+<td><code>betadbprim</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>radial derivative of \( \beta' \) (for radially global simulation)</td>
+</tr>
+<tr>
+<td><code>d2qdr2</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>second derivative of \( q' \) (for radially global simulation)</td>
+</tr>
+<tr>
+<td><code>d2psidr2</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>second derivative of \( \psi \) (for radially global simulation)</td>
+</tr>
+<tr>
+<td><code>nzed_local</code></td>
+<td>integer</td>
+<td>128</td>
+<td>resolution of \( z \) on which to calculate geometric coefficients. Splines are then used to interpolate onto the grid used during simulation.</td>
+</tr>
+<tr>
+<td><code>read_profile_variation</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Save information necessary for recalculating Miller equilibrium away from \( r \). Used for performing local simulations at different radial locations in order to compare to global simulation.</td>
+</tr>
+<tr>
+<td><code>write_profile_variation</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Recomputes the Miller equilibrium using geometry stored in a file, originally calculated at some \( r_\mathrm{file} \), at new \( r \).</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-vmec_parameters">namelist <code>vmec_parameters</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>alpha0</code></td>
+<td>real</td>
+<td>0.0</td>
+<td></td>
+</tr>
+<tr>
+<td><code>zeta_center</code></td>
+<td>real</td>
+<td>0.0</td>
+<td></td>
+</tr>
+<tr>
+<td><code>nfields_periods</code></td>
+<td>real</td>
+<td>-1.0</td>
+<td></td>
+</tr>
+<tr>
+<td><code>torflux</code></td>
+<td>real</td>
+<td>0.6354167</td>
+<td></td>
+</tr>
+<tr>
+<td><code>zgrid_scalefac</code></td>
+<td>real</td>
+<td>1.0</td>
+<td></td>
+</tr>
+<tr>
+<td><code>zgrid_refinement_factor</code></td>
+<td>real</td>
+<td>4 if <code>zed_equal_arc</code>, 1 otherwise</td>
+<td></td>
+</tr>
+<tr>
+<td><code>surface_option</code></td>
+<td>integer</td>
+<td>0</td>
+<td></td>
+</tr>
+<tr>
+<td><code>verbose</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>vmec_filename</code></td>
+<td>string</td>
+<td><code>'equilibria/wout_w7x_standardConfig.nc'</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>gradpar_zeta_prefac</code></td>
+<td>real</td>
+<td>1.0</td>
+<td></td>
+</tr>
+<tr>
+<td><code>n_tolerated_test_arrays_inconsistencies</code></td>
+<td>integer</td>
+<td>0</td>
+<td>Non-negative integer. Ignores a this number of test_arrays inconsistencies. Useful when running with low-resolution VMEC files, which can be useful for optimization. 0 or 1 are recommended values.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-zgrid_parameters">namelist <code>zgrid_parameters</code></h1>
+<p>Used to control the resolution and boundary condition of the parallel coordinate.</p>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>nzed</code></td>
+<td>integer</td>
+<td>24</td>
+<td>description</td>
+</tr>
+<tr>
+<td><code>nperiod</code></td>
+<td>integer</td>
+<td>1</td>
+<td>Controls number of poloidal turns in the flux tube, which is given by \(n_\mathrm{pol} = 2 n_\mathrm{period} -1\)</td>
+</tr>
+<tr>
+<td><code>ntubes</code></td>
+<td>integer</td>
+<td>1</td>
+<td>Number of cars in the flux tube train</td>
+</tr>
+<tr>
+<td><code>boundary_option</code></td>
+<td>string</td>
+<td><code>'default'</code></td>
+<td>Parallel boundary condition, should be one of <ul><li><code>default</code> zero incoming, no radial connections, suitable for linear simuatlions</li><li>  <code>linked</code> zero incoming with twist-and-shift boundary condition, suitable for nonlinear simulations</li><li>  <code>stellarator</code> Martin's twist-and-shift boundary for stellarators with local shear</li><li> <code>periodic</code> periodic for all modes, with option of a phase shift across the parallel boundary</li><li><code>zero</code>same as <code>default</code></li><li><code>unconnected</code> same as <code>default</code></li><li><code>self-periodic</code> same as <code>periodic</code></li></ul> Note that for all of these options, zonal modes are treated as periodic.</td>
+</tr>
+<tr>
+<td><code>zed_equal_arc</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Arc length is used as the parallel coordinate, so that  \( \boldsymbol{\hat{b} \cdot \nabla} \theta \) is constant.</td>
+</tr>
+<tr>
+<td><code>shat_zero</code></td>
+<td>real</td>
+<td>\(10^{-5}\)</td>
+<td>The minimum value of magnetic shear (\(\hat{s}\)) needed to employ the linked boundary condition. Otherwise, periodic boundary conditions are used</td>
+</tr>
+<tr>
+<td><code>grad_x_grad_y_zero</code></td>
+<td>real</td>
+<td>\(10^{-5}\)</td>
+<td>minimum \(\nabla x \cdot \nabla y \) value at the end of the flux-tube which we assume periodic boundary conditions instead of the stellarator symmetric ones when using stellarator boundary condition</td>
+</tr>
+<tr>
+<td><code>dkx_over_dky</code></td>
+<td>real</td>
+<td>-1</td>
+<td>Set the desired ratio of \(\Delta k_x/\Delta k_y\) for \(j_\mathrm{twist}\) when using the stellarator boundary condition.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-vpamu_grid_parameters">namelist <code>vpamu_grid_parameters</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>nvgrid</code></td>
+<td>integer</td>
+<td>24</td>
+<td>Number of positive points in \( v_\parallel \). Actual grid will be twice as large. Note that \( v_\parallel = 0\) is not included.</td>
+</tr>
+<tr>
+<td><code>nmu</code></td>
+<td>integer</td>
+<td>12</td>
+<td>Number of points in the magnetic moment \( \mu \).</td>
+</tr>
+<tr>
+<td><code>vpa_max</code></td>
+<td>real</td>
+<td>3.0</td>
+<td>Maximum \( v_\parallel \) on the grid in terms of thermal velocity.</td>
+</tr>
+<tr>
+<td><code>vperp_max</code></td>
+<td>real</td>
+<td>3.0</td>
+<td>Maximum \( v_\perp \) on the grid in terms of thermal velocity.</td>
+</tr>
+<tr>
+<td><code>equally_spaced_mu_grid</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>If false, use Gaussian quadrature points for \( \mu \) grid (recommended). Otherwise, use equally spaced grid. Both options exclude \( \mu = 0 \).</td>
+</tr>
+<tr>
+<td><code>conservative_wgts_vpa</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Use density-conserving weights for \( v_\parallel \). Used primarily by Fokker-Planck collision operator.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-kt_grids_knobs">namelist <code>kt_grids_knobs</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>grid_option</code></td>
+<td>string</td>
+<td><code>'default'</code></td>
+<td>Sets the layout of the perpendicular grid. Should be one of <ul><li><code>range</code> use a set range of wavenumbers. Suitable for linear simulation.</li> <li><code>box</code> use a physical box in coordinate space, i.e., a wavenumber grid that satisfies \(A_\boldsymbol{k} = A^\ast_{-\boldsymbol{k}} \). <em>Required</em> for nonlinear simulation.</li><li><code>default</code> same as <code>range</code></li><li><code>annulus</code> same as <code>box</code></li><li><code>nonlinear</code> same as <code>box</code></li></ul></td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-kt_grids_range_parameters">namelist <code>kt_grids_range_parameters</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>naky</code></td>
+<td>integer</td>
+<td>1</td>
+<td>Number of points along the binormal mode grid direction.</td>
+</tr>
+<tr>
+<td><code>nakx</code></td>
+<td>integer</td>
+<td>1</td>
+<td>Number of points along the radial mode grid direction.</td>
+</tr>
+<tr>
+<td><code>aky_min</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Minimum binormal wavenumber, or binormal wavenumber if <code>naky</code> is 1.</td>
+</tr>
+<tr>
+<td><code>aky_max</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Maximum binormal wavenumber if <code>naky</code> larger than 1.</td>
+</tr>
+<tr>
+<td><code>akx_min</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Minimum radial wavenumber. Unused if \( \theta_0 \) is properly specified.</td>
+</tr>
+<tr>
+<td><code>akx_max</code></td>
+<td>real</td>
+<td>-1.0</td>
+<td>Maximum radial waveumner.</td>
+</tr>
+<tr>
+<td><code>theta0_min</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Minimum \( \theta_0 = k_x / \hat{s} k_y \). Unused if \( \theta_{0,\textrm{ min}} &gt; \theta_{0,\textrm{ max}} \).</td>
+</tr>
+<tr>
+<td><code>theta0_max</code></td>
+<td>real</td>
+<td>-1.0</td>
+<td>Maximum \( \theta_0 \).</td>
+</tr>
+<tr>
+<td><code>kyspacing_option</code></td>
+<td>string</td>
+<td><code>'default'</code></td>
+<td>Sets the spacing between \(a k_y\) grid points, available options are : <ul><li><code>default</code> same as <code>linear</code></li><li><code>linear</code> linear spacing in \(a k_y\)</li><li><code>exponential</code> linear spacing in \(\log{(a k_y)}\)</ul></td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-kt_grids_box_parameters">namelist <code>kt_grids_box_parameters</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>nx</code></td>
+<td>integer</td>
+<td>1</td>
+<td>Real space radial resolution.  Resolved number of modes is 2/3 after dealiasing. <strong>Note: checkerboard mode is always excluded.</strong></td>
+</tr>
+<tr>
+<td><code>ny</code></td>
+<td>integer</td>
+<td>1</td>
+<td>Real space binormal resolution.  Resolved number of modes is 2/3 after dealiasing. <strong>Note: checkerboard mode is always excluded.</strong></td>
+</tr>
+<tr>
+<td><code>jtwist</code></td>
+<td>integer</td>
+<td>\( \mathrm{round}(2 \pi \hat{s}) \)</td>
+<td>Number of independent ballooning modes at \( k_{y0} \).</td>
+</tr>
+<tr>
+<td><code>jtwist_fac</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>Sets <code>jtwist</code> to <code>jtwist_fac</code> times the default value if <code>jtwist</code> is not specified.</td>
+</tr>
+<tr>
+<td><code>phase_shift_angle</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Binormal phase shift when crossing the parallel boundary. For use with purely periodic boundary conditions, and should have no <em>statistical</em> effect for local simulations employing twist-and-shift boundaries. Overwritten for radially global simulations.</td>
+</tr>
+<tr>
+<td><code>randomize_phase_shift</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Randomize the binormal phase shift. Unused for radially global simulation.</td>
+</tr>
+<tr>
+<td><code>x0</code></td>
+<td>real</td>
+<td><code>y0</code></td>
+<td>Radial extent of the simulation domain. Ignored when using twist-and-shift (linked) boundary conditions.</td>
+</tr>
+<tr>
+<td><code>y0</code></td>
+<td>real</td>
+<td>-1.0</td>
+<td>Binormal extent of the simulation domain. Overwritten if full-flux-surface is used; <strong>otherwise, must be set.</strong></td>
+</tr>
+<tr>
+<td><code>nalpha</code></td>
+<td>real</td>
+<td>1</td>
+<td>Number of global \( \alpha \) grid points. For full-flux-surface simulations.</td>
+</tr>
+<tr>
+<td><code>centered_in_rho</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Ensure domain radially centered around \( r_0 \). For use with radially global simulations.</td>
+</tr>
+<tr>
+<td><code>periodic_variation</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Utilize periodic triangle wave radial variation. For use with radially global simulation.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-layouts_knobs">namelist <code>layouts_knobs</code></h1>
+<p>These options control the ordering of the coordinate and velocity variables when the domain is decomposed. <strong>At the moment, there is no reason to use anything other than the default options.</strong></p>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>xyzs_layout</code></td>
+<td>string</td>
+<td><code>"yxzs"</code></td>
+<td>Order of the coordinate variables when decomposed for multicore simulations.</td>
+</tr>
+<tr>
+<td><code>vms_layout</code></td>
+<td>string</td>
+<td><code>"vms"</code></td>
+<td>Order of the velocity variables when decomposed for multicore simulations.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-physics_flags">namelist <code>physics_flags</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>full_flux_surface</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Enables full-flux-surface simulation. Should use finite \( \rho_\ast \).</td>
+</tr>
+<tr>
+<td><code>radial_variation</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Enables radially global simulation. Should use finite \( \rho_\ast \).</td>
+</tr>
+<tr>
+<td><code>include_parallel_nonlinearity</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Include the parallel nonlinearity. Should use finite \( \rho_\ast \).</td>
+</tr>
+<tr>
+<td><code>include_parallel_streaming</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Include parallel streaming.</td>
+</tr>
+<tr>
+<td><code>include_mirror</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Include the mirror term.</td>
+</tr>
+<tr>
+<td><code>nonlinear</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Include the \( \boldsymbol{E \times B} \) nonlinear term. <strong>Requires <code>box</code> grid.</strong></td>
+</tr>
+<tr>
+<td><code>adiabatic_option</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Controls how the adiabatic species is treated in quasineutrality. Should be one of <ul><li><code>no-field-line-average-term</code> ion adiabatic species, i.e., \( \delta n_\mathrm{i}/ n = (Z e/T_\mathrm{i}) \varphi \). </li> <li> <code>field-line-average-term</code> electron adiabatic species, i.e., \( \delta n_\mathrm{e}/ n = (e/T_\mathrm{e}) (\varphi - \langle \varphi \rangle_\psi) \).</li><li><code>default</code> same as <code>no-field-line-average-term</code></li><li><code>iphi00=0</code> same as <code>no-field-line-average-term</code></li><li><code>iphi00=1</code> same as <code>no-field-line-average-term</code></li><li><code>iphi00=2</code> same as <code>field-line-average-term</code></li></ul></td>
+</tr>
+<tr>
+<td><code>const_alpha_geo</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>include_pressure_variation</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Include kinetic profile variation when running radially global simulations. <strong>Setting this to <code>false</code> does <em>not</em> currently turn everything off.</strong></td>
+</tr>
+<tr>
+<td><code>include_geometric_variation</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Include magnetic geomety profile variation when running radially global simulations. <strong>Setting this to <code>false</code> does <em>not</em> currently turn everything off.</strong></td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-parameters">namelist <code>parameters</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>beta</code></td>
+<td>float</td>
+<td>0.0</td>
+<td>Plasma \( \beta \). Currently has no effect.</td>
+</tr>
+<tr>
+<td><code>zeff</code></td>
+<td>float</td>
+<td>1.0</td>
+<td>Effective charge number for use with <em>effective</em> electron-ion and electron-impurity collisions in the Fokker-Planck collision operator (see <code>ecoll_zeff</code>).</td>
+</tr>
+<tr>
+<td><code>tite</code></td>
+<td>float</td>
+<td>1.0</td>
+<td>Ratio of ion to electron temperature, \( T_\mathrm{i}/T_\mathrm{e} \). Used in quasineutrality when adiabatic species is used.</td>
+</tr>
+<tr>
+<td><code>nine</code></td>
+<td>float</td>
+<td>1.0</td>
+<td>Ratio of ion to electron density, \( n_\mathrm{i}/n_\mathrm{e} \). Used in quasineutrality when adiabatic species is used.</td>
+</tr>
+<tr>
+<td><code>rhostar</code></td>
+<td>real</td>
+<td>-1.0</td>
+<td>The gyrokinetic expansion parameter \( \rho_\mathrm{th,ref}/a_\mathrm{ref} \). For effects beyond the flux-tube limit (full-flux-surface, radially global, neoclassical terms, etc...). Overwritten if <code>irhostar</code> is positive.</td>
+</tr>
+<tr>
+<td><code>irhostar</code></td>
+<td>real</td>
+<td>-1.0</td>
+<td>Sets <code>rhostar = 1.0 / irhostar</code> if positive.</td>
+</tr>
+<tr>
+<td><code>vnew_ref</code></td>
+<td>real</td>
+<td>-1.0</td>
+<td>Reference collision frequency. Various input options will overwrite this if it is negative.</td>
+</tr>
+<tr>
+<td><code>g_exb</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>Equilibrium \( \boldsymbol{E \times B} \) shear rate. More specifically, \( \gamma_\boldsymbol{ E \times B} = (r/q) (\textrm{d}\omega / \textrm{d}r) R_0/\sqrt{2}v_\mathrm{th,ref}\). Uses the Hammett wavenumber shift method, with nonlinear corrections proposed by McMillan.</td>
+</tr>
+<tr>
+<td><code>g_exbfac</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>Prefactor for perpendicular component of equilibrium \( \boldsymbol{E \times B} \) flow shear. Setting to 0.0 turns this component off.</td>
+</tr>
+<tr>
+<td><code>omprimfac</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>Prefactor for parallel component of equilibrium \( \boldsymbol{E \times B} \) flow shear. Setting to 0.0 turns this component off.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-knobs">namelist <code>knobs</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fphi</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>Prefactor for electrostatic potential \( \varphi \) wherever it appears.</td>
+</tr>
+<tr>
+<td><code>fapar</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>Prefactor for fluctuating vector potential \( A_\parallel \) wherever it appears. <em>Currently has no effect</em>.</td>
+</tr>
+<tr>
+<td><code>fbpar</code></td>
+<td>real</td>
+<td>-1.0</td>
+<td>Prefactor for fluctuating parallel magnetic field \( B_\parallel \) wherever it appears. <em>Currently has no effect</em>.</td>
+</tr>
+<tr>
+<td><code>delt</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Initial simulation timestep. CFL constraints may change this throughout the simulation.</td>
+</tr>
+<tr>
+<td><code>nstep</code></td>
+<td>integer</td>
+<td>-1</td>
+<td>Number of simulation timesteps.</td>
+</tr>
+<tr>
+<td><code>tend</code></td>
+<td>real</td>
+<td>-1.0</td>
+<td>End-time of the simulation. If not set, then not used.</td>
+</tr>
+<tr>
+<td><code>delt_option</code></td>
+<td>string</td>
+<td>'<code>check_restart</code>'</td>
+<td>How to handle setting the timestep on restart. Should be one of <ul><li><code>check_restart</code> automatically checks the restart file for last saved time step.</li><li><code>set_by_hand</code> use <code>delt</code> from input file.</li><li><code>default</code> same as <code>check_restart</code>.</li></ul></td>
+</tr>
+<tr>
+<td><code>lu_option</code></td>
+<td>string</td>
+<td><code>default</code></td>
+<td>Parallelization of the LU decomposition. Should be one of <ul><li><code>none</code> no parallelization.</li><li><code>none</code> same as <code>default</code></li><li><code>local</code> Parallelized locally on a core using shared memory. Best case speed-up is \(j_\mathrm{twist}\times (\textrm{cores per node}). \).</li><li><code>global</code> parallelized over all cores. Currently only works on experimental branch <code>development/pLU_scalapack</code> which uses ScaLAPACK. </li></ul>If compiled with <code>HAS_ISO_C_BINDING</code>, then it is <strong><em>strongly</em></strong> recommended to run with <code>lu_option='local'</code>.</td>
+</tr>
+<tr>
+<td><code>avail_cpu_time</code></td>
+<td>real</td>
+<td>\( 10^{10} \)</td>
+<td>Available CPU time <strong>in seconds</strong>. Useful for cleanly ending a run before allocated time runs out.</td>
+</tr>
+<tr>
+<td><code>cfl_cushion_upper</code></td>
+<td>real</td>
+<td>0.5</td>
+<td>Safety margin for the CFL condition.</td>
+</tr>
+<tr>
+<td><code>cfl_cushion_middle</code></td>
+<td>real</td>
+<td>0.25</td>
+<td>Safety margin used for setting a new <em>smaller</em> timestep when the timestep exceeds cfl_cushion_upper * CLF_dt, or for setting a new "larger" timestep when the timesetps is smaller than cfl_cushion_lower * CFL_dt.</td>
+</tr>
+<tr>
+<td><code>cfl_cushion_lower</code></td>
+<td>real</td>
+<td>0.00001</td>
+<td>Lowest time-step based on CFL condition.</td>
+</tr>
+<tr>
+<td><code>delt_max</code></td>
+<td>real</td>
+<td>-1</td>
+<td>If positive, then set the maximum timestep to <code>delt_max</code>; otherwise, the maximum time step will be the initial one.</td>
+</tr>
+<tr>
+<td><code>stream_implicit</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Calculate parallel streaming implicitly using the response matrix approach.</td>
+</tr>
+<tr>
+<td><code>mirror_implicit</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Calculate the mirror term implicitly.</td>
+</tr>
+<tr>
+<td><code>driftkinetic_implicit</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>When calculating parallel streaming, only include the non-gyroaveraged electrostatic potential \( \varphi \) in the implicit calculation, and calculate the portion resulting from \( \varphi - \langle \varphi \rangle_\boldsymbol{R} \) explicitly.</td>
+</tr>
+<tr>
+<td><code>drifts_implicit</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Calculate the magnetic and \( \omega_\ast \) drifts implicitly as an extra term to the operator splitting.</td>
+</tr>
+<tr>
+<td><code>stream_matrix_inversion</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Use a different tri-diagional solver for parallel streaming.</td>
+</tr>
+<tr>
+<td><code>maxwellian_inside_zed_derivative</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td><em>Experimental</em> - Evaluate the parallel streaming term with the Maxwellian background inside the parallel derivative, and also include the extra term proportional to \( \partial_z B\) that results from the product rule.</td>
+</tr>
+<tr>
+<td><code>mirror_semi_lagrange</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Use semi-Lagrange solve for mirror term. Otherwise, use tri-diagonal matrix solve.</td>
+</tr>
+<tr>
+<td><code>mirror_linear_interp</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Use linear, rather than fourth-order, interpolation when using semi-Lagrange approach for mirror term.</td>
+</tr>
+<tr>
+<td><code>zed_upwind</code></td>
+<td>real</td>
+<td>0.02</td>
+<td>Amount of spatial upwinding in \( z \) when implicit solve is used. Recommended values: 0.02–0.05.</td>
+</tr>
+<tr>
+<td><code>vpa_upwind</code></td>
+<td>real</td>
+<td>0.02</td>
+<td>Amount of upwinding in \( v_\parallel \) when implicit mirror term is used with the matrix solve. Recommended values: 0.02–0.05. <em>No effect when semi-Lagrange is used.</em></td>
+</tr>
+<tr>
+<td><code>time_upwind</code></td>
+<td>real</td>
+<td>0.02</td>
+<td>Amount of temporal in \( t \) when implicit solve is used. Recommended values: 0.02–0.05.</td>
+</tr>
+<tr>
+<td><code>fields_kxkyz</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Calculate electromagnetic fields with a local velocity grid. <strong>Requires MPI all-to-all redistrution, and so <em>not</em> recommended.</strong></td>
+</tr>
+<tr>
+<td><code>mat_gen</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Write out response matrices. <strong><code>lu_option='local'</code> makes this obsolete in most cases</strong>.</td>
+</tr>
+<tr>
+<td><code>mat_read</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Read in response matrices. <strong><code>lu_option='local'</code> makes this obsolete in most cases</strong>.</td>
+</tr>
+<tr>
+<td><code>rng_seed</code></td>
+<td>integer</td>
+<td>-1</td>
+<td>Seeds the random number generator used for the <code>noise</code> initial condition. If negative, then a seed is generated from the current time.</td>
+</tr>
+<tr>
+<td><code>ky_solve_radial</code></td>
+<td>integer</td>
+<td>0</td>
+<td>How many \( k_y \) modes, starting from the zonal mode, for which quasineutrality is to be calculated exactly, rather than perturbatively, for radially global simulation. <strong>It is recommended to calculate quasineutrality for <em>all</em> modes exactly, so set this to naky when running radially global.</strong></td>
+</tr>
+<tr>
+<td><code>ky_solve_real</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td><em>Experimental</em> - solve quasineutrality in <em>real space excluding the boundary region</em> when performing a radially global simulation.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-init_g_knobs">namelist <code>init_g_knobs</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ginit_option</code></td>
+<td>string</td>
+<td><code>'default'</code></td>
+<td>Distribution function initialization option. Should be one of <ul><li><code>default</code> Gaussian pulse along the zed dimension for every wavenumber. Suitable for linear simulation. </li><li><code>noise</code> white noise for every wavenumber. Suitable for nonlinear simulation. </li><li><code>many</code> Read from (multiple) restart netcdf files. </li><li><code>nltest</code> Not implemented. </li><li><code>kxtest</code> Not implemented. </li><li><code>kpar</code> Distribution function with particular moments and parallel shapes set by options below. </li><li><code>rh</code> Rosenbluth-Hinton initialization of \( k_y = 0\) zonal mode. Useful for testing linear parallel streaming and magnetic drift physics. </li><li><code>remap</code>  Initalizates one or two single eigenmodes with finite amplitude. Used for testing wavenumber remapping implementation of equilibrium \( \boldsymbol{E \times B} \) flow shear and, in particular, its nonlinear corrections. </li></ul></td>
+</tr>
+<tr>
+<td><code>width0</code></td>
+<td>real</td>
+<td>-3.5</td>
+<td>If using <code>ginit_option='default'</code>, sets the width of the Gaussian pulse.</td>
+</tr>
+<tr>
+<td><code>phiinit</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>Rough size of the resulting root-mean-square electrostatic potential \( \varphi \)from initialization. Actual size will vary depending on species options, <code>ginit_option</code>, etc... See also <code>scale_to_phiinit</code>.</td>
+</tr>
+<tr>
+<td><code>scale_to_phiinit</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>If true, then upon initialization (not restart!) rescale the distribution function so that the root-mean-squared electrostatic potential \( \varphi \) is <em>precisely</em> <code>phiinit</code>, regardless of any other option.</td>
+</tr>
+<tr>
+<td><code>restart_file</code></td>
+<td>string</td>
+<td><code>RUN_NAME.nc</code></td>
+<td>Name of the restart file. Note that  <code>RUN_NAME</code> derives from <code>RUN_NAME.input</code>, the input file used to run stella.</td>
+</tr>
+<tr>
+<td><code>restart_dir</code></td>
+<td>string</td>
+<td><code>./</code></td>
+<td>Restart directory. <em>Tip to users:</em> using <code>./nc/</code> is often very convenient.</td>
+</tr>
+<tr>
+<td><code>read_many</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>If false, then use MPI_IO to write to one restart file. Otherwise, every core writes to a separate restart file (<em>recommended</em>).</td>
+</tr>
+<tr>
+<td><code>chop_side</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Zero out the distribution function on one side of the \(z\) grid. See <code>left</code>.</td>
+</tr>
+<tr>
+<td><code>left</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>If <code>chop_side</code> is true, then zero out the distribution on the left size (\( z &lt; 0\)) of the zed domain. Otherwise, chop it on the right side (\( z &gt; 0 \)).</td>
+</tr>
+<tr>
+<td><code>scale</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>Rescale the distribution function by <code>scale</code> upon restart.</td>
+</tr>
+<tr>
+<td><code>tstart</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Start time of the simulation. Overwritten when restarting.</td>
+</tr>
+<tr>
+<td><code>zf_init</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>Prefactor for the \( k_y = 0 \) zonal modes. Setting to 0.0 zeros them out upon initialization.</td>
+</tr>
+<tr>
+<td><code>den0</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>Constant density perturbation component when using <code>ginit_option='kpar'</code>.</td>
+</tr>
+<tr>
+<td><code>upar0</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Constant parallel velocity perturbation component when using <code>ginit_option='kpar'</code>.</td>
+</tr>
+<tr>
+<td><code>tpar0</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Constant parallel temperature perturbation component when using <code>ginit_option='kpar'</code>.</td>
+</tr>
+<tr>
+<td><code>tperp0</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Constant perpendicular temperature perturbation component when using <code>ginit_option='kpar'</code>.</td>
+</tr>
+<tr>
+<td><code>den1</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>\( \cos(\theta) \) density perturbation component when using <code>ginit_option='kpar'</code>.</td>
+</tr>
+<tr>
+<td><code>upar1</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>\( \cos(\theta) \) parallel velocity perturbation component when using <code>ginit_option='kpar'</code>.</td>
+</tr>
+<tr>
+<td><code>tpar1</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>\( \cos(\theta) \) parallel temperature perturbation component when using <code>ginit_option='kpar'</code>.</td>
+</tr>
+<tr>
+<td><code>tperp1</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>\( \cos(\theta) \) perpendicular component perturbation component when using <code>ginit_option='kpar'</code>.</td>
+</tr>
+<tr>
+<td><code>den2</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>\( \cos(2\theta) \) density perturbation component when using <code>ginit_option='kpar'</code>.</td>
+</tr>
+<tr>
+<td><code>upar2</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>\( \cos(2\theta) \) parallel velocity perturbation component when using <code>ginit_option='kpar'</code>.</td>
+</tr>
+<tr>
+<td><code>tpar2</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>\( \cos(2\theta) \) parallel temperature perturbation component when using <code>ginit_option='kpar'</code>.</td>
+</tr>
+<tr>
+<td><code>tperp2</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>\( \cos(2\theta) \) perpendicular temperature perturbation component when using <code>ginit_option='kpar'</code>.</td>
+</tr>
+<tr>
+<td><code>refac</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>Controls the real part of the distribution function when using <code>ginit_option='kpar'</code>.</td>
+</tr>
+<tr>
+<td><code>imfac</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Controls the imaginary part of the distribution function when using <code>ginit_option='kpar'</code>.</td>
+</tr>
+<tr>
+<td><code>kxmax</code></td>
+<td>real</td>
+<td>\( 10^{100} \)</td>
+<td>The maximum radial wavenumber up to which modes are initialized when using <code>ginit_option='rh'</code>.</td>
+</tr>
+<tr>
+<td><code>kxmin</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>The maximum minimum wavenumber up fro, which modes are initialized when using <code>ginit_option='rh'</code>.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-species_knobs">namelist <code>species_knobs</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>nspec</code></td>
+<td>integer</td>
+<td>2</td>
+<td>Number of species.</td>
+</tr>
+<tr>
+<td><code>species_option</code></td>
+<td>string</td>
+<td><code>'stella'</code></td>
+<td>How to read in species data. Should be one of <ul><li><code>stella</code> Read from stella input file.</li><li>  <code>euterpe</code> Read form euterpe file. </li><li> <code>input.profiles</code> Reads in General Atomics <code>input.gacode</code> file. <strong>This may need to be updated for newer <code>gacode</code> files.</strong></li><li><code>default</code> same as <code>stella</code></li></ul></td>
+</tr>
+<tr>
+<td><code>read_profile_variation</code></td>
+<td>boolean</td>
+<td>false</td>
+<td>Save information necessary for recalculating kinetic profile quantities away from \( r \). Used for performing local simulations at different radial locations in order to compare to global simulation.</td>
+</tr>
+<tr>
+<td><code>write_profile_variation</code></td>
+<td>boolean</td>
+<td>false</td>
+<td>Recomputes the kinetic profile information using kinetic profile quantities stored in a file, originally calculated at some \( r_\mathrm{file} \), at new \( r \).</td>
+</tr>
+<tr>
+<td><code>ecoll_zeff</code></td>
+<td>boolean</td>
+<td>false</td>
+<td>If true, use an effective intra-species electron-ion collision rate using <code>zeff</code>.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-species_parameters">namelist <code>species_parameters</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>z</code></td>
+<td>integer</td>
+<td>1</td>
+<td>charge number.</td>
+</tr>
+<tr>
+<td><code>mass</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>particle mass, normalized to \( m_\mathrm{ref} \).</td>
+</tr>
+<tr>
+<td><code>dens</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>species density, normalized to \( n_\mathrm{ref} \).</td>
+</tr>
+<tr>
+<td><code>temp</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>species temperature, normalized to \( T_\mathrm{ref} \).</td>
+</tr>
+<tr>
+<td><code>fprim</code></td>
+<td>real</td>
+<td>-999.9</td>
+<td>Density gradient scale length \(a_\mathrm{ref}L_{n_s}^{-1} = - a_\mathrm{ref} \textrm{d} \ln n_s/ \textrm{d}r \)). Note the negative sign.</td>
+</tr>
+<tr>
+<td><code>tprim</code></td>
+<td>real</td>
+<td>-999.9</td>
+<td>Temperature gradient scale length \(a_\mathrm{ref}L_{T_s}^{-1} = - a_\mathrm{ref} \textrm{d} \ln T_s/ \textrm{d}r \)). Note the negative sign.</td>
+</tr>
+<tr>
+<td><code>d2ndr2</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Second derivative of density, normalized to \( a_\mathrm{ref}^2/n_\mathrm{ref}\). For use with radially global simulation.</td>
+</tr>
+<tr>
+<td><code>d2Tdr2</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Second derivative of temperature, normalized to \( a_\mathrm{ref}^2/T_\mathrm{ref}\). For use with radially global simulation.</td>
+</tr>
+<tr>
+<td><code>bess_fac</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>Perfactor for Bessel function argument. Setting to 0.0 renders particle drift-kinetic.</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>string</td>
+<td><code>'default'</code></td>
+<td>Particle type. Should be one of <ul><li><code>ion</code> ion species.</li><li><code>default</code> same as <code>ion</code>. </li><li>  <code>electron</code> electron species. </li><li> <code>e</code> same as <code>electron</code> </li><li><code>beam</code> slowing down species. </li><li><code>fast</code> same as <code>beam</code>. </li><li><code>alpha</code> same as <code>beam</code>. </li><li><code>slowing-down</code> same as <code>beam</code>. </li><li><code>trace</code> tracer species. </li></ul></td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-time_advance_knobs">namelist <code>time_advance_knobs</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>xdriftknob</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>Prefactor for radial magnetic drift. Setting to 0.0 turns the term off.</td>
+</tr>
+<tr>
+<td><code>ydriftknob</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>Prefactor for the binormal magnetic drift. Setting to 0.0 turns the term off.</td>
+</tr>
+<tr>
+<td><code>wstarknob</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>Prefactor for the \( \omega_\ast \) term. Setting to 0.0 turns the term off.</td>
+</tr>
+<tr>
+<td><code>explicit_option</code></td>
+<td>string</td>
+<td><code>'default'</code></td>
+<td>Chooses the Runge-Kutta scheme for the explicit integration. Should be one of <ul><li><code>rk2</code> second-order Runge-Kutta. </li> <li><code>rk3</code> third-order strong-stability-preserving Runge-Kutta (recommended). </li><li><code>rk4</code> fourth-order Runge-Kutta. </li><li><code>default</code> same as <code>rk3</code>. </li></ul> Note that higher-order Runge-Kutta schemes can increase memory usage.</td>
+</tr>
+<tr>
+<td><code>flip_flop</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Utilize the flip-flopping approach that flips the integration order every time-step. Should increase time accuracy, at least linearly. Does sometimes lead to spurious oscillations.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-stella_diagnostics_knobs">namelist <code>stella_diagnostics_knobs</code></h1>
+<p>These options control which diagnostics are output by stella. <strong>NOTE: stella safely appends to both ASCII and netCDF files upon restart, so there is no need to copy files and move them around.</strong> Also note that radial fluxes are always written to an ASCII file named <code>RUN_NAME.fluxes</code>.</p>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>nwrite</code></td>
+<td>integer</td>
+<td>50</td>
+<td>Output cadence (i.e. number of iterations) between output diagnostics.</td>
+</tr>
+<tr>
+<td><code>navg</code></td>
+<td>integer</td>
+<td>50</td>
+<td>Number of timesteps over which to average the real and imaginary mode frequencies.</td>
+</tr>
+<tr>
+<td><code>nsave</code></td>
+<td>integer</td>
+<td>-1</td>
+<td>Output cadence of restart dumps. If negative, no restart dumps are written.</td>
+</tr>
+<tr>
+<td><code>save_for_restart</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Write restart dumps. If <code>true</code>, then <code>nsave</code> should also be positive.</td>
+</tr>
+<tr>
+<td><code>write_phi_vs_time</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Write the full electrostatic potential \( \varphi \) to the output netCDF file.</td>
+</tr>
+<tr>
+<td><code>write_gvmus</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Writes \(\sum_\boldsymbol{k}L_z^{-1}\int \textrm{d}z \lvert g_\boldsymbol{k} \rvert^2 \) to the netCDF file. Resulting quantity varies over \(v_\parallel\), \( \mu_s \) and the species index \( s\).</td>
+</tr>
+<tr>
+<td><code>write_gzvs</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Writes \(\sum_\boldsymbol{k}L_z^{-1}\int \textrm{d} \mu_s \lvert g_\boldsymbol{k} \rvert^2 \) to the netCDF file. Resulting quantity varies over \(v_\parallel\), \( z \) and the species index \( s\).</td>
+</tr>
+<tr>
+<td><code>write_omega</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Write the real and imaginary mode frequencies to both ASCII formats (<code>RUN_NAME.omega</code>) and the netCDF file.</td>
+</tr>
+<tr>
+<td><code>write_kspectra</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Writes \(\langle \lvert \varphi(k_x, k_y, z)\rvert^2 \rangle_\psi \) to the netCDF file.</td>
+</tr>
+<tr>
+<td><code>write_moments</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Write the moments of the distribution function (density, parallel velocity and temperature for each species) to the netCDF file.</td>
+</tr>
+<tr>
+<td><code>write_radial_fluxes</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Write the flux-surface-averaged radial fluxes to the netCDF file.</td>
+</tr>
+<tr>
+<td><code>write_radial_moments</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Write the flux-surface-averaged fluctuation moments to the netCDF file.</td>
+</tr>
+<tr>
+<td><code>write_fluxes_kxkyz</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Write the mode-by-mode radial fluxes as a function of \( z \) to the netCDF file.</td>
+</tr>
+<tr>
+<td><code>flux_norm</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>If true, then scale radial fluxes by \( \langle\lvert \nabla r\rvert \rangle_\psi \), otherwise perform no rescaling.</td>
+</tr>
+<tr>
+<td><code>nc_mult</code></td>
+<td>integer</td>
+<td>1</td>
+<td>Multiplication factor of the output cadence for netCDF files, which tend to take up more storage space than the ASCII output files.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-multibox_parameters">namelist <code>multibox_parameters</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>boundary_size</code></td>
+<td>integer</td>
+<td>4</td>
+<td>Number of collocation points in the boundary region.</td>
+</tr>
+<tr>
+<td><code>krook_size</code></td>
+<td>integer</td>
+<td>0</td>
+<td>Number of collocation points in the Krook region. Will automatically max out at <code>boundary_size</code>.</td>
+</tr>
+<tr>
+<td><code>zf_option</code></td>
+<td>string</td>
+<td><code>'default'</code></td>
+<td><em>Experimental</em> - Set how the zonal mode is handled during the communication of the multiple-flux-tube boundary condition. Should be one of <ul><li><code>default</code> Do not treat the \( k_y = 0\) mode specially. </li><li><code>skip_ky0</code> Do not communicate <em>any</em> information for the  \( k_y = 0\) mode, i.e., let it evolve without any input from auxilliary simulations. </li><li><code>zero_ky0</code>Zero the \( k_y = 0\) mode in the boundary region.</li><li><code>zero_fsa</code> Zero only the flux-surface-averaged component of the \(k_y = 0\) mode (keeping \( v_{\parallel} \) and \( \mu_s \) constant) in the boundary region. Note that this is <strong><em>not</em></strong> equivalent to zeroing the transit/bounce-averaged component, which would be the physically correct approach.</li></ul></td>
+</tr>
+<tr>
+<td><code>krook_option</code></td>
+<td>string</td>
+<td><code>'exp'</code></td>
+<td>Shape of the Krook operator in the Krook region. Should be one of <ul><li><code>flat</code> constant shape </li><li><code>linear</code> linearly decreasing towards physical region </li><li><code>exp</code> decreasing exponentially fast to the physical region, <em>recommended</em></li><li><code>exp_rev</code> decreasing exponentially slowly to the physical region.</li><li><code>default</code> same as <code>exp</code></li></ul></td>
+</tr>
+<tr>
+<td><code>RK_step</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Communicate the multiple-flux-tube boundary condition at every implicit and Runge-Kutta substep, rather than one per timestep.</td>
+</tr>
+<tr>
+<td><code>nu_krook_mb</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Strength (i.e. damping rate) of the Krook operator in the boundary region.</td>
+</tr>
+<tr>
+<td><code>mb_debug_step</code></td>
+<td>integer</td>
+<td>-1</td>
+<td>If positive, print out gnuplot-readable binary dump of the real-space electrostatic potential \( \varphi )) at the outboard midplane at every <code>mb_debug_step</code> steps.</td>
+</tr>
+<tr>
+<td><code>krook_exponent</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>Add a \((k_y/k_{y0})^{\texttt{krook_exponent}}\) prefactor to the multibox Krook operator.</td>
+</tr>
+<tr>
+<td><code>comm_at_init</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Communicate the boundary condition at the beginning of the simulation before time_advance is initialized.</td>
+</tr>
+<tr>
+<td><code>phi_bound</code></td>
+<td>integer</td>
+<td>0</td>
+<td>How many points into the boundary region on which to solve for the electrostatic potential \( \varphi \) when <code>ky_solve_real</code> is true.</td>
+</tr>
+<tr>
+<td><code>phi_pow</code></td>
+<td>real</td>
+<td>0.0</td>
+<td><em>Experimental</em> - Which derivative of the electrostatic potential \( \varphi \) to solve for when <code>ky_solve_real</code> is true.</td>
+</tr>
+<tr>
+<td><code>krook_efold</code></td>
+<td>real</td>
+<td>3.0</td>
+<td>How many e-folds to use when <code>krook_option</code> is <code>exp</code> or <code>exp_rev</code>.</td>
+</tr>
+<tr>
+<td><code>use_dirichlet_BC</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Apply the Dirichlet boundary condition when performing a <em>single</em> flux-tube simulation, i.e., utilize the machinery in the multibox module, but use zeros in the communication instead of data generated from additional local simulations.</td>
+</tr>
+<tr>
+<td><code>LR_debug_option</code></td>
+<td>string</td>
+<td><code>'default'</code></td>
+<td>Left/Right debug option. Should be one of <ul><li><code>default</code> Do not use this debug option.</li><li><code>L</code> set \( x \) uniformly to \( x_\mathrm{L} \), the leftmost point in the physical region.</li><li><code>R</code> set \( x \) uniformly to \( x_\mathrm{R} \), the rightmost point in the physical region.</li></ul> Useful for comparing the center domain to left/right domains in radially global simulation.</td>
+</tr>
+<tr>
+<td><code>smooth_ZFs</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td><em>Experimental</em> - Try smoothing the zonal flows across the interface between boundary and physical region. <em>Never really worked properly.</em></td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-sources">namelist <code>sources</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>source_option</code></td>
+<td>string</td>
+<td><code>'none'</code></td>
+<td>Type of source used for radially global simulation. Should be one of <ul><li> <code>none</code> no source used. </li><li><code>default</code> same as <code>none</code>.</li><li><code>Krook</code> Krook operator based source.</li><li><code>projection</code> Projection operator based source.</li></ul></td>
+</tr>
+<tr>
+<td><code>conserve_momentum</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Enforce momentum conservation in the source.</td>
+</tr>
+<tr>
+<td><code>conserve_density</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Enforce density conservation in the source.</td>
+</tr>
+<tr>
+<td><code>tcorr_source</code></td>
+<td>real</td>
+<td>0.02</td>
+<td>Time correlation of the source. <em>Should be a longer timescale than any of interest in the problem.</em></td>
+</tr>
+<tr>
+<td><code>nu_krook</code></td>
+<td>real</td>
+<td>0.05</td>
+<td>Strength (i.e. damping rate) of the Krook source.</td>
+</tr>
+<tr>
+<td><code>ikxmax_source</code></td>
+<td>integer</td>
+<td>2 for <code>periodic_variation</code>, 1 otherwise</td>
+<td>Maximum radial wavenumber on which the source acts.</td>
+</tr>
+<tr>
+<td><code>krook_odd</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td><em>Experimental</em> - Only act on the modes that can affect the profiles.</td>
+</tr>
+<tr>
+<td><code>exclude_boundary_regions</code></td>
+<td>boolean</td>
+<td><code>radial_variation</code> and not <code>periodic_variation</code></td>
+<td>Ensure that source only acts on the physical region of the radial domain.</td>
+</tr>
+<tr>
+<td><code>tcorr_source_qn</code></td>
+<td>real</td>
+<td>0.0</td>
+<td><em>Experimental</em> - Time correlation of the source in quasineutrality.</td>
+</tr>
+<tr>
+<td><code>exclude_boundary_regions_qn</code></td>
+<td>boolean</td>
+<td><code>exclude_boundary_regions</code></td>
+<td>Exclude boundary regions when applying the source in quasineutrality.</td>
+</tr>
+<tr>
+<td><code>from_zero</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Time correlated source starts from zero, rather than value of the distribution function at \( t = 0 \).</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-dissipation">namelist <code>dissipation</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>include_collisions</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Include particle collisions.</td>
+</tr>
+<tr>
+<td><code>collisions_implicit</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Evaluate the collision operator implicitly.</td>
+</tr>
+<tr>
+<td><code>collision_model</code></td>
+<td>string</td>
+<td><code>'dougherty'</code></td>
+<td>Which collision operator to use. Options are <code>'dougherty'</code> (simplified operator) or <code>'fokker-planck'</code> (physical operator).</td>
+</tr>
+<tr>
+<td><code>hyper_dissipation</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Include hyper-dissipation. <em>Strongly</em> recommended for nonlinear simulations.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-collisions_dougherty">namelist <code>collisions_dougherty</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>momentum_conservation</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Enforce momentum conservation.</td>
+</tr>
+<tr>
+<td><code>energy_conservation</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Enforce energy conservation.</td>
+</tr>
+<tr>
+<td><code>vpa_operator</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Include \( \partial_{v_\parallel} \) components of collision operator.</td>
+</tr>
+<tr>
+<td><code>mu_operator</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Include \( \partial_\mu \) components of collision operator.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-collisions_fp">namelist <code>collisions_fp</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>testpart</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>test particle component of Fokker-Planck operator. <strong>Must be true.</strong></td>
+</tr>
+<tr>
+<td><code>fieldpart</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>enable the field particle component (FPO) of the Fokker-Planck operator.</td>
+</tr>
+<tr>
+<td><code>interspec</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>inter-species collisions in the Fokker-Planck operator.</td>
+</tr>
+<tr>
+<td><code>intraspec</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>intra-species collisions in the Fokker-Planck operator.</td>
+</tr>
+<tr>
+<td><code>lmax</code></td>
+<td>integer</td>
+<td>1</td>
+<td>maximum l in spherical harmonic expansion of the field particle operator</td>
+</tr>
+<tr>
+<td><code>jmax</code></td>
+<td>integer</td>
+<td>1</td>
+<td>maximum j in Hirshman-Sigmar expansion of the field particle operator</td>
+</tr>
+<tr>
+<td><code>iiknob</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>control the ion-ion collision frequency in Fokker-Planck operator</td>
+</tr>
+<tr>
+<td><code>ieknob</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>control the ion-electron collision frequency in Fokker-Planck operator.</td>
+</tr>
+<tr>
+<td><code>eiknob</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>control the electron-ion collision frequency in Fokker-Planck operator.</td>
+</tr>
+<tr>
+<td><code>eeknob</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>control the electron-electron collision frequency in Fokker-Planck operator.</td>
+</tr>
+<tr>
+<td><code>eiediffknob</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>control the electron-ion energy diffusion in Fokker-Planck operator.</td>
+</tr>
+<tr>
+<td><code>eideflknob</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>control the electron-ion pitch angle scattering in Fokker-Planck operator.</td>
+</tr>
+<tr>
+<td><code>deflknob</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>control pitch angle scattering in Fokker-Planck operator, must be 1 or 0.</td>
+</tr>
+<tr>
+<td><code>eimassr_approx</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>use mass ratio approxfimation for test particle operator, <em>beta</em>.</td>
+</tr>
+<tr>
+<td><code>advfield_coll</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>disable electrostatic potential terms in the field particle operator, <em>beta</em>.</td>
+</tr>
+<tr>
+<td><code>spitzer_problem</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Solve the Spitzer problem for tests of the collision operator</td>
+</tr>
+<tr>
+<td><code>density_conservation</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>if <code>True</code> and <code>equally_spaced_mu_grid=True</code> and <code>conservative_wgts_vpa=True</code>, then test-particle operator conserves density to machine precision.</td>
+</tr>
+<tr>
+<td><code>density_conservation_field</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>if <code>True</code> and <code>jmax</code>, <code>lmax &lt; 2</code>, then field-particle operator conserves density to machine precision.</td>
+</tr>
+<tr>
+<td><code>density_conservation_tp</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>if True add term to field particle operator to ensure density conservation, also on non-uniform grids.</td>
+</tr>
+<tr>
+<td><code>exact_conservation</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>if True and <code>fieldpart=True</code> and <code>lmax=jmax=1</code> then momentum and energy conserved to machine precision - <em>in beta</em>. Works only if <code>nux = 0</code>, need to correct the discretisation of nux terms in test-particle operator.</td>
+</tr>
+<tr>
+<td><code>exact_conservation_tp</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>if True and <code>lmax=jmax=1</code> then momentum and energy conserved to machine precision, by using the test particle operator  to compute field particle terms; this is slower than exact_conservation.</td>
+</tr>
+<tr>
+<td><code>vpa_operator</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Include \( \partial_{v_\parallel} \) components of collision operator.</td>
+</tr>
+<tr>
+<td><code>mu_operator</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Include \( \partial_\mu \) components of collision operator.</td>
+</tr>
+<tr>
+<td><code>cfac</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>scale gyrodiffusive term in test particle component of Fokker-Planck operator.</td>
+</tr>
+<tr>
+<td><code>cfac2</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>scale gyrodiffusive terms in field particle component of Fokker-Planck operator - <em>in beta</em>.</td>
+</tr>
+<tr>
+<td><code>nuxfac</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>scale nux (mixed derivative) terms in test particle component of Fokker-Planck operator.</td>
+</tr>
+<tr>
+<td><code>i1fac</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>for Spitzer problem</td>
+</tr>
+<tr>
+<td><code>i2fac</code></td>
+<td>real</td>
+<td>0.0</td>
+<td>for Spitzer problem</td>
+</tr>
+<tr>
+<td><code>no_j1l1</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>disable j1l1 term in the field particle component of Fokker-Planck operator</td>
+</tr>
+<tr>
+<td><code>no_j1l2</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>disable j1l2 term</td>
+</tr>
+<tr>
+<td><code>no_j0l2</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>disable j0l2 term</td>
+</tr>
+<tr>
+<td><code>nvel_local</code></td>
+<td>integer</td>
+<td>512</td>
+<td>Size of velocity grid used for debugging. Currently, this option has no effect.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-hyper">namelist <code>hyper</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>D_hyper</code></td>
+<td>real</td>
+<td>0.05</td>
+<td>Maximal hyperdissipation damping rate.</td>
+</tr>
+<tr>
+<td><code>use_physical_ksqr</code></td>
+<td>boolean</td>
+<td><code>true</code> if global, <code>false</code> otherwise</td>
+<td>If true, use actual \( k^2_\perp = k_x^2 \lvert \nabla x \rvert^2 + 2 k_xk_y (\nabla x \cdot \nabla y) + k_y^2 \lvert\nabla y \rvert^2 \). Otherwise, use \( k_\perp^2 = k_y^2[1 + (\theta - \theta_0)^2]\).</td>
+</tr>
+<tr>
+<td><code>scale_to_outboard</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>If true, scale maximal damping rate to maximum \( k_\perp^2 \) at outboard midplane. Otherwise, scale maximal damping to maximum \( k_\perp^2 \) over the entire domain.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-neoclassical_input">namelist <code>neoclassical_input</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>include_neoclassical_terms</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Include neoclassical terms. Need to use sfincs for input.</td>
+</tr>
+<tr>
+<td><code>neo_option</code></td>
+<td>string</td>
+<td><code>'sfincs'</code></td>
+<td>Option for obtaining neoclassical distribution function and potential. Currently, only <code>'sfincs'</code> is supported.</td>
+</tr>
+<tr>
+<td><code>nradii</code></td>
+<td>integer</td>
+<td>5</td>
+<td>Number of radial points used for radial derivatives of neoclassical quantities.</td>
+</tr>
+<tr>
+<td><code>drho</code></td>
+<td>real</td>
+<td>0.01</td>
+<td>spacing in <code>rhoc</code> between points used for radial derivatives.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="namelist-sfincs_input">namelist <code>sfincs_input</code></h1>
+<table class="table table-striped">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>read_sfincs_output_from_file</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>if true, will try to read in <code>Phi1Hat</code> and <code>delta_f</code> from pre-saved file named <code>sfincs.output</code>. Otherwise, run sfincs to compute these quantities on the fly.</td>
+</tr>
+<tr>
+<td><code>nproc_sfincs</code></td>
+<td>integer</td>
+<td>1</td>
+<td>Number of processors to use for sfincs calculations.</td>
+</tr>
+<tr>
+<td><code>calculate_radial_electric_field</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>If true, then scan in radial electric field to find value for which ambipolarity is satisfied, and then use this value to obtain neoclassical fluxes, distribution function, and potential.</td>
+</tr>
+<tr>
+<td><code>includeXDotTerm</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>include radial electric field term</td>
+</tr>
+<tr>
+<td><code>includeElectricFieldTermInXiDot</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>irad_min</code></td>
+<td>integer</td>
+<td><code>-nardii / 2</code></td>
+<td>minimum radial index (<code>irad=0</code> corresponds to central radius).</td>
+</tr>
+<tr>
+<td><code>irad_max</code></td>
+<td>integer</td>
+<td><code>nradii / 2</code></td>
+<td>maximum radial index.</td>
+</tr>
+<tr>
+<td><code>magneticDriftScheme</code></td>
+<td>integer</td>
+<td>0</td>
+<td>???</td>
+</tr>
+<tr>
+<td><code>includePhi1</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>If <code>true</code>, then <code>Phi1</code> will be calculated using quasineutrality.</td>
+</tr>
+<tr>
+<td><code>includePhi1InKineticEquation</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>geometryScheme</code></td>
+<td>integer</td>
+<td>1</td>
+<td>will be overridden by direct input of geometric quantities unless <code>geometryScheme = 5</code> (VMEC equilibrium)</td>
+</tr>
+<tr>
+<td><code>VMECRadialOption</code></td>
+<td>integer</td>
+<td>0</td>
+<td><strong>only relevant if <code>geometryScheme = 5</code>.</strong> Radial option to use for VMEC equilibrium. Must be one of</td>
+</tr>
+<tr>
+<td><code>equilibriumFile</code></td>
+<td>string</td>
+<td><code>'wout_161s1.nc'</code></td>
+<td>path of VMEC equilibrium file.</td>
+</tr>
+<tr>
+<td><code>coordinateSystem</code></td>
+<td>integer</td>
+<td>3</td>
+<td>???</td>
+</tr>
+<tr>
+<td><code>inputRadialCoordinate</code></td>
+<td>integer</td>
+<td>3</td>
+<td>option 3 corresponds to using square root of toroidal flux normalized by toroidal flux enclose by the LCFS.</td>
+</tr>
+<tr>
+<td><code>inputRadialCoordinateForGradients</code></td>
+<td>integer</td>
+<td>3</td>
+<td>option 3 corresponds to same choise when calculating gradients of density, temperature, and potential</td>
+</tr>
+<tr>
+<td><code>ahat</code></td>
+<td>real</td>
+<td>1.0</td>
+<td>corresponds to \( r_\mathrm{LCFS} \) as reference length in sfincs. Only used in sfincs when <code>geometryScheme = 1</code>.</td>
+</tr>
+<tr>
+<td><code>psiAHat</code></td>
+<td>real</td>
+<td><code>geo_surf%psitor_lcfs</code></td>
+<td>\( \psi_\mathrm{LCFS} / B_\mathrm{ref}a^2_\mathrm{ref} \).</td>
+</tr>
+<tr>
+<td><code>Delta</code></td>
+<td>real</td>
+<td>-1.0</td>
+<td>\( \Delta = \rho_\ast m_\mathrm{ref}v_\mathrm{th,ref}/(eB_\mathrm{ref}a_\mathrm{ref}) \), with reference quantities given in SI units unless <code>geometryScheme</code> = 5, in which case \(B_\mathrm{ref} = 1 \) Tesla and \(a_\mathrm{ref}  = 1 \) meter (these are hardwired in sfincs). Set negative to allow check later to see if any value given in input file.</td>
+</tr>
+<tr>
+<td><code>dPhiHatdrN</code></td>
+<td>real</td>
+<td>-9999.9</td>
+<td>radial derivative of normalized \( \phi \).</td>
+</tr>
+<tr>
+<td><code>nu_N</code></td>
+<td>real</td>
+<td>-1.0</td>
+<td>\(\nu_n = \nu_\mathrm{ref} a_\mathrm{ref}/ v_\mathrm{th,ref}\). Note that \( \nu_\mathrm{ref} = 4 \sqrt{2 \pi} n_\mathrm{ref}e^4 \ln \Lambda / (3m^{1/2}<em>\mathrm{ref}T</em>\mathrm{ref}^{3/2})\). Set negative to allow check later to see if any value given in input file.</td>
+</tr>
+<tr>
+<td><code>nxi</code></td>
+<td>integer</td>
+<td>48</td>
+<td>number of spectral coefficients in pitch angle</td>
+</tr>
+<tr>
+<td><code>nx</code></td>
+<td>integer</td>
+<td>12</td>
+<td>number of speeds</td>
+</tr>
+<tr>
+<td><code>ntheta</code></td>
+<td>integer</td>
+<td>65</td>
+<td>number of poloidal angles.</td>
+</tr>
+<tr>
+<td><code>nzeta</code></td>
+<td>integer</td>
+<td>1</td>
+<td>number of toroidal angles. 1 is approriate for tokamaks.</td>
+</tr>
+<tr>
+<td><code>Er_window</code></td>
+<td>real</td>
+<td>0.3</td>
+<td>???</td>
+</tr>
+</tbody>
+</table>
+    </div>
+  </div>
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              stella
+ was developed by The stella team<br>              &copy; 2024 
+<br /><small>v0.7-26-gcf608fe7f8</small></p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2024-09-26T10:53:28.392052             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>    
+
+    <!-- MathJax JavaScript
+             ================================================== -->
+             <!-- Placed at the end of the document so the pages load faster -->
+        <script type="text/x-mathjax-config">
+          MathJax.Hub.Config({
+          TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+          jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+          extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+          });
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+          <script src="../../tipuesearch/tipuesearch_content.js"></script>
+          <script src="../../tipuesearch/tipuesearch_set.js"></script>
+          <script src="../../tipuesearch/tipuesearch.js"></script>
+
+  </body>
+</html>
