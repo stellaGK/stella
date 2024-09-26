@@ -23,18 +23,12 @@ stellarators.
     + [Parameters](#parameters)
     + [Radial_variation](#radial-variation)
 
+<br>
 
 ## Code
 
 The code is organized in the following folders:
-- calculations
-  - calculations_kxky.f90  
-  - dist_redistribute.f90  
-  - finite_differences.f90  
-  - g_tofrom_h.f90  
-  - gyro_averages.f90  
-  - stella_transforms.f90  
-  - volume_averages.f90
+- calculations 
 - diagnostics  
 - dissipation  
 - fields  
@@ -46,9 +40,13 @@ The code is organized in the following folders:
 - radial_variation  
 - stella.f90
 
+<br>
+
 ### stella.f90
 
 This is the main script.
+
+<br>
 
 ### Calculations
 
@@ -61,6 +59,8 @@ The `calculations` folder contains the following scripts:
 - gyro_averages.f90  
 - stella_transforms.f90  
 - volume_averages.f90
+
+<br>
 
 ### Diagnostics
 
@@ -78,6 +78,8 @@ The `diagnostics` folder contains the following scripts:
 - stella_io.fpp
 - stella_save.fpp
 
+<br>
+
 
 ### Dissipation  
 
@@ -87,6 +89,9 @@ The `dissipation` folder contains the following scripts:
 - coll_fokkerplanck.f90
 - dissipation.f90
 - hyper.f90
+
+<br>
+
 
 ### Fields  
 
@@ -101,6 +106,9 @@ The `fields` folder contains the following scripts:
 - fields_radialvariation.fpp
 - init_g.f90
 
+<br>
+
+
 ### Geometry  
 
 The `geometry` folder contains the following scripts:
@@ -111,6 +119,9 @@ The `geometry` folder contains the following scripts:
 - geometry_vmec.f90
 - geometry_vmec_read_netCDF_file.f90
 - geometry_zpinch.f90
+
+<br>
+
 
 
 ### Grids  
@@ -129,8 +140,10 @@ The `grids` folder contains the following scripts:
 - write_radial_grid.f90
 - zgrid.f90
 
+<br>
 
-### Gyrokinetic_terms  
+
+### Gyrokinetic terms  
 
 The `gyrokinetic_terms` folder contains the following scripts:
 
@@ -143,6 +156,8 @@ The `gyrokinetic_terms` folder contains the following scripts:
 - sources.fpp
 - time_advance.f90
 
+<br>
+
 
 ### Neoclassical  
 
@@ -151,6 +166,8 @@ The `neoclassical` folder contains the following scripts:
 - euterpe_interface.f90
 - neoclassical_terms.f90
 - sfincs_interface.fpp
+
+<br>
 
 
 ### Parameters  
@@ -165,10 +182,14 @@ The `parameters` folder contains the following scripts:
 - parameters_numerical.f90  
 - parameters_physics.f90
 
-### Radial_variation 
+<br>
+
+### Radial variation 
 
 The `radial_variation` folder contains the following scripts:
 
 - multibox.f90
+
+<br>
 
 
