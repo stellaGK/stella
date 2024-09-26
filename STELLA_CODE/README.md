@@ -8,6 +8,7 @@ evolving electrostatic fluctuations with fully kinetic electrons and an
 arbitrary number of ion species in general magnetic geometry, including
 stellarators.
 
+<br>
 
 ## Table of contents 
   * [Code](#code)
