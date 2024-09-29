@@ -17,11 +17,15 @@ module multibox
    public :: xL, xR
    public :: rhoL, rhoR
    public :: kx0_L, kx0_R
-   public :: RK_step, comm_at_init
    public :: include_multibox_krook
    public :: time_multibox
    public :: phi_buffer0, phi_buffer1
-   public :: use_dirichlet_BC
+   
+   ! Make the namelist public
+   public :: set_default_parameters
+   public :: smooth_ZFs, zf_option
+   public :: LR_debug_option, krook_option, RK_step, nu_krook_mb, mb_debug_step
+   public :: krook_exponent, comm_at_init, phi_bound, phi_pow, krook_efold, use_dirichlet_BC
 
    private
 
@@ -81,6 +85,8 @@ module multibox
    integer, parameter:: LR_debug_option_default = 0, &
                         LR_debug_option_L = 1, &
                         LR_debug_option_R = 2
+                        
+   character(30) :: zf_option, krook_option, LR_debug_option
 
 contains
 
@@ -117,7 +123,7 @@ contains
                                                     (/text_option('default', LR_debug_option_default), &
                                                       text_option('L', LR_debug_option_L), &
                                                       text_option('R', LR_debug_option_R)/)
-      character(30) :: zf_option, krook_option, LR_debug_option
+      
 
       namelist /multibox_parameters/ boundary_size, krook_size, &
          smooth_ZFs, zf_option, LR_debug_option, &
@@ -130,21 +136,7 @@ contains
 !     return
 !   endif
 
-      boundary_size = 4
-      krook_size = 0
-      phi_bound = 0
-      phi_pow = 0
-      krook_exponent = 0.0
-      krook_efold = 3.0
-      nu_krook_mb = 0.0
-      mb_debug_step = -1
-      smooth_ZFs = .false.
-      comm_at_init = .false.
-      RK_step = .false.
-      zf_option = 'default'
-      krook_option = 'default'
-      LR_debug_option = 'default'
-      use_dirichlet_BC = .false.
+      call set_default_parameters()
 
       if (proc0) then
          in_file = input_unit_exist("multibox_parameters", exist)
@@ -219,6 +211,30 @@ contains
       copy_size = boundary_size - krook_size
 
    end subroutine read_multibox_parameters
+
+   subroutine set_default_parameters()
+   
+      use grids_kxky, only: boundary_size, krook_size
+   
+      implicit none
+
+      boundary_size = 4
+      krook_size = 0
+      phi_bound = 0
+      phi_pow = 0
+      krook_exponent = 0.0
+      krook_efold = 3.0
+      nu_krook_mb = 0.0
+      mb_debug_step = -1
+      smooth_ZFs = .false.
+      comm_at_init = .false.
+      RK_step = .false.
+      zf_option = 'default'
+      krook_option = 'default'
+      LR_debug_option = 'default'
+      use_dirichlet_BC = .false.
+      
+   end subroutine set_default_parameters
 
    subroutine init_multibox
       use constants, only: pi

@@ -16,13 +16,20 @@ module sources
    public :: update_tcorr_krook
    public :: project_out_zero
    public :: add_krook_operator
-   public :: tcorr_source, exclude_boundary_regions, exp_fac
+   public :: exp_fac
    public :: int_krook, int_proj
    public :: qn_source_initialized
    public :: time_sources
+   
+   ! Make the namelist public
+   public :: set_default_parameters
+   public :: source_option, nu_krook, tcorr_source
+   public :: ikxmax_source, krook_odd, exclude_boundary_regions
+   public :: from_zero, conserve_momentum, conserve_density
 
    private
 
+   character(30) :: source_option
    logical :: krook_odd, exclude_boundary_regions
    logical :: from_zero
    logical :: conserve_momentum, conserve_density
@@ -112,10 +119,9 @@ contains
 
    subroutine read_parameters
 
-      use file_utils, only: input_unit_exist, error_unit
-      use parameters_physics, only: radial_variation
+      use file_utils, only: input_unit_exist, error_unit 
       use mp, only: proc0, broadcast
-      use parameters_kxky_grids, only: ikx_max, periodic_variation
+      use parameters_kxky_grids, only: ikx_max
       use arrays_fields, only: tcorr_source_qn, exclude_boundary_regions_qn
       use text_options, only: text_option, get_option_value
 
@@ -126,7 +132,7 @@ contains
                                                       text_option('none', source_option_none), &
                                                       text_option('krook', source_option_krook), &
                                                       text_option('projection', source_option_projection)/)
-      character(30) :: source_option
+      
       integer :: in_file, ierr
       logical :: dexist
 
@@ -137,21 +143,7 @@ contains
          conserve_momentum, conserve_density
 
       if (proc0) then
-         exclude_boundary_regions = radial_variation .and. .not. periodic_variation
-         exclude_boundary_regions_qn = exclude_boundary_regions
-         nu_krook = 0.05
-         tcorr_source = 0.02
-         tcorr_source_qn = 0.0
-         ikxmax_source = 1 ! kx=0
-         if (periodic_variation) ikxmax_source = 2 ! kx=0 and kx=1
-         krook_odd = .true. ! damp only the odd mode that can affect profiles
-         from_zero = .true.
-
-         source_option = 'none'
-
-         conserve_momentum = .false.
-         conserve_density = .false.
-
+         call set_default_parameters()
          in_file = input_unit_exist("sources", dexist)
          if (dexist) read (unit=in_file, nml=sources)
 
@@ -180,7 +172,30 @@ contains
       call broadcast(conserve_momentum)
       call broadcast(conserve_density)
 
-   end subroutine read_parameters
+   end subroutine read_parameters 
+
+   subroutine set_default_parameters()
+   
+      use parameters_physics, only: radial_variation
+      use parameters_kxky_grids, only: periodic_variation 
+      use arrays_fields, only: tcorr_source_qn, exclude_boundary_regions_qn
+   
+      implicit none
+      
+      exclude_boundary_regions = radial_variation .and. .not. periodic_variation
+      exclude_boundary_regions_qn = exclude_boundary_regions
+      nu_krook = 0.05
+      tcorr_source = 0.02
+      tcorr_source_qn = 0.0
+      ikxmax_source = 1 ! kx=0
+      if (periodic_variation) ikxmax_source = 2 ! kx=0 and kx=1
+      krook_odd = .true. ! damp only the odd mode that can affect profiles
+      from_zero = .true. 
+      source_option = 'none' 
+      conserve_momentum = .false.
+      conserve_density = .false.
+
+   end subroutine set_default_parameters
 
    subroutine init_source_timeaverage
 

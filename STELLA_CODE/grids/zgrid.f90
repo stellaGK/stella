@@ -3,21 +3,22 @@ module zgrid
    implicit none
 
    public :: init_zgrid, finish_zgrid
-   public :: nzed, nzgrid, nperiod, ntubes
+   public :: nzgrid
    public :: nztot, nz2pi
    public :: zed
    public :: delzed
-   public :: zed_equal_arc
    public :: get_total_arc_length
    public :: get_arc_length_grid
-   public :: shat_zero
-   public :: grad_x_grad_y_zero
-   public :: dkx_over_dky
    public :: boundary_option_switch
    public :: boundary_option_zero
    public :: boundary_option_self_periodic
    public :: boundary_option_linked
    public :: boundary_option_linked_stellarator
+   
+   ! Make the namelist public
+   public :: set_default_parameters
+   public :: nzed, nperiod, ntubes, shat_zero, dkx_over_dky
+   public :: boundary_option, zed_equal_arc, grad_x_grad_y_zero
 
    private
 
@@ -34,6 +35,7 @@ module zgrid
                          boundary_option_linked_stellarator = 4
 
    logical :: zgridinit = .false.
+   character(20) :: boundary_option
 
 contains
 
@@ -86,11 +88,38 @@ contains
                                                       text_option('periodic', boundary_option_self_periodic), &
                                                       text_option('linked', boundary_option_linked), &
                                                       text_option('stellarator', boundary_option_linked_stellarator)/)
-      character(20) :: boundary_option
-
+                                                      
       namelist /zgrid_parameters/ nzed, nperiod, ntubes, &
          shat_zero, boundary_option, zed_equal_arc, &
          grad_x_grad_y_zero, dkx_over_dky
+
+      call set_default_parameters()
+      in_file = input_unit_exist("zgrid_parameters", exist)
+      if (exist) read (unit=in_file, nml=zgrid_parameters)
+
+      ierr = error_unit()
+      call get_option_value &
+         (boundary_option, boundaryopts, boundary_option_switch, &
+          ierr, "boundary_option in dist_fn_knobs")
+
+      ! note that boundary_option may be changed to self-periodic later
+      ! if magnetic shear or nabla x \cdot nabla y is smaller than shat_zero or grad_x_grad_y_zero
+      ! cannot do this here as these quantities have yet to be input
+
+      nzgrid = nzed / 2 + (nperiod - 1) * nzed
+
+      ! force use of equal arc grid to ensure gradpar alpha-independent
+      ! necessary to obtain efficient numerical solution of parallel streaming
+      write(*,*) 'full_flux_surface', full_flux_surface
+      write(*,*) 'zed_equal_arc', zed_equal_arc
+      if (full_flux_surface) zed_equal_arc = .true.
+      write(*,*) 'zed_equal_arc', zed_equal_arc
+
+   end subroutine read_parameters
+
+   subroutine set_default_parameters()
+   
+      implicit none
 
       nzed = 24
       nperiod = 1
@@ -109,26 +138,8 @@ contains
       ! set the ratio between dkx and dky, assuming jtwist = 1.
       ! if it is < 0, the code will just use the nfield_periods in the input file
       dkx_over_dky = -1
-
-      in_file = input_unit_exist("zgrid_parameters", exist)
-      if (exist) read (unit=in_file, nml=zgrid_parameters)
-
-      ierr = error_unit()
-      call get_option_value &
-         (boundary_option, boundaryopts, boundary_option_switch, &
-          ierr, "boundary_option in dist_fn_knobs")
-
-      ! note that boundary_option may be changed to self-periodic later
-      ! if magnetic shear or nabla x \cdot nabla y is smaller than shat_zero or grad_x_grad_y_zero
-      ! cannot do this here as these quantities have yet to be input
-
-      nzgrid = nzed / 2 + (nperiod - 1) * nzed
-
-      ! force use of equal arc grid to ensure gradpar alpha-independent
-      ! necessary to obtain efficient numerical solution of parallel streaming
-      if (full_flux_surface) zed_equal_arc = .true.
-
-   end subroutine read_parameters
+      
+   end subroutine set_default_parameters
 
    subroutine broadcast_parameters
 

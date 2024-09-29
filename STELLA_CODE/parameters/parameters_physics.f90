@@ -16,6 +16,7 @@ module parameters_physics
    !> Public subroutines that are read by the main stella routine.
    public :: read_parameters_physics
    public :: finish_read_parameters_physics
+   public :: set_default_parameters
 
    !> Available physics options: These are standard gyrokinetic terms that
    !> can be turned on/off with the following toggles.
@@ -48,6 +49,9 @@ module parameters_physics
    public :: beta, zeff, tite, nine, rhostar, vnew_ref
    public :: g_exb, g_exbfac, omprimfac 
    
+   ! Only for the input file program
+   public :: irhostar, adiabatic_option
+   
    private
 
    logical :: include_parallel_streaming
@@ -76,35 +80,11 @@ module parameters_physics
    real :: beta, zeff, tite, nine, rhostar, irhostar, vnew_ref
    real :: g_exb, g_exbfac, omprimfac
    logical :: initialised = .false.
-
-   !!> Need to fix for the warning messages
-   logical :: debug = .false.
-
-contains
-
-  !======================================================================
-  !====================== READ PHYSICS PARAMETERS =======================
-  !======================================================================
-  subroutine read_parameters_physics
-
-   use mp, only: proc0
-   use text_options, only: text_option, get_option_value
-   use file_utils, only: input_unit, error_unit, input_unit_exist
-
-   implicit none
    
    character(30) :: adiabatic_option
 
-   if (initialised) return
+contains
 
-   if (proc0) call set_default_parameters
-   if (proc0) call read_input_file
-   call broadcast_parameters
-
-   initialised = .true.
-
- contains 
-   
    !**********************************************************************
    !                        SET DEFAULT PARAMETERS                       !
    !**********************************************************************
@@ -155,6 +135,27 @@ contains
       
    end subroutine set_default_parameters
 
+  !======================================================================
+  !====================== READ PHYSICS PARAMETERS =======================
+  !======================================================================
+  subroutine read_parameters_physics
+
+   use mp, only: proc0
+   use text_options, only: text_option, get_option_value
+   use file_utils, only: input_unit, error_unit, input_unit_exist
+
+   implicit none
+
+   if (initialised) return
+
+   if (proc0) call set_default_parameters
+   if (proc0) call read_input_file
+   call broadcast_parameters
+
+   initialised = .true.
+
+ contains 
+
    !**********************************************************************
    !                         READ INPUT OPTIONS                          !
    !**********************************************************************
@@ -192,8 +193,6 @@ contains
      in_file = input_unit_exist("parameters_physics", nml_exist)
      if (nml_exist) read (unit=in_file, nml=parameters_physics)
 
-     call check_backwards_compatability
-
      if (irhostar > 0) rhostar = 1./irhostar
      !> Don't allow people to set rhostar when its not full flux                                                                                                                                        
      !> Otherwise phase_shift_angle will be changed in grids_kxky.f90
@@ -205,95 +204,6 @@ contains
          ierr, "adiabatic_option in parameters_physics")
 
    end subroutine
-
-   !**********************************************************************
-   !                    CHECK BACKWARDS COMPATIBILITY                    !
-   !**********************************************************************
-   ! Make sure stella either runs or aborts old names for variables or
-   ! namelists are used
-   !**********************************************************************
-   subroutine check_backwards_compatability
-
-      use mp, only: mp_abort, broadcast
-      use debug_flags, only: const_alpha_geo
-      implicit none
-
-      logical :: old_nml_exist
-      integer :: in_file
-
-      ! These variables belonged to <time_advance_knobs> and are now read in <run_parameters>
-      ! We define them here so we can read the namelist, but we will not use them.
-      character(10) :: explicit_option
-      logical :: flip_flop
-      
-      namelist /physics_flags/ full_flux_surface, radial_variation, &
-         include_parallel_nonlinearity, include_parallel_streaming, &
-         include_mirror, include_apar, include_bpar, nonlinear, &
-         include_pressure_variation, include_geometric_variation, &
-         adiabatic_option, const_alpha_geo, suppress_zonal_interaction
-
-      namelist /parameters/ beta, zeff, tite, nine, rhostar, vnew_ref, &
-         g_exb, g_exbfac, omprimfac, irhostar
-
-      namelist /time_advance_knobs/ xdriftknob, ydriftknob, wstarknob, explicit_option, flip_flop
-      
-      in_file = input_unit_exist("physics_flags", old_nml_exist)
-      if (old_nml_exist) then
-         read (unit=in_file, nml=physics_flags)
-         if(debug) then 
-            write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-            write(*,*) 'Please change the namelist <phyiscs_flags> in the input file'
-            write(*,*) 'to <parameters_physics>. You can inlclude the old flags under'
-            write(*,*) 'this new namelist'
-            write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-         end if
-!         call broadcast(const_alpha_geo) 
-         !         write(*,*) "Aborting in parameters_physics.f90.&
-         !              The namelist <physics_flags> does not exist. &
-         !      Please replace this with the title <parameters_physics>"
-         ! call mp_abort('Aborting in parameters_physics.f90.& 
-         !      The namelist <physics_flags> does not exist. &
-         !      Please replace this with the title <parameters_physics>')
-      end if
-      in_file = input_unit_exist("parameters", old_nml_exist)
-      if (old_nml_exist) then
-         read (unit=in_file, nml=parameters)
-         if(debug) then
-            write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-            write(*,*) 'Please change the namelist <parameters> in the input file'
-            write(*,*) 'to <parameters_physics>. You can inlclude the old flags under'
-            write(*,*) 'this new namelist'
-            write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-         end if
-         ! write(*,*) "Aborting in parameters_physics.f90.&
-         !      The namelist <physics_parameters> does not exist. &
-         !      Please replace this with the title <parameters_physics>"
-         ! call mp_abort("Aborting in parameters_physics.f90.& 
-         !      The namelist <physics_parameters> does not exist. &
-         !      Please replace this with the title <parameters_physics>")
-      end if
-      
-      in_file = input_unit_exist("time_advance_knobs", old_nml_exist)
-      if (old_nml_exist) then
-         read(unit=in_file, nml=time_advance_knobs) 
-         if (debug) then 
-            write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-            write(*,*) 'Please replace the namelist <time_advance_knobs> in the input file.'
-           write(*,*) 'Refer to the input paramters text file as to which namelist to use.'
-            write(*,*) 'Some of these parameters have been moved to <run_parameters>'
-            write(*,*) 'and others have been moves to <physics_parameters>.'
-            write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-         end if
-
-           ! write(*,*) "Aborting in run_parameters.f90.&
-         !      The namelist <time_advance_knobs> does not exist.&
-         !      Please replace this with the title <numerical>"
-         ! call mp_abort("Aborting in run_parameters.f90.&
-         !      The namelist <time_advance_knobs> does not exist.&
-         !      Please replace this with the title <run_parameters>")
-      end if
-
-   end subroutine check_backwards_compatability
     
    !**********************************************************************
    !                         BROADCAST OPTIONS                           !

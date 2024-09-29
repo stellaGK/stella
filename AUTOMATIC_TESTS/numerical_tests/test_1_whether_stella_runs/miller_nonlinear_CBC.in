@@ -1,94 +1,21 @@
  
 ! Simple nonlinear example using CBC
 
+!include common_input_files/geometry_CBC.in
+!include common_input_files/kinetic_electrons_and_ions.in
+!include common_input_files/low_resolution_kxky_box.in
+!include common_input_files/low_resolution_zvpamu_linked.in
+!include common_input_files/init_distribution_noise.in
+!include common_input_files/write_all_diagnostics.in
+!include common_input_files/short_time_trace_nstep10.in
+!include common_input_files/other_knobs.in
+
 &physics_flags
-  adiabatic_option = 'iphi00=2'
-  full_flux_surface = .false.
-  include_apar = .false.
   nonlinear = .true.
 /
-&species_knobs
-  nspec = 2
-  species_option = 'stella'
-/
-&species_parameters_1
-  dens = 1.0
-  fprim = 1.0
-  mass = 1.0
-  temp = 1.0
-  tprim = 3.0
-  type = 'ion'
-  z = 1.0
-/
-&species_parameters_2
-  dens = 1.0
-  fprim = 1.0
-  mass = 0.0005446
-  temp = 1.0
-  tprim = 3.0
-  type = 'electron'
-  z = -1.0
-/
-&kt_grids_box_parameters
-  jtwist = 5
-  nx = 6
-  ny = 9
-  y0 = 15
-/
-&zgrid_parameters
-  boundary_option = 'linked'
-  nperiod = 1
-  nzed = 12
-/
-&vpamu_grids_parameters
-  nmu = 2 
-  nvgrid = 3 
-/
-&knobs
-  delt = 0.01 
-  nstep = 10
-  print_extra_info_to_terminal = .false.  
-/
-&stella_diagnostics_knobs
-  nsave = 10
-  nwrite = 1
-  save_for_restart = .false.
-  write_all = .true.
-/
-&init_g_knobs
-  ginit_option = 'noise'
-  phiinit = 0.01
-/
-&dissipation
-  hyper_dissipation = .true.
-/
-&geo_knobs
-  geo_option = 'miller'
-/
-&kt_grids_knobs
-  grid_option = 'box'
-/
-&time_advance_knobs 
-  explicit_option = 'rk2'
-/
-&layouts_knobs
-  vms_layout = 'vms'
-  xyzs_layout = 'yxzs'
-/
-&millergeo_parameters
-  nzed_local = 128
-  rhoc = 0.5
-  shat = 0.796
-  qinp = 1.4
-  rmaj = 2.77778
-  rgeo = 2.77778
-  shift = 0.0
-  kappa = 1.0
-  kapprim = 0.0
-  tri = 0.0
-  triprim = 0.0
-  betaprim = 0.0
-  d2qdr2 = 0.0
-  d2psidr2 = 0.0
-  betadbprim = 0.0
-/ 
+
+
+
+
+
+

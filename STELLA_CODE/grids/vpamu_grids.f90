@@ -8,19 +8,24 @@ module vpamu_grids
    public :: integrate_vmu, integrate_vpa, integrate_species
    public :: integrate_species_ffs, integrate_vmu_ffs
    public :: integrate_mu
-   public :: vpa, nvgrid, nvpa
+   public :: vpa, nvpa
    public :: wgts_vpa, dvpa
-   public :: mu, nmu, wgts_mu, wgts_mu_bare, dmu
+   public :: mu, wgts_mu, wgts_mu_bare, dmu
    public :: dmu_ghost, dmu_cell, mu_cell
    public :: maxwell_vpa, maxwell_mu, ztmax
    public :: maxwell_fac
    public :: int_unit, int_vpa2, int_vperp2, int_vfrth
    public :: vperp2
-   public :: equally_spaced_mu_grid
    public :: set_vpa_weights
 
    public :: integrate_species_ffs_rm
    public :: maxwell_mu_avg
+   
+   ! Make the namelist public
+   public :: set_default_parameters
+   public :: nvgrid, nmu, vpa_max, vperp_max, equally_spaced_mu_grid, conservative_wgts_vpa
+   
+   private
 
    logical :: vpamu_initialized = .false.
 
@@ -86,14 +91,7 @@ contains
       logical :: exist
 
       if (proc0) then
-
-         nvgrid = 24
-         vpa_max = 3.0
-         nmu = 12
-         vperp_max = 3.0
-         equally_spaced_mu_grid = .false.
-         conservative_wgts_vpa = .false.
-
+         call set_default_parameters()
          in_file = input_unit_exist("vpamu_grids_parameters", exist)
          if (exist) read (unit=in_file, nml=vpamu_grids_parameters)
 
@@ -109,6 +107,19 @@ contains
       nvpa = 2 * nvgrid
 
    end subroutine read_vpamu_grids_parameters
+
+   subroutine set_default_parameters()
+   
+      implicit none
+
+      nvgrid = 24
+      vpa_max = 3.0
+      nmu = 12
+      vperp_max = 3.0
+      equally_spaced_mu_grid = .false.
+      conservative_wgts_vpa = .false.
+      
+   end subroutine set_default_parameters
 
    subroutine init_vpamu_grids
 

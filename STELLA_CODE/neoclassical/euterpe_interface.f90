@@ -1,6 +1,17 @@
 module euterpe_interface
 
-   implicit none
+   implicit none 
+   
+   public :: read_species_euterpe
+
+   ! Make the namelist public
+   public :: set_default_parameters
+   public :: nradii, data_file
+   
+   private
+   
+   integer :: nradii
+   character(1000) :: data_file
 
 contains
 
@@ -216,14 +227,9 @@ contains
       integer, intent(out) :: nradii_out
       character(*), intent(out) :: data_file_out
 
-      integer :: nradii
-      character(1000) :: data_file
-
       namelist /euterpe_parameters/ nradii, data_file
 
-      nradii = 1000
-      data_file = 'euterpe.dat'
-
+      call set_default_parameters()
       in_file = input_unit_exist("euterpe_parameters", exist)
       if (exist) read (unit=in_file, nml=euterpe_parameters)
 
@@ -231,5 +237,14 @@ contains
       data_file_out = data_file
 
    end subroutine read_euterpe_parameters
+
+   subroutine set_default_parameters()
+   
+      implicit none
+      
+      nradii = 1000
+      data_file = 'euterpe.dat'
+      
+   end subroutine set_default_parameters
 
 end module euterpe_interface

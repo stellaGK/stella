@@ -1,0 +1,6 @@
+
+&knobs
+  delt = 0.01 
+  nstep = 10
+  print_extra_info_to_terminal = .false.
+/

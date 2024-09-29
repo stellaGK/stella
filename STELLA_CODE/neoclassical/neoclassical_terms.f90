@@ -5,9 +5,12 @@ module neoclassical_terms
 
    public :: init_neoclassical_terms
    public :: finish_neoclassical_terms
-   public :: include_neoclassical_terms
    public :: dfneo_dzed, dfneo_dvpa, dfneo_drho, dfneo_dalpha
    public :: dphineo_dzed, dphineo_drho, dphineo_dalpha
+   
+   ! Make the namelist public
+   public :: set_default_parameters
+   public :: include_neoclassical_terms, neo_option, nradii, drho
 
    private
 
@@ -22,6 +25,8 @@ module neoclassical_terms
    real, dimension(:, :), allocatable :: dphineo_dzed, dphineo_drho, dphineo_dalpha
 
    logical :: neoinit = .false.
+   
+   character(10) :: neo_option
 
 contains
 
@@ -104,7 +109,6 @@ contains
       type(text_option), dimension(2), parameter :: neoopts = (/ &
                                                     text_option('default', neo_option_sfincs), &
                                                     text_option('sfincs', neo_option_sfincs)/)
-      character(10) :: neo_option
 
       namelist /neoclassical_input/ include_neoclassical_terms, &
          neo_option, nradii, drho
@@ -113,15 +117,9 @@ contains
       integer :: ierr, in_file
 
       if (proc0) then
-         ! set to .true. to include neoclassical terms in GK equation
-         include_neoclassical_terms = .false.
-         ! number of radial points used for radial derivatives
-         ! of neoclassical quantities
-         nradii = 5
-         ! spacing in rhoc between points used for radial derivatives
-         drho = 0.01
-         ! option for obtaining neoclassical distribution function and potential
-         neo_option = 'sfincs'
+      
+         ! Set default parameters
+         call set_default_parameters()
 
          in_file = input_unit_exist("neoclassical_input", exist)
          if (exist) read (unit=in_file, nml=neoclassical_input)
@@ -144,6 +142,22 @@ contains
       call broadcast(drho)
 
    end subroutine read_parameters
+   
+   subroutine set_default_parameters()
+   
+      implicit none
+      
+      ! set to .true. to include neoclassical terms in GK equation
+      include_neoclassical_terms = .false.
+      ! number of radial points used for radial derivatives
+      ! of neoclassical quantities
+      nradii = 5
+      ! spacing in rhoc between points used for radial derivatives
+      drho = 0.01
+      ! option for obtaining neoclassical distribution function and potential
+      neo_option = 'sfincs'
+      
+   end subroutine set_default_parameters
 
    subroutine distribute_vmus_over_procs(local, distributed)
 

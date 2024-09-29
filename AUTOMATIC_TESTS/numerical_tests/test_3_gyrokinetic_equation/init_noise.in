@@ -4,45 +4,15 @@
 ! Using the <ginit_option> = 'noise' initialization, and rng_seed = 1
 ! We need to set nonlinear = .true. or 'noise' will be changed to 'default'
 
+!include common_input_files/geometry_CBC.in
+!include common_input_files/kinetic_electrons_and_ions.in
+!include common_input_files/low_resolution_kxky_box.in
+!include common_input_files/low_resolution_zvpamu_linked.in
+
 &physics_flags
   nonlinear = .true.
   include_parallel_streaming = .false.
   include_mirror = .false.
-/
-&species_knobs
-  nspec = 2
-/
-&species_parameters_1
-  dens = 1.0
-  fprim = 1.0
-  mass = 1.0
-  temp = 1.0
-  tprim = 3.0
-  type = 'ion'
-  z = 1.0
-/
-&species_parameters_2
-  dens = 1.0
-  fprim = 1.0
-  mass = 0.0005446
-  temp = 1.0
-  tprim = 3.0
-  type = 'electron'
-  z = -1.0
-/
-&kt_grids_box_parameters 
-  nx = 6
-  ny = 9
-  y0 = 15
-/
-&zgrid_parameters
-  boundary_option = 'linked'
-  nperiod = 1
-  nzed = 12
-/
-&vpamu_grids_parameters
-  nmu = 2 
-  nvgrid = 3 
 /
 &knobs
   delt = 0.01 
@@ -64,32 +34,10 @@
 &dissipation
   hyper_dissipation = .false.
 /
-&geo_knobs
-  geo_option = 'miller'
-/
-&kt_grids_knobs
-  grid_option = 'box'
-/
 &time_advance_knobs
   xdriftknob = 0
   ydriftknob = 0
   wstarknob = 0
   explicit_option = 'rk2'
 /
-&millergeo_parameters
-  nzed_local = 128
-  rhoc = 0.5
-  shat = 0.796
-  qinp = 1.4
-  rmaj = 2.77778
-  rgeo = 2.77778
-  shift = 0.0
-  kappa = 1.0
-  kapprim = 0.0
-  tri = 0.0
-  triprim = 0.0
-  betaprim = 0.0
-  d2qdr2 = 0.0
-  d2psidr2 = 0.0
-  betadbprim = 0.0
-/ 
+

@@ -1,0 +1,11 @@
+
+&dissipation
+  hyper_dissipation = .true.
+/
+&time_advance_knobs 
+  explicit_option = 'rk2'
+/
+&layouts_knobs
+  vms_layout = 'vms'
+  xyzs_layout = 'yxzs'
+/

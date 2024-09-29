@@ -1,0 +1,26 @@
+
+#===================================================================
+#                   FORD AUTOMATIC DOCUMENTATION                   #
+#===================================================================
+ 
+# Check whether 'FORD' is installed
+ifneq ("$(wildcard $(shell which $(FORD) 2>/dev/null))","")
+check_ford_install:
+	@echo "Using ford at $(shell which $(FORD))"
+else
+check_ford_install:
+	@echo "Ford command $(FORD) not in path -- is it installed?\\n\\tConsider installing with 'pip install --user ford' and add ${HOME}/.local/bin to PATH" ; which $(FORD)
+endif
+
+# Create automatic documentation from the Fortran code using FORD
+doc: DOCUMENTATION/stella_docs.md create_namelist_markdown check_ford_install
+	$(FORD) $(INC_FLAGS) -r $(GIT_VERSION) $<
+create_namelist_markdown:
+	DOCUMENTATION/automatic_documentation_manual_pages/user_manual/namelist_files/combine_namelists.sh
+
+# Clean the docs by removing the automatic documentation
+cleandoc:
+	@echo "FORD docs"
+	-rm -rf DOCUMENTATION/automatic_documentation
+ 
+

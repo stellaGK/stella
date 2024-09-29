@@ -1,0 +1,30 @@
+
+
+#===================================================================
+#                              NEASYF                              #
+#===================================================================
+
+# In stella we use the 'neasyf' module in 'stella_io.f90'. If the 
+# 'neasyf.f90' file is needed, but doesn't exist, download the submodules
+$(NEASYF_DIR)/neasyf.f90:
+	@echo "  "; echo "Downloading submodules:"
+	git submodule update --init --recursive 
+	@echo "  "
+	
+# Create *.o files from *.f90 files using the Fortran f90 (FC) compiler 
+$(OBJ)/neasyf.o: $(NEASYF_DIR)/neasyf.f90 
+	@echo "   (neasyf) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) -I $(MOD) -J $(MOD) -o $@ -c $<
+
+# If make is killed or interrupted during the execution of their recipes, 
+# the targets in ".PRECIOUS" are not deleted.
+.PRECIOUS: $(NEASYF_DIR)/neasyf.f90
+
+# Extra commands so we can compile mini_libstell separately through
+# >> make mini_libstell_clean; make mini_libstell
+neasyf: | $(NEASYF_DIR)/neasyf.f90
+	@echo " "; echo "Compile neasyf static library:" 
+	@$(MAKE) --no-print-directory -s $(OBJ)/neasyf.o
+	@echo "   ==> Finished compiling neasyf" 
+.PHONY: git
+

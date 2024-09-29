@@ -29,7 +29,7 @@ module grids_kxky
    real, dimension(:), allocatable :: rho, rho_d, rho_clamped, rho_d_clamped
    complex, dimension(:, :), allocatable :: g0x
 
-   !> Not allocated here - need to work out where to put these 
+   !> TODO: Not allocated here - need to work out where to put these 
    integer :: boundary_size, copy_size, krook_size
 
    !> Required for flux calculations
