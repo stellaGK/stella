@@ -110,10 +110,7 @@ contains
 
       ! force use of equal arc grid to ensure gradpar alpha-independent
       ! necessary to obtain efficient numerical solution of parallel streaming
-      write(*,*) 'full_flux_surface', full_flux_surface
-      write(*,*) 'zed_equal_arc', zed_equal_arc
       if (full_flux_surface) zed_equal_arc = .true.
-      write(*,*) 'zed_equal_arc', zed_equal_arc
 
    end subroutine read_parameters
 
