@@ -1020,7 +1020,18 @@ contains
             write_omega, write_kspectra, write_moments, write_radial_fluxes, &
             write_radial_moments, write_fluxes_kxkyz, flux_norm, nc_mult, &
             write_apar_vs_time, write_bpar_vs_time
-
+            
+         ! Set default values for the parameters which are not used anymore
+         write_phi_vs_time = .false.
+         write_gvmus = .false.
+         write_gzvs = .false.
+         write_omega = .false.
+         write_kspectra = .false.
+         
+         ! Set the following two values to true since they do not exist on all old versions
+         write_apar_vs_time = .true.
+         write_bpar_vs_time = .true.
+         
          ! Check whether the old knob exists
          unit_number_temp = input_unit_exist("stella_diagnostics_knobs", old_nml_exist)
          
