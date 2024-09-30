@@ -3,43 +3,43 @@
 !###############################################################################
 ! Namelist: &parameters_kxky_grids_box
 ! These flags will allow you to toggle the algorithm choices in stella.
+! 
+! Note that we do not want to make the variables from the <kxky_grids_box>
+! namelist public, because only the variables from parameters_kxky_grids.f90 
+! should be used throughout stella, this script only handles the namelist.
 !###############################################################################
 
 module parameters_kxky_grids_box
 
    implicit none
   
-   public :: read_kxky_grids_box
-   
-   ! Make the namelist public
+   ! parameters_kxky_grids.f90 needs read_kxky_grids_box
+   ! update_input_file.f90 needs read_default_box
+   public :: read_kxky_grids_box 
    public :: read_default_box
-   public :: nx, ny, jtwist, jtwistfac, x0, y0, centered_in_rho
-   public :: periodic_variation, randomize_phase_shift, phase_shift_angle
 
    private
 
    logical :: initialised
 
-   ! Namelist parameters 
-   integer :: nx, ny, nalpha, jtwist
-   real :: x0, y0, jtwistfac, phase_shift_angle 
-   logical :: centered_in_rho, periodic_variation, randomize_phase_shift
-   
-   ! Parameters set in this module
-   integer :: ikx_max, nakx, naky, naky_all
-   logical :: reality
-
 contains
 
-   !**********************************************************************
-   !                        SET DEFAULT PARAMETERS                       !
-   !**********************************************************************
+   !============================================================================
+   !========================= SET DEFAULT PARAMETERS ==========================!
+   !============================================================================
    ! If not specified in the input file these are the default options that 
    ! will be set for all parameters in the namelist &parameters_kxky_grids_box.
-   !**********************************************************************
-   subroutine read_default_box
+   !============================================================================
+   subroutine read_default_box(nx, ny, nalpha, &
+         jtwist, x0, y0, jtwistfac, phase_shift_angle, &
+         centered_in_rho, periodic_variation, randomize_phase_shift)
 
       implicit none 
+      
+      integer, intent (out) :: nx, ny, nalpha, jtwist
+      real, intent (out) :: jtwistfac, phase_shift_angle, x0, y0
+      logical, intent (out) :: centered_in_rho, periodic_variation
+      logical, intent (out) :: randomize_phase_shift
 
       nx = 1
       ny = 1
@@ -55,12 +55,12 @@ contains
 
    end subroutine read_default_box
     
-   !======================================================================
-   !================= READ PARAMETERS FOR KXKY BOX GRID ==================
-   !======================================================================
-   subroutine read_kxky_grids_box(nx_out, ny_out, ikx_max_out, naky_all_out, naky_out, nakx_out, &
-         nalpha_out, x0_out, y0_out, jtwist_out, jtwistfac_out, phase_shift_angle_out, &
-         centered_in_rho_out, randomize_phase_shift_out, periodic_variation_out, reality_out)
+   !============================================================================
+   !==================== READ PARAMETERS FOR KXKY BOX GRID =====================
+   !============================================================================
+   subroutine read_kxky_grids_box(nx, ny, ikx_max, naky_all, naky, nakx, &
+         nalpha, x0, y0, jtwist, jtwistfac, phase_shift_angle, &
+         centered_in_rho, randomize_phase_shift, periodic_variation, reality)
 
       use mp, only: mp_abort
       use text_options, only: text_option, get_option_value
@@ -68,24 +68,18 @@ contains
 
       implicit none
          
-      integer, intent (out) :: nx_out, ny_out, nalpha_out, naky_out, nakx_out
-      integer, intent (out) :: jtwist_out, ikx_max_out, naky_all_out
-      real, intent (out) :: jtwistfac_out, phase_shift_angle_out, x0_out, y0_out
-      logical, intent (out) :: centered_in_rho_out, periodic_variation_out
-      logical, intent (out) :: randomize_phase_shift_out, reality_out
+      integer, intent (out) :: nx, ny, nalpha, naky, nakx
+      integer, intent (out) :: jtwist, ikx_max, naky_all
+      real, intent (out) :: jtwistfac, phase_shift_angle, x0, y0
+      logical, intent (out) :: centered_in_rho, periodic_variation
+      logical, intent (out) :: randomize_phase_shift, reality
 
       if (initialised) return
 
-      call read_default_box
-      call read_input_file_box
-      
-      ! TODO TODO-HT TODO-GA: Do this in a cleaner way
-      nx_out = nx; ny_out = ny; ikx_max_out = ikx_max
-      naky_all_out = naky_all; naky_out = naky; nakx_out = nakx
-      nalpha_out = nalpha; x0_out = x0; y0_out = y0; jtwist_out = jtwist
-      jtwistfac_out = jtwistfac; phase_shift_angle_out = phase_shift_angle
-      centered_in_rho_out = centered_in_rho; randomize_phase_shift_out = randomize_phase_shift
-      periodic_variation_out = periodic_variation; reality_out = reality
+      call read_default_box(nx, ny, nalpha, &
+         jtwist, x0, y0, jtwistfac, phase_shift_angle, &
+         centered_in_rho, periodic_variation, randomize_phase_shift)
+      call read_input_file_box()
 
       initialised = .true.
     

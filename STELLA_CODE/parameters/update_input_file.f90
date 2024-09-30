@@ -1219,9 +1219,6 @@ contains
 
       use file_utils, only: input_unit_exist
       use parameters_kxky_grids_box, only: set_defaults_for_kxky_grids_box => read_default_box
-      use parameters_kxky_grids_box, only: nx, ny, jtwist, jtwistfac, x0, y0
-      use parameters_kxky_grids_box, only: centered_in_rho, periodic_variation
-      use parameters_kxky_grids_box, only: randomize_phase_shift, phase_shift_angle
    
       implicit none
       
@@ -1229,6 +1226,14 @@ contains
       ! <unit_number> will point to <run_name>_with_defaults.in or default_stella_input.in
       integer, intent(in) :: unit_number
       logical, intent(in) :: write_input_file 
+      
+      ! For <parameters_kxky_grids_box> the variables are not made public
+      ! because only the variables in <parameters_kxky_grids> should be used
+      ! in stella, so we need to define the namelist variables locally 
+      integer :: nx, ny, nalpha, jtwist 
+      real :: jtwistfac, phase_shift_angle, x0, y0
+      logical :: centered_in_rho, periodic_variation
+      logical :: randomize_phase_shift
       
       ! Local parameters for this subroutine
       integer :: unit_number_temp
@@ -1243,7 +1248,9 @@ contains
       if (debug) write(*,*) 'update_input_file::write_kxky_grids_box'
    
       ! Read in the default parameters set in stella 
-      call set_defaults_for_kxky_grids_box()
+      call set_defaults_for_kxky_grids_box(nx, ny, nalpha, &
+         jtwist, x0, y0, jtwistfac, phase_shift_angle, &
+         centered_in_rho, periodic_variation, randomize_phase_shift)
       
       ! Read the user-specified input parameters in <run_name>.in
       if (write_input_file) then
@@ -1345,8 +1352,6 @@ contains
 
       use file_utils, only: input_unit_exist
       use parameters_kxky_grids_range, only: set_defaults_for_kxky_grids_range => read_default_range
-      use parameters_kxky_grids_range, only: naky, nakx, aky_min, aky_max, theta0_min, theta0_max
-      use parameters_kxky_grids_range, only: akx_min, akx_max, kyspacing_option
    
       implicit none
       
@@ -1354,6 +1359,13 @@ contains
       ! <unit_number> will point to <run_name>_with_defaults.in or default_stella_input.in
       integer, intent(in) :: unit_number
       logical, intent(in) :: write_input_file 
+      
+      ! For <write_kxky_grids_range> the variables are not made public
+      ! because only the variables in <parameters_kxky_grids> should be used
+      ! in stella, so we need to define the namelist variables locally 
+      integer :: naky, nakx
+      real :: aky_min, aky_max, akx_min, akx_max, theta0_min, theta0_max
+      character(20) :: kyspacing_option
       
       ! Local parameters for this subroutine
       integer :: unit_number_temp
@@ -1368,7 +1380,8 @@ contains
       if (debug) write(*,*) 'update_input_file::write_kxky_grids_range'
    
       ! Read in the default parameters set in stella 
-      call set_defaults_for_kxky_grids_range()
+      call set_defaults_for_kxky_grids_range(naky, nakx, aky_min, aky_max, &
+         akx_min, akx_max, theta0_min, theta0_max, kyspacing_option)
       
       ! Read the user-specified input parameters in <run_name>.in
       if (write_input_file) then

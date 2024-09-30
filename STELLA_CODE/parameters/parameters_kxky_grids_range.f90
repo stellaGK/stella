@@ -9,45 +9,38 @@ module parameters_kxky_grids_range
 
    implicit none
 
-   public :: read_kxky_grids_range
-   
-   ! Make the namelist public
+   ! parameters_kxky_grids.f90 needs read_kxky_grids_range
+   ! update_input_file.f90 needs read_default_range
+   public :: read_kxky_grids_range 
    public :: read_default_range
-   public :: naky, nakx, aky_min, aky_max, theta0_min, theta0_max
-   public :: akx_min, akx_max, kyspacing_option
 
    private
-   
-   ! Variables in the namelist
-   integer :: naky, nakx
-   real :: aky_min, aky_max, akx_min, akx_max
-   real :: theta0_min, theta0_max
-   character(20) :: kyspacing_option
-   
-   ! Parameters set in this module
-   integer :: ikx_max, kyspacing_option_switch, naky_all, nalpha
-   real :: phase_shift_angle
 
-   ! Local variable
    logical :: initialised
 
 contains
 
-   !**********************************************************************
-   !                        SET DEFAULT PARAMETERS                       !
-   !**********************************************************************
+   !============================================================================
+   !========================= SET DEFAULT PARAMETERS ==========================!
+   !============================================================================
    ! If not specified in the input file these are the default options that 
-   ! will be set for all parameters under the namelist 
-   ! &numerical'.
-   !**********************************************************************
-   subroutine read_default_range 
+   ! will be set for all parameters under the namelist &kxky_grids_range.
+   !============================================================================
+   subroutine read_default_range(naky, nakx, aky_min, aky_max, &
+         akx_min, akx_max, theta0_min, theta0_max, kyspacing_option)
 
       implicit none
+
+      integer, intent (out) :: naky, nakx
+      real, intent (out) :: aky_min, aky_max, akx_min, akx_max
+      real, intent (out) :: theta0_min, theta0_max
+      character(20), intent (out) :: kyspacing_option
 
       naky = 1
       nakx = 1
       aky_min = 0.0
       aky_max = 0.0
+      
       !> set these to be nonsense values
       !> so can check later if they've been set
       akx_min = 0.0
@@ -58,39 +51,33 @@ contains
 
    end subroutine read_default_range
 
-   !======================================================================
-   !================= READ PARAMETERS FOR KXKY range GRID ================
-   !======================================================================
-   subroutine read_kxky_grids_range (nalpha_out, naky_out, nakx_out, aky_min_out, aky_max_out, &
-           akx_min_out, akx_max_out, theta0_min_out, theta0_max_out, &
-           kyspacing_option_switch_out, phase_shift_angle_out, ikx_max_out, naky_all_out)
+   !============================================================================
+   !==================== READ PARAMETERS FOR KXKY range GRID ===================
+   !============================================================================
+   subroutine read_kxky_grids_range(nalpha, naky, nakx, &
+           aky_min, aky_max, akx_min, akx_max, theta0_min, theta0_max, &
+           kyspacing_option_switch, phase_shift_angle, ikx_max, naky_all)
 
       use mp, only: mp_abort
 
       implicit none
 
-      integer, intent (out) :: nalpha_out, naky_out, nakx_out
-      real, intent (out) :: aky_min_out, aky_max_out, akx_min_out, akx_max_out
-      real, intent (out) :: theta0_min_out, theta0_max_out
-      integer, intent (out) :: kyspacing_option_switch_out
-      real, intent (out) :: phase_shift_angle_out
-      integer, intent (out) :: ikx_max_out, naky_all_out
+      integer, intent (out) :: nalpha, naky, nakx
+      real, intent (out) :: aky_min, aky_max, akx_min, akx_max
+      real, intent (out) :: theta0_min, theta0_max
+      integer, intent (out) :: kyspacing_option_switch
+      real, intent (out) :: phase_shift_angle
+      integer, intent (out) :: ikx_max, naky_all
 
+      ! Local variables
       integer, parameter :: kyspacing_linear = 1, kyspacing_exponential = 2
+      character(20) :: kyspacing_option
 
       if (initialised) return
 
-      call read_default_range 
+      call read_default_range(naky, nakx, aky_min, aky_max, &
+         akx_min, akx_max, theta0_min, theta0_max, kyspacing_option)
       call read_input_file_range 
-      
-      ! TODO TODO-HT TODO-GA: Do this in a cleaner way
-      nalpha_out = nalpha; naky_out = naky; nakx_out = nakx
-      aky_min_out = aky_min; aky_max_out = aky_max
-      akx_min_out = akx_min; akx_max_out = akx_max
-      theta0_min_out = theta0_min; theta0_max_out = theta0_max
-      kyspacing_option_switch_out = kyspacing_option_switch
-      phase_shift_angle_out = phase_shift_angle
-      ikx_max_out = ikx_max; naky_all_out = naky_all
 
       initialised = .true.
 
