@@ -49,6 +49,11 @@ numerical-tests-7: check-tests-dependencies $(PROJECT_DIR)/stella
 numerical-tests-system:
 	@python3 $(TEST_DIR)/system_information.py
 	
+# Test tools
+test-tools: check-tests-dependencies $(PROJECT_DIR)/stella
+	@echo "Running: test stella tools"
+	@python3 -m pytest -v -rF -W ignore::DeprecationWarning $(TEST_DIR)/test_tools/
+	
 # Run the automated stella tests (the -r flag shows the full stella output)
 # -rA shows all outputs, -rf shows only failed outputs 
 numerical-tests-verbose: check-tests-dependencies $(PROJECT_DIR)/stella

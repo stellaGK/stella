@@ -45,21 +45,35 @@ def run_stella(stella_path, input_file, nproc=None):
     '''Run stella with a given input file.''' 
     if not nproc: nproc = read_nproc()
     subprocess.run(['mpirun','--oversubscribe', '-np', f'{nproc}', stella_path, input_file], check=True)
+    return
 
 #-------------------------------------------------------------------------------
 def copy_input_file(input_file: str, destination):
     '''Copy input_file to destination directory.'''
     shutil.copyfile(get_stella_expected_run_directory() / input_file, destination / input_file)
+    return
+
+#-------------------------------------------------------------------------------
+def copy_common_input_files(input_file: str, destination):
+    '''Copy input_file to destination directory.'''
+    input_files = os.listdir(get_stella_expected_run_directory()/'../common_input_files')
+    if not os.path.exists(destination/'common_input_files'):
+        os.makedirs(destination/'common_input_files')
+    for i in input_files:
+      shutil.copyfile(get_stella_expected_run_directory()/f'../common_input_files/{i}', destination/f'common_input_files/{i}')
+    return
 
 #-------------------------------------------------------------------------------
 def copy_vmec_file(vmec_file: str, destination):
     '''Copy input_file to destination directory.'''
     shutil.copyfile(get_stella_expected_run_directory() / vmec_file, destination / vmec_file)
+    return
     
 #-------------------------------------------------------------------------------
 def run_local_stella_simulation(input_file, tmp_path, vmec_file=None, nproc=None):
     ''' Run a local stella simulation in <tmp_path>. '''
     copy_input_file(input_file, tmp_path)
+    copy_common_input_files(input_file, tmp_path)
     if vmec_file: copy_vmec_file(vmec_file, tmp_path)
     os.chdir(tmp_path); run_stella(get_stella_path(), input_file, nproc=nproc)
     run_data = {'input_file' : input_file, 'tmp_path' : tmp_path, 'vmec_file' : vmec_file}
@@ -397,6 +411,6 @@ def compare_geometry_in_netcdf_files(run_data, error=False):
                     compare_local_array_with_expected_array(local_netcdf[key], expected_netcdf[key], name=key)  
                     
         # Print "AssertionError: <error message>" if an error was encountered
-        assert (not error), f'Some Miller geometry arrays in the netcdf file did not match the previous run.'  
+        assert (not error), f'Some geometry arrays in the netcdf file did not match the previous run.'  
         
     return error

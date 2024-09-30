@@ -56,10 +56,13 @@ export GYROKINETIC_TERMS=$(STELLA_DIR)/gyrokinetic_terms
 export NEOCLASSICAL=$(STELLA_DIR)/neoclassical
 export PARAMETERS=$(STELLA_DIR)/parameters
 export RADIAL_VARIATION=$(STELLA_DIR)/radial_variation
-SUBFOLDERS := $(CALCULATIONS) $(DIAGNOSTICS) $(COLLISIONS) $(FIELDS) $(GEOMETRY) $(GRIDS)
+export INPUTFILETOOL=$(STELLA_DIR)/parameters/input_file_tool
+SUBFOLDERS := $(CALCULATIONS) $(DIAGNOSTICS) $(COLLISIONS) $(FIELDS) $(GEOMETRY) $(GRIDS) 
 SUBFOLDERS := $(SUBFOLDERS) $(GYROKINETIC_TERMS) $(NEOCLASSICAL) $(PARAMETERS) $(RADIAL_VARIATION)
+SUBFOLDERS := $(SUBFOLDERS) $(INPUTFILETOOL)
 VPATH_SUBFOLDERS := :$(CALCULATIONS):$(DIAGNOSTICS):$(COLLISIONS):$(FIELDS):$(GEOMETRY):$(GRIDS):
 VPATH_SUBFOLDERS := :$(VPATH_SUBFOLDERS):$(GYROKINETIC_TERMS):$(NEOCLASSICAL):$(PARAMETERS):$(RADIAL_VARIATION):
+VPATH_SUBFOLDERS := :$(VPATH_SUBFOLDERS):$(INPUTFILETOOL):
 
 # Check directories
 .PHONY: print-directories
@@ -202,7 +205,7 @@ stella_objects := $(stella_mod) $(OBJ)/git_version_impl.o
 # $< is the first prerequisite -> the first file in '$(external_modules_dependencies)'
 # $^ are all the prerequisites -> all files in '$(external_modules_dependencies)' and '$(stella_mod)'
 # @ supresses the output in the command prompt, remove this to debug
-stella: $(external_modules) $(stella_objects)
+stella: $(external_modules) $(stella_objects) | $(MOD) $(OBJ)
 	@$(LD) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LIBS)
 	@echo "    ==> Created stella executable"; echo "  "
 	
@@ -232,41 +235,44 @@ setup-stella: ensure-that-all-f90-files-exist
 MOD_FLAGS_STELLA := -I $(MOD) -I $(UTILS_MOD) -I $(MINILIBSTELL_MOD) -J $(MOD)
  
 # Build object files '*.o' from '*.f90' files using the Fortran f90 compiler
-$(OBJ)/%.o: $(STELLA_DIR)/%.f90 $(external_modules) | $(OBJ)
+$(OBJ)/%.o: $(STELLA_DIR)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
-$(OBJ)/%.o: $(FPP)/%.f90 $(external_modules) | $(OBJ)
+$(OBJ)/%.o: $(FPP)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 	
-$(OBJ)/%.o: $(CALCULATIONS)/%.f90 $(external_modules) | $(OBJ)
+$(OBJ)/%.o: $(CALCULATIONS)/%.f90 $(external_modules) | $(OBJ)  $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
-$(OBJ)/%.o: $(DIAGNOSTICS)/%.f90 $(external_modules) | $(OBJ)
+$(OBJ)/%.o: $(DIAGNOSTICS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
-$(OBJ)/%.o: $(COLLISIONS)/%.f90 $(external_modules) | $(OBJ)
+$(OBJ)/%.o: $(COLLISIONS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
-$(OBJ)/%.o: $(FIELDS)/%.f90 $(external_modules) | $(OBJ)
+$(OBJ)/%.o: $(FIELDS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
-$(OBJ)/%.o: $(GEOMETRY)/%.f90 $(external_modules) | $(OBJ)
+$(OBJ)/%.o: $(GEOMETRY)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
-$(OBJ)/%.o: $(GRIDS)/%.f90 $(external_modules) | $(OBJ)
+$(OBJ)/%.o: $(GRIDS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
-$(OBJ)/%.o: $(GYROKINETIC_TERMS)/%.f90 $(external_modules) | $(OBJ)
+$(OBJ)/%.o: $(GYROKINETIC_TERMS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
-$(OBJ)/%.o: $(NEOCLASSICAL)/%.f90 $(external_modules) | $(OBJ)
+$(OBJ)/%.o: $(NEOCLASSICAL)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
-$(OBJ)/%.o: $(PARAMETERS)/%.f90 $(external_modules) | $(OBJ)
+$(OBJ)/%.o: $(PARAMETERS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
-$(OBJ)/%.o: $(RADIAL_VARIATION)/%.f90 $(external_modules) | $(OBJ)
+$(OBJ)/%.o: $(RADIAL_VARIATION)/%.f90 $(external_modules) | $(OBJ) $(MOD)
+	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+$(OBJ)/%.o: $(INPUTFILETOOL)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 
@@ -342,6 +348,21 @@ include $(PROJECT_DIR)/AUTOMATIC_TESTS/Makefile
 # Run all tests together with the 'check' command
 # TODO: run-automated-fortran-tests doesn't work
 check: numerical-tests benchmarks 
+
+#===================================================================
+#                               Tools                              #
+#===================================================================
+
+# Include the dependencies of the program 
+include $(COMPILATION_DIR)/Makefile.depend.inputfile
+
+# Needed objects for update-input-file executable
+updateinputfile_objects := $(manual_update_input_file_mod) $(OBJ)/git_version_impl.o
+
+# Build update-input-file executable 
+update-input-file: $(external_modules) $(updateinputfile_objects) | $(MOD) $(OBJ) 
+	@$(LD) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LIBS)
+	@echo "       ==> Created update-input-file executable"; echo "  "
 
 #===================================================================
 #                               Clean                              #

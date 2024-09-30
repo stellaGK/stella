@@ -56,6 +56,10 @@ module parameters_numerical
    !> TODO-GA - REMOVE
    public :: rng_seed
    
+   ! Make the namelist public
+   public :: set_default_parameters
+   public :: explicit_option, delt_option, lu_option
+   
    private
 
    !> Algorithm schemes
@@ -104,10 +108,70 @@ module parameters_numerical
    !> REMOVE
    integer :: rng_seed
 
-   !> Internal
-   logical :: old_nml_exist
+   character(10) :: explicit_option
+   character(20) :: delt_option, lu_option
    
 contains
+
+   !**********************************************************************
+   !                        SET DEFAULT PARAMETERS                       !
+   !**********************************************************************
+   ! If not specified in the input file these are the default options that 
+   ! will be set for all parameters under the namelist 
+   ! &numerical'.
+   !**********************************************************************
+   subroutine set_default_parameters
+
+      implicit none
+
+      stream_implicit = .true.
+      stream_iterative_implicit = .false.
+      mirror_implicit = .true.
+      drifts_implicit = .false.
+
+      stream_matrix_inversion = .false.
+      mirror_semi_lagrange = .true.
+      mirror_linear_interp = .false. 
+      maxwellian_inside_zed_derivative = .false. 
+      use_deltaphi_for_response_matrix = .false.
+      maxwellian_normalization = .false. 
+      zed_upwind = 0.02
+      vpa_upwind = 0.02
+      time_upwind = 0.02
+      fphi = 1.0
+      !> Stella runs until t*v_{th,i}/a=tend or until istep=nstep
+      nstep = - 1
+      delt = 0.03 !> Set some number for the time step - QUESTION: should we set to be a silly number?
+      tend = -1.0
+      delt_option = 'default'
+      !> The response matrix is solved with a none, local or global scheme, local seems to be the most efficient
+      lu_option = 'default'
+      avail_cpu_time = 1.e10
+      !> Code_dt needs to stay within [cfl_dt*cfl_cushion_upper, cfl_dt*cfl_cushion_lower]
+      !> code_dt can be increased if cfl_dt increases, however, never increase above delt_max (=delt by default)
+      !> Exit stella if code_dt < delt_min (e.g. when the code blows up)
+      cfl_cushion_upper = 0.5       !> Stay a factor of 2 under the CFL condition, otherwise it might run out of control
+      cfl_cushion_middle = 0.25     !> If code_dt>cfl_dt/2 or code_dt<cfl_dt/100000, set code_dt to cfl_dt/4
+      cfl_cushion_lower = 0.00001   !> Default is very low to not trigger it.
+      delt_max = -1
+      delt_min = 1.e-10
+      autostop = .true. 
+      
+      fields_kxkyz = .false. 
+      mat_gen = .false. 
+      mat_read = .false.
+
+      ky_solve_radial = 0
+      ky_solve_real = .false.
+      nitt = 1
+      print_extra_info_to_terminal = .true.
+
+      explicit_option = 'default'
+      flip_flop = .false.
+
+      !> TODO-GA REMOVE
+      rng_seed = -1 !negative values use current time as seed   
+   end subroutine
 
   !======================================================================
   !===================== READ NUMERICAL PARAMETERS ======================
@@ -121,8 +185,6 @@ contains
       implicit none
 
       logical :: error = .false.
-      character(10) :: explicit_option
-      character(20) :: delt_option, lu_option
 
       if (initialised) return
 
@@ -133,65 +195,6 @@ contains
       initialised = .true.
 
    contains
-      !**********************************************************************
-      !                        SET DEFAULT PARAMETERS                       !
-      !**********************************************************************
-      ! If not specified in the input file these are the default options that 
-      ! will be set for all parameters under the namelist 
-      ! &numerical'.
-      !**********************************************************************
-      subroutine set_default_parameters
-
-         implicit none
-
-         stream_implicit = .true.
-         stream_iterative_implicit = .false.
-         mirror_implicit = .true.
-         drifts_implicit = .false.
-
-         stream_matrix_inversion = .false.
-         mirror_semi_lagrange = .true.
-         mirror_linear_interp = .false. 
-         maxwellian_inside_zed_derivative = .false. 
-         use_deltaphi_for_response_matrix = .false.
-         maxwellian_normalization = .false. 
-         zed_upwind = 0.02
-         vpa_upwind = 0.02
-         time_upwind = 0.02
-         fphi = 1.0
-         !> Stella runs until t*v_{th,i}/a=tend or until istep=nstep
-         nstep = - 1
-         delt = 0.03 !> Set some number for the time step - QUESTION: should we set to be a silly number?
-         tend = -1.0
-         delt_option = 'default'
-         !> The response matrix is solved with a none, local or global scheme, local seems to be the most efficient
-         lu_option = 'default'
-         avail_cpu_time = 1.e10
-         !> Code_dt needs to stay within [cfl_dt*cfl_cushion_upper, cfl_dt*cfl_cushion_lower]
-         !> code_dt can be increased if cfl_dt increases, however, never increase above delt_max (=delt by default)
-         !> Exit stella if code_dt < delt_min (e.g. when the code blows up)
-         cfl_cushion_upper = 0.5       !> Stay a factor of 2 under the CFL condition, otherwise it might run out of control
-         cfl_cushion_middle = 0.25     !> If code_dt>cfl_dt/2 or code_dt<cfl_dt/100000, set code_dt to cfl_dt/4
-         cfl_cushion_lower = 0.00001   !> Default is very low to not trigger it.
-         delt_max = -1
-         delt_min = 1.e-10
-         autostop = .true. 
-         
-         fields_kxkyz = .false. 
-         mat_gen = .false. 
-         mat_read = .false.
-
-         ky_solve_radial = 0
-         ky_solve_real = .false.
-         nitt = 1
-         print_extra_info_to_terminal = .true.
-
-         explicit_option = 'default'
-         flip_flop = .false.
-
-         !> TODO-GA REMOVE
-         rng_seed = -1 !negative values use current time as seed   
-      end subroutine
 
       !**********************************************************************
       !                         READ INPUT OPTIONS                          !
@@ -247,8 +250,6 @@ contains
          !> under the heading '&numerical'
          in_file = input_unit_exist("parameters_numerical", nml_exist)
          if (nml_exist) read (unit=in_file, nml=parameters_numerical)
-         
-         call check_backwards_compatability
 
          ierr = error_unit()
          call get_option_value &
@@ -389,79 +390,6 @@ contains
          
 
        end subroutine read_input_file
-
-       !**********************************************************************
-       !                    CHECK BACKWARDS COMPATIBILITY                    !
-       !**********************************************************************
-       ! Make sure stella either runs or aborts old names for variables or
-       ! namelists are used
-       !**********************************************************************
-       subroutine check_backwards_compatability
-         
-         use file_utils, only: input_unit, input_unit_exist
-         
-         implicit none
-         
-         integer :: in_file
-         
-         ! These variables belonged to <time_advance_knobs> and are now read in <parameters_physics>
-         ! We define them here so we can read the namelist, but we will not use them.
-         real :: xdriftknob, ydriftknob, wstarknob
-
-         namelist /knobs/ fphi, delt, nstep, tend, &
-              delt_option, lu_option, autostop, &
-              avail_cpu_time, delt_max, delt_min, &
-              cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, &
-              stream_implicit, mirror_implicit, &
-              drifts_implicit, use_deltaphi_for_response_matrix, &
-              maxwellian_normalization, &
-              stream_matrix_inversion, maxwellian_inside_zed_derivative, &
-              mirror_semi_lagrange, mirror_linear_interp, &
-              zed_upwind, vpa_upwind, time_upwind, &
-              fields_kxkyz, mat_gen, mat_read, rng_seed, &
-              ky_solve_radial, ky_solve_real, nitt, print_extra_info_to_terminal
-         
-         namelist /time_advance_knobs/ xdriftknob, ydriftknob, wstarknob, explicit_option, flip_flop
-         
-         in_file = input_unit_exist("knobs", old_nml_exist)
-         if (old_nml_exist) then
-            read (unit=in_file, nml=knobs)
-            if(print_extra_info_to_terminal) then 
-               write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-               write(*,*) 'Please replace the namelist <knobs> in the input file with'
-               write(*,*) '<parameters_numerical> and include all variable names under'
-               write(*,*) 'this new namelist.'
-               write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-            end if
-            ! write(*,*) "Aborting in parameters_numerical.f90. & 
-            !      The namelist <knobs> does not exist. & 
-            !      Please replace this with the title <parameters_numerical>"
-            ! call mp_abort("Aborting in parameters_numerical.f90. &
-            !      The namelist <knobs> does not exist. & 
-            !      Please replace this with the title <parameters_numerical>")
-         end if 
-
-         in_file = input_unit_exist("time_advance_knobs", old_nml_exist)
-         if (old_nml_exist) then
-            read(unit=in_file, nml=time_advance_knobs) 
-            if (print_extra_info_to_terminal) then 
-               write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-               write(*,*) 'Please replace the namelist <time_advance_knobs> in the input file.'
-               write(*,*) 'Refer to the input paramters text file as to which namelist to use.'
-               write(*,*) 'Some of these parameters have been moved to <run_parameters>'
-               write(*,*) 'and others have been moves to <physics_parameters>.'
-               write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-            end if
-  
-              ! write(*,*) "Aborting in run_parameters.f90.&
-            !      The namelist <time_advance_knobs> does not exist.&
-            !      Please replace this with the title <numerical>"
-            ! call mp_abort("Aborting in run_parameters.f90.&
-            !      The namelist <time_advance_knobs> does not exist.&
-            !      Please replace this with the title <run_parameters>")
-         end if
-         
-      end subroutine check_backwards_compatability
 
       !**********************************************************************
       !                         BROADCAST OPTIONS                           !

@@ -91,6 +91,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/neoclassical/euterpe_interface.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
   ../STELLA_CODE/parameters/debug_flags.f90
+  ../STELLA_CODE/parameters/update_input_file.f90
   ../STELLA_CODE/parameters/parameters_diagnostics.f90
   ../STELLA_CODE/parameters/parameters_kxky_grids.f90
   ../STELLA_CODE/parameters/parameters_kxky_grids_box.f90

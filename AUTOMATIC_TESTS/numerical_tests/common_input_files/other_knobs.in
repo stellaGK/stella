@@ -1,0 +1,8 @@
+
+&dissipation
+  hyper_dissipation = .true.
+/
+&layouts_knobs
+  vms_layout = 'vms'
+  xyzs_layout = 'yxzs'
+/

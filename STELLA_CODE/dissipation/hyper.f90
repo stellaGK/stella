@@ -7,9 +7,11 @@ module hyper
    public :: advance_hyper_dissipation
    public :: advance_hyper_vpa
    public :: advance_hyper_zed
-   public :: D_hyper, D_zed, D_vpa
-   public :: hyp_vpa, hyp_zed
    public :: k2max
+   
+   ! Make the namelist public
+   public :: set_default_parameters
+   public :: D_hyper, D_zed, D_vpa, hyp_zed, hyp_vpa, use_physical_ksqr, scale_to_outboard
 
    private
 
@@ -24,7 +26,6 @@ contains
    subroutine read_parameters_hyper
 
       use file_utils, only: input_unit_exist
-      use parameters_physics, only: full_flux_surface, radial_variation
       use mp, only: proc0, broadcast
 
       implicit none
@@ -35,14 +36,7 @@ contains
       logical :: dexist
 
       if (proc0) then
-         use_physical_ksqr = .not. (full_flux_surface .or. radial_variation)  ! use kperp2, instead of akx^2 + aky^2
-         scale_to_outboard = .false.                                          ! scales hyperdissipation to zed = 0
-         D_hyper = 0.05
-         D_zed = 0.05
-         D_vpa = 0.05
-         hyp_vpa = .false.
-         hyp_zed = .false.
-
+         call set_default_parameters()
          in_file = input_unit_exist("hyper", dexist)
          if (dexist) read (unit=in_file, nml=hyper)
       end if
@@ -56,6 +50,23 @@ contains
       call broadcast(hyp_zed)
 
    end subroutine read_parameters_hyper
+   
+
+   subroutine set_default_parameters()
+   
+      use parameters_physics, only: full_flux_surface, radial_variation
+   
+      implicit none
+      
+      use_physical_ksqr = .not. (full_flux_surface .or. radial_variation)  ! use kperp2, instead of akx^2 + aky^2
+      scale_to_outboard = .false.                                          ! scales hyperdissipation to zed = 0
+      D_hyper = 0.05
+      D_zed = 0.05
+      D_vpa = 0.05
+      hyp_vpa = .false.
+      hyp_zed = .false.
+      
+   end subroutine set_default_parameters
 
    subroutine init_hyper
 

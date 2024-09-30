@@ -4,10 +4,7 @@ module stella_layouts
    use common_types, only: kxkyz_layout_type, kxyz_layout_type, xyz_layout_type
 
    implicit none
-
-   private
-
-   public :: xyzs_layout, vms_layout
+ 
    public :: finish_layouts
 
    public :: init_stella_layouts, init_dist_fn_layouts
@@ -18,7 +15,13 @@ module stella_layouts
    public :: iz_idx, iky_idx, ikx_idx, iv_idx, imu_idx, is_idx, iy_idx
    public :: it_idx
    public :: idx, proc_id, idx_local
+   
+   ! Make the namelist publix
+   public :: set_default_parameters
+   public :: xyzs_layout, vms_layout
 
+   private
+   
    character(len=4) :: xyzs_layout
    character(len=3) :: vms_layout
    logical :: exist
@@ -121,9 +124,7 @@ contains
 
       namelist /layouts_knobs/ xyzs_layout, vms_layout
 
-      xyzs_layout = 'yxzs'
-      vms_layout = 'vms'
-
+      call set_default_parameters()
       in_file = input_unit_exist("layouts_knobs", exist)
       if (exist) read (unit=input_unit("layouts_knobs"), nml=layouts_knobs)
 
@@ -141,6 +142,15 @@ contains
       end if
 
    end subroutine read_parameters
+
+   subroutine set_default_parameters()
+   
+      implicit none
+      
+      xyzs_layout = 'yxzs'
+      vms_layout = 'vms'
+      
+   end subroutine set_default_parameters
 
    subroutine broadcast_results
       use mp, only: broadcast
