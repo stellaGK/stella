@@ -4,14 +4,16 @@
 /
 &knobs
   delt = 0.01 
-  nstep = 10
+  nstep = 100
   fapar = 0.0
   fbpar = 0.0
   fphi = 1.0
+  rng_seed = 1
 /
 &parameters_numerical
   delt = 0.01 
-  nstep = 10
+  nstep = 100
   print_extra_info_to_terminal = .false.
   explicit_option = 'rk2'
+  rng_seed = 1
 /

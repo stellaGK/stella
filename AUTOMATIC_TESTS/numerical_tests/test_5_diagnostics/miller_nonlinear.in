@@ -8,6 +8,7 @@
 !include common_input_files/init_distribution_noise.in
 !include common_input_files/write_all_diagnostics_nwrite10.in
 !include common_input_files/other_knobs.in
+!include common_input_files/short_time_trace_nstep100.in
 
 &physics_flags
   nonlinear = .true.
@@ -21,9 +22,4 @@
   nmu = 2 
   nvgrid = 3  
 /
-&knobs
-  delt = 0.01  
-  nstep = 100
-  print_extra_info_to_terminal = .false.
-  rng_seed = 1
-/
+

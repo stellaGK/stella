@@ -629,13 +629,16 @@ contains
          logical :: maxwellian_inside_zed_derivative_new, mirror_semi_lagrange_new, mirror_linear_interp_new
          logical :: fields_kxkyz_new, mat_gen_new, mat_read_new, ky_solve_real_new, print_extra_info_to_terminal_new
          character(20) :: delt_option_new, lu_option_new
+         
+         ! Old parameters which have been deprecated for a while
+         real :: fapar, fbpar
             
          ! Local parameters for this subroutine
          logical :: old_nml_exist
          logical :: double_definitions
          
          ! Old namelists 
-         namelist /knobs/ fphi, delt, nstep, tend, delt_option, lu_option, autostop, &
+         namelist /knobs/ fphi, fapar, fbpar, delt, nstep, tend, delt_option, lu_option, autostop, &
               avail_cpu_time, delt_max, delt_min, cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, &
               stream_implicit, mirror_implicit, drifts_implicit, use_deltaphi_for_response_matrix, &
               maxwellian_normalization, stream_matrix_inversion, maxwellian_inside_zed_derivative, &

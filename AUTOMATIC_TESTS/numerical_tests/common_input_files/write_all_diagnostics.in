@@ -15,8 +15,6 @@
   write_radial_moments = .true.
   write_fluxes_kxkyz = .true.
   flux_norm = .true.
-  write_apar_vs_time = .true. 
-  write_bpar_vs_time = .true.
 /
 &diagnostics 
   nsave = 10
