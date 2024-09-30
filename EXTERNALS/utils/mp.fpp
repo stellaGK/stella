@@ -514,9 +514,7 @@ contains
 
       grp0 = group0
 
-! TT> brought down here from init_job_name in file_utils.fpp
       call scope(subprocs)
-! <TT
 
 !get the minimum number of procs on a node for a given job
       min_proc = nsgroup_proc

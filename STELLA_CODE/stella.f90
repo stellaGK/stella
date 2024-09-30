@@ -137,6 +137,7 @@ contains
       use dissipation, only: init_dissipation
       use sources, only: init_sources
       use volume_averages, only: init_volume_averages, volume_average
+      use input_file, only: update_input_file
 
       implicit none
 
@@ -166,7 +167,16 @@ contains
          if (debug) write (*, *) 'stella::init_stella::init_file_utils'
          call init_file_utils(list)
       end if  
-
+      
+      ! Read the <run_name>.in file and write it's values + stella default
+      ! values to <run_name>_with_defaults.in. Moreover we allow for
+      ! backwards compatibility with older stella versions (old namelists). 
+      if (proc0) then 
+         if (debug) write (*, *) 'stella::init_stella::update_input_file'
+         call update_input_file()
+      end if 
+      
+      if (debug) write (*, *) 'stella::init_stella::read_debug_flags'
       call read_debug_flags
 !      if(stella_debug) debug = .true. 
       debug = debug .and. proc0
@@ -180,6 +190,7 @@ contains
          call time_message(.false., time_init, ' Initialization')
       end if
 
+      ! Broadcast the <run_name> or <job_name> to all processors
       if (proc0) cbuff = trim(run_name)
       call broadcast(cbuff)
       if (.not. proc0) call init_job_name(cbuff)

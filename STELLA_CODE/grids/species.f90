@@ -9,13 +9,23 @@ module species
    public :: reinit_species
    public :: communicate_species_multibox
    !public :: init_trin_species
-   public :: nspec, spec, pfac
+   public :: spec, pfac
    public :: ion_species, electron_species, slowing_down_species, tracer_species
    public :: has_electron_species, has_slowing_down_species
    public :: ions, electrons, impurity
    public :: modified_adiabatic_electrons, adiabatic_electrons
+   
+   ! Make the namelist public
+   public :: set_default_parameters
+   public :: nspec, species_option, read_profile_variation 
+   public :: write_profile_variation, ecoll_zeff
+   public :: set_default_parameters_per_specie
+   public :: z, mass, dens, temp, tprim, fprim, d2ndr2, d2Tdr2, bess_fac, type
 
    private
+   
+   real :: z, mass, dens, temp, tprim, fprim, d2ndr2, d2Tdr2, dr, bess_fac
+   character(20) :: type
 
    integer, parameter :: ion_species = 1
    integer, parameter :: electron_species = 2 ! for collision operator
@@ -150,10 +160,8 @@ contains
       integer :: ierr, in_file
       logical :: exist
 
-      namelist /species_knobs/ nspec, species_option, &
-         read_profile_variation, &
-         write_profile_variation, &
-         ecoll_zeff
+      namelist /species_knobs/ nspec, species_option, read_profile_variation, &
+         write_profile_variation, ecoll_zeff
 
       type(text_option), dimension(4), parameter :: specopts = (/ &
                                                     text_option('default', species_option_stella), &
@@ -162,13 +170,8 @@ contains
                                                     text_option('euterpe', species_option_euterpe)/)
 
       if (proc0) then
-         nspec = 2
-         read_profile_variation = .false.
-         write_profile_variation = .false.
-         species_option = 'stella'
 
-         ecoll_zeff = .false.
-
+         call set_default_parameters()
          in_file = input_unit_exist("species_knobs", exist)
          if (exist) read (unit=in_file, nml=species_knobs)
 
@@ -194,7 +197,20 @@ contains
       call broadcast(ecoll_zeff)
       call broadcast(species_option_switch)
 
-   end subroutine read_species_knobs
+   end subroutine read_species_knobs 
+
+   subroutine set_default_parameters()
+   
+      implicit none
+      
+      nspec = 2
+      read_profile_variation = .false.
+      write_profile_variation = .false.
+      species_option = 'stella'
+
+      ecoll_zeff = .false.
+      
+   end subroutine set_default_parameters
 
    subroutine read_species_stella
 
@@ -203,12 +219,10 @@ contains
       use geometry, only: geo_surf
 
       implicit none
-
-      real :: z, mass, dens, temp, tprim, fprim, d2ndr2, d2Tdr2, dr, bess_fac
+ 
       integer :: ierr, unit, is
-      character(len=128) :: filename
-
-      character(20) :: type
+      character(len=128) :: filename 
+      
       type(text_option), dimension(9), parameter :: typeopts = (/ &
                                                     text_option('default', ion_species), &
                                                     text_option('ion', ion_species), &
@@ -225,16 +239,7 @@ contains
 
       do is = 1, nspec
          call get_indexed_namelist_unit(unit, "species_parameters", is)
-         z = 1
-         mass = 1.0
-         dens = 1.0
-         temp = 1.0
-         tprim = -999.9
-         fprim = -999.9
-         d2ndr2 = 0.0
-         d2Tdr2 = 0.0
-         bess_fac = 1.0
-         type = "default"
+         call set_default_parameters_per_specie()
          read (unit=unit, nml=species_parameters)
          close (unit=unit)
 
@@ -243,12 +248,9 @@ contains
          spec(is)%dens = dens
          spec(is)%temp = temp
          spec(is)%tprim = tprim
-         spec(is)%fprim = fprim
-         ! this is (1/n_s)*d^2 n_s / drho^2
-         spec(is)%d2ndr2 = d2ndr2
-         ! this is (1/T_s)*d^2 T_s / drho^2
-         spec(is)%d2Tdr2 = d2Tdr2
-
+         spec(is)%fprim = fprim 
+         spec(is)%d2ndr2 = d2ndr2 ! this is (1/n_s)*d^2 n_s / drho^2 
+         spec(is)%d2Tdr2 = d2Tdr2 ! this is (1/T_s)*d^2 T_s / drho^2 
          spec(is)%dens_psi0 = dens
          spec(is)%temp_psi0 = temp
 
@@ -281,6 +283,24 @@ contains
       end do
 
    end subroutine read_species_stella
+   
+
+   subroutine set_default_parameters_per_specie()
+   
+      implicit none
+      
+      z = 1
+      mass = 1.0
+      dens = 1.0
+      temp = 1.0
+      tprim = -999.9
+      fprim = -999.9
+      d2ndr2 = 0.0
+      d2Tdr2 = 0.0
+      bess_fac = 1.0
+      type = "default"
+      
+   end subroutine set_default_parameters_per_specie
 
    subroutine broadcast_parameters
 
