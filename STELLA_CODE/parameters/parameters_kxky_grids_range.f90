@@ -3,6 +3,10 @@
 !###############################################################################
 ! Namelist: &parameters_kxky_grids_range
 ! These flags will allow you to toggle the algorithm choices in stella.
+! 
+! Note that we do not want to make the variables from the <kxky_grids_box>
+! namelist public, because only the variables from parameters_kxky_grids.f90 
+! should be used throughout stella, this script only handles the namelist.
 !###############################################################################
 
 module parameters_kxky_grids_range
