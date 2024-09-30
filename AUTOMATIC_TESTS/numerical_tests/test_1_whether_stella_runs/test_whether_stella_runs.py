@@ -75,6 +75,11 @@ def test_whether_correct_quantities_are_present_in_netcdf_file(error=False):
     # Find the netcdf output file which was generated during our local stella run
     local_netcdf_file = local_stella_run_directory / input_filename.replace('.in', '.out.nc')
     
+    # Different stella versions have different variables
+    stella_v8 = True
+    stella_v7 = False
+    stella_v6 = False
+    
     # Open the netcdf file
     with xr.open_dataset(local_netcdf_file) as local_netcdf:
     
@@ -99,22 +104,35 @@ def test_whether_correct_quantities_are_present_in_netcdf_file(error=False):
         
         # Check whether all the diagnostics data is present in the netcdf file
         dist_extensions = ['_vs_vpamus', '_vs_zvpas', '_vs_zmus', '_vs_zvpamus']
-        expected_keys = ['t', 'omega', 'phi2', 'apar2', 'bpar2', 'omega']; new_keys = True
+        expected_keys = ['t', 'omega', 'phi2', 'apar2', 'bpar2', 'omega']; 
         expected_keys += [i+j for i in ['pflux', 'qflux', 'vflux'] for j in ['_vs_s', '_vs_kxkyzs']]
         expected_keys += [i+j for i in ['g2', 'h2', 'f2', 'g2nozonal', 'h2nozonal', 'f2nozonal'] for j in dist_extensions]
         expected_keys += ['g2_vs_zkykxs', 'h2_vs_zkykxs', 'f2_vs_zkykxs']
         for key in expected_keys:
             if (key not in local_netcdf): 
-                print(f'ERROR: The quantity {key} could not be found in the netcdf file.'); new_keys = False
+                print(f'ERROR: The quantity {key} could not be found in the netcdf file.')
+                stella_v8 = False; stella_v7 = True
             
         # Try old stella names
-        if new_keys==False:
+        if stella_v7==True:
             print('--------------------------------------------------')
-            print(' The new stella keys werent found, try old keys.')
+            print(' The new stella keys werent found, try older keys.')
             print('--------------------------------------------------')
-            expected_keys = ['t', 'omega', 'phi2', 'apar2', 'bpar2', 'pflx', 'vflx', 'phi_vs_t', 'phi2_vs_kxky', \
+            expected_keys = ['t', 'omega', 'phi2', 'apar2', 'bpar2', 'qflx', 'pflx', 'vflx', 'phi_vs_t', 'phi2_vs_kxky', \
                'pflx_vs_kxky', 'vflx_vs_kxky', 'qflx_vs_kxky', 'pflux_x', 'vflux_x', 'qflux_x', \
-               'dens_x', 'upar_x', 'temp_x', 'pflx_kxky', 'vflx_kxky', 'qflx_kxky', 'gvmus', 'gzvs']  
+               'dens_x', 'upar_x', 'temp_x', 'pflx_kxky', 'vflx_kxky', 'qflx_kxky', 'gvmus', 'gzvs'] 
+            for key in expected_keys:
+               if (key not in local_netcdf): 
+                   print(f'ERROR: The quantity {key} could not be found in the netcdf file.'); 
+                   stella_v7 = False; stella_v6 = True
+            
+        # Try old stella names
+        if stella_v6==True:
+            print('--------------------------------------------------')
+            print(' The new stella keys werent found, try older keys.')
+            print('--------------------------------------------------')
+            expected_keys = ['t', 'omega', 'phi2', 'phi_vs_t', 'phi2_vs_kxky', 'pflux_x', 'vflux_x', 'qflux_x', \
+               'dens_x', 'upar_x', 'temp_x', 'pflx_kxky', 'vflx_kxky', 'qflx_kxky', 'gvmus', 'gzvs'] 
             for key in expected_keys:
                if (key not in local_netcdf): 
                    print(f'ERROR: The quantity {key} could not be found in the netcdf file.'); error = True
