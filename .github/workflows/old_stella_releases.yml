@@ -50,9 +50,17 @@ jobs:
           sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev
           pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
           sed -i 's/nproc = 16/nproc = 4/g' AUTOMATIC_TESTS/config.ini 
+          
+      # Check $GITHUB_WORKSPACE
+      - name: Check Github Workspace
+        run: | 
+          echo " "; echo "Running directory:"; echo "  $(pwd)"
+          echo " "; echo "Files in directory:"; echo "$(ls -la | sed 's/^/  /')"
+          echo " "; echo "Files in directory:"; echo "$(ls AUTOMATIC_TESTS/numerical_tests -la | sed 's/^/  /')"
+          echo " "; echo "Files in directory:"; echo "$(ls AUTOMATIC_TESTS/numerical_tests/stella_releases -la | sed 's/^/  /')"
 
       # Coppy stella executable from AUTOMATIC_TESTS/numerical_tests/stella_releases
-      - name: Download stella 
+      - name: Copy stella executable
         run: |
           cp AUTOMATIC_TESTS/numerical_tests/stella_releases/stella_v0.7 stella
     
