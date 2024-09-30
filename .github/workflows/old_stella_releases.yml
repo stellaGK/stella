@@ -16,7 +16,7 @@ jobs:
 #-----------------------------------------------------------------------
 
   # Perform python tests one by one
-  stella_v0.5: 
+  stella-v0.5: 
     runs-on: ubuntu-22.04
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
@@ -72,7 +72,7 @@ jobs:
           if ${{ contains(matrix.config.name, '7 -') }}; then make numerical-tests-7; fi
           
   # Perform python tests one by one
-  stella_v0.6: 
+  stella-v0.6: 
     runs-on: ubuntu-22.04
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
@@ -129,7 +129,7 @@ jobs:
 
 
   # Perform python tests one by one
-  stella_v0.7: 
+  stella-v0.7: 
     runs-on: ubuntu-22.04
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
