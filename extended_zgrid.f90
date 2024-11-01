@@ -461,7 +461,8 @@ contains
 !        if (periodic(iky)) field(iky,:,nzgrid,:) = field(iky,:,-nzgrid,:)
      end do
 
-     field(1, :, -nzgrid, :) = field(1, :, nzgrid, :) 
+     ! better way around! 
+     field(1, :, nzgrid, :) = field(1, :, -nzgrid, :) 
    end subroutine enforce_reality
 
    

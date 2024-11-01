@@ -59,6 +59,8 @@ contains
      use parallel_streaming, only: stream_correction, stream, stream_store_full
      
      use species, only: has_electron_species
+
+     use extended_zgrid, only: enforce_reality
      implicit none
 
      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
@@ -166,6 +168,7 @@ contains
            end do
         end do
 
+        call enforce_reality (source(:,:,:,:,ivmu)) 
 !!        call center_zed(iv, source(:,:,:,:,ivmu))
      end do
 

@@ -1469,7 +1469,8 @@ contains
             if (akx(1) < epsilon(0.)) then
                phi(1, 1, :, :) = 0.0
             end if
-            
+
+!            call enforce_reality (phi) 
          else
             !> calculate the contribution to quasineutrality coming from the velocity space
             !> integration of the guiding centre distribution function g;
@@ -1543,7 +1544,7 @@ contains
       end if
 
       phi(1, 1, :, :) = 0.
-!      call enforce_reality (phi) 
+      call enforce_reality (phi) 
       
       deallocate (source)
       apar = 0.
@@ -1606,6 +1607,7 @@ contains
          !> store result in phi, which will be further modified below to account for polarization term
          call sum_allreduce(source)
 
+         !!> Better fix when only on the implicit solve 
          if (present(implicit_solve)) then
             allocate(source_copy(naky,nakx, -nzgrid:nzgrid, ntubes)) ; source_copy = 0.0
             source_copy = spread(source, 4, ntubes)
