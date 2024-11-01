@@ -135,8 +135,8 @@ contains
          if (driftkinetic_implicit) then
             call get_source_ffs_itteration (phi_old, g2, phi_source_ffs)
 !!!!!!!            call get_drifts_ffs_itteration (phi_old, g2, drifts_source_ffs)
-!!            phi_source_ffs = phi_source_ffs + drifts_source_ffs
-            phi_source = 0.0
+            !!            phi_source_ffs = phi_source_ffs + drifts_source_ffs
+            phi_source = tupwnd_m * phi
             !> set the g on the RHS to be g from the previous time step  
             !> FFS will have a RHS source term
             !> modify being passes in will make sure that this source is included
@@ -176,7 +176,8 @@ contains
          if (use_deltaphi_for_response_matrix .and. include_bpar) bpar = bpar + bpar_old
 
          if (driftkinetic_implicit) then
-            phi_source = phi
+            !!!!!!phi_source = phi
+            phi_source = tupwnd_m * phi_old + tupwnd_p * phi
          else
 	    ! get time-centered phi
             phi_source = tupwnd_m * phi_old + tupwnd_p * phi
@@ -289,7 +290,7 @@ contains
                      ! to the standard zed domain; the mapped pdf is called 'g'
                      call map_from_extended_zgrid(it, ie, iky, pdf2, g(iky, :, :, :, ivmu))
                      deallocate (pdf1, pdf2, phiext, aparext, aparext_new, aparext_old, bparext)
-		               if (present(mod)) deallocate(phiffsext)
+                     if (present(mod)) deallocate(phiffsext)
                   end do
                end do
             end do

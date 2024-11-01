@@ -1210,7 +1210,10 @@ contains
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
          call get_phi(phi, dist, skip_fsa_local)
-      
+
+         ! Enforce periodicity for zonal modes 
+         phi(1, :, nzgrid, :) = phi(1, :, -nzgrid, :)
+         
       else if (fphi > epsilon(0.0) .and. include_bpar) then
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
 
@@ -1292,6 +1295,8 @@ contains
      use kt_grids, only: akx
      use gyro_averages, only: gyro_average
 
+     use extended_zgrid, only: enforce_reality
+     
      implicit none
      complex, dimension(:, :, -nzgrid:, :), intent (in out) :: source
      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gold
@@ -1322,9 +1327,11 @@ contains
      
      if (any(gamtot(1, 1, :) < epsilon(0.))) source(1, 1, :, :) = 0.0
      if (akx(1) < epsilon(0.)) then
-         source(1, 1, :, :) = 0.0
-      end if
+        source(1, 1, :, :) = 0.0
+     end if
 
+!     call enforce_reality(source)
+     
      deallocate(source2, gamtot_t) 
      
    end subroutine get_fields_source
@@ -1335,7 +1342,7 @@ contains
      use mp, only: sum_allreduce
      use stella_layouts, only: vmu_lo
      use species, only: spec
-     use zgrid, only: nzgrid
+     use zgrid, only: nzgrid, ntubes
      use kt_grids, only: naky, nakx
      use vpamu_grids, only: integrate_species_ffs
      use gyro_averages, only: gyro_average, j0_B_ffs
@@ -1344,11 +1351,14 @@ contains
      use stella_layouts, only: iv_idx, imu_idx, is_idx
      use kt_grids, only: nalpha
      
+     use extended_zgrid, only: enforce_reality
+
      implicit none
      
      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
      complex, dimension(:, :, -nzgrid:), intent(in out) :: source
-     
+
+     complex, dimension (:,:,:,:), allocatable :: source_copy 
      integer :: it, iz, ivmu
      complex, dimension(:, :, :), allocatable :: gyro_g, gyro_g2
      
@@ -1374,6 +1384,12 @@ contains
      !> gather sub-sums from each processor and add them together
      !> store result in phi, which will be further modified below to account for polarization term
      call sum_allreduce(source)
+
+     allocate(source_copy(naky,nakx, -nzgrid:nzgrid, ntubes)) ; source_copy = 0.0
+     source_copy = spread(source, 4, ntubes)
+     call enforce_reality (source_copy)
+     deallocate(source_copy)
+     
      !> no longer need <g>, so deallocate
      deallocate (gyro_g, gyro_g2)
 
@@ -1403,6 +1419,8 @@ contains
       use physics_flags, only: adiabatic_option_switch
       use physics_flags, only: adiabatic_option_fieldlineavg
       use stella_geometry, only: dl_over_b
+
+      use extended_zgrid, only: enforce_reality
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1524,6 +1542,9 @@ contains
          phi(1, 1, :, :) = 0.
       end if
 
+      phi(1, 1, :, :) = 0.
+!      call enforce_reality (phi) 
+      
       deallocate (source)
       apar = 0.
       if (include_apar) then
@@ -1537,7 +1558,7 @@ contains
          use mp, only: sum_allreduce
          use stella_layouts, only: vmu_lo
          use species, only: spec
-         use zgrid, only: nzgrid
+         use zgrid, only: nzgrid, ntubes
          use kt_grids, only: naky, nakx
          use vpamu_grids, only: integrate_species_ffs
          use gyro_averages, only: gyro_average, j0_B_ffs
@@ -1545,12 +1566,14 @@ contains
          use gyro_averages, only: j0_B_const
          use stella_layouts, only: iv_idx, imu_idx, is_idx
          use kt_grids, only: nalpha
-
+         
+         use extended_zgrid, only: enforce_reality
          implicit none
 
          complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
          complex, dimension(:, :, -nzgrid:), intent(in out) :: source
-
+         complex,  dimension(:, :, :, :), allocatable :: source_copy
+         
          integer :: it, iz, ivmu
          complex, dimension(:, :, :), allocatable :: gyro_g
          logical, optional, intent(in) :: implicit_solve
@@ -1582,6 +1605,14 @@ contains
          !> gather sub-sums from each processor and add them together
          !> store result in phi, which will be further modified below to account for polarization term
          call sum_allreduce(source)
+
+         if (present(implicit_solve)) then
+            allocate(source_copy(naky,nakx, -nzgrid:nzgrid, ntubes)) ; source_copy = 0.0
+            source_copy = spread(source, 4, ntubes)
+            call enforce_reality (source_copy)
+            source = source_copy (:,:,:,1) 
+            deallocate(source_copy)
+         end if
          !> no longer need <g>, so deallocate
          deallocate (gyro_g)
 

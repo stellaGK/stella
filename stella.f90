@@ -314,6 +314,7 @@ contains
 
       !> get initial field from initial distribution function
       if (debug) write (6, *) 'stella::init_stella::advance_fields'
+      fields_updated = .false.
       call advance_fields(gnew, phi, apar, bpar, dist='g')
 
       if (radial_variation) then

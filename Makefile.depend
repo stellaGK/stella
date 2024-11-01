@@ -468,6 +468,7 @@ response_matrix.o: \
 	 linear_solve.o \
 	 mp.o \
 	 mp_lu_decomposition.o \
+	 parallel_streaming.o \
 	 physics_flags.o \
 	 physics_parameters.o \
 	 run_parameters.o \

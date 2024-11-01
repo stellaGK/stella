@@ -16,6 +16,7 @@ module extended_zgrid
    public :: map_from_extended_zgrid
    public :: map_to_iz_ikx_from_izext
 
+   public :: enforce_reality
    private
 
    !> these arrays needed to keep track of connections between different
@@ -433,6 +434,37 @@ contains
 
    end subroutine map_from_extended_zgrid
 
+   subroutine enforce_reality (field)
+
+     use zgrid, only: nzgrid, ntubes
+     use kt_grids, only: naky
+     
+     implicit none
+
+     complex, dimension(:, :, -nzgrid:, :), intent(inout) :: field
+     complex, dimension(:), allocatable :: field_ext
+     integer :: ulim, nz_ext
+     integer :: it, ie, iky
+
+     field(1,1,:,:) = 0.0
+     
+     do iky = 1, naky
+        do it = 1, ntubes
+           do ie = 1, neigen(iky)
+              nz_ext = nsegments(ie, iky) * nzed_segment + 1
+              allocate (field_ext(nz_ext)); field_ext = 0.0
+              call map_to_extended_zgrid (it, ie, iky, field(iky, :, :, :), field_ext, ulim)
+              call map_from_extended_zgrid (it, ie, iky, field_ext, field(iky,:, :, :))
+              deallocate(field_ext)
+           end do
+        end do
+!        if (periodic(iky)) field(iky,:,nzgrid,:) = field(iky,:,-nzgrid,:)
+     end do
+
+     field(1, :, -nzgrid, :) = field(1, :, nzgrid, :) 
+   end subroutine enforce_reality
+
+   
    subroutine map_to_iz_ikx_from_izext(iky, ie, iz_from_izext, ikx_from_izext)
 
       implicit none

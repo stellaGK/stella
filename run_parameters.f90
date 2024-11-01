@@ -253,7 +253,6 @@ contains
          
          !> print warning messages and override inconsistent or unsupported options for full_flux_surface = T
          if (full_flux_surface) then
-            if (has_electron_species(spec)) call mp_abort('FFS not set up for kinetic electrons yet')
             if (fields_kxkyz) then
                write (*, *)
                write (*, *) '!!!WARNING!!!'
@@ -337,7 +336,10 @@ contains
       zed_upwind_minus = 0.5 * (1.0 - zed_upwind)
 
       if (.not. include_mirror) mirror_implicit = .false.
-      if (.not. include_parallel_streaming) stream_implicit = .false.
+      if (.not. include_parallel_streaming)  then
+         stream_implicit = .false.
+         driftkinetic_implicit = .false.
+      end if
 
       if (mirror_implicit .or. stream_implicit .or. drifts_implicit) then
          fully_explicit = .false.

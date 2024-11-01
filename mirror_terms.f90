@@ -699,7 +699,7 @@ contains
          !end if
 
          allocate (g0v(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
-         allocate (g0x(ny, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         allocate (g0x(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          ! for upwinding, need to evaluate dg^{*}/dvpa in y-space
          ! first must take g^{*}(ky) and transform to g^{*}(y)
 
@@ -720,7 +720,7 @@ contains
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                do it = 1, ntubes
                   do iz = -nzgrid, nzgrid
-                     do ikx = 1, nakx
+                     do ikx = 1, ikx_max
                         g0x(:, ikx, iz, it, ivmu) = g0x(:, ikx, iz, it, ivmu) * mirror_int_fac(:, iz, ivmu)
                      end do
                   end do
@@ -740,9 +740,9 @@ contains
             iy = iy_idx(kxyz_lo, ikxyz)
             do imu = 1, nmu
                call fd_variable_upwinding_vpa(1, g0v(:, imu, ikxyz), dvpa, &
-                                              mirror_sign(iy, iz), vpa_upwind, dgdvpa(:, imu, ikxyz))
+                    mirror_sign(iy, iz), vpa_upwind, dgdvpa(:, imu, ikxyz))
                dgdvpa(:, imu, ikxyz) = g0v(:, imu, ikxyz) + tupwnd * mirror(iy, iz, imu, is) * &
-                                       dgdvpa(:, imu, ikxyz)
+                    dgdvpa(:, imu, ikxyz)
                call invert_mirror_operator(imu, ikxyz, dgdvpa(:, imu, ikxyz))
             end do
          end do
@@ -759,7 +759,7 @@ contains
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                do it = 1, ntubes
                   do iz = -nzgrid, nzgrid
-                     do ikx = 1, nakx
+                     do ikx = 1, ikx_max
                         g0x(:, ikx, iz, it, ivmu) = g0x(:, ikx, iz, it, ivmu) / mirror_int_fac(:, iz, ivmu)
                      end do
                   end do
