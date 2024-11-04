@@ -102,13 +102,10 @@ contains
         call gyro_average(phi, g0, j0_ffs(:, :, :, ivmu))
         
         !> Full d <phi>/dz
-!!        call get_dgdz_centered(g0, ivmu, dgphi_dz)
         call get_dzed(iv, g0, dgphi_dz)
         !> d phi/dz
-!!        call get_dgdz_centered(phi, ivmu, dphi_dz)
         call get_dzed(iv, phi, dphi_dz)
         !> dg/dz
-!!        call get_dgdz(g(:, :, :, :, ivmu), ivmu, dgdz)
         call get_dzed(iv, g(:, :, :, :, ivmu), dgdz)
         !> get these quantities in real space 
         do it = 1, ntubes
@@ -137,8 +134,6 @@ contains
            call center_zed(iv, coeff2(ia, :) ,  -nzgrid)
         end do
         g2y = spread(spread(coeff, 2, ikx_max), 4, ntubes) * g2y + spread(spread(coeff2, 2, ikx_max), 4, ntubes) * g0y
-!        g2y = spread(spread(stream_correction(:,:,iv,is), 2, ikx_max), 4, ntubes) &
-!             * (g2y + g0y * spread(spread(maxwell_mu_avg(:, :, imu, is), 2, ikx_max),4, ntubes ) * scratch)
 
         coeff = stream_store_full (:,:,iv,is) * (maxwell_mu(:, :, imu, is) - maxwell_mu_avg(:, :, imu, is)) * scratch
         do ia = 1, ny
@@ -146,19 +141,12 @@ contains
         end do
         g3y = spread(spread(coeff, 2, ikx_max), 4, ntubes) * g1y
 
-!        g3y = spread(spread(stream_store_full (:,:,iv,is) * (maxwell_mu(:, :, imu, is) & 
-!!             - maxwell_mu_avg(:, :, imu, is)), 2, ikx_max),4, ntubes) &
-!             * g1y * scratch 
-
         coeff = stream_store_full (:,:,iv,is) * maxwell_mu(:, :, imu, is)
         do ia = 1, ny 
            call center_zed(iv, coeff(ia, :) ,  -nzgrid) 
         end do
         g0y =  spread(spread(coeff, 2, ikx_max), 4, ntubes) * (g0y - g1y) * scratch 
-!        g0y = spread(spread(stream_store_full (:,:,iv,is) * maxwell_mu(:, :, imu, is) , 2, ikx_max),4, ntubes) & 
-!             * (g0y - g1y) * scratch 
 
-!        g0y = 0.0 
         g0y = g0y + g2y + g3y
 
         do it = 1, ntubes
@@ -169,7 +157,6 @@ contains
         end do
 
         call enforce_reality (source(:,:,:,:,ivmu)) 
-!!        call center_zed(iv, source(:,:,:,:,ivmu))
      end do
 
      deallocate(g0)

@@ -116,6 +116,7 @@ contains
          !> save the incoming pdf and phi, as they will be needed later
          !> this will become g^{n+1, i} -- the g from the previous iteration         
          if (driftkinetic_implicit .and. (itt .NE. 1)) then
+            fields_updated = .false.
             call advance_fields(g2, phi, apar, bpar, dist=trim(dist_choice))
             phi_old = phi
          end if 
@@ -197,7 +198,6 @@ contains
          else
             call update_pdf
          end if
-         
          !! change
          !!error = 0.0 
          itt = itt + 1
@@ -476,8 +476,8 @@ contains
                ! and store in dummy variable z_scratch
                z_scratch = maxwell_mu(ia, :, imu, is)
                call center_zed(iv, z_scratch, -nzgrid)
-	         else
-	            z_scratch = 1.0
+            else
+               z_scratch = 1.0
             end if
          end if
          ! multiply by Maxwellian factor
@@ -527,7 +527,7 @@ contains
             ikx = ikx_from_izext(izext)
             iz = iz_from_izext(izext)
             scratch(izext) = zi * scratch(izext) * (akx(ikx) * wdriftx_phi(ia, iz, ivmu) &
-                                                    + aky(iky) * (wdrifty_phi(ia, iz, ivmu) + wstar(ia, iz, ivmu)))
+                 + aky(iky) * (wdrifty_phi(ia, iz, ivmu) + wstar(ia, iz, ivmu)))
          end do
          call center_zed(iv, scratch, 1, periodic(iky))
 
@@ -1250,7 +1250,7 @@ contains
                   ! unpack phi (and apar if evolving) from the field vector;
                   ! also apply phase shift at periodic point
                   phi(iky, ikx, -nzgrid:nzgrid - 1, it) = fld(:nzp)
-                  phi(iky, ikx, nzgrid, it) = phi(iky, ikx, -nzgrid, it) / phase_shift(iky)
+                  phi(iky, ikx, nzgrid, it) = phi(iky, ikx, -nzgrid, it) * phase_shift(iky)
                   if (include_apar) then
                      apar(iky, ikx, -nzgrid:nzgrid - 1, it) = fld(offset_apar + 1:nzp + offset_apar)
                      apar(iky, ikx, nzgrid, it) = apar(iky, ikx, -nzgrid, it) / phase_shift(iky)

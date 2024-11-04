@@ -781,9 +781,9 @@ contains
       if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
       gamtot = real(gamtot_con)
       !> TODO-GA: move this to adiabatic response factor 
-      if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then 
-         gamtot(1, 1, :) = 0.0
-      end if
+!      if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then 
+      gamtot(1, 1, :) = 0.0
+      !end if
 
       if (.not. has_electron_species(spec)) then
          ia = 1
@@ -812,7 +812,7 @@ contains
 !          call test_band_lu_factorisation (gam0_ffs, lu_gam0_ffs)
          call band_lu_factorisation_ffs(gam0_ffs, lu_gam0_ffs)
       end if
-
+      
       deallocate (wgts)
       deallocate (kperp2_swap)
       deallocate (aj0_alpha, gam0_alpha)
@@ -1316,7 +1316,6 @@ contains
      call gyro_average(phiold, source2, gam0_ffs)
 
      source2 = source2 - gamtot_t * phiold
-
      source = source - source2
 
      where (gamtot_t < epsilon(0.0))
@@ -1330,7 +1329,7 @@ contains
         source(1, 1, :, :) = 0.0
      end if
 
-!     call enforce_reality(source)
+     call enforce_reality(source)
      
      deallocate(source2, gamtot_t) 
      
@@ -1385,10 +1384,10 @@ contains
      !> store result in phi, which will be further modified below to account for polarization term
      call sum_allreduce(source)
 
-     allocate(source_copy(naky,nakx, -nzgrid:nzgrid, ntubes)) ; source_copy = 0.0
-     source_copy = spread(source, 4, ntubes)
-     call enforce_reality (source_copy)
-     deallocate(source_copy)
+     ! allocate(source_copy(naky,nakx, -nzgrid:nzgrid, ntubes)) ; source_copy = 0.0
+     ! source_copy = spread(source, 4, ntubes)
+     ! call enforce_reality (source_copy)
+     ! deallocate(source_copy)
      
      !> no longer need <g>, so deallocate
      deallocate (gyro_g, gyro_g2)
@@ -1437,6 +1436,7 @@ contains
       integer :: it, ia
       complex :: tmp
 
+      complex,  dimension(:, :, :, :), allocatable :: source_copy
       allocate (source(naky, nakx, -nzgrid:nzgrid)); source = 0.0
 
       if (fphi > epsilon(0.0)) then
@@ -1470,7 +1470,6 @@ contains
                phi(1, 1, :, :) = 0.0
             end if
 
-!            call enforce_reality (phi) 
          else
             !> calculate the contribution to quasineutrality coming from the velocity space
             !> integration of the guiding centre distribution function g;
@@ -1478,6 +1477,7 @@ contains
             !> this is returned in source
             if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::get_g_integral_contribution'
             call get_g_integral_contribution(g, source)
+            
             !> use sum_s int d3v <g> and QN to solve for phi
             !> NB: assuming here that ntubes = 1 for FFS sim
             if (debug) write (*, *) 'fields::advance_fields::get_phi_ffs'
@@ -1608,13 +1608,13 @@ contains
          call sum_allreduce(source)
 
          !!> Better fix when only on the implicit solve 
-         if (present(implicit_solve)) then
-            allocate(source_copy(naky,nakx, -nzgrid:nzgrid, ntubes)) ; source_copy = 0.0
-            source_copy = spread(source, 4, ntubes)
-            call enforce_reality (source_copy)
-            source = source_copy (:,:,:,1) 
-            deallocate(source_copy)
-         end if
+         ! if (present(implicit_solve)) then
+         ! allocate(source_copy(naky,nakx, -nzgrid:nzgrid, ntubes)) ; source_copy = 0.0
+         ! source_copy = spread(source, 4, ntubes)
+         ! call enforce_reality (source_copy)
+         ! source = source_copy (:,:,:,1) 
+         ! deallocate(source_copy)
+         ! end if
          !> no longer need <g>, so deallocate
          deallocate (gyro_g)
 

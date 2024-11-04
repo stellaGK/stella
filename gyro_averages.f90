@@ -11,7 +11,6 @@ module gyro_averages
    public :: find_max_required_kalpha_index
    public :: j1_ffs
    public :: j0_const, j0_B_const
-   public :: j0max_const
 
    private
 
@@ -52,7 +51,7 @@ module gyro_averages
    logical :: debug = .false.
 
    type(coupled_alpha_type), dimension(:, :, :, :), allocatable :: j1_ffs
-   real, dimension(:, :, :, :), allocatable :: j0_const, j0_B_const, j0max_const
+   real, dimension(:, :, :, :), allocatable :: j0_const, j0_B_const
 
 contains
 
@@ -293,9 +292,6 @@ contains
       complex, dimension(:, :), allocatable :: j0_const_in_kalpha, j0_B_const_in_kalpha
       complex, dimension(:, :), allocatable :: j0_const_c, j0_B_const_c
 
-      real, dimension(:), allocatable :: j0max
-      complex, dimension(:, :), allocatable :: j0max_const_in_kalpha, j0max_const_c
-
       !       call open_output_file (j0_ffs_unit, '.j0_ffs')
       !       call open_output_file (j0_B_ffs_unit, '.j0_over_B_ffs')
 
@@ -331,11 +327,6 @@ contains
       allocate (j0_const(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); j0_const = 0.0
       allocate (j0_B_const(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); j0_B_const = 0.0
 
-      allocate (j0max(nalpha))
-      allocate (j0max_const_in_kalpha(naky_all, ikx_max)); j0max_const_in_kalpha = 0.0
-      allocate (j0max_const_c(naky, nakx)); j0max_const_c = 0.0
-      allocate (j0max_const(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); j0max_const = 0.0
-
       ia_max_j0_count = 0; ia_max_j0_B_count = 0
       do iz = -nzgrid, nzgrid
 !         if (proc0) write (*, *) 'calculating Fourier coefficients needed for gyro-averaging with alpha variation; zed index: ', iz
@@ -361,7 +352,6 @@ contains
                      !> compute J_0*B*exp(-v^2), needed when integrating g over v-space in Maxwell's equations,
                      !> due to B in v-space Jacobian
                      j0_B(ia) = aj0_alpha(ia) * bmag(ia, iz)
-                     j0max = aj0_alpha(ia) * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is)
                      aj1_alpha(ia) = j1(arg)
                   end do
 
@@ -371,10 +361,9 @@ contains
                   call transform_alpha2kalpha(aj0_alpha, aj0_kalpha)
                   call transform_alpha2kalpha(j0_B, j0_B_kalpha)
                   call transform_alpha2kalpha(aj1_alpha, aj1_kalpha)
-
+                  
                   j0_const_in_kalpha(iky, ikx) = aj0_kalpha(1)
                   j0_B_const_in_kalpha(iky, ikx) = j0_B_kalpha(1)
-                  j0max_const_in_kalpha(iky, ikx) = j0max(1)
                      
                   !> given the Fourier coefficients aj0_kalpha, calculate the minimum number of coefficients needed,
                   !> called j0_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
@@ -412,8 +401,6 @@ contains
             j0_const(:, :, iz, ivmu) = real(j0_const_c)
             call swap_kxky_back_ordered(j0_B_const_in_kalpha, j0_B_const_c)
             j0_B_const(:, :, iz, ivmu) = real(j0_B_const_c)
-            call swap_kxky_back_ordered(j0max_const_in_kalpha, j0max_const_c)
-            j0max_const(:, :, iz, ivmu) = real(j0max_const_c)
          end do
       end do
 
@@ -422,8 +409,6 @@ contains
 
       deallocate (j0_const_in_kalpha, j0_const_c)
       deallocate (j0_B_const_in_kalpha, j0_B_const_c)
-
-      deallocate (j0max_const_in_kalpha, j0max_const_c, j0max)
 
       !> calculate the reduction factor of Fourier modes
       !> used to represent J0
@@ -629,7 +614,6 @@ contains
 
       if (allocated(j0_B_const)) deallocate (j0_B_const)
       if (allocated(j0_const)) deallocate (j0_const)
-      if (allocated(j0max_const)) deallocate (j0max_const)
 
       bessinit = .false.
 
@@ -1053,7 +1037,6 @@ contains
       use common_types, only: coupled_alpha_type, gam0_ffs_type
       use zgrid, only: nzgrid
       use kt_grids, only: ikx_max, naky_all, naky
-
       implicit none
 
       type(coupled_alpha_type), dimension(:, :, -nzgrid:), intent(in) :: gam0

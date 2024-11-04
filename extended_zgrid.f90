@@ -75,7 +75,7 @@ contains
       !> Usually set to zero for standard local simulation, but can
       !> have an effect for global simulations and simulations with low
       !> magnetic shear that use periodic boundary conditions everywhere
-      phase_shift = exp(zi * aky * phase_shift_angle)
+      phase_shift = exp( zi * aky * phase_shift_angle)
 
       if (boundary_option_switch == boundary_option_linked .or. boundary_option_switch == boundary_option_linked_stellarator) then
 
@@ -418,7 +418,8 @@ contains
       curr_shift = 1.
       ikx = ikxmod(iseg, ie, iky)
       llim = 1; ulim = nzed_segment + 1
-      g(ikx, iz_low(iseg):iz_up(iseg), it) = gext(llim:ulim)
+      g(ikx, iz_low(iseg):iz_up(iseg), it) = gext(llim:ulim)      
+
       if (nsegments(ie, iky) > 1) then
          itmod = it
          do iseg = 2, nsegments(ie, iky)
@@ -462,7 +463,8 @@ contains
      end do
 
      ! better way around! 
-     field(1, :, nzgrid, :) = field(1, :, -nzgrid, :) 
+!     field(1, :, nzgrid, :) = field(1, :, -nzgrid, :)
+     field(1, :, -nzgrid, :) = field(1, :, nzgrid, :)
    end subroutine enforce_reality
 
    
