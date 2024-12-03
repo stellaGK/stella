@@ -318,13 +318,15 @@ contains
 
      use kt_grids, only: swap_kxky, swap_kxky_back
      use stella_transforms, only: transform_ky2y, transform_y2ky
+
+     use extended_zgrid, only: map_to_iz_ikx_from_izext
      implicit none
 
      complex, dimension (:), allocatable :: phiext
-     complex, dimension(naky, nakx, -nzgrid:nzgrid, ntubes) :: phi
-     complex, dimension(:,:,:,:), allocatable :: g0x
-     complex, dimension(:,:,:), allocatable :: phiy
-     complex, dimension (:,:), allocatable :: g_swap
+!     complex, dimension(naky, nakx, -nzgrid:nzgrid, ntubes) :: phi
+!     complex, dimension(:,:,:,:), allocatable :: g0x
+!     complex, dimension(:,:,:), allocatable :: phiy
+!     complex, dimension (:,:), allocatable :: g_swap
      
      integer :: nz_ext
      real, dimension (:), allocatable :: zed_ext
@@ -334,10 +336,50 @@ contains
      integer :: iz, iky, ikx, ia, iy
      integer :: ikxkyz
 
-     integer, dimension(:), allocatable :: iz_from_izext
+     integer, dimension(:), allocatable :: iz_from_izext, ikx_from_izext
+     integer :: izext
      right = .not. left
 
      it = 1
+
+     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+        iv = iv_idx(vmu_lo, ivmu)
+        imu = imu_idx(vmu_lo, ivmu)
+        is = is_idx(vmu_lo, ivmu)
+        do iky = 1, naky
+           do it = 1, ntubes
+              do ie = 1, neigen(iky)
+                 nz_ext = nsegments(ie, iky) * nzed_segment + 1
+                 allocate (phiext(nz_ext)) 
+                 allocate (zed_ext(nz_ext))
+                 zed_ext = [((2 * pi * j) / (nz_ext + 1), j=-nz_ext/2 , nz_ext/2)]
+
+                 allocate (iz_from_izext(nz_ext))
+                 allocate (ikx_from_izext(nz_ext))
+                 call map_to_iz_ikx_from_izext(iky, ie, iz_from_izext, ikx_from_izext)
+                 
+                 do izext = 1, nz_ext
+                    iz = iz_from_izext(izext)
+                    phiext(izext) = phiinit * exp(-(zed_ext(izext) /width0)**2) * cmplx(1.0, 1.0) &
+                         * (den0 + 2.0 * zi * vpa(iv) * upar0) / abs(spec(is)%z)  &
+!                         * maxwell_vpa(iv, is) * maxwell_fac(is) 
+                         * maxwell_mu(1, iz, imu, is) * maxwell_vpa(iv, is) * maxwell_fac(is)
+                 end do
+                 
+                 call map_from_extended_zgrid(it, ie, iky, phiext, gnew(iky,:,:,:,ivmu))
+                 deallocate(phiext, zed_ext)
+                 deallocate(iz_from_izext, ikx_from_izext)
+              end do
+           end do
+        end do
+        call enforce_reality (gnew(:, :, :, :, ivmu))
+     end do
+
+     gnew (1,1,:,:,:) = 0.0
+ !    gnew (:,1,:,:,:) = 0.0
+     gvmu = 0.
+     call scatter(kxkyz2vmu, gnew, gvmu)
+        
      ! do iky = 1, naky
      !    do it = 1, ntubes
      !       do ie = 1, neigen(iky)
@@ -355,71 +397,71 @@ contains
      !    end do
      ! end do
 
+     
      ! if (chop_side) then
      !    if (left) phi(:, :, :-1, :) = 0.0
      !    if (right) phi(:, :, 1:, :) = 0.0
      ! end if
 
-     do iz = -nzgrid, nzgrid
-        phi(:, :, iz,1) = exp(-((zed(iz)) / width0)**2) * cmplx(1.0, 1.0)
-     end do
-     phi(1, 1, :, :) = 0.0
+!     do iz = -nzgrid, nzgrid
+!        phi(:, :, iz,1) = exp(-((zed(iz)) / width0)**2) * cmplx(1.0, 1.0)
+!     end do
+!     phi(1, 1, :, :) = 0.0
 
-     if (zonal_mode(1)) then
-        if (abs(akx(1)) < epsilon(0.0)) then
-           phi(1, 1, :, :) = 0.0
-        end if
+     ! if (zonal_mode(1)) then
+     !    if (abs(akx(1)) < epsilon(0.0)) then
+     !       phi(1, 1, :, :) = 0.0
+     !    end if
 
-        if (reality) then
-           do ikx = 1, nakx - ikx_max
-              phi(1, nakx - ikx + 1, :, :) = conjg(phi(1, ikx + 1, :, :))
-           end do
-        end if
-     end if
+     !    if (reality) then
+     !       do ikx = 1, nakx - ikx_max
+     !          phi(1, nakx - ikx + 1, :, :) = conjg(phi(1, ikx + 1, :, :))
+     !       end do
+     !    end if
+     ! end if
 
-     allocate (g_swap(naky_all, ikx_max))
-     allocate (phiy(ny, ikx_max, -nzgrid:nzgrid)) ; phiy = 0.0
-     do iz = -nzgrid, nzgrid
-        call swap_kxky(phi(:, :, iz, 1), g_swap)
-        call transform_ky2y(g_swap, phiy(:, :, iz))
-     end do
+     ! allocate (g_swap(naky_all, ikx_max))
+     ! allocate (phiy(ny, ikx_max, -nzgrid:nzgrid)) ; phiy = 0.0
+     ! do iz = -nzgrid, nzgrid
+     !    call swap_kxky(phi(:, :, iz, 1), g_swap)
+     !    call transform_ky2y(g_swap, phiy(:, :, iz))
+     ! end do
      
-     allocate (g0x(ny, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); g0x = 0.0
-     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-        iv = iv_idx(vmu_lo, ivmu)
-        imu = imu_idx(vmu_lo, ivmu)
-        is = is_idx(vmu_lo, ivmu)
-        do iy = 1, ny
-           do ikx = 1, ikx_max
-              do iz = -nzgrid, nzgrid
-                 g0x(iy, ikx, iz, ivmu) = phiinit * phiy(iy, ikx, iz) / abs(spec(is)%z) &
-                      * (den0 + 2.0 * zi * vpa(iv) * upar0) &
-                      * maxwell_mu(iy, iz, imu, is) &
-                      * maxwell_vpa(iv, is) * maxwell_fac(is)
-              end do
-           end do
-        end do
-     end do
+     ! allocate (g0x(ny, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); g0x = 0.0
+     ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+     !    iv = iv_idx(vmu_lo, ivmu)
+     !    imu = imu_idx(vmu_lo, ivmu)
+     !    is = is_idx(vmu_lo, ivmu)
+     !    do iy = 1, ny
+     !       do ikx = 1, ikx_max
+     !          do iz = -nzgrid, nzgrid
+     !             g0x(iy, ikx, iz, ivmu) = phiinit * phiy(iy, ikx, iz) / abs(spec(is)%z) &
+     !                  * (den0 + 2.0 * zi * vpa(iv) * upar0) &
+     !                  * maxwell_mu(iy, iz, imu, is) &
+     !                  * maxwell_vpa(iv, is) * maxwell_fac(is)
+     !          end do
+     !       end do
+     !    end do
+     ! end do
 
-     gnew = 0.0 
-     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-        do iz = -nzgrid, nzgrid
-           call transform_y2ky(g0x(:, :, iz, ivmu), g_swap)
-           call swap_kxky_back(g_swap, gnew(:, :, iz, 1, ivmu))
-        end do
-     end do
-     gnew = spread(gnew(:,:,:,1,:), 4, ntubes)
-     gnew (1,1,:,:,:) = 0.0
+     ! gnew = 0.0 
+     ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+     !    do iz = -nzgrid, nzgrid
+     !       call transform_y2ky(g0x(:, :, iz, ivmu), g_swap)
+     !       call swap_kxky_back(g_swap, gnew(:, :, iz, 1, ivmu))
+     !    end do
+     ! end do
+     ! gnew = spread(gnew(:,:,:,1,:), 4, ntubes)
+!     gnew (1,1,:,:,:) = 0.0
+!     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+!        call enforce_reality (gnew(:, :, :, :, ivmu))
+!     end do
+!     deallocate (g_swap)
      
-     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-        call enforce_reality (gnew(:, :, :, :, ivmu))
-     end do
-     deallocate (g_swap)
+!     gvmu = 0.
+!     call scatter(kxkyz2vmu, gnew, gvmu)
      
-     gvmu = 0.
-     call scatter(kxkyz2vmu, gnew, gvmu)
-     
-     deallocate(phiy, g0x)
+!     deallocate(phiy, g0x)
      
    end subroutine ginit_default_ffs
    ! initialize two kys and kx=0
