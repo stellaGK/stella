@@ -463,8 +463,8 @@ contains
      end do
 
      ! better way around! 
-!     field(1, :, nzgrid, :) = field(1, :, -nzgrid, :)
-     field(1, :, -nzgrid, :) = field(1, :, nzgrid, :)
+     field(1, :, nzgrid, :) = field(1, :, -nzgrid, :)
+!     field(1, :, -nzgrid, :) = field(1, :, nzgrid, :)
    end subroutine enforce_reality
 
    

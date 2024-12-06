@@ -156,7 +156,8 @@ contains
            end do
         end do
 
-        call enforce_reality (source(:,:,:,:,ivmu)) 
+        source(1, 1, :, :, :) = 0.0
+!        call enforce_reality (source(:,:,:,:,ivmu)) 
      end do
 
      deallocate(g0)

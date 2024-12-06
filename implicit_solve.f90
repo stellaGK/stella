@@ -113,14 +113,6 @@ contains
       !!> until fixed
       itt = 1
       do while (itt <= nitt)
-         !> save the incoming pdf and phi, as they will be needed later
-         !> this will become g^{n+1, i} -- the g from the previous iteration         
-         if (driftkinetic_implicit .and. (itt .NE. 1)) then
-            fields_updated = .false.
-            call advance_fields(g2, phi, apar, bpar, dist=trim(dist_choice))
-            phi_old = phi
-         end if 
-
          if (include_apar) then
             ! when solving for the 'inhomogeneous' piece of the pdf,
             ! use part of apar weighted towards previous time level
@@ -194,7 +186,12 @@ contains
             !> solving for full g = g_{inh} + g_{hom} 
             modify = .true.
             call update_pdf(modify)
-            g2 = g 
+            g2 = g
+            !> save the incoming pdf and phi, as they will be needed later
+            !> this will become g^{n+1, i} -- the g from the previous iteration         
+            fields_updated = .false.
+            call advance_fields(g2, phi, apar, bpar, dist=trim(dist_choice))
+            phi_old = phi
          else
             call update_pdf
          end if

@@ -30,7 +30,7 @@ module fields
    real :: gamtot_h, gamtot3_h, efac, efacp
 
    !> arrays allocated/used if simulating a full flux surface
-   type(coupled_alpha_type), dimension(:, :, :), allocatable :: gam0_ffs
+   type(coupled_alpha_type), dimension(:, :, :), allocatable :: gam0_ffs, gam0_ffs_corr
    type(gam0_ffs_type), dimension(:, :), allocatable :: lu_gam0_ffs
    complex, dimension(:), allocatable :: adiabatic_response_factor
 
@@ -697,6 +697,10 @@ contains
       if (.not. allocated(gam0_ffs)) then
          allocate (gam0_ffs(naky_all, ikx_max, -nzgrid:nzgrid))
       end if
+      
+      if (.not. allocated(gam0_ffs_corr)) then
+         allocate (gam0_ffs_corr(naky_all, ikx_max, -nzgrid:nzgrid))
+      end if
 
       !> Needed for adiabatic response
       if (.not. allocated(gamtot3)) then
@@ -764,7 +768,20 @@ contains
 !                call test_ffs_bessel_coefs (gam0_ffs(iky,ikx,iz)%fourier, gam0_alpha, iky, ikx, iz, gam0_ffs_unit)
 
                !! For gamtot for implicit solve
-               gam0_const(iky, ikx, iz) = gam0_kalpha(1)
+               gam0_ffs_corr(iky, ikx, iz)%max_idx = naky
+               if (.not. associated(gam0_ffs_corr(iky, ikx, iz)%fourier)) &
+                    allocate (gam0_ffs_corr(iky, ikx, iz)%fourier(gam0_ffs_corr(iky, ikx, iz)%max_idx))
+               gam0_ffs_corr(iky, ikx, iz)%fourier = gam0_kalpha(:gam0_ffs(iky, ikx, iz)%max_idx) - gam0_kalpha(1)
+
+               if (ikx == 1 .and. iky == naky) then
+                  gam0_ffs_corr(iky, ikx, iz)%fourier = 0.0
+                  gam0_const(iky, ikx, iz) = 0.0
+               else
+                  gam0_ffs_corr(iky, ikx, iz)%fourier = gam0_kalpha(:gam0_ffs(iky, ikx, iz)%max_idx) - gam0_kalpha(1)
+                  if(proc0) write(64,*) iky,ikx, iz, gam0_ffs_corr(iky, ikx, iz)%fourier
+                  gam0_const(iky, ikx, iz) = gam0_kalpha(1)
+                  if(proc0) write(65,*) iky, ikx, iz, gam0_const(iky, ikx, iz)
+               end if
             end do
          end do
       end do
@@ -812,7 +829,7 @@ contains
 !          call test_band_lu_factorisation (gam0_ffs, lu_gam0_ffs)
          call band_lu_factorisation_ffs(gam0_ffs, lu_gam0_ffs)
       end if
-      
+
       deallocate (wgts)
       deallocate (kperp2_swap)
       deallocate (aj0_alpha, gam0_alpha)
@@ -1313,11 +1330,14 @@ contains
      source = 0.0 
 
      call get_g_integral_contribution_source(gold, source(:,:,:,1) )
-     call gyro_average(phiold, source2, gam0_ffs)
+     call gyro_average(phiold, source2, gam0_ffs_corr)
+     !     call gyro_average(phiold, source2, gam0_ffs)
 
-     source2 = source2 - gamtot_t * phiold
-     source = source - source2
+     !source2 = source2 - gamtot_t * phiold
+!     source = source - source2
 
+     !!!!!!! THIS FACTOR IS WRONG!!! FIX!!!!!!!
+     source = source - 0.1* source2  
      where (gamtot_t < epsilon(0.0))
         source= 0.0
      elsewhere
@@ -1328,6 +1348,8 @@ contains
      if (akx(1) < epsilon(0.)) then
         source(1, 1, :, :) = 0.0
      end if
+
+     source(1, 1, :, :) = 0.0
 
      call enforce_reality(source)
      
@@ -1608,13 +1630,13 @@ contains
          call sum_allreduce(source)
 
          !!> Better fix when only on the implicit solve 
-         ! if (present(implicit_solve)) then
-         ! allocate(source_copy(naky,nakx, -nzgrid:nzgrid, ntubes)) ; source_copy = 0.0
-         ! source_copy = spread(source, 4, ntubes)
-         ! call enforce_reality (source_copy)
-         ! source = source_copy (:,:,:,1) 
-         ! deallocate(source_copy)
-         ! end if
+         if (present(implicit_solve)) then
+            allocate(source_copy(naky,nakx, -nzgrid:nzgrid, ntubes)) ; source_copy = 0.0
+            source_copy = spread(source, 4, ntubes)
+            call enforce_reality (source_copy)
+            source = source_copy (:,:,:,1) 
+            deallocate(source_copy)
+         end if
          !> no longer need <g>, so deallocate
          deallocate (gyro_g)
 
@@ -2755,6 +2777,7 @@ contains
       if (allocated(lu_gam0_ffs)) deallocate (lu_gam0_ffs)
       if (allocated(adiabatic_response_factor)) deallocate (adiabatic_response_factor)
 
+      if (allocated(gam0_ffs_corr)) deallocate (gam0_ffs_corr)
       fields_initialized = .false.
 
    end subroutine finish_fields

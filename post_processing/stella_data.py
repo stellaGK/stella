@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
 
 ## Description: import variables from stella netcdf file
-
-from scipy.io import netcdf
+from netCDF4 import Dataset
+#from scipy.io import netcdf
 import numpy as np
 
 ####### Import variables from netcdf file #########
 #infile = input("Path to netcdf file: ")
-input_directory = '/Users/barnesm/Documents/stella_data/bistability/'
-file_prefix = 'jet68448_nogexb'
+input_directory = '/scratch/gpfs/ga0901/runs/w7x/ffs_streaming/'
+file_prefix = 'input'
 infile = input_directory + file_prefix + '.out.nc'
 #infile = '../stella.out.nc'
 #print()
 #outdir = input("Path for output: ")
 outdir = input_directory
-ncfile = netcdf.netcdf_file(infile,'r')
+
+ncfile = Dataset(infile, 'r')
+#ncfile = netcdf.netcdf_file(infile,'r')
 
 #print()
 print('reading data from netcdf file...')
@@ -22,12 +24,14 @@ print()
 
 # get kx and ky grids
 kx_stella = np.copy(ncfile.variables['kx'][:])
-nakx = ncfile.dimensions['kx']
+nakx = ncfile.dimensions['kx'].size
 ky = np.copy(ncfile.variables['ky'][:])
-naky = ncfile.dimensions['ky']
+naky = ncfile.dimensions['ky'].size
 
 # this is the index of the first negative value of kx
 # note stella orders kx as (0, dkx, ..., kx_max, -kx_max, -kx_max+dkx, ..., -dkx)
+#nakx_dim = ncfile.dimensions['kx'].size
+#nakx_mid = nakx_dim//2 + 1
 nakx_mid = nakx//2+1
 kx = np.concatenate((kx_stella[nakx_mid:],kx_stella[:nakx_mid]))
 
@@ -54,6 +58,14 @@ cvdrift0 = np.copy(ncfile.variables['cvdrift0'][:])
 gds2 = np.copy(ncfile.variables['gds2'][:])
 gds21 = np.copy(ncfile.variables['gds21'][:])
 gds22 = np.copy(ncfile.variables['gds22'][:])
+safety_factor = np.copy(ncfile.variables['q'][:])
+magnetic_shear = np.copy(ncfile.variables['shat'][:])
+#code_info = np.copy(ncfile.variables['code_info'][:]) code_info
+
+rho = 0.5
+rhostar = 0.025
+iota = 1/ safety_factor
+diota_drho = - magnetic_shear / (rho * safety_factor)
 
 def read_stella_float(var):
 

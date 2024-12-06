@@ -186,7 +186,7 @@ contains
                do iy = 1, nalpha
                   where (abs(mu(imu) * dbdzed(iy, :)) > zero)
                      mirror_int_fac(iy, :, ivmu) = exp(vpa(iv)**2 * mu(imu) * dbdzed(iy, :) &
-                                                       / (mu(imu) * dbdzed(iy, :) + spec(is)%zt_psi0 * dphineo_dzed(1, :) * 0.5))
+                          / (mu(imu) * dbdzed(iy, :) + spec(is)%zt_psi0 * dphineo_dzed(1, :) * 0.5))
                   elsewhere
                      mirror_int_fac(iy, :, ivmu) = 1.0
                   end where
@@ -700,6 +700,7 @@ contains
 
          allocate (g0v(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
          allocate (g0x(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+!         allocate (g0x(ny, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          ! for upwinding, need to evaluate dg^{*}/dvpa in y-space
          ! first must take g^{*}(ky) and transform to g^{*}(y)
 
@@ -721,6 +722,7 @@ contains
                do it = 1, ntubes
                   do iz = -nzgrid, nzgrid
                      do ikx = 1, ikx_max
+!                     do ikx = 1, nakx
                         g0x(:, ikx, iz, it, ivmu) = g0x(:, ikx, iz, it, ivmu) * mirror_int_fac(:, iz, ivmu)
                      end do
                   end do
@@ -760,6 +762,7 @@ contains
                do it = 1, ntubes
                   do iz = -nzgrid, nzgrid
                      do ikx = 1, ikx_max
+!                     do ikx = 1, nakx
                         g0x(:, ikx, iz, it, ivmu) = g0x(:, ikx, iz, it, ivmu) / mirror_int_fac(:, iz, ivmu)
                      end do
                   end do
