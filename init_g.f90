@@ -359,27 +359,27 @@ contains
         end do
      end do
 
-     ! if (chop_side) then
-     !    if (left) phi(:, :, :-1, :) = 0.0
-     !    if (right) phi(:, :, 1:, :) = 0.0
-     ! end if
+     if (chop_side) then
+        if (left) phi(:, :, :-1, :) = 0.0
+        if (right) phi(:, :, 1:, :) = 0.0
+     end if
 
      ! do iz = -nzgrid, nzgrid
      !    phi(:, :, iz,1) = exp(-((zed(iz) - zed0) / width0)**2) * cmplx(1.0, 1.0)
      ! end do
      phi(1, 1, :, :) = 0.0
 
-     ! if (zonal_mode(1)) then
-     !    if (abs(akx(1)) < epsilon(0.0)) then
-     !       phi(1, 1, :, :) = 0.0
-     !    end if
+     if (zonal_mode(1)) then
+        if (abs(akx(1)) < epsilon(0.0)) then
+           phi(1, 1, :, :) = 0.0
+        end if
 
-     !    if (reality) then
-     !       do ikx = 1, nakx - ikx_max
-     !          phi(1, nakx - ikx + 1, :, :) = conjg(phi(1, ikx + 1, :, :))
-     !       end do
-     !    end if
-     ! end if
+        if (reality) then
+           do ikx = 1, nakx - ikx_max
+              phi(1, nakx - ikx + 1, :, :) = conjg(phi(1, ikx + 1, :, :))
+           end do
+        end if
+     end if
 
      allocate (g_swap(naky_all, ikx_max))
      allocate (phiy(ny, ikx_max, -nzgrid:nzgrid)) ; phiy = 0.0
@@ -398,8 +398,8 @@ contains
               do iz = -nzgrid, nzgrid
                  g0x(iy, ikx, iz, ivmu) = phiinit * phiy(iy, ikx, iz) / abs(spec(is)%z) &
                       * (den0 + 2.0 * zi * vpa(iv) * upar0) &
-                      * maxwell_mu(iy, iz, imu, is) &
-!                      * maxwell_mu(1, iz, imu, is) &
+                      !! Commenting out because it causes discontinuities in the initial condition 
+!                      * maxwell_mu(iy, iz, imu, is) &
                       * maxwell_vpa(iv, is) * maxwell_fac(is)
               end do
            end do

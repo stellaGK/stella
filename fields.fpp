@@ -778,9 +778,11 @@ contains
                   gam0_const(iky, ikx, iz) = 0.0
                else
                   gam0_ffs_corr(iky, ikx, iz)%fourier = gam0_kalpha(:gam0_ffs(iky, ikx, iz)%max_idx) - gam0_kalpha(1)
-                  if(proc0) write(64,*) iky,ikx, iz, gam0_ffs_corr(iky, ikx, iz)%fourier
                   gam0_const(iky, ikx, iz) = gam0_kalpha(1)
-                  if(proc0) write(65,*) iky, ikx, iz, gam0_const(iky, ikx, iz)
+                  if (iz == nzgrid .and. iky==naky ) then
+                     gam0_ffs_corr(iky, ikx, iz)%fourier = gam0_ffs_corr(iky, ikx, -nzgrid)%fourier
+                     gam0_ffs(iky, ikx, iz)%fourier = gam0_ffs(iky, ikx, nzgrid)%fourier
+                  end if
                end if
             end do
          end do
@@ -1328,16 +1330,18 @@ contains
      allocate(source2(naky, nakx, -nzgrid:nzgrid, ntubes)) ; source2 = 0.0
 
      source = 0.0 
-
+!!!! HAVE MODIFIED THE FOLLOWING!!!! NOT CORRECT!!!!!
+     !!! NOTE THAT THE ZONAL MODES ARE REALLY MESSED UP!! 
      call get_g_integral_contribution_source(gold, source(:,:,:,1) )
-     call gyro_average(phiold, source2, gam0_ffs_corr)
-     !     call gyro_average(phiold, source2, gam0_ffs)
+!     call gyro_average(phiold, source2, gam0_ffs_corr)
 
-     !source2 = source2 - gamtot_t * phiold
-!     source = source - source2
+     call gyro_average(phiold, source2, gam0_ffs)
+     ! call enforce_reality(source2)
+     ! source2(1,1,:,:) = 0.0
+     ! source2 = source2 - gamtot_t * phiold
+     ! source = source - source2
 
-     !!!!!!! THIS FACTOR IS WRONG!!! FIX!!!!!!!
-     source = source - 0.1* source2  
+     source = source - source2  
      where (gamtot_t < epsilon(0.0))
         source= 0.0
      elsewhere
@@ -1350,8 +1354,7 @@ contains
      end if
 
      source(1, 1, :, :) = 0.0
-
-     call enforce_reality(source)
+!!!!     call enforce_reality(source)
      
      deallocate(source2, gamtot_t) 
      
@@ -1389,14 +1392,14 @@ contains
      it = 1
      allocate (gyro_g(naky, nakx, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
      allocate (gyro_g2(naky, nakx, vmu_lo%llim_proc:vmu_lo%ulim_alloc))  
-     
+
      do iz = -nzgrid, nzgrid
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
            gyro_g(:, :, ivmu) = g(:, :, iz, it, ivmu) * j0_B_const(:, :, iz, ivmu)
-           call gyro_average(g(:, :, iz, it, ivmu), gyro_g2(:, :, ivmu), j0_B_ffs(:, :, iz, ivmu))
+!           call gyro_average(g(:, :, iz, it, ivmu), gyro_g2(:, :, ivmu), j0_B_ffs(:, :, iz, ivmu))
         end do
-        
-        gyro_g = gyro_g2 - gyro_g 
+        gyro_g = -gyro_g
+!!        gyro_g = gyro_g2 - gyro_g 
         !> integrate <g> over velocity space and sum over species within each processor
         !> as v-space and species possibly spread over processors, wlil need to
         !> gather sums from each proceessor and sum them all together below
@@ -1409,8 +1412,9 @@ contains
      ! allocate(source_copy(naky,nakx, -nzgrid:nzgrid, ntubes)) ; source_copy = 0.0
      ! source_copy = spread(source, 4, ntubes)
      ! call enforce_reality (source_copy)
+     ! source = source_copy(:,:,:,1) 
      ! deallocate(source_copy)
-     
+
      !> no longer need <g>, so deallocate
      deallocate (gyro_g, gyro_g2)
 
@@ -1557,6 +1561,8 @@ contains
                deallocate (phi_swap, phi_fsa)
                deallocate (phi_fsa_spread, phi_source)
             end if
+            phi(1, 1, :, :) = 0.
+            call enforce_reality (phi) 
          end if
       else if (.not. adiabatic_electrons) then
          !> if adiabatic electrons are not employed, then
@@ -1564,9 +1570,6 @@ contains
          !> hack for now is to set it equal to zero.
          phi(1, 1, :, :) = 0.
       end if
-
-      phi(1, 1, :, :) = 0.
-      call enforce_reality (phi) 
       
       deallocate (source)
       apar = 0.
@@ -1630,13 +1633,13 @@ contains
          call sum_allreduce(source)
 
          !!> Better fix when only on the implicit solve 
-         if (present(implicit_solve)) then
-            allocate(source_copy(naky,nakx, -nzgrid:nzgrid, ntubes)) ; source_copy = 0.0
-            source_copy = spread(source, 4, ntubes)
-            call enforce_reality (source_copy)
-            source = source_copy (:,:,:,1) 
-            deallocate(source_copy)
-         end if
+         ! if (present(implicit_solve)) then
+         !    allocate(source_copy(naky,nakx, -nzgrid:nzgrid, ntubes)) ; source_copy = 0.0
+         !    source_copy = spread(source, 4, ntubes)
+         !    call enforce_reality (source_copy)
+         !    source = source_copy (:,:,:,1) 
+         !    deallocate(source_copy)
+         ! end if
          !> no longer need <g>, so deallocate
          deallocate (gyro_g)
 
