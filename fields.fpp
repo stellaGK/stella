@@ -662,6 +662,11 @@ contains
       use physics_flags, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       use stella_geometry, only: dl_over_b
 
+      !!
+      use stella_layouts, only: kxkyz_lo
+      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx
+      use vpamu_grids, only: nvpa, nmu
+      use vpamu_grids, only: integrate_vmu
       implicit none
 
       integer :: iky, ikx, iz, ia
@@ -678,7 +683,7 @@ contains
       complex, dimension(:, :, :), allocatable :: gamtot_con
 
       real :: tmp 
-      
+      integer ::iky1, iky2
       if (debug) write (*, *) 'fields::init_fields::init_gamm0_factor_ffs'
 
       allocate (kperp2_swap(naky_all, ikx_max, nalpha))
@@ -687,6 +692,7 @@ contains
       allocate (gam0_kalpha(naky))
 
       allocate (gam0_const(naky_all, ikx_max, -nzgrid:nzgrid)); gam0_const = 0.0
+      if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
       allocate (gamtot_con(naky, nakx, -nzgrid:nzgrid)); gamtot_con = 0.0
 
       !> wgts are species-dependent factors appearing in Gamma0 factor
@@ -712,7 +718,8 @@ contains
          end if
       end if
 
-      ia_max_gam0_count = 0
+      ia_max_gam0_count = 0      
+
       do iz = -nzgrid, nzgrid
          !> in calculating the Fourier coefficients for Gamma_0, change loop orders
          !> so that inner loop is over ivmu super-index;
@@ -722,6 +729,7 @@ contains
          do ia = 1, nalpha
             call swap_kxky_ordered(kperp2(:, :, ia, iz), kperp2_swap(:, :, ia))
          end do
+         
          do ikx = 1, ikx_max
             do iky = 1, naky_all
                do ia = 1, nalpha
@@ -753,7 +761,7 @@ contains
                      !> hack for now is to set phi_00 = 0, as above inversion is singular.
                      !> to avoid singular inversion, set gam0_alpha = 1.0
                      gam0_alpha(ia) = 1.0
-                  end if
+                  end if                  
                end do
                !> fourier transform Gamma_0(alpha) from alpha to k_alpha space
                call transform_alpha2kalpha(gam0_alpha, gam0_kalpha)
@@ -765,25 +773,22 @@ contains
                   allocate (gam0_ffs(iky, ikx, iz)%fourier(gam0_ffs(iky, ikx, iz)%max_idx))
                !> fill the array with the requisite coefficients
                gam0_ffs(iky, ikx, iz)%fourier = gam0_kalpha(:gam0_ffs(iky, ikx, iz)%max_idx)
-!                call test_ffs_bessel_coefs (gam0_ffs(iky,ikx,iz)%fourier, gam0_alpha, iky, ikx, iz, gam0_ffs_unit)
+               !                call test_ffs_bessel_coefs (gam0_ffs(iky,ikx,iz)%fourier, gam0_alpha, iky, ikx, iz, gam0_ffs_unit)
 
                !! For gamtot for implicit solve
                gam0_ffs_corr(iky, ikx, iz)%max_idx = naky
                if (.not. associated(gam0_ffs_corr(iky, ikx, iz)%fourier)) &
                     allocate (gam0_ffs_corr(iky, ikx, iz)%fourier(gam0_ffs_corr(iky, ikx, iz)%max_idx))
-               gam0_ffs_corr(iky, ikx, iz)%fourier = gam0_kalpha(:gam0_ffs(iky, ikx, iz)%max_idx) - gam0_kalpha(1)
 
-               if (ikx == 1 .and. iky == naky) then
-                  gam0_ffs_corr(iky, ikx, iz)%fourier = 0.0
+               if(ikx == 1 .and. iky == naky) then
                   gam0_const(iky, ikx, iz) = 0.0
+                  gam0_ffs_corr(iky, ikx, iz)%fourier = 0.0
                else
-                  gam0_ffs_corr(iky, ikx, iz)%fourier = gam0_kalpha(:gam0_ffs(iky, ikx, iz)%max_idx) - gam0_kalpha(1)
-                  gam0_const(iky, ikx, iz) = gam0_kalpha(1)
-                  if (iz == nzgrid .and. iky==naky ) then
-                     gam0_ffs_corr(iky, ikx, iz)%fourier = gam0_ffs_corr(iky, ikx, -nzgrid)%fourier
-                     gam0_ffs(iky, ikx, iz)%fourier = gam0_ffs(iky, ikx, nzgrid)%fourier
-                  end if
+                  gam0_const(iky, ikx, iz) = gam0_ffs(iky, ikx, iz)%fourier(1)
+                  gam0_ffs_corr(iky, ikx, iz)%fourier(1) = 0.0
+                  gam0_ffs_corr(iky, ikx, iz)%fourier(2:) = gam0_ffs(iky, ikx, iz)%fourier(2:)
                end if
+                  
             end do
          end do
       end do
@@ -797,11 +802,10 @@ contains
          call swap_kxky_back_ordered(gam0_const(:, :, iz), gamtot_con(:, :, iz))
       end do
 
-      if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
       gamtot = real(gamtot_con)
       !> TODO-GA: move this to adiabatic response factor 
-!      if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then 
-      gamtot(1, 1, :) = 0.0
+      !      if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then 
+      !gamtot(1, 1, :) = 0.0
       !end if
 
       if (.not. has_electron_species(spec)) then
@@ -824,7 +828,7 @@ contains
       
       deallocate (gamtot_con)
       deallocate (gam0_const)
-
+      
       !> LU factorise array of gam0, using the LAPACK zgbtrf routine for banded matrices
       if (.not. allocated(lu_gam0_ffs)) then
          allocate (lu_gam0_ffs(ikx_max, -nzgrid:nzgrid))
@@ -1008,7 +1012,7 @@ contains
                call get_fields_ffs(g, phi, apar, implicit_solve=.true.)
             else
                if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs'
-               call get_fields_ffs(g, phi, apar)
+               call get_fields_ffs(g, phi, apar, implicit_solve=.true.)
             end if
          else
             call get_fields_vmulo(g, phi, apar, bpar, dist)
@@ -1324,30 +1328,42 @@ contains
      real, dimension(:, :, :, :), allocatable :: gamtot_t
      complex, dimension(:, :, :, :), allocatable :: source2 
 
+     integer :: ikx, iky, iz
+     
      allocate (gamtot_t(naky, nakx, -nzgrid:nzgrid, ntubes))
      gamtot_t = spread(gamtot, 4, ntubes)
-
      allocate(source2(naky, nakx, -nzgrid:nzgrid, ntubes)) ; source2 = 0.0
 
      source = 0.0 
-!!!! HAVE MODIFIED THE FOLLOWING!!!! NOT CORRECT!!!!!
-     !!! NOTE THAT THE ZONAL MODES ARE REALLY MESSED UP!! 
      call get_g_integral_contribution_source(gold, source(:,:,:,1) )
-!     call gyro_average(phiold, source2, gam0_ffs_corr)
+     do iz = -nzgrid, nzgrid
+        call gyro_average(phiold(:,:,iz,1), source2(:,:,iz,1), gam0_ffs_corr(:,:,iz))
+     end do
 
-     call gyro_average(phiold, source2, gam0_ffs)
-     ! call enforce_reality(source2)
-     ! source2(1,1,:,:) = 0.0
-     ! source2 = source2 - gamtot_t * phiold
-     ! source = source - source2
+     source = spread(source(:,:,:,1), 4, ntubes)
+     source2 = spread(source2(:,:,:,1), 4, ntubes)
 
-     source = source - source2  
+     write(*,*) 'source', source(1,2,-nzgrid,1) 
+     write(*,*) 'phiold', phiold(1,2,-nzgrid,1)
+     write(*,*) 'gam0_ffs_corr', gam0_ffs_corr(naky,2,-nzgrid)%fourier
+     write(*,*) 'source2' , source2(1,2,-nzgrid,1)
+     source = source - source2
+     write(*,*) 'source before gamtot', source(1,2,-nzgrid,1)
+     write(*,*) 'gamtot', gamtot(1,2,-nzgrid) 
      where (gamtot_t < epsilon(0.0))
         source= 0.0
      elsewhere
         source = source / gamtot_t
      end where
-     
+     write(*,*) 'source after gamtot', source(1,2,-nzgrid,1)
+
+     ! do iz = -nzgrid, nzgrid
+     !    do iky = 1, naky
+     !       do ikx = 1, nakx
+     !          if(abs(gamtot(iky, ikx, iz)) .LT. 1E-005) source = 0.0
+     !       end do
+     !    end do
+     ! end do
      if (any(gamtot(1, 1, :) < epsilon(0.))) source(1, 1, :, :) = 0.0
      if (akx(1) < epsilon(0.)) then
         source(1, 1, :, :) = 0.0
@@ -1396,10 +1412,9 @@ contains
      do iz = -nzgrid, nzgrid
         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
            gyro_g(:, :, ivmu) = g(:, :, iz, it, ivmu) * j0_B_const(:, :, iz, ivmu)
-!           call gyro_average(g(:, :, iz, it, ivmu), gyro_g2(:, :, ivmu), j0_B_ffs(:, :, iz, ivmu))
+           call gyro_average(g(:, :, iz, it, ivmu), gyro_g2(:, :, ivmu), j0_B_ffs(:, :, iz, ivmu))
         end do
-        gyro_g = -gyro_g
-!!        gyro_g = gyro_g2 - gyro_g 
+        gyro_g = gyro_g2 - gyro_g 
         !> integrate <g> over velocity space and sum over species within each processor
         !> as v-space and species possibly spread over processors, wlil need to
         !> gather sums from each proceessor and sum them all together below
@@ -1408,12 +1423,6 @@ contains
      !> gather sub-sums from each processor and add them together
      !> store result in phi, which will be further modified below to account for polarization term
      call sum_allreduce(source)
-
-     ! allocate(source_copy(naky,nakx, -nzgrid:nzgrid, ntubes)) ; source_copy = 0.0
-     ! source_copy = spread(source, 4, ntubes)
-     ! call enforce_reality (source_copy)
-     ! source = source_copy(:,:,:,1) 
-     ! deallocate(source_copy)
 
      !> no longer need <g>, so deallocate
      deallocate (gyro_g, gyro_g2)
@@ -1492,7 +1501,7 @@ contains
                end do
             end if
 
-            if (akx(1) < epsilon(0.)) then
+             if (akx(1) < epsilon(0.)) then
                phi(1, 1, :, :) = 0.0
             end if
 
@@ -1562,7 +1571,6 @@ contains
                deallocate (phi_fsa_spread, phi_source)
             end if
             phi(1, 1, :, :) = 0.
-            call enforce_reality (phi) 
          end if
       else if (.not. adiabatic_electrons) then
          !> if adiabatic electrons are not employed, then
@@ -1570,7 +1578,8 @@ contains
          !> hack for now is to set it equal to zero.
          phi(1, 1, :, :) = 0.
       end if
-      
+
+!      call enforce_reality (phi) 
       deallocate (source)
       apar = 0.
       if (include_apar) then

@@ -307,7 +307,6 @@ contains
      use dist_fn_arrays, only: gvmu, gnew
      use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
      use stella_layouts, only: imu_idx, iv_idx
-     use extended_zgrid, only: map_to_iz_ikx_from_izext
      use redistribute, only: scatter
      use dist_redistribute, only: kxkyz2vmu
      use stella_layouts, only: vmu_lo
@@ -318,6 +317,7 @@ contains
 
      use kt_grids, only: swap_kxky, swap_kxky_back
      use stella_transforms, only: transform_ky2y, transform_y2ky
+     use mp, only: proc0
      implicit none
 
      complex, dimension (:), allocatable :: phiext
@@ -331,10 +331,8 @@ contains
      logical :: right
      integer :: ie, it, j
      integer :: imu,is, iv, ivmu
-     integer :: iz, iky, ikx, ia, iy
-     integer :: ikxkyz
+     integer :: iz, iky, ikx, iy
 
-     integer, dimension(:), allocatable :: iz_from_izext
      right = .not. left
 
      it = 1
@@ -344,13 +342,10 @@ contains
               nz_ext = nsegments(ie, iky) * nzed_segment + 1
               allocate (phiext(nz_ext))
               allocate (zed_ext(nz_ext))
-              zed_ext = [((2 * pi * j) / (nz_ext + 1), j=-nz_ext/2 , nz_ext/2)]
+              zed_ext = [((2 * pi * j) / (nz_ext+1), j=-nz_ext/2 , nz_ext/2)]
+              
               do iz = 1, nz_ext
-                 if(iky == 1) then
-                    phiext(iz) = 0.001* exp(-(zed_ext(iz)/width0)**2) * cmplx(1.0, 1.0)
-                 else
-                    phiext(iz) = exp(-(zed_ext(iz)/width0)**2) * cmplx(1.0, 1.0)
-                 end if
+                 phiext(iz) = exp(-(zed_ext(iz) /width0)**2) * cmplx(1.0, 1.0)
               end do
               
               call map_from_extended_zgrid(it, ie, iky, phiext, phi(iky, :, :, :))
@@ -367,7 +362,6 @@ contains
      ! do iz = -nzgrid, nzgrid
      !    phi(:, :, iz,1) = exp(-((zed(iz) - zed0) / width0)**2) * cmplx(1.0, 1.0)
      ! end do
-     phi(1, 1, :, :) = 0.0
 
      if (zonal_mode(1)) then
         if (abs(akx(1)) < epsilon(0.0)) then
@@ -387,7 +381,7 @@ contains
         call swap_kxky(phi(:, :, iz, 1), g_swap)
         call transform_ky2y(g_swap, phiy(:, :, iz))
      end do
-     
+
      allocate (g0x(ny, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); g0x = 0.0
      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         iv = iv_idx(vmu_lo, ivmu)
@@ -398,8 +392,7 @@ contains
               do iz = -nzgrid, nzgrid
                  g0x(iy, ikx, iz, ivmu) = phiinit * phiy(iy, ikx, iz) / abs(spec(is)%z) &
                       * (den0 + 2.0 * zi * vpa(iv) * upar0) &
-                      !! Commenting out because it causes discontinuities in the initial condition 
-!                      * maxwell_mu(iy, iz, imu, is) &
+                      * maxwell_mu(iy, iz, imu, is) &
                       * maxwell_vpa(iv, is) * maxwell_fac(is)
               end do
            end do
@@ -413,21 +406,9 @@ contains
            call swap_kxky_back(g_swap, gnew(:, :, iz, 1, ivmu))
         end do
      end do
+     
      gnew = spread(gnew(:,:,:,1,:), 4, ntubes)
      gnew (1,1,:,:,:) = 0.0
-
-     
-     if (zonal_mode(1)) then
-        if (abs(akx(1)) < epsilon(0.0)) then
-           gnew (1, 1, :, :, :) = 0.0
-        end if
-        
-        if (reality) then
-           do ikx = 1, nakx - ikx_max
-              gnew(1, nakx - ikx + 1, :, :, :) = conjg(gnew(1, ikx + 1, :, :, :))
-           end do
-        end if
-     end if
 
      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         call enforce_reality (gnew(:, :, :, :, ivmu))
