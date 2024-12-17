@@ -58,7 +58,8 @@ contains
       complex, dimension(:, :, :, :, :), allocatable :: phi_source_ffs
       complex, dimension(:, :, :, :), allocatable :: fields_source_ffs
       complex, dimension(:, :, :, :, :), allocatable :: drifts_source_ffs
-
+      complex, dimension(:, :, :, :), allocatable :: phi_store
+      
       integer :: ikx, iky, iz
       integer :: itt
       logical :: modify
@@ -71,6 +72,7 @@ contains
          fields_source_ffs = 0.0
          if (.not. allocated(drifts_source_ffs)) allocate (drifts_source_ffs(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          drifts_source_ffs = 0.0
+         if (.not. allocated(phi_store)) allocate(phi_store(naky, nakx, -nzgrid:nzgrid, ntubes)); phi_store = 0.0
       end if
          
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Implicit time advance')
@@ -96,6 +98,7 @@ contains
       g2 = g
 
       call advance_fields(g2, phi, apar, bpar, dist=trim(dist_choice))
+      phi_store = phi
       phi_old = phi
 
       !> if using delphi formulation for response matrix, then phi = phi^n replaces
@@ -126,8 +129,11 @@ contains
          !> phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
          ! solve for the 'inhomogeneous' piece of the pdf
          if (driftkinetic_implicit) then
-            call get_source_ffs_itteration (phi_old, g2, phi_source_ffs)
-!!!!!!!            call get_drifts_ffs_itteration (phi_old, g2, drifts_source_ffs)
+!            call advance_fields(g2, phi_store, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
+ !           phi_store = phi_old
+!            call get_source_ffs_itteration (phi_old, g2, phi_store, phi_source_ffs)
+            phi_source_ffs = 0.0 
+            !!            call get_drifts_ffs_itteration (phi_old, g2, drifts_source_ffs)
             !!            phi_source_ffs = phi_source_ffs + drifts_source_ffs
             phi_source = tupwnd_m * phi
             !> set the g on the RHS to be g from the previous time step  
@@ -145,11 +151,11 @@ contains
          if (driftkinetic_implicit) then
             !> For FFS we want to re-solve for bar{phi}
             !> NB the 'g' here is g_inh^{n+1, i+1}
-            call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice), implicit_solve=.true.) 
+            call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
             !> g2 = g^{n+1, i}
             !> phi_old = phi^{n+1, i}
-            call get_fields_source(g2, phi_old, fields_source_ffs)
-            phi = phi + fields_source_ffs
+!            call get_fields_source(g2, phi, fields_source_ffs)
+!            phi = phi + fields_source_ffs
          else
             call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice)) 
          end if
@@ -203,7 +209,7 @@ contains
       deallocate (phi_old, apar_old, bpar_old)
       deallocate (phi_source, apar_source, bpar_source)
       if(driftkinetic_implicit) deallocate (fields_source_ffs) 
-      if(driftkinetic_implicit) deallocate (phi_source_ffs, drifts_source_ffs) 
+      if(driftkinetic_implicit) deallocate (phi_source_ffs, drifts_source_ffs, phi_store) 
 
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Stream advance')
 

@@ -28,7 +28,7 @@ contains
     source1 = 0.0
     source_out = 0.0 
     call get_drifts_ffs_itteration (phiin, gin, source1)
-    call get_source_ffs_itteration (phiin, gin, source_out) 
+!    call get_source_ffs_itteration (phiin, gin, phi_bar, source_out) 
     
     source_out = source_out + source1
 
@@ -37,7 +37,7 @@ contains
 
 !   contains 
 
-  subroutine get_source_ffs_itteration (phi, g, source) 
+  subroutine get_source_ffs_itteration (phi, g, phi_bar, source) 
 
      use mp, only: proc0
      use stella_layouts, only: vmu_lo
@@ -63,7 +63,7 @@ contains
      use extended_zgrid, only: enforce_reality
      implicit none
 
-     complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+     complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, phi_bar
      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent (out) :: source
 
@@ -104,7 +104,8 @@ contains
         !> Full d <phi>/dz
         call get_dzed(iv, g0, dgphi_dz)
         !> d phi/dz
-        call get_dzed(iv, phi, dphi_dz)
+        !        call get_dzed(iv, phi, dphi_dz)
+        call get_dzed(iv, phi_bar, dphi_dz)
         !> dg/dz
         call get_dzed(iv, g(:, :, :, :, ivmu), dgdz)
         !> get these quantities in real space 
@@ -157,7 +158,7 @@ contains
         end do
 
         source(1, 1, :, :, :) = 0.0
-!        call enforce_reality (source(:,:,:,:,ivmu)) 
+ !       call enforce_reality (source(:,:,:,:,ivmu)) 
      end do
 
      deallocate(g0)

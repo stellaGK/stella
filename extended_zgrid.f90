@@ -459,7 +459,7 @@ contains
               deallocate(field_ext)
            end do
         end do
-        if (periodic(iky)) field(iky,:,nzgrid,:) = field(iky,:,-nzgrid,:)
+        if (periodic(iky)) field(iky,:,-nzgrid,:) = field(iky,:,nzgrid,:)
      end do
 
      ! better way around! 

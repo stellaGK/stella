@@ -790,7 +790,6 @@ contains
 !               end if
 
                gam0_const(iky, ikx, iz) = gam0_ffs(iky, ikx, iz)%fourier(1)
-!               gam0_ffs_corr(iky, ikx, iz)%fourier(1) = gam0_const(iky, ikx, iz)
                gam0_ffs_corr(iky, ikx, iz)%fourier(1) = 0.0
                gam0_ffs_corr(iky, ikx, iz)%fourier(2:) = gam0_ffs(iky, ikx, iz)%fourier(2:)
                
@@ -1346,7 +1345,7 @@ contains
      source = spread(source(:,:,:,1), 4, ntubes)
      source2 = spread(source2(:,:,:,1), 4, ntubes)
 
-!     source = source - source2
+     source = source - source2
 
      where (gamtot_t < epsilon(0.0))
         source= 0.0
@@ -1570,7 +1569,7 @@ contains
          phi(1, 1, :, :) = 0.
       end if
 
-!      call enforce_reality (phi) 
+      call enforce_reality (phi) 
       deallocate (source)
       apar = 0.
       if (include_apar) then
