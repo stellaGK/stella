@@ -336,32 +336,32 @@ contains
      right = .not. left
 
      it = 1
-     do iky = 1, naky
-        do it = 1, ntubes
-           do ie = 1, neigen(iky)
-              nz_ext = nsegments(ie, iky) * nzed_segment + 1
-              allocate (phiext(nz_ext))
-              allocate (zed_ext(nz_ext))
-              zed_ext = [((2 * pi * j) / (nz_ext+1), j=-nz_ext/2 , nz_ext/2)]
+     ! do iky = 1, naky
+     !    do it = 1, ntubes
+     !       do ie = 1, neigen(iky)
+     !          nz_ext = nsegments(ie, iky) * nzed_segment + 1
+     !          allocate (phiext(nz_ext))
+     !          allocate (zed_ext(nz_ext))
+     !          zed_ext = [((2 * pi * j) / (nz_ext+1), j=-nz_ext/2 , nz_ext/2)]
               
-              do iz = 1, nz_ext
-                 phiext(iz) = exp(-(zed_ext(iz) /width0)**2) * cmplx(1.0, 1.0)
-              end do
+     !          do iz = 1, nz_ext
+     !             phiext(iz) = exp(-(zed_ext(iz) /width0)**2) * cmplx(1.0, 1.0)
+     !          end do
               
-              call map_from_extended_zgrid(it, ie, iky, phiext, phi(iky, :, :, :))
-              deallocate(phiext, zed_ext)
-           end do
-        end do
+     !          call map_from_extended_zgrid(it, ie, iky, phiext, phi(iky, :, :, :))
+     !          deallocate(phiext, zed_ext)
+     !       end do
+     !    end do
+     ! end do
+
+     do iz = -nzgrid, nzgrid
+        phi(:, :, iz,1) = exp(-((zed(iz) - zed0) / width0)**2) * cmplx(1.0, 1.0)
      end do
 
      if (chop_side) then
         if (left) phi(:, :, :-1, :) = 0.0
         if (right) phi(:, :, 1:, :) = 0.0
      end if
-
-     ! do iz = -nzgrid, nzgrid
-     !    phi(:, :, iz,1) = exp(-((zed(iz) - zed0) / width0)**2) * cmplx(1.0, 1.0)
-     ! end do
 
      if (zonal_mode(1)) then
         if (abs(akx(1)) < epsilon(0.0)) then
@@ -390,9 +390,9 @@ contains
         do iy = 1, ny
            do ikx = 1, ikx_max
               do iz = -nzgrid, nzgrid
-                 g0x(iy, ikx, iz, ivmu) = phiinit * phiy(iy, ikx, iz) / abs(spec(is)%z) &
+                 g0x(iy, ikx, iz, ivmu) = phiy(iy, ikx, iz) / abs(spec(is)%z) &
                       * (den0 + 2.0 * zi * vpa(iv) * upar0) &
-                      * maxwell_mu(iy, iz, imu, is) &
+!                      * maxwell_mu(iy, iz, imu, is) &
                       * maxwell_vpa(iv, is) * maxwell_fac(is)
               end do
            end do
@@ -413,6 +413,11 @@ contains
      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         call enforce_reality (gnew(:, :, :, :, ivmu))
      end do
+     
+     ! Normalise and scale 
+     gnew = gnew / sum(real(gnew)**2 + aimag(gnew)**2)
+     gnew = gnew * phiinit
+     
      deallocate (g_swap)
      
      gvmu = 0.

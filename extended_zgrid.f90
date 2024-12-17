@@ -459,11 +459,11 @@ contains
               deallocate(field_ext)
            end do
         end do
-!        if (periodic(iky)) field(iky,:,nzgrid,:) = field(iky,:,-nzgrid,:)
+        if (periodic(iky)) field(iky,:,nzgrid,:) = field(iky,:,-nzgrid,:)
      end do
 
      ! better way around! 
-     field(1, :, nzgrid, :) = field(1, :, -nzgrid, :)
+!     field(1, :, nzgrid, :) = field(1, :, -nzgrid, :)
 !     field(1, :, -nzgrid, :) = field(1, :, nzgrid, :)
    end subroutine enforce_reality
 

@@ -780,15 +780,20 @@ contains
                if (.not. associated(gam0_ffs_corr(iky, ikx, iz)%fourier)) &
                     allocate (gam0_ffs_corr(iky, ikx, iz)%fourier(gam0_ffs_corr(iky, ikx, iz)%max_idx))
 
-               if(ikx == 1 .and. iky == naky) then
-                  gam0_const(iky, ikx, iz) = 0.0
-                  gam0_ffs_corr(iky, ikx, iz)%fourier = 0.0
-               else
-                  gam0_const(iky, ikx, iz) = gam0_ffs(iky, ikx, iz)%fourier(1)
-                  gam0_ffs_corr(iky, ikx, iz)%fourier(1) = 0.0
-                  gam0_ffs_corr(iky, ikx, iz)%fourier(2:) = gam0_ffs(iky, ikx, iz)%fourier(2:)
-               end if
-                  
+!               if(ikx == 1 .and. iky == naky) then
+!                  gam0_const(iky, ikx, iz) = 0.0
+!                  gam0_ffs_corr(iky, ikx, iz)%fourier = gam0_ffs(iky, ikx, iz)%fourier
+!               else
+!                  gam0_const(iky, ikx, iz) = gam0_ffs(iky, ikx, iz)%fourier(1)
+!                  gam0_ffs_corr(iky, ikx, iz)%fourier(1) = 0.0
+!                  gam0_ffs_corr(iky, ikx, iz)%fourier(2:) = gam0_ffs(iky, ikx, iz)%fourier(2:)
+!               end if
+
+               gam0_const(iky, ikx, iz) = gam0_ffs(iky, ikx, iz)%fourier(1)
+!               gam0_ffs_corr(iky, ikx, iz)%fourier(1) = gam0_const(iky, ikx, iz)
+               gam0_ffs_corr(iky, ikx, iz)%fourier(1) = 0.0
+               gam0_ffs_corr(iky, ikx, iz)%fourier(2:) = gam0_ffs(iky, ikx, iz)%fourier(2:)
+               
             end do
          end do
       end do
@@ -805,7 +810,7 @@ contains
       gamtot = real(gamtot_con)
       !> TODO-GA: move this to adiabatic response factor 
       !      if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then 
-      !gamtot(1, 1, :) = 0.0
+      gamtot(1, 1, :) = 0.0
       !end if
 
       if (.not. has_electron_species(spec)) then
@@ -1012,7 +1017,7 @@ contains
                call get_fields_ffs(g, phi, apar, implicit_solve=.true.)
             else
                if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs'
-               call get_fields_ffs(g, phi, apar, implicit_solve=.true.)
+               call get_fields_ffs(g, phi, apar)
             end if
          else
             call get_fields_vmulo(g, phi, apar, bpar, dist)
@@ -1336,41 +1341,27 @@ contains
 
      source = 0.0 
      call get_g_integral_contribution_source(gold, source(:,:,:,1) )
-     do iz = -nzgrid, nzgrid
-        call gyro_average(phiold(:,:,iz,1), source2(:,:,iz,1), gam0_ffs_corr(:,:,iz))
-     end do
-
+     call gyro_average(phiold, source2, gam0_ffs_corr)
+      
      source = spread(source(:,:,:,1), 4, ntubes)
      source2 = spread(source2(:,:,:,1), 4, ntubes)
 
-     write(*,*) 'source', source(1,2,-nzgrid,1) 
-     write(*,*) 'phiold', phiold(1,2,-nzgrid,1)
-     write(*,*) 'gam0_ffs_corr', gam0_ffs_corr(naky,2,-nzgrid)%fourier
-     write(*,*) 'source2' , source2(1,2,-nzgrid,1)
-     source = source - source2
-     write(*,*) 'source before gamtot', source(1,2,-nzgrid,1)
-     write(*,*) 'gamtot', gamtot(1,2,-nzgrid) 
+!     source = source - source2
+
      where (gamtot_t < epsilon(0.0))
         source= 0.0
      elsewhere
         source = source / gamtot_t
      end where
-     write(*,*) 'source after gamtot', source(1,2,-nzgrid,1)
 
-     ! do iz = -nzgrid, nzgrid
-     !    do iky = 1, naky
-     !       do ikx = 1, nakx
-     !          if(abs(gamtot(iky, ikx, iz)) .LT. 1E-005) source = 0.0
-     !       end do
-     !    end do
-     ! end do
+     source(1,:,:,:) = 0.0
      if (any(gamtot(1, 1, :) < epsilon(0.))) source(1, 1, :, :) = 0.0
      if (akx(1) < epsilon(0.)) then
         source(1, 1, :, :) = 0.0
      end if
 
      source(1, 1, :, :) = 0.0
-!!!!     call enforce_reality(source)
+!     call enforce_reality(source)
      
      deallocate(source2, gamtot_t) 
      

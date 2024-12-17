@@ -147,8 +147,8 @@ contains
             !> NB the 'g' here is g_inh^{n+1, i+1}
             call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice), implicit_solve=.true.) 
             !> g2 = g^{n+1, i}
-            !> phi_old = phi^{n+1, i} 
-            call get_fields_source(g2, phi_old, fields_source_ffs) 
+            !> phi_old = phi^{n+1, i}
+            call get_fields_source(g2, phi_old, fields_source_ffs)
             phi = phi + fields_source_ffs
          else
             call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice)) 
@@ -186,11 +186,11 @@ contains
             !> solving for full g = g_{inh} + g_{hom} 
             modify = .true.
             call update_pdf(modify)
-            g2 = g
             !> save the incoming pdf and phi, as they will be needed later
             !> this will become g^{n+1, i} -- the g from the previous iteration         
             fields_updated = .false.
-            call advance_fields(g2, phi, apar, bpar, dist=trim(dist_choice))
+            call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice))
+            g2 = g
             phi_old = phi
          else
             call update_pdf
