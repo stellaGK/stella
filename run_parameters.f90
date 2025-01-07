@@ -28,7 +28,7 @@ module run_parameters
    public :: print_extra_info_to_terminal
 
    public :: nitt 
-
+   public :: fields_tol
    private
 
    real :: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
@@ -60,6 +60,7 @@ module run_parameters
    logical :: knexist
 
    integer :: nitt
+   real :: fields_tol
 contains
 
    subroutine init_run_parameters
@@ -110,7 +111,8 @@ contains
          mirror_semi_lagrange, mirror_linear_interp, &
          zed_upwind, vpa_upwind, time_upwind, &
          fields_kxkyz, mat_gen, mat_read, rng_seed, &
-         ky_solve_radial, ky_solve_real, nitt, print_extra_info_to_terminal
+         ky_solve_radial, ky_solve_real, nitt, print_extra_info_to_terminal, & 
+         fields_tol
 
       if (proc0) then
 
@@ -140,6 +142,7 @@ contains
          print_extra_info_to_terminal = .true.
          nitt = 1
 
+         fields_tol = 1.e-8
          ! Stella runs until t*v_{th,i}/a=tend or until istep=nstep
          tend = -1.0
          nstep = -1
@@ -324,7 +327,8 @@ contains
       call broadcast(mat_read)
       call broadcast(print_extra_info_to_terminal)
 !!GA: may remove from input
-      call broadcast(nitt) 
+      call broadcast(nitt)
+      call broadcast(fields_tol)
       ! include_apar broadcast in case it is reset according to specification of
       ! (deprecated) fapar variable
       ! call broadcast(include_apar)

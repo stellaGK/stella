@@ -662,11 +662,11 @@ contains
       use physics_flags, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       use stella_geometry, only: dl_over_b
 
-      !!
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx
-      use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: integrate_vmu
+      use extended_zgrid, only: phase_shift
+      use zgrid, only: ntubes
+      use extended_zgrid, only: enforce_reality
+      use run_parameters, only: fields_tol
+      
       implicit none
 
       integer :: iky, ikx, iz, ia
@@ -683,7 +683,9 @@ contains
       complex, dimension(:, :, :), allocatable :: gamtot_con
 
       real :: tmp 
-      integer ::iky1, iky2
+      integer ::iky1, iky2, it
+      real :: max_int
+      
       if (debug) write (*, *) 'fields::init_fields::init_gamm0_factor_ffs'
 
       allocate (kperp2_swap(naky_all, ikx_max, nalpha))
@@ -694,7 +696,7 @@ contains
       allocate (gam0_const(naky_all, ikx_max, -nzgrid:nzgrid)); gam0_const = 0.0
       if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
       allocate (gamtot_con(naky, nakx, -nzgrid:nzgrid)); gamtot_con = 0.0
-
+      
       !> wgts are species-dependent factors appearing in Gamma0 factor
       allocate (wgts(nspec))
       wgts = spec%dens * spec%z**2 / spec%temp
@@ -761,41 +763,42 @@ contains
                      !> hack for now is to set phi_00 = 0, as above inversion is singular.
                      !> to avoid singular inversion, set gam0_alpha = 1.0
                      gam0_alpha(ia) = 1.0
-                  end if                  
+                  end if
                end do
                !> fourier transform Gamma_0(alpha) from alpha to k_alpha space
+               
                call transform_alpha2kalpha(gam0_alpha, gam0_kalpha)
-               call find_max_required_kalpha_index(gam0_kalpha, gam0_ffs(iky, ikx, iz)%max_idx, tol_in=1.e-8)
-               gam0_ffs(iky, ikx, iz)%max_idx = naky
+               call find_max_required_kalpha_index(gam0_kalpha, gam0_ffs(iky, ikx, iz)%max_idx, tol_in=fields_tol)
+               max_int = naky / 2
                ia_max_gam0_count = ia_max_gam0_count + gam0_ffs(iky, ikx, iz)%max_idx
                !> allocate array to hold the Fourier coefficients
                if (.not. associated(gam0_ffs(iky, ikx, iz)%fourier)) &
-                  allocate (gam0_ffs(iky, ikx, iz)%fourier(gam0_ffs(iky, ikx, iz)%max_idx))
+                    allocate (gam0_ffs(iky, ikx, iz)%fourier(naky))               
+!                  allocate (gam0_ffs(iky, ikx, iz)%fourier(gam0_ffs(iky, ikx, iz)%max_idx))
                !> fill the array with the requisite coefficients
+               gam0_ffs(iky, ikx, iz)%fourier = 0.0 
                gam0_ffs(iky, ikx, iz)%fourier = gam0_kalpha(:gam0_ffs(iky, ikx, iz)%max_idx)
-               !                call test_ffs_bessel_coefs (gam0_ffs(iky,ikx,iz)%fourier, gam0_alpha, iky, ikx, iz, gam0_ffs_unit)
-
+!               gam0_ffs(iky, ikx, iz)%fourier(max_int:) = 0.0
+               
                !! For gamtot for implicit solve
                gam0_ffs_corr(iky, ikx, iz)%max_idx = naky
                if (.not. associated(gam0_ffs_corr(iky, ikx, iz)%fourier)) &
                     allocate (gam0_ffs_corr(iky, ikx, iz)%fourier(gam0_ffs_corr(iky, ikx, iz)%max_idx))
 
-!               if(ikx == 1 .and. iky == naky) then
-!                  gam0_const(iky, ikx, iz) = 0.0
-!                  gam0_ffs_corr(iky, ikx, iz)%fourier = gam0_ffs(iky, ikx, iz)%fourier
-!               else
-!                  gam0_const(iky, ikx, iz) = gam0_ffs(iky, ikx, iz)%fourier(1)
+               if(ikx == 1 .and. iky == naky) then
+                  gam0_const(iky, ikx, iz) = gam0_ffs(iky, ikx, iz)%fourier(1)
+                  gam0_ffs_corr(iky, ikx, iz)%fourier = 0.0
+               else
+                  gam0_const(iky, ikx, iz) = gam0_ffs(iky, ikx, iz)%fourier(1)
+                  gam0_ffs_corr(iky, ikx, iz)%fourier = 0.0
 !                  gam0_ffs_corr(iky, ikx, iz)%fourier(1) = 0.0
 !                  gam0_ffs_corr(iky, ikx, iz)%fourier(2:) = gam0_ffs(iky, ikx, iz)%fourier(2:)
-!               end if
-
-               gam0_const(iky, ikx, iz) = gam0_ffs(iky, ikx, iz)%fourier(1)
-               gam0_ffs_corr(iky, ikx, iz)%fourier(1) = 0.0
-               gam0_ffs_corr(iky, ikx, iz)%fourier(2:) = gam0_ffs(iky, ikx, iz)%fourier(2:)
+               end if
                
             end do
          end do
       end do
+
       rtmp = real(naky) * real(naky_all) * real(ikx_max) * real(nztot)
       ia_max_gam0_reduction_factor = real(ia_max_gam0_count) / rtmp
       if (proc0) then
@@ -805,12 +808,11 @@ contains
       do iz = -nzgrid, nzgrid
          call swap_kxky_back_ordered(gam0_const(:, :, iz), gamtot_con(:, :, iz))
       end do
-
       gamtot = real(gamtot_con)
       !> TODO-GA: move this to adiabatic response factor 
-      !      if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then 
-      gamtot(1, 1, :) = 0.0
-      !end if
+      if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then 
+         gamtot(1, 1, :) = 0.0
+      end if
 
       if (.not. has_electron_species(spec)) then
          ia = 1
@@ -829,7 +831,7 @@ contains
             end if
          end if
       end if
-      
+
       deallocate (gamtot_con)
       deallocate (gam0_const)
       
@@ -1502,11 +1504,10 @@ contains
             !> this is returned in source
             if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::get_g_integral_contribution'
             call get_g_integral_contribution(g, source)
-            
             !> use sum_s int d3v <g> and QN to solve for phi
             !> NB: assuming here that ntubes = 1 for FFS sim
             if (debug) write (*, *) 'fields::advance_fields::get_phi_ffs'
-            call get_phi_ffs(source, phi(:, :, :, 1))
+            call get_phi_ffs(source, phi(:, :, :, 1))            
             if (zonal_mode(1) .and. akx(1) < epsilon(0.)) then
                phi(1, 1, :, :) = 0.0
             end if
@@ -1569,7 +1570,7 @@ contains
          phi(1, 1, :, :) = 0.
       end if
 
-      call enforce_reality (phi) 
+!      call enforce_reality (phi) 
       deallocate (source)
       apar = 0.
       if (include_apar) then

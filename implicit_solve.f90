@@ -44,6 +44,7 @@ contains
 
       use ffs_solve, only: get_source_ffs_itteration, get_drifts_ffs_itteration
       use species, only: has_electron_species
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
@@ -112,10 +113,10 @@ contains
          phi_source = tupwnd_m * phi
          if (include_bpar) bpar_source = tupwnd_m * bpar
       end if
-         
       !!> until fixed
       itt = 1
       do while (itt <= nitt)
+         
          if (include_apar) then
             ! when solving for the 'inhomogeneous' piece of the pdf,
             ! use part of apar weighted towards previous time level
@@ -124,15 +125,14 @@ contains
             ! apar^{n+1}, which should not be part of the 'inhomogeneous' GKE eqn
             apar = 0.0
          end if
-
          !> if using delphi formulation for response matrix, then phi = phi^n replaces
          !> phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
          ! solve for the 'inhomogeneous' piece of the pdf
          if (driftkinetic_implicit) then
 !            call advance_fields(g2, phi_store, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
  !           phi_store = phi_old
-!            call get_source_ffs_itteration (phi_old, g2, phi_store, phi_source_ffs)
-            phi_source_ffs = 0.0 
+!!            call get_source_ffs_itteration (phi_old, g2, phi_store, phi_source_ffs)
+!!            phi_source_ffs = 0.0 
             !!            call get_drifts_ffs_itteration (phi_old, g2, drifts_source_ffs)
             !!            phi_source_ffs = phi_source_ffs + drifts_source_ffs
             phi_source = tupwnd_m * phi
@@ -144,7 +144,6 @@ contains
          else
             call update_pdf
          end if
-
          !> We now have g_{inh}^{n+1, i+1} stored in g
          !> calculate associated fields (phi_{inh}^{n+1, i+1})
          fields_updated = .false.
@@ -159,7 +158,6 @@ contains
          else
             call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice)) 
          end if
-
          !> solve response_matrix*(phi^{n+1}-phi^{n*}) = phi_{inh}^{n+1}-phi^{n*}
          !> phi = phi_{inh}^{n+1}-phi^{n*} is input and overwritten by phi = phi^{n+1}-phi^{n*}
          if (use_deltaphi_for_response_matrix) phi = phi - phi_old
@@ -168,12 +166,10 @@ contains
          !> for Drift kinetic implicit this is full phi^{n+1, i+1}
          call invert_parstream_response(phi, apar, bpar)
          if (proc0) call time_message(.false., time_implicit_advance(:, 3), ' (back substitution)')
-         
          !> If using deltaphi formulation, must account for fact that phi = phi^{n+1}-phi^{n*}, but
          !> tupwnd_p should multiply phi^{n+1}
          if (use_deltaphi_for_response_matrix) phi = phi + phi_old
          if (use_deltaphi_for_response_matrix .and. include_bpar) bpar = bpar + bpar_old
-
          if (driftkinetic_implicit) then
             !!!!!!phi_source = phi
             phi_source = tupwnd_m * phi_old + tupwnd_p * phi
@@ -185,7 +181,6 @@ contains
             ! get time-centered bpar
             if (include_bpar) bpar_source = tupwnd_m * bpar_old + tupwnd_p * bpar
          end if
-
          ! solve for the final, updated pdf now that we have phi^{n+1}.
          if (driftkinetic_implicit) then
             !> Pass in modify to include RHS source term
@@ -205,7 +200,7 @@ contains
          !!error = 0.0 
          itt = itt + 1
       end do
-
+      
       deallocate (phi_old, apar_old, bpar_old)
       deallocate (phi_source, apar_source, bpar_source)
       if(driftkinetic_implicit) deallocate (fields_source_ffs) 
@@ -218,7 +213,7 @@ contains
       subroutine update_pdf(mod)
 
          use extended_zgrid, only: neigen
-
+         
          integer :: ie, it, iky, ivmu
          integer :: ulim
          complex, dimension(:), allocatable :: pdf1, pdf2
@@ -1019,6 +1014,7 @@ contains
       use parallel_streaming, only: center_zed
       use stella_layouts, only: vmu_lo, iv_idx, is_idx
 
+      use physics_flags, only: full_flux_surface
       implicit none
 
       integer, intent(in) :: iky, ie, it, ivmu
@@ -1033,6 +1029,8 @@ contains
       integer :: iv, is
       integer :: ulim, sgn, iz1, iz2
 
+      complex :: pdf_store
+      
       iv = iv_idx(vmu_lo, ivmu)
       is = is_idx(vmu_lo, ivmu)
 
@@ -1071,19 +1069,18 @@ contains
       end if
       ! the case of periodic BC must be treated separately from the zero-incoming-BC case
       if (periodic(iky)) then
-         ! to enforce periodicity, decompose the pdf into a particular integral
-         ! and complementary function.
-
-         ! calculate the particular integral, with zero BC, and store in pdf
+         !> To enforce periodicity, decompose the pdf into a particular integral
+         !> and complementary function.
+         !> Calculate the particular integral, with zero BC, and store in pdf
          iz = sgn * nzgrid
          pdf(iz1) = 0.0
          call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf)
-         ! calculate the complementary function, with unit BC, and store in pdf_cf
+         !> Calculate the complementary function, with unit BC, and store in pdf_cf
          allocate (pdf_cf(ulim))
          iz = sgn * nzgrid
          pdf_cf = 0.0; pdf_cf(iz1) = 1.0
          call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf_cf)
-         ! construct pdf = pdf_PI + (pdf_PI(zend)/(1-pdf_CF(zend))) * pdf_CF
+         !> Construct pdf = pdf_PI + (pdf_PI(zend)/(1-pdf_CF(zend))) * pdf_CF
          phase_factor = phase_shift(iky)**(-sgn)
          pdf = pdf + (phase_factor * pdf(iz2) / (1.0 - phase_factor * pdf_cf(iz2))) * pdf_cf
          deallocate (pdf_cf)
@@ -1112,6 +1109,8 @@ contains
       use run_parameters, only: time_upwind_plus
       use parallel_streaming, only: stream_c
 
+      use extended_zgrid, only: phase_shift
+      use mp, only: proc0 
       implicit none
 
       integer, intent(in out) :: iz
@@ -1253,7 +1252,7 @@ contains
                   ! unpack phi (and apar if evolving) from the field vector;
                   ! also apply phase shift at periodic point
                   phi(iky, ikx, -nzgrid:nzgrid - 1, it) = fld(:nzp)
-                  phi(iky, ikx, nzgrid, it) = phi(iky, ikx, -nzgrid, it) * phase_shift(iky)
+                  phi(iky, ikx, nzgrid, it) = phi(iky, ikx, -nzgrid, it) / phase_shift(iky)
                   if (include_apar) then
                      apar(iky, ikx, -nzgrid:nzgrid - 1, it) = fld(offset_apar + 1:nzp + offset_apar)
                      apar(iky, ikx, nzgrid, it) = apar(iky, ikx, -nzgrid, it) / phase_shift(iky)

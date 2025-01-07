@@ -560,6 +560,8 @@ contains
       real, dimension(:), intent(in) :: galph
       complex, dimension(:), intent(out) :: gkalph
 
+      gkalph = 0.0
+      
       fft_alpha_alpha = galph
       call dfftw_execute_dft_r2c(alpha_b_fft%plan, fft_alpha_alpha, fft_alpha_kalpha)
       fft_alpha_kalpha = fft_alpha_kalpha * alpha_b_fft%scale
