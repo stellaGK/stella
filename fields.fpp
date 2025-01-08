@@ -1573,7 +1573,7 @@ contains
          phi(1, 1, :, :) = 0.
       end if
 
-!      call enforce_reality (phi)
+      call enforce_reality (phi)
       
       deallocate (source)
       apar = 0.
