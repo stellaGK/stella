@@ -768,18 +768,20 @@ contains
                !> fourier transform Gamma_0(alpha) from alpha to k_alpha space
                
                call transform_alpha2kalpha(gam0_alpha, gam0_kalpha)
-               call find_max_required_kalpha_index(gam0_kalpha, gam0_ffs(iky, ikx, iz)%max_idx, tol_in=fields_tol)
-               max_int = naky / 2
+!               call find_max_required_kalpha_index(gam0_kalpha, gam0_ffs(iky, ikx, iz)%max_idx, tol_in=fields_tol)
+               !               max_int = naky / 2
+               gam0_ffs(iky, ikx, iz)%max_idx = naky
                ia_max_gam0_count = ia_max_gam0_count + gam0_ffs(iky, ikx, iz)%max_idx
                !> allocate array to hold the Fourier coefficients
                if (.not. associated(gam0_ffs(iky, ikx, iz)%fourier)) &
                     allocate (gam0_ffs(iky, ikx, iz)%fourier(naky))               
 !                  allocate (gam0_ffs(iky, ikx, iz)%fourier(gam0_ffs(iky, ikx, iz)%max_idx))
                !> fill the array with the requisite coefficients
-               gam0_ffs(iky, ikx, iz)%fourier = 0.0 
+               gam0_ffs(iky, ikx, iz)%fourier = 0.0
+!               gam0_ffs(iky, ikx, iz)%fourier(1) = gam0_kalpha(1)
                gam0_ffs(iky, ikx, iz)%fourier = gam0_kalpha(:gam0_ffs(iky, ikx, iz)%max_idx)
 !               gam0_ffs(iky, ikx, iz)%fourier(max_int:) = 0.0
-               
+
                !! For gamtot for implicit solve
                gam0_ffs_corr(iky, ikx, iz)%max_idx = naky
                if (.not. associated(gam0_ffs_corr(iky, ikx, iz)%fourier)) &
@@ -1426,7 +1428,7 @@ contains
    !> and calculates/returns the electronstatic potential phi for full_flux_surface simulations
    subroutine get_fields_ffs(g, phi, apar, implicit_solve)
 
-      use mp, only: mp_abort
+      use mp, only: mp_abort, broadcast
       use physics_parameters, only: nine, tite
       use physics_flags, only: include_apar
       use stella_layouts, only: vmu_lo
@@ -1447,6 +1449,7 @@ contains
       use stella_geometry, only: dl_over_b
 
       use extended_zgrid, only: enforce_reality
+      use stella_layouts, only: is_idx, iv_idx, imu_idx
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1463,6 +1466,8 @@ contains
       integer :: it, ia
       complex :: tmp
 
+      integer :: ivmu, iky, is, imu, iv 
+      
       complex,  dimension(:, :, :, :), allocatable :: source_copy
       allocate (source(naky, nakx, -nzgrid:nzgrid)); source = 0.0
 
@@ -1473,8 +1478,9 @@ contains
                  .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
             allocate (gamtot_t(naky, nakx, -nzgrid:nzgrid, ntubes))
             gamtot_t = spread(gamtot, 4, ntubes)
-
+            
             call get_g_integral_contribution(g, source, implicit_solve=.true.)
+
             where (gamtot_t < epsilon(0.0))
                phi = 0.0
             elsewhere
@@ -1570,6 +1576,7 @@ contains
          phi(1, 1, :, :) = 0.
       end if
 
+!      call broadcast(phi) 
 !      call enforce_reality (phi) 
       deallocate (source)
       apar = 0.

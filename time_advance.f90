@@ -1215,7 +1215,6 @@ contains
       use fields_arrays, only: phi, apar, bpar
       use stella_layouts, only: vmu_lo
       use stella_transforms, only: transform_y2ky
-      use redistribute, only: gather, scatter
       use physics_flags, only: include_parallel_nonlinearity
       use physics_flags, only: include_parallel_streaming
       use physics_flags, only: include_mirror, include_apar

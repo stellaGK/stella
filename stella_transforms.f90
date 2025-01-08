@@ -255,6 +255,9 @@ contains
       iky_max = vmu_lo%naky
       ipad_up = iky_max + vmu_lo%ny - (2 * vmu_lo%naky - 1)
 
+      fft_y_in = 0.0
+      fft_y_out = 0.0
+      gy = 0.0 
       ! now fill in non-zero elements of array
       do ikx = 1, vmu_lo%nakx / 2 + 1
          fft_y_in(iky_max + 1:ipad_up) = 0.
@@ -312,6 +315,10 @@ contains
 
       iky_max = vmu_lo%naky
       ipad_up = iky_max + vmu_lo%ny - (2 * vmu_lo%naky - 1)
+
+      fft_y_in = 0.0
+      fft_y_out = 0.0
+      gky = 0.0
       ! now fill in non-zero elements of array
       do ikx = 1, vmu_lo%nakx / 2 + 1
          fft_y_in = gy(:, ikx)
@@ -503,7 +510,7 @@ contains
 
       integer :: ikx
 
-      do ikx = 1, size(gky, 1)
+      do ikx = 1, size(gky, 2)
          fftnp_y_k = gky(:, ikx)
          call dfftw_execute_dft_c2r(yfnp_fft%plan, fftnp_y_k, fftnp_y_y)
          gy(:, ikx) = fftnp_y_y * yfnp_fft%scale

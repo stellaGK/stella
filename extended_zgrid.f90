@@ -51,6 +51,7 @@ contains
       use kt_grids, only: aky, ikx_max
       use constants, only: zi
 
+      use mp, only: broadcast
       implicit none
 
       integer :: iseg, iky, ie, ikx, it
@@ -77,6 +78,8 @@ contains
       !> magnetic shear that use periodic boundary conditions everywhere
       phase_shift = exp( zi * aky * phase_shift_angle)
 
+      call broadcast(phase_shift)
+      
       if (boundary_option_switch == boundary_option_linked .or. boundary_option_switch == boundary_option_linked_stellarator) then
 
          !> all periodic modes (e.g., the zonal mode) have no connections
@@ -387,42 +390,20 @@ contains
       llim = 1; ulim = nzed_segment + 1
       
       if (periodic(iky)) then
-         gext(llim:ulim - 1) = g(ikx, iz_low(iseg):iz_up(iseg) - 1, it)
-         gext(ulim) = g(ikx, iz_low(iseg),it) / phase_shift(iky) 
-         ! if (sgn > 0) then
-         !    ! Here we are streaming in the negative direction, so keep the upper point and remove lower point as
-         !    ! information is flowing to the left
-         !    ! Make sure repeated point is accurately captured
-         !    gext(llim + 1:ulim) = g(ikx, iz_low(iseg) + 1:iz_up(iseg), it)
-         !    gext(llim) = g(ikx, iz_up(iseg), it) / phase_shift(iky)
-         ! else        
-         !    ! Make sure repeated point is accurately captured
-         !    gext(llim:ulim - 1) = g(ikx, iz_low(iseg):iz_up(iseg) - 1, it)
-         !    gext(ulim) = g(ikx, iz_low(iseg), it) * phase_shift(iky)
-         ! end if
+!         gext(llim:ulim - 1) = g(ikx, iz_low(iseg):iz_up(iseg) - 1, it)
+         !         gext(ulim) = g(ikx, iz_low(iseg),it) / phase_shift(iky)
+         gext(llim:ulim) = g(ikx, iz_low(iseg):iz_up(iseg), it) * curr_shift
       else
-         
-         gext(llim:ulim) = g(ikx, iz_low(iseg):iz_up(iseg), it) * curr_shift 
+         gext(llim:ulim) = g(ikx, iz_low(iseg):iz_up(iseg), it) * curr_shift
          if (nsegments(ie, iky) > 1) then
             itmod = it
             do iseg = 2, nsegments(ie, iky)
                curr_shift = curr_shift / phase_shift(iky)
                ikx = ikxmod(iseg, ie, iky)
                itmod = it_right(itmod)
-
-!               if (sgn > 0) then
-                  ! Here we are streaming in the negative direction, so keep the upper point and remove lower point as
-                  ! information is flowing to the left
-                  llim = ulim + 1
-                  ulim = llim + nzed_segment - 1
-                  gext(llim:ulim) = g(ikx, iz_low(iseg) + 1:iz_up(iseg), itmod) * curr_shift
-!               else
-!               llim = ulim
-!               ulim = llim + nzed_segment
-!                  gext(llim:ulim) g(ikx, iz_low(iseg):iz_up(iseg), itmod) * curr_shift
- !              gext(llim) = g(ikx, iz_up(iseg - 1), itmod) * curr_shift
- !              gext(llim + 1:ulim) = g(ikx, iz_low(iseg):iz_up(iseg), itmod) * curr_shift
-!               end if
+               llim = ulim + 1
+               ulim = llim + nzed_segment - 1
+               gext(llim:ulim) = g(ikx, iz_low(iseg) + 1:iz_up(iseg), itmod) * curr_shift
             end do
          end if
       end if
@@ -449,91 +430,23 @@ contains
       llim = 1; ulim = nzed_segment + 1
 
       if (periodic(iky)) then
-         !g(ikx, iz_low(iseg):iz_up(iseg), it) = gext(llim:ulim)
-         ! if (sgn > 0) then
-         !    g(ikx, iz_low(iseg) + 1:iz_up(iseg), it) = gext(llim + 1:ulim)
-         !    g(ikx, iz_low(iseg), it) = g(ikx, iz_up(iseg), it) * phase_shift(iky)
-         ! else
-         g(ikx, iz_low(iseg):iz_up(iseg) - 1, it) = gext(llim:ulim - 1)
-         g(ikx, iz_up(iseg), it) = g(ikx, iz_low(iseg), it) * phase_shift(iky)
-         ! end if
+!         g(ikx, iz_low(iseg):iz_up(iseg) - 1, it) = gext(llim:ulim - 1)
+         !         g(ikx, iz_up(iseg), it) = g(ikx, iz_low(iseg), it) * phase_shift(iky)
+         g(ikx, iz_low(iseg):iz_up(iseg), it) = gext(llim:ulim)
       else
          g(ikx, iz_low(iseg):iz_up(iseg), it) = gext(llim:ulim)
          if (nsegments(ie, iky) > 1) then
             itmod = it
             do iseg = 2, nsegments(ie, iky)
                curr_shift = curr_shift * phase_shift(iky)
+               llim = ulim + 1
+               ulim = llim + nzed_segment - 1
                ikx = ikxmod(iseg, ie, iky)
                itmod = it_right(itmod)
-!               if (sgn > 0) then 
-                  llim = ulim + 1
-                  ulim = llim + nzed_segment - 1
-                  g(ikx, iz_low(iseg):iz_up(iseg), itmod) = gext(llim - 1:ulim) * curr_shift
-!               else
-!               llim = ulim
-!               ulim = llim + nzed_segment
-!               g(ikx, iz_low(iseg):iz_up(iseg), itmod) = gext(llim:ulim) * curr_shift
-!               g(ikx, iz_low(iseg), itmod) = gext(llim) 
-!               g(ikx, iz_low(iseg) + 1:iz_up(iseg), itmod) = gext(llim + 1:ulim) * curr_shift
-!               end if
+               g(ikx, iz_low(iseg):iz_up(iseg), itmod) = gext(llim - 1:ulim) * curr_shift
             end do
          end if
-      end if
-         
-      ! if (sgn < 0) then
-      !    ! This is positive streaming, so we want to remove the lower bound repeated point
-      !    llim = 1; ulim = nzed_segment + 1
-      !    if(proc0) write(*,*) 'I'
-      !    if (periodic(iky)) then
-      !       if(proc0) write(*,*) 'I.a'
-      !       ! Make sure repeated point is accurately captured
-      !       g(ikx, iz_low(iseg):iz_up(iseg) - 1, it) = gext(llim:ulim - 1)
-      !       g(ikx, iz_up(iseg), it) = g(ikx, iz_low(iseg), it) * phase_shift(iky)
-      !    else
-      !       if(proc0) write(*,*) 'I.b'
-      !       g(ikx, iz_low(iseg):iz_up(iseg), it) = gext(llim:ulim)
-      !       if (nsegments(ie, iky) > 1) then
-      !          itmod = it
-      !          do iseg = 2, nsegments(ie, iky)
-      !             curr_shift = curr_shift * phase_shift(iky)
-      !             llim = ulim + 1
-      !             ulim = llim + nzed_segment - 1
-      !             ikx = ikxmod(iseg, ie, iky)
-      !             itmod = it_right(itmod)
-      !             g(ikx, iz_low(iseg), itmod) = gext(llim - 1) * curr_shift
-      !             g(ikx, iz_low(iseg) + 1:iz_up(iseg), itmod) = gext(llim:ulim) * curr_shift
-      !          end do
-      !       end if
-      !    end if
-      !    if(proc0) write(*,*) 'I.c'
-      ! else
-      !    if(proc0) write(*,*) 'II'
-      !    ! This is negative streaming, so we want to remove the upper repeated point
-      !    ulim = 1 + nsegments(ie, iky) * nzed_segment
-      !    llim = ulim - nzed_segment - 1
-      !    if (periodic(iky)) then
-      !       if(proc0) write(*,*) 'II.a'
-      !       g(ikx, iz_low(iseg) + 1:iz_up(iseg), it) = gext(llim + 1:ulim)
-      !       g(ikx, iz_low(iseg), it) = g(ikx, iz_up(iseg), it) / phase_shift(iky)
-      !    else
-      !       if(proc0) write(*,*) 'II.b'
-      !       g(ikx, iz_low(iseg):iz_up(iseg), it) = gext(llim:ulim)
-      !       if (nsegments(ie, iky) > 1) then
-      !          itmod = it
-      !          do iseg = 2, nsegments(ie, iky)
-      !             curr_shift = curr_shift / phase_shift(iky)
-      !             ulim = llim - 1
-      !             llim = ulim - nzed_segment + 1
-      !             ikx = ikxmod(iseg, ie, iky)
-      !             itmod = it_right(itmod)                  
-      !             g(ikx, iz_low(iseg):iz_up(iseg) - 1, itmod) = gext(llim:ulim) * curr_shift
-      !             g(ikx, iz_up(iseg), itmod) = gext(ulim + 1) * curr_shift
-      !          end do
-      !       end if
-      !    end if
-      !    if(proc0) write(*,*) 'II.c'
-      ! end if
-                  
+      end if                  
       
    end subroutine map_from_extended_zgrid
 
@@ -560,23 +473,23 @@ contains
      it = 1
      do iky = 1, naky
         do ie = 1, neigen(iky)
-           !              nz_ext = nsegments(ie, iky) * nzed_segment + 1
-           curr_shift = 1
-           if (nsegments(ie, iky) > 1) then
-              itmod = it
-              do iseg = 2, nsegments(ie, iky)
-                 curr_shift = curr_shift / phase_shift(iky)
-                 itmod = it_right(itmod)                    
-                 field(iky, ikxmod(iseg, ie, iky), iz_low(iseg), itmod) = field(iky, ikxmod(iseg -1, ie, iky), iz_up(iseg - 1), itmod) * curr_shift
-              end do
-           end if
+           nz_ext = nsegments(ie, iky) * nzed_segment + 1
+           ! curr_shift = 1
+           ! if (nsegments(ie, iky) > 1) then
+           !    itmod = it
+           !    do iseg = 2, nsegments(ie, iky)
+           !       curr_shift = curr_shift / phase_shift(iky)
+           !       itmod = it_right(itmod)                    
+           !       field(iky, ikxmod(iseg, ie, iky), iz_low(iseg), itmod) = field(iky, ikxmod(iseg -1, ie, iky), iz_up(iseg - 1), itmod) * curr_shift
+           !    end do
+           ! end if
 
-           ! allocate (field_ext(nz_ext)); field_ext = 0.0
-           ! call map_to_extended_zgrid (it, ie, iky, field(iky, :, :, :), field_ext, ulim, - 1)
-           ! call map_from_extended_zgrid (it, ie, iky, field_ext, field(iky,:, :, :), - 1)
-           ! deallocate(field_ext)
+           allocate (field_ext(nz_ext)); field_ext = 0.0
+           call map_to_extended_zgrid (it, ie, iky, field(iky, :, :, :), field_ext, ulim)
+           call map_from_extended_zgrid (it, ie, iky, field_ext, field(iky,:, :, :))
+           deallocate(field_ext)
         end do
-        if (periodic(iky)) field(iky,:,-nzgrid,:) = field(iky,:,nzgrid,:) * phase_shift(iky)
+!        if (periodic(iky)) field(iky,:,-nzgrid,:) = field(iky,:,nzgrid,:) * phase_shift(iky)
      end do
      
    end subroutine enforce_reality

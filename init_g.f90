@@ -276,7 +276,6 @@ contains
             end do
          end if
       end if
-
       ! need better way to initialise for full flux surface cases
       ia = 1
 
@@ -316,8 +315,16 @@ contains
      use constants, only: pi
 
      use kt_grids, only: swap_kxky, swap_kxky_back
-     use stella_transforms, only: transform_ky2y, transform_y2ky
-     use mp, only: proc0
+     use stella_transforms, only: transform_ky2y, transform_y2ky,transform_ky2y_unpadded
+
+     use extended_zgrid, only: ikxmod, neigen
+     use extended_zgrid, only: it_right 
+     use extended_zgrid, only: periodic, phase_shift   
+     use mp, only: proc0, broadcast, iproc
+     use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx
+
+     use time_advance, only: checksum
+     
      implicit none
 
      complex, dimension (:), allocatable :: phiext
@@ -333,6 +340,10 @@ contains
      integer :: imu,is, iv, ivmu
      integer :: iz, iky, ikx, iy
 
+     integer :: iseg, ia, itmod
+     integer :: ikxkyz
+     real, dimension(:), allocatable :: alpha
+     real :: total 
      right = .not. left
 
      it = 1
@@ -353,34 +364,107 @@ contains
      !       end do
      !    end do
      ! end do
+     
+     ! do iz = -nzgrid, nzgrid
+     !    phi(:, :, iz,1) = exp(-((zed(iz) - zed0) / width0)**2) * cmplx(1.0, 1.0)
+     ! end do
+     ! if (chop_side) then
+     !    if (left) phi(:, :, :-1, :) = 0.0
+     !    if (right) phi(:, :, 1:, :) = 0.0
+     ! end if
 
-     do iz = -nzgrid, nzgrid
-        phi(:, :, iz,1) = exp(-((zed(iz) - zed0) / width0)**2) * cmplx(1.0, 1.0)
-     end do
+     ! if (zonal_mode(1)) then
+     !    if (abs(akx(1)) < epsilon(0.0)) then
+     !       phi(1, 1, :, :) = 0.0
+     !    end if
 
-     if (chop_side) then
-        if (left) phi(:, :, :-1, :) = 0.0
-        if (right) phi(:, :, 1:, :) = 0.0
-     end if
+     !    if (reality) then
+     !       do ikx = 1, nakx - ikx_max
+     !          phi(1, nakx - ikx + 1, :, :) = conjg(phi(1, ikx + 1, :, :))
+     !       end do
+     !    end if
+     ! end if
+        
+     if (proc0) then   
+        do iz = -nzgrid, nzgrid
+           phi(:, :, iz,1) = exp(-((zed(iz) - zed0) / width0)**2) * cmplx(1.0, 1.0)
+        end do
 
-     if (zonal_mode(1)) then
-        if (abs(akx(1)) < epsilon(0.0)) then
+        if (chop_side) then
+           if (left) then
+              phi(iky, ikx, :-1, it) = 0.0
+           else
+              phi(iky, ikx, 1:, it) = 0.0
+           end if
+        end if
+
+        do iky = 1, naky
+           if (periodic(iky)) then
+              phi(iky, :, nzgrid, :) = phi(iky, :, -nzgrid, :) / phase_shift(iky)
+           end if
+        end do
+        
+        ! zero out the kx=ky=0 mode and apply optional
+        ! scaliing factor to all zonal modes
+        if (zonal_mode(1)) then
+           !Apply scaling factor
+           phi(1, :, :, :) = phi(1, :, :, :) * zf_init
+           
+           !Set ky=kx=0.0 mode to zero in amplitude
            phi(1, 1, :, :) = 0.0
         end if
-
+        
+        !Apply reality condition (i.e. -kx mode is conjugate of +kx mode)
         if (reality) then
-           do ikx = 1, nakx - ikx_max
-              phi(1, nakx - ikx + 1, :, :) = conjg(phi(1, ikx + 1, :, :))
+           do ikx = nakx / 2 + 2, nakx
+              phi(1, ikx, :, :) = conjg(phi(1, nakx - ikx + 2, :, :))
            end do
         end if
+        
      end if
 
+     call broadcast(phi)
+     
+     do iky = 1, naky
+        do ie = 1, neigen(iky)
+           ! enforce zero BC at ends of domain, unless periodic
+           if (.not. periodic(iky)) then
+              phi(iky, ikxmod(1, ie, iky), -nzgrid, :) = 0.0
+              phi(iky, ikxmod(nsegments(ie, iky), ie, iky), nzgrid, :) = 0.0
+           end if
+           ! enforce equality of g values at duplicate zed points
+           if (nsegments(ie, iky) > 1) then
+              do it = 1, ntubes
+                 itmod = it
+                 do iseg = 2, nsegments(ie, iky)
+                    phi(iky, ikxmod(iseg, ie, iky), -nzgrid, it_right(itmod)) = phi(iky, ikxmod(iseg - 1, ie, iky), nzgrid, itmod)
+                    itmod = it_right(itmod)
+                 end do
+              end do
+           end if
+        end do
+     end do
+     
      allocate (g_swap(naky_all, ikx_max))
      allocate (phiy(ny, ikx_max, -nzgrid:nzgrid)) ; phiy = 0.0
-     do iz = -nzgrid, nzgrid
-        call swap_kxky(phi(:, :, iz, 1), g_swap)
-        call transform_ky2y(g_swap, phiy(:, :, iz))
-     end do
+     if(proc0) then
+        do iz = -nzgrid, nzgrid
+           call swap_kxky(phi(:, :, iz, 1), g_swap)
+           call transform_ky2y(g_swap, phiy(:, :, iz))
+        end do
+     end if
+     
+     ! allocate (g_swap(naky_all, ikx_max))
+     ! allocate (phiy(ny, ikx_max, -nzgrid:nzgrid)) ; phiy = 0.0
+     ! if(proc0) then
+     !    allocate(alpha(ny))
+     !    alpha = -pi + [((2 * pi * j) / ny, j = 1, ny)]
+     !    do iy = 1, ny
+     !       phiy (iy,:,:) = exp(- alpha(iy)**2)
+     !    end do
+     !    deallocate(alpha) 
+     ! end if
+     call broadcast(phiy)
 
      allocate (g0x(ny, ikx_max, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); g0x = 0.0
      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -392,13 +476,13 @@ contains
               do iz = -nzgrid, nzgrid
                  g0x(iy, ikx, iz, ivmu) = phiy(iy, ikx, iz) / abs(spec(is)%z) &
                       * (den0 + 2.0 * zi * vpa(iv) * upar0) &
-!                      * maxwell_mu(iy, iz, imu, is) &
+                      * maxwell_mu(iy, iz, imu, is) &
                       * maxwell_vpa(iv, is) * maxwell_fac(is)
               end do
            end do
         end do
      end do
-
+     
      gnew = 0.0 
      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         do iz = -nzgrid, nzgrid
@@ -406,26 +490,26 @@ contains
            call swap_kxky_back(g_swap, gnew(:, :, iz, 1, ivmu))
         end do
      end do
+     deallocate (g_swap)
      
      gnew = spread(gnew(:,:,:,1,:), 4, ntubes)
      gnew (1,1,:,:,:) = 0.0
-
+     
      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
         call enforce_reality (gnew(:, :, :, :, ivmu))
      end do
      
      ! Normalise and scale 
-     gnew = gnew / sum(real(gnew)**2 + aimag(gnew)**2)
+     gnew = gnew / (maxval((real(gnew)**2 + aimag(gnew)**2)))
      gnew = gnew * phiinit
      
-     deallocate (g_swap)
-     
      gvmu = 0.
+
      call scatter(kxkyz2vmu, gnew, gvmu)
      
      deallocate(phiy, g0x)
-     
-   end subroutine ginit_default_ffs
+
+    end subroutine ginit_default_ffs
    ! initialize two kys and kx=0
 !   subroutine ginit_nltest
 
