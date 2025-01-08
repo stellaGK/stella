@@ -408,7 +408,7 @@ contains
         ! scaliing factor to all zonal modes
         if (zonal_mode(1)) then
            !Apply scaling factor
-           phi(1, :, :, :) = phi(1, :, :, :) * zf_init
+           phi(1, :, :, :) = phi(1, :, :, :)! * zf_init
            
            !Set ky=kx=0.0 mode to zero in amplitude
            phi(1, 1, :, :) = 0.0
@@ -423,7 +423,7 @@ contains
         
      end if
 
-     call broadcast(phi)
+!     call broadcast(phi)
      
      do iky = 1, naky
         do ie = 1, neigen(iky)
@@ -476,7 +476,7 @@ contains
               do iz = -nzgrid, nzgrid
                  g0x(iy, ikx, iz, ivmu) = phiy(iy, ikx, iz) / abs(spec(is)%z) &
                       * (den0 + 2.0 * zi * vpa(iv) * upar0) &
-                      * maxwell_mu(iy, iz, imu, is) &
+!                      * maxwell_mu(iy, iz, imu, is) &
                       * maxwell_vpa(iv, is) * maxwell_fac(is)
               end do
            end do
@@ -495,16 +495,15 @@ contains
      gnew = spread(gnew(:,:,:,1,:), 4, ntubes)
      gnew (1,1,:,:,:) = 0.0
      
-     do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-        call enforce_reality (gnew(:, :, :, :, ivmu))
-     end do
+     ! do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+     !    call enforce_reality (gnew(:, :, :, :, ivmu))
+     ! end do
      
      ! Normalise and scale 
-     gnew = gnew / (maxval((real(gnew)**2 + aimag(gnew)**2)))
+     gnew = gnew / (maxval(real(gnew)**2 + aimag(gnew)**2))
      gnew = gnew * phiinit
      
      gvmu = 0.
-
      call scatter(kxkyz2vmu, gnew, gvmu)
      
      deallocate(phiy, g0x)

@@ -390,9 +390,8 @@ contains
       llim = 1; ulim = nzed_segment + 1
       
       if (periodic(iky)) then
-!         gext(llim:ulim - 1) = g(ikx, iz_low(iseg):iz_up(iseg) - 1, it)
-         !         gext(ulim) = g(ikx, iz_low(iseg),it) / phase_shift(iky)
-         gext(llim:ulim) = g(ikx, iz_low(iseg):iz_up(iseg), it) * curr_shift
+         gext(llim:ulim - 1) = g(ikx, iz_low(iseg):iz_up(iseg) - 1, it)
+         gext(ulim) = g(ikx, iz_low(iseg),it) / phase_shift(iky)
       else
          gext(llim:ulim) = g(ikx, iz_low(iseg):iz_up(iseg), it) * curr_shift
          if (nsegments(ie, iky) > 1) then
@@ -430,9 +429,8 @@ contains
       llim = 1; ulim = nzed_segment + 1
 
       if (periodic(iky)) then
-!         g(ikx, iz_low(iseg):iz_up(iseg) - 1, it) = gext(llim:ulim - 1)
-         !         g(ikx, iz_up(iseg), it) = g(ikx, iz_low(iseg), it) * phase_shift(iky)
-         g(ikx, iz_low(iseg):iz_up(iseg), it) = gext(llim:ulim)
+         g(ikx, iz_low(iseg):iz_up(iseg) - 1, it) = gext(llim:ulim - 1)
+         g(ikx, iz_up(iseg), it) = g(ikx, iz_low(iseg), it) * phase_shift(iky)
       else
          g(ikx, iz_low(iseg):iz_up(iseg), it) = gext(llim:ulim)
          if (nsegments(ie, iky) > 1) then
@@ -474,22 +472,12 @@ contains
      do iky = 1, naky
         do ie = 1, neigen(iky)
            nz_ext = nsegments(ie, iky) * nzed_segment + 1
-           ! curr_shift = 1
-           ! if (nsegments(ie, iky) > 1) then
-           !    itmod = it
-           !    do iseg = 2, nsegments(ie, iky)
-           !       curr_shift = curr_shift / phase_shift(iky)
-           !       itmod = it_right(itmod)                    
-           !       field(iky, ikxmod(iseg, ie, iky), iz_low(iseg), itmod) = field(iky, ikxmod(iseg -1, ie, iky), iz_up(iseg - 1), itmod) * curr_shift
-           !    end do
-           ! end if
-
            allocate (field_ext(nz_ext)); field_ext = 0.0
            call map_to_extended_zgrid (it, ie, iky, field(iky, :, :, :), field_ext, ulim)
            call map_from_extended_zgrid (it, ie, iky, field_ext, field(iky,:, :, :))
            deallocate(field_ext)
         end do
-!        if (periodic(iky)) field(iky,:,-nzgrid,:) = field(iky,:,nzgrid,:) * phase_shift(iky)
+        if (periodic(iky)) field(iky,:,-nzgrid,:) = field(iky,:,nzgrid,:) * phase_shift(iky)
      end do
      
    end subroutine enforce_reality

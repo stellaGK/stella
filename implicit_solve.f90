@@ -129,12 +129,12 @@ contains
          !> phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
          ! solve for the 'inhomogeneous' piece of the pdf
          if (driftkinetic_implicit) then
-!            call advance_fields(g2, phi_store, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
- !           phi_store = phi_old
-!!            call get_source_ffs_itteration (phi_old, g2, phi_store, phi_source_ffs)
-!!            phi_source_ffs = 0.0 
+            call advance_fields(g2, phi_store, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
+!            phi_store = phi_old
+            call get_source_ffs_itteration (phi_old, g2, phi_store, phi_source_ffs)
             !!            call get_drifts_ffs_itteration (phi_old, g2, drifts_source_ffs)
             !!            phi_source_ffs = phi_source_ffs + drifts_source_ffs
+!!            phi_source_ffs = 0.0
             phi_source = tupwnd_m * phi
             !> set the g on the RHS to be g from the previous time step  
             !> FFS will have a RHS source term
@@ -153,8 +153,8 @@ contains
             call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
             !> g2 = g^{n+1, i}
             !> phi_old = phi^{n+1, i}
-!            call get_fields_source(g2, phi, fields_source_ffs)
-!            phi = phi + fields_source_ffs
+            call get_fields_source(g2, phi, fields_source_ffs)
+            phi = phi + fields_source_ffs
          else
             call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice)) 
          end if

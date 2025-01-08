@@ -1365,11 +1365,10 @@ contains
 
      source(1, 1, :, :) = 0.0
 !     call enforce_reality(source)
-     
+    
      deallocate(source2, gamtot_t) 
      
-   end subroutine get_fields_source
-   
+   end subroutine get_fields_source   
 
    subroutine get_g_integral_contribution_source (g, source) 
 
@@ -1385,8 +1384,6 @@ contains
      use stella_layouts, only: iv_idx, imu_idx, is_idx
      use kt_grids, only: nalpha
      
-     use extended_zgrid, only: enforce_reality
-
      implicit none
      
      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1468,7 +1465,6 @@ contains
 
       integer :: ivmu, iky, is, imu, iv 
       
-      complex,  dimension(:, :, :, :), allocatable :: source_copy
       allocate (source(naky, nakx, -nzgrid:nzgrid)); source = 0.0
 
       if (fphi > epsilon(0.0)) then
@@ -1567,6 +1563,7 @@ contains
                deallocate (phi_swap, phi_fsa)
                deallocate (phi_fsa_spread, phi_source)
             end if
+            phi(1, :, nzgrid, :) = phi(1, :, -nzgrid, :)
             phi(1, 1, :, :) = 0.
          end if
       else if (.not. adiabatic_electrons) then
@@ -1576,8 +1573,8 @@ contains
          phi(1, 1, :, :) = 0.
       end if
 
-!      call broadcast(phi) 
-!      call enforce_reality (phi) 
+!      call enforce_reality (phi)
+      
       deallocate (source)
       apar = 0.
       if (include_apar) then
@@ -1639,7 +1636,7 @@ contains
          !> store result in phi, which will be further modified below to account for polarization term
          call sum_allreduce(source)
 
-         !!> Better fix when only on the implicit solve 
+         !> Better fix when only on the implicit solve 
          ! if (present(implicit_solve)) then
          !    allocate(source_copy(naky,nakx, -nzgrid:nzgrid, ntubes)) ; source_copy = 0.0
          !    source_copy = spread(source, 4, ntubes)
