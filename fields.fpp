@@ -1563,7 +1563,7 @@ contains
                deallocate (phi_swap, phi_fsa)
                deallocate (phi_fsa_spread, phi_source)
             end if
-            phi(1, :, nzgrid, :) = phi(1, :, -nzgrid, :)
+!            phi(1, :, nzgrid, :) = phi(1, :, -nzgrid, :)
             phi(1, 1, :, :) = 0.
          end if
       else if (.not. adiabatic_electrons) then
