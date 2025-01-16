@@ -300,6 +300,16 @@ contains
       !> with the previous segment due to periodicity)
       nzed_segment = iz_up(1) - iz_low(1)
 
+      call broadcast (iz_up)
+      call broadcast (iz_low)
+      call broadcast (iz_mid)
+      call broadcast (it_right)
+!      call broadcast (ikxmod)
+      call broadcast (periodic)
+      call broadcast (nzed_segment)
+!      call broadcast (nsegments)
+      call broadcast (neigen) 
+      
    end subroutine init_extended_zgrid
 
    subroutine fill_zed_ghost_zones(it, iseg, ie, iky, g, gleft, gright)
@@ -383,6 +393,7 @@ contains
       integer :: llim
       complex :: curr_shift
 
+      complex :: tmp 
       ! avoid double-counting at boundaries between 2pi segments
       iseg = 1
       curr_shift = 1.
@@ -390,8 +401,8 @@ contains
       llim = 1; ulim = nzed_segment + 1
       
       if (periodic(iky)) then
-         gext(llim:ulim - 1) = g(ikx, iz_low(iseg):iz_up(iseg) - 1, it)
-         gext(ulim) = g(ikx, iz_low(iseg),it) / phase_shift(iky)
+         gext(llim:ulim - 1) = g(ikx, -nzgrid:nzgrid - 1, it)
+         gext(ulim) = g(ikx, -nzgrid, it) / phase_shift(iky)
       else
          gext(llim:ulim) = g(ikx, iz_low(iseg):iz_up(iseg), it) * curr_shift
          if (nsegments(ie, iky) > 1) then
@@ -400,62 +411,18 @@ contains
                curr_shift = curr_shift / phase_shift(iky)
                ikx = ikxmod(iseg, ie, iky)
                itmod = it_right(itmod)
-!              llim = ulim + 1
-!               ulim = llim + nzed_segment - 1
-               !               gext(llim:ulim) = g(ikx, iz_low(iseg) + 1:iz_up(iseg), itmod) * curr_shift
+
+               tmp = gext(ulim)
+
                llim = ulim
                ulim = llim + nzed_segment
-               !gext(llim) = 0.5 * (g(ikx, iz_low(iseg), itmod) * curr_shift + gext(llim))                
-               !gext(llim + 1: ulim) = g(ikx, iz_low(iseg) + 1:iz_up(iseg), itmod) * curr_shift
-
                gext(llim:ulim) = g(ikx, iz_low(iseg):iz_up(iseg), itmod) * curr_shift
+
             end do
          end if
       end if
       
    end subroutine map_to_extended_zgrid
-
-   subroutine map_to_extended_zgrid2(it, ie, iky, g, gext, ulim)
-
-      use zgrid, only: nzgrid
-      use mp, only: proc0
-      implicit none
-
-      integer, intent(in) :: it, ie, iky
-      complex, dimension(:, -nzgrid:, :), intent(in) :: g
-      complex, dimension(:), intent(out) :: gext
-      integer, intent(out) :: ulim
-      
-      integer :: iseg, ikx, itmod
-      integer :: llim
-      complex :: curr_shift
-
-      ! avoid double-counting at boundaries between 2pi segments
-      iseg = 1
-      curr_shift = 1.
-      ikx = ikxmod(iseg, ie, iky)
-      llim = 1; ulim = nzed_segment + 1
-      
-      if (periodic(iky)) then
-         gext(llim:ulim - 1) = g(ikx, iz_low(iseg):iz_up(iseg) - 1, it)
-         gext(ulim) = g(ikx, iz_low(iseg),it) / phase_shift(iky)
-      else
-         gext(llim:ulim) = g(ikx, iz_low(iseg):iz_up(iseg), it) * curr_shift
-         if (nsegments(ie, iky) > 1) then
-            itmod = it
-            do iseg = 2, nsegments(ie, iky)
-               curr_shift = curr_shift / phase_shift(iky)
-               ikx = ikxmod(iseg, ie, iky)
-               itmod = it_right(itmod)
-               llim = ulim
-               ulim = llim + nzed_segment
-               gext(llim) = 0.5 * (g(ikx, iz_low(iseg), itmod) * curr_shift + gext(llim))                
-               gext(llim + 1: ulim) = g(ikx, iz_low(iseg) + 1:iz_up(iseg), itmod) * curr_shift
-            end do
-         end if
-      end if
-      
-    end subroutine map_to_extended_zgrid2
    
    subroutine map_from_extended_zgrid(it, ie, iky, gext, g)
 
@@ -470,6 +437,8 @@ contains
       integer :: iseg, ikx, itmod
       integer :: llim, ulim
       complex :: curr_shift
+
+      complex :: tmp
       
       iseg = 1
       curr_shift = 1.
@@ -479,107 +448,73 @@ contains
       if (periodic(iky)) then
          g(ikx, iz_low(iseg):iz_up(iseg) - 1, it) = gext(llim:ulim - 1)
          g(ikx, iz_up(iseg), it) = g(ikx, iz_low(iseg), it) / phase_shift(iky)
-!         g(ikx, iz_up(iseg), it) = g(ikx, iz_low(iseg), it) * phase_shift(iky)
       else
+         g(ikxmod(1, ie, iky), iz_low(1), :) = 0.0
+         g(ikxmod(nsegments(ie, iky), ie, iky), iz_up(nsegments(ie, iky)), : ) = 0.0
+
+         
          g(ikx, iz_low(iseg):iz_up(iseg), it) = gext(llim:ulim)
          if (nsegments(ie, iky) > 1) then
             itmod = it
             do iseg = 2, nsegments(ie, iky)
                curr_shift = curr_shift * phase_shift(iky)
-!               llim = ulim + 1
-!               ulim = llim + nzed_segment - 1
                ikx = ikxmod(iseg, ie, iky)
                itmod = it_right(itmod)
-!               g(ikx, iz_low(iseg):iz_up(iseg), itmod) = gext(llim - 1:ulim) * curr_shift
 
                llim = ulim
                ulim = llim + nzed_segment
                g(ikx, iz_low(iseg):iz_up(iseg), itmod) = gext(llim:ulim) * curr_shift
-               g(ikxmod(iseg - 1, ie, iky), iz_up(iseg - 1), itmod) = g(ikx, iz_low(iseg), itmod)
-
+               g(ikxmod(iseg - 1, ie, iky), iz_up(iseg - 1), itmod) = g(ikx, iz_low(iseg), itmod) * 0.5 * (phase_shift(iky) + 1)
+!               g(ikxmod(iseg - 1, ie, iky), iz_up(iseg - 1), itmod) = 0.5 * ( g(ikxmod(iseg - 1, ie, iky), iz_up(iseg - 1), itmod) + g(ikx, iz_low(iseg), itmod) * phase_shift(iky))
+               
             end do
          end if
-      end if                  
-      
+      end if
    end subroutine map_from_extended_zgrid
 
-   subroutine map_from_extended_zgrid2(it, ie, iky, gext, g)
-
-      use zgrid, only: nzgrid
-      use mp, only: proc0
-      implicit none
-
-      integer, intent(in) :: it, ie, iky
-      complex, dimension(:), intent(in) :: gext
-      complex, dimension(:, -nzgrid:, :), intent(in out) :: g
-      
-      integer :: iseg, ikx, itmod
-      integer :: llim, ulim
-      complex :: curr_shift
-      
-      iseg = 1
-      curr_shift = 1.
-      ikx = ikxmod(iseg, ie, iky)
-      llim = 1; ulim = nzed_segment + 1
-
-      if (periodic(iky)) then
-         g(ikx, iz_low(iseg):iz_up(iseg) - 1, it) = gext(llim:ulim - 1)
-         g(ikx, iz_up(iseg), it) = g(ikx, iz_low(iseg), it) / phase_shift(iky)
-      else
-         g(ikx, iz_low(iseg):iz_up(iseg), it) = gext(llim:ulim)
-         if (nsegments(ie, iky) > 1) then
-            itmod = it
-            do iseg = 2, nsegments(ie, iky)
-               curr_shift = curr_shift * phase_shift(iky)
-
-               ikx = ikxmod(iseg, ie, iky)
-               itmod = it_right(itmod)
-
-               llim = ulim
-               ulim = llim + nzed_segment
-
-               !!!! Can add this plus one and it doesnt do anything???? strange
-!               g(ikx, iz_low(iseg):iz_up(iseg), itmod) = gext(llim:ulim) * curr_shift
-               g(ikx, iz_low(iseg):iz_up(iseg), itmod) = gext(llim:ulim + 1) * curr_shift
-               
-               !g(ikxmod(iseg - 1, ie, iky), iz_up(iseg - 1), itmod) = g(ikx, iz_low(iseg), itmod)
-               !g(ikx, iz_low(iseg):iz_up(iseg), itmod) = gext(llim:ulim) * curr_shift
-
-            end do
-         end if
-      end if                  
-      
-    end subroutine map_from_extended_zgrid2
-
-   subroutine enforce_reality (field)
+   subroutine enforce_reality (g)
 
      use zgrid, only: nzgrid, ntubes
      use kt_grids, only: naky, nakx
      use mp, only: proc0 , broadcast
      implicit none
 
-     complex, dimension(:, :, -nzgrid:, :), intent(inout) :: field
-     complex, dimension(:), allocatable :: field_ext
-     integer :: ulim, llim, nz_ext
-     integer :: it, ie, iky
-     integer :: ikx
+     complex, dimension(:, :, -nzgrid:, :), intent(inout) :: g
+     integer :: it, ie, iky, ikx, iseg
 
-     field(1, 1, :, :) = real(field(1, 1, :, :))
-     ! do ikx = 2, nakx / 2 + 1
-     !    field(1, ikx, :, :) = 0.5 * (field(1, ikx, :, :) + conjg(field(1, nakx - ikx + 2, :, :)))
-     !    field(1, nakx - ikx + 2, :, :) = conjg(field(1, ikx, :, :))
-     ! end do                                        
+     complex :: tmp
+
+     it = 1 
      do iky = 1, naky
+!         if(periodic(iky)) then
+!            iseg = 1
+!            do ie = 1, neigen(iky) 
+!               ikx = ikxmod(iseg, ie, iky)
+! !              tmp = 0.5 * (g(iky, ikx, iz_low(iseg),it) + g(iky, ikx, iz_up(iseg), it)/  phase_shift(iky))
+!               tmp = 0.5 * (g(iky, ikx, iz_low(iseg),it) + g(iky, ikx, iz_up(iseg), it) )
+!               g(iky, ikx, iz_low(iseg),it) = tmp
+!               g(iky, ikx, iz_up(iseg), it) = tmp 
+!            end do
+!         else
         do ie = 1, neigen(iky)
-           nz_ext = nsegments(ie, iky) * nzed_segment + 1
-           allocate (field_ext(nz_ext)); field_ext = 0.0
-           call map_to_extended_zgrid2 (it, ie, iky, field(iky, :, :, :), field_ext, ulim)
-           call map_from_extended_zgrid (it, ie, iky, field_ext, field(iky,:, :, :))
-           deallocate(field_ext)
+           ! if (.not. periodic(iky)) then
+           !    g(iky, ikxmod(1, ie, iky), -nzgrid, :) = 0.0
+           !    g(iky, ikxmod(nsegments(ie, iky), ie, iky), nzgrid, :) = 0.0
+           ! else if (periodic(iky)) then
+           !    g(iky, ikxmod(nsegments(ie, iky), ie, iky), nzgrid, :) = g(iky, ikxmod(nsegments(ie, iky), ie, iky), -nzgrid, :) / phase_shift(iky)
+           ! end if
+
+           if (nsegments(ie, iky) > 1) then
+              do iseg = 2, nsegments(ie, iky)
+                 tmp = 0.5 * (g(iky, ikxmod(iseg - 1, ie, iky), iz_up(iseg - 1), 1) +  g(iky, ikxmod(iseg, ie, iky), iz_low(iseg), 1) )
+                 g(iky, ikxmod(iseg - 1, ie, iky), iz_up(iseg - 1), 1) = tmp 
+                 g(iky, ikxmod(iseg, ie, iky), iz_low(iseg), 1) = tmp 
+              end do
+           end if
         end do
-!        if (periodic(iky)) field(iky,:,-nzgrid,:) = field(iky,:,nzgrid,:) * phase_shift(iky)
+        !        end if
      end do
-     
+          
    end subroutine enforce_reality
    
    subroutine map_to_iz_ikx_from_izext(iky, ie, iz_from_izext, ikx_from_izext)

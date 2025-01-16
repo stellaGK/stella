@@ -237,7 +237,7 @@ contains
       use dist_fn_arrays, only: kperp2
       use kt_grids, only: naky, nalpha
       use zgrid, only: nzgrid
-      use extended_zgrid, only: neigen, nsegments, ikxmod, periodic
+      use extended_zgrid, only: neigen, nsegments, ikxmod, periodic, phase_shift
 
       implicit none
 
@@ -251,12 +251,12 @@ contains
             do ie = 1, neigen(iky)
                if (nsegments(ie, iky) > 1) then
                   do iseg = 2, nsegments(ie, iky)
-                     !tmp = 0.5 * (kperp2(iky, ikxmod(iseg - 1, ie, iky), :, nzgrid) + kperp2(iky, ikxmod(iseg, ie, iky), :, -nzgrid))
-                     !kperp2(iky, ikxmod(iseg, ie, iky), :, -nzgrid) = tmp
-                     !kperp2(iky, ikxmod(iseg - 1, ie, iky), :, nzgrid) = tmp
+!                     tmp = 0.5 * (kperp2(iky, ikxmod(iseg - 1, ie, iky), :, nzgrid) + kperp2(iky, ikxmod(iseg, ie, iky), :, -nzgrid) * phase_shift(iky) ) 
+!                     kperp2(iky, ikxmod(iseg, ie, iky), :, -nzgrid) = tmp 
+!                     kperp2(iky, ikxmod(iseg - 1, ie, iky), :, nzgrid) = tmp
                      
                      tmp = kperp2(iky, ikxmod(iseg, ie, iky), :, -nzgrid)
-                     kperp2(iky, ikxmod(iseg - 1, ie, iky), :, nzgrid) = tmp
+                     kperp2(iky, ikxmod(iseg - 1, ie, iky), :, nzgrid) = tmp 
                      
                   end do
                end if

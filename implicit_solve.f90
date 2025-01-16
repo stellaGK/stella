@@ -45,7 +45,8 @@ contains
       use ffs_solve, only: get_source_ffs_itteration, get_drifts_ffs_itteration
       use species, only: has_electron_species
 
-      use extended_zgrid, only: enforce_reality 
+      use extended_zgrid, only: enforce_reality
+      use parallel_streaming, only: stream_sign
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
@@ -67,7 +68,9 @@ contains
       logical :: modify
       real :: error, tol
 
-      integer :: ivmu
+      integer :: ivmu, iv
+
+      integer :: sgn
       
       if(driftkinetic_implicit) then 
          if (.not. allocated(phi_source_ffs)) allocate (phi_source_ffs(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -136,7 +139,6 @@ contains
             call get_source_ffs_itteration (phi_old, g2, phi_source_ffs)
             !!            call get_drifts_ffs_itteration (phi_old, g2, drifts_source_ffs)
             !!            phi_source_ffs = phi_source_ffs + drifts_source_ffs
-            !phi_source_ffs = 0.0
             phi_source = tupwnd_m * phi
             !> set the g on the RHS to be g from the previous time step  
             !> FFS will have a RHS source term
@@ -190,6 +192,12 @@ contains
             !> solving for full g = g_{inh} + g_{hom} 
             modify = .true.
             call update_pdf(modify)
+            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+               iv = iv_idx(vmu_lo, ivmu)
+               sgn = stream_sign(iv)
+               call enforce_reality_streaming (g(:, :, :, :, ivmu), sgn)
+            end do
+
             !> save the incoming pdf and phi, as they will be needed later
             !> this will become g^{n+1, i} -- the g from the previous iteration         
             fields_updated = .false.
@@ -203,11 +211,6 @@ contains
          !!error = 0.0 
          itt = itt + 1
       end do
-
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         call enforce_reality_streaming (g(:, :, :, :, ivmu))
-      end do
-
      
       deallocate (phi_old, apar_old, bpar_old)
       deallocate (phi_source, apar_source, bpar_source)
@@ -1336,28 +1339,46 @@ contains
 
    end subroutine invert_parstream_response
 
-   subroutine enforce_reality_streaming (g) 
+   subroutine enforce_reality_streaming (g, sgn) 
 
       use kt_grids, only: naky, nalpha
       use zgrid, only: nzgrid
       use extended_zgrid, only: neigen, nsegments, ikxmod, periodic, phase_shift
+      use extended_zgrid, only: iz_up, iz_low
       
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :), intent(inout) :: g
+      integer, intent (in) :: sgn 
       integer :: iky, ie, iseg
       complex :: tmp
 
 
       do iky = 1, naky
-!         if(.not. periodic(iky)) then
          do ie = 1, neigen(iky)
-            if (nsegments(ie, iky) > 1) then
-               do iseg = 2, nsegments(ie, iky)
-                  tmp = 0.5 * (g(iky, ikxmod(iseg - 1, ie, iky), nzgrid, 1) +  g(iky, ikxmod(iseg, ie, iky), -nzgrid, 1) /phase_shift(iky) )
-                  g(iky, ikxmod(iseg, ie, iky), -nzgrid, 1) = tmp
-                  g(iky, ikxmod(iseg - 1, ie, iky), nzgrid, 1) = tmp
-               end do
+!            if (.not. periodic(iky)) then
+!               g(iky, ikxmod(1, ie, iky), iz_low(iseg), :) = 0.0
+!            g(iky, ikxmod(nsegments(ie, iky), ie, iky), iz_up(nsegments(ie, iky)), :) = 0.0
+!            g(iky, ikxmod(nsegments(ie, iky), ie, iky), iz_up(nsegments(ie, iky)), :)
+
+            !            else if (periodic(iky)) then
+            if(periodic(iky)) then 
+               g(iky, ikxmod(nsegments(ie, iky), ie, iky), nzgrid, :) = g(iky, ikxmod(nsegments(ie, iky), ie, iky), -nzgrid, :) / phase_shift(iky)
+            else 
+!            if (.not. periodic (iky)) then
+               if (nsegments(ie, iky) > 1) then
+                  do iseg = 2, nsegments(ie, iky)
+
+                     tmp = 0.5 * (g(iky, ikxmod(iseg - 1, ie, iky), iz_up(iseg - 1), 1) + g(iky, ikxmod(iseg, ie, iky), iz_low(iseg), 1) * phase_shift(iky) )
+                     g(iky, ikxmod(iseg - 1, ie, iky), iz_up(iseg - 1), 1) = tmp /  phase_shift(iky)
+                     g(iky, ikxmod(iseg, ie, iky), iz_low(iseg), 1) = tmp
+                     
+                     !tmp = 0.5 * (g(iky, ikxmod(iseg - 1, ie, iky), iz_up(iseg - 1), 1) * phase_shift(iky)  +  g(iky, ikxmod(iseg, ie, iky), iz_low(iseg), 1) /phase_shift(iky) )
+                     !tmp = 0.5 * (g(iky, ikxmod(iseg - 1, ie, iky), iz_up(iseg - 1), 1) + g(iky, ikxmod(iseg, ie, iky), iz_low(iseg), 1) )
+                     !g(iky, ikxmod(iseg - 1, ie, iky), iz_up(iseg - 1), 1) = tmp / phase_shift(iky)
+                     !g(iky, ikxmod(iseg, ie, iky), iz_low(iseg), 1) = tmp * phase_shift(iky)
+                  end do
+               end if
             end if
          end do
       end do

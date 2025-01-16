@@ -1560,6 +1560,7 @@ contains
                deallocate (phi_fsa_spread, phi_source)
             end if
             phi(1, 1, :, :) = 0.
+!            call enforce_reality (phi)
          end if
       else if (.not. adiabatic_electrons) then
          !> if adiabatic electrons are not employed, then
@@ -1572,7 +1573,6 @@ contains
       !   if(periodic(iky)) phi(iky, :, nzgrid, :) = phi(iky, :, -nzgrid, :) / phase_shift(iky) 
       !end do
       !call enforce_reality (phi)
-      
       deallocate (source)
       apar = 0.
       if (include_apar) then
