@@ -1004,17 +1004,17 @@ contains
       end if
 
       !> enforce periodicity for periodic (including zonal) modes
-      do iky = 1, naky
-         if (periodic(iky)) then
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               iv = iv_idx(vmu_lo, ivmu)
-               !> stream_sign > 0 corresponds to dz/dt < 0
-               sgn = stream_sign(iv)
-               g(iky, :, sgn * nzgrid, :, ivmu) = &
-                  g(iky, :, -sgn * nzgrid, :, ivmu) * phase_shift(iky)**(-sgn)
-            end do
-         end if
-      end do
+      ! do iky = 1, naky
+      !    if (periodic(iky)) then
+      !       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      !          iv = iv_idx(vmu_lo, ivmu)
+      !          !> stream_sign > 0 corresponds to dz/dt < 0
+      !          sgn = stream_sign(iv)
+      !          g(iky, :, sgn * nzgrid, :, ivmu) = &
+      !             g(iky, :, -sgn * nzgrid, :, ivmu) * phase_shift(iky)**(-sgn)
+      !       end do
+      !    end if
+      ! end do
 
       !> stop the timer for the explicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 8), ' explicit')

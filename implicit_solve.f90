@@ -45,6 +45,7 @@ contains
       use ffs_solve, only: get_source_ffs_itteration, get_drifts_ffs_itteration
       use species, only: has_electron_species
 
+      use extended_zgrid, only: enforce_reality 
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
@@ -66,6 +67,8 @@ contains
       logical :: modify
       real :: error, tol
 
+      integer :: ivmu
+      
       if(driftkinetic_implicit) then 
          if (.not. allocated(phi_source_ffs)) allocate (phi_source_ffs(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          phi_source_ffs = 0.0
@@ -98,6 +101,7 @@ contains
       g1 = g
       g2 = g
 
+      fields_updated = .false.
       call advance_fields(g2, phi, apar, bpar, dist=trim(dist_choice))
       phi_store = phi
       phi_old = phi
@@ -129,12 +133,10 @@ contains
          !> phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
          ! solve for the 'inhomogeneous' piece of the pdf
          if (driftkinetic_implicit) then
-!            call advance_fields(g2, phi_store, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
-            phi_store = phi_old
-            call get_source_ffs_itteration (phi_old, g2, phi_store, phi_source_ffs)
+            call get_source_ffs_itteration (phi_old, g2, phi_source_ffs)
             !!            call get_drifts_ffs_itteration (phi_old, g2, drifts_source_ffs)
             !!            phi_source_ffs = phi_source_ffs + drifts_source_ffs
-!!            phi_source_ffs = 0.0
+            !phi_source_ffs = 0.0
             phi_source = tupwnd_m * phi
             !> set the g on the RHS to be g from the previous time step  
             !> FFS will have a RHS source term
@@ -153,8 +155,6 @@ contains
             call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
             !> g2 = g^{n+1, i}
             !> phi_old = phi^{n+1, i}
-            call get_fields_source(g2, phi, fields_source_ffs)
-            phi = phi + fields_source_ffs
          else
             call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice)) 
          end if
@@ -171,7 +171,10 @@ contains
          if (use_deltaphi_for_response_matrix) phi = phi + phi_old
          if (use_deltaphi_for_response_matrix .and. include_bpar) bpar = bpar + bpar_old
          if (driftkinetic_implicit) then
-            !!!!!!phi_source = phi
+!            call get_fields_source(g2, phi, fields_source_ffs)
+!!            fields_source_ffs = 0.0
+!!            phi = phi + fields_source_ffs
+
             phi_source = tupwnd_m * phi_old + tupwnd_p * phi
          else
 	    ! get time-centered phi
@@ -200,7 +203,12 @@ contains
          !!error = 0.0 
          itt = itt + 1
       end do
-      
+
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         call enforce_reality_streaming (g(:, :, :, :, ivmu))
+      end do
+
+     
       deallocate (phi_old, apar_old, bpar_old)
       deallocate (phi_source, apar_source, bpar_source)
       if(driftkinetic_implicit) deallocate (fields_source_ffs) 
@@ -1328,4 +1336,32 @@ contains
 
    end subroutine invert_parstream_response
 
+   subroutine enforce_reality_streaming (g) 
+
+      use kt_grids, only: naky, nalpha
+      use zgrid, only: nzgrid
+      use extended_zgrid, only: neigen, nsegments, ikxmod, periodic, phase_shift
+      
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :), intent(inout) :: g
+      integer :: iky, ie, iseg
+      complex :: tmp
+
+
+      do iky = 1, naky
+!         if(.not. periodic(iky)) then
+         do ie = 1, neigen(iky)
+            if (nsegments(ie, iky) > 1) then
+               do iseg = 2, nsegments(ie, iky)
+                  tmp = 0.5 * (g(iky, ikxmod(iseg - 1, ie, iky), nzgrid, 1) +  g(iky, ikxmod(iseg, ie, iky), -nzgrid, 1) /phase_shift(iky) )
+                  g(iky, ikxmod(iseg, ie, iky), -nzgrid, 1) = tmp
+                  g(iky, ikxmod(iseg - 1, ie, iky), nzgrid, 1) = tmp
+               end do
+            end if
+         end do
+      end do
+
+   end subroutine enforce_reality_streaming
+   
 end module implicit_solve

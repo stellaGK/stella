@@ -2137,6 +2137,7 @@ contains
 
       if (proc0) then
          call write_final_ascii_files
+         call write_final_ascii_files_extended
          call close_loop_ascii_files
       end if
       if (save_for_restart) then
@@ -2240,6 +2241,58 @@ contains
 
    end subroutine write_final_ascii_files
 
+   subroutine write_final_ascii_files_extended
+
+      use file_utils, only: open_output_file, close_output_file
+      use fields_arrays, only: phi, apar, bpar
+      use zgrid, only: nzgrid, ntubes
+      use zgrid, only: zed
+      use kt_grids, only: naky, nakx
+      use kt_grids, only: aky, akx, zed0
+      use stella_geometry, only: zed_eqarc
+      USE dist_fn_arrays, ONLY: kperp2
+      use extended_zgrid, only: map_to_extended_zgrid, map_to_iz_ikx_from_izext
+      use extended_zgrid, only: nsegments, nzed_segment
+      use extended_zgrid, only: neigen
+      implicit none
+
+      integer :: tmpunit
+
+      complex, dimension (:,:), allocatable :: phiext
+      integer, dimension(:), allocatable :: iz_from_izext, ikx_from_izext
+      integer :: ie, it, iky, ivmu, izext
+      integer :: ulim
+      integer :: nz_ext
+      
+      call open_output_file(tmpunit, '.final_fields_extended')
+      write (tmpunit, '(10a14)') '# iz','aky', &
+           'real(phi)', 'imag(phi)'
+                
+      do iky = 1, naky
+         do it = 1, ntubes
+            do ie = 1, neigen(iky)
+               nz_ext = nsegments(ie, iky) * nzed_segment + 1
+               allocate (phiext(naky, nz_ext))
+               allocate (iz_from_izext(nz_ext))
+               allocate (ikx_from_izext(nz_ext))
+               call map_to_extended_zgrid(it, ie, iky, phi(iky, :, :, :), phiext(iky,:), ulim)
+               call map_to_iz_ikx_from_izext(iky, ie, iz_from_izext, ikx_from_izext)
+               
+               do izext = 1, nz_ext
+                  write (tmpunit, '(i3,4es15.4e3)') izext , zed(iz_from_izext(izext)) - zed0(iky, ikx_from_izext(izext)), &
+                        aky(iky), real(phiext(iky, izext)), aimag(phiext(iky, izext))
+               end do
+               write (tmpunit, *)
+               deallocate (phiext)
+               deallocate (iz_from_izext, ikx_from_izext)
+             end do
+          end do
+       end do
+       
+       call close_output_file(tmpunit)
+
+    end subroutine write_final_ascii_files_extended
+   
    !==============================================
    !============ DEALLCOATE ARRAYS ===============
    !==============================================

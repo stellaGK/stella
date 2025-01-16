@@ -134,17 +134,21 @@ contains
       use kt_grids, only: akx, aky
       use kt_grids, only: zonal_mode
       use kt_grids, only: nalpha
-
+      
+      use extended_zgrid, only: periodic
+      
       implicit none
 
       integer :: iky, ikx
+
+      integer :: iz, ia
 
       if (kp2init) return
       kp2init = .true.
 
       !> allocate the kperp2 array to contain |k_perp|^2
       allocate (kperp2(naky, nakx, nalpha, -nzgrid:nzgrid))
-
+      
       do iky = 1, naky
          if (zonal_mode(iky)) then
             do ikx = 1, nakx
@@ -162,16 +166,20 @@ contains
             end do
          end if
       end do
-
+      
       ! NB: should really avoid this by using higher resolution when reading in VMEC geometry and then
       ! NB: course-graining if necessary to map onto lower-resolution stella grid
       ! ensure kperp2 is positive everywhere (only might go negative if using full-flux-surface due to interpolation)
       where (kperp2 < 0.0)
          kperp2 = 0.0
-      end where
+      end where      
 
+
+!      do iky = 1, naky
+!         if (periodic(iky)) kperp2(iky, :, :, nzgrid) = kperp2(iky, :, :, -nzgrid)
+ !     end do
       call enforce_single_valued_kperp2
-
+      
    end subroutine init_kperp2
 
    !> init_dkperp2dr allocates and initialises the dkperp2dr array, needed for radial variation
@@ -229,7 +237,7 @@ contains
       use dist_fn_arrays, only: kperp2
       use kt_grids, only: naky, nalpha
       use zgrid, only: nzgrid
-      use extended_zgrid, only: neigen, nsegments, ikxmod
+      use extended_zgrid, only: neigen, nsegments, ikxmod, periodic
 
       implicit none
 
@@ -239,15 +247,21 @@ contains
       allocate (tmp(nalpha)); tmp = 0.0
 
       do iky = 1, naky
-         do ie = 1, neigen(iky)
-            if (nsegments(ie, iky) > 1) then
-               do iseg = 2, nsegments(ie, iky)
-                  tmp = 0.5 * (kperp2(iky, ikxmod(iseg - 1, ie, iky), :, nzgrid) + kperp2(iky, ikxmod(iseg, ie, iky), :, -nzgrid))
-                  kperp2(iky, ikxmod(iseg, ie, iky), :, -nzgrid) = tmp
-                  kperp2(iky, ikxmod(iseg - 1, ie, iky), :, nzgrid) = tmp
-               end do
-            end if
-         end do
+         if(.not. periodic(iky)) then 
+            do ie = 1, neigen(iky)
+               if (nsegments(ie, iky) > 1) then
+                  do iseg = 2, nsegments(ie, iky)
+                     !tmp = 0.5 * (kperp2(iky, ikxmod(iseg - 1, ie, iky), :, nzgrid) + kperp2(iky, ikxmod(iseg, ie, iky), :, -nzgrid))
+                     !kperp2(iky, ikxmod(iseg, ie, iky), :, -nzgrid) = tmp
+                     !kperp2(iky, ikxmod(iseg - 1, ie, iky), :, nzgrid) = tmp
+                     
+                     tmp = kperp2(iky, ikxmod(iseg, ie, iky), :, -nzgrid)
+                     kperp2(iky, ikxmod(iseg - 1, ie, iky), :, nzgrid) = tmp
+                     
+                  end do
+               end if
+            end do
+         end if
       end do
 
       deallocate (tmp)

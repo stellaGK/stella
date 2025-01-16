@@ -177,6 +177,7 @@ euterpe_interface.o: \
 extended_zgrid.o: \
 	 constants.o \
 	 kt_grids.o \
+	 mp.o \
 	 zgrid.o 
 ffs_solve.o: \
 	 constants.o \
@@ -332,6 +333,7 @@ init_g.o: \
 	 stella_transforms.o \
 	 system_fortran.o \
 	 text_options.o \
+	 time_advance.o \
 	 vpamu_grids.o \
 	 zgrid.o 
 inputprofiles_interface.o: \

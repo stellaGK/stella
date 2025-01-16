@@ -664,7 +664,6 @@ contains
 
       use extended_zgrid, only: phase_shift
       use zgrid, only: ntubes
-      use extended_zgrid, only: enforce_reality
       use run_parameters, only: fields_tol
       
       implicit none
@@ -683,8 +682,7 @@ contains
       complex, dimension(:, :, :), allocatable :: gamtot_con
 
       real :: tmp 
-      integer ::iky1, iky2, it
-      real :: max_int
+      integer ::iky1, iky2, it, iz1 
       
       if (debug) write (*, *) 'fields::init_fields::init_gamm0_factor_ffs'
 
@@ -751,6 +749,7 @@ contains
                   !> calculate gamma0(kalpha,alpha,...) = sum_s Zs^2 * ns / Ts int d3v (1-J0^2)*F_{Maxwellian}
                   !> note that v-space Jacobian contains alpha-dependent factor, B(z,alpha),
                   !> but this is not a problem as we have yet to transform from alpha to k_alpha
+
                   call integrate_species(aj0_alpha, iz, wgts, gam0_alpha(ia), ia)
                   !> if Boltzmann response used, account for non-flux-surface-averaged component of electron density
                   if (adiabatic_electrons) then
@@ -769,8 +768,7 @@ contains
                
                call transform_alpha2kalpha(gam0_alpha, gam0_kalpha)
 !               call find_max_required_kalpha_index(gam0_kalpha, gam0_ffs(iky, ikx, iz)%max_idx, tol_in=fields_tol)
-               !               max_int = naky / 2
-               gam0_ffs(iky, ikx, iz)%max_idx = naky
+               gam0_ffs(iky, ikx, iz)%max_idx = naky 
                ia_max_gam0_count = ia_max_gam0_count + gam0_ffs(iky, ikx, iz)%max_idx
                !> allocate array to hold the Fourier coefficients
                if (.not. associated(gam0_ffs(iky, ikx, iz)%fourier)) &
@@ -778,9 +776,7 @@ contains
 !                  allocate (gam0_ffs(iky, ikx, iz)%fourier(gam0_ffs(iky, ikx, iz)%max_idx))
                !> fill the array with the requisite coefficients
                gam0_ffs(iky, ikx, iz)%fourier = 0.0
-!               gam0_ffs(iky, ikx, iz)%fourier(1) = gam0_kalpha(1)
                gam0_ffs(iky, ikx, iz)%fourier = gam0_kalpha(:gam0_ffs(iky, ikx, iz)%max_idx)
-!               gam0_ffs(iky, ikx, iz)%fourier(max_int:) = 0.0
 
                !! For gamtot for implicit solve
                gam0_ffs_corr(iky, ikx, iz)%max_idx = naky
@@ -793,8 +789,8 @@ contains
                else
                   gam0_const(iky, ikx, iz) = gam0_ffs(iky, ikx, iz)%fourier(1)
                   gam0_ffs_corr(iky, ikx, iz)%fourier = 0.0
-!                  gam0_ffs_corr(iky, ikx, iz)%fourier(1) = 0.0
-!                  gam0_ffs_corr(iky, ikx, iz)%fourier(2:) = gam0_ffs(iky, ikx, iz)%fourier(2:)
+                  gam0_ffs_corr(iky, ikx, iz)%fourier(1) = 0.0
+                  gam0_ffs_corr(iky, ikx, iz)%fourier(2:) = gam0_ffs(iky, ikx, iz)%fourier(2:)
                end if
                
             end do
@@ -1326,8 +1322,6 @@ contains
      use kt_grids, only: akx
      use gyro_averages, only: gyro_average
 
-     use extended_zgrid, only: enforce_reality
-     
      implicit none
      complex, dimension(:, :, -nzgrid:, :), intent (in out) :: source
      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gold
@@ -1364,8 +1358,8 @@ contains
      end if
 
      source(1, 1, :, :) = 0.0
-!     call enforce_reality(source)
-    
+
+     source(1,:,nzgrid,:) = source(1,:,-nzgrid,:) 
      deallocate(source2, gamtot_t) 
      
    end subroutine get_fields_source   
@@ -1417,7 +1411,6 @@ contains
 
      !> no longer need <g>, so deallocate
      deallocate (gyro_g, gyro_g2)
-
      
    end subroutine get_g_integral_contribution_source
 
@@ -1445,8 +1438,10 @@ contains
       use physics_flags, only: adiabatic_option_fieldlineavg
       use stella_geometry, only: dl_over_b
 
-      use extended_zgrid, only: enforce_reality
+      use extended_zgrid, only: periodic, phase_shift
       use stella_layouts, only: is_idx, iv_idx, imu_idx
+
+      use extended_zgrid, only: enforce_reality 
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1509,6 +1504,7 @@ contains
             !> use sum_s int d3v <g> and QN to solve for phi
             !> NB: assuming here that ntubes = 1 for FFS sim
             if (debug) write (*, *) 'fields::advance_fields::get_phi_ffs'
+
             call get_phi_ffs(source, phi(:, :, :, 1))            
             if (zonal_mode(1) .and. akx(1) < epsilon(0.)) then
                phi(1, 1, :, :) = 0.0
@@ -1563,7 +1559,6 @@ contains
                deallocate (phi_swap, phi_fsa)
                deallocate (phi_fsa_spread, phi_source)
             end if
-!            phi(1, :, nzgrid, :) = phi(1, :, -nzgrid, :)
             phi(1, 1, :, :) = 0.
          end if
       else if (.not. adiabatic_electrons) then
@@ -1573,7 +1568,10 @@ contains
          phi(1, 1, :, :) = 0.
       end if
 
-      call enforce_reality (phi)
+      !do iky = 1, naky
+      !   if(periodic(iky)) phi(iky, :, nzgrid, :) = phi(iky, :, -nzgrid, :) / phase_shift(iky) 
+      !end do
+      !call enforce_reality (phi)
       
       deallocate (source)
       apar = 0.
@@ -1597,7 +1595,6 @@ contains
          use stella_layouts, only: iv_idx, imu_idx, is_idx
          use kt_grids, only: nalpha
          
-         use extended_zgrid, only: enforce_reality
          implicit none
 
          complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1636,14 +1633,10 @@ contains
          !> store result in phi, which will be further modified below to account for polarization term
          call sum_allreduce(source)
 
-         !> Better fix when only on the implicit solve 
-         ! if (present(implicit_solve)) then
-         !    allocate(source_copy(naky,nakx, -nzgrid:nzgrid, ntubes)) ; source_copy = 0.0
-         !    source_copy = spread(source, 4, ntubes)
-         !    call enforce_reality (source_copy)
-         !    source = source_copy (:,:,:,1) 
-         !    deallocate(source_copy)
-         ! end if
+!         if (present(implicit_solve)) then
+ !           source(1,:,nzgrid) = source(1,:,-nzgrid)
+  !       end if
+         
          !> no longer need <g>, so deallocate
          deallocate (gyro_g)
 

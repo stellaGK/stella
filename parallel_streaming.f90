@@ -71,6 +71,8 @@ contains
       real, dimension(:), allocatable :: energy
       real, dimension(:, :, :), allocatable :: stream_store
 
+      real :: tmp
+      
       if (parallel_streaming_initialized) return
       parallel_streaming_initialized = .true.
 
@@ -111,6 +113,14 @@ contains
          if (driftkinetic_implicit) then
             stream_correction = stream - spread(stream_store, 1, nalpha)
             stream = spread(stream_store, 1, nalpha)
+            ! do iv = 1, nvpa
+            !    do is = 1, nspec
+            !       tmp = 0.5 * ( stream(1, nzgrid, iv, is) + stream(1, -nzgrid, iv, is))
+            !       stream(1, nzgrid, iv, is) = tmp
+            !       stream(1, -nzgrid, iv, is) = tmp
+            !    end do
+            ! end do
+            stream(:, nzgrid, :, : )= stream(:, -nzgrid, :, : )
             deallocate (stream_store)
          end if
       end if
