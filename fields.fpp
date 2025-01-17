@@ -764,16 +764,13 @@ contains
                      gam0_alpha(ia) = 1.0
                   end if
                end do
-               !> fourier transform Gamma_0(alpha) from alpha to k_alpha space
-               
+               !> fourier transform Gamma_0(alpha) from alpha to k_alpha space               
                call transform_alpha2kalpha(gam0_alpha, gam0_kalpha)
-!               call find_max_required_kalpha_index(gam0_kalpha, gam0_ffs(iky, ikx, iz)%max_idx, tol_in=fields_tol)
-               gam0_ffs(iky, ikx, iz)%max_idx = naky 
+               call find_max_required_kalpha_index(gam0_kalpha, gam0_ffs(iky, ikx, iz)%max_idx, tol_in=fields_tol)
                ia_max_gam0_count = ia_max_gam0_count + gam0_ffs(iky, ikx, iz)%max_idx
                !> allocate array to hold the Fourier coefficients
                if (.not. associated(gam0_ffs(iky, ikx, iz)%fourier)) &
                     allocate (gam0_ffs(iky, ikx, iz)%fourier(naky))               
-!                  allocate (gam0_ffs(iky, ikx, iz)%fourier(gam0_ffs(iky, ikx, iz)%max_idx))
                !> fill the array with the requisite coefficients
                gam0_ffs(iky, ikx, iz)%fourier = 0.0
                gam0_ffs(iky, ikx, iz)%fourier = gam0_kalpha(:gam0_ffs(iky, ikx, iz)%max_idx)
@@ -785,12 +782,13 @@ contains
 
                if(ikx == 1 .and. iky == naky) then
                   gam0_const(iky, ikx, iz) = gam0_ffs(iky, ikx, iz)%fourier(1)
+                  !> Not needed anymore
                   gam0_ffs_corr(iky, ikx, iz)%fourier = 0.0
                else
                   gam0_const(iky, ikx, iz) = gam0_ffs(iky, ikx, iz)%fourier(1)
                   gam0_ffs_corr(iky, ikx, iz)%fourier = 0.0
-                  gam0_ffs_corr(iky, ikx, iz)%fourier(1) = 0.0
-                  gam0_ffs_corr(iky, ikx, iz)%fourier(2:) = gam0_ffs(iky, ikx, iz)%fourier(2:)
+!                  gam0_ffs_corr(iky, ikx, iz)%fourier(1) = 0.0
+!                  gam0_ffs_corr(iky, ikx, iz)%fourier(2:) = gam0_ffs(iky, ikx, iz)%fourier(2:)
                end if
                
             end do
@@ -1283,7 +1281,7 @@ contains
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
 
          ! if fphi > 0, then g_scratch = <g> already calculated above
-         !if (fphi < epsilon(0.0)) call gyro_average(g, g_scratch)
+         ! if (fphi < epsilon(0.0)) call gyro_average(g, g_scratch)
          ! MRH remove optimisation for ease of including bpar
          call gyro_average(g, g_scratch)
 
@@ -1438,10 +1436,6 @@ contains
       use physics_flags, only: adiabatic_option_fieldlineavg
       use stella_geometry, only: dl_over_b
 
-      use extended_zgrid, only: periodic, phase_shift
-      use stella_layouts, only: is_idx, iv_idx, imu_idx
-
-      use extended_zgrid, only: enforce_reality 
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1560,7 +1554,6 @@ contains
                deallocate (phi_fsa_spread, phi_source)
             end if
             phi(1, 1, :, :) = 0.
-!            call enforce_reality (phi)
          end if
       else if (.not. adiabatic_electrons) then
          !> if adiabatic electrons are not employed, then
@@ -1569,10 +1562,6 @@ contains
          phi(1, 1, :, :) = 0.
       end if
 
-      !do iky = 1, naky
-      !   if(periodic(iky)) phi(iky, :, nzgrid, :) = phi(iky, :, -nzgrid, :) / phase_shift(iky) 
-      !end do
-      !call enforce_reality (phi)
       deallocate (source)
       apar = 0.
       if (include_apar) then

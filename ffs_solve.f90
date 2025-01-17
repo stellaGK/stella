@@ -104,10 +104,10 @@ contains
         !> Full d <phi>/dz
         call get_dzed(iv, g0, dgphi_dz)
         !> d phi/dz
-        !        call get_dzed(iv, phi, dphi_dz)
         call get_dzed(iv, phi, dphi_dz)
         !> dg/dz
         call get_dzed(iv, g(:, :, :, :, ivmu), dgdz)
+        
         !> get these quantities in real space 
         do it = 1, ntubes
            do iz = -nzgrid, nzgrid
@@ -128,6 +128,7 @@ contains
          
         scratch = maxwell_fac(is) *  maxwell_vpa(iv, is) * spec(is)%zt
 
+        !> This is (b.grad z - avg(b.grad z)) * (dg^j/dz + Z/T * avg(F_0) * d<phi^j> /dz)
         coeff = stream_correction(:,:,iv,is)
         coeff2 = stream_correction(:,:,iv,is) * maxwell_mu_avg(:, :, imu, is) * scratch
         do ia = 1, ny
@@ -136,18 +137,21 @@ contains
         end do
         g2y = spread(spread(coeff, 2, ikx_max), 4, ntubes) * g2y + spread(spread(coeff2, 2, ikx_max), 4, ntubes) * g0y
 
+        !> This is (b.grad z) * Z/T * (F_0 - avg(F_0)) * d phi^j /dz
         coeff = stream_store_full (:,:,iv,is) * (maxwell_mu(:, :, imu, is) - maxwell_mu_avg(:, :, imu, is)) * scratch
         do ia = 1, ny
            call center_zed(iv, coeff(ia, :) ,  -nzgrid)
         end do
         g3y = spread(spread(coeff, 2, ikx_max), 4, ntubes) * g1y
 
+        !> This is (b.grad z) * Z/T * F_0 * d(<phi^j> - phi^j)/dz
         coeff = stream_store_full (:,:,iv,is) * maxwell_mu(:, :, imu, is)
         do ia = 1, ny 
            call center_zed(iv, coeff(ia, :) ,  -nzgrid) 
         end do
         g0y =  spread(spread(coeff, 2, ikx_max), 4, ntubes) * (g0y - g1y) * scratch 
 
+        !> Add them all together and transform back to (kx, ky) space
         g0y = g0y + g2y + g3y
 
         do it = 1, ntubes
@@ -158,14 +162,14 @@ contains
         end do
 
         source(1, 1, :, :, :) = 0.0
-        !call enforce_reality (source(:,:,:,:,ivmu)) 
      end do
 
      deallocate(g0)
      deallocate(dgphi_dz, dphi_dz, dgdz)
      deallocate(g_swap)
      deallocate(g0y,g1y,g2y, g3y) 
-     deallocate(coeff, coeff2) 
+     deallocate(coeff, coeff2)
+
    end subroutine get_source_ffs_itteration
 
     subroutine get_drifts_ffs_itteration (phi, g, source) 

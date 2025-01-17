@@ -173,17 +173,14 @@ contains
          if (use_deltaphi_for_response_matrix) phi = phi + phi_old
          if (use_deltaphi_for_response_matrix .and. include_bpar) bpar = bpar + bpar_old
          if (driftkinetic_implicit) then
-!            call get_fields_source(g2, phi, fields_source_ffs)
-!!            fields_source_ffs = 0.0
-!!            phi = phi + fields_source_ffs
-
+            !> Get time-centered phi  
             phi_source = tupwnd_m * phi_old + tupwnd_p * phi
          else
-	    ! get time-centered phi
+	    !> Get time-centered phi
             phi_source = tupwnd_m * phi_old + tupwnd_p * phi
-            ! get time-centered apar
+            !> Get time-centered apar
             if (include_apar) apar_source = tupwnd_m * apar_old + tupwnd_p * apar
-            ! get time-centered bpar
+            !> Get time-centered bpar
             if (include_bpar) bpar_source = tupwnd_m * bpar_old + tupwnd_p * bpar
          end if
          ! solve for the final, updated pdf now that we have phi^{n+1}.
@@ -202,8 +199,22 @@ contains
             !> this will become g^{n+1, i} -- the g from the previous iteration         
             fields_updated = .false.
             call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice))
+
+            !> For checking 
+            call advance_fields(g2, phi_store, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
+            if(proc0) then
+               do iz = -nzgrid, nzgrid
+                  do iky = 1, naky
+                     do ikx = 1, nakx
+                        write(88, *) iz, iky, ikx, real(phi(iky, ikx, iz, 1) - phi_store(iky, ikx, iz,1)), aimag(phi(iky, ikx, iz, 1) - phi_store(iky, ikx, iz,1))
+                     end do
+                  end do
+               end do
+            end if
+                        
             g2 = g
             phi_old = phi
+            phi_store = phi 
          else
             call update_pdf
          end if
