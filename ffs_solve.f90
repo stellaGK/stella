@@ -77,7 +77,7 @@ contains
      real :: scratch 
 
      allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g0 = 0.0
-
+     
      allocate (dgphi_dz(naky, nakx, -nzgrid:nzgrid, ntubes)) ; dgphi_dz = 0.0
      allocate (dphi_dz(naky, nakx, -nzgrid:nzgrid, ntubes)) ; dphi_dz = 0.0
      allocate (dgdz(naky, nakx, -nzgrid:nzgrid, ntubes)) ; dgdz = 0.0
@@ -94,7 +94,6 @@ contains
      !>
      allocate (dphi_dz2(naky, nakx, -nzgrid:nzgrid, ntubes)) ; dphi_dz2 = 0.0
      allocate (g4y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g4y = 0.0
-     
      source = 0.0 
      
      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -111,10 +110,10 @@ contains
         call get_dzed(iv, phi, dphi_dz)
         !> dg/dz
         call get_dzed(iv, g(:, :, :, :, ivmu), dgdz)
-
+        
         !> !?
         call get_dzed(iv, phi_bar, dphi_dz2)
-        
+
         !> get these quantities in real space 
         do it = 1, ntubes
            do iz = -nzgrid, nzgrid
@@ -145,26 +144,25 @@ contains
            call center_zed(iv, coeff(ia, :) ,  -nzgrid)
            call center_zed(iv, coeff2(ia, :) ,  -nzgrid)
         end do
-        g2y = spread(spread(coeff, 2, ikx_max), 4, ntubes) * g2y + spread(spread(coeff2, 2, ikx_max), 4, ntubes) * g0y
-
-        g4y = spread(spread(coeff2, 2, ikx_max), 4, ntubes) * (g0y - g4y)
+!        g2y = spread(spread(coeff, 2, ikx_max), 4, ntubes) * g2y + spread(spread(coeff2, 2, ikx_max), 4, ntubes) * g0y
+        g2y = spread(spread(coeff, 2, ikx_max), 4, ntubes) * g2y + spread(spread(coeff2, 2, ikx_max), 4, ntubes) * g4y
         
         !> This is (b.grad z) * Z/T * (F_0 - avg(F_0)) * d phi^j /dz
         coeff = stream_store_full (:,:,iv,is) * (maxwell_mu(:, :, imu, is) - maxwell_mu_avg(:, :, imu, is)) * scratch
         do ia = 1, ny
            call center_zed(iv, coeff(ia, :) ,  -nzgrid)
         end do
-        g3y = spread(spread(coeff, 2, ikx_max), 4, ntubes) * g1y
+        g3y = spread(spread(coeff, 2, ikx_max), 4, ntubes) * g4y
 
         !> This is (b.grad z) * Z/T * F_0 * d(<phi^j> - phi^j)/dz
-        coeff = stream_store_full (:,:,iv,is) * maxwell_mu(:, :, imu, is)
+        coeff = stream_store_full (:,:,iv,is) * maxwell_mu(:, :, imu, is) * scratch
         do ia = 1, ny 
            call center_zed(iv, coeff(ia, :) ,  -nzgrid) 
         end do
-        g0y =  spread(spread(coeff, 2, ikx_max), 4, ntubes) * (g0y - g1y) * scratch 
+        g0y =  spread(spread(coeff, 2, ikx_max), 4, ntubes) * (g0y - g1y)
 
         !> Add them all together and transform back to (kx, ky) space
-        g0y = g0y + g2y + g3y + g4y 
+        g0y = g0y + g2y + g3y !!+ g4y
 
         do it = 1, ntubes
            do iz = -nzgrid, nzgrid
@@ -175,7 +173,7 @@ contains
 
         source(1, 1, :, :, :) = 0.0
      end do
-
+          
      deallocate(g0)
      deallocate(dgphi_dz, dphi_dz, dgdz)
      deallocate(g_swap)

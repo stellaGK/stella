@@ -106,9 +106,10 @@ contains
 
       fields_updated = .false.
       call advance_fields(g2, phi, apar, bpar, dist=trim(dist_choice))
-      fields_updated = .false.
-      call advance_fields(g, phi_store, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
- !     phi_store = phi
+      if (driftkinetic_implicit) then
+         fields_updated = .false.
+         call advance_fields(g, phi_store, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
+      end if
       phi_old = phi
 
       !> if using delphi formulation for response matrix, then phi = phi^n replaces
@@ -203,22 +204,9 @@ contains
             call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice))
             fields_updated = .false.
             !> For checking 
-            call advance_fields(g2, phi_store, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
-            if(proc0) then
-               do iz = -nzgrid, nzgrid
-                  do iky = 1, naky
-                     do ikx = 1, nakx
-                        write(108, *) iz, iky, ikx, real(phi_store(iky, ikx, iz,1)), aimag(phi_store(iky, ikx, iz,1)) 
-                        write(98, *) iz, iky, ikx, real(phi(iky, ikx, iz, 1)),  aimag(phi(iky, ikx, iz, 1))
-                        write(88, *) iz, iky, ikx, real(phi(iky, ikx, iz, 1) - phi_store(iky, ikx, iz,1)), aimag(phi(iky, ikx, iz, 1) - phi_store(iky, ikx, iz,1))
-                     end do
-                  end do
-               end do
-            end if
-                        
+            call advance_fields(g, phi_store, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
             g2 = g
             phi_old = phi
-!            phi_store = phi 
          else
             call update_pdf
          end if
