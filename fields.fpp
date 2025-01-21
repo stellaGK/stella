@@ -781,11 +781,11 @@ contains
                     allocate (gam0_ffs_corr(iky, ikx, iz)%fourier(gam0_ffs_corr(iky, ikx, iz)%max_idx))
 
                if(ikx == 1 .and. iky == naky) then
-                  gam0_const(iky, ikx, iz) = gam0_ffs(iky, ikx, iz)%fourier(1)
+                  gam0_const(iky, ikx, iz) = 0.0 !gam0_ffs(iky, ikx, iz)%fourier(1)
                   !> Not needed anymore
                   gam0_ffs_corr(iky, ikx, iz)%fourier = 0.0
                else
-                  gam0_const(iky, ikx, iz) = gam0_ffs(iky, ikx, iz)%fourier(1)
+                  gam0_const(iky, ikx, iz) = gam0_ffs(iky, ikx, iz)%fourier(1) 
                   gam0_ffs_corr(iky, ikx, iz)%fourier = 0.0
 !                  gam0_ffs_corr(iky, ikx, iz)%fourier(1) = 0.0
 !                  gam0_ffs_corr(iky, ikx, iz)%fourier(2:) = gam0_ffs(iky, ikx, iz)%fourier(2:)
@@ -1498,7 +1498,7 @@ contains
             !> use sum_s int d3v <g> and QN to solve for phi
             !> NB: assuming here that ntubes = 1 for FFS sim
             if (debug) write (*, *) 'fields::advance_fields::get_phi_ffs'
-
+            
             call get_phi_ffs(source, phi(:, :, :, 1))            
             if (zonal_mode(1) .and. akx(1) < epsilon(0.)) then
                phi(1, 1, :, :) = 0.0

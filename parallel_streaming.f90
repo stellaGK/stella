@@ -98,7 +98,7 @@ contains
                   stream(ia, iz, iv, :) = -code_dt * b_dot_grad_z(ia, iz) * vpa(iv) * spec%stm_psi0
                end do
                if (driftkinetic_implicit) then
-                  stream_store(iz, iv, :) = stream(1, iz, iv, :)
+                  stream_store(iz, iv, :) = sum(stream(:, iz, iv, :), dim = 1)/ nalpha
                   !-code_dt * b_dot_grad_z(1, iz) * vpa(iv) * spec%stm_psi0
                   !-code_dt * gradpar(iz) * vpa(iv) * spec%stm_psi0
                end if

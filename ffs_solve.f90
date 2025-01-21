@@ -37,7 +37,7 @@ contains
 
 !   contains 
 
-  subroutine get_source_ffs_itteration (phi, phi_bar,  g, source) 
+  subroutine get_source_ffs_itteration (phi, g, source) 
 
      use mp, only: proc0
      use stella_layouts, only: vmu_lo
@@ -60,21 +60,20 @@ contains
      
      use species, only: has_electron_species
 
-     use extended_zgrid, only: enforce_reality
      implicit none
 
-     complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, phi_bar
+     complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent (out) :: source
 
      integer :: ivmu, iv, imu, is, ia, iz, it, ikx
-     complex, dimension(:, :, :, :), allocatable :: g0, g1
-     complex, dimension(:, :, :, :), allocatable :: dgphi_dz, dphi_dz, dgdz, dphi_dz2
-     complex, dimension(:, :, :, :), allocatable :: g0y, g1y, g2y, g3y, g4y 
+     complex, dimension(:, :, :, :), allocatable :: g0
+     complex, dimension(:, :, :, :), allocatable :: dgphi_dz, dphi_dz, dgdz
+     complex, dimension(:, :, :, :), allocatable :: g0y, g1y, g2y, g3y 
      complex, dimension(:, :), allocatable :: g_swap
 
      real, dimension (:, :), allocatable :: coeff, coeff2
-     real :: scratch 
+     real :: scratch
 
      allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g0 = 0.0
      
@@ -91,9 +90,6 @@ contains
      allocate (coeff(ny, -nzgrid:nzgrid)) ; coeff = 0.0 
      allocate (coeff2(ny, -nzgrid:nzgrid)) ; coeff2 = 0.0
 
-     !>
-     allocate (dphi_dz2(naky, nakx, -nzgrid:nzgrid, ntubes)) ; dphi_dz2 = 0.0
-     allocate (g4y(ny, ikx_max, -nzgrid:nzgrid, ntubes)) ; g4y = 0.0
      source = 0.0 
      
      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -103,7 +99,6 @@ contains
         
         !> <phi>
         call gyro_average(phi, g0, j0_ffs(:, :, :, ivmu))
-        
         !> Full d <phi>/dz
         call get_dzed(iv, g0, dgphi_dz)
         !> d phi/dz
@@ -111,9 +106,6 @@ contains
         !> dg/dz
         call get_dzed(iv, g(:, :, :, :, ivmu), dgdz)
         
-        !> !?
-        call get_dzed(iv, phi_bar, dphi_dz2)
-
         !> get these quantities in real space 
         do it = 1, ntubes
            do iz = -nzgrid, nzgrid
@@ -129,9 +121,6 @@ contains
               call swap_kxky(dgdz(:, :, iz, it), g_swap)
               call transform_ky2y(g_swap, g2y(:, :, iz, it)) 
 
-              call swap_kxky(dphi_dz2(:, :, iz, it), g_swap)
-              call transform_ky2y(g_swap, g4y(:, :, iz, it))
-              
            end do
         end do
          
@@ -144,15 +133,14 @@ contains
            call center_zed(iv, coeff(ia, :) ,  -nzgrid)
            call center_zed(iv, coeff2(ia, :) ,  -nzgrid)
         end do
-!        g2y = spread(spread(coeff, 2, ikx_max), 4, ntubes) * g2y + spread(spread(coeff2, 2, ikx_max), 4, ntubes) * g0y
-        g2y = spread(spread(coeff, 2, ikx_max), 4, ntubes) * g2y + spread(spread(coeff2, 2, ikx_max), 4, ntubes) * g4y
-        
+        g2y = spread(spread(coeff, 2, ikx_max), 4, ntubes) * g2y + spread(spread(coeff2, 2, ikx_max), 4, ntubes) * g1y
+
         !> This is (b.grad z) * Z/T * (F_0 - avg(F_0)) * d phi^j /dz
         coeff = stream_store_full (:,:,iv,is) * (maxwell_mu(:, :, imu, is) - maxwell_mu_avg(:, :, imu, is)) * scratch
         do ia = 1, ny
            call center_zed(iv, coeff(ia, :) ,  -nzgrid)
         end do
-        g3y = spread(spread(coeff, 2, ikx_max), 4, ntubes) * g4y
+        g3y = spread(spread(coeff, 2, ikx_max), 4, ntubes) * g1y
 
         !> This is (b.grad z) * Z/T * F_0 * d(<phi^j> - phi^j)/dz
         coeff = stream_store_full (:,:,iv,is) * maxwell_mu(:, :, imu, is) * scratch
@@ -162,7 +150,7 @@ contains
         g0y =  spread(spread(coeff, 2, ikx_max), 4, ntubes) * (g0y - g1y)
 
         !> Add them all together and transform back to (kx, ky) space
-        g0y = g0y + g2y + g3y !!+ g4y
+        g0y = g0y + g2y + g3y
 
         do it = 1, ntubes
            do iz = -nzgrid, nzgrid
@@ -180,7 +168,6 @@ contains
      deallocate(g0y,g1y,g2y, g3y) 
      deallocate(coeff, coeff2)
 
-     deallocate(g4y, dphi_dz2) 
    end subroutine get_source_ffs_itteration
 
     subroutine get_drifts_ffs_itteration (phi, g, source) 

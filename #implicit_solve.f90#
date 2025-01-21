@@ -108,7 +108,6 @@ contains
       call advance_fields(g2, phi, apar, bpar, dist=trim(dist_choice))
       phi_old = phi
       
-
       !> if using delphi formulation for response matrix, then phi = phi^n replaces
       !> phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
       !> NB: for FFS phi_source = 0.0 for inhomogeneous step - this is always set below
