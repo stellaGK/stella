@@ -785,10 +785,10 @@ contains
                   !> Not needed anymore
                   gam0_ffs_corr(iky, ikx, iz)%fourier = 0.0
                else
-                  gam0_const(iky, ikx, iz) = gam0_ffs(iky, ikx, iz)%fourier(1) 
+                  gam0_const(iky, ikx, iz) = gam0_ffs(iky, ikx, iz)%fourier(1)
                   gam0_ffs_corr(iky, ikx, iz)%fourier = 0.0
-!                  gam0_ffs_corr(iky, ikx, iz)%fourier(1) = 0.0
-!                  gam0_ffs_corr(iky, ikx, iz)%fourier(2:) = gam0_ffs(iky, ikx, iz)%fourier(2:)
+                  gam0_ffs_corr(iky, ikx, iz)%fourier(1) = 0.0
+                  gam0_ffs_corr(iky, ikx, iz)%fourier(2:) = gam0_ffs(iky, ikx, iz)%fourier(2:)
                end if
                
             end do

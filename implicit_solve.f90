@@ -106,8 +106,7 @@ contains
 
       fields_updated = .false.
       call advance_fields(g2, phi, apar, bpar, dist=trim(dist_choice))
-      phi_old = phi
-      
+      phi_old = phi      
 
       !> if using delphi formulation for response matrix, then phi = phi^n replaces
       !> phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
@@ -157,7 +156,10 @@ contains
             call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
             !> g2 = g^{n+1, i}
             !> phi_old = phi^{n+1, i}
-            call get_fields_source(g2, phi_old, fields_source_ffs) 
+            fields_updated = .false.
+            call advance_fields(g2, phi_store, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
+            call get_fields_source(g2, phi_store, fields_source_ffs)
+!!            call get_fields_source(g2, phi_old, fields_source_ffs)
             phi = phi + fields_source_ffs
          else
             call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice)) 
