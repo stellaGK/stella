@@ -1149,6 +1149,8 @@ contains
       use fields_arrays, only: phi
       use stella_geometry, only: grad_x, jacob
 
+      use physics_flags, only: const_alpha_geo
+
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: dens, upar, pres
@@ -1186,6 +1188,8 @@ contains
       
       flxfac = flxfac/(sum(flxfac * grad_x) )
 
+      if(const_alpha_geo) flxfac = flxfac / ny
+      
       call get_one_flux_ffs(dens, dphidy, flxfac, pflx, pflx_vs_kxkyz(:, :, :, it, :))
       call get_one_flux_ffs(pres, dphidy, flxfac, qflx, qflx_vs_kxkyz(:, :, :, it, :))
       call get_one_flux_ffs(upar, dphidy, flxfac, vflx, vflx_vs_kxkyz(:, :, :, it, :))
@@ -1808,10 +1812,9 @@ contains
       g0 = 0. ; g1 = 0. ; g2 = 0.
 
       g0 = g
-	   !> This returns f = g + Z/T * (<phi> - phi)
+      !> This returns f = g + Z/T * (<phi> - phi)
       !> NB: g_to_f0 TODO-GA: check 
       call g_to_f1(g, phi, g0)
-
       !> g1 = J0 * f
       call gyro_average(g0, g1, j0_ffs)
       !> g2 = J1 * f
@@ -1870,8 +1873,8 @@ contains
                   iv = iv_idx(vmu_lo, ivmu)
                   is = is_idx(vmu_lo, ivmu)
                   imu = imu_idx(vmu_lo, ivmu)
-                  integrand(ivmu) = fy(iy, ikx, ivmu) * gradpar_zeta(iy, iz) &
-                                    - vperp2(iy, iz, imu) * spec(is)%smz * (f2y(iy, ikx, ivmu) * fac1 + f3y(iy, ikx, ivmu) * fac2)
+                  integrand(ivmu) = fy(iy, ikx, ivmu) * gradpar_zeta(iy, iz) * vpa(iv) &
+                       - vperp2(iy, iz, imu) * spec(is)%smz * (f2y(iy, ikx, ivmu) * fac1 + f3y(iy, ikx, ivmu) * fac2)
                end do
                !> integrate over v-space to get the parallel flow, normalised by the reference thermal speed.
                call integrate_vmu_ffs(integrand, upar_wgts, iy, iz, upar(iy, ikx, iz, :))
