@@ -206,9 +206,7 @@ contains
             fields_updated = .false.
             
             error = sum(real(phi - phi_old)**2 + aimag(phi - phi_old)**2)**0.5
-            !            write(52,*) itt, error
             if ( error < 1.e-06) then
-               if(proc0) write(*,*) 'itt=', itt
                exit
             else
                itt = itt + 1
