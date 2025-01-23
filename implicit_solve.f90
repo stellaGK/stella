@@ -67,7 +67,6 @@ contains
       integer :: itt
       logical :: modify
       real :: error, tol
-      logical :: break 
 
       integer :: ivmu, iv
 
@@ -81,7 +80,6 @@ contains
          if (.not. allocated(drifts_source_ffs)) allocate (drifts_source_ffs(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          drifts_source_ffs = 0.0
          if (.not. allocated(phi_store)) allocate(phi_store(naky, nakx, -nzgrid:nzgrid, ntubes)); phi_store = 0.0
-         break = .false. 
       end if
          
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Implicit time advance')
@@ -161,7 +159,7 @@ contains
             fields_updated = .false.
             call advance_fields(g2, phi_store, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
             call get_fields_source(g2, phi_store, phi_old, fields_source_ffs)
-!!            call get_fields_source(g2, phi_old, fields_source_ffs)
+            !!            call get_fields_source(g2, phi_old, fields_source_ffs)
             phi = phi + fields_source_ffs
          else
             call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice)) 
@@ -206,9 +204,9 @@ contains
             fields_updated = .false.
             call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice))
             fields_updated = .false.
-
+            
             error = sum(real(phi - phi_old)**2 + aimag(phi - phi_old)**2)**0.5
-!            write(52,*) itt, error
+            !            write(52,*) itt, error
             if ( error < 1.e-06) then
                if(proc0) write(*,*) 'itt=', itt
                exit
@@ -219,6 +217,7 @@ contains
             phi_old = phi
          else
             call update_pdf
+            itt = itt + 1
          end if
       end do
      
