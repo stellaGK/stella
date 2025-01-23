@@ -402,7 +402,7 @@ contains
       
       if (periodic(iky)) then
          gext(llim:ulim - 1) = g(ikx, -nzgrid:nzgrid - 1, it)
-         gext(ulim) = g(ikx, -nzgrid, it)! / phase_shift(iky)
+         gext(ulim) = g(ikx, -nzgrid, it) / phase_shift(iky)
       else
          gext(llim:ulim) = g(ikx, iz_low(iseg):iz_up(iseg), it) * curr_shift
          if (nsegments(ie, iky) > 1) then
@@ -447,7 +447,7 @@ contains
 
       if (periodic(iky)) then
          g(ikx, iz_low(iseg):iz_up(iseg) - 1, it) = gext(llim:ulim - 1)
-         g(ikx, iz_up(iseg), it) = g(ikx, iz_low(iseg), it)! / phase_shift(iky)
+         g(ikx, iz_up(iseg), it) = g(ikx, iz_low(iseg), it) / phase_shift(iky)
       else
          g(ikxmod(1, ie, iky), iz_low(1), :) = 0.0
          g(ikxmod(nsegments(ie, iky), ie, iky), iz_up(nsegments(ie, iky)), : ) = 0.0
