@@ -299,7 +299,7 @@ contains
       use species, only: nspec
       use kt_grids, only: naky, nakx, ikx_max, ny
       use dist_redistribute, only: kxkyz2vmu
-      use physics_flags, only: radial_variation, full_flux_surface
+      use physics_flags, only: radial_variation, full_flux_surface, const_alpha_geo
       use physics_flags, only: include_apar, include_bpar
       use volume_averages, only: volume_average, fieldline_average
       use run_parameters, only: fphi
@@ -455,51 +455,52 @@ contains
          else
             allocate (omega_avg(1, 1))
          end if
-         ! if (full_flux_surface) then
-         !    it = 1
+         if (full_flux_surface .and. .not. const_alpha_geo) then
+            it = 1
             
-         !    allocate (phi2_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes))
-         !    allocate (phi_swap(naky_all, ikx_max))
-         !    allocate (phi2_y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
-         !    allocate (flxfac(ny, -nzgrid:nzgrid))
-         !    allocate (phi2_mod(naky, nakx, -nzgrid:nzgrid, ntubes))
+            allocate (phi2_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes))
+            allocate (phi_swap(naky_all, ikx_max))
+            allocate (phi2_y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
+            allocate (flxfac(ny, -nzgrid:nzgrid))
+            allocate (phi2_mod(naky, nakx, -nzgrid:nzgrid, ntubes))
 
-         !    phi2 = 0.0
-         !    phi2_kxkyz = real(phi_out * conjg(phi_out))
+            phi2 = 0.0
+            phi2_kxkyz = real(phi_out * conjg(phi_out))
 
-         !    do iz = -nzgrid, nzgrid
-         !       call swap_kxky(phi2_kxkyz(:, :, iz, it), phi_swap(:, :))
-         !       call transform_ky2y(phi_swap(:, :), phi2_y(:, :, iz, it))
-         !    end do
+            do iz = -nzgrid, nzgrid
+               call swap_kxky(phi2_kxkyz(:, :, iz, it), phi_swap(:, :))
+               call transform_ky2y(phi_swap(:, :), phi2_y(:, :, iz, it))
+            end do
 
-         !    flxfac = spread(delzed * dy, 1, ny) * jacob
-         !    flxfac(:, -nzgrid) = 0.5 * flxfac(:, -nzgrid)
-         !    flxfac(:, nzgrid) = 0.5 * flxfac(:, nzgrid)
+            flxfac = spread(delzed * dy, 1, ny) * jacob
+            flxfac(:, -nzgrid) = 0.5 * flxfac(:, -nzgrid)
+            flxfac(:, nzgrid) = 0.5 * flxfac(:, nzgrid)
 
-         !    !! Area of flux annulus
-         !    area = sum(flxfac) / ny 
-         !    !! Ny * Area of fluxtube for ia = 1 
-         !    area1 = sum(flxfac(1,:))
+            !! Area of flux annulus
+            area = sum(flxfac) / ny 
+            !! Ny * Area of fluxtube for ia = 1 
+            area1 = sum(flxfac(1,:))
 
-         !    flxfac = flxfac * area / area1**2
+            flxfac = flxfac * area / area1**2
 
-         !    call get_modified_fourier_coefficient(phi2_y, phi2_mod, flxfac)
+            call get_modified_fourier_coefficient(phi2_y, phi2_mod, flxfac)
 
-         !    do iz = -nzgrid, nzgrid
-         !       do ikx = 1, nakx
-         !          do iky = 1, naky
-         !             phi2 = phi2 + mode_fac(iky) * phi2_mod(iky, ikx, iz, it)
-         !          end do
-         !       end do
-         !    end do
+            do iz = -nzgrid, nzgrid
+               do ikx = 1, nakx
+                  do iky = 1, naky
+                     phi2 = phi2 + mode_fac(iky) * phi2_mod(iky, ikx, iz, it)
+                  end do
+               end do
+            end do
             
-         !    apar2 = 0.0 
-         !    deallocate (phi2_kxkyz, phi_swap, phi2_y, flxfac, phi2_mod)
-         ! else
+            apar2 = 0.0 
+            deallocate (phi2_kxkyz, phi_swap, phi2_y, flxfac, phi2_mod)
+         else
 
-         call volume_average(phi_out, phi2)
-         call volume_average(apar_out, apar2)
-         call volume_average(bpar_out, bpar2)
+            call volume_average(phi_out, phi2)
+            call volume_average(apar_out, apar2)
+            call volume_average(bpar_out, bpar2)
+         end if
          ! Print information to stella.out, the header is printed in stella.f90
          write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4)') &
             " ", istep, " ", code_time, " ", code_dt, " ", cfl_dt_ExB, " ", phi2
