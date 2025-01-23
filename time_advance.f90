@@ -2109,6 +2109,7 @@ contains
       use file_utils, only: runtype_option_switch, runtype_multibox
       use extended_zgrid, only: fill_zed_ghost_zones
 
+       use gyro_averages, only: j0_ffs
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -2170,7 +2171,11 @@ contains
          ! construct <phi>
          dphidz = phi
          if (radial_variation) dphidz = dphidz + phi_corr_QN
-         call gyro_average(dphidz, ivmu, phi_gyro)
+          if(full_flux_surface) then
+            call gyro_average(dphidz, phi_gyro, j0_ffs(:, :, :, ivmu))
+         else
+            call gyro_average(dphidz, ivmu, phi_gyro)
+         end if
          if (radial_variation) phi_gyro = phi_gyro + phi_corr_GA(:, :, :, :, ivmu)
 
          do iky = 1, naky
@@ -2390,6 +2395,7 @@ contains
       use flow_shear, only: prl_shear, prl_shear_p
       use parallel_streaming, only: add_parallel_streaming_radial_variation
 
+      use gyro_averages, only: j0_ffs
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -2453,12 +2459,20 @@ contains
                !wdrift - phi
                call get_dgdx(phi(:, :, iz, it), g1k)
                !wdriftx variation
-               call gyro_average(g1k, iz, ivmu, g0a)
+               if(full_flux_surface) then
+                  call gyro_average(g1k, g0a, j0_ffs(:, :, iz, ivmu))
+               else
+                  call gyro_average(g1k, iz, ivmu, g0a)
+               end if
                g0k = g0k + g0a * wdriftpx_phi(ia, iz, ivmu)
 
                call get_dgdy(phi(:, :, iz, it), g1k)
                !wdrifty variation
-               call gyro_average(g1k, iz, ivmu, g0a)
+               if(full_flux_surface) then
+                  call gyro_average(g1k, g0a, j0_ffs(:, :, iz, ivmu))
+               else
+                  call gyro_average(g1k, iz, ivmu, g0a)
+               end if
                g0k = g0k + g0a * wdriftpy_phi(ia, iz, ivmu)
 
                !prl_shear variation
@@ -2474,8 +2488,11 @@ contains
 
                !
                !quasineutrality/gyroaveraging
-               !
-               call gyro_average(phi_corr_QN(:, :, iz, it), iz, ivmu, g0a)
+               if(full_flux_surface) then
+                  call gyro_average(phi_corr_QN(:, :, iz, it), g0a, j0_ffs(:, :, iz, ivmu))
+               else
+                  call gyro_average(phi_corr_QN(:, :, iz, it), iz, ivmu, g0a)
+               end if
                g0a = fphi * (g0a + phi_corr_GA(:, :, iz, it, ivmu))
 
                !wstar - gyroaverage/quasineutrality variation

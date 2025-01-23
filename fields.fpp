@@ -1310,7 +1310,7 @@ contains
 
    end subroutine get_fields_vmulo
 
-  subroutine get_fields_source(gold, phiold, source) 
+  subroutine get_fields_source(gold, phibarold, phiold, source) 
 
      use stella_layouts, only: vmu_lo
      use species, only: spec
@@ -1323,25 +1323,28 @@ contains
      implicit none
      complex, dimension(:, :, -nzgrid:, :), intent (in out) :: source
      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gold
-     complex, dimension(:, :, -nzgrid:, :), intent(in) :: phiold
+     complex, dimension(:, :, -nzgrid:, :), intent(in) :: phiold, phibarold
 
      real, dimension(:, :, :, :), allocatable :: gamtot_t
-     complex, dimension(:, :, :, :), allocatable :: source2 
-
+     complex, dimension(:, :, :, :), allocatable :: source2, source3
+     
      integer :: ikx, iky, iz
      
      allocate (gamtot_t(naky, nakx, -nzgrid:nzgrid, ntubes))
      gamtot_t = spread(gamtot, 4, ntubes)
      allocate(source2(naky, nakx, -nzgrid:nzgrid, ntubes)) ; source2 = 0.0
-
+     allocate(source3(naky, nakx, -nzgrid:nzgrid, ntubes)) ; source3 = 0.0
+     
      source = 0.0 
      call get_g_integral_contribution_source(gold, source(:,:,:,1) )
-     call gyro_average(phiold, source2, gam0_ffs_corr)
+     call gyro_average(phibarold, source2, gam0_ffs_corr)
+     call gyro_average(phiold - phibarold, source3, gam0_ffs)
       
      source = spread(source(:,:,:,1), 4, ntubes)
      source2 = spread(source2(:,:,:,1), 4, ntubes)
-
-     source = source - source2
+     source3 = spread(source3(:,:,:,1), 4, ntubes)
+     
+     source = source - source2 - source3
 
      where (gamtot_t < epsilon(0.0))
         source= 0.0
@@ -1359,6 +1362,7 @@ contains
 
      source(1,:,nzgrid,:) = source(1,:,-nzgrid,:) 
      deallocate(source2, gamtot_t) 
+     deallocate(source3)
      
    end subroutine get_fields_source   
 

@@ -280,7 +280,8 @@ contains
          !> to the range [-pi:pi]
          !zed_scalefac = pi/zmax
          arc_length = 2.0 * pi * arc_length / spread(zed_domain_size, 2, 2 * nzgrid_vmec + 1)
-         zed_scalefac = 1.0
+         !         zed_scalefac = 1.0
+         zed_scalefac = nfield_periods / real(nfp)
          !       arc_length = arc_length*zed_scalefac
 
          if (.not. allocated(gradpar_zeta)) allocate (gradpar_zeta(nalpha, -nzgrid:nzgrid))

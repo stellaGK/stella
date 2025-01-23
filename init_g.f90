@@ -106,7 +106,7 @@ contains
 
       use stella_save, only: init_tstart
       use run_parameters, only: maxwellian_normalization
-      use physics_flags, only: full_flux_surface
+      use physics_flags, only: full_flux_surface, const_alpha_geo
       
       logical, intent(out) :: restarted
       integer, intent(out) :: istep0
@@ -116,7 +116,7 @@ contains
       istep0 = 0
       select case (ginitopt_switch)
       case (ginitopt_default)
-         if(full_flux_surface) then 
+         if(full_flux_surface .and. .not. const_alpha_geo) then 
             call ginit_default_ffs
          else
             call ginit_default
@@ -426,7 +426,8 @@ contains
         ikx = ikx_idx(kxkyz_lo, ikxkyz)
         iky = iky_idx(kxkyz_lo, ikxkyz)
         is = is_idx(kxkyz_lo, ikxkyz)
-        gvmu(:, :, ikxkyz) = spec(is)%z * phi(iky, ikx, iz, it) &
+        gvmu(:, :, ikxkyz) = spec(is)%z * phi(iky, ikx, iz, it) / abs(spec(is)%z) &
+             * (den0 + 2.0 * zi * spread(vpa, 2, nmu) * upar0) &
              * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) &
              * spread(maxwell_mu(1, iz, :, is), 1, nvpa)
      end do
