@@ -116,11 +116,11 @@ contains
       istep0 = 0
       select case (ginitopt_switch)
       case (ginitopt_default)
-         if(full_flux_surface .and. .not. const_alpha_geo) then 
-            call ginit_default_ffs
-         else
-            call ginit_default
-         end if
+!         if(full_flux_surface .and. .not. const_alpha_geo) then 
+!         call ginit_default_ffs
+!         else
+         call ginit_default
+!         end if
       case (ginitopt_noise)
          call ginit_noise
       case (ginitopt_kpar)
