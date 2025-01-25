@@ -55,10 +55,11 @@ contains
      use kt_grids, only: swap_kxky_back
      use stella_transforms, only: transform_y2ky
      
-     use parallel_streaming, only: center_zed, get_dgdz_centered, get_dzed
+     use parallel_streaming, only: center_zed, get_dgdz_centered, get_dzed, get_dgdz
      use parallel_streaming, only: stream_correction, stream, stream_store_full
      
      use species, only: has_electron_species
+     use extended_zgrid, only: periodic
 
      implicit none
 
@@ -75,6 +76,7 @@ contains
      real, dimension (:, :), allocatable :: coeff, coeff2
      real :: scratch
 
+     integer :: iky
      allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g0 = 0.0
      
      allocate (dgphi_dz(naky, nakx, -nzgrid:nzgrid, ntubes)) ; dgphi_dz = 0.0
@@ -100,11 +102,14 @@ contains
         !> <phi>
         call gyro_average(phi, g0, j0_ffs(:, :, :, ivmu))
         !> Full d <phi>/dz
-        call get_dzed(iv, g0, dgphi_dz)
+!        call get_dzed(iv, g0, dgphi_dz)
+        call get_dgdz(g0, ivmu, dgphi_dz)
         !> d phi/dz
-        call get_dzed(iv, phi, dphi_dz)
+!        call get_dzed(iv, phi, dphi_dz)
+        call get_dgdz(phi, ivmu, dphi_dz)
         !> dg/dz
-        call get_dzed(iv, g(:, :, :, :, ivmu), dgdz)
+!        call get_dzed(iv, g(:, :, :, :, ivmu), dgdz)
+        call get_dgdz(g(:, :, :, :, ivmu), ivmu, dgdz)
         
         !> get these quantities in real space 
         do it = 1, ntubes
@@ -129,24 +134,24 @@ contains
         !> This is (b.grad z - avg(b.grad z)) * (dg^j/dz + Z/T * avg(F_0) * d<phi^j> /dz)
         coeff = stream_correction(:,:,iv,is)
         coeff2 = stream_correction(:,:,iv,is) * maxwell_mu_avg(:, :, imu, is) * scratch
-        do ia = 1, ny
-           call center_zed(iv, coeff(ia, :) ,  -nzgrid)
-           call center_zed(iv, coeff2(ia, :) ,  -nzgrid)
-        end do
+        ! do ia = 1, ny
+        !    call center_zed(iv, coeff(ia, :) ,  -nzgrid)
+        !    call center_zed(iv, coeff2(ia, :) ,  -nzgrid)
+        ! end do
         g2y = spread(spread(coeff, 2, ikx_max), 4, ntubes) * g2y + spread(spread(coeff2, 2, ikx_max), 4, ntubes) * g1y
 
         !> This is (b.grad z) * Z/T * (F_0 - avg(F_0)) * d phi^j /dz
         coeff = stream_store_full (:,:,iv,is) * (maxwell_mu(:, :, imu, is) - maxwell_mu_avg(:, :, imu, is)) * scratch
-        do ia = 1, ny
-           call center_zed(iv, coeff(ia, :) ,  -nzgrid)
-        end do
+        ! do ia = 1, ny
+        !    call center_zed(iv, coeff(ia, :) ,  -nzgrid)
+        ! end do
         g3y = spread(spread(coeff, 2, ikx_max), 4, ntubes) * g1y
 
         !> This is (b.grad z) * Z/T * F_0 * d(<phi^j> - phi^j)/dz
         coeff = stream_store_full (:,:,iv,is) * maxwell_mu(:, :, imu, is) * scratch
-        do ia = 1, ny 
-           call center_zed(iv, coeff(ia, :) ,  -nzgrid) 
-        end do
+        ! do ia = 1, ny 
+        !    call center_zed(iv, coeff(ia, :) ,  -nzgrid) 
+        ! end do
         g0y =  spread(spread(coeff, 2, ikx_max), 4, ntubes) * (g0y - g1y)
 
         !> Add them all together and transform back to (kx, ky) space
@@ -160,6 +165,13 @@ contains
         end do
 
         source(1, 1, :, :, :) = 0.0
+
+        do iky = 1, naky
+           do ikx = 1, nakx
+              call center_zed(iv, source(iky, ikx, :, 1, ivmu), -nzgrid, periodic(iky))
+           end do
+        end do
+        
      end do
           
      deallocate(g0)
@@ -187,13 +199,14 @@ contains
 
       use parallel_streaming, only: center_zed
 
+      use extended_zgrid, only: periodic 
       implicit none 
 
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent (out) :: source
 
-      integer :: iz, it, ivmu, iv, is, imu
+      integer :: iz, it, ivmu, iv, is, imu, iky, ikx
       complex, dimension(:, :), allocatable :: g_swap
       complex, dimension(:, :, :, :), allocatable :: gk0, gk1, gk2, gk3, gk4
       complex, dimension(:, :, :, :), allocatable :: sourcey, g1y, g2y, g3y, g4y
@@ -257,7 +270,11 @@ contains
                call swap_kxky_back(g_swap, source(:, :, iz, it, ivmu))
             end do
          end do
-         call center_zed(iv, source(:,:,:,:,ivmu))
+         do iky = 1, naky
+            do ikx = 1, nakx
+               call center_zed(iv, source(iky, ikx,:,1,ivmu), -nzgrid, periodic(iky) )
+            end do
+         end do
      end do
 
      deallocate(sourcey, g_swap)

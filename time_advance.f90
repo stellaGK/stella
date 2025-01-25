@@ -1290,13 +1290,6 @@ contains
 
       if (radial_variation) call get_radial_correction(pdf, phi, dist='gbar')
 
-      !> obtain the gyro-average of the electrostatic potential phi and store in g_scratch;
-      !> this can be a particularly costly operation when simulating a full flux surface
-      !> due to the coupling of different k-alphas inherent in the gyro-average;
-      !> calculate once here to avoid repeated calculation later
-      !> TODO-GA : can this be spec up??
-      if (full_flux_surface) call gyro_average(phi, g_scratch, j0_ffs)
-
       !! INSERT TEST HERE TO SEE IF dg/dy, dg/dx, d<phi>/dy, d<phi>/dx WILL BE NEEDED
       !! IF SO, PRE-COMPUTE ONCE HERE
 
@@ -1326,6 +1319,13 @@ contains
          end if
 
          if (.not. drifts_implicit) then
+            !> obtain the gyro-average of the electrostatic potential phi and store in g_scratch;
+            !> this can be a particularly costly operation when simulating a full flux surface
+            !> due to the coupling of different k-alphas inherent in the gyro-average;
+            !> calculate once here to avoid repeated calculation later
+            !> TODO-GA : can this be spec up??
+            if (full_flux_surface) call gyro_average(phi, g_scratch, j0_ffs)
+      
             !> calculate and add alpha-component of magnetic drift term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdrifty_explicit'
             call advance_wdrifty_explicit(pdf, phi, bpar, rhs)

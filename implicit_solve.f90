@@ -45,6 +45,7 @@ contains
       use ffs_solve, only: get_source_ffs_itteration, get_drifts_ffs_itteration
       use species, only: has_electron_species
 
+      use run_parameters, only: drifts_implicit
       use extended_zgrid, only: enforce_reality
       use parallel_streaming, only: stream_sign
       implicit none
@@ -140,11 +141,13 @@ contains
             call advance_fields(g2, phi_store, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
             call get_fields_source(g2, phi_store, phi_old, fields_source_ffs)
             phi_store = phi_store + fields_source_ffs
-            call get_source_ffs_itteration (phi_store, g2, phi_source_ffs)  
-            !            call get_source_ffs_itteration (phi_old, g2, phi_source_ffs)
+            call get_source_ffs_itteration (phi_store, g2, phi_source_ffs)
             
-            !!            call get_drifts_ffs_itteration (phi_old, g2, drifts_source_ffs)
-            !!            phi_source_ffs = phi_source_ffs + drifts_source_ffs
+            if(drifts_implicit) then
+               call get_drifts_ffs_itteration (phi_old, g2, drifts_source_ffs)
+               phi_source_ffs = phi_source_ffs + drifts_source_ffs
+            end if
+            
             phi_source = tupwnd_m * phi
             !> set the g on the RHS to be g from the previous time step  
             !> FFS will have a RHS source term
@@ -213,6 +216,7 @@ contains
             fields_updated = .false.
             
             error = sum(real(phi - phi_old)**2 + aimag(phi - phi_old)**2)**0.5
+            if(proc0) write(164,*) itt, error
             if ( error < 1.e-06) then
                exit
             else
@@ -430,7 +434,8 @@ contains
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_dvpa
-
+      use physics_flags, only: full_flux_surface
+      
       implicit none
 
       complex, dimension(:), intent(in) :: phi
@@ -463,7 +468,7 @@ contains
       end if
 
       call add_streaming_contribution_phi
-      if (drifts_implicit) call add_drifts_contribution_phi
+      if (drifts_implicit .and. .not. full_flux_surface) call add_drifts_contribution_phi
 
       deallocate (z_scratch)
 
@@ -579,6 +584,7 @@ contains
       use neoclassical_terms, only: dfneo_dvpa
       use extended_zgrid, only: map_to_iz_ikx_from_izext
 
+      use physics_flags, only: full_flux_surface
       implicit none
 
       complex, dimension(:), intent(in) :: bpar
@@ -613,7 +619,7 @@ contains
       end if
       
       call add_streaming_contribution_bpar
-      if (drifts_implicit) call add_drifts_contribution_bpar
+      if (drifts_implicit .and. .not. full_flux_surface) call add_drifts_contribution_bpar
 
       deallocate (z_scratch, scratch2)
 
@@ -711,6 +717,7 @@ contains
       use run_parameters, only: driftkinetic_implicit, drifts_implicit
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
+      use physics_flags, only: full_flux_surface
       implicit none
 
       complex, dimension(:), intent(in) :: apar, aparnew
@@ -744,7 +751,7 @@ contains
       end if
 
       call add_gbar_to_g_contribution_apar(scratch2, iky, ia, iv, imu, is, nz_ext, iz_from_izext, rhs)
-      if (drifts_implicit) call add_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
+      if (drifts_implicit .and. .not. full_flux_surface) call add_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
 
       deallocate (scratch2)
 
@@ -936,6 +943,7 @@ contains
       use extended_zgrid, only: map_to_iz_ikx_from_izext
       use extended_zgrid, only: periodic
 
+      use physics_flags, only: full_flux_surface
       implicit none
 
       complex, dimension(:), intent(in) :: pdf, apar
@@ -992,7 +1000,7 @@ contains
          call gbar_to_g_zext(rhs, apar, -1.0, iky, ivmu, ikx_from_izext, iz_from_izext)
       end if
 
-      if (drifts_implicit) then
+      if (drifts_implicit .and. .not. full_flux_surface) then
          do izext = 1, nz_ext
             ikx = ikx_from_izext(izext)
             iz = iz_from_izext(izext)
@@ -1067,7 +1075,7 @@ contains
 
       ! if treating magentic drifts implicitly in time,
       ! get the drift frequency on the extended zed grid
-      if (drifts_implicit) then
+      if (drifts_implicit .and. .not. full_flux_surface) then
          allocate (wdrift(nakx, -nzgrid:nzgrid))
          ia = 1
          ! sum up the kx and ky contributions to the magnetic drift frequency
@@ -1113,7 +1121,7 @@ contains
          ! specially treat the most upwind grid point
          iz = sgn * nzgrid
          wd_factor = 1.0
-         if (drifts_implicit) wd_factor = 1.0 + 0.5 * tupwnd_p * wdrift_ext(iz1)
+         if (drifts_implicit .and. .not. full_flux_surface) wd_factor = 1.0 + 0.5 * tupwnd_p * wdrift_ext(iz1)
          stream_term = tupwnd_p * stream_c(iz, iv, is) / delzed(0)
          fac1 = zupwnd_p * wd_factor + sgn * stream_term
          pdf(iz1) = pdf(iz1) * 2.0 / fac1
@@ -1122,7 +1130,7 @@ contains
          call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf)
       end if
 
-      if (drifts_implicit) deallocate (wdrift, wdrift_ext)
+      if (drifts_implicit .and. .not. full_flux_surface) deallocate (wdrift, wdrift_ext)
 
    end subroutine sweep_g_zext
 
@@ -1135,7 +1143,9 @@ contains
       use parallel_streaming, only: stream_c
 
       use extended_zgrid, only: phase_shift
-      use mp, only: proc0 
+      use mp, only: proc0
+
+      use physics_flags, only: full_flux_surface
       implicit none
 
       integer, intent(in out) :: iz
@@ -1162,7 +1172,7 @@ contains
          else
             iz = iz - sgn
          end if
-         if (drifts_implicit) wd_factor = 1.0 + 0.5 * tupwnd_p * wdrift_ext(izext)
+         if (drifts_implicit .and. .not. full_flux_surface) wd_factor = 1.0 + 0.5 * tupwnd_p * wdrift_ext(izext)
          stream_term = tupwnd_p * stream_c(iz, iv, is) / delzed(0)
          fac1 = zupwnd_p * wd_factor + sgn * stream_term
          fac2 = zupwnd_m * wd_factor - sgn * stream_term

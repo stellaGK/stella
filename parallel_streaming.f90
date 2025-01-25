@@ -17,7 +17,7 @@ module parallel_streaming
    public :: stream_correction
    public :: stream_correction_sign
    public :: stream_store_full, stream_full_sign
-   public :: get_dgdz_centered
+   public :: get_dgdz_centered, get_dgdz
 
    private
 
