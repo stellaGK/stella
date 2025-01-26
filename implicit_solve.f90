@@ -42,7 +42,7 @@ contains
       use fields, only: get_fields_source
       use run_parameters, only: nitt
 
-      use ffs_solve, only: get_source_ffs_itteration, get_drifts_ffs_itteration
+      use ffs_solve, only: get_source_ffs_itteration!, get_drifts_ffs_itteration
       use species, only: has_electron_species
 
       use run_parameters, only: drifts_implicit
@@ -143,10 +143,10 @@ contains
             phi_store = phi_store + fields_source_ffs
             call get_source_ffs_itteration (phi_store, g2, phi_source_ffs)
             
-            if(drifts_implicit) then
-               call get_drifts_ffs_itteration (phi_old, g2, drifts_source_ffs)
-               phi_source_ffs = phi_source_ffs + drifts_source_ffs
-            end if
+            ! if(drifts_implicit) then
+            !    call get_drifts_ffs_itteration (phi_old, g2, drifts_source_ffs)
+            !    phi_source_ffs = phi_source_ffs + drifts_source_ffs
+            ! end if
             
             phi_source = tupwnd_m * phi
             !> set the g on the RHS to be g from the previous time step  
