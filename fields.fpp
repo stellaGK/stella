@@ -50,6 +50,10 @@ module fields
       module procedure get_dchidy_4d
       module procedure get_dchidy_2d
    end interface get_dchidy
+   interface get_dchidx
+      module procedure get_dchidx_4d
+      module procedure get_dchidx_2d
+   end interface get_dchidx
 
    interface advance_fields
       module procedure advance_fields_vmu_lo
@@ -2660,8 +2664,71 @@ contains
 
    end subroutine get_dchidy_2d
 
+   !> compute d<chi>/dy in (ky,kx,z,tube) space
+   subroutine get_dchidx_4d(phi, apar, bpar, dchidx)
+
+      use constants, only: zi
+      use gyro_averages, only: gyro_average
+      use gyro_averages, only: gyro_average_j1
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: is_idx, iv_idx, imu_idx
+      use physics_flags, only: include_apar
+      use physics_flags, only: include_bpar
+      use run_parameters, only: fphi
+      use species, only: spec
+      use zgrid, only: nzgrid, ntubes
+      use vpamu_grids, only: vpa, mu
+      use kt_grids, only: nakx, akx, naky
+
+      use gyro_averages, only: j0_ffs
+      use physics_flags, only: full_flux_surface
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: dchidx
+
+      integer :: ivmu, iv, is, iky, ikx, imu, iz, it
+      complex, dimension(:, :, :, :), allocatable :: field, gyro_tmp
+
+      allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (gyro_tmp(naky, nakx, -nzgrid:nzgrid, ntubes))
+
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         is = is_idx(vmu_lo, ivmu)
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         ! intermediate calculation to get factor involving phi contribution
+         field = fphi * phi
+         ! add apar contribution if including it
+         if (include_apar) field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
+         ! take spectral y-derivative
+         do iky = 1, naky
+            field(iky, :, :, :) = zi * akx(ikx) * field(iky, :, :, :)
+         end do
+         if (full_flux_surface) then
+            call gyro_average(field, dchidx(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
+         else
+            call gyro_average(field, ivmu, dchidx(:, :, :, :, ivmu))
+         end if
+         if (include_bpar) then
+            field = 4.0 * mu(imu) * (spec(is)%tz) * bpar
+            do iky = 1, naky
+               field(iky, :, :, :) = zi * akx(ikx) * field(iky, :, :, :)
+            end do
+            call gyro_average_j1(field, ivmu, gyro_tmp)
+            !> include bpar contribution
+            dchidx(:, :, :, :, ivmu) = dchidx(:, :, :, :, ivmu) + gyro_tmp
+         end if
+      end do
+
+      deallocate (field)
+      deallocate (gyro_tmp)
+
+    end subroutine get_dchidx_4d
+
    !> compute d<chi>/dx in (ky,kx) space
-   subroutine get_dchidx(iz, ivmu, phi, apar, bpar, dchidx)
+   subroutine get_dchidx_2d(iz, ivmu, phi, apar, bpar, dchidx)
 
       use constants, only: zi
       use gyro_averages, only: gyro_average
@@ -2712,8 +2779,10 @@ contains
       end if
       deallocate (field)
       deallocate (gyro_tmp)
+      
+    end subroutine get_dchidx_2d
 
-   end subroutine get_dchidx
+
 
    subroutine finish_fields
 

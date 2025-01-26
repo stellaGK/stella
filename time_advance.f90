@@ -1,4 +1,3 @@
-
 module time_advance
 
    public :: init_time_advance, finish_time_advance
@@ -346,7 +345,7 @@ contains
 
    subroutine init_wstar
 
-      use mp, only: mp_abort
+      use mp, only: mp_abort, proc0 
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_time, only: code_dt
@@ -366,6 +365,8 @@ contains
       integer :: is, imu, iv, ivmu
       real, dimension(:, :), allocatable :: energy
 
+      integer :: ia, iz
+      
       if (wstarinit) return
       wstarinit = .true.
 
@@ -1556,12 +1557,13 @@ contains
          !> assume only a single flux surface simulated
          it = 1
          allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+
          allocate (g0_swap(naky_all, ikx_max))
 
          !> calculate d<phi>/dy in k-space
          !> Here g_scratch is <phi> in k-space that has been pre-calculated and stored
          call get_dgdy(g_scratch, g0)
-         
+         !call get_dchidy(phi, apar, bpar, g0)
          !> transform d<phi>/dy from ky-space to y-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do iz = -nzgrid, nzgrid
@@ -1606,6 +1608,8 @@ contains
       use dist_fn_arrays, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
       use dist_fn_arrays, only: g_scratch
 
+      use fields_arrays, only: apar
+      use fields, only: get_dchidy
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1646,10 +1650,10 @@ contains
          !> add vM . grad y dg/dy term to equation
          call add_explicit_term_ffs(g0y, wdrifty_g, gout)
 
-         !> > calculate dphi/dy in (ky,kx) space
+         !> calculate dphi/dy in (ky,kx) space
          !> Here g_scratch is <phi> in k-space that has been pre-calculated and stored
          call get_dgdy(g_scratch, g0k)
-
+!         call get_dchidy(phi, apar, bpar,  g0k)
          !> transform d<phi>/dy from k-space to y-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do iz = -nzgrid, nzgrid
@@ -1712,6 +1716,8 @@ contains
       use dist_fn_arrays, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
       use dist_fn_arrays, only: g_scratch
 
+      use fields_arrays, only: apar
+      use fields, only: get_dchidx
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1761,7 +1767,7 @@ contains
          !> Here g_scratch is <phi> in k-space that has been pre-calculated and stored
          !> get <dphi/dx> in k-space
          call get_dgdx(g_scratch, g0k)
-
+         !call get_dchidx(phi, apar, bpar, g0k) 
          !> transform d<phi>/dx from k-space to y-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do iz = -nzgrid, nzgrid
