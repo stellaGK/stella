@@ -45,7 +45,7 @@ contains
       use ffs_solve, only: get_source_ffs_itteration!, get_drifts_ffs_itteration
       use species, only: has_electron_species
 
-      use run_parameters, only: drifts_implicit
+      use run_parameters, only: drifts_implicit, itt_tol
       use extended_zgrid, only: enforce_reality
       use parallel_streaming, only: stream_sign
       implicit none
@@ -217,7 +217,7 @@ contains
             
             error = sum(real(phi - phi_old)**2 + aimag(phi - phi_old)**2)**0.5
             if(proc0) write(164,*) itt, error
-            if ( error < 1.e-06) then
+            if ( error < itt_tol) then
                exit
             else
                itt = itt + 1
