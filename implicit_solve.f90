@@ -136,17 +136,15 @@ contains
          !> phi^{n+1} in the inhomogeneous GKE; else set phi_{n+1} to zero in inhomogeneous equation
          ! solve for the 'inhomogeneous' piece of the pdf
          if (driftkinetic_implicit) then
-            !call get_source_ffs_itteration (phi_old, g2, phi_source_ffs)
-            fields_updated = .false.
-            call advance_fields(g2, phi_store, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
-            call get_fields_source(g2, phi_store, phi_old, fields_source_ffs)
-            phi_store = phi_store + fields_source_ffs
-            call get_source_ffs_itteration (phi_store, g2, phi_source_ffs)
-            
-            ! if(drifts_implicit) then
-            !    call get_drifts_ffs_itteration (phi_old, g2, drifts_source_ffs)
-            !    phi_source_ffs = phi_source_ffs + drifts_source_ffs
-            ! end if
+            if(itt == 1) then
+               phi_store = phi_old
+            else
+               fields_updated = .false.
+               call advance_fields(g2, phi_store, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
+               call get_fields_source(g2, phi_store, phi_old, fields_source_ffs)
+               phi_store = phi_store + fields_source_ffs
+            end if
+            call get_source_ffs_itteration (phi, phi_store, g2, phi_source_ffs)
             
             phi_source = tupwnd_m * phi
             !> set the g on the RHS to be g from the previous time step  
