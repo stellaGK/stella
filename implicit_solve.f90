@@ -45,7 +45,7 @@ contains
       use ffs_solve, only: get_source_ffs_itteration!, get_drifts_ffs_itteration
       use species, only: has_electron_species
 
-      use run_parameters, only: drifts_implicit, itt_tol
+      use run_parameters, only: itt_tol, drifts_implicit
       use extended_zgrid, only: enforce_reality
       use parallel_streaming, only: stream_sign
       implicit none
@@ -123,7 +123,6 @@ contains
       !!> until fixed
       itt = 1
       do while (itt <= nitt)
-         
          if (include_apar) then
             ! when solving for the 'inhomogeneous' piece of the pdf,
             ! use part of apar weighted towards previous time level
@@ -145,7 +144,6 @@ contains
                phi_store = phi_store + fields_source_ffs
             end if
             call get_source_ffs_itteration (phi, phi_store, g2, phi_source_ffs)
-            
             phi_source = tupwnd_m * phi
             !> set the g on the RHS to be g from the previous time step  
             !> FFS will have a RHS source term
@@ -466,7 +464,9 @@ contains
       end if
 
       call add_streaming_contribution_phi
-      if (drifts_implicit .and. .not. full_flux_surface) call add_drifts_contribution_phi
+      
+!      if (drifts_implicit .and. .not. full_flux_surface) call add_drifts_contribution_phi
+      if (drifts_implicit) call add_drifts_contribution_phi
 
       deallocate (z_scratch)
 
@@ -617,7 +617,8 @@ contains
       end if
       
       call add_streaming_contribution_bpar
-      if (drifts_implicit .and. .not. full_flux_surface) call add_drifts_contribution_bpar
+!      if (drifts_implicit .and. .not. full_flux_surface) call add_drifts_contribution_bpar
+      if (drifts_implicit) call add_drifts_contribution_bpar
 
       deallocate (z_scratch, scratch2)
 
@@ -749,7 +750,8 @@ contains
       end if
 
       call add_gbar_to_g_contribution_apar(scratch2, iky, ia, iv, imu, is, nz_ext, iz_from_izext, rhs)
-      if (drifts_implicit .and. .not. full_flux_surface) call add_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
+!      if (drifts_implicit .and. .not. full_flux_surface) call add_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
+      if (drifts_implicit)  call add_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
 
       deallocate (scratch2)
 
@@ -959,6 +961,7 @@ contains
       complex :: pdf_left, pdf_right
 
       complex, dimension(:), optional, intent(in) :: source_ffs
+      complex, dimension(:), allocatable :: source_ffs_center
 
       ia = 1
       iv = iv_idx(vmu_lo, ivmu)
@@ -998,7 +1001,8 @@ contains
          call gbar_to_g_zext(rhs, apar, -1.0, iky, ivmu, ikx_from_izext, iz_from_izext)
       end if
 
-      if (drifts_implicit .and. .not. full_flux_surface) then
+!      if (drifts_implicit .and. .not. full_flux_surface) then
+      if (drifts_implicit) then
          do izext = 1, nz_ext
             ikx = ikx_from_izext(izext)
             iz = iz_from_izext(izext)
@@ -1014,10 +1018,15 @@ contains
 
       ! construct the source term on the RHS of the GK equation coming from
       ! the pdf evaluated at the previous time level
-      if(present(source_ffs)) then 
+      if(present(source_ffs)) then
+         allocate(source_ffs_center(nz_ext))
+         source_ffs_center = source_ffs
+         call center_zed(iv, source_ffs_center, 1, periodic(iky))
          do izext = 1, nz_ext
-            rhs(izext) = rhs(izext) + gradpar_fac(iz_from_izext(izext)) * dpdf_dz(izext) + source_ffs(izext)
+!            rhs(izext) = rhs(izext) + gradpar_fac(iz_from_izext(izext)) * dpdf_dz(izext) + source_ffs(izext)
+            rhs(izext) = rhs(izext) + gradpar_fac(iz_from_izext(izext)) * dpdf_dz(izext) + source_ffs_center(izext)
          end do
+         deallocate(source_ffs_center)
       else
          do izext = 1, nz_ext
             rhs(izext) = rhs(izext) + gradpar_fac(iz_from_izext(izext)) * dpdf_dz(izext)
@@ -1073,7 +1082,8 @@ contains
 
       ! if treating magentic drifts implicitly in time,
       ! get the drift frequency on the extended zed grid
-      if (drifts_implicit .and. .not. full_flux_surface) then
+!      if (drifts_implicit .and. .not. full_flux_surface) then
+      if (drifts_implicit) then
          allocate (wdrift(nakx, -nzgrid:nzgrid))
          ia = 1
          ! sum up the kx and ky contributions to the magnetic drift frequency
@@ -1119,7 +1129,8 @@ contains
          ! specially treat the most upwind grid point
          iz = sgn * nzgrid
          wd_factor = 1.0
-         if (drifts_implicit .and. .not. full_flux_surface) wd_factor = 1.0 + 0.5 * tupwnd_p * wdrift_ext(iz1)
+!         if (drifts_implicit .and. .not. full_flux_surface) wd_factor = 1.0 + 0.5 * tupwnd_p * wdrift_ext(iz1)
+         if (drifts_implicit) wd_factor = 1.0 + 0.5 * tupwnd_p * wdrift_ext(iz1)
          stream_term = tupwnd_p * stream_c(iz, iv, is) / delzed(0)
          fac1 = zupwnd_p * wd_factor + sgn * stream_term
          pdf(iz1) = pdf(iz1) * 2.0 / fac1
@@ -1128,7 +1139,8 @@ contains
          call get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf)
       end if
 
-      if (drifts_implicit .and. .not. full_flux_surface) deallocate (wdrift, wdrift_ext)
+!      if (drifts_implicit .and. .not. full_flux_surface) deallocate (wdrift, wdrift_ext)
+      if (drifts_implicit) deallocate (wdrift, wdrift_ext)
 
    end subroutine sweep_g_zext
 
@@ -1170,7 +1182,8 @@ contains
          else
             iz = iz - sgn
          end if
-         if (drifts_implicit .and. .not. full_flux_surface) wd_factor = 1.0 + 0.5 * tupwnd_p * wdrift_ext(izext)
+!         if (drifts_implicit .and. .not. full_flux_surface) wd_factor = 1.0 + 0.5 * tupwnd_p * wdrift_ext(izext)
+         if (drifts_implicit) wd_factor = 1.0 + 0.5 * tupwnd_p * wdrift_ext(izext)
          stream_term = tupwnd_p * stream_c(iz, iv, is) / delzed(0)
          fac1 = zupwnd_p * wd_factor + sgn * stream_term
          fac2 = zupwnd_m * wd_factor - sgn * stream_term

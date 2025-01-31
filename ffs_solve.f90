@@ -67,7 +67,9 @@ contains
      allocate (coeff(ny)) ; coeff = 0.0 
      allocate (coeff2(ny)) ; coeff2 = 0.0
 
-     if (drifts_implicit) allocate(source_drifts(ny, ikx_max))
+     if (drifts_implicit) then
+        allocate(source_drifts(ny, ikx_max)); source_drifts = 0.0
+     end if
      source = 0.0 
      
      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -125,11 +127,13 @@ contains
               
         source(1, 1, :, :, :) = 0.0
 
-        do iky = 1, naky
-           do ikx = 1, nakx
-              call center_zed(iv, source(iky, ikx, :, 1, ivmu), -nzgrid, periodic(iky))
-           end do
-        end do
+        !> Note that centering is not done in implicit_solve.f90
+        
+        ! do iky = 1, naky
+        !    do ikx = 1, nakx
+        !       call center_zed(iv, source(iky, ikx, :, 1, ivmu), -nzgrid, periodic(iky))
+        !    end do
+        ! end do
         
      end do
           
@@ -211,8 +215,7 @@ contains
       
       sourcey = 0.0
 
-!      call add_explicit_term_ffs_fields(g3y, wdrifty_g(:, iz, ivmu), sourcey)
-      call add_explicit_term_ffs_fields(g3y, wdriftx_g(:, iz, ivmu), sourcey)
+      call add_explicit_term_ffs_fields(g3y, wdrifty_g(:, iz, ivmu), sourcey)
       call add_explicit_term_ffs_fields(g1y, wdrifty_phi(:, iz, ivmu), sourcey)
 
       call add_explicit_term_ffs_fields(g4y, wdriftx_g(:, iz, ivmu), sourcey)
@@ -281,7 +284,8 @@ contains
       integer :: ia, ikx, iz, it
 
       do ia = 1, ny
-         src(ia, :) = src(ia, :) + pre_factor(ia) * g(ia, :)
+         src(ia, :) = src(ia, :) + ( pre_factor(ia) - pre_factor(1) ) * g(ia, :)
+!         src(ia, :) = src(ia, :) + pre_factor(ia) * g(ia, :)
       end do
 
    end subroutine add_explicit_term_ffs_fields

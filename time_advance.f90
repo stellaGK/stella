@@ -1298,6 +1298,13 @@ contains
       !> if estimated CFL condition for nonlinear terms is violated
       !> then restart_time_step will be set to .true.
       restart_time_step = .false.
+      !> obtain the gyro-average of the electrostatic potential phi and store in g_scratch;
+      !> this can be a particularly costly operation when simulating a full flux surface
+      !> due to the coupling of different k-alphas inherent in the gyro-average;
+      !> calculate once here to avoid repeated calculation later
+      !> TODO-GA : can this be spec up??
+      if (full_flux_surface) call gyro_average(phi, g_scratch, j0_ffs)
+
       !> calculate and add ExB nonlinearity to RHS of GK eqn
       !> do this first, as the CFL condition may require a change in time step
       !> and thus recomputation of mirror, wdrift, wstar, and parstream
@@ -1320,12 +1327,6 @@ contains
          end if
 
          if (.not. drifts_implicit) then
-            !> obtain the gyro-average of the electrostatic potential phi and store in g_scratch;
-            !> this can be a particularly costly operation when simulating a full flux surface
-            !> due to the coupling of different k-alphas inherent in the gyro-average;
-            !> calculate once here to avoid repeated calculation later
-            !> TODO-GA : can this be spec up??
-            if (full_flux_surface) call gyro_average(phi, g_scratch, j0_ffs)
       
             !> calculate and add alpha-component of magnetic drift term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdrifty_explicit'
@@ -1563,7 +1564,7 @@ contains
          !> calculate d<phi>/dy in k-space
          !> Here g_scratch is <phi> in k-space that has been pre-calculated and stored
          call get_dgdy(g_scratch, g0)
-         !call get_dchidy(phi, apar, bpar, g0)
+!         call get_dchidy(phi, apar, bpar, g0)
          !> transform d<phi>/dy from ky-space to y-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do iz = -nzgrid, nzgrid
