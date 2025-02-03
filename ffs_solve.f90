@@ -8,7 +8,7 @@ module ffs_solve
 
 contains
 
-  subroutine get_source_ffs_itteration (phi, phi_bar, g, source) 
+  subroutine get_source_ffs_itteration (phi, g, source) 
 
      use mp, only: proc0
      use stella_layouts, only: vmu_lo
@@ -35,11 +35,12 @@ contains
      use run_parameters, only: drifts_implicit
      implicit none
 
-     complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, phi_bar
+     complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent (out) :: source
 
      integer :: ivmu, iv, imu, is, ia, iz, it, ikx, iky
+     
      complex, dimension(:, :, :, :), allocatable :: g0
      complex, dimension(:, :, :, :), allocatable :: dgphi_dz, dphi_dz, dgdz
      complex, dimension(:, :), allocatable :: g_swap
@@ -82,7 +83,7 @@ contains
         !> Full d <phi>/dz
         call get_dgdz(g0, ivmu, dgphi_dz)
         !> d phi/dz
-        call get_dgdz(phi_bar, ivmu, dphi_dz)
+        call get_dgdz(phi, ivmu, dphi_dz)
         !> dg/dz
         call get_dgdz(g(:, :, :, :, ivmu), ivmu, dgdz)
         
@@ -129,11 +130,11 @@ contains
 
         !> Note that centering is not done in implicit_solve.f90
         
-        ! do iky = 1, naky
-        !    do ikx = 1, nakx
-        !       call center_zed(iv, source(iky, ikx, :, 1, ivmu), -nzgrid, periodic(iky))
-        !    end do
-        ! end do
+        do iky = 1, naky
+           do ikx = 1, nakx
+              call center_zed(iv, source(iky, ikx, :, 1, ivmu), -nzgrid, periodic(iky))
+           end do
+        end do
         
      end do
           

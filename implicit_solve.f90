@@ -137,13 +137,8 @@ contains
          if (driftkinetic_implicit) then
             if(itt == 1) then
                phi_store = phi_old
-            else
-               fields_updated = .false.
-               call advance_fields(g2, phi_store, apar, bpar, dist=trim(dist_choice), implicit_solve = .true.)
-               call get_fields_source(g2, phi_store, phi_old, fields_source_ffs)
-               phi_store = phi_store + fields_source_ffs
             end if
-            call get_source_ffs_itteration (phi, phi_store, g2, phi_source_ffs)
+            call get_source_ffs_itteration (phi_store, g2, phi_source_ffs)
             phi_source = tupwnd_m * phi
             !> set the g on the RHS to be g from the previous time step  
             !> FFS will have a RHS source term
@@ -183,7 +178,8 @@ contains
          if (use_deltaphi_for_response_matrix) phi = phi + phi_old
          if (use_deltaphi_for_response_matrix .and. include_bpar) bpar = bpar + bpar_old
          if (driftkinetic_implicit) then
-            !> Get time-centered phi  
+            !> Get time-centered phi
+            phi_store = phi
             phi_source = tupwnd_m * phi_old + tupwnd_p * phi
          else
 	    !> Get time-centered phi
@@ -961,7 +957,6 @@ contains
       complex :: pdf_left, pdf_right
 
       complex, dimension(:), optional, intent(in) :: source_ffs
-      complex, dimension(:), allocatable :: source_ffs_center
 
       ia = 1
       iv = iv_idx(vmu_lo, ivmu)
@@ -1019,14 +1014,9 @@ contains
       ! construct the source term on the RHS of the GK equation coming from
       ! the pdf evaluated at the previous time level
       if(present(source_ffs)) then
-         allocate(source_ffs_center(nz_ext))
-         source_ffs_center = source_ffs
-         call center_zed(iv, source_ffs_center, 1, periodic(iky))
          do izext = 1, nz_ext
-!            rhs(izext) = rhs(izext) + gradpar_fac(iz_from_izext(izext)) * dpdf_dz(izext) + source_ffs(izext)
-            rhs(izext) = rhs(izext) + gradpar_fac(iz_from_izext(izext)) * dpdf_dz(izext) + source_ffs_center(izext)
+            rhs(izext) = rhs(izext) + gradpar_fac(iz_from_izext(izext)) * dpdf_dz(izext) + source_ffs(izext)
          end do
-         deallocate(source_ffs_center)
       else
          do izext = 1, nz_ext
             rhs(izext) = rhs(izext) + gradpar_fac(iz_from_izext(izext)) * dpdf_dz(izext)
