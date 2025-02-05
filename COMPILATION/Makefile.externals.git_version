@@ -22,7 +22,16 @@ $(GIT_VERSION_DIR)/git_version.f90:
 	@echo "  "
 
 # Now that we made sure that the submodule exists, include its makefile
+GIR_PROJECT := $(shell if [ -d $(PROJECT_DIR)/.git ]; then echo "ok"; fi)
+ifeq ($(GIR_PROJECT),)
+$(info   )
+$(info WARNING: The .git folder does not exist.)
+$(info To use the latest external projects, please link the code to Github.)
+$(info   )
+endif
+ifeq ($(GIR_PROJECT),ok)
 sinclude $(GIT_VERSION_DIR)/../Makefile
+endif
 
 # The fortdep script doesn't know about Fortran submodules,
 # so we need to write the dependencies ourselves:
