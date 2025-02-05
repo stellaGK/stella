@@ -96,6 +96,7 @@ contains
       if (debug) write (6, *) 'time_advance::init_time_advance::init_flow_shear'
       call init_flow_shear
       if (debug) write (6, *) 'time_advance::init_time_advance::init_parallel_nonlinearity'
+      if (debug) write (6, *) 'time_advance::not implemented for VMEC?? Needs betaprim!'
       if (include_parallel_nonlinearity) call init_parallel_nonlinearity
       if (debug) write (6, *) 'time_advance::init_time_advance::init_radial_variation'
       if (radial_variation) call init_radial_variation

@@ -167,14 +167,14 @@ contains
       !=========================================================================
       !                     TURBULENT DENSITY FLUCTUATIONS                     !
       !=========================================================================
-		! The normalized turbulent density fluctuations are calculated as:
-		!		<dens> = tilde{δn} = (δn_s / n_r) (a / rho_r) 
-		! 		<dens> = tilde{n_s} * velocity_integral( g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) )
-		! We do this in the following steps
-		! 		<g_gyro> = g*J0 = <g> * <aj0x(iky, ikx, iz, ivmu)>
-		! 		<integrand> = (Zs/Ts)*phi*(J0^2 - 1) = <spec(is)%zt> * <phi> * (<aj0x>**2 - 1)
-		! 		<integrand> = (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) = <integrand> * <maxwell_vpa> * <maxwell_mu> * <maxwell_fac> 
-		! 		<integrand> = g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) = <g_gyro> + <integrand> 
+      ! The normalized turbulent density fluctuations are calculated as:
+      !		<dens> = tilde{δn} = (δn_s / n_r) (a / rho_r) 
+      ! 		<dens> = tilde{n_s} * velocity_integral( g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) )
+      ! We do this in the following steps
+      ! 		<g_gyro> = g*J0 = <g> * <aj0x(iky, ikx, iz, ivmu)>
+      ! 		<integrand> = (Zs/Ts)*phi*(J0^2 - 1) = <spec(is)%zt> * <phi> * (<aj0x>**2 - 1)
+      ! 		<integrand> = (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) = <integrand> * <maxwell_vpa> * <maxwell_mu> * <maxwell_fac> 
+      ! 		<integrand> = g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) = <g_gyro> + <integrand> 
       !=========================================================================
       
       ! Calculate <integrand> = g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s)
@@ -197,9 +197,9 @@ contains
       !=========================================================================
       !                   TURBULENT TEMPERATURE FLUCTUATIONS                   !
       !=========================================================================
-		! Calculate the turbulent temperature fluctuations
-		!		<temp> = tilde{δT} = (δT_s / T_r) (a / rho_r) 
-		! 		<temp> = tilde{T_s} * velocity_integral( g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * ... * exp(-E_s/T_s) )
+      ! Calculate the turbulent temperature fluctuations
+      !		<temp> = tilde{δT} = (δT_s / T_r) (a / rho_r) 
+      ! 		<temp> = tilde{T_s} * velocity_integral( g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * ... * exp(-E_s/T_s) )
       !=========================================================================
          
       ! Calculate <integrand> = g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * ... * exp(-E_s/T_s)
