@@ -8,7 +8,7 @@ module ffs_solve
 
 contains
 
-  subroutine get_source_ffs_itteration (phi, g, source) 
+  subroutine get_source_ffs_itteration (phi, phi2, g, source) 
 
      use mp, only: proc0
      use stella_layouts, only: vmu_lo
@@ -35,13 +35,13 @@ contains
      use run_parameters, only: drifts_implicit
      implicit none
 
-     complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
+     complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, phi2
      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent (out) :: source
 
      integer :: ivmu, iv, imu, is, ia, iz, it, ikx, iky
      
-     complex, dimension(:, :, :, :), allocatable :: g0
+     complex, dimension(:, :, :, :), allocatable :: g0, gyrophi2
      complex, dimension(:, :, :, :), allocatable :: dgphi_dz, dphi_dz, dgdz
      complex, dimension(:, :), allocatable :: g_swap
 
@@ -53,6 +53,7 @@ contains
 
 
      allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes)) ; g0 = 0.0
+     allocate (gyrophi2(naky, nakx, -nzgrid:nzgrid, ntubes)) ; gyrophi2 = 0.0
      
      allocate (dgphi_dz(naky, nakx, -nzgrid:nzgrid, ntubes)) ; dgphi_dz = 0.0
      allocate (dphi_dz(naky, nakx, -nzgrid:nzgrid, ntubes)) ; dphi_dz = 0.0
@@ -80,6 +81,7 @@ contains
         
         !> <phi>
         call gyro_average(phi, g0, j0_ffs(:, :, :, ivmu))
+        call gyro_average(phi2, gyrophi2, j0_ffs(:, :, :, ivmu))
         !> Full d <phi>/dz
         call get_dgdz(g0, ivmu, dgphi_dz)
         !> d phi/dz
@@ -115,7 +117,7 @@ contains
               g3y = spread(coeff, 2, ikx_max) * g0y - spread(coeff2, 2, ikx_max) * g1y
 
               if(drifts_implicit) then
-                 call get_drifts_ffs_itteration (g0(:, :, iz, it), g(:, :, iz, it, ivmu), source_drifts, ivmu, iz, it)
+                 call get_drifts_ffs_itteration (gyrophi2(:, :, iz, it), g(:, :, iz, it, ivmu), source_drifts, ivmu, iz, it)
                  g0y = g2y + g3y + source_drifts
               else
                  !> Add them all together and transform back to (kx, ky) space
@@ -143,6 +145,8 @@ contains
      deallocate(g_swap)
      deallocate(g0y,g1y,g2y, g3y) 
      deallocate(coeff, coeff2)
+
+     deallocate(gyrophi2)
 
      if (drifts_implicit) deallocate(source_drifts)
 

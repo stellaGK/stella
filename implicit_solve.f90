@@ -138,7 +138,7 @@ contains
             if(itt == 1) then
                phi_store = phi_old
             end if
-            call get_source_ffs_itteration (phi_store, g2, phi_source_ffs)
+            call get_source_ffs_itteration (phi_store, phi_old,  g2, phi_source_ffs)
             phi_source = tupwnd_m * phi
             !> set the g on the RHS to be g from the previous time step  
             !> FFS will have a RHS source term
