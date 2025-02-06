@@ -213,7 +213,7 @@ contains
       logical :: new_nml_exist
       
       ! Current namelist
-      namelist /parameters_physics_nml/ include_parallel_streaming, include_mirror, nonlinear, &
+      namelist /parameters_physics/ include_parallel_streaming, include_mirror, nonlinear, &
         adiabatic_option, prp_shear_enabled, include_apar, include_bpar, radial_variation, &
         hammett_flow_shear, include_pressure_variation, include_geometric_variation, &
         include_parallel_nonlinearity, suppress_zonal_interaction, full_flux_surface, & 
@@ -231,14 +231,14 @@ contains
       ! And include backwards compatibility for old namelists
       if (write_input_file) then
          unit_number_temp = input_unit_exist("parameters_physics", new_nml_exist) 
-         if (new_nml_exist) read (unit=unit_number_temp, nml=parameters_physics_nml)
+         if (new_nml_exist) read (unit=unit_number_temp, nml=parameters_physics)
          call backwards_compatibility_parameters()
          call backwards_compatibility_physics_flags()
          call backwards_compatibility_time_advance_knobs()
       end if  
 
       ! Write the namelist to <run_name>_with_defaults.in or default_stella_input.in
-      write(unit=unit_number, nml=parameters_physics_nml)
+      write(unit=unit_number, nml=parameters_physics)
       
    contains
    
@@ -516,7 +516,7 @@ contains
       logical :: new_nml_exist
       
       ! Current namelist
-      namelist /parameters_numerical_nml/ stream_implicit, stream_iterative_implicit, stream_matrix_inversion, &
+      namelist /parameters_numerical/ stream_implicit, stream_iterative_implicit, stream_matrix_inversion, &
             driftkinetic_implicit, mirror_implicit, mirror_semi_lagrange, mirror_linear_interp, &
             drifts_implicit, fully_implicit, fully_explicit, & 
             maxwellian_inside_zed_derivative, use_deltaphi_for_response_matrix, &
@@ -538,13 +538,13 @@ contains
       ! And include backwards compatibility for old namelists
       if (write_input_file) then
          unit_number_temp = input_unit_exist("parameters_numerical", new_nml_exist) 
-         if (new_nml_exist) read (unit=unit_number_temp, nml=parameters_numerical_nml) 
+         if (new_nml_exist) read (unit=unit_number_temp, nml=parameters_numerical) 
          call backwards_compatibility_time_advance_knobs()
          call backwards_compatibility_knobs()
       end if  
 
       ! Write the namelist to <run_name>_with_defaults.in or default_stella_input.in
-      write(unit=unit_number, nml=parameters_numerical_nml)
+      write(unit=unit_number, nml=parameters_numerical)
       
    contains
       
@@ -1896,7 +1896,7 @@ contains
       logical :: new_nml_exist
       
       ! Namelist
-      namelist /dissipation_nml/ include_collisions, collisions_implicit, collision_model, hyper_dissipation
+      namelist /dissipation/ include_collisions, collisions_implicit, collision_model, hyper_dissipation
       
       !------------------------------------------------------------------------- 
       
@@ -1908,11 +1908,11 @@ contains
       ! Read the user-specified input parameters in <run_name>.in
       if (write_input_file) then
          unit_number_temp = input_unit_exist("dissipation", new_nml_exist) 
-         if (new_nml_exist) read (unit=unit_number_temp, nml=dissipation_nml) 
+         if (new_nml_exist) read (unit=unit_number_temp, nml=dissipation) 
       end if  
 
       ! Write the namelist to <run_name>_with_defaults.in or default_stella_input.in
-      write(unit=unit_number, nml=dissipation_nml)
+      write(unit=unit_number, nml=dissipation)
       
    end subroutine write_dissipation
 
@@ -2025,7 +2025,7 @@ contains
       logical :: new_nml_exist
       
       ! Namelist
-      namelist /hyper_nml/ D_hyper, D_zed, D_vpa, hyp_zed, hyp_vpa, use_physical_ksqr, scale_to_outboard
+      namelist /hyper/ D_hyper, D_zed, D_vpa, hyp_zed, hyp_vpa, use_physical_ksqr, scale_to_outboard
       
       !------------------------------------------------------------------------- 
       
@@ -2037,11 +2037,11 @@ contains
       ! Read the user-specified input parameters in <run_name>.in
       if (write_input_file) then
          unit_number_temp = input_unit_exist("hyper", new_nml_exist) 
-         if (new_nml_exist) read (unit=unit_number_temp, nml=hyper_nml) 
+         if (new_nml_exist) read (unit=unit_number_temp, nml=hyper) 
       end if  
 
       ! Write the namelist to <run_name>_with_defaults.in or default_stella_input.in
-      write(unit=unit_number, nml=hyper_nml)
+      write(unit=unit_number, nml=hyper)
       
    end subroutine write_hyper
 
@@ -2073,7 +2073,7 @@ contains
       logical :: new_nml_exist 
       
       ! Namelist
-      namelist /sources_nml/ source_option, nu_krook, tcorr_source, &
+      namelist /sources/ source_option, nu_krook, tcorr_source, &
          ikxmax_source, krook_odd, exclude_boundary_regions, &
          tcorr_source_qn, exclude_boundary_regions_qn, from_zero, &
          conserve_momentum, conserve_density
@@ -2088,11 +2088,11 @@ contains
       ! Read the user-specified input parameters in <run_name>.in
       if (write_input_file) then
          unit_number_temp = input_unit_exist("sources", new_nml_exist) 
-         if (new_nml_exist) read (unit=unit_number_temp, nml=sources_nml) 
+         if (new_nml_exist) read (unit=unit_number_temp, nml=sources) 
       end if  
 
       ! Write the namelist to <run_name>_with_defaults.in or default_stella_input.in
-      write(unit=unit_number, nml=sources_nml)
+      write(unit=unit_number, nml=sources)
       
    end subroutine write_sources
    
@@ -2214,7 +2214,7 @@ contains
       logical :: new_nml_exist 
       
       ! Namelist
-      namelist /debug_flags_nml/ debug_all, stella_debug, ffs_solve_debug, fields_all_debug, fields_debug, &
+      namelist /debug_flags/ debug_all, stella_debug, ffs_solve_debug, fields_all_debug, fields_debug, &
         fields_fluxtube_debug, fields_electromagnetic_debug, fields_ffs_debug, & 
         implicit_solve_debug, parallel_streaming_debug, mirror_terms_debug, neoclassical_terms_debug, &
         response_matrix_debug, time_advance_debug, extended_grid_debug, &
@@ -2232,11 +2232,11 @@ contains
       ! Read the user-specified input parameters in <run_name>.in
       if (write_input_file) then
          unit_number_temp = input_unit_exist("debug_flags", new_nml_exist) 
-         if (new_nml_exist) read (unit=unit_number_temp, nml=debug_flags_nml) 
+         if (new_nml_exist) read (unit=unit_number_temp, nml=debug_flags) 
       end if  
 
       ! Write the namelist to <run_name>_with_defaults.in or default_stella_input.in
-      write(unit=unit_number, nml=debug_flags_nml)
+      write(unit=unit_number, nml=debug_flags)
       
    end subroutine write_debug_flags
    
