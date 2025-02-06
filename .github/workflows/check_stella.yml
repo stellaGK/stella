@@ -22,10 +22,11 @@ jobs:
       MPIRUN: mpiexec -np
     
     # Run the same set-up multiple times
+    # Note that macos-12 has been deprecated on github in 2025 
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-12, macos-13, macos-14, ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        os: [macos-13, macos-14, ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
         compiler: [Make, CMake]
     
     # Operating system
@@ -48,7 +49,9 @@ jobs:
             echo "Set NETCDF_LIB_DIR = /usr/local/lib -L/usr/local/Cellar/netcdf-fortran/4.6.1_1/lib/"
             echo "NETCDF_LIB_DIR=/usr/local/lib -L/usr/local/Cellar/netcdf-fortran/4.6.1_1/lib/" >> $GITHUB_ENV
             echo "Set NETCDF_INC_DIR = /usr/local/Cellar/netcdf-fortran/4.6.1_1/include/"
-            echo "NETCDF_INC_DIR=/usr/local/Cellar/netcdf-fortran/4.6.1_1/include/" >> $GITHUB_ENV 
+            echo "NETCDF_INC_DIR=/usr/local/Cellar/netcdf-fortran/4.6.1_1/include/" >> $GITHUB_ENV
+            echo "HDF5_INC_DIR=/usr/local/Cellar/hdf5/1.14.5/" >> $GITHUB_ENV
+            echo "Set HDF5_INC_DIR=/usr/local/Cellar/hdf5/1.14.5/"
           elif [ ${{ matrix.os }} == 'macos-14' ]; then 
             echo "Set STELLA_SYSTEM = macos"
             echo "STELLA_SYSTEM=macos" >> $GITHUB_ENV 
@@ -59,7 +62,9 @@ jobs:
             echo "Set NETCDF_LIB_DIR = /opt/homebrew/lib -L/opt/homebrew/Cellar/netcdf-fortran/4.6.1_1/lib/"
             echo "NETCDF_LIB_DIR=/opt/homebrew/lib -L/opt/homebrew/Cellar/netcdf-fortran/4.6.1_1/lib/" >> $GITHUB_ENV
             echo "Set NETCDF_INC_DIR = /opt/homebrew/Cellar/netcdf-fortran/4.6.1_1/include/"
-            echo "NETCDF_INC_DIR=/opt/homebrew/Cellar/netcdf-fortran/4.6.1_1/include/" >> $GITHUB_ENV 
+            echo "NETCDF_INC_DIR=/opt/homebrew/Cellar/netcdf-fortran/4.6.1_1/include/" >> $GITHUB_ENV
+            echo "HDF5_INC_DIR=/usr/local/Cellar/hdf5/1.14.5/" >> $GITHUB_ENV
+            echo "Set HDF5_INC_DIR=/usr/local/Cellar/hdf5/1.14.5/"
           elif ${{ contains(matrix.os, 'ubuntu') }}; then  
             echo "Set STELLA_SYSTEM = gnu_ubuntu"
             echo "STELLA_SYSTEM=gnu_ubuntu" >> $GITHUB_ENV

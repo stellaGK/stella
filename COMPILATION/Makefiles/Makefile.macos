@@ -19,3 +19,5 @@ ifdef USE_NETCDF
 	NETCDF_INC = -I$(NETCDF_INC_DIR)
 	NETCDF_LIB = -L$(NETCDF_LIB_DIR) -lnetcdf -lnetcdff
 endif
+
+HDF5_INC = -I$(HDF5_INC_DIR)
