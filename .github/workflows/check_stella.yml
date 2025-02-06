@@ -87,6 +87,22 @@ jobs:
       # Check-out repository under $GITHUB_WORKSPACE
       - name: Check-out repository
         uses: actions/checkout@v4 
+
+      # Print system information
+      - name: System information
+        run: |
+          if ${{ contains(matrix.os, 'macos') }}; then  
+            echo " "; echo "System information:"; echo "$(system_profiler SPHardwareDataType | sed 's/^/  /')"
+            echo " "; echo "Gfortran version:"; echo "$(gfortran --version | sed 's/^/  /')"
+            echo " "; echo "Clang version:"; echo "$(clang --version | sed 's/^/  /')"
+            make numerical-tests-system
+          elif ${{ contains(matrix.os, 'ubuntu') }}; then  
+            echo " "; echo "System information:"; echo "$(cat /etc/*release | sed 's/^/  /')"
+            echo " "; echo "Number of cores:"; echo "$(lscpu | egrep 'Model name|Socket|Thread|NUMA|CPU\(s\)' | sed 's/^/  /')"
+            echo " "; echo "Gfortran version:"; echo "$(gfortran --version | sed 's/^/  /')"
+            echo " "; echo "Netcdf version:"; echo "$(nf-config --all | sed 's/^/  /')"
+            make numerical-tests-system
+          fi
           
       # Build stella executable
       - name: Build stella
@@ -113,22 +129,6 @@ jobs:
           if [ ${{ matrix.compiler }} == 'CMake' ]; then 
              cmake . -B COMPILATION/build_cmake
              cmake --build COMPILATION/build_cmake -j 4
-          fi
-
-      # Print system information
-      - name: System information
-        run: |
-          if ${{ contains(matrix.os, 'macos') }}; then  
-            echo " "; echo "System information:"; echo "$(system_profiler SPHardwareDataType | sed 's/^/  /')"
-            echo " "; echo "Gfortran version:"; echo "$(gfortran --version | sed 's/^/  /')"
-            echo " "; echo "Clang version:"; echo "$(clang --version | sed 's/^/  /')"
-            make numerical-tests-system
-          elif ${{ contains(matrix.os, 'ubuntu') }}; then  
-            echo " "; echo "System information:"; echo "$(cat /etc/*release | sed 's/^/  /')"
-            echo " "; echo "Number of cores:"; echo "$(lscpu | egrep 'Model name|Socket|Thread|NUMA|CPU\(s\)' | sed 's/^/  /')"
-            echo " "; echo "Gfortran version:"; echo "$(gfortran --version | sed 's/^/  /')"
-            echo " "; echo "Netcdf version:"; echo "$(nf-config --all | sed 's/^/  /')"
-            make numerical-tests-system
           fi
           
       # Check $GITHUB_WORKSPACE
