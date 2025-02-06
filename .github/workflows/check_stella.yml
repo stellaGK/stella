@@ -133,12 +133,14 @@ jobs:
           
       # Check $GITHUB_WORKSPACE
       - name: Check Github Workspace
+        if: success() || failure()
         run: | 
           echo " "; echo "Running directory:"; echo "  $(pwd)"
           echo " "; echo "Files in directory:"; echo "$(ls -la | sed 's/^/  /')"
           
       # Install python environment
       - name: Install python virtual environment
+        if: success() || failure()
         run: |
           if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then 
             python3 -m venv AUTOMATIC_TESTS/venv
@@ -149,6 +151,18 @@ jobs:
           fi
           if ${{ contains(matrix.os, 'macos') }}; then  
             gsed -i 's/nproc = 16/nproc = 4/g' AUTOMATIC_TESTS/config.ini 
+          fi
+          
+      # Location of packages
+      - name: Location of packages
+        if: success() || failure()
+        run: |
+          if [ ${{ matrix.compiler }} == 'CMake' ]; then 
+             echo " "; echo "--------- DIRECTORIES OF PACKAGES ----------"
+             cat COMPILATION/build_cmake/CMakeCache.txt
+          fi
+          if [ ${{ matrix.compiler }} == 'Make' ]; then 
+             echo " "; echo "Check the CMake compilation for the location of the packages." 
           fi
         
       # Perform python tests  
@@ -225,7 +239,7 @@ jobs:
           git submodule update --init --recursive
           make -j 12
           
-          # Stella is bugged when compiling without the falg debug = on
+          # Stella is bugged when compiling without the flag debug = on
           # So the python tests will break when compiling with CMake
           #cmake . -B COMPILATION/build_cmake
           #cmake --build COMPILATION/build_cmake -j 4
