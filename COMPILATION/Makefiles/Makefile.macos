@@ -21,3 +21,4 @@ ifdef USE_NETCDF
 endif
 
 HDF5_INC = -I$(HDF5_INC_DIR)
+HDF5_LIB = -L$(HDF5_LIB_DIR) 
