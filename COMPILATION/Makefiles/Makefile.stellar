@@ -1,0 +1,17 @@
+
+USE_HDF5 = on
+F90FLAGS = -DNETCDF
+
+COMPILER = intel
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
+
+FFT_INC    = -I/usr/local/fftw/intel-2021.1/openmpi-4.1.0/3.3.9/include
+FFT_LIB    = -L/usr/local/fftw/intel-2021.1/openmpi-4.1.0/3.3.9/lib64 -lfftw3
+NETCDF_INC = -I/usr/local/netcdf/intel-2021.1/hdf5-1.10.6/openmpi-4.1.0/4.7.4/include
+NETCDF_LIB = -L/usr/local/netcdf/intel-2021.1/hdf5-1.10.6/openmpi-4.1.0/4.7.4/lib64 -lnetcdf -lnetcdff
+HDF5_INC   = -I/usr/local/hdf5/intel-2021.1/openmpi-4.1.0/1.10.6/include
+HDF5_LIB   = -L/usr/local/hdf5/intel-2021.1/openmpi-4.1.0/1.10.6/lib64
+
+# The compiler either uses the "-J" flag or the "-module" flag to 
+# denote the directory where the *.mod files can be found
+MODULE_FLAG = -module

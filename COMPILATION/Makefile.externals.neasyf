@@ -14,7 +14,7 @@ $(NEASYF_DIR)/neasyf.f90:
 # Create *.o files from *.f90 files using the Fortran f90 (FC) compiler 
 $(OBJ)/neasyf.o: $(NEASYF_DIR)/neasyf.f90 
 	@echo "   (neasyf) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) -I $(MOD) -J $(MOD) -o $@ -c $<
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) -I $(MOD) $(MODULE_FLAG) $(MOD) -o $@ -c $<
 
 # If make is killed or interrupted during the execution of their recipes, 
 # the targets in ".PRECIOUS" are not deleted.
