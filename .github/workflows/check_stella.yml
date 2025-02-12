@@ -21,12 +21,12 @@ jobs:
       OMPI_MCA_rmaps_base_oversubscribe: yes
       MPIRUN: mpiexec -np
     
-    # Run the same set-up multiple times , ubuntu-22.04, ubuntu-24.04
+    # Run the same set-up multiple times
     # Note that macos-12 has been deprecated on github in 2025 
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, macos-14, ubuntu-20.04]
+        os: [macos-13, macos-14, ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
         compiler: [Make, CMake]
     
     # Operating system
