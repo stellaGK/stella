@@ -279,7 +279,6 @@ target_compile_definitions(libstella PRIVATE
 # For some reason CMake could not find the hdf5 libraries anymore after a Github update
 ENABLE_LANGUAGE(C)
 find_package(HDF5 REQUIRED)
-#include_directories(${HDF5_INCLUDE_DIRS})
 target_link_libraries(libstella PUBLIC ${HDF5_LIBRARIES}) 
 
 ############################################################
