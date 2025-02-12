@@ -16,8 +16,8 @@ ifeq ($(USE_FFT),fftw3)
 endif
 
 ifdef USE_NETCDF
-	NETCDF_INC = -I$(NETCDF_INC_DIR)
-	NETCDF_LIB = -L$(NETCDF_LIB_DIR) -lnetcdf -lnetcdff
+	NETCDF_INC = -I$(NETCDF_INC_DIR) -I$(HDF5_INC_DIR)
+	NETCDF_LIB = -L$(NETCDF_LIB_DIR) -lnetcdf -lnetcdff -L$(HDF5_LIB_DIR) 
 endif
 
 HDF5_INC = -I$(HDF5_INC_DIR)
