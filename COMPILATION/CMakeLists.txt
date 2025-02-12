@@ -8,7 +8,10 @@ project(stella
   VERSION 0.3
   LANGUAGES Fortran)
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/COMPILATION/cmake" ${CMAKE_MODULE_PATH})
+# Cmake files
+set(CMAKE_MODULE_PATH 
+"${CMAKE_SOURCE_DIR}/COMPILATION/cmake" 
+${CMAKE_MODULE_PATH})
 
 # Sets default build type to RelWithDebInfo
 include(BuildType)
