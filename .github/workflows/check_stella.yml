@@ -79,7 +79,7 @@ jobs:
         run: |
           # Install dependencies
           if ${{ contains(matrix.os, 'macos') }}; then  
-            brew install gcc@11 make openmpi fftw netcdf-fortran gnu-sed hdf5 lhdf5_hl
+            brew install gcc@11 make openmpi fftw netcdf-fortran gnu-sed hdf5
             if [ ${{ matrix.os }} == 'macos-12' ] || [ ${{ matrix.os }} == 'macos-13' ]; then
               sudo ln -s /usr/local/bin/gfortran-11 /usr/local/bin/gfortran
               sudo mkdir /usr/local/gfortran; sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib 
