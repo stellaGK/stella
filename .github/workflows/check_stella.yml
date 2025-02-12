@@ -79,7 +79,8 @@ jobs:
         run: |
           # Install dependencies
           if ${{ contains(matrix.os, 'macos') }}; then  
-            brew update & upgrade
+            brew update
+            brew upgrade
             brew install gcc@11 make openmpi fftw netcdf-fortran gnu-sed
             brew reinstall hdf5
             if [ ${{ matrix.os }} == 'macos-12' ] || [ ${{ matrix.os }} == 'macos-13' ]; then
