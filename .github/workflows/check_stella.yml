@@ -65,10 +65,12 @@ jobs:
             echo "NETCDF_LIB_DIR=/opt/homebrew/lib -L/opt/homebrew/Cellar/netcdf-fortran/4.6.1_1/lib/" >> $GITHUB_ENV
             echo "Set NETCDF_INC_DIR = /opt/homebrew/Cellar/netcdf-fortran/4.6.1_1/include/"
             echo "NETCDF_INC_DIR=/opt/homebrew/Cellar/netcdf-fortran/4.6.1_1/include/" >> $GITHUB_ENV
+            echo "Set HDF5_LIB_DIR = /opt/homebrew/Cellar/hdf5/1.14.5/lib/"
             echo "HDF5_LIB_DIR=/opt/homebrew/Cellar/hdf5/1.14.5/lib/" >> $GITHUB_ENV
-            echo "Set HDF5_LIB_DIR=/opt/homebrew/Cellar/hdf5/1.14.5/lib/"
+            echo "Set HDF5_INC_DIR = /opt/homebrew/Cellar/hdf5/1.14.5/include/"
             echo "HDF5_INC_DIR=/opt/homebrew/Cellar/hdf5/1.14.5/include/" >> $GITHUB_ENV
-            echo "Set HDF5_INC_DIR=/opt/homebrew/Cellar/hdf5/1.14.5/include/"
+            echo "Set HDF5_DIR = /opt/homebrew/Cellar/hdf5/1.14.5/"
+            echo "HDF5_DIR=/opt/homebrew/Cellar/hdf5/1.14.5/" >> $GITHUB_ENV
           elif ${{ contains(matrix.os, 'ubuntu') }}; then  
             echo "Set STELLA_SYSTEM = gnu_ubuntu"
             echo "STELLA_SYSTEM=gnu_ubuntu" >> $GITHUB_ENV
