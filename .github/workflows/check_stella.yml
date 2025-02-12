@@ -21,12 +21,12 @@ jobs:
       OMPI_MCA_rmaps_base_oversubscribe: yes
       MPIRUN: mpiexec -np
     
-    # Run the same set-up multiple times
+    # Run the same set-up multiple times ubuntu-20.04, ubuntu-22.04, ubuntu-24.04
     # Note that macos-12 has been deprecated on github in 2025 
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, macos-14, ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        os: [macos-13, macos-14]
         compiler: [Make, CMake]
     
     # Operating system
@@ -65,10 +65,10 @@ jobs:
             echo "NETCDF_LIB_DIR=/opt/homebrew/lib -L/opt/homebrew/Cellar/netcdf-fortran/4.6.1_1/lib/" >> $GITHUB_ENV
             echo "Set NETCDF_INC_DIR = /opt/homebrew/Cellar/netcdf-fortran/4.6.1_1/include/"
             echo "NETCDF_INC_DIR=/opt/homebrew/Cellar/netcdf-fortran/4.6.1_1/include/" >> $GITHUB_ENV
-            echo "HDF5_LIB_DIR=/usr/local/Cellar/hdf5/1.14.5/lib/" >> $GITHUB_ENV
-            echo "Set HDF5_LIB_DIR=/usr/local/Cellar/hdf5/1.14.5/lib/"
-            echo "HDF5_INC_DIR=/usr/local/Cellar/hdf5/1.14.5/include/" >> $GITHUB_ENV
-            echo "Set HDF5_INC_DIR=/usr/local/Cellar/hdf5/1.14.5/include/"
+            echo "HDF5_LIB_DIR=/opt/homebrew/Cellar/hdf5/1.14.5/lib/" >> $GITHUB_ENV
+            echo "Set HDF5_LIB_DIR=/opt/homebrew/Cellar/hdf5/1.14.5/lib/"
+            echo "HDF5_INC_DIR=/opt/homebrew/Cellar/hdf5/1.14.5/include/" >> $GITHUB_ENV
+            echo "Set HDF5_INC_DIR=/opt/homebrew/Cellar/hdf5/1.14.5/include/"
           elif ${{ contains(matrix.os, 'ubuntu') }}; then  
             echo "Set STELLA_SYSTEM = gnu_ubuntu"
             echo "STELLA_SYSTEM=gnu_ubuntu" >> $GITHUB_ENV
