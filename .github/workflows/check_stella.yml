@@ -86,6 +86,9 @@ jobs:
             elif [ ${{ matrix.os }} == 'macos-14' ]; then 
               sudo ln -s /opt/homebrew/bin/gfortran-11 /opt/homebrew/bin/gfortran
             fi
+            echo "---------- fix hdf5 -----------"
+            pip uninstall h5py
+            pip install h5py
             echo "---------- brew list netcdf-fortran -----------"
             brew list netcdf-fortran
             echo "---------- brew list hdf5 -----------"
