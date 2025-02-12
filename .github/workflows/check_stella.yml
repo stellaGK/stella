@@ -54,6 +54,8 @@ jobs:
             echo "Set HDF5_LIB_DIR=/usr/local/Cellar/hdf5/1.14.5/lib/"
             echo "HDF5_INC_DIR=/usr/local/lib -L/usr/local/Cellar/hdf5/1.14.5/include/ -L/usr/local/Cellar/hdf5/1.14.5/include/mod/shared/" >> $GITHUB_ENV
             echo "Set HDF5_INC_DIR=/usr/local/Cellar/hdf5/1.14.5/include/ -L/usr/local/Cellar/hdf5/1.14.5/include/mod/shared/"
+            echo "Set HDF5_DIR = /usr/local/Cellar/hdf5/1.14.5/"
+            echo "HDF5_DIR=/usr/local/Cellar/hdf5/1.14.5/" >> $GITHUB_ENV
           elif [ ${{ matrix.os }} == 'macos-14' ]; then 
             echo "Set STELLA_SYSTEM = macos"
             echo "STELLA_SYSTEM=macos" >> $GITHUB_ENV 
