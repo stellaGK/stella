@@ -78,10 +78,6 @@ jobs:
             elif [ ${{ matrix.os }} == 'macos-14' ]; then 
               sudo ln -s /opt/homebrew/bin/gfortran-11 /opt/homebrew/bin/gfortran
             fi
-            echo "---------- brew list netcdf-fortran -----------"
-            brew list netcdf-fortran
-            echo "---------- brew list hdf5 -----------"
-            brew ls --verbose hdf5
           elif ${{ contains(matrix.os, 'ubuntu') }}; then  
             sudo apt update
             sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
@@ -120,9 +116,6 @@ jobs:
             echo "   FFTW_INC_DIR = $FFTW_INC_DIR"
             echo "   NETCDF_LIB_DIR = $NETCDF_LIB_DIR"
             echo "   NETCDF_INC_DIR = $NETCDF_INC_DIR"
-            echo "   HDF5_LIB_DIR = $HDF5_LIB_DIR"
-            echo "   HDF5_INC_DIR = $HDF5_INC_DIR"
-            echo "   HDF5_DIR = $HDF5_DIR"
           fi
           
           # Download the submodules
