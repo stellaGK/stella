@@ -3,21 +3,22 @@ module zgrid
    implicit none
 
    public :: init_zgrid, finish_zgrid
-   public :: nzed, nzgrid, nperiod, ntubes
+   public :: nzgrid
    public :: nztot, nz2pi
    public :: zed
    public :: delzed
-   public :: zed_equal_arc
    public :: get_total_arc_length
    public :: get_arc_length_grid
-   public :: shat_zero
-   public :: grad_x_grad_y_zero
-   public :: dkx_over_dky
    public :: boundary_option_switch
    public :: boundary_option_zero
    public :: boundary_option_self_periodic
    public :: boundary_option_linked
    public :: boundary_option_linked_stellarator
+   
+   ! Make the namelist public
+   public :: set_default_parameters
+   public :: nzed, nperiod, ntubes, shat_zero, dkx_over_dky
+   public :: boundary_option, zed_equal_arc, grad_x_grad_y_zero
 
    private
 
@@ -34,6 +35,7 @@ module zgrid
                          boundary_option_linked_stellarator = 4
 
    logical :: zgridinit = .false.
+   character(20) :: boundary_option
 
 contains
 
@@ -86,42 +88,29 @@ contains
                                                       text_option('periodic', boundary_option_self_periodic), &
                                                       text_option('linked', boundary_option_linked), &
                                                       text_option('stellarator', boundary_option_linked_stellarator)/)
-      character(20) :: boundary_option
-
+      
+      ! Variables in the <zgrid_parameters> namelist
       namelist /zgrid_parameters/ nzed, nperiod, ntubes, &
          shat_zero, boundary_option, zed_equal_arc, &
          grad_x_grad_y_zero, dkx_over_dky
 
-      nzed = 24
-      nperiod = 1
-      ntubes = 1
-      boundary_option = 'default'
-      ! if zed_equal_arc = T, then zed is chosen to be arc length
-      ! if zed_equal_arc = F, then zed is poloidal (axisymmetric)
-      ! or zeta (toroidal) angle
-      zed_equal_arc = .false.
-      ! set minimum shat value below which we assume
-      ! periodic BC
-      shat_zero = 1.e-5
-      ! set the minimum nabla x . nabla value at the end of the FT which we assume
-      ! periodic BC instead of the stellarator symmetric ones
-      grad_x_grad_y_zero = 1.e-5
-      ! set the ratio between dkx and dky, assuming jtwist = 1.
-      ! if it is < 0, the code will just use the nfield_periods in the input file
-      dkx_over_dky = -1
-
+      ! Load the default values of the variables
+      call set_default_parameters()
+      
+      ! Load the values set in the input file
       in_file = input_unit_exist("zgrid_parameters", exist)
       if (exist) read (unit=in_file, nml=zgrid_parameters)
-
       ierr = error_unit()
+      
+      ! Change the text of <boundary_option> to an integer 
+      ! Note that boundary_option may be changed to self-periodic later,
+      ! if magnetic shear or nabla x cdot nabla y is smaller than shat_zero or grad_x_grad_y_zero
       call get_option_value &
          (boundary_option, boundaryopts, boundary_option_switch, &
           ierr, "boundary_option in dist_fn_knobs")
 
-      ! note that boundary_option may be changed to self-periodic later
-      ! if magnetic shear or nabla x \cdot nabla y is smaller than shat_zero or grad_x_grad_y_zero
-      ! cannot do this here as these quantities have yet to be input
-
+      ! <nzed> specifies the grid points left and right of z=0 in a single segment
+      ! whereas <nzgrid> is the total number of grid points
       nzgrid = nzed / 2 + (nperiod - 1) * nzed
 
       ! force use of equal arc grid to ensure gradpar alpha-independent
@@ -129,6 +118,33 @@ contains
       if (full_flux_surface) zed_equal_arc = .true.
 
    end subroutine read_parameters
+
+   subroutine set_default_parameters()
+   
+      implicit none
+
+      nzed = 24
+      nperiod = 1
+      ntubes = 1
+      boundary_option = 'default'
+      
+      ! if zed_equal_arc = T, then zed is chosen to be arc length
+      ! if zed_equal_arc = F, then zed is poloidal (axisymmetric)
+      ! or zeta (toroidal) angle
+      zed_equal_arc = .false.
+      
+      ! set minimum shat value below which we assume periodic BC
+      shat_zero = 1.e-5
+      
+      ! set the minimum nabla x . nabla value at the end of the FT which we assume
+      ! periodic BC instead of the stellarator symmetric ones
+      grad_x_grad_y_zero = 1.e-5
+      
+      ! set the ratio between dkx and dky, assuming jtwist = 1.
+      ! if it is < 0, the code will just use the nfield_periods in the input file
+      dkx_over_dky = -1
+      
+   end subroutine set_default_parameters
 
    subroutine broadcast_parameters
 
