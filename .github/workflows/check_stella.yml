@@ -22,10 +22,11 @@ jobs:
       MPIRUN: mpiexec -np
     
     # Run the same set-up multiple times
+    # Note that macos-12 has been deprecated on GitHub in 2025 
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-12, macos-13, macos-14, ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        os: [macos-13, macos-14, ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
         compiler: [Make, CMake]
     
     # Operating system
@@ -45,10 +46,10 @@ jobs:
             echo "FFTW_LIB_DIR=/usr/local/Cellar/fftw/3.3.10_1/lib/" >> $GITHUB_ENV
             echo "Set FFTW_INC_DIR = /usr/local/include/" 
             echo "FFTW_INC_DIR=/usr/local/include/" >> $GITHUB_ENV
-            echo "Set NETCDF_LIB_DIR = /usr/local/lib -L/usr/local/Cellar/netcdf-fortran/4.6.1/lib/"
-            echo "NETCDF_LIB_DIR=/usr/local/lib -L/usr/local/Cellar/netcdf-fortran/4.6.1/lib/" >> $GITHUB_ENV
-            echo "Set NETCDF_INC_DIR = /usr/local/Cellar/netcdf-fortran/4.6.1/include/"
-            echo "NETCDF_INC_DIR=/usr/local/Cellar/netcdf-fortran/4.6.1/include/" >> $GITHUB_ENV 
+            echo "Set NETCDF_LIB_DIR = /usr/local/lib -L/usr/local/Cellar/netcdf-fortran/4.6.1_1/lib/"
+            echo "NETCDF_LIB_DIR=/usr/local/lib -L/usr/local/Cellar/netcdf-fortran/4.6.1_1/lib/" >> $GITHUB_ENV
+            echo "Set NETCDF_INC_DIR = /usr/local/Cellar/netcdf-fortran/4.6.1_1/include/"
+            echo "NETCDF_INC_DIR=/usr/local/Cellar/netcdf-fortran/4.6.1_1/include/" >> $GITHUB_ENV
           elif [ ${{ matrix.os }} == 'macos-14' ]; then 
             echo "Set STELLA_SYSTEM = macos"
             echo "STELLA_SYSTEM=macos" >> $GITHUB_ENV 
@@ -56,10 +57,10 @@ jobs:
             echo "FFTW_LIB_DIR=/opt/homebrew/Cellar/fftw/3.3.10_1/lib/" >> $GITHUB_ENV
             echo "Set FFTW_INC_DIR = /opt/homebrew/include/" 
             echo "FFTW_INC_DIR=/opt/homebrew/include/" >> $GITHUB_ENV
-            echo "Set NETCDF_LIB_DIR = /opt/homebrew/lib -L/opt/homebrew/Cellar/netcdf-fortran/4.6.1/lib/"
-            echo "NETCDF_LIB_DIR=/opt/homebrew/lib -L/opt/homebrew/Cellar/netcdf-fortran/4.6.1/lib/" >> $GITHUB_ENV
-            echo "Set NETCDF_INC_DIR = /opt/homebrew/Cellar/netcdf-fortran/4.6.1/include/"
-            echo "NETCDF_INC_DIR=/opt/homebrew/Cellar/netcdf-fortran/4.6.1/include/" >> $GITHUB_ENV 
+            echo "Set NETCDF_LIB_DIR = /opt/homebrew/lib -L/opt/homebrew/Cellar/netcdf-fortran/4.6.1_1/lib/"
+            echo "NETCDF_LIB_DIR=/opt/homebrew/lib -L/opt/homebrew/Cellar/netcdf-fortran/4.6.1_1/lib/" >> $GITHUB_ENV
+            echo "Set NETCDF_INC_DIR = /opt/homebrew/Cellar/netcdf-fortran/4.6.1_1/include/"
+            echo "NETCDF_INC_DIR=/opt/homebrew/Cellar/netcdf-fortran/4.6.1_1/include/" >> $GITHUB_ENV
           elif ${{ contains(matrix.os, 'ubuntu') }}; then  
             echo "Set STELLA_SYSTEM = gnu_ubuntu"
             echo "STELLA_SYSTEM=gnu_ubuntu" >> $GITHUB_ENV
@@ -87,6 +88,22 @@ jobs:
       # Check-out repository under $GITHUB_WORKSPACE
       - name: Check-out repository
         uses: actions/checkout@v4 
+
+      # Print system information
+      - name: System information
+        run: |
+          if ${{ contains(matrix.os, 'macos') }}; then  
+            echo " "; echo "System information:"; echo "$(system_profiler SPHardwareDataType | sed 's/^/  /')"
+            echo " "; echo "Gfortran version:"; echo "$(gfortran --version | sed 's/^/  /')"
+            echo " "; echo "Clang version:"; echo "$(clang --version | sed 's/^/  /')"
+            make numerical-tests-system
+          elif ${{ contains(matrix.os, 'ubuntu') }}; then  
+            echo " "; echo "System information:"; echo "$(cat /etc/*release | sed 's/^/  /')"
+            echo " "; echo "Number of cores:"; echo "$(lscpu | egrep 'Model name|Socket|Thread|NUMA|CPU\(s\)' | sed 's/^/  /')"
+            echo " "; echo "Gfortran version:"; echo "$(gfortran --version | sed 's/^/  /')"
+            echo " "; echo "Netcdf version:"; echo "$(nf-config --all | sed 's/^/  /')"
+            make numerical-tests-system
+          fi
           
       # Build stella executable
       - name: Build stella
@@ -114,31 +131,29 @@ jobs:
              cmake . -B COMPILATION/build_cmake
              cmake --build COMPILATION/build_cmake -j 4
           fi
-
-      # Print system information
-      - name: System information
-        run: |
-          if ${{ contains(matrix.os, 'macos') }}; then  
-            echo " "; echo "System information:"; echo "$(system_profiler SPHardwareDataType | sed 's/^/  /')"
-            echo " "; echo "Gfortran version:"; echo "$(gfortran --version | sed 's/^/  /')"
-            echo " "; echo "Clang version:"; echo "$(clang --version | sed 's/^/  /')"
-            make numerical-tests-system
-          elif ${{ contains(matrix.os, 'ubuntu') }}; then  
-            echo " "; echo "System information:"; echo "$(cat /etc/*release | sed 's/^/  /')"
-            echo " "; echo "Number of cores:"; echo "$(lscpu | egrep 'Model name|Socket|Thread|NUMA|CPU\(s\)' | sed 's/^/  /')"
-            echo " "; echo "Gfortran version:"; echo "$(gfortran --version | sed 's/^/  /')"
-            echo " "; echo "Netcdf version:"; echo "$(nf-config --all | sed 's/^/  /')"
-            make numerical-tests-system
-          fi
           
       # Check $GITHUB_WORKSPACE
       - name: Check Github Workspace
+        if: success() || failure()
         run: | 
           echo " "; echo "Running directory:"; echo "  $(pwd)"
           echo " "; echo "Files in directory:"; echo "$(ls -la | sed 's/^/  /')"
           
+      # Location of packages
+      - name: Location of packages
+        if: success() || failure()
+        run: |
+          if [ ${{ matrix.compiler }} == 'CMake' ]; then 
+             echo " "; echo "--------- DIRECTORIES OF PACKAGES ----------"
+             cat COMPILATION/build_cmake/CMakeCache.txt
+          fi
+          if [ ${{ matrix.compiler }} == 'Make' ]; then 
+             echo " "; echo "Check the CMake compilation for the location of the packages." 
+          fi
+          
       # Install python environment
       - name: Install python virtual environment
+        if: success() || failure()
         run: |
           if [ ${{ matrix.os }} == 'ubuntu-24.04' ] || [ ${{ matrix.os }} == 'macos-14' ]; then 
             python3 -m venv AUTOMATIC_TESTS/venv
@@ -225,7 +240,7 @@ jobs:
           git submodule update --init --recursive
           make -j 12
           
-          # Stella is bugged when compiling without the falg debug = on
+          # Stella is bugged when compiling without the flag debug = on
           # So the python tests will break when compiling with CMake
           #cmake . -B COMPILATION/build_cmake
           #cmake --build COMPILATION/build_cmake -j 4
