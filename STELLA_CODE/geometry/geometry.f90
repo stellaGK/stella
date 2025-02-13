@@ -56,6 +56,12 @@ module geometry
    
    ! Used in kt_grids.f90
    public :: geo_option_switch, geo_option_vmec 
+   
+   ! Make the namelists public 
+   public :: init_defaults_geometry
+   public :: geo_option, geo_file, overwrite_bmag, overwrite_b_dot_grad_zeta
+   public :: overwrite_gds2, overwrite_gds21, overwrite_gds22, overwrite_gds23, overwrite_gds24
+   public :: overwrite_gbdrift, overwrite_cvdrift, overwrite_gbdrift0, set_bmag_const ! q_as_x
 
    private
    
@@ -98,6 +104,7 @@ module geometry
    integer, parameter :: geo_option_vmec = 3
    integer, parameter :: geo_option_multibox = 4
    integer, parameter :: geo_option_zpinch = 5
+   character(20) :: geo_option
  
    logical :: overwrite_bmag, overwrite_b_dot_grad_zeta, overwrite_geometry
    logical :: overwrite_gds2, overwrite_gds21, overwrite_gds22
@@ -997,7 +1004,6 @@ contains
 
       implicit none
 
-      character(20) :: geo_option
       integer :: in_file, ierr
       logical :: exist
 
@@ -1016,24 +1022,9 @@ contains
       namelist /geo_knobs/ geo_option, geo_file, overwrite_bmag, overwrite_b_dot_grad_zeta, &
          overwrite_gds2, overwrite_gds21, overwrite_gds22, overwrite_gds23, overwrite_gds24, &
          overwrite_gbdrift, overwrite_cvdrift, overwrite_gbdrift0, q_as_x, set_bmag_const
-
-      ! Assign default variables
-      geo_option = 'local'
-      overwrite_bmag = .false.
-      overwrite_b_dot_grad_zeta = .false.
-      overwrite_gds2 = .false.
-      overwrite_gds21 = .false.
-      overwrite_gds22 = .false.
-      overwrite_gds23 = .false.
-      overwrite_gds24 = .false.
-      overwrite_gbdrift = .false.
-      overwrite_cvdrift = .false.
-      overwrite_gbdrift0 = .false.
-      set_bmag_const = .false.
-      geo_file = 'input.geometry'
-
-      ! The following is True by default in radial variation runs
-      q_as_x = radial_variation 
+         
+      ! Initialize defaults
+      call init_defaults_geometry()
 
       ! Read the <geo_knobs> namelist in the input file
       in_file = input_unit_exist("geo_knobs", exist)
@@ -1055,6 +1046,32 @@ contains
             .or. overwrite_cvdrift .or. overwrite_gbdrift .or. overwrite_gbdrift0
 
    end subroutine read_parameters
+   
+   subroutine init_defaults_geometry()
+   
+      use parameters_physics, only: radial_variation
+   
+      implicit none
+
+      ! Assign default variables
+      geo_option = 'local'
+      overwrite_bmag = .false.
+      overwrite_b_dot_grad_zeta = .false.
+      overwrite_gds2 = .false.
+      overwrite_gds21 = .false.
+      overwrite_gds22 = .false.
+      overwrite_gds23 = .false.
+      overwrite_gds24 = .false.
+      overwrite_gbdrift = .false.
+      overwrite_cvdrift = .false.
+      overwrite_gbdrift0 = .false.
+      set_bmag_const = .false.
+      geo_file = 'input.geometry'
+
+      ! The following is True by default in radial variation runs
+      q_as_x = radial_variation 
+      
+    end subroutine init_defaults_geometry
 
    !============================================================================
    !============================= BROADCAST ARRAYS =============================

@@ -2,14 +2,20 @@
 !! fields and the distribution function.
 
 module init_g
+
    implicit none
 
    public :: ginit
    public :: init_init_g, finish_init_g
-   public :: width0
-   public :: scale_to_phiinit, phiinit
-   public :: tstart
    public :: reset_init
+   
+   ! Make the namelist public 
+   public :: set_default_parameters
+   public :: ginit_option, width0, phiinit, chop_side
+   public :: restart_file, restart_dir, left, scale, tstart, zf_init
+   public :: den0, upar0, tpar0, tperp0, imfac, refac
+   public :: den1, upar1, tpar1, tperp1, den2, upar2, tpar2, tperp2
+   public :: kxmax, kxmin, scale_to_phiinit, oddparity
 
    private
 
@@ -27,8 +33,9 @@ module init_g
    real :: den2, upar2, tpar2, tperp2
    real :: tstart, scale, kxmax, kxmin
    logical :: chop_side, left, scale_to_phiinit, oddparity
-   character(300), public :: restart_file
+   character(300) :: restart_file
    character(len=150) :: restart_dir
+   character(20) :: ginit_option
 
    logical :: initialized = .false.
    logical :: exist
@@ -144,7 +151,9 @@ contains
    end subroutine ginit
 
    subroutine read_parameters
-      use file_utils, only: input_unit, error_unit, run_name, input_unit_exist
+   
+      use file_utils, only: run_name
+      use file_utils, only: input_unit, error_unit, input_unit_exist
       use text_options, only: text_option, get_option_value
       use stella_save, only: read_many
 
@@ -160,7 +169,7 @@ contains
                                                       text_option('rh', ginitopt_rh), &
                                                       text_option('remap', ginitopt_remap) &
                                                       /)
-      character(20) :: ginit_option
+      
       namelist /init_g_knobs/ ginit_option, width0, phiinit, chop_side, &
          restart_file, restart_dir, read_many, left, scale, tstart, zf_init, &
          den0, upar0, tpar0, tperp0, imfac, refac, &
@@ -169,7 +178,27 @@ contains
          kxmax, kxmin, scale_to_phiinit, &
          oddparity
       integer :: ierr, in_file
+      
+      !-------------------------------------------------------------------------
+   
+      ! We need to initialize <restart_file> outside of <set_default_parameters>
+      ! since <run_name> gives a segmentation error when used from <update_inpute_file>
+      call set_default_parameters()
+      restart_file = trim(run_name)//".nc"
+      
+      in_file = input_unit_exist("init_g_knobs", exist)
+      if (exist) read (unit=in_file, nml=init_g_knobs)
 
+      ierr = error_unit()
+      call get_option_value &
+         (ginit_option, ginitopts, ginitopt_switch, &
+          ierr, "ginit_option in ginit_knobs", stop_on_error=.true.)
+   end subroutine read_parameters
+
+   subroutine set_default_parameters()
+   
+      implicit none
+       
       tstart = 0. ! Used for restarted simulations
       scale = 1.0 ! Used for restarted simulations
       ginit_option = "default" ! Select the <ginit_options> 
@@ -197,17 +226,10 @@ contains
       left = .true. ! Used for <ginit_options> = {default, noise, kpar}
       oddparity = .false. ! Used for <ginit_options> = {default}
 
-      restart_file = trim(run_name)//".nc"
+      restart_file = "dummy.nc"
       restart_dir = "./"
-      in_file = input_unit_exist("init_g_knobs", exist)
-!    if (exist) read (unit=input_unit("init_g_knobs"), nml=init_g_knobs)
-      if (exist) read (unit=in_file, nml=init_g_knobs)
-
-      ierr = error_unit()
-      call get_option_value &
-         (ginit_option, ginitopts, ginitopt_switch, &
-          ierr, "ginit_option in ginit_knobs", stop_on_error=.true.)
-   end subroutine read_parameters
+      
+   end subroutine set_default_parameters
 
    subroutine ginit_default
 

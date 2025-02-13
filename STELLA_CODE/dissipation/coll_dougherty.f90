@@ -7,6 +7,10 @@ module coll_dougherty
    public :: finish_collisions_dougherty
    public :: advance_collisions_dougherty_explicit
    public :: advance_collisions_dougherty_implicit
+   
+   ! Make the namelist public
+   public :: set_default_parameters
+   public :: momentum_conservation, energy_conservation, vpa_operator, mu_operator
 
    private
 
@@ -47,11 +51,7 @@ contains
       logical :: dexist
 
       if (proc0) then
-         momentum_conservation = .true.       ! momentum conservation for Dougherty operator
-         energy_conservation = .true.         ! energy conservation for Dougherty operator
-         vpa_operator = .true.                ! include vpa components in Dougherty or Fokker-Planck operator
-         mu_operator = .true.                 ! include mu components in Dougherty or Fokker-Planck operator
-
+         call set_default_parameters()
          in_file = input_unit_exist("collisions_dougherty", dexist)
          if (dexist) read (unit=in_file, nml=collisions_dougherty)
       end if
@@ -61,7 +61,18 @@ contains
       call broadcast(vpa_operator)
       call broadcast(mu_operator)
 
-   end subroutine read_parameters_dougherty
+   end subroutine read_parameters_dougherty 
+
+   subroutine set_default_parameters()
+   
+      implicit none
+      
+      momentum_conservation = .true.       ! momentum conservation for Dougherty operator
+      energy_conservation = .true.         ! energy conservation for Dougherty operator
+      vpa_operator = .true.                ! include vpa components in Dougherty or Fokker-Planck operator
+      mu_operator = .true.                 ! include mu components in Dougherty or Fokker-Planck operator
+      
+   end subroutine set_default_parameters
 
    subroutine init_collisions_dougherty(collisions_implicit, cfl_dt_vpadiff, cfl_dt_mudiff)
 

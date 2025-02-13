@@ -10,6 +10,12 @@ module geometry_miller
    public :: get_local_geo
    public :: finish_local_geo
    public :: local
+   
+   ! Make the namelist variables public
+   public :: rhoc, rmaj, shift, qinp, shat, kappa, kapprim
+   public :: tri, triprim, rgeo, betaprim, betadbprim, d2qdr2, d2psidr2
+   public :: nzed_local, read_profile_variation, write_profile_variation
+   
 
    private
    
