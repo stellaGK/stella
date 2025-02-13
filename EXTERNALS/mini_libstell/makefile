@@ -72,7 +72,7 @@ $(BUILD)/mini_libstell.a: $(libstell_objects) | $(OBJ)
 	
 # The -J $(MOD) flag makes sure that the compiler writes the *.mod files to the $(MOD) directory
 # The -I $(MOD) flag makes sure that the compiler looks for the *.mod files in the $(MOD) directory
-MOD_FLAGS_MINI := -I $(MOD) -J $(MOD)
+MOD_FLAGS_MINI := -I $(MOD) $(MODULE_FLAG) $(MOD)
 
 # Pattern rules to compile the scripts
 # For the preprocessed files *.F, we need to give the "NETCDF" option through the -D flag
