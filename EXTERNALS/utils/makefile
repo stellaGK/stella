@@ -71,7 +71,7 @@ $(BUILD)/utils.a: $(utils_objects) | $(OBJ)
 	
 # The -J $(MOD) flag makes sure that the compiler writes the *.mod files to the $(MOD) directory
 # The -I $(MOD) flag makes sure that the compiler looks for the *.mod files in the $(MOD) directory
-MOD_FLAGS_UTILS := -I$(MOD) -J$(MOD)
+MOD_FLAGS_UTILS := -I $(MOD) $(MODULE_FLAG) $(MOD)
 
 # Pattern rules to compile the scripts
 # Create *.o files from *.f90 files using the $(FC) compiler 
