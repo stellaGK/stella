@@ -8,7 +8,10 @@ project(stella
   VERSION 0.3
   LANGUAGES Fortran)
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/COMPILATION/cmake" ${CMAKE_MODULE_PATH})
+# Cmake files
+set(CMAKE_MODULE_PATH
+"${CMAKE_SOURCE_DIR}/COMPILATION/cmake" 
+${CMAKE_MODULE_PATH})
 
 # Sets default build type to RelWithDebInfo
 include(BuildType)
@@ -268,6 +271,14 @@ target_compile_definitions(libstella PRIVATE
   $<$<Fortran_COMPILER_ID:Intel>:FCOMPILER=_INTEL_>
   $<$<Fortran_COMPILER_ID:Cray>:FCOMPILER=_CRAY_>
   )
+  
+
+# Find hdf5 packages (their CMake file needs the C language)
+# These lines are only needed for Mac systems on Github since January 2025
+# For some reason CMake could not find the hdf5 libraries anymore after a Github update
+ENABLE_LANGUAGE(C)
+find_package(HDF5 REQUIRED)
+target_link_libraries(libstella PUBLIC ${HDF5_LIBRARIES}) 
 
 ############################################################
 # Add some extra flags for Debug configs
