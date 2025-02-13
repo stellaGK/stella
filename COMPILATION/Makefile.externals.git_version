@@ -1,0 +1,66 @@
+
+#===================================================================
+#                            GIT VERSION                           #
+#===================================================================
+# In stella we use the 'git_version' module in 'stella.f90'. To use 
+# this module, we need the 'git_version_impl.o' file. 
+
+# Dump the compilation flags to a file, so we can check if they change between
+# invocations of `make`. The `cmp` bit checks if the file contents
+# change. Adding a dependency of a file on `.compiler_flags` causes it to be
+# rebuilt when the flags change. Taken from https://stackoverflow.com/a/3237349/2043465
+COMPILER_FLAGS_CONTENTS = "FC = $(FC)\n CPPFLAGS = $(CPPFLAGS)\n F90FLAGS = $(F90FLAGS)\n INC_FLAGS = $(INC_FLAGS)\n CFLAGS = $(CFLAGS)"
+COMPILER_FLAGS_CONTENTS += "\n FORTRAN_GIT_DEFS = $(FORTRAN_GIT_DEFS)"
+.PHONY: force
+$(BUILD_DIR)/.compiler_flags: force $(BUILD_DIR) | $(GIT_VERSION_DIR)/git_version.f90
+	@echo -e $(COMPILER_FLAGS_CONTENTS) | cmp -s - $@ || echo -e $(COMPILER_FLAGS_CONTENTS) > $@
+
+# If the 'git_version.f90' file is needed, but doesn't exist, download the submodules
+$(GIT_VERSION_DIR)/git_version.f90:
+	@echo "  "; echo "Downloading submodules:"
+	git submodule update --init --recursive
+	@echo "  "
+
+# Now that we made sure that the submodule exists, include its makefile
+GIR_PROJECT := $(shell if [ -d $(PROJECT_DIR)/.git ]; then echo "ok"; fi)
+ifeq ($(GIR_PROJECT),)
+$(info   )
+$(info WARNING: The .git folder does not exist.)
+$(info To use the latest external projects, please link the code to Github.)
+$(info   )
+endif
+ifeq ($(GIR_PROJECT),ok)
+sinclude $(GIT_VERSION_DIR)/../Makefile
+endif
+
+# The fortdep script doesn't know about Fortran submodules,
+# so we need to write the dependencies ourselves:
+$(OBJ)/git_version_impl.o: $(FPP)/git_version_impl.f90 $(OBJ)/git_version.o $(BUILD_DIR)/.compiler_flags
+$(GIT_VERSION_DIR)/git_version_impl.F90: $(BUILD_DIR)/.compiler_flags
+
+# Create *.f90 files from *.F90 files using the C preprocessor (CPP) compiler 
+$(FPP)/git_version_impl.f90: $(GIT_VERSION_DIR)/git_version_impl.F90 | $(GIT_VERSION_DIR)/git_version.f90
+	@echo "   (git) *.F90 to *.f90: $(notdir $<)" 
+	@$(CPP) $(CPPFLAGS) $(FORTRAN_GIT_DEFS) $< $@
+	
+# Create *.o files from *.f90 files using the Fortran f90 (FC) compiler 
+$(OBJ)/git_version.o: $(GIT_VERSION_DIR)/git_version.f90 
+	@echo "   (git) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) -I $(MOD) $(MODULE_FLAG) $(MOD) -o $@ -c $<
+$(OBJ)/git_version_impl.o: $(FPP)/git_version_impl.f90 
+	@echo "   (git) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) -I $(MOD) $(MODULE_FLAG) $(MOD) -o $@ -c $<
+
+# Extra commands so we can compile mini_libstell separately through
+# >> make mini_libstell_clean; make mini_libstell
+git: | $(GIT_VERSION_DIR)/git_version.f90
+	@echo " "; echo "Compile git static library:" 
+	@$(MAKE) --no-print-directory -s $(OBJ)/git_version_impl.o
+	@echo "   ==> Finished compiling git" 
+.PHONY: git
+
+# If make is killed or interrupted during the execution of their recipes, 
+# the targets in ".PRECIOUS" are not deleted.
+.PRECIOUS: $(GIT_VERSION_DIR)/git_version.f90
+
+
