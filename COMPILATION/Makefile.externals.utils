@@ -1,0 +1,30 @@
+
+#===================================================================
+#                              UTILS                               #
+#===================================================================
+
+# The 'utils' directory contains all external python scripts 
+# We compile them as a seperate package, since usually we do not need to recompile it
+files_in_utils_folder = $(subst $(UTILS_DIR)/makefile,,$(wildcard $(UTILS_DIR)/*))
+$(BUILD_DIR)/utils.a: $(files_in_utils_folder) 
+	@$(MAKE) --no-print-directory -C $(UTILS_DIR)
+	
+# Check whether the objects exist within the $(OBJ) folder, 
+# if not the makefile will create symbolic links (happens after clean-quick)
+$(OBJ)/mp.o: $(UTILS_OBJ)/mp.o
+	@$(MAKE) --no-print-directory -C $(UTILS_DIR)
+	
+# Extra commands so we can compile the utils separately through
+# >> make utils_clean; make utils
+utils:  
+	@echo " "; echo "Compile utils static library:" 
+	@$(MAKE) --no-print-directory -s $(BUILD_DIR)/utils.a 
+	@$(MAKE) --no-print-directory -s $(OBJ)/mp.o
+	@echo "    ==> Finished compiling utils" 
+utils_clean: 
+	@$(MAKE) --no-print-directory -C $(UTILS_DIR) clean
+.PHONY: utils utils_clean
+
+# In the main make file we have "LIBS += $(UTILS_STELLA_LIB)" so we have to define the static library here.
+UTILS_STELLA_LIB = $(BUILD_DIR)/utils.a
+
