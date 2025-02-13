@@ -108,6 +108,9 @@ contains
       call get_option_value &
          (boundary_option, boundaryopts, boundary_option_switch, &
           ierr, "boundary_option in dist_fn_knobs")
+          
+      ! Make sure <nzed> is an even integer, otherwise the potential explodes
+      if (MOD(nzed,2) .eq. 1) nzed = nzed + 1
 
       ! <nzed> specifies the grid points left and right of z=0 in a single segment
       ! whereas <nzgrid> is the total number of grid points
