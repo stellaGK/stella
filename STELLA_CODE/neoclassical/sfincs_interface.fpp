@@ -430,6 +430,48 @@ contains
 
       logical :: exist
       integer :: in_file
+      
+      call set_default_parameters()
+
+      in_file = input_unit_exist("sfincs_input", exist)
+      if (exist) read (unit=in_file, nml=sfincs_input)
+
+      if (nproc_sfincs > nproc) then
+         write (*, *) 'requested number of processors for sfincs is greater &
+              & than total processor count.'
+         write (*, *) 'allocating ', nproc, ' processors for sfincs.'
+      end if
+
+      if (Delta < 0.0) then
+         Delta = rhostar
+         ! if geometryScheme=5, Bref=1T and aref=1m are hard-wired in sfincs
+         ! but these are not the values used in stella to define rhostar
+         if (geometryScheme == 5) Delta = rhostar * bref * aref
+      end if
+
+      if (nu_n < 0.0) then
+         nu_n = vnew_ref * (4./(3.*sqrt(pi)))
+         ! if geometryScheme=5, aref=1m is hard-wired in sfincs
+         ! but this is not the value used in stella
+         if (geometryScheme == 5) nu_n = nu_n / aref
+      end if
+
+! FLAG -- NOT YET SURE IF THIS SHOULD BE HERE
+!    if (nspec == 1 .and. includePhi1) then
+!       write (*,*) 'includePhi1 = .true. is incompatible with a single-species run.'
+!       write (*,*) 'forcing includePhi1 = .false.'
+!       includePhi1 = .false.
+!    end if
+
+      ! ensure that ntheta and nzeta are odd for SFINCS
+      ntheta = 2 * (ntheta / 2) + 1
+      nzeta = 2 * (nzeta / 2) + 1
+
+   end subroutine read_sfincs_parameters
+   
+   subroutine set_default_parameters()
+   
+      implicit none 
 
       ! if read_sfincs_output_from_file=.true.,
       ! will try to read in Phi1Hat and delta_f
@@ -507,42 +549,8 @@ contains
       Ntheta = 65
       ! number of toroidal angles, 1 is appropriate for tokamak
       Nzeta = 1
-
-      in_file = input_unit_exist("sfincs_input", exist)
-      if (exist) read (unit=in_file, nml=sfincs_input)
-
-      if (nproc_sfincs > nproc) then
-         write (*, *) 'requested number of processors for sfincs is greater &
-              & than total processor count.'
-         write (*, *) 'allocating ', nproc, ' processors for sfincs.'
-      end if
-
-      if (Delta < 0.0) then
-         Delta = rhostar
-         ! if geometryScheme=5, Bref=1T and aref=1m are hard-wired in sfincs
-         ! but these are not the values used in stella to define rhostar
-         if (geometryScheme == 5) Delta = rhostar * bref * aref
-      end if
-
-      if (nu_n < 0.0) then
-         nu_n = vnew_ref * (4./(3.*sqrt(pi)))
-         ! if geometryScheme=5, aref=1m is hard-wired in sfincs
-         ! but this is not the value used in stella
-         if (geometryScheme == 5) nu_n = nu_n / aref
-      end if
-
-! FLAG -- NOT YET SURE IF THIS SHOULD BE HERE
-!    if (nspec == 1 .and. includePhi1) then
-!       write (*,*) 'includePhi1 = .true. is incompatible with a single-species run.'
-!       write (*,*) 'forcing includePhi1 = .false.'
-!       includePhi1 = .false.
-!    end if
-
-      ! ensure that ntheta and nzeta are odd for SFINCS
-      ntheta = 2 * (ntheta / 2) + 1
-      nzeta = 2 * (nzeta / 2) + 1
-
-   end subroutine read_sfincs_parameters
+      
+   end subroutine set_default_parameters
 
    subroutine broadcast_sfincs_parameters
 

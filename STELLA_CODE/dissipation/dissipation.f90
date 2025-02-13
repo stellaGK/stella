@@ -6,13 +6,14 @@ module dissipation
    public :: init_dissipation, finish_dissipation
    public :: init_collisions, collisions_initialized
    public :: advance_collisions_explicit, advance_collisions_implicit
-
-   public :: include_collisions
-   public :: hyper_dissipation
-   public :: collisions_implicit
+  
    public :: cfl_dt_mudiff, cfl_dt_vpadiff
 
    public :: time_collisions
+   
+   ! Make the namelist public
+   public :: set_default_parameters
+   public :: include_collisions, collisions_implicit, collision_model, hyper_dissipation
 
    private
 
@@ -89,11 +90,7 @@ contains
       logical :: dexist
 
       if (proc0) then
-         include_collisions = .false.
-         collisions_implicit = .true.
-         collision_model = "dougherty"        ! dougherty or fokker-planck
-         hyper_dissipation = .false.
-
+         call set_default_parameters()
          in_file = input_unit_exist("dissipation", dexist)
          if (dexist) read (unit=in_file, nml=dissipation)
       end if
@@ -119,6 +116,17 @@ contains
       end if
 
    end subroutine read_parameters
+
+   subroutine set_default_parameters()
+   
+      implicit none
+      
+      include_collisions = .false.
+      collisions_implicit = .true.
+      collision_model = "dougherty"        ! dougherty or fokker-planck
+      hyper_dissipation = .false.
+      
+   end subroutine set_default_parameters
 
    subroutine init_collisions
 

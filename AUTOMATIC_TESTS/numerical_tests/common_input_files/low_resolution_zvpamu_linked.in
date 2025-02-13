@@ -1,0 +1,10 @@
+
+&zgrid_parameters
+  boundary_option = 'linked'
+  nperiod = 1
+  nzed = 12
+/
+&vpamu_grids_parameters
+  nmu = 2 
+  nvgrid = 3 
+/
