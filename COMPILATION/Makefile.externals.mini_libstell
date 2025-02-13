@@ -1,0 +1,25 @@
+
+	
+#===================================================================
+#                          MINI LIBSTELL                           #
+#===================================================================
+ 
+# The mini_libstell.a is an external library to read VMEC files
+# We invoke 'make' on 'MINILIBSTELL_DIR' to execute its Makefile
+$(BUILD_DIR)/mini_libstell.a: $(wildcard $(MINILIBSTELL_DIR)/*)  
+	@$(MAKE) --no-print-directory -C $(MINILIBSTELL_DIR)
+	
+# The only script that uses the mini_libstell library is geometry_vmec_read_netCDF_file
+# In the main make file we have "LIBS += $(LIBSTELL_LIB)" so we have to define the static library here.
+LIBSTELL_LIB = $(BUILD_DIR)/mini_libstell.a
+	
+# Extra commands so we can compile mini_libstell separately through
+# >> make mini_libstell_clean; make mini_libstell
+mini_libstell: 
+	@echo " "; echo "Compile mini_libstell static library:" 
+	@$(MAKE) --no-print-directory -s $(BUILD_DIR)/mini_libstell.a
+	@echo "   ==> Finished compiling mini_libstell" 
+mini_libstell_clean: 
+	@$(MAKE) --no-print-directory -C $(MINILIBSTELL_DIR) clean
+.PHONY: mini_libstell mini_libstell_clean 
+
