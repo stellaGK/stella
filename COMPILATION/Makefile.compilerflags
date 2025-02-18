@@ -176,7 +176,7 @@ ifdef USE_NETCDF
 endif
 ifdef USE_LAPACK
 	ifeq ($(LAPACK_LIB),)
-		LAPACK_LIB ?= -llapack
+		LAPACK_LIB = -llapack
 	endif
 	CPPFLAGS += -DLAPACK
 endif
