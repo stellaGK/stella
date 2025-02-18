@@ -76,6 +76,8 @@ SFINCS_INC ?=
 PETSC_LIB ?=
 PETSC_INC ?=
 LIBSTELL_LIB ?=
+LAPACK_LIB ?=
+LAPACK_INC ?=
 
 ####################################################################
 #                        PLATFORM DEPENDENCE                       #
