@@ -119,16 +119,16 @@ contains
       
       character(20) :: grid_option
       
-      namelist /kt_grids_knobs/ grid_option
+      namelist /kxky_grids_knobs/ grid_option
       
       grid_option = 'default'
       
-      in_file = input_unit_exist("kt_grids_knobs", nml_exist)
-      if (nml_exist) read (unit=in_file, nml=kt_grids_knobs)
+      in_file = input_unit_exist("kxky_grids_knobs", nml_exist)
+      if (nml_exist) read (unit=in_file, nml=kxky_grids_knobs)
       
       ierr = error_unit()
       call get_option_value(grid_option, gridopts, gridopt_switch, &
-           ierr, "grid_option in kt_grids_knobs")
+           ierr, "grid_option in kxky_grids_knobs")
       
     end subroutine read_grid_option
     
