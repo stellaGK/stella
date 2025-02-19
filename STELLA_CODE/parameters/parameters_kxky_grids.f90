@@ -1,7 +1,7 @@
 !###############################################################################
 !######################## READ PARAMETES FOR KXKY GRIDS ########################
 !###############################################################################
-! Namelist: &parameters_kxky_grids
+! Namelist: &parameters_kxky_gridsme
 ! These flags will allow you to toggle the algorithm choices in stella.
 !###############################################################################
 
@@ -125,12 +125,57 @@ contains
       
       in_file = input_unit_exist("kxky_grids", nml_exist)
       if (nml_exist) read (unit=in_file, nml=kxky_grids)
+
+      call check_backwards_compatability_kxkygrids
       
       ierr = error_unit()
       call get_option_value(grid_option, gridopts, gridopt_switch, &
            ierr, "grid_option in kxky_grids")
       
     end subroutine read_grid_option
+
+    !**********************************************************************
+    !                    CHECK BACKWARDS COMPATIBILITY                    !
+    !**********************************************************************
+    ! Make sure stella either runs or aborts old names for variables or
+    ! namelists are used
+    !**********************************************************************
+
+    subroutine check_backwards_compatability_kxkygrids
+
+      use file_utils, only: input_unit, error_unit, input_unit_exist
+      use parameters_numerical, only: print_extra_info_to_terminal
+      use text_options, only: text_option, get_option_value
+
+      implicit none
+
+      type(text_option), dimension(5), parameter :: gridopts = &
+           (/text_option('default', gridopt_range), &
+           text_option('range', gridopt_range), &
+           text_option('box', gridopt_box), &
+           text_option('annulus', gridopt_box), &
+           text_option('nonlinear', gridopt_box)/)
+
+      character(20) :: grid_option
+
+      logical :: old_nml_exist
+      integer :: ierr, in_file
+
+      namelist /kt_grids_knobs/ grid_option
+
+      in_file = input_unit_exist("kt_grids_knobs", old_nml_exist)
+      if (old_nml_exist) then
+         read (in_file, nml=kt_grids_knobs)
+
+         ierr = error_unit()
+         call get_option_value(grid_option, gridopts, gridopt_switch, &
+              ierr, "grid_option in kt_grids_knobs", .true.)
+         
+         if (print_extra_info_to_terminal) then
+            write(*,*) "Namelist kt_grids_knobs has been changed to kxky_grids"
+         end if
+      end if
+    end subroutine check_backwards_compatability_kxkygrids
     
     subroutine broadcast_parameters
       
