@@ -1,0 +1,37 @@
+# Clean modules
+module purge
+
+# Set environment variables
+export STELLA_SYSTEM='xula'
+export MAKEFLAGS=-IMakefiles
+
+# Load Xula modules
+module load gcc-8.5.0-gcc-8.5.0-okhf4dl
+module load openmpi-4.1.5-gcc-8.5.0-wc244g5
+module load fftw-3.3.10-gcc-8.5.0-gyw6vjk 
+module load hdf5-1.14.1-2-gcc-8.5.0-nmh7bhg
+module load netcdf-c-4.9.2-gcc-8.5.0-tm5mqc4
+module load netcdf-fortran-4.6.0-gcc-8.5.0-5t42x57
+module load parallel-netcdf-1.12.3-gcc-8.5.0-jjzb3pe
+module load netlib-scalapack-2.2.0-gcc-8.5.0-jpwc63q
+module load netlib-lapack-3.11.0-gcc-8.5.0-af4h4co
+
+# Compile stella with CMake
+module load cmake-3.26.3-gcc-9.4.0-6t6wfdo
+
+# Numerical tests need python
+module load python-3.10.10-gcc-8.5.0-ze5tho3
+module load py-pip-23.0-gcc-8.5.0-myj46az
+
+# Check loaded modules
+echo "   "
+echo "GCC version:"
+gcc --version
+echo "Python version:"
+python --version
+echo "   "
+
+# Set some directories for the make file of xula
+export NETCDF_HOME=/mnt/lustre/home/spack/spack/opt/spack/linux-rocky8-icelake/gcc-8.5.0/netcdf-c-4.9.2-tm5mqc44n3zsrs4sildwyrv2ynjxfnlh/
+export FFT_HOME=/mnt/lustre/home/spack/spack/opt/spack/linux-rocky8-icelake/gcc-8.5.0/fftw-3.3.10-gyw6vjk5lqaocgtvd42czbeai4qdiecq/
+export LAPACK_HOME=/mnt/lustre/home/spack/spack/opt/spack/linux-rocky8-icelake/gcc-8.5.0/netlib-lapack-3.11.0-af4h4cocidqmbtafrjzzqwky3wjlswmm/

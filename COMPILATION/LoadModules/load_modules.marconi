@@ -1,0 +1,27 @@
+#!/bin/sh
+
+# Unload the preloaded modules
+module purge
+
+# Load Marconi modules needed for stella 
+module load env-skl
+module load intel/pe-xe-2018--binary 
+module load intelmpi/2018--binary
+module load szip/2.1--gnu--6.1.0
+module load zlib/1.2.8--gnu--6.1.0
+module load hdf5/1.10.4--intel--pe-xe-2018--binary
+module load netcdf/4.6.1--intel--pe-xe-2018--binary
+module load netcdff/4.4.4--intel--pe-xe-2018--binary
+module load fftw/3.3.7--intelmpi--2018--binary 
+module load mkl/2018--binary 
+module load scalapack
+module load blas  
+module load git
+
+# Set some directories for the make file of Marconi
+export NETCDF_LIB_DIR=/cineca/prod/opt/libraries/netcdff/4.4.4/intel--pe-xe-2018--binary/lib
+export NETCDF_INC_DIR=/cineca/prod/opt/libraries/netcdff/4.4.4/intel--pe-xe-2018--binary/include
+export FFTW_LIB_DIR=$FFTW_DIR/lib
+export FFTW_INC_DIR=$FFTW_INC
+export STELLA_SYSTEM="marconi"
+export MAKEFLAGS="-IMakefiles"

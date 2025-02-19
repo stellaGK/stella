@@ -1,0 +1,33 @@
+#!/bin/sh
+
+# Unload the preloaded modules
+module purge
+
+# Load Marenostrum modules needed for stella (option 1)
+module load oneapi 
+module load ucx/1.15.0 
+module load fftw/3.3.10 
+module load hdf5/1.14.1-2 
+module load pnetcdf/1.12.3 
+module load netcdf/2023-06-14 
+module load lapack/3.11-gcc 
+module load petsc/3.20.5
+
+# Load Marenostrum modules needed for stella (option 2)
+#module load openmpi/4.1.5-gcc 
+#module load hdf5/1.14.1-2-gcc-openmpi 
+#module load pnetcdf/1.12.3-gcc-openmpi 
+#module load netcdf/c-4.9.2_fortran-4.6.1_cxx4-4.3.1_hdf5-1.14.1-2_pnetcdf-1.12.3-gcc-openmpi 
+#module load gcc/13.2.0  
+#module load fftw/3.3.10-gcc-ompi 
+#module load hdf5/1.14.1-2-gcc-openmpi 
+#module load intel-advisor/2023.2.0
+#module load cmake
+
+# Set some directories for the make file of marenostrum
+export NETCDF_INC_DIR=$NETCDF_INC
+export NETCDF_LIB_DIR=$NETCDF_LIB
+export FFTW_INC_DIR=-I$FFTW_INCL
+export FFTW_LIB_DIR=$FFTW_DIR/lib
+export STELLA_SYSTEM="marenostrum"
+export MAKEFLAGS="-IMakefiles"
