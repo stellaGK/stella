@@ -94,7 +94,7 @@ module parameters_kxky_grids_range
             integer :: ierr, in_file
             logical :: exist
 
-            namelist /parameters_kxky_grids_range/ naky, nakx, &
+            namelist /kxky_grids_range/ naky, nakx, &
                  aky_min, aky_max, theta0_min, theta0_max, akx_min, akx_max, kyspacing_option
 
             ! note that jtwist and y0 will possibly be modified
@@ -105,8 +105,8 @@ module parameters_kxky_grids_range
             ! depend on information from the geometry module,
             ! which itself may rely on ny from here (number of alphas)
 
-            in_file = input_unit_exist("parameters_kxky_grids_range", exist)
-            if (exist) read (in_file, nml=parameters_kxky_grids_range)
+            in_file = input_unit_exist("kxky_grids_range", exist)
+            if (exist) read (in_file, nml=kxky_grids_range)
 
             call check_backwards_compatability_range
             
@@ -119,7 +119,7 @@ module parameters_kxky_grids_range
             
             ierr = error_unit()
             call get_option_value(kyspacing_option, kyspacingopts, kyspacing_option_switch, &
-                ierr, "kyspacing_option in parameters_kxky_grids_range", .true.)
+                ierr, "kyspacing_option in kxky_grids_range", .true.)
 
             naky_all = naky
             ikx_max = nakx

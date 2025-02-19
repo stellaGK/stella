@@ -88,7 +88,7 @@ module parameters_kxky_grids_box
             integer :: in_file
             logical :: exist
 
-            namelist /parameters_kxky_grids_box/ nx, ny, jtwist, jtwistfac, x0, y0, &
+            namelist /kxky_grids_box/ nx, ny, jtwist, jtwistfac, x0, y0, &
             centered_in_rho, periodic_variation, &
             randomize_phase_shift, phase_shift_angle
 
@@ -100,8 +100,8 @@ module parameters_kxky_grids_box
             ! depend on information from the geometry module,
             ! which itself may rely on ny from here (number of alphas)
 
-            in_file = input_unit_exist("parameters_kxky_grids_box", exist)
-            if (exist) read (in_file, nml=parameters_kxky_grids_box)
+            in_file = input_unit_exist("kxky_grids_box", exist)
+            if (exist) read (in_file, nml=kxky_grids_box)
 
             call check_backwards_compatability_box
             
