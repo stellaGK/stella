@@ -1,0 +1,19 @@
+#!/bin/sh
+
+# Unload the preloaded modules
+module purge
+
+# Load dirac modules needed for stella 
+module load intel/mkl/2020.2;\
+module load intel/impi/2020.2/intel;\
+module load openblas/0.2.15;\
+module load netlib-scalapack-2.0.2-intel-17.0.4-wwvkcj6;\
+module load szip-2.1.1-gcc-5.4.0-6vkwvdj;\
+module load zlib/1.2.11;\
+module load hdf5-1.10.4-intel-17.0.4-swn7n43;\
+module load netcdf-4.4.1.1-intel-17.0.4-zysrbqw;\
+module load netcdf-fortran-4.4.4-intel-17.0.4-cesnirf;\
+module load fftw-3.3.6-pl2-intel-17.0.4-qssvkuw;\
+
+export STELLA_SYSTEM="dirac"
+export MAKEFLAGS="-IMakefiles"

@@ -76,6 +76,8 @@ SFINCS_INC ?=
 PETSC_LIB ?=
 PETSC_INC ?=
 LIBSTELL_LIB ?=
+LAPACK_LIB ?=
+LAPACK_INC ?=
 
 ####################################################################
 #                        PLATFORM DEPENDENCE                       #
@@ -169,11 +171,13 @@ endif
 ifdef USE_NETCDF
 	ifeq ($(NETCDF_LIB),)
 		NETCDF_LIB = -lnetcdf
-    endif
+	endif
 	CPPFLAGS += -DNETCDF
 endif
 ifdef USE_LAPACK
-    LAPACK_LIB ?= -llapack
+	ifeq ($(LAPACK_LIB),)
+		LAPACK_LIB = -llapack
+	endif
 	CPPFLAGS += -DLAPACK
 endif
 ifdef USE_HDF5

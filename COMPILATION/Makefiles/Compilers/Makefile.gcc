@@ -1,0 +1,3 @@
+# Compiler: GNU gfortran/gcc
+
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.gnu-gfortran
