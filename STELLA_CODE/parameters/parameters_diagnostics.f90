@@ -19,9 +19,11 @@ module parameters_diagnostics
 
    ! Write potential in <diagnostics_potential>
    public :: write_phi_vs_kxkyz
-   public :: write_phi2_vs_kxky
    public :: write_apar_vs_kxkyz
    public :: write_bpar_vs_kxkyz
+   public :: write_phi2_vs_kxky
+   public :: write_apar2_vs_kxky
+   public :: write_bpar2_vs_kxky
 
    ! Write omega in <diagnostics_omega>
    public :: write_omega_vs_kxky
