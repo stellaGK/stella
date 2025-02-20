@@ -500,7 +500,7 @@ contains
 
       use mp, only: proc0
       use parameters_numerical, only: print_extra_info_to_terminal
-      use parameters_physics, only: include_apar
+      use parameters_physics, only: include_apar, include_bpar
       implicit none
       
       ! Only print the header on the first processor
