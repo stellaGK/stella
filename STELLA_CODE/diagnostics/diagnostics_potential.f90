@@ -54,7 +54,9 @@ contains
       use stella_io, only: write_phi2_nc
       use stella_io, only: write_apar2_nc
       use stella_io, only: write_bpar2_nc
-      use stella_io, only: write_phi_nc 
+      use stella_io, only: write_phi_nc
+      use stella_io, only: write_apar_nc
+      use stella_io, only: write_bpar_nc
       use stella_io, only: write_kspectra_nc
       use stella_time, only: code_dt, code_time
 
@@ -64,6 +66,8 @@ contains
       
       ! Input file
       use parameters_diagnostics, only: write_phi_vs_kxkyz
+      use parameters_diagnostics, only: write_apar_vs_kxkyz
+      use parameters_diagnostics, only: write_bpar_vs_kxkyz
       use parameters_diagnostics, only: write_phi2_vs_kxky
 
       implicit none 
@@ -123,10 +127,18 @@ contains
          call write_apar2_nc(nout, apar2)
          call write_bpar2_nc(nout, bpar2)
 
-         ! Write phi(t,ky,kx,z,tube) to the netcdf file
+         ! Write phi(t,ky,kx,z,tube), apar(t,ky,kx,z,tube) and bpar(t,ky,kx,z,tube) to the netcdf file
          if (write_phi_vs_kxkyz) then
             if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_phi_nc'
             call write_phi_nc(nout, phi_vs_kykxzt)
+         end if
+         if (write_apar_vs_kxkyz) then
+            if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_apar_nc'
+            call write_apar_nc(nout, apar_vs_kykxzt)
+         end if
+         if (write_bpar_vs_kxkyz) then
+            if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_bpar_nc'
+            call write_bpar_nc(nout, bpar_vs_kykxzt)
          end if
 
          ! Write phi2(t,ky,kx) to the netcdf file

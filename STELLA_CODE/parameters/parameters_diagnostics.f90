@@ -20,6 +20,8 @@ module parameters_diagnostics
    ! Write potential in <diagnostics_potential>
    public :: write_phi_vs_kxkyz
    public :: write_phi2_vs_kxky
+   public :: write_apar_vs_kxkyz
+   public :: write_bpar_vs_kxkyz
 
    ! Write omega in <diagnostics_omega>
    public :: write_omega_vs_kxky
@@ -60,6 +62,8 @@ module parameters_diagnostics
    ! Write potential in <diagnostics_potential>
    logical :: write_phi_vs_kxkyz
    logical :: write_phi2_vs_kxky
+   logical :: write_apar_vs_kxkyz
+   logical :: write_bpar_vs_kxkyz
 
    ! Write omega in <diagnostics_omega>
    logical :: write_omega_vs_kxky
@@ -151,6 +155,8 @@ contains
          write_bpar2_vs_time = .true. 
          write_phi_vs_kxkyz = .false.
          write_phi2_vs_kxky = .false.
+         write_apar_vs_kxkyz = .false.
+         write_bpar_vs_kxkyz = .false.
           
          !------------------------------
          !    Distribution function    !
@@ -249,7 +255,8 @@ contains
          ! and mp_abort if <stella_diagnostics_knobs> is in the input file
          namelist /stella_diagnostics_knobs/ nwrite, navg, nsave, autostop, save_for_restart, flux_norm, nc_mult, &
             write_phi2_vs_time, write_apar2_vs_time, write_bpar2_vs_time, write_fluxes_vs_time, &
-            write_phi_vs_kxkyz, write_g2_vs_vpamus, write_g2_vs_zvpas, write_g2_vs_zmus, &
+            write_phi_vs_kxkyz, write_apar_vs_kxkyz, write_bpar_vs_kxkyz, &
+            write_g2_vs_vpamus, write_g2_vs_zvpas, write_g2_vs_zmus, &
             write_g2_vs_kxkyzs, write_g2_vs_zvpamus, write_distribution_g, write_distribution_h, write_distribution_f, &
             write_omega_vs_kxky, write_omega_avg_vs_kxky, write_phi2_vs_kxky, write_moments, write_radial_fluxes, &
             write_radial_moments, write_fluxes_kxkyz, write_fluxes_kxky, write_all, flux_norm, nc_mult, &
@@ -284,6 +291,8 @@ contains
             write_omega_vs_kxky = .true.
             write_omega_avg_vs_kxky = .true.
             write_phi_vs_kxkyz = .true.
+            write_apar_vs_kxkyz = .true.
+            write_bpar_vs_kxkyz = .true.
             write_phi2_vs_kxky = .true.
             write_moments = .true.
             write_fluxes_kxkyz = .true.   
