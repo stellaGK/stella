@@ -263,7 +263,7 @@ contains
             write_g2_vs_vpamus, write_g2_vs_zvpas, write_g2_vs_zmus, &
             write_g2_vs_kxkyzs, write_g2_vs_zvpamus, write_distribution_g, write_distribution_h, write_distribution_f, &
             write_phi2_vs_kxky, write_apar2_vs_kxky, write_bpar2_vs_kxky, &
-            write_omega_vs_kxky, write_omega_avg_vs_kxky, write_moments, write_radial_fluxes, 
+            write_omega_vs_kxky, write_omega_avg_vs_kxky, write_moments, write_radial_fluxes, &
             write_radial_moments, write_fluxes_kxkyz, write_fluxes_kxky, write_all, flux_norm, nc_mult, &
             ! Backwards compatibility for old stella code
             write_omega, write_phi_vs_time, write_apar_vs_time, write_bpar_vs_time, &
