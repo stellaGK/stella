@@ -208,7 +208,7 @@ contains
             fields_updated = .false.
             
             error = sum(real(phi - phi_old)**2 + aimag(phi - phi_old)**2)**0.5
-            if(proc0) write(164,*) itt, error
+!!            if(proc0) write(164,*) itt, error
             if ( error < itt_tol) then
                exit
             else

@@ -477,11 +477,10 @@ contains
             flxfac(:, nzgrid) = 0.5 * flxfac(:, nzgrid)
 
             !! Area of flux annulus
-            area = sum(flxfac) / ny 
+            area = sum(flxfac)
             !! Ny * Area of fluxtube for ia = 1 
-            area1 = sum(flxfac(1,:))
-
-            flxfac = flxfac * area / area1**2
+            flxfac = flxfac / area
+!            flxfac = flxfac * area / area1**2
 
             call get_modified_fourier_coefficient(phi2_y, phi2_mod, flxfac)
 
@@ -492,7 +491,12 @@ contains
                   end do
                end do
             end do
-            
+
+            if (const_alpha_geo) then 
+               phi2 = phi2 / ny
+            else
+               phi2 = phi2 * ny
+            end if
             apar2 = 0.0 
             deallocate (phi2_kxkyz, phi_swap, phi2_y, flxfac, phi2_mod)
          else
@@ -1149,7 +1153,7 @@ contains
       use kt_grids, only: aky, dy
       use fields_arrays, only: phi
       use stella_geometry, only: grad_x, jacob
-
+      use stella_geometry, only: geo_option_local, geo_option_switch
       use physics_flags, only: const_alpha_geo
 
       implicit none
@@ -1187,9 +1191,10 @@ contains
       flxfac(:, -nzgrid) = 0.5 * flxfac(:, -nzgrid)
       flxfac(:, nzgrid) = 0.5 * flxfac(:, nzgrid)
       
-      flxfac = flxfac/(sum(flxfac * grad_x) )
+      flxfac = ny * flxfac/(sum(flxfac * grad_x) )
 
-      if(const_alpha_geo) flxfac = flxfac / ny
+      
+      if(const_alpha_geo .or. geo_option_switch==geo_option_local) flxfac = flxfac / ny
       
       call get_one_flux_ffs(dens, dphidy, flxfac, pflx, pflx_vs_kxkyz(:, :, :, it, :))
       call get_one_flux_ffs(pres, dphidy, flxfac, qflx, qflx_vs_kxkyz(:, :, :, it, :))
@@ -1819,6 +1824,7 @@ contains
       !> g1 = J0 * f
       call gyro_average(g0, g1, j0_ffs)
       !> g2 = J1 * f
+      call g_to_f1(g, phi, g0)
       call gyro_average(g0, g2, j1_ffs)
       
       allocate (f_swap(naky_all, ikx_max))

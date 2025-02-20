@@ -34,7 +34,7 @@ module stella_geometry
    public :: dVolume
    public :: grad_x_grad_y_end
    public :: x_displacement_fac
-   public :: geo_option_switch, geo_option_vmec
+   public :: geo_option_switch, geo_option_vmec, geo_option_local
 
    public :: gradzeta_gradx, gradzeta_grady
    public :: gradpar_zeta
@@ -207,6 +207,7 @@ contains
 
             !!GA - Ensuring all arrays are filled with the alpha = 1 information
             bmag = spread(bmag(1, :), 1, nalpha)
+            grho = spread(grho(1, :), 1, nalpha) 
             bmag_psi0 = spread(bmag_psi0(1, :), 1, nalpha)
             gds2 = spread(gds2(1, :), 1, nalpha)
             gds21 = spread(gds21(1, :), 1, nalpha)
