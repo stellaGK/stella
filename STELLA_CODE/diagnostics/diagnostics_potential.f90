@@ -109,10 +109,15 @@ contains
          call volume_average(apar_vs_kykxzt, apar2) 
          call volume_average(bpar_vs_kykxzt, bpar2)
          call write_potential_to_ascii_file(istep, phi2, apar2, bpar2) 
-         if (include_apar) then 
-            write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4)') " ", istep, " ", code_time, " ", code_dt, " ", phi2, " ", apar2
+         if (include_apar .and. include_bpar) then 
+            write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4)') &
+            " ", istep, " ", code_time, " ", code_dt, " ", phi2, " ", apar2, " ", bpar2
+         else if (include_apar) then 
+            write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4)') &
+            " ", istep, " ", code_time, " ", code_dt, " ", phi2, " ", apar2
          else
-            write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4)') " ", istep, " ", code_time, " ", code_dt, " ", phi2
+            write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4)') &
+            " ", istep, " ", code_time, " ", code_dt, " ", phi2
          end if
       end if
 
