@@ -54,7 +54,9 @@ contains
       use stella_io, only: write_phi2_nc
       use stella_io, only: write_apar2_nc
       use stella_io, only: write_bpar2_nc
-      use stella_io, only: write_phi_nc 
+      use stella_io, only: write_phi_nc
+      use stella_io, only: write_apar_nc
+      use stella_io, only: write_bpar_nc
       use stella_io, only: write_kspectra_nc
       use stella_time, only: code_dt, code_time
 
@@ -64,7 +66,11 @@ contains
       
       ! Input file
       use parameters_diagnostics, only: write_phi_vs_kxkyz
+      use parameters_diagnostics, only: write_apar_vs_kxkyz
+      use parameters_diagnostics, only: write_bpar_vs_kxkyz
       use parameters_diagnostics, only: write_phi2_vs_kxky
+      use parameters_diagnostics, only: write_apar2_vs_kxky
+      use parameters_diagnostics, only: write_bpar2_vs_kxky
 
       implicit none 
 
@@ -103,10 +109,18 @@ contains
          call volume_average(apar_vs_kykxzt, apar2) 
          call volume_average(bpar_vs_kykxzt, bpar2)
          call write_potential_to_ascii_file(istep, phi2, apar2, bpar2) 
-         if (include_apar) then 
-            write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4)') " ", istep, " ", code_time, " ", code_dt, " ", phi2, " ", apar2
+         if (include_apar .and. include_bpar) then 
+            write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4)') &
+            " ", istep, " ", code_time, " ", code_dt, " ", phi2, " ", apar2, " ", bpar2
+         else if (include_apar) then 
+            write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4)') &
+            " ", istep, " ", code_time, " ", code_dt, " ", phi2, " ", apar2
+         else if (include_bpar) then 
+            write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4)') &
+            " ", istep, " ", code_time, " ", code_dt, " ", phi2, " ", bpar2
          else
-            write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4)') " ", istep, " ", code_time, " ", code_dt, " ", phi2
+            write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4)') &
+            " ", istep, " ", code_time, " ", code_dt, " ", phi2
          end if
       end if
 
@@ -123,39 +137,40 @@ contains
          call write_apar2_nc(nout, apar2)
          call write_bpar2_nc(nout, bpar2)
 
-         ! Write phi(t,ky,kx,z,tube) to the netcdf file
+         ! Write phi(t,ky,kx,z,tube), apar(t,ky,kx,z,tube) and bpar(t,ky,kx,z,tube) to the netcdf file
          if (write_phi_vs_kxkyz) then
             if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_phi_nc'
             call write_phi_nc(nout, phi_vs_kykxzt)
          end if
+         if (write_apar_vs_kxkyz .and. include_apar) then
+            if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_apar_nc'
+            call write_apar_nc(nout, apar_vs_kykxzt)
+         end if
+         if (write_bpar_vs_kxkyz .and. include_bpar) then
+            if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_bpar_nc'
+            call write_bpar_nc(nout, bpar_vs_kykxzt)
+         end if
 
          ! Write phi2(t,ky,kx) to the netcdf file
          if (write_phi2_vs_kxky) then
-            if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_kspectra_nc'
-            
-            ! For phi2
+            if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_kspectra_nc' 
             allocate (phi2_vs_kxky(naky, nakx)) 
             call fieldline_average(real(phi_vs_kykxzt * conjg(phi_vs_kykxzt)), phi2_vs_kxky)
             call write_kspectra_nc(nout, phi2_vs_kxky, "phi2_vs_kxky", "electrostatic potential")
             deallocate (phi2_vs_kxky)
-            
-            ! For apar
-            if (include_apar) then
-               allocate (apar2_vs_kxky(naky, nakx))
-               call fieldline_average(real(apar_vs_kykxzt * conjg(apar_vs_kykxzt)), apar2_vs_kxky)
-               call write_kspectra_nc(nout, apar2_vs_kxky, "apar2_vs_kxky", "parallel vector potential")
-               deallocate (apar2_vs_kxky)
-            end if
-            
-            ! For bpar
-            if (include_bpar) then
-               allocate (bpar2_vs_kxky(naky, nakx))
-               call fieldline_average(real(bpar_vs_kykxzt * conjg(bpar_vs_kykxzt)), bpar2_vs_kxky)
-               call write_kspectra_nc(nout, bpar2_vs_kxky, "bpar2_vs_kxky", "parallel magnetic field fluctuation")
-               deallocate (bpar2_vs_kxky)
-            end if
-            
          end if
+         if (write_apar2_vs_kxky .and. include_apar) then 
+            allocate (apar2_vs_kxky(naky, nakx))
+            call fieldline_average(real(apar_vs_kykxzt * conjg(apar_vs_kykxzt)), apar2_vs_kxky)
+            call write_kspectra_nc(nout, apar2_vs_kxky, "apar2_vs_kxky", "parallel vector potential")
+            deallocate (apar2_vs_kxky)
+         end if 
+         if (write_bpar2_vs_kxky .and. include_bpar) then
+            allocate (bpar2_vs_kxky(naky, nakx))
+            call fieldline_average(real(bpar_vs_kykxzt * conjg(bpar_vs_kykxzt)), bpar2_vs_kxky)
+            call write_kspectra_nc(nout, bpar2_vs_kxky, "bpar2_vs_kxky", "parallel magnetic field fluctuation")
+            deallocate (bpar2_vs_kxky)
+         end if 
          
       end if
       
