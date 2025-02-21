@@ -115,6 +115,9 @@ contains
          else if (include_apar) then 
             write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4)') &
             " ", istep, " ", code_time, " ", code_dt, " ", phi2, " ", apar2
+         else if (include_bpar) then 
+            write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4)') &
+            " ", istep, " ", code_time, " ", code_dt, " ", phi2, " ", bpar2
          else
             write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4)') &
             " ", istep, " ", code_time, " ", code_dt, " ", phi2
