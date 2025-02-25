@@ -1,4 +1,12 @@
- 
+"""
+
+Plot potential(x,y).
+
+Hanne Thienpondt 
+25/02/2025
+
+"""
+
 #!/usr/bin/python3  
 import copy
 import sys, os
@@ -20,6 +28,7 @@ from stellapy.plot.utils.style.create_figure import update_figure_style
 from stellapy.plot.utils.surface.get_colorMap import get_colorMap
 from stellapy.utils.decorators.exit_program import exit_program
 from stellapy.simulations.Research import create_research
+from stellapy.utils.files.ensure_dir import ensure_dir 
 from stellapy.plot.utils.labels import standardLabels
 from stellapy.utils.commandprompt.bash import Bash 
 
@@ -28,7 +37,7 @@ from stellapy.utils.commandprompt.bash import Bash
 #===============================================================================
 
 def plot_quantity_vs_xy(folder, z_quantity="phi", specie=None, tstart=None, tend=None, z=None, 
-        remove_zonal_modes=True, log=False, crange=None, ordersOfMagnitude=2, interpolation_step=20): 
+        remove_zonal_modes=True, log=False, crange=None, ordersOfMagnitude=2, interpolation_step=20, show=True): 
     
     # Create <simulations> based on the given <folder>
     research = create_research(folders=folder) 
@@ -57,8 +66,8 @@ def plot_quantity_vs_xy(folder, z_quantity="phi", specie=None, tstart=None, tend
                     
     # Show the figure 
     mpl.rcParams["savefig.directory"] = folder
-    plt.show()
-    return
+    if show: plt.show()
+    return fig
 
 #---------------------------------------- 
 def subplot_quantity_vs_xy(ax, simulation, z_quantity, specie, t_range=None, z=None, interpolation_step=None,
@@ -260,14 +269,20 @@ if __name__ == "__main__" and False:
     plot_quantity_vs_xy(**bash.get_arguments())   
 
 ################################################################################
-#                                  DEBUG MODE                                  #
+#                               STELLAPY EXAMPLE                               #
 ################################################################################
     
-if __name__ == "__main__":
-    import pathlib
-    folder = pathlib.Path("/home/hanne/CIEMAT/RUNS/test_CBC2/biggrid")
-    plot_quantity_vs_xy(folder, z=0, tstart=310)
-    sys.exit()
+if __name__ == "__main__":    
+    
+    # Example output file
+    stella_folder = os.path.abspath(pathlib.Path(os.environ.get('STELLAPY')).parent.parent)
+    figure_folder = stella_folder / pathlib.Path("stellapy_figures"); ensure_dir(figure_folder)
+    data_folder = stella_folder / pathlib.Path("DOCUMENTATION/example_output")
+
+    # Plot potential(x,y)
+    fig = plot_quantity_vs_xy(data_folder, z_quantity='phi', show=False)
+    fig.savefig(figure_folder / "potential_vs_xy.png", format='png', dpi=500)
+    print("Saved potential(x,y)")  
      
      
 
