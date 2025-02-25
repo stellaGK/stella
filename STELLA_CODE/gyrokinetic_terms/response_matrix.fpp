@@ -125,6 +125,7 @@ contains
 
    end subroutine setup_response_matrix_file_io
 
+#ifdef ISO_C_BINDING
    subroutine setup_shared_memory_window
 
       use mpi
@@ -168,6 +169,7 @@ contains
       end if
 
    end subroutine setup_shared_memory_window
+#endif
 
    subroutine construct_response_matrix
 
