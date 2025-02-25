@@ -1,3 +1,12 @@
+"""
+
+Plot B(X,Y,Z).
+
+Hanne Thienpondt 
+25/02/2025
+
+"""
+
 #!/usr/bin/python3   
 from PIL import Image
 import os, sys 

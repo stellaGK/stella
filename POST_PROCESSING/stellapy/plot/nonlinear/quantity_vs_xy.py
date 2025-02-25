@@ -1,4 +1,12 @@
- 
+"""
+
+Plot potential(x,y).
+
+Hanne Thienpondt 
+25/02/2025
+
+"""
+
 #!/usr/bin/python3  
 import copy
 import sys, os
