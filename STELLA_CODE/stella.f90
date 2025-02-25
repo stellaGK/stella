@@ -500,7 +500,7 @@ contains
 
       use mp, only: proc0
       use parameters_numerical, only: print_extra_info_to_terminal
-      use parameters_physics, only: include_apar
+      use parameters_physics, only: include_apar, include_bpar
       implicit none
       
       ! Only print the header on the first processor
@@ -512,9 +512,17 @@ contains
          write (*, '(A)') "                OVERVIEW OF THE SIMULATION"
          write (*, '(A)') "############################################################"
       end if
-      if (include_apar) then
+      if (include_apar .and. include_bpar) then
+         write (*, '(A)') " "
+         write (*, '(A)') "    istep       time          dt          |phi|^2       |apar|^2      |bpar|^2"
+         write (*, '(A)') "--------------------------------------------------------------------------------"
+      else if (include_apar) then
          write (*, '(A)') " "
          write (*, '(A)') "    istep       time          dt          |phi|^2       |apar|^2"
+         write (*, '(A)') "--------------------------------------------------------------------"
+      else if (include_bpar) then
+         write (*, '(A)') " "
+         write (*, '(A)') "    istep       time          dt          |phi|^2       |bpar|^2"
          write (*, '(A)') "--------------------------------------------------------------------"
       else
          write (*, '(A)') " "
