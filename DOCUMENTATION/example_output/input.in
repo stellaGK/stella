@@ -1,114 +1,11 @@
 &physics_flags
-  adiabatic_option = 'iphi00=2'
-  full_flux_surface = .false.
   nonlinear = .true.
 /
 &species_knobs
   nspec = 2
-  species_option = 'stella'
-/
-&species_parameters_1
-  dens = 1.0
-  fprim = 0.0
-  mass = 1.0
-  temp = 1.0
-  tprim = 3.0
-  z = 1.0
-/
-&species_parameters_2
-  dens = 1.0
-  fprim = 0.0
-  mass = 0.000543867
-  temp = 1.0
-  tprim = 0.0
-  type = 'electron'
-  z = -1.0
-/
-&parameters
-  beta = 0.0
-  nine = 1.0
-  rhostar = 0.0
-  tite = 1.0
-  vnew_ref = 0.0
-  zeff = 1.0
 /
 &vmec_parameters
-  nfield_periods = 6.230232651695381
-  surface_option = 0
   torflux = 0.49
-  verbose = .true.
   vmec_filename = 'wout_w7xr003.nc'
-  zeta_center = 0.0
 /
-&kt_grids_box_parameters
-  nx = 91
-  ny = 91
-  y0 = 15
-/
-&zgrid_parameters
-  boundary_option = 'stellarator'
-  nperiod = 1
-  nzed = 48
-  zed_equal_arc = .true.
-/
-&vpamu_grids_parameters
-  nmu = 12
-  nvgrid = 24
-  vpa_max = 3.0
-  vperp_max = 3.0
-/
-&knobs
-  avail_cpu_time = 82800
-  delt_option = "check_restart"
-  delt_max = 0.1
-  delt_min = 1e-05
-  fapar = 0.0
-  fbpar = 0.0
-  fphi = 1.0
-  lu_option = 'local'
-  mat_gen = .false.
-  mat_read = .false.
-  tend = 3000.0
-/
-&stella_diagnostics_knobs
-  flux_norm = .false.
-  nsave = 250
-  nwrite = 10
-  save_for_restart = .true.
-  write_fluxes_kxkyz = .true.
-  write_gvmus = .true.
-  write_gzvs = .true.
-  write_kspectra = .true.
-  write_moments = .true.
-  write_omega = .false.
-  write_phi_vs_time = .true.
-/ 
-&init_g_knobs
-  chop_side = .false.
-  ginit_option = "many"
-  phiinit = 1.0
-  restart_dir = 'restart'
-  restart_file = 'restart.nc'
-  width0 = 1.0
-/
-&dissipation
-  hyper_dissipation = .true.
-/
-&hyper
-  d_hyper = 0.1
-/	
-&geo_knobs
-  geo_option = 'vmec'
-/
-&kt_grids_knobs
-  grid_option = 'box'
-/
-&dist_fn_knobs
-/
-&time_advance_knobs
-  explicit_option = 'rk2'
-/
-&layouts_knobs
-  vms_layout = 'vms'
-  xyzs_layout = 'yxzs'
-/
+
