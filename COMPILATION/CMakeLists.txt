@@ -45,7 +45,7 @@ option(STELLA_UPDATE_GIT_SUBMODULES "Check submodules are up-to-date during buil
 
 # Sources that don't need preprocessing
 set(STELLA_SOURCES_f90
-  ../EXTERNALS/utils/define.inc
+  ../STELLA_CODE/utils/define.inc
   ../STELLA_CODE/calculations/calculations_kxky.f90
   ../STELLA_CODE/calculations/dist_redistribute.f90
   ../STELLA_CODE/calculations/finite_differences.f90
@@ -159,7 +159,7 @@ add_executable(stella
 target_link_libraries(stella PRIVATE libstella)
 
 # The include.inc file is located in EXTERNALS/utils/
-include_directories("${CMAKE_SOURCE_DIR}/EXTERNALS/utils")
+include_directories("${CMAKE_SOURCE_DIR}/STELLA_CODE/utils")
 
 # When target `stella` is built, a symlink will be created
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -299,7 +299,7 @@ target_compile_options(libstella PRIVATE
 # Internal libraries: <stella_utils> and <mini_libstell>
 ############################################################
 
-add_subdirectory(../EXTERNALS/utils ${CMAKE_CURRENT_BINARY_DIR}/EXTERNALS/utils)
+add_subdirectory(../STELLA_CODE/utils ${CMAKE_CURRENT_BINARY_DIR}/STELLA_CODE/utils)
 add_subdirectory(../EXTERNALS/mini_libstell ${CMAKE_CURRENT_BINARY_DIR}/EXTERNALS/mini_libstell)
 target_link_libraries(libstella PUBLIC mini_libstell stella_utils)
 
