@@ -14,7 +14,10 @@ requirements = []
 for line in contents:
     if line.startswith("#"):
         continue
+    if line.replace(' ','').replace('\n','').replace('\t','')=='':
+        continue
     module = line.split("=")[0]
+    if 'pyrokinetics' in line: module = 'pyrokinetics'
     requirements.append(module.replace(">", "").replace("~", "").replace("\n", ""))
 
 failed_modules = []
