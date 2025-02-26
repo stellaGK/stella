@@ -16,7 +16,7 @@ jobs:
 
   # Build stella to perform pyrokinetics tests
   pyrokinetics-tests: 
-    name: Build stella quickly
+    name: Check Pyrokinetics
     runs-on: ubuntu-22.04
     env:
       OMPI_MCA_rmaps_base_oversubscribe: yes
@@ -50,6 +50,7 @@ jobs:
           sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
           sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev
           pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
+          pip3 install EXTERNALS/pyrokinetics/.
           sed -i 's/nproc = 16/nproc = 1/g' AUTOMATIC_TESTS/config.ini
           
       # Perform pyrokinetics tests

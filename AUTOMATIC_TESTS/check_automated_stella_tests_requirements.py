@@ -36,6 +36,7 @@ if failed_modules:
             Run:
                 make create-test-virtualenv
                 source AUTOMATIC_TESTS/venv/bin/activate
+                pip install EXTERNALS/pyrokinetics/.
             to install and activate test dependencies
             """
         )

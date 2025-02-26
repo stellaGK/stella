@@ -8,6 +8,3 @@ setuptools==66.1.1
 configparser
 matplotlib
 h5py
-
-# Install pyrokinetics
-./../EXTERNALS/pyrokinetics/.
