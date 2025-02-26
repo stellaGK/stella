@@ -73,9 +73,9 @@
 # Define the directories where the external libraries are located 
 # Export UTILS_DIR and MINILIBSTELL_DIR because they're used in their make files
 export MINILIBSTELL_DIR := $(EXTERNALS_DIR)/mini_libstell
-export UTILS_DIR := $(EXTERNALS_DIR)/utils
 export GIT_VERSION_DIR := $(EXTERNALS_DIR)/git_version/src
 export NEASYF_DIR := $(EXTERNALS_DIR)/neasyf/src
+export UTILS_DIR := $(STELLA_DIR)/utils
 
 # Check directories
 .PHONY: print-directories-externals
