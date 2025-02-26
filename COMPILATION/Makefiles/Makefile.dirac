@@ -1,22 +1,17 @@
 # Host: Marconi
 
 helplocal:
-		# GK_SYSTEM = marconi
-		# You are using  Makefile.marconi to build gs2 executables on MARCONI.
+		# GK_SYSTEM = dirac
+		# You are using Makefile.dirac to build gs2 executables on CSD3 Icelake.
 
 define STANDARD_SYSTEM_CONFIGURATION
-module purge;\
-module load intel/mkl/2020.2;\
-module load intel/impi/2020.2/intel;\
+module load rhel8/default-ccl;\
+module load intel-oneapi-mkl-cluster/2024.1.0/intel/r55ddo3z;\
 module load openblas/0.2.15;\
-module load netlib-scalapack-2.0.2-intel-17.0.4-wwvkcj6;\
-module load szip-2.1.1-gcc-5.4.0-6vkwvdj;\
-module load zlib/1.2.11;\
-module load hdf5-1.10.4-intel-17.0.4-swn7n43;\
-module load netcdf-4.4.1.1-intel-17.0.4-zysrbqw;\
-module load netcdf-fortran-4.4.4-intel-17.0.4-cesnirf;\
-module load fftw-3.3.6-pl2-intel-17.0.4-qssvkuw;\
-export MAKEFLAGS='-j -IMakefiles'
+module load netcdf-fortran/4.6.1/intel/intel-oneapi-mpi/kqukipdf;\
+module load fftw/3.3.10/intel/intel-oneapi-mpi/hwbiyhzw;\
+module load python/3.11.0-icl;\
+export MAKEFLAGS='-IMakefiles'
 endef
 
 COMPILER=intel
@@ -24,6 +19,8 @@ CHIP=skylake
 
 USE_FFT = fftw3
 USE_NETCDF = on
+
+MODULE_FLAG = -module
 
 # This line disables the automated checking
 # of the intel version which is slow
@@ -49,10 +46,11 @@ USE_HDF5=
 #unfortunately some clash with values we use
 ifdef USE_NETCDF
   NETCDF_LIB= -lnetcdff -lnetcdf
+  F90FLAGS = -DNETCDF
 endif
 
 ifdef USE_LAPACK
-  LAPACK_LIB = -mkl
+  LAPACK_LIB = -qmkl
 endif
 
 ifdef USE_SFINCS
