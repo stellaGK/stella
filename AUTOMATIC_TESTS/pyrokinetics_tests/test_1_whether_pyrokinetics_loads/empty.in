@@ -1,0 +1,38 @@
+
+! Smallest possible input file that runs without errors
+! and that runs fast, hence we set (nkx,nky,nzed,nmu,nvpa)
+
+&parameters_numerical
+  nstep=10
+/
+&stella_diagnostics_knobs
+  nwrite = 1
+/
+&species_parameters_1 
+/
+&kt_grids_knobs
+  grid_option='range'
+/
+&kt_grids_range_parameters
+  naky = 10
+  aky_min = 0.1
+  aky_max = 1.0
+  nakx = 1
+  akx_min = 0.0
+  akx_max = 0.0
+/
+&zgrid_parameters 
+  nzed = 8
+/
+&vpamu_grids_parameters
+  nmu = 4 
+  nvgrid = 6 
+/
+&millergeo_parameters
+  rhoc = 0.5
+  shat = 0.796
+  qinp = 1.4
+  rmaj = 2.77778
+  rgeo = 2.77778
+  kappa = 1.0
+/ 

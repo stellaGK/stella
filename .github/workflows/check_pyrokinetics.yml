@@ -1,0 +1,62 @@
+# Run these tests automatically on Github on every push and pull request.
+name: Check Pyrokinetics
+on: [push, pull_request]
+
+# We always run in a bash shell
+defaults:
+  run:
+    shell: bash
+
+# First build stella, and then perform pyrokinetics tests
+jobs:
+
+#-----------------------------------------------------------------------
+#                              Quick build                              
+#-----------------------------------------------------------------------
+
+  # Build stella to perform pyrokinetics tests
+  pyrokinetics-tests: 
+    name: Check Pyrokinetics
+    runs-on: ubuntu-22.04
+    env:
+      OMPI_MCA_rmaps_base_oversubscribe: yes
+      MPIRUN: mpiexec -np
+      STELLA_SYSTEM: gnu_ubuntu
+
+    steps:
+
+      # Check-out repository under $GITHUB_WORKSPACE
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
+          sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev
+
+      # Build stella executable
+      - name: Build stella
+        run: |
+          git submodule update --init --recursive
+          make -j 12
+          chmod +x stella
+          
+      # Install dependencies
+      - name: Install dependencies and python virtual environment
+        run: |
+          sudo apt update
+          sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
+          sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev
+          pip3 install --upgrade pip
+          pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
+          pip3 install EXTERNALS/pyrokinetics/.
+          sed -i 's/nproc = 16/nproc = 1/g' AUTOMATIC_TESTS/config.ini
+          
+      # Perform pyrokinetics tests
+      - name: Pyrokinetics tests
+        run: make pyrokinetics-tests
+
+
+
