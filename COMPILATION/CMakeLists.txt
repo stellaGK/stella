@@ -64,8 +64,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/diagnostics/diagnostics_potential.f90
   ../STELLA_CODE/dissipation/coll_dougherty.f90
   ../STELLA_CODE/dissipation/coll_fokkerplanck.f90
-  ../STELLA_CODE/dissipation/dissipation.f90
-  ../STELLA_CODE/dissipation/namelist_dissipation.f90
+  ../STELLA_CODE/dissipation/dissipation.f90 
   ../STELLA_CODE/dissipation/hyper.f90
   ../STELLA_CODE/fields/dist_fn.f90
   ../STELLA_CODE/fields/init_g.f90
@@ -94,14 +93,16 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/gyrokinetic_terms/time_advance.f90
   ../STELLA_CODE/neoclassical/euterpe_interface.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
-  ../STELLA_CODE/parameters/debug_flags.f90
-  ../STELLA_CODE/parameters/update_input_file.f90
-  ../STELLA_CODE/parameters/parameters_diagnostics.f90
-  ../STELLA_CODE/parameters/parameters_kxky_grids.f90
-  ../STELLA_CODE/parameters/parameters_kxky_grids_box.f90
-  ../STELLA_CODE/parameters/parameters_kxky_grids_range.f90
-  ../STELLA_CODE/parameters/parameters_numerical.f90
-  ../STELLA_CODE/parameters/parameters_physics.f90
+  ../STELLA_CODE/namelists/update_input_file.f90
+  ../STELLA_CODE/namelists/parameters_diagnostics.f90
+  ../STELLA_CODE/namelists/parameters_kxky_grids.f90
+  ../STELLA_CODE/namelists/parameters_kxky_grids_box.f90
+  ../STELLA_CODE/namelists/parameters_kxky_grids_range.f90
+  ../STELLA_CODE/namelists/namelist_adiabatic_electrons.f90
+  ../STELLA_CODE/namelists/namelist_dissipation.f90
+  ../STELLA_CODE/parameters_numerical.f90
+  ../STELLA_CODE/parameters_physics.f90
+  ../STELLA_CODE/debug_flags.f90
   ../STELLA_CODE/radial_variation/multibox.f90
 )
 
