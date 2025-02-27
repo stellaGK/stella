@@ -77,12 +77,12 @@ contains
       nzed_local = 128
       rhoc = 0.5
       rhoc0 = 0.5
-      rmaj = 3.0
-      rgeo = 3.0
+      rmaj = 2.77778
+      rgeo = 2.77778
       qinp = 1.4
-      shat = 0.8
+      shat = 0.796
       shift = 0.0
-      kappa = 0.0
+      kappa = 1.0
       kapprim = 0.0
       tri = 0.0
       triprim = 0.0
