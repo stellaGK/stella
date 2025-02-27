@@ -54,14 +54,14 @@ export GEOMETRY=$(STELLA_DIR)/geometry
 export GRIDS=$(STELLA_DIR)/grids
 export GYROKINETIC_TERMS=$(STELLA_DIR)/gyrokinetic_terms
 export NEOCLASSICAL=$(STELLA_DIR)/neoclassical
-export PARAMETERS=$(STELLA_DIR)/parameters
+export NAMELISTS=$(STELLA_DIR)/namelists
 export RADIAL_VARIATION=$(STELLA_DIR)/radial_variation
-export INPUTFILETOOL=$(STELLA_DIR)/parameters/input_file_tool
+export INPUTFILETOOL=$(STELLA_DIR)/namelists/input_file_tool
 SUBFOLDERS := $(CALCULATIONS) $(DIAGNOSTICS) $(COLLISIONS) $(FIELDS) $(GEOMETRY) $(GRIDS) 
-SUBFOLDERS := $(SUBFOLDERS) $(GYROKINETIC_TERMS) $(NEOCLASSICAL) $(PARAMETERS) $(RADIAL_VARIATION)
+SUBFOLDERS := $(SUBFOLDERS) $(GYROKINETIC_TERMS) $(NEOCLASSICAL) $(NAMELISTS) $(RADIAL_VARIATION)
 SUBFOLDERS := $(SUBFOLDERS) $(INPUTFILETOOL)
 VPATH_SUBFOLDERS := :$(CALCULATIONS):$(DIAGNOSTICS):$(COLLISIONS):$(FIELDS):$(GEOMETRY):$(GRIDS):
-VPATH_SUBFOLDERS := :$(VPATH_SUBFOLDERS):$(GYROKINETIC_TERMS):$(NEOCLASSICAL):$(PARAMETERS):$(RADIAL_VARIATION):
+VPATH_SUBFOLDERS := :$(VPATH_SUBFOLDERS):$(GYROKINETIC_TERMS):$(NEOCLASSICAL):$(NAMELISTS):$(RADIAL_VARIATION):
 VPATH_SUBFOLDERS := :$(VPATH_SUBFOLDERS):$(INPUTFILETOOL):
 
 # Check directories
@@ -266,7 +266,7 @@ $(OBJ)/%.o: $(GYROKINETIC_TERMS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 $(OBJ)/%.o: $(NEOCLASSICAL)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
-$(OBJ)/%.o: $(PARAMETERS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
+$(OBJ)/%.o: $(NAMELISTS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(RADIAL_VARIATION)/%.f90 $(external_modules) | $(OBJ) $(MOD)
@@ -432,7 +432,7 @@ remove-temp-files:
 	@echo "   - remove temp files" 
 	@-rm -f $(UTILS)/*~ $(CALCULATIONS)/*~ $(DIAGNOSTICS)/*~ $(COLLISIONS)/*~ 
 	@-rm -f $(FIELDS)/*~ $(GEOMETRY)/*~ $(GRIDS)/*~ $(GYROKINETIC_TERMS)/*~ 
-	@-rm -f $(NEOCLASSICAL)/*~ $(PARAMETERS)/*~ $(RADIAL_VARIATION)/*~ 
+	@-rm -f $(NEOCLASSICAL)/*~ $(NAMELISTS)/*~ $(RADIAL_VARIATION)/*~ 
 
 # In case cmake was used, clean it up as well
 CMAKE := $(COMPILATION_DIR)/build_cmake

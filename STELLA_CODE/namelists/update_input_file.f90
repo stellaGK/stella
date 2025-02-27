@@ -194,12 +194,13 @@ contains
       use file_utils, only: input_unit_exist
       use parameters_physics, only: set_default_parameters_physics => set_default_parameters
       use parameters_physics, only: include_parallel_streaming, include_mirror, nonlinear
-      use parameters_physics, only: xdriftknob, ydriftknob, wstarknob, adiabatic_option, prp_shear_enabled
+      use parameters_physics, only: xdriftknob, ydriftknob, wstarknob, prp_shear_enabled
       use parameters_physics, only: hammett_flow_shear, include_pressure_variation, include_geometric_variation
       use parameters_physics, only: include_parallel_nonlinearity, suppress_zonal_interaction, full_flux_surface
       use parameters_physics, only: include_apar, include_bpar, radial_variation
-      use parameters_physics, only: beta, zeff, tite, nine, rhostar, vnew_ref
+      use parameters_physics, only: beta, zeff, rhostar, vnew_ref
       use parameters_physics, only: g_exb, g_exbfac, omprimfac, irhostar
+      use namelist_adiabatic_electrons, only: read_adiabatic_electrons_namelist => read_namelist
    
       implicit none
       
@@ -212,13 +213,19 @@ contains
       integer :: unit_number_temp
       logical :: new_nml_exist
       
+      ! Define the variables in the namelist <adiabatic_electrons>
+      integer :: adiabatic_option_switch, adiabatic_option_periodic, adiabatic_option_fieldlineavg
+      character(30) :: adiabatic_option
+      real :: tite, nine
+      
       ! Current namelist
       namelist /parameters_physics/ include_parallel_streaming, include_mirror, nonlinear, &
         adiabatic_option, prp_shear_enabled, include_apar, include_bpar, radial_variation, &
         hammett_flow_shear, include_pressure_variation, include_geometric_variation, &
         include_parallel_nonlinearity, suppress_zonal_interaction, full_flux_surface, & 
         xdriftknob, ydriftknob, wstarknob, g_exb, g_exbfac, omprimfac, irhostar, &
-        beta, zeff, tite, nine, rhostar, vnew_ref 
+        beta, zeff, tite, nine, rhostar, vnew_ref
+      namelist /adiabatic_electrons/ adiabatic_option, tite, nine
       
       !------------------------------------------------------------------------- 
       
@@ -236,9 +243,16 @@ contains
          call backwards_compatibility_physics_flags()
          call backwards_compatibility_time_advance_knobs()
       end if  
+      
+      ! TODO - Finish this
+      call read_adiabatic_electrons_namelist(adiabatic_option_switch, nine, tite, &
+         adiabatic_option_fieldlineavg, adiabatic_option_periodic)
+      if (adiabatic_option_switch==adiabatic_option_periodic) adiabatic_option = 'no-field-line-average-term'
+      if (adiabatic_option_switch==adiabatic_option_fieldlineavg) adiabatic_option = 'field-line-average-term'
 
       ! Write the namelist to <run_name>_with_defaults.in or default_stella_input.in
       write(unit=unit_number, nml=parameters_physics)
+      write(unit=unit_number, nml=adiabatic_electrons)
       
    contains
    
