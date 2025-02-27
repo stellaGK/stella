@@ -220,11 +220,11 @@ contains
       
       ! Current namelist
       namelist /parameters_physics/ include_parallel_streaming, include_mirror, nonlinear, &
-        adiabatic_option, prp_shear_enabled, include_apar, include_bpar, radial_variation, &
+        prp_shear_enabled, include_apar, include_bpar, radial_variation, &
         hammett_flow_shear, include_pressure_variation, include_geometric_variation, &
         include_parallel_nonlinearity, suppress_zonal_interaction, full_flux_surface, & 
         xdriftknob, ydriftknob, wstarknob, g_exb, g_exbfac, omprimfac, irhostar, &
-        beta, zeff, tite, nine, rhostar, vnew_ref
+        beta, zeff, rhostar, vnew_ref
       namelist /adiabatic_electrons/ adiabatic_option, tite, nine
       
       !------------------------------------------------------------------------- 

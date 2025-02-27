@@ -2,7 +2,6 @@
 ! Simple linear example using CBC
 
 &parameters_physics
-  adiabatic_option = 'iphi00=2'
   full_flux_surface = .false.
   include_apar = .false.
   nonlinear = .false.
