@@ -1,0 +1,96 @@
+ 
+! Simple linear example using CBC
+
+&physics_flags
+  adiabatic_option = 'iphi00=2'
+  full_flux_surface = .false.
+  include_apar = .false.
+  nonlinear = .false.
+/
+&species_knobs
+  nspec = 2
+  species_option = 'stella'
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 3.0
+  type = 'ion'
+  z = 1.0
+/
+&species_parameters_2
+  dens = 1.0
+  fprim = 1.0
+  mass = 0.0005446
+  temp = 1.0
+  tprim = 3.0
+  type = 'electron'
+  z = -1.0
+/
+&kt_grids_knobs
+  grid_option='range'
+/
+&kt_grids_range_parameters
+  naky = 10
+  aky_min = 0.1
+  aky_max = 1.0
+  nakx = 1
+  akx_min = 0.0
+  akx_max = 0.0
+/
+&zgrid_parameters
+  boundary_option = 'zero'
+  nperiod = 1
+  nzed = 8
+/
+&vpamu_grids_parameters
+  nmu = 4 
+  nvgrid = 6 
+/
+&knobs
+  delt = 0.05 
+  nstep = 10
+  print_extra_info_to_terminal = .false.  
+/
+&stella_diagnostics_knobs
+  nsave = 10
+  nwrite = 1
+  save_for_restart = .false.
+  write_all = .true.
+/
+&init_g_knobs
+  ginit_option = 'noise'
+  phiinit = 0.01
+/
+&dissipation
+  hyper_dissipation = .true.
+/
+&geo_knobs
+  geo_option = 'miller'
+/
+&time_advance_knobs 
+  explicit_option = 'rk2'
+/
+&layouts_knobs
+  vms_layout = 'vms'
+  xyzs_layout = 'yxzs'
+/
+&millergeo_parameters
+  nzed_local = 128
+  rhoc = 0.5
+  shat = 0.796
+  qinp = 1.4
+  rmaj = 2.77778
+  rgeo = 2.77778
+  shift = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  betaprim = 0.0
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  betadbprim = 0.0
+/ 
