@@ -193,14 +193,15 @@ contains
 
       use file_utils, only: input_unit_exist
       use parameters_physics, only: set_default_parameters_physics => set_default_parameters
-      use parameters_physics, only: include_parallel_streaming, include_mirror, nonlinear
-      use parameters_physics, only: xdriftknob, ydriftknob, wstarknob, prp_shear_enabled
+      use parameters_physics, only: prp_shear_enabled
       use parameters_physics, only: hammett_flow_shear, include_pressure_variation, include_geometric_variation
-      use parameters_physics, only: include_parallel_nonlinearity, suppress_zonal_interaction, full_flux_surface
+      use parameters_physics, only: full_flux_surface
       use parameters_physics, only: include_apar, include_bpar, radial_variation
       use parameters_physics, only: beta, zeff, rhostar, vnew_ref
       use parameters_physics, only: g_exb, g_exbfac, omprimfac, irhostar
       use namelist_adiabatic_electrons, only: read_adiabatic_electrons_namelist => read_namelist
+      use namelist_gyrokinetic_equation, only: read_gyrokinetic_equation_namelist => read_namelist
+      use namelist_modify_gyrokinetic_equation, only: read_modify_gyrokinetic_equation_namelist => read_namelist
    
       implicit none
       
@@ -218,14 +219,24 @@ contains
       character(30) :: adiabatic_option
       real :: tite, nine
       
+      ! Define the variables in the namelist <gyrokinetic_equation>
+      logical :: include_parallel_nonlinearity
+      logical :: include_parallel_streaming
+      logical :: include_mirror, nonlinear
+      real :: xdriftknob, ydriftknob, wstarknob
+      
+      ! Define the variables in the namelist <modify_gyrokinetic_equation>
+      logical :: suppress_zonal_interaction
+      
+      
       ! Current namelist
-      namelist /parameters_physics/ include_parallel_streaming, include_mirror, nonlinear, &
-        prp_shear_enabled, include_apar, include_bpar, radial_variation, &
+      namelist /parameters_physics/ prp_shear_enabled, include_apar, include_bpar, radial_variation, &
         hammett_flow_shear, include_pressure_variation, include_geometric_variation, &
-        include_parallel_nonlinearity, suppress_zonal_interaction, full_flux_surface, & 
-        xdriftknob, ydriftknob, wstarknob, g_exb, g_exbfac, omprimfac, irhostar, &
-        beta, zeff, rhostar, vnew_ref
+        full_flux_surface, g_exb, g_exbfac, omprimfac, irhostar, beta, zeff, rhostar, vnew_ref
       namelist /adiabatic_electrons/ adiabatic_option, tite, nine
+      namelist /modify_gyrokinetic_equation/ suppress_zonal_interaction
+      namelist /gyrokinetic_equation/ xdriftknob, ydriftknob, wstarknob, nonlinear, &
+            include_mirror, include_parallel_streaming, include_parallel_nonlinearity
       
       !------------------------------------------------------------------------- 
       
@@ -245,6 +256,9 @@ contains
       end if  
       
       ! TODO - Finish this
+      call read_modify_gyrokinetic_equation_namelist(suppress_zonal_interaction)
+      call read_gyrokinetic_equation_namelist(xdriftknob, ydriftknob, wstarknob, nonlinear, &
+      include_mirror, include_parallel_streaming, include_parallel_nonlinearity)
       call read_adiabatic_electrons_namelist(adiabatic_option_switch, nine, tite, &
          adiabatic_option_fieldlineavg, adiabatic_option_periodic)
       if (adiabatic_option_switch==adiabatic_option_periodic) adiabatic_option = 'no-field-line-average-term'

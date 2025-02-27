@@ -58,18 +58,20 @@ module parameters_physics
    integer :: adiabatic_option_periodic
    integer :: adiabatic_option_fieldlineavg
    integer :: adiabatic_option_switch
-
+   
+   ! Gyrokinetic equation
+   logical :: include_parallel_nonlinearity
    logical :: include_parallel_streaming
-   logical :: include_mirror
-   logical :: nonlinear
-   real :: xdriftknob, ydriftknob, wstarknob 
+   logical :: include_mirror, nonlinear
+   real :: xdriftknob, ydriftknob, wstarknob
+   
+   ! Modify gyrokinetic equation
+   logical :: suppress_zonal_interaction
  
    logical :: prp_shear_enabled
    logical :: hammett_flow_shear 
    logical :: include_pressure_variation 
    logical :: include_geometric_variation
-   logical :: include_parallel_nonlinearity
-   logical :: suppress_zonal_interaction
    
    logical :: full_flux_surface
    logical :: include_apar
@@ -91,24 +93,14 @@ contains
    !**********************************************************************
    subroutine set_default_parameters
 
-      implicit none 
-
-      !> Standard gyrokinetic terms
-      include_parallel_streaming = .true.
-      include_mirror = .true.
-      nonlinear = .false.
-      xdriftknob = 1.0
-      ydriftknob = 1.0
-      wstarknob = 1.0
-
+      implicit none
 
       !> Additional effects that can be included but are not by default
       prp_shear_enabled = .false.
       hammett_flow_shear = .true.
       include_pressure_variation = .false.
       include_geometric_variation = .true.
-      include_parallel_nonlinearity = .false.
-      suppress_zonal_interaction = .false.
+      
       
       full_flux_surface = .false.
       include_apar = .false.
@@ -137,21 +129,42 @@ contains
       use text_options, only: text_option, get_option_value
       use file_utils, only: input_unit, error_unit, input_unit_exist
       use namelist_adiabatic_electrons, only: read_adiabatic_electrons_namelist => read_namelist
+      use namelist_gyrokinetic_equation, only: read_gyrokinetic_equation_namelist => read_namelist
+      use namelist_modify_gyrokinetic_equation, only: read_modify_gyrokinetic_equation_namelist => read_namelist
 
       implicit none
 
       if (initialised) return
-   
+
       ! Read <adiabatic_electrons> namelist 
       if (proc0) call read_adiabatic_electrons_namelist(adiabatic_option_switch, nine, tite, &
          adiabatic_option_fieldlineavg, adiabatic_option_periodic)
-     
-      ! Broadcast to all processors 
+
+      ! Broadcast to all processors
       call broadcast(adiabatic_option_fieldlineavg)
       call broadcast(adiabatic_option_periodic)
       call broadcast(adiabatic_option_switch)
       call broadcast(tite)
       call broadcast(nine)
+
+      ! Read <gyrokinetic_equation> namelist
+      if (proc0) call read_gyrokinetic_equation_namelist(xdriftknob, ydriftknob, wstarknob, nonlinear, &
+         include_mirror, include_parallel_streaming, include_parallel_nonlinearity)
+
+      ! Broadcast to all processors
+      call broadcast(include_parallel_nonlinearity)
+      call broadcast(include_parallel_streaming)
+      call broadcast(include_mirror)
+      call broadcast(nonlinear)
+      call broadcast(xdriftknob)
+      call broadcast(ydriftknob)
+      call broadcast(wstarknob)
+      
+      ! Read <modify_gyrokinetic_equation> namelist
+      call read_modify_gyrokinetic_equation_namelist(suppress_zonal_interaction)
+
+      ! Broadcast to all processors
+      call broadcast(suppress_zonal_interaction)
 
       if (proc0) call read_input_file
       call broadcast_parameters
@@ -190,7 +203,7 @@ contains
         if (nml_exist) read (unit=in_file, nml=parameters_physics)
 
         if (irhostar > 0) rhostar = 1./irhostar
-        !> Don't allow people to set rhostar when its not full flux                                                                                                                                        
+        !> Don't allow people to set rhostar when its not full flux                                                                              
         !> Otherwise phase_shift_angle will be changed in grids_kxky.f90
         if (.not. full_flux_surface) rhostar = 0
 
@@ -209,20 +222,12 @@ contains
 
         implicit none 
 
-        call broadcast(include_parallel_streaming)
-        call broadcast(include_mirror)
-        call broadcast(nonlinear)
-        call broadcast(xdriftknob)
-        call broadcast(ydriftknob)
-        call broadcast(wstarknob)
 
 
         call broadcast(prp_shear_enabled)
         call broadcast(hammett_flow_shear) 
         call broadcast(include_pressure_variation)
         call broadcast(include_geometric_variation)
-        call broadcast(include_parallel_nonlinearity)
-        call broadcast(suppress_zonal_interaction)
         
         call broadcast(full_flux_surface)
         call broadcast(include_apar)

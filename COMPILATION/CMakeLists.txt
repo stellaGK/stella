@@ -99,6 +99,8 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/namelists/parameters_kxky_grids_box.f90
   ../STELLA_CODE/namelists/parameters_kxky_grids_range.f90
   ../STELLA_CODE/namelists/namelist_adiabatic_electrons.f90
+  ../STELLA_CODE/namelists/namelist_gyrokinetic_equation.f90
+  ../STELLA_CODE/namelists/namelist_modify_gyrokinetic_equation.f90
   ../STELLA_CODE/namelists/namelist_dissipation.f90
   ../STELLA_CODE/parameters_numerical.f90
   ../STELLA_CODE/parameters_physics.f90

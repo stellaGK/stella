@@ -61,6 +61,8 @@ stella_mod = \
 	 $(OBJ_DIR)/multibox.o \
 	 $(OBJ_DIR)/namelist_adiabatic_electrons.o \
 	 $(OBJ_DIR)/namelist_dissipation.o \
+	 $(OBJ_DIR)/namelist_gyrokinetic_equation.o \
+	 $(OBJ_DIR)/namelist_modify_gyrokinetic_equation.o \
 	 $(OBJ_DIR)/neasyf.o \
 	 $(OBJ_DIR)/neoclassical_terms.o \
 	 $(OBJ_DIR)/netcdf_utils.o \
@@ -134,6 +136,8 @@ update_input_file_program_mod = \
 	 $(OBJ_DIR)/multibox.o \
 	 $(OBJ_DIR)/namelist_adiabatic_electrons.o \
 	 $(OBJ_DIR)/namelist_dissipation.o \
+	 $(OBJ_DIR)/namelist_gyrokinetic_equation.o \
+	 $(OBJ_DIR)/namelist_modify_gyrokinetic_equation.o \
 	 $(OBJ_DIR)/neoclassical_terms.o \
 	 $(OBJ_DIR)/netcdf_utils.o \
 	 $(OBJ_DIR)/parameters_diagnostics.o \
@@ -815,6 +819,14 @@ $(OBJ_DIR)/namelist_adiabatic_electrons.o: \
 $(OBJ_DIR)/namelist_dissipation.o: \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/mp.o 
+$(OBJ_DIR)/namelist_gyrokinetic_equation.o: \
+	 $(OBJ_DIR)/file_utils.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/text_options.o 
+$(OBJ_DIR)/namelist_modify_gyrokinetic_equation.o: \
+	 $(OBJ_DIR)/file_utils.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/text_options.o 
 $(OBJ_DIR)/neasyf.o: 
 $(OBJ_DIR)/neoclassical_terms.o: \
 	 $(OBJ_DIR)/debug_flags.o \
@@ -881,6 +893,7 @@ $(OBJ_DIR)/parameters_physics.o: \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/namelist_adiabatic_electrons.o \
+	 $(OBJ_DIR)/namelist_gyrokinetic_equation.o \
 	 $(OBJ_DIR)/text_options.o 
 $(OBJ_DIR)/ran.o: 
 $(OBJ_DIR)/redistribute.o: \
@@ -1087,6 +1100,8 @@ $(OBJ_DIR)/update_input_file.o: \
 	 $(OBJ_DIR)/multibox.o \
 	 $(OBJ_DIR)/namelist_adiabatic_electrons.o \
 	 $(OBJ_DIR)/namelist_dissipation.o \
+	 $(OBJ_DIR)/namelist_gyrokinetic_equation.o \
+	 $(OBJ_DIR)/namelist_modify_gyrokinetic_equation.o \
 	 $(OBJ_DIR)/neoclassical_terms.o \
 	 $(OBJ_DIR)/parameters_diagnostics.o \
 	 $(OBJ_DIR)/parameters_kxky_grids.o \
