@@ -19,6 +19,7 @@ CHIP=skylake
 
 USE_FFT = fftw3
 USE_NETCDF = on
+USE_LOCAL_SPFUNC=on
 
 MODULE_FLAG = -module
 
