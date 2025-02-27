@@ -22,7 +22,16 @@ $(GIT_VERSION_DIR)/git_version.f90:
 	@echo "  "
 
 # Now that we made sure that the submodule exists, include its makefile
+GIR_PROJECT := $(shell if [ -d $(PROJECT_DIR)/.git ]; then echo "ok"; fi)
+ifeq ($(GIR_PROJECT),)
+$(info   )
+$(info WARNING: The .git folder does not exist.)
+$(info To use the latest external projects, please link the code to Github.)
+$(info   )
+endif
+ifeq ($(GIR_PROJECT),ok)
 sinclude $(GIT_VERSION_DIR)/../Makefile
+endif
 
 # The fortdep script doesn't know about Fortran submodules,
 # so we need to write the dependencies ourselves:
@@ -37,10 +46,10 @@ $(FPP)/git_version_impl.f90: $(GIT_VERSION_DIR)/git_version_impl.F90 | $(GIT_VER
 # Create *.o files from *.f90 files using the Fortran f90 (FC) compiler 
 $(OBJ)/git_version.o: $(GIT_VERSION_DIR)/git_version.f90 
 	@echo "   (git) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) -I $(MOD) -J $(MOD) -o $@ -c $<
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) -I $(MOD) $(MODULE_FLAG) $(MOD) -o $@ -c $<
 $(OBJ)/git_version_impl.o: $(FPP)/git_version_impl.f90 
 	@echo "   (git) *.f90 to *.o: $(notdir $<)" 
-	@$(FC) $(F90FLAGS) $(INC_FLAGS) -I $(MOD) -J $(MOD) -o $@ -c $<
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) -I $(MOD) $(MODULE_FLAG) $(MOD) -o $@ -c $<
 
 # Extra commands so we can compile mini_libstell separately through
 # >> make mini_libstell_clean; make mini_libstell

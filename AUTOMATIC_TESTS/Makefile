@@ -53,6 +53,11 @@ numerical-tests-system:
 test-tools: check-tests-dependencies $(PROJECT_DIR)/stella
 	@echo "Running: test stella tools"
 	@python3 -m pytest -v -rF -W ignore::DeprecationWarning $(TEST_DIR)/test_tools/
+
+# Run the automated stella tests (the -r flag shows the full stella output and -rf shows extra info about the failed outputs)
+pyrokinetics-tests: check-tests-dependencies $(PROJECT_DIR)/stella
+	@echo "Running: automated stella tests for pyrokinetics"
+	@python3 -m pytest -v -rF -W ignore::DeprecationWarning $(TEST_DIR)/pyrokinetics_tests/
 	
 # Run the automated stella tests (the -r flag shows the full stella output)
 # -rA shows all outputs, -rf shows only failed outputs 

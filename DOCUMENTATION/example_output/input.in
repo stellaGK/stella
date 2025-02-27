@@ -1,0 +1,11 @@
+&physics_flags
+  nonlinear = .true.
+/
+&species_knobs
+  nspec = 2
+/
+&vmec_parameters
+  torflux = 0.49
+  vmec_filename = 'wout_w7xr003.nc'
+/
+

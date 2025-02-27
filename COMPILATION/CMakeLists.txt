@@ -8,7 +8,10 @@ project(stella
   VERSION 0.3
   LANGUAGES Fortran)
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/COMPILATION/cmake" ${CMAKE_MODULE_PATH})
+# Cmake files
+set(CMAKE_MODULE_PATH
+"${CMAKE_SOURCE_DIR}/COMPILATION/cmake" 
+${CMAKE_MODULE_PATH})
 
 # Sets default build type to RelWithDebInfo
 include(BuildType)
@@ -42,7 +45,7 @@ option(STELLA_UPDATE_GIT_SUBMODULES "Check submodules are up-to-date during buil
 
 # Sources that don't need preprocessing
 set(STELLA_SOURCES_f90
-  ../EXTERNALS/utils/define.inc
+  ../STELLA_CODE/utils/define.inc
   ../STELLA_CODE/calculations/calculations_kxky.f90
   ../STELLA_CODE/calculations/dist_redistribute.f90
   ../STELLA_CODE/calculations/finite_differences.f90
@@ -157,7 +160,7 @@ add_executable(stella
 target_link_libraries(stella PRIVATE libstella)
 
 # The include.inc file is located in EXTERNALS/utils/
-include_directories("${CMAKE_SOURCE_DIR}/EXTERNALS/utils")
+include_directories("${CMAKE_SOURCE_DIR}/STELLA_CODE/utils")
 
 # When target `stella` is built, a symlink will be created
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -269,6 +272,14 @@ target_compile_definitions(libstella PRIVATE
   $<$<Fortran_COMPILER_ID:Intel>:FCOMPILER=_INTEL_>
   $<$<Fortran_COMPILER_ID:Cray>:FCOMPILER=_CRAY_>
   )
+  
+
+# Find hdf5 packages (their CMake file needs the C language)
+# These lines are only needed for Mac systems on Github since January 2025
+# For some reason CMake could not find the hdf5 libraries anymore after a Github update
+ENABLE_LANGUAGE(C)
+find_package(HDF5 REQUIRED)
+target_link_libraries(libstella PUBLIC ${HDF5_LIBRARIES}) 
 
 ############################################################
 # Add some extra flags for Debug configs
@@ -289,7 +300,7 @@ target_compile_options(libstella PRIVATE
 # Internal libraries: <stella_utils> and <mini_libstell>
 ############################################################
 
-add_subdirectory(../EXTERNALS/utils ${CMAKE_CURRENT_BINARY_DIR}/EXTERNALS/utils)
+add_subdirectory(../STELLA_CODE/utils ${CMAKE_CURRENT_BINARY_DIR}/STELLA_CODE/utils)
 add_subdirectory(../EXTERNALS/mini_libstell ${CMAKE_CURRENT_BINARY_DIR}/EXTERNALS/mini_libstell)
 target_link_libraries(libstella PUBLIC mini_libstell stella_utils)
 

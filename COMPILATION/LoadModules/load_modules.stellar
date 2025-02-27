@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# Unload the preloaded modules
+module purge
+
+# Load stellar modules needed for stella
+module load intel/2021.1.2
+module load openmpi/intel-2021.1/4.1.2
+module load fftw/intel-2021.1/openmpi-4.1.0/3.3.9
+module load hdf5/intel-2021.1/openmpi-4.1.0/1.10.6
+module load netcdf/intel-2021.1/hdf5-1.10.6/openmpi-4.1.0/4.7.4
+module load anaconda3/2020.11
+module load scalapack/openmpi-4.1.0/2.0.2
+module load cudatoolkit/11.4
+module load gsl/2.6
+
+export STELLA_SYSTEM="stellar"
+export MAKEFLAGS="-IMakefiles"

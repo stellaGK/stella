@@ -232,7 +232,7 @@ setup-stella: ensure-that-all-f90-files-exist
 
 # The -I $(MOD) flag makes sure that the compiler looks for the *.mod files in the $(MOD) directory
 # The -J $(MOD) flag makes sure that the compiler writes the *.mod files to the $(MOD) directory
-MOD_FLAGS_STELLA := -I $(MOD) -I $(UTILS_MOD) -I $(MINILIBSTELL_MOD) -J $(MOD)
+MOD_FLAGS_STELLA := -I $(MOD) -I $(UTILS_MOD) -I $(MINILIBSTELL_MOD) $(MODULE_FLAG) $(MOD)
  
 # Build object files '*.o' from '*.f90' files using the Fortran f90 compiler
 $(OBJ)/%.o: $(STELLA_DIR)/%.f90 $(external_modules) | $(OBJ) $(MOD)
@@ -242,7 +242,7 @@ $(OBJ)/%.o: $(FPP)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 	
-$(OBJ)/%.o: $(CALCULATIONS)/%.f90 $(external_modules) | $(OBJ)  $(MOD)
+$(OBJ)/%.o: $(CALCULATIONS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(DIAGNOSTICS)/%.f90 $(external_modules) | $(OBJ) $(MOD)

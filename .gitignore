@@ -38,6 +38,8 @@ system_fortran.f90
 
 # Stellapy
 !stellapy/data/stella
+*.pickle
+stellapy_figures/
 
 # Fortran tests
 automated-fortran-tests
@@ -75,6 +77,9 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+# External modules
+EXTERNALS/pyrokinetics/src/pyrokinetics/_version.py
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

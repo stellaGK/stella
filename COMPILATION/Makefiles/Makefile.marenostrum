@@ -1,0 +1,60 @@
+# Host: mn4
+
+$(warning Processing Makefile.marenostrum)
+helplocal:
+                # GK_SYSTEM = mn4
+                # You are using  Makefile.mn4 to build gs2 executables on bsc.
+
+define STANDARD_SYSTEM_CONFIGURATION
+
+export MAKEFLAGS='-j -IMakefiles';\
+export TESTEXEC='mpirun -N 48 -n 48';
+endef
+
+COMPILER=intel
+
+USE_FFT = fftw3
+USE_NETCDF = on
+
+# This line disables the automated checking
+# of the intel version which is slow
+DBLESIZEOPT = -double-size 128
+
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
+
+FC=mpiifort
+CC=icc
+MPIFC=mpiifort
+MPICC=mpiicc
+
+ifeq ($(USE_FFT),fftw3)
+        FFT_INC = $(FFTW_ROOT)/include
+        FFT_DIR = $(FFTW_ROOT)
+        FFT_LIB = -lfftw3 $(FFTW_LDFLAGS) #-lfftw3_mpi
+        CPPFLAGS   += -I $(FFT_INC)
+endif
+
+USE_HDF5=
+
+PETSC_INC=$(PETSC_DIR)/include
+
+#Note the module system sets some env vars for us
+#unfortunately some clash with values we use
+ifdef USE_NETCDF
+  NETCDF_DIR=$(NETCDF)
+  NETCDF_INC= -I $(NETCDF_ROOT)/include/
+  NETCDF_LIB= -L $(NETCDF_ROOT)/lib/ -lnetcdff -L$(NETCDF_HOME)/lib/ -lnetcdf
+endif
+
+#MPI_INC=-I$(MPI_ROOT)/include64/
+#MPI_LIB=-lmpi
+
+$(warning USE_NETCDF=$(USE_NETCDF))
+
+# The compiler either uses the "-J" flag or the "-module" flag to 
+# denote the directory where the *.mod files can be found
+MODULE_FLAG = -module
+
+# Without this the mini_linstell gets issues with the netcdf routines (cdf_inquire)
+F90FLAGS = -DNETCDF
+

@@ -10,7 +10,7 @@
 # The "?=" sets a variable if it does not already have a value. 
 ####################################################################
 
-DEBUG ?= in                # Turns on debug mode (bin) 
+DEBUG ?=                   # Turns on debug mode (bin) 
 TEST ?=                    # Turns on test mode (bin) 
 OPT ?= on                  # Optimization (on, aggressive, undefined)
 STATIC ?=                  # Prevents linking with shared libraries (bin)
@@ -25,37 +25,42 @@ USE_SFINCS ?=              # Link to sfincs library at compilation
 USE_LAPACK ?= on           # Use LAPACK, needed for test particle collisions
 HAS_ISO_C_BINDING ?= on    # Does the compiler support the iso_c_binding features of Fortran? (needed for local parallel LU decomposition) 
 
-# Which FFT library to use (fftw,fftw3,mkl_fftw,undefined)
+# Which FFT library to use (fftw, fftw3, mkl_fftw, undefined)
 # We can't have any spaces behind 'fftw3' so we can't put the comment behind it
 USE_FFT ?= fftw3
 
+# The compiler either uses the "-J" flag or the "-module" flag to 
+# denote the directory where the *.mod files can be found
+MODULE_FLAG = -J 
+
 # The following variables can be set in platform-dependent Makefile's
 # For example, inside stella/Makefiles/Makefile.marconi
+MAKE      = make
+CPP       = cpp
+CPPFLAGS  = -P -traditional
+FC	       = f90
+MPIFC    ?= mpif90
+H5FC     ?= h5fc
+H5FC_par ?= h5pfc
+F90FLAGS  =
+F90OPTFLAGS =
+CC        = cc
+MPICC    ?= mpicc
+H5CC     ?= h5cc
+H5CC_par ?= h5pcc
+CFLAGS    =
+COPTFLAGS =
+LD        = $(FC)
+LDFLAGS   = $(F90FLAGS)
+ARCH      = ar
+ARCHFLAGS = cr
+RANLIB    = ranlib
+AWK       = awk
+PERL      = perl
+FORD     ?= ford
 
-MAKE		 = make
-CPP		     = cpp
-CPPFLAGS	 = -P -traditional
-FC	         = f90
-MPIFC       ?= mpif90
-H5FC		?= h5fc
-H5FC_par	?= h5pfc
-F90FLAGS	 =
-F90OPTFLAGS	 =
-CC		     = cc
-MPICC		?= mpicc
-H5CC		?= h5cc
-H5CC_par	?= h5pcc
-CFLAGS		 =
-COPTFLAGS 	 =
-LD 		     = $(FC)
-LDFLAGS 	 = $(F90FLAGS)
-ARCH 		 = ar
-ARCHFLAGS 	 = cr
-RANLIB		 = ranlib
-AWK 		 = awk
-PERL		 = perl
-FORD       	?= ford
-
+# The following variables can be set in platform-dependent Makefile's
+# For example, inside stella/Makefiles/Makefile.marconi
 MPI_INC ?=
 MPI_LIB ?=
 FFT_INC ?=
@@ -71,6 +76,8 @@ SFINCS_INC ?=
 PETSC_LIB ?=
 PETSC_INC ?=
 LIBSTELL_LIB ?=
+LAPACK_LIB ?=
+LAPACK_INC ?=
 
 ####################################################################
 #                        PLATFORM DEPENDENCE                       #
@@ -164,11 +171,13 @@ endif
 ifdef USE_NETCDF
 	ifeq ($(NETCDF_LIB),)
 		NETCDF_LIB = -lnetcdf
-    endif
+	endif
 	CPPFLAGS += -DNETCDF
 endif
 ifdef USE_LAPACK
-    LAPACK_LIB ?= -llapack
+	ifeq ($(LAPACK_LIB),)
+		LAPACK_LIB = -llapack
+	endif
 	CPPFLAGS += -DLAPACK
 endif
 ifdef USE_HDF5
@@ -244,7 +253,8 @@ export NETCDF_LIB
 export COMPILATION_DIR
 export FC 
 
-# Export some variable, so they become available to compile the utils scripts
+# Export some variables, so they become available to the other make files
+export MODULE_FLAG
 export INC_FLAGS
 export CPPFLAGS
 export CPP
