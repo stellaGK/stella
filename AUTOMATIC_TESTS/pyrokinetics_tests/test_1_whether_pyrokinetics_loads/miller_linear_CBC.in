@@ -13,7 +13,7 @@
   nstep = 10
   print_extra_info_to_terminal = .false.
 /
-&stella_diagnostics_knobs
+&diagnostics
   nsave = 10
   nwrite = 1
   save_for_restart = .false.
@@ -70,9 +70,6 @@
 /
 &geo_knobs
   geo_option = 'miller'
-/
-&time_advance_knobs 
-  explicit_option = 'rk2'
 /
 &layouts_knobs
   vms_layout = 'vms'

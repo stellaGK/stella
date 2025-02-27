@@ -65,6 +65,9 @@ def test_whether_all_output_files_are_gerenated_when_running_stella(error=False)
 #-------------------------------------------------------------------------------
 #         Check whether all quantities are present in the netcdf file          #
 #-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+#         Check whether all quantities are present in the netcdf file          #
+#-------------------------------------------------------------------------------
 def test_whether_correct_quantities_are_present_in_netcdf_file(error=False):
     '''Check whether the correct quantities are present in the netcdf output file.''' 
     

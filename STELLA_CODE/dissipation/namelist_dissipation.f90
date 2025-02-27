@@ -22,10 +22,10 @@ contains
       logical, intent(out) :: include_collisions, collisions_implicit, hyper_dissipation
       character(30), intent(out) :: collision_model
 
-      if (proc0) call set_default_parameters
-      if (proc0) call read_input_file
-      if (proc0) call check_inputs
-      call broadcast_parameters
+      if (.not. proc0) return
+      call set_default_parameters
+      call read_input_file
+      call check_inputs
 
    contains
 
@@ -85,25 +85,6 @@ contains
          collision_model = "dougherty" 
 
       end subroutine set_default_parameters
-
-
-      !**********************************************************************
-      !                         BROADCAST OPTIONS                           !
-      !**********************************************************************
-      ! Broadcast these parameters to all the processors. This is necessary
-      ! because the input file is only read on the first processor (proc0).
-      subroutine broadcast_parameters
-
-         use mp, only: broadcast
-
-         implicit none
-         
-         call broadcast(include_collisions)
-         call broadcast(collisions_implicit)
-         call broadcast(collision_model)
-         call broadcast(hyper_dissipation)
-
-      end subroutine broadcast_parameters
 
    end subroutine read_namelist
 

@@ -1907,7 +1907,7 @@ contains
    
       ! Read the <dissipation> namelist
       call read_dissipation_namelist(include_collisions, collisions_implicit, collision_model, hyper_dissipation)
-      
+
       ! Write the namelist to <run_name>_with_defaults.in or default_stella_input.in
       write(unit=unit_number, nml=dissipation)
       

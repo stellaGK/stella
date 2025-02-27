@@ -24,7 +24,7 @@ contains
 
    subroutine init_dissipation
 
-      use mp, only: proc0
+      use mp, only: proc0, broadcast
       use hyper, only: init_hyper
       use parameters_numerical, only: print_extra_info_to_terminal
       
@@ -40,7 +40,13 @@ contains
       implicit none
 
       ! Read <dissipation> namelist in the input file
-      call read_dissipation_namelist(include_collisions, collisions_implicit, collision_model, hyper_dissipation)
+      if (proc0) call read_dissipation_namelist(include_collisions, collisions_implicit, collision_model, hyper_dissipation)
+     
+      ! Broadcast to all processors 
+      call broadcast(include_collisions)
+      call broadcast(collisions_implicit)
+      call broadcast(collision_model)
+      call broadcast(hyper_dissipation)
 
       ! Read input parameters for the dougherty or fokker-planck collision model
       if (include_collisions) then
@@ -89,7 +95,7 @@ contains
          call init_hyper
       end if
 
-   end subroutine init_dissipation
+   end subroutine init_dissipation 
 
    subroutine init_collisions
 
