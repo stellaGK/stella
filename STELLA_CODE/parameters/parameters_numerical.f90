@@ -1,5 +1,5 @@
 !###############################################################################
-!########################### READ NUMERICAL PARAMETES ##########################
+!########################## READ NUMERICAL PARAMETERS ##########################
 !###############################################################################
 ! Namelist: &numerical
 ! These flags will allow you to toggle the algorithm choices in stella.
@@ -187,7 +187,6 @@ contains
       logical :: error = .false.
 
       if (initialised) return
-
       if (proc0) call set_default_parameters
       if (proc0) call read_input_file
       call broadcast_parameters

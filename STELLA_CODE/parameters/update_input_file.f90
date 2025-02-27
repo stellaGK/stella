@@ -1881,8 +1881,7 @@ contains
    subroutine write_dissipation(unit_number, write_input_file)
 
       use file_utils, only: input_unit_exist
-      use dissipation, only: set_defaults_for_dissipation => set_default_parameters
-      use dissipation, only: include_collisions, collisions_implicit, collision_model, hyper_dissipation
+      use namelist_dissipation, only: read_dissipation_namelist => read_namelist
    
       implicit none
       
@@ -1895,6 +1894,10 @@ contains
       integer :: unit_number_temp
       logical :: new_nml_exist
       
+      ! Namelist parameters
+      logical :: include_collisions, collisions_implicit, hyper_dissipation
+      character(30) :: collision_model
+      
       ! Namelist
       namelist /dissipation/ include_collisions, collisions_implicit, collision_model, hyper_dissipation
       
@@ -1902,15 +1905,9 @@ contains
       
       if (debug) write(*,*) 'update_input_file::write_dissipation'
    
-      ! Read in the default parameters set in stella 
-      call set_defaults_for_dissipation()
+      ! Read the <dissipation> namelist
+      call read_dissipation_namelist(include_collisions, collisions_implicit, collision_model, hyper_dissipation)
       
-      ! Read the user-specified input parameters in <run_name>.in
-      if (write_input_file) then
-         unit_number_temp = input_unit_exist("dissipation", new_nml_exist) 
-         if (new_nml_exist) read (unit=unit_number_temp, nml=dissipation) 
-      end if  
-
       ! Write the namelist to <run_name>_with_defaults.in or default_stella_input.in
       write(unit=unit_number, nml=dissipation)
       
