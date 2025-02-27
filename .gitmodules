@@ -7,3 +7,6 @@
 [submodule "externals/neasyf"]
 	path = EXTERNALS/neasyf
 	url = https://github.com/PlasmaFAIR/neasy-f.git
+[submodule "EXTERNALS/pyrokinetics"]
+	path = EXTERNALS/pyrokinetics
+	url = https://github.com/pyro-kinetics/pyrokinetics
