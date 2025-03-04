@@ -267,6 +267,8 @@ contains
       ! Write the namelist to <run_name>_with_defaults.in or default_stella_input.in
       write(unit=unit_number, nml=parameters_physics)
       write(unit=unit_number, nml=adiabatic_electrons)
+      write(unit=unit_number, nml=modify_gyrokinetic_equation)
+      write(unit=unit_number, nml=gyrokinetic_equation)
       
    contains
    
