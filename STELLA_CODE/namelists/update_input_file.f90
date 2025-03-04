@@ -245,17 +245,13 @@ contains
       ! Read in the default parameters set in stella 
       call set_default_parameters_physics()
       
-      ! Read the user-specified input parameters in <run_name>.in
-      ! And include backwards compatibility for old namelists
+      ! Read the user-specified input parameters in <run_name>.in 
       if (write_input_file) then
-         unit_number_temp = input_unit_exist("parameters_physics", new_nml_exist) 
+         unit_number_temp = input_unit_exist("parameters_physics", new_nml_exist)
          if (new_nml_exist) read (unit=unit_number_temp, nml=parameters_physics)
-         call backwards_compatibility_parameters()
-         call backwards_compatibility_physics_flags()
-         call backwards_compatibility_time_advance_knobs()
       end if  
       
-      ! TODO - Finish this
+      ! Read the new namelists
       call read_modify_gyrokinetic_equation_namelist(suppress_zonal_interaction)
       call read_gyrokinetic_equation_namelist(xdriftknob, ydriftknob, wstarknob, nonlinear, &
       include_mirror, include_parallel_streaming, include_parallel_nonlinearity)
@@ -263,6 +259,13 @@ contains
          adiabatic_option_fieldlineavg, adiabatic_option_periodic)
       if (adiabatic_option_switch==adiabatic_option_periodic) adiabatic_option = 'no-field-line-average-term'
       if (adiabatic_option_switch==adiabatic_option_fieldlineavg) adiabatic_option = 'field-line-average-term'
+      
+      ! Backwards compatibility for old namelists
+      if (write_input_file) then
+         call backwards_compatibility_parameters()
+         call backwards_compatibility_physics_flags()
+         call backwards_compatibility_time_advance_knobs()
+      end if 
 
       ! Write the namelist to <run_name>_with_defaults.in or default_stella_input.in
       write(unit=unit_number, nml=parameters_physics)
