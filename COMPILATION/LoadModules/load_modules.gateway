@@ -5,8 +5,7 @@ module purge
 export STELLA_SYSTEM='gateway'
 export MAKEFLAGS=-IMakefiles
 
-# Load Xula modules
-
+# Load Gateway modules
 module load cineca
 module load intel/pe-xe-2017--binary
 module load intelmpi/2017--binary
@@ -20,13 +19,11 @@ module load mkl/2017--binary
 module load lapack/3.6.1--intel--pe-xe-2017--binary
 module load blas/3.6.0--intel--pe-xe-2017--binary
 
-
 # Compile stella with CMake
 module load cmake/3.26.3-dxu
 
 # Numerical tests need python
 module load python/3.9.4
-
 
 # Check loaded modules
 echo "   "
@@ -35,8 +32,3 @@ gcc --version
 echo "Python version:"
 python --version
 echo "   "
-
-# Set some directories for the make file of xula
-#export NETCDF_HOME=/mnt/lustre/home/spack/spack/opt/spack/linux-rocky8-icelake/gcc-8.5.0/netcdf-c-4.9.2-tm5mqc44n3zsrs4sildwyrv2ynjxfnlh/
-#export FFT_HOME=/mnt/lustre/home/spack/spack/opt/spack/linux-rocky8-icelake/gcc-8.5.0/fftw-3.3.10-gyw6vjk5lqaocgtvd42czbeai4qdiecq/
-#export LAPACK_HOME=/mnt/lustre/home/spack/spack/opt/spack/linux-rocky8-icelake/gcc-8.5.0/netlib-lapack-3.11.0-af4h4cocidqmbtafrjzzqwky3wjlswmm/

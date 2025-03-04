@@ -1,23 +1,23 @@
-# Host: Marconi
+# Host: Gateway
 
 helplocal:
-		# GK_SYSTEM = marconi
-		# You are using  Makefile.marconi to build gs2 executables on MARCONI.
+		# STELLA_SYSTEM = gateway
+		# You are using  Makefile.gateway to build stella executables on Gateway.
 
 define STANDARD_SYSTEM_CONFIGURATION
 module purge;\
-module load env-skl;\
-module load intel/pe-xe-2018--binary;\
-module load intelmpi/2018--binary;\
+module load cineca;\
+module load intel/pe-xe-2017--binary;\
+module load intelmpi/2017--binary;\
 module load szip/2.1--gnu--6.1.0;\
 module load zlib/1.2.8--gnu--6.1.0;\
-module load hdf5/1.10.4--intel--pe-xe-2018--binary;\
-module load netcdf/4.6.1--intel--pe-xe-2018--binary;\
-module load netcdff/4.4.4--intel--pe-xe-2018--binary;\
-module load fftw/3.3.7--intelmpi--2018--binary;\
-module load mkl/2018--binary
-module load scalapack;\
-module load blas;\
+module load hdf5/1.8.17--intel--pe-xe-2017--binary;\
+module load netcdf/4.4.1--intel--pe-xe-2017--binary;\
+module load netcdff/4.4.4--intel--pe-xe-2017--binary;\
+module load fftw/3.3.4--intelmpi--2017--binary;\
+module load mkl/2017--binary;\
+module load lapack/3.6.1--intel--pe-xe-2017--binary;\
+module load blas/3.6.0--intel--pe-xe-2017--binary;\
 echo Module configuration complete;\
 export MAKEFLAGS='-j -IMakefiles';\
 export TESTEXEC='mpirun -N 48 -n 48';
@@ -40,10 +40,10 @@ CC=icc
 MPIFC=mpiifort
 MPICC=mpiicc
 
-ifeq ($(USE_FFT),fftw3)	
+ifeq ($(USE_FFT),fftw3)
 	FFT_INC = 
 	FFT_DIR = $(FFTW_HOME)
-	FFT_LIB = -lfftw3 #-lfftw3_mpi
+	FFT_LIB = -lfftw3
         CPPFLAGS   += -I $$FFTW_INC
 endif	
 
