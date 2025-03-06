@@ -19,7 +19,8 @@ module fields
    public :: apar_denom
    public :: time_field_solve
    public :: fields_updated
-   public :: get_dchidy, get_dchidx
+   public :: init_tstep
+   public :: get_dchidy, get_dchidx, get_dfdy, get_dfdx
    public :: efac, efacp
    public :: nfields
 
@@ -34,6 +35,7 @@ module fields
    complex, dimension(:), allocatable :: adiabatic_response_factor
 
    logical :: fields_updated = .false.
+   logical :: init_tstep = .false.
    logical :: fields_initialized = .false.
 #ifdef ISO_C_BINDING
    integer :: phi_shared_window = MPI_WIN_NULL
@@ -804,7 +806,8 @@ contains
       end if
       if (.not. allocated(apar)) then
          allocate (apar(naky, nakx, -nzgrid:nzgrid, ntubes))
-         apar = 0.
+
+apar = 0.
       end if
       if (.not. allocated(apar_old)) then
          allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -923,6 +926,8 @@ contains
       use zgrid, only: nzgrid
       use run_parameters, only: fields_kxkyz
       use physics_flags, only: full_flux_surface
+      use zgrid, only: nzgrid, ntubes
+      use kt_grids, only: nakx, naky
 
       implicit none
 
@@ -944,7 +949,7 @@ contains
       fields_updated = .true.
       !> time the communications + field solve
       if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
-
+      
    end subroutine advance_fields_kxkyz_lo
 
    subroutine get_fields(g, phi, apar, bpar, dist, skip_fsa)
@@ -1758,6 +1763,8 @@ contains
          call mp_abort('unkown dist option in get_apar. aborting')
       end if
 
+      !apar(1,:,:,:) = 0
+
    end subroutine get_apar
 
    subroutine advance_apar(g, dist, apar)
@@ -2320,6 +2327,107 @@ contains
 
    end subroutine get_dchidy_2d
 
+  !!!> The following two subroutines calculate d field dy and d field dx
+  !!!> separately for phi, apar and bpar, so that we can calculate different
+  !!!> components of the stresses.
+  
+   subroutine get_dfdy(iz, ivmu, f, dfdy, f_flag)
+
+      use constants, only: zi
+      use gyro_averages, only: gyro_average
+      use gyro_averages, only: gyro_average_j1
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: is_idx, iv_idx, imu_idx
+      use physics_flags, only: include_bpar, include_apar
+      use run_parameters, only: fphi
+      use species, only: spec
+      use vpamu_grids, only: vpa, mu
+      use kt_grids, only: nakx, aky, naky
+
+      implicit none
+
+      integer, intent(in) :: ivmu, iz
+      complex, dimension(:, :), intent(in) :: f
+      complex, dimension(:, :), intent(out) :: dfdy
+      character(len=*), intent(in) :: f_flag
+
+      integer :: iv, is, imu
+      complex, dimension(:, :), allocatable :: field
+
+      allocate (field(naky, nakx))
+
+      dfdy = 0.
+      field = 0.
+      
+      is = is_idx(vmu_lo, ivmu)
+      iv = iv_idx(vmu_lo, ivmu)
+      imu = imu_idx(vmu_lo, ivmu)
+      if (f_flag == 'phi') then
+         field = fphi * f
+         field = zi * spread(aky, 2, nakx) * field
+         call gyro_average(field, iz, ivmu, dfdy)
+      else if (include_apar .and. f_flag == 'apar') then
+         field =  - 2.0 * vpa(iv) * spec(is)%stm_psi0 * f
+         field = zi * spread(aky, 2, nakx) * field
+         call gyro_average(field, iz, ivmu, dfdy)         
+      else if (include_bpar .and. f_flag == 'bpar') then      
+         field = 4.0 * mu(imu) * (spec(is)%tz) * f
+         field = zi * spread(aky, 2, nakx) * field
+         call gyro_average_j1(field, iz, ivmu, dfdy)
+      end if
+      deallocate(field)
+
+   end subroutine get_dfdy
+
+   subroutine get_dfdx(iz, ivmu, f, dfdx, f_flag)
+
+      use constants, only: zi
+      use gyro_averages, only: gyro_average
+      use gyro_averages, only: gyro_average_j1
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: is_idx, iv_idx, imu_idx
+      use physics_flags, only: include_bpar, include_apar
+      use run_parameters, only: fphi
+      use species, only: spec
+      use vpamu_grids, only: vpa, mu
+      use kt_grids, only: nakx, akx, naky
+
+      implicit none
+
+      integer, intent(in) :: ivmu, iz
+      complex, dimension(:, :), intent(in) :: f
+      complex, dimension(:, :), intent(out) :: dfdx
+      character(len=*), intent(in) :: f_flag
+
+      integer :: iv, is, imu
+      complex, dimension(:, :), allocatable :: field
+
+      allocate (field(naky, nakx))
+
+      dfdx = 0.
+      field = 0.
+
+      is = is_idx(vmu_lo, ivmu)
+      iv = iv_idx(vmu_lo, ivmu)
+      imu = imu_idx(vmu_lo, ivmu)
+      if (f_flag == 'phi') then
+         field = fphi * f
+         field = zi * spread(akx, 1, naky) * field
+         call gyro_average(field, iz, ivmu, dfdx)
+      else if (include_apar .and. f_flag == 'apar') then
+         field =  - 2.0 * vpa(iv) * spec(is)%stm_psi0 * f
+         field = zi * spread(akx, 1, naky) * field
+         call gyro_average(field, iz, ivmu, dfdx)
+      else if (include_bpar .and. f_flag == 'bpar') then
+         field = 4.0 * mu(imu) * (spec(is)%tz) * f
+         field = zi * spread(akx, 1, naky) * field
+         call gyro_average_j1(field, iz, ivmu, dfdx)
+      end if
+      deallocate(field)
+
+   end subroutine get_dfdx
+
+
    !> compute d<chi>/dx in (ky,kx) space
    subroutine get_dchidx(iz, ivmu, phi, apar, bpar, dchidx)
 
@@ -2365,6 +2473,7 @@ contains
       deallocate (gyro_tmp)
 
    end subroutine get_dchidx
+
 
    subroutine finish_fields
 
