@@ -26,6 +26,8 @@ module stella_diagnostics
    logical :: write_radial_moments
    logical :: write_fluxes_kxkyz
    logical :: flux_norm
+   logical :: write_stress
+   logical :: write_dphidt  !This is for the calculation of dg_dt which is used to check the stress diag.
 
    !> Arrays needed for averaging in x,y,z
    real, dimension(:), allocatable :: pflux_avg, vflux_avg, qflux_avg, heat_avg
@@ -33,7 +35,9 @@ module stella_diagnostics
 
    !> Needed for calculating growth rates and frequencies
    complex, dimension(:, :, :), allocatable :: omega_vs_time
-
+   !> Needed for calculating dphidt which is required for calculating dgdt used in stress post-processing.
+   complex, dimension(:, :), allocatable :: dphidt_vs_time
+   
    !> Current maximum index of the time dimension in the netCDF file
    integer :: nout = 1
    !> Has this module been initialised?
@@ -78,6 +82,7 @@ contains
       call broadcast(write_radial_moments)
       call broadcast(write_fluxes_kxkyz)
       call broadcast(flux_norm)
+      call broadcast(write_stress)
 
    end subroutine read_stella_diagnostics_knobs
 
@@ -96,8 +101,10 @@ contains
       use init_g, only: init_init_g
       use stella_io, only: init_stella_io, get_nout
       use mp, only: broadcast, proc0
+      !use time_advance, only: advance_ExB_nonlinearity
 
       implicit none
+
 
       !> Has this simulation been restarted?
       logical, intent(in) :: restart
@@ -134,6 +141,11 @@ contains
       !> Get the final position [[nout]] of the time axis in the netcdf file
       if (proc0) call get_nout(tstart, nout)
       call broadcast(nout)
+ 
+      if (proc0) then                                                                                                    
+      !print*, shape(braout1)                                                                                            
+      !print*, shape(braout2)
+      end if 
 
    end subroutine init_stella_diagnostics
 
@@ -155,7 +167,8 @@ contains
          save_for_restart, write_phi_vs_time, write_apar_vs_time, &
          write_bpar_vs_time, write_gvmus, write_gzvs, &
          write_omega, write_kspectra, write_moments, write_radial_fluxes, &
-         write_radial_moments, write_fluxes_kxkyz, flux_norm, nc_mult
+         write_radial_moments, write_fluxes_kxkyz, flux_norm, nc_mult, &
+         write_stress
 
       if (proc0) then
          nwrite = 50
@@ -173,6 +186,7 @@ contains
          write_radial_fluxes = radial_variation
          write_radial_moments = radial_variation
          write_fluxes_kxkyz = .false.
+         write_stress = .false.
          nc_mult = 1
          flux_norm = .true.
 
@@ -189,6 +203,7 @@ contains
 
       use species, only: nspec
       use kt_grids, only: nakx, naky
+      use zgrid, only: nztot
 
       implicit none
 
@@ -209,6 +224,7 @@ contains
             navg = 1
          end if
       end if
+      if (.not. allocated(dphidt_vs_time)) allocate (dphidt_vs_time(nakx, nztot))
 
    end subroutine allocate_arrays
 
@@ -292,6 +308,7 @@ contains
       use stella_io, only: write_radial_fluxes_nc
       use stella_io, only: write_radial_moments_nc
       use stella_io, only: write_fluxes_kxkyz_nc
+      use stella_io, only: write_stress_nc
       use stella_io, only: sync_nc
       use stella_time, only: code_time, code_dt, cfl_dt_ExB
       use zgrid, only: nztot, nzgrid, ntubes
@@ -315,19 +332,29 @@ contains
       real, dimension(:, :, :, :), allocatable :: gzvs
 !    real, dimension (:,:,:), allocatable :: pflx_zvpa, vflx_zvpa, qflx_zvpa
       real, dimension(:), allocatable :: part_flux, mom_flux, heat_flux
+      real, dimension(:), allocatable :: heat_flux_phi, heat_flux_apar, heat_flux_bpar
       real, dimension(:, :), allocatable :: part_flux_x, mom_flux_x, heat_flux_x
       real, dimension(:, :), allocatable :: dens_x, upar_x, temp_x
       real, dimension(:, :), allocatable :: phi2_vs_kxky, apar2_vs_kxky, bpar2_vs_kxky
       real, dimension(:, :, :), allocatable :: pflx_vs_kxky, vflx_vs_kxky, qflx_vs_kxky
+      real, dimension(:, :, :), allocatable :: qflx_vs_kxky_phi, qflx_vs_kxky_apar, qflx_vs_kxky_bpar
       real, dimension(:, :, :, :, :), allocatable :: pflx_kxkyz, vflx_kxkyz, qflx_kxkyz
-      complex, dimension(:, :, :, :, :), allocatable :: density, upar, temperature, spitzer2
+      real, dimension(:, :, :, :, :), allocatable :: qflx_kxkyz_phi, qflx_kxkyz_apar,qflx_kxkyz_bpar
 
+      !complex, dimension(:, :), allocatable ::  
+      complex, dimension(:, :, :, :, :), allocatable :: density, upar, temperature,  spitzer2
       complex, dimension(:, :), allocatable :: omega_avg
       complex, dimension(:, :), allocatable :: phiavg, phioldavg, aparavg, aparoldavg
       complex, dimension(:, :, :, :), allocatable :: phi_out, apar_out, bpar_out
-
+      complex, dimension(:,:), allocatable :: Axhkx, phixhkx, bparxhkx ,g_int
+      
       !> needed when simulating a full flux surface
       complex, dimension(:, :, :, :), allocatable :: dens_ffs, upar_ffs, pres_ffs
+
+      allocate(Axhkx(nakx, -nzgrid:nzgrid))                 
+      allocate(phixhkx(nakx, -nzgrid:nzgrid))
+      allocate(bparxhkx(nakx, -nzgrid:nzgrid))
+      allocate(g_int(nakx, -nzgrid:nzgrid))
 
       ! calculation of omega requires computation of omega more
       ! frequently than every nwrite time steps
@@ -354,6 +381,7 @@ contains
             elsewhere
                omega_vs_time(mod(istep, navg) + 1, :, :) = log(phiavg / phioldavg) * zi / code_dt
             end where
+            dphidt_vs_time(:,:) = (phi(1,:,:,1) - phi_old(1,:,:,1))/code_dt
             deallocate (phiavg, phioldavg)
             deallocate (aparavg, aparoldavg)
          end if
@@ -378,11 +406,17 @@ contains
       allocate (part_flux(nspec))
       allocate (mom_flux(nspec))
       allocate (heat_flux(nspec))
+      allocate (heat_flux_phi(nspec))
+      allocate (heat_flux_apar(nspec))
+      allocate (heat_flux_bpar(nspec))
 
       allocate (pflx_kxkyz(naky, nakx, nztot, ntubes, nspec))
       allocate (vflx_kxkyz(naky, nakx, nztot, ntubes, nspec))
       allocate (qflx_kxkyz(naky, nakx, nztot, ntubes, nspec))
-
+      allocate (qflx_kxkyz_phi(naky, nakx, nztot, ntubes, nspec))
+      allocate (qflx_kxkyz_apar(naky, nakx, nztot, ntubes, nspec))
+      allocate (qflx_kxkyz_bpar(naky, nakx, nztot, ntubes, nspec))
+      
       if (write_radial_fluxes) then
          allocate (part_flux_x(nakx, nspec))
          allocate (mom_flux_x(nakx, nspec))
@@ -414,14 +448,16 @@ contains
                              pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
       else
          if (debug) write (*, *) 'stella_diagnostics::write_fluxes'
+         !>Calculate the stresses before g being redistributed over k
+         call get_stresses(gnew, Axhkx, phixhkx, bparxhkx, g_int)          
          !> redistribute data so that data for each vpa and mu are guaranteed to be on each processor
          call scatter(kxkyz2vmu, gnew, gvmu)
          !> get_fluxes assumes the non-Boltzmann part of the distribution, h, is passed in;
          !> convert from <delta f> = g to h
          call g_to_h(gvmu, phi, bpar, fphi)
          !> compute the fluxes
-         call get_fluxes(gvmu, part_flux, mom_flux, heat_flux, &
-                         pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
+         call get_fluxes(gvmu, part_flux, mom_flux, heat_flux, heat_flux_phi, heat_flux_apar, heat_flux_bpar, &
+              pflx_kxkyz, vflx_kxkyz, qflx_kxkyz, qflx_kxkyz_phi, qflx_kxkyz_apar, qflx_kxkyz_bpar)
          !> convert back from h to g
          call g_to_h(gvmu, phi, bpar, -fphi)
       end if
@@ -450,11 +486,11 @@ contains
          if (proc0) then
             if (debug) write (*, *) 'stella_diagnostics::write_time_nc'
             call write_time_nc(nout, code_time)
-            if (write_omega) call write_omega_nc(nout, omega_vs_time(mod(istep, navg) + 1, :, :))
+            if (write_omega) call write_omega_nc(nout, omega_vs_time(mod(istep, navg) + 1, :, :), dphidt_vs_time)
             call write_phi2_nc(nout, phi2)
             call write_apar2_nc(nout, apar2)
             call write_bpar2_nc(nout, bpar2)
-            call write_fluxes_nc(nout, part_flux, mom_flux, heat_flux)
+            call write_fluxes_nc(nout, part_flux, mom_flux, heat_flux, heat_flux_phi, heat_flux_apar, heat_flux_bpar)
             if (write_phi_vs_time) then
                if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_phi_nc'
                call write_phi_nc(nout, phi_out)
@@ -488,25 +524,28 @@ contains
                !> here write out the spectrum of contributions to the fluxes, after averaging over zed
                allocate (pflx_vs_kxky(naky, nakx, nspec))
                do is = 1, nspec
-                  !call fieldline_average(pflx_kxkyz(:,:,:,:,is), pflx_vs_kxky(:,:,is))
-                  pflx_vs_kxky(:,:,is) = sum(sum(pflx_kxkyz(:,:,:,:,is),dim=4),dim=3)
+                  call fieldline_average(pflx_kxkyz(:,:,:,:,is), pflx_vs_kxky(:,:,is))
                end do
                call write_kspectra_species_nc(nout, pflx_vs_kxky, "pflx_vs_kxky", "particle flux contributions by (kx,ky)")
                deallocate (pflx_vs_kxky)
                allocate (vflx_vs_kxky(naky, nakx, nspec))
                do is = 1, nspec
-                  !call fieldline_average(vflx_kxkyz(:,:,:,:,is), vflx_vs_kxky(:,:,is))
-                  vflx_vs_kxky(:,:,is) = sum(sum(vflx_kxkyz(:,:,:,:,is),dim=4),dim=3)
+                  call fieldline_average(vflx_kxkyz(:,:,:,:,is), vflx_vs_kxky(:,:,is))
                end do
                call write_kspectra_species_nc(nout, vflx_vs_kxky, "vflx_vs_kxky", "momentum flux contributions by (kx,ky)")
                deallocate (vflx_vs_kxky)
                allocate (qflx_vs_kxky(naky, nakx, nspec))
+               allocate (qflx_vs_kxky_phi(naky, nakx, nspec))
+               allocate (qflx_vs_kxky_apar(naky, nakx, nspec))
+               allocate (qflx_vs_kxky_bpar(naky, nakx, nspec))
                do is = 1, nspec
-                  !call fieldline_average(qflx_kxkyz(:,:,:,:,is), qflx_vs_kxky(:,:,is))
-                  qflx_vs_kxky(:,:,is) = sum(sum(qflx_kxkyz(:,:,:,:,is),dim=4),dim=3)
+                  call fieldline_average(qflx_kxkyz(:,:,:,:,is), qflx_vs_kxky(:,:,is))
                end do
                call write_kspectra_species_nc(nout, qflx_vs_kxky, "qflx_vs_kxky", "heat flux contributions by (kx,ky)")
                deallocate (qflx_vs_kxky)
+               deallocate (qflx_vs_kxky_phi)
+               deallocate (qflx_vs_kxky_apar)
+               deallocate (qflx_vs_kxky_bpar)
             end if
             if (write_radial_fluxes) then
                call write_radial_fluxes_nc(nout, part_flux_x, mom_flux_x, heat_flux_x)
@@ -531,9 +570,13 @@ contains
             if (allocated(upar_x)) deallocate (upar_x)
             if (allocated(temp_x)) deallocate (temp_x)
          end if
+         if (write_stress) then
+            if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_stress'
+            if (proc0) call write_stress_nc(nout, Axhkx, phixhkx, bparxhkx, g_int)
+         end if
          if (write_fluxes_kxkyz) then
             if (debug) write (*, *) 'stella_diagnostics::diagnose_stella::write_fluxes_kxkyz'
-            if (proc0) call write_fluxes_kxkyz_nc(nout, pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
+            if (proc0) call write_fluxes_kxkyz_nc(nout, pflx_kxkyz, vflx_kxkyz, qflx_kxkyz,qflx_kxkyz_phi, qflx_kxkyz_apar, qflx_kxkyz_bpar)
          end if
          if (write_gvmus) then
             allocate (gvmus(nvpa, nmu, nspec))
@@ -557,8 +600,10 @@ contains
          nout = nout + 1
       end if
 
-      deallocate (part_flux, mom_flux, heat_flux)
-      deallocate (pflx_kxkyz, vflx_kxkyz, qflx_kxkyz)
+      deallocate (part_flux, mom_flux, heat_flux, heat_flux_phi, heat_flux_apar, heat_flux_bpar)
+      deallocate (pflx_kxkyz, vflx_kxkyz, qflx_kxkyz,qflx_kxkyz_phi, qflx_kxkyz_apar, qflx_kxkyz_bpar)
+      deallocate (Axhkx, phixhkx, bparxhkx)
+      deallocate (g_int)
       deallocate (phi_out)
       deallocate (apar_out)
       deallocate (bpar_out)
@@ -576,8 +621,9 @@ contains
    !> Calculate fluxes
    !>
    !> Assumes that the non-Boltzmann part of df is passed in (aka h)
-   subroutine get_fluxes(g, pflx, vflx, qflx, &
-                         pflx_vs_kxkyz, vflx_vs_kxkyz, qflx_vs_kxkyz)
+   subroutine get_fluxes(g, pflx, vflx, qflx, qflx_phi, qflx_apar, qflx_bpar, &
+                pflx_vs_kxkyz, vflx_vs_kxkyz, qflx_vs_kxkyz,qflx_vs_kxkyz_phi,qflx_vs_kxkyz_apar,&
+                qflx_vs_kxkyz_bpar)
 
       use mp, only: sum_reduce
       use constants, only: zi
@@ -600,8 +646,9 @@ contains
 
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
       real, dimension(:), intent(out) :: pflx, vflx, qflx
+      real, dimension(:), intent(out) :: qflx_phi, qflx_apar, qflx_bpar
       real, dimension(:, :, -nzgrid:, :, :), intent(out) :: pflx_vs_kxkyz, vflx_vs_kxkyz, qflx_vs_kxkyz
-
+      real, dimension(:, :, -nzgrid:, :, :), intent(out) :: qflx_vs_kxkyz_phi, qflx_vs_kxkyz_apar, qflx_vs_kxkyz_bpar
       integer :: ikxkyz, iky, ikx, iz, it, is, ia
       real, dimension(:), allocatable :: flx_norm
       real :: flx_norm_partial
@@ -610,8 +657,9 @@ contains
       allocate (flx_norm(-nzgrid:nzgrid))
       allocate (gtmp1(nvpa, nmu), gtmp2(nvpa, nmu), gtmp3(nvpa, nmu))
 
-      pflx = 0.; vflx = 0.; qflx = 0.
+      pflx = 0.; vflx = 0.; qflx = 0.; qflx_phi = 0.; qflx_apar = 0.; qflx_bpar = 0.
       pflx_vs_kxkyz = 0.; vflx_vs_kxkyz = 0.; qflx_vs_kxkyz = 0.
+      qflx_vs_kxkyz_phi = 0.; qflx_vs_kxkyz_apar = 0.; qflx_vs_kxkyz_bpar = 0.
 
       flx_norm = jacob(1, :) * delzed
       flx_norm(-nzgrid) = 0.5 * flx_norm(-nzgrid)
@@ -640,13 +688,13 @@ contains
             ! get particle flux
             call gyro_average(g(:, :, ikxkyz), ikxkyz, gtmp1)
             call get_one_flux(iky, iz, flx_norm(iz), gtmp1, phi(iky, ikx, iz, it), pflx(is))
-            call get_one_flux(iky, iz, flx_norm(iz), gtmp1, phi(iky, ikx, iz, it), pflx_vs_kxkyz(iky, ikx, iz, it, is))
+            call get_one_flux(iky, iz, flx_norm_partial, gtmp1, phi(iky, ikx, iz, it), pflx_vs_kxkyz(iky, ikx, iz, it, is))
 
             ! get heat flux
             ! NEEDS TO BE MODIFIED TO TREAT ENERGY = ENERGY(ALPHA)
             gtmp1 = gtmp1 * (spread(vpa**2, 2, nmu) + spread(vperp2(1, iz, :), 1, nvpa))
-            call get_one_flux(iky, iz, flx_norm(iz), gtmp1, phi(iky, ikx, iz, it), qflx(is))
-            call get_one_flux(iky, iz, flx_norm(iz), gtmp1, phi(iky, ikx, iz, it), qflx_vs_kxkyz(iky, ikx, iz, it, is))
+            call get_one_flux(iky, iz, flx_norm(iz), gtmp1, phi(iky, ikx, iz, it), qflx_phi(is))
+            call get_one_flux(iky, iz, flx_norm(iz), gtmp1, phi(iky, ikx, iz, it), qflx_vs_kxkyz_phi(iky, ikx, iz, it, is))
 
             ! get momentum flux
             ! parallel component
@@ -659,7 +707,7 @@ contains
             gtmp1 = gtmp2 + gtmp3
 
             call get_one_flux(iky, iz, flx_norm(iz), gtmp1, phi(iky, ikx, iz, it), vflx(is))
-            call get_one_flux(iky, iz, flx_norm(iz), gtmp1, phi(iky, ikx, iz, it), vflx_vs_kxkyz(iky, ikx, iz, it, is))
+            call get_one_flux(iky, iz, flx_norm_partial, gtmp1, phi(iky, ikx, iz, it), vflx_vs_kxkyz(iky, ikx, iz, it, is))
          end do
       end if
 
@@ -676,12 +724,11 @@ contains
             gtmp1 = -2.0*g(:, :, ikxkyz) * spec(is)%stm * spread(vpa, 2, nmu)
             call gyro_average(gtmp1, ikxkyz, gtmp2)
             call get_one_flux(iky, iz, flx_norm(iz), gtmp2, apar(iky, ikx, iz, it), pflx(is))
-            call get_one_flux(iky, iz, flx_norm(iz), gtmp2, apar(iky, ikx, iz, it), pflx_vs_kxkyz(iky, ikx, iz, it, is))
 
             ! Apar contribution to heat flux
             gtmp2 = gtmp2 * (spread(vpa**2, 2, nmu) + spread(vperp2(ia, iz, :), 1, nvpa))
-            call get_one_flux(iky, iz, flx_norm(iz), gtmp2, apar(iky, ikx, iz, it), qflx(is))
-            call get_one_flux(iky, iz, flx_norm(iz), gtmp2, apar(iky, ikx, iz, it), qflx_vs_kxkyz(iky, ikx, iz, it, is))
+            call get_one_flux(iky, iz, flx_norm(iz), gtmp2, apar(iky, ikx, iz, it), qflx_apar(is))
+            call get_one_flux(iky, iz, flx_norm(iz), gtmp2, apar(iky, ikx, iz, it), qflx_vs_kxkyz_apar(iky, ikx, iz, it, is))
 
             ! Apar contribution to momentum flux
             ! parallel component
@@ -699,7 +746,6 @@ contains
             gtmp1 = gtmp2 + gtmp3
 
             call get_one_flux(iky, iz, flx_norm(iz), gtmp1, apar(iky, ikx, iz, it), vflx(is))
-            call get_one_flux(iky, iz, flx_norm(iz), gtmp1, apar(iky, ikx, iz, it), vflx_vs_kxkyz(iky, ikx, iz, it, is))
          end do
       end if
       
@@ -716,12 +762,11 @@ contains
             gtmp1 = 4.0 * g(:, :, ikxkyz) * spec(is)%tz * spread(mu, 1, nvpa)
             call gyro_average_j1(gtmp1, ikxkyz, gtmp2)
             call get_one_flux(iky, iz, flx_norm(iz), gtmp2, bpar(iky, ikx, iz, it), pflx(is))
-            call get_one_flux(iky, iz, flx_norm(iz), gtmp2, bpar(iky, ikx, iz, it), pflx_vs_kxkyz(iky, ikx, iz, it, is))
 
             ! Bpar contribution to heat flux
             gtmp2 = gtmp2 * (spread(vpa**2, 2, nmu) + spread(vperp2(ia, iz, :), 1, nvpa))
-            call get_one_flux(iky, iz, flx_norm(iz), gtmp2, bpar(iky, ikx, iz, it), qflx(is))
-            call get_one_flux(iky, iz, flx_norm(iz), gtmp2, bpar(iky, ikx, iz, it), qflx_vs_kxkyz(iky, ikx, iz, it, is))
+            call get_one_flux(iky, iz, flx_norm(iz), gtmp2, bpar(iky, ikx, iz, it), qflx_bpar(is))
+            call get_one_flux(iky, iz, flx_norm(iz), gtmp2, bpar(iky, ikx, iz, it), qflx_vs_kxkyz_bpar(iky, ikx, iz, it, is))
 
             ! Bpar contribution to momentum flux
             ! parallel component
@@ -734,27 +779,41 @@ contains
             gtmp1 = gtmp2 + gtmp3
 
             call get_one_flux(iky, iz, flx_norm(iz), gtmp1, bpar(iky, ikx, iz, it), vflx(is))
-            call get_one_flux(iky, iz, flx_norm(iz), gtmp1, bpar(iky, ikx, iz, it), vflx_vs_kxkyz(iky, ikx, iz, it, is))
          end do
       end if
 
+      qflx = qflx_phi + qflx_apar + qflx_bpar
+      qflx_vs_kxkyz = qflx_vs_kxkyz_phi + qflx_vs_kxkyz_apar + qflx_vs_kxkyz_bpar      
+      
       call sum_reduce(pflx, 0); pflx = pflx * spec%dens_psi0
       call sum_reduce(qflx, 0); qflx = qflx * spec%dens_psi0 * spec%temp_psi0
+      call sum_reduce(qflx_phi, 0); qflx_phi = qflx_phi * spec%dens_psi0 * spec%temp_psi0
+      call sum_reduce(qflx_apar, 0); qflx_apar = qflx_apar * spec%dens_psi0 * spec%temp_psi0
+      call sum_reduce(qflx_bpar, 0); qflx_bpar = qflx_bpar * spec%dens_psi0 * spec%temp_psi0
       call sum_reduce(vflx, 0); vflx = vflx * spec%dens_psi0 * sqrt(spec%mass * spec%temp_psi0)
 
       ! normalise to account for contributions from multiple flux tubes
       ! in flux tube train
       pflx = pflx / real(ntubes)
       qflx = qflx / real(ntubes)
+      qflx_phi = qflx_phi / real(ntubes)
+      qflx_apar = qflx_apar / real(ntubes)
+      qflx_bpar = qflx_bpar / real(ntubes)
       vflx = vflx / real(ntubes)
 
       call sum_reduce(pflx_vs_kxkyz, 0)
       call sum_reduce(qflx_vs_kxkyz, 0)
+      call sum_reduce(qflx_vs_kxkyz_phi, 0)
+      call sum_reduce(qflx_vs_kxkyz_apar, 0)
+      call sum_reduce(qflx_vs_kxkyz_bpar, 0)
       call sum_reduce(vflx_vs_kxkyz, 0)
 
       do is = 1, nspec
          pflx_vs_kxkyz(:, :, :, :, is) = pflx_vs_kxkyz(:, :, :, :, is) * spec(is)%dens_psi0
          qflx_vs_kxkyz(:, :, :, :, is) = qflx_vs_kxkyz(:, :, :, :, is) * spec(is)%dens_psi0 * spec(is)%temp_psi0
+         qflx_vs_kxkyz_phi(:, :, :, :, is) = qflx_vs_kxkyz_phi(:, :, :, :, is) * spec(is)%dens_psi0 * spec(is)%temp_psi0
+         qflx_vs_kxkyz_apar(:, :, :, :, is) = qflx_vs_kxkyz_apar(:, :, :, :, is) * spec(is)%dens_psi0 * spec(is)%temp_psi0
+         qflx_vs_kxkyz_bpar(:, :, :, :, is) = qflx_vs_kxkyz_bpar(:, :, :, :, is) * spec(is)%dens_psi0 * spec(is)%temp_psi0
          vflx_vs_kxkyz(:, :, :, :, is) = vflx_vs_kxkyz(:, :, :, :, is) * spec(is)%dens_psi0 * sqrt(spec(is)%mass * spec(is)%temp_psi0)
       end do
 
@@ -1573,6 +1632,7 @@ contains
          temp_x = temp_x / ntubes
       end if
 
+      
       ! for Spitzer problem tests of the collision operator
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          iv = iv_idx(vmu_lo, ivmu)
@@ -1855,6 +1915,246 @@ contains
 
    end subroutine get_gzvs
 
+
+
+   !>get stresses(kx, nzed)
+   !>Poisson bracket_k > apply QN operator which involves gyroaveraging at r, taking velocity integral
+   !>and sum over species sum_s Z_sn_s. Finally we take ky=0 component.
+   !>To get the actually stresses, one needs to do also a zed average (could be done in a post-processing
+   !>script).
+   subroutine get_stresses(g, Axhkx, phixhkx, bparxhkx, g_int)
+
+     use stella_layouts, only: vmu_lo, imu_idx
+     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+     use stella_layouts, only: kxkyz_lo
+     use vpamu_grids, only: maxwell_vpa, maxwell_mu
+     use vpamu_grids, only: nvpa, nmu, mu
+     use zgrid, only: nzgrid, ntubes
+     use kt_grids, only: nakx, ikx_max, naky, naky_all, nx, ny
+     use kt_grids, only: akx, aky
+     use kt_grids, only: swap_kxky, swap_kxky_back
+     use dist_fn_arrays, only: gvmu
+     use dist_redistribute, only: kxkyz2vmu
+     use redistribute, only: scatter
+     use mp, only: proc0
+     use parallel_streaming, only: advance_parallel_streaming_explicit
+     use mirror_terms, only: advance_mirror_explicit    
+     use fields_arrays, only: phi, apar, bpar
+     use gyro_averages, only: gyro_average
+     use species, only: spec
+     use g_tofrom_h, only: g_to_h
+     use g_tofrom_h, only: gbar_to_g
+     use run_parameters, only: fphi
+     use stella_time, only: code_dt
+     use fields, only: advance_fields
+     use fields, only: get_dchidx, get_dchidy,get_dfdx,get_dfdy
+     use run_parameters, only: maxwellian_normalization
+     use physics_flags, only: nonlinear,include_apar,include_bpar
+     use physics_flags, only: prp_shear_enabled, hammett_flow_shear
+     use stella_geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
+     use stella_transforms, only: transform_y2ky, transform_x2kx
+     
+     implicit none
+     
+     logical :: restart_time_step
+     integer :: istep
+     complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+     complex, dimension(:, :), intent(in out) :: Axhkx, phixhkx, bparxhkx, g_int
+     complex, dimension(:,:,:,:,:), allocatable :: Axhk, phixhk, bparxhk
+     complex, dimension(:,:,:,:,:), allocatable :: rhs_dummy
+     complex, dimension(:,:,:,:), allocatable :: temp
+     integer :: ikxkyz, iky, ikx, ia
+     integer :: ivmu, iz, it, imu, is
+     complex, dimension(:, :), allocatable :: field, adjust
+     complex, dimension(:,:,:,:,:),pointer :: rhs
+     complex, dimension(:, :), allocatable :: g0k, g0a, g0k_swap
+     complex, dimension(:, :), allocatable :: g0kxy, g0xky, prefac, g0kxy_temp
+     real, dimension(:, :), allocatable :: g0xy, g1xy,g2xy,g3xy,bracket1,bracket2,bracket3
+     
+     allocate(Axhk(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+     allocate(phixhk(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+     allocate(bparxhk(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+     allocate(rhs_dummy(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+     allocate(temp(naky, nakx, -nzgrid:nzgrid, ntubes))
+     allocate (field(nvpa, nmu))
+     allocate (adjust(nvpa, nmu))
+
+     if (nonlinear) then     
+        allocate (g0k(naky, nakx))
+        allocate (g0a(naky, nakx))
+        allocate (g0k_swap(naky_all, ikx_max))
+        allocate (g0kxy(ny, ikx_max))
+        allocate (g0xy(ny, nx))
+        allocate (g1xy(ny, nx))
+        allocate (g2xy(ny, nx))
+        allocate (g3xy(ny, nx))
+        allocate (bracket1(ny, nx))
+        allocate (bracket2(ny, nx))
+        allocate (bracket3(ny, nx))
+     end if
+     restart_time_step = .false.
+     istep = 10
+     !calculating the nonlinear brackets using the existing function:
+     if (nonlinear) then
+        if (include_apar .or. include_bpar) call g_to_h(g, phi, bpar, fphi)
+        do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+           imu = imu_idx(vmu_lo, ivmu)
+           is = is_idx(vmu_lo, ivmu)
+           do it = 1, ntubes
+              do iz = -nzgrid, nzgrid
+                 call get_dgdy(g(:, :, iz, it, ivmu), g0k)
+                 call forward_transform(g0k, g0xy)
+                 call get_dfdx(iz, ivmu, phi(:, :, iz, it), g0k, 'phi')
+                 call forward_transform(g0k, g1xy)
+                 call get_dfdx(iz, ivmu, apar(:, :, iz, it), g0k, 'apar')
+                 call forward_transform(g0k, g2xy)
+                 call get_dfdx(iz, ivmu, bpar(:, :, iz, it), g0k, 'bpar')
+                 call forward_transform(g0k, g3xy)
+                 g1xy = g1xy * exb_nonlin_fac
+                 g2xy = g2xy * exb_nonlin_fac
+                 g3xy = g3xy * exb_nonlin_fac
+                 bracket1 = g0xy * g1xy
+                 bracket2 = g0xy * g2xy
+                 bracket3 = g0xy * g3xy
+                 call get_dgdx(g(:, :, iz, it, ivmu), g0k)
+                 call forward_transform(g0k, g0xy)
+                 call get_dfdy(iz, ivmu, phi(:, :, iz, it), g0k, 'phi')
+                 call forward_transform(g0k, g1xy)
+                 call get_dfdy(iz, ivmu, apar(:, :, iz, it), g0k, 'apar')
+                 call forward_transform(g0k, g2xy)
+                 call get_dfdy(iz, ivmu, bpar(:, :, iz, it), g0k, 'bpar')
+                 call forward_transform(g0k, g3xy)
+                 g1xy = g1xy * exb_nonlin_fac
+                 g2xy = g2xy * exb_nonlin_fac
+                 g3xy = g3xy * exb_nonlin_fac
+                 bracket1 = bracket1 - g0xy * g1xy
+                 bracket2 = bracket2 - g0xy * g2xy
+                 bracket3 = bracket3 - g0xy * g3xy
+                 call transform_x2kx(bracket1, g0kxy)
+                 call transform_y2ky(g0kxy, g0k_swap)
+                 call swap_kxky_back(g0k_swap, phixhk(:, :, iz, it, ivmu))
+                 call transform_x2kx(bracket2, g0kxy)
+                 call transform_y2ky(g0kxy, g0k_swap)
+                 call swap_kxky_back(g0k_swap, Axhk(:, :, iz, it, ivmu))
+                 call transform_x2kx(bracket3, g0kxy)
+                 call transform_y2ky(g0kxy, g0k_swap)
+                 call swap_kxky_back(g0k_swap, bparxhk(:, :, iz, it, ivmu))
+              end do
+           end do
+        end do
+        if (include_apar .or. include_bpar) call g_to_h(g, phi, bpar, -fphi)
+        deallocate (g0k, g0a, g0xy, g1xy, g2xy, g3xy, bracket1, bracket2, bracket3)
+        !apply QN operator on the ES part
+        call scatter(kxkyz2vmu, phixhk, gvmu)
+        call integrate(gvmu, temp)
+        !take ky = 0 component
+        phixhkx(:,:) = temp(1,:,:,1)
+        !apply QN operator on the EM part 1
+        call scatter(kxkyz2vmu, Axhk, gvmu)
+        call integrate(gvmu, temp)
+        !take ky = 0 component
+        Axhkx(:,:)= temp(1,:,:,1)
+        !apply QN operator on the EM part 2
+        call scatter(kxkyz2vmu, bparxhk, gvmu)
+        call integrate(gvmu, temp)
+        !take ky = 0 component
+        bparxhkx(:,:)= temp(1,:,:,1)
+     else
+        phixhkx(:,:) = 0.
+        Axhkx(:,:) = 0.
+        bparxhkx(:,:) = 0.
+     end if
+     
+     !calculate int of g. In the fluid limit, this is zonal vorticity
+     call scatter(kxkyz2vmu, g, gvmu)
+     call integrate(gvmu, temp)
+     g_int(:,:) = temp(1,:,:,1)
+     
+   contains
+
+      subroutine forward_transform(gk, gx)
+         use stella_transforms, only: transform_ky2y, transform_kx2x
+        
+         implicit none
+        
+         complex, dimension(:, :), intent(in) :: gk
+         real, dimension(:, :), intent(out) :: gx
+         call swap_kxky(gk, g0k_swap)
+         call transform_ky2y(g0k_swap, g0kxy)
+         call transform_kx2x(g0kxy, gx)
+      end subroutine forward_transform
+
+      subroutine get_dgdy(g, dgdy)
+         use constants, only: zi
+         use kt_grids, only: nakx, aky
+         
+         implicit none
+         
+         complex, dimension(:, :), intent(in) :: g
+         complex, dimension(:, :), intent(out) :: dgdy
+         dgdy = zi * spread(aky, 2, nakx) * g
+      end subroutine get_dgdy
+
+      subroutine get_dgdx(g, dgdx)
+         use constants, only: zi
+         use kt_grids, only: naky, akx
+
+         implicit none
+
+         complex, dimension(:, :), intent(in) :: g
+         complex, dimension(:, :), intent(out) :: dgdx
+
+         dgdx = zi * spread(akx, 1, naky) * g
+
+      end subroutine get_dgdx
+
+      subroutine integrate(fv, fint)
+
+       use stella_layouts, only: vmu_lo, imu_idx, is_idx
+       use zgrid, only: nzgrid, ntubes
+       use kt_grids, only: nakx, ikx_max, naky, naky_all, nx, ny
+       use kt_grids, only: akx, aky
+       use stella_layouts, only: kxkyz_lo
+       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+       use species, only: spec, nspec
+       use constants, only: zi
+       use vpamu_grids, only: integrate_vmu, nvpa, nmu
+       use mp, only: nproc, sum_allreduce
+       use gyro_averages, only: gyro_average
+
+
+       implicit none
+
+       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: fv
+       complex, dimension(:, :, -nzgrid:, :), intent(out) :: fint
+
+       complex :: tmp
+       real :: wgt
+       complex, dimension(:, :), allocatable :: g0
+       integer :: ikxkyz, iky, ikx, iz, it, is, ia
+
+       allocate (g0(nvpa, nmu))
+       fint = 0.
+       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+          iz = iz_idx(kxkyz_lo, ikxkyz)
+          it = it_idx(kxkyz_lo, ikxkyz)
+          ikx = ikx_idx(kxkyz_lo, ikxkyz)
+          iky = iky_idx(kxkyz_lo, ikxkyz)
+          is = is_idx(kxkyz_lo, ikxkyz)
+          call gyro_average(fv(:, :, ikxkyz), ikxkyz, g0)          
+          wgt = spec(is)%z * spec(is)%dens_psi0
+          call integrate_vmu(g0, iz, tmp)
+          fint(iky, ikx, iz, it) = fint(iky, ikx, iz, it) + wgt * tmp
+       end do       
+       call sum_allreduce(fint)
+       deallocate (g0)
+     end subroutine integrate     
+   end subroutine get_stresses
+
+
+
+
+   
    !==============================================
    !======== FINISH STELLA DIAGNOSTIC ============
    !==============================================
@@ -1994,6 +2294,7 @@ contains
       if (allocated(vflux_avg)) deallocate (vflux_avg)
       if (allocated(heat_avg)) deallocate (heat_avg)
       if (allocated(omega_vs_time)) deallocate (omega_vs_time)
+      if (allocated(dphidt_vs_time)) deallocate (dphidt_vs_time)
 
    end subroutine deallocate_arrays
 
