@@ -101,7 +101,6 @@ contains
       use init_g, only: init_init_g
       use stella_io, only: init_stella_io, get_nout
       use mp, only: broadcast, proc0
-      !use time_advance, only: advance_ExB_nonlinearity
 
       implicit none
 
@@ -341,7 +340,6 @@ contains
       real, dimension(:, :, :, :, :), allocatable :: pflx_kxkyz, vflx_kxkyz, qflx_kxkyz
       real, dimension(:, :, :, :, :), allocatable :: qflx_kxkyz_phi, qflx_kxkyz_apar,qflx_kxkyz_bpar
 
-      !complex, dimension(:, :), allocatable ::  
       complex, dimension(:, :, :, :, :), allocatable :: density, upar, temperature,  spitzer2
       complex, dimension(:, :), allocatable :: omega_avg
       complex, dimension(:, :), allocatable :: phiavg, phioldavg, aparavg, aparoldavg

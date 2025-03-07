@@ -19,7 +19,6 @@ module fields
    public :: apar_denom
    public :: time_field_solve
    public :: fields_updated
-   public :: init_tstep
    public :: get_dchidy, get_dchidx, get_dfdy, get_dfdx
    public :: efac, efacp
    public :: nfields
@@ -35,7 +34,6 @@ module fields
    complex, dimension(:), allocatable :: adiabatic_response_factor
 
    logical :: fields_updated = .false.
-   logical :: init_tstep = .false.
    logical :: fields_initialized = .false.
 #ifdef ISO_C_BINDING
    integer :: phi_shared_window = MPI_WIN_NULL
@@ -1762,8 +1760,6 @@ apar = 0.
          if (proc0) write (*, *) 'unknown dist option in get_apar. aborting'
          call mp_abort('unkown dist option in get_apar. aborting')
       end if
-
-      !apar(1,:,:,:) = 0
 
    end subroutine get_apar
 
