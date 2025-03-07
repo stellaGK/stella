@@ -433,6 +433,8 @@ contains
       
       ! Allocate the electrostatic and electromagnetic arrays vs (kx,ky,z,ntubes)
       call allocate_arrays_electrostatic()
+      
+      ! TODO REMOVE THIS
       call allocate_arrays_electromagnetic()
 
    contains
@@ -486,26 +488,11 @@ contains
          
          !----------------------------------------------------------------------
 
-         !> TODO-GA: neeed to make this such that it is only for EM stella
-         !> Cannot do yet as apar and bpar are integrated into other routines
-         !> so need to be allocated. Will try to undo this to save memory and CPU time
-
-         if (.not. allocated(apar)) then
-            allocate (apar(naky, nakx, -nzgrid:nzgrid, ntubes))
-            apar = 0.
-         end if
-         if (.not. allocated(apar_old)) then
-            allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes))
-            apar_old = 0.
-         end if
-         if (.not. allocated(bpar)) then
-            allocate (bpar(naky, nakx, -nzgrid:nzgrid, ntubes))
-            bpar = 0.
-         end if
-         if (.not. allocated(bpar_old)) then
-            allocate (bpar_old(naky, nakx, -nzgrid:nzgrid, ntubes))
-            bpar_old = 0.
-         end if
+         ! Allocate electromagnetic arrays on each processor
+         !if (.not. allocated(apar)) then; allocate (apar(naky, nakx, -nzgrid:nzgrid, ntubes)); apar = 0.; end if
+         !if (.not. allocated(bpar)) then; allocate (bpar(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar = 0.; end if
+         !if (.not. allocated(apar_old)) then; allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes)); apar_old = 0.; end if
+         !if (.not. allocated(bpar_old)) then; allocate (bpar_old(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar_old = 0.; end if
          
          if (.not. include_apar) then
             if (.not. allocated(apar_denom)) then; allocate (apar_denom(1, 1, 1)); apar_denom = 0.; end if
