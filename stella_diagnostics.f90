@@ -101,7 +101,6 @@ contains
       use init_g, only: init_init_g
       use stella_io, only: init_stella_io, get_nout
       use mp, only: broadcast, proc0
-      !use time_advance, only: advance_ExB_nonlinearity
 
       implicit none
 
@@ -341,7 +340,6 @@ contains
       real, dimension(:, :, :, :, :), allocatable :: pflx_kxkyz, vflx_kxkyz, qflx_kxkyz
       real, dimension(:, :, :, :, :), allocatable :: qflx_kxkyz_phi, qflx_kxkyz_apar,qflx_kxkyz_bpar
 
-      !complex, dimension(:, :), allocatable ::  
       complex, dimension(:, :, :, :, :), allocatable :: density, upar, temperature,  spitzer2
       complex, dimension(:, :), allocatable :: omega_avg
       complex, dimension(:, :), allocatable :: phiavg, phioldavg, aparavg, aparoldavg
@@ -2006,10 +2004,14 @@ contains
                  call forward_transform(g0k, g0xy)
                  call get_dfdx(iz, ivmu, phi(:, :, iz, it), g0k, 'phi')
                  call forward_transform(g0k, g1xy)
-                 call get_dfdx(iz, ivmu, apar(:, :, iz, it), g0k, 'apar')
-                 call forward_transform(g0k, g2xy)
-                 call get_dfdx(iz, ivmu, bpar(:, :, iz, it), g0k, 'bpar')
-                 call forward_transform(g0k, g3xy)
+                 if (include_apar) then
+                    call get_dfdx(iz, ivmu, apar(:, :, iz, it), g0k, 'apar')
+                    call forward_transform(g0k, g2xy)
+                 end if
+                 if (include_bpar) then  
+                    call get_dfdx(iz, ivmu, bpar(:, :, iz, it), g0k, 'bpar')
+                    call forward_transform(g0k, g3xy)
+                 end if
                  g1xy = g1xy * exb_nonlin_fac
                  g2xy = g2xy * exb_nonlin_fac
                  g3xy = g3xy * exb_nonlin_fac
@@ -2020,10 +2022,14 @@ contains
                  call forward_transform(g0k, g0xy)
                  call get_dfdy(iz, ivmu, phi(:, :, iz, it), g0k, 'phi')
                  call forward_transform(g0k, g1xy)
-                 call get_dfdy(iz, ivmu, apar(:, :, iz, it), g0k, 'apar')
-                 call forward_transform(g0k, g2xy)
-                 call get_dfdy(iz, ivmu, bpar(:, :, iz, it), g0k, 'bpar')
-                 call forward_transform(g0k, g3xy)
+                 if (include_apar) then
+                    call get_dfdy(iz, ivmu, apar(:, :, iz, it), g0k, 'apar')
+                    call forward_transform(g0k, g2xy)
+                 end if
+                 if (include_bpar) then
+                    call get_dfdy(iz, ivmu, bpar(:, :, iz, it), g0k, 'bpar')
+                    call forward_transform(g0k, g3xy)
+                 end if
                  g1xy = g1xy * exb_nonlin_fac
                  g2xy = g2xy * exb_nonlin_fac
                  g3xy = g3xy * exb_nonlin_fac
