@@ -5,7 +5,7 @@
   adiabatic_option = 'iphi00=2'
   full_flux_surface = .false.
   include_apar = .true.
-  include_apar = .true.
+  include_bpar = .true.
   nonlinear = .false.
   vnew_ref = 0.01
 /
