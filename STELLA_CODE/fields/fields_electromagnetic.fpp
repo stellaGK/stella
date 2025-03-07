@@ -526,18 +526,25 @@ contains
       
       use parameters_kxky_grids, only: naky, nakx
       use parameters_physics, only: include_apar, include_bpar
-      !> TOD-GA: Want to put the allocations of these arrays here: 
-      !use arrays_fields, only: apar, apar_old
-      !use arrays_fields, only: bpar, bpar_old
+      
+      !> TOD-GA: Want to put the allocations of these arrays here:  
+      use arrays_fields, only: apar, apar_old
+      use arrays_fields, only: bpar, bpar_old
 
       use arrays_fields, only: gamtot13, gamtot31, gamtot33
       use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
       use arrays_fields, only: apar_denom
 
       implicit none
+      
+      ! Allocate electromagnetic arrays on each processor
+      if (.not. allocated(apar)) then; allocate (apar(naky, nakx, -nzgrid:nzgrid, ntubes)); apar = 0.; end if
+      if (.not. allocated(bpar)) then; allocate (bpar(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar = 0.; end if
+      if (.not. allocated(apar_old)) then; allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes)); apar_old = 0.; end if
+      if (.not. allocated(bpar_old)) then; allocate (bpar_old(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar_old = 0.; end if
 
       if (include_apar) then 
-         if (.not. allocated(apar_denom)) allocate (apar_denom(naky, nakx, -nzgrid:nzgrid)); apar_denom = 0.
+         if (.not. allocated(apar_denom)) then; allocate (apar_denom(naky, nakx, -nzgrid:nzgrid)); apar_denom = 0.; end if
       end if 
 
       if (include_bpar) then 

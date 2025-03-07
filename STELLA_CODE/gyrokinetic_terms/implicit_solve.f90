@@ -18,8 +18,7 @@ contains
 
    subroutine advance_implicit_terms(g, phi, apar, bpar)
 
-     use mp, only: proc0
-     
+      use mp, only: proc0
       use job_manage, only: time_message
       use stella_layouts, only: vmu_lo
       use parameters_physics, only: include_apar, include_bpar
@@ -62,7 +61,7 @@ contains
       logical :: modify
 
       debug = debug .and. proc0
-      if(debug) write (*,*) 'No debug messages for implicit_solve.f90 yet'
+      if (debug) write (*, *) 'implicit_solve::advance_implicit_terms'
       
       if(driftkinetic_implicit) then 
          if (.not. allocated(phi_source_ffs)) allocate (phi_source_ffs(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -76,16 +75,16 @@ contains
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Implicit time advance')
 
       allocate (phi_source(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate (apar_source(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate (bpar_source(naky, nakx, -nzgrid:nzgrid, ntubes))
+      if (include_apar) allocate (apar_source(naky, nakx, -nzgrid:nzgrid, ntubes))
+      if (include_bpar) allocate (bpar_source(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       ! save the incoming pdf and fields, as they will be needed later
       allocate (phi_old(naky, nakx, -nzgrid:nzgrid, ntubes))
+      if (include_apar) allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes))
+      if (include_bpar) allocate (bpar_old(naky, nakx, -nzgrid:nzgrid, ntubes))
       phi_old = phi
-      allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes))
-      apar_old = apar
-      allocate (bpar_old(naky, nakx, -nzgrid:nzgrid, ntubes))
-      bpar_old = bpar
+      if (include_apar) apar_old = apar
+      if (include_bpar) bpar_old = bpar
 
       !> dist_choice indicates whether the non-Boltzmann part of the pdf (h) is evolved
       !> in parallel streaming or if the guiding centre distribution (g = <f>) is evolved
@@ -202,10 +201,11 @@ contains
          itt = itt + 1
       end do
 
-      deallocate (phi_old, apar_old, bpar_old)
-      deallocate (phi_source, apar_source, bpar_source)
-      if(driftkinetic_implicit) deallocate (fields_source_ffs) 
-      if(driftkinetic_implicit) deallocate (phi_source_ffs, drifts_source_ffs) 
+      deallocate (phi_old, phi_source)
+      if (include_apar) deallocate (apar_old, apar_source)
+      if (include_bpar) deallocate (bpar_old, bpar_source)
+      if(driftkinetic_implicit) deallocate (fields_source_ffs)
+      if(driftkinetic_implicit) deallocate (phi_source_ffs, drifts_source_ffs)
 
       if (proc0) call time_message(.false., time_implicit_advance(:, 1), ' Stream advance')
 
@@ -223,6 +223,8 @@ contains
          complex, dimension(:), allocatable :: phiffsext
 
          logical, optional, intent(in) :: mod
+          
+         if (debug) write (*, *) 'implicit_solve::update_pdf'
 
          ! start the timer for the pdf update
          if (proc0) call time_message(.false., time_implicit_advance(:, 2), ' (bidiagonal solve)')
@@ -516,6 +518,8 @@ contains
          use extended_zgrid, only: periodic
 
          integer :: izext, iz, ikx
+       
+         if (debug) write (*, *) 'implicit_solve::add_drifts_contribution_phi'
 
          ! 'scratch' starts out as the gyro-average of phi, evaluated at zed grid points
          do izext = 1, nz_ext
@@ -599,6 +603,8 @@ contains
 
          integer :: izext
          complex :: scratch_left, scratch_right
+       
+         if (debug) write (*, *) 'implicit_solve::add_streaming_contribution_bpar'
 
          ! fill ghost zones beyond ends of extended zed domain for <bpar>
          ! and store values in scratch_left and scratch_right
@@ -654,7 +660,10 @@ contains
          use extended_zgrid, only: periodic
 
          integer :: izext, iz, ikx
-         real :: constant_factor
+         real :: constant_factor 
+       
+         if (debug) write (*, *) 'implicit_solve::add_drifts_contribution_bpar'
+         
          ! 'scratch' starts out as the gyro-average of bpar, evaluated at zed grid points
          constant_factor = 4. * mu(imu) * spec(is)%tz
          do izext = 1, nz_ext
@@ -692,7 +701,7 @@ contains
       complex, dimension(:), allocatable :: scratch2
       integer :: ia, iv, imu, is
       integer :: nz_ext
-
+      
       ia = 1
       iv = iv_idx(vmu_lo, ivmu)
       imu = imu_idx(vmu_lo, ivmu)
@@ -743,6 +752,8 @@ contains
 
       integer :: izext, iz
       real :: constant_factor
+       
+      if (debug) write (*, *) 'implicit_solve::add_gbar_to_g_contribution_apar'
 
       ! avoid repeated multiplication in below izext loop
       constant_factor = -2.0 * spec(is)%zt_psi0 * spec(is)%stm_psi0 * vpa(iv)
@@ -783,6 +794,8 @@ contains
 
       integer :: izext, iz
       complex :: constant_factor
+       
+      if (debug) write (*, *) 'implicit_solve::add_drifts_contribution_apar'
 
       constant_factor = -2.0 * zi * spec(is)%stm_psi0 * vpa(iv) * aky(iky)
 
@@ -815,6 +828,8 @@ contains
       integer :: nz_ext
 
       complex, dimension(:), allocatable :: field, gyro_field
+      
+      if (debug) write (*, *) 'implicit_solve::gbar_to_g_zext'
 
       iv = iv_idx(vmu_lo, ivmu)
       imu = imu_idx(vmu_lo, ivmu)
@@ -1153,6 +1168,8 @@ contains
       real :: fac1, fac2
       complex :: pf
       complex, dimension(:), allocatable :: gcf, gpi
+      
+      if (debug) write (*, *) 'implicit_solve::sweep_zed_zonal'
 
       npts = size(g)
       ulim = llim + npts - 1
@@ -1216,6 +1233,8 @@ contains
       integer :: nresponse_per_field, nresponse, nzp
       complex, dimension(:), allocatable :: fld_ext, phi_ext, apar_ext, bpar_ext
       complex, dimension(:), allocatable :: fld
+
+      if (debug) write (*, *) 'implicit_solve::invert_parstream_response'
 
       ! put the fields onto the extended zed grid and use LU back substitution
       do iky = 1, naky
