@@ -37,6 +37,7 @@ module stella_diagnostics
    complex, dimension(:, :, :), allocatable :: omega_vs_time
    !> Needed for calculating dphidt which is required for calculating dgdt used in stress post-processing.
    complex, dimension(:, :), allocatable :: dphidt_vs_time
+   complex, dimension(:, :), allocatable :: dbpardt_vs_time
    
    !> Current maximum index of the time dimension in the netCDF file
    integer :: nout = 1
@@ -101,7 +102,6 @@ contains
       use init_g, only: init_init_g
       use stella_io, only: init_stella_io, get_nout
       use mp, only: broadcast, proc0
-      !use time_advance, only: advance_ExB_nonlinearity
 
       implicit none
 
@@ -225,7 +225,7 @@ contains
          end if
       end if
       if (.not. allocated(dphidt_vs_time)) allocate (dphidt_vs_time(nakx, nztot))
-
+      if (.not. allocated(dbpardt_vs_time)) allocate (dbpardt_vs_time(nakx, nztot))
    end subroutine allocate_arrays
 
    !> Open the '.out' and the '.fluxes' file.
@@ -292,7 +292,7 @@ contains
       use constants, only: zi
       use redistribute, only: scatter
       use fields_arrays, only: phi, apar, bpar
-      use fields_arrays, only: phi_old, phi_corr_QN, apar_old
+      use fields_arrays, only: phi_old, phi_corr_QN, apar_old, bpar_old
       use fields, only: fields_updated, advance_fields
       use dist_fn_arrays, only: gvmu, gnew
       use g_tofrom_h, only: g_to_h
@@ -341,7 +341,6 @@ contains
       real, dimension(:, :, :, :, :), allocatable :: pflx_kxkyz, vflx_kxkyz, qflx_kxkyz
       real, dimension(:, :, :, :, :), allocatable :: qflx_kxkyz_phi, qflx_kxkyz_apar,qflx_kxkyz_bpar
 
-      !complex, dimension(:, :), allocatable ::  
       complex, dimension(:, :, :, :, :), allocatable :: density, upar, temperature,  spitzer2
       complex, dimension(:, :), allocatable :: omega_avg
       complex, dimension(:, :), allocatable :: phiavg, phioldavg, aparavg, aparoldavg
@@ -382,6 +381,9 @@ contains
                omega_vs_time(mod(istep, navg) + 1, :, :) = log(phiavg / phioldavg) * zi / code_dt
             end where
             dphidt_vs_time(:,:) = (phi(1,:,:,1) - phi_old(1,:,:,1))/code_dt
+            if (include_bpar) then
+               dbpardt_vs_time(:,:) = (bpar(1,:,:,1) - bpar_old(1,:,:,1))/code_dt
+            end if
             deallocate (phiavg, phioldavg)
             deallocate (aparavg, aparoldavg)
          end if
@@ -486,7 +488,7 @@ contains
          if (proc0) then
             if (debug) write (*, *) 'stella_diagnostics::write_time_nc'
             call write_time_nc(nout, code_time)
-            if (write_omega) call write_omega_nc(nout, omega_vs_time(mod(istep, navg) + 1, :, :), dphidt_vs_time)
+            if (write_omega) call write_omega_nc(nout, omega_vs_time(mod(istep, navg) + 1, :, :), dphidt_vs_time, dbpardt_vs_time)
             call write_phi2_nc(nout, phi2)
             call write_apar2_nc(nout, apar2)
             call write_bpar2_nc(nout, bpar2)
@@ -2006,10 +2008,14 @@ contains
                  call forward_transform(g0k, g0xy)
                  call get_dfdx(iz, ivmu, phi(:, :, iz, it), g0k, 'phi')
                  call forward_transform(g0k, g1xy)
-                 call get_dfdx(iz, ivmu, apar(:, :, iz, it), g0k, 'apar')
-                 call forward_transform(g0k, g2xy)
-                 call get_dfdx(iz, ivmu, bpar(:, :, iz, it), g0k, 'bpar')
-                 call forward_transform(g0k, g3xy)
+                 if (include_apar) then
+                    call get_dfdx(iz, ivmu, apar(:, :, iz, it), g0k, 'apar')
+                    call forward_transform(g0k, g2xy)
+                 end if
+                 if (include_bpar) then  
+                    call get_dfdx(iz, ivmu, bpar(:, :, iz, it), g0k, 'bpar')
+                    call forward_transform(g0k, g3xy)
+                 end if
                  g1xy = g1xy * exb_nonlin_fac
                  g2xy = g2xy * exb_nonlin_fac
                  g3xy = g3xy * exb_nonlin_fac
@@ -2020,10 +2026,14 @@ contains
                  call forward_transform(g0k, g0xy)
                  call get_dfdy(iz, ivmu, phi(:, :, iz, it), g0k, 'phi')
                  call forward_transform(g0k, g1xy)
-                 call get_dfdy(iz, ivmu, apar(:, :, iz, it), g0k, 'apar')
-                 call forward_transform(g0k, g2xy)
-                 call get_dfdy(iz, ivmu, bpar(:, :, iz, it), g0k, 'bpar')
-                 call forward_transform(g0k, g3xy)
+                 if (include_apar) then
+                    call get_dfdy(iz, ivmu, apar(:, :, iz, it), g0k, 'apar')
+                    call forward_transform(g0k, g2xy)
+                 end if
+                 if (include_bpar) then
+                    call get_dfdy(iz, ivmu, bpar(:, :, iz, it), g0k, 'bpar')
+                    call forward_transform(g0k, g3xy)
+                 end if
                  g1xy = g1xy * exb_nonlin_fac
                  g2xy = g2xy * exb_nonlin_fac
                  g3xy = g3xy * exb_nonlin_fac
@@ -2295,6 +2305,7 @@ contains
       if (allocated(heat_avg)) deallocate (heat_avg)
       if (allocated(omega_vs_time)) deallocate (omega_vs_time)
       if (allocated(dphidt_vs_time)) deallocate (dphidt_vs_time)
+      if (allocated(dbpardt_vs_time)) deallocate (dbpardt_vs_time)
 
    end subroutine deallocate_arrays
 
