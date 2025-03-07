@@ -416,6 +416,15 @@ contains
    !============================================================================
    
    subroutine allocate_arrays
+       
+      ! Parameters
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use species, only: spec, has_electron_species
+      
+      ! Arrays to allocate
+      use arrays_fields, only: phi, phi_old
+      use arrays_fields, only: gamtot, gamtot3
       
       ! Grids
       use zgrid, only: nzgrid, ntubes
@@ -431,84 +440,19 @@ contains
       ! Time routines
       time_field_solve = 0.
       
-      ! Allocate the electrostatic and electromagnetic arrays vs (kx,ky,z,ntubes)
-      call allocate_arrays_electrostatic()
+      ! Allocate electrostatic arrays on each processor
+      if (.not. allocated(phi)) then; allocate (phi(naky, nakx, -nzgrid:nzgrid, ntubes)); phi = 0.; end if
+      if (.not. allocated(phi_old)) then; allocate (phi_old(naky, nakx, -nzgrid:nzgrid, ntubes)); phi_old = 0.; end if
+      if (.not. allocated(gamtot)) then; allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.; end if
       
-      ! TODO REMOVE THIS
-      call allocate_arrays_electromagnetic()
-
-   contains
-      
-      !========================== ELECTROSTATIC ARRAYS =========================
-      subroutine allocate_arrays_electrostatic
-       
-         ! Parameters
-         use parameters_physics, only: adiabatic_option_switch
-         use parameters_physics, only: adiabatic_option_fieldlineavg
-         use species, only: spec, has_electron_species
-         
-         ! Arrays to allocate
-         use arrays_fields, only: phi, phi_old
-         use arrays_fields, only: gamtot, gamtot3
-      
-         implicit none
-         
-         !----------------------------------------------------------------------
-         
-         ! Allocate electrostatic arrays on each processor
-         if (.not. allocated(phi)) then; allocate (phi(naky, nakx, -nzgrid:nzgrid, ntubes)); phi = 0.; end if
-         if (.not. allocated(phi_old)) then; allocate (phi_old(naky, nakx, -nzgrid:nzgrid, ntubes)); phi_old = 0.; end if
-         if (.not. allocated(gamtot)) then; allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.; end if
-         
-         ! Allocate <gamtot3> if we have adiabatic field-line-averaged electrons
-         if (.not. allocated(gamtot3)) then
-            if (.not. has_electron_species(spec) .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
-               allocate (gamtot3(nakx, -nzgrid:nzgrid)); gamtot3 = 0.
-            else
-               allocate (gamtot3(1, 1)); gamtot3 = 0.
-            end if
+      ! Allocate <gamtot3> if we have adiabatic field-line-averaged electrons
+      if (.not. allocated(gamtot3)) then
+         if (.not. has_electron_species(spec) .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+            allocate (gamtot3(nakx, -nzgrid:nzgrid)); gamtot3 = 0.
+         else
+            allocate (gamtot3(1, 1)); gamtot3 = 0.
          end if
-      
-      end subroutine allocate_arrays_electrostatic
-      
-      !========================= ELECTROMAGNETIC ARRAYS ========================
-      subroutine allocate_arrays_electromagnetic
-      
-         ! Parameters 
-         use parameters_physics, only: include_apar, include_bpar
-      
-         ! Arrays to allocate
-         use arrays_fields, only: apar, apar_old
-         use arrays_fields, only: bpar, bpar_old
-         use arrays_fields, only: gamtot13, gamtot31, gamtot33
-         use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
-         use arrays_fields, only: apar_denom
-      
-         implicit none
-         
-         !----------------------------------------------------------------------
-
-         ! Allocate electromagnetic arrays on each processor
-         !if (.not. allocated(apar)) then; allocate (apar(naky, nakx, -nzgrid:nzgrid, ntubes)); apar = 0.; end if
-         !if (.not. allocated(bpar)) then; allocate (bpar(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar = 0.; end if
-         !if (.not. allocated(apar_old)) then; allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes)); apar_old = 0.; end if
-         !if (.not. allocated(bpar_old)) then; allocate (bpar_old(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar_old = 0.; end if
-         
-         if (.not. include_apar) then
-            if (.not. allocated(apar_denom)) then; allocate (apar_denom(1, 1, 1)); apar_denom = 0.; end if
-         end if
-         
-         if (.not. include_bpar) then
-            if (.not. allocated(gamtot33)) then; allocate (gamtot33(1, 1, 1)); gamtot33 = 0.; end if
-            if (.not. allocated(gamtot13)) then; allocate (gamtot13(1, 1, 1)); gamtot13 = 0.; end if
-            if (.not. allocated(gamtot31)) then; allocate (gamtot31(1, 1, 1)); gamtot31 = 0.; end if
-            if (.not. allocated(gamtotinv11)) then; allocate (gamtotinv11(1, 1, 1)); gamtotinv11 = 0.; end if
-            if (.not. allocated(gamtotinv31)) then; allocate (gamtotinv31(1, 1, 1)); gamtotinv31 = 0.; end if
-            if (.not. allocated(gamtotinv13)) then; allocate (gamtotinv13(1, 1, 1)); gamtotinv13 = 0.; end if
-            if (.not. allocated(gamtotinv33)) then; allocate (gamtotinv33(1, 1, 1)); gamtotinv31 = 0.; end if
-         end if
-      
-      end subroutine allocate_arrays_electromagnetic
+      end if
 
    end subroutine allocate_arrays
 
