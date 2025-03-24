@@ -2,12 +2,39 @@ module zpinch
 
    implicit none
 
+   public :: read_zpinch_parameters
    public :: get_zpinch_geometry_coefficients
 
    private
 
+   real :: betaprim
+   logical :: debug = .false.
+   
 contains
 
+   !============================================================================
+   !=========================== READ LOCAL PARAMETERS ==========================
+   !============================================================================ 
+   subroutine read_zpinch_parameters
+
+      use file_utils, only: input_unit_exist
+
+      implicit none
+
+      integer :: in_file
+      logical :: exist
+      
+      namelist /zpinchgeo_parameters/ betaprim
+
+      if (debug) write (*, *) 'geometry_zpinch::read_zpinch_parameters'
+      ! set default value for betaprim
+      betaprim = 0.0
+
+      in_file = input_unit_exist("zpinchgeo_parameters", exist)
+      if (exist) read (unit=in_file, nml=zpinchgeo_parameters)
+
+   end subroutine read_zpinch_parameters
+  
    ! use Z-pinch equilibrium.
    ! the parallel coordinate, z, is chosen to be the arc-length,
    ! i.e., the physical poloidal angle times the radius of the chosen magnetic field, r0.
@@ -51,7 +78,7 @@ contains
       ! = -2 * d(ln B_norm) / dx_norm = 2 * r0 / L_B = 1 (from MHD equilibrium with beta=0)
       gbdrift = 2.0
       ! cvdrift = 2 * bhat / B_norm x (bhat . grad_norm bhat) . grad y = 2
-      cvdrift = gbdrift
+      cvdrift = gbdrift + 2.0 * betaprim
 
       ! btor and rmajor used for flow shear calculations;
       ! choosing btor = 0 means all flow shear is perpendicular rather than parallel
