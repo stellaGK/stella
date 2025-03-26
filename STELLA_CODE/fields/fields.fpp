@@ -393,10 +393,8 @@ contains
          nfields = 1
          call init_fields_fluxtube
 
-         if (include_apar .or. include_bpar) then 
-            if (debug) write (*, *) 'fields::init_fields::init_fields_electromagnetic'  
-            call init_fields_electromagnetic (nfields)
-         end if 
+         if (debug) write (*, *) 'fields::init_fields::init_fields_electromagnetic'  
+         call init_fields_electromagnetic (nfields)
 
          if (radial_variation) then
             if (debug) write (*, *) 'fields::init_fields::init_fields_radial_variation'
@@ -461,19 +459,11 @@ contains
    !============================================================================
    subroutine finish_fields
 
-      !> Parameters
+      ! Parameters
       use parameters_physics, only: full_flux_surface, radial_variation 
-      use parameters_physics, only: include_apar, include_bpar    
       !> Arrays
       use arrays_fields, only: phi, phi_old
       use arrays_fields, only: gamtot, gamtot3
-      !> TODO-GA: move apar stuff to EM fields
-      use arrays_fields, only: apar, apar_denom
-      use arrays_fields, only: apar_old, bpar_old
-      use arrays_fields, only: gamtot, gamtot3
-      use arrays_fields, only: gamtot13, gamtot31, gamtot33
-      use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
-      use arrays_fields, only: apar_denom
       !> Routines for deallocating arrays fields depending on the physics being simulated
       use fields_ffs, only: finish_fields_ffs
       use fields_radial_variation, only: finish_radial_fields
@@ -485,22 +475,9 @@ contains
       if (allocated(gamtot)) deallocate (gamtot)
       if (allocated(gamtot3)) deallocate (gamtot3)
 
-      !> TODO-GA: REMOVE
-      if (allocated(apar_old)) deallocate(apar_old)
-      if (allocated(bpar_old)) deallocate(bpar_old)
-      if (allocated(apar)) deallocate (apar)
-      if (allocated(apar_denom)) deallocate (apar_denom)
-      if (allocated(gamtot33)) deallocate (gamtot33)
-      if (allocated(gamtot13)) deallocate (gamtot13)
-      if (allocated(gamtot31)) deallocate (gamtot31)
-      if (allocated(gamtotinv11)) deallocate(gamtotinv11)
-      if (allocated(gamtotinv31)) deallocate(gamtotinv31)
-      if (allocated(gamtotinv13)) deallocate(gamtotinv13)
-      if (allocated(gamtotinv33)) deallocate(gamtotinv33)
-
-      !> TODO-GA: move the above deallocations into 'finish_fields_electromagnetic' when 
-      !> EM is decoupled 
-      if (include_apar .or. include_bpar) call finish_fields_electromagnetic
+      ! Deallocate EM arrays. Even if not needed these arrays are allocated with size 1
+      call finish_fields_electromagnetic
+      
       if (full_flux_surface) call finish_fields_ffs
       if (radial_variation) call finish_radial_fields
 
