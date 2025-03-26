@@ -413,8 +413,6 @@ contains
       if (include_bpar) nfields = nfields + 1
 
       call allocate_fields_electromagnetic
-
-      if (.not. (include_apar .or. include_bpar)) return 
       
       ia = 1 
       if (include_apar) then
@@ -540,21 +538,13 @@ contains
       implicit none
       
       ! Allocate electromagnetic arrays on each processor
-      if (include_apar) then
-         if (.not. allocated(apar)) allocate (apar(naky, nakx, -nzgrid:nzgrid, ntubes)); apar = 0.
-         if (.not. allocated(bpar)) allocate (bpar(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar = 0.
-         if (.not. allocated(apar_old)) allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes)); apar_old = 0.
-         if (.not. allocated(bpar_old)) allocate (bpar_old(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar_old = 0.
-      else
-         if (.not. allocated(apar)) allocate (apar(1, 1, 1, 1)); apar = 0.
-         if (.not. allocated(bpar)) allocate (bpar(1, 1, 1, 1)); bpar = 0.
-         if (.not. allocated(apar_old)) allocate (apar_old(1, 1, 1, 1)); apar_old = 0.
-         if (.not. allocated(bpar_old)) allocate (bpar_old(1, 1, 1, 1)); bpar_old = 0.
-      end if
-            
-                     
+      if (.not. allocated(apar)) then; allocate (apar(naky, nakx, -nzgrid:nzgrid, ntubes)); apar = 0.; end if
+      if (.not. allocated(bpar)) then; allocate (bpar(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar = 0.; end if
+      if (.not. allocated(apar_old)) then; allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes)); apar_old = 0.; end if
+      if (.not. allocated(bpar_old)) then; allocate (bpar_old(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar_old = 0.; end if
+
       if (include_apar) then 
-         if (.not. allocated(apar_denom)) allocate (apar_denom(naky, nakx, -nzgrid:nzgrid)); apar_denom = 0.
+         if (.not. allocated(apar_denom)) then; allocate (apar_denom(naky, nakx, -nzgrid:nzgrid)); apar_denom = 0.; end if
       end if 
 
       if (include_bpar) then 
@@ -574,32 +564,23 @@ contains
    !============================================================================
    subroutine finish_fields_electromagnetic
 
-      ! Parameters
-      use parameters_physics, only: include_apar, include_bpar
-     
-      use arrays_fields, only: apar, apar_denom
-      use arrays_fields, only: apar_old, bpar_old
-      use arrays_fields, only: gamtot, gamtot3
       use arrays_fields, only: gamtot13, gamtot31, gamtot33
       use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
       use arrays_fields, only: apar_denom
-      
+
       implicit none
 
       !>TODO-GA:
       !if (allocated(apar)) deallocate (apar)
-      if (allocated(apar_old)) deallocate(apar_old)
-      if (allocated(bpar_old)) deallocate(bpar_old)
-      if (allocated(apar)) deallocate (apar)
       if (allocated(apar_denom)) deallocate (apar_denom)
       if (allocated(gamtot33)) deallocate (gamtot33)
       if (allocated(gamtot13)) deallocate (gamtot13)
       if (allocated(gamtot31)) deallocate (gamtot31)
-      if (allocated(gamtotinv11)) deallocate(gamtotinv11)
-      if (allocated(gamtotinv31)) deallocate(gamtotinv31)
-      if (allocated(gamtotinv13)) deallocate(gamtotinv13)
-      if (allocated(gamtotinv33)) deallocate(gamtotinv33)
-      
+      if (allocated(gamtotinv11)) deallocate (gamtotinv11)
+      if (allocated(gamtotinv31)) deallocate (gamtotinv31)
+      if (allocated(gamtotinv13)) deallocate (gamtotinv13)
+      if (allocated(gamtotinv33)) deallocate (gamtotinv33)
+
    end subroutine finish_fields_electromagnetic
 
 end module fields_electromagnetic
