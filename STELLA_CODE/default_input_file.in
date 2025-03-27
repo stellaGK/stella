@@ -1,0 +1,10 @@
+
+! Once a namelist has been added to the <input_file.f90> module, 
+! add its default variables here.
+
+&dissipation
+   include_collisions = .false.
+   collisions_implicit = .true.
+   hyper_dissipation = .false.
+   collision_model = "dougherty"
+/
