@@ -50,11 +50,11 @@
 !   diagnostics_moments
 ! 
 ! INITIALIZE FIELDS
-!   init_distribution (renamed from init_g_knobs)
-!   init_distribution_default
-!   init_distribution_noise
-!   init_distribution_kpar
-!   init_distribution_rh
+!   initialize_potential (renamed from init_g_knobs)
+!   initialize_potential_default
+!   initialize_potential_noise
+!   initialize_potential_kpar
+!   initialize_potential_rh
 !   restart_options
 ! 
 ! DISSIPATION AND COLLISIONS
@@ -91,8 +91,21 @@ module input_file
    implicit none
 
    public :: read_namelist_dissipation
+   public :: read_namelist_initialize_potential
+   
+   ! Parameters need to be public
+   public :: init_potential_option_default, init_potential_option_noise, init_potential_option_restart_many
+   public :: init_potential_option_kpar, init_potential_option_rh, init_potential_option_remap
    
    private
+   
+   ! Create parameters for the <init_potential_option>
+   integer, parameter :: init_potential_option_default = 1
+   integer, parameter :: init_potential_option_noise = 2
+   integer, parameter :: init_potential_option_restart_many = 3
+   integer, parameter :: init_potential_option_kpar = 4
+   integer, parameter :: init_potential_option_rh = 5
+   integer, parameter :: init_potential_option_remap = 6
 
 contains
 
@@ -159,6 +172,87 @@ contains
       end subroutine check_inputs_dissipation
 
    end subroutine read_namelist_dissipation
+   
+   !****************************************************************************
+   !                           INITIALIZE POTENTIAL                            !
+   !****************************************************************************
+   subroutine read_namelist_initialize_potential(init_potential_switch, phiinit, left, chop_side, scale_to_phiinit)
+
+      use mp, only: proc0
+
+      implicit none
+      
+      ! Variables that are read from the input file
+      real, intent(out) :: phiinit
+      logical, intent(out) :: left
+      logical, intent(out) :: chop_side
+      logical, intent(out) :: scale_to_phiinit
+      integer, intent(out) :: init_potential_switch
+      
+      ! Local variable to set <init_potential_switch>
+      character(20) :: initialize_potential_option
+
+      if (.not. proc0) return
+      call set_default_parameters_initialize_potential
+      call read_input_file_initialize_potential
+
+   contains
+      
+      !------------------------ Default input parameters -----------------------
+      subroutine set_default_parameters_initialize_potential
+
+         implicit none
+
+         ! Options: {default, noise, many, kpar, rh, remap}
+         initialize_potential_option = "default"
+         
+         ! Other options
+         phiinit = 1.0
+         scale_to_phiinit = .false.
+         chop_side = .false.
+         left = .true.
+
+      end subroutine set_default_parameters_initialize_potential
+
+      !---------------------------- Read input file ----------------------------
+      subroutine read_input_file_initialize_potential
+
+         use file_utils, only: input_unit_exist, error_unit
+         use text_options, only: text_option, get_option_value
+
+         implicit none
+
+         ! Variables needed to read the input file
+         integer :: ierr
+         integer :: in_file
+         logical :: dexist
+      
+         ! Link text options for <initialize_potential_option> to an integer value
+         type(text_option), dimension(6), parameter :: init_potential_options = &
+             (/text_option('default', init_potential_option_default), &
+               text_option('noise', init_potential_option_noise), &
+               text_option('many', init_potential_option_restart_many), &
+               text_option('kpar', init_potential_option_kpar), &
+               text_option('rh', init_potential_option_rh), &
+               text_option('remap', init_potential_option_remap)/)
+
+         ! Variables in the <initialize_potential> namelist
+         namelist /initialize_potential/ initialize_potential_option, phiinit, scale_to_phiinit, chop_side, left
+         
+         !----------------------------------------------------------------------
+
+         ! Overwrite the default input parameters by those specified in the input file
+         in_file = input_unit_exist("initialize_potential", dexist)
+         if (dexist) read (unit=in_file, nml=initialize_potential)
+         
+         ! Read the text option in <initialize_potential> and store it in <adiabatic_option_switch>
+         ierr = error_unit()
+         call get_option_value(initialize_potential_option, init_potential_options, init_potential_switch, &
+            ierr, "initialize_potential_option in initialize_potential")
+
+      end subroutine read_input_file_initialize_potential
+
+   end subroutine read_namelist_initialize_potential
 
 end module input_file
 

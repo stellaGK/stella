@@ -13,13 +13,8 @@ module init_g
 
    private
 
-   ! knobs
-   integer :: ginitopt_switch
-   integer, parameter :: ginitopt_default = 1, &
-                         ginitopt_noise = 2, ginitopt_restart_many = 3, &
-                         ginitopt_kpar = 4, ginitopt_nltest = 5, &
-                         ginitopt_kxtest = 6, ginitopt_rh = 7, &
-                         ginitopt_remap = 8
+   ! Choose the initalization option for the potential
+   integer :: init_potential_switch
 
    real :: width0, phiinit, imfac, refac, zf_init
    real :: den0, upar0, tpar0, tperp0
@@ -41,6 +36,7 @@ contains
       use stella_layouts, only: init_stella_layouts
       use system_fortran, only: systemf
       use mp, only: proc0, broadcast
+      use input_file, only: read_namelist_initialize_potential
 
       implicit none
 
@@ -50,6 +46,17 @@ contains
       initialized = .true.
 
       call init_stella_layouts
+      
+      ! Read <initialize_potential> namelist
+      if (proc0) call read_namelist_initialize_potential(init_potential_switch, &
+         phiinit, left, chop_side, scale_to_phiinit)
+         
+      ! Broadcast to all processors
+      call broadcast(init_potential_switch)
+      call broadcast(phiinit)
+      call broadcast(left)
+      call broadcast(chop_side)
+      call broadcast(scale_to_phiinit)
 
       if (proc0) call read_parameters
 
@@ -69,7 +76,6 @@ contains
          restart_file = trim(restart_file(1:ind_slash))//trim(restart_dir)//trim(restart_file(ind_slash + 1:))
       end if
 
-      call broadcast(ginitopt_switch)
       call broadcast(width0)
       call broadcast(refac)
       call broadcast(imfac)
@@ -85,16 +91,12 @@ contains
       call broadcast(upar2)
       call broadcast(tpar2)
       call broadcast(tperp2)
-      call broadcast(phiinit)
       call broadcast(zf_init)
       call broadcast(kxmax)
       call broadcast(kxmin)
       call broadcast(tstart)
-      call broadcast(chop_side)
-      call broadcast(left)
       call broadcast(restart_file)
       call broadcast(read_many)
-      call broadcast(scale_to_phiinit)
       call broadcast(scale)
       call broadcast(oddparity)
 
@@ -106,6 +108,14 @@ contains
 
       use stella_save, only: init_tstart
       use parameters_numerical, only: maxwellian_normalization
+      
+      ! Load the <init_potential_switch> parameters
+      use input_file, only: init_potential_option_default
+      use input_file, only: init_potential_option_noise
+      use input_file, only: init_potential_option_restart_many
+      use input_file, only: init_potential_option_kpar
+      use input_file, only: init_potential_option_rh
+      use input_file, only: init_potential_option_remap
 
       logical, intent(out) :: restarted
       integer, intent(out) :: istep0
@@ -113,31 +123,27 @@ contains
 
       restarted = .false.
       istep0 = 0
-      select case (ginitopt_switch)
-      case (ginitopt_default)
+      select case (init_potential_switch)
+      case (init_potential_option_default)
          call ginit_default
-      case (ginitopt_noise)
+      case (init_potential_option_noise)
          call ginit_noise
-      case (ginitopt_kpar)
+      case (init_potential_option_kpar)
          call ginit_kpar
-      case (ginitopt_rh)
+      case (init_potential_option_rh)
          call ginit_rh
-      case (ginitopt_remap)
+      case (init_potential_option_remap)
          call ginit_remap
-      case (ginitopt_restart_many)
+      case (init_potential_option_restart_many)
          call ginit_restart_many
          call init_tstart(tstart, istep0, istatus)
          restarted = .true.
          scale = 1.
-!    case (ginitopt_nltest)
-!       call ginit_nltest
-!    case (ginitopt_kxtest)
-!       call ginit_kxtest
       end select
 
       !> if maxwwellian_normalization = .true., the pdf is normalized by F0 (which is not the case otherwise)
       !> unless reading in g from a restart file, normalise g by F0 for a full flux surface simulation
-      if (maxwellian_normalization .and. ginitopt_switch /= ginitopt_restart_many) then
+      if (maxwellian_normalization .and. init_potential_switch /= init_potential_option_restart_many) then
          call normalize_by_maxwellian
       end if
 
@@ -145,34 +151,20 @@ contains
 
    subroutine read_parameters
       use file_utils, only: input_unit, error_unit, run_name, input_unit_exist
-      use text_options, only: text_option, get_option_value
       use stella_save, only: read_many
 
       implicit none
 
-      type(text_option), dimension(8), parameter :: ginitopts = &
-                                                    (/text_option('default', ginitopt_default), &
-                                                      text_option('noise', ginitopt_noise), &
-                                                      text_option('many', ginitopt_restart_many), &
-                                                      text_option('nltest', ginitopt_nltest), &
-                                                      text_option('kxtest', ginitopt_kxtest), &
-                                                      text_option('kpar', ginitopt_kpar), &
-                                                      text_option('rh', ginitopt_rh), &
-                                                      text_option('remap', ginitopt_remap) &
-                                                      /)
-      character(20) :: ginit_option
-      namelist /init_g_knobs/ ginit_option, width0, phiinit, chop_side, &
-         restart_file, restart_dir, read_many, left, scale, tstart, zf_init, &
+      namelist /init_g_knobs/ width0, &
+         restart_file, restart_dir, read_many, scale, tstart, zf_init, &
          den0, upar0, tpar0, tperp0, imfac, refac, &
          den1, upar1, tpar1, tperp1, &
          den2, upar2, tpar2, tperp2, &
-         kxmax, kxmin, scale_to_phiinit, &
-         oddparity
-      integer :: ierr, in_file
+         kxmax, kxmin, oddparity
+      integer :: in_file
 
       tstart = 0. ! Used for restarted simulations
       scale = 1.0 ! Used for restarted simulations
-      ginit_option = "default" ! Select the <ginit_options> 
       width0 = -3.5 ! Used for <ginit_options> = {default, kpar}
       refac = 1. ! Used for <ginit_options> = {kpar}
       imfac = 0. ! Used for <ginit_options> = {kpar}
@@ -188,13 +180,9 @@ contains
       upar2 = 0. ! Used for <ginit_options> = {kpar}
       tpar2 = 0. ! Used for <ginit_options> = {kpar}
       tperp2 = 0. ! Used for <ginit_options> = {kpar}
-      phiinit = 1.0 ! Used in all <ginit_options>  
       zf_init = 1.0 ! Used for <ginit_options> = {noise}
       kxmax = 1.e100 ! Used for <ginit_options> = {rh}
       kxmin = 0. ! Used for <ginit_options> = {rh}
-      chop_side = .false. ! Used for <ginit_options> = {default, noise, kpar}
-      scale_to_phiinit = .false. ! Used to call rescale_fields() to rescale {phi, apar, g} to <phiinit>
-      left = .true. ! Used for <ginit_options> = {default, noise, kpar}
       oddparity = .false. ! Used for <ginit_options> = {default}
 
       restart_file = trim(run_name)//".nc"
@@ -203,10 +191,6 @@ contains
 !    if (exist) read (unit=input_unit("init_g_knobs"), nml=init_g_knobs)
       if (exist) read (unit=in_file, nml=init_g_knobs)
 
-      ierr = error_unit()
-      call get_option_value &
-         (ginit_option, ginitopts, ginitopt_switch, &
-          ierr, "ginit_option in ginit_knobs", stop_on_error=.true.)
    end subroutine read_parameters
 
    subroutine ginit_default
@@ -287,113 +271,6 @@ contains
       end do
 
    end subroutine ginit_default
-
-   ! initialize two kys and kx=0
-!   subroutine ginit_nltest
-
-!     use mp, only: proc0
-!     use species, only: spec
-!     use zgrid, only: nzgrid, bmag
-!     use kt_grids, only: naky, ntheta0
-!     use vpamu_grids, only: nvgrid, vpa, mu
-!     use dist_fn_arrays, only: gnew, gold
-!     use stella_layouts, only: gxyz_lo, iv_idx, is_idx, imu_idx
-
-!     implicit none
-
-!     complex, dimension (-nzgrid:nzgrid,ntheta0,naky) :: phi
-!     logical :: right
-!     integer :: iglo
-!     integer :: ig, ik, it, is, iv, imu
-
-!     right = .not. left
-
-!     if (naky < 4 .or. ntheta0 < 2) then
-!        if (proc0) write (*,*) 'must have at least 2 kxs and 4 kys to use nltest init option. aborting.'
-!        stop
-!     end if
-
-!     phi = 0.0
-!     do ig = -nzgrid, nzgrid
-!        phi(ig,2,2) = 1.0!exp(-((theta(ig)-theta0(2,2))/width0)**2)*cmplx(1.0,1.0)
-!     end do
-
-!     gnew = 0.0
-!     do iglo = gxyz_lo%llim_proc, gxyz_lo%ulim_proc
-!        iv = iv_idx(gxyz_lo,iglo)
-!        is = is_idx(gxyz_lo,iglo)
-!        imu = imu_idx(gxyz_lo,iglo)
-!        it = 1
-!        do ik = 2, 3
-!           gnew(:,it,ik,iglo) = exp(-2.0*mu(imu)*bmag)*phi(:,it,ik) &
-!                *spec(is)%z*phiinit*exp(-vpa(iv)**2)
-!        end do
-!     end do
-!     gold = gnew
-
-!   end subroutine ginit_nltest
-
-!   subroutine ginit_kxtest
-
-!     use constants, only: zi
-!     use species, only: spec
-!     use zgrid, only: itor_over_b
-!     use kt_grids, only: ntheta0, akx, naky
-!     use vpamu_grids, only: nvgrid, energy, vpa
-!     use dist_fn_arrays, only: gnew, gold
-!     use stella_layouts, only: gxyz_lo, iv_idx, is_idx, imu_idx
-
-!     implicit none
-
-!     integer :: iglo
-!     integer :: ik, it, is, imu, iv
-
-!     do iglo = gxyz_lo%llim_proc, gxyz_lo%ulim_proc
-!        iv = iv_idx(gxyz_lo,iglo)
-!        is = is_idx(gxyz_lo,iglo)
-!        imu = imu_idx(gxyz_lo,iglo)
-!        do it = 1, ntheta0
-!           do ik = 1, naky
-!              gnew(:,it,ik,iglo) = exp(-zi*akx(it)*itor_over_B*vpa(iv)/spec(is)%zstm) &
-!                   *exp(-energy(:,iv,imu))*spec(is)%z*phiinit
-!           end do
-!        end do
-!     end do
-!     gold = gnew
-
-!   end subroutine ginit_kxtest
-
-!   !> Initialise with only the kparallel = 0 mode.
-
-!   subroutine single_initial_kx(phi)
-!     use zgrid, only: nzgrid
-!     use kt_grids, only: naky, ntheta0
-!     use mp, only: mp_abort
-!     implicit none
-!     complex, dimension (-nzgrid:nzgrid,ntheta0,naky), intent(inout) :: phi
-!     real :: a, b
-!     integer :: ig, ik, it
-
-!     if (ikx_init  < 2 .or. ikx_init > (ntheta0+1)/2) then
-!       call mp_abort("The subroutine single_initial_kx should only be called when 1 < ikx_init < (ntheta0+1)/2")
-!     end if
-
-!     do it = 1, ntheta0
-!       if (it .ne. ikx_init) then
-!          do ik = 1, naky
-!             do ig = -nzgrid, nzgrid
-!                a = 0.0
-!                b = 0.0
-!                phi(ig,it,ik) = cmplx(a,b)
-!              end do
-!          end do
-!        end if
-!     end do
-!   end subroutine single_initial_kx
-
-   !> Initialise the distribution function with random noise. This is the default
-  !! initialisation option. Each different mode is given a random amplitude
-  !! between zero and one.
 
    subroutine ginit_noise
 
@@ -732,8 +609,12 @@ contains
    end subroutine normalize_by_maxwellian
 
    subroutine reset_init
+   
+      use input_file, only: init_potential_option_restart_many
+      
+      implicit none
 
-      ginitopt_switch = ginitopt_restart_many
+      init_potential_switch = init_potential_option_restart_many
 
    end subroutine reset_init
 

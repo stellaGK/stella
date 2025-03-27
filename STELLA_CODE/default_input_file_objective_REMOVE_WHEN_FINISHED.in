@@ -373,7 +373,7 @@
 !--------------------------------
  
 ! Choose the option, then read the namelist of this option
-&init_distribution (renamed from init_g_knobs)
+&initialize_potential (renamed from init_g_knobs)
   ginit_option = "default"
   phiinit = 1.0
   chop_side = .false.

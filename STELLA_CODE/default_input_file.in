@@ -8,3 +8,11 @@
    hyper_dissipation = .false.
    collision_model = "dougherty"
 /
+
+&initialize_potential 
+   initialize_potential_option = "default"
+   phiinit = 1.0
+   scale_to_phiinit = .false.
+   chop_side = .false.
+   left = .true.
+/
