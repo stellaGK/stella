@@ -45,6 +45,7 @@ option(STELLA_UPDATE_GIT_SUBMODULES "Check submodules are up-to-date during buil
 
 # Sources that don't need preprocessing
 set(STELLA_SOURCES_f90
+  ../STELLA_CODE/input_file.f90
   ../STELLA_CODE/utils/define.inc
   ../STELLA_CODE/calculations/calculations_kxky.f90
   ../STELLA_CODE/calculations/dist_redistribute.f90

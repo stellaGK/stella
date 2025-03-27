@@ -2,22 +2,16 @@ module dissipation
 
    implicit none
 
-   public :: read_parameters
    public :: init_dissipation, finish_dissipation
    public :: init_collisions, collisions_initialized
    public :: advance_collisions_explicit, advance_collisions_implicit
-
-   public :: include_collisions
-   public :: hyper_dissipation
-   public :: collisions_implicit
-   public :: cfl_dt_mudiff, cfl_dt_vpadiff
-
+   public :: include_collisions, hyper_dissipation
+   public :: collisions_implicit, cfl_dt_mudiff, cfl_dt_vpadiff
    public :: time_collisions
 
    private
 
    logical :: collisions_initialized = .false.
-
    logical :: include_collisions
    logical :: collisions_implicit
    logical :: hyper_dissipation
@@ -29,15 +23,52 @@ module dissipation
 
 contains
 
+   !****************************************************************************
    subroutine init_dissipation
 
-      use mp, only: proc0
-      use hyper, only: init_hyper
+      use mp, only: proc0, broadcast
+      use file_utils, only: input_unit_exist
       use parameters_numerical, only: print_extra_info_to_terminal
+      
+      ! Read the <dissipation> namelist in the input file
+      use input_file, only: read_namelist_dissipation
+      
+      ! Read other input parameters related to specific collision models
+      use coll_dougherty, only: read_parameters_dougherty
+      use coll_fokkerplanck, only: read_parameters_fp
+      use hyper, only: read_parameters_hyper
+      use parameters_numerical, only: fully_explicit
+      use hyper, only: init_hyper
 
       implicit none
+      
+      !-------------------------------------------------------------------------
+      
+      ! Read <dissipation> namelist in the input file
+      if (proc0) call read_namelist_dissipation(include_collisions, collisions_implicit, collision_model, hyper_dissipation)
 
-      call read_parameters
+      ! Broadcast to all processors
+      call broadcast(include_collisions)
+      call broadcast(collisions_implicit)
+      call broadcast(collision_model)
+      call broadcast(hyper_dissipation)
+
+      ! Read input parameters for the dougherty or fokker-planck collision model
+      if (include_collisions) then
+         if (collision_model == "dougherty") then
+            call read_parameters_dougherty
+         else if (collision_model == "fokker-planck") then
+            call read_parameters_fp
+         end if
+      end if
+
+      ! Read input parameters for the hyper-dissipation
+      if (hyper_dissipation) then
+         call read_parameters_hyper
+         fully_explicit = .false.
+      end if
+
+      ! Print collision information to terminal
       if (proc0 .and. print_extra_info_to_terminal) then
          write (*, '(A)') "############################################################"
          write (*, '(A)') "                         COLLISIONS"
@@ -72,54 +103,7 @@ contains
 
    end subroutine init_dissipation
 
-   subroutine read_parameters
-
-      use file_utils, only: input_unit_exist
-      use mp, only: proc0, broadcast
-      use parameters_numerical, only: fully_explicit
-      use coll_dougherty, only: read_parameters_dougherty
-      use coll_fokkerplanck, only: read_parameters_fp
-      use hyper, only: read_parameters_hyper
-
-      implicit none
-
-      namelist /dissipation/ include_collisions, collisions_implicit, collision_model, hyper_dissipation
-
-      integer :: in_file
-      logical :: dexist
-
-      if (proc0) then
-         include_collisions = .false.
-         collisions_implicit = .true.
-         collision_model = "dougherty"        ! dougherty or fokker-planck
-         hyper_dissipation = .false.
-
-         in_file = input_unit_exist("dissipation", dexist)
-         if (dexist) read (unit=in_file, nml=dissipation)
-      end if
-
-      call broadcast(include_collisions)
-      call broadcast(collisions_implicit)
-      call broadcast(collision_model)
-      call broadcast(hyper_dissipation)
-
-      if (.not. include_collisions) collisions_implicit = .false.
-
-      if (include_collisions) then
-         if (collision_model == "dougherty") then
-            call read_parameters_dougherty
-         else if (collision_model == "fokker-planck") then
-            call read_parameters_fp
-         end if
-      end if
-
-      if (hyper_dissipation) then
-         call read_parameters_hyper
-         fully_explicit = .false.
-      end if
-
-   end subroutine read_parameters
-
+   !****************************************************************************
    subroutine init_collisions
 
       use coll_dougherty, only: init_collisions_dougherty
@@ -138,6 +122,7 @@ contains
 
    end subroutine init_collisions
 
+   !****************************************************************************
    subroutine finish_dissipation
 
       implicit none
@@ -163,6 +148,7 @@ contains
 
    end subroutine finish_collisions
 
+   !****************************************************************************
    subroutine advance_collisions_explicit(g, phi, bpar, gke_rhs)
 
       use mp, only: mp_abort
@@ -190,6 +176,7 @@ contains
 
    end subroutine advance_collisions_explicit
 
+   !****************************************************************************
    subroutine advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
 
       use mp, only: proc0
