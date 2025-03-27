@@ -39,10 +39,10 @@ contains
       
       ! Read namelist from input file
       use input_file, only: read_namelist_initialize_distribution
-      use input_file, only: read_namelist_initialize_distribution_default
+      use input_file, only: read_namelist_initialize_distribution_maxwellian
       
       ! Load the <init_distribution_switch> parameters
-      use input_file, only: init_distribution_option_default
+      use input_file, only: init_distribution_option_maxwellian
       use input_file, only: init_distribution_option_noise
       use input_file, only: init_distribution_option_restart_many
       use input_file, only: init_distribution_option_kpar
@@ -69,9 +69,9 @@ contains
       call broadcast(chop_side)
       call broadcast(scale_to_phiinit)
       
-      ! Read <initialize_distribution_default> namelist
-      if (init_distribution_switch==init_distribution_option_default) then
-         if (proc0) call read_namelist_initialize_distribution_default(width0, den0, upar0, oddparity)
+      ! Read <initialize_distribution_maxwellian> namelist
+      if (init_distribution_switch==init_distribution_option_maxwellian) then
+         if (proc0) call read_namelist_initialize_distribution_maxwellian(width0, den0, upar0, oddparity)
          call broadcast(width0)
          call broadcast(den0)
          call broadcast(upar0)
@@ -126,7 +126,7 @@ contains
       use parameters_numerical, only: maxwellian_normalization
       
       ! Load the <init_distribution_switch> parameters
-      use input_file, only: init_distribution_option_default
+      use input_file, only: init_distribution_option_maxwellian
       use input_file, only: init_distribution_option_noise
       use input_file, only: init_distribution_option_restart_many
       use input_file, only: init_distribution_option_kpar
@@ -140,8 +140,8 @@ contains
       restarted = .false.
       istep0 = 0
       select case (init_distribution_switch)
-      case (init_distribution_option_default)
-         call ginit_default
+      case (init_distribution_option_maxwellian)
+         call ginit_maxwellian
       case (init_distribution_option_noise)
          call ginit_noise
       case (init_distribution_option_kpar)
@@ -208,7 +208,7 @@ contains
 
    end subroutine read_parameters
 
-   subroutine ginit_default
+   subroutine ginit_maxwellian
 
       use constants, only: zi
       use species, only: spec
@@ -285,7 +285,7 @@ contains
                               * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is)
       end do
 
-   end subroutine ginit_default
+   end subroutine ginit_maxwellian
 
    subroutine ginit_noise
 
@@ -322,7 +322,7 @@ contains
             write (*, *) 'or linear simulations, using default initialization option instead.'
             write (*, *)
          end if
-         call ginit_default
+         call ginit_maxwellian
          return
       else
          ! zero out ky=kx=0 mode

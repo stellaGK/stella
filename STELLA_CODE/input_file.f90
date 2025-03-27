@@ -7,7 +7,7 @@
 ! 
 ! For each namelists two routines will exist:
 !    - read_namelist_<namelist>
-!    - set_default_parameters_<namelist>
+!    - set_maxwellian_parameters_<namelist>
 ! 
 ! First we will set the default input parameters, and then we will overwrite 
 ! any default options with those specified in the input file. Optionally
@@ -51,7 +51,7 @@
 ! 
 ! INITIALIZE FIELDS
 !   initialize_distribution (renamed from init_g_knobs)
-!   initialize_distribution_default
+!   initialize_distribution_maxwellian
 !   initialize_distribution_noise
 !   initialize_distribution_kpar
 !   initialize_distribution_rh
@@ -92,16 +92,16 @@ module input_file
 
    public :: read_namelist_dissipation
    public :: read_namelist_initialize_distribution
-   public :: read_namelist_initialize_distribution_default
+   public :: read_namelist_initialize_distribution_maxwellian
    
    ! Parameters need to be public
-   public :: init_distribution_option_default, init_distribution_option_noise, init_distribution_option_restart_many
+   public :: init_distribution_option_maxwellian, init_distribution_option_noise, init_distribution_option_restart_many
    public :: init_distribution_option_kpar, init_distribution_option_rh, init_distribution_option_remap
    
    private
    
    ! Create parameters for the <init_distribution_option>
-   integer, parameter :: init_distribution_option_default = 1
+   integer, parameter :: init_distribution_option_maxwellian = 1
    integer, parameter :: init_distribution_option_noise = 2
    integer, parameter :: init_distribution_option_restart_many = 3
    integer, parameter :: init_distribution_option_kpar = 4
@@ -123,14 +123,14 @@ contains
       character(30), intent(out) :: collision_model
 
       if (.not. proc0) return
-      call set_default_parameters_dissipation
+      call set_maxwellian_parameters_dissipation
       call read_input_file_dissipation
       call check_inputs_dissipation
 
    contains
       
       !------------------------ Default input parameters -----------------------
-      subroutine set_default_parameters_dissipation
+      subroutine set_maxwellian_parameters_dissipation
 
          implicit none
 
@@ -142,7 +142,7 @@ contains
          ! Options: dougherty or fokker-planck
          collision_model = "dougherty"
 
-      end subroutine set_default_parameters_dissipation
+      end subroutine set_maxwellian_parameters_dissipation
 
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_dissipation
@@ -189,18 +189,18 @@ contains
       character(20) :: initialize_distribution_option
 
       if (.not. proc0) return
-      call set_default_parameters_initialize_distribution
+      call set_maxwellian_parameters_initialize_distribution
       call read_input_file_initialize_distribution
 
    contains
       
       !------------------------ Default input parameters -----------------------
-      subroutine set_default_parameters_initialize_distribution
+      subroutine set_maxwellian_parameters_initialize_distribution
 
          implicit none
 
-         ! Options: {default, noise, many, kpar, rh, remap}
-         initialize_distribution_option = "default"
+         ! Options: {default, maxwellian, snoise, many, kpar, rh, remap}
+         initialize_distribution_option = "maxwellian"
          
          ! Other options
          phiinit = 1.0
@@ -208,7 +208,7 @@ contains
          chop_side = .false.
          left = .true.
 
-      end subroutine set_default_parameters_initialize_distribution
+      end subroutine set_maxwellian_parameters_initialize_distribution
 
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_initialize_distribution
@@ -224,8 +224,9 @@ contains
          logical :: dexist
       
          ! Link text options for <initialize_distribution_option> to an integer value
-         type(text_option), dimension(6), parameter :: init_distribution_options = &
-             (/text_option('default', init_distribution_option_default), &
+         type(text_option), dimension(7), parameter :: init_distribution_options = &
+             (/text_option('default', init_distribution_option_maxwellian), &
+               text_option('maxwellian', init_distribution_option_maxwellian), &
                text_option('noise', init_distribution_option_noise), &
                text_option('many', init_distribution_option_restart_many), &
                text_option('kpar', init_distribution_option_kpar), &
@@ -253,7 +254,7 @@ contains
    !****************************************************************************
    !                       INITIALIZE POTENTIAL: DEFAULT                       !
    !****************************************************************************
-   subroutine read_namelist_initialize_distribution_default(width0, den0, upar0, oddparity)
+   subroutine read_namelist_initialize_distribution_maxwellian(width0, den0, upar0, oddparity)
 
       use mp, only: proc0
 
@@ -264,13 +265,13 @@ contains
       logical, intent(out) :: oddparity
 
       if (.not. proc0) return
-      call set_default_parameters_initialize_distribution_default
-      call read_input_file_initialize_distribution_default
+      call set_maxwellian_parameters_initialize_distribution_maxwellian
+      call read_input_file_initialize_distribution_maxwellian
 
    contains
       
       !------------------------ Default input parameters -----------------------
-      subroutine set_default_parameters_initialize_distribution_default
+      subroutine set_maxwellian_parameters_initialize_distribution_maxwellian
 
          implicit none
          
@@ -279,23 +280,23 @@ contains
          upar0 = 0.
          oddparity = .false.
 
-      end subroutine set_default_parameters_initialize_distribution_default
+      end subroutine set_maxwellian_parameters_initialize_distribution_maxwellian
 
       !---------------------------- Read input file ----------------------------
-      subroutine read_input_file_initialize_distribution_default
+      subroutine read_input_file_initialize_distribution_maxwellian
 
          use file_utils, only: input_unit_exist
          implicit none
          integer :: in_file
          logical :: dexist
 
-         namelist /initialize_distribution_default/ width0, den0, upar0, oddparity
-         in_file = input_unit_exist("initialize_distribution_default", dexist)
-         if (dexist) read (unit=in_file, nml=initialize_distribution_default) 
+         namelist /initialize_distribution_maxwellian/ width0, den0, upar0, oddparity
+         in_file = input_unit_exist("initialize_distribution_maxwellian", dexist)
+         if (dexist) read (unit=in_file, nml=initialize_distribution_maxwellian) 
 
-      end subroutine read_input_file_initialize_distribution_default
+      end subroutine read_input_file_initialize_distribution_maxwellian
 
-   end subroutine read_namelist_initialize_distribution_default
+   end subroutine read_namelist_initialize_distribution_maxwellian
 
 end module input_file
 
