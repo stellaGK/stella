@@ -44,13 +44,13 @@ packages in a standalone environment, you can run:
     source $STELLA_HEAD_DIR/AUTOMATIC_TESTS/venv/bin/activate
 
 This will create a Python [virtual environment][venv] with the packages needed
-for running the tests. You can then run all the tests:
+for running the tests. You can then run all the tests in the main stella directory using:
     
-    make run-automated-numerical-tests-for-stella
+    make numerical-tests
     
 If you would like to see more information while running the tests run: 
     
-    make run-automated-numerical-tests-for-stella-verbose
+    make numerical-tests-verbose
     
 (TODO-HT) Besides the numerical tests create a package for quick
 and slow physics tests, used as benchmarks.

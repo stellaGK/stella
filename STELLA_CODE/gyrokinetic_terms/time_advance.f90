@@ -786,6 +786,7 @@ contains
       use sources, only: source_option_switch, source_option_projection
       use sources, only: source_option_krook
       use sources, only: update_tcorr_krook, project_out_zero
+      use parameters_physics, only: include_apar
       use mp, only: proc0, broadcast
 
       use parameters_numerical, only: flip_flop
@@ -808,7 +809,7 @@ contains
       !> save value of phi & apar
       !> for use in diagnostics (to obtain frequency)
       phi_old = phi
-      apar_old = apar
+      if (include_apar) apar_old = apar
 
       ! Flag which is set to true once we've taken a step without needing to
       ! reset dt (which can be done by the nonlinear term(s))
