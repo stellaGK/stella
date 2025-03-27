@@ -17,7 +17,7 @@ module init_g
    integer :: init_distribution_switch
 
    ! Initialization parameters used in all options
-   logical :: chop_side, left, scale_to_phiinit
+   logical :: scale_to_phiinit
    real :: phiinit
    
    real :: tstart, scale, kxmax, kxmin
@@ -50,22 +50,21 @@ contains
       implicit none
 
       integer :: ind_slash
+      
+      !-------------------------------------------------------------------------
 
       if (initialized) return
       initialized = .true.
 
       call init_stella_layouts
       
-      ! Read <initialize_distribution> namelist
-      if (proc0) call read_namelist_initialize_distribution(init_distribution_switch, &
-         phiinit, left, chop_side, scale_to_phiinit)
+      ! Read <initialize_distribution> namelist 
+      if (proc0) call read_namelist_initialize_distribution(init_distribution_switch, phiinit, scale_to_phiinit)
          
       ! Broadcast to all processors
       call broadcast(init_distribution_switch)
-      call broadcast(phiinit)
-      call broadcast(left)
-      call broadcast(chop_side)
       call broadcast(scale_to_phiinit)
+      call broadcast(phiinit)
 
       if (proc0) call read_parameters
 
@@ -192,18 +191,20 @@ contains
       
       ! Read the following variables from the input file
       real :: width0, den0, upar0
-      logical :: oddparity
+      logical :: oddparity, left, chop_side
       
       !-------------------------------------------------------------------------
       
       ! Read <initialize_distribution_maxwellian> namelist
-      if (proc0) call read_namelist_initialize_distribution_maxwellian(width0, den0, upar0, oddparity)
+      if (proc0) call read_namelist_initialize_distribution_maxwellian(width0, den0, upar0, oddparity, left, chop_side)
          
       ! Broadcast to all processors
       call broadcast(width0)
       call broadcast(den0)
       call broadcast(upar0)
       call broadcast(oddparity)
+      call broadcast(left)
+      call broadcast(chop_side)
 
       right = .not. left
 
@@ -297,14 +298,17 @@ contains
       
       ! Read the following variables from the input file
       real :: zf_init
+      logical :: left, chop_side
       
       !-------------------------------------------------------------------------
       
       ! Read <initialize_distribution_noise> namelist
-      if (proc0) call read_namelist_initialize_distribution_noise(zf_init)
+      if (proc0) call read_namelist_initialize_distribution_noise(zf_init, left, chop_side)
          
       ! Broadcast to all processors
       call broadcast(zf_init)
+      call broadcast(left)
+      call broadcast(chop_side)
 
       if ((naky == 1 .and. nakx == 1) .or. (.not. nonlinear)) then
          if (proc0) then
@@ -450,13 +454,14 @@ contains
       real :: den0, upar0, tpar0, tperp0
       real :: den1, upar1, tpar1, tperp1
       real :: den2, upar2, tpar2, tperp2
+      logical :: left, chop_side
       
       !-------------------------------------------------------------------------
       
       ! Read <initialize_distribution_noise> namelist
       if (proc0) call read_namelist_initialize_distribution_kpar(&
          width0, refac, imfac, den0, upar0, tpar0, tperp0, &
-         den1, upar1, tpar1, tperp1, den2, upar2, tpar2, tperp2)
+         den1, upar1, tpar1, tperp1, den2, upar2, tpar2, tperp2, left, chop_side)
          
       ! Broadcast to all processors
       call broadcast(width0)
@@ -474,6 +479,8 @@ contains
       call broadcast(upar2)
       call broadcast(tpar2)
       call broadcast(tperp2)
+      call broadcast(left)
+      call broadcast(chop_side)
 
       phi = 0.
       odd = 0.

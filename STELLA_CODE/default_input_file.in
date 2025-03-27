@@ -13,8 +13,6 @@
    initialize_distribution_option = "default"
    phiinit = 1.0
    scale_to_phiinit = .false.
-   chop_side = .false.
-   left = .true.
 /
 
 &initialize_distribution_default
@@ -22,10 +20,14 @@
    den0 = 1.
    upar0 = 0.
    oddparity = .false.
+   chop_side = .false.
+   left = .true.
 /
 
 &initialize_distribution_noise
    zf_init = 1.0
+   chop_side = .false.
+   left = .true.
 /
 
 &initialize_distribution_kpar
@@ -44,4 +46,6 @@
    upar2 = 0.
    tpar2 = 0.
    tperp2 = 0.
+   chop_side = .false.
+   left = .true.
 /

@@ -172,9 +172,9 @@ contains
    end subroutine read_namelist_dissipation
    
    !****************************************************************************
-   !                           INITIALIZE POTENTIAL                            !
+   !                   INITIALIZE POTENTIAL: READ THE SWITCH                   !
    !****************************************************************************
-   subroutine read_namelist_initialize_distribution(init_distribution_switch, phiinit, left, chop_side, scale_to_phiinit)
+   subroutine read_namelist_initialize_distribution(init_distribution_switch, phiinit, scale_to_phiinit)
 
       use mp, only: proc0
 
@@ -182,8 +182,6 @@ contains
       
       ! Variables that are read from the input file
       real, intent(out) :: phiinit
-      logical, intent(out) :: left
-      logical, intent(out) :: chop_side
       logical, intent(out) :: scale_to_phiinit
       integer, intent(out) :: init_distribution_switch
       
@@ -207,8 +205,6 @@ contains
          ! Other options
          phiinit = 1.0
          scale_to_phiinit = .false.
-         chop_side = .false.
-         left = .true.
 
       end subroutine set_maxwellian_parameters_initialize_distribution
 
@@ -236,7 +232,7 @@ contains
                text_option('remap', init_distribution_option_remap)/)
 
          ! Variables in the <initialize_distribution> namelist
-         namelist /initialize_distribution/ initialize_distribution_option, phiinit, scale_to_phiinit, chop_side, left
+         namelist /initialize_distribution/ initialize_distribution_option, phiinit, scale_to_phiinit
          
          !----------------------------------------------------------------------
 
@@ -256,7 +252,7 @@ contains
    !****************************************************************************
    !                      INITIALIZE POTENTIAL: MAXWELLIAN                     !
    !****************************************************************************
-   subroutine read_namelist_initialize_distribution_maxwellian(width0, den0, upar0, oddparity)
+   subroutine read_namelist_initialize_distribution_maxwellian(width0, den0, upar0, oddparity, left, chop_side)
 
       use mp, only: proc0
 
@@ -264,6 +260,8 @@ contains
       
       real, intent(out) :: width0, den0, upar0
       logical, intent(out) :: oddparity
+      logical, intent(out) :: left
+      logical, intent(out) :: chop_side
 
       if (.not. proc0) return
       call set_maxwellian_parameters_initialize_distribution_maxwellian
@@ -280,6 +278,8 @@ contains
          den0 = 1.
          upar0 = 0.
          oddparity = .false.
+         chop_side = .false.
+         left = .true.
 
       end subroutine set_maxwellian_parameters_initialize_distribution_maxwellian
 
@@ -291,7 +291,7 @@ contains
          integer :: in_file
          logical :: dexist
 
-         namelist /initialize_distribution_maxwellian/ width0, den0, upar0, oddparity
+         namelist /initialize_distribution_maxwellian/ width0, den0, upar0, oddparity, left, chop_side
          in_file = input_unit_exist("initialize_distribution_maxwellian", dexist)
          if (dexist) read (unit=in_file, nml=initialize_distribution_maxwellian) 
 
@@ -302,13 +302,15 @@ contains
    !****************************************************************************
    !                       INITIALIZE DISTRIBUTION: NOISE                      !
    !****************************************************************************
-   subroutine read_namelist_initialize_distribution_noise(zf_init)
+   subroutine read_namelist_initialize_distribution_noise(zf_init, left, chop_side)
 
       use mp, only: proc0
 
       implicit none
       
       real, intent(out) :: zf_init
+      logical, intent(out) :: left
+      logical, intent(out) :: chop_side
 
       if (.not. proc0) return
       call set_default_parameters_initialize_distribution_noise
@@ -322,6 +324,8 @@ contains
          implicit none
          
          zf_init = 1.0
+         chop_side = .false.
+         left = .true.
 
       end subroutine set_default_parameters_initialize_distribution_noise
 
@@ -333,7 +337,7 @@ contains
          integer :: in_file
          logical :: dexist
 
-         namelist /initialize_distribution_noise/ zf_init
+         namelist /initialize_distribution_noise/ zf_init, left, chop_side
          in_file = input_unit_exist("initialize_distribution_noise", dexist)
          if (dexist) read (unit=in_file, nml=initialize_distribution_noise) 
 
@@ -346,7 +350,7 @@ contains
    !****************************************************************************
    subroutine read_namelist_initialize_distribution_kpar(&
          width0, refac, imfac, den0, upar0, tpar0, tperp0, &
-         den1, upar1, tpar1, tperp1, den2, upar2, tpar2, tperp2)
+         den1, upar1, tpar1, tperp1, den2, upar2, tpar2, tperp2, left, chop_side)
 
       use mp, only: proc0
 
@@ -356,6 +360,8 @@ contains
       real, intent(out) :: den0, upar0, tpar0, tperp0
       real, intent(out) :: den1, upar1, tpar1, tperp1
       real, intent(out) :: den2, upar2, tpar2, tperp2
+      logical, intent(out) :: left
+      logical, intent(out) :: chop_side
 
       if (.not. proc0) return
       call set_kpar_parameters_initialize_distribution_kpar
@@ -383,6 +389,8 @@ contains
          upar2 = 0.
          tpar2 = 0.
          tperp2 = 0.
+         chop_side = .false.
+         left = .true.
 
       end subroutine set_kpar_parameters_initialize_distribution_kpar
 
@@ -395,7 +403,7 @@ contains
          logical :: dexist
 
          namelist /initialize_distribution_kpar/ width0, refac, imfac, den0, upar0, &
-            tpar0, tperp0, den1, upar1, tpar1, tperp1, den2, upar2, tpar2, tperp2
+            tpar0, tperp0, den1, upar1, tpar1, tperp1, den2, upar2, tpar2, tperp2, left, chop_side
          in_file = input_unit_exist("initialize_distribution_kpar", dexist)
          if (dexist) read (unit=in_file, nml=initialize_distribution_kpar) 
 
