@@ -49,3 +49,18 @@
    chop_side = .false.
    left = .true.
 /
+
+&initialize_distribution_rh
+   kxmax = 1e+100
+   kxmin = 0.0
+   imfac = 0.0
+   refac = 1.0
+/
+
+&restart_options
+   tstart = 0.0
+   scale = 1.0
+   restart_file = trim(run_name)//".nc"
+   restart_dir = "./"
+   read_many = .true.
+/

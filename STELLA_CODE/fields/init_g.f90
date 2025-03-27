@@ -4,40 +4,61 @@
 module init_g
 
    implicit none
-
-   public :: ginit
+   
+   ! Public routines
+   public :: ginit, reset_init
    public :: init_init_g, finish_init_g
-   public :: scale_to_phiinit, phiinit
+   
+   ! The stella.f90 script will check if we want to call rescale_fields()
+   public :: phiinit, scale_to_phiinit
+   
+   ! When we restart a simulation, we need to access <tstart>
    public :: tstart
-   public :: reset_init
 
    private
-
-   ! Choose the initalization option for the potential
-   integer :: init_distribution_switch
+   
+   !----------------------------- public variables -----------------------------
 
    ! Initialization parameters used in all options
+   ! Moreover, these are is used in rescale_fields() in fields.fpp
    logical :: scale_to_phiinit
    real :: phiinit
    
-   real :: tstart, scale, kxmax, kxmin
-   character(300), public :: restart_file
-   character(len=150) :: restart_dir
+   ! When we restart a simulation, we need to access <tstart>
+   real :: tstart
+   
+   !----------------------------- module variables -----------------------------
 
+   ! Remember whether the module has already been initialized
    logical :: initialized = .false.
-   logical :: exist
+
+   ! Choose the initalization option for the potential
+   integer :: init_distribution_switch
+   
+   ! Read when the module is initialized and used later in stella_restore()
+   real :: scale
+   
+   ! During the initialization of this module we set the restart path
+   ! and we will parse it to stella_save.fpp through save_init()
+   character(len=300) :: restart_file
+   character(len=150) :: restart_dir
 
 contains
 
+   !****************************************************************************
+   !                          INITIALIZE THIS MODULE                           !
+   !****************************************************************************
    subroutine init_init_g
 
       use stella_save, only: init_save, read_many
       use stella_layouts, only: init_stella_layouts
       use system_fortran, only: systemf
       use mp, only: proc0, broadcast
+      use stella_save, only: read_many
       
       ! Read namelist from input file
       use input_file, only: read_namelist_initialize_distribution
+      use input_file, only: read_namelist_restart_options
       
       ! Load the <init_distribution_switch> parameters
       use input_file, only: init_distribution_option_maxwellian
@@ -66,35 +87,40 @@ contains
       call broadcast(scale_to_phiinit)
       call broadcast(phiinit)
 
-      if (proc0) call read_parameters
+      ! Read <restart_options> namelist
+      ! Most of these options will be parsed to other stella modules
+      ! Except the <scale> variable which is used in init_distribution_switch = 'many'
+      if (proc0) call read_namelist_restart_options(tstart, scale, restart_file, restart_dir, read_many)
+         
+      ! Broadcast to all processors
+      call broadcast(tstart)
+      call broadcast(scale)
+      call broadcast(restart_file)
+      call broadcast(restart_dir)
+      call broadcast(read_many)
 
-      ! prepend restart_dir to restart_file
-      ! append trailing slash if not exists
+      ! Prepend restart_dir to restart_file, and append trailing slash if not exists
       if (restart_dir(len_trim(restart_dir):) /= "/") &
-         restart_dir = trim(restart_dir)//"/"
-
+         restart_dir = trim(restart_dir)//"/" 
       if (proc0) call systemf('mkdir -p '//trim(restart_dir))
 
-      !Determine if restart file contains "/" if so split on this point to give DIR//FILE
-      !so restart files are created in DIR//restart_dir//FILE
+      ! Determine if restart file contains "/" if so split on this point to give DIR//FILE
+      ! so restart files are created in DIR//restart_dir//FILE
       ind_slash = index(restart_file, "/", .true.)
       if (ind_slash == 0) then !No slash present
          restart_file = trim(restart_dir)//trim(restart_file)
       else !Slash present
          restart_file = trim(restart_file(1:ind_slash))//trim(restart_dir)//trim(restart_file(ind_slash + 1:))
-      end if
-
-      call broadcast(kxmax)
-      call broadcast(kxmin)
-      call broadcast(tstart)
-      call broadcast(restart_file)
-      call broadcast(read_many)
-      call broadcast(scale)
-
+      end if 
+      
+      ! Initialize the netcdf saving
       call init_save(restart_file)
 
    end subroutine init_init_g
 
+   !****************************************************************************
+   !                   INITIALIZE THE DISTRIBUTION FUNCTION                    !
+   !****************************************************************************
    subroutine ginit(restarted, istep0)
 
       use stella_save, only: init_tstart
@@ -139,28 +165,6 @@ contains
       end if
 
    end subroutine ginit
-
-   subroutine read_parameters
-      use file_utils, only: input_unit, error_unit, run_name, input_unit_exist
-      use stella_save, only: read_many
-
-      implicit none
-
-      namelist /init_g_knobs/ restart_file, restart_dir, read_many, scale, tstart, kxmax, kxmin
-      integer :: in_file
-
-      tstart = 0. ! Used for restarted simulations
-      scale = 1.0 ! Used for restarted simulations
-      kxmax = 1.e100 ! Used for <ginit_options> = {rh}
-      kxmin = 0. ! Used for <ginit_options> = {rh}
-
-      restart_file = trim(run_name)//".nc"
-      restart_dir = "./"
-      in_file = input_unit_exist("init_g_knobs", exist)
-!    if (exist) read (unit=input_unit("init_g_knobs"), nml=init_g_knobs)
-      if (exist) read (unit=in_file, nml=init_g_knobs)
-
-   end subroutine read_parameters
 
    !****************************************************************************
    !                     INITIALIZE POTENTIAL: MAXWELLIAN                      !
@@ -542,6 +546,7 @@ contains
    !****************************************************************************
    subroutine ginit_rh
 
+      use mp, only: proc0, broadcast
       use species, only: spec
       use arrays_dist_fn, only: gvmu, kperp2
       use stella_layouts, only: kxkyz_lo
@@ -549,10 +554,26 @@ contains
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: nvpa, nmu
       use grids_kxky, only: akx
+      use input_file, only: read_namelist_initialize_distribution_rh
 
       implicit none
 
       integer :: ikxkyz, iky, ikx, iz, is, ia
+      
+      ! Read the following variables from the input file
+      real :: imfac, refac
+      real :: kxmax, kxmin
+      
+      !-------------------------------------------------------------------------
+      
+      ! Read <initialize_distribution_rh> namelist
+      if (proc0) call read_namelist_initialize_distribution_rh(kxmin, kxmax, imfac, refac)
+      
+      ! Broadcast to all processors
+      call broadcast(refac)
+      call broadcast(imfac)
+      call broadcast(kxmax)
+      call broadcast(kxmin)
 
       ! initialize g to be a Maxwellian with a constant density perturbation
 

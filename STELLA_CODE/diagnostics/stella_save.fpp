@@ -40,7 +40,10 @@ module stella_save
       module procedure stella_restore_many
    end interface
 
-   logical :: read_many = .true., save_many = .true. ! Read and write single or multiple restart files
+   ! Read and write single or multiple restart files
+   ! Note that <read_many> can be set in the input file in <restart_options>
+   ! but it is only read if initialize_distribution_option = "many"
+   logical :: read_many = .true., save_many = .true. 
 
    private
    character(300), save :: restart_file

@@ -95,6 +95,8 @@ module input_file
    public :: read_namelist_initialize_distribution_maxwellian
    public :: read_namelist_initialize_distribution_noise
    public :: read_namelist_initialize_distribution_kpar
+   public :: read_namelist_initialize_distribution_rh
+   public :: read_namelist_restart_options
    
    ! Parameters need to be public
    public :: init_distribution_option_maxwellian, init_distribution_option_noise, init_distribution_option_restart_many
@@ -108,7 +110,11 @@ module input_file
    integer, parameter :: init_distribution_option_restart_many = 3
    integer, parameter :: init_distribution_option_kpar = 4
    integer, parameter :: init_distribution_option_rh = 5
-   integer, parameter :: init_distribution_option_remap = 6
+   integer, parameter :: init_distribution_option_remap = 6 
+   
+   ! These variables are used in every single subroutine, so make them global
+   integer :: in_file
+   logical :: dexist
 
 contains
 
@@ -151,8 +157,6 @@ contains
 
          use file_utils, only: input_unit_exist
          implicit none
-         integer :: in_file
-         logical :: dexist
 
          namelist /dissipation/ include_collisions, collisions_implicit, collision_model, hyper_dissipation
          in_file = input_unit_exist("dissipation", dexist)
@@ -218,8 +222,6 @@ contains
 
          ! Variables needed to read the input file
          integer :: ierr
-         integer :: in_file
-         logical :: dexist
       
          ! Link text options for <initialize_distribution_option> to an integer value
          type(text_option), dimension(7), parameter :: init_distribution_options = &
@@ -288,8 +290,6 @@ contains
 
          use file_utils, only: input_unit_exist
          implicit none
-         integer :: in_file
-         logical :: dexist
 
          namelist /initialize_distribution_maxwellian/ width0, den0, upar0, oddparity, left, chop_side
          in_file = input_unit_exist("initialize_distribution_maxwellian", dexist)
@@ -334,8 +334,6 @@ contains
 
          use file_utils, only: input_unit_exist
          implicit none
-         integer :: in_file
-         logical :: dexist
 
          namelist /initialize_distribution_noise/ zf_init, left, chop_side
          in_file = input_unit_exist("initialize_distribution_noise", dexist)
@@ -364,13 +362,13 @@ contains
       logical, intent(out) :: chop_side
 
       if (.not. proc0) return
-      call set_kpar_parameters_initialize_distribution_kpar
+      call set_default_parameters_initialize_distribution_kpar
       call read_input_file_initialize_distribution_kpar
 
    contains
       
       !------------------------ Default input parameters -----------------------
-      subroutine set_kpar_parameters_initialize_distribution_kpar
+      subroutine set_default_parameters_initialize_distribution_kpar
 
          implicit none
          
@@ -392,15 +390,13 @@ contains
          chop_side = .false.
          left = .true.
 
-      end subroutine set_kpar_parameters_initialize_distribution_kpar
+      end subroutine set_default_parameters_initialize_distribution_kpar
 
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_initialize_distribution_kpar
 
          use file_utils, only: input_unit_exist
          implicit none
-         integer :: in_file
-         logical :: dexist
 
          namelist /initialize_distribution_kpar/ width0, refac, imfac, den0, upar0, &
             tpar0, tperp0, den1, upar1, tpar1, tperp1, den2, upar2, tpar2, tperp2, left, chop_side
@@ -410,6 +406,102 @@ contains
       end subroutine read_input_file_initialize_distribution_kpar
 
    end subroutine read_namelist_initialize_distribution_kpar
+   
+   !****************************************************************************
+   !                          INITIALIZE POTENTIAL: RH                         !
+   !****************************************************************************
+   subroutine read_namelist_initialize_distribution_rh(kxmin, kxmax, imfac, refac)
+
+      use mp, only: proc0
+
+      implicit none
+      
+      real, intent(out) :: kxmax, kxmin
+      real, intent(out) :: imfac, refac
+
+      if (.not. proc0) return
+      call set_default_parameters_initialize_distribution_rh
+      call read_input_file_initialize_distribution_rh
+
+   contains
+      
+      !------------------------ Default input parameters -----------------------
+      subroutine set_default_parameters_initialize_distribution_rh
+
+         implicit none
+         
+         kxmax = 1e+100
+         kxmin = 0.0
+         imfac = 0.0
+         refac = 1.0
+
+      end subroutine set_default_parameters_initialize_distribution_rh
+
+      !---------------------------- Read input file ----------------------------
+      subroutine read_input_file_initialize_distribution_rh
+
+         use file_utils, only: input_unit_exist
+         implicit none
+
+         namelist /initialize_distribution_rh/ kxmin, kxmax, imfac, refac
+         in_file = input_unit_exist("initialize_distribution_rh", dexist)
+         if (dexist) read (unit=in_file, nml=initialize_distribution_rh) 
+
+      end subroutine read_input_file_initialize_distribution_rh
+
+   end subroutine read_namelist_initialize_distribution_rh
+   
+   !****************************************************************************
+   !                              RESTART OPTIONS                              !
+   !****************************************************************************
+   subroutine read_namelist_restart_options(tstart, scale, restart_file, restart_dir, read_many)
+
+      use mp, only: proc0
+
+      implicit none
+       
+      real, intent(out) :: tstart, scale
+      logical, intent(out) :: read_many
+      character(len=300), intent(inout) :: restart_file
+      character(len=150), intent(inout) :: restart_dir
+
+      if (.not. proc0) return
+      call set_default_parameters_restart_options
+      call read_input_file_restart_options
+
+   contains
+      
+      !------------------------ Default input parameters -----------------------
+      subroutine set_default_parameters_restart_options
+      
+         use file_utils, only: run_name
+
+         implicit none
+         
+         tstart = 0.0
+         scale = 1.0
+         restart_file = trim(run_name)//".nc"
+         restart_dir = "./"
+         read_many = .true.
+         
+         ! Note that the <read_many> and <save_many> are initialized at the
+         ! start of this module so that they are accessible to stella_save.fpp
+
+      end subroutine set_default_parameters_restart_options
+
+      !---------------------------- Read input file ----------------------------
+      subroutine read_input_file_restart_options
+
+         use file_utils, only: input_unit_exist
+         implicit none
+
+         namelist /restart_options/ tstart, scale, restart_file, restart_dir, read_many
+         in_file = input_unit_exist("restart_options", dexist)
+         if (dexist) read (unit=in_file, nml=restart_options) 
+
+      end subroutine read_input_file_restart_options
+
+   end subroutine read_namelist_restart_options
 
 end module input_file
 
