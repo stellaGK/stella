@@ -20,7 +20,7 @@ module init_g
    !----------------------------- public variables -----------------------------
 
    ! Initialization parameters used in all options
-   ! Moreover, these are is used in rescale_fields() in fields.fpp
+   ! Moreover, these are used in rescale_fields() in the fields.fpp module
    logical :: scale_to_phiinit
    real :: phiinit
    
@@ -35,7 +35,7 @@ module init_g
    ! Choose the initalization option for the potential
    integer :: init_distribution_switch
    
-   ! Read when the module is initialized and used later in stella_restore()
+   ! This variable is read when the module is initialized and used later in stella_restore()
    real :: scale
    
    ! During the initialization of this module we set the restart path
@@ -658,6 +658,9 @@ contains
 
    end subroutine ginit_restart_many
 
+   !****************************************************************************
+   !                        NORMALIZE BY MAXWELLIAN                            !
+   !****************************************************************************
    subroutine normalize_by_maxwellian
 
       use stella_layouts, only: kxkyz_lo, is_idx, iz_idx
@@ -684,6 +687,9 @@ contains
 
    end subroutine normalize_by_maxwellian
 
+   !****************************************************************************
+   !                                                                           !
+   !****************************************************************************
    subroutine reset_init
    
       use input_file, only: init_distribution_option_restart_many
@@ -694,33 +700,9 @@ contains
 
    end subroutine reset_init
 
-!   subroutine flae (g, gavg)
-
-!     use species, only: spec, electron_species
-!     use zgrid, only: nzgrid, delthet, jacob
-!     use kt_grids, only: aky, ntheta0
-!     use vpamu_grids, only: nvgrid
-!     use stella_layouts, only: gxyz_lo, is_idx
-!     complex, dimension (-nzgrid:,:,:,gxyz_lo%llim_proc:), intent (in) :: g
-!     complex, dimension (-nzgrid:,:,:,gxyz_lo%llim_proc:), intent (out) :: gavg
-
-!     real :: wgt
-!     integer :: iglo, it, ik
-
-!     gavg = 0.
-!     wgt = 1./sum(delthet*jacob)
-
-!     do iglo = gxyz_lo%llim_proc, gxyz_lo%ulim_proc
-!        if (spec(is_idx(gxyz_lo, iglo))%type /= electron_species) cycle
-!        ik = 1
-!        if (aky(ik) > epsilon(0.)) cycle
-!        do it = 1, ntheta0
-!           gavg(:,it,ik,iglo) = sum(g(:,it,ik,iglo)*delthet*jacob)*wgt
-!        end do
-!     end do
-
-!   end subroutine flae
-
+   !****************************************************************************
+   !                                                                           !
+   !****************************************************************************
    subroutine finish_init_g
 
       use stella_save, only: finish_save
