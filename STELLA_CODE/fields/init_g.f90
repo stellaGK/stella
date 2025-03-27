@@ -14,7 +14,7 @@ module init_g
    private
 
    ! Choose the initalization option for the potential
-   integer :: init_potential_switch
+   integer :: init_distribution_switch
 
    real :: width0, phiinit, imfac, refac, zf_init
    real :: den0, upar0, tpar0, tperp0
@@ -36,7 +36,18 @@ contains
       use stella_layouts, only: init_stella_layouts
       use system_fortran, only: systemf
       use mp, only: proc0, broadcast
-      use input_file, only: read_namelist_initialize_potential
+      
+      ! Read namelist from input file
+      use input_file, only: read_namelist_initialize_distribution
+      use input_file, only: read_namelist_initialize_distribution_default
+      
+      ! Load the <init_distribution_switch> parameters
+      use input_file, only: init_distribution_option_default
+      use input_file, only: init_distribution_option_noise
+      use input_file, only: init_distribution_option_restart_many
+      use input_file, only: init_distribution_option_kpar
+      use input_file, only: init_distribution_option_rh
+      use input_file, only: init_distribution_option_remap
 
       implicit none
 
@@ -47,16 +58,25 @@ contains
 
       call init_stella_layouts
       
-      ! Read <initialize_potential> namelist
-      if (proc0) call read_namelist_initialize_potential(init_potential_switch, &
+      ! Read <initialize_distribution> namelist
+      if (proc0) call read_namelist_initialize_distribution(init_distribution_switch, &
          phiinit, left, chop_side, scale_to_phiinit)
          
       ! Broadcast to all processors
-      call broadcast(init_potential_switch)
+      call broadcast(init_distribution_switch)
       call broadcast(phiinit)
       call broadcast(left)
       call broadcast(chop_side)
       call broadcast(scale_to_phiinit)
+      
+      ! Read <initialize_distribution_default> namelist
+      if (init_distribution_switch==init_distribution_option_default) then
+         if (proc0) call read_namelist_initialize_distribution_default(width0, den0, upar0, oddparity)
+         call broadcast(width0)
+         call broadcast(den0)
+         call broadcast(upar0)
+         call broadcast(oddparity)
+      end if
 
       if (proc0) call read_parameters
 
@@ -76,11 +96,8 @@ contains
          restart_file = trim(restart_file(1:ind_slash))//trim(restart_dir)//trim(restart_file(ind_slash + 1:))
       end if
 
-      call broadcast(width0)
       call broadcast(refac)
       call broadcast(imfac)
-      call broadcast(den0)
-      call broadcast(upar0)
       call broadcast(tpar0)
       call broadcast(tperp0)
       call broadcast(den1)
@@ -98,7 +115,6 @@ contains
       call broadcast(restart_file)
       call broadcast(read_many)
       call broadcast(scale)
-      call broadcast(oddparity)
 
       call init_save(restart_file)
 
@@ -109,13 +125,13 @@ contains
       use stella_save, only: init_tstart
       use parameters_numerical, only: maxwellian_normalization
       
-      ! Load the <init_potential_switch> parameters
-      use input_file, only: init_potential_option_default
-      use input_file, only: init_potential_option_noise
-      use input_file, only: init_potential_option_restart_many
-      use input_file, only: init_potential_option_kpar
-      use input_file, only: init_potential_option_rh
-      use input_file, only: init_potential_option_remap
+      ! Load the <init_distribution_switch> parameters
+      use input_file, only: init_distribution_option_default
+      use input_file, only: init_distribution_option_noise
+      use input_file, only: init_distribution_option_restart_many
+      use input_file, only: init_distribution_option_kpar
+      use input_file, only: init_distribution_option_rh
+      use input_file, only: init_distribution_option_remap
 
       logical, intent(out) :: restarted
       integer, intent(out) :: istep0
@@ -123,18 +139,18 @@ contains
 
       restarted = .false.
       istep0 = 0
-      select case (init_potential_switch)
-      case (init_potential_option_default)
+      select case (init_distribution_switch)
+      case (init_distribution_option_default)
          call ginit_default
-      case (init_potential_option_noise)
+      case (init_distribution_option_noise)
          call ginit_noise
-      case (init_potential_option_kpar)
+      case (init_distribution_option_kpar)
          call ginit_kpar
-      case (init_potential_option_rh)
+      case (init_distribution_option_rh)
          call ginit_rh
-      case (init_potential_option_remap)
+      case (init_distribution_option_remap)
          call ginit_remap
-      case (init_potential_option_restart_many)
+      case (init_distribution_option_restart_many)
          call ginit_restart_many
          call init_tstart(tstart, istep0, istatus)
          restarted = .true.
@@ -143,7 +159,7 @@ contains
 
       !> if maxwwellian_normalization = .true., the pdf is normalized by F0 (which is not the case otherwise)
       !> unless reading in g from a restart file, normalise g by F0 for a full flux surface simulation
-      if (maxwellian_normalization .and. init_potential_switch /= init_potential_option_restart_many) then
+      if (maxwellian_normalization .and. init_distribution_switch /= init_distribution_option_restart_many) then
          call normalize_by_maxwellian
       end if
 
@@ -160,16 +176,16 @@ contains
          den0, upar0, tpar0, tperp0, imfac, refac, &
          den1, upar1, tpar1, tperp1, &
          den2, upar2, tpar2, tperp2, &
-         kxmax, kxmin, oddparity
+         kxmax, kxmin
       integer :: in_file
 
-      tstart = 0. ! Used for restarted simulations
-      scale = 1.0 ! Used for restarted simulations
       width0 = -3.5 ! Used for <ginit_options> = {default, kpar}
-      refac = 1. ! Used for <ginit_options> = {kpar}
-      imfac = 0. ! Used for <ginit_options> = {kpar}
       den0 = 1. ! Used for <ginit_options> = {default, kpar}
       upar0 = 0. ! Used for <ginit_options> = {default, kpar}
+      tstart = 0. ! Used for restarted simulations
+      scale = 1.0 ! Used for restarted simulations
+      refac = 1. ! Used for <ginit_options> = {kpar}
+      imfac = 0. ! Used for <ginit_options> = {kpar}
       tpar0 = 0. ! Used for <ginit_options> = {kpar}
       tperp0 = 0. ! Used for <ginit_options> = {kpar}
       den1 = 0. ! Used for <ginit_options> = {kpar}
@@ -183,7 +199,6 @@ contains
       zf_init = 1.0 ! Used for <ginit_options> = {noise}
       kxmax = 1.e100 ! Used for <ginit_options> = {rh}
       kxmin = 0. ! Used for <ginit_options> = {rh}
-      oddparity = .false. ! Used for <ginit_options> = {default}
 
       restart_file = trim(run_name)//".nc"
       restart_dir = "./"
@@ -610,11 +625,11 @@ contains
 
    subroutine reset_init
    
-      use input_file, only: init_potential_option_restart_many
+      use input_file, only: init_distribution_option_restart_many
       
       implicit none
 
-      init_potential_switch = init_potential_option_restart_many
+      init_distribution_switch = init_distribution_option_restart_many
 
    end subroutine reset_init
 

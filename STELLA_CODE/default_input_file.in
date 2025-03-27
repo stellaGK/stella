@@ -9,10 +9,17 @@
    collision_model = "dougherty"
 /
 
-&initialize_potential 
-   initialize_potential_option = "default"
+&initialize_distribution
+   initialize_distribution_option = "default"
    phiinit = 1.0
    scale_to_phiinit = .false.
    chop_side = .false.
    left = .true.
+/
+
+&initialize_distribution_default
+   width0 = -3.5
+   den0 = 1.
+   upar0 = 0.
+   oddparity = .false.
 /

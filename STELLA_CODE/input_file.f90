@@ -50,11 +50,11 @@
 !   diagnostics_moments
 ! 
 ! INITIALIZE FIELDS
-!   initialize_potential (renamed from init_g_knobs)
-!   initialize_potential_default
-!   initialize_potential_noise
-!   initialize_potential_kpar
-!   initialize_potential_rh
+!   initialize_distribution (renamed from init_g_knobs)
+!   initialize_distribution_default
+!   initialize_distribution_noise
+!   initialize_distribution_kpar
+!   initialize_distribution_rh
 !   restart_options
 ! 
 ! DISSIPATION AND COLLISIONS
@@ -91,21 +91,22 @@ module input_file
    implicit none
 
    public :: read_namelist_dissipation
-   public :: read_namelist_initialize_potential
+   public :: read_namelist_initialize_distribution
+   public :: read_namelist_initialize_distribution_default
    
    ! Parameters need to be public
-   public :: init_potential_option_default, init_potential_option_noise, init_potential_option_restart_many
-   public :: init_potential_option_kpar, init_potential_option_rh, init_potential_option_remap
+   public :: init_distribution_option_default, init_distribution_option_noise, init_distribution_option_restart_many
+   public :: init_distribution_option_kpar, init_distribution_option_rh, init_distribution_option_remap
    
    private
    
-   ! Create parameters for the <init_potential_option>
-   integer, parameter :: init_potential_option_default = 1
-   integer, parameter :: init_potential_option_noise = 2
-   integer, parameter :: init_potential_option_restart_many = 3
-   integer, parameter :: init_potential_option_kpar = 4
-   integer, parameter :: init_potential_option_rh = 5
-   integer, parameter :: init_potential_option_remap = 6
+   ! Create parameters for the <init_distribution_option>
+   integer, parameter :: init_distribution_option_default = 1
+   integer, parameter :: init_distribution_option_noise = 2
+   integer, parameter :: init_distribution_option_restart_many = 3
+   integer, parameter :: init_distribution_option_kpar = 4
+   integer, parameter :: init_distribution_option_rh = 5
+   integer, parameter :: init_distribution_option_remap = 6
 
 contains
 
@@ -147,16 +148,11 @@ contains
       subroutine read_input_file_dissipation
 
          use file_utils, only: input_unit_exist
-
          implicit none
-
          integer :: in_file
          logical :: dexist
 
-         ! Variables in the <dissipation> namelist
          namelist /dissipation/ include_collisions, collisions_implicit, collision_model, hyper_dissipation
-
-         ! Overwrite the default input parameters by those specified in the input file
          in_file = input_unit_exist("dissipation", dexist)
          if (dexist) read (unit=in_file, nml=dissipation)
 
@@ -176,7 +172,7 @@ contains
    !****************************************************************************
    !                           INITIALIZE POTENTIAL                            !
    !****************************************************************************
-   subroutine read_namelist_initialize_potential(init_potential_switch, phiinit, left, chop_side, scale_to_phiinit)
+   subroutine read_namelist_initialize_distribution(init_distribution_switch, phiinit, left, chop_side, scale_to_phiinit)
 
       use mp, only: proc0
 
@@ -187,24 +183,24 @@ contains
       logical, intent(out) :: left
       logical, intent(out) :: chop_side
       logical, intent(out) :: scale_to_phiinit
-      integer, intent(out) :: init_potential_switch
+      integer, intent(out) :: init_distribution_switch
       
-      ! Local variable to set <init_potential_switch>
-      character(20) :: initialize_potential_option
+      ! Local variable to set <init_distribution_switch>
+      character(20) :: initialize_distribution_option
 
       if (.not. proc0) return
-      call set_default_parameters_initialize_potential
-      call read_input_file_initialize_potential
+      call set_default_parameters_initialize_distribution
+      call read_input_file_initialize_distribution
 
    contains
       
       !------------------------ Default input parameters -----------------------
-      subroutine set_default_parameters_initialize_potential
+      subroutine set_default_parameters_initialize_distribution
 
          implicit none
 
          ! Options: {default, noise, many, kpar, rh, remap}
-         initialize_potential_option = "default"
+         initialize_distribution_option = "default"
          
          ! Other options
          phiinit = 1.0
@@ -212,10 +208,10 @@ contains
          chop_side = .false.
          left = .true.
 
-      end subroutine set_default_parameters_initialize_potential
+      end subroutine set_default_parameters_initialize_distribution
 
       !---------------------------- Read input file ----------------------------
-      subroutine read_input_file_initialize_potential
+      subroutine read_input_file_initialize_distribution
 
          use file_utils, only: input_unit_exist, error_unit
          use text_options, only: text_option, get_option_value
@@ -227,32 +223,79 @@ contains
          integer :: in_file
          logical :: dexist
       
-         ! Link text options for <initialize_potential_option> to an integer value
-         type(text_option), dimension(6), parameter :: init_potential_options = &
-             (/text_option('default', init_potential_option_default), &
-               text_option('noise', init_potential_option_noise), &
-               text_option('many', init_potential_option_restart_many), &
-               text_option('kpar', init_potential_option_kpar), &
-               text_option('rh', init_potential_option_rh), &
-               text_option('remap', init_potential_option_remap)/)
+         ! Link text options for <initialize_distribution_option> to an integer value
+         type(text_option), dimension(6), parameter :: init_distribution_options = &
+             (/text_option('default', init_distribution_option_default), &
+               text_option('noise', init_distribution_option_noise), &
+               text_option('many', init_distribution_option_restart_many), &
+               text_option('kpar', init_distribution_option_kpar), &
+               text_option('rh', init_distribution_option_rh), &
+               text_option('remap', init_distribution_option_remap)/)
 
-         ! Variables in the <initialize_potential> namelist
-         namelist /initialize_potential/ initialize_potential_option, phiinit, scale_to_phiinit, chop_side, left
+         ! Variables in the <initialize_distribution> namelist
+         namelist /initialize_distribution/ initialize_distribution_option, phiinit, scale_to_phiinit, chop_side, left
          
          !----------------------------------------------------------------------
 
          ! Overwrite the default input parameters by those specified in the input file
-         in_file = input_unit_exist("initialize_potential", dexist)
-         if (dexist) read (unit=in_file, nml=initialize_potential)
+         in_file = input_unit_exist("initialize_distribution", dexist)
+         if (dexist) read (unit=in_file, nml=initialize_distribution)
          
-         ! Read the text option in <initialize_potential> and store it in <adiabatic_option_switch>
+         ! Read the text option in <initialize_distribution> and store it in <init_distribution_switch>
          ierr = error_unit()
-         call get_option_value(initialize_potential_option, init_potential_options, init_potential_switch, &
-            ierr, "initialize_potential_option in initialize_potential")
+         call get_option_value(initialize_distribution_option, init_distribution_options, init_distribution_switch, &
+            ierr, "initialize_distribution_option in initialize_distribution")
 
-      end subroutine read_input_file_initialize_potential
+      end subroutine read_input_file_initialize_distribution
 
-   end subroutine read_namelist_initialize_potential
+   end subroutine read_namelist_initialize_distribution
+   
+   !****************************************************************************
+   !                       INITIALIZE POTENTIAL: DEFAULT                       !
+   !****************************************************************************
+   subroutine read_namelist_initialize_distribution_default(width0, den0, upar0, oddparity)
+
+      use mp, only: proc0
+
+      implicit none
+      
+      real, intent(out) :: width0
+      real, intent(out) :: den0, upar0
+      logical, intent(out) :: oddparity
+
+      if (.not. proc0) return
+      call set_default_parameters_initialize_distribution_default
+      call read_input_file_initialize_distribution_default
+
+   contains
+      
+      !------------------------ Default input parameters -----------------------
+      subroutine set_default_parameters_initialize_distribution_default
+
+         implicit none
+         
+         width0 = -3.5
+         den0 = 1.
+         upar0 = 0.
+         oddparity = .false.
+
+      end subroutine set_default_parameters_initialize_distribution_default
+
+      !---------------------------- Read input file ----------------------------
+      subroutine read_input_file_initialize_distribution_default
+
+         use file_utils, only: input_unit_exist
+         implicit none
+         integer :: in_file
+         logical :: dexist
+
+         namelist /initialize_distribution_default/ width0, den0, upar0, oddparity
+         in_file = input_unit_exist("initialize_distribution_default", dexist)
+         if (dexist) read (unit=in_file, nml=initialize_distribution_default) 
+
+      end subroutine read_input_file_initialize_distribution_default
+
+   end subroutine read_namelist_initialize_distribution_default
 
 end module input_file
 
