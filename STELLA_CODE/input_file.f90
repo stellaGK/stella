@@ -93,6 +93,8 @@ module input_file
    public :: read_namelist_dissipation
    public :: read_namelist_initialize_distribution
    public :: read_namelist_initialize_distribution_maxwellian
+   public :: read_namelist_initialize_distribution_noise
+   public :: read_namelist_initialize_distribution_kpar
    
    ! Parameters need to be public
    public :: init_distribution_option_maxwellian, init_distribution_option_noise, init_distribution_option_restart_many
@@ -252,7 +254,7 @@ contains
    end subroutine read_namelist_initialize_distribution
    
    !****************************************************************************
-   !                       INITIALIZE POTENTIAL: DEFAULT                       !
+   !                      INITIALIZE POTENTIAL: MAXWELLIAN                     !
    !****************************************************************************
    subroutine read_namelist_initialize_distribution_maxwellian(width0, den0, upar0, oddparity)
 
@@ -260,8 +262,7 @@ contains
 
       implicit none
       
-      real, intent(out) :: width0
-      real, intent(out) :: den0, upar0
+      real, intent(out) :: width0, den0, upar0
       logical, intent(out) :: oddparity
 
       if (.not. proc0) return
@@ -297,6 +298,110 @@ contains
       end subroutine read_input_file_initialize_distribution_maxwellian
 
    end subroutine read_namelist_initialize_distribution_maxwellian
+   
+   !****************************************************************************
+   !                       INITIALIZE DISTRIBUTION: NOISE                      !
+   !****************************************************************************
+   subroutine read_namelist_initialize_distribution_noise(zf_init)
+
+      use mp, only: proc0
+
+      implicit none
+      
+      real, intent(out) :: zf_init
+
+      if (.not. proc0) return
+      call set_default_parameters_initialize_distribution_noise
+      call read_input_file_initialize_distribution_noise
+
+   contains
+      
+      !------------------------ Default input parameters -----------------------
+      subroutine set_default_parameters_initialize_distribution_noise
+
+         implicit none
+         
+         zf_init = 1.0
+
+      end subroutine set_default_parameters_initialize_distribution_noise
+
+      !---------------------------- Read input file ----------------------------
+      subroutine read_input_file_initialize_distribution_noise
+
+         use file_utils, only: input_unit_exist
+         implicit none
+         integer :: in_file
+         logical :: dexist
+
+         namelist /initialize_distribution_noise/ zf_init
+         in_file = input_unit_exist("initialize_distribution_noise", dexist)
+         if (dexist) read (unit=in_file, nml=initialize_distribution_noise) 
+
+      end subroutine read_input_file_initialize_distribution_noise
+
+   end subroutine read_namelist_initialize_distribution_noise
+   
+   !****************************************************************************
+   !                         INITIALIZE POTENTIAL: KPAR                        !
+   !****************************************************************************
+   subroutine read_namelist_initialize_distribution_kpar(&
+         width0, refac, imfac, den0, upar0, tpar0, tperp0, &
+         den1, upar1, tpar1, tperp1, den2, upar2, tpar2, tperp2)
+
+      use mp, only: proc0
+
+      implicit none
+      
+      real, intent(out) :: width0, imfac, refac
+      real, intent(out) :: den0, upar0, tpar0, tperp0
+      real, intent(out) :: den1, upar1, tpar1, tperp1
+      real, intent(out) :: den2, upar2, tpar2, tperp2
+
+      if (.not. proc0) return
+      call set_kpar_parameters_initialize_distribution_kpar
+      call read_input_file_initialize_distribution_kpar
+
+   contains
+      
+      !------------------------ Default input parameters -----------------------
+      subroutine set_kpar_parameters_initialize_distribution_kpar
+
+         implicit none
+         
+         width0 = -3.5
+         refac = 1.
+         imfac = 0.
+         den0 = 1.
+         upar0 = 0.
+         tpar0 = 0.
+         tperp0 = 0.
+         den1 = 0.
+         upar1 = 0.
+         tpar1 = 0.
+         tperp1 = 0.
+         den2 = 0.
+         upar2 = 0.
+         tpar2 = 0.
+         tperp2 = 0.
+
+      end subroutine set_kpar_parameters_initialize_distribution_kpar
+
+      !---------------------------- Read input file ----------------------------
+      subroutine read_input_file_initialize_distribution_kpar
+
+         use file_utils, only: input_unit_exist
+         implicit none
+         integer :: in_file
+         logical :: dexist
+
+         namelist /initialize_distribution_kpar/ width0, refac, imfac, den0, upar0, &
+            tpar0, tperp0, den1, upar1, tpar1, tperp1, den2, upar2, tpar2, tperp2
+         in_file = input_unit_exist("initialize_distribution_kpar", dexist)
+         if (dexist) read (unit=in_file, nml=initialize_distribution_kpar) 
+
+      end subroutine read_input_file_initialize_distribution_kpar
+
+   end subroutine read_namelist_initialize_distribution_kpar
 
 end module input_file
 

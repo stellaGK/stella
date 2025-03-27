@@ -2,11 +2,11 @@
 !! fields and the distribution function.
 
 module init_g
+
    implicit none
 
    public :: ginit
    public :: init_init_g, finish_init_g
-   public :: width0
    public :: scale_to_phiinit, phiinit
    public :: tstart
    public :: reset_init
@@ -16,12 +16,11 @@ module init_g
    ! Choose the initalization option for the potential
    integer :: init_distribution_switch
 
-   real :: width0, phiinit, imfac, refac, zf_init
-   real :: den0, upar0, tpar0, tperp0
-   real :: den1, upar1, tpar1, tperp1
-   real :: den2, upar2, tpar2, tperp2
+   ! Initialization parameters used in all options
+   logical :: chop_side, left, scale_to_phiinit
+   real :: phiinit
+   
    real :: tstart, scale, kxmax, kxmin
-   logical :: chop_side, left, scale_to_phiinit, oddparity
    character(300), public :: restart_file
    character(len=150) :: restart_dir
 
@@ -39,7 +38,6 @@ contains
       
       ! Read namelist from input file
       use input_file, only: read_namelist_initialize_distribution
-      use input_file, only: read_namelist_initialize_distribution_maxwellian
       
       ! Load the <init_distribution_switch> parameters
       use input_file, only: init_distribution_option_maxwellian
@@ -68,15 +66,6 @@ contains
       call broadcast(left)
       call broadcast(chop_side)
       call broadcast(scale_to_phiinit)
-      
-      ! Read <initialize_distribution_maxwellian> namelist
-      if (init_distribution_switch==init_distribution_option_maxwellian) then
-         if (proc0) call read_namelist_initialize_distribution_maxwellian(width0, den0, upar0, oddparity)
-         call broadcast(width0)
-         call broadcast(den0)
-         call broadcast(upar0)
-         call broadcast(oddparity)
-      end if
 
       if (proc0) call read_parameters
 
@@ -96,19 +85,6 @@ contains
          restart_file = trim(restart_file(1:ind_slash))//trim(restart_dir)//trim(restart_file(ind_slash + 1:))
       end if
 
-      call broadcast(refac)
-      call broadcast(imfac)
-      call broadcast(tpar0)
-      call broadcast(tperp0)
-      call broadcast(den1)
-      call broadcast(upar1)
-      call broadcast(tpar1)
-      call broadcast(tperp1)
-      call broadcast(den2)
-      call broadcast(upar2)
-      call broadcast(tpar2)
-      call broadcast(tperp2)
-      call broadcast(zf_init)
       call broadcast(kxmax)
       call broadcast(kxmin)
       call broadcast(tstart)
@@ -171,32 +147,11 @@ contains
 
       implicit none
 
-      namelist /init_g_knobs/ width0, &
-         restart_file, restart_dir, read_many, scale, tstart, zf_init, &
-         den0, upar0, tpar0, tperp0, imfac, refac, &
-         den1, upar1, tpar1, tperp1, &
-         den2, upar2, tpar2, tperp2, &
-         kxmax, kxmin
+      namelist /init_g_knobs/ restart_file, restart_dir, read_many, scale, tstart, kxmax, kxmin
       integer :: in_file
 
-      width0 = -3.5 ! Used for <ginit_options> = {default, kpar}
-      den0 = 1. ! Used for <ginit_options> = {default, kpar}
-      upar0 = 0. ! Used for <ginit_options> = {default, kpar}
       tstart = 0. ! Used for restarted simulations
       scale = 1.0 ! Used for restarted simulations
-      refac = 1. ! Used for <ginit_options> = {kpar}
-      imfac = 0. ! Used for <ginit_options> = {kpar}
-      tpar0 = 0. ! Used for <ginit_options> = {kpar}
-      tperp0 = 0. ! Used for <ginit_options> = {kpar}
-      den1 = 0. ! Used for <ginit_options> = {kpar}
-      upar1 = 0. ! Used for <ginit_options> = {kpar}	
-      tpar1 = 0. ! Used for <ginit_options> = {kpar}
-      tperp1 = 0. ! Used for <ginit_options> = {kpar}
-      den2 = 0. ! Used for <ginit_options> = {kpar}
-      upar2 = 0. ! Used for <ginit_options> = {kpar}
-      tpar2 = 0. ! Used for <ginit_options> = {kpar}
-      tperp2 = 0. ! Used for <ginit_options> = {kpar}
-      zf_init = 1.0 ! Used for <ginit_options> = {noise}
       kxmax = 1.e100 ! Used for <ginit_options> = {rh}
       kxmin = 0. ! Used for <ginit_options> = {rh}
 
@@ -208,8 +163,12 @@ contains
 
    end subroutine read_parameters
 
+   !****************************************************************************
+   !                     INITIALIZE POTENTIAL: MAXWELLIAN                      !
+   !****************************************************************************
    subroutine ginit_maxwellian
 
+      use mp, only: proc0, broadcast
       use constants, only: zi
       use species, only: spec
       use zgrid, only: nzgrid, zed
@@ -222,6 +181,7 @@ contains
       use arrays_dist_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
       use ran, only: ranf
+      use input_file, only: read_namelist_initialize_distribution_maxwellian
 
       implicit none
 
@@ -229,6 +189,21 @@ contains
       logical :: right
       integer :: ikxkyz
       integer :: iz, iky, ikx, is, ia
+      
+      ! Read the following variables from the input file
+      real :: width0, den0, upar0
+      logical :: oddparity
+      
+      !-------------------------------------------------------------------------
+      
+      ! Read <initialize_distribution_maxwellian> namelist
+      if (proc0) call read_namelist_initialize_distribution_maxwellian(width0, den0, upar0, oddparity)
+         
+      ! Broadcast to all processors
+      call broadcast(width0)
+      call broadcast(den0)
+      call broadcast(upar0)
+      call broadcast(oddparity)
 
       right = .not. left
 
@@ -287,6 +262,9 @@ contains
 
    end subroutine ginit_maxwellian
 
+   !****************************************************************************
+   !                       INITIALIZE POTENTIAL: NOISE                         !
+   !****************************************************************************
    subroutine ginit_noise
 
       use mp, only: proc0, broadcast
@@ -306,15 +284,27 @@ contains
       use mp, only: proc0, broadcast, max_allreduce
       use mp, only: scope, crossdomprocs, subprocs
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use parameters_physics, only: nonlinear 
+      use parameters_physics, only: nonlinear
       use ran
+      use input_file, only: read_namelist_initialize_distribution_noise
 
       implicit none
 
       complex, dimension(naky, nakx, -nzgrid:nzgrid, ntubes) :: phi
       real :: a, b, kmin
       integer :: ikxkyz, iz, it, iky, ikx, is, ie, iseg, ia
-      integer :: itmod
+      integer :: itmod 
+      
+      ! Read the following variables from the input file
+      real :: zf_init
+      
+      !-------------------------------------------------------------------------
+      
+      ! Read <initialize_distribution_noise> namelist
+      if (proc0) call read_namelist_initialize_distribution_noise(zf_init)
+         
+      ! Broadcast to all processors
+      call broadcast(zf_init)
 
       if ((naky == 1 .and. nakx == 1) .or. (.not. nonlinear)) then
          if (proc0) then
@@ -431,9 +421,12 @@ contains
 
    end subroutine ginit_noise
 
-   subroutine ginit_kpar
-
-!    use species, only: spec, has_electron_species
+   !****************************************************************************
+   !                       INITIALIZE POTENTIAL: KPAR                          !
+   !****************************************************************************
+   subroutine ginit_kpar 
+   
+      use mp, only: proc0, broadcast
       use zgrid, only: nzgrid, zed
       use parameters_kxky_grids, only: naky, nakx
       use grids_kxky, only: theta0
@@ -442,6 +435,7 @@ contains
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_dist_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx
+      use input_file, only: read_namelist_initialize_distribution_kpar
       use constants, only: zi
 
       implicit none
@@ -450,6 +444,36 @@ contains
       real, dimension(-nzgrid:nzgrid) :: dfac, ufac, tparfac, tperpfac
       integer :: ikxkyz
       integer :: iz, iky, ikx, imu, iv, ia, is
+      
+      ! Read the following variables from the input file
+      real :: width0, imfac, refac
+      real :: den0, upar0, tpar0, tperp0
+      real :: den1, upar1, tpar1, tperp1
+      real :: den2, upar2, tpar2, tperp2
+      
+      !-------------------------------------------------------------------------
+      
+      ! Read <initialize_distribution_noise> namelist
+      if (proc0) call read_namelist_initialize_distribution_kpar(&
+         width0, refac, imfac, den0, upar0, tpar0, tperp0, &
+         den1, upar1, tpar1, tperp1, den2, upar2, tpar2, tperp2)
+         
+      ! Broadcast to all processors
+      call broadcast(width0)
+      call broadcast(refac)
+      call broadcast(imfac)
+      call broadcast(den0)
+      call broadcast(upar0)
+      call broadcast(tpar0)
+      call broadcast(tperp0)
+      call broadcast(den1)
+      call broadcast(upar1)
+      call broadcast(tpar1)
+      call broadcast(tperp1)
+      call broadcast(den2)
+      call broadcast(upar2)
+      call broadcast(tpar2)
+      call broadcast(tperp2)
 
       phi = 0.
       odd = 0.
@@ -506,6 +530,9 @@ contains
 
    end subroutine ginit_kpar
 
+   !****************************************************************************
+   !                        INITIALIZE POTENTIAL: RH                           !
+   !****************************************************************************
    subroutine ginit_rh
 
       use species, only: spec
@@ -541,6 +568,9 @@ contains
 
    end subroutine ginit_rh
 
+   !****************************************************************************
+   !                      INITIALIZE POTENTIAL: REMAP                          !
+   !****************************************************************************
    subroutine ginit_remap
 
       use species, only: spec
@@ -574,6 +604,9 @@ contains
 
    end subroutine ginit_remap
 
+   !****************************************************************************
+   !                       INITIALIZE POTENTIAL: MANY                          !
+   !****************************************************************************
    subroutine ginit_restart_many
 
       use arrays_dist_fn, only: gvmu
