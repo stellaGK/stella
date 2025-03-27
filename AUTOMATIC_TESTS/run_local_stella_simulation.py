@@ -236,7 +236,7 @@ def compare_local_potential_with_expected_potential(local_netcdf_file='', expect
     return error
         
 #-------------------------------------------------------------------------------  
-def compare_local_potential_with_expected_potential_em(local_netcdf_file='', expected_netcdf_file='', run_data={}, error=False): 
+def compare_local_potential_with_expected_potential_em(local_netcdf_file='', expected_netcdf_file='', run_data={}, error=False, check_apar=True, check_bpar=True): 
 
     # Make sure we have enough data to find the files 
     if (local_netcdf_file=='' or expected_netcdf_file=='') and len(run_data.keys())==0:
@@ -261,11 +261,13 @@ def compare_local_potential_with_expected_potential_em(local_netcdf_file='', exp
         local_phi2 = local_netcdf['phi2']
         expected_phi2 = expected_netcdf['phi2'] 
 
-        local_apar2 = local_netcdf['apar2']
-        expected_apar2 = local_netcdf['apar2']
+        if check_apar:
+           local_apar2 = local_netcdf['apar2']
+           expected_apar2 = local_netcdf['apar2']
 
-        local_bpar2 = local_netcdf['bpar2']
-        expected_bpar2 = local_netcdf['bpar2']
+        if check_bpar:
+           local_bpar2 = local_netcdf['bpar2']
+           expected_bpar2 = local_netcdf['bpar2']
         
         # Check whether we have the same time and potential data
         if not (np.allclose(local_time, expected_time, equal_nan=True)):
@@ -276,14 +278,16 @@ def compare_local_potential_with_expected_potential_em(local_netcdf_file='', exp
             print('\nERROR: The <phi potential data does not match in the netCDF files.'); error = True 
             print('\nCompare the <phi> potential arrays in the local and expected netCDF files:')
             compare_local_array_with_expected_array(local_phi2, expected_phi2)
-        if not (np.allclose(local_apar2, expected_apar2, equal_nan=True)):
-            print('\nERROR: The <A_parallel> potential data does not match in the netCDF files.'); error = True 
-            print('\nCompare the <A_parallel> potential arrays in the local and expected netCDF files:')
-            compare_local_array_with_expected_array(local_apar2, expected_apar2)
-        if not (np.allclose(local_bpar2, expected_bpar2, equal_nan=True)):
-            print('\nERROR: The <B_parallel> potential data does not match in the netCDF files.'); error = True 
-            print('\nCompare the <B_parallel> potential arrays in the local and expected netCDF files:')
-            compare_local_array_with_expected_array(local_bar2, expected_bpar2)
+        if check_apar:
+            if not (np.allclose(local_apar2, expected_apar2, equal_nan=True)):
+                print('\nERROR: The <A_parallel> potential data does not match in the netCDF files.'); error = True 
+                print('\nCompare the <A_parallel> potential arrays in the local and expected netCDF files:')
+                compare_local_array_with_expected_array(local_apar2, expected_apar2)
+        if check_bpar:
+            if not (np.allclose(local_bpar2, expected_bpar2, equal_nan=True)):
+                print('\nERROR: The <B_parallel> potential data does not match in the netCDF files.'); error = True 
+                print('\nCompare the <B_parallel> potential arrays in the local and expected netCDF files:')
+                compare_local_array_with_expected_array(local_bar2, expected_bpar2)
         
         assert (not error), f'The potential data does not match in the netCDF files.' 
     

@@ -176,8 +176,8 @@ contains
       end if
 
       deallocate (source)
-      apar = 0.
       if (include_apar) then
+         apar = 0.
          call mp_abort('apar not yet supported for full_flux_surface = T. aborting.')
       end if
 
