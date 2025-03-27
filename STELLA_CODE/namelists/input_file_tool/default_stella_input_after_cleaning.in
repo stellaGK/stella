@@ -29,10 +29,9 @@
 !  set_bmag_const = .false.
 !/
  
-&geometry
+&geometry_option
   geo_option = "local"
   q_as_x = .false.
-  set_bmag_const = .false.
 /
  
 &overwrite_geometry
@@ -47,6 +46,7 @@
   overwrite_gbdrift = .false.
   overwrite_cvdrift = .false.
   overwrite_gbdrift0 = .false.
+  set_bmag_const = .false.
 /
 
 &geometry_vmec (renamed from vmec_parameters)
@@ -118,49 +118,67 @@
 !  vnew_ref = -1.0
 !/
 
-&gyrokinetic_equation
+&gyrokinetic_terms
+  !! Add
+  simulation_domain = 'fluxtube' {ft, ffs, multibox} !! make sure multibox = .true. gives radial_variation. make multibox/radially_global
   include_parallel_streaming = .true.
   include_mirror = .true.
-  xdriftknob = 1.0
+  include_xdrift = .true. !! xdriftknob = 1.0 or 0.0 
+  include_ydrift = .true. !! ydriftknob = 1.0 or 0.0
+  include_drive = .true. !! wstarknob = 1.0 or 0.0
+  include_nonlinear = .false.
+  include_parallel_nonlinearity = .false.
+  include_electromagnetic = .false.
+/
+&scale_gyrokinetic_terms
+  xdriftknob = 1.0 
   ydriftknob = 1.0
   wstarknob = 1.0
-  include_parallel_nonlinearity = .false.
-  nonlinear = .false.
-/
-&modify_gyrokinetic_equation
+  fphi = 1.0 
   suppress_zonal_interaction = .false.
 /
-&adiabatic_electrons
+&adiabatic_electron_response
   adiabatic_option = "field-line-average-term"
   tite = 1.0
   nine = 1.0
+/
+&adiabatic_ion_response
+! This will be for adiabatic ions - this should not be set by the user
+! We need this to NOT have modified boltzmann as an option - it should
+! be automatically choosing the option without the flux surface average.
 /
 &dissipation (move this to the dissipation namelist?)
   zeff = 1.0
   vnew_ref = -1.0
 /
 &electromagnetic
-  include_apar = .false.
-  include_bpar = .false.
+  !! set the below to false if include_electromagnetic = .false. 
+  include_apar = .true.
+  include_bpar = .true.
   beta = 0.0
 /
 &full_flux_surface 
-  full_flux_surface = .false.
   rhostar = -1.0
+  !! nitt, field_tol, itt_tol
+  ! Abort stella if y0 and rhostar are both set
+  ! Delete irhostar
   irhostar = -1.0                      (??)
 /
 &radial_variation
   radial_variation = .false.
   include_geometric_variation = .true.    (??)
+  !! double check
+  ky_solve_radial = 0.0
+  ky_solve_real = .false.
 / 
-
-Not sure:
+&extra_physics
   prp_shear_enabled = .false.
   hammett_flow_shear = .true.
   include_pressure_variation = .false.
   g_exb = 0.0
   g_exbfac = 1.0
   omprimfac = 1.0
+/
 
 !-------------------------------
 !-----------  Grids  -----------
@@ -187,13 +205,13 @@ Not sure:
 !  dkx_over_dky = -1.0
 !/
  
-&z_grid 
+&z_grid
   nzed = 24.0
   nperiod = 1.0
   ntubes = 1.0
   zed_equal_arc = .false.
 /
-%z_boundary_condition
+&z_boundary_condition
   boundary_option = "default"
   shat_zero = 1e-05
   grad_x_grad_y_zero = 1e-05
@@ -205,7 +223,6 @@ Not sure:
   species_option = "stella"
   read_profile_variation = .false.       (??)
   write_profile_variation = .false.      (??)
-  ecoll_zeff = .false.                   (??)
  /
 &species_parameters_1
   z = 1.0
@@ -232,10 +249,10 @@ Not sure:
   type = "default"
  /
  
-&kxky_grids
+&kxky_grid_option
   grid_option = "default"
  /
-&kxky_grids_range
+&kxky_grid_range
   naky = 1.0
   nakx = 1.0
   aky_min = 0.0
@@ -246,7 +263,7 @@ Not sure:
   akx_max = -1.0
   kyspacing_option = "default"
  /
-&kxky_grids_box
+&kxky_grid_box
   nx = 1.0
   ny = 1.0
   jtwist = -1.0
@@ -305,7 +322,18 @@ Not sure:
   nc_mult = 1.0
   autostop = .false.        (this should only be in parameters_numerical)
   save_for_restart = .false.
-  write_all = .false. 
+  write_all = .false.
+  !! Add the following
+  !! add information prompt saying what diagnostic flags are being turned on
+  write_all_time_traces = .true. 
+  write_all_spectra_kxkyz = .false.
+  write_all_spectra_kxky = .false.
+  write_all_velocity_space = .false.
+  write_all_potential = .false.
+  write_all_omega = .false.
+  write_all_distribution = .false.
+  write_all_fluxes = .false.
+  write_all_moments = .false.
 /
 &diagnostics_potential
   write_phi2_vs_time = .true.
@@ -347,41 +375,27 @@ Not sure:
 ! Choose the option, then read the namelist of this option
 &init_distribution (renamed from init_g_knobs)
   ginit_option = "default"
-/
-&init_distribution_default
-/
-&init_distribution_noise
-/
-&init_distribution_many
-/
-&init_distribution_nltest
-/
-&init_distribution_kxtest
-/
-&init_distribution_kpar
-/
-&init_distribution_rh
-/
-&init_distribution_remap
-/
-
-! Put the following variables in the correct namelists
-  width0 = -3.5
   phiinit = 1.0
   chop_side = .false.
-  restart_file = "dummy.nc"
-  restart_dir = "./"
-  read_many = .true.
   left = .true.
-  scale = 1.0
-  tstart = 0.0
+  scale_to_phiinit = .false.
+/
+&init_distribution_default
+  width0 = -3.5
+  den0 = 1.0
+  upar0 = 0.0
+  oddparity = .false.
+/
+&init_distribution_noise
   zf_init = 1.0
+  rng_seed = -1
+/
+&init_distribution_kpar
+  width0 = -3.5
   den0 = 1.0
   upar0 = 0.0
   tpar0 = 0.0
   tperp0 = 0.0
-  imfac = 0.0
-  refac = 1.0
   den1 = 0.0
   upar1 = 0.0
   tpar1 = 0.0
@@ -390,21 +404,33 @@ Not sure:
   upar2 = 0.0
   tpar2 = 0.0
   tperp2 = 0.0
+/
+&init_distribution_rh
   kxmax = 1e+100
   kxmin = 0.0
-  scale_to_phiinit = .false.
-  oddparity = .false.
+  imfac = 0.0
+  refac = 1.0
+/
+&init_distribution_remap !! Not to be a namelist
+/
+&restart_options
+  scale = 1.0
+  tstart = 0.0
+  restart_file = "dummy.nc"
+  restart_dir = "./"
+  read_many = .true. !Add a warning that this is not needed for any modern stella output   
  /
   
 !-------------------------------
 !--------  Dissipation  --------
 !-------------------------------
-  
-&dissipation
+! Renamed from &dissipation
+&dissipation_and_collisions_options
   include_collisions = .false.
   collisions_implicit = .true.
   collision_model = "dougherty"
   hyper_dissipation = .false.
+  ecoll_zeff = .false.                   (??)
  /
 &collisions_dougherty
   momentum_conservation = .true.
@@ -412,7 +438,8 @@ Not sure:
   vpa_operator = .true.
   mu_operator = .true.
  /
-&collisions_fp
+!! Renamed from &collisions_fp
+&collisions_fokker_planck
   testpart = .true.
   fieldpart = .false.
   lmax = 1.0
@@ -447,7 +474,7 @@ Not sure:
   no_j0l2 = .false.
  /
   
-&hyper
+&hyper_dissipation
   d_hyper = 0.05
   d_zed = 0.05
   d_vpa = 0.05
@@ -504,11 +531,7 @@ Not sure:
 !  autostop = .true.
 !/
 
-! THESE SHOULD BE IN OTHER NAMELISTS
-  rng_seed = -1.0  (This should be in init_distribution!)
-  print_extra_info_to_terminal = .true.  (This should be in verbose!)
-
-&time_trace (?)
+&time_trace_options
   nstep = -1.0
   tend = -1.0
   autostop = .true.
@@ -523,11 +546,10 @@ Not sure:
   cfl_cushion_middle = 0.25
   cfl_cushion_lower = 1e-05
 /
-&time_options
-  explicit_option = "default"
-  flip_flop = .false.
-/
 &numerical_algorithms
+  !! Changed explicit_option
+  explicit_algorithm = "rk3"
+  flip_flop = .false.  
   stream_implicit = .true.
   stream_iterative_implicit = .false.
   stream_matrix_inversion = .false.
@@ -540,23 +562,14 @@ Not sure:
   fully_explicit = .false.
   maxwellian_inside_zed_derivative = .false.
   use_deltaphi_for_response_matrix = .false.
+  !!!! DELETE THIS 
   maxwellian_normalization = .false.
 /
-&numerical_upwinding
+&numerical_upwinding_for_derivatives
   zed_upwind = 0.02
   vpa_upwind = 0.02
   time_upwind = 0.02
 /
-
-! PUT THESE SOMEWHERE
-  fphi = 1.0
-  lu_option = "default"
-  fields_kxkyz = .false.
-  mat_gen = .false.
-  mat_read = .false.
-  ky_solve_radial = 0.0
-  ky_solve_real = .false.
-  nitt = 1.0
   
 !-------------------------------
 !--------  Neoclassics  --------
@@ -591,7 +604,7 @@ Not sure:
 !--------------------------------
   
 ! Note that <boundary_size> belongs to grids_kxky?
-&multibox_parameters
+&multibox_parameters !! merge this with &radial_variation
   boundary_size = 4.0
   krook_size = 0.0
   smooth_zfs = .false.
@@ -612,12 +625,20 @@ Not sure:
 !--------------------------------
 !-------  Parallelisation  ------
 !--------------------------------
-  
-&layouts_knobs
+
+!! changed from &layout_knobs
+&parallelisation
   xyzs_layout = "yxzs"
   vms_layout = "vms"
- /
+  !! Double check
+  mat_gen = .false.
+  mat_read = .false.
+  lu_option = "default"
+  fields_kxkyz = .false.
+/
+
 &debug_flags
+  print_extra_info_to_terminal = .true. 
   debug_all = .false.
   stella_debug = .false.
   ffs_solve_debug = .false.
