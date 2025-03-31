@@ -904,6 +904,7 @@ contains
       use stella_layouts, only: vmu_lo
       use physics_flags, only: radial_variation
       use kt_grids, only: naky, nakx
+      use physics_flags, only: include_apar, include_bpar
 
       implicit none
 
@@ -915,22 +916,46 @@ contains
          allocate (phi_old(naky, nakx, -nzgrid:nzgrid, ntubes))
          phi_old = 0.
       end if
-      if (.not. allocated(apar)) then
-         allocate (apar(naky, nakx, -nzgrid:nzgrid, ntubes))
-         apar = 0.
+      if(include_apar) then 
+         if (.not. allocated(apar)) then
+            allocate (apar(naky, nakx, -nzgrid:nzgrid, ntubes))
+            apar = 0.
+         end if
+         if (.not. allocated(apar_old)) then
+            allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes))
+            apar_old = 0.
+         end if
+      else
+         if (.not. allocated(apar)) then
+            allocate (apar(1, 1, 1, 1))
+            apar = 0.
+         end if
+         if (.not. allocated(apar_old)) then
+            allocate (apar_old(1, 1, 1, 1))
+            apar_old = 0.
+         end if
       end if
-      if (.not. allocated(apar_old)) then
-         allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes))
-         apar_old = 0.
+      if(include_bpar) then 
+         if (.not. allocated(bpar)) then
+            allocate (bpar(naky, nakx, -nzgrid:nzgrid, ntubes))
+            bpar = 0.
+         end if
+         if (.not. allocated(bpar_old)) then
+            allocate (bpar_old(naky, nakx, -nzgrid:nzgrid, ntubes))
+            bpar_old = 0.
+         end if
+      else
+         if (.not. allocated(bpar)) then
+            allocate (bpar(1, 1, 1, 1))
+            bpar = 0.
+         end if
+         if (.not. allocated(bpar_old)) then
+            allocate (bpar_old(1, 1, 1, 1))
+            bpar_old = 0.
+         end if
       end if
-      if (.not. allocated(bpar)) then
-         allocate (bpar(naky, nakx, -nzgrid:nzgrid, ntubes))
-         bpar = 0.
-      end if
-      if (.not. allocated(bpar_old)) then
-         allocate (bpar_old(naky, nakx, -nzgrid:nzgrid, ntubes))
-         bpar_old = 0.
-      end if
+
+       
       if (.not. allocated(phi_corr_QN) .and. radial_variation) then
          allocate (phi_corr_QN(naky, nakx, -nzgrid:nzgrid, ntubes))
          phi_corr_QN = 0.

@@ -455,56 +455,56 @@ contains
          else
             allocate (omega_avg(1, 1))
          end if
-!          if (full_flux_surface .and. .not. const_alpha_geo) then
-!             it = 1
+         if (full_flux_surface .and. .not. const_alpha_geo) then
+            it = 1
             
-!             allocate (phi2_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes))
-!             allocate (phi_swap(naky_all, ikx_max))
-!             allocate (phi2_y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
-!             allocate (flxfac(ny, -nzgrid:nzgrid))
-!             allocate (phi2_mod(naky, nakx, -nzgrid:nzgrid, ntubes))
+            allocate (phi2_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes))
+            allocate (phi_swap(naky_all, ikx_max))
+            allocate (phi2_y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
+            allocate (flxfac(ny, -nzgrid:nzgrid))
+            allocate (phi2_mod(naky, nakx, -nzgrid:nzgrid, ntubes))
 
-!             phi2 = 0.0
-!             phi2_kxkyz = real(phi_out * conjg(phi_out))
+            phi2 = 0.0
+            phi2_kxkyz = real(phi_out * conjg(phi_out))
 
-!             do iz = -nzgrid, nzgrid
-!                call swap_kxky(phi2_kxkyz(:, :, iz, it), phi_swap(:, :))
-!                call transform_ky2y(phi_swap(:, :), phi2_y(:, :, iz, it))
-!             end do
+            do iz = -nzgrid, nzgrid
+               call swap_kxky(phi2_kxkyz(:, :, iz, it), phi_swap(:, :))
+               call transform_ky2y(phi_swap(:, :), phi2_y(:, :, iz, it))
+            end do
 
-!             flxfac = spread(delzed * dy, 1, ny) * jacob
-!             flxfac(:, -nzgrid) = 0.5 * flxfac(:, -nzgrid)
-!             flxfac(:, nzgrid) = 0.5 * flxfac(:, nzgrid)
+            flxfac = spread(delzed * dy, 1, ny) * jacob
+            flxfac(:, -nzgrid) = 0.5 * flxfac(:, -nzgrid)
+            flxfac(:, nzgrid) = 0.5 * flxfac(:, nzgrid)
 
-!             !! Area of flux annulus
-!             area = sum(flxfac)
-!             !! Ny * Area of fluxtube for ia = 1 
-!             flxfac = flxfac / area
-! !            flxfac = flxfac * area / area1**2
+            !! Area of flux annulus
+            area = sum(flxfac)
+            !! Ny * Area of fluxtube for ia = 1 
+            flxfac = flxfac / area
+!            flxfac = flxfac * area / area1**2
 
-!             call get_modified_fourier_coefficient(phi2_y, phi2_mod, flxfac)
+            call get_modified_fourier_coefficient(phi2_y, phi2_mod, flxfac)
 
-!             do iz = -nzgrid, nzgrid
-!                do ikx = 1, nakx
-!                   do iky = 1, naky
-!                      phi2 = phi2 + mode_fac(iky) * phi2_mod(iky, ikx, iz, it)
-!                   end do
-!                end do
-!             end do
+            do iz = -nzgrid, nzgrid
+               do ikx = 1, nakx
+                  do iky = 1, naky
+                     phi2 = phi2 + mode_fac(iky) * phi2_mod(iky, ikx, iz, it)
+                  end do
+               end do
+            end do
 
-!             if (const_alpha_geo) then 
-!                phi2 = phi2 / ny
-!             else
-!                phi2 = phi2 * ny
-!             end if
-!             apar2 = 0.0 
-!             deallocate (phi2_kxkyz, phi_swap, phi2_y, flxfac, phi2_mod)
-!          else
+            if (const_alpha_geo) then 
+               phi2 = phi2 / ny
+            else
+               phi2 = phi2 * ny
+            end if
+            apar2 = 0.0 
+            deallocate (phi2_kxkyz, phi_swap, phi2_y, flxfac, phi2_mod)
+         else
 
-         call volume_average(phi_out, phi2)
-         call volume_average(apar_out, apar2)
-         call volume_average(bpar_out, bpar2)
-!      end if
+            call volume_average(phi_out, phi2)
+            call volume_average(apar_out, apar2)
+            call volume_average(bpar_out, bpar2)
+         end if
          ! Print information to stella.out, the header is printed in stella.f90
          write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4)') &
             " ", istep, " ", code_time, " ", code_dt, " ", cfl_dt_ExB, " ", phi2
@@ -1183,7 +1183,7 @@ contains
       !> Obtain the y-component of the electric field that appears as a factor
       !> in the flux expression due to the radial component of the ExB velocity
       do iky = 1, naky
-         dphidy(iky, :, :) = aky(iky) * phi(iky, :, :, it) 
+         dphidy(iky, :, :) = zi * aky(iky) * phi(iky, :, :, it) 
       end do
       
       !> Calculate Jacobian for spacial integral 
@@ -1236,7 +1236,7 @@ contains
       call get_modified_fourier_coefficient(mom, mom_ky, flxfac)
       do is = 1, nspec
          !> pflx_vs_kxkyz is the particle flux before summing over (kx,ky) and integrating over z
-         flx_vs_kxkyz(:, :, :, is) = aimag(mom_ky(:, :, :, is) * conjg(dphidy))
+         flx_vs_kxkyz(:, :, :, is) = real(mom_ky(:, :, :, is) * conjg(dphidy))
          !> calculate the volume average of the particle flux
          !> note that the factor of 1/B that appears in the Jacobian has already been taken into account
          !> in the numerator of the flux surface average

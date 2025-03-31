@@ -116,11 +116,11 @@ contains
       istep0 = 0
       select case (ginitopt_switch)
       case (ginitopt_default)
-!         if(full_flux_surface .and. .not. const_alpha_geo) then 
-!         call ginit_default_ffs
-!         else
-         call ginit_default
-!         end if
+         if(full_flux_surface .and. .not. const_alpha_geo) then 
+            call ginit_default_ffs
+         else
+            call ginit_default
+         end if
       case (ginitopt_noise)
          call ginit_noise
       case (ginitopt_kpar)
@@ -416,7 +416,7 @@ contains
         end do
      end do
      
-     phi = phi / sum(real(phi)**2 + aimag(phi)**2)
+!     phi = phi / sum(real(phi)**2 + aimag(phi)**2)
           
      call broadcast(phi)
      
@@ -426,11 +426,13 @@ contains
         ikx = ikx_idx(kxkyz_lo, ikxkyz)
         iky = iky_idx(kxkyz_lo, ikxkyz)
         is = is_idx(kxkyz_lo, ikxkyz)
-        gvmu(:, :, ikxkyz) = spec(is)%z * phi(iky, ikx, iz, it) / abs(spec(is)%z) &
+        gvmu(:, :, ikxkyz) = spec(is)%z * phi(iky, ikx, iz, it) * phiinit/ abs(spec(is)%z) &
              * (den0 + 2.0 * zi * spread(vpa, 2, nmu) * upar0) &
              * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is) &
              * spread(maxwell_mu(1, iz, :, is), 1, nvpa)
      end do
+
+     gvmu = gvmu /(1 - exp(-real(1.5*ny)))
 
 !     gvmu = gvmu * phiinit/ sum( real(gvmu)**2 + aimag(gvmu)**2)
      
