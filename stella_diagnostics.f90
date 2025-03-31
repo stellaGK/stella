@@ -472,7 +472,7 @@ contains
                call transform_ky2y(phi_swap(:, :), phi2_y(:, :, iz, it))
             end do
 
-            flxfac = spread(delzed * dy, 1, ny) * jacob
+            flxfac = spread(delzed * dy, 1, ny) !* jacob
             flxfac(:, -nzgrid) = 0.5 * flxfac(:, -nzgrid)
             flxfac(:, nzgrid) = 0.5 * flxfac(:, nzgrid)
 
@@ -1182,9 +1182,9 @@ contains
       allocate (dphidy(naky, nakx, -nzgrid:nzgrid))
       !> Obtain the y-component of the electric field that appears as a factor
       !> in the flux expression due to the radial component of the ExB velocity
-      do iky = 1, naky
-         dphidy(iky, :, :) = zi * aky(iky) * phi(iky, :, :, it) 
-      end do
+      ! do iky = 1, naky
+      !    dphidy(iky, :, :) = zi * aky(iky) * phi(iky, :, :, it) 
+      ! end do
       
       !> Calculate Jacobian for spacial integral 
       allocate (flxfac(ny, -nzgrid:nzgrid))
@@ -1236,7 +1236,7 @@ contains
       call get_modified_fourier_coefficient(mom, mom_ky, flxfac)
       do is = 1, nspec
          !> pflx_vs_kxkyz is the particle flux before summing over (kx,ky) and integrating over z
-         flx_vs_kxkyz(:, :, :, is) = real(mom_ky(:, :, :, is) * conjg(dphidy))
+         flx_vs_kxkyz(:, :, :, is) = real(mom_ky(:, :, :, is) ) !* conjg(dphidy))
          !> calculate the volume average of the particle flux
          !> note that the factor of 1/B that appears in the Jacobian has already been taken into account
          !> in the numerator of the flux surface average
@@ -1785,6 +1785,9 @@ contains
       use stella_geometry, only: geo_surf
       use stella_geometry, only: gradzeta_grady, gradzeta_gradx, gradpar_zeta
 
+      use stella_geometry, only: jacob
+      use dist_fn_arrays, only: wdriftx_g, wdrifty_g
+      use stella_time, only: code_dt
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
@@ -1798,7 +1801,12 @@ contains
       !> integrand will contain the integrand in the velocity moment integrals
       complex, dimension(:), allocatable :: integrand
 
-      integer :: iy, ikx, iz, it
+      complex, dimension (:,:), allocatable :: dphidy
+      complex, dimension (:,:), allocatable :: dphidy_real
+      complex, dimension (:,:), allocatable :: dfdx, dfdy
+      complex, dimension (:,:,:), allocatable :: dfy_dx, dfy_dy
+      
+      integer :: iy, ikx, iz, it, iky
       integer :: ivmu, iv, imu, is
       real :: fac1, fac2
 
@@ -1834,10 +1842,26 @@ contains
       allocate (f2y(ny, ikx_max, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); f2y = 0.
       allocate (f3y(ny, ikx_max, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); f3y = 0.
 
+      allocate (dfdy(naky, nakx)) ; dfdy = 0.0
+      allocate (dfdx(naky, nakx)) ; dfdx = 0.0
+      allocate (dfy_dy(ny, ikx_max, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); dfy_dy = 0.0
+      allocate (dfy_dx(ny, ikx_max, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); dfy_dx = 0.0
+      allocate (dphidy(naky, nakx)) ; dphidy = 0.0
+      allocate (dphidy_real(ny, ikx_max)) ; dphidy_real = 0.0
       !> assume only a single flux annulus
       it = 1
       do iz = -nzgrid, nzgrid
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            do iky = 1, naky
+               dphidy(iky, :) = zi * aky(iky) * phi(iky, :, iz, it)
+            end do
+            call swap_kxky(dphidy, f_swap)
+            call transform_ky2y(f_swap, dphidy_real(:,:))
+
+            dfdy = zi * spread(aky, 2, nakx) * g1(:,:,iz,it,ivmu)
+            dfdx = zi * spread(akx, 1, naky) * g1(:,:,iz,it,ivmu)
+
+            g1(:, :, iz, it, ivmu) = g1(:, :, iz, it, ivmu) * conjg(dphidy(:, :))
             !> for every (z,vpa,mu,spec) point
             !> switch from ky >= 0 and kx = [-kxmax, kxmax]
             !> to ky = [-kymax, kymax] and kx >= 0
@@ -1846,6 +1870,12 @@ contains
             !> the kx component of <f(y,x)>_r
             call transform_ky2y(f_swap, fy(:, :, ivmu))
 
+            call swap_kxky(dfdy, f_swap)
+            call transform_ky2y(f_swap, dfy_dy(:,:,ivmu))
+
+            call swap_kxky(dfdx, f_swap)
+            call transform_ky2y(f_swap, dfy_dx(:,:,ivmu))
+            
             !! The following are only needed for the momentum flux because we need J1*f 
             !! J1* zi * ky * f
             g2(:, :, iz, it, ivmu) = zi * g2(:, :, iz, it, ivmu) * spread(aky, 2, nakx)
@@ -1860,6 +1890,9 @@ contains
          do ikx = 1, ikx_max
             do iy = 1, ny
                !> the integrand for the density moment is the distribution function
+               !integrand = fy(iy, ikx, :)
+               fy(iy, ikx, :) = fy(iy, ikx, :) - code_dt * (wdriftx_g(iy, iz, :)*dfy_dx(iy,ikx,:) &
+                    + wdrifty_g(iy, iz, :)*dfy_dy(iy,ikx,:))
                integrand = fy(iy, ikx, :)
                !> integrate over v-space to get the density, normalised by the reference density.
                call integrate_vmu_ffs(integrand, dens_wgts, iy, iz, dens(iy, ikx, iz, :))
@@ -1881,7 +1914,7 @@ contains
                   is = is_idx(vmu_lo, ivmu)
                   imu = imu_idx(vmu_lo, ivmu)
                   integrand(ivmu) = fy(iy, ikx, ivmu) * gradpar_zeta(iy, iz) * vpa(iv) &
-                       - vperp2(iy, iz, imu) * spec(is)%smz * (f2y(iy, ikx, ivmu) * fac1 + f3y(iy, ikx, ivmu) * fac2)
+                       - vperp2(iy, iz, imu) * spec(is)%smz * (f2y(iy, ikx, ivmu) * fac1 + f3y(iy, ikx, ivmu) * fac2) 
                end do
                !> integrate over v-space to get the parallel flow, normalised by the reference thermal speed.
                call integrate_vmu_ffs(integrand, upar_wgts, iy, iz, upar(iy, ikx, iz, :))
@@ -1894,6 +1927,10 @@ contains
       deallocate (integrand)
       deallocate (fy, f2y, f3y)
 
+      deallocate (dphidy, dphidy_real)
+      deallocate (dfdx, dfdy)
+      deallocate (dfy_dx, dfy_dy)
+      
    end subroutine get_moments_ffs
 
    !> the Fourier components of the guiding centre distribution function
