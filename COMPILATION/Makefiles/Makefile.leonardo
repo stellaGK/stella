@@ -1,0 +1,53 @@
+# Host: leonardo
+
+helplocal:
+	# GK_SYSTEM = leonardo
+
+define STANDARD_SYSTEM_CONFIGURATION
+echo Module configuration complete;\
+export MAKEFLAGS='-j -IMakefiles';\
+export TESTEXEC='mpirun -N 48 -n 48';
+endef
+
+COMPILER=gnu-gfortran
+
+USE_FFT = fftw3
+USE_NETCDF = on
+
+include Makefile.$(COMPILER)
+
+ifeq ($(USE_FFT),fftw3)	
+	FFT_INC = -I$(FFTW_INC_DIR)
+	FFT_DIR = $(FFTW_HOME)
+	FFT_LIB = -L$(FFTW_LIB_DIR) -lfftw3 #-lfftw3 #-lfftw3_mpi
+        CPPFLAGS   += -I $$FFTW_INC
+endif	
+
+USE_HDF5=
+
+#Note the module system sets some env vars for us
+#unfortunately some clash with values we use
+ifdef USE_NETCDF
+  NETCDF_INC= -I$(NETCDF_INC_DIR)
+  NETCDF_LIB= -L$(NETCDF_LIB_DIR) -lnetcdff
+endif
+
+ifdef USE_LAPACK
+  LAPACK_LIB = -Wl,--copy-dt-needed-entries -mkl -L$(NETLIB_SCALAPACK_LIB) -lscalapack #-L$(LAPACK_HOME)/lib 
+endif
+
+ifdef USE_SFINCS
+      SFINCS_LIB = -L$(SFINCS_DIR) -lsfincs
+      SFINCS_INC = -I$(SFINCS_DIR)
+
+      PETSC_INC = -I$(PETSC_HOME)/include -I$(LAPACK_HOME)/include -I$(MKL_HOME)/include
+      PETSC_LIB = -L$(PETSC_HOME)/lib -lpetsc -L$(LAPACK_HOME)/lib -llapack -L$(MKL_HOME)/lib/intel64 -lmkl_intel_lp64
+
+      HDF5_INC = -I$(HDF5_HOME)/include
+      HDF5_LIB = -L$(HDF5_HOME)/lib -lhdf5_hl_fortran -lhdf5_fortran -lhdf5 -lhdf5_hl
+else
+      PETSC_INC = 
+      PETSC_LIB = 
+      HDF5_INC = -I$(HDF5_HOME)/include
+      HDF5_LIB = -L$(HDF5_HOME)/lib -lhdf5_hl_fortran -lhdf5_fortran -lhdf5 -lhdf5_hl
+endif
