@@ -38,7 +38,7 @@ COMPILER=gnu-gfortran
 USE_FFT = fftw3
 USE_NETCDF = on
 
-include Makefile.$(COMPILER)
+include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
 ifeq ($(USE_FFT),fftw3)	
 	FFT_INC = -I$(FFTW_INC_DIR)
