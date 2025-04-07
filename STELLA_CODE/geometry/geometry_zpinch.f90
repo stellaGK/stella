@@ -36,12 +36,13 @@ contains
    end subroutine read_zpinch_parameters
   
    ! use Z-pinch equilibrium.
-   ! the parallel coordinate, z, is chosen to be the arc-length,
+   ! the parallel coordinate, z, is chosen to be the arc-length z=r0*theta,
    ! i.e., the physical poloidal angle times the radius of the chosen magnetic field, r0.
    ! the radial coordinate, x, is directed away from the middle of the circle
-   ! and is normalised by the local radius r0.
+   ! and is normalised by the local magnetic field gradient scale length, L_B = (d ln B / dr)^{-1}
    ! the bi-normal coordinate, y, is chosen to form an orthogonal, right-handed coordinate
-   ! system with (y,x,z) and is also normalised by r0.
+   ! system with (y,x,z) and is also normalised by L_B.
+   ! in terms of cyclindrical coordinates (r, theta, Z), we have x = r, y = Z, z = r*theta
    subroutine get_zpinch_geometry_coefficients(nzgrid, bmag, gradpar, grad_rho, surf, &
                                                grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, &
                                                gbdrift0, gbdrift, cvdrift0, cvdrift, btor, rmajor)
@@ -61,7 +62,7 @@ contains
       bmag = 1.0
       ! gradpar = bhat . grad z = b . (r0*grad) theta = 1
       gradpar = 1.0
-      ! grad_rho = | r0 * grad (r / r0) | = 1
+      ! grad_rho = | L_B * grad (r / L_B) | = 1
       grad_rho = 1.0
       ! grad_y_dot_grad_y = 1
       grad_y_dot_grad_y = 1.0
