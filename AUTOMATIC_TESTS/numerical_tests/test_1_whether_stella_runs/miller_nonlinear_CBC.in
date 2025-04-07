@@ -4,7 +4,8 @@
 &physics_flags
   adiabatic_option = 'iphi00=2'
   full_flux_surface = .false.
-  include_apar = .false.
+  include_apar = .true.
+  include_bpar = .true.
   nonlinear = .true.
 /
 &species_knobs

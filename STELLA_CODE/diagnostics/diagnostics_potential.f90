@@ -82,7 +82,7 @@ contains
       ! Variables needed to write and calculate diagnostics
       complex, dimension(:, :, :, :), allocatable :: phi_vs_kykxzt, apar_vs_kykxzt, bpar_vs_kykxzt
       real, dimension(:, :), allocatable :: phi2_vs_kxky, apar2_vs_kxky, bpar2_vs_kxky
-      real :: phi2, apar2, bpar2 
+      real :: phi2 = 0, apar2 = 0, bpar2 = 0
 
       !---------------------------------------------------------------------- 
 
@@ -91,23 +91,21 @@ contains
 
       ! Allocate arrays 
       allocate (phi_vs_kykxzt(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate (apar_vs_kykxzt(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate (bpar_vs_kykxzt(naky, nakx, -nzgrid:nzgrid, ntubes))
+      if (include_apar) allocate (apar_vs_kykxzt(naky, nakx, -nzgrid:nzgrid, ntubes))
+      if (include_bpar) allocate (bpar_vs_kykxzt(naky, nakx, -nzgrid:nzgrid, ntubes))
 
       ! Get <phi_vs_kykxzt>(ky,kx,z,tube)  
       phi_vs_kykxzt = phi
-      apar_vs_kykxzt = apar
-      bpar_vs_kykxzt = bpar
-      if (radial_variation) then
-         phi_vs_kykxzt = phi_vs_kykxzt + phi_corr_QN
-      end if
+      if (include_apar) apar_vs_kykxzt = apar
+      if (include_bpar) bpar_vs_kykxzt = bpar
+      if (radial_variation) phi_vs_kykxzt = phi_vs_kykxzt + phi_corr_QN 
      
       ! Write the potential squared to the ascii file and to the standard output file with unit=*.
       ! The header of the standard output file is printed in the <stella.f90> routine.
       if (proc0) then 
          call volume_average(phi_vs_kykxzt, phi2)
-         call volume_average(apar_vs_kykxzt, apar2) 
-         call volume_average(bpar_vs_kykxzt, bpar2)
+         if (include_apar) call volume_average(apar_vs_kykxzt, apar2)
+         if (include_bpar) call volume_average(bpar_vs_kykxzt, bpar2)
          call write_potential_to_ascii_file(istep, phi2, apar2, bpar2) 
          if (include_apar .and. include_bpar) then 
             write (*, '(A2,I7,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4,A2,ES12.4)') &
@@ -134,8 +132,8 @@ contains
          ! Write the phi2(t) to the netcdf file (always on)
          if (debug) write (*, *) 'diagnostics::diagnostics_stella::write_phi2_nc'
          call write_phi2_nc(nout, phi2)
-         call write_apar2_nc(nout, apar2)
-         call write_bpar2_nc(nout, bpar2)
+         if (include_apar) call write_apar2_nc(nout, apar2)
+         if (include_bpar) call write_bpar2_nc(nout, bpar2)
 
          ! Write phi(t,ky,kx,z,tube), apar(t,ky,kx,z,tube) and bpar(t,ky,kx,z,tube) to the netcdf file
          if (write_phi_vs_kxkyz) then
@@ -219,8 +217,8 @@ contains
 
       ! Deallocate arrays 
       deallocate (phi_vs_kykxzt)
-      deallocate (apar_vs_kykxzt)
-      deallocate (bpar_vs_kykxzt)
+      if (include_apar) deallocate (apar_vs_kykxzt)
+      if (include_bpar) deallocate (bpar_vs_kykxzt)
 
       ! End timer
       if (proc0) call time_message(.false., timer(:), 'Write phi')
@@ -255,6 +253,7 @@ contains
 
       ! Data 
       use arrays_fields, only: phi, apar, bpar
+      use parameters_physics, only: include_apar, include_bpar
 
       ! Geometry 
       USE arrays_dist_fn, only: kperp2
@@ -279,20 +278,47 @@ contains
       call open_output_file(tmpunit, '.final_fields')
 
       ! Write the header
-      write (tmpunit, '(10a14)') '# z', 'z-zed0', 'aky', 'akx', &
-         'real(phi)', 'imag(phi)', 'real(apar)', 'imag(apar)', &
-         'real(bpar)', 'imag(bpar)', 'z_eqarc-zed0', 'kperp2'
+      if (include_apar .and. include_bpar) then
+         write (tmpunit, '(13a15)') '# z    ', 'z-zed0  ', 'aky   ', 'akx   ', &
+            'real(phi) ', 'imag(phi) ', 'real(apar) ', 'imag(apar) ', &
+            'real(bpar) ', 'imag(bpar) ', 'z_eqarc-zed0', 'kperp2   ', 'tube           '
+      else if (include_apar) then
+         write (tmpunit, '(11a15)') '# z    ', 'z-zed0  ', 'aky   ', 'akx   ', &
+            'real(phi) ', 'imag(phi) ', 'real(apar) ', 'imag(apar) ', 'z_eqarc-zed0', 'kperp2   ', 'tube           '
+      else if (include_bpar) then
+         write (tmpunit, '(11a15)') '# z    ', 'z-zed0  ', 'aky   ', 'akx   ', &
+            'real(phi) ', 'imag(phi) ', 'real(bpar) ', 'imag(bpar) ', 'z_eqarc-zed0', 'kperp2   ', 'tube           '
+      else
+         write (tmpunit, '(9a15)') '# z    ', 'z-zed0  ', 'aky   ', 'akx   ', &
+            'real(phi) ', 'imag(phi) ', 'z_eqarc-zed0', 'kperp2   ', 'tube           '
+      end if
 
       ! Write the final fields versus z
       do iky = 1, naky
          do ikx = 1, nakx
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
-                  write (tmpunit, '(12es15.4e3,i3)') zed(iz), zed(iz) - zed0(iky, ikx), aky(iky), akx(ikx), &
-                     real(phi(iky, ikx, iz, it)), aimag(phi(iky, ikx, iz, it)), &
-                     real(apar(iky, ikx, iz, it)), aimag(apar(iky, ikx, iz, it)), &
-                     real(bpar(iky, ikx, iz, it)), aimag(bpar(iky, ikx, iz, it)), &
-                     zed_eqarc(iz) - zed0(iky, ikx), kperp2(iky, ikx, it, iz), it                  
+                  if (include_apar .and. include_bpar) then
+                     write (tmpunit, '(12es15.4e3,i3)') zed(iz), zed(iz) - zed0(iky, ikx), aky(iky), akx(ikx), &
+                        real(phi(iky, ikx, iz, it)), aimag(phi(iky, ikx, iz, it)), &
+                        real(apar(iky, ikx, iz, it)), aimag(apar(iky, ikx, iz, it)), &
+                        real(bpar(iky, ikx, iz, it)), aimag(bpar(iky, ikx, iz, it)), &
+                        zed_eqarc(iz) - zed0(iky, ikx), kperp2(iky, ikx, it, iz), it
+                   else if (include_apar) then
+                     write (tmpunit, '(10es15.4e3,i3)') zed(iz), zed(iz) - zed0(iky, ikx), aky(iky), akx(ikx), &
+                        real(phi(iky, ikx, iz, it)), aimag(phi(iky, ikx, iz, it)), &
+                        real(apar(iky, ikx, iz, it)), aimag(apar(iky, ikx, iz, it)), &
+                        zed_eqarc(iz) - zed0(iky, ikx), kperp2(iky, ikx, it, iz), it
+                   else if (include_bpar) then
+                     write (tmpunit, '(10es15.4e3,i3)') zed(iz), zed(iz) - zed0(iky, ikx), aky(iky), akx(ikx), &
+                        real(phi(iky, ikx, iz, it)), aimag(phi(iky, ikx, iz, it)), &
+                        real(bpar(iky, ikx, iz, it)), aimag(bpar(iky, ikx, iz, it)), &
+                        zed_eqarc(iz) - zed0(iky, ikx), kperp2(iky, ikx, it, iz), it
+                  else
+                     write (tmpunit, '(8es15.4e3,i3)') zed(iz), zed(iz) - zed0(iky, ikx), aky(iky), akx(ikx), &
+                        real(phi(iky, ikx, iz, it)), aimag(phi(iky, ikx, iz, it)), &
+                        zed_eqarc(iz) - zed0(iky, ikx), kperp2(iky, ikx, it, iz), it
+                  end if
                end do
                write (tmpunit, *)
             end do

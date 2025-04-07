@@ -41,7 +41,7 @@ def test_TAE_physics_for_Electromagnetic_stella(tmp_path):
     # File names  
     local_netcdf_file = tmp_path / (input_filename_stem + '_TAE.out.nc') 
     expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_filename.replace(".in","")}.out.nc'   
-    compare_local_potential_with_expected_potential_em(local_netcdf_file, expected_netcdf_file, error=False)
+    compare_local_potential_with_expected_potential_em(local_netcdf_file, expected_netcdf_file, error=False, check_bpar=False)
             
     print(f'  --> The TAE (Kinetic Ballooning Mode) physics is not captured correctly.')
 
