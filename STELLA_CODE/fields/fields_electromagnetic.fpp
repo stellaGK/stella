@@ -413,6 +413,8 @@ contains
       if (include_bpar) nfields = nfields + 1
 
       call allocate_fields_electromagnetic
+
+      if (.not. (include_apar .or. include_bpar)) return 
       
       ia = 1 
       if (include_apar) then
@@ -526,29 +528,49 @@ contains
       
       use parameters_kxky_grids, only: naky, nakx
       use parameters_physics, only: include_apar, include_bpar
-      !> TOD-GA: Want to put the allocations of these arrays here: 
-      !use arrays_fields, only: apar, apar_old
-      !use arrays_fields, only: bpar, bpar_old
+      
+      !> TOD-GA: Want to put the allocations of these arrays here:  
+      use arrays_fields, only: apar, apar_old
+      use arrays_fields, only: bpar, bpar_old
 
       use arrays_fields, only: gamtot13, gamtot31, gamtot33
       use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
       use arrays_fields, only: apar_denom
 
       implicit none
+      
+      ! Allocate electromagnetic arrays on each processor
+      if (include_apar) then
+         if (.not. allocated(apar)) then; allocate (apar(naky, nakx, -nzgrid:nzgrid, ntubes)); apar = 0. ; end if
+         if (.not. allocated(apar_old)) then; allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes)); apar_old = 0. ; end if
+         if (.not. allocated(apar_denom)) then; allocate (apar_denom(naky, nakx, -nzgrid:nzgrid)); apar_denom = 0. ; end if
+      else
+         if (.not. allocated(apar)) then; allocate (apar(1, 1, 1, 1)); apar = 0. ; end if
+         if (.not. allocated(apar_old)) then; allocate (apar_old(1, 1, 1, 1)); apar_old = 0. ; end if
+         if (.not. allocated(apar_denom)) then; allocate (apar_denom(1, 1, 1)); apar_denom = 0. ; end if
+      end if
 
-      if (include_apar) then 
-         if (.not. allocated(apar_denom)) allocate (apar_denom(naky, nakx, -nzgrid:nzgrid)); apar_denom = 0.
-      end if 
-
-      if (include_bpar) then 
-         allocate (gamtot33(naky, nakx, -nzgrid:nzgrid)); gamtot33 = 0.
-         allocate (gamtot13(naky, nakx, -nzgrid:nzgrid)); gamtot13 = 0.
-         allocate (gamtot31(naky, nakx, -nzgrid:nzgrid)); gamtot31 = 0.
-         allocate (gamtotinv11(naky, nakx, -nzgrid:nzgrid)); gamtotinv11 = 0.  
-         allocate (gamtotinv31(naky, nakx, -nzgrid:nzgrid)); gamtotinv31 = 0.    
-         allocate (gamtotinv13(naky, nakx, -nzgrid:nzgrid)); gamtotinv13 = 0.
-         allocate (gamtotinv33(naky, nakx, -nzgrid:nzgrid)); gamtotinv33 = 0.
-      end if 
+      if (include_bpar) then
+         if (.not. allocated(bpar)) then; allocate (bpar(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar = 0. ; end if
+         if (.not. allocated(bpar_old)) then; allocate (bpar_old(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar_old = 0. ; end if
+         if (.not. allocated(gamtot33)) then; allocate (gamtot33(naky, nakx, -nzgrid:nzgrid)); gamtot33 = 0. ; end if
+         if (.not. allocated(gamtot13)) then; allocate (gamtot13(naky, nakx, -nzgrid:nzgrid)); gamtot13 = 0. ; end if
+         if (.not. allocated(gamtot31)) then; allocate (gamtot31(naky, nakx, -nzgrid:nzgrid)); gamtot31 = 0. ; end if
+         if (.not. allocated(gamtotinv11)) then; allocate (gamtotinv11(naky, nakx, -nzgrid:nzgrid)); gamtotinv11 = 0. ; end if
+         if (.not. allocated(gamtotinv31)) then; allocate (gamtotinv31(naky, nakx, -nzgrid:nzgrid)); gamtotinv31 = 0. ; end if
+         if (.not. allocated(gamtotinv13)) then; allocate (gamtotinv13(naky, nakx, -nzgrid:nzgrid)); gamtotinv13 = 0. ; end if
+         if (.not. allocated(gamtotinv33)) then; allocate (gamtotinv33(naky, nakx, -nzgrid:nzgrid)); gamtotinv33 = 0. ; end if
+      else
+         if (.not. allocated(bpar)) then; allocate (bpar(1, 1, 1, 1)); bpar = 0. ; end if
+         if (.not. allocated(bpar_old)) then; allocate (bpar_old(1, 1, 1, 1)); bpar_old = 0. ; end if
+         if (.not. allocated(gamtot33)) then; allocate (gamtot33(1, 1, 1)); gamtot33 = 0. ; end if
+         if (.not. allocated(gamtot13)) then; allocate (gamtot13(1, 1, 1)); gamtot13 = 0. ; end if
+         if (.not. allocated(gamtot31)) then; allocate (gamtot31(1, 1, 1)); gamtot31 = 0. ; end if
+         if (.not. allocated(gamtotinv11)) then; allocate (gamtotinv11(1, 1, 1)); gamtotinv11 = 0. ; end if
+         if (.not. allocated(gamtotinv31)) then; allocate (gamtotinv31(1, 1, 1)); gamtotinv31 = 0. ; end if
+         if (.not. allocated(gamtotinv13)) then; allocate (gamtotinv13(1, 1, 1)); gamtotinv13 = 0. ; end if
+         if (.not. allocated(gamtotinv33)) then; allocate (gamtotinv33(1, 1, 1)); gamtotinv33 = 0. ; end if
+      end if
 
    end subroutine allocate_fields_electromagnetic
 
@@ -557,23 +579,32 @@ contains
    !============================================================================
    subroutine finish_fields_electromagnetic
 
+      ! Parameters
+      use parameters_physics, only: include_apar, include_bpar
+     
+      use arrays_fields, only: apar, apar_denom
+      use arrays_fields, only: apar_old, bpar_old
+      use arrays_fields, only: gamtot, gamtot3
       use arrays_fields, only: gamtot13, gamtot31, gamtot33
       use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
       use arrays_fields, only: apar_denom
-
+      
       implicit none
 
       !>TODO-GA:
       !if (allocated(apar)) deallocate (apar)
+      if (allocated(apar_old)) deallocate(apar_old)
+      if (allocated(bpar_old)) deallocate(bpar_old)
+      if (allocated(apar)) deallocate (apar)
       if (allocated(apar_denom)) deallocate (apar_denom)
       if (allocated(gamtot33)) deallocate (gamtot33)
       if (allocated(gamtot13)) deallocate (gamtot13)
       if (allocated(gamtot31)) deallocate (gamtot31)
-      if (allocated(gamtotinv11)) deallocate (gamtotinv11)
-      if (allocated(gamtotinv31)) deallocate (gamtotinv31)
-      if (allocated(gamtotinv13)) deallocate (gamtotinv13)
-      if (allocated(gamtotinv33)) deallocate (gamtotinv33)
-
+      if (allocated(gamtotinv11)) deallocate(gamtotinv11)
+      if (allocated(gamtotinv31)) deallocate(gamtotinv31)
+      if (allocated(gamtotinv13)) deallocate(gamtotinv13)
+      if (allocated(gamtotinv33)) deallocate(gamtotinv33)
+      
    end subroutine finish_fields_electromagnetic
 
 end module fields_electromagnetic
