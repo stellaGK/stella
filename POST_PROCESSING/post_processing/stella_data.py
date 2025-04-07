@@ -4,27 +4,28 @@
 
 from scipy.io import netcdf
 import numpy as np
+import netCDF4 as nc4
 
 ####### Import variables from netcdf file #########
 #infile = input("Path to netcdf file: ")
-input_directory = '/Users/barnesm/Documents/stella_data/bistability/'
-file_prefix = 'jet68448_nogexb'
+input_directory = '/Users/barnesm/codes/stella/runs/zpinch_om/new_pinch_source/nonlinear/'
+#input_directory = '/Users/barnesm/stella_data/om_zpinch/eta1_tprim40_nz8/'
+file_prefix = 'LBLT50_nz8'
 infile = input_directory + file_prefix + '.out.nc'
 #infile = '../stella.out.nc'
 #print()
 #outdir = input("Path for output: ")
 outdir = input_directory
-ncfile = netcdf.netcdf_file(infile,'r')
+ncfile = nc4.Dataset(infile)
 
-#print()
 print('reading data from netcdf file...')
 print()
 
 # get kx and ky grids
 kx_stella = np.copy(ncfile.variables['kx'][:])
-nakx = ncfile.dimensions['kx']
+nakx = len(ncfile.dimensions['kx'])
 ky = np.copy(ncfile.variables['ky'][:])
-naky = ncfile.dimensions['ky']
+naky = len(ncfile.dimensions['ky'])
 
 # this is the index of the first negative value of kx
 # note stella orders kx as (0, dkx, ..., kx_max, -kx_max, -kx_max+dkx, ..., -dkx)
@@ -42,7 +43,7 @@ time = np.copy(ncfile.variables['t'][:])
 ntime = time.size
 
 # number of kinetic species
-nspec = ncfile.dimensions['species']
+nspec = len(ncfile.dimensions['species'])
 
 # get geometric quantities
 bmag = np.copy(ncfile.variables['bmag'][:])
@@ -51,9 +52,9 @@ gbdrift = np.copy(ncfile.variables['gbdrift'][:])
 gbdrift0 = np.copy(ncfile.variables['gbdrift0'][:])
 cvdrift = np.copy(ncfile.variables['cvdrift'][:])
 cvdrift0 = np.copy(ncfile.variables['cvdrift0'][:])
-gds2 = np.copy(ncfile.variables['gds2'][:])
-gds21 = np.copy(ncfile.variables['gds21'][:])
-gds22 = np.copy(ncfile.variables['gds22'][:])
+#gds2 = np.copy(ncfile.variables['gds2'][:])
+#gds21 = np.copy(ncfile.variables['gds21'][:])
+#gds22 = np.copy(ncfile.variables['gds22'][:])
 
 def read_stella_float(var):
 
@@ -115,9 +116,12 @@ if es_part_by_k_present is not True:
 es_heat_by_k, es_heat_by_k_present = \
     read_stella_float('es_heat_by_k')
 if es_heat_by_k_present is not True:
-    es_heat_by_k, es_heat_by_k_present = \
-        read_stella_float('es_heat_flux_by_mode')
-# time-dependent momentum flux for each species as a function of (kx,ky)
+    es_heat_by_k_stella, es_heat_by_k_present = \
+        read_stella_float('qflux_vs_kxkys')
+    es_heat_by_k_stella[:,:,0,0] = 0.0
+    es_heat_by_k = np.concatenate((es_heat_by_k_stella[:,:,nakx_mid:,:],es_heat_by_k_stella[:,:,:nakx_mid,:]),axis=2)
+
+    # time-dependent momentum flux for each species as a function of (kx,ky)
 es_mom_by_k, es_mom_by_k_present = \
     read_stella_float('es_mom_by_k')
 if es_mom_by_k_present is not True:
