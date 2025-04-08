@@ -31,6 +31,13 @@ module common_types
       integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc, blocksize
    end type vmu_layout_type
 
+   type :: kymus_layout_type
+      sequence
+      integer :: iproc
+      integer :: nzgrid, nzed, ntubes, naky, nakx, nvgrid, nvpa, nmu, nspec
+      integer :: llim_world, ulim_world, llim_proc, ulim_proc, ulim_alloc, blocksize
+   end type kymus_layout_type
+   
    type :: flux_surface_type
       real :: rmaj
       real :: rgeo
