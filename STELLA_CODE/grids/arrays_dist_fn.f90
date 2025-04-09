@@ -7,7 +7,7 @@ module arrays_dist_fn
    public :: gnew, gold, g_symm, g_scratch
    public :: g0, g1, g2, g3
    public :: g_krook, g_proj
-   public :: gvmu
+   public :: gvmu, g_kymus
    public :: kperp2, dkperp2dr
    public :: wstar, wstarp
    public :: wdriftx_g, wdrifty_g
@@ -34,6 +34,11 @@ module arrays_dist_fn
    complex, dimension(:, :, :, :), allocatable :: g_proj
    ! (nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 
+   ! gyro-averaged pdf used when advancing parallel streaming and mirror
+   ! without operator splitting
+   complex, dimension(:, :, :, :, :), allocatable :: g_kymus
+   ! (nakx, -nzgrid:nzgrid, ntubes, vpa, -kymus-layout-)
+   
    complex, dimension(:, :, :), allocatable :: gvmu
    ! (nvpa, nmu, -kxkyz-layout-)
 

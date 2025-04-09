@@ -227,6 +227,7 @@ module mp
 
       module procedure send_complex
       module procedure send_complex_array
+      module procedure send_complex_array_4d
       module procedure nonblocking_send_complex_array
 
       module procedure send_logical
@@ -246,6 +247,7 @@ module mp
       module procedure receive_complex
       module procedure receive_complex_array
       module procedure receive_complex_2array
+      module procedure receive_complex_array_4d
       module procedure nonblocking_receive_complex_array
 
       module procedure receive_logical
@@ -1428,6 +1430,18 @@ contains
       call mpi_send(z, size(z), mpicmplx, dest, tagp, mp_comm, ierror)
    end subroutine send_complex_array
 
+   subroutine send_complex_array_4d(z, dest, tag)
+      implicit none
+      complex, dimension(:, :, :, :), intent(in) :: z
+      integer, intent(in) :: dest
+      integer, intent(in), optional :: tag
+      integer :: ierror
+      integer :: tagp
+      tagp = 0
+      if (present(tag)) tagp = tag
+      call mpi_send(z, size(z), mpicmplx, dest, tagp, mp_comm, ierror)
+   end subroutine send_complex_array_4d
+
    subroutine nonblocking_send_complex_array(z, dest, tag, request)
       implicit none
       complex, dimension(:), intent(in) :: z
@@ -1716,6 +1730,20 @@ contains
       call mpi_recv(z, size(z), mpicmplx, src, tagp, mp_comm, &
                     status, ierror)
    end subroutine receive_complex_2array
+
+   subroutine receive_complex_array_4d(z, src, tag)
+      implicit none
+      complex, dimension(:, :, :, :), intent(out) :: z
+      integer, intent(in) :: src
+      integer, intent(in), optional :: tag
+      integer :: ierror
+      integer :: tagp
+      integer, dimension(MPI_STATUS_SIZE) :: status
+      tagp = 0
+      if (present(tag)) tagp = tag
+      call mpi_recv(z, size(z), mpicmplx, src, tagp, mp_comm, &
+                    status, ierror)
+   end subroutine receive_complex_array_4d
 
    subroutine nonblocking_receive_complex_array(z, src, tag, request)
       implicit none
