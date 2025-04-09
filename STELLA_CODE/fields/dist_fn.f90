@@ -255,13 +255,14 @@ contains
 
    subroutine allocate_arrays
 
-      use stella_layouts, only: kxkyz_lo, vmu_lo
+      use stella_layouts, only: kxkyz_lo, vmu_lo, kymus_lo
       use zgrid, only: nzgrid, ntubes
       use parameters_kxky_grids, only: naky, nakx
       use vpamu_grids, only: nvpa, nmu
       use arrays_dist_fn, only: gnew, gold, g_scratch
-      use arrays_dist_fn, only: gvmu
-
+      use arrays_dist_fn, only: gvmu, g_kymus
+      use parameters_numerical, only: split_parallel_dynamics
+      
       implicit none
 
       if (.not. allocated(gnew)) &
@@ -276,6 +277,14 @@ contains
       if (.not. allocated(gvmu)) &
          allocate (gvmu(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
       gvmu = 0.
+      if (.not. allocated(g_kymus)) then
+         if (.not. split_parallel_dynamics) then
+            allocate (g_kymus(nakx, -nzgrid:nzgrid, ntubes, nvpa, kymus_lo%llim_proc:kymus_lo%ulim_alloc))
+         else
+            allocate (g_kymus(1, 1, 1, 1, 1))
+         end if
+         g_kymus = 0.
+      end if
 
    end subroutine allocate_arrays
 
@@ -320,7 +329,7 @@ contains
 
    subroutine deallocate_arrays
 
-      use arrays_dist_fn, only: gnew, gold, g_scratch, gvmu
+      use arrays_dist_fn, only: gnew, gold, g_scratch, gvmu, g_kymus
 
       implicit none
 
@@ -328,6 +337,7 @@ contains
       if (allocated(gold)) deallocate (gold)
       if (allocated(g_scratch)) deallocate (g_scratch)
       if (allocated(gvmu)) deallocate (gvmu)
+      if (allocated(g_kymus)) deallocate (g_kymus)
 
    end subroutine deallocate_arrays
 

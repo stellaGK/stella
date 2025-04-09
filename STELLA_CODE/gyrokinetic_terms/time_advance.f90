@@ -1173,7 +1173,6 @@ contains
       use arrays_fields, only: phi, apar, bpar
       use stella_layouts, only: vmu_lo
       use stella_transforms, only: transform_y2ky
-      use redistribute, only: gather, scatter
       use parameters_physics, only: include_parallel_nonlinearity
       use parameters_physics, only: include_parallel_streaming
       use parameters_physics, only: include_mirror, include_apar
