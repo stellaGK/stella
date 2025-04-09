@@ -122,6 +122,7 @@ contains
       use arrays_dist_fn, only: gnew
       use dist_fn, only: init_gxyz, init_dist_fn
       use dist_redistribute, only: init_redistribute
+!      use dist_redistribute, only: test_kymus_to_vmus_redistribute
       use time_advance, only: init_time_advance
       use extended_zgrid, only: init_extended_zgrid
       use grids_kxky, only: init_grids_kxky
@@ -137,7 +138,7 @@ contains
       use dissipation, only: init_dissipation
       use sources, only: init_sources
       use volume_averages, only: init_volume_averages, volume_average
-
+      
       implicit none
 
       !> Starting timestep: zero unless the simulation has been restarted
@@ -303,7 +304,7 @@ contains
       !> stored in gnew and copied to gold
       if (debug) write (6, *) "stella::init_stella::init_gxyz"
       call init_gxyz(restarted)
-
+!      call test_kymus_to_vmus_redistribute
       !> if initializing from restart file, set the initial time step size appropriately
       if (restarted .and. delt_option_switch == delt_option_auto) then
          delt_saved = delt
