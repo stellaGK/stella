@@ -26,7 +26,7 @@ phi2min[:] = 0.0
 ylabel = '$k_x$'
 xlabel = '$k_y$'
 title = '$\left|\\varphi(k_x,k_y)\\right|^2$'
-movie_file = outdir+file_prefix+'.phi2_non-sonal_vs_kxky.mp4'
+movie_file = outdir+file_prefix+'.phi2_non-zonal_vs_kxky.mp4'
 movie_2d(phi2_non_zonal,ky,kx,phi2min,phi2max,ntime-1,movie_file,xlabel,ylabel,title,cmp='YlGnBu')
 
 qflx_max = np.arange(ntime,dtype=float)
