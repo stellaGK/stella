@@ -795,18 +795,16 @@ contains
      b_dot_grad_z_averaged = gradpar
      b_dot_grad_z(1, :) = gradpar
 
-     ! effectively choose psi = x * B * a_ref = x * B * r0
+     ! effectively choose psi = x * B * a_ref = x * B * L_B
      dpsipdrho = 1.0; dpsipdrho_psi0 = 1.0
      bmag_psi0 = bmag
      ! note that psi here is meaningless
      drhodpsi = 1./dpsipdrho
      drhodpsip_psi0 = 1./dpsipdrho_psi0
      
-     dxdpsi = 1.0 
+     dxdpsi = 1.0 ; dydalpha = 1.0
      sign_torflux = -1
      clebsch_factor = sign_torflux
-     ! dydalpha = (dy/dalpha) / a = sign(dydalpha) * (dpsi/dr) / (a*Bref)
-     dydalpha = dpsipdrho
      grad_x = sqrt(gds22)
      ! there is no magnetic shear in the z-pinch and thus no need for twist-and-shift
      twist_and_shift_geo_fac = 1.0
