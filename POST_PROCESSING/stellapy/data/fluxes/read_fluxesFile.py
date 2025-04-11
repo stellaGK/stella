@@ -53,10 +53,10 @@ def get_fluxes(self):
     self.date = date 
     
     # Initiate the attributes
-    vec_time = np.ones((self.dim_time)) * np.NaN
-    pflux_vs_ts = np.ones((self.dim_time, self.dim.species)) * np.NaN
-    qflux_vs_ts = np.ones((self.dim_time, self.dim.species)) * np.NaN
-    vflux_vs_ts = np.ones((self.dim_time, self.dim.species)) * np.NaN 
+    vec_time = np.ones((self.dim_time)) * np.nan
+    pflux_vs_ts = np.ones((self.dim_time, self.dim.species)) * np.nan
+    qflux_vs_ts = np.ones((self.dim_time, self.dim.species)) * np.nan
+    vflux_vs_ts = np.ones((self.dim_time, self.dim.species)) * np.nan 
         
     # Show the reading progress
     show_progressWhenReadingFiles(self, "Reading fluxes")
