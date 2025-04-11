@@ -1,17 +1,29 @@
-# Host: mn4
+# Host: Marenostrum V
+# Need to load the following modules
+# module load openmpi/4.1.5-gcc
+# module load hdf5/1.14.1-2-gcc-openmpi
+# module load pnetcdf/1.12.3-gcc-openmpi
+# module load netcdf/c-4.9.2_fortran-4.6.1_cxx4-4.3.1_hdf5-1.14.1-2_pnetcdf-1.12.3-gcc-openmpi
+# module load gcc/13.2.0
+# module load fftw/3.3.10-gcc-ompi
+# module load hdf5/1.14.1-2-gcc-openmpi
+# module load mkl
+# module load petsc/3.21.0-realdouble-gcc12.3-ompi4.1.5
+#
+# export STELLA_SYSTEM="marenostrum"
+#
 
-$(warning Processing Makefile.marenostrum)
+#$(warning Processing Makefile.marenostrum)
 helplocal:
-                # GK_SYSTEM = mn4
-                # You are using  Makefile.mn4 to build gs2 executables on bsc.
+                # GK_SYSTEM = marenostrum
+                # You are using  Makefile.marenostrum to build stella executables on BSC/Marenostrum V.
 
 define STANDARD_SYSTEM_CONFIGURATION
-
 export MAKEFLAGS='-j -IMakefiles';\
 export TESTEXEC='mpirun -N 48 -n 48';
 endef
 
-COMPILER=intel
+COMPILER=gnu-gfortran
 
 USE_FFT = fftw3
 USE_NETCDF = on
@@ -22,39 +34,36 @@ DBLESIZEOPT = -double-size 128
 
 include $(COMPILATION_DIR)/Makefiles/Compilers/Makefile.$(COMPILER)
 
-FC=mpiifort
-CC=icc
-MPIFC=mpiifort
-MPICC=mpiicc
-
 ifeq ($(USE_FFT),fftw3)
-        FFT_INC = $(FFTW_ROOT)/include
-        FFT_DIR = $(FFTW_ROOT)
-        FFT_LIB = -lfftw3 $(FFTW_LDFLAGS) #-lfftw3_mpi
-        CPPFLAGS   += -I $(FFT_INC)
+    FFT_INC = -I$(FFTW_ROOT)/include
+    FFT_DIR = $(FFTW_ROOT)
+    FFT_LIB = -L$(FFTW_ROOT)/lib -lfftw3 $(FFTW_LDFLAGS)
+    CPPFLAGS += -I$(FFT_INC)
 endif
 
 USE_HDF5=
 
-PETSC_INC=$(PETSC_DIR)/include
+PETSC_INC=-I$(PETSC_DIR)/include
 
-#Note the module system sets some env vars for us
-#unfortunately some clash with values we use
 ifdef USE_NETCDF
   NETCDF_DIR=$(NETCDF)
   NETCDF_INC= -I $(NETCDF_ROOT)/include/
   NETCDF_LIB= -L $(NETCDF_ROOT)/lib/ -lnetcdff -L$(NETCDF_HOME)/lib/ -lnetcdf
 endif
 
-#MPI_INC=-I$(MPI_ROOT)/include64/
-#MPI_LIB=-lmpi
+#$(info FFT_INC = $(FFT_INC))
+#$(info NETCDF_INC = $(NETCDF_INC))
+#$(info PESTC_INC = $(PETSC_INC))
+#$(info FFT_LIB = $(FFT_LIB))
+#$(info NETCDF_LIB = $(NETCDF_LIB))
+#$(info PESTC_LIB = $(PETSC_LIB))
 
-$(warning USE_NETCDF=$(USE_NETCDF))
+#$(warning USE_NETCDF=$(USE_NETCDF))
 
 # The compiler either uses the "-J" flag or the "-module" flag to 
 # denote the directory where the *.mod files can be found
-MODULE_FLAG = -module
+#MODULE_FLAG = -module
 
-# Without this the mini_linstell gets issues with the netcdf routines (cdf_inquire)
-F90FLAGS = -DNETCDF
+# Without this the mini_libstell gets issues with the netcdf routines (cdf_inquire)
+#F90FLAGS = -DNETCDF
 
