@@ -49,6 +49,20 @@ numerical-tests-7: check-tests-dependencies $(PROJECT_DIR)/stella
 numerical-tests-system:
 	@python3 $(TEST_DIR)/system_information.py
 	
+	
+# Run the automated stella tests on older stella versions
+# TODO-HT extend the other tests to the old stella releases
+numerical-tests-v0.5: check-tests-dependencies $(PROJECT_DIR)/stella
+	@echo "Running: automated stella tests"
+	@python3 -m pytest -v -rF -W ignore::DeprecationWarning --stella_version 0.5 $(TEST_DIR)/numerical_tests/test_1_whether_stella_runs
+numerical-tests-v0.6: check-tests-dependencies $(PROJECT_DIR)/stella
+	@echo "Running: automated stella tests"
+	@python3 -m pytest -v -rF -W ignore::DeprecationWarning --stella_version 0.6 $(TEST_DIR)/numerical_tests/test_1_whether_stella_runs
+numerical-tests-v0.7: check-tests-dependencies $(PROJECT_DIR)/stella
+	@echo "Running: automated stella tests"
+	@python3 -m pytest -v -rF -W ignore::DeprecationWarning --stella_version 0.7 $(TEST_DIR)/numerical_tests/test_1_whether_stella_runs
+	
+	
 # Run the automated stella tests (the -r flag shows the full stella output and -rf shows extra info about the failed outputs)
 pyrokinetics-tests: check-tests-dependencies $(PROJECT_DIR)/stella
 	@echo "Running: automated stella tests for pyrokinetics"

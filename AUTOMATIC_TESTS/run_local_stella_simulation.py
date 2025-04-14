@@ -33,11 +33,19 @@ def get_stella_expected_run_directory():
     return pathlib.Path(__file__).parent
 
 #-------------------------------------------------------------------------------
-def get_stella_path():
+def get_stella_path(stella_version):
     '''Returns the absolute path to the stella executable.
     Can be controlled by setting the STELLA_EXE_PATH environment variable.'''
-    default_path = get_stella_expected_run_directory() / '../../../stella'
-    stella_path = pathlib.Path(os.environ.get('STELLA_EXE_PATH', default_path))
+    # Note that os.environ.get() returns <default_path> if $STELLA_EXE_PATH does not exist
+    if stella_version=='master':
+       default_path = get_stella_expected_run_directory() / '../../../stella'
+       stella_path = pathlib.Path(os.environ.get('STELLA_EXE_PATH', default_path))
+    if stella_version=='0.5':
+       stella_path = get_stella_expected_run_directory() / '../../stella_releases/v0.5/stella'
+    if stella_version=='0.6':
+       stella_path = get_stella_expected_run_directory() / '../../stella_releases/v0.6/stella'
+    if stella_version=='0.7':
+       stella_path = get_stella_expected_run_directory() / '../../stella_releases/v0.7/stella'
     return stella_path.absolute()
 
 #-------------------------------------------------------------------------------
@@ -45,23 +53,37 @@ def run_stella(stella_path, input_file, nproc=None):
     '''Run stella with a given input file.''' 
     if not nproc: nproc = read_nproc()
     subprocess.run(['mpirun','--oversubscribe', '-np', f'{nproc}', stella_path, input_file], check=True)
+    return
 
 #-------------------------------------------------------------------------------
 def copy_input_file(input_file: str, destination):
     '''Copy input_file to destination directory.'''
     shutil.copyfile(get_stella_expected_run_directory() / input_file, destination / input_file)
+    return
+
+#-------------------------------------------------------------------------------
+def copy_common_input_files(input_file: str, destination):
+    '''Copy input_file to destination directory.'''
+    input_files = os.listdir(get_stella_expected_run_directory()/'../common_input_files')
+    if not os.path.exists(destination/'common_input_files'):
+        os.makedirs(destination/'common_input_files')
+    for i in input_files:
+      shutil.copyfile(get_stella_expected_run_directory()/f'../common_input_files/{i}', destination/f'common_input_files/{i}')
+    return
 
 #-------------------------------------------------------------------------------
 def copy_vmec_file(vmec_file: str, destination):
     '''Copy input_file to destination directory.'''
     shutil.copyfile(get_stella_expected_run_directory() / vmec_file, destination / vmec_file)
+    return
     
 #-------------------------------------------------------------------------------
-def run_local_stella_simulation(input_file, tmp_path, vmec_file=None, nproc=None):
+def run_local_stella_simulation(input_file, tmp_path, stella_version, vmec_file=None, nproc=None):
     ''' Run a local stella simulation in <tmp_path>. '''
+    if stella_version not in ['master', '0.5', '0.6', '0.7']: print(f'ABORT: Wrong stella version: {stella_version}'); sys.exit()
     copy_input_file(input_file, tmp_path)
     if vmec_file: copy_vmec_file(vmec_file, tmp_path)
-    os.chdir(tmp_path); run_stella(get_stella_path(), input_file, nproc=nproc)
+    os.chdir(tmp_path); run_stella(get_stella_path(stella_version), input_file, nproc=nproc)
     run_data = {'input_file' : input_file, 'tmp_path' : tmp_path, 'vmec_file' : vmec_file}
     return run_data
     

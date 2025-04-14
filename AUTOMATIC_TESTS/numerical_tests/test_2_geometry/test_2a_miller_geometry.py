@@ -5,10 +5,11 @@
 ################################################################################
 
 # Python modules
+import pytest
 import os, sys
 import pathlib 
 import numpy as np
-import xarray as xr  
+import xarray as xr
 
 # Package to run stella 
 module_path = str(pathlib.Path(__file__).parent.parent.parent / 'run_local_stella_simulation.py')
@@ -22,9 +23,16 @@ miller_file_name = 'geometry_miller'
 run_data = {}
 
 #-------------------------------------------------------------------------------
+#                           Get the stella version                             #
+#-------------------------------------------------------------------------------
+@pytest.fixture(scope="session")
+def stella_version(pytestconfig):
+    return pytestconfig.getoption("stella_version")
+
+#-------------------------------------------------------------------------------
 #                    Check whether output files are present                    #
 #-------------------------------------------------------------------------------
-def test_whether_miller_output_files_are_present(tmp_path, error=False):  
+def test_whether_miller_output_files_are_present(tmp_path, stella_version, error=False):  
     
     # Save the temporary folder <tmp_path> as a global variable so the
     # other tests can access the output files from the local stella run.
@@ -32,7 +40,7 @@ def test_whether_miller_output_files_are_present(tmp_path, error=False):
     stella_local_run_directory = tmp_path
     
     # Run stella inside of <tmp_path> based on <input_filename>
-    run_data = run_local_stella_simulation(input_filename, tmp_path) 
+    run_data = run_local_stella_simulation(input_filename, tmp_path, stella_version)
     
     # Gather the output files generated during the local stella run inside <tmp_path>
     local_files = os.listdir(stella_local_run_directory)
