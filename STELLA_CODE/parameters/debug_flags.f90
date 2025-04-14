@@ -14,37 +14,32 @@ module debug_flags
 
   implicit none
   
-  !> Publuc routines
+  ! Public routines
   public :: read_debug_flags
-  !> Public debug flags
+  
+  ! Debug flags
   public :: stella_debug
-  !> Fields debug flags
   public :: fields_debug
   public :: fields_fluxtube_debug
   public :: fields_electromagnetic_debug
   public :: fields_ffs_debug
-  !> Gyrokinetic term debug flags
   public :: time_advance_debug
   public :: implicit_solve_debug
   public :: parallel_streaming_debug
   public :: response_matrix_debug
   public :: mirror_terms_debug
   public :: neoclassical_terms_debug
-  !> Grids debug flags 
   public :: extended_grid_debug
-  !> Diagnostics debug flags 
   public :: diagnostics_debug
   public :: diagnostics_parameters
   public :: diagnostics_fluxes_fluxtube_debug
   public :: diagnostics_omega_debug
   public :: fluxes_debug
-  !> Geometry debug flags
   public :: geometry_debug
-
   public :: dist_fn_debug
   public :: gyro_averages_debug
-  !> Debug flags for full flux surface
   public :: ffs_solve_debug
+  
   !> Debug flug for debugging full flux surface
   !> This will set the geometry of all field lines to be equation to
   !> the geometry on alpha = 0 (i.e. the first field line) 
@@ -52,16 +47,23 @@ module debug_flags
   
   private
 
-  logical :: debug_all
-  !> Main stella file debug flag
+  ! Debug flags
+  logical :: debug_all 
+  logical :: dist_fn_debug
+  logical :: gyro_averages_debug 
+  logical :: initialised = .false.
+  
+  ! Main stella file debug flag
   logical :: stella_debug
-  !> Fields debug flags
+  
+  ! Fields debug flags
   logical :: fields_all_debug
   logical :: fields_debug
   logical :: fields_fluxtube_debug
   logical :: fields_electromagnetic_debug
   logical :: fields_ffs_debug
-  !> Gyrokinetic term debug flags
+  
+  ! Gyrokinetic term debug flags
   logical :: time_advance_debug
   logical :: implicit_solve_debug
   logical :: parallel_streaming_debug
@@ -69,23 +71,21 @@ module debug_flags
   logical :: mirror_terms_debug
   logical :: neoclassical_terms_debug
   logical :: extended_grid_debug
-  !> Diagnostics debug flags
+  
+  ! Diagnostics debug flags
   logical :: diagnostics_all_debug
   logical :: diagnostics_debug
   logical :: diagnostics_parameters
   logical :: diagnostics_fluxes_fluxtube_debug
   logical :: diagnostics_omega_debug
   logical :: fluxes_debug
-  !> Geometry debug flags
+  
+  ! Geometry debug flags
   logical :: geometry_debug
-
-  logical :: dist_fn_debug
-  logical :: gyro_averages_debug
-  !> For FFS
+  
+  ! For FFS
   logical :: ffs_solve_debug
   logical :: const_alpha_geo
-
-  logical :: initialised = .false.
 
 contains
 
@@ -113,7 +113,6 @@ contains
     if (proc0) call read_input_file
     call broadcast_parameters
 
-
   contains
 
       !**********************************************************************
@@ -128,36 +127,36 @@ contains
 
         implicit none
         
+        ! Turn on all debug flags
+        debug_all = .false.
+        fields_all_debug = .false.
+        diagnostics_all_debug = .false.
+        
+        ! Debug flags
         stella_debug = .false.
         ffs_solve_debug = .false.
-
-        fields_all_debug = .false. 
         fields_debug = .false.
         fields_fluxtube_debug = .false.
         fields_electromagnetic_debug = .false. 
         fields_ffs_debug = .false. 
-
         implicit_solve_debug = .false.
         mirror_terms_debug = .false.
         neoclassical_terms_debug = .false.
         parallel_streaming_debug = .false.
         response_matrix_debug = .false.
         time_advance_debug = .false.
-
         extended_grid_debug = .false. 
+        geometry_debug = .false.
+        dist_fn_debug = .false.
+        gyro_averages_debug = .false.
         
-        !> Diagnostircs debug
-        diagnostics_all_debug = .false.
+        ! Diagnostics debug flags
         diagnostics_debug = .false.
         diagnostics_parameters = .false.
         diagnostics_omega_debug = .false. 
         diagnostics_fluxes_fluxtube_debug = .false. 
         fluxes_debug = .false.
-
-        geometry_debug = .false.
         
-        dist_fn_debug = .false.
-        gyro_averages_debug = .false.
         !###################################
         !     FOR THE PURPOSE OF DEBUGGING
         !###################################
@@ -185,7 +184,7 @@ contains
         in_file = input_unit_exist("debug_flags", nml_exist)
         if (nml_exist) read (unit=in_file, nml=debug_flags)
         
-        if(debug_all) then
+        if (debug_all) then
           stella_debug = .true.
           ffs_solve_debug = .true.
           fields_all_debug = .true. 
@@ -232,14 +231,11 @@ contains
         use mp, only: broadcast
 
         call broadcast(stella_debug)
-        
         call broadcast(ffs_solve_debug)
-
         call broadcast(fields_debug)
         call broadcast(fields_fluxtube_debug)
         call broadcast(fields_electromagnetic_debug)
         call broadcast(fields_ffs_debug)
-
         call broadcast(implicit_solve_debug)
         call broadcast(mirror_terms_debug)
         call broadcast(neoclassical_terms_debug)
@@ -247,16 +243,12 @@ contains
         call broadcast(response_matrix_debug)
         call broadcast(time_advance_debug)
         call broadcast(extended_grid_debug)
-
         call broadcast(diagnostics_debug)
         call broadcast(diagnostics_parameters)
         call broadcast(diagnostics_fluxes_fluxtube_debug)
         call broadcast(diagnostics_omega_debug) 
-        
-        
         call broadcast(dist_fn_debug)
         call broadcast(gyro_averages_debug)
-
         call broadcast(fluxes_debug) 
         call broadcast(geometry_debug)
         call broadcast(const_alpha_geo) 
