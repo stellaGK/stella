@@ -5,10 +5,11 @@
 ################################################################################
 
 # Python modules
+import pytest
 import os, sys
-import pathlib 
+import pathlib
 import numpy as np
-import xarray as xr  
+import xarray as xr
 
 # Package to run stella 
 module_path = str(pathlib.Path(__file__).parent.parent.parent / 'run_local_stella_simulation.py')
@@ -19,39 +20,36 @@ input_filename = 'zpinch_geometry.in'
 stella_local_run_directory = 'Not/Run/Yet'
 
 #-------------------------------------------------------------------------------
+#                           Get the stella version                             #
+#-------------------------------------------------------------------------------
+@pytest.fixture(scope="session")
+def stella_version(pytestconfig):
+    return pytestconfig.getoption("stella_version")
+    
+#-------------------------------------------------------------------------------
 #                    Check whether output files are present                    #
 #-------------------------------------------------------------------------------
-def test_whether_zpinch_output_files_are_present(tmp_path, error=False):  
+def test_whether_zpinch_output_files_are_present(tmp_path, stella_version, error=False):  
     
     # Save the temporary folder <tmp_path> as a global variable so the
     # other tests can access the output files from the local stella run.
     global stella_local_run_directory
     stella_local_run_directory = tmp_path
-
-    print(f'debug: run_local_stella_simulation')
     
     # Run stella inside of <tmp_path> based on <input_filename>
-    run_local_stella_simulation(input_filename, tmp_path)
-
-    print(f'debug: local files')
+    run_local_stella_simulation(input_filename, tmp_path, stella_version)
     
     # Gather the output files generated during the local stella run inside <tmp_path>
     local_files = os.listdir(stella_local_run_directory)
-
-    print(f'debug: expected files')
     
     # Create a list of the output files we expect when stella has been run 
     expected_files = ['zpinch_geometry.geometry']
-
-    print(f'debug: for loop - expected files')
     
     # Check whether all these output files are present
     for expected_file in expected_files:
         if not (expected_file in local_files):
             print(f'ERROR: The "{expected_file}" output file was not generated when running stella.'); error = True
 
-
-    print(f'debug: assert')
     # The <pytest> module will check whether all <assert> statements are true,
     # if it runs into a statement which is false, the test will be labeled as
     # "Failed" and the string in the second argument of the <assert> statement 

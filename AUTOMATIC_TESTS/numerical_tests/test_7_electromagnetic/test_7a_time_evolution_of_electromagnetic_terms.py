@@ -24,10 +24,11 @@
 ################################################################################
 
 # Python modules
+import pytest
 import os, sys
-import pathlib 
+import pathlib
 import numpy as np
-import xarray as xr  
+import xarray as xr
 
 # Package to run stella 
 module_path = str(pathlib.Path(__file__).parent.parent.parent / 'run_local_stella_simulation.py')
@@ -35,13 +36,20 @@ with open(module_path, 'r') as file: exec(file.read())
 
 # Global variables
 
-input_filename_stem = 'EM'  
-stella_local_run_directory = 'Not/Run/Yet' 
+input_filename_stem = 'EM'
+stella_local_run_directory = 'Not/Run/Yet'
+
+#-------------------------------------------------------------------------------
+#                           Get the stella version                             #
+#-------------------------------------------------------------------------------
+@pytest.fixture(scope="session")
+def stella_version(pytestconfig):
+    return pytestconfig.getoption("stella_version")
 
 #-------------------------------------------------------------------------------
 #           Check whether the potential data does not evolve in time           #
 #-------------------------------------------------------------------------------
-def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
+def test_each_gyrokinetic_term_for_electromagnetic(tmp_path, stella_version):
     
     # Save the temporary folder <tmp_path> as a global variable so the
     # other tests can access the output files from the local stella run.
@@ -50,7 +58,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
     
     input_filename = input_filename_stem + '_no_time_evolution.in'
     # Run stella inside of <tmp_path> based on <input_filename>
-    run_local_stella_simulation(input_filename, tmp_path)
+    run_local_stella_simulation(input_filename, tmp_path, stella_version)
      
     # File names  
     local_netcdf_file = tmp_path / (input_filename_stem + '_no_time_evolution.out.nc') 
@@ -64,7 +72,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
 #------------------------------------------------------------------------------
     # Run stella inside of <tmp_path> based on <input_filename>
     input_filename = input_filename_stem + '_parallel_streaming_implicit.in'
-    run_local_stella_simulation(input_filename, tmp_path)
+    run_local_stella_simulation(input_filename, tmp_path, stella_version)
      
     # Compare phi2(t) in the netCDF files
     local_netcdf_file = tmp_path / (input_filename_stem + '_parallel_streaming_implicit.out.nc') 
@@ -78,7 +86,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
 #-------------------------------------------------------------------------------
     # Run stella inside of <tmp_path> based on <input_filename>
     input_filename = input_filename_stem + '_parallel_streaming_explicit.in'
-    run_local_stella_simulation(input_filename, tmp_path)
+    run_local_stella_simulation(input_filename, tmp_path, stella_version)
      
     # Compare phi2(t) in the netCDF files
     local_netcdf_file = tmp_path / (input_filename_stem + '_parallel_streaming_explicit.out.nc') 
@@ -91,7 +99,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
 #-------------------------------------------------------------------------------
     # Run stella inside of <tmp_path> based on <input_filename>
     input_filename = input_filename_stem + '_mirror_implicit.in'
-    run_local_stella_simulation(input_filename, tmp_path)
+    run_local_stella_simulation(input_filename, tmp_path, stella_version)
      
     # Compare phi2(t) in the netCDF files
     local_netcdf_file = tmp_path / (input_filename_stem + '_mirror_implicit.out.nc')  
@@ -104,7 +112,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
 #-------------------------------------------------------------------------------
     # Run stella inside of <tmp_path> based on <input_filename>
     input_filename = input_filename_stem + '_mirror_explicit.in'
-    run_local_stella_simulation(input_filename, tmp_path) 
+    run_local_stella_simulation(input_filename, tmp_path, stella_version)
      
     # Compare phi2(t) in the netCDF files
     local_netcdf_file = tmp_path / (input_filename_stem + '_mirror_explicit.out.nc') 
@@ -117,7 +125,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
 #-------------------------------------------------------------------------------
     # Run stella inside of <tmp_path> based on <input_filename>
     input_filename = input_filename_stem + '_diagmagnetic_drift.in'
-    run_local_stella_simulation(input_filename, tmp_path)
+    run_local_stella_simulation(input_filename, tmp_path, stella_version)
      
     # Compare phi2(t) in the netCDF files
     local_netcdf_file = tmp_path / (input_filename_stem + '_diagmagnetic_drift.out.nc') 
@@ -131,7 +139,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
 #-------------------------------------------------------------------------------
     # Run stella inside of <tmp_path> based on <input_filename>
     input_filename = input_filename_stem + '_magnetic_drifts.in'
-    run_local_stella_simulation(input_filename, tmp_path)
+    run_local_stella_simulation(input_filename, tmp_path, stella_version)
      
     # Compare phi2(t) in the netCDF files
     local_netcdf_file = tmp_path / (input_filename_stem + '_magnetic_drifts.out.nc') 
@@ -144,7 +152,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
 #-------------------------------------------------------------------------------
     # Run stella inside of <tmp_path> based on <input_filename>
     input_filename = input_filename_stem + '_nonlinear_term.in'
-    run_local_stella_simulation(input_filename, tmp_path)
+    run_local_stella_simulation(input_filename, tmp_path, stella_version)
 
     # Compare phi2(t) in the netCDF files  
     local_netcdf_file = tmp_path / (input_filename_stem + '_nonlinear_term.out.nc')
@@ -157,7 +165,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
 #-------------------------------------------------------------------------------
     # Run stella inside of <tmp_path> based on <input_filename>
     input_filename = input_filename_stem + '_kxky_grid_box_linear.in'
-    run_local_stella_simulation(input_filename, tmp_path)
+    run_local_stella_simulation(input_filename, tmp_path, stella_version)
      
     # Compare phi2(t) in the netCDF files
     local_netcdf_file = tmp_path / (input_filename_stem + '_kxky_grid_box_linear.out.nc') 
@@ -170,7 +178,7 @@ def test_each_gyrokinetic_term_for_electromagnetic(tmp_path):
 #-------------------------------------------------------------------------------
     # Run stella inside of <tmp_path> based on <input_filename>
     input_filename = input_filename_stem + '_kxky_grid_box_nonlinear.in'
-    run_local_stella_simulation(input_filename, tmp_path)
+    run_local_stella_simulation(input_filename, tmp_path, stella_version)
      
     # Compare phi2(t) in the netCDF files
     local_netcdf_file = tmp_path / (input_filename_stem + '_kxky_grid_box_nonlinear.out.nc') 

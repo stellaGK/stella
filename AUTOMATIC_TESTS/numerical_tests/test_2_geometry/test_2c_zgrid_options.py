@@ -6,26 +6,34 @@
 ################################################################################
 
 # Python modules
+import pytest
 import os, sys
-import pathlib 
+import pathlib
 import numpy as np
-import xarray as xr  
+import xarray as xr
 
 # Package to run stella 
 module_path = str(pathlib.Path(__file__).parent.parent.parent / 'run_local_stella_simulation.py')
 with open(module_path, 'r') as file: exec(file.read())
 
 #-------------------------------------------------------------------------------
+#                           Get the stella version                             #
+#-------------------------------------------------------------------------------
+@pytest.fixture(scope="session")
+def stella_version(pytestconfig):
+    return pytestconfig.getoption("stella_version")
+    
+#-------------------------------------------------------------------------------
 #                                BOX NONLINEAR                                 #
 #-------------------------------------------------------------------------------
-def test_z_grid_zedequalarc(tmp_path, error=False):
+def test_z_grid_zedequalarc(tmp_path, stella_version, error=False):
  
     #---------------------------------------------------------------------------
     #                       ZED_EQUAL_ARC = FALSE, MILLER                      #
     #---------------------------------------------------------------------------
 
     # Run stella and compare the geometry arrays in the netcdf file
-    run_data = run_local_stella_simulation('zed_equal_arc_miller_true.in', tmp_path)  
+    run_data = run_local_stella_simulation('zed_equal_arc_miller_true.in', tmp_path, stella_version)
     compare_geometry_in_netcdf_files(run_data, error=False) 
     print('  -->  The zed_equal_arc=True gives the correct Miller geometry.')
     
@@ -34,7 +42,7 @@ def test_z_grid_zedequalarc(tmp_path, error=False):
     #---------------------------------------------------------------------------
 
     # Run stella and compare the geometry arrays in the netcdf file
-    run_data = run_local_stella_simulation('zed_equal_arc_miller_false.in', tmp_path)  
+    run_data = run_local_stella_simulation('zed_equal_arc_miller_false.in', tmp_path, stella_version)
     compare_geometry_in_netcdf_files(run_data, error=False) 
     print('  -->  The zed_equal_arc=False gives the correct Miller geometry.')
     return
@@ -44,7 +52,7 @@ def test_z_grid_zedequalarc(tmp_path, error=False):
     #---------------------------------------------------------------------------
 
     # Run stella and compare the geometry arrays in the netcdf file
-    run_data = run_local_stella_simulation('zed_equal_arc_vmec_true.in', tmp_path)  
+    run_data = run_local_stella_simulation('zed_equal_arc_vmec_true.in', tmp_path, stella_version)
     compare_geometry_in_netcdf_files(run_data, error=False) 
     print('  -->  The zed_equal_arc=True gives the correct VMEC geometry.')
     
@@ -53,7 +61,7 @@ def test_z_grid_zedequalarc(tmp_path, error=False):
     #---------------------------------------------------------------------------
 
     # Run stella and compare the geometry arrays in the netcdf file
-    run_data = run_local_stella_simulation('zed_equal_arc_vmec_false.in', tmp_path)  
+    run_data = run_local_stella_simulation('zed_equal_arc_vmec_false.in', tmp_path, stella_version)
     compare_geometry_in_netcdf_files(run_data, error=False) 
     print('  -->  The zed_equal_arc=False gives the correct VMEC geometry.')
     return
