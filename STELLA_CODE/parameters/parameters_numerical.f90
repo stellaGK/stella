@@ -17,7 +17,8 @@ module parameters_numerical
    public :: drifts_implicit
    public :: fully_implicit, fully_explicit
    public :: maxwellian_inside_zed_derivative, use_deltaphi_for_response_matrix
-
+   public :: split_parallel_dynamics
+   
    public :: maxwellian_normalization
    
    !> Upwinding options 
@@ -63,6 +64,9 @@ module parameters_numerical
    logical :: mirror_implicit, mirror_semi_lagrange, mirror_linear_interp
    logical :: drifts_implicit, fully_implicit, fully_explicit
    logical :: maxwellian_inside_zed_derivative, use_deltaphi_for_response_matrix
+   ! if split_parallel_dynamics = .true. (default), use operator splitting
+   ! to treat parallel streaming and mirror term separately
+   logical :: split_parallel_dynamics
    !> REMOVE
    logical :: maxwellian_normalization
 
@@ -154,6 +158,7 @@ contains
          mirror_linear_interp = .false. 
          maxwellian_inside_zed_derivative = .false. 
          use_deltaphi_for_response_matrix = .false.
+         split_parallel_dynamics = .true.
          maxwellian_normalization = .false. 
          zed_upwind = 0.02
          vpa_upwind = 0.02
@@ -241,7 +246,8 @@ contains
             cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, delt_max, delt_min, &
             fields_kxkyz, mat_gen, mat_read, &
             ky_solve_radial, ky_solve_real, nitt, print_extra_info_to_terminal, &
-            explicit_option, flip_flop, rng_seed, autostop
+            explicit_option, flip_flop, rng_seed, autostop, &
+            split_parallel_dynamics
          
          !> Overwrite the default input parameters by those specified in the input file
          !> under the heading '&numerical'
@@ -491,6 +497,7 @@ contains
 
          call broadcast(maxwellian_inside_zed_derivative)
          call broadcast(use_deltaphi_for_response_matrix)
+         call broadcast(split_parallel_dynamics)
          call broadcast(maxwellian_normalization)
 
          call broadcast(time_upwind_plus)

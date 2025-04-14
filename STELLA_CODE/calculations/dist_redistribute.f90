@@ -5,16 +5,21 @@ module dist_redistribute
    implicit none
 
    public :: init_redistribute, finish_redistribute
+   public :: test_kymus_to_vmus_redistribute
    public :: kxkyz2vmu
    public :: kxyz2vmu
    public :: xyz2vmu
+   public :: kymus2vmus
 
    private
 
    type(redist_type) :: kxkyz2vmu
    type(redist_type) :: kxyz2vmu
    type(redist_type) :: xyz2vmu
-
+   ! this is a redist_type where we got from a layout with ky, mu and species parallelised
+   ! and redistribute so that vpa, mu and species are parallelised
+   type(redist_type) :: kymus2vmus
+   
    logical :: redistribute_initialized = .false.
 
 contains
@@ -23,6 +28,7 @@ contains
 
       use parameters_physics, only: full_flux_surface
       use parameters_physics, only: include_parallel_nonlinearity
+      use parameters_numerical, only: split_parallel_dynamics
 
       implicit none
 
@@ -32,6 +38,7 @@ contains
       call init_kxkyz_to_vmu_redistribute
       if (full_flux_surface) call init_kxyz_to_vmu_redistribute
       if (include_parallel_nonlinearity) call init_xyz_to_vmu_redistribute
+      if (.not.split_parallel_dynamics) call init_kymus_to_vmus_redistribute
 
    end subroutine init_redistribute
 
@@ -145,7 +152,7 @@ contains
 
       to_high(1) = vmu_lo%naky
       to_high(2) = vmu_lo%nakx
-      to_high(3) = vmu_lo%nzed
+      to_high(3) = vmu_lo%nzgrid
       to_high(4) = vmu_lo%ntubes
       to_high(5) = vmu_lo%ulim_alloc
 
@@ -407,6 +414,256 @@ contains
 
    end subroutine init_xyz_to_vmu_redistribute
 
+   subroutine init_kymus_to_vmus_redistribute
+
+      use mp, only: nproc
+      use stella_layouts, only: kymus_lo, vmu_lo
+      use stella_layouts, only: kymusidx2vmuidx
+      use stella_layouts, only: idx_local, proc_id
+      use redistribute, only: index_list_type, init_redist
+      use redistribute, only: delete_list, set_redist_character_type
+      use vpamu_grids, only: nvpa
+      use parameters_kxky_grids, only: nakx
+      use zgrid, only: nzgrid, ntubes
+
+      implicit none
+
+      type(index_list_type), dimension(0:nproc - 1) :: to_list, from_list
+      integer, dimension(0:nproc - 1) :: nn_to, nn_from
+      integer, dimension(5) :: from_low, from_high
+      integer, dimension(5) :: to_high, to_low
+      integer :: ikymus, ivmu
+      integer :: iv, iky, ikx, iz, it
+      integer :: ip, n
+      logical :: initialized = .false.
+
+      if (initialized) return
+      initialized = .true.
+
+      ! count number of elements to be redistributed to/from each processor
+      nn_to = 0
+      nn_from = 0
+      do ikymus = kymus_lo%llim_world, kymus_lo%ulim_world
+         do iv = 1, nvpa
+            do it = 1, ntubes
+               do iz = -nzgrid, nzgrid
+                  do ikx = 1, nakx
+                     call kymusidx2vmuidx(iv, ikymus, kymus_lo, vmu_lo, iky, ivmu)
+                     if (idx_local(kymus_lo, ikymus)) &
+                          nn_from(proc_id(vmu_lo, ivmu)) = nn_from(proc_id(vmu_lo, ivmu)) + 1
+                     if (idx_local(vmu_lo, ivmu)) &
+                          nn_to(proc_id(kymus_lo, ikymus)) = nn_to(proc_id(kymus_lo, ikymus)) + 1
+                  end do
+               end do
+            end do
+         end do
+      end do
+            
+      do ip = 0, nproc - 1
+         if (nn_from(ip) > 0) then
+            allocate (from_list(ip)%first(nn_from(ip)))
+            allocate (from_list(ip)%second(nn_from(ip)))
+            allocate (from_list(ip)%third(nn_from(ip)))
+            allocate (from_list(ip)%fourth(nn_from(ip)))
+            allocate (from_list(ip)%fifth(nn_from(ip)))
+         end if
+         if (nn_to(ip) > 0) then
+            allocate (to_list(ip)%first(nn_to(ip)))
+            allocate (to_list(ip)%second(nn_to(ip)))
+            allocate (to_list(ip)%third(nn_to(ip)))
+            allocate (to_list(ip)%fourth(nn_to(ip)))
+            allocate (to_list(ip)%fifth(nn_to(ip)))
+         end if
+      end do
+
+      ! get local indices of elements distributed to/from other processors
+      nn_to = 0
+      nn_from = 0
+
+      ! loop over all indices in the kymus layout and find the corresponding indices for iky and ivmu
+      do ikymus = kymus_lo%llim_world, kymus_lo%ulim_world
+         do iv = 1, nvpa
+            do it = 1, ntubes
+               do iz = -nzgrid, nzgrid
+                  do ikx = 1, nakx
+                     ! obtain corresponding ky indices
+                     call kymusidx2vmuidx(iv, ikymus, kymus_lo, vmu_lo, iky, ivmu)
+                     ! if kymus index local, set:
+                     ! ip = corresponding y processor
+                     ! from_list%first-third arrays = ikx,iz,it,iv,ikymus
+                     ! later will send from_list to proc ip
+                     if (idx_local(kymus_lo, ikymus)) then
+                        ip = proc_id(vmu_lo, ivmu)
+                        n = nn_from(ip) + 1
+                        nn_from(ip) = n
+                        from_list(ip)%first(n) = ikx
+                        from_list(ip)%second(n) = iz
+                        from_list(ip)%third(n) = it
+                        from_list(ip)%fourth(n) = iv
+                        from_list(ip)%fifth(n) = ikymus
+                     end if
+                     if (idx_local(vmu_lo, ivmu)) then
+                        ip = proc_id(kymus_lo, ikymus)
+                        n = nn_to(ip) + 1
+                        nn_to(ip) = n
+                        to_list(ip)%first(n) = iky
+                        to_list(ip)%second(n) = ikx
+                        to_list(ip)%third(n) = iz
+                        to_list(ip)%fourth(n) = it
+                        to_list(ip)%fifth(n) = ivmu
+                     end if
+                  end do
+               end do
+            end do
+         end do
+      end do
+
+      from_low(1) = 1
+      from_low(2) = -kymus_lo%nzgrid
+      from_low(3) = 1
+      from_low(4) = 1
+      from_low(5) = kymus_lo%llim_proc
+
+      from_high(1) = kymus_lo%nakx
+      from_high(2) = kymus_lo%nzgrid
+      from_high(3) = kymus_lo%ntubes
+      from_high(4) = kymus_lo%nvpa
+      from_high(5) = kymus_lo%ulim_alloc
+
+      to_low(1) = 1
+      to_low(2) = 1
+      to_low(3) = -vmu_lo%nzgrid
+      to_low(4) = 1
+      to_low(5) = vmu_lo%llim_proc
+
+      to_high(1) = vmu_lo%naky
+      to_high(2) = vmu_lo%nakx
+      to_high(3) = vmu_lo%nzgrid
+      to_high(4) = vmu_lo%ntubes
+      to_high(5) = vmu_lo%ulim_alloc
+
+      call set_redist_character_type(kymus2vmus, 'kymus2vmus')
+
+      call init_redist(kymus2vmus, 'c', to_low, to_high, to_list, &
+                       from_low, from_high, from_list)
+
+      call delete_list(to_list)
+      call delete_list(from_list)
+
+   end subroutine init_kymus_to_vmus_redistribute
+
+   subroutine test_kymus_to_vmus_redistribute
+
+      use redistribute, only: scatter, gather
+      use arrays_dist_fn, only: g_kymus, gnew
+      use vpamu_grids, only: nvpa
+      use mp, only: proc0, send, receive
+      use zgrid, only: nzgrid, ntubes
+      use parameters_kxky_grids, only: nakx, naky
+      use stella_layouts, only: vmu_lo, kymus_lo
+      use stella_layouts, only: iv_idx, imu_idx, is_idx, iky_idx, idx_local, proc_id
+
+      implicit none
+
+      complex, dimension (:, :, :, :), allocatable :: gtmp
+      integer :: ikymus, ivmu, iv, imu, is, it, iz, ikx, iky, izmod
+
+      allocate (gtmp(naky, nakx, 2*nzgrid+1, ntubes))
+      do ivmu = vmu_lo%llim_world, vmu_lo%ulim_world
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         if (idx_local(vmu_lo, iv, imu, is)) then
+            do iz = -nzgrid, nzgrid
+               izmod = iz + nzgrid + 1
+               gtmp(:, :, izmod, :) = gnew(:, :, iz, :, ivmu)
+            end do
+            if (.not. proc0) then
+               call send (gtmp, 0)
+            end if
+         else if (proc0) then
+            call receive (gtmp, proc_id(vmu_lo, ivmu))
+         end if
+         if (proc0) then
+            do it = 1, ntubes
+               do iz = 1, 2*nzgrid+1
+                  do ikx = 1, nakx
+                     do iky = 1, naky
+                        write (26, *) ikx, iky, iz, it, iv, imu, is, real(gtmp(iky, ikx, iz, it)), aimag(gtmp(iky, ikx, iz, it))
+                     end do
+                  end do
+               end do
+            end do
+         end if
+      end do
+      deallocate (gtmp)
+
+      call scatter(kymus2vmus, gnew, g_kymus)
+      
+      allocate (gtmp(nakx, 2*nzgrid+1, ntubes, nvpa))
+      do ikymus = kymus_lo%llim_world, kymus_lo%ulim_world
+         iky = iky_idx(kymus_lo, ikymus)
+         imu = imu_idx(kymus_lo, ikymus)
+         is = is_idx(kymus_lo, ikymus)
+         if (idx_local(kymus_lo, iky, imu, is)) then
+            do iz = -nzgrid, nzgrid
+               izmod = iz + nzgrid + 1
+               gtmp(:, izmod, :, :) = g_kymus(:, iz, :, :, ivmu)
+            end do
+            if (.not. proc0) then
+               call send (gtmp, 0)
+            end if
+         else if (proc0) then
+            call receive (gtmp, proc_id(kymus_lo, ikymus))
+         end if
+         if (proc0) then
+            do iv = 1, nvpa
+               do it = 1, ntubes
+                  do iz = 1, 2*nzgrid+1
+                     do ikx = 1, nakx
+                        write (27, *) ikx, iky, iz, it, iv, imu, is, real(gtmp(ikx, iz, it, iv)), aimag(gtmp(ikx, iz, it, iv))
+                     end do
+                  end do
+               end do
+            end do
+         end if
+      end do
+      deallocate (gtmp)
+
+      call gather(kymus2vmus, g_kymus, gnew)
+      
+      allocate (gtmp(naky, nakx, 2*nzgrid+1, ntubes))
+      do ivmu = vmu_lo%llim_world, vmu_lo%ulim_world
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         if (idx_local(vmu_lo, iv, imu, is)) then
+            do iz = -nzgrid, nzgrid
+               izmod = iz + nzgrid + 1
+               gtmp(:, :, izmod, :) = gnew(:, :, iz, :, ivmu)
+            end do
+            if (.not. proc0) then
+               call send (gtmp, 0)
+            end if
+         else if (proc0) then
+            call receive (gtmp, proc_id(vmu_lo, ivmu))
+         end if
+         if (proc0) then
+            do it = 1, ntubes
+               do iz = 1, 2*nzgrid+1
+                  do ikx = 1, nakx
+                     do iky = 1, naky
+                        write (28, *) ikx, iky, iz, it, iv, imu, is, real(gtmp(iky, ikx, iz, it)), aimag(gtmp(iky, ikx, iz, it))
+                     end do
+                  end do
+               end do
+            end do
+         end if
+      end do
+      deallocate (gtmp)
+     
+   end subroutine test_kymus_to_vmus_redistribute
+   
    subroutine finish_redistribute
 
       implicit none

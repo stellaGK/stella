@@ -2,7 +2,8 @@ module stella_layouts
 
    use common_types, only: vmu_layout_type
    use common_types, only: kxkyz_layout_type, kxyz_layout_type, xyz_layout_type
-
+   use common_types, only: kymus_layout_type
+   
    implicit none
 
    private
@@ -12,8 +13,11 @@ module stella_layouts
 
    public :: init_stella_layouts, init_dist_fn_layouts
    public :: kxkyz_lo, kxyz_lo, xyz_lo, vmu_lo
+   ! this layout has the kx, z and vpa local,
+   ! with ky, mu and species available to spread over processors
+   public :: kymus_lo
 
-   public :: kxkyzidx2vmuidx, kxyzidx2vmuidx, xyzidx2vmuidx
+   public :: kxkyzidx2vmuidx, kxyzidx2vmuidx, xyzidx2vmuidx, kymusidx2vmuidx
 
    public :: iz_idx, iky_idx, ikx_idx, iv_idx, imu_idx, is_idx, iy_idx
    public :: it_idx
@@ -21,12 +25,14 @@ module stella_layouts
 
    character(len=4) :: xyzs_layout
    character(len=3) :: vms_layout
+   character(len=5) :: kymus_layout
    logical :: exist
 
    type(kxkyz_layout_type) :: kxkyz_lo
    type(kxyz_layout_type) :: kxyz_lo
    type(xyz_layout_type) :: xyz_lo
    type(vmu_layout_type) :: vmu_lo
+   type(kymus_layout_type) :: kymus_lo
 
    interface it_idx
       module procedure it_idx_kxkyz
@@ -46,6 +52,7 @@ module stella_layouts
 
    interface iky_idx
       module procedure iky_idx_kxkyz
+      module procedure iky_idx_kymus
    end interface
 
    interface iy_idx
@@ -64,6 +71,7 @@ module stella_layouts
 
    interface imu_idx
       module procedure imu_idx_vmu
+      module procedure imu_idx_kymus
    end interface
 
    interface is_idx
@@ -71,6 +79,7 @@ module stella_layouts
       module procedure is_idx_kxyz
       module procedure is_idx_xyz
       module procedure is_idx_vmu
+      module procedure is_idx_kymus
    end interface
 
    interface proc_id
@@ -78,6 +87,7 @@ module stella_layouts
       module procedure proc_id_kxyz
       module procedure proc_id_xyz
       module procedure proc_id_vmu
+      module procedure proc_id_kymus
    end interface
 
    interface idx
@@ -85,6 +95,7 @@ module stella_layouts
       module procedure idx_kxyz
       module procedure idx_xyz
       module procedure idx_vmu
+      module procedure idx_kymus
    end interface
 
    interface idx_local
@@ -92,6 +103,7 @@ module stella_layouts
       module procedure idx_local_kxyz, iz_local_kxyz
       module procedure idx_local_xyz, iz_local_xyz
       module procedure idx_local_vmu, iz_local_vmu
+      module procedure idx_local_kymus, iz_local_kymus
    end interface
 
 contains
@@ -119,11 +131,12 @@ contains
 
       integer :: in_file
 
-      namelist /layouts_knobs/ xyzs_layout, vms_layout
+      namelist /layouts_knobs/ xyzs_layout, vms_layout, kymus_layout
 
       xyzs_layout = 'yxzs'
       vms_layout = 'vms'
-
+      kymus_layout = 'kymus'
+      
       in_file = input_unit_exist("layouts_knobs", exist)
       if (exist) read (unit=input_unit("layouts_knobs"), nml=layouts_knobs)
 
@@ -139,6 +152,10 @@ contains
           vms_layout /= 'mvs') then
          call mp_abort('stella_layouts: read_parameters finds illegal vms_layout. aborting')
       end if
+      if (kymus_layout /= 'kymus' .and. &
+          kymus_layout /= 'mukys') then
+         call mp_abort('stella_layouts: read_parameters finds illegal kymus_layout. aborting')
+      end if
 
    end subroutine read_parameters
 
@@ -147,6 +164,7 @@ contains
       implicit none
       call broadcast(xyzs_layout)
       call broadcast(vms_layout)
+      call broadcast(kymus_layout)
    end subroutine broadcast_results
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -163,7 +181,8 @@ contains
       call init_kxyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny)
       call init_xyz_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx)
       call init_vmu_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
-
+      call init_kymus_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
+      
    end subroutine init_dist_fn_layouts
 
    subroutine init_kxkyz_layout &
@@ -174,10 +193,10 @@ contains
       implicit none
 
       integer, intent(in) :: nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec
-      logical, save :: initialized = .false.
+      logical, save :: kxkyz_initialized = .false.
 
-      if (initialized) return
-      initialized = .true.
+      if (kxkyz_initialized) return
+      kxkyz_initialized = .true.
 
       kxkyz_lo%iproc = iproc
       kxkyz_lo%nzgrid = nzgrid
@@ -331,9 +350,9 @@ contains
       case ('yzxs')
          idx_kxkyz = iky - 1 + lo%naky * (iz + lo%nzgrid + lo%nzed * (it - 1 + lo%ntubes * (ikx - 1 + lo%nakx * (is - 1))))
       case ('zyxs')
-         idx_kxkyz = iz + lo%nzgrid + lo%nzed * (it - 1 + lo%ntubes * (iky - 1 + lo%naky * (ikx - 1)))
+         idx_kxkyz = iz + lo%nzgrid + lo%nzed * (it - 1 + lo%ntubes * (iky - 1 + lo%naky * (ikx - 1 + lo%nakx * (is - 1))))
       case ('zxys')
-         idx_kxkyz = iz + lo%nzgrid + lo%nzed * (it - 1 + lo%ntubes * (ikx - 1 + lo%nakx * (iky - 1)))
+         idx_kxkyz = iz + lo%nzgrid + lo%nzed * (it - 1 + lo%ntubes * (ikx - 1 + lo%nakx * (iky - 1 + lo%naky * (is - 1))))
       end select
 
    end function idx_kxkyz
@@ -365,10 +384,10 @@ contains
       implicit none
 
       integer, intent(in) :: nzgrid, ntubes, ny, naky, nakx, nvgrid, nmu, nspec
-      logical, save :: initialized = .false.
+      logical, save :: kxyz_initialized = .false.
 
-      if (initialized) return
-      initialized = .true.
+      if (kxyz_initialized) return
+      kxyz_initialized = .true.
 
       kxyz_lo%iproc = iproc
       kxyz_lo%nzgrid = nzgrid
@@ -558,10 +577,10 @@ contains
       implicit none
 
       integer, intent(in) :: nzgrid, ntubes, ny, nx, naky, nakx, nvgrid, nmu, nspec
-      logical, save :: initialized = .false.
+      logical, save :: xyz_initialized = .false.
 
-      if (initialized) return
-      initialized = .true.
+      if (xyz_initialized) return
+      xyz_initialized = .true.
 
       xyz_lo%iproc = iproc
       xyz_lo%nzgrid = nzgrid
@@ -751,10 +770,10 @@ contains
       implicit none
 
       integer, intent(in) :: nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha
-      logical, save :: initialized = .false.
+      logical, save :: vmu_initialized = .false.
 
-      if (initialized) return
-      initialized = .true.
+      if (vmu_initialized) return
+      vmu_initialized = .true.
 
       vmu_lo%xyz = .true.
       vmu_lo%iproc = iproc
@@ -871,6 +890,124 @@ contains
       iz_local_vmu = lo%iproc == proc_id(lo, iz)
    end function iz_local_vmu
 
+   subroutine init_kymus_layout &
+      (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
+
+      use mp, only: iproc, nproc
+
+      implicit none
+
+      integer, intent(in) :: nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec
+      logical, save :: kymus_initialized = .false.
+
+      if (kymus_initialized) return
+      kymus_initialized = .true.
+
+      kymus_lo%iproc = iproc
+      kymus_lo%nzgrid = nzgrid
+      kymus_lo%nzed = 2 * nzgrid + 1
+      kymus_lo%ntubes = ntubes
+      kymus_lo%naky = naky
+      kymus_lo%nakx = nakx
+      kymus_lo%nvgrid = nvgrid
+      kymus_lo%nvpa = 2 * nvgrid
+      kymus_lo%nmu = nmu
+      kymus_lo%nspec = nspec
+      kymus_lo%llim_world = 0
+      kymus_lo%ulim_world = naky * nmu * nspec - 1
+      kymus_lo%blocksize = kymus_lo%ulim_world / nproc + 1
+      kymus_lo%llim_proc = kymus_lo%blocksize * iproc
+      kymus_lo%ulim_proc = min(kymus_lo%ulim_world, kymus_lo%llim_proc + kymus_lo%blocksize - 1)
+      kymus_lo%ulim_alloc = max(kymus_lo%llim_proc, kymus_lo%ulim_proc)
+
+    end subroutine init_kymus_layout
+
+   elemental function is_idx_kymus(lo, i)
+      implicit none
+      integer :: is_idx_kymus
+      type(kymus_layout_type), intent(in) :: lo
+      integer, intent(in) :: i
+      is_idx_kymus = 1 + mod((i - lo%llim_world) / lo%naky / lo%nmu, lo%nspec)
+   end function is_idx_kymus
+
+   elemental function iky_idx_kymus(lo, i)
+
+      implicit none
+      integer :: iky_idx_kymus
+      type(kymus_layout_type), intent(in) :: lo
+      integer, intent(in) :: i
+
+      select case (kymus_layout)
+      case ('kymus')
+         iky_idx_kymus = 1 + mod(i - lo%llim_world, lo%naky)
+      case ('mukys')
+         iky_idx_kymus = 1 + mod((i - lo%llim_world) / lo%nmu, lo%naky)
+      end select
+
+   end function iky_idx_kymus
+
+   elemental function imu_idx_kymus(lo, i)
+
+      implicit none
+      integer :: imu_idx_kymus
+      type(kymus_layout_type), intent(in) :: lo
+      integer, intent(in) :: i
+
+      select case (kymus_layout)
+      case ('kymus')
+         imu_idx_kymus = 1 + mod((i - lo%llim_world) / lo%naky, lo%nmu)
+      case ('mukys')
+         imu_idx_kymus = 1 + mod(i - lo%llim_world, lo%nmu)
+      end select
+
+   end function imu_idx_kymus
+
+   elemental function proc_id_kymus(lo, i)
+      implicit none
+      integer :: proc_id_kymus
+      type(kymus_layout_type), intent(in) :: lo
+      integer, intent(in) :: i
+
+      proc_id_kymus = i / lo%blocksize
+
+   end function proc_id_kymus
+
+   elemental function idx_kymus(lo, iky, imu, is)
+
+      implicit none
+
+      integer :: idx_kymus
+      type(kymus_layout_type), intent(in) :: lo
+      integer, intent(in) :: iky, imu, is
+
+      select case (kymus_layout)
+      case ('kymus')
+         idx_kymus = iky - 1 + lo%naky * (imu - 1 + lo%nmu * (is - 1))
+      case ('mukys')
+         idx_kymus = imu - 1 + lo%nmu * (iky - 1 + lo%naky * (is - 1))
+      end select
+
+   end function idx_kymus
+
+   elemental function idx_local_kymus(lo, iky, imu, is)
+
+      implicit none
+      logical :: idx_local_kymus
+      type(kymus_layout_type), intent(in) :: lo
+      integer, intent(in) :: iky, imu, is
+
+      idx_local_kymus = idx_local(lo, idx(lo, iky, imu, is))
+   end function idx_local_kymus
+
+   elemental function iz_local_kymus(lo, iz)
+      implicit none
+      logical :: iz_local_kymus
+      type(kymus_layout_type), intent(in) :: lo
+      integer, intent(in) :: iz
+
+      iz_local_kymus = lo%iproc == proc_id(lo, iz)
+   end function iz_local_kymus
+   
    elemental subroutine kxkyzidx2vmuidx(iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, iz, it, ivmu)
       implicit none
       integer, intent(in) :: iv, imu, ikxkyz
@@ -913,6 +1050,17 @@ contains
       ivmu = idx(vmu_lo, iv, imu, is_idx(xyz_lo, ixyz))
    end subroutine xyzidx2vmuidx
 
+   elemental subroutine kymusidx2vmuidx(iv, ikymus, kymus_lo, vmu_lo, iky, ivmu)
+      implicit none
+      integer, intent(in) :: iv, ikymus
+      type(kymus_layout_type), intent(in) :: kymus_lo
+      type(vmu_layout_type), intent(in) :: vmu_lo
+      integer, intent(out) :: iky, ivmu
+
+      iky = iky_idx(kymus_lo, ikymus)
+      ivmu = idx(vmu_lo, iv, imu_idx(kymus_lo, ikymus), is_idx(kymus_lo, ikymus))
+   end subroutine kymusidx2vmuidx
+   
    subroutine finish_layouts
 
       implicit none
