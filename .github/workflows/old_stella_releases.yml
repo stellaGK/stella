@@ -63,7 +63,7 @@ jobs:
       - name: Numerical python tests
         run: |
           # Make stella executable
-          chmod +x stella
+          chmod +x AUTOMATIC_TESTS/stella_releases/v0.5/stella
           
           # Run one of the python tests
           if ${{ contains(matrix.config.name, '1 -') }}; then make numerical-tests-v0.5; fi
@@ -114,7 +114,7 @@ jobs:
       - name: Numerical python tests
         run: |
           # Make stella executable
-          chmod +x stella
+          chmod +x AUTOMATIC_TESTS/stella_releases/v0.6/stella
           
           # Run one of the python tests
           if ${{ contains(matrix.config.name, '1 -') }}; then make numerical-tests-v0.6; fi
@@ -166,7 +166,7 @@ jobs:
       - name: Numerical python tests
         run: |
           # Make stella executable
-          chmod +x stella
+          chmod +x AUTOMATIC_TESTS/stella_releases/v0.7/stella
           
           # Run one of the python tests
           if ${{ contains(matrix.config.name, '1 -') }}; then make numerical-tests-v0.7; fi
