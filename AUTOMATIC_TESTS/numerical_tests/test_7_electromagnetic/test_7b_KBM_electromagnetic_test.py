@@ -21,7 +21,6 @@ module_path = str(pathlib.Path(__file__).parent.parent.parent / 'run_local_stell
 with open(module_path, 'r') as file: exec(file.read())
 
 # Global variables
-
 input_filename_stem = 'EM'
 stella_local_run_directory = 'Not/Run/Yet'
 
