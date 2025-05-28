@@ -9,7 +9,7 @@ module dist_fn_arrays
    public :: g_krook, g_proj
    public :: gvmu
    public :: kperp2, dkperp2dr
-   public :: wstar, wstarp
+   public :: wstar, wstarp, wstar_Ln
    public :: wdriftx_g, wdrifty_g
    public :: wdriftx_phi, wdrifty_phi
    public :: wdriftx_bpar, wdrifty_bpar
@@ -37,7 +37,7 @@ module dist_fn_arrays
    complex, dimension(:, :, :), allocatable :: gvmu
    ! (nvpa, nmu, -kxkyz-layout-)
 
-   real, dimension(:, :, :), allocatable :: wstar, wstarp
+   real, dimension(:, :, :), allocatable :: wstar, wstarp, wstar_Ln
    ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
 
    real, dimension(:, :, :), allocatable :: wdriftx_g, wdrifty_g

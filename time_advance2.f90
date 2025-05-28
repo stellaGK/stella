@@ -33,7 +33,6 @@ module time_advance
    logical :: readinit = .false.
    logical :: radialinit = .false.
    logical :: driftimpinit = .false.
-   logical :: remove_flag = .false.
 
    ! if .true., dist fn is represented on alpha grid
    ! if .false., dist fn is given on k-alpha grid
@@ -357,7 +356,7 @@ contains
       use stella_geometry, only: dydalpha, drhodpsi
       use vpamu_grids, only: vperp2, vpa
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use dist_fn_arrays, only: wstar, wstar_Ln
+      use dist_fn_arrays, only: wstar
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_drho
       use run_parameters, only: maxwellian_normalization
@@ -372,8 +371,7 @@ contains
 
       if (.not. allocated(wstar)) &
          allocate (wstar(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar = 0.0
-         allocate (wstar_Ln(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar_Ln = 0.0
-      
+
       allocate (energy(nalpha, -nzgrid:nzgrid))
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -391,15 +389,11 @@ contains
                                       - dfneo_drho(:, :, ivmu))
             end if
          else
-            wstar_Ln(:, :, ivmu) = dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
-                 * spec(is)%fprim
             wstar(:, :, ivmu) = dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
-                 * spec(is)%tprim * (energy - 1.5)
-            
+                                * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))
          end if
          if (.not. maxwellian_normalization) then
             wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
-            wstar_Ln(:, :, ivmu) = wstar_Ln(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          end if
       end do
 
@@ -851,6 +845,8 @@ contains
          call mb_communicate(gnew)
       end if
 
+
+    
       !> save value of phi & apar
       !> for use in diagnostics (to obtain frequency)
       phi_old = phi
@@ -932,7 +928,7 @@ contains
       gold = gnew
 
       !> Ensure fields are updated so that omega calculation is correct.
-      call advance_fields(gnew, phi, apar, bpar, dist='g')
+      call advance_fields(gnew, phi, apar, bpar, dist='g') 
 
       !update the delay parameters for the Krook operator
       if (source_option_switch == source_option_krook) call update_tcorr_krook(gnew)
@@ -968,8 +964,8 @@ contains
       !> start the timer for the explicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 8), ' explicit')
 
-      ! incoming pdf is g = h - (Z F0/T) (J0 phi + 4 mu (T/Z) (J1/gamma) bpar)
-      ! if include_apar = T, convert from g to gbar = g + Z F0/T (2J0 vpa vth apar),
+      ! incoming pdf is g = <f>
+      ! if include_apar = T, convert from g to gbar,
       ! as gbar appears in time derivative
       if (include_apar) then
          ! if the fields are not already updated, then update them
@@ -1274,8 +1270,7 @@ contains
       if (include_apar) then
          call advance_fields(pdf, phi, apar, bpar, dist='gbar')
 
-         ! convert from gbar to g = h - (Z F0/T)( J0 phi + 4 mu (T/Z) (J1/gamma) bpar),
-         ! as all terms on RHS of GKE use g rather than gbar
+         ! convert from gbar to g = <f>, as all terms on RHS of GKE use g rather than gbar
          call gbar_to_g(pdf, apar, 1.0)
       else
          call advance_fields(pdf, phi, apar, bpar, dist='g')
@@ -1377,7 +1372,7 @@ contains
       use kt_grids, only: naky, naky_all, nakx, ikx_max, ny
       use kt_grids, only: swap_kxky
       use physics_flags, only: full_flux_surface
-      use dist_fn_arrays, only: wstar, wstar_Ln
+      use dist_fn_arrays, only: wstar
 
       implicit none
 
@@ -1419,10 +1414,7 @@ contains
          !> multiply d<chi>/dy with omega_* coefficient and add to source (RHS of GK eqn)
          if (debug) write (*, *) 'time_advance::solve_gke::add_wstar_term'
          !       call add_wstar_term (g0, gout)
-         call add_explicit_term(g0, wstar_Ln(1, :, :), gout, remove_flag)
-         remove_flag = .true.
-         call add_explicit_term(g0, wstar(1, :, :), gout, remove_flag)
-         remove_flag = .false.
+         call add_explicit_term(g0, wstar(1, :, :), gout)
       end if
       deallocate (g0)
 
@@ -1507,7 +1499,7 @@ contains
       else
          if (debug) write (*, *) 'time_advance::solve_gke::add_dgdy_term'
          ! add vM . grad y dg/dy term to equation
-         call add_explicit_term(g0k, wdrifty_g(1, :, :), gout, remove_flag)
+         call add_explicit_term(g0k, wdrifty_g(1, :, :), gout)
 
          ! get <dphi/dy> in k-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1515,7 +1507,7 @@ contains
          end do
 
          ! add vM . grad y d<phi>/dy term to equation
-         call add_explicit_term(g0k, wdrifty_phi(1, :, :), gout, remove_flag)
+         call add_explicit_term(g0k, wdrifty_phi(1, :, :), gout)
          
          if (include_bpar) then
             ! get <dbpar/dy> in k-space
@@ -1523,7 +1515,7 @@ contains
                call gyro_average_j1(dbpardy, ivmu, g0k(:, :, :, :, ivmu))
             end do
             ! add vM . grad y (4 mu d<bpar>/dy) term to equation
-            call add_explicit_term(g0k, wdrifty_bpar(1, :, :), gout, remove_flag)            
+            call add_explicit_term(g0k, wdrifty_bpar(1, :, :), gout)            
          end if
       end if
       deallocate (g0k, dphidy, dbpardy)
@@ -1611,20 +1603,20 @@ contains
       else
          if (debug) write (*, *) 'time_advance::solve_gke::add_dgdx_term'
          !> add vM . grad x dg/dx term to equation
-         call add_explicit_term(g0k, wdriftx_g(1, :, :), gout, remove_flag)
+         call add_explicit_term(g0k, wdriftx_g(1, :, :), gout)
          !> get <dphi/dx> in k-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             call gyro_average(dphidx, ivmu, g0k(:, :, :, :, ivmu))
          end do
          !> add vM . grad x d<phi>/dx term to equation
-         call add_explicit_term(g0k, wdriftx_phi(1, :, :), gout, remove_flag)
+         call add_explicit_term(g0k, wdriftx_phi(1, :, :), gout)
          if (include_bpar) then
             !> get <dbpar/dx> in k-space
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                call gyro_average(dbpardx, ivmu, g0k(:, :, :, :, ivmu))
             end do
             !> add vM . grad x ( 4 mu d<bpar>/dx ) term to equation
-            call add_explicit_term(g0k, wdriftx_bpar(1, :, :), gout, remove_flag)
+            call add_explicit_term(g0k, wdriftx_bpar(1, :, :), gout)
          end if
       end if
       deallocate (g0k, dphidx, dbpardx)
@@ -2474,13 +2466,11 @@ contains
 
    end subroutine get_dgdx_4d
 
-   subroutine add_explicit_term(g, pre_factor, src, remove_flag)
+   subroutine add_explicit_term(g, pre_factor, src)
 
       use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
       use zgrid, only: nzgrid, ntubes
       use kt_grids, only: naky, nakx
-      use species, only: spec
 
       implicit none
 
@@ -2489,28 +2479,19 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: src
 
       integer :: ivmu
-      integer :: iky, ikx, iz, it, is
-      integer :: iky_to_remove = 2
-      logical :: remove_flag
-      
+      integer :: iky, ikx, iz, it
+
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         is = is_idx(vmu_lo, ivmu)
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
                do ikx = 1, nakx
                   do iky = 1, naky
-                     if (.not. (remove_flag .and. is == 2 .and. ikx == 1 .and. iky == iky_to_remove)) then
-                        src(iky, ikx, iz, it, ivmu) = src(iky, ikx, iz, it, ivmu) + pre_factor(iz, ivmu) * g(iky, ikx, iz, it, ivmu)
-                     end if
-                     if (remove_flag .and. is == 1 .and. ikx == 1 .and. iky == iky_to_remove) then
-                        src(iky, ikx, iz, it, ivmu) = src(iky, ikx, iz, it, ivmu) + spec(2)%tprim/spec(1)%tprim * pre_factor(iz, ivmu) * g(iky, ikx, iz, it, ivmu)
-                     end if
-                  end do                
+                     src(iky, ikx, iz, it, ivmu) = src(iky, ikx, iz, it, ivmu) + pre_factor(iz, ivmu) * g(iky, ikx, iz, it, ivmu)
+                  end do
                end do
             end do
          end do
       end do
-
 
    end subroutine add_explicit_term
 
@@ -2877,13 +2858,12 @@ contains
 
    subroutine finish_wstar
 
-      use dist_fn_arrays, only: wstar, wstarp, wstar_Ln
+      use dist_fn_arrays, only: wstar, wstarp
 
       implicit none
 
       if (allocated(wstar)) deallocate (wstar)
       if (allocated(wstarp)) deallocate (wstarp)
-      if (allocated(wstar_Ln)) deallocate (wstar_Ln)
 
       wstarinit = .false.
 

@@ -390,7 +390,7 @@ contains
          use constants, only: zi
          use kt_grids, only: nakx, naky
          use kt_grids, only: aky, akx
-         use dist_fn_arrays, only: wstar, wdriftx_phi, wdrifty_phi
+         use dist_fn_arrays, only: wstar, wdriftx_phi, wdrifty_phi, wstar_Ln
          use parallel_streaming, only: center_zed
          use extended_zgrid, only: periodic
 
@@ -530,7 +530,7 @@ contains
          use constants, only: zi
          use kt_grids, only: nakx, naky
          use kt_grids, only: aky, akx
-         use dist_fn_arrays, only: wstar, wdriftx_bpar, wdrifty_bpar
+         use dist_fn_arrays, only: wstar, wdriftx_bpar, wdrifty_bpar, wstar_Ln
          use parallel_streaming, only: center_zed
          use extended_zgrid, only: periodic
 
@@ -651,7 +651,7 @@ contains
       use constants, only: zi
       use species, only: spec
       use kt_grids, only: aky
-      use dist_fn_arrays, only: wstar
+      use dist_fn_arrays, only: wstar, wstar_Ln
       use parallel_streaming, only: center_zed
       use extended_zgrid, only: periodic
       use vpamu_grids, only: vpa
