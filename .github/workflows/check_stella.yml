@@ -73,7 +73,7 @@ jobs:
           if ${{ contains(matrix.os, 'macos') }}; then  
             brew install gcc@11 make openmpi fftw netcdf-fortran gnu-sed
             if [ ${{ matrix.os }} == 'macos-12' ] || [ ${{ matrix.os }} == 'macos-13' ]; then
-              sudo ln -s /usr/local/bin/gfortran-11 /usr/local/bin/gfortran
+              #sudo ln -s /usr/local/bin/gfortran-11 /usr/local/bin/gfortran
               sudo mkdir /usr/local/gfortran; sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib 
             elif [ ${{ matrix.os }} == 'macos-14' ]; then 
               sudo ln -s /opt/homebrew/bin/gfortran-11 /opt/homebrew/bin/gfortran
