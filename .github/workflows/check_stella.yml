@@ -23,10 +23,11 @@ jobs:
     
     # Run the same set-up multiple times
     # Note that macos-12 has been deprecated on GitHub in 2025 
+    # Note that ubuntu-20.04 has been deprecated on GitHub in April 2025 
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, macos-14, ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        os: [macos-13, macos-14, ubuntu-22.04, ubuntu-24.04]
         compiler: [Make, CMake]
     
     # Operating system
@@ -73,10 +74,7 @@ jobs:
           if ${{ contains(matrix.os, 'macos') }}; then  
             brew install gcc@11 make openmpi fftw netcdf-fortran gnu-sed
             if [ ${{ matrix.os }} == 'macos-12' ] || [ ${{ matrix.os }} == 'macos-13' ]; then
-              #sudo ln -s /usr/local/bin/gfortran-11 /usr/local/bin/gfortran
               sudo mkdir /usr/local/gfortran; sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib 
-            elif [ ${{ matrix.os }} == 'macos-14' ]; then 
-              sudo ln -s /opt/homebrew/bin/gfortran-11 /opt/homebrew/bin/gfortran
             fi
           elif ${{ contains(matrix.os, 'ubuntu') }}; then  
             sudo apt update
