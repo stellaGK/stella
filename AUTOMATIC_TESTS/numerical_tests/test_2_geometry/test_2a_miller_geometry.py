@@ -37,7 +37,6 @@ def test_whether_miller_output_files_are_present(tmp_path, stella_version, error
     # Save the temporary folder <tmp_path> as a global variable so the
     # other tests can access the output files from the local stella run.
     global stella_local_run_directory, miller_file_name, run_data, input_filename, input_file
-    tmp_path = pathlib.Path('/home/cookie/Documents/GitHub/stella/AUTOMATIC_TESTS/numerical_tests/test_2_geometry/test')
     stella_local_run_directory = tmp_path
     
     # Run stella inside of <tmp_path> based on <input_filename>
