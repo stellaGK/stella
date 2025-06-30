@@ -55,6 +55,7 @@ numerical-tests-system:
 numerical-tests-v0.5: check-tests-dependencies $(PROJECT_DIR)/stella
 	@echo "Running: automated stella tests"
 	@python3 -m pytest -v -rF -W ignore::DeprecationWarning --stella_version 0.5 $(TEST_DIR)/numerical_tests/test_1_whether_stella_runs
+	@python3 -m pytest -v -rF -W ignore::DeprecationWarning --stella_version 0.5 $(TEST_DIR)/numerical_tests/test_2_geometry
 numerical-tests-v0.6: check-tests-dependencies $(PROJECT_DIR)/stella
 	@echo "Running: automated stella tests"
 	@python3 -m pytest -v -rF -W ignore::DeprecationWarning --stella_version 0.6 $(TEST_DIR)/numerical_tests/test_1_whether_stella_runs

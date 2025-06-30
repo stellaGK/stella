@@ -1,0 +1,9 @@
+
+! Write all diagnostics
+
+&stella_diagnostics_knobs
+  nsave = 10
+  nwrite = 1
+  save_for_restart = .false. 
+/
+

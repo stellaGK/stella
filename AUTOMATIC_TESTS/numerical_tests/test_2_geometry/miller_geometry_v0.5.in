@@ -2,13 +2,13 @@
 ! Simple linear example based on JET shot 92174
 
 !include common_input_files/kinetic_electrons_and_ions.in
-!include common_input_files/low_resolution_kxky_box.in
-!include common_input_files/write_zero_diagnostics_nwrite1.in
-!include common_input_files/parameters_numerical_nstep10.in
+!include common_input_files/low_resolution_kxky_box_stellav0.5.in
+!include common_input_files/write_zero_diagnostics_nwrite1_stellav0.5.in
+!include common_input_files/parameters_numerical_nstep10_stellav0.5.in
 !include common_input_files/init_distribution_noise.in
 !include common_input_files/other_knobs.in
 
-&parameters_physics
+&physics_flags
   nonlinear = .true.
 /
 &zgrid_parameters

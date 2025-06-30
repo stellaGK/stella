@@ -1,0 +1,18 @@
+
+! Write all diagnostics
+
+&stella_diagnostics_knobs 
+  nsave = 10
+  nwrite = 1
+  save_for_restart = .false.
+  flux_norm = .false. 
+  write_omega = .false.
+  write_phi_vs_time = .false.
+  write_gvmus = .false.
+  write_gzvs = .false.
+  write_kspectra = .false.
+  write_moments = .false.
+  write_radial_fluxes = .false.
+  write_radial_moments = .false.
+  write_fluxes_kxkyz = .false.
+/

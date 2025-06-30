@@ -33,7 +33,12 @@ def test_z_grid_zedequalarc(tmp_path, stella_version, error=False):
     #---------------------------------------------------------------------------
 
     # Run stella and compare the geometry arrays in the netcdf file
-    run_data = run_local_stella_simulation('zed_equal_arc_miller_true.in', tmp_path, stella_version)
+    input_filename = 'zed_equal_arc_miller_true.in'
+    if stella_version!='master': 
+        input_filename = input_filename.replace('.in', f'_v{stella_version}.in')
+        print('WARNING: TODO: Not implemented yet for stella versions 0.5, 0.6, 0.7')
+        return 
+    run_data = run_local_stella_simulation(input_filename, tmp_path, stella_version)
     compare_geometry_in_netcdf_files(run_data, error=False) 
     print('  -->  The zed_equal_arc=True gives the correct Miller geometry.')
     
@@ -42,7 +47,12 @@ def test_z_grid_zedequalarc(tmp_path, stella_version, error=False):
     #---------------------------------------------------------------------------
 
     # Run stella and compare the geometry arrays in the netcdf file
-    run_data = run_local_stella_simulation('zed_equal_arc_miller_false.in', tmp_path, stella_version)
+    input_filename = 'zed_equal_arc_miller_false.in'
+    if stella_version!='master': 
+        input_filename = input_filename.replace('.in', f'_v{stella_version}.in')
+        print('WARNING: TODO: Not implemented yet for stella versions 0.5, 0.6, 0.7')
+        return 
+    run_data = run_local_stella_simulation(input_filename, tmp_path, stella_version)
     compare_geometry_in_netcdf_files(run_data, error=False) 
     print('  -->  The zed_equal_arc=False gives the correct Miller geometry.')
     return
@@ -52,7 +62,12 @@ def test_z_grid_zedequalarc(tmp_path, stella_version, error=False):
     #---------------------------------------------------------------------------
 
     # Run stella and compare the geometry arrays in the netcdf file
-    run_data = run_local_stella_simulation('zed_equal_arc_vmec_true.in', tmp_path, stella_version)
+    input_filename = 'zed_equal_arc_vmec_true.in'
+    if stella_version!='master': 
+        input_filename = input_filename.replace('.in', f'_v{stella_version}.in')
+        print('WARNING: TODO: Not implemented yet for stella versions 0.5, 0.6, 0.7')
+        return 
+    run_data = run_local_stella_simulation(input_filename, tmp_path, stella_version)
     compare_geometry_in_netcdf_files(run_data, error=False) 
     print('  -->  The zed_equal_arc=True gives the correct VMEC geometry.')
     
@@ -61,7 +76,12 @@ def test_z_grid_zedequalarc(tmp_path, stella_version, error=False):
     #---------------------------------------------------------------------------
 
     # Run stella and compare the geometry arrays in the netcdf file
-    run_data = run_local_stella_simulation('zed_equal_arc_vmec_false.in', tmp_path, stella_version)
+    input_filename = 'zed_equal_arc_vmec_false.in'
+    if stella_version!='master': 
+        input_filename = input_filename.replace('.in', f'_v{stella_version}.in')
+        print('WARNING: TODO: Not implemented yet for stella versions 0.5, 0.6, 0.7')
+        return 
+    run_data = run_local_stella_simulation(input_filename, tmp_path, stella_version)
     compare_geometry_in_netcdf_files(run_data, error=False) 
     print('  -->  The zed_equal_arc=False gives the correct VMEC geometry.')
     return

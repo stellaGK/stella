@@ -370,8 +370,9 @@ def compare_geometry_in_netcdf_files(run_data, error=False):
     
     # File names  
     input_file = run_data['input_file']; tmp_path = run_data['tmp_path']
+    input_file = input_file.replace("_v0.5","").replace("_v0.6","").replace("_v0.7","")
     local_netcdf_file = tmp_path / input_file.replace('.in', '.out.nc') 
-    expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file.replace(".in","")}.out.nc'    
+    expected_netcdf_file = get_stella_expected_run_directory() / f'EXPECTED_OUTPUT.{input_file.replace(".in","")}.out.nc' 
         
     # Check the operating system
     system = platform.system()

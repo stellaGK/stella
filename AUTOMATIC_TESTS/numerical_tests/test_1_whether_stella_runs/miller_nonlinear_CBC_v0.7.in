@@ -1,4 +1,13 @@
  
 ! Simple nonlinear example using CBC
 
-!include miller_nonlinear_CBC_v0.5.in
+!include common_input_files/parameters_numerical_nstep10_stellav0.5.in
+!include common_input_files/parameters_physics_nonlinear_stellav0.5.in
+!include common_input_files/write_all_diagnostics_nwrite1_stellav0.5.in
+!include common_input_files/geometry_CBC.in
+!include common_input_files/kinetic_electrons_and_ions.in
+!include common_input_files/low_resolution_kxky_box_stellav0.5.in
+!include common_input_files/low_resolution_zvpamu_linked.in
+!include common_input_files/init_distribution_noise.in
+!include common_input_files/other_knobs.in
+
