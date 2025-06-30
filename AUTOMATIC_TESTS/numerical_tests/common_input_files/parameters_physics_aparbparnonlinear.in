@@ -1,0 +1,8 @@
+
+&parameters_physics
+  adiabatic_option = 'iphi00=2'
+  full_flux_surface = .false.
+  include_apar = .true.
+  include_bpar = .true.
+  nonlinear = .true.
+/

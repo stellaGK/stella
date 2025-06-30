@@ -1,0 +1,9 @@
+
+
+
+&parameters_numerical
+  delt = 0.01 
+  nstep = 10
+  explicit_option = 'rk2'
+  print_extra_info_to_terminal = .false.
+/

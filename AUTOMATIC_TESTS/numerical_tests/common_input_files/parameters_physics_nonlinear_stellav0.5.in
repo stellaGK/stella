@@ -1,0 +1,6 @@
+
+&physics_flags
+  full_flux_surface = .false.
+  adiabatic_option = 'iphi00=2'
+  nonlinear = .true.
+/

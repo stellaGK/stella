@@ -36,6 +36,7 @@ def test_whether_we_can_run_a_local_stella_simulation(tmp_path, stella_version):
 
     # Save the temporary folder <tmp_path> as a global variable so the
     # other tests can access the output files from the local stella run.
+    tmp_path = pathlib.Path('/home/cookie/Documents/GitHub/stella/AUTOMATIC_TESTS/numerical_tests/test_1_whether_stella_runs/test')
     global local_stella_run_directory, input_filename
     local_stella_run_directory = tmp_path
     

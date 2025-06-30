@@ -82,6 +82,7 @@ def run_local_stella_simulation(input_file, tmp_path, stella_version, vmec_file=
     ''' Run a local stella simulation in <tmp_path>. '''
     if stella_version not in ['master', '0.5', '0.6', '0.7']: print(f'ABORT: Wrong stella version: {stella_version}'); sys.exit()
     copy_input_file(input_file, tmp_path)
+    copy_common_input_files(input_file, tmp_path)
     if vmec_file: copy_vmec_file(vmec_file, tmp_path)
     os.chdir(tmp_path); run_stella(get_stella_path(stella_version), input_file, nproc=nproc)
     run_data = {'input_file' : input_file, 'tmp_path' : tmp_path, 'vmec_file' : vmec_file}
