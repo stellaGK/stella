@@ -7,6 +7,10 @@ import platform
 import subprocess   
 import configparser
 
+# Package to convert input files
+module_path = str(pathlib.Path(__file__).parent.parent.parent / 'convert_input_files/convert_inputFileToOlderStellaVersions.py')
+with open(module_path, 'r') as file: exec(file.read())
+
 ################################################################################
 #                 Routines to launch a local stella simulation                 #
 ################################################################################
@@ -59,7 +63,7 @@ def run_stella(stella_path, input_file, nproc=None):
 def copy_input_file(input_file: str, destination):
     '''Copy input_file to destination directory.'''
     shutil.copyfile(get_stella_expected_run_directory() / input_file, destination / input_file)
-    return
+    return destination / input_file
 
 #-------------------------------------------------------------------------------
 def copy_common_input_files(input_file: str, destination):
@@ -80,11 +84,31 @@ def copy_vmec_file(vmec_file: str, destination):
 #-------------------------------------------------------------------------------
 def run_local_stella_simulation(input_file, tmp_path, stella_version, vmec_file=None, nproc=None):
     ''' Run a local stella simulation in <tmp_path>. '''
-    if stella_version not in ['master', '0.5', '0.6', '0.7']: print(f'ABORT: Wrong stella version: {stella_version}'); sys.exit()
-    copy_input_file(input_file, tmp_path)
-    copy_common_input_files(input_file, tmp_path)
+    
+    # Make sure the selected stella version is implemented
+    if stella_version not in ['master', '0.5', '0.6', '0.7']: 
+        print(f'ABORT: Wrong stella version: {stella_version}'); sys.exit()
+        
+    # Copy the input file from the automatic tests folder to a temp folder
+    path_input_file = copy_input_file(input_file, tmp_path)
+    
+    # If we want to test older stella versions, convert the input file
+    # Always turn of electromagnetic effects on old stella versions
+    if stella_version!='master': 
+        input_parameters = convert_inputFileToOlderStellaVersions(path_input_file, stella_version)
+        if stella_version in ['0.5', '0.6', '0.7']: 
+            input_parameters['knobs']['fapar'] = 0
+            input_parameters['knobs']['fbpar'] = 0
+        f90nml.write(input_parameters, path_input_file, force=True, sort=True)
+        
+    # Copy the VMEC files to the temp folder
     if vmec_file: copy_vmec_file(vmec_file, tmp_path)
-    os.chdir(tmp_path); run_stella(get_stella_path(stella_version), input_file, nproc=nproc)
+    
+    # Switch to the temp folder, and run stella from within this folder
+    os.chdir(tmp_path)
+    run_stella(get_stella_path(stella_version), input_file, nproc=nproc)
+    
+    # Return the run data
     run_data = {'input_file' : input_file, 'tmp_path' : tmp_path, 'vmec_file' : vmec_file}
     return run_data
     

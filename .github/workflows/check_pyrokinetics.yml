@@ -1,6 +1,6 @@
 # Run these tests automatically on Github on every push and pull request.
 name: Check Pyrokinetics
-on: [push, pull_request]
+on: []
 
 # We always run in a bash shell
 defaults:

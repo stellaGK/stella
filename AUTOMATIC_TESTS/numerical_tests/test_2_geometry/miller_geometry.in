@@ -1,25 +1,10 @@
  
 ! Simple linear example based on JET shot 92174
 
-!include common_input_files/kinetic_electrons_and_ions.in
-!include common_input_files/low_resolution_kxky_box.in
-!include common_input_files/write_zero_diagnostics_nwrite1.in
-!include common_input_files/parameters_numerical_nstep10.in
-!include common_input_files/init_distribution_noise.in
-!include common_input_files/other_knobs.in
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
 
-&parameters_physics
-  nonlinear = .true.
-/
-&zgrid_parameters
-  boundary_option = 'linked'
-  nperiod = 1
-  nzed = 24
-/
-&vpamu_grids_parameters
-  nmu = 2 
-  nvgrid = 3
-/ 
 &geo_knobs
   geo_option = 'miller'
 /
@@ -33,10 +18,97 @@
   nzed_local = 128
   qinp = 5.0848
   rgeo = 3.1191
-  rhoc = 0.97427
+  rhoc = 0.97427 
   rmaj = 3.134
   shat = 3.3594
   shift = -0.34508
   tri = 0.26253
   triprim = 0.7368
 / 
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&physics_flags
+  nonlinear = .true.
+/
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
+&species_knobs
+  nspec = 2
+/
+&species_parameters_1
+  dens = 1.0
+  fprim = 1.0
+  mass = 1.0
+  temp = 1.0
+  tprim = 3.0
+  type = 'ion'
+  z = 1.0
+/
+&species_parameters_2
+  dens = 1.0
+  fprim = 1.0
+  mass = 0.0005446
+  temp = 1.0
+  tprim = 3.0
+  type = 'electron'
+  z = -1.0
+/
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kt_grids_knobs
+  grid_option = 'box'
+/
+&parameters_kxky_grids_box
+  jtwist = 5
+  nx = 6
+  ny = 9
+  y0 = 15
+/
+&zgrid_parameters
+  boundary_option = 'linked'
+  nperiod = 1
+  nzed = 24
+/
+&vpamu_grids_parameters
+  nmu = 2 
+  nvgrid = 3
+/
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
+&stella_diagnostics_knobs
+  nsave = 10
+  nwrite = 1
+/
+
+!===============================================================================
+!                              Initialize potential                             
+!===============================================================================
+
+&init_g_knobs
+  ginit_option = 'default'
+  phiinit = 0.01
+  width0 = 1.0
+/
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&parameters_numerical
+  delt = 0.01
+  explicit_option = 'rk2'
+  nstep = 10
+  print_extra_info_to_terminal = .false.
+/

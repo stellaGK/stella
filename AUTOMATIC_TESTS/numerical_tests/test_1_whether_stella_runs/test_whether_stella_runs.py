@@ -32,15 +32,14 @@ def stella_version(pytestconfig):
 #                         Run local stella simulation                          #
 #-------------------------------------------------------------------------------
 def test_whether_we_can_run_a_local_stella_simulation(tmp_path, stella_version):
-    '''Run a local stella simulation in a temporary folder <tmp_path>.'''  
+    '''Run a local stella simulation in a temporary folder <tmp_path>.'''
 
     # Save the temporary folder <tmp_path> as a global variable so the
-    # other tests can access the output files from the local stella run. 
+    # other tests can access the output files from the local stella run.
     global local_stella_run_directory, input_filename
     local_stella_run_directory = tmp_path
-    
+
     # Run stella inside of <tmp_path> based on <input_filename>
-    if stella_version!='master': input_filename = input_filename.replace('.in', f'_v{stella_version}.in')
     run_local_stella_simulation(input_filename, tmp_path, stella_version)
     print('\n  -->  Successfully ran a local stella simulation.')
     return 
