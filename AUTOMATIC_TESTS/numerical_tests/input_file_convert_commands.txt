@@ -1,5 +1,0 @@
-
-
-convert_input_file --from 'master' --to '0.5' --name '_v0.5'
-convert_input_file --from 'master' --to '0.6' --name '_v0.6'
-convert_input_file --from 'master' --to '0.7' --name '_v0.7'
