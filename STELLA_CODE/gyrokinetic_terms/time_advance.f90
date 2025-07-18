@@ -59,7 +59,8 @@ contains
       use mirror_terms, only: init_mirror
       use flow_shear, only: init_flow_shear
       use sources, only: init_quasineutrality_source, init_source_timeaverage
-
+      use haixuan_template, only: init_advection_in_zed
+      
       implicit none
 
       if (time_advance_initialized) return
@@ -86,6 +87,9 @@ contains
       !> and set up the tridiagonal matrix to be inverted if solving implicitly
       if (debug) write (6, *) 'time_advance::init_time_advance::init_parstream'
       call init_parallel_streaming
+      !> HAIXUAN FLAG
+      if (debug) write (6, *) 'time_advance::init_time_advance::init_advection_in_zed'
+      call init_advection_in_zed
       !> allocate and calculate the factors multiplying dg/dx, dg/dy, dphi/dx and dphi/dy
       !> in the magnetic drift terms
       if (debug) write (6, *) 'time_advance::init_time_advance::init_wdrift'

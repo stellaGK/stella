@@ -50,6 +50,7 @@ stella_mod = \
 	 $(OBJ_DIR)/git_version.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/gyro_averages.o \
+	 $(OBJ_DIR)/haixuan_template.o \
 	 $(OBJ_DIR)/hyper.o \
 	 $(OBJ_DIR)/implicit_solve.o \
 	 $(OBJ_DIR)/init_g.o \
@@ -350,6 +351,7 @@ $(OBJ_DIR)/dist_fn.o: \
 	 $(OBJ_DIR)/gyro_averages.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/parameters_kxky_grids.o \
+	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/species.o \
@@ -358,7 +360,10 @@ $(OBJ_DIR)/dist_fn.o: \
 	 $(OBJ_DIR)/vpamu_grids.o \
 	 $(OBJ_DIR)/zgrid.o 
 $(OBJ_DIR)/dist_redistribute.o: \
+	 $(OBJ_DIR)/arrays_dist_fn.o \
 	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/parameters_kxky_grids.o \
+	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/stella_layouts.o \
@@ -601,7 +606,8 @@ $(OBJ_DIR)/geometry_vmec.o: \
 $(OBJ_DIR)/geometry_vmec_read_netCDF_file.o: \
 	 $(OBJ_DIR)/mp.o 
 $(OBJ_DIR)/geometry_zpinch.o: \
-	 $(OBJ_DIR)/common_types.o 
+	 $(OBJ_DIR)/common_types.o \
+	 $(OBJ_DIR)/file_utils.o 
 $(OBJ_DIR)/git_version.o: 
 $(OBJ_DIR)/grids_kxky.o: \
 	 $(OBJ_DIR)/common_types.o \
@@ -627,6 +633,10 @@ $(OBJ_DIR)/gyro_averages.o: \
 	 $(OBJ_DIR)/spfunc.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/stella_transforms.o \
+	 $(OBJ_DIR)/vpamu_grids.o \
+	 $(OBJ_DIR)/zgrid.o 
+$(OBJ_DIR)/haixuan_template.o: \
+	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/vpamu_grids.o \
 	 $(OBJ_DIR)/zgrid.o 
 $(OBJ_DIR)/hyper.o: \
@@ -974,6 +984,7 @@ $(OBJ_DIR)/time_advance.o: \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/gyro_averages.o \
+	 $(OBJ_DIR)/haixuan_template.o \
 	 $(OBJ_DIR)/hyper.o \
 	 $(OBJ_DIR)/implicit_solve.o \
 	 $(OBJ_DIR)/job_manage.o \
