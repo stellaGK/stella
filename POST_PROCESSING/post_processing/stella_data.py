@@ -8,9 +8,9 @@ import netCDF4 as nc4
 
 ####### Import variables from netcdf file #########
 #infile = input("Path to netcdf file: ")
-input_directory = '/Users/barnesm/codes/stella/runs/zpinch_om/new_pinch_source/nonlinear/'
-#input_directory = '/Users/barnesm/stella_data/om_zpinch/eta1_tprim40_nz8/'
-file_prefix = 'LBLT50_nz8'
+#input_directory = '/Users/barnesm/codes/stella/runs/cbc_example/SL_test/'
+input_directory = '/Users/barnesm/codes/stella/runs/zpinch_om/ExB/'
+file_prefix = 'LBLT200_2d_kymax10'
 infile = input_directory + file_prefix + '.out.nc'
 #infile = '../stella.out.nc'
 #print()
@@ -84,7 +84,7 @@ gvmus, gvmus_present \
     = read_stella_float('gvmus')
 # |g|^2 averaged over kx, ky, and mu
 gzvs, gzvs_present \
-    = read_stella_float('gzvs')
+    = read_stella_float('g2_vs_zvpas')
 # jacobian for transformation to (rho,alpha,z) coordinates
 jacob, jacob_present \
     = read_stella_float('jacob')
@@ -159,7 +159,14 @@ if (xgrid_present):
     xgrid = np.concatenate((xgrid[kx_stella.shape[0]//2+1:],xgrid[:kx_stella.shape[0]//2+1]))
 else:
     xgrid = np.arange(nakx,dtype=float)
-    dx = 2*np.pi/(kx_stella[1]*nakx)
+    if (kx_stella.shape[0] > 1):
+        dx = 2*np.pi/(kx_stella[1]*nakx)
+    else:
+        if (kx_stella[0] > 0.0):
+            dx = 2*np.pi/kx_stella[0]
+        else:
+            dx = 0.0
+
     for ikx in range(nakx):
         xgrid[ikx] = ikx*dx
 # density fluctuation (kx,ky,z,t)

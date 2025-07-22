@@ -53,10 +53,12 @@ contains
       use mp, only: proc0
       use parameters_physics, only: radial_variation
       use parameters_physics, only: include_parallel_nonlinearity
+      use parameters_numerical, only: split_parallel_dynamics
       use neoclassical_terms, only: init_neoclassical_terms
       use dissipation, only: init_collisions, include_collisions
       use parallel_streaming, only: init_parallel_streaming
       use mirror_terms, only: init_mirror
+      use parallel_dynamics, only: init_parallel_dynamics
       use flow_shear, only: init_flow_shear
       use sources, only: init_quasineutrality_source, init_source_timeaverage
 
@@ -77,15 +79,22 @@ contains
       !> only calculated/needed when simulating higher order terms in rhostar for intrinsic rotation
       if (debug) write (6, *) 'time_advance::init_time_advance::init_neoclassical_terms'
       call init_neoclassical_terms
-      !> calculate the term multiplying dg/dvpa in the mirror term
-      !> and set up either the semi-Lagrange machinery or the tridiagonal matrix to be inverted
-      !> if solving implicitly
-      if (debug) write (6, *) 'time_advance::init_time_advance::init_mirror'
-      call init_mirror
-      !> calculate the term multiplying dg/dz in the parallel streaming term
-      !> and set up the tridiagonal matrix to be inverted if solving implicitly
-      if (debug) write (6, *) 'time_advance::init_time_advance::init_parstream'
-      call init_parallel_streaming
+      if (split_parallel_dynamics) then
+         !> calculate the term multiplying dg/dvpa in the mirror term
+         !> and set up either the semi-Lagrange machinery or the tridiagonal matrix to be inverted
+         !> if solving implicitly
+         if (debug) write (6, *) 'time_advance::init_time_advance::init_mirror'
+         call init_mirror
+         !> calculate the term multiplying dg/dz in the parallel streaming term
+         !> and set up the tridiagonal matrix to be inverted if solving implicitly
+         if (debug) write (6, *) 'time_advance::init_time_advance::init_parstream'
+         call init_parallel_streaming
+      else
+         !> calculate the departure points in (z, vpa) needed for the semi-Lagrangian
+         !> evolution of both parallel streaming and mirror terms
+         if (debug) write (6, *) 'time_advance::init_time_advance::init_parallel_dynamics'
+         call init_parallel_dynamics
+      end if
       !> allocate and calculate the factors multiplying dg/dx, dg/dy, dphi/dx and dphi/dy
       !> in the magnetic drift terms
       if (debug) write (6, *) 'time_advance::init_time_advance::init_wdrift'
@@ -836,7 +845,6 @@ contains
          !> as part of alternating direction operator splitting
          !> this is needed to ensure 2nd order accuracy in time
          if (mod(istep, 2) == 1 .or. .not. flip_flop) then
-
             !> Advance the explicit parts of the GKE
             if (debug) write (*, *) 'time_advance::advance_explicit'
             if (.not. fully_implicit) call advance_explicit(gnew, restart_time_step, istep)
@@ -1197,8 +1205,6 @@ contains
       use gyro_averages, only: gyro_average, j0_ffs
       use g_tofrom_h, only: gbar_to_g 
       use dissipation, only: hyper_dissipation
-      ! TMP FOR TESTING -- MAB
-      use fields, only: fields_updated
 
       implicit none
 
@@ -1213,6 +1219,9 @@ contains
 
       integer :: iz, it, ivmu
 
+      ! TMP FOR TESTING -- MAB
+!      real :: test
+      
       rhs_ky = 0.
 
       !> if full_flux_surface = .true., then initially obtain the RHS of the GKE in alpha-space;
@@ -1258,6 +1267,10 @@ contains
       !! INSERT TEST HERE TO SEE IF dg/dy, dg/dx, d<phi>/dy, d<phi>/dx WILL BE NEEDED
       !! IF SO, PRE-COMPUTE ONCE HERE
 
+      ! TMP FOR TESTING -- MAB
+!      call checksum (pdf, test)
+!      write (*,*) 'post_advance_ExB_nonlinearity: ', test
+      
       !> default is to continue with same time step size.
       !> if estimated CFL condition for nonlinear terms is violated
       !> then restart_time_step will be set to .true.
@@ -1268,15 +1281,27 @@ contains
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_ExB_nonlinearity'
       if (nonlinear) call advance_ExB_nonlinearity(pdf, rhs, restart_time_step, istep)
 
+      ! TMP FOR TESTING -- MAB
+!      call checksum (rhs, test)
+!      write (*,*) 'post_advance_ExB_nonlinearity: ', test
+      
       !> include contribution from the parallel nonlinearity (aka turbulent acceleration)
       if (include_parallel_nonlinearity .and. .not. restart_time_step) &
          call advance_parallel_nonlinearity(pdf, rhs, restart_time_step)
 
       if (.not. restart_time_step) then
 
+         ! TMP FOR TESTING -- MAB
+!         call checksum (rhs, test)
+!         write (*,*) 'pre-parallel_flow_shear: ', test
+
          !> include contribution from perp flow shear in the parallel component of the toroidal flow
          if ((g_exb**2) > epsilon(0.0)) call advance_parallel_flow_shear(rhs)
 
+         ! TMP FOR TESTING -- MAB
+!         call checksum (rhs, test)
+!         write (*,*) 'post-parallel_flow_shear: ', test
+         
          !> calculate and add mirror term to RHS of GK eqn
          if (include_mirror .and. .not. mirror_implicit) then
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_mirror_explicit'
@@ -2699,9 +2724,11 @@ contains
       use parameters_physics, only: radial_variation, full_flux_surface
       use parameters_physics, only: include_mirror, prp_shear_enabled
       use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
+      use parameters_numerical, only: split_parallel_dynamics
       use implicit_solve, only: advance_implicit_terms
       use fields, only: advance_fields, fields_updated
       use mirror_terms, only: advance_mirror_implicit
+      use parallel_dynamics, only: advance_parallel_dynamics
       use dissipation, only: collisions_implicit, include_collisions
       use dissipation, only: advance_collisions_implicit
       use flow_shear, only: advance_perp_flow_shear
@@ -2766,26 +2793,31 @@ contains
             fields_updated = .false.
          end if
 
-         if (mirror_implicit .and. include_mirror) then
+         if (split_parallel_dynamics) then
+            if (mirror_implicit .and. include_mirror) then
 !          if (full_flux_surface) then
 !             allocate (gy(ny,nakx,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 !             if (.not.alpha_space) call transform_ky2y (g, gy)
 !          else
 !             g_mirror => g
 !          end if
-            call advance_mirror_implicit(collisions_implicit, g, apar)
+               call advance_mirror_implicit(collisions_implicit, g, apar)
+               fields_updated = .false.
+            end if
+
+            call advance_fields(g, phi, apar, bpar, dist='g')
+            fields_updated = .true. 
+            ! g^{**} is input
+            ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
+            if (stream_implicit .and. include_parallel_streaming) then
+               call advance_implicit_terms(g, phi, apar, bpar)
+               if (radial_variation .or. full_flux_surface) fields_updated = .false.
+            end if
+         else
+            call advance_parallel_dynamics(g, phi)
             fields_updated = .false.
          end if
-
-         call advance_fields(g, phi, apar, bpar, dist='g')
-         fields_updated = .true. 
-         ! g^{**} is input
-         ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-         if (stream_implicit .and. include_parallel_streaming) then
-            call advance_implicit_terms(g, phi, apar, bpar)
-            if (radial_variation .or. full_flux_surface) fields_updated = .false.
-         end if
-
+            
          ! update the fields if not already updated
          call advance_fields(g, phi, apar, bpar, dist='g')
          fields_updated = .true. 
@@ -2797,18 +2829,23 @@ contains
          call advance_fields(g, phi, apar, bpar, dist='g')
          fields_updated = .true. 
 
-         ! g^{**} is input
-         ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
-         if (stream_implicit .and. include_parallel_streaming) then
-            call advance_implicit_terms(g, phi, apar, bpar)
-            if (radial_variation .or. full_flux_surface) fields_updated = .false.
-         end if
-
-         if (mirror_implicit .and. include_mirror) then
-            call advance_mirror_implicit(collisions_implicit, g, apar)
+         if (split_parallel_dynamics) then
+            ! g^{**} is input
+            ! get g^{***}, with g^{***}-g^{**} due to parallel streaming term
+            if (stream_implicit .and. include_parallel_streaming) then
+               call advance_implicit_terms(g, phi, apar, bpar)
+               if (radial_variation .or. full_flux_surface) fields_updated = .false.
+            end if
+            
+            if (mirror_implicit .and. include_mirror) then
+               call advance_mirror_implicit(collisions_implicit, g, apar)
+               fields_updated = .false.
+            end if
+         else
+            call advance_parallel_dynamics(g, phi)
             fields_updated = .false.
          end if
-
+            
          if (collisions_implicit .and. include_collisions) then
             call advance_fields(g, phi, apar, bpar, dist='g')
             call advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)

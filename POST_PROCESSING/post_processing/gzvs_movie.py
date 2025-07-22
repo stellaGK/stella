@@ -1,6 +1,7 @@
 import numpy as np
 from stella_plots import movie_2d
 from stella_data import gzvs, vpa, zed, ntime
+from stella_data import outdir, file_prefix
 
 gmax = np.arange(ntime,dtype=float)
 gmin = np.arange(ntime,dtype=float)
@@ -10,5 +11,5 @@ gmin[:] = 0.0
 ylabel = '$v_{\parallel}$'
 xlabel = '$z$'
 title = '$\int d\mu \int d^2 \mathbf{R} g^2$'
-movie_file = 'gzvs.mp4'
+movie_file = outdir+file_prefix+'.gzvs.mp4'
 movie_2d(gzvs[:,0,:,:],zed,vpa,gmin,gmax,ntime-1,movie_file,xlabel,ylabel,title,cmp='YlGnBu')

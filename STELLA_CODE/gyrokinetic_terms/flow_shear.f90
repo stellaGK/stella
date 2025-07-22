@@ -84,35 +84,39 @@ contains
          prl_shear = 0.0
       end if
 
-      if (radial_variation .and. .not. allocated(prl_shear_p)) &
+      if (radial_variation .and. .not. allocated(prl_shear_p)) then
          allocate (prl_shear_p(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         prl_shear_p = 0.0
+      end if
 
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         is = is_idx(vmu_lo, ivmu)
-         iv = iv_idx(vmu_lo, ivmu)
-         imu = imu_idx(vmu_lo, ivmu)
-         do iz = -nzgrid, nzgrid
-            prl_shear(ia, iz, ivmu) = -omprimfac * g_exb * code_dt * vpa(iv) * spec(is)%stm_psi0 &
-                                      * dydalpha * drhodpsi &
-                                      * (geo_surf%qinp_psi0 / geo_surf%rhoc_psi0) &
-                                      * (btor(iz) * rmajor(iz) / bmag(ia, iz)) * (spec(is)%mass / spec(is)%temp)
-         end do
-         if (.not. maxwellian_normalization) then
+      if (abs(omprimfac) > epsilon(0.0)) then
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo, ivmu)
+            iv = iv_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
             do iz = -nzgrid, nzgrid
-               prl_shear(ia, iz, ivmu) = prl_shear(ia, iz, ivmu) &
-                                         * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+               prl_shear(ia, iz, ivmu) = -omprimfac * g_exb * code_dt * vpa(iv) * spec(is)%stm_psi0 &
+                    * dydalpha * drhodpsi &
+                    * (geo_surf%qinp_psi0 / geo_surf%rhoc_psi0) &
+                    * (btor(iz) * rmajor(iz) / bmag(ia, iz)) * (spec(is)%mass / spec(is)%temp)
             end do
-         end if
-         if (radial_variation) then
-            energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
-            prl_shear_p(:, :, ivmu) = prl_shear(:, :, ivmu) * (dIdrho / spread(rmajor * btor, 1, nalpha) &
-                                                               - spread(dBdrho, 1, nalpha) / bmag &
-                                                               - spec(is)%fprim - spec(is)%tprim * (energy - 2.5) &
-                                                               - 2.*mu(imu) * spread(dBdrho, 1, nalpha))
-         end if
-      end do
+            if (.not. maxwellian_normalization) then
+               do iz = -nzgrid, nzgrid
+                  prl_shear(ia, iz, ivmu) = prl_shear(ia, iz, ivmu) &
+                       * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+               end do
+            end if
+            if (radial_variation) then
+               energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
+               prl_shear_p(:, :, ivmu) = prl_shear(:, :, ivmu) * (dIdrho / spread(rmajor * btor, 1, nalpha) &
+                    - spread(dBdrho, 1, nalpha) / bmag &
+                    - spec(is)%fprim - spec(is)%tprim * (energy - 2.5) &
+                    - 2.*mu(imu) * spread(dBdrho, 1, nalpha))
+            end if
+         end do
 
-      if (q_as_x) prl_shear = prl_shear / geo_surf%shat_psi0
+         if (q_as_x) prl_shear = prl_shear / geo_surf%shat_psi0
+      end if
 
       deallocate (energy)
 

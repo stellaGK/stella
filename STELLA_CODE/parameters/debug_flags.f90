@@ -30,6 +30,7 @@ module debug_flags
   public :: response_matrix_debug
   public :: mirror_terms_debug
   public :: neoclassical_terms_debug
+  public :: parallel_dynamics_debug
   !> Grids debug flags 
   public :: extended_grid_debug
   !> Diagnostics debug flags 
@@ -69,6 +70,7 @@ module debug_flags
   logical :: mirror_terms_debug
   logical :: neoclassical_terms_debug
   logical :: extended_grid_debug
+  logical :: parallel_dynamics_debug
   !> Diagnostics debug flags
   logical :: diagnostics_all_debug
   logical :: diagnostics_debug
@@ -101,7 +103,7 @@ contains
     namelist /debug_flags/ debug_all, stella_debug, ffs_solve_debug, fields_all_debug, fields_debug, &
         fields_fluxtube_debug, fields_electromagnetic_debug, fields_ffs_debug, & 
         implicit_solve_debug, parallel_streaming_debug, mirror_terms_debug, neoclassical_terms_debug, &
-        response_matrix_debug, time_advance_debug, extended_grid_debug, &
+        response_matrix_debug, time_advance_debug, extended_grid_debug, parallel_dynamics_debug, &
         diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
         diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
         gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo
@@ -143,6 +145,7 @@ contains
         parallel_streaming_debug = .false.
         response_matrix_debug = .false.
         time_advance_debug = .false.
+        parallel_dynamics_debug = .false.
 
         extended_grid_debug = .false. 
         
@@ -196,7 +199,8 @@ contains
           response_matrix_debug = .true.
           mirror_terms_debug = .true.
           neoclassical_terms_debug = .true.
-          extended_grid_debug = .true. 
+          extended_grid_debug = .true.
+          parallel_dynamics_debug = .true.
           !> Set all diagnostics flags to be on
           diagnostics_all_debug = .true.
 
@@ -247,6 +251,7 @@ contains
         call broadcast(response_matrix_debug)
         call broadcast(time_advance_debug)
         call broadcast(extended_grid_debug)
+        call broadcast(parallel_dynamics_debug)
 
         call broadcast(diagnostics_debug)
         call broadcast(diagnostics_parameters)

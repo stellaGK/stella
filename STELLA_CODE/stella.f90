@@ -101,6 +101,7 @@ contains
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_numerical, only: delt_option_switch, delt_option_auto
       use parameters_numerical, only: mat_gen, mat_read
+      use parameters_numerical, only: split_parallel_dynamics
       use parameters_kxky_grids, only: read_kxky_grid_parameters
       use species, only: init_species, read_species_knobs
       use species, only: nspec
@@ -319,7 +320,7 @@ contains
       !> magnetic drifts, gradient drive, etc. terms during time advance
       if (debug) write (6, *) 'stella::init_stella::init_time_advance'
       call init_time_advance
-      if (stream_implicit .or. driftkinetic_implicit) then
+      if (split_parallel_dynamics .and. (stream_implicit .or. driftkinetic_implicit)) then
          if (mat_read) then
             if (debug) write (6, *) "stella::init_stella::read_response_matrix"
             call read_response_matrix
