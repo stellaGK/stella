@@ -1,16 +1,50 @@
  
 ! Simple nonlinear example using CBC
 
-&physics_flags
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geo_knobs
+  geo_option = 'miller'
+/
+&millergeo_parameters
+  nzed_local = 128
+  rhoc = 0.5
+  shat = 0.796
+  qinp = 1.4
+  rmaj = 2.77778
+  rgeo = 2.77778
+  shift = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  betaprim = 0.0
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  betadbprim = 0.0
+/ 
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+! Here we include apar and bpar to check whether their diagnostic are written.
+!===============================================================================
+
+&parameters_physics
   adiabatic_option = 'iphi00=2'
-  full_flux_surface = .false.
   include_apar = .true.
   include_bpar = .true.
   nonlinear = .true.
 /
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
 &species_knobs
   nspec = 2
-  species_option = 'stella'
 /
 &species_parameters_1
   dens = 1.0
@@ -30,66 +64,58 @@
   type = 'electron'
   z = -1.0
 /
-&kt_grids_box_parameters
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kt_grids_knobs
+  grid_option = 'box'
+/
+&parameters_kxky_grids_box
   jtwist = 5
   nx = 6
   ny = 9
   y0 = 15
 /
 &zgrid_parameters
-  boundary_option = 'linked'
-  nperiod = 1
+  boundary_option = 'linked' 
   nzed = 12
 /
 &vpamu_grids_parameters
   nmu = 2 
   nvgrid = 3 
 /
-&knobs
-  delt = 0.01 
-  nstep = 10
-  print_extra_info_to_terminal = .false.  
-/
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
 &stella_diagnostics_knobs
   nsave = 10
   nwrite = 1
-  save_for_restart = .false.
   write_all = .true.
 /
+
+!===============================================================================
+!                              Initialize potential                             
+!===============================================================================
+
 &init_g_knobs
   ginit_option = 'noise'
   phiinit = 0.01
 /
-&dissipation
-  hyper_dissipation = .true.
-/
-&geo_knobs
-  geo_option = 'miller'
-/
-&kt_grids_knobs
-  grid_option = 'box'
-/
-&time_advance_knobs 
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&parameters_numerical
+  delt = 0.01 
   explicit_option = 'rk2'
+  nstep = 10
+  print_extra_info_to_terminal = .false.
+  rng_seed = 1
 /
-&layouts_knobs
-  vms_layout = 'vms'
-  xyzs_layout = 'yxzs'
-/
-&millergeo_parameters
-  nzed_local = 128
-  rhoc = 0.5
-  shat = 0.796
-  qinp = 1.4
-  rmaj = 2.77778
-  rgeo = 2.77778
-  shift = 0.0
-  kappa = 1.0
-  kapprim = 0.0
-  tri = 0.0
-  triprim = 0.0
-  betaprim = 0.0
-  d2qdr2 = 0.0
-  d2psidr2 = 0.0
-  betadbprim = 0.0
-/ 
+
+ 

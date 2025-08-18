@@ -7,10 +7,11 @@
 ################################################################################
 
 # Python modules
+import pytest
 import os, sys
-import pathlib 
+import pathlib
 import numpy as np
-import xarray as xr  
+import xarray as xr
 
 # Package to run stella 
 module_path = str(pathlib.Path(__file__).parent.parent.parent / 'run_local_stella_simulation.py')
@@ -20,15 +21,22 @@ with open(module_path, 'r') as file: exec(file.read())
 vmec_filename = 'wout_w7x_kjm.nc'
 
 #-------------------------------------------------------------------------------
+#                           Get the stella version                             #
+#-------------------------------------------------------------------------------
+@pytest.fixture(scope="session")
+def stella_version(pytestconfig):
+    return pytestconfig.getoption("stella_version")
+
+#-------------------------------------------------------------------------------
 #               Check whether VMEC nonlinear evolves correctly                 #
 #-------------------------------------------------------------------------------
-def test_whether_vmec_nonlinear_linked_evolves_correctly(tmp_path, error=False):
+def test_whether_vmec_nonlinear_linked_evolves_correctly(tmp_path, stella_version, error=False):
 
     # Input file name  
     input_filename = 'vmec_geometry_nonlinear_linked.in'  
     
     # Run a local stella simulation
-    run_local_stella_simulation(input_filename, tmp_path, vmec_filename)
+    run_local_stella_simulation(input_filename, tmp_path, stella_version, vmec_filename)
      
     # File names  
     local_netcdf_file = tmp_path / input_filename.replace('.in', '.out.nc') 
@@ -60,13 +68,13 @@ def test_whether_vmec_nonlinear_linked_evolves_correctly(tmp_path, error=False):
     return
     
 #-------------------------------------------------------------------------------
-def test_whether_vmec_nonlinear_stellarator_evolves_correctly(tmp_path, error=False):
+def test_whether_vmec_nonlinear_stellarator_evolves_correctly(tmp_path, stella_version, error=False):
 
     # Input file name  
     input_filename = 'vmec_geometry_nonlinear_stellaratorsymmetric.in'  
     
     # Run a local stella simulation
-    run_local_stella_simulation(input_filename, tmp_path, vmec_filename)
+    run_local_stella_simulation(input_filename, tmp_path, stella_version, vmec_filename)
      
     # File names  
     local_netcdf_file = tmp_path / input_filename.replace('.in', '.out.nc') 
@@ -98,13 +106,13 @@ def test_whether_vmec_nonlinear_stellarator_evolves_correctly(tmp_path, error=Fa
     return
     
 #-------------------------------------------------------------------------------
-def test_whether_vmec_nonlinear_periodic_evolves_correctly(tmp_path, error=False):
+def test_whether_vmec_nonlinear_periodic_evolves_correctly(tmp_path, stella_version, error=False):
 
     # Input file name  
     input_filename = 'vmec_geometry_nonlinear_periodic.in'  
     
     # Run a local stella simulation
-    run_local_stella_simulation(input_filename, tmp_path, vmec_filename)
+    run_local_stella_simulation(input_filename, tmp_path, stella_version, vmec_filename)
      
     # File names  
     local_netcdf_file = tmp_path / input_filename.replace('.in', '.out.nc') 
@@ -136,13 +144,13 @@ def test_whether_vmec_nonlinear_periodic_evolves_correctly(tmp_path, error=False
     return
     
 #-------------------------------------------------------------------------------
-def test_whether_vmec_nonlinear_zero_evolves_correctly(tmp_path, error=False):
+def test_whether_vmec_nonlinear_zero_evolves_correctly(tmp_path, stella_version, error=False):
 
     # Input file name  
     input_filename = 'vmec_geometry_nonlinear_zero.in'  
     
     # Run a local stella simulation
-    run_local_stella_simulation(input_filename, tmp_path, vmec_filename)
+    run_local_stella_simulation(input_filename, tmp_path, stella_version, vmec_filename)
      
     # File names  
     local_netcdf_file = tmp_path / input_filename.replace('.in', '.out.nc') 

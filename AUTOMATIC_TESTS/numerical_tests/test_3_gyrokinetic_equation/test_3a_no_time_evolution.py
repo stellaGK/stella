@@ -21,23 +21,31 @@
 ################################################################################
 
 # Python modules
+import pytest
 import os, sys
-import pathlib 
+import pathlib
 import numpy as np
-import xarray as xr  
+import xarray as xr
 
 # Package to run stella 
 module_path = str(pathlib.Path(__file__).parent.parent.parent / 'run_local_stella_simulation.py')
 with open(module_path, 'r') as file: exec(file.read())
 
 # Global variables  
-input_filename = 'no_time_evolution.in'  
-stella_local_run_directory = 'Not/Run/Yet' 
+input_filename = 'no_time_evolution.in'
+stella_local_run_directory = 'Not/Run/Yet'
 
+#-------------------------------------------------------------------------------
+#                           Get the stella version                             #
+#-------------------------------------------------------------------------------
+@pytest.fixture(scope="session")
+def stella_version(pytestconfig):
+    return pytestconfig.getoption("stella_version")
+    
 #-------------------------------------------------------------------------------
 #           Check whether the potential data does not evolve in time           #
 #-------------------------------------------------------------------------------
-def test_whether_potential_data_in_netcdf_file_remains_constant(tmp_path):
+def test_whether_potential_data_in_netcdf_file_remains_constant(tmp_path, stella_version):
     
     # Save the temporary folder <tmp_path> as a global variable so the
     # other tests can access the output files from the local stella run.
@@ -45,7 +53,7 @@ def test_whether_potential_data_in_netcdf_file_remains_constant(tmp_path):
     stella_local_run_directory = tmp_path
     
     # Run stella inside of <tmp_path> based on <input_filename>
-    run_local_stella_simulation(input_filename, tmp_path)
+    run_local_stella_simulation(input_filename, tmp_path, stella_version)
      
     # File names  
     local_netcdf_file = stella_local_run_directory / input_filename.replace('.in','.out.nc') 
