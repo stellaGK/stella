@@ -5,11 +5,12 @@
 ! This module will set the default input input parameters for each name list,
 ! and it will read the stella input file per namelist.
 ! 
-! For each namelists two routines will exist:
+! For each namelists two (or three) routines will exist:
+!    - set_default_parameters_<namelist>
 !    - read_namelist_<namelist>
-!    - set_maxwellian_parameters_<namelist>
+!    - check_inputs_<namelist>
 ! 
-! First we will set the default input parameters, and then we will overwrite 
+! First we will set the default input parameters, and then we will overwrite
 ! any default options with those specified in the input file. Optionally
 ! we can check if any input variables are clashing with each other.
 ! 
@@ -58,9 +59,9 @@
 !   restart_options
 ! 
 ! DISSIPATION AND COLLISIONS
-!   dissipation_and_collisions_options (Renamed from &dissipation)
+!   dissipation_and_collisions_options (renamed from &dissipation)
 !   collisions_dougherty
-!   collisions_fokker_planck (Renamed from &collisions_fp)
+!   collisions_fokker_planck (renamed from &collisions_fp)
 !   hyper_dissipation
 ! 
 ! TIME TRACE
@@ -131,14 +132,14 @@ contains
       character(30), intent(out) :: collision_model
 
       if (.not. proc0) return
-      call set_maxwellian_parameters_dissipation
+      call set_default_parameters_dissipation
       call read_input_file_dissipation
       call check_inputs_dissipation
 
    contains
       
       !------------------------ Default input parameters -----------------------
-      subroutine set_maxwellian_parameters_dissipation
+      subroutine set_default_parameters_dissipation
 
          implicit none
 
@@ -150,7 +151,7 @@ contains
          ! Options: dougherty or fokker-planck
          collision_model = "dougherty"
 
-      end subroutine set_maxwellian_parameters_dissipation
+      end subroutine set_default_parameters_dissipation
 
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_dissipation
@@ -193,13 +194,13 @@ contains
       character(20) :: initialize_distribution_option
 
       if (.not. proc0) return
-      call set_maxwellian_parameters_initialize_distribution
+      call set_default_parameters_initialize_distribution
       call read_input_file_initialize_distribution
 
    contains
       
       !------------------------ Default input parameters -----------------------
-      subroutine set_maxwellian_parameters_initialize_distribution
+      subroutine set_default_parameters_initialize_distribution
 
          implicit none
 
@@ -210,7 +211,7 @@ contains
          phiinit = 1.0
          scale_to_phiinit = .false.
 
-      end subroutine set_maxwellian_parameters_initialize_distribution
+      end subroutine set_default_parameters_initialize_distribution
 
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_initialize_distribution
@@ -266,13 +267,13 @@ contains
       logical, intent(out) :: chop_side
 
       if (.not. proc0) return
-      call set_maxwellian_parameters_initialize_distribution_maxwellian
+      call set_default_parameters_initialize_distribution_maxwellian
       call read_input_file_initialize_distribution_maxwellian
 
    contains
       
       !------------------------ Default input parameters -----------------------
-      subroutine set_maxwellian_parameters_initialize_distribution_maxwellian
+      subroutine set_default_parameters_initialize_distribution_maxwellian
 
          implicit none
          
@@ -283,7 +284,7 @@ contains
          chop_side = .false.
          left = .true.
 
-      end subroutine set_maxwellian_parameters_initialize_distribution_maxwellian
+      end subroutine set_default_parameters_initialize_distribution_maxwellian
 
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_initialize_distribution_maxwellian
