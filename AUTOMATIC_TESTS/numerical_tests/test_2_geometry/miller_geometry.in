@@ -30,7 +30,7 @@
 !                                    Physics                                    
 !===============================================================================
 
-&physics_flags
+&parameters_physics
   nonlinear = .true.
 /
 

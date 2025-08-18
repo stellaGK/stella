@@ -1,5 +1,5 @@
 
-! Once a namelist has been added to the <input_file.f90> module, 
+! Once a namelist has been added to the <input_file.f90> module,
 ! add its default variables here.
 
 &dissipation
@@ -15,7 +15,7 @@
    scale_to_phiinit = .false.
 /
 
-&initialize_distribution_default
+&initialize_distribution_maxwellian
    width0 = -3.5
    den0 = 1.
    upar0 = 0.
