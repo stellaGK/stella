@@ -1,11 +1,48 @@
  
 ! Simple nonlinear example using CBC, including only the implicit mirror term
 
-&physics_flags
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geo_knobs
+  geo_option = 'miller'
+/
+&millergeo_parameters
+  nzed_local = 128
+  rhoc = 0.5
+  shat = 0.796
+  qinp = 1.4
+  rmaj = 2.77778
+  rgeo = 2.77778
+  shift = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  betaprim = 0.0
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  betadbprim = 0.0
+/ 
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&parameters_physics
   nonlinear = .true.
   include_parallel_streaming = .false.
   include_mirror = .true.
+  xdriftknob = 0
+  ydriftknob = 0
+  wstarknob = 0
 /
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
 &species_knobs
   nspec = 2
 /
@@ -27,7 +64,15 @@
   type = 'electron'
   z = -1.0
 /
-&kt_grids_box_parameters
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kt_grids_knobs
+  grid_option = 'box'
+/
+&parameters_kxky_grids_box
   nx = 6
   ny = 9
   y0 = 15
@@ -39,54 +84,41 @@
 /
 &vpamu_grids_parameters
   nmu = 2 
-  nvgrid = 3 
+  nvgrid = 3
 /
-&knobs
-  delt = 0.01 
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
+&stella_diagnostics_knobs
+  nsave = 100
+  nwrite = 10 
+/
+
+!===============================================================================
+!                              Initialize potential                             
+!===============================================================================
+
+&initialize_distribution
+  initialize_distribution_option = 'default'
+  phiinit = 0.01
+/
+
+&initialize_distribution_maxwellian
+  width0 = 1.0
+/
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&parameters_numerical
+  delt = 0.01
   nstep = 100
-  print_extra_info_to_terminal = .false.  
+  print_extra_info_to_terminal = .false.
   stream_implicit = .false.
   mirror_implicit = .true.
   drifts_implicit = .false.
-/
-&stella_diagnostics_knobs
-  nsave = 100
-  nwrite = 10
-/
-&init_g_knobs
-  ginit_option = 'default'
-  phiinit = 0.01
-  width0 = 1.0
-/
-&dissipation
-  hyper_dissipation = .false.
-/
-&geo_knobs
-  geo_option = 'miller'
-/
-&kt_grids_knobs
-  grid_option = 'box'
-/
-&time_advance_knobs
-  xdriftknob = 0
-  ydriftknob = 0
-  wstarknob = 0
   explicit_option = 'rk2'
 /
-&millergeo_parameters
-  nzed_local = 128
-  rhoc = 0.5
-  shat = 0.796
-  qinp = 1.4
-  rmaj = 2.77778
-  rgeo = 2.77778
-  shift = 0.0
-  kappa = 1.0
-  kapprim = 0.0
-  tri = 0.0
-  triprim = 0.0
-  betaprim = 0.0
-  d2qdr2 = 0.0
-  d2psidr2 = 0.0
-  betadbprim = 0.0
-/ 
