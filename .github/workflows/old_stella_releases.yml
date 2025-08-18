@@ -1,0 +1,178 @@
+# Run these tests automatically on Github on every push and pull request.
+# Use the macOS operating system, which has 4 cores.
+name: Check old stella releases
+on: [push]
+
+# We always run in a bash shell
+defaults:
+  run:
+    shell: bash
+
+# First build stella, and then perform python tests
+jobs:
+
+#-----------------------------------------------------------------------
+#                             Python tests                              
+#-----------------------------------------------------------------------
+
+  # Perform python tests one by one
+  stella-v5: 
+    runs-on: ubuntu-22.04
+    env:
+      OMPI_MCA_rmaps_base_oversubscribe: yes
+      MPIRUN: mpiexec -np
+      STELLA_SYSTEM: gnu_ubuntu
+    
+    # Run the same set-up multiple times
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - name: "1 - Does stella run "
+          #- name: "2 - Geometry"
+          #- name: "3 - Gyrokinetic equation"
+          #- name: "4 - Flux tube"
+          #- name: "5 - Diagnostics"
+          #- name: "6 - Full Flux Surface"
+          #- name: "7 - Electromagnetic effects"
+
+    steps:
+
+      # Check-out repository under $GITHUB_WORKSPACE
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Install dependencies
+      - name: Install dependencies and python virtual environment
+        run: |
+          sudo apt update
+          sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
+          sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev
+          pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
+          sed -i 's/nproc = 16/nproc = 4/g' AUTOMATIC_TESTS/config.ini 
+          
+      # Check $GITHUB_WORKSPACE
+      - name: Check Github Workspace
+        run: | 
+          echo " "; echo "Running directory:"; echo "  $(pwd)"
+          echo " "; echo "Files in directory:"; echo "$(ls -la | sed 's/^/  /')"
+          echo " "; echo "Files in directory:"; echo "$(ls AUTOMATIC_TESTS/numerical_tests -la | sed 's/^/  /')"
+          echo " "; echo "Files in directory:"; echo "$(ls AUTOMATIC_TESTS/stella_releases -la | sed 's/^/  /')"
+    
+      # Perform python tests  
+      - name: Numerical python tests
+        run: |
+          # Make stella executable
+          chmod +x AUTOMATIC_TESTS/stella_releases/v0.5/stella
+          
+          # Run one of the python tests
+          if ${{ contains(matrix.config.name, '1 -') }}; then make numerical-tests-v0.5; fi
+          if ${{ contains(matrix.config.name, '2 -') }}; then make numerical-tests-2; fi
+          if ${{ contains(matrix.config.name, '3 -') }}; then make numerical-tests-3; fi
+          if ${{ contains(matrix.config.name, '4 -') }}; then make numerical-tests-4; fi
+          if ${{ contains(matrix.config.name, '5 -') }}; then make numerical-tests-5; fi
+          if ${{ contains(matrix.config.name, '6 -') }}; then make numerical-tests-6; fi
+          if ${{ contains(matrix.config.name, '7 -') }}; then make numerical-tests-7; fi
+          
+  # Perform python tests one by one
+  stella-v6: 
+    runs-on: ubuntu-22.04
+    env:
+      OMPI_MCA_rmaps_base_oversubscribe: yes
+      MPIRUN: mpiexec -np
+      STELLA_SYSTEM: gnu_ubuntu
+    
+    # Run the same set-up multiple times
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - name: "1 - Does stella run "
+          #- name: "2 - Geometry"
+          #- name: "3 - Gyrokinetic equation"
+          #- name: "4 - Flux tube"
+          #- name: "5 - Diagnostics"
+          #- name: "6 - Full Flux Surface"
+          #- name: "7 - Electromagnetic effects"
+
+    steps:
+
+      # Check-out repository under $GITHUB_WORKSPACE
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Install dependencies
+      - name: Install dependencies and python virtual environment
+        run: |
+          sudo apt update
+          sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
+          sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev
+          pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
+          sed -i 's/nproc = 16/nproc = 4/g' AUTOMATIC_TESTS/config.ini 
+    
+      # Perform python tests  
+      - name: Numerical python tests
+        run: |
+          # Make stella executable
+          chmod +x AUTOMATIC_TESTS/stella_releases/v0.6/stella
+          
+          # Run one of the python tests
+          if ${{ contains(matrix.config.name, '1 -') }}; then make numerical-tests-v0.6; fi
+          if ${{ contains(matrix.config.name, '2 -') }}; then make numerical-tests-2; fi
+          if ${{ contains(matrix.config.name, '3 -') }}; then make numerical-tests-3; fi
+          if ${{ contains(matrix.config.name, '4 -') }}; then make numerical-tests-4; fi
+          if ${{ contains(matrix.config.name, '5 -') }}; then make numerical-tests-5; fi
+          if ${{ contains(matrix.config.name, '6 -') }}; then make numerical-tests-6; fi
+          if ${{ contains(matrix.config.name, '7 -') }}; then make numerical-tests-7; fi
+
+
+  # Perform python tests one by one
+  stella-v7: 
+    runs-on: ubuntu-22.04
+    env:
+      OMPI_MCA_rmaps_base_oversubscribe: yes
+      MPIRUN: mpiexec -np
+      STELLA_SYSTEM: gnu_ubuntu
+    
+    # Run the same set-up multiple times
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - name: "1 - Does stella run "
+          #- name: "2 - Geometry"
+          #- name: "3 - Gyrokinetic equation"
+          #- name: "4 - Flux tube"
+          #- name: "5 - Diagnostics"
+          #- name: "6 - Full Flux Surface"
+          #- name: "7 - Electromagnetic effects"
+
+    steps:
+
+      # Check-out repository under $GITHUB_WORKSPACE
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Install dependencies
+      - name: Install dependencies and python virtual environment
+        run: |
+          sudo apt update
+          sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
+          sudo apt install -y netcdf-bin python3 python3-pip openmpi-bin libopenmpi-dev
+          pip3 install --user -r AUTOMATIC_TESTS/requirements.txt
+          sed -i 's/nproc = 16/nproc = 4/g' AUTOMATIC_TESTS/config.ini 
+    
+      # Perform python tests  
+      - name: Numerical python tests
+        run: |
+          # Make stella executable
+          chmod +x AUTOMATIC_TESTS/stella_releases/v0.7/stella
+          
+          # Run one of the python tests
+          if ${{ contains(matrix.config.name, '1 -') }}; then make numerical-tests-v0.7; fi
+          if ${{ contains(matrix.config.name, '2 -') }}; then make numerical-tests-2; fi
+          if ${{ contains(matrix.config.name, '3 -') }}; then make numerical-tests-3; fi
+          if ${{ contains(matrix.config.name, '4 -') }}; then make numerical-tests-4; fi
+          if ${{ contains(matrix.config.name, '5 -') }}; then make numerical-tests-5; fi
+          if ${{ contains(matrix.config.name, '6 -') }}; then make numerical-tests-6; fi
+          if ${{ contains(matrix.config.name, '7 -') }}; then make numerical-tests-7; fi

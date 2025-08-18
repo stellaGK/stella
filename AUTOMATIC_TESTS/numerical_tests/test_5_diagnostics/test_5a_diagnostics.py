@@ -7,10 +7,11 @@
 ################################################################################
 
 # Python modules
+import pytest
 import os, sys
-import pathlib 
+import pathlib
 import numpy as np
-import xarray as xr  
+import xarray as xr
 
 # Package to run stella 
 module_path = str(pathlib.Path(__file__).parent.parent.parent / 'run_local_stella_simulation.py')
@@ -24,9 +25,16 @@ local_netcdf_file = 'Not/Run/Yet'
 expected_netcdf_file = 'Not/Run/Yet'
 
 #-------------------------------------------------------------------------------
+#                           Get the stella version                             #
+#-------------------------------------------------------------------------------
+@pytest.fixture(scope="session")
+def stella_version(pytestconfig):
+    return pytestconfig.getoption("stella_version")
+
+#-------------------------------------------------------------------------------
 #                  Check whether the diagnostics are working                   #
 #-------------------------------------------------------------------------------
-def test_whether_potential_diagnostics_are_correct(tmp_path): 
+def test_whether_potential_diagnostics_are_correct(tmp_path, stella_version):
 
     # Save the temporary folder <tmp_path> as a global variable so the
     # other tests can access the output files from the local stella run.
@@ -34,7 +42,7 @@ def test_whether_potential_diagnostics_are_correct(tmp_path):
     stella_local_run_directory = tmp_path
     
     # Run a local stella simulation
-    run_local_stella_simulation(input_filename, stella_local_run_directory)
+    run_local_stella_simulation(input_filename, stella_local_run_directory, stella_version)
      
     # File names  
     global local_netcdf_file, expected_netcdf_file
@@ -49,7 +57,7 @@ def test_whether_potential_diagnostics_are_correct(tmp_path):
     return
 
 #-------------------------------------------------------------------------------
-def test_whether_final_fields_diagnostics_are_correct(error=False):   
+def test_whether_final_fields_diagnostics_are_correct(error=False):
     
     # Txt file names 
     local_file = stella_local_run_directory / f'{input_file_stem}.final_fields' 

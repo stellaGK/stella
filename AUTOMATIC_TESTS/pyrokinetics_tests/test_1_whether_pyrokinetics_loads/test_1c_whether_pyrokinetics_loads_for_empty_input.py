@@ -3,10 +3,11 @@
 ################################################################################
 
 # Python modules
+import pytest
 import os, sys
-import pathlib 
+import pathlib
 import numpy as np
-import xarray as xr  
+import xarray as xr
 
 # Package to run stella 
 module_path = str(pathlib.Path(__file__).parent.parent.parent / 'run_local_stella_simulation.py')
@@ -20,9 +21,16 @@ input_filename = 'empty.in'
 local_stella_run_directory = 'Not/Run/Yet'
 
 #-------------------------------------------------------------------------------
+#                           Get the stella version                             #
+#-------------------------------------------------------------------------------
+@pytest.fixture(scope="session")
+def stella_version(pytestconfig):
+    return pytestconfig.getoption("stella_version")
+
+#-------------------------------------------------------------------------------
 #                         Run local stella simulation                          #
 #-------------------------------------------------------------------------------
-def TODO_test_whether_we_can_load_pyrokinetics(tmp_path):
+def TODO_test_whether_we_can_load_pyrokinetics(tmp_path, stella_version):
     '''Run a local stella simulation in a temporary folder <tmp_path>.'''  
     
     # Save the temporary folder <tmp_path> as a global variable so the
@@ -31,7 +39,7 @@ def TODO_test_whether_we_can_load_pyrokinetics(tmp_path):
     local_stella_run_directory = tmp_path
     
     # Run stella inside of <tmp_path> based on <input_filename>
-    run_local_stella_simulation(input_filename, tmp_path) 
+    run_local_stella_simulation(input_filename, tmp_path, stella_version)
     
     # Load the pyro data
     local_input_file = local_stella_run_directory / input_filename

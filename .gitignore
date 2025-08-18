@@ -207,3 +207,5 @@ cython_debug/
 
 # Mac icloud files
 *.icloud
+AUTOMATIC_TESTS/convert_input_files/.pydevproject
+AUTOMATIC_TESTS/convert_input_files/.project

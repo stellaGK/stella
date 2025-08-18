@@ -5,10 +5,11 @@
 ################################################################################
 
 # Python modules
+import pytest
 import os, sys
-import pathlib 
+import pathlib
 import numpy as np
-import xarray as xr  
+import xarray as xr
 
 # Package to run stella 
 module_path = str(pathlib.Path(__file__).parent.parent.parent / 'run_local_stella_simulation.py')
@@ -20,17 +21,28 @@ input_filename = 'vmec_geometry.in'
 stella_local_run_directory = 'Not/Run/Yet' 
 
 #-------------------------------------------------------------------------------
+#                           Get the stella version                             #
+#-------------------------------------------------------------------------------
+@pytest.fixture(scope="session")
+def stella_version(pytestconfig):
+    return pytestconfig.getoption("stella_version")
+    
+#-------------------------------------------------------------------------------
 #                    Check whether output files are present                    #
 #-------------------------------------------------------------------------------
-def test_whether_VMEC_output_files_are_present(tmp_path, error=False):  
+def test_whether_VMEC_output_files_are_present(tmp_path, stella_version, error=False):  
     
     # Save the temporary folder <tmp_path> as a global variable so the
     # other tests can access the output files from the local stella run.
-    global stella_local_run_directory
+    global stella_local_run_directory, input_filename
     stella_local_run_directory = tmp_path
     
     # Run stella inside of <tmp_path> based on <input_filename>
-    run_local_stella_simulation(input_filename, tmp_path, vmec_filename)
+    if stella_version!='master': 
+        input_filename = input_filename.replace('.in', f'_v{stella_version}.in') 
+        print('WARNING: TODO: Not implemented yet for stella versions 0.5, 0.6, 0.7')
+        return 
+    run_local_stella_simulation(input_filename, tmp_path, stella_version, vmec_filename)
     
     # Gather the output files generated during the local stella run inside <tmp_path>
     local_files = os.listdir(stella_local_run_directory)
@@ -128,6 +140,11 @@ def compare_local_txt_with_expected_txt_newstella(local_file, expected_file, nam
 #-------------------------------------------------------------------------------
 def test_whether_VMEC_geometry_data_in_netcdf_file_is_correct(error=False):
     '''Check that the results are identical to a previous run.'''
+    
+    # Turn off tests for older stella versions for now
+    if stella_version!='master':  
+        print('WARNING: TODO: Not implemented yet for stella versions 0.5, 0.6, 0.7')
+        return 
      
     # File names  
     local_netcdf_file = stella_local_run_directory / input_filename.replace('.in', '.out.nc') 
