@@ -44,8 +44,8 @@ COMPILATION_DIR := $(PROJECT_DIR)/COMPILATION
 # Export the externals directory for the mini_libstell makefile
 export EXTERNALS_DIR
 
-# Define the subfolders within the STELLA_DIR directory and  
-# export the directories so they are available to child processes 
+# Define the subfolders within the STELLA_DIR directory and
+# export the directories so they are available to child processes
 export CALCULATIONS=$(STELLA_DIR)/calculations
 export DIAGNOSTICS=$(STELLA_DIR)/diagnostics
 export COLLISIONS=$(STELLA_DIR)/dissipation
@@ -55,11 +55,12 @@ export GRIDS=$(STELLA_DIR)/grids
 export GYROKINETIC_TERMS=$(STELLA_DIR)/gyrokinetic_terms
 export NEOCLASSICAL=$(STELLA_DIR)/neoclassical
 export PARAMETERS=$(STELLA_DIR)/parameters
+export INPUT_PARAMETERS=$(STELLA_DIR)/input_parameters
 export RADIAL_VARIATION=$(STELLA_DIR)/radial_variation
 SUBFOLDERS := $(CALCULATIONS) $(DIAGNOSTICS) $(COLLISIONS) $(FIELDS) $(GEOMETRY) $(GRIDS)
-SUBFOLDERS := $(SUBFOLDERS) $(GYROKINETIC_TERMS) $(NEOCLASSICAL) $(PARAMETERS) $(RADIAL_VARIATION)
+SUBFOLDERS := $(SUBFOLDERS) $(GYROKINETIC_TERMS) $(NEOCLASSICAL) $(PARAMETERS) $(INPUT_PARAMETERS) $(RADIAL_VARIATION)
 VPATH_SUBFOLDERS := :$(CALCULATIONS):$(DIAGNOSTICS):$(COLLISIONS):$(FIELDS):$(GEOMETRY):$(GRIDS):
-VPATH_SUBFOLDERS := :$(VPATH_SUBFOLDERS):$(GYROKINETIC_TERMS):$(NEOCLASSICAL):$(PARAMETERS):$(RADIAL_VARIATION):
+VPATH_SUBFOLDERS := :$(VPATH_SUBFOLDERS):$(GYROKINETIC_TERMS):$(NEOCLASSICAL):$(PARAMETERS):$(INPUT_PARAMETERS):$(RADIAL_VARIATION):
 
 # Check directories
 .PHONY: print-directories
@@ -264,6 +265,9 @@ $(OBJ)/%.o: $(NEOCLASSICAL)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(PARAMETERS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
+	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+$(OBJ)/%.o: $(INPUT_PARAMETERS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(RADIAL_VARIATION)/%.f90 $(external_modules) | $(OBJ) $(MOD)
