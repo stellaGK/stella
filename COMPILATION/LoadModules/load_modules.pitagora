@@ -1,0 +1,19 @@
+#!/bin/sh
+
+# Unload the preloaded modules
+module purge
+
+module load openmpi/4.1.6--gcc--12.3.0
+module load fftw/3.3.10--openmpi--4.1.6--gcc--12.3.0
+module load netcdf-c/4.9.2--gcc--12.3.0
+module load netcdf-fortran/4.6.1--gcc--12.3.0
+module load openblas/0.3.26--gcc--12.3.0
+
+# Set some directories for the make file of Marconi
+# Set some directories for the make file of Marconi                                                                                                                                                                                       
+export NETCDF_LIB_DIR=$NETCDF_FORTRAN_LIB
+export NETCDF_INC_DIR=$NETCDF_FORTRAN_INC
+export FFTW_LIB_DIR=$FFTW_LIB
+export FFTW_INC_DIR=$FFTW_INC
+export STELLA_SYSTEM="pitagora"
+export MAKEFLAGS="-IMakefiles"
