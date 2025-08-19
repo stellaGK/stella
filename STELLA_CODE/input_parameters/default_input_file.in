@@ -2,12 +2,83 @@
 ! Once a namelist has been added to the <input_file.f90> module,
 ! add its default variables here.
 
-&dissipation
-   include_collisions = .false.
-   collisions_implicit = .true.
-   hyper_dissipation = .false.
-   collision_model = "dougherty"
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+
+&gyrokinetic_terms
+  simulation_domain = 'fluxtube' 
+  include_parallel_streaming = .true.
+  include_mirror = .true.
+  include_xdrift = .true. !! xdriftknob = 1.0 or 0.0 
+  include_ydrift = .true. !! ydriftknob = 1.0 or 0.0
+  include_drive = .true. !! wstarknob = 1.0 or 0.0
+  include_nonlinear = .false.
+  include_parallel_nonlinearity = .false.
+  include_electromagnetic = .false.
 /
+
+&scale_gyrokinetic_terms
+  xdriftknob = 1.0 
+  ydriftknob = 1.0
+  wstarknob = 1.0
+  fphi = 1.0 
+  suppress_zonal_interaction = .false.
+/
+
+&adiabatic_electron_response
+  adiabatic_option = "field-line-average-term"
+  tite = 1.0
+  nine = 1.0
+/
+
+&electromagnetic
+  include_apar = .true.
+  include_bpar = .true.
+  beta = 0.0
+/
+
+&flow_shear
+  prp_shear_enabled = .false.
+  hammett_flow_shear = .true.
+  g_exb = 0.0
+  g_exbfac = 1.0
+  omprimfac = 1.0
+/
+
+&flux_annulus
+  rhostar = - 1.0
+  nitt = 1
+/
+
+&extra - need to move
+   include_pressure_variation = .false. 
+   include_geometric_variation = .false.
+   radial_variation = .false. 
+   zeff = 1.0
+   vnew_ref = -1.0
+/
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
+!===============================================================================
+!                              Initialize potential                             
+!===============================================================================
 
 &initialize_distribution
    initialize_distribution_option = "default"
@@ -65,49 +136,20 @@
    read_many = .true.
 /
 
-&gyrokinetic_terms
-  simulation_domain = 'fluxtube' 
-  include_parallel_streaming = .true.
-  include_mirror = .true.
-  include_xdrift = .true. !! xdriftknob = 1.0 or 0.0 
-  include_ydrift = .true. !! ydriftknob = 1.0 or 0.0
-  include_drive = .true. !! wstarknob = 1.0 or 0.0
-  include_nonlinear = .false.
-  include_parallel_nonlinearity = .false.
-  include_electromagnetic = .false.
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+ 
+
+!===============================================================================
+!                                  Dissipation                                  
+!===============================================================================
+
+&dissipation
+   include_collisions = .false.
+   collisions_implicit = .true.
+   hyper_dissipation = .false.
+   collision_model = "dougherty"
 /
-&scale_gyrokinetic_terms
-  xdriftknob = 1.0 
-  ydriftknob = 1.0
-  wstarknob = 1.0
-  fphi = 1.0 
-  suppress_zonal_interaction = .false.
-/
-&adiabatic_electron_response
-  adiabatic_option = "field-line-average-term"
-  tite = 1.0
-  nine = 1.0
-
-&electromagnetic
-  include_apar = .true.
-  include_bpar = .true.
-  beta = 0.0
-
-&flow_shear
-  prp_shear_enabled = .false.
-  hammett_flow_shear = .true.
-  g_exb = 0.0
-  g_exbfac = 1.0
-  omprimfac = 1.0
-
-&flux_annulus
-  rhostar = - 1.0
-  nitt = 1
-
-&extra - need to move
-   include_pressure_variation = .false. 
-   include_geometric_variation = .false.
-   radial_variation = .false. 
-   zeff = 1.0
-   vnew_ref = -1.0 
-
