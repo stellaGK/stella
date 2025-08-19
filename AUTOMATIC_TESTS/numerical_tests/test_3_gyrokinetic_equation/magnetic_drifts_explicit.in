@@ -30,13 +30,13 @@
 !                                    Physics                                    
 !===============================================================================
 
-&parameters_physics
-  nonlinear = .true.
+&gyrokinetic_terms
   include_parallel_streaming = .false.
   include_mirror = .false.
-  xdriftknob = 1
-  ydriftknob = 1
-  wstarknob = 0
+  include_xdrift = .true.
+  include_ydrift = .true.
+  include_drive = .false.
+  include_nonlinear = .true.
 /
 
 !===============================================================================
@@ -100,12 +100,12 @@
 !                              Initialize potential                             
 !===============================================================================
 
-&initialize_distribution
-  initialize_distribution_option = 'default'
+&initialise_distribution
+  initialise_distribution_option = 'default'
   phiinit = 0.01
 /
 
-&initialize_distribution_maxwellian
+&initialise_distribution_maxwellian
   width0 = 1.0
 /
 

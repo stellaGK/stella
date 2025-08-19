@@ -77,16 +77,16 @@
 !===============================================================================
 
 !===============================================================================
-!                              Initialize potential                             
+!                              Initialise potential                             
 !===============================================================================
 
-&initialize_distribution
-   initialize_distribution_option = "default"
+&initialise_distribution
+   initialise_distribution_option = "default"
    phiinit = 1.0
    scale_to_phiinit = .false.
 /
 
-&initialize_distribution_maxwellian
+&initialise_distribution_maxwellian
    width0 = -3.5
    den0 = 1.
    upar0 = 0.
@@ -95,13 +95,13 @@
    left = .true.
 /
 
-&initialize_distribution_noise
+&initialise_distribution_noise
    zf_init = 1.0
    chop_side = .false.
    left = .true.
 /
 
-&initialize_distribution_kpar
+&initialise_distribution_kpar
    width0 = -3.5
    refac = 1.
    imfac = 0.
@@ -121,7 +121,7 @@
    left = .true.
 /
 
-&initialize_distribution_rh
+&initialise_distribution_rh
    kxmax = 1e+100
    kxmin = 0.0
    imfac = 0.0
