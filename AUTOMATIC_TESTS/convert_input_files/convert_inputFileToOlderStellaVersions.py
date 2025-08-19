@@ -200,6 +200,7 @@ def update_stella05ToStellaMaster():
         'dissipation:mu_operator' : 'collisions_dougherty:mu_operator',
         'dissipation:vpa_operator' : 'collisions_dougherty:vpa_operator',
         'dissipation:energy_conservation' : 'collisions_dougherty:energy_conservation',
+        'init_g_knobs:ginit_option' : 'initialize_distribution:initialize_distribution_option',
         'knobs:fapar' : 'parameters_physics:include_apar',
         'knobs:fbpar' : 'parameters_physics:include_bpar',
         'knobs:cfl_cushion' : 'parameters_numerical:cfl_cushion_middle',
