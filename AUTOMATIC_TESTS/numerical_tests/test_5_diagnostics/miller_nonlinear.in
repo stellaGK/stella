@@ -2,9 +2,43 @@
 ! Simple nonlinear example based on CBC
 ! Turned on all the diagnostics
 
-&physics_flags
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geo_knobs
+  geo_option = 'miller'
+/
+&millergeo_parameters
+  nzed_local = 128
+  rhoc = 0.5
+  shat = 0.796
+  qinp = 1.4
+  rmaj = 2.77778
+  rgeo = 2.77778
+  shift = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  betaprim = 0.0
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  betadbprim = 0.0
+/
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&parameters_physics
   nonlinear = .true.
 /
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
 &species_knobs
   nspec = 2 
 /
@@ -26,7 +60,15 @@
   type = 'electron'
   z = -1.0
 /
-&kt_grids_box_parameters
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kt_grids_knobs
+  grid_option = 'box'
+/
+&parameters_kxky_grids_box
   jtwist = 5
   nx = 6
   ny = 9
@@ -38,15 +80,14 @@
   nzed = 24
 /
 &vpamu_grids_parameters
-  nmu = 2 
-  nvgrid = 3  
+  nmu = 2
+  nvgrid = 3
 /
-&knobs
-  delt = 0.01  
-  nstep = 100
-  print_extra_info_to_terminal = .false.  
-  rng_seed = 1
-/
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
 &stella_diagnostics_knobs
   nsave = 100
   nwrite = 10 
@@ -63,36 +104,33 @@
   write_radial_moments = .true.
   write_fluxes_kxkyz = .true.
 /
-&init_g_knobs 
-  ginit_option = 'noise'
-  phiinit = 0.01   
+
+!===============================================================================
+!                              Initialize potential                             
+!===============================================================================
+
+&initialize_distribution
+  initialize_distribution_option = 'noise'
+  phiinit = 0.01
 /
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&parameters_numerical
+  delt = 0.01
+  nstep = 100
+  print_extra_info_to_terminal = .false.
+  rng_seed = 1
+  explicit_option = 'rk2'
+/
+
+!===============================================================================
+!                                  Dissipation                                  
+!===============================================================================
+
 &dissipation
   hyper_dissipation = .true.
 /
-&geo_knobs
-  geo_option = 'miller'
-/
-&kt_grids_knobs
-  grid_option = 'box'
-/
-&time_advance_knobs
-  explicit_option = 'rk2'
-/
-&millergeo_parameters
-  nzed_local = 128
-  rhoc = 0.5
-  shat = 0.796
-  qinp = 1.4
-  rmaj = 2.77778
-  rgeo = 2.77778
-  shift = 0.0
-  kappa = 1.0
-  kapprim = 0.0
-  tri = 0.0
-  triprim = 0.0
-  betaprim = 0.0
-  d2qdr2 = 0.0
-  d2psidr2 = 0.0
-  betadbprim = 0.0
-/ 
+
