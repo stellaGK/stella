@@ -14,6 +14,7 @@
 ! &electromagnetic
 ! &flow_shear
 ! &flux_annulus
+! &extra - to be changed 
 !###############################################################################
 
 module physics_parameters
@@ -160,6 +161,8 @@ contains
    if (proc0) call read_namelist_extra(include_pressure_variation, & 
       include_geometric_variation, radial_variation, zeff, vnew_ref)
 
+   call broadcast_parameters
+   
    if (simulation_domain_switch == simulation_domain_fluxtube) then
       full_flux_surface = .false.
       radial_variation = .false.
@@ -174,8 +177,6 @@ contains
       write(*,*) "Error: simulation_domain must be 'fluxtube', 'multibox', or 'full_flux_surface'."
       stop
    end if
-
-   call broadcast_parameters
 
    initialised = .true.
 
