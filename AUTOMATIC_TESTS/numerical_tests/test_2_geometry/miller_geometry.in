@@ -30,8 +30,8 @@
 !                                    Physics                                    
 !===============================================================================
 
-&parameters_physics
-  nonlinear = .true.
+&gyrokinetic_terms
+  include_nonlinear = .true.
 /
 
 !===============================================================================
@@ -96,9 +96,12 @@
 !                              Initialize potential                             
 !===============================================================================
 
-&init_g_knobs
-  ginit_option = 'default'
+&initialize_distribution
+  initialize_distribution_option = 'default'
   phiinit = 0.01
+/
+
+&initialize_distribution_maxwellian
   width0 = 1.0
 /
 

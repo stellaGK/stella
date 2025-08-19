@@ -104,8 +104,8 @@
 !===============================================================================
 
 &initialize_distribution
-   initialize_distribution_option = 'noise'
-   phiinit = 0.01 
+  initialize_distribution_option = 'noise'
+  phiinit = 0.01 
 /
 
 !===============================================================================
