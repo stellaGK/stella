@@ -23,12 +23,18 @@
 !                                    Physics                                    
 !===============================================================================
 
-&parameters_physics
-  nonlinear = .true.
-  beta = 999		! Useless for electrostatic simulations (set to 0.01 in the expected output run)
-  rhostar = 999		! Useless for electrostatic simulations (set to 0.01 in the expected output run)
-  vnew_ref = 999	! Useless for electrostatic simulations (set to 0.01 in the expected output run)	
-  zeff = 999		! Useless for electrostatic simulations (set to 0.01 in the expected output run)
+&gyrokinetic_terms
+  include_nonlinear = .true.
+/
+&electromagnetic
+  beta = 999
+/
+&flux_annulus
+  rhostar = 999
+/
+&extra
+  zeff = 999
+  vnew_ref = 999
 /
 
 !===============================================================================
@@ -89,11 +95,11 @@
 /
 
 !===============================================================================
-!                              Initialize potential                             
+!                              Initialise potential                             
 !===============================================================================
 
-&initialize_distribution
-  initialize_distribution_option = 'noise'
+&initialise_distribution
+  initialise_distribution_option = 'noise'
   phiinit = 0.01
 /
 

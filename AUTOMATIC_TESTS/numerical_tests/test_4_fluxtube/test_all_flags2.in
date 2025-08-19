@@ -27,25 +27,54 @@
 !                                    Physics                                    
 !===============================================================================
 
-&parameters_physics
-  include_parallel_nonlinearity = .true.	   ! (TOGGLE)
-  include_mirror = .true.			           ! Already tested in test_4_gyrokinetic_equation
-  include_parallel_streaming = .true.		   ! Already tested in test_4_gyrokinetic_equation
-  nonlinear = .true.				           ! Already tested in test_4_gyrokinetic_equation
-  adiabatic_option = 'default'			       ! (IGNORE-ADIA) Not used when electrons are present
-  full_flux_surface = .false.			       ! (IGNORE-FFS) Only testing flux-tube flags here
-  radial_variation = .false.			       ! (IGNORE-RV) Simulate 3 adjacent flux tubes with radial variation across them
-  include_pressure_variation = .true.		   ! (IGNORE-RV) Part of the radial variation routines
-  include_geometric_variation = .true.		   ! (IGNORE-RV) Part of the radial variation routines
-  beta = 0.01					               ! (IGNORE-EM) Useless for electrostatic simulations
-  rhostar = 0.01				               ! (IGNORE-EM) Useless for electrostatic simulations
-  vnew_ref = 0.01				               ! (IGNORE-EM) Useless for electrostatic simulations
-  zeff = 0.01					               ! (IGNORE-EM) Useless for electrostatic simulations
-  tite = 1.0					               ! (IGNORE-ADIA) Sets the temperature of the adiabatic electrons
-  nine = 1.0					               ! (IGNORE-ADIA) Sets the density of the adiabatic electrons
-  g_exb = 0.0					               ! (IGNORE-ZF) TODO: something related to flow shear (and radial variation?)
-  g_exbfac = 1.0				               ! (IGNORE-ZF) TODO: something related to flow shear (and radial variation?)
-  omprimfac = 1.0				               ! (IGNORE-ZF) TODO: something related to flow shear (and radial variation?)
+&gyrokinetic_terms
+  simulation_domain = 'fluxtube' 
+  include_parallel_streaming = .true.
+  include_mirror = .true.
+  include_xdrift = .true. !! xdriftknob = 1.0 or 0.0 
+  include_ydrift = .true. !! ydriftknob = 1.0 or 0.0
+  include_drive = .true. !! wstarknob = 1.0 or 0.0
+  include_nonlinear = .true.
+  include_parallel_nonlinearity = .true.
+  include_electromagnetic = .false.
+/
+
+&scale_gyrokinetic_terms
+  xdriftknob = 1.0 
+  ydriftknob = 1.0
+  wstarknob = 1.0
+  fphi = 1.0 
+  suppress_zonal_interaction = .false.
+/
+
+&adiabatic_electron_response
+  adiabatic_option = 'default'
+  tite = 1.0
+  nine = 1.0
+/
+
+&electromagnetic
+  beta = 0.01
+/
+
+&flow_shear
+  prp_shear_enabled = .false.
+  hammett_flow_shear = .true.
+  g_exb = 0.0
+  g_exbfac = 1.0
+  omprimfac = 1.0
+/
+
+!&flux_annulus
+!  rhostar = 0.01
+!/
+
+&extra
+   include_pressure_variation = .true.
+   include_geometric_variation = .true.
+   radial_variation = .false. 
+   zeff = 0.01
+   vnew_ref = 0.01
 /
 
 !===============================================================================
@@ -97,7 +126,7 @@
 /
 &vpamu_grids_parameters
   nmu = 4 
-  nvgrid = 3  
+  nvgrid = 3
 /
 
 !===============================================================================
@@ -111,11 +140,11 @@
 
 
 !===============================================================================
-!                              Initialize potential                             
+!                              Initialise potential                             
 !===============================================================================
 
-&initialize_distribution
-  initialize_distribution_option = 'noise'
+&initialise_distribution
+  initialise_distribution_option = 'noise'
   phiinit = 0.01
 /
 

@@ -23,12 +23,18 @@
 !                                    Physics                                    
 !===============================================================================
 
-&parameters_physics
-  nonlinear = .true.
+&gyrokinetic_terms
+  include_nonlinear = .true.
+/
+&electromagnetic
   beta = 0.01
-  rhostar = 0.01
-  vnew_ref = 0.01
+/
+&flux_annulus
+  rhostar = 0.0 ! WARNING RHO STAR DOES MATTER!!!!
+/
+&extra
   zeff = 1.0
+  vnew_ref = 0.01
 /
 
 !===============================================================================
@@ -90,11 +96,11 @@
 /
 
 !===============================================================================
-!                              Initialize potential                             
+!                              Initialise potential                             
 !===============================================================================
 
-&initialize_distribution
-  initialize_distribution_option = 'noise'
+&initialise_distribution
+  initialise_distribution_option = 'noise'
   phiinit = 0.01
 /
 
