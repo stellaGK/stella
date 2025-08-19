@@ -30,15 +30,21 @@
 !                                    Physics                                    
 !===============================================================================
 
-&parameters_physics
-  nonlinear = .true.
+&gyrokinetic_terms
   include_parallel_streaming = .false.
   include_mirror = .false.
+  include_xdrift = .false.
+  include_ydrift = .false.
+  include_drive = .true.
+  include_nonlinear = .true.
+  include_parallel_nonlinearity = .false.
+  include_electromagnetic = .true.
+/
+
+&electromagnetic
   include_apar = .true.
   include_bpar = .true.
-  xdriftknob = 0.0
-  ydriftknob = 0.0
-  wstarknob = 1.0
+  beta = 0.0
 /
 
 !===============================================================================
@@ -99,14 +105,14 @@
 /
 
 !===============================================================================
-!                              Initialize potential                             
+!                              Initialise potential                             
 !===============================================================================
 
-&initialize_distribution
-  initialize_distribution_option = 'default'
+&initialise_distribution
+  initialise_distribution_option = 'default'
   phiinit = 0.01
 /
-&initialize_distribution_maxwellian
+&initialise_distribution_maxwellian
   width0 = 1.0
 /
 

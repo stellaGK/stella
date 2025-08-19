@@ -32,7 +32,7 @@
 /
 
 &adiabatic_electron_response
-  adiabatic_option = "field-line-average-term"
+  adiabatic_option = 'field-line-average-term'
   tite = 1.0
   nine = 1.0
 /
@@ -81,7 +81,7 @@
 !===============================================================================
 
 &initialise_distribution
-   initialise_distribution_option = "default"
+   initialise_distribution_option = 'default'
    phiinit = 1.0
    scale_to_phiinit = .false.
 /
@@ -131,8 +131,8 @@
 &restart_options
    tstart = 0.0
    scale = 1.0
-   restart_file = trim(run_name)//".nc"
-   restart_dir = "./"
+   restart_file = trim(run_name)//'.nc'
+   restart_dir = './'
    read_many = .true.
 /
 
@@ -151,5 +151,5 @@
    include_collisions = .false.
    collisions_implicit = .true.
    hyper_dissipation = .false.
-   collision_model = "dougherty"
+   collision_model = 'dougherty'
 /

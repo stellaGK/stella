@@ -27,15 +27,21 @@
 !                                    Physics                                    
 !===============================================================================
 
-&parameters_physics
- full_flux_surface = .false.
- nonlinear = .false.
- adiabatic_option = "field-line-average-term"
- include_apar = .true.
- zeff = 1.05
- beta = 0.001
- vnew_ref = 0.0
- rhostar = 0.0
+&gyrokinetic_terms
+  include_parallel_streaming = .true.
+  include_mirror = .true.
+  include_xdrift = .true.
+  include_ydrift = .true.
+  include_drive = .true.
+  include_nonlinear = .false.
+  include_parallel_nonlinearity = .false.
+  include_electromagnetic = .true.
+/
+
+&electromagnetic
+  include_apar = .true.
+  include_bpar = .false.
+  beta = 0.001
 /
 
 !===============================================================================
@@ -118,15 +124,15 @@
 /
 
 !===============================================================================
-!                              Initialize potential                             
+!                              Initialise potential                             
 !===============================================================================
 
-&initialize_distribution
-  initialize_distribution_option = 'default'
+&initialise_distribution
+  initialise_distribution_option = 'default'
   phiinit = 1.0
   scale_to_phiinit = .true.
 /
-&initialize_distribution_maxwellian
+&initialise_distribution_maxwellian
   width0 = 1.0
 /
 
