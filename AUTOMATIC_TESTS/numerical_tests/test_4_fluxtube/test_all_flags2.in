@@ -4,18 +4,54 @@
 ! change certain variables to see if it changes the output at all.
 ! The flags labeled (IGNORE) will not be tested here.
 
-&physics_flags
-  include_parallel_nonlinearity = .true.	! (TOGGLE)
-  include_mirror = .true.			         ! Already tested in test_4_gyrokinetic_equation
-  include_parallel_streaming = .true.		! Already tested in test_4_gyrokinetic_equation
-  nonlinear = .true.				            ! Already tested in test_4_gyrokinetic_equation
-  adiabatic_option = 'default'			   ! (IGNORE-ADIA) Not used when electrons are present
-  full_flux_surface = .false.			      ! (IGNORE-FFS) Only testing flux-tube flags here
-  const_alpha_geo = .false.			      ! (IGNORE-FFS) Full flux surface flag
-  radial_variation = .false.			      ! (IGNORE-RV) Simulate 3 adjacent flux tubes with radial variation across them
-  include_pressure_variation = .true.		! (IGNORE-RV) Part of the radial variation routines
-  include_geometric_variation = .true.		! (IGNORE-RV) Part of the radial variation routines
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geo_knobs
+  geo_option = 'vmec'
 /
+&vmec_parameters
+  alpha0 = 0.5					               ! (TOGGLE)
+  nfield_periods = 5.0   		            ! (TOGGLE)
+  surface_option = 1		                  ! (TOGGLE)
+  torflux = 0.5  				               ! (TOGGLE)
+  verbose = .true.
+  vmec_filename = 'wout_w7x_kjm.nc'
+  zeta_center = 0.5				            ! (TOGGLE) 
+  zgrid_scalefac = 1.0			            ! THIS WAS BROKEN, REMOVED IN NEW STELLA
+  zgrid_refinement_factor = 1	            ! Only used when zed_equal_arc = .true.  
+/
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&parameters_physics
+  include_parallel_nonlinearity = .true.	   ! (TOGGLE)
+  include_mirror = .true.			           ! Already tested in test_4_gyrokinetic_equation
+  include_parallel_streaming = .true.		   ! Already tested in test_4_gyrokinetic_equation
+  nonlinear = .true.				           ! Already tested in test_4_gyrokinetic_equation
+  adiabatic_option = 'default'			       ! (IGNORE-ADIA) Not used when electrons are present
+  full_flux_surface = .false.			       ! (IGNORE-FFS) Only testing flux-tube flags here
+  radial_variation = .false.			       ! (IGNORE-RV) Simulate 3 adjacent flux tubes with radial variation across them
+  include_pressure_variation = .true.		   ! (IGNORE-RV) Part of the radial variation routines
+  include_geometric_variation = .true.		   ! (IGNORE-RV) Part of the radial variation routines
+  beta = 0.01					               ! (IGNORE-EM) Useless for electrostatic simulations
+  rhostar = 0.01				               ! (IGNORE-EM) Useless for electrostatic simulations
+  vnew_ref = 0.01				               ! (IGNORE-EM) Useless for electrostatic simulations
+  zeff = 0.01					               ! (IGNORE-EM) Useless for electrostatic simulations
+  tite = 1.0					               ! (IGNORE-ADIA) Sets the temperature of the adiabatic electrons
+  nine = 1.0					               ! (IGNORE-ADIA) Sets the density of the adiabatic electrons
+  g_exb = 0.0					               ! (IGNORE-ZF) TODO: something related to flow shear (and radial variation?)
+  g_exbfac = 1.0				               ! (IGNORE-ZF) TODO: something related to flow shear (and radial variation?)
+  omprimfac = 1.0				               ! (IGNORE-ZF) TODO: something related to flow shear (and radial variation?)
+/
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
 &species_knobs
   nspec = 2 
   species_option = 'stella'			      ! (IGNORE) Choose between {stella, input.profiles, euterpe}
@@ -40,29 +76,15 @@
   type = 'electron'
   z = -1.0
 /
-&parameters
-  beta = 0.01					               ! (IGNORE-EM) Useless for electrostatic simulations  
-  rhostar = 0.01				               ! (IGNORE-EM) Useless for electrostatic simulations  
-  vnew_ref = 0.01				               ! (IGNORE-EM) Useless for electrostatic simulations 	
-  zeff = 0.01					               ! (IGNORE-EM) Useless for electrostatic simulations 
-  tite = 1.0					               ! (IGNORE-ADIA) Sets the temperature of the adiabatic electrons
-  nine = 1.0					               ! (IGNORE-ADIA) Sets the density of the adiabatic electrons
-  g_exb = 0.0					               ! (IGNORE-ZF) TODO: something related to flow shear (and radial variation?)
-  g_exbfac = 1.0				               ! (IGNORE-ZF) TODO: something related to flow shear (and radial variation?)
-  omprimfac = 1.0				               ! (IGNORE-ZF) TODO: something related to flow shear (and radial variation?)
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kt_grids_knobs
+  grid_option = 'box'
 /
-&vmec_parameters
-  alpha0 = 0.5					               ! (TOGGLE)
-  nfield_periods = 5.0   		            ! (TOGGLE)
-  surface_option = 1		                  ! (TOGGLE)
-  torflux = 0.5  				               ! (TOGGLE)
-  verbose = .true.
-  vmec_filename = 'wout_w7x_kjm.nc'
-  zeta_center = 0.5				            ! (TOGGLE) 
-  zgrid_scalefac = 1.0			            ! THIS WAS BROKEN, REMOVED IN NEW STELLA
-  zgrid_refinement_factor = 1	            ! Only used when zed_equal_arc = .true.  
-/	
-&kt_grids_box_parameters 
+&parameters_kxky_grids_box 
   nx = 9
   ny = 12
   y0 = 15
@@ -77,29 +99,43 @@
   nmu = 4 
   nvgrid = 3  
 /
-&knobs
-  delt = 0.01  
-  nstep = 10
-  print_extra_info_to_terminal = .false.  
-  rng_seed = 1
-/
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
 &stella_diagnostics_knobs
   nsave = 10
-  nwrite = 1  
+  nwrite = 1
 /
-&init_g_knobs 
-  ginit_option = 'noise'
-  phiinit = 0.01   
+
+
+!===============================================================================
+!                              Initialize potential                             
+!===============================================================================
+
+&initialize_distribution
+  initialize_distribution_option = 'noise'
+  phiinit = 0.01
 /
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&parameters_numerical
+  delt = 0.01
+  nstep = 10
+  print_extra_info_to_terminal = .false.
+  rng_seed = 1
+  explicit_option = 'rk2'
+/
+
+!===============================================================================
+!                                  Dissipation                                  
+!===============================================================================
+
 &dissipation
   hyper_dissipation = .true.
 /
-&geo_knobs
-  geo_option = 'vmec'
-/
-&kt_grids_knobs
-  grid_option = 'box'
-/
-&time_advance_knobs
-  explicit_option = 'rk2'
-/ 
+

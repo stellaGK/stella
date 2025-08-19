@@ -217,58 +217,40 @@
 !--------------------------------
 !--------  Init fields  ---------
 !--------------------------------
-   
-&initialize_distribution
-   initialize_distribution_option = "default"
-   phiinit = 1.0
-   scale_to_phiinit = .false.
+  
+! Note that <restart_file>  = trim(run_name)//.nc
+&init_g_knobs
+  ginit_option = "default"
+  width0 = -3.5
+  phiinit = 1.0
+  chop_side = .false.
+  restart_file = "dummy.nc"
+  restart_dir = "./"
+  read_many = .true.
+  left = .true.
+  scale = 1.0
+  tstart = 0.0
+  zf_init = 1.0
+  den0 = 1.0
+  upar0 = 0.0
+  tpar0 = 0.0
+  tperp0 = 0.0
+  imfac = 0.0
+  refac = 1.0
+  den1 = 0.0
+  upar1 = 0.0
+  tpar1 = 0.0
+  tperp1 = 0.0
+  den2 = 0.0
+  upar2 = 0.0
+  tpar2 = 0.0
+  tperp2 = 0.0
+  kxmax = 1e+100
+  kxmin = 0.0
+  scale_to_phiinit = .false.
+  oddparity = .false.
 /
-&initialize_distribution_maxwellian
-   width0 = -3.5
-   den0 = 1.
-   upar0 = 0.
-   oddparity = .false.
-   chop_side = .false.
-   left = .true.
-/
-&initialize_distribution_noise
-   zf_init = 1.0
-   chop_side = .false.
-   left = .true.
-/
-&initialize_distribution_kpar
-   width0 = -3.5
-   refac = 1.
-   imfac = 0.
-   den0 = 1.
-   upar0 = 0.
-   tpar0 = 0.
-   tperp0 = 0.
-   den1 = 0.
-   upar1 = 0.
-   tpar1 = 0.
-   tperp1 = 0.
-   den2 = 0.
-   upar2 = 0.
-   tpar2 = 0.
-   tperp2 = 0.
-   chop_side = .false.
-   left = .true.
-/
-&initialize_distribution_rh
-   kxmax = 1e+100
-   kxmin = 0.0
-   imfac = 0.0
-   refac = 1.0
-/
-&restart_options
-   tstart = 0.0
-   scale = 1.0
-   restart_file = trim(run_name)//".nc"
-   restart_dir = "./"
-   read_many = .true.
-/
-
+  
 !-------------------------------
 !--------  Dissipation  --------
 !-------------------------------

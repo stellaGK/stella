@@ -1,9 +1,34 @@
 
 ! Simple linear example based on a VMEC equillibrium at rho=0.7 
 
-&physics_flags
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geo_knobs
+  geo_option = 'vmec'
+/
+&vmec_parameters
+  nfield_periods = 6.073867
+  surface_option = 0
+  torflux = 0.49
+  verbose = .true.
+  vmec_filename = 'wout_w7x_kjm.nc'
+  zeta_center = 0.0
+/
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&parameters_physics
   nonlinear = .true.
 /
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
 &species_knobs
   nspec = 2 
 /
@@ -25,15 +50,15 @@
   type = 'electron'
   z = -1.0
 /
-&vmec_parameters
-  nfield_periods = 6.073867
-  surface_option = 0
-  torflux = 0.49
-  verbose = .true.
-  vmec_filename = 'wout_w7x_kjm.nc'
-  zeta_center = 0.0
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kt_grids_knobs
+  grid_option = 'box'
 /
-&kt_grids_box_parameters 
+&parameters_kxky_grids_box
   nx = 9
   ny = 12
   y0 = 15
@@ -45,31 +70,44 @@
 /
 &vpamu_grids_parameters
   nmu = 4 
-  nvgrid = 3  
+  nvgrid = 3
 /
-&knobs
-  delt = 0.01  
-  nstep = 10
-  print_extra_info_to_terminal = .false.  
-  rng_seed = 1
-/
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
 &stella_diagnostics_knobs
   nsave = 10
-  nwrite = 1  
+  nwrite = 1
 /
-&init_g_knobs 
-  ginit_option = 'noise'
-  phiinit = 0.01   
+
+!===============================================================================
+!                              Initialize potential                             
+!===============================================================================
+
+&initialize_distribution
+  initialize_distribution_option = 'noise'
+  phiinit = 0.01
 /
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&parameters_numerical
+  delt = 0.01
+  nstep = 10
+  print_extra_info_to_terminal = .false.
+  explicit_option = 'rk2'
+  rng_seed = 1
+/
+
+!===============================================================================
+!                                  Dissipation                                  
+!===============================================================================
+
 &dissipation
   hyper_dissipation = .true.
 /
-&geo_knobs
-  geo_option = 'vmec'
-/
-&kt_grids_knobs
-  grid_option = 'box'
-/
-&time_advance_knobs
-  explicit_option = 'rk2'
-/ 
+
