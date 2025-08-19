@@ -15,11 +15,11 @@
 ! we can check if any input variables are clashing with each other.
 ! 
 ! Overview of stella namelists in the fields folder:
-!   initialize_distribution (renamed from init_g_knobs)
-!   initialize_distribution_maxwellian
-!   initialize_distribution_noise
-!   initialize_distribution_kpar
-!   initialize_distribution_rh
+!   initialise_distribution (renamed from init_g_knobs)
+!   initialise_distribution_maxwellian
+!   initialise_distribution_noise
+!   initialise_distribution_kpar
+!   initialise_distribution_rh
 !   restart_options
 ! 
 !###############################################################################
@@ -27,11 +27,11 @@ module input_file_fields
 
    implicit none
 
-   public :: read_namelist_initialize_distribution
-   public :: read_namelist_initialize_distribution_maxwellian
-   public :: read_namelist_initialize_distribution_noise
-   public :: read_namelist_initialize_distribution_kpar
-   public :: read_namelist_initialize_distribution_rh
+   public :: read_namelist_initialise_distribution
+   public :: read_namelist_initialise_distribution_maxwellian
+   public :: read_namelist_initialise_distribution_noise
+   public :: read_namelist_initialise_distribution_kpar
+   public :: read_namelist_initialise_distribution_rh
    public :: read_namelist_restart_options
    
    ! Parameters need to be public
@@ -55,9 +55,9 @@ module input_file_fields
 contains
    
    !****************************************************************************
-   !                   INITIALIZE POTENTIAL: READ THE SWITCH                   !
+   !                   initialise POTENTIAL: READ THE SWITCH                   !
    !****************************************************************************
-   subroutine read_namelist_initialize_distribution(init_distribution_switch, phiinit, scale_to_phiinit)
+   subroutine read_namelist_initialise_distribution(init_distribution_switch, phiinit, scale_to_phiinit)
 
       use mp, only: proc0
 
@@ -69,30 +69,30 @@ contains
       integer, intent(out) :: init_distribution_switch
       
       ! Local variable to set <init_distribution_switch>
-      character(20) :: initialize_distribution_option
+      character(20) :: initialise_distribution_option
 
       if (.not. proc0) return
-      call set_default_parameters_initialize_distribution
-      call read_input_file_initialize_distribution
+      call set_default_parameters_initialise_distribution
+      call read_input_file_initialise_distribution
 
    contains
       
       !------------------------ Default input parameters -----------------------
-      subroutine set_default_parameters_initialize_distribution
+      subroutine set_default_parameters_initialise_distribution
 
          implicit none
 
          ! Options: {default, maxwellian, snoise, many, kpar, rh, remap}
-         initialize_distribution_option = "maxwellian"
+         initialise_distribution_option = "maxwellian"
          
          ! Other options
          phiinit = 1.0
          scale_to_phiinit = .false.
 
-      end subroutine set_default_parameters_initialize_distribution
+      end subroutine set_default_parameters_initialise_distribution
 
       !---------------------------- Read input file ----------------------------
-      subroutine read_input_file_initialize_distribution
+      subroutine read_input_file_initialise_distribution
 
          use file_utils, only: input_unit_exist, error_unit
          use text_options, only: text_option, get_option_value
@@ -102,7 +102,7 @@ contains
          ! Variables needed to read the input file
          integer :: ierr
       
-         ! Link text options for <initialize_distribution_option> to an integer value
+         ! Link text options for <initialise_distribution_option> to an integer value
          type(text_option), dimension(7), parameter :: init_distribution_options = &
              (/text_option('default', init_distribution_option_maxwellian), &
                text_option('maxwellian', init_distribution_option_maxwellian), &
@@ -112,28 +112,28 @@ contains
                text_option('rh', init_distribution_option_rh), &
                text_option('remap', init_distribution_option_remap)/)
 
-         ! Variables in the <initialize_distribution> namelist
-         namelist /initialize_distribution/ initialize_distribution_option, phiinit, scale_to_phiinit
+         ! Variables in the <initialise_distribution> namelist
+         namelist /initialise_distribution/ initialise_distribution_option, phiinit, scale_to_phiinit
          
          !----------------------------------------------------------------------
 
          ! Overwrite the default input parameters by those specified in the input file
-         in_file = input_unit_exist("initialize_distribution", dexist)
-         if (dexist) read (unit=in_file, nml=initialize_distribution)
+         in_file = input_unit_exist("initialise_distribution", dexist)
+         if (dexist) read (unit=in_file, nml=initialise_distribution)
          
-         ! Read the text option in <initialize_distribution> and store it in <init_distribution_switch>
+         ! Read the text option in <initialise_distribution> and store it in <init_distribution_switch>
          ierr = error_unit()
-         call get_option_value(initialize_distribution_option, init_distribution_options, init_distribution_switch, &
-            ierr, "initialize_distribution_option in initialize_distribution")
+         call get_option_value(initialise_distribution_option, init_distribution_options, init_distribution_switch, &
+            ierr, "initialise_distribution_option in initialise_distribution")
 
-      end subroutine read_input_file_initialize_distribution
+      end subroutine read_input_file_initialise_distribution
 
-   end subroutine read_namelist_initialize_distribution
+   end subroutine read_namelist_initialise_distribution
    
    !****************************************************************************
-   !                      INITIALIZE POTENTIAL: MAXWELLIAN                     !
+   !                      initialise POTENTIAL: MAXWELLIAN                     !
    !****************************************************************************
-   subroutine read_namelist_initialize_distribution_maxwellian(width0, den0, upar0, oddparity, left, chop_side)
+   subroutine read_namelist_initialise_distribution_maxwellian(width0, den0, upar0, oddparity, left, chop_side)
 
       use mp, only: proc0
 
@@ -145,13 +145,13 @@ contains
       logical, intent(out) :: chop_side
 
       if (.not. proc0) return
-      call set_default_parameters_initialize_distribution_maxwellian
-      call read_input_file_initialize_distribution_maxwellian
+      call set_default_parameters_initialise_distribution_maxwellian
+      call read_input_file_initialise_distribution_maxwellian
 
    contains
       
       !------------------------ Default input parameters -----------------------
-      subroutine set_default_parameters_initialize_distribution_maxwellian
+      subroutine set_default_parameters_initialise_distribution_maxwellian
 
          implicit none
          
@@ -162,26 +162,26 @@ contains
          chop_side = .false.
          left = .true.
 
-      end subroutine set_default_parameters_initialize_distribution_maxwellian
+      end subroutine set_default_parameters_initialise_distribution_maxwellian
 
       !---------------------------- Read input file ----------------------------
-      subroutine read_input_file_initialize_distribution_maxwellian
+      subroutine read_input_file_initialise_distribution_maxwellian
 
          use file_utils, only: input_unit_exist
          implicit none
 
-         namelist /initialize_distribution_maxwellian/ width0, den0, upar0, oddparity, left, chop_side
-         in_file = input_unit_exist("initialize_distribution_maxwellian", dexist)
-         if (dexist) read (unit=in_file, nml=initialize_distribution_maxwellian) 
+         namelist /initialise_distribution_maxwellian/ width0, den0, upar0, oddparity, left, chop_side
+         in_file = input_unit_exist("initialise_distribution_maxwellian", dexist)
+         if (dexist) read (unit=in_file, nml=initialise_distribution_maxwellian) 
 
-      end subroutine read_input_file_initialize_distribution_maxwellian
+      end subroutine read_input_file_initialise_distribution_maxwellian
 
-   end subroutine read_namelist_initialize_distribution_maxwellian
+   end subroutine read_namelist_initialise_distribution_maxwellian
    
    !****************************************************************************
-   !                       INITIALIZE DISTRIBUTION: NOISE                      !
+   !                       initialise DISTRIBUTION: NOISE                      !
    !****************************************************************************
-   subroutine read_namelist_initialize_distribution_noise(zf_init, left, chop_side)
+   subroutine read_namelist_initialise_distribution_noise(zf_init, left, chop_side)
 
       use mp, only: proc0
 
@@ -192,13 +192,13 @@ contains
       logical, intent(out) :: chop_side
 
       if (.not. proc0) return
-      call set_default_parameters_initialize_distribution_noise
-      call read_input_file_initialize_distribution_noise
+      call set_default_parameters_initialise_distribution_noise
+      call read_input_file_initialise_distribution_noise
 
    contains
       
       !------------------------ Default input parameters -----------------------
-      subroutine set_default_parameters_initialize_distribution_noise
+      subroutine set_default_parameters_initialise_distribution_noise
 
          implicit none
          
@@ -206,26 +206,26 @@ contains
          chop_side = .false.
          left = .true.
 
-      end subroutine set_default_parameters_initialize_distribution_noise
+      end subroutine set_default_parameters_initialise_distribution_noise
 
       !---------------------------- Read input file ----------------------------
-      subroutine read_input_file_initialize_distribution_noise
+      subroutine read_input_file_initialise_distribution_noise
 
          use file_utils, only: input_unit_exist
          implicit none
 
-         namelist /initialize_distribution_noise/ zf_init, left, chop_side
-         in_file = input_unit_exist("initialize_distribution_noise", dexist)
-         if (dexist) read (unit=in_file, nml=initialize_distribution_noise) 
+         namelist /initialise_distribution_noise/ zf_init, left, chop_side
+         in_file = input_unit_exist("initialise_distribution_noise", dexist)
+         if (dexist) read (unit=in_file, nml=initialise_distribution_noise) 
 
-      end subroutine read_input_file_initialize_distribution_noise
+      end subroutine read_input_file_initialise_distribution_noise
 
-   end subroutine read_namelist_initialize_distribution_noise
+   end subroutine read_namelist_initialise_distribution_noise
    
    !****************************************************************************
-   !                         INITIALIZE POTENTIAL: KPAR                        !
+   !                         initialise POTENTIAL: KPAR                        !
    !****************************************************************************
-   subroutine read_namelist_initialize_distribution_kpar(&
+   subroutine read_namelist_initialise_distribution_kpar(&
          width0, refac, imfac, den0, upar0, tpar0, tperp0, &
          den1, upar1, tpar1, tperp1, den2, upar2, tpar2, tperp2, left, chop_side)
 
@@ -241,13 +241,13 @@ contains
       logical, intent(out) :: chop_side
 
       if (.not. proc0) return
-      call set_default_parameters_initialize_distribution_kpar
-      call read_input_file_initialize_distribution_kpar
+      call set_default_parameters_initialise_distribution_kpar
+      call read_input_file_initialise_distribution_kpar
 
    contains
       
       !------------------------ Default input parameters -----------------------
-      subroutine set_default_parameters_initialize_distribution_kpar
+      subroutine set_default_parameters_initialise_distribution_kpar
 
          implicit none
          
@@ -269,27 +269,27 @@ contains
          chop_side = .false.
          left = .true.
 
-      end subroutine set_default_parameters_initialize_distribution_kpar
+      end subroutine set_default_parameters_initialise_distribution_kpar
 
       !---------------------------- Read input file ----------------------------
-      subroutine read_input_file_initialize_distribution_kpar
+      subroutine read_input_file_initialise_distribution_kpar
 
          use file_utils, only: input_unit_exist
          implicit none
 
-         namelist /initialize_distribution_kpar/ width0, refac, imfac, den0, upar0, &
+         namelist /initialise_distribution_kpar/ width0, refac, imfac, den0, upar0, &
             tpar0, tperp0, den1, upar1, tpar1, tperp1, den2, upar2, tpar2, tperp2, left, chop_side
-         in_file = input_unit_exist("initialize_distribution_kpar", dexist)
-         if (dexist) read (unit=in_file, nml=initialize_distribution_kpar) 
+         in_file = input_unit_exist("initialise_distribution_kpar", dexist)
+         if (dexist) read (unit=in_file, nml=initialise_distribution_kpar) 
 
-      end subroutine read_input_file_initialize_distribution_kpar
+      end subroutine read_input_file_initialise_distribution_kpar
 
-   end subroutine read_namelist_initialize_distribution_kpar
+   end subroutine read_namelist_initialise_distribution_kpar
    
    !****************************************************************************
-   !                          INITIALIZE POTENTIAL: RH                         !
+   !                          initialise POTENTIAL: RH                         !
    !****************************************************************************
-   subroutine read_namelist_initialize_distribution_rh(kxmin, kxmax, imfac, refac)
+   subroutine read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac)
 
       use mp, only: proc0
 
@@ -299,13 +299,13 @@ contains
       real, intent(out) :: imfac, refac
 
       if (.not. proc0) return
-      call set_default_parameters_initialize_distribution_rh
-      call read_input_file_initialize_distribution_rh
+      call set_default_parameters_initialise_distribution_rh
+      call read_input_file_initialise_distribution_rh
 
    contains
       
       !------------------------ Default input parameters -----------------------
-      subroutine set_default_parameters_initialize_distribution_rh
+      subroutine set_default_parameters_initialise_distribution_rh
 
          implicit none
          
@@ -314,21 +314,21 @@ contains
          imfac = 0.0
          refac = 1.0
 
-      end subroutine set_default_parameters_initialize_distribution_rh
+      end subroutine set_default_parameters_initialise_distribution_rh
 
       !---------------------------- Read input file ----------------------------
-      subroutine read_input_file_initialize_distribution_rh
+      subroutine read_input_file_initialise_distribution_rh
 
          use file_utils, only: input_unit_exist
          implicit none
 
-         namelist /initialize_distribution_rh/ kxmin, kxmax, imfac, refac
-         in_file = input_unit_exist("initialize_distribution_rh", dexist)
-         if (dexist) read (unit=in_file, nml=initialize_distribution_rh) 
+         namelist /initialise_distribution_rh/ kxmin, kxmax, imfac, refac
+         in_file = input_unit_exist("initialise_distribution_rh", dexist)
+         if (dexist) read (unit=in_file, nml=initialise_distribution_rh) 
 
-      end subroutine read_input_file_initialize_distribution_rh
+      end subroutine read_input_file_initialise_distribution_rh
 
-   end subroutine read_namelist_initialize_distribution_rh
+   end subroutine read_namelist_initialise_distribution_rh
    
    !****************************************************************************
    !                              RESTART OPTIONS                              !
@@ -363,7 +363,7 @@ contains
          restart_dir = "./"
          read_many = .true.
          
-         ! Note that the <read_many> and <save_many> are initialized at the
+         ! Note that the <read_many> and <save_many> are initialised at the
          ! start of this module so that they are accessible to stella_save.fpp
 
       end subroutine set_default_parameters_restart_options

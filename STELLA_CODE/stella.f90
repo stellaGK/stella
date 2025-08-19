@@ -94,8 +94,8 @@ contains
       use file_utils, only: run_name, init_job_name
       use file_utils, only: flush_output_file, error_unit
       use job_manage, only: checktime, time_message
-      use parameters_physics, only: read_parameters_physics
-      use parameters_physics, only: radial_variation
+      use physics_parameters, only: read_physics_parameters
+      use physics_parameters, only: radial_variation
       use parameters_numerical, only: read_parameters_numerical
       use parameters_numerical, only: avail_cpu_time, nstep, rng_seed, delt, delt_max, delt_min
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
@@ -185,9 +185,9 @@ contains
       call broadcast(cbuff)
       if (.not. proc0) call init_job_name(cbuff)
       
-      !> read the parameters_physics namelist from the input file
-      if (debug) write (6, *) "stella::init_stella::read_parameters_physics"
-      call read_parameters_physics
+      !> read the physics_parameters namelist from the input file
+      if (debug) write (6, *) "stella::init_stella::read_physics_parameters"
+      call read_physics_parameters
       if (debug) write (6, *) "stella::init_stella::read_parameters_numerical"
       call read_parameters_numerical 
       !> write message to screen with useful info regarding start of simulation
@@ -241,7 +241,7 @@ contains
       !> read knobs namelist from the input file
       !> and the info to determine the mixture of implicit and explicit time advance
       if (debug) write (6, *) "stella::init_stella::init_run_parameters"
-      call read_parameters_physics
+      call read_physics_parameters
 
       if (debug) write (6, *) "stella::init_stella::init_ranf"
       n = get_rnd_seed_length()
@@ -384,7 +384,7 @@ contains
       use geometry, only: communicate_geo_multibox
       use calculations_kxky, only: communicate_ktgrids_multibox
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use parameters_physics, only: radial_variation
+      use physics_parameters, only: radial_variation
       use multibox, only: init_multibox, rhoL, rhoR
       use multibox, only: communicate_multibox_parameters, multibox_communicate
 
@@ -415,10 +415,10 @@ contains
    subroutine check_transforms(needs_transforms)
 
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use parameters_physics, only: nonlinear, include_parallel_nonlinearity
-      use parameters_physics, only: radial_variation, full_flux_surface
-      use parameters_physics, only: hammett_flow_shear
-      use parameters_physics, only: g_exb, g_exbfac 
+      use physics_parameters, only: include_nonlinear, include_parallel_nonlinearity
+      use physics_parameters, only: radial_variation, full_flux_surface
+      use physics_parameters, only: hammett_flow_shear
+      use physics_parameters, only: g_exb, g_exbfac 
       
       ! Input file
       use parameters_diagnostics, only: write_radial_moments, write_radial_fluxes
@@ -429,7 +429,7 @@ contains
 
       needs_transforms = .false.
       !> if ExB or parallel nonlinearity included in the simulations, need FFTs
-      if (nonlinear .or. include_parallel_nonlinearity) needs_transforms = .true.
+      if (include_nonlinear .or. include_parallel_nonlinearity) needs_transforms = .true.
       !> if 'global' in radial or bi-normal directions, need FFTs
       if (radial_variation .or. full_flux_surface) needs_transforms = .true.
       !> if running in multibox mode, need FFTs
@@ -501,7 +501,7 @@ contains
 
       use mp, only: proc0
       use parameters_numerical, only: print_extra_info_to_terminal
-      use parameters_physics, only: include_apar, include_bpar
+      use physics_parameters, only: include_apar, include_bpar
       implicit none
       
       ! Only print the header on the first processor
@@ -575,8 +575,8 @@ contains
       use mp, only: proc0
       use file_utils, only: finish_file_utils, runtype_option_switch, runtype_multibox
       use job_manage, only: time_message
-      use parameters_physics, only: finish_read_parameters_physics
-      use parameters_physics, only: include_parallel_nonlinearity, radial_variation
+      use physics_parameters, only: finish_read_physics_parameters
+      use physics_parameters, only: include_parallel_nonlinearity, radial_variation
       use parameters_numerical, only: finish_read_parameters_numerical
       use zgrid, only: finish_zgrid
       use species, only: finish_species
@@ -639,8 +639,8 @@ contains
       call finish_read_parameters_numerical
       if (debug) write (*, *) 'stella::finish_stella::finish_species'
       call finish_species
-      if (debug) write (*, *) 'stella::finish_stella::finish_parameters_physics'
-      call finish_read_parameters_physics
+      if (debug) write (*, *) 'stella::finish_stella::finish_physics_parameters'
+      call finish_read_physics_parameters
       if (debug) write (*, *) 'stella::finish_stella::finish_geometry'
       call finish_geometry
       if (debug) write (*, *) 'stella::finish_stella::finish_zgrid'

@@ -79,7 +79,7 @@ module parameters_kxky_grids_range
         subroutine read_input_file_range
 
             use file_utils, only: input_unit, error_unit, input_unit_exist
-            use parameters_physics, only: full_flux_surface
+            use physics_parameters, only: full_flux_surface
             use text_options, only: text_option, get_option_value
       
             implicit none

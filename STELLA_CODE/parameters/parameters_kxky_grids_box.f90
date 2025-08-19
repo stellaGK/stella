@@ -82,7 +82,7 @@ module parameters_kxky_grids_box
         subroutine read_input_file_box
 
             use file_utils, only: input_unit_exist
-            use parameters_physics, only: full_flux_surface
+            use physics_parameters, only: full_flux_surface
             implicit none
 
             integer :: in_file

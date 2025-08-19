@@ -28,7 +28,7 @@ contains
       use arrays_dist_fn, only: gvmu, gold, gnew
       use redistribute, only: gather, scatter
       use dist_redistribute, only: kxkyz2vmu
-      use parameters_physics, only: radial_variation
+      use physics_parameters, only: radial_variation
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
       use parameters_kxky_grids, only: nalpha, nakx, naky
@@ -92,7 +92,7 @@ contains
    subroutine init_dist_fn
 
       use mp, only: proc0
-      use parameters_physics, only: radial_variation
+      use physics_parameters, only: radial_variation
       use stella_layouts, only: init_dist_fn_layouts
       use gyro_averages, only: init_bessel
 

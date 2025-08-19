@@ -10,7 +10,7 @@ contains
     subroutine dump_radial_grid (x, rho, nx)
 
         use file_utils, only: run_name
-        use parameters_physics, only: rhostar
+        use physics_parameters, only: rhostar
         use geometry, only: q_as_x, geo_surf, dxdpsi, drhodpsip
 
         implicit none

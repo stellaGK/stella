@@ -29,13 +29,13 @@ module init_g
    
    !----------------------------- module variables -----------------------------
 
-   ! Remember whether the module has already been initialized
-   logical :: initialized = .false.
+   ! Remember whether the module has already been initialised
+   logical :: initialised = .false.
 
    ! Choose the initalization option for the potential
    integer :: init_distribution_switch
    
-   ! This variable is read when the module is initialized and used later in stella_restore()
+   ! This variable is read when the module is initialised and used later in stella_restore()
    real :: scale
    
    ! During the initialization of this module we set the restart path
@@ -57,7 +57,7 @@ contains
       use stella_save, only: read_many
       
       ! Read namelist from input file
-      use input_file_fields, only: read_namelist_initialize_distribution
+      use input_file_fields, only: read_namelist_initialise_distribution
       use input_file_fields, only: read_namelist_restart_options
       
       ! Load the <init_distribution_switch> parameters
@@ -74,13 +74,13 @@ contains
       
       !-------------------------------------------------------------------------
 
-      if (initialized) return
-      initialized = .true.
+      if (initialised) return
+      initialised = .true.
 
       call init_stella_layouts
       
-      ! Read <initialize_distribution> namelist 
-      if (proc0) call read_namelist_initialize_distribution(init_distribution_switch, phiinit, scale_to_phiinit)
+      ! Read <initialise_distribution> namelist 
+      if (proc0) call read_namelist_initialise_distribution(init_distribution_switch, phiinit, scale_to_phiinit)
          
       ! Broadcast to all processors
       call broadcast(init_distribution_switch)
@@ -184,7 +184,7 @@ contains
       use arrays_dist_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
       use ran, only: ranf
-      use input_file_fields, only: read_namelist_initialize_distribution_maxwellian
+      use input_file_fields, only: read_namelist_initialise_distribution_maxwellian
 
       implicit none
 
@@ -199,8 +199,8 @@ contains
       
       !-------------------------------------------------------------------------
       
-      ! Read <initialize_distribution_maxwellian> namelist
-      if (proc0) call read_namelist_initialize_distribution_maxwellian(width0, den0, upar0, oddparity, left, chop_side)
+      ! Read <initialise_distribution_maxwellian> namelist
+      if (proc0) call read_namelist_initialise_distribution_maxwellian(width0, den0, upar0, oddparity, left, chop_side)
          
       ! Broadcast to all processors
       call broadcast(width0)
@@ -289,9 +289,9 @@ contains
       use mp, only: proc0, broadcast, max_allreduce
       use mp, only: scope, crossdomprocs, subprocs
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use parameters_physics, only: nonlinear
+      use physics_parameters, only: include_nonlinear
       use ran
-      use input_file_fields, only: read_namelist_initialize_distribution_noise
+      use input_file_fields, only: read_namelist_initialise_distribution_noise
 
       implicit none
 
@@ -306,15 +306,15 @@ contains
       
       !-------------------------------------------------------------------------
       
-      ! Read <initialize_distribution_noise> namelist
-      if (proc0) call read_namelist_initialize_distribution_noise(zf_init, left, chop_side)
+      ! Read <initialise_distribution_noise> namelist
+      if (proc0) call read_namelist_initialise_distribution_noise(zf_init, left, chop_side)
          
       ! Broadcast to all processors
       call broadcast(zf_init)
       call broadcast(left)
       call broadcast(chop_side)
 
-      if ((naky == 1 .and. nakx == 1) .or. (.not. nonlinear)) then
+      if ((naky == 1 .and. nakx == 1) .or. (.not. include_nonlinear)) then
          if (proc0) then
             write (*, *) 'Noise initialization option is not suited for single mode simulations,'
             write (*, *) 'or linear simulations, using default initialization option instead.'
@@ -443,7 +443,7 @@ contains
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_dist_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx
-      use input_file_fields, only: read_namelist_initialize_distribution_kpar
+      use input_file_fields, only: read_namelist_initialise_distribution_kpar
       use constants, only: zi
 
       implicit none
@@ -462,8 +462,8 @@ contains
       
       !-------------------------------------------------------------------------
       
-      ! Read <initialize_distribution_noise> namelist
-      if (proc0) call read_namelist_initialize_distribution_kpar(&
+      ! Read <initialise_distribution_noise> namelist
+      if (proc0) call read_namelist_initialise_distribution_kpar(&
          width0, refac, imfac, den0, upar0, tpar0, tperp0, &
          den1, upar1, tpar1, tperp1, den2, upar2, tpar2, tperp2, left, chop_side)
          
@@ -554,7 +554,7 @@ contains
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: nvpa, nmu
       use grids_kxky, only: akx
-      use input_file_fields, only: read_namelist_initialize_distribution_rh
+      use input_file_fields, only: read_namelist_initialise_distribution_rh
 
       implicit none
 
@@ -566,8 +566,8 @@ contains
       
       !-------------------------------------------------------------------------
       
-      ! Read <initialize_distribution_rh> namelist
-      if (proc0) call read_namelist_initialize_distribution_rh(kxmin, kxmax, imfac, refac)
+      ! Read <initialise_distribution_rh> namelist
+      if (proc0) call read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac)
       
       ! Broadcast to all processors
       call broadcast(refac)
@@ -709,7 +709,7 @@ contains
 
       implicit none
 
-      initialized = .false.
+      initialised = .false.
 
       call finish_save
 

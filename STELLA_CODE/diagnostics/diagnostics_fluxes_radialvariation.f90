@@ -51,7 +51,7 @@ contains
       use grids_kxky, only: aky, theta0
       use parameters_kxky_grids, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
-      use parameters_physics, only: radial_variation
+      use physics_parameters, only: radial_variation
       use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
       
       ! Flags 
@@ -339,7 +339,7 @@ contains
       use volume_averages, only: mode_fac
       use geometry, only: dVolume
       use stella_transforms, only: transform_kx2x_unpadded
-      use parameters_physics, only: radial_variation
+      use physics_parameters, only: radial_variation
 
       implicit none
 

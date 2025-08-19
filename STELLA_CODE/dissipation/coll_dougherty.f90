@@ -221,8 +221,8 @@ contains
       use fields_fluxtube, only: get_fields_fluxtube
       use fields_collisions, only: get_fields_by_spec
       use arrays_fields, only: efac, gamtot_h
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use physics_parameters, only: adiabatic_option_switch
+      use physics_parameters, only: adiabatic_option_fieldlineavg
 
       implicit none
 
@@ -478,8 +478,8 @@ contains
       use fields_fluxtube, only: get_fields_fluxtube
       use fields_collisions, only: get_fields_by_spec
       use arrays_fields, only: efac, gamtot_h
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use physics_parameters, only: adiabatic_option_switch
+      use physics_parameters, only: adiabatic_option_fieldlineavg
 
       implicit none
 
@@ -917,7 +917,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use species, only: spec
       use parameters_numerical, only: fphi
-      use parameters_physics, only: radial_variation, full_flux_surface
+      use physics_parameters, only: radial_variation, full_flux_surface
       use parameters_kxky_grids, only: naky, nakx
       use grids_kxky, only: rho_d_clamped
       use calculations_kxky, only: multiply_by_rho
@@ -1279,7 +1279,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, iv_idx, is_idx
       use species, only: spec
-      use parameters_physics, only: radial_variation
+      use physics_parameters, only: radial_variation
       use geometry, only: bmag, dBdrho
       use parameters_kxky_grids, only: nakx, naky
       use calculations_kxky, only: multiply_by_rho
@@ -1414,7 +1414,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, iv_idx, is_idx
       use species, only: spec
-      use parameters_physics, only: radial_variation
+      use physics_parameters, only: radial_variation
       use geometry, only: bmag, dBdrho
       use parameters_kxky_grids, only: nakx, naky
       use calculations_kxky, only: multiply_by_rho
@@ -1548,8 +1548,8 @@ contains
       use gyro_averages, only: aj0v
       use fields_fluxtube, only: get_fields_fluxtube
       use arrays_fields, only: efac, gamtot_h
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use physics_parameters, only: adiabatic_option_switch
+      use physics_parameters, only: adiabatic_option_fieldlineavg
 
       implicit none
 
@@ -1715,8 +1715,8 @@ contains
       use fields_fluxtube, only: get_fields_fluxtube
       use arrays_fields, only: efac, gamtot_h
       use geometry, only: bmag, dl_over_b
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use physics_parameters, only: adiabatic_option_switch
+      use physics_parameters, only: adiabatic_option_fieldlineavg
 
       ! TMP FOR TESTING
 !    use vpamu_grids, only: mu

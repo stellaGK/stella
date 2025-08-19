@@ -34,10 +34,10 @@ contains
       !> Layouts
       use stella_layouts, only: vmu_lo
       !> Parameters
-      use parameters_physics, only: nine, tite
-      use parameters_physics, only: include_apar
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use physics_parameters, only: nine, tite
+      use physics_parameters, only: include_apar
+      use physics_parameters, only: adiabatic_option_switch
+      use physics_parameters, only: adiabatic_option_fieldlineavg
       use parameters_numerical, only: fphi
       use parameters_kxky_grids, only: nakx, ikx_max, naky, naky_all
       !> Arrays
@@ -426,9 +426,9 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_transforms, only: transform_alpha2kalpha
       !> Parameters
-      use parameters_physics, only: nine, tite
+      use physics_parameters, only: nine, tite
       use parameters_kxky_grids, only: nalpha, ikx_max, naky_all, naky, nakx
-      use parameters_physics, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
+      use physics_parameters, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       !> Arrays
       use arrays_dist_fn, only: kperp2
       use arrays_fields, only: gamtot, gamtot3 
@@ -616,7 +616,7 @@ contains
       !> Layouts
       use stella_transforms, only: transform_alpha2kalpha
       !> Parameters
-      use parameters_physics, only: nine, tite
+      use physics_parameters, only: nine, tite
       use parameters_kxky_grids, only: naky, naky_all, ikx_max
       !> Grids
       use zgrid, only: nzgrid

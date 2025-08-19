@@ -47,7 +47,7 @@ contains
       use arrays_fields, only: time_field_solve
       !> Parameters
       use parameters_numerical, only: fields_kxkyz
-      use parameters_physics, only: full_flux_surface
+      use physics_parameters, only: full_flux_surface
       !> Grids
       use zgrid, only: nzgrid
 
@@ -102,9 +102,9 @@ contains
       use arrays_fields, only: time_field_solve
       !> Parameters
       use parameters_numerical, only: fphi
-      use parameters_physics, only: beta
-      use parameters_physics, only: include_apar, include_bpar
-      use parameters_physics, only: radial_variation
+      use physics_parameters, only: beta
+      use physics_parameters, only: include_apar, include_bpar
+      use physics_parameters, only: radial_variation
       !> Grids
       use zgrid, only: nzgrid
       use species, only: spec
@@ -194,10 +194,10 @@ contains
       !> Arrays
       use arrays_fields, only: time_field_solve
       !> Parameters
-      use parameters_physics, only: include_apar, include_bpar
+      use physics_parameters, only: include_apar, include_bpar
       use parameters_numerical, only: fphi
-      use parameters_physics, only: beta
-      use parameters_physics, only: radial_variation
+      use physics_parameters, only: beta
+      use physics_parameters, only: radial_variation
       !> Grids
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
@@ -294,11 +294,11 @@ contains
       use arrays_fields, only: gamtot, gamtot3, gamtot_h, gamtot3_h
       use arrays_fields, only: time_field_solve
       !> Parameters
-      use parameters_physics, only: radial_variation
+      use physics_parameters, only: radial_variation
       use parameters_numerical, only: ky_solve_radial, ky_solve_real
       use parameters_kxky_grids, only: nakx, naky
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use physics_parameters, only: adiabatic_option_switch
+      use physics_parameters, only: adiabatic_option_fieldlineavg
       !> Grids
       use zgrid, only: nzgrid, ntubes
       use grids_kxky, only: zonal_mode
@@ -410,10 +410,10 @@ contains
       !> Parameters
       use parameters_numerical, only: fphi
       use parameters_numerical, only: maxwellian_normalization
-      use parameters_physics, only: tite, nine, beta
+      use physics_parameters, only: tite, nine, beta
       use parameters_kxky_grids, only: nakx
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use physics_parameters, only: adiabatic_option_switch
+      use physics_parameters, only: adiabatic_option_fieldlineavg
       !> Grids
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac

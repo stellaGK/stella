@@ -152,7 +152,7 @@ contains
    subroutine advance_collisions_explicit(g, phi, bpar, gke_rhs)
 
       use mp, only: mp_abort
-      use parameters_physics, only: full_flux_surface
+      use physics_parameters, only: full_flux_surface
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid
       use coll_dougherty, only: advance_collisions_dougherty_explicit

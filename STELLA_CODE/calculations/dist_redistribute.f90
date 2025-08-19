@@ -26,8 +26,8 @@ contains
 
    subroutine init_redistribute
 
-      use parameters_physics, only: full_flux_surface
-      use parameters_physics, only: include_parallel_nonlinearity
+      use physics_parameters, only: full_flux_surface
+      use physics_parameters, only: include_parallel_nonlinearity
       use parameters_numerical, only: split_parallel_dynamics
 
       implicit none

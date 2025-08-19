@@ -1,0 +1,143 @@
+module input_file_radially_global
+
+    implicit none
+
+    public :: read_namelist_radial_variation
+
+    public :: krook_option_default, krook_option_flat, &
+           krook_option_linear, krook_option_exp, krook_option_exp_rev, &
+           mb_zf_option_default, mb_zf_option_skip_ky0, &
+           mb_zf_option_zero_ky0, mb_zf_option_zero_fsa, &
+           LR_debug_option_default, LR_debug_option_L, LR_debug_option_R
+           
+    private
+
+    integer, parameter:: krook_option_default = 2, &
+                        krook_option_flat = 0, &
+                        krook_option_linear = 1, &
+                        krook_option_exp = 2, &
+                        krook_option_exp_rev = 3
+    integer, parameter :: mb_zf_option_default = 0, &
+                         mb_zf_option_skip_ky0 = 1, &
+                         mb_zf_option_zero_ky0 = 2, &
+                         mb_zf_option_zero_fsa = 3
+    integer, parameter:: LR_debug_option_default = 0, &
+                        LR_debug_option_L = 1, &
+                        LR_debug_option_R = 2
+
+   !****************************************************************************
+   !                               RADIAL VARIATION                            !
+   !****************************************************************************
+   subroutine read_namelist_radial_variation(radial_variation, include_geometric_variation, &
+        ky_solve_radial, ky_solve_real, include_pressure_variation, & 
+        boundary_size, krook_size, smooth_zfs, &
+        zf_option, lr_debug_option, krook_option, rk_step, nu_krook_mb, mb_debug_step, &
+        krook_exponent, comm_at_init, phi_bound, phi_pow, krook_efold, use_dirichlet_bc)
+
+        use mp, only: proc0
+
+        implicit none
+
+        logical, intent (out) :: radial_variation
+        logical, intent (out) :: include_geometric_variation
+        real, intent (out) :: boundary_size, krook_size, nu_krook_mb
+        logical, intent (out) :: include_pressure_variation, smooth_zfs
+        character(30), intent (out) :: zf_option, lr_debug_option, krook_option
+        logical, intent (out) :: rk_step, comm_at_init, use_dirichlet_bc
+        real, intent (out) :: krook_exponent, phi_bound, phi_pow, krook_efold
+        integer, intent (out) :: mb_debug_step
+        logical, intent (out) :: ky_solve_real
+        integer, intent (out) :: ky_solve_radial
+
+        logical, intent(out) :: INPUTS
+        character(30), intent(out) :: INPUTS
+
+        if (.not. proc0) return
+        call set_default_parameters_radial_variation
+        call read_input_file_radial_variation
+        call check_inputs_radial_variation
+
+    contains
+      
+    !------------------------ Default input parameters -----------------------
+    subroutine set_default_parameters_radial_variation
+
+        implicit none
+
+        ! By default
+        radial_variation = .false. 
+        include_geometric_variation = .false. 
+        ky_solve_radial = 0 
+        ky_solve_real =.false. 
+        include_pressure_variation = .false. 
+        boundary_size = 4.0
+        krook_size = 0.0
+        smooth_zfs = .false.
+        zf_option = "default"
+        lr_debug_option = "default"
+        krook_option = "default"
+        rk_step = .false.
+        nu_krook_mb = 0.0
+        mb_debug_step = -1.0
+        krook_exponent = 0.0
+        comm_at_init = .false.
+        phi_bound = 0.0
+        phi_pow = 0.0
+        krook_efold = 3.0
+        use_dirichlet_bc = .false.
+
+    end subroutine set_default_parameters_radial_variation
+
+    !---------------------------- Read input file ----------------------------
+      subroutine read_input_file_radial_variation
+
+        use file_utils, only: input_unit_exist
+
+        implicit none
+
+        type(text_option), dimension(5), parameter :: krook_opts = &
+            (/text_option('default', krook_option_default), &
+                text_option('flat', krook_option_flat), &
+                text_option('linear', krook_option_linear), &
+                text_option('exp', krook_option_exp), &
+                text_option('exp_reverse', krook_option_exp_rev)/)
+        type(text_option), dimension(4), parameter :: mb_zf_opts = &
+            (/text_option('default', mb_zf_option_default), &
+                text_option('skip_ky0', mb_zf_option_skip_ky0), &
+                text_option('zero_ky0', mb_zf_option_zero_ky0), &
+                text_option('zero_fsa', mb_zf_option_zero_fsa)/)
+        type(text_option), dimension(3), parameter :: LR_db_opts = &
+            (/text_option('default', LR_debug_option_default), &
+                text_option('L', LR_debug_option_L), &
+                text_option('R', LR_debug_option_R)/)
+
+        character(30) :: zf_option, krook_option, LR_debug_option
+
+        namelist /multibox_parameters/ radial_variation, include_geometric_variation, &
+            ky_solve_radial, ky_solve_real, include_pressure_variation, boundary_size, & 
+            krook_size, smooth_ZFs, zf_option, LR_debug_option, &
+            krook_option, RK_step, nu_krook_mb, &
+            mb_debug_step, krook_exponent, comm_at_init, &
+            phi_bound, phi_pow, krook_efold, use_dirichlet_BC
+
+        in_file = input_unit_exist("radial_variation", dexist)
+        if (dexist) read (unit=in_file, nml=radial_variation)  
+
+        ierr = error_unit()
+        call get_option_value &
+            (krook_option, krook_opts, krook_option_switch, &
+             ierr, "krook_option in multibox_parameters")
+        call get_option_value &
+            (zf_option, mb_zf_opts, mb_zf_option_switch, &
+             ierr, "zf_option in multibox_parameters")
+        call get_option_value &
+            (LR_debug_option, LR_db_opts, LR_debug_switch, &
+             ierr, "LR_debug_option in multibox_parameters")
+
+        if (krook_size > boundary_size) krook_size = boundary_size
+
+      end subroutine read_input_file_radial_variation
+
+   end subroutine read_namelist_radial_variation
+
+end module input_file_radially_global

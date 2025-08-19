@@ -51,8 +51,8 @@ contains
    subroutine init_time_advance
 
       use mp, only: proc0
-      use parameters_physics, only: radial_variation
-      use parameters_physics, only: include_parallel_nonlinearity
+      use physics_parameters, only: radial_variation
+      use physics_parameters, only: include_parallel_nonlinearity
       use neoclassical_terms, only: init_neoclassical_terms
       use dissipation, only: init_collisions, include_collisions
       use parallel_streaming, only: init_parallel_streaming
@@ -137,7 +137,7 @@ contains
       use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
       use parameters_numerical, only: maxwellian_normalization
 
-      use parameters_physics, only: xdriftknob, ydriftknob
+      use physics_parameters, only: xdriftknob, ydriftknob
       implicit none
 
       integer :: ivmu, iv, imu, is
@@ -290,7 +290,7 @@ contains
       use neoclassical_terms, only: dfneo_drho
       use parameters_numerical, only: maxwellian_normalization
 
-      use parameters_physics, only: wstarknob
+      use physics_parameters, only: wstarknob
       implicit none
 
       integer :: is, imu, iv, ivmu
@@ -348,7 +348,7 @@ contains
 
    subroutine init_parallel_nonlinearity
 
-      use parameters_physics, only: rhostar
+      use physics_parameters, only: rhostar
       use species, only: spec, nspec
       use zgrid, only: nztot, nzgrid
       use geometry, only: geo_surf, drhodpsi, q_as_x
@@ -356,9 +356,9 @@ contains
       use geometry, only: cvdrift, cvdrift0
       use geometry, only: dIdrho, dgradpardrho, dBdrho, d2Bdrdth
       use geometry, only: dcvdriftdrho, dcvdrift0drho
-      use parameters_physics, only: radial_variation
+      use physics_parameters, only: radial_variation
 
-      use parameters_physics, only: ydriftknob
+      use physics_parameters, only: ydriftknob
       implicit none
 
       if (.not. allocated(par_nl_fac)) allocate (par_nl_fac(-nzgrid:nzgrid, nspec))
@@ -428,7 +428,7 @@ contains
       use arrays_dist_fn, only: wdriftpx_g, wdriftpy_g
       use arrays_dist_fn, only: wdriftpx_phi, wdriftpy_phi!, adiabatic_phi
 
-      use parameters_physics, only: xdriftknob, ydriftknob, wstarknob
+      use physics_parameters, only: xdriftknob, ydriftknob, wstarknob
       
 !   use neoclassical_terms, only: include_neoclassical_terms
 
@@ -577,7 +577,7 @@ contains
       use arrays_dist_fn, only: wdriftx_g, wdrifty_g
       use stella_time, only: code_dt, write_dt, cfl_dt_linear
       use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
-      use parameters_physics, only: radial_variation, prp_shear_enabled
+      use physics_parameters, only: radial_variation, prp_shear_enabled
       use zgrid, only: delzed
       use vpamu_grids, only: dvpa
       use grids_kxky, only: akx, aky, rho
@@ -724,7 +724,7 @@ contains
       use mirror_terms, only: init_mirror
       use flow_shear, only: flow_shear_initialized
       use flow_shear, only: init_flow_shear
-      use parameters_physics, only: radial_variation
+      use physics_parameters, only: radial_variation
       use sources, only: init_source_timeaverage
       use sources, only: init_quasineutrality_source, qn_source_initialized
 
@@ -786,7 +786,7 @@ contains
       use sources, only: source_option_switch, source_option_projection
       use sources, only: source_option_krook
       use sources, only: update_tcorr_krook, project_out_zero
-      use parameters_physics, only: include_apar
+      use physics_parameters, only: include_apar
       use mp, only: proc0, broadcast
 
       use parameters_numerical, only: flip_flop
@@ -908,7 +908,7 @@ contains
       use extended_zgrid, only: periodic, phase_shift
       use parameters_kxky_grids, only: naky
       use stella_layouts, only: vmu_lo, iv_idx
-      use parameters_physics, only: include_apar
+      use physics_parameters, only: include_apar
       use parallel_streaming, only: stream_sign
       use arrays_fields, only: phi, apar, bpar
       use fields, only: advance_fields
@@ -1173,12 +1173,12 @@ contains
       use arrays_fields, only: phi, apar, bpar
       use stella_layouts, only: vmu_lo
       use stella_transforms, only: transform_y2ky
-      use parameters_physics, only: include_parallel_nonlinearity
-      use parameters_physics, only: include_parallel_streaming
-      use parameters_physics, only: include_mirror, include_apar
-      use parameters_physics, only: nonlinear, include_bpar
-      use parameters_physics, only: full_flux_surface, radial_variation
-      use parameters_physics, only: g_exb
+      use physics_parameters, only: include_parallel_nonlinearity
+      use physics_parameters, only: include_parallel_streaming
+      use physics_parameters, only: include_mirror, include_apar
+      use physics_parameters, only: include_nonlinear, include_bpar
+      use physics_parameters, only: full_flux_surface, radial_variation
+      use physics_parameters, only: g_exb
       use zgrid, only: nzgrid, ntubes
       use parameters_kxky_grids, only: ikx_max, ny, naky_all
       use calculations_kxky, only: swap_kxky_back
@@ -1266,7 +1266,7 @@ contains
       !> do this first, as the CFL condition may require a change in time step
       !> and thus recomputation of mirror, wdrift, wstar, and parstream
       if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_ExB_nonlinearity'
-      if (nonlinear) call advance_ExB_nonlinearity(pdf, rhs, restart_time_step, istep)
+      if (include_nonlinear) call advance_ExB_nonlinearity(pdf, rhs, restart_time_step, istep)
 
       !> include contribution from the parallel nonlinearity (aka turbulent acceleration)
       if (include_parallel_nonlinearity .and. .not. restart_time_step) &
@@ -1490,7 +1490,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use parameters_kxky_grids, only: naky, naky_all, nakx, ikx_max, ny
       use calculations_kxky, only: swap_kxky
-      use parameters_physics, only: full_flux_surface
+      use physics_parameters, only: full_flux_surface
       use arrays_dist_fn, only: wstar, g_scratch
       use gyro_averages, only: gyro_average
 
@@ -1558,7 +1558,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       use parameters_kxky_grids, only: nakx, ikx_max, naky, naky_all, ny
       use calculations_kxky, only: swap_kxky
-      use parameters_physics, only: full_flux_surface, include_bpar
+      use physics_parameters, only: full_flux_surface, include_bpar
       use gyro_averages, only: gyro_average, gyro_average_j1
       use arrays_dist_fn, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
       use arrays_dist_fn, only: g_scratch
@@ -1665,7 +1665,7 @@ contains
       use parameters_kxky_grids, only: nakx, ikx_max, naky, naky_all, ny
       use grids_kxky, only: akx
       use calculations_kxky, only: swap_kxky
-      use parameters_physics, only: full_flux_surface, include_bpar
+      use physics_parameters, only: full_flux_surface, include_bpar
       use gyro_averages, only: gyro_average
       use arrays_dist_fn, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
       use arrays_dist_fn, only: g_scratch
@@ -1773,19 +1773,19 @@ contains
       use stella_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
       use stella_time, only: cfl_dt_ExB, cfl_dt_linear, code_dt, code_dt_max
       use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, fphi
-      use parameters_physics, only: g_exb, g_exbfac
+      use physics_parameters, only: g_exb, g_exbfac
       use zgrid, only: nzgrid, ntubes
       use geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
       use parameters_kxky_grids, only: nakx, ikx_max, naky, naky_all, nx, ny
       use grids_kxky, only: akx, aky, rho_clamped
-      use parameters_physics, only: full_flux_surface, radial_variation
-      use parameters_physics, only: prp_shear_enabled, hammett_flow_shear
-      use parameters_physics, only: include_apar, include_bpar
+      use physics_parameters, only: full_flux_surface, radial_variation
+      use physics_parameters, only: prp_shear_enabled, hammett_flow_shear
+      use physics_parameters, only: include_apar, include_bpar
       use grids_kxky, only: x
       use calculations_kxky, only: swap_kxky, swap_kxky_back
       use constants, only: pi, zi
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use parameters_physics, only: suppress_zonal_interaction
+      use physics_parameters, only: suppress_zonal_interaction
       use arrays_dist_fn, only: g_scratch
       use g_tofrom_h, only: g_to_h
 
@@ -2066,7 +2066,7 @@ contains
       use extended_zgrid, only: neigen, nsegments, ikxmod
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: periodic
-      use parameters_physics, only: full_flux_surface, radial_variation
+      use physics_parameters, only: full_flux_surface, radial_variation
       use grids_kxky, only: akx, aky, rho_clamped
       use parameters_kxky_grids, only: nakx, naky, nx, ny, ikx_max
       use calculations_kxky, only: swap_kxky, swap_kxky_back
@@ -2353,8 +2353,8 @@ contains
       use calculations_kxky, only: multiply_by_rho
       use gyro_averages, only: gyro_average, gyro_average_j1
       use parameters_numerical, only: fphi
-      use parameters_physics, only: full_flux_surface
-      use parameters_physics, only: include_parallel_streaming, include_mirror
+      use physics_parameters, only: full_flux_surface
+      use physics_parameters, only: include_parallel_streaming, include_mirror
       use arrays_dist_fn, only: wdriftx_phi, wdrifty_phi
       use arrays_dist_fn, only: wdriftpx_g, wdriftpy_g
       use arrays_dist_fn, only: wdriftpx_phi, wdriftpy_phi !, adiabatic_phi
@@ -2695,9 +2695,9 @@ contains
       use zgrid, only: nzgrid
       use dissipation, only: hyper_dissipation
       use hyper, only: advance_hyper_dissipation
-      use parameters_physics, only: include_parallel_streaming
-      use parameters_physics, only: radial_variation, full_flux_surface
-      use parameters_physics, only: include_mirror, prp_shear_enabled
+      use physics_parameters, only: include_parallel_streaming
+      use physics_parameters, only: radial_variation, full_flux_surface
+      use physics_parameters, only: include_mirror, prp_shear_enabled
       use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
       use implicit_solve, only: advance_implicit_terms
       use fields, only: advance_fields, fields_updated
@@ -2952,7 +2952,7 @@ contains
    subroutine finish_time_advance
 
       use stella_transforms, only: finish_transforms
-      use parameters_physics, only: full_flux_surface
+      use physics_parameters, only: full_flux_surface
       use extended_zgrid, only: finish_extended_zgrid
       use parallel_streaming, only: finish_parallel_streaming
       use mirror_terms, only: finish_mirror

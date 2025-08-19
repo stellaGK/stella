@@ -1,0 +1,74 @@
+module input_file_parameters
+
+   implicit none
+
+   public :: read_namelist_gyrokinetic_terms
+   public :: read_namelist_scale_gyrokinetic_terms
+   public :: read_namelist_adiabatic_electron_response
+   public :: read_namelist_electromagnetic
+   public :: read_namelist_flow_shear
+   public :: read_namelist_full_flux_surface
+
+   private 
+   
+   ! These variables are used in every single subroutine, so make them global
+   integer :: in_file
+   logical :: dexist
+
+contains
+
+   !****************************************************************************
+   !                             GYROKINETIC TERMS                             !
+   !****************************************************************************
+   subroutine read_namelist_ADD()
+
+   use mp, only: proc0
+
+      implicit none
+
+      logical, intent(out) :: INPUTS
+      character(30), intent(out) :: INPUTS
+
+      if (.not. proc0) return
+      call set_default_parameters_ADD
+      call read_input_file_ADD
+      call check_inputs_ADD
+   contains
+      
+      !------------------------ Default input parameters -----------------------
+      subroutine set_default_parameters_ADD
+
+         implicit none
+
+         ! By default
+
+      end subroutine set_default_parameters_ADD
+
+   !---------------------------- Read input file ----------------------------
+      subroutine read_input_file_ADD
+
+         use file_utils, only: input_unit_exist
+         implicit none
+
+         namelist / / 
+         in_file = input_unit_exist("ADD", dexist)
+         if (dexist) read (unit=in_file, nml=ADD)
+
+      end subroutine read_input_file_ADD
+
+      !------------------------- Check input parameters ------------------------
+      subroutine check_inputs_ADD
+
+         implicit none
+
+         if (.not. include_collisions) collisions_implicit = .false.
+
+      end subroutine check_inputs_ADD
+
+
+   end subroutine read_namelist_ADD
+
+
+
+
+end module input_file_parameters

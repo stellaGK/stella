@@ -36,7 +36,7 @@ contains
       use constants, only: zi 
 
       ! Flags  
-      use parameters_physics, only: radial_variation
+      use physics_parameters, only: radial_variation
       use fields, only: fields_updated    
       use parameters_diagnostics, only: nc_mult, nwrite
 
@@ -128,7 +128,7 @@ contains
 
       use zgrid, only: init_zgrid
       use grids_kxky, only: init_grids_kxky
-      use parameters_physics, only: read_parameters_physics
+      use physics_parameters, only: read_physics_parameters
       use parameters_numerical, only: read_parameters_numerical
       use species, only: init_species
       use dist_fn, only: init_dist_fn
@@ -158,7 +158,7 @@ contains
       ! Should have been taken care off in the <init_stella> subroutine in the <stella> module. 
       ! Nonetheless, make sure that the other routines are intialized.
       call init_zgrid
-      call read_parameters_physics
+      call read_physics_parameters
       call init_grids_kxky
       call read_parameters_numerical
       call init_species

@@ -784,7 +784,7 @@ contains
       use geometry, only: bmag, bmag_psi0
       use parameters_numerical, only: maxwellian_normalization
 
-      use parameters_physics, only: full_flux_surface
+      use physics_parameters, only: full_flux_surface
       implicit none
 
       integer :: imu

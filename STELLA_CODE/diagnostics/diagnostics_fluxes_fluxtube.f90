@@ -97,7 +97,7 @@ contains
       pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts, pflux_vs_kxkys, vflux_vs_kxkys, qflux_vs_kxkys)
 
       ! Flags
-      use parameters_physics, only: include_apar, include_bpar
+      use physics_parameters, only: include_apar, include_bpar
       
       ! Input file
       use parameters_diagnostics, only: write_fluxes_kxkyz 

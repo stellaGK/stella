@@ -45,10 +45,10 @@ contains
       use arrays_dist_fn, only: g_scratch
       use arrays_fields, only: time_field_solve
       !> Parameters
-      use parameters_physics, only: beta 
+      use physics_parameters, only: beta 
       use parameters_numerical, only: fphi 
-      use parameters_physics, only: radial_variation
-      use parameters_physics, only: include_apar, include_bpar
+      use physics_parameters, only: radial_variation
+      use physics_parameters, only: include_apar, include_bpar
       !> Grids
       use species, only: spec
       use vpamu_grids, only: integrate_species, vpa, mu
@@ -136,8 +136,8 @@ contains
       use arrays_dist_fn, only: kperp2 
       use arrays_fields, only: apar_denom, time_field_solve
       !> Parameters
-      use parameters_physics, only: beta
-      use parameters_physics, only: include_apar, include_bpar
+      use physics_parameters, only: beta
+      use physics_parameters, only: include_apar, include_bpar
       use parameters_numerical, only: fphi 
       !> Grids
       use zgrid, only: nzgrid, ntubes
@@ -320,8 +320,8 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       !> Parameters
-      use parameters_physics, only: include_apar
-      use parameters_physics, only: beta
+      use physics_parameters, only: include_apar
+      use physics_parameters, only: beta
       !> Grids
       use species, only: spec
       use zgrid, only: nzgrid, ntubes
@@ -387,9 +387,9 @@ contains
       use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
       use arrays_fields, only: apar_denom
       !> Parameters
-      use parameters_physics, only: include_apar, include_bpar
+      use physics_parameters, only: include_apar, include_bpar
       use parameters_kxky_grids, only : nakx, naky 
-      use parameters_physics, only: beta
+      use physics_parameters, only: beta
       use parameters_numerical, only: fphi 
       !> Grids
       use species, only: spec
@@ -527,7 +527,7 @@ contains
       use zgrid, only: nzgrid, ntubes
       
       use parameters_kxky_grids, only: naky, nakx
-      use parameters_physics, only: include_apar, include_bpar
+      use physics_parameters, only: include_apar, include_bpar
       
       !> TOD-GA: Want to put the allocations of these arrays here:  
       use arrays_fields, only: apar, apar_old
@@ -580,7 +580,7 @@ contains
    subroutine finish_fields_electromagnetic
 
       ! Parameters
-      use parameters_physics, only: include_apar, include_bpar
+      use physics_parameters, only: include_apar, include_bpar
      
       use arrays_fields, only: apar, apar_denom
       use arrays_fields, only: apar_old, bpar_old

@@ -128,8 +128,8 @@ contains
       !********************************************************************** 
       subroutine set_default_parameters
 
-         use parameters_physics, only: radial_variation
-         use parameters_physics, only: nonlinear
+         use physics_parameters, only: radial_variation
+         use physics_parameters, only: include_nonlinear
 
          implicit none
          
@@ -184,7 +184,7 @@ contains
          !------------------------------ 
          
          ! For linear simulations write omega by default 
-         write_omega_vs_kxky = .not. nonlinear
+         write_omega_vs_kxky = .not. include_nonlinear
          
          ! We calculate running averages for omega over <navg> time points
          write_omega_avg_vs_kxky = .false.
@@ -249,7 +249,7 @@ contains
       subroutine read_input_file
 
          use file_utils, only: input_unit_exist
-         use parameters_physics, only: nonlinear
+         use physics_parameters, only: include_nonlinear
 
          implicit none
 
@@ -286,7 +286,7 @@ contains
          ! For nonlinear simulations, don't stop automatically 
          ! and if we want to <autostop> we need the <omega_vs_tkykx> 
          ! which contains <omega_vs_kykx> over the last <navg> time steps
-         if (nonlinear) autostop = .false.
+         if (include_nonlinear) autostop = .false.
          if (autostop) write_omega_avg_vs_kxky = .true.
          
          ! Write all diagnostics

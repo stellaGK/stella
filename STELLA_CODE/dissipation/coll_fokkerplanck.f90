@@ -61,7 +61,7 @@ contains
    subroutine read_parameters_fp
 
       use file_utils, only: input_unit_exist
-      use parameters_physics, only: full_flux_surface, radial_variation
+      use physics_parameters, only: full_flux_surface, radial_variation
       use mp, only: proc0, broadcast
 
       implicit none
@@ -347,7 +347,7 @@ contains
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use geometry, only: bmag
       use arrays_dist_fn, only: kperp2
-      use parameters_physics, only: zeff
+      use physics_parameters, only: zeff
       use constants, only: pi
       use common_types, only: spec_type
       use parameters_kxky_grids, only: naky, nakx
@@ -3298,7 +3298,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use stella_time, only: code_dt
       use zgrid, only: nzgrid, ntubes
       use parameters_numerical, only: fphi
-      use parameters_physics, only: full_flux_surface
+      use physics_parameters, only: full_flux_surface
       use parameters_kxky_grids, only: naky, nakx
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: set_vpa_weights

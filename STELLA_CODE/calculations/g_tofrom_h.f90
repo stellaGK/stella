@@ -276,7 +276,7 @@ contains
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: vpa, vperp2, mu
       use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
-      use parameters_physics, only: radial_variation, include_bpar
+      use physics_parameters, only: radial_variation, include_bpar
       use parameters_numerical, only: maxwellian_normalization
 
       implicit none
@@ -406,7 +406,7 @@ contains
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use gyro_averages, only: gyro_average, gyro_average_j1
       use parameters_numerical, only: maxwellian_normalization
-      use parameters_physics, only: include_bpar
+      use physics_parameters, only: include_bpar
       
       implicit none
 
@@ -470,9 +470,9 @@ contains
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, vperp2, mu, vpa
       use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
       use gyro_averages, only: gyro_average, aj0x, aj1x
-      use parameters_physics, only: radial_variation
+      use physics_parameters, only: radial_variation
 
-      use parameters_physics, only: full_flux_surface
+      use physics_parameters, only: full_flux_surface
       use gyro_averages, only: j0_ffs
 
       implicit none

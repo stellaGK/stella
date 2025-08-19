@@ -100,6 +100,7 @@ module parameters_numerical
    logical :: fields_kxkyz, mat_gen, mat_read
    logical :: ky_solve_real
    integer :: ky_solve_radial
+   
    integer :: nitt
    logical :: print_extra_info_to_terminal
    
@@ -206,12 +207,12 @@ contains
       !**********************************************************************
       subroutine read_input_file
 
-         use parameters_physics, only: full_flux_surface
-         use parameters_physics, only: include_apar, include_bpar
-         use parameters_physics, only: include_parallel_streaming
-         use parameters_physics, only: include_mirror
-         use parameters_physics, only: nonlinear
-         use parameters_physics, only: rhostar
+         use physics_parameters, only: full_flux_surface
+         use physics_parameters, only: include_apar, include_bpar
+         use physics_parameters, only: include_parallel_streaming
+         use physics_parameters, only: include_mirror
+         use physics_parameters, only: include_nonlinear
+         use physics_parameters, only: rhostar
          !> For FFS - need to delete
          
          implicit none 
@@ -387,7 +388,7 @@ contains
             fully_explicit = .true.
          end if
          
-         if (mirror_implicit .and. stream_implicit .and. drifts_implicit .and. .not. nonlinear) then
+         if (mirror_implicit .and. stream_implicit .and. drifts_implicit .and. .not. include_nonlinear) then
             fully_implicit = .true.
          else
             fully_implicit = .false.
@@ -410,7 +411,7 @@ contains
          
          integer :: in_file
          
-         ! These variables belonged to <time_advance_knobs> and are now read in <parameters_physics>
+         ! These variables belonged to <time_advance_knobs> and are now read in <physics_parameters>
          ! We define them here so we can read the namelist, but we will not use them.
          real :: xdriftknob, ydriftknob, wstarknob
 

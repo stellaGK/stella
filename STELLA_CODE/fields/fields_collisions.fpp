@@ -32,8 +32,8 @@ contains
       use parameters_kxky_grids, only: nakx
       use grids_kxky, only: zonal_mode
       use species, only: spec, nspec, has_electron_species
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use physics_parameters, only: adiabatic_option_switch
+      use physics_parameters, only: adiabatic_option_fieldlineavg
 
       use arrays_fields, only: gamtot3_h, gamtot_h
 
@@ -117,8 +117,8 @@ contains
       use parameters_kxky_grids, only: nakx
       use grids_kxky, only: zonal_mode
       use species, only: spec, nspec, has_electron_species
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use physics_parameters, only: adiabatic_option_switch
+      use physics_parameters, only: adiabatic_option_fieldlineavg
       use arrays_dist_fn, only: kperp2
       use spfunc, only: j0
 

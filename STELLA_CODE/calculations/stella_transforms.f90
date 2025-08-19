@@ -55,7 +55,7 @@ contains
 
    subroutine init_transforms
 
-      use parameters_physics, only: full_flux_surface
+      use physics_parameters, only: full_flux_surface
       use stella_layouts, only: init_stella_layouts
 
       implicit none
@@ -570,7 +570,7 @@ contains
 
    subroutine finish_transforms
 
-      use parameters_physics, only: full_flux_surface
+      use physics_parameters, only: full_flux_surface
 
       implicit none
 

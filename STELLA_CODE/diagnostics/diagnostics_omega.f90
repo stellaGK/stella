@@ -51,7 +51,7 @@ contains
       use mp, only: proc0
       
       ! Physics flags
-      use parameters_physics, only: include_apar
+      use physics_parameters, only: include_apar
       
       ! Fields
       use arrays_fields, only: phi, phi_old

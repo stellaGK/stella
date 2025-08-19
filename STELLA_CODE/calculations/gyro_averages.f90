@@ -58,7 +58,7 @@ contains
    subroutine init_bessel
 
       use arrays_dist_fn, only: kperp2
-      use parameters_physics, only: full_flux_surface
+      use physics_parameters, only: full_flux_surface
       use species, only: spec
       use geometry, only: bmag
       use zgrid, only: nzgrid
@@ -653,7 +653,7 @@ contains
 
    subroutine gyro_average_kxky_local(field, iz, ivmu, gyro_field)
 
-      use parameters_physics, only: full_flux_surface
+      use physics_parameters, only: full_flux_surface
 
       implicit none
 
@@ -674,7 +674,7 @@ contains
 
    subroutine gyro_average_kxkyz_local(field, ivmu, gyro_field)
 
-      use parameters_physics, only: full_flux_surface
+      use physics_parameters, only: full_flux_surface
       use zgrid, only: nzgrid, ntubes
 
       implicit none
@@ -696,7 +696,7 @@ contains
 
    subroutine gyro_average_kxkyzv_local(field, gyro_field)
 
-      use parameters_physics, only: full_flux_surface
+      use physics_parameters, only: full_flux_surface
       use zgrid, only: nzgrid
       use stella_layouts, only: vmu_lo
 
@@ -972,7 +972,7 @@ contains
       use mp, only: proc0, mp_abort
       use zgrid, only: nzgrid
       use stella_layouts, only: vmu_lo
-      use parameters_physics, only: full_flux_surface
+      use physics_parameters, only: full_flux_surface
       
       implicit none
 

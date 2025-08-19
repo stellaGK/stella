@@ -24,7 +24,7 @@ contains
    subroutine read_parameters_hyper
 
       use file_utils, only: input_unit_exist
-      use parameters_physics, only: full_flux_surface, radial_variation
+      use physics_parameters, only: full_flux_surface, radial_variation
       use mp, only: proc0, broadcast
 
       implicit none

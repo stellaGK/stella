@@ -125,7 +125,7 @@ contains
       use vmec_geometry, only: read_vmec_parameters, get_vmec_geometry 
 
       ! Flags
-      use parameters_physics, only: include_geometric_variation
+      use physics_parameters, only: include_geometric_variation
 
       ! Routines
       use file_utils, only: get_unused_unit
@@ -983,7 +983,7 @@ contains
    subroutine read_parameters
 
       ! Flags
-      use parameters_physics, only: radial_variation
+      use physics_parameters, only: radial_variation
 
       ! Multibox runs
       use file_utils, only: runtype_option_Switch, runtype_multibox
@@ -1283,7 +1283,7 @@ contains
    !============================================================================
    subroutine get_x_to_rho(llim, x_in, rho_out)
 
-      use parameters_physics, only: rhostar
+      use physics_parameters, only: rhostar
 
       implicit none
 

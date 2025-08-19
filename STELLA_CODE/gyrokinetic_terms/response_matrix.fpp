@@ -262,7 +262,7 @@ contains
 
       use mp, only: proc0
       use parameters_numerical, only: mat_gen
-      use parameters_physics, only: include_apar, include_bpar
+      use physics_parameters, only: include_apar, include_bpar
       use extended_zgrid, only: neigen, ikxmod
       use extended_zgrid, only: nsegments, nzed_segment
       use extended_zgrid, only: periodic
@@ -402,7 +402,7 @@ contains
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
-      use parameters_physics, only: include_apar, include_bpar
+      use physics_parameters, only: include_apar, include_bpar
       use extended_zgrid, only: neigen
       use extended_zgrid, only: nsegments, nzed_segment
       use extended_zgrid, only: periodic
@@ -689,11 +689,11 @@ contains
 
       use stella_layouts, only: vmu_lo
       use parameters_numerical, only: time_upwind_plus
-      use parameters_physics, only: include_apar, include_bpar
+      use physics_parameters, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use arrays_fields, only: response_matrix
       use extended_zgrid, only: periodic, phase_shift
-      use parameters_physics, only: full_flux_surface
+      use physics_parameters, only: full_flux_surface
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
@@ -777,7 +777,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use parameters_numerical, only: time_upwind_plus
-      use parameters_physics, only: include_apar, include_bpar
+      use physics_parameters, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use arrays_fields, only: response_matrix
       use extended_zgrid, only: periodic
@@ -863,7 +863,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use parameters_numerical, only: time_upwind_plus
-      use parameters_physics, only: include_apar, include_bpar
+      use physics_parameters, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use arrays_fields, only: response_matrix
       use extended_zgrid, only: periodic
@@ -947,7 +947,7 @@ contains
    subroutine integrate_over_velocity(g, phi, apar, bpar, iky, ie)
 
       use stella_layouts, only: vmu_lo
-      use parameters_physics, only: include_apar, include_bpar
+      use physics_parameters, only: include_apar, include_bpar
 
       implicit none
 
@@ -976,7 +976,7 @@ contains
       use parameters_numerical, only: driftkinetic_implicit
       use vpamu_grids, only: integrate_species_ffs_rm
 
-      use parameters_physics, only: full_flux_surface
+      use physics_parameters, only: full_flux_surface
 
       use gyro_averages, only: j0_B_const
 
@@ -1050,7 +1050,7 @@ contains
 
       use stella_layouts, only: vmu_lo, imu_idx
       use species, only: nspec, spec
-      use parameters_physics, only: beta
+      use physics_parameters, only: beta
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
@@ -1112,7 +1112,7 @@ contains
    subroutine integrate_over_velocity_apar(g, apar, iky, ie)
 
       use stella_layouts, only: vmu_lo, iv_idx
-      use parameters_physics, only: beta
+      use physics_parameters, only: beta
       use species, only: nspec, spec
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
@@ -1176,7 +1176,7 @@ contains
 
    subroutine get_fields_for_response_matrix(phi, apar, bpar, iky, ie, dist)
 
-      use parameters_physics, only: include_apar, include_bpar
+      use physics_parameters, only: include_apar, include_bpar
 
       implicit none
 
@@ -1205,8 +1205,8 @@ contains
       use grids_kxky, only: zonal_mode, akx
       use arrays_fields, only: gamtot, gamtot3
       use arrays_fields, only: gamtot_h, gamtot3_h
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use physics_parameters, only: adiabatic_option_switch
+      use physics_parameters, only: adiabatic_option_fieldlineavg
 
       implicit none
 
@@ -1285,8 +1285,8 @@ contains
       use grids_kxky, only: zonal_mode, akx
       use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
       use arrays_fields, only: gamtot_h
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use physics_parameters, only: adiabatic_option_switch
+      use physics_parameters, only: adiabatic_option_fieldlineavg
       use mp, only: mp_abort
       
       implicit none

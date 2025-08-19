@@ -211,8 +211,8 @@ contains
            use geometry, only: geo_surf, twist_and_shift_geo_fac, dydalpha
            use geometry, only: q_as_x, get_x_to_rho, dxdpsi, drhodpsi
            use geometry, only: geo_option_switch, geo_option_vmec
-           use parameters_physics, only: rhostar
-           use parameters_physics, only: full_flux_surface, radial_variation
+           use physics_parameters, only: rhostar
+           use physics_parameters, only: full_flux_surface, radial_variation
            use file_utils, only: runtype_option_switch, runtype_multibox
            use zgrid, only: nperiod
            use zgrid, only: boundary_option_switch, boundary_option_linked
