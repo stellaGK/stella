@@ -91,7 +91,8 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/gyrokinetic_terms/mirror_terms.f90
   ../STELLA_CODE/gyrokinetic_terms/parallel_streaming.f90
   ../STELLA_CODE/gyrokinetic_terms/time_advance.f90
-  ../STELLA_CODE/input_parameters/input_file.f90
+  ../STELLA_CODE/input_parameters/input_file_fields.f90
+  ../STELLA_CODE/input_parameters/input_file_dissipation.f90
   ../STELLA_CODE/neoclassical/euterpe_interface.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
   ../STELLA_CODE/parameters/debug_flags.f90
