@@ -76,10 +76,10 @@ jobs:
               brew install gcc@11 make openmpi fftw netcdf-fortran gnu-sed
               sudo mkdir /usr/local/gfortran; sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
             elif [ ${{ matrix.os }} == 'macos-14' ]; then
-              brew install gcc@11 make openmpi fftw netcdf-fortran gnu-sed
-              ln -fs /opt/homebrew/bin/gfortran-11 /usr/local/bin/gfortran
+              brew install gcc@10 make openmpi fftw netcdf-fortran gnu-sed
+              ln -fs /opt/homebrew/bin/gfortran-10 /usr/local/bin/gfortran
               sudo mkdir -p /usr/local/gfortran
-              sudo ln -s /opt/homebrew/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
+              sudo ln -sf /opt/homebrew/Cellar/gcc@10/*/lib/gcc/10 /usr/local/gfortran/lib
             fi
           elif ${{ contains(matrix.os, 'ubuntu') }}; then  
             sudo apt update
