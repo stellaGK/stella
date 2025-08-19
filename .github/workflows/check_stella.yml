@@ -79,7 +79,7 @@ jobs:
               brew install gcc@11 make openmpi fftw netcdf-fortran gnu-sed
               ln -s /usr/local/bin/gfortran-11 /usr/local/bin/gfortran
               sudo mkdir /usr/local/gfortran
-              sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/10 /usr/local/gfortran/lib
+              sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
             fi
           elif ${{ contains(matrix.os, 'ubuntu') }}; then  
             sudo apt update
