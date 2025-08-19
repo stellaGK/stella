@@ -18,12 +18,23 @@
 !                                    Physics                                    
 !===============================================================================
 
-&parameters_physics
+&adiabatic_electron_response
   adiabatic_option = 'field-line-average-term'
-  full_flux_surface = .true.
-  include_apar = .false.
-  include_bpar = .false.
-  nonlinear = .true.
+/
+
+&gyrokinetic_terms
+  simulation_domain = 'full_flux_annulus'
+  include_parallel_streaming = .true.
+  include_mirror = .true.
+  include_xdrift = .true.
+  include_ydrift = .true.
+  include_drive = .true.
+  include_nonlinear = .false.
+  include_parallel_nonlinearity = .false.
+  include_electromagnetic = .false.
+/
+
+&flux_annulus
   rhostar = 0.02
 /
 
@@ -76,14 +87,14 @@
 /
 
 !===============================================================================
-!                              Initialize potential                             
+!                              Initialise potential                             
 !===============================================================================
 
-&initialize_distribution
-  initialize_distribution_option = 'default'
+&initialise_distribution
+  initialise_distribution_option = 'default'
   phiinit = 0.01
 /
-&initialize_distribution_maxwellian
+&initialise_distribution_maxwellian
   width0 = 1.0
 /
 
