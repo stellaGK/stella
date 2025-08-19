@@ -71,9 +71,16 @@ jobs:
       - name: Install dependencies
         run: |
           # Install dependencies
-          if ${{ contains(matrix.os, 'macos') }}; then  
-            brew install gcc@11 make openmpi fftw netcdf-fortran gnu-sed
-            sudo mkdir /usr/local/gfortran; sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib 
+          if ${{ contains(matrix.os, 'macos') }}; then   
+            if [ ${{ matrix.os }} == 'macos-12' ] || [ ${{ matrix.os }} == 'macos-13' ]; then
+              brew install gcc@11 make openmpi fftw netcdf-fortran gnu-sed
+              sudo mkdir /usr/local/gfortran; sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
+            elif [ ${{ matrix.os }} == 'macos-14' ]; then
+              brew install gcc@11 make openmpi fftw netcdf-fortran gnu-sed
+              ln -s /usr/local/bin/gfortran-11 /usr/local/bin/gfortran
+              sudo mkdir /usr/local/gfortran
+              sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/10 /usr/local/gfortran/lib
+            fi
           elif ${{ contains(matrix.os, 'ubuntu') }}; then  
             sudo apt update
             sudo apt install -y gfortran make libfftw3-dev libnetcdf-dev libnetcdff-dev 
