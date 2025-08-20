@@ -107,12 +107,21 @@
 !                                    Numerics                                   
 !===============================================================================
 
-&parameters_numerical
-  delt = 0.01
+&time_trace_options
   nstep = 10
+/
+
+&time_step
+  delt = 0.01
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'rk2'
+/
+
+&numerical_extra
   print_extra_info_to_terminal = .false.
   rng_seed = 1
-  explicit_option = 'rk2'
 /
 
 !===============================================================================
