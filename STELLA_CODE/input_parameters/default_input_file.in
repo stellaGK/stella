@@ -57,6 +57,14 @@
 !===============================================================================
 !                       Discretized (kx,ky,z,mu,vpa) grid                       
 !===============================================================================
+&velocity_grids (renamed from vpamu_grids_parameters)
+  nvgrid = 24.0
+  nmu = 12.0
+  vpa_max = 3.0
+  vperp_max = 3.0
+  equally_spaced_mu_grid = .false.
+  conservative_wgts_vpa = .false.
+ /
 &kxky_grid_option
   grid_option = "default"
  /
@@ -95,7 +103,6 @@
   grad_x_grad_y_zero = 1e-05
   dkx_over_dky = -1.0
 /
-
 &species_options
   nspec = 2.0
   species_option = "stella"
