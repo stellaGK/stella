@@ -1,0 +1,3 @@
+
+rhostar shouldn't be used in the flux tube version:
+- fix tests 4: all flags and useless flags with regards to rhostar

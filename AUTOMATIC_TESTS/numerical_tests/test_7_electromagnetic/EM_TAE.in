@@ -1,156 +1,156 @@
-&zgrid_parameters
- nzed = 6
- ntubes = 1
- nperiod = 3
- boundary_option="default"
-/
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
 
 &geo_knobs
- geo_option = 'miller'
+  geo_option = 'miller'
 /
-
 &millergeo_parameters
- nzed_local = 128
- rhoc=0.5
- rmaj=3.0
- rgeo=3.0
- qinp=2.0
- shat=1.0
- shift=0.0 
- kappa=1.0
- kapprim=0.0
- tri=0.0
- triprim=0.0
- 
- betaprim = 0.0089
-
- d2qdr2 = 0.0
- d2psidr2 = 0.0
- betadbprim = 0.0
+  nzed_local = 128
+  rhoc = 0.5
+  rmaj = 3.0
+  rgeo = 3.0
+  qinp = 2.0
+  shat = 1.0
+  shift = 0.0 
+  kappa = 1.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  betaprim = 0.0089
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  betadbprim = 0.0
 /
 
-&physics_flags
- full_flux_surface = .false.
- nonlinear = .false.
- adiabatic_option="field-line-average-term"
- include_apar = .true.
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&gyrokinetic_terms
+  include_parallel_streaming = .true.
+  include_mirror = .true.
+  include_xdrift = .true.
+  include_ydrift = .true.
+  include_drive = .true.
+  include_nonlinear = .false.
+  include_parallel_nonlinearity = .false.
+  include_electromagnetic = .true.
 /
 
-&parameters
- zeff = 1.05
- beta = 0.001
- vnew_ref = 0.0
- rhostar = 0.0
+&electromagnetic
+  include_apar = .true.
+  include_bpar = .false.
+  beta = 0.001
 /
 
-&vpamu_grids_parameters
- nvgrid = 8
- nmu = 6
- vpa_max = 3.0
-/
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
 
-&time_advance_knobs
- explicit_option="rk3"
-/
-
-&kt_grids_knobs
- grid_option='range'
-/
-&kt_grids_range_parameters
- naky = 1
- aky_min = 0.08
- aky_max = 0.08
- akx_min = 0.0
- akx_max = 0.0
-/
-
-&init_g_knobs
- chop_side = F
- phiinit=   1.0
- scale_to_phiinit = .true.
- restart_dir  = "nc"
- ginit_option= "default"
- width0 = 1.0
-/
-
-&knobs
-! fphi =   1.0
-! fapar =  1.0
-! fbpar = 1.0
- stream_implicit = .true. 
- mirror_implicit = .true.
- mirror_semi_lagrange = .false.
- drifts_implicit = .false.
- zed_upwind = 0.0
- time_upwind = 0.0
- vpa_upwind = 0.0
- delt = 0.005
- !nstep = 4000
- tend = 12.0
- !avail_cpu_time = 3600
-  print_extra_info_to_terminal = .false.
-/
 &species_knobs
- nspec= 3
- species_option = 'stella'
+  nspec = 3
+  species_option = 'stella'
 /
 &species_parameters_1
- z=   1.0
- mass=   1.0
- dens=   0.95
- temp=   1.0
- tprim=  3.0
- fprim=  1.0
- type='ion'
+  z = 1.0
+  mass = 1.0
+  dens = 0.95
+  temp = 1.0
+  tprim = 3.0
+  fprim = 1.0
+  type = 'ion'
 /
 
 &species_parameters_2
- z=     -1.0
- mass=   0.00027
- dens=   1.0
- temp=   1.0
- tprim=  3.0
- fprim=  1.0
- type='electron'
+  z = -1.0
+  mass = 0.00027
+  dens = 1.0
+  temp = 1.0
+  tprim = 3.0
+  fprim = 1.0
+  type = 'electron'
 /
 
 &species_parameters_3
-z=2.0
-mass=2.0
-dens=0.025
-temp=100.0
-fprim=16.0
-tprim=0.0
-type="ion" 
+  z = 2.0
+  mass = 2.0
+  dens = 0.025
+  temp = 100.0
+  fprim = 16.0
+  tprim = 0.0
+  type = 'ion'
+/
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kt_grids_knobs
+  grid_option='range'
+/
+&kt_grids_range_parameters
+  naky = 1
+  aky_min = 0.08
+  aky_max = 0.08
+  akx_min = 0.0
+  akx_max = 0.0
+/
+&zgrid_parameters
+  boundary_option = 'default'
+  nzed = 6
+  ntubes = 1
+  nperiod = 3
 / 
+&vpamu_grids_parameters
+  nvgrid = 8
+  nmu = 6
+  vpa_max = 3.0
+/
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
 
 &stella_diagnostics_knobs
- nwrite = 200
- nsave = 3000 
- save_for_restart = .false.
- write_omega = .true.
- write_phi_vs_time = .true.
- write_apar_vs_time = .true.
-! write_bpar_vs_time = .true.
- write_gvmus = .false.
- write_gzvs = .false.
+  nwrite = 200
+  nsave = 3000 
+  save_for_restart = .false.
+  write_omega = .true.
+  write_phi_vs_time = .true.
+  write_apar_vs_time = .true. 
+  write_gvmus = .false.
+  write_gzvs = .false.
 /
 
-&reinit_knobs
- delt_adj = 2.0
- delt_minimum = 1.e-4
+!===============================================================================
+!                              Initialise potential                             
+!===============================================================================
+
+&initialise_distribution
+  initialise_distribution_option = 'default'
+  phiinit = 1.0
+  scale_to_phiinit = .true.
 /
-&layouts_knobs
- xyzs_layout = 'yxzs'
- vms_layout = 'vms'
+&initialise_distribution_maxwellian
+  width0 = 1.0
 /
 
-&neoclassical_input
- include_neoclassical_terms = .false.
- neo_option = 'sfincs'
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&parameters_numerical
+  stream_implicit = .true.
+  mirror_implicit = .true.
+  mirror_semi_lagrange = .false.
+  drifts_implicit = .false.
+  zed_upwind = 0.0
+  time_upwind = 0.0
+  vpa_upwind = 0.0
+  delt = 0.005
+  tend = 12.0
+  print_extra_info_to_terminal = .false.
+  explicit_option="rk3"
 /
-&sfincs_input
- nproc_sfincs = 2
- nxi = 16
- nx = 5
-/
+

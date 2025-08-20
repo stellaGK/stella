@@ -1,20 +1,57 @@
  
-! Simple linear example using CBC to test that without any gyrokinetic  
+! Simple linear example using CBC to test that without any gyrokinetic
 ! terms and without dissipation, the! potential does not evolve in time
 
-&physics_flags
-  nonlinear = .false.
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geo_knobs
+  geo_option = 'miller'
+/
+&millergeo_parameters
+  nzed_local = 128
+  rhoc = 0.5
+  shat = 0.796
+  qinp = 1.4
+  rmaj = 2.77778
+  rgeo = 2.77778
+  shift = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  betaprim = 0.0
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  betadbprim = 0.0
+/
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&gyrokinetic_terms
   include_parallel_streaming = .false.
   include_mirror = .false.
+  include_xdrift = .false.
+  include_ydrift = .false.
+  include_drive = .false.
+  include_nonlinear = .false.
+  include_parallel_nonlinearity = .false.
+  include_electromagnetic = .true.
+/
+
+&electromagnetic
   include_apar = .true.
   include_bpar = .true.
-/
-&parameters
-  zeff = 1.0
   beta = 0.04
-  vnew_ref = 0.01
-  rhostar = 0.01
 /
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
 &species_knobs
   nspec = 2
 /
@@ -36,7 +73,15 @@
   type = 'electron'
   z = -1.0
 /
-&kt_grids_box_parameters 
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kt_grids_knobs
+  grid_option = 'box'
+/
+&parameters_kxky_grids_box
   nx = 6
   ny = 9
   y0 = 15
@@ -50,53 +95,47 @@
   nmu = 2 
   nvgrid = 3 
 /
-&knobs
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
+&stella_diagnostics_knobs
+  nsave = 100
+  nwrite = 10
+/
+
+!===============================================================================
+!                              Initialise potential                             
+!===============================================================================
+
+&initialise_distribution
+  initialise_distribution_option = 'default'
+  phiinit = 0.01
+/
+&initialise_distribution_maxwellian
+  width0 = 1.0
+/
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&parameters_numerical
   delt = 0.01 
   nstep = 100
   mirror_semi_lagrange = .false.
   print_extra_info_to_terminal = .false.
+  explicit_option = 'rk3'
   stream_implicit = .true.
   mirror_implicit = .true.
   drifts_implicit = .false.
 /
-&stella_diagnostics_knobs
-  nsave = 100
-  nwrite = 10 
-/
-&init_g_knobs
-  ginit_option = 'default'
-  phiinit = 0.01
-  width0 = 1.0
-/
+
+!===============================================================================
+!                                  Dissipation                                  
+!===============================================================================
+
 &dissipation
   hyper_dissipation = .false.
 /
-&geo_knobs
-  geo_option = 'miller'
-/
-&kt_grids_knobs
-  grid_option = 'box'
-/
-&time_advance_knobs
-  xdriftknob = 0
-  ydriftknob = 0
-  wstarknob = 0
-  explicit_option = 'rk3'
-/
-&millergeo_parameters
-  nzed_local = 128
-  rhoc = 0.5
-  shat = 0.796
-  qinp = 1.4
-  rmaj = 2.77778
-  rgeo = 2.77778
-  shift = 0.0
-  kappa = 1.0
-  kapprim = 0.0
-  tri = 0.0
-  triprim = 0.0
-  betaprim = 0.0
-  d2qdr2 = 0.0
-  d2psidr2 = 0.0
-  betadbprim = 0.0
-/ 

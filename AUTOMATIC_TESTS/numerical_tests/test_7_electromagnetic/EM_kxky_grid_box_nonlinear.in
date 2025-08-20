@@ -1,17 +1,56 @@
 
 ! Simple nonlinear example based on JET shot 92174
 
-&physics_flags
-  nonlinear = .true.
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geo_knobs
+  geo_option = 'miller'
+/
+&millergeo_parameters
+  betadbprim = 0.0
+  betaprim = 0.058
+  d2psidr2 = 0.0
+  d2qdr2 = 0.0
+  kappa = 1.5504
+  kapprim = 0.94963
+  nzed_local = 128
+  qinp = 5.0848
+  rgeo = 3.1191
+  rhoc = 0.97427 
+  rmaj = 3.134
+  shat = 3.3594
+  shift = -0.34508
+  tri = 0.26253
+  triprim = 0.7368
+/
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&gyrokinetic_terms
+  include_parallel_streaming = .true.
+  include_mirror = .true.
+  include_xdrift = .true.
+  include_ydrift = .true.
+  include_drive = .true.
+  include_nonlinear = .true.
+  include_parallel_nonlinearity = .false.
+  include_electromagnetic = .true.
+/
+
+&electromagnetic
   include_apar = .true.
   include_bpar = .true.
-/
-&parameters
-  zeff = 1.0
   beta = 0.04
-  vnew_ref = 0.01
-  rhostar = 0.01
 /
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
 &species_knobs
   nspec = 2 
 /
@@ -33,7 +72,15 @@
   type = 'electron'
   z = -1.0
 /
-&kt_grids_box_parameters
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kt_grids_knobs
+  grid_option = 'box'
+/
+&parameters_kxky_grids_box
   nx = 6
   ny = 9
   y0 = 15
@@ -44,51 +91,46 @@
   nzed = 24
 /
 &vpamu_grids_parameters
-  nmu = 2 
-  nvgrid = 3  
+  nmu = 2
+  nvgrid = 3
 /
-&knobs
-  rng_seed = 1
-  mirror_semi_lagrange = .false.
-  print_extra_info_to_terminal = .false.
-  delt = 0.01  
-  nstep = 10
-/
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
 &stella_diagnostics_knobs
   nsave = 10
-  nwrite = 1  
+  nwrite = 1
 /
-&init_g_knobs 
-  ginit_option = 'noise'
-  phiinit = 0.01  
-  width0 = 1.0
+
+!===============================================================================
+!                              Initialise potential                             
+!===============================================================================
+
+&initialise_distribution
+  initialise_distribution_option = 'noise'
+  phiinit = 0.01
 /
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&parameters_numerical
+  mirror_semi_lagrange = .false.
+  print_extra_info_to_terminal = .false.
+  delt = 0.01
+  nstep = 10
+  explicit_option = 'rk3'
+  rng_seed = 1
+/
+
+!===============================================================================
+!                                  Dissipation                                  
+!===============================================================================
+
 &dissipation
   hyper_dissipation = .true.
 /
-&geo_knobs
-  geo_option = 'miller'
-/
-&kt_grids_knobs
-  grid_option = 'box'
-/
-&time_advance_knobs
-  explicit_option = 'rk3'
-/
-&millergeo_parameters
-  betadbprim = 0.0
-  betaprim = 0.058
-  d2psidr2 = 0.0
-  d2qdr2 = 0.0
-  kappa = 1.5504
-  kapprim = 0.94963
-  nzed_local = 128
-  qinp = 5.0848
-  rgeo = 3.1191
-  rhoc = 0.97427 
-  rmaj = 3.134
-  shat = 3.3594
-  shift = -0.34508
-  tri = 0.26253
-  triprim = 0.7368
-/ 
+

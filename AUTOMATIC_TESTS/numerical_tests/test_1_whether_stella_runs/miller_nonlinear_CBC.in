@@ -32,11 +32,13 @@
 ! Here we include apar and bpar to check whether their diagnostic are written.
 !===============================================================================
 
-&parameters_physics
-  adiabatic_option = 'iphi00=2'
+&electromagnetic
   include_apar = .true.
   include_bpar = .true.
-  nonlinear = .true.
+/
+
+&gyrokinetic_terms
+  include_nonlinear = .true.
 /
 
 !===============================================================================
@@ -79,12 +81,12 @@
   y0 = 15
 /
 &zgrid_parameters
-  boundary_option = 'linked' 
+  boundary_option = 'linked'
   nzed = 12
 /
 &vpamu_grids_parameters
-  nmu = 2 
-  nvgrid = 3 
+  nmu = 2
+  nvgrid = 3
 /
 
 !===============================================================================
@@ -101,9 +103,9 @@
 !                              Initialize potential                             
 !===============================================================================
 
-&init_g_knobs
-  ginit_option = 'noise'
-  phiinit = 0.01
+&initialize_distribution
+  initialize_distribution_option = 'noise'
+  phiinit = 0.01 
 /
 
 !===============================================================================
@@ -118,4 +120,3 @@
   rng_seed = 1
 /
 
- 

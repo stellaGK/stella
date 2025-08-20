@@ -1,69 +1,9 @@
 
 ! Once a namelist has been added to the <input_file.f90> module,
 ! add its default variables here.
-
-&dissipation
-   include_collisions = .false.
-   collisions_implicit = .true.
-   hyper_dissipation = .false.
-   collision_model = "dougherty"
-/
-
-&initialize_distribution
-   initialize_distribution_option = "default"
-   phiinit = 1.0
-   scale_to_phiinit = .false.
-/
-
-&initialize_distribution_maxwellian
-   width0 = -3.5
-   den0 = 1.
-   upar0 = 0.
-   oddparity = .false.
-   chop_side = .false.
-   left = .true.
-/
-
-&initialize_distribution_noise
-   zf_init = 1.0
-   chop_side = .false.
-   left = .true.
-/
-
-&initialize_distribution_kpar
-   width0 = -3.5
-   refac = 1.
-   imfac = 0.
-   den0 = 1.
-   upar0 = 0.
-   tpar0 = 0.
-   tperp0 = 0.
-   den1 = 0.
-   upar1 = 0.
-   tpar1 = 0.
-   tperp1 = 0.
-   den2 = 0.
-   upar2 = 0.
-   tpar2 = 0.
-   tperp2 = 0.
-   chop_side = .false.
-   left = .true.
-/
-
-&initialize_distribution_rh
-   kxmax = 1e+100
-   kxmin = 0.0
-   imfac = 0.0
-   refac = 1.0
-/
-
-&restart_options
-   tstart = 0.0
-   scale = 1.0
-   restart_file = trim(run_name)//".nc"
-   restart_dir = "./"
-   read_many = .true.
-/
+!===============================================================================
+!                                  Physics                                  
+!===============================================================================
 
 &gyrokinetic_terms
   simulation_domain = 'fluxtube' 
@@ -84,13 +24,13 @@
   suppress_zonal_interaction = .false.
 /
 &adiabatic_electron_response
-  adiabatic_option = "field-line-average-term"
+  adiabatic_option = 'field-line-average-term'
   tite = 1.0
   nine = 1.0
 /
 &electromagnetic
-  include_apar = .true.
-  include_bpar = .true.
+  include_apar = .false.
+  include_bpar = .false.
   beta = 0.0
 /
 &flow_shear
@@ -102,7 +42,7 @@
 /
 &flux_annulus
   rhostar = - 1.0
-  nitt = 1
+  !nitt = 1
 /
 &extra - need to move
    include_pressure_variation = .false. 
@@ -111,6 +51,76 @@
    zeff = 1.0
    vnew_ref = -1.0
 /
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
+!===============================================================================
+!                              Initialise potential                             
+!===============================================================================
+
+&initialise_distribution
+   initialise_distribution_option = 'default'
+   phiinit = 1.0
+   scale_to_phiinit = .false.
+/
+&initialise_distribution_maxwellian
+   width0 = -3.5
+   den0 = 1.
+   upar0 = 0.
+   oddparity = .false.
+   chop_side = .false.
+   left = .true.
+/
+&initialise_distribution_noise
+   zf_init = 1.0
+   chop_side = .false.
+   left = .true.
+/
+&initialise_distribution_kpar
+   width0 = -3.5
+   refac = 1.
+   imfac = 0.
+   den0 = 1.
+   upar0 = 0.
+   tpar0 = 0.
+   tperp0 = 0.
+   den1 = 0.
+   upar1 = 0.
+   tpar1 = 0.
+   tperp1 = 0.
+   den2 = 0.
+   upar2 = 0.
+   tpar2 = 0.
+   tperp2 = 0.
+   chop_side = .false.
+   left = .true.
+/
+&initialise_distribution_rh
+   kxmax = 1e+100
+   kxmin = 0.0
+   imfac = 0.0
+   refac = 1.0
+/
+&restart_options
+   tstart = 0.0
+   scale = 1.0
+   restart_file = trim(run_name)//'.nc'
+   restart_dir = './'
+   read_many = .true.
+/
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
 &time_trace_options
   nstep = -1.0
   tend = -1.0
@@ -160,3 +170,41 @@
   print_extra_info_to_terminal = .true.
   lu_option = 'default'
   rng_seed = -1
+  /
+!===============================================================================
+!                                  Dissipation                                  
+!===============================================================================
+&dissipation
+   include_collisions = .false.
+   collisions_implicit = .true.
+   hyper_dissipation = .false.
+   collision_model = 'dougherty'
+/
+&adiabatic_electron_response
+  adiabatic_option = "field-line-average-term"
+  tite = 1.0
+  nine = 1.0
+/
+&electromagnetic
+  include_apar = .true.
+  include_bpar = .true.
+  beta = 0.0
+/
+&flow_shear
+  prp_shear_enabled = .false.
+  hammett_flow_shear = .true.
+  g_exb = 0.0
+  g_exbfac = 1.0
+  omprimfac = 1.0
+/
+&flux_annulus
+  rhostar = - 1.0
+  nitt = 1
+/
+&extra - need to move
+   include_pressure_variation = .false. 
+   include_geometric_variation = .false.
+   radial_variation = .false. 
+   zeff = 1.0
+   vnew_ref = -1.0
+/

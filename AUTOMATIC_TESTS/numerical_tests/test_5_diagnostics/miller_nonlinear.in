@@ -31,8 +31,8 @@
 !                                    Physics                                    
 !===============================================================================
 
-&parameters_physics
-  nonlinear = .true.
+&gyrokinetic_terms
+  include_nonlinear = .true.
 /
 
 !===============================================================================
@@ -106,11 +106,11 @@
 /
 
 !===============================================================================
-!                              Initialize potential                             
+!                              Initialise potential                             
 !===============================================================================
 
-&initialize_distribution
-  initialize_distribution_option = 'noise'
+&initialise_distribution
+  initialise_distribution_option = 'noise'
   phiinit = 0.01
 /
 
