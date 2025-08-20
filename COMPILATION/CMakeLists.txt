@@ -95,13 +95,14 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/input_parameters/input_file_dissipation.f90
   ../STELLA_CODE/input_parameters/input_file_physics_parameters.f90
   ../STELLA_CODE/input_parameters/input_file_numerical_parameters.f90
+  ../STELLA_CODE/input_parameters/input_file_kxky_grid.f90
   ../STELLA_CODE/neoclassical/euterpe_interface.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
   ../STELLA_CODE/parameters/debug_flags.f90
   ../STELLA_CODE/parameters/parameters_diagnostics.f90
-  ../STELLA_CODE/parameters/parameters_kxky_grids.f90
-  ../STELLA_CODE/parameters/parameters_kxky_grids_box.f90
-  ../STELLA_CODE/parameters/parameters_kxky_grids_range.f90
+  ../STELLA_CODE/parameters/kxky_grid_parameters.f90
+  ../STELLA_CODE/parameters/kxky_grid_parameters_box.f90
+  ../STELLA_CODE/parameters/kxky_grid_parameters_range.f90
   ../STELLA_CODE/parameters/numerical_parameters.f90
   ../STELLA_CODE/parameters/physics_parameters.f90
   ../STELLA_CODE/radial_variation/multibox.f90

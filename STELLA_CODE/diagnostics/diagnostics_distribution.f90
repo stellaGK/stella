@@ -40,7 +40,7 @@ contains
       use dist_redistribute, only: kxkyz2vmu
 
       ! Dimensions
-      use parameters_kxky_grids, only: nakx, naky
+      use kxky_grid_parameters, only: nakx, naky
       use vpamu_grids, only: nvpa, nmu 
       use zgrid, only: nztot, ntubes
       use species, only: nspec
@@ -234,7 +234,7 @@ contains
       use volume_averages, only: mode_fac
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
-      use parameters_kxky_grids, only: nakx, naky
+      use kxky_grid_parameters, only: nakx, naky
 
       ! Calculations
       use vpamu_grids, only: integrate_vpa, integrate_mu, integrate_vmu

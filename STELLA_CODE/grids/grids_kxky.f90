@@ -51,8 +51,8 @@ contains
        use mp, only: mp_abort
        use common_types, only: flux_surface_type
        use zgrid, only: init_zgrid
-       use parameters_kxky_grids, only: gridopt_switch, gridopt_range, gridopt_box
-       use parameters_kxky_grids, only: naky
+       use kxky_grid_parameters, only: grid_option_switch, grid_option_range, grid_option_box
+       use kxky_grid_parameters, only: naky
        
        implicit none
  
@@ -61,10 +61,10 @@ contains
  
        call init_zgrid
        
-       select case (gridopt_switch)
-       case (gridopt_range)
+       select case (grid_option_switch)
+       case (grid_option_range)
           call init_grids_kxky_range
-       case (gridopt_box)
+       case (grid_option_box)
           call init_grids_kxky_box
        end select
 
@@ -89,7 +89,7 @@ contains
            use geometry, only: geo_surf, q_as_x
            use zgrid, only: shat_zero
 
-           use parameters_kxky_grids, only: naky, nakx, aky_min, aky_max, &
+           use kxky_grid_parameters, only: naky, nakx, aky_min, aky_max, &
                 akx_min, akx_max, theta0_min, theta0_max, &
                 kyspacing_option_switch, kyspacing_linear, kyspacing_exponential, &
                 ikx_max, naky_all
@@ -221,7 +221,7 @@ contains
 
            use write_radial_grid, only: dump_radial_grid
 
-           use parameters_kxky_grids, only: nx, ny, ikx_max, naky_all, naky, nakx, &
+           use kxky_grid_parameters, only: nx, ny, ikx_max, naky_all, naky, nakx, &
                 x0, y0, jtwist, jtwistfac, phase_shift_angle, ikx_twist_shift, &
                 centered_in_rho, randomize_phase_shift, periodic_variation
            
@@ -422,7 +422,7 @@ contains
 
        subroutine allocate_arrays
          
-         use parameters_kxky_grids, only: nakx, naky, naky_all, nx , ny 
+         use kxky_grid_parameters, only: nakx, naky, naky_all, nx , ny 
          
          implicit none
          
@@ -481,7 +481,7 @@ contains
 
    subroutine finish_grids_kxky
 
-       use parameters_kxky_grids, only: reality 
+       use kxky_grid_parameters, only: reality 
        implicit none
  
        if (allocated(aky)) deallocate (aky)

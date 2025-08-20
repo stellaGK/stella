@@ -4,7 +4,6 @@
 !===============================================================================
 !                                  Physics                                  
 !===============================================================================
-
 &gyrokinetic_terms
   simulation_domain = 'fluxtube' 
   include_parallel_streaming = .true.
@@ -58,7 +57,32 @@
 !===============================================================================
 !                       Discretized (kx,ky,z,mu,vpa) grid                       
 !===============================================================================
-
+&kxky_grid_option
+  grid_option = "default"
+ /
+&kxky_grid_range
+  naky = 1.0
+  nakx = 1.0
+  aky_min = 0.0
+  aky_max = 0.0
+  theta0_min = 0.0
+  theta0_max = -1.0
+  akx_min = 0.0
+  akx_max = -1.0
+  kyspacing_option = "default"
+ /
+&kxky_grid_box
+  nx = 1.0
+  ny = 1.0
+  jtwist = -1.0
+  jtwistfac = 1.0
+  x0 = -1.0
+  y0 = -1.0
+  centered_in_rho = .true.
+  periodic_variation = .false.
+  randomize_phase_shift = .false.
+  phase_shift_angle = 0.0
+ /
 !===============================================================================
 !                                  Diagnostics                                  
 !===============================================================================

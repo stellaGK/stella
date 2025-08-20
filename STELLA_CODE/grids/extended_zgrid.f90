@@ -48,8 +48,8 @@ contains
       use zgrid, only: boundary_option_linked
       use zgrid, only: boundary_option_linked_stellarator
       use zgrid, only: nperiod, nzgrid, nzed, ntubes
-      use parameters_kxky_grids, only: nakx, naky, ikx_max
-      use parameters_kxky_grids, only: jtwist, ikx_twist_shift, phase_shift_angle
+      use kxky_grid_parameters, only: nakx, naky, ikx_max
+      use kxky_grid_parameters, only: jtwist, ikx_twist_shift, phase_shift_angle
       use grids_kxky, only: aky
       use constants, only: zi
       use mp, only: proc0
