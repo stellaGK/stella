@@ -84,10 +84,12 @@
   ny = 9
   y0 = 15
 /
-&zgrid_parameters
-  boundary_option = 'default'
-  nperiod = 2
+&z_grid
   nzed = 16
+  nperiod = 2
+/
+&z_boundary_condition
+  boundary_option = 'default'
 /
 &vpamu_grids_parameters
   nmu = 2 

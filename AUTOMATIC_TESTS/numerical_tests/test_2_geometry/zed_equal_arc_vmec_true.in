@@ -56,11 +56,12 @@
   nakx = 1
   naky = 1
 /
-&zgrid_parameters
-  boundary_option = 'stellarator'
-  nperiod = 1
+&z_grid
   nzed = 24
   zed_equal_arc = .true.
+/
+&z_boundary_condition
+  boundary_option = 'stellarator'
 /
 &vpamu_grids_parameters
   nmu = 2 

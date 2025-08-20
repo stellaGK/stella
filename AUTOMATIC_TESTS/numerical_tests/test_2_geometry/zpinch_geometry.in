@@ -64,10 +64,11 @@
   y0 = 5.0
   x0 = 5.0
 /
-&zgrid_parameters
-  boundary_option = 'periodic'
-  nperiod = 1
+&z_grid
   nzed = 4
+/
+&z_boundary_condition
+  boundary_option = 'periodic'
 /
 &vpamu_grids_parameters
   nmu = 2 

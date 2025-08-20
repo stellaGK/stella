@@ -84,11 +84,12 @@
   aky_min = 0.5
   aky_max = 0.5
 /
-&zgrid_parameters
-  boundary_option = "default"
+&z_grid
   nzed = 16
-  ntubes = 1
   nperiod = 2
+/
+&z_boundary_condition
+  boundary_option = 'default'
 /
 &vpamu_grids_parameters
   nvgrid = 8

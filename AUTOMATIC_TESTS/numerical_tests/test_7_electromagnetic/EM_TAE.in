@@ -96,12 +96,13 @@
   akx_min = 0.0
   akx_max = 0.0
 /
-&zgrid_parameters
-  boundary_option = 'default'
+&z_grid
   nzed = 6
-  ntubes = 1
   nperiod = 3
-/ 
+/
+&z_boundary_condition
+  boundary_option = 'default'
+/
 &vpamu_grids_parameters
   nvgrid = 8
   nmu = 6

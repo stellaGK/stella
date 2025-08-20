@@ -85,10 +85,12 @@
   ny = 9
   y0 = 15
 /
-&zgrid_parameters
-  boundary_option = 'linked'
-  nperiod = 1
+&z_grid
   nzed = 12
+  nperiod = 1
+/
+&z_boundary_condition
+  boundary_option = 'linked'
 /
 &vpamu_grids_parameters
   nmu = 2 
