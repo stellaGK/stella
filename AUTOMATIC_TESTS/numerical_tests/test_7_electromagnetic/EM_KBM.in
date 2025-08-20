@@ -48,7 +48,7 @@
 !                                Kinetic species                                
 !===============================================================================
 
-&species_knobs
+&species_options
   nspec= 2
   species_option = 'stella'
 /

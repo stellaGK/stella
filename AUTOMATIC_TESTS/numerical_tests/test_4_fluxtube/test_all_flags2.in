@@ -18,9 +18,7 @@
   torflux = 0.5  				               ! (TOGGLE)
   verbose = .true.
   vmec_filename = 'wout_w7x_kjm.nc'
-  zeta_center = 0.5				            ! (TOGGLE) 
-  zgrid_scalefac = 1.0			            ! THIS WAS BROKEN, REMOVED IN NEW STELLA
-  zgrid_refinement_factor = 1	            ! Only used when zed_equal_arc = .true.  
+  zeta_center = 0.5				            ! (TOGGLE)  
 /
 
 !===============================================================================
@@ -81,7 +79,7 @@
 !                                Kinetic species                                
 !===============================================================================
 
-&species_knobs
+&species_options
   nspec = 2 
   species_option = 'stella'			      ! (IGNORE) Choose between {stella, input.profiles, euterpe}
   read_profile_variation = .false.		   ! (IGNORE-RV) Part of the radial variation routines
