@@ -102,7 +102,7 @@ contains
       use numerical_parameters, only: delt_option_switch, delt_option_auto
       use numerical_parameters, only: mat_gen, mat_read
       use kxky_grid_parameters, only: read_kxky_grid_parameters
-      use species, only: init_species, read_species_knobs
+      use species, only: init_species, read_species_options
       use species, only: nspec
       use z_grid, only: init_zgrid
       use z_grid, only: nzgrid, ntubes
@@ -197,8 +197,8 @@ contains
       if (debug) write (6, *) "stella::init_stella::init_zgrid"
       call init_zgrid
       !> read the species_knobs namelist from the input file
-      if (debug) write (6, *) "stella::init_stella::read_species_knobs"
-      call read_species_knobs
+      if (debug) write (6, *) "stella::init_stella::read_species_options"
+      call read_species_options
       !> read the grid option from the kt_grids_knobs namelist in the input file;
       !> depending on the grid option chosen, read the corresponding kt_grids_XXXX_parameters
       !> namelist from the input file and allocate some kx and ky arrays
