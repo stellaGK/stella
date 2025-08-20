@@ -11,30 +11,6 @@ module zpinch
    logical :: debug = .false.
    
 contains
-
-   !============================================================================
-   !=========================== READ LOCAL PARAMETERS ==========================
-   !============================================================================ 
-   subroutine read_zpinch_parameters
-
-      use file_utils, only: input_unit_exist
-
-      implicit none
-
-      integer :: in_file
-      logical :: exist
-      
-      namelist /zpinchgeo_parameters/ betaprim
-
-      if (debug) write (*, *) 'geometry_zpinch::read_zpinch_parameters'
-      ! set default value for betaprim
-      betaprim = 0.0
-
-      in_file = input_unit_exist("zpinchgeo_parameters", exist)
-      if (exist) read (unit=in_file, nml=zpinchgeo_parameters)
-
-   end subroutine read_zpinch_parameters
-  
    ! use Z-pinch equilibrium.
    ! the parallel coordinate, z, is chosen to be the arc-length z=r0*theta,
    ! i.e., the physical poloidal angle times the radius of the chosen magnetic field, r0.
@@ -48,6 +24,7 @@ contains
                                                gbdrift0, gbdrift, cvdrift0, cvdrift, btor, rmajor)
 
       use common_types, only: flux_surface_type
+      use input_file_geometry, only: read_namelist_geometry_zpinch
      
       implicit none
 
@@ -57,6 +34,9 @@ contains
                                                 gbdrift0, gbdrift, cvdrift0, cvdrift, btor, rmajor
       type(flux_surface_type), intent(out) :: surf
       
+
+      call read_namelist_geometry_zpinch (betaprim)
+
       ! bmag = B(r0) / B_ref
       ! as B is constant along radius r0, choose B_ref = B(r0), so bmag = 1
       bmag = 1.0

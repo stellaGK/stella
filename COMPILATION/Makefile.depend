@@ -55,6 +55,7 @@ stella_mod = \
 	 $(OBJ_DIR)/init_g.o \
 	 $(OBJ_DIR)/input_file_dissipation.o \
 	 $(OBJ_DIR)/input_file_fields.o \
+	 $(OBJ_DIR)/input_file_geometry.o \
 	 $(OBJ_DIR)/input_file_kxky_grid.o \
 	 $(OBJ_DIR)/input_file_numerical_parameters.o \
 	 $(OBJ_DIR)/input_file_physics_parameters.o \
@@ -594,6 +595,7 @@ $(OBJ_DIR)/geometry_miller.o: \
 	 $(OBJ_DIR)/common_types.o \
 	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/file_utils.o \
+	 $(OBJ_DIR)/input_file_geometry.o \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/spl.o 
@@ -603,17 +605,17 @@ $(OBJ_DIR)/geometry_vmec.o: \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/geometry_vmec_read_netCDF_file.o \
+	 $(OBJ_DIR)/input_file_geometry.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/physics_parameters.o \
 	 $(OBJ_DIR)/spl.o \
 	 $(OBJ_DIR)/stella_transforms.o \
-	 $(OBJ_DIR)/text_options.o \
 	 $(OBJ_DIR)/z_grid.o 
 $(OBJ_DIR)/geometry_vmec_read_netCDF_file.o: \
 	 $(OBJ_DIR)/mp.o 
 $(OBJ_DIR)/geometry_zpinch.o: \
 	 $(OBJ_DIR)/common_types.o \
-	 $(OBJ_DIR)/file_utils.o 
+	 $(OBJ_DIR)/input_file_geometry.o 
 $(OBJ_DIR)/git_version.o: 
 $(OBJ_DIR)/grids_kxky.o: \
 	 $(OBJ_DIR)/common_types.o \
@@ -706,6 +708,13 @@ $(OBJ_DIR)/input_file_fields.o: \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/text_options.o 
+$(OBJ_DIR)/input_file_geometry.o: \
+	 $(OBJ_DIR)/common_types.o \
+	 $(OBJ_DIR)/file_utils.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/physics_parameters.o \
+	 $(OBJ_DIR)/text_options.o \
+	 $(OBJ_DIR)/z_grid.o 
 $(OBJ_DIR)/input_file_kxky_grid.o: \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/mp.o \

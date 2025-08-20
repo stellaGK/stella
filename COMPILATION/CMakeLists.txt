@@ -99,6 +99,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/input_parameters/input_file_z_grid.f90
   ../STELLA_CODE/input_parameters/input_file_species.f90
   ../STELLA_CODE/input_parameters/input_file_velocity_grids.f90
+  ../STELLA_CODE/input_parameters/input_file_geometry.f90
   ../STELLA_CODE/neoclassical/euterpe_interface.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
   ../STELLA_CODE/parameters/debug_flags.f90

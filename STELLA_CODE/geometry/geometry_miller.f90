@@ -111,57 +111,14 @@ contains
 
       use file_utils, only: input_unit_exist
       use common_types, only: flux_surface_type
+      use input_file_geometry, only: read_namelist_geometry_miller
 
       implicit none
 
       type(flux_surface_type), intent(out) :: local_out
       integer, intent(in) :: nzed, nzgrid
 
-      real :: dum
-      integer :: in_file, np, j
-      logical :: exist
-      
-      namelist /millergeo_parameters/ rhoc, rmaj, shift, qinp, shat, &
-         kappa, kapprim, tri, triprim, rgeo, betaprim, &
-         betadbprim, d2qdr2, d2psidr2, &
-         nzed_local, read_profile_variation, write_profile_variation
-
-
-      if (debug) write (*, *) 'geometry_miller::read_local_parameters'
-      call init_local_defaults
-
-      in_file = input_unit_exist("millergeo_parameters", exist)
-      if (exist) read (unit=in_file, nml=millergeo_parameters)
-
-      local%rhoc = rhoc
-      local%rmaj = rmaj
-      local%rgeo = rgeo
-      local%shift = shift
-      local%kappa = kappa
-      local%kapprim = kapprim
-      local%qinp = qinp
-      local%shat = shat
-      local%tri = tri
-      local%triprim = triprim
-      local%betaprim = betaprim
-      local%betadbprim = betadbprim
-      local%d2qdr2 = d2qdr2
-      local%d2psidr2 = d2psidr2
-      local%zed0_fac = 1.0
-
-      ! following two variables are not inputs
-      local%dr = 1.e-3 * (rhoc / rmaj)
-      local%rhotor = rhotor
-      local%psitor_lcfs = psitor_lcfs
-      local%drhotordrho = drhotordrho
-      local%dpsitordrho = 0.0
-      local%d2psitordrho2 = 0.0
-
-      ! the next three variablaes are for multibox simulations
-      ! with radial variation
-      local%rhoc_psi0 = rhoc
-      local%qinp_psi0 = qinp
-      local%shat_psi0 = shat
+      call read_namelist_geometry_miller (local)
 
       ! first get nperiod corresponding to input number of grid points
       nz2pi = nzed / 2

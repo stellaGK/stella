@@ -153,8 +153,15 @@ contains
       if (proc0) then
          
          ! Read the <geo_knobs> namelist in the input file
-         call read_parameters 
- 
+         call read_namelist_geometry_options (geo_option_switch, q_as_x)
+
+         call read_namelist_geometry_from_txt(geometry_file, &
+               overwrite_bmag, overwrite_b_dot_grad_zeta, &
+               overwrite_gds2, overwrite_gds21, overwrite_gds22, &
+               overwrite_gds23, overwrite_gds24, &
+               overwrite_gbdrift, overwrite_cvdrift, &
+               overwrite_gbdrift0, set_bmag_const, overwrite_geometry) 
+
          ! Use Miller parameters or VMEC to get the geometry needed for stella 
          if (geo_option_switch==geo_option_local)     call get_geometry_arrays_from_Miller(nalpha)
          if (geo_option_switch==geo_option_inputprof) call get_geometry_arrays_from_Miller(nalpha)
@@ -986,7 +993,7 @@ contains
       use physics_parameters, only: radial_variation
 
       ! Multibox runs
-      use file_utils, only: runtype_option_Switch, runtype_multibox
+      use file_utils, only: runtype_option_switch, runtype_multibox
 
       ! Routines
       use text_options, only: text_option, get_option_value
@@ -994,57 +1001,9 @@ contains
       use mp, only: job
 
       implicit none
-
-      character(20) :: geo_option
-      integer :: in_file, ierr
-      logical :: exist
-
-      ! Text options for <geo_option> in the <geo_knobs> namrlist
-      type(text_option), dimension(6), parameter :: geoopts = (/ &
-             text_option('default', geo_option_local), &
-             text_option('miller', geo_option_local), &
-             text_option('local', geo_option_local), &
-             text_option('zpinch', geo_option_zpinch), &
-             text_option('input.profiles', geo_option_inputprof), &
-             text_option('vmec', geo_option_vmec)/)
-
       !---------------------------------------------------------------------- 
 
-      ! Define the variables in the namelist
-      namelist /geo_knobs/ geo_option, geo_file, overwrite_bmag, overwrite_b_dot_grad_zeta, &
-         overwrite_gds2, overwrite_gds21, overwrite_gds22, overwrite_gds23, overwrite_gds24, &
-         overwrite_gbdrift, overwrite_cvdrift, overwrite_gbdrift0, q_as_x, set_bmag_const
-
-      ! Assign default variables
-      geo_option = 'local'
-      overwrite_bmag = .false.
-      overwrite_b_dot_grad_zeta = .false.
-      overwrite_gds2 = .false.
-      overwrite_gds21 = .false.
-      overwrite_gds22 = .false.
-      overwrite_gds23 = .false.
-      overwrite_gds24 = .false.
-      overwrite_gbdrift = .false.
-      overwrite_cvdrift = .false.
-      overwrite_gbdrift0 = .false.
-      set_bmag_const = .false.
-      geo_file = 'input.geometry'
-
-      ! The following is True by default in radial variation runs
-      q_as_x = radial_variation 
-
-      ! Read the <geo_knobs> namelist in the input file
-      in_file = input_unit_exist("geo_knobs", exist)
-      if (exist) read (unit=in_file, nml=geo_knobs)
-
-      ! Read <geo_option> in the input file
-      ierr = error_unit()
-      call get_option_value (geo_option, geoopts, geo_option_switch, ierr, "geo_option in geo_knobs")
-
-      ! Multibox run
-      if (radial_variation .and. runtype_option_switch == runtype_multibox .and. job /= 1) then
-         geo_option_switch = geo_option_multibox
-      end if
+      call read_namelist_geometry_options (geo_option_switch, q_as_x)
 
       ! If any geometric array needs to be overwritten, set <overwrite_geometry> = True
       overwrite_geometry = overwrite_bmag .or. overwrite_b_dot_grad_zeta &
