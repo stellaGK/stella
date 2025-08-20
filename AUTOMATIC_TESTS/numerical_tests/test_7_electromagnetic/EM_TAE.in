@@ -140,17 +140,28 @@
 !                                    Numerics                                   
 !===============================================================================
 
-&parameters_numerical
+&time_trace_options
+  tend = 12.0
+/
+
+&time_step
+  delt = 0.005
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'rk3'
+  mirror_semi_lagrange = .false.
   stream_implicit = .true.
   mirror_implicit = .true.
-  mirror_semi_lagrange = .false.
   drifts_implicit = .false.
+/
+
+&numerical_extra
+  print_extra_info_to_terminal = .false.
+/
+
+&numerical_upwinding_for_derivatives
   zed_upwind = 0.0
   time_upwind = 0.0
   vpa_upwind = 0.0
-  delt = 0.005
-  tend = 12.0
-  print_extra_info_to_terminal = .false.
-  explicit_option="rk3"
 /
-

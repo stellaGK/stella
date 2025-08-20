@@ -126,5 +126,5 @@
 
 &numerical_extra
   print_extra_info_to_terminal = .false.
-  rng_seed = -1
+  rng_seed = 1
 /

@@ -122,17 +122,29 @@
 !                                    Numerics                                   
 !===============================================================================
 
-&parameters_numerical
-  lu_option = 'local'
-  delt = 0.03
-  mirror_semi_lagrange = .false.
-  nitt = 5
+&time_trace_options
   nstep = 10
+/
+
+&time_step
+  delt = 0.03
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'rk3'
+  mirror_semi_lagrange = .false.
+/
+
+&numerical_extra
+  nitt = 5
+  lu_option = 'local'
+  print_extra_info_to_terminal = .false.
+/
+
+&numerical_upwinding_for_derivatives
   time_upwind = 1.0
   vpa_upwind = 0.0
   zed_upwind = 0.0
-  print_extra_info_to_terminal = .false.
-  explicit_option = 'rk3'
 /
 
 !===============================================================================

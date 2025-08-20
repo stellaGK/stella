@@ -120,14 +120,24 @@
 !                                    Numerics                                   
 !===============================================================================
 
-&parameters_numerical
-  delt = 0.01 
+&time_trace_options
   nstep = 100
-  print_extra_info_to_terminal = .false.
-  explicit_option = 'rk2'
+/
+
+&time_step
+  delt = 0.01
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'rk3'
+  mirror_semi_lagrange = .false.
   stream_implicit = .false.
   mirror_implicit = .false.
   drifts_implicit = .false.
+/
+
+&numerical_extra
+  print_extra_info_to_terminal = .false.
 /
 
 !===============================================================================
