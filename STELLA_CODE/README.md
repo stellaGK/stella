@@ -139,7 +139,7 @@ The `grids` folder contains the following scripts:
 - stella_time.f90
 - vpamu_grids.f90
 - write_radial_grid.f90
-- zgrid.f90
+- z_grid.f90
 
 <br>
 

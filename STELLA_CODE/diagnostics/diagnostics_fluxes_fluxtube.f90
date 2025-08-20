@@ -116,7 +116,7 @@ contains
       ! Dimensions
       use vpamu_grids, only: vperp2, vpa, mu
       use vpamu_grids, only: nvpa, nmu
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use grids_kxky, only: aky, theta0
       use species, only: spec, nspec
 
@@ -424,7 +424,7 @@ contains
 
       use parameters_diagnostics, only: flux_norm
       use geometry, only: jacob, grho
-      use zgrid, only: delzed, nzgrid  
+      use z_grid, only: delzed, nzgrid  
 
       implicit none
 

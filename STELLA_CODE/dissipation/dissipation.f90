@@ -154,7 +154,7 @@ contains
       use mp, only: mp_abort
       use physics_parameters, only: full_flux_surface
       use stella_layouts, only: vmu_lo
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use coll_dougherty, only: advance_collisions_dougherty_explicit
       use coll_fokkerplanck, only: advance_collisions_fp_explicit
 
@@ -183,7 +183,7 @@ contains
       use redistribute, only: gather, scatter
       use dist_redistribute, only: kxkyz2vmu
       use job_manage, only: time_message
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use vpamu_grids, only: set_vpa_weights
       use stella_layouts, only: vmu_lo
       use arrays_dist_fn, only: gvmu

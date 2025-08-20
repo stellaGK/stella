@@ -43,11 +43,11 @@ contains
 
    subroutine init_extended_zgrid
 
-      use zgrid, only: boundary_option_switch
-      use zgrid, only: boundary_option_self_periodic
-      use zgrid, only: boundary_option_linked
-      use zgrid, only: boundary_option_linked_stellarator
-      use zgrid, only: nperiod, nzgrid, nzed, ntubes
+      use z_grid, only: boundary_option_switch
+      use z_grid, only: boundary_option_self_periodic
+      use z_grid, only: boundary_option_linked
+      use z_grid, only: boundary_option_linked_stellarator
+      use z_grid, only: nperiod, nzgrid, nzed, ntubes
       use kxky_grid_parameters, only: nakx, naky, ikx_max
       use kxky_grid_parameters, only: jtwist, ikx_twist_shift, phase_shift_angle
       use grids_kxky, only: aky
@@ -314,7 +314,7 @@ contains
 
    subroutine fill_zed_ghost_zones(it, iseg, ie, iky, g, gleft, gright)
 
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
 
       implicit none
 
@@ -380,7 +380,7 @@ contains
 
    subroutine map_to_extended_zgrid(it, ie, iky, g, gext, ulim)
 
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
 
       implicit none
 
@@ -415,7 +415,7 @@ contains
 
    subroutine map_from_extended_zgrid(it, ie, iky, gext, g)
 
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
 
       implicit none
 

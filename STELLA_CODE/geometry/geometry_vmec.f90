@@ -17,7 +17,7 @@
 ! 
 ! The VMEC module will calculate the geometric arrays with psi_t as the
 ! the radial coordinate, and zeta as the parallel coordinate, on a z-grid 
-! with <zgrid_refinement_factor> more z-points than the real stella grid. 
+! with <z_grid_refinement_factor> more z-points than the real stella grid. 
 ! This module can change the parallel coordinate to the normalized arc-length,
 ! and it interpolates the VMEC z-grid to the stella z-grid.
 ! 
@@ -26,7 +26,7 @@
 ! 
 ! Changes
 ! -------
-! 07/2024 Removed <b_dot_grad_zeta_prefac> and <zgrid_scalefac> 
+! 07/2024 Removed <b_dot_grad_zeta_prefac> and <z_grid_scalefac> 
 ! 07/2024 Changed <gradpar> to <b_dot_grad_z_averaged> and other sensible name changed
 ! 
 !###############################################################################
@@ -55,7 +55,7 @@ module vmec_geometry
    real :: zeta_center, torflux
 
    integer :: n_tolerated_test_arrays_inconsistencies
-   integer :: zgrid_refinement_factor
+   integer :: z_grid_refinement_factor
    integer :: surface_option
 
    logical :: verbose, rectangular_cross_section
@@ -71,7 +71,7 @@ contains
 
       use text_options, only: text_option, get_option_value
       use file_utils, only: input_unit_exist, error_unit
-      use zgrid, only: zed_equal_arc
+      use z_grid, only: zed_equal_arc
       use mp, only: mp_abort
 
       implicit none
@@ -80,7 +80,7 @@ contains
       logical :: exist
       
       ! Backwards comptability, these parameters have been removed
-      real :: zgrid_scalefac
+      real :: z_grid_scalefac
 
       ! Allow text options for <radial_coordinate> to choose sgn(psi_t)*psi_t; -psi_t or r
       type(text_option), dimension(5), parameter :: radial_coordinate_options = & 
@@ -94,10 +94,10 @@ contains
 
       ! Define the variables in the namelist
       namelist /vmec_parameters/ alpha0, zeta_center, rectangular_cross_section, nfield_periods, &
-         torflux, zgrid_refinement_factor, surface_option, radial_coordinate, &
+         torflux, z_grid_refinement_factor, surface_option, radial_coordinate, &
          verbose, vmec_filename, n_tolerated_test_arrays_inconsistencies, &
          ! Backwards compatibility for old stella code
-         zgrid_scalefac
+         z_grid_scalefac
 
       ! Assign default variables
       call init_vmec_defaults
@@ -111,12 +111,12 @@ contains
       call get_option_value(radial_coordinate, radial_coordinate_options, &
                   radial_coordinate_option, ierr, "radial_coordinate in vmec_parameters")
 
-      ! If we set <zed_equal_arc> = True, we also define <zgrid_refinement_factor>
+      ! If we set <zed_equal_arc> = True, we also define <z_grid_refinement_factor>
       if (.not. zed_equal_arc) then
-         if (zgrid_refinement_factor > 1) then
-            write (*, *) 'There is no reason to use zgrid_refinement_factor > 1 unless zed_equal_arc=T'
-            write (*, *) 'Setting zgrid_refinement_factor = 1'
-            zgrid_refinement_factor = 1
+         if (z_grid_refinement_factor > 1) then
+            write (*, *) 'There is no reason to use z_grid_refinement_factor > 1 unless zed_equal_arc=T'
+            write (*, *) 'Setting z_grid_refinement_factor = 1'
+            z_grid_refinement_factor = 1
          end if
       end if
 
@@ -127,7 +127,7 @@ contains
       end if
       
       ! Backwards compatibility
-      if (zgrid_scalefac>0) write(*,*) 'WARNING: The parameter <zgrid_scalefac> in the <zgrid_parameters> knob has been removed.'
+      if (z_grid_scalefac>0) write(*,*) 'WARNING: The parameter <z_grid_scalefac> in the <zgrid_parameters> knob has been removed.'
    
    contains
 
@@ -136,7 +136,7 @@ contains
        !=========================================================================  
        subroutine init_vmec_defaults
 
-          use zgrid, only: zed_equal_arc
+          use z_grid, only: zed_equal_arc
 
           implicit none
 
@@ -151,16 +151,16 @@ contains
           surface_option = 0
           verbose = .true.
           n_tolerated_test_arrays_inconsistencies = 0
-          zgrid_refinement_factor = 1
+          z_grid_refinement_factor = 1
           radial_coordinate = 'sgn(psi_t) psi_t'
 
           ! If we use the normalized arc-length as the parallel coordinate, 
-          ! then use <zgrid_refinement_factor> more z-points to calculate
+          ! then use <z_grid_refinement_factor> more z-points to calculate
           ! the geometry arrays in VMEC, by using a smaller step dzeta.
           if (zed_equal_arc) then
-             zgrid_refinement_factor = 4
+             z_grid_refinement_factor = 4
           else
-             zgrid_refinement_factor = 1
+             z_grid_refinement_factor = 1
           end if
 
           ! For alpha=0 the perpendicular cross-section is rectangular at zeta_center=0
@@ -170,7 +170,7 @@ contains
           rectangular_cross_section = .false.
           
           ! Backwards compatibility
-          zgrid_scalefac = -1.0
+          z_grid_scalefac = -1.0
 
       end subroutine init_vmec_defaults
 
@@ -193,8 +193,8 @@ contains
       use splines, only: geo_spline
       use physics_parameters, only: full_flux_surface
       use debug_flags, only: const_alpha_geo 
-      use zgrid, only: zed_equal_arc, get_total_arc_length, get_arc_length_grid
-      use zgrid, only: zed 
+      use z_grid, only: zed_equal_arc, get_total_arc_length, get_arc_length_grid
+      use z_grid, only: zed 
       use geometry_vmec_read_netCDF_file, only: calculate_vmec_geometry
       use file_utils, only: open_output_file
       use mp, only: mp_abort
@@ -248,7 +248,7 @@ contains
 
       ! If desired, increase the number of sampled zeta grid points in VMEC data to increase
       ! the accuracy of later integration in zeta and interpolation onto stella zed grid 
-      nzgrid_vmec = nzgrid * zgrid_refinement_factor 
+      nzgrid_vmec = nzgrid * z_grid_refinement_factor 
 
       ! Allocate VMEC geometry arrays of size 2*<nzgrid_vmec>+1
       ! The '_vmec' indicated that the arrays are defined on the extended z-grid
@@ -323,7 +323,7 @@ contains
          if (debug) write (*, *) 'get_vmec_geometry::zed_equal_arc'
 
          ! Index for the max zeta of the nominal zeta grid ranging from [-zetamax_idx, zetamax_idx]
-         !     <zetamax_idx> = <nzgrid> * <zgrid_refinement_factor> = <nzgrid_vmec>
+         !     <zetamax_idx> = <nzgrid> * <z_grid_refinement_factor> = <nzgrid_vmec>
          zetamax_idx = nzgrid_vmec
 
          ! For each field line (or each alpha), we calculate the total arc length and <b_dot_grad_z>
@@ -347,7 +347,7 @@ contains
             !     int dl = 2 * pi 
             ! Therefore, we can calculate b . ∇l as, 
             !     <b_dot_grad_arclength> = b . ∇l = A = int dl / <zed_domain_size> = 2 * pi / <zed_domain_size>
-            ! Note that <b_dot_grad_arclength> is calculated on the stella grid, which has <zgrid_refinement_factor> less points than the VMEC grid
+            ! Note that <b_dot_grad_arclength> is calculated on the stella grid, which has <z_grid_refinement_factor> less points than the VMEC grid
             b_dot_grad_arclength(ia, :) = 2.0 * pi / zed_domain_size(ia)
 
          end do
@@ -420,7 +420,7 @@ contains
       end if 
 
       ! If <zed_equal_arc> = .false., then the zed coordinate is the same as VMEC's zeta coordinate,
-      ! so no need to interpolate onto the stella grid, with <zgrid_refinement_factor> less points than the VMEC grid
+      ! so no need to interpolate onto the stella grid, with <z_grid_refinement_factor> less points than the VMEC grid
       if (.not. zed_equal_arc) then
 
 			! If we choose z = zeta then the geometric coefficients from VMEC are already defined on the correct z-grid

@@ -50,7 +50,7 @@ contains
       use numerical_parameters, only: ky_solve_radial, ky_solve_real
       use kxky_grid_parameters, only: naky, nakx
       use grids_kxky, only: zonal_mode
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
       use arrays_dist_fn, only: g_krook, g_proj, g_symm
       use arrays_fields, only: phi_proj, phi_proj_stage
@@ -239,7 +239,7 @@ contains
 
       use mp, only: proc0
       use job_manage, only: time_message
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use constants, only: pi, zi
       use grids_kxky, only: akx, zonal_mode, boundary_size
       use kxky_grid_parameters, only: nakx
@@ -348,7 +348,7 @@ contains
       use job_manage, only: time_message
       use constants, only: pi, zi
       use arrays_dist_fn, only: g_krook, g_symm
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use grids_kxky, only: akx, zonal_mode, boundary_size
       use kxky_grid_parameters, only: nakx
       use stella_layouts, only: vmu_lo
@@ -440,7 +440,7 @@ contains
       use vpamu_grids, only: nvgrid, nvpa, nmu
       use dist_redistribute, only: kxkyz2vmu
       use arrays_dist_fn, only: gvmu
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
 
       implicit none
 
@@ -483,7 +483,7 @@ contains
       use geometry, only: bmag, dBdrho, dl_over_b, d_dl_over_b_drho
       use gyro_averages, only: gyro_average, aj0x, aj1x
       use arrays_dist_fn, only: kperp2, dkperp2dr
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
@@ -564,7 +564,7 @@ contains
 
       use mp, only: proc0
       use job_manage, only: time_message
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use constants, only: pi, zi
       use grids_kxky, only: zonal_mode, akx, boundary_size
       use kxky_grid_parameters, only: nakx
@@ -697,7 +697,7 @@ contains
 #endif
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
-      use zgrid, only: nzgrid, nztot
+      use z_grid, only: nzgrid, nztot
       use kxky_grid_parameters, only: nakx
       use grids_kxky, only: rho_d_clamped, boundary_size
       use linear_solve, only: lu_decomposition

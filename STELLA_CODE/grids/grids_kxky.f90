@@ -50,7 +50,7 @@ contains
 
        use mp, only: mp_abort
        use common_types, only: flux_surface_type
-       use zgrid, only: init_zgrid
+       use z_grid, only: init_zgrid
        use kxky_grid_parameters, only: grid_option_switch, grid_option_range, grid_option_box
        use kxky_grid_parameters, only: naky
        
@@ -87,7 +87,7 @@ contains
 
            use common_types, only: flux_surface_type
            use geometry, only: geo_surf, q_as_x
-           use zgrid, only: shat_zero
+           use z_grid, only: shat_zero
 
            use kxky_grid_parameters, only: naky, nakx, aky_min, aky_max, &
                 akx_min, akx_max, theta0_min, theta0_max, &
@@ -214,9 +214,9 @@ contains
            use physics_parameters, only: rhostar
            use physics_parameters, only: full_flux_surface, radial_variation
            use file_utils, only: runtype_option_switch, runtype_multibox
-           use zgrid, only: nperiod
-           use zgrid, only: boundary_option_switch, boundary_option_linked
-           use zgrid, only: boundary_option_linked_stellarator
+           use z_grid, only: nperiod
+           use z_grid, only: boundary_option_switch, boundary_option_linked
+           use z_grid, only: boundary_option_linked_stellarator
            use ran, only: ranf
 
            use write_radial_grid, only: dump_radial_grid

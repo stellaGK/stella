@@ -398,7 +398,7 @@ contains
 
       use mp, only: sum_allreduce
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
 
       implicit none
 
@@ -458,7 +458,7 @@ contains
 
       use mp, only: sum_allreduce
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
 
       implicit none
 
@@ -778,7 +778,7 @@ contains
    subroutine init_mu_grid
 
       use gauss_quad, only: get_laguerre_grids
-      use zgrid, only: nzgrid, nztot
+      use z_grid, only: nzgrid, nztot
       use kxky_grid_parameters, only: nalpha
       use species, only: spec, nspec
       use geometry, only: bmag, bmag_psi0
@@ -882,7 +882,7 @@ contains
 
    subroutine calculate_velocity_integrals
 
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use species, only: nspec
 
       implicit none

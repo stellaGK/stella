@@ -126,7 +126,7 @@ contains
    ! Gets called in the <init_stella> subroutine in the <stella> module. 
    subroutine init_diagnostics(restart, tstart, git_commit, git_date)
 
-      use zgrid, only: init_zgrid
+      use z_grid, only: init_zgrid
       use grids_kxky, only: init_grids_kxky
       use physics_parameters, only: read_physics_parameters
       use numerical_parameters, only: read_numerical_parameters

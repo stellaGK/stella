@@ -29,7 +29,7 @@ contains
          vflux_vs_s, qflux_vs_s, pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts)
 
       use constants, only: zi
-      use zgrid, only: nzgrid, delzed
+      use z_grid, only: nzgrid, delzed
       use kxky_grid_parameters, only: naky, nakx, ny
       use grids_kxky, only: aky, dy
       use arrays_fields, only: phi
@@ -85,7 +85,7 @@ contains
    subroutine get_one_flux_ffs(mom, dphidy, flxfac, flx, flx_vs_kxkyz)
 
       use species, only: nspec
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use kxky_grid_parameters, only: naky, nakx
       use volume_averages, only: mode_fac
 
@@ -140,7 +140,7 @@ contains
    subroutine get_modified_fourier_coefficient(moment, moment_ky, flxfac)
 
       use species, only: nspec
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use kxky_grid_parameters, only: ikx_max, naky_all, ny
       use calculations_kxky, only: swap_kxky_back
       use stella_transforms, only: transform_y2ky
@@ -183,7 +183,7 @@ contains
 
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use species, only: spec, nspec
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use vpamu_grids, only: integrate_vmu_ffs
       use vpamu_grids, only: vpa, vperp2
       use kxky_grid_parameters, only: naky_all, ikx_max, ny
@@ -195,7 +195,7 @@ contains
       use grids_kxky, only: aky, theta0
       use kxky_grid_parameters, only: nakx
       use constants, only: zi, pi
-      use zgrid, only: ntubes
+      use z_grid, only: ntubes
 
       use numerical_parameters, only: fphi
       use g_tofrom_h, only: g_to_h
@@ -327,7 +327,7 @@ contains
 
       use stella_layouts, only: vmu_lo, is_idx
       use species, only: spec
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use gyro_averages, only: gyro_average, j0_ffs
 
       use stella_transforms, only: transform_ky2y, transform_y2ky
@@ -394,7 +394,7 @@ contains
 
       use stella_layouts, only: vmu_lo, is_idx
       use species, only: spec
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use gyro_averages, only: gyro_average, j0_ffs
 
       use stella_transforms, only: transform_ky2y, transform_y2ky

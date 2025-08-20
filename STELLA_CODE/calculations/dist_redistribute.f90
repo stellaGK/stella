@@ -51,7 +51,7 @@ contains
       use redistribute, only: index_list_type, init_redist
       use redistribute, only: delete_list, set_redist_character_type
       use vpamu_grids, only: nvpa, nmu
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
 
       implicit none
 
@@ -175,7 +175,7 @@ contains
       use redistribute, only: index_list_type, init_redist
       use redistribute, only: delete_list, set_redist_character_type
       use vpamu_grids, only: nvpa, nmu
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
 
       implicit none
 
@@ -299,7 +299,7 @@ contains
       use redistribute, only: index_list_type, init_redist
       use redistribute, only: delete_list, set_redist_character_type
       use vpamu_grids, only: nvpa, nmu
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
 
       implicit none
 
@@ -424,7 +424,7 @@ contains
       use redistribute, only: delete_list, set_redist_character_type
       use vpamu_grids, only: nvpa
       use kxky_grid_parameters, only: nakx
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
 
       implicit none
 
@@ -558,7 +558,7 @@ contains
       use arrays_dist_fn, only: g_kymus, gnew
       use vpamu_grids, only: nvpa
       use mp, only: proc0, send, receive
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use kxky_grid_parameters, only: nakx, naky
       use stella_layouts, only: vmu_lo, kymus_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx, iky_idx, idx_local, proc_id

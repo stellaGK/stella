@@ -22,7 +22,7 @@ contains
       use job_manage, only: time_message
       use stella_layouts, only: vmu_lo
       use physics_parameters, only: include_apar, include_bpar
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use kxky_grid_parameters, only: naky, nakx
       use arrays_dist_fn, only: g1, g2
       use numerical_parameters, only: stream_matrix_inversion
@@ -396,7 +396,7 @@ contains
 
       use stella_time, only: code_dt
       use species, only: spec
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
       use vpamu_grids, only: vpa
       use numerical_parameters, only: driftkinetic_implicit, maxwellian_normalization
@@ -543,7 +543,7 @@ contains
 
       use stella_time, only: code_dt
       use species, only: spec
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: vpa, mu
       use numerical_parameters, only: driftkinetic_implicit, maxwellian_normalization
@@ -907,7 +907,7 @@ contains
       use stella_time, only: code_dt
       use physics_parameters, only: include_apar
       use species, only: spec
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use grids_kxky, only: aky, akx
       use vpamu_grids, only: vpa
       use stella_layouts, only: vmu_lo, iv_idx, is_idx
@@ -1011,7 +1011,7 @@ contains
    subroutine sweep_g_zext(iky, ie, it, ivmu, pdf)
 
       use constants, only: zi
-      use zgrid, only: nzgrid, ntubes, delzed
+      use z_grid, only: nzgrid, ntubes, delzed
       use numerical_parameters, only: drifts_implicit
       use numerical_parameters, only: zed_upwind_plus, zed_upwind_minus
       use numerical_parameters, only: time_upwind_plus
@@ -1111,7 +1111,7 @@ contains
 
    subroutine get_updated_pdf(iz, iv, is, sgn, iz1, iz2, wdrift_ext, pdf)
 
-      use zgrid, only: nzgrid, delzed
+      use z_grid, only: nzgrid, delzed
       use numerical_parameters, only: drifts_implicit
       use numerical_parameters, only: zed_upwind_plus, zed_upwind_minus
       use numerical_parameters, only: time_upwind_plus
@@ -1154,7 +1154,7 @@ contains
 
    subroutine sweep_zed_zonal(iky, iv, is, sgn, g, llim)
 
-      use zgrid, only: nzgrid, delzed
+      use z_grid, only: nzgrid, delzed
       use extended_zgrid, only: phase_shift
       use numerical_parameters, only: zed_upwind, time_upwind
       use parallel_streaming, only: stream_c
@@ -1176,7 +1176,7 @@ contains
 
       allocate (gpi(llim:ulim))
       allocate (gcf(llim:ulim))
-      ! ky=0 is 2pi periodic (no extended zgrid)
+      ! ky=0 is 2pi periodic (no extended z_grid)
       ! decompose into complementary function + particular integral
       ! zero BC for particular integral
       ! unit BC for complementary function (no source)
@@ -1211,7 +1211,7 @@ contains
 
       use linear_solve, only: lu_back_substitution
       use physics_parameters, only: include_apar, include_bpar
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use extended_zgrid, only: neigen
       use extended_zgrid, only: nsegments
       use extended_zgrid, only: nzed_segment

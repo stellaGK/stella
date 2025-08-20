@@ -49,7 +49,7 @@ contains
       use numerical_parameters, only: fields_kxkyz
       use physics_parameters, only: full_flux_surface
       !> Grids
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
 
       implicit none
 
@@ -106,7 +106,7 @@ contains
       use physics_parameters, only: include_apar, include_bpar
       use physics_parameters, only: radial_variation
       !> Grids
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use species, only: spec
       use vpamu_grids, only: integrate_species
       !> Calculations
@@ -199,7 +199,7 @@ contains
       use physics_parameters, only: beta
       use physics_parameters, only: radial_variation
       !> Grids
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: integrate_vmu
       use species, only: spec
@@ -300,7 +300,7 @@ contains
       use physics_parameters, only: adiabatic_option_switch
       use physics_parameters, only: adiabatic_option_fieldlineavg
       !> Grids
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use grids_kxky, only: zonal_mode
       use species, only: spec, has_electron_species
       !> Geometry 

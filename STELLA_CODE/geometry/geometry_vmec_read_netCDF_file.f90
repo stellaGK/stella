@@ -16,11 +16,11 @@
 ! 
 ! The VMEC module will calculate the geometric arrays with psi_t as the
 ! the radial coordinate, and zeta as the parallel coordinate, on a z-grid 
-! with <zgrid_refinement_factor> more z-points than the real stella grid. 
+! with <z_grid_refinement_factor> more z-points than the real stella grid. 
 ! This module can change the parallel coordinate to the normalized arc-length,
 ! and it interpolates the VMEC z-grid to the stella z-grid.
 ! 
-! Note that I removed <b_dot_grad_zeta_prefac> and <zgrid_scalefac>.
+! Note that I removed <b_dot_grad_zeta_prefac> and <z_grid_scalefac>.
 !  
 ! Initial VMEC geometry code was written by Matt Landreman, University of Maryland in August 2017. 
 ! Modified in 2018-2019 by Michael Barnes, and cleaned in 2024 by Hanne Thienpondt.

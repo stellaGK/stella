@@ -39,7 +39,7 @@ contains
 
       ! Dimensions
       use kxky_grid_parameters, only: naky, nakx
-      use zgrid, only: ntubes, nzgrid 
+      use z_grid, only: ntubes, nzgrid 
 
       ! Flags 
       use physics_parameters, only: radial_variation
@@ -262,7 +262,7 @@ contains
       ! Dimensions
       use kxky_grid_parameters, only: naky, nakx
       use grids_kxky, only: aky, akx, zed0
-      use zgrid, only: nzgrid, ntubes, zed
+      use z_grid, only: nzgrid, ntubes, zed
 
       ! Routines 
       use file_utils, only: open_output_file, close_output_file

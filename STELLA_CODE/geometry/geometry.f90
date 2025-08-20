@@ -117,9 +117,9 @@ contains
    subroutine init_geometry(nalpha, naky)
 
       ! Zgrid
-      use zgrid, only: nzgrid, zed, delzed, shat_zero, grad_x_grad_y_zero
-      use zgrid, only: boundary_option_switch, boundary_option_self_periodic
-      use zgrid, only: boundary_option_linked, boundary_option_linked_stellarator 
+      use z_grid, only: nzgrid, zed, delzed, shat_zero, grad_x_grad_y_zero
+      use z_grid, only: boundary_option_switch, boundary_option_self_periodic
+      use z_grid, only: boundary_option_linked, boundary_option_linked_stellarator 
 
       ! VMEC equilibria
       use vmec_geometry, only: read_vmec_parameters, get_vmec_geometry 
@@ -341,7 +341,7 @@ contains
       use vmec_geometry, only: radial_coordinate_option, radial_coordinate_sgnpsitpsit
       use vmec_geometry, only: radial_coordinate_minuspsit, radial_coordinate_r 
       use debug_flags, only: const_alpha_geo
-      use zgrid, only: nzgrid 
+      use z_grid, only: nzgrid 
 
       implicit none
 
@@ -492,8 +492,8 @@ contains
 
       subroutine calculate_twist_and_shift_geo_fac()
   
-         use zgrid, only: boundary_option_switch, boundary_option_linked_stellarator 
-         use zgrid, only: shat_zero, grad_x_grad_y_zero
+         use z_grid, only: boundary_option_switch, boundary_option_linked_stellarator 
+         use z_grid, only: shat_zero, grad_x_grad_y_zero
          use constants, only: pi
   
          implicit none  
@@ -617,7 +617,7 @@ contains
       use geometry_miller, only: read_local_parameters, get_local_geo
       use geometry_miller, only: communicate_parameters_multibox
       use geometry_inputprofiles_interface, only: read_inputprof_geo
-      use zgrid, only: zed, nzed, nzgrid, zed_equal_arc
+      use z_grid, only: zed, nzed, nzgrid, zed_equal_arc
       use constants, only: pi
 
       implicit none   
@@ -776,7 +776,7 @@ contains
    subroutine get_geometry_arrays_from_zpinch (nalpha)
 
      use zpinch, only: get_zpinch_geometry_coefficients
-     use zgrid, only: nzgrid
+     use z_grid, only: nzgrid
      implicit none
 
      integer, intent (in) :: nalpha
@@ -821,7 +821,7 @@ contains
    subroutine overwrite_selected_geometric_coefficients(nalpha)
 
       use file_utils, only: get_unused_unit
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
 
       implicit none
 
@@ -905,7 +905,7 @@ contains
 
    subroutine set_coef_constant(coef, nalpha)
 
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
 
       implicit none
 
@@ -1214,7 +1214,7 @@ contains
    subroutine get_b_dot_grad_z_averaged_eqarc(gp, z, dz, gp_eqarc)
 
       use constants, only: pi
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
 
       implicit none
 
@@ -1234,7 +1234,7 @@ contains
    !============================================================================
    subroutine get_zed_eqarc(gp, dz, z, gp_eqarc, z_eqarc)
 
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
 
       implicit none
 
@@ -1258,7 +1258,7 @@ contains
    ! trapezoidal rule to integrate in zed
    subroutine integrate_zed(dz, f, intf)
 
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
 
       implicit none
 
@@ -1324,7 +1324,7 @@ contains
    subroutine write_geometric_coefficients(nalpha)
 
       use file_utils, only: open_output_file, close_output_file
-      use zgrid, only: nzgrid, zed
+      use z_grid, only: nzgrid, zed
 
       implicit none
 
