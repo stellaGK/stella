@@ -84,9 +84,9 @@ contains
 # endif
       use mp, only: iproc, barrier
 # ifdef NETCDF_PARALLEL
-      use zgrid, only: nztot
+      use z_grid, only: nztot
 # endif
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       ! Must include kxkyz_layout_type here to avoid obscure bomb while compiling
       ! diagnostics.f90 (which uses this module) with the Compaq F90 compiler:
       use stella_layouts, only: kxkyz_lo, vmu_lo
@@ -715,10 +715,10 @@ contains
       use kxky_grid_parameters, only: naky, nakx
 # endif
 # ifdef NETCDF_PARALLEL
-      use zgrid, only: nztot
+      use z_grid, only: nztot
 # endif
       use mp, only: iproc, broadcast
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
       use stella_layouts, only: kxkyz_lo, vmu_lo
       use file_utils, only: error_unit

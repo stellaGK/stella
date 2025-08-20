@@ -1,4 +1,4 @@
-module zgrid
+module z_grid
 
    implicit none
 
@@ -205,4 +205,4 @@ contains
 
    end subroutine integrate_zed
 
-end module zgrid
+end module z_grid

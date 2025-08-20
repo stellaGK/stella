@@ -37,7 +37,7 @@ contains
 !   subroutine gbar_to_h_vmu (g, phi, apar, facphi, facapar)
 
 !     use species, only: spec
-!     use zgrid, only: nzgrid
+!     use z_grid, only: nzgrid
 !     use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
 !     use stella_layouts, only: vmu_lo
 !     use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -72,7 +72,7 @@ contains
 !   subroutine gbar_to_h_kxkyz (g, phi, apar, facphi, facapar)
 
 !     use species, only: spec
-!     use zgrid, only: nzgrid
+!     use z_grid, only: nzgrid
 !     use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
 !     use vpamu_grids, only: nvpa, nmu
 !     use stella_layouts, only: kxkyz_lo
@@ -106,7 +106,7 @@ contains
    subroutine gbar_to_g_kxkyz(g, apar, facapar)
 
       use species, only: spec
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa
       use vpamu_grids, only: nvpa, nmu
       use stella_layouts, only: kxkyz_lo
@@ -181,7 +181,7 @@ contains
 
    subroutine gbar_to_g_vmu(g, apar, facapar)
 
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use stella_layouts, only: vmu_lo
 
       implicit none
@@ -201,7 +201,7 @@ contains
    subroutine gbar_to_g_vmu_single(ivmu, g0, apar, facapar)
 
       use species, only: spec
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use kxky_grid_parameters, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
@@ -246,7 +246,7 @@ contains
 
    subroutine g_to_h_vmu(g, phi, bpar, facphi, phi_corr)
 
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use stella_layouts, only: vmu_lo
 
       implicit none
@@ -267,7 +267,7 @@ contains
    subroutine g_to_h_vmu_single(ivmu, g0, phi, bpar, facphi, phi_corr)
 
       use species, only: spec
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use geometry, only: bmag, dBdrho
       use arrays_dist_fn, only: kperp2, dkperp2dr
@@ -399,7 +399,7 @@ contains
    subroutine g_to_h_kxkyz(g, phi, bpar, facphi)
 
       use species, only: spec
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use vpamu_grids, only: nvpa, nmu, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu
       use stella_layouts, only: kxkyz_lo
@@ -460,7 +460,7 @@ contains
    subroutine g_to_f_vmu(g, phi, facphi, phi_corr)
 
       use species, only: spec
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use geometry, only: bmag, dBdrho
@@ -536,7 +536,7 @@ contains
    subroutine g_to_f_kxkyz(g, phi, facphi)
 
       use species, only: spec
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use stella_layouts, only: kxkyz_lo
@@ -580,7 +580,7 @@ contains
 
 !     use constants, only: zi
 !     use species, only: spec
-!     use zgrid, only: nzgrid
+!     use z_grid, only: nzgrid
 !     use vpamu_grids, only: vpa
 !     use stella_layouts, only: vmu_lo
 !     use stella_layouts, only: iv_idx, is_idx

@@ -67,7 +67,7 @@ contains
       use physics_parameters, only: include_apar, include_bpar
       use physics_parameters, only: full_flux_surface
       !> Grids
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       !> Routines from other field modules
       use fields_fluxtube, only: advance_fields_fluxtube
       use fields_ffs, only: get_fields_ffs
@@ -183,7 +183,7 @@ contains
       use kxky_grid_parameters, only: nakx, naky
       !> Grids
       use species, only: spec
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use vpamu_grids, only: vpa, mu
       use grids_kxky, only: aky
       !> Calculations
@@ -425,7 +425,7 @@ contains
       use arrays_fields, only: gamtot, gamtot3
       
       ! Grids
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use kxky_grid_parameters, only: naky, nakx
       
       ! Time routines

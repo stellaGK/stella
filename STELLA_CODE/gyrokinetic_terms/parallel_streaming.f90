@@ -59,7 +59,7 @@ contains
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: vperp2, vpa, mu
       use kxky_grid_parameters, only: nalpha
-      use zgrid, only: nzgrid, nztot
+      use z_grid, only: nzgrid, nztot
       use geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
       use numerical_parameters, only: stream_implicit, driftkinetic_implicit
       use physics_parameters, only: include_parallel_streaming, radial_variation
@@ -188,7 +188,7 @@ contains
 
    subroutine init_invert_stream_operator
 
-      use zgrid, only: delzed
+      use z_grid, only: delzed
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: nsegments, neigen_max
       use numerical_parameters, only: zed_upwind_plus, zed_upwind_minus, time_upwind_plus
@@ -243,7 +243,7 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use job_manage, only: time_message
       use stella_transforms, only: transform_ky2y
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use kxky_grid_parameters, only: naky, naky_all, nakx, ikx_max, ny
       use calculations_kxky, only: swap_kxky
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -367,7 +367,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use job_manage, only: time_message
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use kxky_grid_parameters, only: naky, nakx
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use species, only: spec
@@ -449,7 +449,7 @@ contains
       use finite_differences, only: third_order_upwind_zed
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx
-      use zgrid, only: nzgrid, delzed, ntubes
+      use z_grid, only: nzgrid, delzed, ntubes
       use extended_zgrid, only: neigen, nsegments
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
@@ -491,7 +491,7 @@ contains
       use finite_differences, only: second_order_centered_zed
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx
-      use zgrid, only: nzgrid, delzed, ntubes
+      use z_grid, only: nzgrid, delzed, ntubes
       use extended_zgrid, only: neigen, nsegments
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
@@ -532,7 +532,7 @@ contains
 !    use finite_differences, only: fd_variable_upwinding_zed
 !    use stella_layouts, only: vmu_lo
 !    use stella_layouts, only: iv_idx
-!    use zgrid, only: nzgrid, delzed, ntubes
+!    use z_grid, only: nzgrid, delzed, ntubes
 !    use extended_zgrid, only: neigen, nsegments
 !    use extended_zgrid, only: iz_low, iz_up
 !    use extended_zgrid, only: ikxmod
@@ -572,7 +572,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
 
       implicit none
 
@@ -594,7 +594,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use kxky_grid_parameters, only: ny
 
       implicit none
@@ -679,7 +679,7 @@ contains
 
       use finite_differences, only: fd_cell_centres_zed
       use kxky_grid_parameters, only: naky
-      use zgrid, only: nzgrid, delzed, ntubes
+      use z_grid, only: nzgrid, delzed, ntubes
       use extended_zgrid, only: neigen, nsegments
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
@@ -715,7 +715,7 @@ contains
 
    subroutine get_zed_derivative_extended_domain(iv, f, f_left, f_right, df_dz)
 
-      use zgrid, only: delzed
+      use z_grid, only: delzed
       use finite_differences, only: fd_cell_centres_zed
 
       implicit none
@@ -733,7 +733,7 @@ contains
 
       use finite_differences, only: cell_centres_zed
       use kxky_grid_parameters, only: naky, nakx
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use extended_zgrid, only: neigen, nsegments
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod

@@ -47,7 +47,7 @@ contains
       use grids_kxky, only: akx, zonal_mode
       use species, only: spec, has_electron_species
       use species, only: modified_adiabatic_electrons, adiabatic_electrons
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       !> Calculations
       use calculations_kxky, only: swap_kxky_ordered, swap_kxky_back_ordered
       use volume_averages, only: flux_surface_average_ffs
@@ -193,7 +193,7 @@ contains
          use kxky_grid_parameters, only: naky, nakx
          !> Grids
          use species, only: spec
-         use zgrid, only: nzgrid
+         use z_grid, only: nzgrid
          use vpamu_grids, only: integrate_species_ffs
          !> Calculations
          use gyro_averages, only: gyro_average, j0_B_ffs
@@ -242,7 +242,7 @@ contains
 
    subroutine get_phi_ffs(rhs, phi)
 
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use calculations_kxky, only: swap_kxky_ordered, swap_kxky_back_ordered
       use kxky_grid_parameters, only: naky_all, ikx_max
       use gyro_averages, only: band_lu_solve_ffs
@@ -290,7 +290,7 @@ contains
       !> Arrays
       use arrays_fields, only: gamtot
       !> Grids
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use grids_kxky, only: akx
       !> Calculations
       use gyro_averages, only: gyro_average
@@ -343,7 +343,7 @@ contains
       use kxky_grid_parameters, only: naky, nakx
       !> Grids
       use species, only: spec
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use vpamu_grids, only: integrate_species_ffs
       !> Calculations
       use gyro_averages, only: gyro_average, j0_B_ffs
@@ -437,7 +437,7 @@ contains
       use species, only: spec, nspec
       use species, only: adiabatic_electrons
       use species, only: has_electron_species, ion_species
-      use zgrid, only: nzgrid, nztot
+      use z_grid, only: nzgrid, nztot
       use vpamu_grids, only: vperp2, maxwell_vpa, maxwell_mu
       use vpamu_grids, only: integrate_species
       use grids_kxky, only: zonal_mode, akx
@@ -619,7 +619,7 @@ contains
       use physics_parameters, only: nine, tite
       use kxky_grid_parameters, only: naky, naky_all, ikx_max
       !> Grids
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       !> Calculations
       use gyro_averages, only: band_lu_solve_ffs
       use volume_averages, only: flux_surface_average_ffs

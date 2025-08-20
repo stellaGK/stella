@@ -243,7 +243,7 @@ contains
 
       ! AVB: compute the collision frequencies nuD, nus and nupa
 
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use vpamu_grids, only: nmu, mu, vpa, nvpa, integrate_vmu
       use geometry, only: bmag
       use species, only: spec, nspec
@@ -341,7 +341,7 @@ contains
 
       use stella_time, only: code_dt
       use species, only: nspec, spec
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use vpamu_grids, only: dvpa, vpa, nvpa, mu, nmu, maxwell_mu, maxwell_vpa, dmu, equally_spaced_mu_grid
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
@@ -1558,7 +1558,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
    subroutine init_legendre
 
       use vpamu_grids, only: mu, nmu, vpa, nvpa
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use geometry, only: bmag
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use file_utils, only: open_output_file, close_output_file
@@ -1593,7 +1593,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
    end subroutine init_legendre
 
    subroutine init_bessel_fn
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use vpamu_grids, only: nmu, vperp2
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use gyro_averages, only: aj0v
@@ -1810,7 +1810,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       use species, only: nspec
       use vpamu_grids, only: mu, nmu, vpa, nvpa
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use geometry, only: bmag
 
       implicit none
@@ -1848,7 +1848,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       use species, only: nspec
       use vpamu_grids, only: mu, nmu, vpa, nvpa
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use geometry, only: bmag
 
       implicit none
@@ -1879,7 +1879,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       use species, only: nspec, spec
       use vpamu_grids, only: nmu, nvpa, integrate_vmu
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
 
       implicit none
 
@@ -1957,7 +1957,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
    subroutine init_deltaj_vmu
 
       use species, only: nspec, spec
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use geometry, only: bmag
       use vpamu_grids, only: mu, nmu, vpa, nvpa, vperp_max, vpa_max, integrate_vmu, set_vpa_weights
       use file_utils, only: open_output_file, close_output_file
@@ -2467,7 +2467,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       ! get the fields tp_den_isb(g_a), tp_den_isb(g_b), tp_den_isb(g_c) ...
 
       use mp, only: sum_allreduce
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use vpamu_grids, only: integrate_vmu, set_vpa_weights, nvpa, nmu
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use constants, only: pi
@@ -2556,7 +2556,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use linear_solve, only: lu_decomposition
       use stella_time, only: code_dt
       use species, only: nspec
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use vpamu_grids, only: ztmax, maxwell_mu, nmu, nvpa, set_vpa_weights
       use kxky_grid_parameters, only: naky, nakx
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx, it_idx
@@ -2897,7 +2897,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use linear_solve, only: lu_decomposition
       use stella_time, only: code_dt
       use species, only: nspec, spec
-      use zgrid, only: ntubes
+      use z_grid, only: ntubes
       use vpamu_grids, only: nmu, nvpa
       use vpamu_grids, only: set_vpa_weights
       use stella_layouts, only: kxkyz_lo
@@ -2993,7 +2993,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       ! get the fields psi_ab^lmj(g_a), psi_ab^lmj(g_b), psi_ab^lmj(g_c) ...
 
       use mp, only: sum_allreduce
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use vpamu_grids, only: integrate_vmu, set_vpa_weights, nvpa, nmu, vpa
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use constants, only: pi
@@ -3296,7 +3296,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use job_manage, only: time_message
       use redistribute, only: scatter, gather
       use stella_time, only: code_dt
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use numerical_parameters, only: fphi
       use physics_parameters, only: full_flux_surface
       use kxky_grid_parameters, only: naky, nakx
@@ -3993,7 +3993,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    subroutine advance_collisions_fp_implicit(phi, apar, bpar)
 
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use vpamu_grids, only: set_vpa_weights
       use arrays_dist_fn, only: gvmu
 
@@ -4024,7 +4024,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use stella_time, only: code_dt
       use numerical_parameters, only: fphi
       use species, only: nspec, spec
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use vpamu_grids, only: nmu, nvpa, integrate_vmu
       use vpamu_grids, only: vpa
       use vpamu_grids, only: set_vpa_weights

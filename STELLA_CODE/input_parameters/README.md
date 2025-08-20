@@ -33,7 +33,7 @@ PHYSICS
 
 GRIDS
   vpamu_grid
-  z_grid (renamed from zgrid_parameters)
+  z_grid (renamed from z_grid_parameters)
   z_boundary_condition
   species_knobs
   species_parameters_1

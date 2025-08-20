@@ -26,7 +26,7 @@ contains
       use gyro_averages, only: gyro_average
       use numerical_parameters, only: fphi
       use geometry, only: dl_over_b
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: integrate_vmu
       use kxky_grid_parameters, only: nakx
@@ -111,7 +111,7 @@ contains
       use gyro_averages, only: gyro_average
       use numerical_parameters, only: fphi
       use geometry, only: dl_over_b, bmag
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use vpamu_grids, only: vperp2, nvpa, nmu
       use vpamu_grids, only: integrate_vmu
       use kxky_grid_parameters, only: nakx

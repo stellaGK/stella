@@ -34,7 +34,7 @@ contains
       use job_manage, only: time_message
       use physics_parameters, only: radial_variation
       use numerical_parameters, only: ky_solve_radial, ky_solve_real
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use grids_kxky, only: zonal_mode
       use physics_parameters, only: adiabatic_option_switch
       use physics_parameters, only: adiabatic_option_fieldlineavg
@@ -115,7 +115,7 @@ contains
       use mpi
       use mp, only: curr_focus, sharedsubprocs, scope
       use mp, only: split_n_tasks, sgproc0
-      use zgrid, only: nztot
+      use z_grid, only: nztot
       use arrays_fields, only: phi_shared
       use mp_lu_decomposition, only: lu_matrix_multiply_local
 #endif
@@ -123,7 +123,7 @@ contains
       use physics_parameters, only: adiabatic_option_switch
       use physics_parameters, only: adiabatic_option_fieldlineavg
       use numerical_parameters, only: ky_solve_radial
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use species, only: spec, has_electron_species
       use kxky_grid_parameters, only: nakx, naky
       use grids_kxky, only: zonal_mode
@@ -219,7 +219,7 @@ contains
 #else
       use linear_solve, only: lu_back_substitution
 #endif
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use kxky_grid_parameters, only: nakx 
@@ -346,7 +346,7 @@ contains
       use gyro_averages, only: aj0x, aj1x
       use geometry, only: dBdrho, bmag
       use arrays_dist_fn, only: kperp2, dkperp2dr
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use vpamu_grids, only: vperp2
       use kxky_grid_parameters, only: nakx, naky
       use calculations_kxky, only: multiply_by_rho
@@ -407,7 +407,7 @@ contains
       use numerical_parameters, only: fphi, ky_solve_radial
       use geometry, only: dl_over_b, d_dl_over_b_drho, bmag, dBdrho
       use stella_layouts, only: imu_idx, is_idx
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use vpamu_grids, only: integrate_species, vperp2
       use kxky_grid_parameters, only: nakx, naky
       use grids_kxky, only: rho_d_clamped
@@ -572,7 +572,7 @@ contains
       use numerical_parameters, only: ky_solve_radial, ky_solve_real
       use species, only: spec, has_electron_species, ion_species
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
-      use zgrid, only: nzgrid, ntubes, nztot
+      use z_grid, only: nzgrid, ntubes, nztot
       use kxky_grid_parameters, only: naky, nakx
       use grids_kxky, only: akx
       use grids_kxky, only: zonal_mode, rho_d_clamped
@@ -827,7 +827,7 @@ contains
       use arrays_fields, only: phi_corr_QN, phi_corr_GA
       use arrays_fields, only: apar_corr_QN, apar_corr_GA
       use arrays_fields, only: dgamtotdr
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
       use kxky_grid_parameters, only: naky, nakx
 

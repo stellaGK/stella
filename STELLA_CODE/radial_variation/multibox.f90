@@ -225,7 +225,7 @@ contains
       use stella_layouts, only: vmu_lo
       use geometry, only: geo_surf, q_as_x, get_x_to_rho
       use geometry, only: drhodpsi, dxdpsi
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use kxky_grid_parameters, only: nakx, naky, nx, x0
       use grids_kxky, only: akx, aky
       use grids_kxky, only: x, x_d
@@ -494,7 +494,7 @@ contains
       use physics_parameters, only: g_exb, g_exbfac
       use stella_layouts, only: vmu_lo
       use geometry, only: dl_over_b
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use mp, only: job, scope, mp_abort, &
                     crossdomprocs, subprocs, allprocs, &
                     ssend, receive, proc0
@@ -671,7 +671,7 @@ contains
       use grids_kxky, only: zonal_mode, boundary_size
       use kxky_grid_parameters, only: periodic_variation, naky
       use stella_layouts, only: vmu_lo
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
 
       implicit none
 
@@ -736,7 +736,7 @@ contains
       use stella_layouts, only: vmu_lo
       use kxky_grid_parameters, only: nakx, naky, periodic_variation
       use grids_kxky, only: boundary_size
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use mp, only: job, proc0
       use job_manage, only: time_message
 
@@ -804,7 +804,7 @@ contains
    subroutine init_mb_get_phi(has_elec, adiabatic_elec, efac, efacp)
       use kxky_grid_parameters, only: nakx, naky
       use grids_kxky, only: boundary_size
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use physics_parameters, only: radial_variation
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use numerical_parameters, only: ky_solve_radial
@@ -920,7 +920,7 @@ contains
       use constants, only: zi
       use kxky_grid_parameters, only: nakx, naky
       use grids_kxky, only: zonal_mode, boundary_size, akx
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use numerical_parameters, only: ky_solve_radial
       use arrays_fields, only: gamtot, dgamtotdr, phi_solve, phizf_solve

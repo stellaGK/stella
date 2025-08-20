@@ -104,8 +104,8 @@ contains
       use kxky_grid_parameters, only: read_kxky_grid_parameters
       use species, only: init_species, read_species_knobs
       use species, only: nspec
-      use zgrid, only: init_zgrid
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: init_zgrid
+      use z_grid, only: nzgrid, ntubes
       use geometry, only: init_geometry
       use geometry, only: finish_init_geometry
       use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
@@ -193,7 +193,7 @@ contains
       !> write message to screen with useful info regarding start of simulation
       if (debug) write (*, *) 'stella::init_stella::write_start_message'
       call write_start_message(git_commit, git_date) 
-      !> read the zgrid_parameters namelist from the input file and setup the z grid
+      !> read the z_grid_parameters namelist from the input file and setup the z grid
       if (debug) write (6, *) "stella::init_stella::init_zgrid"
       call init_zgrid
       !> read the species_knobs namelist from the input file
@@ -578,7 +578,7 @@ contains
       use physics_parameters, only: finish_read_physics_parameters
       use physics_parameters, only: include_parallel_nonlinearity, radial_variation
       use numerical_parameters, only: finish_read_numerical_parameters
-      use zgrid, only: finish_zgrid
+      use z_grid, only: finish_zgrid
       use species, only: finish_species
       use time_advance, only: time_gke, time_parallel_nl
       use time_advance, only: finish_time_advance
@@ -760,7 +760,7 @@ contains
    ! subroutine test_redistribute
 
    !   use stella_layouts, only: kxyz_lo, vmu_lo
-   !   use zgrid, only: nzgrid, ntubes
+   !   use z_grid, only: nzgrid, ntubes
    !   use vpamu_grids, only: nvpa, nmu
    !   use kt_grids, only: ny, ikx_max
    !   use dist_redistribute, only: kxyz2vmu

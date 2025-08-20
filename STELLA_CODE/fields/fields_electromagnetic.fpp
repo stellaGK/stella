@@ -52,7 +52,7 @@ contains
       !> Grids
       use species, only: spec
       use vpamu_grids, only: integrate_species, vpa, mu
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       !> Calculations
       use gyro_averages, only: gyro_average, gyro_average_j1
       !> Routines from other fields modules
@@ -140,7 +140,7 @@ contains
       use physics_parameters, only: include_apar, include_bpar
       use numerical_parameters, only: fphi 
       !> Grids
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: vpa, mu 
       use vpamu_grids, only: integrate_vmu
@@ -235,7 +235,7 @@ contains
       !> Parameters
       use kxky_grid_parameters, only: nakx, naky
       !> Grids
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
 
       implicit none
 
@@ -288,7 +288,7 @@ contains
       use arrays_dist_fn, only: kperp2
       use arrays_fields, only: apar_denom
       !> Grids
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: apar
@@ -324,7 +324,7 @@ contains
       use physics_parameters, only: beta
       !> Grids
       use species, only: spec
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       use vpamu_grids, only: nvpa, nmu, vpa
       use vpamu_grids, only: integrate_vmu
       !> Calculations
@@ -397,7 +397,7 @@ contains
       use vpamu_grids, only: vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use vpamu_grids, only: integrate_vmu
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       !> Calculations
       use gyro_averages, only: aj0v, aj1v
 
@@ -524,7 +524,7 @@ contains
    !============================================================================
    subroutine allocate_fields_electromagnetic
 
-      use zgrid, only: nzgrid, ntubes
+      use z_grid, only: nzgrid, ntubes
       
       use kxky_grid_parameters, only: naky, nakx
       use physics_parameters, only: include_apar, include_bpar

@@ -28,7 +28,7 @@ contains
    subroutine init_neoclassical_terms
 
       use mp, only: proc0 
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use kxky_grid_parameters, only: nalpha
       use vpamu_grids, only: nvpa, nmu
       use species, only: nspec
@@ -170,7 +170,7 @@ contains
 
       use finite_differences, only: fd5pt
       use stella_layouts, only: vmu_lo
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use vpamu_grids, only: nvpa, nmu
       use vpamu_grids, only: dvpa
       use species, only: nspec
@@ -215,7 +215,7 @@ contains
    subroutine get_dfneo_dzed(fneo, dfneo)
 
       use finite_differences, only: fd5pt
-      use zgrid, only: nztot, nzgrid, delzed
+      use z_grid, only: nztot, nzgrid, delzed
       use vpamu_grids, only: nvpa, nmu
       use species, only: nspec
       use stella_layouts, only: vmu_lo
@@ -260,7 +260,7 @@ contains
    subroutine get_dfneo_drho(fneo, dfneo)
 
       use finite_differences, only: fd3pt, fd5pt
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use vpamu_grids, only: nvpa, nmu
       use species, only: nspec
       use stella_layouts, only: vmu_lo
@@ -311,7 +311,7 @@ contains
    subroutine get_dphineo_dzed(phineo, dphineo)
 
       use finite_differences, only: fd5pt
-      use zgrid, only: nztot, nzgrid, delzed
+      use z_grid, only: nztot, nzgrid, delzed
       use kxky_grid_parameters, only: nalpha
 
       implicit none
@@ -338,7 +338,7 @@ contains
    subroutine get_dphineo_drho(phineo, dphineo)
 
       use finite_differences, only: fd3pt, fd5pt
-      use zgrid, only: nzgrid
+      use z_grid, only: nzgrid
       use kxky_grid_parameters, only: nalpha
 
       implicit none
@@ -373,7 +373,7 @@ contains
       use mp, only: proc0
       use mp, only: send, receive
       use file_utils, only: open_output_file, close_output_file
-      use zgrid, only: nzgrid, zed
+      use z_grid, only: nzgrid, zed
       use vpamu_grids, only: vpa, mu
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx

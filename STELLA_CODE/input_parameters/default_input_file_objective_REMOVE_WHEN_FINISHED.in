@@ -55,7 +55,7 @@
   rectangular_cross_section = .false.
   nfield_periods = -1.0
   torflux = 0.6354167
-  zgrid_refinement_factor = 1.0
+  z_grid_refinement_factor = 1.0
   surface_option = 0.0
   radial_coordinate = "sgn(psi_t)psi_t"
   verbose = .true.
@@ -194,7 +194,7 @@
  /
  
 ! OLD NAMELIST
-!&z_grid (renamed from zgrid_parameters)
+!&z_grid (renamed from z_grid_parameters)
 !  nzed = 24.0
 !  nperiod = 1.0
 !  ntubes = 1.0
