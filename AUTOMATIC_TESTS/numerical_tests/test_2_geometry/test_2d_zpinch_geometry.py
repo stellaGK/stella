@@ -67,7 +67,7 @@ def test_whether_zpinch_output_files_are_present(tmp_path, stella_version, error
 #-------------------------------------------------------------------------------
 #                    Check whether zpinch output files match                   #
 #-------------------------------------------------------------------------------
-def test_whether_zpinch_output_files_are_correct():  
+def test_whether_zpinch_output_files_are_correct(stella_version):  
     '''Check that the results are identical to a previous run.'''
     
     # Turn off tests for older stella versions for now
@@ -89,12 +89,12 @@ def test_whether_zpinch_output_files_are_correct():
 #-------------------------------------------------------------------------------
 #              Check whether the data in the netcdf file matches               #
 #-------------------------------------------------------------------------------
-def test_whether_zpinch_geometry_data_in_netcdf_file_is_correct(error=False):
+def test_whether_zpinch_geometry_data_in_netcdf_file_is_correct(stella_version, error=False):
     '''Check that the results are identical to a previous run.'''
     
     # Turn off tests for older stella versions for now
     if stella_version!='master': 
-        print("The z-pinch did not exist in stella version 0.5, 0.6 and 0.7")
+        print("The z-pinch did not exist in stella version 0.5, 0.6 and 0.7", 'stella_version', stella_version)
         return 
      
     # File names  

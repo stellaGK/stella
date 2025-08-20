@@ -1,11 +1,32 @@
+
 ! Simple linear example with z-pinch magnetic equilibrium geometry
 
-&physics_flags
-  adiabatic_option = 'iphi00=2'
-  full_flux_surface = .false.
-  include_apar = .false.
-  nonlinear = .true.
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geo_knobs
+  geo_option = 'zpinch'
 /
+
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&gyrokinetic_terms
+  include_nonlinear = .true.
+/
+
+! Not used, but the test will check its value
+&electromagnetic
+  beta = 0.01
+/
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
 &species_knobs
   nspec = 2
   species_option = 'stella'
@@ -28,13 +49,16 @@
   type = 'electron'
   z = -1.0
 /
-&parameters
-  beta = 0.01
-  rhostar = 0.01
-  vnew_ref = 0.01
-  zeff = 1.0
+
+ 
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kt_grids_knobs
+  grid_option = 'box'
 /
-&kt_grids_box_parameters
+&parameters_kxky_grids_box
   nx = 6
   ny = 9
   y0 = 5.0
@@ -50,15 +74,11 @@
   nvgrid = 3 
   vpa_max = 3.0
 /
-&knobs
-  lu_option = 'local'
-  avail_cpu_time = 82800
-  delt = 0.01 
-  fphi = 1.0
-  mat_gen = .false.
-  nstep = 10
-  print_extra_info_to_terminal = .false. 
-/
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
 &stella_diagnostics_knobs
   nsave = 10
   nwrite = 1
@@ -72,27 +92,46 @@
   write_radial_fluxes = .true.
   write_radial_moments = .true.
 /
-&init_g_knobs
-  chop_side = .false.
-  ginit_option = 'default'
+
+!===============================================================================
+!                              Initialize potential                             
+!===============================================================================
+
+&initialize_distribution
+  initialize_distribution_option = 'default'
   phiinit = 0.01
-  restart_dir = 'restart'
-  restart_file = 'nc/example.nc'
+/
+
+&initialize_distribution_maxwellian
   width0 = 1.0
 /
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+&time_trace_options
+  nstep = 10
+  avail_cpu_time = 82800
+/
+
+&time_step
+  delt = 0.01
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'rk2'
+/
+
+&numerical_extra
+  lu_option = 'local'
+  print_extra_info_to_terminal = .false.
+/
+
+!===============================================================================
+!                                  Dissipation                                  
+!===============================================================================
+
 &dissipation
   hyper_dissipation = .true.
-/
-&geo_knobs
-  geo_option = 'zpinch'
-/
-&kt_grids_knobs
-  grid_option = 'box'
-/
-&time_advance_knobs
-  explicit_option = 'rk2'
-/
-&layouts_knobs
-  vms_layout = 'vms'
-  xyzs_layout = 'yxzs'
 /
