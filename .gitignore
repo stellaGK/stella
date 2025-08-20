@@ -1,4 +1,7 @@
 
+# Don't upload the executable
+stella
+
 # Compiled files
 *.o
 *.a
