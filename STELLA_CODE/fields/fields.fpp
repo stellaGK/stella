@@ -179,7 +179,7 @@ contains
       !> Parameters
       use physics_parameters, only: include_apar, include_bpar
       use physics_parameters, only: full_flux_surface
-      use parameters_numerical, only: fphi
+      use numerical_parameters, only: fphi
       use parameters_kxky_grids, only: nakx, naky
       !> Grids
       use species, only: spec
@@ -245,7 +245,7 @@ contains
       !> Parameters
       use physics_parameters, only: include_apar, include_bpar
       use physics_parameters, only: full_flux_surface
-      use parameters_numerical, only: fphi
+      use numerical_parameters, only: fphi
       use parameters_kxky_grids, only: nakx, naky
       !> Grids
       use species, only: spec
@@ -304,7 +304,7 @@ contains
       use parameters_kxky_grids, only: naky, nakx
       use physics_parameters, only: include_apar, include_bpar
       use physics_parameters, only: full_flux_surface
-      use parameters_numerical, only: fphi
+      use numerical_parameters, only: fphi
       !> Grids
       use species, only: spec
       use vpamu_grids, only: vpa, mu

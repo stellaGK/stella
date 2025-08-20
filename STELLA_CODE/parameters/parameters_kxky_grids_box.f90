@@ -131,7 +131,7 @@ module parameters_kxky_grids_box
         subroutine check_backwards_compatability_box
 
             use file_utils, only: input_unit, input_unit_exist
-            use parameters_numerical, only: print_extra_info_to_terminal
+            use numerical_parameters, only: print_extra_info_to_terminal
             implicit none
             
             logical :: old_nml_exist

@@ -916,7 +916,7 @@ contains
       use stella_time, only: code_dt
       use zgrid, only: nzgrid, ntubes
       use species, only: spec
-      use parameters_numerical, only: fphi
+      use numerical_parameters, only: fphi
       use physics_parameters, only: radial_variation, full_flux_surface
       use parameters_kxky_grids, only: naky, nakx
       use grids_kxky, only: rho_d_clamped
@@ -1533,7 +1533,7 @@ contains
       use finite_differences, only: tridag
       use linear_solve, only: lu_back_substitution
       use stella_time, only: code_dt
-      use parameters_numerical, only: fphi
+      use numerical_parameters, only: fphi
       use species, only: nspec, spec, has_electron_species
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nmu, nvpa
@@ -1699,7 +1699,7 @@ contains
       use finite_differences, only: tridag
       use linear_solve, only: lu_back_substitution
       use stella_time, only: code_dt
-      use parameters_numerical, only: fphi
+      use numerical_parameters, only: fphi
       use species, only: nspec, spec, has_electron_species
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nmu, nvpa

@@ -42,7 +42,7 @@ contains
       use file_utils, only: runtype_option_switch, runtype_multibox
       use job_manage, only: njobs
       use mp, only: job, send, receive, crossdomprocs, subprocs, scope
-      use parameters_numerical, only: maxwellian_normalization
+      use numerical_parameters, only: maxwellian_normalization
 
       implicit none
 

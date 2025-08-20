@@ -61,7 +61,7 @@ contains
       use parameters_kxky_grids, only: nalpha
       use zgrid, only: nzgrid, nztot
       use geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
-      use parameters_numerical, only: stream_implicit, driftkinetic_implicit
+      use numerical_parameters, only: stream_implicit, driftkinetic_implicit
       use physics_parameters, only: include_parallel_streaming, radial_variation
       use physics_parameters, only: full_flux_surface
 
@@ -191,7 +191,7 @@ contains
       use zgrid, only: delzed
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: nsegments, neigen_max
-      use parameters_numerical, only: zed_upwind_plus, zed_upwind_minus, time_upwind_plus
+      use numerical_parameters, only: zed_upwind_plus, zed_upwind_minus, time_upwind_plus
 
       implicit none
 
@@ -251,7 +251,7 @@ contains
       use species, only: spec
       use physics_parameters, only: full_flux_surface, include_bpar
       use gyro_averages, only: gyro_average, gyro_average_j1
-      use parameters_numerical, only: driftkinetic_implicit, maxwellian_normalization
+      use numerical_parameters, only: driftkinetic_implicit, maxwellian_normalization
 	
 	!! For FFS 
       use gyro_averages, only: j0_ffs
@@ -738,7 +738,7 @@ contains
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: fill_zed_ghost_zones
-      use parameters_numerical, only: zed_upwind
+      use numerical_parameters, only: zed_upwind
 
       implicit none
 
@@ -778,7 +778,7 @@ contains
    ! it is assumed that any function passed to this subroutine is periodic
    subroutine center_zed_segment_real(iv, f, llim)
 
-      use parameters_numerical, only: zed_upwind_plus, zed_upwind_minus
+      use numerical_parameters, only: zed_upwind_plus, zed_upwind_minus
 
       integer, intent(in) :: iv, llim
       real, dimension(llim:), intent(in out) :: f
@@ -802,8 +802,8 @@ contains
    !> and overwrites f with the cell-centered version;
    subroutine center_zed_segment_complex(iv, f, llim, periodic)
 
-      use parameters_numerical, only: zupwnd_p => zed_upwind_plus
-      use parameters_numerical, only: zupwnd_m => zed_upwind_minus
+      use numerical_parameters, only: zupwnd_p => zed_upwind_plus
+      use numerical_parameters, only: zupwnd_m => zed_upwind_minus
 
       integer, intent(in) :: iv, llim
       complex, dimension(llim:), intent(in out) :: f
@@ -834,7 +834,7 @@ contains
 
    subroutine finish_parallel_streaming
 
-      use parameters_numerical, only: stream_implicit, driftkinetic_implicit
+      use numerical_parameters, only: stream_implicit, driftkinetic_implicit
       use physics_parameters, only: full_flux_surface
       implicit none
 

@@ -38,7 +38,7 @@ contains
       use physics_parameters, only: include_apar
       use physics_parameters, only: adiabatic_option_switch
       use physics_parameters, only: adiabatic_option_fieldlineavg
-      use parameters_numerical, only: fphi
+      use numerical_parameters, only: fphi
       use parameters_kxky_grids, only: nakx, ikx_max, naky, naky_all
       !> Arrays
       use arrays_fields, only: gamtot

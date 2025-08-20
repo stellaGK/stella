@@ -28,7 +28,7 @@ contains
 
       use physics_parameters, only: full_flux_surface
       use physics_parameters, only: include_parallel_nonlinearity
-      use parameters_numerical, only: split_parallel_dynamics
+      use numerical_parameters, only: split_parallel_dynamics
 
       implicit none
 

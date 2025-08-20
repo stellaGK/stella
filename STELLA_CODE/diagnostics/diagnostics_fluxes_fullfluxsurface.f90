@@ -197,7 +197,7 @@ contains
       use constants, only: zi, pi
       use zgrid, only: ntubes
 
-      use parameters_numerical, only: fphi
+      use numerical_parameters, only: fphi
       use g_tofrom_h, only: g_to_h
 
       !> For momentum flux

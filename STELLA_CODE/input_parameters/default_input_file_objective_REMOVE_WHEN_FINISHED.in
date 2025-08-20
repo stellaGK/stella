@@ -320,7 +320,7 @@
   navg = 50.0
   nsave = -1.0
   nc_mult = 1.0
-  autostop = .false.        (this should only be in parameters_numerical)
+  autostop = .false.        (this should only be in numerical_parameters)
   save_for_restart = .false.
   write_all = .false.
   !! Add the following
@@ -489,7 +489,7 @@
 !-------------------------------
   
 ! OLD NAMELIST
-!&parameters_numerical
+!&numerical_parameters
 !  stream_implicit = .true.
 !  stream_iterative_implicit = .false.
 !  stream_matrix_inversion = .false.
@@ -560,6 +560,7 @@
   drifts_implicit = .false.
   fully_implicit = .false.
   fully_explicit = .false.
+  split_parallel_dynamics = .false. 
   maxwellian_inside_zed_derivative = .false.
   use_deltaphi_for_response_matrix = .false.
   !!!! DELETE THIS 

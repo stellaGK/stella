@@ -261,7 +261,7 @@ contains
       use vpamu_grids, only: nvpa, nmu
       use arrays_dist_fn, only: gnew, gold, g_scratch
       use arrays_dist_fn, only: gvmu, g_kymus
-      use parameters_numerical, only: split_parallel_dynamics
+      use numerical_parameters, only: split_parallel_dynamics
       
       implicit none
 

@@ -807,7 +807,7 @@ contains
       use zgrid, only: nzgrid
       use physics_parameters, only: radial_variation
       use geometry, only: dl_over_b, d_dl_over_b_drho
-      use parameters_numerical, only: ky_solve_radial
+      use numerical_parameters, only: ky_solve_radial
       use arrays_fields, only: phi_solve, phizf_solve, gamtot, dgamtotdr
       use linear_solve, only: lu_decomposition, lu_inverse
 
@@ -922,7 +922,7 @@ contains
       use grids_kxky, only: zonal_mode, boundary_size, akx
       use zgrid, only: nzgrid, ntubes
       use geometry, only: dl_over_b, d_dl_over_b_drho
-      use parameters_numerical, only: ky_solve_radial
+      use numerical_parameters, only: ky_solve_radial
       use arrays_fields, only: gamtot, dgamtotdr, phi_solve, phizf_solve
       use linear_solve, only: lu_back_substitution
 

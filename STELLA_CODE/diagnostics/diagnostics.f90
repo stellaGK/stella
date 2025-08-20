@@ -129,7 +129,7 @@ contains
       use zgrid, only: init_zgrid
       use grids_kxky, only: init_grids_kxky
       use physics_parameters, only: read_physics_parameters
-      use parameters_numerical, only: read_parameters_numerical
+      use numerical_parameters, only: read_numerical_parameters
       use species, only: init_species
       use dist_fn, only: init_dist_fn
       use init_g, only: init_init_g
@@ -160,7 +160,7 @@ contains
       call init_zgrid
       call read_physics_parameters
       call init_grids_kxky
-      call read_parameters_numerical
+      call read_numerical_parameters
       call init_species
       call init_init_g
       call init_dist_fn

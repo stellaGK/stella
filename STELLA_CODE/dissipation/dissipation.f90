@@ -28,7 +28,7 @@ contains
 
       use mp, only: proc0, broadcast
       use file_utils, only: input_unit_exist
-      use parameters_numerical, only: print_extra_info_to_terminal
+      use numerical_parameters, only: print_extra_info_to_terminal
       
       ! Read the <dissipation> namelist in the input file
       use input_file_dissipation, only: read_namelist_dissipation
@@ -37,7 +37,7 @@ contains
       use coll_dougherty, only: read_parameters_dougherty
       use coll_fokkerplanck, only: read_parameters_fp
       use hyper, only: read_parameters_hyper
-      use parameters_numerical, only: fully_explicit
+      use numerical_parameters, only: fully_explicit
       use hyper, only: init_hyper
 
       implicit none

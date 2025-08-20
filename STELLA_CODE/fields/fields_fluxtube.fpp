@@ -46,7 +46,7 @@ contains
       use arrays_dist_fn, only: gvmu
       use arrays_fields, only: time_field_solve
       !> Parameters
-      use parameters_numerical, only: fields_kxkyz
+      use numerical_parameters, only: fields_kxkyz
       use physics_parameters, only: full_flux_surface
       !> Grids
       use zgrid, only: nzgrid
@@ -101,7 +101,7 @@ contains
       use arrays_dist_fn, only: g_scratch
       use arrays_fields, only: time_field_solve
       !> Parameters
-      use parameters_numerical, only: fphi
+      use numerical_parameters, only: fphi
       use physics_parameters, only: beta
       use physics_parameters, only: include_apar, include_bpar
       use physics_parameters, only: radial_variation
@@ -195,7 +195,7 @@ contains
       use arrays_fields, only: time_field_solve
       !> Parameters
       use physics_parameters, only: include_apar, include_bpar
-      use parameters_numerical, only: fphi
+      use numerical_parameters, only: fphi
       use physics_parameters, only: beta
       use physics_parameters, only: radial_variation
       !> Grids
@@ -295,7 +295,7 @@ contains
       use arrays_fields, only: time_field_solve
       !> Parameters
       use physics_parameters, only: radial_variation
-      use parameters_numerical, only: ky_solve_radial, ky_solve_real
+      use numerical_parameters, only: ky_solve_radial, ky_solve_real
       use parameters_kxky_grids, only: nakx, naky
       use physics_parameters, only: adiabatic_option_switch
       use physics_parameters, only: adiabatic_option_fieldlineavg
@@ -408,8 +408,8 @@ contains
       use arrays_fields, only: gamtot, gamtot3
       use arrays_fields, only: gamtot_h, gamtot3_h, efac, efacp
       !> Parameters
-      use parameters_numerical, only: fphi
-      use parameters_numerical, only: maxwellian_normalization
+      use numerical_parameters, only: fphi
+      use numerical_parameters, only: maxwellian_normalization
       use physics_parameters, only: tite, nine, beta
       use parameters_kxky_grids, only: nakx
       use physics_parameters, only: adiabatic_option_switch

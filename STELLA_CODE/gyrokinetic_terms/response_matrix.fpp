@@ -34,7 +34,7 @@ contains
       use stella_layouts, only: iv_idx, is_idx
       use parameters_kxky_grids, only: naky
       use mp, only: proc0
-      use parameters_numerical, only: mat_gen
+      use numerical_parameters, only: mat_gen
 #ifdef ISO_C_BINDING
       use arrays_fields, only: response_window
 #endif
@@ -101,7 +101,7 @@ contains
    subroutine setup_response_matrix_file_io
 
       use mp, only: proc0, job
-      use parameters_numerical, only: mat_gen
+      use numerical_parameters, only: mat_gen
       use system_fortran, only: systemf
       use parameters_kxky_grids, only: naky
 
@@ -175,7 +175,7 @@ contains
 
       use mp, only: proc0
       use job_manage, only: time_message
-      use parameters_numerical, only: mat_gen
+      use numerical_parameters, only: mat_gen
       use arrays_fields, only: response_matrix
       use parameters_kxky_grids, only: naky
       use extended_zgrid, only: neigen
@@ -261,7 +261,7 @@ contains
    subroutine calculate_vspace_integrated_response(iky)
 
       use mp, only: proc0
-      use parameters_numerical, only: mat_gen
+      use numerical_parameters, only: mat_gen
       use physics_parameters, only: include_apar, include_bpar
       use extended_zgrid, only: neigen, ikxmod
       use extended_zgrid, only: nsegments, nzed_segment
@@ -544,8 +544,8 @@ contains
 #endif
       use mp, only: mp_abort
       use arrays_fields, only: response_matrix
-      use parameters_numerical, only: lu_option_switch
-      use parameters_numerical, only: lu_option_none, lu_option_local, lu_option_global
+      use numerical_parameters, only: lu_option_switch
+      use numerical_parameters, only: lu_option_none, lu_option_local, lu_option_global
       use extended_zgrid, only: neigen
       use linear_solve, only: lu_decomposition
 
@@ -688,7 +688,7 @@ contains
    subroutine get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
 
       use stella_layouts, only: vmu_lo
-      use parameters_numerical, only: time_upwind_plus
+      use numerical_parameters, only: time_upwind_plus
       use physics_parameters, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use arrays_fields, only: response_matrix
@@ -776,7 +776,7 @@ contains
    subroutine get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
 
       use stella_layouts, only: vmu_lo
-      use parameters_numerical, only: time_upwind_plus
+      use numerical_parameters, only: time_upwind_plus
       use physics_parameters, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use arrays_fields, only: response_matrix
@@ -862,7 +862,7 @@ contains
    subroutine get_dpdf_dbpar_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
 
       use stella_layouts, only: vmu_lo
-      use parameters_numerical, only: time_upwind_plus
+      use numerical_parameters, only: time_upwind_plus
       use physics_parameters, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
       use arrays_fields, only: response_matrix
@@ -973,7 +973,7 @@ contains
       use mp, only: sum_allreduce
 
       use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use parameters_numerical, only: driftkinetic_implicit
+      use numerical_parameters, only: driftkinetic_implicit
       use vpamu_grids, only: integrate_species_ffs_rm
 
       use physics_parameters, only: full_flux_surface

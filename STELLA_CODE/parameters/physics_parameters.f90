@@ -137,8 +137,6 @@ contains
       read_namelist_extra
 
    implicit none
-   
-   character(30) :: adiabatic_option
 
    if (initialised) return
 

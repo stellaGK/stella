@@ -158,7 +158,7 @@ contains
       use vpamu_grids, only: dvpa, dmu, mu, nmu
       use geometry, only: bmag
       use stella_layouts
-      use parameters_numerical, only: fully_explicit
+      use numerical_parameters, only: fully_explicit
       use common_types, only: spec_type
 
       implicit none
@@ -3297,7 +3297,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use redistribute, only: scatter, gather
       use stella_time, only: code_dt
       use zgrid, only: nzgrid, ntubes
-      use parameters_numerical, only: fphi
+      use numerical_parameters, only: fphi
       use physics_parameters, only: full_flux_surface
       use parameters_kxky_grids, only: naky, nakx
       use vpamu_grids, only: nvpa, nmu
@@ -4022,7 +4022,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use finite_differences, only: tridag
       use linear_solve, only: lu_back_substitution
       use stella_time, only: code_dt
-      use parameters_numerical, only: fphi
+      use numerical_parameters, only: fphi
       use species, only: nspec, spec
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: nmu, nvpa, integrate_vmu

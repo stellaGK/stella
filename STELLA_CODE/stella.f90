@@ -3,8 +3,8 @@ program stella
    use redistribute, only: scatter
    use job_manage, only: time_message, checkstop, job_fork
    use job_manage, only: checktime
-   use parameters_numerical, only: nstep, tend
-   use parameters_numerical, only: avail_cpu_time
+   use numerical_parameters, only: nstep, tend
+   use numerical_parameters, only: avail_cpu_time
    use stella_time, only: update_time, code_time, code_dt, checkcodedt
    use dist_redistribute, only: kxkyz2vmu
    use time_advance, only: advance_stella
@@ -96,11 +96,11 @@ contains
       use job_manage, only: checktime, time_message
       use physics_parameters, only: read_physics_parameters
       use physics_parameters, only: radial_variation
-      use parameters_numerical, only: read_parameters_numerical
-      use parameters_numerical, only: avail_cpu_time, nstep, rng_seed, delt, delt_max, delt_min
-      use parameters_numerical, only: stream_implicit, driftkinetic_implicit
-      use parameters_numerical, only: delt_option_switch, delt_option_auto
-      use parameters_numerical, only: mat_gen, mat_read
+      use numerical_parameters, only: read_numerical_parameters
+      use numerical_parameters, only: avail_cpu_time, nstep, rng_seed, delt, delt_max, delt_min
+      use numerical_parameters, only: stream_implicit, driftkinetic_implicit
+      use numerical_parameters, only: delt_option_switch, delt_option_auto
+      use numerical_parameters, only: mat_gen, mat_read
       use parameters_kxky_grids, only: read_kxky_grid_parameters
       use species, only: init_species, read_species_knobs
       use species, only: nspec
@@ -188,8 +188,8 @@ contains
       !> read the physics_parameters namelist from the input file
       if (debug) write (6, *) "stella::init_stella::read_physics_parameters"
       call read_physics_parameters
-      if (debug) write (6, *) "stella::init_stella::read_parameters_numerical"
-      call read_parameters_numerical 
+      if (debug) write (6, *) "stella::init_stella::read_numerical_parameters"
+      call read_numerical_parameters 
       !> write message to screen with useful info regarding start of simulation
       if (debug) write (*, *) 'stella::init_stella::write_start_message'
       call write_start_message(git_commit, git_date) 
@@ -446,7 +446,7 @@ contains
    subroutine write_start_message(git_commit, git_date)
    
       use mp, only: proc0, nproc
-      use parameters_numerical, only: print_extra_info_to_terminal
+      use numerical_parameters, only: print_extra_info_to_terminal
 
       implicit none
 
@@ -500,7 +500,7 @@ contains
    subroutine print_header
 
       use mp, only: proc0
-      use parameters_numerical, only: print_extra_info_to_terminal
+      use numerical_parameters, only: print_extra_info_to_terminal
       use physics_parameters, only: include_apar, include_bpar
       implicit none
       
@@ -577,7 +577,7 @@ contains
       use job_manage, only: time_message
       use physics_parameters, only: finish_read_physics_parameters
       use physics_parameters, only: include_parallel_nonlinearity, radial_variation
-      use parameters_numerical, only: finish_read_parameters_numerical
+      use numerical_parameters, only: finish_read_numerical_parameters
       use zgrid, only: finish_zgrid
       use species, only: finish_species
       use time_advance, only: time_gke, time_parallel_nl
@@ -599,10 +599,10 @@ contains
       use grids_kxky, only: finish_grids_kxky
       use volume_averages, only: finish_volume_averages
       use multibox, only: finish_multibox, time_multibox
-      use parameters_numerical, only: stream_implicit, drifts_implicit, fields_kxkyz
+      use numerical_parameters, only: stream_implicit, drifts_implicit, fields_kxkyz
       use implicit_solve, only: time_implicit_advance
-      use parameters_numerical, only: print_extra_info_to_terminal
-      use parameters_numerical, only: fields_kxkyz
+      use numerical_parameters, only: print_extra_info_to_terminal
+      use numerical_parameters, only: fields_kxkyz
 
       implicit none
 
@@ -635,8 +635,8 @@ contains
       call finish_vpamu_grids
       if (debug) write (*, *) 'stella::finish_stella::finish_grids_kxky'
       call finish_grids_kxky
-      if (debug) write (*, *) 'stella::finish_stella::finish_read_parameters_numerical'
-      call finish_read_parameters_numerical
+      if (debug) write (*, *) 'stella::finish_stella::finish_read_numerical_parameters'
+      call finish_read_numerical_parameters
       if (debug) write (*, *) 'stella::finish_stella::finish_species'
       call finish_species
       if (debug) write (*, *) 'stella::finish_stella::finish_physics_parameters'

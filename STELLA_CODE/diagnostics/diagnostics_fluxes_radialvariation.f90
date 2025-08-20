@@ -46,8 +46,8 @@ contains
       use zgrid, only: nzgrid, ntubes
       use vpamu_grids, only: vperp2, vpa, mu
       use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use parameters_numerical, only: fphi
-      use parameters_numerical, only: maxwellian_normalization
+      use numerical_parameters, only: fphi
+      use numerical_parameters, only: maxwellian_normalization
       use grids_kxky, only: aky, theta0
       use parameters_kxky_grids, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho

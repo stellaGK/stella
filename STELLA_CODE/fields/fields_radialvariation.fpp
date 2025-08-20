@@ -33,7 +33,7 @@ contains
       use mp, only: proc0, mp_abort, job
       use job_manage, only: time_message
       use physics_parameters, only: radial_variation
-      use parameters_numerical, only: ky_solve_radial, ky_solve_real
+      use numerical_parameters, only: ky_solve_radial, ky_solve_real
       use zgrid, only: nzgrid, ntubes
       use grids_kxky, only: zonal_mode
       use physics_parameters, only: adiabatic_option_switch
@@ -122,7 +122,7 @@ contains
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use physics_parameters, only: adiabatic_option_switch
       use physics_parameters, only: adiabatic_option_fieldlineavg
-      use parameters_numerical, only: ky_solve_radial
+      use numerical_parameters, only: ky_solve_radial
       use zgrid, only: nzgrid, ntubes
       use species, only: spec, has_electron_species
       use parameters_kxky_grids, only: nakx, naky
@@ -350,7 +350,7 @@ contains
       use vpamu_grids, only: vperp2
       use parameters_kxky_grids, only: nakx, naky
       use calculations_kxky, only: multiply_by_rho
-      use parameters_numerical, only: ky_solve_radial
+      use numerical_parameters, only: ky_solve_radial
       use species, only: spec
 
       implicit none
@@ -404,7 +404,7 @@ contains
       use stella_layouts, only: vmu_lo
       use gyro_averages, only: gyro_average, gyro_average_j1
       use gyro_averages, only: aj0x, aj1x
-      use parameters_numerical, only: fphi, ky_solve_radial
+      use numerical_parameters, only: fphi, ky_solve_radial
       use geometry, only: dl_over_b, d_dl_over_b_drho, bmag, dBdrho
       use stella_layouts, only: imu_idx, is_idx
       use zgrid, only: nzgrid, ntubes
@@ -569,7 +569,7 @@ contains
       use mp, only: split_n_tasks, create_shared_memory_window
       use mpi
 #endif
-      use parameters_numerical, only: ky_solve_radial, ky_solve_real
+      use numerical_parameters, only: ky_solve_radial, ky_solve_real
       use species, only: spec, has_electron_species, ion_species
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use zgrid, only: nzgrid, ntubes, nztot

@@ -14,14 +14,14 @@ module input_file_physics_parameters
    public :: adiabatic_option_periodic, adiabatic_option_zero, adiabatic_option_fieldlineavg
 
    private 
-   
+
    integer, parameter :: simulation_domain_fluxtube = 1
    integer, parameter :: simulation_domain_multibox = 2
    integer, parameter :: simulation_domain_flux_annulus = 3
 
    integer, parameter :: adiabatic_option_periodic = 1, &
-                       adiabatic_option_zero = 2, &
-                       adiabatic_option_fieldlineavg = 3
+                        adiabatic_option_zero = 2, &
+                        adiabatic_option_fieldlineavg = 3
    ! These variables are used in every single subroutine, so make them global
    integer :: in_file
    logical :: dexist
@@ -87,7 +87,6 @@ contains
          implicit none
 
          integer :: ierr 
-
          type(text_option), dimension(7), parameter :: simulation_domain_options = &
                (/text_option('default', simulation_domain_fluxtube), &
                text_option('fluxtube', simulation_domain_fluxtube), &
@@ -97,13 +96,13 @@ contains
                text_option('full_flux_annulus', simulation_domain_flux_annulus), & 
                text_option('ffa', simulation_domain_flux_annulus)/)
 
+         !----------------------------------------------------------------------
          ! Variables in the gyrokinetic_terms namelist
          namelist /gyrokinetic_terms/ simulation_domain, include_parallel_streaming, &
             include_mirror, include_xdrift, include_ydrift, include_drive, &
             include_nonlinear, include_parallel_nonlinearity, include_electromagnetic, &
             include_flow_shear
 
-         !----------------------------------------------------------------------
          in_file = input_unit_exist("gyrokinetic_terms", dexist)
          if (dexist) read (unit=in_file, nml=gyrokinetic_terms)
 
@@ -174,6 +173,7 @@ contains
 
          namelist /scale_gyrokinetic_terms/ xdriftknob, ydriftknob, wstarknob, fphi, &
             suppress_zonal_interaction
+
          in_file = input_unit_exist("scale_gyrokinetic_terms", dexist)
          if (dexist) read (unit=in_file, nml=scale_gyrokinetic_terms)
 
@@ -232,14 +232,15 @@ contains
             text_option('iphi00=1', adiabatic_option_periodic), &
             text_option('iphi00=2', adiabatic_option_fieldlineavg)/)
 
+         !----------------------------------------------------------------------
          namelist /adiabatic_electron_response/ adiabatic_option, tite, nine
          in_file = input_unit_exist("adiabatic_electron_response", dexist)
          if (dexist) read (unit=in_file, nml=adiabatic_electron_response)
 
          ierr = error_unit()
          call get_option_value &
-         (adiabatic_option, adiabaticopts, adiabatic_option_switch, &
-         ierr, "adiabatic_option in input_file_parameters.f90")
+            (adiabatic_option, adiabaticopts, adiabatic_option_switch, &
+            ierr, "adiabatic_option in input_file_parameters.f90")
 
       end subroutine read_input_file_adiabatic_electron_response
 
@@ -298,7 +299,7 @@ contains
          ! If both include_apar and include_bpar are false, then include_electromagnetic is set to false
          if (.not. (include_apar .and. include_bpar)) include_electromagnetic = .false.
          ! If both include_apar and include_bpar are true, then include_electromagnetic is set to true
-         if (include_apar .and. include_bpar) include_electromagnetic = .true.
+         if (include_apar .or. include_bpar) include_electromagnetic = .true.
 
       end subroutine check_inputs_electromagnetic
 
@@ -406,6 +407,7 @@ contains
 
       implicit none
 
+      
       logical, intent(out) :: include_pressure_variation, include_geometric_variation, radial_variation
       real, intent(out) :: zeff, vnew_ref
 

@@ -136,7 +136,7 @@ module parameters_kxky_grids_range
         subroutine check_backwards_compatability_range
 
             use file_utils, only: input_unit, error_unit, input_unit_exist
-            use parameters_numerical, only: print_extra_info_to_terminal
+            use numerical_parameters, only: print_extra_info_to_terminal
             use text_options, only: text_option, get_option_value
             
             implicit none
