@@ -114,8 +114,8 @@ contains
       use geometry, only: b_dot_grad_zeta_RR 
       
       ! Dimensions
-      use vpamu_grids, only: vperp2, vpa, mu
-      use vpamu_grids, only: nvpa, nmu
+      use velocity_grids, only: vperp2, vpa, mu
+      use velocity_grids, only: nvpa, nmu
       use z_grid, only: nzgrid, ntubes
       use grids_kxky, only: aky, theta0
       use species, only: spec, nspec
@@ -372,7 +372,7 @@ contains
    !============================================================================ 
    subroutine get_one_flux(iky, iz, norm, velocityintegrand_vs_vpamu, phi, flux_out)
 
-      use vpamu_grids, only: integrate_vmu
+      use velocity_grids, only: integrate_vmu
       use volume_averages, only: mode_fac
       use geometry, only: flux_fac
       use grids_kxky, only: aky

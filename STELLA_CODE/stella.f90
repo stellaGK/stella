@@ -127,8 +127,8 @@ contains
       use extended_zgrid, only: init_extended_zgrid
       use grids_kxky, only: init_grids_kxky
       use kxky_grid_parameters, only: naky, nakx, ny, nx, nalpha
-      use vpamu_grids, only: init_vpamu_grids, read_vpamu_grids_parameters
-      use vpamu_grids, only: nvgrid, nmu
+      use velocity_grids, only: init_velocity_grids, read_velocity_grids_parameters
+      use velocity_grids, only: nvgrid, nmu
       use stella_transforms, only: init_transforms
       use stella_save, only: init_dt
       use multibox, only: read_multibox_parameters, init_multibox
@@ -204,9 +204,9 @@ contains
       !> namelist from the input file and allocate some kx and ky arrays
       if (debug) write (6, *) "stella::init_stella::read_kxky_grid_parameters"
       call read_kxky_grid_parameters
-      !> read the vpamu_grids_parameters namelist from the input file
-      if (debug) write (6, *) "stella::init_stella::read_vpamu_grids_parameters"
-      call read_vpamu_grids_parameters
+      !> read the velocity_grids_parameters namelist from the input file
+      if (debug) write (6, *) "stella::init_stella::read_velocity_grids_parameters"
+      call read_velocity_grids_parameters
       if (debug) write (6, *) "stella::init_stella::read_multibox_parameters"
       call read_multibox_parameters
       if (debug) write (6, *) "stella::init_stella::read_diagnostics_knobs"
@@ -266,8 +266,8 @@ contains
       if (debug) write (6, *) 'stella::init_stella::finish_init_geometry'
       call finish_init_geometry
       !> setup the (vpa,mu) grids and associated integration weights
-      if (debug) write (6, *) 'stella::init_stella::init_vpamu_grids'
-      call init_vpamu_grids
+      if (debug) write (6, *) 'stella::init_stella::init_velocity_grids'
+      call init_velocity_grids
       !> set up all of the logic needed to do calculations on an extended grid in z.
       !> this extended grid could be due to use of a ballooning angle so that
       !> z goes from -N*pi to N*pi, or it could be due to the coupling of different
@@ -595,7 +595,7 @@ contains
       use response_matrix, only: finish_response_matrix
       use geometry, only: finish_geometry
       use extended_zgrid, only: finish_extended_zgrid
-      use vpamu_grids, only: finish_vpamu_grids
+      use velocity_grids, only: finish_velocity_grids
       use grids_kxky, only: finish_grids_kxky
       use volume_averages, only: finish_volume_averages
       use multibox, only: finish_multibox, time_multibox
@@ -631,8 +631,8 @@ contains
       call finish_redistribute
       if (debug) write (*, *) 'stella::finish_stella::finish_init_g'
       call finish_init_g
-      if (debug) write (*, *) 'stella::finish_stella::finish_vpamu_grids'
-      call finish_vpamu_grids
+      if (debug) write (*, *) 'stella::finish_stella::finish_velocity_grids'
+      call finish_velocity_grids
       if (debug) write (*, *) 'stella::finish_stella::finish_grids_kxky'
       call finish_grids_kxky
       if (debug) write (*, *) 'stella::finish_stella::finish_read_numerical_parameters'
@@ -761,7 +761,7 @@ contains
 
    !   use stella_layouts, only: kxyz_lo, vmu_lo
    !   use z_grid, only: nzgrid, ntubes
-   !   use vpamu_grids, only: nvpa, nmu
+   !   use velocity_grids, only: nvpa, nmu
    !   use kt_grids, only: ny, ikx_max
    !   use dist_redistribute, only: kxyz2vmu
    !   use redistribute, only: scatter

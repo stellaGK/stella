@@ -178,9 +178,9 @@ contains
       use kxky_grid_parameters, only: naky, nakx, ikx_max
       use grids_kxky, only: theta0, akx, zonal_mode
       use kxky_grid_parameters, only: reality
-      use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: vpa
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use velocity_grids, only: nvpa, nmu
+      use velocity_grids, only: vpa
+      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_dist_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
       use ran, only: ranf
@@ -281,8 +281,8 @@ contains
       use extended_zgrid, only: periodic, phase_shift
       use kxky_grid_parameters, only: naky, nakx, reality
       use grids_kxky, only: zonal_mode
-      use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use velocity_grids, only: nvpa, nmu
+      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_dist_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
@@ -438,9 +438,9 @@ contains
       use z_grid, only: nzgrid, zed
       use kxky_grid_parameters, only: naky, nakx
       use grids_kxky, only: theta0
-      use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: vpa, vperp2
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use velocity_grids, only: nvpa, nmu
+      use velocity_grids, only: vpa, vperp2
+      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_dist_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx
       use input_file_fields, only: read_namelist_initialise_distribution_kpar
@@ -551,8 +551,8 @@ contains
       use arrays_dist_fn, only: gvmu, kperp2
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use vpamu_grids, only: nvpa, nmu
+      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use velocity_grids, only: nvpa, nmu
       use grids_kxky, only: akx
       use input_file_fields, only: read_namelist_initialise_distribution_rh
 
@@ -605,8 +605,8 @@ contains
       use arrays_dist_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use vpamu_grids, only: nvpa, nmu
+      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use velocity_grids, only: nvpa, nmu
 
       implicit none
 
@@ -665,8 +665,8 @@ contains
 
       use stella_layouts, only: kxkyz_lo, is_idx, iz_idx
       use arrays_dist_fn, only: gvmu
-      use vpamu_grids, only: nmu
-      use vpamu_grids, only: maxwell_mu, maxwell_vpa, maxwell_fac
+      use velocity_grids, only: nmu
+      use velocity_grids, only: maxwell_mu, maxwell_vpa, maxwell_fac
 
       implicit none
 

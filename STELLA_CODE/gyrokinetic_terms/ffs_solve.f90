@@ -45,7 +45,7 @@ contains
      use z_grid, only: nzgrid, ntubes
      use kxky_grid_parameters, only: naky, naky_all, nakx, ikx_max, ny
      use calculations_kxky, only: swap_kxky
-     use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
+     use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
      use species, only: spec
 
      use fields, only: advance_fields

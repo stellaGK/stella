@@ -397,8 +397,8 @@ contains
       use stella_time, only: code_dt
       use species, only: spec
       use z_grid, only: nzgrid, ntubes
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
-      use vpamu_grids, only: vpa
+      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
+      use velocity_grids, only: vpa
       use numerical_parameters, only: driftkinetic_implicit, maxwellian_normalization
       use numerical_parameters, only: maxwellian_inside_zed_derivative
       use numerical_parameters, only: drifts_implicit
@@ -544,8 +544,8 @@ contains
       use stella_time, only: code_dt
       use species, only: spec
       use z_grid, only: nzgrid, ntubes
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use vpamu_grids, only: vpa, mu
+      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use velocity_grids, only: vpa, mu
       use numerical_parameters, only: driftkinetic_implicit, maxwellian_normalization
       use numerical_parameters, only: maxwellian_inside_zed_derivative
       use numerical_parameters, only: drifts_implicit
@@ -738,7 +738,7 @@ contains
    subroutine add_gbar_to_g_contribution_apar(scratch2, iky, ia, iv, imu, is, nz_ext, iz_from_izext, rhs)
 
       use numerical_parameters, only: maxwellian_normalization
-      use vpamu_grids, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
+      use velocity_grids, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
       use parallel_streaming, only: center_zed
       use species, only: spec
       use extended_zgrid, only: periodic
@@ -784,7 +784,7 @@ contains
       use arrays_dist_fn, only: wstar
       use parallel_streaming, only: center_zed
       use extended_zgrid, only: periodic
-      use vpamu_grids, only: vpa
+      use velocity_grids, only: vpa
 
       implicit none
 
@@ -813,7 +813,7 @@ contains
       use species, only: spec
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use numerical_parameters, only: maxwellian_normalization
-      use vpamu_grids, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
+      use velocity_grids, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
 
       implicit none
 
@@ -909,7 +909,7 @@ contains
       use species, only: spec
       use z_grid, only: nzgrid, ntubes
       use grids_kxky, only: aky, akx
-      use vpamu_grids, only: vpa
+      use velocity_grids, only: vpa
       use stella_layouts, only: vmu_lo, iv_idx, is_idx
       use numerical_parameters, only: time_upwind_minus
       use numerical_parameters, only: drifts_implicit

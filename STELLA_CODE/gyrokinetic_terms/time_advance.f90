@@ -130,8 +130,8 @@ contains
       use geometry, only: gds23, gds24
       use geometry, only: geo_surf, q_as_x
       use geometry, only: dxdpsi, drhodpsi, dydalpha
-      use vpamu_grids, only: vpa, vperp2, mu
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use velocity_grids, only: vpa, vperp2, mu
+      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
       use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
@@ -283,8 +283,8 @@ contains
       use z_grid, only: nzgrid
       use kxky_grid_parameters, only: nalpha
       use geometry, only: dydalpha, drhodpsi, clebsch_factor
-      use vpamu_grids, only: vperp2, vpa
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use velocity_grids, only: vperp2, vpa
+      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_dist_fn, only: wstar
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_drho
@@ -421,8 +421,8 @@ contains
       use geometry, only: dBdrho, geo_surf, q_as_x
       use geometry, only: dcvdriftdrho, dcvdrift0drho
       use geometry, only: dgbdriftdrho, dgbdrift0drho
-      use vpamu_grids, only: vperp2, vpa, mu
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use velocity_grids, only: vperp2, vpa, mu
+      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_dist_fn, only: wstarp
       use arrays_dist_fn, only: wdriftx_phi, wdrifty_phi
       use arrays_dist_fn, only: wdriftpx_g, wdriftpy_g
@@ -579,7 +579,7 @@ contains
       use numerical_parameters, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
       use physics_parameters, only: radial_variation, prp_shear_enabled
       use z_grid, only: delzed
-      use vpamu_grids, only: dvpa
+      use velocity_grids, only: dvpa
       use grids_kxky, only: akx, aky, rho
       use kxky_grid_parameters, only: nx
       use numerical_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
@@ -2070,8 +2070,8 @@ contains
       use grids_kxky, only: akx, aky, rho_clamped
       use kxky_grid_parameters, only: nakx, naky, nx, ny, ikx_max
       use calculations_kxky, only: swap_kxky, swap_kxky_back
-      use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: dvpa, vpa, mu
+      use velocity_grids, only: nvpa, nmu
+      use velocity_grids, only: dvpa, vpa, mu
       use gyro_averages, only: gyro_average
       use parallel_streaming, only: stream_sign
       use dist_redistribute, only: xyz2vmu
@@ -2906,7 +2906,7 @@ contains
       use z_grid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use kxky_grid_parameters, only: naky, nakx
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu
+      use velocity_grids, only: maxwell_vpa, maxwell_mu
 
       implicit none
 

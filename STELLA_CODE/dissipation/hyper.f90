@@ -158,7 +158,7 @@ contains
       use stella_layouts, only: vmu_lo, kxkyz_lo
       use redistribute, only: gather, scatter
       use dist_redistribute, only: kxkyz2vmu
-      use vpamu_grids, only: nmu, nvpa, dvpa
+      use velocity_grids, only: nmu, nvpa, dvpa
 
       implicit none
 
@@ -184,7 +184,7 @@ contains
 
       use finite_differences, only: fourth_derivate_second_centered_vpa
       use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
-      use vpamu_grids, only: nvpa, nmu, dvpa
+      use velocity_grids, only: nvpa, nmu, dvpa
 
       implicit none
 

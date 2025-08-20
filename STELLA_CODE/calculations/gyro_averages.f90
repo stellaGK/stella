@@ -62,7 +62,7 @@ contains
       use species, only: spec
       use geometry, only: bmag
       use z_grid, only: nzgrid
-      use vpamu_grids, only: vperp2, nmu
+      use velocity_grids, only: vperp2, nmu
       use kxky_grid_parameters, only: naky, nakx
       use stella_layouts, only: kxkyz_lo, vmu_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, imu_idx
@@ -150,7 +150,7 @@ contains
 !       use stella_transforms, only: transform_x2kx, transform_y2ky
 !       use stella_transforms, only: transform_kx2x, transform_ky2y
 !       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-!       use vpamu_grids, only: nmu
+!       use velocity_grids, only: nmu
 !       use species, only: nspec, spec
 !       use geometry, only: alpha, bmag, x_displacement_fac
 !       use spfunc, only: bessi0
@@ -262,8 +262,8 @@ contains
       use species, only: nspec, spec
       use geometry, only: bmag
       use z_grid, only: nzgrid, nztot
-      use vpamu_grids, only: nmu, nvpa
-      use vpamu_grids, only: vperp2, maxwell_vpa, maxwell_mu
+      use velocity_grids, only: nmu, nvpa
+      use velocity_grids, only: vperp2, maxwell_vpa, maxwell_mu
       use kxky_grid_parameters, only: nalpha, naky, naky_all, ikx_max
       use calculations_kxky, only: swap_kxky_ordered
       use arrays_dist_fn, only: kperp2
@@ -492,7 +492,7 @@ contains
       !   use constants, only: pi
       !   use z_grid, only: nzgrid, zed
       !   use kt_grids, only: naky, nalpha, aky_all_ordered
-      !   use vpamu_grids, only: mu
+      !   use velocity_grids, only: mu
       !   use stella_transforms, only: transform_kalpha2alpha
       !   use geometry, only: alpha
 
@@ -563,7 +563,7 @@ contains
    !> below a specified tolerance (tol_floor)
    subroutine find_max_required_kalpha_index(ft, idx, imu, iz, is, tol_in)
 
-      use vpamu_grids, only: maxwell_mu
+      use velocity_grids, only: maxwell_mu
 
       implicit none
 
@@ -858,7 +858,7 @@ contains
 
    subroutine gyro_average_vmu_local(distfn, ikxkyz, gyro_distfn)
 
-      use vpamu_grids, only: nvpa
+      use velocity_grids, only: nvpa
 
       implicit none
 
@@ -944,7 +944,7 @@ contains
 
    subroutine gyro_average_j1_vmu_local(distfn, ikxkyz, gyro_distfn)
 
-      use vpamu_grids, only: nvpa
+      use velocity_grids, only: nvpa
 
       implicit none
 

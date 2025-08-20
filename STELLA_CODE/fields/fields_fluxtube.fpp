@@ -108,7 +108,7 @@ contains
       !> Grids
       use z_grid, only: nzgrid
       use species, only: spec
-      use vpamu_grids, only: integrate_species
+      use velocity_grids, only: integrate_species
       !> Calculations
       use gyro_averages, only: gyro_average, gyro_average_j1
       !> Routines from other field modules
@@ -200,8 +200,8 @@ contains
       use physics_parameters, only: radial_variation
       !> Grids
       use z_grid, only: nzgrid, ntubes
-      use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: integrate_vmu
+      use velocity_grids, only: nvpa, nmu
+      use velocity_grids, only: integrate_vmu
       use species, only: spec
       !> Calculations
       use gyro_averages, only: gyro_average, gyro_average_j1
@@ -415,9 +415,9 @@ contains
       use physics_parameters, only: adiabatic_option_switch
       use physics_parameters, only: adiabatic_option_fieldlineavg
       !> Grids
-      use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use vpamu_grids, only: integrate_vmu
+      use velocity_grids, only: nvpa, nmu
+      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use velocity_grids, only: integrate_vmu
       use species, only: spec, has_electron_species, ion_species
       use grids_kxky, only: zonal_mode, akx
       !> Calculations

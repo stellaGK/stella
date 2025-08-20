@@ -41,7 +41,7 @@ contains
 
       ! Dimensions
       use kxky_grid_parameters, only: nakx, naky
-      use vpamu_grids, only: nvpa, nmu 
+      use velocity_grids, only: nvpa, nmu 
       use z_grid, only: nztot, ntubes
       use species, only: nspec
 
@@ -233,11 +233,11 @@ contains
       use grids_kxky, only: zonal_mode
       use volume_averages, only: mode_fac
       use z_grid, only: nzgrid, ntubes
-      use vpamu_grids, only: nvpa, nmu
+      use velocity_grids, only: nvpa, nmu
       use kxky_grid_parameters, only: nakx, naky
 
       ! Calculations
-      use vpamu_grids, only: integrate_vpa, integrate_mu, integrate_vmu
+      use velocity_grids, only: integrate_vpa, integrate_mu, integrate_vmu
 
       ! Routines
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx, kxkyz_lo

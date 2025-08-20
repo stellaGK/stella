@@ -137,7 +137,7 @@ The `grids` folder contains the following scripts:
 - species.f90
 - stella_layouts.f90
 - stella_time.f90
-- vpamu_grids.f90
+- velocity_grids.f90
 - write_radial_grid.f90
 - z_grid.f90
 
