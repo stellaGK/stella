@@ -1,9 +1,11 @@
 
 ! Once a namelist has been added to the <input_file.f90> module,
 ! add its default variables here.
+
 !===============================================================================
 !                                  Physics                                  
 !===============================================================================
+
 &gyrokinetic_terms
   simulation_domain = 'fluxtube' 
   include_parallel_streaming = .true.
@@ -15,6 +17,7 @@
   include_parallel_nonlinearity = .false.
   include_electromagnetic = .false.
 /
+
 &scale_gyrokinetic_terms
   xdriftknob = 1.0 
   ydriftknob = 1.0
@@ -22,6 +25,7 @@
   fphi = 1.0 
   suppress_zonal_interaction = .false.
 /
+
 &adiabatic_electron_response
   adiabatic_option = 'field-line-average-term'
   tite = 1.0
@@ -32,6 +36,7 @@
   include_bpar = .false.
   beta = 0.0
 /
+
 &flow_shear
   prp_shear_enabled = .false.
   hammett_flow_shear = .true.
@@ -39,10 +44,12 @@
   g_exbfac = 1.0
   omprimfac = 1.0
 /
+
 &flux_annulus
   rhostar = - 1.0
   !nitt = 1
 /
+
 &extra - need to move
    include_pressure_variation = .false. 
    include_geometric_variation = .false.
@@ -50,66 +57,19 @@
    zeff = 1.0
    vnew_ref = -1.0
 /
+
 !===============================================================================
 !                                Kinetic species                                
 !===============================================================================
 
-!===============================================================================
-!                       Discretized (kx,ky,z,mu,vpa) grid                       
-!===============================================================================
-&velocity_grids (renamed from vpamu_grids_parameters)
-  nvgrid = 24.0
-  nmu = 12.0
-  vpa_max = 3.0
-  vperp_max = 3.0
-  equally_spaced_mu_grid = .false.
-  conservative_wgts_vpa = .false.
- /
-&kxky_grid_option
-  grid_option = "default"
- /
-&kxky_grid_range
-  naky = 1.0
-  nakx = 1.0
-  aky_min = 0.0
-  aky_max = 0.0
-  theta0_min = 0.0
-  theta0_max = -1.0
-  akx_min = 0.0
-  akx_max = -1.0
-  kyspacing_option = "default"
- /
-&kxky_grid_box
-  nx = 1.0
-  ny = 1.0
-  jtwist = -1.0
-  jtwistfac = 1.0
-  x0 = -1.0
-  y0 = -1.0
-  centered_in_rho = .true.
-  periodic_variation = .false.
-  randomize_phase_shift = .false.
-  phase_shift_angle = 0.0
- /
- &z_grid
-  nzed = 24.0
-  nperiod = 1.0
-  ntubes = 1.0
-  zed_equal_arc = .false.
-/
-&z_boundary_condition
-  boundary_option = "default"
-  shat_zero = 1e-05
-  grad_x_grad_y_zero = 1e-05
-  dkx_over_dky = -1.0
-/
 &species_options
   nspec = 2.0
   species_option = "stella"
   read_profile_variation = .false.    
   write_profile_variation = .false.
   ecoll_zeff = .false. !! NB: has to be here to avoid circular dependencies
- /
+/
+ 
 &species_parameters_1
   z = 1.0
   mass = 1.0
@@ -121,7 +81,8 @@
   d2tdr2 = 0.0
   bess_fac = 1.0
   type = "default"
- /
+/
+ 
 &species_parameters_2
   z = 1.0
   mass = 1.0
@@ -133,7 +94,63 @@
   d2tdr2 = 0.0
   bess_fac = 1.0
   type = "default"
- /
+/
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kxky_grid_option
+  grid_option = "default"
+/
+
+&kxky_grid_range
+  naky = 1.0
+  nakx = 1.0
+  aky_min = 0.0
+  aky_max = 0.0
+  theta0_min = 0.0
+  theta0_max = -1.0
+  akx_min = 0.0
+  akx_max = -1.0
+  kyspacing_option = "default"
+/
+
+&kxky_grid_box
+  nx = 1.0
+  ny = 1.0
+  jtwist = -1.0
+  jtwistfac = 1.0
+  x0 = -1.0
+  y0 = -1.0
+  centered_in_rho = .true.
+  periodic_variation = .false.
+  randomize_phase_shift = .false.
+  phase_shift_angle = 0.0
+/
+
+&z_grid
+  nzed = 24.0
+  nperiod = 1.0
+  ntubes = 1.0
+  zed_equal_arc = .false.
+/
+
+&z_boundary_condition
+  boundary_option = "default"
+  shat_zero = 1e-05
+  grad_x_grad_y_zero = 1e-05
+  dkx_over_dky = -1.0
+/
+
+&velocity_grids
+  nvgrid = 24.0
+  nmu = 12.0
+  vpa_max = 3.0
+  vperp_max = 3.0
+  equally_spaced_mu_grid = .false.
+  conservative_wgts_vpa = .false.
+/
 
 !===============================================================================
 !                                  Diagnostics                                  
@@ -148,6 +165,7 @@
    phiinit = 1.0
    scale_to_phiinit = .false.
 /
+
 &initialise_distribution_maxwellian
    width0 = -3.5
    den0 = 1.
@@ -156,11 +174,13 @@
    chop_side = .false.
    left = .true.
 /
+
 &initialise_distribution_noise
    zf_init = 1.0
    chop_side = .false.
    left = .true.
 /
+
 &initialise_distribution_kpar
    width0 = -3.5
    refac = 1.
@@ -180,12 +200,14 @@
    chop_side = .false.
    left = .true.
 /
+
 &initialise_distribution_rh
    kxmax = 1e+100
    kxmin = 0.0
    imfac = 0.0
    refac = 1.0
 /
+
 &restart_options
    tstart = 0.0
    scale = 1.0
@@ -197,12 +219,14 @@
 !===============================================================================
 !                                    Numerics                                   
 !===============================================================================
+
 &time_trace_options
   nstep = -1.0
   tend = -1.0
   autostop = .true.
   avail_cpu_time = 10000000000.0
 /
+
 &time_step
   delt = 0.03
   delt_option = "default"
@@ -212,6 +236,7 @@
   cfl_cushion_middle = 0.25
   cfl_cushion_lower = 1e-05
 /
+
 &numerical_algorithms
   explicit_algorithm = "rk3"
   flip_flop = .false.  
@@ -230,11 +255,13 @@
   use_deltaphi_for_response_matrix = .false.
   maxwellian_normalization = .false.
 /
+
 &numerical_upwinding_for_derivatives
   zed_upwind = 0.02
   vpa_upwind = 0.02
   time_upwind = 0.02
 /
+
 &numerical_extra
   nitt = 1
   fphi = 1.0
@@ -246,41 +273,17 @@
   print_extra_info_to_terminal = .true.
   lu_option = 'default'
   rng_seed = -1
-  /
+/
+
 !===============================================================================
 !                                  Dissipation                                  
 !===============================================================================
+
 &dissipation
    include_collisions = .false.
    collisions_implicit = .true.
    hyper_dissipation = .false.
    collision_model = 'dougherty'
 /
-&adiabatic_electron_response
-  adiabatic_option = "field-line-average-term"
-  tite = 1.0
-  nine = 1.0
-/
-&electromagnetic
-  include_apar = .true.
-  include_bpar = .true.
-  beta = 0.0
-/
-&flow_shear
-  prp_shear_enabled = .false.
-  hammett_flow_shear = .true.
-  g_exb = 0.0
-  g_exbfac = 1.0
-  omprimfac = 1.0
-/
-&flux_annulus
-  rhostar = - 1.0
-  nitt = 1
-/
-&extra - need to move
-   include_pressure_variation = .false. 
-   include_geometric_variation = .false.
-   radial_variation = .false. 
-   zeff = 1.0
-   vnew_ref = -1.0
-/
+
+
