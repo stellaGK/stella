@@ -218,11 +218,12 @@
   dkx_over_dky = -1.0
 /
 
-&species_knobs
+&species_options
   nspec = 2.0
   species_option = "stella"
-  read_profile_variation = .false.       (??)
-  write_profile_variation = .false.      (??)
+  read_profile_variation = .false.       
+  write_profile_variation = .false.     
+  ecoll_zeff = .false. !! NB: has to be here to avoid circular dependencies
  /
 &species_parameters_1
   z = 1.0

@@ -15,7 +15,6 @@ module dissipation
    logical :: include_collisions
    logical :: collisions_implicit
    logical :: hyper_dissipation
-
    character(30) :: collision_model
 
    real :: cfl_dt_mudiff = huge(0.0), cfl_dt_vpadiff = huge(0.0)

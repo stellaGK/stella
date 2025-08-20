@@ -5,7 +5,7 @@ module species
    implicit none
 
    public :: init_species, finish_species
-   public :: read_species_knobs
+   public :: read_species_options
    public :: reinit_species
    public :: communicate_species_multibox
    !public :: init_trin_species
@@ -42,10 +42,41 @@ module species
 
    character(20) :: species_option
 
-   logical :: initialized = .false.
+   logical :: initialised = .false.
 
 contains
 
+   !****************************************************************************
+   !                                READ INPUT FILE FOR SPECIES
+   !****************************************************************************
+   subroutine read_species_options
+      use input_file_species, only: read_namelist_species_options
+
+      implicit none
+
+      call read_namelist_species_options(nspec, species_option_switch, &
+                                read_profile_variation, write_profile_variation, ecoll_zeff)
+      call broadcast_species_options
+   contains
+      subroutine broadcast_species_options
+
+         use mp, only: broadcast
+
+         implicit none
+
+         call broadcast(nspec)
+         call broadcast(read_profile_variation)
+         call broadcast(write_profile_variation)
+         call broadcast(species_option_switch)
+         call broadcast(ecoll_zeff)
+
+      end subroutine broadcast_species_options
+      
+   end subroutine read_species_options
+
+   !****************************************************************************
+   !                                INITIALISE SPECIES
+   !****************************************************************************
    subroutine init_species
 
 !    use mp, only: trin_flag
@@ -54,29 +85,30 @@ contains
       use physics_parameters, only: include_pressure_variation
       use physics_parameters, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       use geometry_inputprofiles_interface, only: read_inputprof_spec
-      use euterpe_interface, only: read_species_euterpe
+      use euterpe_interface, only: read_species_euterpe !! CHANGE
+      use input_file_species, only: read_namelist_species_stella
 
       use physics_parameters, only: full_flux_surface
       implicit none
 
       integer :: is, is2
 
-      if (initialized) return
-      initialized = .true.
+      if (initialised) return
+      initialised = .true.
 
       allocate (spec(nspec))
       if (proc0) then
          select case (species_option_switch)
          case (species_option_stella)
-            call read_species_stella
+            call read_namelist_species_stella (nspec, spec)
          case (species_option_inputprofs)
-            call read_species_stella
+            call read_namelist_species_stella (nspec, spec)
             call read_inputprof_spec(nspec, spec)
          case (species_option_euterpe)
-            call read_species_stella
+            call read_namelist_species_stella (nspec, spec)
             call read_species_euterpe(nspec, spec)
          case (species_option_multibox)
-            call read_species_stella
+            call read_namelist_species_stella (nspec, spec)
             !this will be called by the central box in stella.f90 after
             !ktgrids is set up as we need to know the radial box size
             call communicate_species_multibox
@@ -137,151 +169,6 @@ contains
 !         temp_trin, fprim_trin, tprim_trin, nu_trin)
    end subroutine init_species
 
-   subroutine read_species_knobs
-
-      use mp, only: proc0, job, broadcast, mp_abort
-      use file_utils, only: error_unit, input_unit_exist
-      use file_utils, only: runtype_option_switch, runtype_multibox
-      use physics_parameters, only: radial_variation
-      use text_options, only: text_option, get_option_value
-
-      implicit none
-
-      integer :: ierr, in_file
-      logical :: exist
-
-      namelist /species_knobs/ nspec, species_option, &
-         read_profile_variation, &
-         write_profile_variation, &
-         ecoll_zeff
-
-      type(text_option), dimension(4), parameter :: specopts = (/ &
-                                                    text_option('default', species_option_stella), &
-                                                    text_option('stella', species_option_stella), &
-                                                    text_option('input.profiles', species_option_inputprofs), &
-                                                    text_option('euterpe', species_option_euterpe)/)
-
-      if (proc0) then
-         nspec = 2
-         read_profile_variation = .false.
-         write_profile_variation = .false.
-         species_option = 'stella'
-
-         ecoll_zeff = .false.
-
-         in_file = input_unit_exist("species_knobs", exist)
-         if (exist) read (unit=in_file, nml=species_knobs)
-
-         ierr = error_unit()
-         call get_option_value(species_option, specopts, species_option_switch, &
-                               ierr, "species_option in species_knobs")
-
-         if (runtype_option_switch == runtype_multibox .and. (job /= 1) .and. radial_variation) then
-            !will need to readjust the species parameters in the left/right boxes
-            species_option_switch = species_option_multibox
-         end if
-
-         if (nspec < 1) then
-            ierr = error_unit()
-            write (unit=ierr, &
-                   fmt="('Invalid nspec in species_knobs: ', i5)") nspec
-            call mp_abort('Invalid nspec in species_knobs')
-         end if
-      end if
-      call broadcast(nspec)
-      call broadcast(read_profile_variation)
-      call broadcast(write_profile_variation)
-      call broadcast(ecoll_zeff)
-      call broadcast(species_option_switch)
-
-   end subroutine read_species_knobs
-
-   subroutine read_species_stella
-
-      use file_utils, only: error_unit, get_indexed_namelist_unit
-      use text_options, only: text_option, get_option_value
-      use geometry, only: geo_surf
-
-      implicit none
-
-      real :: z, mass, dens, temp, tprim, fprim, d2ndr2, d2Tdr2, dr, bess_fac
-      integer :: ierr, unit, is
-      character(len=128) :: filename
-
-      character(20) :: type
-      type(text_option), dimension(9), parameter :: typeopts = (/ &
-                                                    text_option('default', ion_species), &
-                                                    text_option('ion', ion_species), &
-                                                    text_option('electron', electron_species), &
-                                                    text_option('e', electron_species), &
-                                                    text_option('beam', slowing_down_species), &
-                                                    text_option('fast', slowing_down_species), &
-                                                    text_option('alpha', slowing_down_species), &
-                                                    text_option('slowing-down', slowing_down_species), &
-                                                    text_option('trace', tracer_species)/)
-
-      namelist /species_parameters/ z, mass, dens, temp, &
-         tprim, fprim, d2ndr2, d2Tdr2, bess_fac, type
-
-      do is = 1, nspec
-         call get_indexed_namelist_unit(unit, "species_parameters", is)
-         z = 1
-         mass = 1.0
-         dens = 1.0
-         temp = 1.0
-         tprim = -999.9
-         fprim = -999.9
-         d2ndr2 = 0.0
-         d2Tdr2 = 0.0
-         bess_fac = 1.0
-         type = "default"
-         read (unit=unit, nml=species_parameters)
-         close (unit=unit)
-
-         spec(is)%z = z
-         spec(is)%mass = mass
-         spec(is)%dens = dens
-         spec(is)%temp = temp
-         spec(is)%tprim = tprim
-         spec(is)%fprim = fprim
-         ! this is (1/n_s)*d^2 n_s / drho^2
-         spec(is)%d2ndr2 = d2ndr2
-         ! this is (1/T_s)*d^2 T_s / drho^2
-         spec(is)%d2Tdr2 = d2Tdr2
-
-         spec(is)%dens_psi0 = dens
-         spec(is)%temp_psi0 = temp
-
-         spec(is)%bess_fac = bess_fac
-
-         if (write_profile_variation) then
-            write (filename, "(A,I1)") "specprof_", is
-            open (1002, file=filename, status='unknown')
-            write (1002, '(6e13.5)') dens, temp, fprim, tprim, d2ndr2, d2Tdr2
-            close (1002)
-         end if
-         if (read_profile_variation) then
-            write (filename, "(A,I1)") "specprof_", is
-            open (1002, file=filename, status='unknown')
-            read (1002, '(6e13.5)') dens, temp, fprim, tprim, d2ndr2, d2Tdr2
-            close (1002)
-
-            dr = geo_surf%rhoc - geo_surf%rhoc_psi0
-            spec(is)%dens = dens * (1.0 - dr * fprim)! + 0.5*dr**2*d2ndr2)
-            spec(is)%temp = temp * (1.0 - dr * tprim)! + 0.5*dr**2*d2Tdr2)
-            spec(is)%fprim = (fprim - dr * d2ndr2) * (dens / spec(is)%dens)
-            spec(is)%tprim = (tprim - dr * d2Tdr2) * (temp / spec(is)%temp)
-            !spec(is)%dens = 1.0
-            !spec(is)%temp = 1.0
-         end if
-
-         ierr = error_unit()
-         call get_option_value(type, typeopts, spec(is)%type, ierr, "type in species_parameters_x")
-
-      end do
-
-   end subroutine read_species_stella
-
    subroutine broadcast_parameters
 
       use mp, only: broadcast
@@ -320,6 +207,9 @@ contains
 
    end subroutine broadcast_parameters
 
+   !****************************************************************************
+   !                                FUNCTIONS
+   !****************************************************************************
    pure function has_electron_species(spec)
       use common_types, only: spec_type
       implicit none
@@ -336,13 +226,16 @@ contains
       has_slowing_down_species = any(spec%type == slowing_down_species)
    end function has_slowing_down_species
 
+   !****************************************************************************
+   !                                FINISH SPECIES
+   !****************************************************************************
    subroutine finish_species
 
       implicit none
 
       deallocate (spec)
 
-      initialized = .false.
+      initialised = .false.
 
    end subroutine finish_species
 

@@ -95,6 +95,39 @@
   grad_x_grad_y_zero = 1e-05
   dkx_over_dky = -1.0
 /
+
+&species_options
+  nspec = 2.0
+  species_option = "stella"
+  read_profile_variation = .false.    
+  write_profile_variation = .false.
+  ecoll_zeff = .false. !! NB: has to be here to avoid circular dependencies
+ /
+&species_parameters_1
+  z = 1.0
+  mass = 1.0
+  dens = 1.0
+  temp = 1.0
+  tprim = -999.9
+  fprim = -999.9
+  d2ndr2 = 0.0
+  d2tdr2 = 0.0
+  bess_fac = 1.0
+  type = "default"
+ /
+&species_parameters_2
+  z = 1.0
+  mass = 1.0
+  dens = 1.0
+  temp = 1.0
+  tprim = -999.9
+  fprim = -999.9
+  d2ndr2 = 0.0
+  d2tdr2 = 0.0
+  bess_fac = 1.0
+  type = "default"
+ /
+
 !===============================================================================
 !                                  Diagnostics                                  
 !===============================================================================

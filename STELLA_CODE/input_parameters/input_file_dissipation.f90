@@ -41,7 +41,7 @@ contains
    subroutine read_namelist_dissipation(include_collisions, collisions_implicit, collision_model, hyper_dissipation)
 
       use mp, only: proc0
-
+      
       implicit none
 
       logical, intent(out) :: include_collisions, collisions_implicit, hyper_dissipation
