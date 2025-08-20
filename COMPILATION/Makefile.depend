@@ -59,6 +59,7 @@ stella_mod = \
 	 $(OBJ_DIR)/input_file_numerical_parameters.o \
 	 $(OBJ_DIR)/input_file_physics_parameters.o \
 	 $(OBJ_DIR)/input_file_species.o \
+	 $(OBJ_DIR)/input_file_velocity_grids.o \
 	 $(OBJ_DIR)/input_file_z_grid.o \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/kxky_grid_parameters.o \
@@ -724,6 +725,9 @@ $(OBJ_DIR)/input_file_species.o: \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/physics_parameters.o \
 	 $(OBJ_DIR)/text_options.o 
+$(OBJ_DIR)/input_file_velocity_grids.o: \
+	 $(OBJ_DIR)/file_utils.o \
+	 $(OBJ_DIR)/mp.o 
 $(OBJ_DIR)/input_file_z_grid.o: \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/mp.o \
@@ -1029,9 +1033,9 @@ $(OBJ_DIR)/volume_averages.o: \
 	 $(OBJ_DIR)/z_grid.o 
 $(OBJ_DIR)/vpamu_grids.o: \
 	 $(OBJ_DIR)/constants.o \
-	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/gauss_quad.o \
 	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/input_file_velocity_grids.o \
 	 $(OBJ_DIR)/kxky_grid_parameters.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/numerical_parameters.o \

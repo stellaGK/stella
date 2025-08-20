@@ -103,37 +103,6 @@ Parallelisation
   equally_spaced_mu_grid = .false.
   conservative_wgts_vpa = .false.
  /
-&species_knobs
-  nspec = 2.0
-  species_option = "stella"
-  read_profile_variation = .false.       (??)
-  write_profile_variation = .false.      (??)
- /
-&species_parameters_1
-  z = 1.0
-  mass = 1.0
-  dens = 1.0
-  temp = 1.0
-  tprim = -999.9
-  fprim = -999.9
-  d2ndr2 = 0.0
-  d2tdr2 = 0.0
-  bess_fac = 1.0
-  type = "default"
- /
-&species_parameters_2
-  z = 1.0
-  mass = 1.0
-  dens = 1.0
-  temp = 1.0
-  tprim = -999.9
-  fprim = -999.9
-  d2ndr2 = 0.0
-  d2tdr2 = 0.0
-  bess_fac = 1.0
-  type = "default"
- /
-
   
 !--------------------------------
 !---------  Diagnostics  --------

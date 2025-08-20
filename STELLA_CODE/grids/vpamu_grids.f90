@@ -72,44 +72,42 @@ module vpamu_grids
 
 contains
 
+   !****************************************************************************
+   !                               READ NAMELIST                               !
+   !****************************************************************************
    subroutine read_vpamu_grids_parameters
 
-      use file_utils, only: input_unit_exist
-      use mp, only: proc0, broadcast
+      use input_file_velocity_grids, only: read_namelist_velocity_grids
+      use mp, only: broadcast
 
       implicit none
-
-      namelist /vpamu_grids_parameters/ nvgrid, nmu, vpa_max, vperp_max, &
-         equally_spaced_mu_grid, conservative_wgts_vpa
-
-      integer :: in_file
-      logical :: exist
-
-      if (proc0) then
-
-         nvgrid = 24
-         vpa_max = 3.0
-         nmu = 12
-         vperp_max = 3.0
-         equally_spaced_mu_grid = .false.
-         conservative_wgts_vpa = .false.
-
-         in_file = input_unit_exist("vpamu_grids_parameters", exist)
-         if (exist) read (unit=in_file, nml=vpamu_grids_parameters)
-
-      end if
-
-      call broadcast(nvgrid)
-      call broadcast(vpa_max)
-      call broadcast(nmu)
-      call broadcast(vperp_max)
-      call broadcast(equally_spaced_mu_grid)
-      call broadcast(conservative_wgts_vpa)
+      call read_namelist_velocity_grids(nvgrid, nmu, vpa_max, vperp_max, &
+         equally_spaced_mu_grid, conservative_wgts_vpa)
+      call broadcast_velocity_grids
 
       nvpa = 2 * nvgrid
 
+   contains
+   
+      ! Broadcast the parameters to all processors
+      subroutine broadcast_velocity_grids
+
+         implicit none
+
+         call broadcast(nvgrid)
+         call broadcast(nmu)
+         call broadcast(vpa_max)
+         call broadcast(vperp_max)
+         call broadcast(equally_spaced_mu_grid)
+         call broadcast(conservative_wgts_vpa)
+
+      end subroutine broadcast_velocity_grids
+
    end subroutine read_vpamu_grids_parameters
 
+   !****************************************************************************
+   !                         INITIALISE VELOCITY GRIDS                         !
+   !****************************************************************************
    subroutine init_vpamu_grids
 
       use species, only: spec, nspec
@@ -119,20 +117,23 @@ contains
       if (vpamu_initialized) return
       vpamu_initialized = .true.
 
-      !> set up the vpa grid points and integration weights
+      ! Set up the vpa grid points and integration weights
       call init_vpa_grid
-      !> set up the mu grid points and integration weights
+      ! Set up the mu grid points and integration weights
       call init_mu_grid
 
       if (.not. allocated(maxwell_fac)) then
          allocate (maxwell_fac(nspec)); maxwell_fac = 1.0
       end if
 
-      !> maxwell_fac = 1 unless radially global
+      ! Maxwell_fac = 1 unless radially global
       maxwell_fac = spec%dens / spec%dens_psi0 * (spec%temp_psi0 / spec%temp)**1.5
 
    end subroutine init_vpamu_grids
 
+   !----------------------------------------------------------------------------
+   !                         v_parallel velocity grid
+   !----------------------------------------------------------------------------
    subroutine init_vpa_grid
 
       use mp, only: mp_abort
@@ -146,55 +147,55 @@ contains
       real :: del
 
       if (.not. allocated(vpa)) then
-         !> vpa is the parallel velocity at grid points
+         ! <vpa> is the parallel velocity at grid points
          allocate (vpa(nvpa)); vpa = 0.0
-         !> wgts_vpa are the integration weights assigned
-         !> to the parallel velocity grid points
+         ! <wgts_vpa> are the integration weights assigned
+         ! to the parallel velocity grid points
          allocate (wgts_vpa(nvpa)); wgts_vpa = 0.0
          allocate (wgts_vpa_default(nvpa)); wgts_vpa_default = 0.0
-         !> this is the Maxwellian in vpa
+         ! This is the Maxwellian in vpa
          allocate (maxwell_vpa(nvpa, nspec)); maxwell_vpa = 0.0
          allocate (ztmax(nvpa, nspec)); ztmax = 0.0
       end if
 
-      !> parallel velocity grid goes from -vpa_max to vpa_max,
-      !> with no point at vpa = 0;
-      !> the lack of a point at vpa=0 avoids treating
-      !> the vpa=z=0 phase space location, which
-      !> is isolated from all other phase space points
-      !> in the absence of collisions
+      ! Parallel velocity grid goes from -<vpa_max> to <vpa_max>,
+      ! with no point at <vpa=0>;
+      ! the lack of a point at <vpa=0> avoids treating
+      ! the <vpa=z=0> phase space location, which
+      ! is isolated from all other phase space points
+      ! in the absence of collisions
 
-      !> equal grid spacing in vpa
+      ! Equal grid spacing in parallel velocity
       dvpa = 2.*vpa_max / (nvpa - 1)
 
-      !> obtain vpa grid for vpa > 0
+      ! Obtain vpa grid for vpa > 0
       do iv = nvgrid + 1, nvpa
          vpa(iv) = real(iv - nvgrid - 0.5) * dvpa
       end do
-      !> fill in vpa grid for vpa < 0
+      ! Fill in vpa grid for vpa < 0
       vpa(:nvgrid) = -vpa(nvpa:nvgrid + 1:-1)
 
-      !> maxwell_vpa is the equilibrium Maxwellian in vpa
+      ! <maxwell_vpa> is the equilibrium Maxwellian in vpa
       maxwell_vpa = exp(-spread(vpa * vpa, 2, nspec) * spread(spec%temp_psi0 / spec%temp, 1, nvpa))
-      !> ztmax is the Maxwellian in vpa, multipliedd by charge number over normalized temperature
+      ! <ztmax> is the Maxwellian in <vpa>, multiplied by charge number over normalized temperature
       ztmax = spread(spec%zt, 1, nvpa) * maxwell_vpa
 
-      !> get integration weights corresponding to vpa grid points
-      !> for now use Simpson's rule;
-      !> i.e. subdivide grid into 3-point segments, with each segment spanning vpa_low to vpa_up
-      !> then the contribution of each segment to the integral is
-      !> (vpa_up - vpa_low) * (f1 + 4*f2 + f3) / 6
-      !> inner boundary points are used in two segments, so they get double the weight
+      ! Get integration weights corresponding to vpa grid points
+      ! for now use Simpson's rule;
+      ! i.e. subdivide grid into 3-point segments, with each segment spanning vpa_low to vpa_up
+      ! then the contribution of each segment to the integral is
+      ! (vpa_up - vpa_low) * (f1 + 4*f2 + f3) / 6
+      ! inner boundary points are used in two segments, so they get double the weight
 
       if (nvpa < 6) &
          call mp_abort('stella does not currently support nvgrid < 3.  aborting.')
 
-      !> use simpson 3/8 rule at lower boundary and composite Simpson elsewhere
+      ! Use simpson 3/8 rule at lower boundary and composite Simpson elsewhere
       del = 0.375 * dvpa
       wgts_vpa(1) = del
       wgts_vpa(2:3) = 3.*del
       wgts_vpa(4) = del
-      !> composite simpson
+      ! Composite simpson
       nvpa_seg = (nvpa - 4) / 2
       del = dvpa / 3.
       do iseg = 1, nvpa_seg
@@ -204,8 +205,8 @@ contains
          wgts_vpa(idx + 2) = wgts_vpa(idx + 2) + del
       end do
 
-      !> for the sake of symmetry, do the same thing with 3/8 rule at upper boundary
-      !> and composite elsewhere.
+      ! For the sake of symmetry, do the same thing with 3/8 rule at upper boundary
+      ! and composite elsewhere.
       del = 0.375 * dvpa
       wgts_vpa(nvpa - 3) = wgts_vpa(nvpa - 3) + del
       wgts_vpa(nvpa - 2:nvpa - 1) = wgts_vpa(nvpa - 2:nvpa - 1) + 3.*del
@@ -219,19 +220,19 @@ contains
          wgts_vpa(idx + 2) = wgts_vpa(idx + 2) + del
       end do
 
-      !> divide by 2 to account for double-counting
+      ! Divide by 2 to account for double-counting
       wgts_vpa = 0.5 * wgts_vpa / sqrt(pi)
 
-      !> if maxwellian_normalization = .true., then the evolved pdf
-      !> is normalized by a Maxwellian; this normalization must be accounted
-      !> for in the velocity space integrals, so include exp(-vpa^2) factor
-      !> in the vpa weights.
+      ! If maxwellian_normalization = .true., then the evolved pdf
+      ! is normalized by a Maxwellian; this normalisation must be accounted
+      ! for in the velocity space integrals, so include exp(-vpa^2) factor
+      ! in the vpa weights.
       ! NB: the species index of maxwell_vpa is not needed for the radially local
       ! version of the code and would otherwise add a species index to wgts_vpa,
       ! so currently maxwellian_normalization is not supported for the radially global
       ! version of the code.
       if (maxwellian_normalization) wgts_vpa = wgts_vpa * maxwell_vpa(:, 1)
-      !> TODO-GA: May way to remove this option?
+      ! TODO-GA: May way to remove this option?
       if (conservative_wgts_vpa) then 
          wgts_vpa = dvpa / sqrt(pi)
       end if
@@ -258,6 +259,103 @@ contains
 
    end subroutine set_vpa_weights
 
+   !----------------------------------------------------------------------------
+   !                            mu velocity grid
+   !----------------------------------------------------------------------------
+   subroutine init_mu_grid
+
+      use gauss_quad, only: get_laguerre_grids
+      use z_grid, only: nzgrid, nztot
+      use kxky_grid_parameters, only: nalpha
+      use species, only: spec, nspec
+      use geometry, only: bmag, bmag_psi0
+      use numerical_parameters, only: maxwellian_normalization
+
+      use physics_parameters, only: full_flux_surface
+      implicit none
+
+      integer :: imu
+      real :: mu_max
+
+      ! allocate arrays and initialize to zero
+      if (.not. allocated(mu)) then
+         allocate (mu(nmu)); mu = 0.0
+         allocate (wgts_mu(nalpha, -nzgrid:nzgrid, nmu)); wgts_mu = 0.0
+         allocate (wgts_mu_bare(nmu)); wgts_mu_bare = 0.0
+         allocate (maxwell_mu(nalpha, -nzgrid:nzgrid, nmu, nspec)); maxwell_mu = 0.0
+         allocate (maxwell_mu_avg(nalpha, -nzgrid:nzgrid, nmu, nspec)); maxwell_mu_avg = 0.0
+         allocate (dmu(nmu - 1))
+         allocate (dmu_ghost(nmu))
+         allocate (mu_cell(nmu))
+         allocate (dmu_cell(nmu))
+      end if
+
+      ! dvpe * vpe = d(2*mu*B0) * B/2B0
+      if (equally_spaced_mu_grid) then
+         ! first get equally spaced grid in mu with max value
+         ! mu_max = vperp_max**2/(2*max(bmag))
+         mu_max = vperp_max**2 / (2.*maxval(bmag_psi0))
+         ! want first grid point at dmu/2 to avoid mu=0 special point
+         ! dmu/2 + (nmu-1)*dmu = mu_max
+         ! so dmu = mu_max/(nmu-1/2)
+         dmu = mu_max / (nmu - 0.5)
+         mu(1) = 0.5 * dmu(1)
+         do imu = 2, nmu
+            mu(imu) = mu(1) + (imu - 1) * dmu(1)
+         end do
+         ! do simplest thing to start
+         wgts_mu_bare = dmu(1)
+      else
+         ! use Gauss-Laguerre quadrature in 2*mu*bmag(z=0)
+         ! use Gauss-Laguerre quadrature in 2*mu*min(bmag)*max(
+         call get_laguerre_grids(mu, wgts_mu_bare)
+         if (vperp_max < 0) vperp_max = sqrt(mu(nmu))
+         wgts_mu_bare = wgts_mu_bare * exp(mu) / (2.*minval(bmag_psi0) * mu(nmu) / vperp_max**2)
+
+         ! mu = mu/(2.*bmag(1,0))
+         mu = mu / (2.*minval(bmag_psi0) * mu(nmu) / vperp_max**2)
+
+         dmu(:nmu - 1) = mu(2:) - mu(:nmu - 1)
+         ! leave dmu(nmu) uninitialized. should never be used, so want
+         ! valgrind or similar to return error if it is
+      end if
+
+      ! maxwell_mu is the mu part of the v-space Maxwellian
+      maxwell_mu = exp(-2.*spread(spread(spread(mu, 1, nalpha), 2, nztot) * spread(bmag, 3, nmu), 4, nspec) &
+                       * spread(spread(spread(spec%temp_psi0 / spec%temp, 1, nalpha), 2, nztot), 3, nmu))
+
+      if(full_flux_surface) maxwell_mu_avg = spread(sum(maxwell_mu, dim = 1), 1, nalpha)/ nalpha 
+
+      ! The factor of 2 is necessary to account for 2*pi from
+      ! integration over gyro-angle and 1/pi^(3/2) normalisation
+      ! of velocity space Jacobian
+      wgts_mu = 2.*spread(spread(wgts_mu_bare, 1, nalpha), 2, nztot) * spread(bmag, 3, nmu)
+
+      ! If <maxwellian_normalization>, the evolved pdf is normalized by a Maxwwellian;
+      ! in this case, the velocity integration must account for the Maxwellian.
+      ! NB: the species index on maxwell_mu is only needed for radially global simulations,
+      ! which are not currently supported for maxwellian_normalization = .true.
+      if (maxwellian_normalization) wgts_mu = wgts_mu * maxwell_mu(:, :, :, 1)
+
+      ! Add ghost cell at mu=0 and beyond mu_max for purposes of differentiation
+      ! note assuming here that grid spacing for ghost cell is equal to
+      ! grid spacing for last non-ghost cell
+      dmu_ghost(:nmu - 1) = dmu; dmu_ghost(nmu) = dmu(nmu - 1)
+      ! This is mu at cell centres (including to left and right of mu grid boundary points)
+      mu_cell(:nmu - 1) = 0.5 * (mu(:nmu - 1) + mu(2:))
+      mu_cell(nmu) = mu(nmu) + 0.5 * dmu(nmu - 1)
+      ! This is mu_{j+1/2} - mu_{j-1/2}
+      dmu_cell(1) = mu_cell(1)
+      dmu_cell(2:) = mu_cell(2:) - mu_cell(:nmu - 1)
+
+   end subroutine init_mu_grid
+
+   !****************************************************************************
+   !                              VELOCITY INTEGRALS                           !
+   !****************************************************************************
+   !----------------------------------------------------------------------------
+   !                            Integrals over (mu)
+   !----------------------------------------------------------------------------
    subroutine integrate_mu_local(iz, g, total)
 
       use species, only: nspec
@@ -310,9 +408,9 @@ contains
 
    end subroutine integrate_mu_nonlocal
  
-   !============================================================================
-   !=========================== Integrate over (vpa) ===========================
-   !============================================================================
+   !----------------------------------------------------------------------------
+   !                            Integrals over (vpa)
+   !----------------------------------------------------------------------------
 
    ! Nonlocal means we have g(i[vpa, mu, s]) 
    subroutine integrate_vpa_nonlocal(g_vs_ivmus, g_vs_mus)
@@ -348,9 +446,9 @@ contains
 
    end subroutine integrate_vpa_nonlocal
 
-   !============================================================================
-   !========================= Integrate over (mu, vpa) =========================
-   !============================================================================
+   !----------------------------------------------------------------------------
+   !                          Integrals over (mu, vpa)
+   !----------------------------------------------------------------------------
    subroutine integrate_vmu_local_real(g, iz, total)
 
       implicit none
@@ -749,9 +847,9 @@ contains
          reduce = .true.
       end if
 
-      !> NB: for FFS, assume that there is only one flux annulus
-      !> the inclusion of the Maxwellian term below is due to the fact that
-      !> g/F is evolved for FFS
+      ! NB: for FFS, assume that there is only one flux annulus
+      ! the inclusion of the Maxwellian term below is due to the fact that
+      ! g/F is evolved for FFS
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
@@ -762,123 +860,6 @@ contains
       if (reduce) call sum_allreduce(pout)
 
    end subroutine integrate_vmu_ffs
-
-   subroutine finish_vpa_grid
-
-      implicit none
-
-      if (allocated(vpa)) deallocate (vpa)
-      if (allocated(wgts_vpa)) deallocate (wgts_vpa)
-      if (allocated(wgts_vpa_default)) deallocate (wgts_vpa_default)
-      if (allocated(maxwell_vpa)) deallocate (maxwell_vpa)
-      if (allocated(ztmax)) deallocate (ztmax)
-
-   end subroutine finish_vpa_grid
-
-   subroutine init_mu_grid
-
-      use gauss_quad, only: get_laguerre_grids
-      use z_grid, only: nzgrid, nztot
-      use kxky_grid_parameters, only: nalpha
-      use species, only: spec, nspec
-      use geometry, only: bmag, bmag_psi0
-      use numerical_parameters, only: maxwellian_normalization
-
-      use physics_parameters, only: full_flux_surface
-      implicit none
-
-      integer :: imu
-      real :: mu_max
-
-      !> allocate arrays and initialize to zero
-      if (.not. allocated(mu)) then
-         allocate (mu(nmu)); mu = 0.0
-         allocate (wgts_mu(nalpha, -nzgrid:nzgrid, nmu)); wgts_mu = 0.0
-         allocate (wgts_mu_bare(nmu)); wgts_mu_bare = 0.0
-         allocate (maxwell_mu(nalpha, -nzgrid:nzgrid, nmu, nspec)); maxwell_mu = 0.0
-         allocate (maxwell_mu_avg(nalpha, -nzgrid:nzgrid, nmu, nspec)); maxwell_mu_avg = 0.0
-         allocate (dmu(nmu - 1))
-         allocate (dmu_ghost(nmu))
-         allocate (mu_cell(nmu))
-         allocate (dmu_cell(nmu))
-      end if
-
-      !> dvpe * vpe = d(2*mu*B0) * B/2B0
-      if (equally_spaced_mu_grid) then
-         !> first get equally spaced grid in mu with max value
-         !> mu_max = vperp_max**2/(2*max(bmag))
-         mu_max = vperp_max**2 / (2.*maxval(bmag_psi0))
-         !> want first grid point at dmu/2 to avoid mu=0 special point
-         !> dmu/2 + (nmu-1)*dmu = mu_max
-         !> so dmu = mu_max/(nmu-1/2)
-         dmu = mu_max / (nmu - 0.5)
-         mu(1) = 0.5 * dmu(1)
-         do imu = 2, nmu
-            mu(imu) = mu(1) + (imu - 1) * dmu(1)
-         end do
-         !> do simplest thing to start
-         wgts_mu_bare = dmu(1)
-      else
-         !    ! use Gauss-Laguerre quadrature in 2*mu*bmag(z=0)
-         ! use Gauss-Laguerre quadrature in 2*mu*min(bmag)*max(
-         call get_laguerre_grids(mu, wgts_mu_bare)
-         if (vperp_max < 0) vperp_max = sqrt(mu(nmu))
-         wgts_mu_bare = wgts_mu_bare * exp(mu) / (2.*minval(bmag_psi0) * mu(nmu) / vperp_max**2)
-
-         !    mu = mu/(2.*bmag(1,0))
-         mu = mu / (2.*minval(bmag_psi0) * mu(nmu) / vperp_max**2)
-
-         dmu(:nmu - 1) = mu(2:) - mu(:nmu - 1)
-         !> leave dmu(nmu) uninitialized. should never be used, so want
-         !> valgrind or similar to return error if it is
-      end if
-
-      !> maxwell_mu is the mu part of the v-space Maxwellian
-      maxwell_mu = exp(-2.*spread(spread(spread(mu, 1, nalpha), 2, nztot) * spread(bmag, 3, nmu), 4, nspec) &
-                       * spread(spread(spread(spec%temp_psi0 / spec%temp, 1, nalpha), 2, nztot), 3, nmu))
-
-      if(full_flux_surface) maxwell_mu_avg = spread(sum(maxwell_mu, dim = 1), 1, nalpha)/ nalpha 
-
-      !> factor of 2. necessary to account for 2pi from
-      !> integration over gyro-angle and 1/pi^(3/2) normalization
-      !> of velocity space Jacobian
-      wgts_mu = 2.*spread(spread(wgts_mu_bare, 1, nalpha), 2, nztot) * spread(bmag, 3, nmu)
-
-      !> if maxwellian_normalization, the evolved pdf is normalized by a Maxwwellian;
-      !> in this case, the velocity integration must account for the Maxwellian.
-      ! NB: the species index on maxwell_mu is only needed for radially global simulations,
-      ! which are not currently supported for maxwellian_normalization = .true.
-      if (maxwellian_normalization) wgts_mu = wgts_mu * maxwell_mu(:, :, :, 1)
-
-      !> add ghost cell at mu=0 and beyond mu_max for purposes of differentiation
-      !> note assuming here that grid spacing for ghost cell is equal to
-      !> grid spacing for last non-ghost cell
-      dmu_ghost(:nmu - 1) = dmu; dmu_ghost(nmu) = dmu(nmu - 1)
-      !> this is mu at cell centres (including to left and right of mu grid boundary points)
-      mu_cell(:nmu - 1) = 0.5 * (mu(:nmu - 1) + mu(2:))
-      mu_cell(nmu) = mu(nmu) + 0.5 * dmu(nmu - 1)
-      !> this is mu_{j+1/2} - mu_{j-1/2}
-      dmu_cell(1) = mu_cell(1)
-      dmu_cell(2:) = mu_cell(2:) - mu_cell(:nmu - 1)
-
-   end subroutine init_mu_grid
-
-   subroutine finish_mu_grid
-
-      implicit none
-
-      if (allocated(mu)) deallocate (mu)
-      if (allocated(mu_cell)) deallocate (mu_cell)
-      if (allocated(wgts_mu)) deallocate (wgts_mu)
-      if (allocated(wgts_mu_bare)) deallocate (wgts_mu_bare)
-      if (allocated(maxwell_mu)) deallocate (maxwell_mu)
-      if (allocated(maxwell_mu_avg)) deallocate (maxwell_mu_avg)
-      if (allocated(dmu)) deallocate (dmu)
-      if (allocated(dmu_cell)) deallocate (dmu_cell)
-      if (allocated(dmu_ghost)) deallocate (dmu_ghost)
-      if (allocated(rbuffer)) deallocate (rbuffer)
-
-   end subroutine finish_mu_grid
 
    subroutine calculate_velocity_integrals
 
@@ -917,6 +898,9 @@ contains
 
    end subroutine calculate_velocity_integrals
 
+   !******************************************************************************
+   !                           FINALISE VELOCITY GRIDS
+   !******************************************************************************
    subroutine finish_vpamu_grids
 
       implicit none
@@ -933,5 +917,34 @@ contains
       vpamu_initialized = .false.
 
    end subroutine finish_vpamu_grids
+
+   subroutine finish_vpa_grid
+
+      implicit none
+
+      if (allocated(vpa)) deallocate (vpa)
+      if (allocated(wgts_vpa)) deallocate (wgts_vpa)
+      if (allocated(wgts_vpa_default)) deallocate (wgts_vpa_default)
+      if (allocated(maxwell_vpa)) deallocate (maxwell_vpa)
+      if (allocated(ztmax)) deallocate (ztmax)
+
+   end subroutine finish_vpa_grid
+
+   subroutine finish_mu_grid
+
+      implicit none
+
+      if (allocated(mu)) deallocate (mu)
+      if (allocated(mu_cell)) deallocate (mu_cell)
+      if (allocated(wgts_mu)) deallocate (wgts_mu)
+      if (allocated(wgts_mu_bare)) deallocate (wgts_mu_bare)
+      if (allocated(maxwell_mu)) deallocate (maxwell_mu)
+      if (allocated(maxwell_mu_avg)) deallocate (maxwell_mu_avg)
+      if (allocated(dmu)) deallocate (dmu)
+      if (allocated(dmu_cell)) deallocate (dmu_cell)
+      if (allocated(dmu_ghost)) deallocate (dmu_ghost)
+      if (allocated(rbuffer)) deallocate (rbuffer)
+
+   end subroutine finish_mu_grid
 
 end module vpamu_grids
