@@ -110,10 +110,10 @@
 !                       Discretized (kx,ky,z,mu,vpa) grid                       
 !===============================================================================
 
-&kt_grids_knobs
+&kxky_grid_option
   grid_option = 'box'
 /
-&parameters_kxky_grids_box 
+&kxky_grid_box 
   nx = 9
   ny = 12
   y0 = 15

@@ -65,10 +65,10 @@
 !                       Discretized (kx,ky,z,mu,vpa) grid                       
 !===============================================================================
 
-&kt_grids_knobs
+&kxky_grid_option
   grid_option = 'range'
 /
-&kt_grids_range_parameters
+&kxky_grid_range
   akx_max = 0.0
   akx_min = 0.0
   aky_max = 1.5
