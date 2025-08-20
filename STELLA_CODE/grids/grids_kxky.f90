@@ -51,7 +51,7 @@ contains
        use mp, only: mp_abort
        use common_types, only: flux_surface_type
        use zgrid, only: init_zgrid
-       use parameters_kxky_grids, only: gridopt_switch, gridopt_range, gridopt_box
+       use parameters_kxky_grids, only: grid_option_switch, grid_option_range, grid_option_box
        use parameters_kxky_grids, only: naky
        
        implicit none
@@ -61,10 +61,10 @@ contains
  
        call init_zgrid
        
-       select case (gridopt_switch)
-       case (gridopt_range)
+       select case (grid_option_switch)
+       case (grid_option_range)
           call init_grids_kxky_range
-       case (gridopt_box)
+       case (grid_option_box)
           call init_grids_kxky_box
        end select
 

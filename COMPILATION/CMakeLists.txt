@@ -95,6 +95,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/input_parameters/input_file_dissipation.f90
   ../STELLA_CODE/input_parameters/input_file_physics_parameters.f90
   ../STELLA_CODE/input_parameters/input_file_numerical_parameters.f90
+  ../STELLA_CODE/input_parameters/input_file_kxky_grid.f90
   ../STELLA_CODE/neoclassical/euterpe_interface.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
   ../STELLA_CODE/parameters/debug_flags.f90
