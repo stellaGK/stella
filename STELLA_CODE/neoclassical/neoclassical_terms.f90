@@ -30,7 +30,7 @@ contains
       use mp, only: proc0 
       use z_grid, only: nzgrid
       use kxky_grid_parameters, only: nalpha
-      use vpamu_grids, only: nvpa, nmu
+      use velocity_grids, only: nvpa, nmu
       use species, only: nspec
       use stella_layouts, only: vmu_lo
       use sfincs_interface, only: get_neo_from_sfincs
@@ -171,8 +171,8 @@ contains
       use finite_differences, only: fd5pt
       use stella_layouts, only: vmu_lo
       use z_grid, only: nzgrid
-      use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: dvpa
+      use velocity_grids, only: nvpa, nmu
+      use velocity_grids, only: dvpa
       use species, only: nspec
       use kxky_grid_parameters, only: nalpha
 
@@ -216,7 +216,7 @@ contains
 
       use finite_differences, only: fd5pt
       use z_grid, only: nztot, nzgrid, delzed
-      use vpamu_grids, only: nvpa, nmu
+      use velocity_grids, only: nvpa, nmu
       use species, only: nspec
       use stella_layouts, only: vmu_lo
       use kxky_grid_parameters, only: nalpha
@@ -261,7 +261,7 @@ contains
 
       use finite_differences, only: fd3pt, fd5pt
       use z_grid, only: nzgrid
-      use vpamu_grids, only: nvpa, nmu
+      use velocity_grids, only: nvpa, nmu
       use species, only: nspec
       use stella_layouts, only: vmu_lo
       use kxky_grid_parameters, only: nalpha
@@ -374,7 +374,7 @@ contains
       use mp, only: send, receive
       use file_utils, only: open_output_file, close_output_file
       use z_grid, only: nzgrid, zed
-      use vpamu_grids, only: vpa, mu
+      use velocity_grids, only: vpa, mu
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_layouts, only: idx_local, proc_id

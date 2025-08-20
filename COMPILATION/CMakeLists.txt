@@ -82,7 +82,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/grids/species.f90
   ../STELLA_CODE/grids/stella_layouts.f90
   ../STELLA_CODE/grids/stella_time.f90
-  ../STELLA_CODE/grids/vpamu_grids.f90
+  ../STELLA_CODE/grids/velocity_grids.f90
   ../STELLA_CODE/grids/write_radial_grid.f90
   ../STELLA_CODE/grids/z_grid.f90
   ../STELLA_CODE/gyrokinetic_terms/ffs_solve.f90

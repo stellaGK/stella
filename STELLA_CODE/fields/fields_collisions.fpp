@@ -27,8 +27,8 @@ contains
       use numerical_parameters, only: fphi
       use geometry, only: dl_over_b
       use z_grid, only: nzgrid, ntubes
-      use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: integrate_vmu
+      use velocity_grids, only: nvpa, nmu
+      use velocity_grids, only: integrate_vmu
       use kxky_grid_parameters, only: nakx
       use grids_kxky, only: zonal_mode
       use species, only: spec, nspec, has_electron_species
@@ -112,8 +112,8 @@ contains
       use numerical_parameters, only: fphi
       use geometry, only: dl_over_b, bmag
       use z_grid, only: nzgrid, ntubes
-      use vpamu_grids, only: vperp2, nvpa, nmu
-      use vpamu_grids, only: integrate_vmu
+      use velocity_grids, only: vperp2, nvpa, nmu
+      use velocity_grids, only: integrate_vmu
       use kxky_grid_parameters, only: nakx
       use grids_kxky, only: zonal_mode
       use species, only: spec, nspec, has_electron_species

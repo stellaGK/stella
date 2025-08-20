@@ -183,7 +183,7 @@ contains
       use dist_redistribute, only: kxkyz2vmu
       use job_manage, only: time_message
       use z_grid, only: nzgrid
-      use vpamu_grids, only: set_vpa_weights
+      use velocity_grids, only: set_vpa_weights
       use stella_layouts, only: vmu_lo
       use arrays_dist_fn, only: gvmu
       use coll_dougherty, only: advance_collisions_dougherty_implicit

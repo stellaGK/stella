@@ -155,7 +155,7 @@ contains
       use kxky_grid_parameters, only: nakx, naky, nalpha, phase_shift_angle
       use grids_kxky, only: x_d, rho_d, akx, aky, theta0
       use z_grid, only: nzgrid, ntubes, zed
-      use vpamu_grids, only: nvpa, vpa, nmu, mu
+      use velocity_grids, only: nvpa, vpa, nmu, mu
       use species, only: nspec
       use physics_parameters, only: radial_variation
       use physics_parameters, only: rhostar

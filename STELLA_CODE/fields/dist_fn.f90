@@ -33,7 +33,7 @@ contains
       use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
       use kxky_grid_parameters, only: nalpha, nakx, naky
       use calculations_kxky, only: multiply_by_rho
-      use vpamu_grids, only: mu, vpa, vperp2
+      use velocity_grids, only: mu, vpa, vperp2
       use z_grid, only: nzgrid, ntubes
       use species, only: spec, pfac
       use geometry, only: dBdrho, gfac
@@ -258,7 +258,7 @@ contains
       use stella_layouts, only: kxkyz_lo, vmu_lo, kymus_lo
       use z_grid, only: nzgrid, ntubes
       use kxky_grid_parameters, only: naky, nakx
-      use vpamu_grids, only: nvpa, nmu
+      use velocity_grids, only: nvpa, nmu
       use arrays_dist_fn, only: gnew, gold, g_scratch
       use arrays_dist_fn, only: gvmu, g_kymus
       use numerical_parameters, only: split_parallel_dynamics
@@ -292,8 +292,8 @@ contains
 
       use geometry, only: bmag
       use z_grid, only: nzgrid
-      use vpamu_grids, only: vperp2
-      use vpamu_grids, only: nmu, mu
+      use velocity_grids, only: vperp2
+      use velocity_grids, only: nmu, mu
       use kxky_grid_parameters, only: nalpha
 
       implicit none
@@ -357,7 +357,7 @@ contains
 
    subroutine finish_vperp2
 
-      use vpamu_grids, only: vperp2
+      use velocity_grids, only: vperp2
 
       implicit none
 
@@ -408,7 +408,7 @@ contains
       use z_grid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use kxky_grid_parameters, only: naky, nakx
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu
+      use velocity_grids, only: maxwell_vpa, maxwell_mu
 
       implicit none
 

@@ -1,9 +1,9 @@
-module vpamu_grids
+module velocity_grids
 
    implicit none
 
-   public :: init_vpamu_grids, finish_vpamu_grids
-   public :: read_vpamu_grids_parameters
+   public :: init_velocity_grids, finish_velocity_grids
+   public :: read_velocity_grids_parameters
    public :: calculate_velocity_integrals
    public :: integrate_vmu, integrate_vpa, integrate_species
    public :: integrate_species_ffs, integrate_vmu_ffs
@@ -28,7 +28,7 @@ module vpamu_grids
    integer :: nmu
    real :: vpa_max, vperp_max
 
-   ! arrays that are filled in vpamu_grids
+   ! arrays that are filled in velocity_grids
    real, dimension(:), allocatable :: vpa, wgts_vpa, wgts_vpa_default, wgts_mu_bare
    real, dimension(:), allocatable :: mu, maxwell_fac
    real, dimension(:, :), allocatable :: maxwell_vpa
@@ -75,7 +75,7 @@ contains
    !****************************************************************************
    !                               READ NAMELIST                               !
    !****************************************************************************
-   subroutine read_vpamu_grids_parameters
+   subroutine read_velocity_grids_parameters
 
       use input_file_velocity_grids, only: read_namelist_velocity_grids
       use mp, only: broadcast
@@ -103,12 +103,12 @@ contains
 
       end subroutine broadcast_velocity_grids
 
-   end subroutine read_vpamu_grids_parameters
+   end subroutine read_velocity_grids_parameters
 
    !****************************************************************************
    !                         INITIALISE VELOCITY GRIDS                         !
    !****************************************************************************
-   subroutine init_vpamu_grids
+   subroutine init_velocity_grids
 
       use species, only: spec, nspec
 
@@ -129,7 +129,7 @@ contains
       ! Maxwell_fac = 1 unless radially global
       maxwell_fac = spec%dens / spec%dens_psi0 * (spec%temp_psi0 / spec%temp)**1.5
 
-   end subroutine init_vpamu_grids
+   end subroutine init_velocity_grids
 
    !----------------------------------------------------------------------------
    !                         v_parallel velocity grid
@@ -901,7 +901,7 @@ contains
    !******************************************************************************
    !                           FINALISE VELOCITY GRIDS
    !******************************************************************************
-   subroutine finish_vpamu_grids
+   subroutine finish_velocity_grids
 
       implicit none
 
@@ -916,7 +916,7 @@ contains
 
       vpamu_initialized = .false.
 
-   end subroutine finish_vpamu_grids
+   end subroutine finish_velocity_grids
 
    subroutine finish_vpa_grid
 
@@ -947,4 +947,4 @@ contains
 
    end subroutine finish_mu_grid
 
-end module vpamu_grids
+end module velocity_grids

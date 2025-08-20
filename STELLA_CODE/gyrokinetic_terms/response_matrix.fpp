@@ -968,13 +968,13 @@ contains
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
-      use vpamu_grids, only: integrate_species
+      use velocity_grids, only: integrate_species
       use gyro_averages, only: gyro_average
       use mp, only: sum_allreduce
 
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use numerical_parameters, only: driftkinetic_implicit
-      use vpamu_grids, only: integrate_species_ffs_rm
+      use velocity_grids, only: integrate_species_ffs_rm
 
       use physics_parameters, only: full_flux_surface
 
@@ -1054,7 +1054,7 @@ contains
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
-      use vpamu_grids, only: integrate_species, mu
+      use velocity_grids, only: integrate_species, mu
       use gyro_averages, only: gyro_average_j1
       use mp, only: sum_allreduce
 
@@ -1117,8 +1117,8 @@ contains
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
-      use vpamu_grids, only: integrate_species
-      use vpamu_grids, only: vpa
+      use velocity_grids, only: integrate_species
+      use velocity_grids, only: vpa
       use gyro_averages, only: gyro_average
       use mp, only: sum_allreduce
 

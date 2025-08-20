@@ -66,7 +66,7 @@ contains
    subroutine init_collisions_dougherty(collisions_implicit, cfl_dt_vpadiff, cfl_dt_mudiff)
 
       use species, only: spec, nspec
-      use vpamu_grids, only: dvpa, dmu, mu, nmu
+      use velocity_grids, only: dvpa, dmu, mu, nmu
       use geometry, only: bmag
 
       implicit none
@@ -103,7 +103,7 @@ contains
 
       use stella_time, only: code_dt
       use species, only: nspec, spec
-      use vpamu_grids, only: dvpa, vpa, nvpa
+      use velocity_grids, only: dvpa, vpa, nvpa
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use geometry, only: bmag
@@ -146,8 +146,8 @@ contains
       use species, only: nspec, spec
       use z_grid, only: nzgrid
       use geometry, only: bmag
-      use vpamu_grids, only: dmu, nmu
-      use vpamu_grids, only: dmu_cell, mu_cell, wgts_mu_bare
+      use velocity_grids, only: dmu, nmu
+      use velocity_grids, only: dmu_cell, mu_cell, wgts_mu_bare
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use arrays_dist_fn, only: kperp2
@@ -208,9 +208,9 @@ contains
       use stella_time, only: code_dt
       use species, only: nspec, spec, has_electron_species
       use z_grid, only: nzgrid, ntubes
-      use vpamu_grids, only: ztmax, maxwell_vpa, maxwell_mu
-      use vpamu_grids, only: nmu, vpa, vperp2
-      use vpamu_grids, only: set_vpa_weights
+      use velocity_grids, only: ztmax, maxwell_vpa, maxwell_mu
+      use velocity_grids, only: nmu, vpa, vperp2
+      use velocity_grids, only: set_vpa_weights
       use kxky_grid_parameters, only: naky, nakx
       use grids_kxky, only: zonal_mode
       use stella_layouts, only: kxkyz_lo
@@ -466,8 +466,8 @@ contains
       use stella_time, only: code_dt
       use species, only: nspec, spec, has_electron_species
       use z_grid, only: nzgrid, ntubes
-      use vpamu_grids, only: ztmax, maxwell_vpa, maxwell_mu
-      use vpamu_grids, only: nvpa, vpa, vperp2
+      use velocity_grids, only: ztmax, maxwell_vpa, maxwell_mu
+      use velocity_grids, only: nvpa, vpa, vperp2
       use kxky_grid_parameters, only: naky, nakx
       use grids_kxky, only: zonal_mode
       use geometry, only: dl_over_b, bmag
@@ -762,9 +762,9 @@ contains
 
       use mp, only: sum_allreduce
       use z_grid, only: nzgrid
-      use vpamu_grids, only: integrate_vmu
-      use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: vpa
+      use velocity_grids, only: integrate_vmu
+      use velocity_grids, only: nvpa, nmu
+      use velocity_grids, only: vpa
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use gyro_averages, only: aj0v
@@ -799,9 +799,9 @@ contains
 
       use mp, only: sum_allreduce
       use z_grid, only: nzgrid
-      use vpamu_grids, only: integrate_vmu
-      use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: vperp2
+      use velocity_grids, only: integrate_vmu
+      use velocity_grids, only: nvpa, nmu
+      use velocity_grids, only: vperp2
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use gyro_averages, only: aj1v
@@ -837,9 +837,9 @@ contains
 
       use mp, only: sum_allreduce
       use z_grid, only: nzgrid
-      use vpamu_grids, only: integrate_vmu
-      use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: vpa
+      use velocity_grids, only: integrate_vmu
+      use velocity_grids, only: nvpa, nmu
+      use velocity_grids, only: vpa
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use gyro_averages, only: aj0v
@@ -875,8 +875,8 @@ contains
 
       use mp, only: sum_allreduce
       use z_grid, only: nzgrid
-      use vpamu_grids, only: integrate_vmu
-      use vpamu_grids, only: nvpa, nmu, vperp2
+      use velocity_grids, only: integrate_vmu
+      use velocity_grids, only: nvpa, nmu, vperp2
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use gyro_averages, only: aj0v
@@ -921,8 +921,8 @@ contains
       use kxky_grid_parameters, only: naky, nakx
       use grids_kxky, only: rho_d_clamped
       use calculations_kxky, only: multiply_by_rho
-      use vpamu_grids, only: nvpa, nmu
-      use vpamu_grids, only: set_vpa_weights
+      use velocity_grids, only: nvpa, nmu
+      use velocity_grids, only: set_vpa_weights
       use geometry, only: bmag, dBdrho
       use stella_layouts, only: vmu_lo, kxkyz_lo
       use stella_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
@@ -1126,7 +1126,7 @@ contains
 
    subroutine vpa_differential_operator(tfac, h, Dh)
 
-      use vpamu_grids, only: nvpa, vpa, dvpa
+      use velocity_grids, only: nvpa, vpa, dvpa
 
       implicit none
 
@@ -1150,9 +1150,9 @@ contains
 
    subroutine mu_differential_operator(tfac, iz, ia, h, Dh)
 
-      use vpamu_grids, only: nmu, dmu
-      use vpamu_grids, only: mu_cell, dmu_cell, wgts_mu_bare
-      use vpamu_grids, only: equally_spaced_mu_grid
+      use velocity_grids, only: nmu, dmu
+      use velocity_grids, only: mu_cell, dmu_cell, wgts_mu_bare
+      use velocity_grids, only: equally_spaced_mu_grid
       use geometry, only: bmag
 
       implicit none
@@ -1191,10 +1191,10 @@ contains
 
       use species, only: spec
       use geometry, only: bmag
-      use vpamu_grids, only: integrate_vmu
-      use vpamu_grids, only: vpa, nvpa, nmu, vperp2
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu
-!     use vpamu_grids, only: int_vpa2
+      use velocity_grids, only: integrate_vmu
+      use velocity_grids, only: vpa, nvpa, nmu, vperp2
+      use velocity_grids, only: maxwell_vpa, maxwell_mu
+!     use velocity_grids, only: int_vpa2
       use arrays_dist_fn, only: kperp2
       use gyro_averages, only: aj0v, aj1v
 
@@ -1237,10 +1237,10 @@ contains
 
    subroutine conserve_energy(iz, is, ikxkyz, h, Ch)
 
-      use vpamu_grids, only: integrate_vmu
-      use vpamu_grids, only: vpa, nvpa, nmu, vperp2
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu
-!   use vpamu_grids, only: int_unit, int_vpa2, int_vperp2, int_vfrth
+      use velocity_grids, only: integrate_vmu
+      use velocity_grids, only: vpa, nvpa, nmu, vperp2
+      use velocity_grids, only: maxwell_vpa, maxwell_mu
+!   use velocity_grids, only: int_unit, int_vpa2, int_vperp2, int_vfrth
       use gyro_averages, only: aj0v
 
       implicit none
@@ -1284,8 +1284,8 @@ contains
       use kxky_grid_parameters, only: nakx, naky
       use calculations_kxky, only: multiply_by_rho
       use z_grid, only: nzgrid, ntubes
-      use vpamu_grids, only: integrate_species, mu, vpa, vperp2
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use velocity_grids, only: integrate_species, mu, vpa, vperp2
+      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_dist_fn, only: kperp2, dkperp2dr
       use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
 
@@ -1419,9 +1419,9 @@ contains
       use kxky_grid_parameters, only: nakx, naky
       use calculations_kxky, only: multiply_by_rho
       use z_grid, only: nzgrid, ntubes
-      use vpamu_grids, only: integrate_species
-      use vpamu_grids, only: mu, vpa, nmu, vperp2
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use velocity_grids, only: integrate_species
+      use velocity_grids, only: mu, vpa, nmu, vperp2
+      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_dist_fn, only: kperp2, dkperp2dr
       use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
 
@@ -1536,9 +1536,9 @@ contains
       use numerical_parameters, only: fphi
       use species, only: nspec, spec, has_electron_species
       use z_grid, only: nzgrid, ntubes
-      use vpamu_grids, only: nmu, nvpa
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
-      use vpamu_grids, only: set_vpa_weights
+      use velocity_grids, only: nmu, nvpa
+      use velocity_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
+      use velocity_grids, only: set_vpa_weights
       use kxky_grid_parameters, only: naky, nakx
       use grids_kxky, only: zonal_mode
       use geometry, only: dl_over_b
@@ -1702,9 +1702,9 @@ contains
       use numerical_parameters, only: fphi
       use species, only: nspec, spec, has_electron_species
       use z_grid, only: nzgrid, ntubes
-      use vpamu_grids, only: nmu, nvpa
-      use vpamu_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
-      use vpamu_grids, only: set_vpa_weights
+      use velocity_grids, only: nmu, nvpa
+      use velocity_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
+      use velocity_grids, only: set_vpa_weights
       use kxky_grid_parameters, only: naky, nakx
       use grids_kxky, only: zonal_mode
       use stella_layouts, only: kxkyz_lo
@@ -1719,7 +1719,7 @@ contains
       use physics_parameters, only: adiabatic_option_fieldlineavg
 
       ! TMP FOR TESTING
-!    use vpamu_grids, only: mu
+!    use velocity_grids, only: mu
 
       implicit none
 

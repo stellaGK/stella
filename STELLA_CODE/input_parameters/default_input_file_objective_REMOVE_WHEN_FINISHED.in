@@ -184,7 +184,7 @@
 !-----------  Grids  -----------
 !-------------------------------
   
-&vpamu_grid (renamed from vpamu_grids_parameters)
+&vpamu_grid (renamed from velocity_grids_parameters)
   nvgrid = 24.0
   nmu = 12.0
   vpa_max = 3.0
