@@ -14,9 +14,6 @@ module zgrid
    public :: boundary_option_self_periodic
    public :: boundary_option_linked
    public :: boundary_option_linked_stellarator
-   
-   ! Make the namelist public
-   public :: set_default_parameters
    public :: nzed, nperiod, ntubes, shat_zero, dkx_over_dky
    public :: boundary_option, zed_equal_arc, grad_x_grad_y_zero
 
@@ -34,138 +31,84 @@ module zgrid
                          boundary_option_linked = 3, &
                          boundary_option_linked_stellarator = 4
 
-   logical :: zgridinit = .false.
+   logical :: initialised = .false.
    character(20) :: boundary_option
 
 contains
+
+   !============================================================================
+   !============================= INITIALISE Z GRID ============================
+   !============================================================================ 
 
    subroutine init_zgrid
 
       use mp, only: proc0
       use constants, only: pi
 
+      use input_file_z_grid, only: read_namelist_z_grid, read_namelist_z_boundary_condition
+
       implicit none
 
       integer :: i
 
-      if (zgridinit) return
-      zgridinit = .true.
+      if (initialised) return
+      initialised = .true.
 
       if (proc0) then
-         call read_parameters
+         call read_namelist_z_grid(nzed, nperiod, ntubes, zed_equal_arc)
+         call read_namelist_z_boundary_condition (boundary_option_switch, shat_zero, & 
+                                                   grad_x_grad_y_zero, dkx_over_dky)
       end if
-      call broadcast_parameters
-
-      if (.not. allocated(zed)) allocate (zed(-nzgrid:nzgrid))
-      if (.not. allocated(delzed)) allocate (delzed(-nzgrid:nzgrid))
-
-      zed = (/(i * pi / real(nzed / 2), i=-nzgrid, nzgrid)/)
-      delzed(:nzgrid - 1) = zed(-nzgrid + 1:) - zed(:nzgrid - 1)
-      delzed(nzgrid) = delzed(-nzgrid)
-
-      nztot = 2 * nzgrid + 1
-      ! number of zed in a 2*pi segment, including points at +/- pi
-      nz2pi = 2 * (nzed / 2) + 1
-
-   end subroutine init_zgrid
-
-   subroutine read_parameters
-
-      use file_utils, only: input_unit_exist, error_unit
-      use text_options, only: text_option, get_option_value
-      use physics_parameters, only: full_flux_surface
-
-      implicit none
-
-      integer :: in_file, ierr
-      logical :: exist
-
-      type(text_option), dimension(7), parameter :: boundaryopts = &
-                                                    (/text_option('default', boundary_option_zero), &
-                                                      text_option('zero', boundary_option_zero), &
-                                                      text_option('unconnected', boundary_option_zero), &
-                                                      text_option('self-periodic', boundary_option_self_periodic), &
-                                                      text_option('periodic', boundary_option_self_periodic), &
-                                                      text_option('linked', boundary_option_linked), &
-                                                      text_option('stellarator', boundary_option_linked_stellarator)/)
       
-      ! Variables in the <zgrid_parameters> namelist
-      namelist /zgrid_parameters/ nzed, nperiod, ntubes, &
-         shat_zero, boundary_option, zed_equal_arc, &
-         grad_x_grad_y_zero, dkx_over_dky
-
-      ! Load the default values of the variables
-      call set_default_parameters()
-      
-      ! Load the values set in the input file
-      in_file = input_unit_exist("zgrid_parameters", exist)
-      if (exist) read (unit=in_file, nml=zgrid_parameters)
-      ierr = error_unit()
-      
-      ! Change the text of <boundary_option> to an integer 
-      ! Note that boundary_option may be changed to self-periodic later,
-      ! if magnetic shear or nabla x cdot nabla y is smaller than shat_zero or grad_x_grad_y_zero
-      call get_option_value &
-         (boundary_option, boundaryopts, boundary_option_switch, &
-          ierr, "boundary_option in dist_fn_knobs")
-          
-      ! Make sure <nzed> is an even integer, otherwise the potential explodes
-      if (MOD(nzed,2) .eq. 1) nzed = nzed + 1
-
       ! <nzed> specifies the grid points left and right of z=0 in a single segment
       ! whereas <nzgrid> is the total number of grid points
       nzgrid = nzed / 2 + (nperiod - 1) * nzed
-
-      ! force use of equal arc grid to ensure gradpar alpha-independent
-      ! necessary to obtain efficient numerical solution of parallel streaming
-      if (full_flux_surface) zed_equal_arc = .true.
-
-   end subroutine read_parameters
-
-   subroutine set_default_parameters()
-   
-      implicit none
-
-      nzed = 24
-      nperiod = 1
-      ntubes = 1
-      boundary_option = 'default'
+      call broadcast_parameters
+      call compute_useful_quantities
       
-      ! if zed_equal_arc = T, then zed is chosen to be arc length
-      ! if zed_equal_arc = F, then zed is poloidal (axisymmetric)
-      ! or zeta (toroidal) angle
-      zed_equal_arc = .false.
-      
-      ! set minimum shat value below which we assume periodic BC
-      shat_zero = 1.e-5
-      
-      ! set the minimum nabla x . nabla value at the end of the FT which we assume
-      ! periodic BC instead of the stellarator symmetric ones
-      grad_x_grad_y_zero = 1.e-5
-      
-      ! set the ratio between dkx and dky, assuming jtwist = 1.
-      ! if it is < 0, the code will just use the nfield_periods in the input file
-      dkx_over_dky = -1
-      
-   end subroutine set_default_parameters
+   contains
 
-   subroutine broadcast_parameters
+      subroutine compute_useful_quantities
 
-      use mp, only: broadcast
+         implicit none
+         
 
-      implicit none
+         if (.not. allocated(zed)) allocate (zed(-nzgrid:nzgrid))
+         if (.not. allocated(delzed)) allocate (delzed(-nzgrid:nzgrid))
 
-      call broadcast(nzed)
-      call broadcast(nzgrid)
-      call broadcast(nperiod)
-      call broadcast(ntubes)
-      call broadcast(zed_equal_arc)
-      call broadcast(shat_zero)
-      call broadcast(boundary_option_switch)
-      call broadcast(grad_x_grad_y_zero)
-      call broadcast(dkx_over_dky)
+         zed = (/(i * pi / real(nzed / 2), i=-nzgrid, nzgrid)/)
+         delzed(:nzgrid - 1) = zed(-nzgrid + 1:) - zed(:nzgrid - 1)
+         delzed(nzgrid) = delzed(-nzgrid)
 
-   end subroutine broadcast_parameters
+         nztot = 2 * nzgrid + 1
+         ! number of zed in a 2*pi segment, including points at +/- pi
+         nz2pi = 2 * (nzed / 2) + 1
+
+      end subroutine compute_useful_quantities
+
+      subroutine broadcast_parameters
+
+         use mp, only: broadcast
+
+         implicit none
+
+         call broadcast(nzed)
+         call broadcast(nzgrid)
+         call broadcast(nperiod)
+         call broadcast(ntubes)
+         call broadcast(zed_equal_arc)
+         call broadcast(shat_zero)
+         call broadcast(boundary_option_switch)
+         call broadcast(grad_x_grad_y_zero)
+         call broadcast(dkx_over_dky)
+
+      end subroutine broadcast_parameters
+
+   end subroutine init_zgrid
+
+   !============================================================================
+   !============================= FINIALISE Z GRID ============================
+   !============================================================================ 
 
    subroutine finish_zgrid
 
@@ -174,7 +117,7 @@ contains
       if (allocated(zed)) deallocate (zed)
       if (allocated(delzed)) deallocate (delzed)
 
-      zgridinit = .false.
+      initialised = .false.
 
    end subroutine finish_zgrid
 

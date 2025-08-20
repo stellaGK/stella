@@ -83,6 +83,18 @@
   randomize_phase_shift = .false.
   phase_shift_angle = 0.0
  /
+ &z_grid
+  nzed = 24.0
+  nperiod = 1.0
+  ntubes = 1.0
+  zed_equal_arc = .false.
+/
+&z_boundary_condition
+  boundary_option = "default"
+  shat_zero = 1e-05
+  grad_x_grad_y_zero = 1e-05
+  dkx_over_dky = -1.0
+/
 !===============================================================================
 !                                  Diagnostics                                  
 !===============================================================================
