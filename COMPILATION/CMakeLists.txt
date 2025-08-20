@@ -77,7 +77,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/grids/arrays_dist_fn.f90
   ../STELLA_CODE/grids/arrays_fields.f90
   ../STELLA_CODE/grids/common_types.f90
-  ../STELLA_CODE/grids/extended_zgrid.f90
+  ../STELLA_CODE/grids/extended_z_grid.f90
   ../STELLA_CODE/grids/grids_kxky.f90
   ../STELLA_CODE/grids/species.f90
   ../STELLA_CODE/grids/stella_layouts.f90
@@ -104,8 +104,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/parameters/debug_flags.f90
   ../STELLA_CODE/parameters/parameters_diagnostics.f90
   ../STELLA_CODE/parameters/kxky_grid_parameters.f90
-  ../STELLA_CODE/parameters/kxky_grid_parameters_box.f90
-  ../STELLA_CODE/parameters/kxky_grid_parameters_range.f90
   ../STELLA_CODE/parameters/numerical_parameters.f90
   ../STELLA_CODE/parameters/physics_parameters.f90
   ../STELLA_CODE/radial_variation/multibox.f90
