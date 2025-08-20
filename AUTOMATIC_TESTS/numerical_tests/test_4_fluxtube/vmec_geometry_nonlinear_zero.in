@@ -69,7 +69,7 @@
 &z_boundary_condition
   boundary_option = 'zero'
 /
-&vpamu_grids_parameters
+&velocity_grids
   nmu = 4 
   nvgrid = 3
 /

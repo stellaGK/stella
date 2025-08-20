@@ -85,7 +85,7 @@
   boundary_option = 'stellarator'
   shat_zero = 1e-06
 /
-&vpamu_grids_parameters
+&velocity_grids
   nmu = 4
   nvgrid = 6
   vpa_max = 3.0

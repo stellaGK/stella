@@ -70,7 +70,7 @@
 &z_boundary_condition
   boundary_option = 'periodic'
 /
-&vpamu_grids_parameters
+&velocity_grids
   nmu = 2 
   nvgrid = 3 
   vpa_max = 3.0

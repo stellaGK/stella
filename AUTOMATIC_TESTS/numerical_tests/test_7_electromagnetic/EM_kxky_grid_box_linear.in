@@ -92,7 +92,7 @@
 &z_boundary_condition
   boundary_option = 'linked'
 /
-&vpamu_grids_parameters
+&velocity_grids
   nmu = 2
   nvgrid = 3
 /
