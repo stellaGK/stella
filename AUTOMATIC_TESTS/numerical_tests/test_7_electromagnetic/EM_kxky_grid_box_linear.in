@@ -120,13 +120,22 @@
 !                                    Numerics                                   
 !===============================================================================
 
-&parameters_numerical
-  mirror_semi_lagrange = .false.
-  print_extra_info_to_terminal = .false.
-  drifts_implicit = .false.
-  delt = 0.01
+&time_trace_options
   nstep = 10
-  explicit_option = 'rk2'
+/
+
+&time_step
+  delt = 0.01
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'rk2'
+  mirror_semi_lagrange = .false.
+  drifts_implicit = .false.
+/
+
+&numerical_extra
+  print_extra_info_to_terminal = .false.
 /
 
 !===============================================================================

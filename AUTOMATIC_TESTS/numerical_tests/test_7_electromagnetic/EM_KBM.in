@@ -128,16 +128,28 @@
 !                                    Numerics                                   
 !===============================================================================
 
-&parameters_numerical
-  drifts_implicit = .false.
-  stream_implicit = .true. 
-  mirror_implicit = .true.
+&time_trace_options
+  nstep = 1000
+/
+
+&time_step
+  delt = 0.5e-2
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'rk3'
   mirror_semi_lagrange = .false.
+  stream_implicit = .true.
+  mirror_implicit = .true.
+  drifts_implicit = .false.
+/
+
+&numerical_extra
+  print_extra_info_to_terminal = .false.
+/
+
+&numerical_upwinding_for_derivatives
   zed_upwind = 0.0
   time_upwind = 0.0
   vpa_upwind = 0.0
-  delt = 0.5e-2
-  nstep = 1000
-  print_extra_info_to_terminal = .false.
-  explicit_option = "rk3"
 /

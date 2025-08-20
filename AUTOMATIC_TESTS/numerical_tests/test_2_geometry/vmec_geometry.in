@@ -56,7 +56,7 @@
 &kt_grids_knobs
   grid_option = 'box'
 /
-&kt_grids_box_parameters
+&parameters_kxky_grids_box
   jtwist = 5
   nx = 6
   ny = 9
@@ -98,11 +98,20 @@
 !                                    Numerics                                   
 !===============================================================================
 
-&parameters_numerical
-  delt = 0.01
+&time_trace_options
   nstep = 10
+/
+
+&time_step
+  delt = 0.01
+/
+
+&numerical_algorithms
+  explicit_algorithm = 'rk2'
+/
+
+&numerical_extra
   print_extra_info_to_terminal = .false.
-  explicit_option = 'rk2'
 /
 
 !===============================================================================
