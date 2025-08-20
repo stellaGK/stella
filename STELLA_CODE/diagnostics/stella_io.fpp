@@ -152,7 +152,7 @@ contains
    ! Ensure the netCDF file contains all the dimensions and grids, creating them if necessary
    subroutine write_grids(file_id)
 #ifdef NETCDF
-      use parameters_kxky_grids, only: nakx, naky, nalpha, phase_shift_angle
+      use kxky_grid_parameters, only: nakx, naky, nalpha, phase_shift_angle
       use grids_kxky, only: x_d, rho_d, akx, aky, theta0
       use zgrid, only: nzgrid, ntubes, zed
       use vpamu_grids, only: nvpa, vpa, nmu, mu
@@ -1393,7 +1393,7 @@ contains
       use geometry, only: drhodpsi, djacdrho, b_dot_grad_z, geo_surf 
       use physics_parameters, only: beta
       use arrays_dist_fn, only: kperp2
-      use parameters_kxky_grids, only: jtwist
+      use kxky_grid_parameters, only: jtwist
 #endif
 
       implicit none

@@ -1,11 +1,11 @@
 !###############################################################################
 !######################## READ PARAMETES FOR KXKY GRIDS ########################
 !###############################################################################
-! Namelist: &parameters_kxky_grids
+! Namelist: &kxky_grid_parameters
 ! These flags will allow you to toggle the algorithm choices in stella.
 !###############################################################################
 
-module parameters_kxky_grids
+module kxky_grid_parameters
 
   public :: read_kxky_grid_parameters
 
@@ -128,4 +128,4 @@ contains
     
   end subroutine read_kxky_grid_parameters
   
-end module parameters_kxky_grids
+end module kxky_grid_parameters

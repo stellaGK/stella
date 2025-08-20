@@ -233,7 +233,7 @@ contains
       use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv33, gamtotinv31
       use arrays_fields, only: gamtot_h, time_field_solve
       !> Parameters
-      use parameters_kxky_grids, only: nakx, naky
+      use kxky_grid_parameters, only: nakx, naky
       !> Grids
       use zgrid, only: nzgrid, ntubes
 
@@ -388,7 +388,7 @@ contains
       use arrays_fields, only: apar_denom
       !> Parameters
       use physics_parameters, only: include_apar, include_bpar
-      use parameters_kxky_grids, only : nakx, naky 
+      use kxky_grid_parameters, only : nakx, naky 
       use physics_parameters, only: beta
       use numerical_parameters, only: fphi 
       !> Grids
@@ -526,7 +526,7 @@ contains
 
       use zgrid, only: nzgrid, ntubes
       
-      use parameters_kxky_grids, only: naky, nakx
+      use kxky_grid_parameters, only: naky, nakx
       use physics_parameters, only: include_apar, include_bpar
       
       !> TOD-GA: Want to put the allocations of these arrays here:  

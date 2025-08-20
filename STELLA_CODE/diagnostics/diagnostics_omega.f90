@@ -58,7 +58,7 @@ contains
       use arrays_fields, only: apar, apar_old
       
       ! Grids
-      use parameters_kxky_grids, only: nakx, naky 
+      use kxky_grid_parameters, only: nakx, naky 
       use stella_time, only: code_dt
       use constants, only: zi
       
@@ -250,7 +250,7 @@ contains
       use parameters_diagnostics, only: navg
       
       ! Grids
-      use parameters_kxky_grids, only: nakx, naky
+      use kxky_grid_parameters, only: nakx, naky
       
       ! Multiprocessing
       use mp, only: proc0
@@ -350,7 +350,7 @@ contains
       use parameters_diagnostics, only: write_omega_avg_vs_kxky
       use parameters_diagnostics, only: write_omega_vs_kxky
       use stella_time, only: code_time 
-      use parameters_kxky_grids, only: naky, nakx
+      use kxky_grid_parameters, only: naky, nakx
       use grids_kxky, only: aky, akx 
 
       implicit none

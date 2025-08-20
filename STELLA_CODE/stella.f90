@@ -101,7 +101,7 @@ contains
       use numerical_parameters, only: stream_implicit, driftkinetic_implicit
       use numerical_parameters, only: delt_option_switch, delt_option_auto
       use numerical_parameters, only: mat_gen, mat_read
-      use parameters_kxky_grids, only: read_kxky_grid_parameters
+      use kxky_grid_parameters, only: read_kxky_grid_parameters
       use species, only: init_species, read_species_knobs
       use species, only: nspec
       use zgrid, only: init_zgrid
@@ -126,7 +126,7 @@ contains
       use time_advance, only: init_time_advance
       use extended_zgrid, only: init_extended_zgrid
       use grids_kxky, only: init_grids_kxky
-      use parameters_kxky_grids, only: naky, nakx, ny, nx, nalpha
+      use kxky_grid_parameters, only: naky, nakx, ny, nx, nalpha
       use vpamu_grids, only: init_vpamu_grids, read_vpamu_grids_parameters
       use vpamu_grids, only: nvgrid, nmu
       use stella_transforms, only: init_transforms

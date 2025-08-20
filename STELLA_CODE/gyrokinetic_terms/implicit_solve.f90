@@ -23,7 +23,7 @@ contains
       use stella_layouts, only: vmu_lo
       use physics_parameters, only: include_apar, include_bpar
       use zgrid, only: nzgrid, ntubes
-      use parameters_kxky_grids, only: naky, nakx
+      use kxky_grid_parameters, only: naky, nakx
       use arrays_dist_fn, only: g1, g2
       use numerical_parameters, only: stream_matrix_inversion
       use numerical_parameters, only: use_deltaphi_for_response_matrix
@@ -1015,7 +1015,7 @@ contains
       use numerical_parameters, only: drifts_implicit
       use numerical_parameters, only: zed_upwind_plus, zed_upwind_minus
       use numerical_parameters, only: time_upwind_plus
-      use parameters_kxky_grids, only: nakx
+      use kxky_grid_parameters, only: nakx
       use grids_kxky, only: akx, aky
       use arrays_dist_fn, only: wdriftx_g, wdrifty_g
       use extended_zgrid, only: map_to_extended_zgrid
@@ -1219,7 +1219,7 @@ contains
       use extended_zgrid, only: map_from_extended_zgrid
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: periodic, phase_shift
-      use parameters_kxky_grids, only: naky
+      use kxky_grid_parameters, only: naky
       use fields, only: nfields
       use arrays_fields, only: response_matrix
 

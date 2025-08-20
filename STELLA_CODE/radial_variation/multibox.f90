@@ -90,7 +90,7 @@ contains
       use file_utils, only: runtype_option_switch, runtype_multibox
       use text_options, only: text_option, get_option_value
       use mp, only: broadcast, proc0
-      use parameters_kxky_grids, only: nx, nakx
+      use kxky_grid_parameters, only: nx, nakx
       use grids_kxky, only: boundary_size, copy_size, krook_size
       use job_manage, only: njobs
       use mp, only: scope, crossdomprocs, subprocs, &
@@ -226,12 +226,12 @@ contains
       use geometry, only: geo_surf, q_as_x, get_x_to_rho
       use geometry, only: drhodpsi, dxdpsi
       use zgrid, only: nzgrid, ntubes
-      use parameters_kxky_grids, only: nakx, naky, nx, x0
+      use kxky_grid_parameters, only: nakx, naky, nx, x0
       use grids_kxky, only: akx, aky
       use grids_kxky, only: x, x_d
       use grids_kxky, only: rho_clamped, rho_d, rho_d_clamped
-      use parameters_kxky_grids, only: centered_in_rho
-      use parameters_kxky_grids, only: periodic_variation
+      use kxky_grid_parameters, only: centered_in_rho
+      use kxky_grid_parameters, only: periodic_variation
       use grids_kxky, only: boundary_size, krook_size
       use file_utils, only: runtype_option_switch, runtype_multibox
       use job_manage, only: njobs
@@ -483,9 +483,9 @@ contains
    subroutine multibox_communicate(gin)
 
       use constants, only: zi
-      use parameters_kxky_grids, only: nakx, naky, naky_all, nx, ny
+      use kxky_grid_parameters, only: nakx, naky, naky_all, nx, ny
       use grids_kxky, only: akx, aky, dx, dy, zonal_mode, boundary_size
-      use parameters_kxky_grids, only: periodic_variation
+      use kxky_grid_parameters, only: periodic_variation
       use file_utils, only: runtype_option_switch, runtype_multibox
       use file_utils, only: get_unused_unit
       use arrays_fields, only: phi, phi_corr_QN, shift_state
@@ -669,7 +669,7 @@ contains
    subroutine apply_radial_boundary_conditions(gin)
  
       use grids_kxky, only: zonal_mode, boundary_size
-      use parameters_kxky_grids, only: periodic_variation, naky
+      use kxky_grid_parameters, only: periodic_variation, naky
       use stella_layouts, only: vmu_lo
       use zgrid, only: nzgrid
 
@@ -734,7 +734,7 @@ contains
 
       use stella_time, only: code_dt
       use stella_layouts, only: vmu_lo
-      use parameters_kxky_grids, only: nakx, naky, periodic_variation
+      use kxky_grid_parameters, only: nakx, naky, periodic_variation
       use grids_kxky, only: boundary_size
       use zgrid, only: nzgrid, ntubes
       use mp, only: job, proc0
@@ -802,7 +802,7 @@ contains
 !!       It is done here because the radial grid may include an extra point
 
    subroutine init_mb_get_phi(has_elec, adiabatic_elec, efac, efacp)
-      use parameters_kxky_grids, only: nakx, naky
+      use kxky_grid_parameters, only: nakx, naky
       use grids_kxky, only: boundary_size
       use zgrid, only: nzgrid
       use physics_parameters, only: radial_variation
@@ -918,7 +918,7 @@ contains
 
    subroutine mb_get_phi(phi, has_elec, adiabatic_elec)
       use constants, only: zi
-      use parameters_kxky_grids, only: nakx, naky
+      use kxky_grid_parameters, only: nakx, naky
       use grids_kxky, only: zonal_mode, boundary_size, akx
       use zgrid, only: nzgrid, ntubes
       use geometry, only: dl_over_b, d_dl_over_b_drho
@@ -1089,7 +1089,7 @@ contains
    subroutine init_mb_transforms
 
       use stella_layouts, only: init_stella_layouts
-      use parameters_kxky_grids, only: nakx, naky, naky_all
+      use kxky_grid_parameters, only: nakx, naky, naky_all
 
       implicit none
 
@@ -1121,7 +1121,7 @@ contains
 
    subroutine init_y_fft
 
-      use parameters_kxky_grids, only: naky, naky_all
+      use kxky_grid_parameters, only: naky, naky_all
       use fft_work, only: init_crfftw, init_rcfftw, FFT_BACKWARD, FFT_FORWARD
 
       implicit none
@@ -1140,7 +1140,7 @@ contains
 
    subroutine transform_kx2x(gkx, gx)
 
-      use parameters_kxky_grids, only: ikx_max
+      use kxky_grid_parameters, only: ikx_max
 
       implicit none
 
@@ -1161,7 +1161,7 @@ contains
 
    subroutine transform_x2kx(gx, gkx)
 
-      use parameters_kxky_grids, only: ikx_max
+      use kxky_grid_parameters, only: ikx_max
 
       implicit none
 

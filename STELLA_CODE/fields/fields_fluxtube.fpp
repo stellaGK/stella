@@ -296,7 +296,7 @@ contains
       !> Parameters
       use physics_parameters, only: radial_variation
       use numerical_parameters, only: ky_solve_radial, ky_solve_real
-      use parameters_kxky_grids, only: nakx, naky
+      use kxky_grid_parameters, only: nakx, naky
       use physics_parameters, only: adiabatic_option_switch
       use physics_parameters, only: adiabatic_option_fieldlineavg
       !> Grids
@@ -411,7 +411,7 @@ contains
       use numerical_parameters, only: fphi
       use numerical_parameters, only: maxwellian_normalization
       use physics_parameters, only: tite, nine, beta
-      use parameters_kxky_grids, only: nakx
+      use kxky_grid_parameters, only: nakx
       use physics_parameters, only: adiabatic_option_switch
       use physics_parameters, only: adiabatic_option_fieldlineavg
       !> Grids

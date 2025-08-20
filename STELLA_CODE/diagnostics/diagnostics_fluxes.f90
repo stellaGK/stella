@@ -45,7 +45,7 @@ contains
       use mp, only: proc0
 
       ! Dimensions
-      use parameters_kxky_grids, only: naky, nakx
+      use kxky_grid_parameters, only: naky, nakx
       use zgrid, only: nztot, ntubes
       use species, only: nspec
 
@@ -248,7 +248,7 @@ contains
       use arrays_dist_fn, only: gnew
    
       ! Dimensions
-      use parameters_kxky_grids, only: nakx, naky
+      use kxky_grid_parameters, only: nakx, naky
       use zgrid, only: nzgrid, ntubes
       use species, only: nspec
    
@@ -314,7 +314,7 @@ contains
       use arrays_dist_fn, only: gnew
 
       ! Dimensions 
-      use parameters_kxky_grids, only: ny, ikx_max
+      use kxky_grid_parameters, only: ny, ikx_max
       use species, only: nspec
       use zgrid, only: nzgrid
 

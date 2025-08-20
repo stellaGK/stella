@@ -25,7 +25,7 @@ contains
   ! with kx >= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)
   subroutine swap_kxky_complex(gin, gout)
     
-    use parameters_kxky_grids, only: naky, naky_all, ikx_max, nakx
+    use kxky_grid_parameters, only: naky, naky_all, ikx_max, nakx
     
     implicit none
     
@@ -61,7 +61,7 @@ contains
   ! with kx >= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)
   subroutine swap_kxky_real(gin, gout)
     
-    use parameters_kxky_grids, only: naky, naky_all, ikx_max, nakx
+    use kxky_grid_parameters, only: naky, naky_all, ikx_max, nakx
     implicit none
     
     real, dimension(:, :), intent(in) :: gin
@@ -96,7 +96,7 @@ contains
   ! with kx >= 0 and all ky (ordered like -kymax, ..., 0, ..., kymax)
   subroutine swap_kxky_ordered_real(gin, gout)
     
-    use parameters_kxky_grids, only: ikx_max, naky, nakx
+    use kxky_grid_parameters, only: ikx_max, naky, nakx
     implicit none
     
     real, dimension(:, :), intent(in) :: gin
@@ -131,7 +131,7 @@ contains
   ! with kx >= 0 and all ky (ordered like -kymax, ..., 0, ..., kymax)
   subroutine swap_kxky_ordered_complex(gin, gout)
     
-    use parameters_kxky_grids, only: naky, nakx, ikx_max
+    use kxky_grid_parameters, only: naky, nakx, ikx_max
     implicit none
       
     complex, dimension(:, :), intent(in) :: gin
@@ -166,7 +166,7 @@ contains
   ! with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
   subroutine swap_kxky_back(gin, gout)
     
-    use parameters_kxky_grids, only: naky, nakx, naky_all, ikx_max
+    use kxky_grid_parameters, only: naky, nakx, naky_all, ikx_max
     implicit none
     
     complex, dimension(:, :), intent(in) :: gin
@@ -196,7 +196,7 @@ contains
   ! with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
   subroutine swap_kxky_back_ordered(gin, gout)
     
-    use parameters_kxky_grids, only: ikx_max, naky, nakx 
+    use kxky_grid_parameters, only: ikx_max, naky, nakx 
     implicit none
     
     complex, dimension(:, :), intent(in) :: gin
@@ -223,7 +223,7 @@ contains
     use mp, only: job, scope, &
          crossdomprocs, subprocs, &
          send, receive
-    use parameters_kxky_grids, only: phase_shift_angle
+    use kxky_grid_parameters, only: phase_shift_angle
     
     implicit none
     
@@ -247,7 +247,7 @@ contains
     use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
     !   use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
     use grids_kxky, only: rho_d_clamped, zonal_mode, g0x
-    use parameters_kxky_grids, only: nakx, naky 
+    use kxky_grid_parameters, only: nakx, naky 
     implicit none
     
     complex, dimension(:, :), intent(inout) :: gin
