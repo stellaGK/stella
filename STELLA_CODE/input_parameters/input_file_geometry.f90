@@ -65,9 +65,11 @@ contains
         !------------------------ Default input parameters -----------------------
         subroutine set_default_geometry_options
             
+            use physics_parameters, only: radial_variation
+
             implicit none
             
-            geometry_option_switch = 'local'
+            geometry_option = 'local'
             ! The following is True by default in radial variation runs
             q_as_x = radial_variation 
 
@@ -209,27 +211,23 @@ contains
     !****************************************************************************
     !                     GEOMETRY OPTIONS : geometry_miller                    !
     !****************************************************************************
-    subroutine read_namelist_geometry_miller(local)
+    subroutine read_namelist_geometry_miller(rhoc, rmaj, shift, qinp, shat, &
+            kappa, kapprim, tri, triprim, rgeo, betaprim, &
+            betadbprim, d2qdr2, d2psidr2, &
+            nzed_local, read_profile_variation, write_profile_variation)
 
         use mp, only: proc0
 
         implicit none
+        
+        real, intent (out) :: rhoc, rmaj, shift
+        real, intent (out) :: qinp, shat, kappa, kapprim
+        real, intent (out) :: tri, triprim
+        real, intent (out) :: rgeo, betaprim, betadbprim
+        real, intent (out) :: d2qdr2, d2psidr2
+        integer, intent (out) :: nzed_local
 
-        type(flux_surface_type), intent(out) :: local
-
-        integer :: nzed_local
-        real :: rhoc, rmaj, shift
-        real :: kappa, kapprim
-        real :: tri, triprim
-        real :: betaprim, betadbprim
-        real :: qinp, shat, d2qdr2
-        real :: rgeo
-        real :: dpsipdrho, d2psidr2, dpsipdrho_psi0
-        real :: psitor_lcfs
-        real :: rhotor, drhotordrho, dIdrho, dI
-        real :: rhoc0
-        logical :: write_profile_variation, read_profile_variation
-        logical :: load_psi0_variables
+        logical, intent (out) :: write_profile_variation, read_profile_variation
 
         if (.not. proc0) return
         call set_default_geometry_miller
@@ -242,30 +240,28 @@ contains
 
             implicit none
 
+            
             rhoc = 0.5
-            rmaj = 3.0
+            rmaj = 2.77778
             shift = 0.0
             qinp = 1.4
-            shat = 0.8
-            kappa = 0.0
+            shat = 0.796
+            kappa = 1.0
             kapprim = 0.0
             tri = 0.0
             triprim = 0.0
-            rgeo = 3.0
+            rgeo = 2.77778
+            ! betaprim = -(4pi/Bref^2)*d(ptot)/drho
             betaprim = 0.0
+            ! betadbprim = -(4pi/Bref^2)*d^2ptot/drho^2
             betadbprim = 0.0
             d2qdr2 = 0.0
             d2psidr2 = 0.0
-            nzed_local = 128.0
+
+            nzed_local = 128
+
             read_profile_variation = .false.
             write_profile_variation = .false.
-            load_psi0_variables = .true.
-
-            ! only needed for sfincs when not using
-            ! geo info from file
-            rhotor = rhoc
-            psitor_lcfs = 1.0
-            drhotordrho = 1.0
 
         end subroutine set_default_geometry_miller
 
@@ -285,37 +281,6 @@ contains
 
             in_file = input_unit_exist("geometry_miller", dexist)
             if (dexist) read (unit=in_file, nml=geometry_miller)
-
-            local%rhoc = rhoc
-            local%rmaj = rmaj
-            local%rgeo = rgeo
-            local%shift = shift
-            local%kappa = kappa
-            local%kapprim = kapprim
-            local%qinp = qinp
-            local%shat = shat
-            local%tri = tri
-            local%triprim = triprim
-            local%betaprim = betaprim
-            local%betadbprim = betadbprim
-            local%d2qdr2 = d2qdr2
-            local%d2psidr2 = d2psidr2
-            local%zed0_fac = 1.0
-
-            ! following two variables are not inputs
-            local%dr = 1.e-3 * (rhoc / rmaj)
-            local%rhotor = rhotor
-            local%psitor_lcfs = psitor_lcfs
-            local%drhotordrho = drhotordrho
-            local%dpsitordrho = 0.0
-            local%d2psitordrho2 = 0.0
-
-            ! the next three variablaes are for multibox simulations
-            ! with radial variation
-            local%rhoc_psi0 = rhoc
-            local%qinp_psi0 = qinp
-            local%shat_psi0 = shat
-
 
         end subroutine read_input_file_geometry_miller
 

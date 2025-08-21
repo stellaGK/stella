@@ -4,7 +4,6 @@ module geometry_miller
 
    implicit none
 
-   public :: init_local_defaults
    public :: read_local_parameters
    public :: communicate_parameters_multibox
    public :: get_local_geo
@@ -67,42 +66,7 @@ contains
    !============================================================================
    !=========================== INIT LOCAL DEFAULTS ============================
    !============================================================================ 
-   subroutine init_local_defaults
-
-      implicit none
-
-      if (defaults_initialized) return
-      defaults_initialized = .true.
-
-      nzed_local = 128
-      rhoc = 0.5
-      rhoc0 = 0.5
-      rmaj = 2.77778
-      rgeo = 2.77778
-      qinp = 1.4
-      shat = 0.796
-      shift = 0.0
-      kappa = 1.0
-      kapprim = 0.0
-      tri = 0.0
-      triprim = 0.0
-      ! betaprim = -(4pi/Bref^2)*d(ptot)/drho
-      betaprim = 0.0
-      ! betadbprim = -(4pi/Bref^2)*d^2ptot/drho^2
-      betadbprim = 0.0
-      d2qdr2 = 0.0
-      d2psidr2 = 0.0
-      read_profile_variation = .false.
-      write_profile_variation = .false.
-      load_psi0_variables = .true.
-
-      ! only needed for sfincs when not using
-      ! geo info from file
-      rhotor = rhoc
-      psitor_lcfs = 1.0
-      drhotordrho = 1.0
-
-   end subroutine init_local_defaults
+   
 
    !============================================================================
    !=========================== READ LOCAL PARAMETERS ==========================
@@ -118,7 +82,46 @@ contains
       type(flux_surface_type), intent(out) :: local_out
       integer, intent(in) :: nzed, nzgrid
 
-      call read_namelist_geometry_miller (local)
+      real :: dum
+      integer :: in_file, np, j
+      logical :: exist
+      
+      call read_namelist_geometry_miller(rhoc, rmaj, shift, qinp, shat, &
+            kappa, kapprim, tri, triprim, rgeo, betaprim, &
+            betadbprim, d2qdr2, d2psidr2, &
+            nzed_local, read_profile_variation, write_profile_variation)
+
+      call init_local_defaults
+
+      local%rhoc = rhoc
+      local%rmaj = rmaj
+      local%rgeo = rgeo
+      local%shift = shift
+      local%kappa = kappa
+      local%kapprim = kapprim
+      local%qinp = qinp
+      local%shat = shat
+      local%tri = tri
+      local%triprim = triprim
+      local%betaprim = betaprim
+      local%betadbprim = betadbprim
+      local%d2qdr2 = d2qdr2
+      local%d2psidr2 = d2psidr2
+      local%zed0_fac = 1.0
+
+      ! following two variables are not inputs
+      local%dr = 1.e-3 * (rhoc / rmaj)
+      local%rhotor = rhotor
+      local%psitor_lcfs = psitor_lcfs
+      local%drhotordrho = drhotordrho
+      local%dpsitordrho = 0.0
+      local%d2psitordrho2 = 0.0
+
+      ! the next three variablaes are for multibox simulations
+      ! with radial variation
+      local%rhoc_psi0 = rhoc
+      local%qinp_psi0 = qinp
+      local%shat_psi0 = shat
 
       ! first get nperiod corresponding to input number of grid points
       nz2pi = nzed / 2
@@ -163,6 +166,27 @@ contains
       end if
 
       local_out = local
+
+   contains
+
+      subroutine init_local_defaults
+
+         implicit none
+
+         if (defaults_initialized) return
+         defaults_initialized = .true.
+         
+         rhoc0 = 0.5
+
+         load_psi0_variables = .true.
+
+         ! only needed for sfincs when not using
+         ! geo info from file
+         rhotor = rhoc
+         psitor_lcfs = 1.0
+         drhotordrho = 1.0
+
+      end subroutine init_local_defaults
 
    end subroutine read_local_parameters
 

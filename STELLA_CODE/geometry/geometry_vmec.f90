@@ -60,7 +60,6 @@ module vmec_geometry
 
    logical :: verbose, rectangular_cross_section
    character(2000) :: vmec_filename
-   character(20) :: radial_coordinate 
 
 contains
 
@@ -79,7 +78,7 @@ contains
 
       call read_namelist_geometry_vmec(alpha0, zeta_center, rectangular_cross_section, & 
                               nfield_periods, torflux, z_grid_refinement_factor, &
-                              surface_option, radial_coordinate, verbose&
+                              surface_option, radial_coordinate_switch, verbose, &
                               vmec_filename, n_tolerated_test_arrays_inconsistencies)
 
       ! If we set <zed_equal_arc> = True, we also define <z_grid_refinement_factor>

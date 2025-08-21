@@ -2,7 +2,6 @@ module zpinch
 
    implicit none
 
-   public :: read_zpinch_parameters
    public :: get_zpinch_geometry_coefficients
 
    private

@@ -29,8 +29,8 @@
 !  set_bmag_const = .false.
 !/
  
-&geometry_option
-  geo_option = "local"
+&geometry_options
+  geometry_option = "local"
   q_as_x = .false.
 /
  

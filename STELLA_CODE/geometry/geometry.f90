@@ -103,7 +103,7 @@ module geometry
    logical :: overwrite_gds2, overwrite_gds21, overwrite_gds22
    logical :: overwrite_gds23, overwrite_gds24, overwrite_gbdrift
    logical :: overwrite_cvdrift, overwrite_gbdrift0, q_as_x
-   character(100) :: geo_file
+   character(100) :: geometry_file
   
    logical :: geoinit = .false.
    logical :: set_bmag_const
@@ -116,6 +116,7 @@ contains
    !============================================================================
    subroutine init_geometry(nalpha, naky)
 
+      use input_file_geometry, only: read_namelist_geometry_from_txt, read_namelist_geometry_options
       ! Zgrid
       use z_grid, only: nzgrid, zed, delzed, shat_zero, grad_x_grad_y_zero
       use z_grid, only: boundary_option_switch, boundary_option_self_periodic
@@ -155,12 +156,15 @@ contains
          ! Read the <geo_knobs> namelist in the input file
          call read_namelist_geometry_options (geo_option_switch, q_as_x)
 
+         ! Only read in the geometry file if the geometry_option is set to be an input profile
+         !if (geo_option_switch==geo_option_inputprof) then
          call read_namelist_geometry_from_txt(geometry_file, &
                overwrite_bmag, overwrite_b_dot_grad_zeta, &
                overwrite_gds2, overwrite_gds21, overwrite_gds22, &
                overwrite_gds23, overwrite_gds24, &
                overwrite_gbdrift, overwrite_cvdrift, &
                overwrite_gbdrift0, set_bmag_const, overwrite_geometry) 
+         !end if
 
          ! Use Miller parameters or VMEC to get the geometry needed for stella 
          if (geo_option_switch==geo_option_local)     call get_geometry_arrays_from_Miller(nalpha)
@@ -345,7 +349,7 @@ contains
    subroutine get_geometry_arrays_from_VMEC(nalpha, naky) 
 
       use vmec_geometry, only: read_vmec_parameters, get_vmec_geometry 
-      use vmec_geometry, only: radial_coordinate_option, radial_coordinate_sgnpsitpsit
+      use vmec_geometry, only: radial_coordinate_switch, radial_coordinate_sgnpsitpsit
       use vmec_geometry, only: radial_coordinate_minuspsit, radial_coordinate_r 
       use debug_flags, only: const_alpha_geo
       use z_grid, only: nzgrid 
@@ -394,19 +398,19 @@ contains
       iota = 1/geo_surf%qinp
 
       ! Define the (psi,alpha) and (x,y) coordinates
-      if (radial_coordinate_option==radial_coordinate_sgnpsitpsit) then
+      if (radial_coordinate_switch==radial_coordinate_sgnpsitpsit) then
          dxdpsi = 1. / rho    
          dydalpha = rho
          dpsidpsit = sign_torflux
          drhodpsi = 1. / rho
          clebsch_factor = sign_torflux
-      else if (radial_coordinate_option==radial_coordinate_minuspsit) then
+      else if (radial_coordinate_switch==radial_coordinate_minuspsit) then
          dxdpsi = -sign_torflux / rho    
          dydalpha = rho
          dpsidpsit = -1
          drhodpsi = -sign_torflux / rho
          clebsch_factor = -1
-      else if (radial_coordinate_option==radial_coordinate_r) then
+      else if (radial_coordinate_switch==radial_coordinate_r) then
          dxdpsi = 1  
          dydalpha = rho
          dpsidpsit = sign_torflux / rho
@@ -843,7 +847,7 @@ contains
       real :: gbdrift_file, cvdrift_file, gbdrift0_file
 
       call get_unused_unit(geofile_unit)
-      open (geofile_unit, file=trim(geo_file), status='old', action='read')
+      open (geofile_unit, file=trim(geometry_file), status='old', action='read')
 
       read (geofile_unit, fmt=*) dum_char
       read (geofile_unit, fmt=*) dum_char

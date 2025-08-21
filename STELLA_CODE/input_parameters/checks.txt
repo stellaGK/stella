@@ -1,109 +1,10 @@
 To do :
 
-Geometry
-Grids
 Diagnostics
 Neoclassics
 Radial variation
 Parallelisation
 
-!-------------------------------
-!----------  Geometry ----------
-!-------------------------------
-  
-! Define geometry parameters
-! Depending on <geo_option>, different extra namelists will be read: 
-!    <geo_option>  = ['local', 'default', 'miller'] uses the <millergeo_parameters> namelist 
-!    <geo_option>  = 'vmec' uses the <vmec_parameters> namelist 
-!    <geo_option>  = 'zpinch' does not use any extra namelists 
-!    <geo_option>  = 'input.profiles' does not use any extra namelists 
-! Note that q_as_x  = <radial_variation>, from the <physics_parameters> namelist
-
-! OLD NAMELIST
-!&geo_knobs
-!  geo_option = "local"
-!  geo_file = "input.geometry"
-!  overwrite_bmag = .false.
-!  overwrite_b_dot_grad_zeta = .false.
-!  overwrite_gds2 = .false.
-!  overwrite_gds21 = .false.
-!  overwrite_gds22 = .false.
-!  overwrite_gds23 = .false.
-!  overwrite_gds24 = .false.
-!  overwrite_gbdrift = .false.
-!  overwrite_cvdrift = .false.
-!  overwrite_gbdrift0 = .false.
-!  q_as_x = .false.
-!  set_bmag_const = .false.
-!/
- 
-&geometry_option
-  geo_option = "local"
-  q_as_x = .false.
-/
- 
-&overwrite_geometry
-  geo_file = "input.geometry"
-  overwrite_bmag = .false.
-  overwrite_b_dot_grad_zeta = .false.
-  overwrite_gds2 = .false.
-  overwrite_gds21 = .false.
-  overwrite_gds22 = .false.
-  overwrite_gds23 = .false.
-  overwrite_gds24 = .false.
-  overwrite_gbdrift = .false.
-  overwrite_cvdrift = .false.
-  overwrite_gbdrift0 = .false.
-  set_bmag_const = .false.
-/
-
-&geometry_vmec (renamed from vmec_parameters)
-  alpha0 = 0.0
-  zeta_center = 0.0
-  rectangular_cross_section = .false.
-  nfield_periods = -1.0
-  torflux = 0.6354167
-  z_grid_refinement_factor = 1.0
-  surface_option = 0.0
-  radial_coordinate = "sgn(psi_t)psi_t"
-  verbose = .true.
-  vmec_filename = "equilibria/wout_w7x_standardconfig.nc"
-  n_tolerated_test_arrays_inconsistencies = 0.0
- /
-  
-&geometry_miller (renamed from millergeo_parameters)
-  rhoc = 0.5
-  rmaj = 3.0
-  shift = 0.0
-  qinp = 1.4
-  shat = 0.8
-  kappa = 0.0
-  kapprim = 0.0
-  tri = 0.0
-  triprim = 0.0
-  rgeo = 3.0
-  betaprim = 0.0
-  betadbprim = 0.0
-  d2qdr2 = 0.0
-  d2psidr2 = 0.0
-  nzed_local = 128.0
-  read_profile_variation = .false.
-  write_profile_variation = .false.
- /
-  
-!-------------------------------
-!-----------  Grids  -----------
-!-------------------------------
-  
-&vpamu_grid (renamed from velocity_grids_parameters)
-  nvgrid = 24.0
-  nmu = 12.0
-  vpa_max = 3.0
-  vperp_max = 3.0
-  equally_spaced_mu_grid = .false.
-  conservative_wgts_vpa = .false.
- /
-  
 !--------------------------------
 !---------  Diagnostics  --------
 !--------------------------------
