@@ -53,6 +53,7 @@ stella_mod = \
 	 $(OBJ_DIR)/hyper.o \
 	 $(OBJ_DIR)/implicit_solve.o \
 	 $(OBJ_DIR)/init_g.o \
+	 $(OBJ_DIR)/input_file_debug.o \
 	 $(OBJ_DIR)/input_file_diagnostics.o \
 	 $(OBJ_DIR)/input_file_dissipation.o \
 	 $(OBJ_DIR)/input_file_fields.o \
@@ -164,7 +165,7 @@ $(OBJ_DIR)/common_types.o:
 $(OBJ_DIR)/constants.o: 
 $(OBJ_DIR)/convert.o: 
 $(OBJ_DIR)/debug_flags.o: \
-	 $(OBJ_DIR)/file_utils.o \
+	 $(OBJ_DIR)/input_file_debug.o \
 	 $(OBJ_DIR)/mp.o 
 $(OBJ_DIR)/diagnostics.o: \
 	 $(OBJ_DIR)/arrays_dist_fn.o \
@@ -704,6 +705,9 @@ $(OBJ_DIR)/init_g.o: \
 	 $(OBJ_DIR)/system_fortran.o \
 	 $(OBJ_DIR)/velocity_grids.o \
 	 $(OBJ_DIR)/z_grid.o 
+$(OBJ_DIR)/input_file_debug.o: \
+	 $(OBJ_DIR)/file_utils.o \
+	 $(OBJ_DIR)/mp.o 
 $(OBJ_DIR)/input_file_diagnostics.o: \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/mp.o \
@@ -850,7 +854,7 @@ $(OBJ_DIR)/parameters_diagnostics.o: \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/input_file_diagnostics.o \
 	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/physics_parameters.o 
+	 $(OBJ_DIR)/numerical_parameters.o 
 $(OBJ_DIR)/physics_parameters.o: \
 	 $(OBJ_DIR)/input_file_physics_parameters.o \
 	 $(OBJ_DIR)/mp.o 
