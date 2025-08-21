@@ -9,8 +9,6 @@ module stella_layouts
    public :: fields_kxkyz, mat_gen, mat_read
    public :: lu_option_switch
    public :: lu_option_local, lu_option_none, lu_option_global
-   
-   private
 
    public :: xyzs_layout, vms_layout
    public :: finish_layouts
@@ -27,6 +25,8 @@ module stella_layouts
    public :: it_idx
    public :: idx, proc_id, idx_local
 
+   private
+   
    character(len=4) :: xyzs_layout
    character(len=3) :: vms_layout
    character(len=5) :: kymus_layout
