@@ -392,27 +392,26 @@ contains
             end do
          end if
 
-      end if
-
-      do iky = 1, naky
-         do ie = 1, neigen(iky)
-            ! enforce zero BC at ends of domain, unless periodic
-            if (.not. periodic(iky)) then
-               phi(iky, ikxmod(1, ie, iky), -nzgrid, :) = 0.0
-               phi(iky, ikxmod(nsegments(ie, iky), ie, iky), nzgrid, :) = 0.0
-            end if
-            ! enforce equality of g values at duplicate zed points
-            if (nsegments(ie, iky) > 1) then
-               do it = 1, ntubes
-                  itmod = it
-                  do iseg = 2, nsegments(ie, iky)
-                     phi(iky, ikxmod(iseg, ie, iky), -nzgrid, it_right(itmod)) = phi(iky, ikxmod(iseg - 1, ie, iky), nzgrid, itmod)
-                     itmod = it_right(itmod)
+         do iky = 1, naky
+            do ie = 1, neigen(iky)
+               ! enforce zero BC at ends of domain, unless periodic
+               if (.not. periodic(iky)) then
+                  phi(iky, ikxmod(1, ie, iky), -nzgrid, :) = 0.0
+                  phi(iky, ikxmod(nsegments(ie, iky), ie, iky), nzgrid, :) = 0.0
+               end if
+               ! enforce equality of g values at duplicate zed points
+               if (nsegments(ie, iky) > 1) then
+                  do it = 1, ntubes
+                     itmod = it
+                     do iseg = 2, nsegments(ie, iky)
+                        phi(iky, ikxmod(iseg, ie, iky), -nzgrid, it_right(itmod)) = phi(iky, ikxmod(iseg - 1, ie, iky), nzgrid, itmod)
+                        itmod = it_right(itmod)
+                     end do
                   end do
-               end do
-            end if
+               end if
+            end do
          end do
-      end do
+      end if
 
       call broadcast(phi)
 
