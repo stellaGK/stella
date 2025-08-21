@@ -134,40 +134,11 @@ contains
    subroutine read_parameters
 
       use input_file_parallelisation, only: read_namelist_parallelisation
-      ! use mp, only: mp_abort
-      ! use file_utils, only: input_unit, error_unit, input_unit_exist, error_unit
-
+      
       implicit none
 
       call read_namelist_parallelisation(xyzs_layout, vms_layout, kymus_layout, &
           mat_gen, mat_read, lu_option_switch, fields_kxkyz)
-      ! integer :: in_file
-
-      ! namelist /layouts_knobs/ xyzs_layout, vms_layout, kymus_layout
-
-      ! xyzs_layout = 'yxzs'
-      ! vms_layout = 'vms'
-      ! kymus_layout = 'kymus'
-      
-      ! in_file = input_unit_exist("layouts_knobs", exist)
-      ! if (exist) read (unit=input_unit("layouts_knobs"), nml=layouts_knobs)
-
-      ! if (xyzs_layout /= 'xyzs' .and. &
-      !     xyzs_layout /= 'xzys' .and. &
-      !     xyzs_layout /= 'yxzs' .and. &
-      !     xyzs_layout /= 'yzxs' .and. &
-      !     xyzs_layout /= 'zxys' .and. &
-      !     xyzs_layout /= 'zyxs') then
-      !    call mp_abort('stella_layouts: read_parameters finds illegal xyzs_layout. aborting')
-      ! end if
-      ! if (vms_layout /= 'vms' .and. &
-      !     vms_layout /= 'mvs') then
-      !    call mp_abort('stella_layouts: read_parameters finds illegal vms_layout. aborting')
-      ! end if
-      ! if (kymus_layout /= 'kymus' .and. &
-      !     kymus_layout /= 'mukys') then
-      !    call mp_abort('stella_layouts: read_parameters finds illegal kymus_layout. aborting')
-      ! end if
 
    end subroutine read_parameters
 

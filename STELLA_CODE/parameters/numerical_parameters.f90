@@ -46,9 +46,6 @@ module numerical_parameters
    public :: nitt
    public :: fphi
    public :: ky_solve_radial, ky_solve_real
-   ! public :: fields_kxkyz, mat_gen, mat_read
-   ! public :: lu_option_switch
-   ! public :: lu_option_local, lu_option_none, lu_option_global
    public :: rng_seed
    public :: print_extra_info_to_terminal
 
@@ -98,11 +95,6 @@ module numerical_parameters
    real :: fphi
    logical :: ky_solve_real
    integer :: ky_solve_radial
-   ! logical :: fields_kxkyz, mat_gen, mat_read
-   ! integer :: lu_option_switch
-   ! integer, parameter :: lu_option_none = 1, &
-   !      lu_option_local = 2, &
-   !      lu_option_global = 3
    integer :: rng_seed
    logical :: print_extra_info_to_terminal
 
@@ -371,10 +363,6 @@ contains
          call broadcast(fphi)
          call broadcast(ky_solve_radial)
          call broadcast(ky_solve_real)
-         !call broadcast(fields_kxkyz)
-         ! call broadcast(mat_gen)
-         ! call broadcast(mat_read)
-         ! call broadcast(lu_option_switch)
          call broadcast(rng_seed)
          call broadcast(print_extra_info_to_terminal)
 
