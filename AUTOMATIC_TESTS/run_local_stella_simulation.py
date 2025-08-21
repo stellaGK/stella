@@ -213,8 +213,15 @@ def compare_local_netcdf_quantity_to_expected_netcdf_quantity(local_netcdf_file,
         # Check whether the quantity matches
         if not (np.allclose(local_quantity, expected_quantity, rtol=1e-8, atol=1e-100)):
         
+            # For the frequency, without nonlinear interactions, we have a lot of noise on the zonal modes
+            if key in ['omega']: 
+                if not (np.allclose(local_quantity, expected_quantity, rtol=1e-8, atol=1e-12)):
+                    print(f'\nERROR: The {key} arrays do not match in the netCDF files.'); error = True
+                    print(f'Compare the {key} arrays in the local and expected netCDF files:')                     
+                    compare_local_array_with_expected_array(local_quantity, expected_quantity, name=key1)   
+        
             # For the moments, there are noisy elements along (t,s,tube,zed,kx,ky,ri) so check the sum
-            if key in ['density', 'upar', 'temperature', 'spitzer2']: 
+            elif key in ['density', 'upar', 'temperature', 'spitzer2']: 
                 sum1 = np.sum(np.abs(local_quantity.data[:,:,:,:,:,:,:]), axis=(1,2,3,4,5,6))
                 sum2 = np.sum(np.abs(expected_quantity.data[:,:,:,:,:,:,:]), axis=(1,2,3,4,5,6))
                 if not (np.allclose(sum1, sum2, rtol=1e-8, atol=1e-100)):

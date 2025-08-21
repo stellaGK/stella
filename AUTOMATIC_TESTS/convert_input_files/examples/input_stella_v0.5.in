@@ -1,0 +1,548 @@
+
+!===============================================================================
+!                               Magnetic Geometry                               
+!===============================================================================
+
+&geo_knobs
+  geo_option = 'local'
+  q_as_x = .false.
+/
+
+&geo_knobs
+  geo_file = 'input.geometry'
+  overwrite_bmag = .false.
+  overwrite_gradpar = .false.
+  overwrite_gds2 = .false.
+  overwrite_gds21 = .false.
+  overwrite_gds22 = .false.
+  overwrite_gds23 = .false.
+  overwrite_gds24 = .false.
+  overwrite_gbdrift = .false.
+  overwrite_cvdrift = .false.
+  overwrite_gbdrift0 = .false.
+  set_bmag_const = .false.
+/
+
+&vmec_parameters
+  vmec_filename = 'equilibria/wout_w7x_standardconfig.nc'
+  alpha0 = 0.0
+  zeta_center = 0.0
+  nfield_periods = -1.0
+  torflux = 0.6354167
+  surface_option = 0
+  verbose = .true.
+  gradpar_zeta_prefac = 1.0
+  zgrid_scalefac = 1.0
+  radial_coordinate = DOESNT EXIST YET
+  n_tolerated_test_arrays_inconsistencies = DOESNT EXIST YET
+  rectangular_cross_section = DOESNT EXIST YET
+/
+
+&millergeo_parameters
+  rhoc = 0.5
+  rmaj = 3.0
+  rgeo = 3.0
+  qinp = 1.4
+  shat = 0.8
+  shift = 0.0
+  kappa = 0.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  betaprim = 0.0
+  betadbprim = 0.0
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  nzed_local = 128
+  read_profile_variation = .false.
+  write_profile_variation = .false.
+  load_psi0_variables = .true.
+  rhotor = rhoc
+  psitor_lcfs = 1.0
+  drhotordrho = 1.0
+  rhoc0 = 0.5
+/
+
+&zpinchgeo_parameters
+  betaprim = DOESNT EXIST YET
+/
+
+!===============================================================================
+!                                    Physics                                    
+!===============================================================================
+
+&physics_flags
+  full_flux_surface = .false.
+  include_parallel_streaming = .true.
+  include_mirror = .true.
+  nonlinear = .false.
+  include_parallel_nonlinearity = .false.
+  include_electromagnetic = DOESNT EXIST YET
+  const_alpha_geo = .false.
+  suppress_zonal_interaction = DOESNT EXIST YET
+  include_apar = CORRESPONDS TO knobs:fapar
+  include_bpar = CORRESPONDS TO knobs:fbpar
+  xdriftknob = CORRESPONDS TO time_advance_knobs:xdriftknob
+  ydriftknob = CORRESPONDS TO time_advance_knobs:ydriftknob
+  wstarknob = CORRESPONDS TO time_advance_knobs:wstarknob
+/
+
+
+&parameters
+  beta = 0.0
+  tite = 1.0
+  nine = 1.0
+/
+
+&physics_flags
+  prp_shear_enabled = DOESNT EXIST YET
+  hammett_flow_shear = DOESNT EXIST YET
+/
+&parameters
+  g_exb = 0.0
+  g_exbfac = 1.0
+  omprimfac = 1.0
+/
+
+&dist_fn_knobs
+  adiabatic_option = 'no-field-line-average-term'
+/
+
+&parameters
+  rhostar = -1.0
+  irhostar = -1.0
+/
+
+&parameters
+  zeff = 1.0
+  vnew_ref = -1.0
+/
+
+&physics_flags
+  include_pressure_variation = .true.
+  include_geometric_variation = .true.
+  radial_variation = .false.
+  const_alpha_geo = CORRESPONDS TO debug_flags:const_alpha_geo
+/
+
+!===============================================================================
+!                                Kinetic species                                
+!===============================================================================
+
+&species_knobs
+  nspec = 2
+  species_option = 'stella'
+  read_profile_variation = .false.
+  write_profile_variation = .false.
+  ecoll_zeff = .false.
+/
+
+&species_parameters_1
+  z = 1.0
+  mass = 1.0
+  dens = 1.0
+  temp = 1.0
+  tprim = -999.9
+  fprim = -999.9
+  d2ndr2 = 0.0
+  d2tdr2 = 0.0
+  bess_fac = 1.0
+  type = "ion"
+/
+
+!===============================================================================
+!                       Discretized (kx,ky,z,mu,vpa) grid                       
+!===============================================================================
+
+&kt_grids_knobs
+  grid_option = 'range'
+/
+
+&kt_grids_range_parameters
+  naky = 1
+  nakx = 1
+  aky_min = 0.0
+  aky_max = 0.0
+  akx_min = 0.0
+  akx_max = -1.0
+  theta0_min = 0.0
+  theta0_max = -1.0
+  phase_shift_angle = 0.
+  kyspacing_option = DOESNT EXIST YET
+/
+
+&kt_grids_box_parameters
+  nx = 1
+  ny = 1
+  jtwist = -1
+  jtwistfac = 1.
+  phase_shift_angle = 0.
+  x0 = -1.0
+  y0 = -1.0
+  centered_in_rho = .true.
+  randomize_phase_shift = .false.
+  periodic_variation = .false.
+/
+
+&vpamu_grids_parameters
+  nmu = 12
+  nvgrid = 24
+  vpa_max = 3.0
+  vperp_max = 3.0
+  equally_spaced_mu_grid = .false.
+  conservative_wgts_vpa = .false.
+/
+
+&zgrid_parameters
+  nzed = 24
+  nperiod = 1
+  ntubes = 1
+  boundary_option = 'zero'
+  zed_equal_arc = .false.
+  shat_zero = 1e-05
+  grad_x_grad_y_zero = 1e-05
+  dkx_over_dky = DOESNT EXIST YET
+/
+
+!===============================================================================
+!                                  Diagnostics                                  
+!===============================================================================
+
+&stella_diagnostics_knobs
+  nwrite = 50
+  navg = 50
+  nc_mult = 1
+  nsave = -1
+  save_for_restart = .false.
+  flux_norm = .true.
+  write_all = DOESNT EXIST YET
+  write_phi2_vs_time = DOESNT EXIST YET
+  write_apar2_vs_time = DOESNT EXIST YET
+  write_bpar2_vs_time = DOESNT EXIST YET
+  write_phi_vs_kxkyz = DOESNT EXIST YET
+  write_apar_vs_kxkyz = DOESNT EXIST YET
+  write_bpar_vs_kxkyz = DOESNT EXIST YET
+  write_phi2_vs_kxky = DOESNT EXIST YET
+  write_apar2_vs_kxky = DOESNT EXIST YET
+  write_bpar2_vs_kxky = DOESNT EXIST YET
+  write_phi_vs_time = .false.
+  write_g2_vs_vpamus = DOESNT EXIST YET
+  write_g2_vs_zvpas = DOESNT EXIST YET
+  write_g2_vs_zmus = DOESNT EXIST YET
+  write_g2_vs_kxkyzs = DOESNT EXIST YET
+  write_g2_vs_zvpamus = DOESNT EXIST YET
+  write_distribution_g = DOESNT EXIST YET
+  write_distribution_h = DOESNT EXIST YET
+  write_distribution_f = DOESNT EXIST YET
+  write_gvmus = .false.
+  write_gzvs = .false.
+  write_omega_vs_kxky = DOESNT EXIST YET
+  write_omega_avg_vs_kxky = DOESNT EXIST YET
+  write_omega = .false.
+  write_kspectra = .false.
+  write_fluxes_vs_time = DOESNT EXIST YET
+  write_fluxes_kxky = DOESNT EXIST YET
+  write_fluxes_kxkyz = .false.
+  write_moments = .false.
+  write_radial_fluxes = .false.
+  write_radial_moments = .false.
+  autostop = DOESNT EXIST YET
+/
+
+!===============================================================================
+!                              Initialise potential                             
+!===============================================================================
+
+&init_g_knobs
+  ginit_option = 'default'
+  phiinit = 1.0
+  scale_to_phiinit = .false.
+/
+
+&init_g_knobs
+  width0 = -3.5
+  den0 = 1.
+  upar0 = 0.
+  even = .true.
+  oddparity = DOESNT EXIST YET
+  chop_side = .false.
+  left = .true.
+/
+
+&init_g_knobs
+  zf_init = 1.0
+  chop_side = .false.
+  left = .true.
+/
+
+&init_g_knobs
+  width0 = -3.5
+  refac = 1.
+  imfac = 0.
+  den0 = 1.
+  upar0 = 0.
+  tpar0 = 0.
+  tperp0 = 0.
+  den1 = 0.
+  upar1 = 0.
+  tpar1 = 0.
+  tperp1 = 0.
+  den2 = 0.
+  upar2 = 0.
+  tpar2 = 0.
+  tperp2 = 0.
+  chop_side = .false.
+  left = .true.
+/
+
+&init_g_knobs
+  kxmax = 1e+100
+  kxmin = 0.0
+  imfac = 0.0
+  refac = 1.0
+/
+
+&init_g_knobs
+  tstart = 0.0
+  scale = 1.0
+  restart_file = '.nc'
+  restart_dir = './'
+  read_many = DOESNT EXIST YET
+/
+
+!===============================================================================
+!                                  Dissipation                                  
+!===============================================================================
+
+&dissipation
+  include_collisions = .false.
+  collisions_implicit = .true.
+  collision_model = 'dougherty'
+  hyper_dissipation = .false.
+/
+
+&dissipation
+  momentum_conservation = .true.
+  energy_conservation = .true.
+  vpa_operator = .true.
+  mu_operator = .true.
+/
+
+&dissipation
+  testpart = .true.
+  fieldpart = .false.
+  lmax = 1
+  jmax = 1
+  nvel_local = 512
+  interspec = .true.
+  intraspec = .true.
+  iiknob = 1.0
+  ieknob = 1.0
+  eeknob = 1.0
+  eiknob = 1.0
+  eiediffknob = 1.0
+  eideflknob = DOESNT EXIST YET
+  deflknob = 1.0
+  eimassr_approx = .false.
+  advfield_coll = .true.
+  spitzer_problem = .false.
+  density_conservation = .false.
+  density_conservation_field = .false.
+  density_conservation_tp = .false.
+  exact_conservation = .false.
+  exact_conservation_tp = DOESNT EXIST YET
+  vpa_operator = .true.
+  mu_operator = .true.
+  cfac = 1
+  cfac2 = 1
+  nuxfac = 1
+  i1fac = 1
+  i2fac = 0
+  no_j1l1 = .true.
+  no_j1l2 = .false.
+  no_j0l2 = .false.
+/
+
+&dissipation
+  d_hyper = 0.05
+  d_zed = DOESNT EXIST YET
+  d_vpa = DOESNT EXIST YET
+  hyp_zed = DOESNT EXIST YET
+  hyp_vpa = DOESNT EXIST YET
+  use_physical_ksqr = DOESNT EXIST YET
+  scale_to_outboard = DOESNT EXIST YET
+/
+
+!===============================================================================
+!                                    Numerics                                   
+!===============================================================================
+
+! Define parameters related to numerics
+&knobs
+  delt = -1
+  nstep = -1
+  tend = -1.0
+  delt_option = 'check_restart'
+  delt_adjust = 2.0
+  delt_max = -1
+  delt_min = DOESNT EXIST YET
+  cfl_cushion = 0.5
+  cfl_cushion_upper = DOESNT EXIST YET
+  cfl_cushion_middle = DOESNT EXIST YET
+  cfl_cushion_lower = DOESNT EXIST YET
+  lu_option = 'none'
+  avail_cpu_time = 1.e10
+  autostop = DOESNT EXIST YET
+  fphi = 1.0
+  fapar = 1.0
+  fbpar = -1.0
+  fields_kxkyz = .false.
+  stream_implicit = .true.
+  mirror_implicit = .true.
+  drifts_implicit = .false.
+  driftkinetic_implicit = .false.
+  stream_iterative_implicit = DOESNT EXIST YET
+  stream_matrix_inversion = .false.
+  mirror_semi_lagrange = .true.
+  mirror_linear_interp = .false.
+  use_deltaphi_for_response_matrix = DOESNT EXIST YET
+  maxwellian_inside_zed_derivative = .false.
+  maxwellian_normalization = DOESNT EXIST YET
+  split_parallel_dynamics = DOESNT EXIST YET
+  zed_upwind = 0.02
+  vpa_upwind = 0.02
+  time_upwind = 0.02
+  ky_solve_radial = 0
+  ky_solve_real = .false.
+  mat_read = .false.
+  mat_gen = .true.
+  rng_seed = -1
+  print_extra_info_to_terminal = DOESNT EXIST YET
+  nitt = DOESNT EXIST YET
+/
+
+&time_advance_knobs
+  explicit_option = 'rk3'
+  xdriftknob = 1.0
+  ydriftknob = 1.0
+  wstarknob = 1.0
+  flip_flop = .false.
+/
+
+!===============================================================================
+!                                  Neoclassics                                  
+!===============================================================================
+
+&euterpe_parameters
+  nradii = 1000
+  data_file = 'euterpe.dat'
+/
+
+&neoclassical_input
+  include_neoclassical_terms = .false.
+  nradii = 5
+  drho = 0.01
+  neo_option = 'sfincs'
+/
+
+&sfincs_input
+  read_sfincs_output_from_file = .false.
+  nproc_sfincs = 1
+  calculate_radial_electric_field = .true.
+  includeXDotTerm = .true.
+  includeElectricFieldTermInXiDot = .true.
+  magneticDriftScheme = 0
+  includePhi1 = .true.
+  includePhi1InKineticEquation = .false.
+  geometryScheme = 1
+  VMECRadialOption = 0
+  equilibriumFile = 'wout_161s1.nc'
+  coordinateSystem = 3
+  inputRadialCoordinate = 3
+  inputRadialCoordinateForGradients = 3
+  aHat = 1.0
+  Delta = -1.0
+  nu_n = -1.0
+  dPhiHatdrN = -9999.9
+  Er_window = 0.3
+  nxi = 48
+  nx = 12
+  Ntheta = 65
+  Nzeta = 1
+/
+
+!===============================================================================
+!                                Radial variation                               
+!===============================================================================
+
+! Note that <boundary_size> belongs to grids_kxky?
+&multibox_parameters
+  boundary_size = 4
+  krook_size = 0
+  phi_bound = 0
+  phi_pow = 0
+  krook_exponent = 0.0
+  krook_efold = 3.0
+  nu_krook_mb = 0.0
+  mb_debug_step = 1000
+  smooth_ZFs = .false.
+  comm_at_init = .false.
+  RK_step = .false.
+  zf_option = 'default'
+  krook_option = 'linear'
+  LR_debug_option = 'default'
+  use_dirichlet_BC = .false.
+/
+
+! Note that <exclude_boundary_regions> = radial_variation .and. .not. periodic_variation
+&sources
+  include_krook_operator = .false.
+  exclude_boundary_regions = radial_variation .and. .not. periodic_variation
+  exclude_boundary_regions_qn = exclude_boundary_regions
+  remove_zero_projection = .false.
+  nu_krook = 0.05
+  tcorr_source = 0.02
+  tcorr_source_qn = 0.0
+  ikxmax_source = 1
+  krook_odd = .true.
+  from_zero = .true.
+  conserve_momentum = .false.
+  conserve_density = .false.
+/
+
+!===============================================================================
+!                                Parallelisation                                
+!===============================================================================
+
+&layouts_knobs
+  xyzs_layout = 'xyzs'
+  vms_layout = 'vms'
+/
+
+&debug_flags
+   debug_all = DOESNT EXIST YET
+   fields_all_debug = DOESNT EXIST YET
+   diagnostics_all_debug = DOESNT EXIST YET
+   stella_debug = DOESNT EXIST YET
+   ffs_solve_debug = DOESNT EXIST YET
+   fields_debug = DOESNT EXIST YET
+   fields_fluxtube_debug = DOESNT EXIST YET
+   fields_electromagnetic_debug = DOESNT EXIST YET
+   fields_ffs_debug = DOESNT EXIST YET
+   implicit_solve_debug = DOESNT EXIST YET
+   mirror_terms_debug = DOESNT EXIST YET
+   neoclassical_terms_debug = DOESNT EXIST YET
+   parallel_streaming_debug = DOESNT EXIST YET
+   response_matrix_debug = DOESNT EXIST YET
+   time_advance_debug = DOESNT EXIST YET
+   extended_grid_debug = DOESNT EXIST YET
+   geometry_debug = DOESNT EXIST YET
+   dist_fn_debug = DOESNT EXIST YET
+   gyro_averages_debug = DOESNT EXIST YET
+   diagnostics_debug = DOESNT EXIST YET
+   diagnostics_parameters = DOESNT EXIST YET
+   diagnostics_omega_debug = DOESNT EXIST YET
+   diagnostics_fluxes_fluxtube_debug = DOESNT EXIST YET
+   fluxes_debug = DOESNT EXIST YET
+   const_alpha_geo = DOESNT EXIST YET
+/

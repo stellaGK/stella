@@ -142,9 +142,7 @@ contains
                                 write_all_spectra_kxky
 
         logical, intent (out) :: write_all_potential_time_traces, write_all_potential_spectra
-        logical, intent (out) :: write_phi2_vs_time
-        logical, intent (out) :: write_apar2_vs_time
-        logical, intent (out) :: write_bpar2_vs_time
+        logical, intent (out) :: write_phi2_vs_time, write_apar2_vs_time, write_bpar2_vs_time
         logical, intent (out) :: write_phi_vs_kxkyz, write_apar_vs_kxkyz, write_bpar_vs_kxkyz
         logical, intent (out) :: write_phi2_vs_kxky, write_apar2_vs_kxky, write_bpar2_vs_kxky
 
@@ -213,15 +211,15 @@ contains
             end if
 
             if (write_all_spectra_kxkyz .or. write_all_potential_spectra) then
-                write_phi_vs_kxkyz = .false.
-                write_apar_vs_kxkyz = .false.
-                write_bpar_vs_kxkyz = .false.
+                write_phi_vs_kxkyz = .true.
+                write_apar_vs_kxkyz = .true.
+                write_bpar_vs_kxkyz = .true.
             end if
 
             if (write_all_spectra_kxky .or. write_all_potential_spectra) then
-                write_phi2_vs_kxky = .false.
-                write_apar2_vs_kxky = .false.
-                write_bpar2_vs_kxky = .false.
+                write_phi2_vs_kxky = .true.
+                write_apar2_vs_kxky = .true.
+                write_bpar2_vs_kxky = .true.
             end if
 
         end subroutine check_inputs_diagnostics_potential

@@ -1199,6 +1199,7 @@ contains
       use dissipation, only: hyper_dissipation
       ! TMP FOR TESTING -- MAB
       use fields, only: fields_updated
+      use physics_parameters, only: xdriftknob, ydriftknob
 
       implicit none
 
@@ -1286,12 +1287,16 @@ contains
          if (.not. drifts_implicit) then
             !> calculate and add alpha-component of magnetic drift term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdrifty_explicit'
-            call advance_wdrifty_explicit(pdf, phi, bpar, rhs)
+            if (abs(ydriftknob) > epsilon(0.0)) then
+               call advance_wdrifty_explicit(pdf, phi, bpar, rhs)
+            end if
 
             !> calculate and add psi-component of magnetic drift term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wdriftx_explicit'
-            call advance_wdriftx_explicit(pdf, phi, bpar, rhs)
-
+            if (abs(xdriftknob) > epsilon(0.0)) then
+               call advance_wdriftx_explicit(pdf, phi, bpar, rhs)
+            end if
+            
             !> calculate and add omega_* term to RHS of GK eqn
             if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gke::advance_wstar_explicit'
             call advance_wstar_explicit(phi, rhs)
@@ -1755,7 +1760,7 @@ contains
 
       !> stop the timing of the x component of the magnetic drift advance
       if (proc0) call time_message(.false., time_gke(:, 5), ' dgdx advance')
-
+      
    end subroutine advance_wdriftx_explicit
 
    subroutine advance_ExB_nonlinearity(g, gout, restart_time_step, istep)

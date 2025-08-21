@@ -113,15 +113,9 @@
 !                                  Diagnostics                                  
 !===============================================================================
 
-&stella_diagnostics_knobs
+&diagnostics
   nwrite = 200
-  nsave = 3000 
-  save_for_restart = .false.
-  write_omega = .true.
-  write_phi_vs_time = .true.
-  write_apar_vs_time = .true. 
-  write_gvmus = .false.
-  write_gzvs = .false.
+  nsave = 3000
 /
 
 !===============================================================================

@@ -95,7 +95,7 @@
 !                                  Diagnostics                                  
 !===============================================================================
 
-&stella_diagnostics_knobs
+&diagnostics
   nsave = 10
   nwrite = 1
   write_all = .true.

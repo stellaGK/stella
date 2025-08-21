@@ -102,7 +102,7 @@
 !                                  Diagnostics                                  
 !===============================================================================
 
-&stella_diagnostics_knobs
+&diagnostics
   nsave = 100
   nwrite = 10
 /

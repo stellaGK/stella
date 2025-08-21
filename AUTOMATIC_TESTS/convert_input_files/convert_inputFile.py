@@ -8,86 +8,175 @@ import pathlib
 import f90nml, json
 
 #--------------------------------------------------------------
-def convert_inputFile(path_input_file='', stella_version_original='v0.5', stella_version_objective='master'):
+def update_inputFile(path_input_file=''):
+    ''' Update an input file from stella version 5, 6, 7 or 8 to the master version. '''
 
-    # Valid versions
-    stella_versions = ['v0.5', 'v0.6', 'v0.7', 'v0.8', 'master']
-    if (stella_version_original not in stella_versions) or (stella_version_objective not in stella_versions):
-        print('\nABORT: The supplied stella versions are not recognized.')
-        print(f'Choose from: {stella_versions}\n')
-        sys.exit()
+    # Read the default parameters
+    path = pathlib.Path(os.path.realpath(__file__))
+    path = pathlib.Path(str(path).split('AUTOMATIC_TESTS')[0]) 
+    input_file_master = path / 'AUTOMATIC_TESTS/convert_input_files/input_stella_master.in' 
+    input_file_v5 = path / 'AUTOMATIC_TESTS/convert_input_files/input_stella_v0.5.in' 
     
-    # Read the default parameters of the two mentioned branches of stella
-    folder = pathlib.Path(os.path.realpath(__file__)) 
-    folder = pathlib.Path(str(folder).split('AUTOMATIC_TESTS')[0]) 
-    folder = folder / 'AUTOMATIC_TESTS/convert_input_files'
-    input_file_original_stella = folder / f'input_stella_{stella_version_original}.in'
-    input_file_objective_stella = folder / f'input_stella_{stella_version_objective}.in'
-    
-    # Read the text files
-    with open(input_file_original_stella) as f:
-        text_input_file_original_stella = f.read()
-    with open(input_file_objective_stella) as f:
-        text_input_file_objective_stella = f.read()
-        
-    # Get the namelists
-    namelists_original_stella = []
-    namelists_objective_stella = []
-    for line in text_input_file_original_stella.split('\n'):
-        if '&' in line: namelists_original_stella.append(line.replace(' ','').replace('&',''))
-    for line in text_input_file_objective_stella.split('\n'):
-        if '&' in line: namelists_objective_stella.append(line.replace(' ','').replace('&',''))
-    namelists_original_stella = list(set(namelists_original_stella))
-    namelists_objective_stella = list(set(namelists_objective_stella))
-    for i in range(len(namelists_original_stella)):
-        print(namelists_original_stella[i])
-    print('---------')
-    for i in range(len(namelists_objective_stella)):
-        print(namelists_objective_stella[i])
-    return 
-    
-    # Read default input parameters
-    input_parameters_original = f90nml.read(input_file_original_stella)
-    input_parameters_original = json.loads(json.dumps(input_parameters_original))
-    input_parameters_objective = f90nml.read(input_file_objective_stella)
-    input_parameters_objective = json.loads(json.dumps(input_parameters_objective))
+    # Read default input parameters  
+    input_parameters_master = f90nml.read(input_file_master)
+    input_parameters_master = json.loads(json.dumps(input_parameters_master))  
+    input_parameters_v5 = f90nml.read(input_file_v5)
+    input_parameters_v5 = json.loads(json.dumps(input_parameters_v5))  
     
     # Read the real input file
     input_parameters = f90nml.read(path_input_file)
-    input_parameters = json.loads(json.dumps(input_parameters))
+    input_parameters = json.loads(json.dumps(input_parameters))  
     
-    # Iterate over the values in the input file and update them
-    for knob in input_parameters.keys():
-        for value in input_parameters[knob]:
-            pass
+    #===============================================================================
+    #                              Tool to write dicts                                  
+    #===============================================================================
+    
+    # Read the text files
+    with open(input_file_master) as f:
+        text_input_file_master = f.read()
+    with open(input_file_v5) as f:
+        text_input_file_v5 = f.read()
         
-    # First update the number of species
-    try: input_parameters['species_knobs'].update(input_parameters_read['species_knobs'])
-    except: pass
-     
-    # Add more default species if nspec>2
-    for i in range(2, int(input_parameters['species_knobs']['nspec'])+1): 
-        input_parameters['species_parameters_'+str(i)] = input_parameters['species_parameters_1'].copy() 
-
-    # Now overwrite with the real input file
-    for knob in input_parameters_read.keys():  
-        if knob in input_parameters.keys():   
-            input_parameters[knob].update(input_parameters_read[knob])
-            
-    # Remember some values which didn't exist in v0.5 but did exist in v0.6 or v0.7
-    saved_values = {
-      'cfl_cushion_upper'  : input_parameters['parameters_numerical']['cfl_cushion_upper'],
-      'cfl_cushion_middle' : input_parameters['parameters_numerical']['cfl_cushion_middle'],
-      'cfl_cushion_lower'  : input_parameters['parameters_numerical']['cfl_cushion_lower'],
-      'delt_min' : input_parameters['parameters_numerical']['delt_min'],}
-
-    # Convert to older stella version
-    input_parameters = convert_stellaMasterToStellav05(input_parameters, input_parameters_default, stella_version)
+    # Get the namelists
+    namelists_stella_v05 = []
+    namelists_stella_master = []
+    for line in text_input_file_v5.split('\n'):
+        if '&' in line: namelists_stella_v05.append(line.replace(' ','').replace('&',''))
+    for line in text_input_file_master.split('\n'):
+        if '&' in line: namelists_stella_master.append(line.replace(' ','').replace('&',''))
+    namelists_stella_v05 = list(set(namelists_stella_v05))
+    namelists_stella_master = list(set(namelists_stella_master))
+    for i in range(len(namelists_stella_v05)):
+        print(namelists_stella_v05[i])
+    if False:
+        print('---------')
+        for i in range(len(namelists_stella_master)):
+            print(namelists_stella_master[i])
+                
+    # Rename namelists
+    renamed_namelists = {
+        'geo_knobs' : 'geometry_options',
+        'vmec_parameters' : 'geometry_vmec',
+        'millergeo_parameters' : 'geometry_miller'}
+        
+    # Write dicts
+    for namelist in namelists_stella_v05:
+        print(f'------------{namelist}-----------')
+        for variable in input_parameters_v5[namelist].keys():
+            print(f"'{namelist}:{variable}:{input_parameters_v5[namelist][variable]}' : '{namelist}:{variable}:{input_parameters_v5[namelist][variable]}',")
+    sys.exit()
+    return 
     
-    # Upgrade again
-    if stella_version in ['0.6', '0.7']:
-        input_parameters = convert_stellaMasterv05ToStellav06(input_parameters, saved_values)
-    return input_parameters
+    #===============================================================================
+    #                                   Geometry                                  
+    #===============================================================================
+    
+    namelist = 'geo_knobs'
+    renamed_variables = {'geo_option' : 'geometry_option', 'overwrite_gradpar' : 'overwrite_b_dot_grad_zeta'}
+    for namelist_old in renamed_namelists.keys(): 
+        namelist_new = renamed_namelists[namelist_old]
+        if namelist_old in input_parameters:
+            input_parameters[namelist_new] = input_parameters[namelist_old]
+            del input_parameters[namelist_old] 
+        
+    # Initialize
+    renamed_variables = {} 
+    deprecated_variables = {}
+    deprecated_namelist = []
+    new_namelists = []
+    new_variables = {}
+    
+    #===============================================================================
+    #                                   Geometry                                  
+    #===============================================================================
+    
+    renamed_variables = { 
+        'geo_knobs:overwrite_gradpar' : 'geo_knobs:overwrite_b_dot_grad_zeta',
+        **renamed_variables
+        }
+    
+
+# #--------------------------------------------------------------
+# def convert_inputFile(path_input_file='', stella_version_original='v0.5', stella_version_objective='master'):
+#
+#     # Valid versions
+#     stella_versions = ['v0.5', 'v0.6', 'v0.7', 'v0.8', 'master']
+#     if (stella_version_original not in stella_versions) or (stella_version_objective not in stella_versions):
+#         print('\nABORT: The supplied stella versions are not recognized.')
+#         print(f'Choose from: {stella_versions}\n')
+#         sys.exit()
+#
+#     # Read the default parameters of the two mentioned branches of stella
+#     folder = pathlib.Path(os.path.realpath(__file__)) 
+#     folder = pathlib.Path(str(folder).split('AUTOMATIC_TESTS')[0]) 
+#     folder = folder / 'AUTOMATIC_TESTS/convert_input_files'
+#     input_file_original_stella = folder / f'input_stella_{stella_version_original}.in'
+#     input_file_objective_stella = folder / f'input_stella_{stella_version_objective}.in'
+#
+#     # Read the text files
+#     with open(input_file_original_stella) as f:
+#         text_input_file_original_stella = f.read()
+#     with open(input_file_objective_stella) as f:
+#         text_input_file_objective_stella = f.read()
+#
+#     # Get the namelists
+#     namelists_original_stella = []
+#     namelists_objective_stella = []
+#     for line in text_input_file_original_stella.split('\n'):
+#         if '&' in line: namelists_original_stella.append(line.replace(' ','').replace('&',''))
+#     for line in text_input_file_objective_stella.split('\n'):
+#         if '&' in line: namelists_objective_stella.append(line.replace(' ','').replace('&',''))
+#     namelists_original_stella = list(set(namelists_original_stella))
+#     namelists_objective_stella = list(set(namelists_objective_stella))
+#     for i in range(len(namelists_original_stella)):
+#         print(namelists_original_stella[i])
+#     print('---------')
+#     for i in range(len(namelists_objective_stella)):
+#         print(namelists_objective_stella[i])
+#     return 
+#
+#     # Read default input parameters
+#     input_parameters_original = f90nml.read(input_file_original_stella)
+#     input_parameters_original = json.loads(json.dumps(input_parameters_original))
+#     input_parameters_objective = f90nml.read(input_file_objective_stella)
+#     input_parameters_objective = json.loads(json.dumps(input_parameters_objective))
+#
+#     # Read the real input file
+#     input_parameters = f90nml.read(path_input_file)
+#     input_parameters = json.loads(json.dumps(input_parameters))
+#
+#     # Iterate over the values in the input file and update them
+#     for knob in input_parameters.keys():
+#         for value in input_parameters[knob]:
+#             pass
+#
+#     # First update the number of species
+#     try: input_parameters['species_knobs'].update(input_parameters_read['species_knobs'])
+#     except: pass
+#
+#     # Add more default species if nspec>2
+#     for i in range(2, int(input_parameters['species_knobs']['nspec'])+1): 
+#         input_parameters['species_parameters_'+str(i)] = input_parameters['species_parameters_1'].copy() 
+#
+#     # Now overwrite with the real input file
+#     for knob in input_parameters_read.keys():  
+#         if knob in input_parameters.keys():   
+#             input_parameters[knob].update(input_parameters_read[knob])
+#
+#     # Remember some values which didn't exist in v0.5 but did exist in v0.6 or v0.7
+#     saved_values = {
+#       'cfl_cushion_upper'  : input_parameters['parameters_numerical']['cfl_cushion_upper'],
+#       'cfl_cushion_middle' : input_parameters['parameters_numerical']['cfl_cushion_middle'],
+#       'cfl_cushion_lower'  : input_parameters['parameters_numerical']['cfl_cushion_lower'],
+#       'delt_min' : input_parameters['parameters_numerical']['delt_min'],}
+#
+#     # Convert to older stella version
+#     input_parameters = convert_stellaMasterToStellav05(input_parameters, input_parameters_default, stella_version)
+#
+#     # Upgrade again
+#     if stella_version in ['0.6', '0.7']:
+#         input_parameters = convert_stellaMasterv05ToStellav06(input_parameters, saved_values)
+#     return input_parameters
 
 
 #--------------------------------------------------
@@ -195,7 +284,7 @@ if __name__ == '__main__':
     path = pathlib.Path(os.path.realpath(__file__))
     path_input_file = path.parent / 'miller_nonlinear_CBC.in'
     path_input_file = path.parent / 'W7X_old_input.in'
-    input_parameters = convert_inputFile(path_input_file)
+    input_parameters = update_inputFile(path_input_file)
     for namelist in input_parameters.keys():
         print('\n==================================')
         print(f'{namelist}'.center(34))

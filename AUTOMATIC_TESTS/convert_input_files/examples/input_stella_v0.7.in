@@ -1,4 +1,6 @@
 
+! THIS IS STELLA VERSION 0.5!!
+
 !-------------------------------
 !----------  Geometry ----------
 !-------------------------------
@@ -21,7 +23,7 @@
 /
 
 &vmec_parameters
-   vmec_filename = 'wout*.nc'
+   vmec_filename = 'equilibria/wout_w7x_standardConfig.nc'
    alpha0 = 0.0
    zeta_center = 0.0
    nfield_periods = -1.0
@@ -83,7 +85,7 @@
    include_parallel_streaming = .true.
    include_mirror = .true.
    nonlinear = .false.
-   adiabatic_option = 'no-field-line-average-term'
+   adiabatic_option = 'default'
    const_alpha_geo = .false.
 /
 
@@ -118,7 +120,7 @@
    ecoll_zeff = .false.
 /
 
-&species_parameters_1
+&species_parameters
    z = 1
    mass = 1.0
    dens = 1.0
@@ -215,7 +217,7 @@
    scale_to_phiinit = .false.
    left = .true.
    even = .true.
-   restart_file = "dummy.nc"
+   restart_file = ".nc"
    restart_dir = "./"
 /
 
@@ -319,7 +321,7 @@
 
 &neoclassical_input
    include_neoclassical_terms = .false.
-   nradii = 5
+   nradii = 5s
    drho = 0.01
    neo_option = 'sfincs'
 /

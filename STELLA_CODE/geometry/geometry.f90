@@ -150,7 +150,6 @@ contains
       ! Track the code 
       if (debug) write (*, *) 'geometry::init_geometry'
 
-      call allocate_arrays(nalpha, nzgrid) 
       ! Only calculate the geometry on proc0
       if (proc0) then
          
@@ -205,7 +204,9 @@ contains
       ! Track the code 
       if (debug) write (*, *) 'geometry::init_geometry::calculate_on_all_processors'
 
-      ! Broadcast from proc0 to the other processors
+      ! We calculated the geometric quantities on proc0, now allocate the arrays on 
+      ! the other processors, and broadcast from proc0 to the other processors
+      if (.not. proc0) call allocate_arrays(nalpha, nzgrid) 
       call broadcast_arrays
 
       ! <gfac> will allow us to include the geometric variation
@@ -377,6 +378,7 @@ contains
       call read_vmec_parameters()
 
       ! Allocate geometry arrays 
+      call allocate_arrays(nalpha, nzgrid)
       call allocate_temporary_arrays(nalpha, nzgrid)
 
       ! Call the <vmec_geometry> module to calculate the geometric coefficients 
@@ -644,6 +646,7 @@ contains
 
       ! Allocate geometry arrays for stella
       if (debug) write (*, *) 'geometry::Miller::allocate_arrays'
+      call allocate_arrays(nalpha, nzgrid)
 
       ! Overwrite parameters from the input file with those from the input.profiles file
       ! We use <rhoc> from the input file to select the surface
@@ -735,7 +738,7 @@ contains
          grad_x = dxdpsi * dqdrho * grho
          drhodpsi = 1/dqdrho
       end if
-      
+
       ! For Miller each field line <alpha> has the same geometry so
       ! ensure that all arrays are filled with the ialpha = 1 information
       if (debug) write (*, *) 'geometry::Miller::spread_geometry'
@@ -789,6 +792,8 @@ contains
 
      integer, intent (in) :: nalpha
      real :: dpsipdrho, dpsipdrho_psi0
+     
+     call allocate_arrays(nalpha, nzgrid)
 
      ! Calculate the geometric coefficients for a z-pinch magnetic equilibrium
      call get_zpinch_geometry_coefficients(nzgrid, bmag(1, :), gradpar, grho(1, :), geo_surf, &

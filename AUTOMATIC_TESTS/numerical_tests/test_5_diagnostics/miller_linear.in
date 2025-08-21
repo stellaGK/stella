@@ -1,5 +1,6 @@
- 
-! Simple linear example based on JET shot 92174
+
+! Simple nonlinear example based on CBC
+! Turned on all the diagnostics
 
 !===============================================================================
 !                               Magnetic Geometry                               
@@ -9,22 +10,22 @@
   geometry_option = 'miller'
 /
 &geometry_miller
-  betadbprim = 0.0
-  betaprim = 0.058
-  d2psidr2 = 0.0
-  d2qdr2 = 0.0
-  kappa = 1.5504
-  kapprim = 0.94963
   nzed_local = 128
-  qinp = 5.0848
-  rgeo = 3.1191
-  rhoc = 0.97427 
-  rmaj = 3.134
-  shat = 3.3594
-  shift = -0.34508
-  tri = 0.26253
-  triprim = 0.7368
-/ 
+  rhoc = 0.5
+  shat = 0.796
+  qinp = 1.4
+  rmaj = 2.77778
+  rgeo = 2.77778
+  shift = 0.0
+  kappa = 1.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  betaprim = 0.0
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  betadbprim = 0.0
+/
 
 !===============================================================================
 !                                    Physics                                    
@@ -80,7 +81,7 @@
   boundary_option = 'linked'
 /
 &velocity_grids
-  nmu = 2 
+  nmu = 2
   nvgrid = 3
 /
 
@@ -89,12 +90,13 @@
 !===============================================================================
 
 &diagnostics
-  nsave = 10
-  nwrite = 1
+  nsave = 100
+  nwrite = 10
+  write_all = .true.
 /
 
 !===============================================================================
-!                              Initialize potential                             
+!                              Initialise potential                             
 !===============================================================================
 
 &initialize_distribution
@@ -111,7 +113,7 @@
 !===============================================================================
 
 &time_trace_options
-  nstep = 10
+  nstep = 100
 /
 
 &time_step
@@ -124,5 +126,14 @@
 
 &numerical_extra
   print_extra_info_to_terminal = .false.
+  rng_seed = 1
+/
+
+!===============================================================================
+!                                  Dissipation                                  
+!===============================================================================
+
+&dissipation
+  hyper_dissipation = .false.
 /
 

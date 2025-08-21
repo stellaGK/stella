@@ -89,21 +89,10 @@
 !                                  Diagnostics                                  
 !===============================================================================
 
-&stella_diagnostics_knobs
+&diagnostics
   nsave = 100
   nwrite = 10 
   write_all = .true.
-  write_omega = .true.
-  write_moments = .true.
-  write_phi_vs_time = .true.
-  write_apar_vs_time = .true.
-  write_bpar_vs_time = .true.
-  write_gvmus = .true.
-  write_gzvs = .true.
-  write_kspectra = .true.
-  write_radial_fluxes = .true.
-  write_radial_moments = .true.
-  write_fluxes_kxkyz = .true.
 /
 
 !===============================================================================

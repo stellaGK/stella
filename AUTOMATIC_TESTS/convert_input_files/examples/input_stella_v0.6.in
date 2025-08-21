@@ -1,4 +1,6 @@
 
+! THIS IS STELLA VERSION 0.5!!
+
 !-------------------------------
 !----------  Geometry ----------
 !-------------------------------
@@ -21,7 +23,7 @@
 /
 
 &vmec_parameters
-   vmec_filename = 'wout*.nc'
+   vmec_filename = 'equilibria/wout_w7x_standardConfig.nc'
    alpha0 = 0.0
    zeta_center = 0.0
    nfield_periods = -1.0
@@ -83,7 +85,7 @@
    include_parallel_streaming = .true.
    include_mirror = .true.
    nonlinear = .false.
-   adiabatic_option = 'no-field-line-average-term'
+   adiabatic_option = 'default'
    const_alpha_geo = .false.
 /
 
@@ -118,7 +120,7 @@
    ecoll_zeff = .false.
 /
 
-&species_parameters_1
+&species_parameters
    z = 1
    mass = 1.0
    dens = 1.0
@@ -215,7 +217,7 @@
    scale_to_phiinit = .false.
    left = .true.
    even = .true.
-   restart_file = "dummy.nc"
+   restart_file = ".nc"
    restart_dir = "./"
 /
 
@@ -224,49 +226,58 @@
 !-------------------------------
 
 &dissipation
-   include_collisions = .false.
-   collisions_implicit = .true.
-   collision_model = "dougherty"
-   testpart = .true.
-   fieldpart = .false.
-   intraspec = .true.
-   interspec = .true.
-   iiknob = 1.
-   ieknob = 1.
-   eeknob = 1.
-   eiknob = 1.
-   eiediffknob = 1.
-   deflknob = 1.
-   eimassr_approx = .false.
-   advfield_coll = .true.
-   density_conservation = .false.
-   density_conservation_field = .false.
-   density_conservation_tp = .false.
-   exact_conservation = .false.
-   momentum_conservation = .true.
-   energy_conservation = .true.
-   spitzer_problem = .false.
-   cfac = 1
-   cfac2 = 1
-   nuxfac = 1
-   jmax = 1
-   lmax = 1
-   i1fac = 1
-   i2fac = 0
-   no_j1l1 = .true.
-   no_j1l2 = .false.
-   no_j0l2 = .false.
-   vpa_operator = .true.
-   mu_operator = .true.
-   hyper_dissipation = .false.
-   nvel_local = 512
-   D_hyper = 0.05
+  include_collisions = .false.
+  collisions_implicit = .true.
+  collision_model = "dougherty"
+  hyper_dissipation = .false.
+/
+&collisions_dougherty
+  momentum_conservation = .true.
+  energy_conservation = .true.
+  vpa_operator = .true.
+  mu_operator = .true.
+/
+&collisions_fp
+  testpart = .true.
+  fieldpart = .false.
+  lmax = 1
+  jmax = 1
+  nvel_local = 512
+  interspec = .true.
+  intraspec = .true.
+  iiknob = 1.0
+  ieknob = 1.0
+  eeknob = 1.0
+  eiknob = 1.0
+  eiediffknob = 1.0
+  eideflknob = 1.0
+  deflknob = 1.0
+  eimassr_approx = .false.
+  advfield_coll = .true.
+  spitzer_problem = .false.
+  density_conservation = .false.
+  density_conservation_field = .false.
+  density_conservation_tp = .false.
+  exact_conservation = .false.
+  exact_conservation_tp = .false.
+  vpa_operator = .true.
+  mu_operator = .true.
+  cfac = 1
+  cfac2 = 1
+  nuxfac = 1
+  i1fac = 1
+  i2fac = 0
+  no_j1l1 = .true.
+  no_j1l2 = .false.
+  no_j0l2 = .false.
 /
 
 !-------------------------------
 !----------  Numerics  ---------
 !-------------------------------
 ! Note that <delt> does not have a default value!
+! With respect to v0.5, we added cfl_cushion_upper, cfl_cushion_middle
+! cfl_cushion_lower and delt_min, and we removed cfl_cushion and delt_adjust
 
 &knobs
    delt = -1
@@ -288,8 +299,6 @@
    vpa_upwind = 0.02
    time_upwind = 0.02
    avail_cpu_time = 1.e10
-   cfl_cushion = 0.5
-   delt_adjust = 2.0
    delt_max = -1
    rng_seed = -1 
    ky_solve_radial = 0
@@ -298,6 +307,10 @@
    mat_read = .false.
    tend = -1.0
    nstep = -1
+   cfl_cushion_upper = 0.5
+   cfl_cushion_middle = 0.25
+   cfl_cushion_lower = 0.00001
+   delt_min = 1.e-10
 /
 
 &time_advance_knobs
@@ -319,7 +332,7 @@
 
 &neoclassical_input
    include_neoclassical_terms = .false.
-   nradii = 5
+   nradii = 5s
    drho = 0.01
    neo_option = 'sfincs'
 /

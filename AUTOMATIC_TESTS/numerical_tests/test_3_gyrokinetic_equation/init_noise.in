@@ -95,7 +95,7 @@
 !                                  Diagnostics                                  
 !===============================================================================
 
-&stella_diagnostics_knobs
+&diagnostics
   nsave = 1
   nwrite = 1
 /

@@ -1,15 +1,15 @@
-
+   
 !===============================================================================
 !                               Magnetic Geometry                               
 !===============================================================================
 
 &geometry_options
-  geometry_option = "local"
+  geometry_option = 'local'
   q_as_x = .false.
 /
 
 &geometry_from_txt
-  geometry_file = "input.geometry"
+  geometry_file = 'input.geometry'
   overwrite_bmag = .false.
   overwrite_b_dot_grad_zeta = .false.
   overwrite_gds2 = .false.
@@ -23,38 +23,44 @@
   set_bmag_const = .false.
 /
 
+&geometry_vmec
+  vmec_filename = 'equilibria/wout_w7x_standardconfig.nc'
+  alpha0 = 0.0
+  zeta_center = 0.0
+  nfield_periods = -1.0
+  torflux = 0.6354167
+  surface_option = 0
+  verbose = .true.
+  gradpar_zeta_prefac = DEPRECATED
+  z_grid_refinement_factor = 1.0
+  radial_coordinate = 'sgn(psi_t)psi_t'
+  n_tolerated_test_arrays_inconsistencies = 0.0
+  rectangular_cross_section = .false.
+/
+
 &geometry_miller
   rhoc = 0.5
   rmaj = 3.0
-  shift = 0.0
+  rgeo = 3.0
   qinp = 1.4
   shat = 0.8
+  shift = 0.0
   kappa = 0.0
   kapprim = 0.0
   tri = 0.0
   triprim = 0.0
-  rgeo = 3.0
   betaprim = 0.0
   betadbprim = 0.0
   d2qdr2 = 0.0
   d2psidr2 = 0.0
-  nzed_local = 128.0
+  nzed_local = 128
   read_profile_variation = .false.
   write_profile_variation = .false.
-/
- 
-&geometry_vmec
-  alpha0 = 0.0
-  zeta_center = 0.0
-  rectangular_cross_section = .false.
-  nfield_periods = -1.0
-  torflux = 0.6354167
-  z_grid_refinement_factor = 1.0
-  surface_option = 0.0
-  radial_coordinate = "sgn(psi_t)psi_t"
-  verbose = .true.
-  vmec_filename = "equilibria/wout_w7x_standardconfig.nc"
-  n_tolerated_test_arrays_inconsistencies = 0.0
+  load_psi0_variables = DEPRECATED
+  rhotor = DEPRECATED
+  psitor_lcfs = DEPRECATED
+  drhotordrho = DEPRECATED
+  rhoc0 = DEPRECATED
 /
 
 &geometry_zpinch
@@ -65,9 +71,8 @@
 !                                    Physics                                    
 !===============================================================================
 
-
 &gyrokinetic_terms
-  simulation_domain = 'fluxtube' 
+  simulation_domain = 'fluxtube'
   include_parallel_streaming = .true.
   include_mirror = .true.
   include_xdrift = .true. !! xdriftknob = 1.0 or 0.0 
@@ -105,30 +110,39 @@
   omprimfac = 1.0
 /
 
-&flux_annulus
-  rhostar = - 1.0
+&dist_fn_knobs
+  adiabatic_option = CORRESPONDS TO adiabatic_electron_response:adiabatic_option
 /
 
-&extra - need to move
-   include_pressure_variation = .false. 
-   include_geometric_variation = .false.
-   radial_variation = .false. 
-   zeff = 1.0
-   vnew_ref = -1.0
+&flux_annulus
+  rhostar = - 1.0
+  irhostar = DEPRECATED
+/
+
+&extra
+  zeff = 1.0
+  vnew_ref = -1.0
+/
+
+&extra
+  include_pressure_variation = .false.
+  include_geometric_variation = .false.
+  radial_variation = .false.
+  const_alpha_geo = CORRESPONDS TO debug_flags:const_alpha_geo
 /
 
 !===============================================================================
 !                                Kinetic species                                
 !===============================================================================
 
-&species_options
+&species_knobs
   nspec = 2
   species_option = 'stella'
   read_profile_variation = .false.
   write_profile_variation = .false.
   ecoll_zeff = .false.
 /
- 
+
 &species_parameters_1
   z = 1.0
   mass = 1.0
@@ -139,77 +153,61 @@
   d2ndr2 = 0.0
   d2tdr2 = 0.0
   bess_fac = 1.0
-  type = "default"
-/
- 
-&species_parameters_2
-  z = 1.0
-  mass = 1.0
-  dens = 1.0
-  temp = 1.0
-  tprim = -999.9
-  fprim = -999.9
-  d2ndr2 = 0.0
-  d2tdr2 = 0.0
-  bess_fac = 1.0
-  type = "default"
+  type = "ion"
 /
 
 !===============================================================================
 !                       Discretized (kx,ky,z,mu,vpa) grid                       
 !===============================================================================
 
-
-&kxky_grid_option
-  grid_option = "default"
+&kt_grids_knobs
+  grid_option = 'range'
 /
 
-&kxky_grid_range
-  naky = 1.0
-  nakx = 1.0
+&kt_grids_range_parameters
+  naky = 1
+  nakx = 1
   aky_min = 0.0
   aky_max = 0.0
-  theta0_min = 0.0
-  theta0_max = -1.0
   akx_min = 0.0
   akx_max = -1.0
-  kyspacing_option = "default"
+  theta0_min = 0.0
+  theta0_max = -1.0
+  phase_shift_angle = 0.
+  kyspacing_option = 'default'
 /
 
-&kxky_grid_box
-  nx = 1.0
-  ny = 1.0
-  jtwist = -1.0
-  jtwistfac = 1.0
+&parameters_kxky_grids_box
+  nx = 1
+  ny = 1
+  jtwist = -1
+  jtwistfac = 1.
+  phase_shift_angle = 0.
   x0 = -1.0
   y0 = -1.0
   centered_in_rho = .true.
-  periodic_variation = .false.
   randomize_phase_shift = .false.
-  phase_shift_angle = 0.0
+  periodic_variation = .false.
 /
 
-&z_grid
-  nzed = 24.0
-  nperiod = 1.0
-  ntubes = 1.0
-  zed_equal_arc = .false.
-/
-
-&z_boundary_condition
-  boundary_option = "default"
-  shat_zero = 1e-05
-  grad_x_grad_y_zero = 1e-05
-  dkx_over_dky = -1.0
-/
-
-&velocity_grids
-  nvgrid = 24.0
-  nmu = 12.0
+&vpamu_grids_parameters
+  nmu = 12
+  nvgrid = 24
   vpa_max = 3.0
   vperp_max = 3.0
   equally_spaced_mu_grid = .false.
   conservative_wgts_vpa = .false.
+/
+
+&zgrid_parameters
+  nzed = 24
+  nperiod = 1
+  ntubes = 1
+  boundary_option = 'zero'
+  zed_equal_arc = .false.
+  shat_zero = 1e-05
+  grad_x_grad_y_zero = 1e-05
+  dkx_over_dky = -1.0
 /
 
 !===============================================================================
@@ -262,59 +260,60 @@
 !===============================================================================
 
 &initialise_distribution
-   initialise_distribution_option = 'default'
-   phiinit = 1.0
-   scale_to_phiinit = .false.
+  initialise_distribution_option = 'default'
+  phiinit = 1.0
+  scale_to_phiinit = .false.
 /
 
 &initialise_distribution_maxwellian
-   width0 = -3.5
-   den0 = 1.
-   upar0 = 0.
-   oddparity = .false.
-   chop_side = .false.
-   left = .true.
+  width0 = -3.5
+  den0 = 1.
+  upar0 = 0.
+  even = DEPRECATED
+  oddparity = .false.
+  chop_side = .false.
+  left = .true.
 /
 
 &initialise_distribution_noise
-   zf_init = 1.0
-   chop_side = .false.
-   left = .true.
+  zf_init = 1.0
+  chop_side = .false.
+  left = .true.
 /
 
 &initialise_distribution_kpar
-   width0 = -3.5
-   refac = 1.
-   imfac = 0.
-   den0 = 1.
-   upar0 = 0.
-   tpar0 = 0.
-   tperp0 = 0.
-   den1 = 0.
-   upar1 = 0.
-   tpar1 = 0.
-   tperp1 = 0.
-   den2 = 0.
-   upar2 = 0.
-   tpar2 = 0.
-   tperp2 = 0.
-   chop_side = .false.
-   left = .true.
+  width0 = -3.5
+  refac = 1.
+  imfac = 0.
+  den0 = 1.
+  upar0 = 0.
+  tpar0 = 0.
+  tperp0 = 0.
+  den1 = 0.
+  upar1 = 0.
+  tpar1 = 0.
+  tperp1 = 0.
+  den2 = 0.
+  upar2 = 0.
+  tpar2 = 0.
+  tperp2 = 0.
+  chop_side = .false.
+  left = .true.
 /
 
 &initialise_distribution_rh
-   kxmax = 1e+100
-   kxmin = 0.0
-   imfac = 0.0
-   refac = 1.0
+  kxmax = 1e+100
+  kxmin = 0.0
+  imfac = 0.0
+  refac = 1.0
 /
 
 &restart_options
-   tstart = 0.0
-   scale = 1.0
-   restart_file = '.nc'
-   restart_dir = './'
-   read_many = .true.
+  tstart = 0.0
+  scale = 1.0
+  restart_file = '.nc'
+  restart_dir = './'
+  read_many = .true.
 /
 
 !===============================================================================
@@ -384,60 +383,56 @@
 !                                    Numerics                                   
 !===============================================================================
 
-
-&time_trace_options
-  nstep = -1.0
-  tend = -1.0
-  autostop = .true.
-  avail_cpu_time = 10000000000.0
-/
-
-&time_step
+! Define parameters related to numerics
+&parameters_numerical
   delt = 0.03
-  delt_option = "default"
-  delt_max = -1.0
-  delt_min = 1e-10
+  nstep = -1
+  tend = -1.0
+  delt_option = 'default'
+  delt_adjust = DEPRECATED
+  delt_max = -1
+  delt_min = 1.e-10
+  cfl_cushion = DEPRECATED
   cfl_cushion_upper = 0.5
   cfl_cushion_middle = 0.25
-  cfl_cushion_lower = 1e-05
-/
-
-&numerical_algorithms
-  explicit_algorithm = "rk3"
-  flip_flop = .false.  
+  cfl_cushion_lower = 0.00001
+  lu_option = 'default'
+  avail_cpu_time = 1.e10
+  autostop = .true. 
+  fphi = 1.0
+  fapar = DEPRECATED
+  fbpar = DEPRECATED
+  fields_kxkyz = .false.
   stream_implicit = .true.
+  mirror_implicit = .true.
+  drifts_implicit = .false.
+  driftkinetic_implicit = DEPRECATED
   stream_iterative_implicit = .false.
   stream_matrix_inversion = .false.
-  driftkinetic_implicit = .false.
-  mirror_implicit = .true.
   mirror_semi_lagrange = .true.
   mirror_linear_interp = .false.
-  drifts_implicit = .false.
-  fully_implicit = .false.
-  fully_explicit = .false.
-  split_parallel_dynamics = .false. 
-  maxwellian_inside_zed_derivative = .false.
   use_deltaphi_for_response_matrix = .false.
+  maxwellian_inside_zed_derivative = .false.
   maxwellian_normalization = .false.
-/
-
-&numerical_upwinding_for_derivatives
+  split_parallel_dynamics = .true.
   zed_upwind = 0.02
   vpa_upwind = 0.02
   time_upwind = 0.02
-/
-
-&numerical_extra
-  nitt = 1
-  fphi = 1.0
   ky_solve_radial = 0
   ky_solve_real = .false.
-  fields_kxkyz = .false. 
-  mat_gen = .false. 
   mat_read = .false.
-  print_extra_info_to_terminal = .true.
-  lu_option = 'default'
+  mat_gen = .false.
   rng_seed = -1
+  print_extra_info_to_terminal = .true.
+  nitt = 1
+/
+
+&parameters_numerical
+  explicit_option = 'rk3'
+  xdriftknob = CORRESPONDS TO parameters_physics:xdriftknob
+  ydriftknob = CORRESPONDS TO parameters_physics:ydriftknob
+  wstarknob = CORRESPONDS TO parameters_physics:wstarknob
+  flip_flop = .false.
 /
 
 !===============================================================================
@@ -557,6 +552,3 @@
    fluxes_debug = .false.
    const_alpha_geo = .false.
 /
-
-
-

@@ -55,7 +55,7 @@ def test_whether_all_output_files_are_gerenated_when_running_stella(error=False)
     
     # Create a list of the output files we expect when stella has been run
     stem = input_filename.replace('.in','')
-    expected_files = ['in', 'out.nc', 'geometry', 'fluxes', 'omega', 'out', 'final_fields', 'species.input', 'error']
+    expected_files = ['in', 'out.nc', 'geometry', 'fluxes', 'out', 'final_fields', 'species.input', 'error']
     expected_files = [stem+'.'+extension for extension in expected_files]
     
     # Check whether all these output files are present
@@ -83,18 +83,18 @@ def test_whether_correct_quantities_are_present_in_netcdf_file(stella_version, e
     # Find the netcdf output file which was generated during our local stella run
     local_netcdf_file = local_stella_run_directory / input_filename.replace('.in', '.out.nc')
     
-    # Open the netcdf file
+    # Open the netcdf file, it's a nonlinear simulation so we won't have 'omega'
     with xr.open_dataset(local_netcdf_file) as local_netcdf:
         
         expected_dimensions = ['kx', 'ky', 'tube', 'zed', 'alpha', 'vpa', 'mu', 'species', 't', 'char10', 'char200', 'ri']
         expected_species = ['charge', 'mass', 'dens', 'temp', 'tprim', 'fprim', 'vnew', 'type_of_species']
         expected_geometry = ['bmag', 'b_dot_grad_z', 'gradpar', 'gbdrift', 'gbdrift0', 'cvdrift', 'cvdrift0', 'kperp2', \
         'gds2', 'gds21', 'gds22', 'grho', 'jacob', 'djacdrho', 'beta', 'q', 'shat', 'd2qdr2', 'drhodpsi', 'd2psidr2', 'jtwist']
-        expected_diagnostics = ['t', 'omega', 'phi2', 'phi_vs_t', 'phi2_vs_kxky', 'pflx_kxky', 'vflx_kxky', 'qflx_kxky', \
+        expected_diagnostics = ['t', 'phi2', 'phi_vs_t', 'phi2_vs_kxky', 'pflx_kxky', 'vflx_kxky', 'qflx_kxky', \
             'gvmus', 'gzvs', 'density', 'upar', 'temperature', 'spitzer2', 'phase_shift_angle']
-        if stella_version=='master':
+        if stella_version=='master': 
             dist_extensions = ['_vs_vpamus', '_vs_zvpas', '_vs_zmus', '_vs_zvpamus']
-            expected_diagnostics = ['t', 'omega', 'phi2', 'apar2', 'bpar2', 'omega']; 
+            expected_diagnostics = ['t', 'phi2', 'apar2', 'bpar2']; 
             expected_diagnostics += [i+j for i in ['pflux', 'qflux', 'vflux'] for j in ['_vs_s', '_vs_kxkyzs']]
             expected_diagnostics += [i+j for i in ['g2', 'h2', 'f2', 'g2nozonal', 'h2nozonal', 'f2nozonal'] for j in dist_extensions]
             expected_diagnostics += ['g2_vs_zkykxs', 'h2_vs_zkykxs', 'f2_vs_zkykxs']
