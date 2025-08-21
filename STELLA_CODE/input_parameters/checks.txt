@@ -2,7 +2,6 @@ To do :
 
 Neoclassics
 Radial variation
-Parallelisation
   
 !-------------------------------
 !--------  Neoclassics  --------
@@ -53,48 +52,4 @@ Parallelisation
   phi_pow = 0.0
   krook_efold = 3.0
   use_dirichlet_bc = .false.
- /
-  
-!--------------------------------
-!-------  Parallelisation  ------
-!--------------------------------
-
-!! changed from &layout_knobs
-&parallelisation
-  xyzs_layout = "yxzs"
-  vms_layout = "vms"
-  !! Double check
-  mat_gen = .false.
-  mat_read = .false.
-  lu_option = "default"
-  fields_kxkyz = .false.
-/
-
-&debug_flags
-  print_extra_info_to_terminal = .true. 
-  debug_all = .false.
-  stella_debug = .false.
-  ffs_solve_debug = .false.
-  fields_all_debug = .false.
-  fields_debug = .false.
-  fields_fluxtube_debug = .false.
-  fields_electromagnetic_debug = .false.
-  fields_ffs_debug = .false.
-  implicit_solve_debug = .false.
-  parallel_streaming_debug = .false.
-  mirror_terms_debug = .false.
-  neoclassical_terms_debug = .false.
-  response_matrix_debug = .false.
-  time_advance_debug = .false.
-  extended_grid_debug = .false.
-  diagnostics_all_debug = .false.
-  diagnostics_parameters = .false.
-  diagnostics_fluxes_fluxtube_debug = .false.
-  diagnostics_omega_debug = .false.
-  diagnostics_debug = .false.
-  dist_fn_debug = .false.
-  gyro_averages_debug = .false.
-  fluxes_debug = .false.
-  geometry_debug = .false.
-  const_alpha_geo = .false.
  /

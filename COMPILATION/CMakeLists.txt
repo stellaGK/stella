@@ -103,6 +103,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/input_parameters/input_file_diagnostics.f90
   ../STELLA_CODE/input_parameters/input_file_debug.f90
   ../STELLA_CODE/input_parameters/input_file_parallelisation.f90
+  ../STELLA_CODE/input_parameters/input_file_neoclassical_input.f90
   ../STELLA_CODE/neoclassical/euterpe_interface.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
   ../STELLA_CODE/parameters/debug_flags.f90
