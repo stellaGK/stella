@@ -7,10 +7,10 @@
 !                               Magnetic Geometry                               
 !===============================================================================
 
-&geo_knobs
-  geo_option = 'vmec'
+&geometry_options
+  geometry_option = 'vmec'
 /
-&vmec_parameters
+&geometry_vmec
   nfield_periods = 6.073867
   surface_option = 0
   torflux = 0.49

@@ -3,10 +3,10 @@
 !                               Magnetic Geometry                               
 !===============================================================================
 
-&geo_knobs
-  geo_option = 'miller'
+&geometry_options
+  geometry_option = 'miller'
 /
-&millergeo_parameters
+&geometry_miller
   betadbprim = 0.0
   betaprim = 0.0
   d2psidr2 = 0.0

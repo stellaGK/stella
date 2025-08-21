@@ -2,10 +2,10 @@
 !                               Magnetic Geometry                               
 !===============================================================================
 
-&geo_knobs
-  geo_option = 'miller'
+&geometry_options
+  geometry_option = 'miller'
 /
-&millergeo_parameters
+&geometry_miller
   nzed_local = 128
   rhoc = 0.5
   rmaj = 3.0

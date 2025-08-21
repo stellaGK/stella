@@ -2,29 +2,22 @@
 !===============================================================================
 !                               Magnetic Geometry                               
 !===============================================================================
-! Define geometry parameters
-! Depending on <geo_option>, different extra namelists will be read: 
-!    <geo_option>  = ['local', 'default', 'miller'] uses the <millergeo_parameters> namelist 
-!    <geo_option>  = 'vmec' uses the <vmec_parameters> namelist 
-!    <geo_option>  = 'zpinch' does not use any extra namelists 
-!    <geo_option>  = 'input.profiles' does not use any extra namelists 
-! Note that q_as_x  = <radial_variation>, from the <parameters_physics> namelist
 
 &geo_knobs
-   geo_option = 'local'
-   overwrite_bmag = .false.
-   overwrite_gradpar = .false.
-   overwrite_gds2 = .false.
-   overwrite_gds21 = .false.
-   overwrite_gds22 = .false.
-   overwrite_gds23 = .false.
-   overwrite_gds24 = .false.
-   overwrite_gbdrift = .false.
-   overwrite_cvdrift = .false.
-   overwrite_gbdrift0 = .false.
-   set_bmag_const = .false.
-   q_as_x = .false.
-   geo_file = 'input.geometry'
+  geo_option = 'local'
+  overwrite_bmag = .false.
+  overwrite_gradpar = .false.
+  overwrite_gds2 = .false.
+  overwrite_gds21 = .false.
+  overwrite_gds22 = .false.
+  overwrite_gds23 = .false.
+  overwrite_gds24 = .false.
+  overwrite_gbdrift = .false.
+  overwrite_cvdrift = .false.
+  overwrite_gbdrift0 = .false.
+  set_bmag_const = .false.
+  q_as_x = .false.
+  geo_file = 'input.geometry'
 /
 
 ! Define parameters related to VMEC geometry
@@ -111,6 +104,10 @@
   xdriftknob = CORRESPONDS TO time_advance_knobs:xdriftknob
   ydriftknob = CORRESPONDS TO time_advance_knobs:ydriftknob
   wstarknob = CORRESPONDS TO time_advance_knobs:wstarknob
+/
+
+&dist_fn_knobs
+  adiabatic_option = 'no-field-line-average-term'
 /
 
 !===============================================================================
@@ -417,9 +414,9 @@
   flip_flop = .false.
 /
 
-!-------------------------------
-!--------  Neoclassics  --------
-!-------------------------------
+!===============================================================================
+!                                  Neoclassics                                  
+!===============================================================================
 
 &euterpe_parameters
   nradii = 1000
@@ -459,9 +456,9 @@
   Nzeta = 1
 /
 
-!--------------------------------
-!------  Radial variation  ------
-!--------------------------------
+!===============================================================================
+!                                Radial variation                               
+!===============================================================================
 
 ! Note that <boundary_size> belongs to grids_kxky?
 &multibox_parameters
@@ -498,9 +495,9 @@
   conserve_density = .false.
 /
 
-!--------------------------------
-!-------  Parallelisation  ------
-!--------------------------------
+!===============================================================================
+!                                Parallelisation                                
+!===============================================================================
 
 &layouts_knobs
   xyzs_layout = 'xyzs'
