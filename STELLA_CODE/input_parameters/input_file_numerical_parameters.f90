@@ -11,7 +11,7 @@ module input_file_numerical_parameters
     public :: delt_option_hand, delt_option_auto
     public :: explicit_algorithm_rk3, explicit_algorithm_rk2, &
                 explicit_algorithm_rk4, explicit_algorithm_euler
-    public :: lu_option_local, lu_option_none, lu_option_global
+    ! public :: lu_option_local, lu_option_none, lu_option_global
 
     private
 
@@ -20,8 +20,8 @@ module input_file_numerical_parameters
         explicit_algorithm_rk2 = 2, &
         explicit_algorithm_rk4 = 3, &
         explicit_algorithm_euler = 4
-    integer, parameter :: lu_option_none = 1, lu_option_local = 2, &
-        lu_option_global = 3
+    ! integer, parameter :: lu_option_none = 1, lu_option_local = 2, &
+    !     lu_option_global = 3
         
     ! Internal variables
     integer :: in_file
@@ -292,8 +292,7 @@ contains
     !****************************************************************************
 
     subroutine read_namelist_numerical_extra(nitt, fphi, ky_solve_real, &
-                                             ky_solve_radial, fields_kxkyz, mat_gen, mat_read, &
-                                             lu_option_switch, rng_seed, print_extra_info_to_terminal)
+                                ky_solve_radial, rng_seed, print_extra_info_to_terminal)
 
         use mp, only: proc0
 
@@ -302,12 +301,12 @@ contains
         real, intent (out)  :: fphi
         logical, intent (out)  :: ky_solve_real
         integer, intent (out)  :: ky_solve_radial
-        logical, intent (out)  :: fields_kxkyz, mat_gen, mat_read
-        integer, intent (out)  :: lu_option_switch
+        ! logical, intent (out)  :: fields_kxkyz, mat_gen, mat_read
+        ! integer, intent (out)  :: lu_option_switch
         integer, intent (out)  :: rng_seed
         logical, intent (out)  :: print_extra_info_to_terminal
 
-        character(30) :: lu_option
+        ! character(30) :: lu_option
 
         if (.not. proc0) return
         call set_default_parameters_numerical_extra
@@ -324,10 +323,10 @@ contains
             fphi = 1.0
             ky_solve_radial = 0
             ky_solve_real = .false.
-            fields_kxkyz = .false. 
-            mat_gen = .false. 
-            mat_read = .false.
-            lu_option = 'default'
+            ! fields_kxkyz = .false. 
+            ! mat_gen = .false. 
+            ! mat_read = .false.
+            ! lu_option = 'default'
             rng_seed = -1
             print_extra_info_to_terminal = .true.
 
@@ -340,23 +339,22 @@ contains
 
             implicit none
 
-            integer :: ierr 
-            type(text_option), dimension(3), parameter :: luopts = &
-                (/text_option('default', lu_option_none), &
-                text_option('local', lu_option_local), &
-                text_option('global', lu_option_global)/)
+            ! integer :: ierr 
+            ! type(text_option), dimension(3), parameter :: luopts = &
+            !     (/text_option('default', lu_option_none), &
+            !     text_option('local', lu_option_local), &
+            !     text_option('global', lu_option_global)/)
 
             !----------------------------------------------------------------------    
             namelist /numerical_extra/ nitt, fphi, ky_solve_real, &
-                ky_solve_radial, fields_kxkyz, mat_gen, mat_read, &
-                lu_option, rng_seed, print_extra_info_to_terminal
+                ky_solve_radial, rng_seed, print_extra_info_to_terminal
 
             in_file = input_unit_exist("numerical_extra", dexist)
             if (dexist) read (unit=in_file, nml=numerical_extra)
 
-            ierr = error_unit()
-            call get_option_value(lu_option, luopts, lu_option_switch, ierr, &
-                                  "lu_option in numerical_parameters")
+            ! ierr = error_unit()
+            ! call get_option_value(lu_option, luopts, lu_option_switch, ierr, &
+            !                       "lu_option in numerical_parameters")
 
         end subroutine read_input_file_numerical_extra
 

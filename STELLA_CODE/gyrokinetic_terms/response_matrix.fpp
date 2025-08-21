@@ -34,7 +34,7 @@ contains
       use stella_layouts, only: iv_idx, is_idx
       use kxky_grid_parameters, only: naky
       use mp, only: proc0
-      use numerical_parameters, only: mat_gen
+      use stella_layouts, only: mat_gen
 #ifdef ISO_C_BINDING
       use arrays_fields, only: response_window
 #endif
@@ -101,7 +101,7 @@ contains
    subroutine setup_response_matrix_file_io
 
       use mp, only: proc0, job
-      use numerical_parameters, only: mat_gen
+      use stella_layouts, only: mat_gen
       use system_fortran, only: systemf
       use kxky_grid_parameters, only: naky
 
@@ -175,7 +175,7 @@ contains
 
       use mp, only: proc0
       use job_manage, only: time_message
-      use numerical_parameters, only: mat_gen
+      use stella_layouts, only: mat_gen
       use arrays_fields, only: response_matrix
       use kxky_grid_parameters, only: naky
       use extended_zgrid, only: neigen
@@ -261,7 +261,7 @@ contains
    subroutine calculate_vspace_integrated_response(iky)
 
       use mp, only: proc0
-      use numerical_parameters, only: mat_gen
+      use stella_layouts, only: mat_gen
       use physics_parameters, only: include_apar, include_bpar
       use extended_zgrid, only: neigen, ikxmod
       use extended_zgrid, only: nsegments, nzed_segment
@@ -544,8 +544,8 @@ contains
 #endif
       use mp, only: mp_abort
       use arrays_fields, only: response_matrix
-      use numerical_parameters, only: lu_option_switch
-      use numerical_parameters, only: lu_option_none, lu_option_local, lu_option_global
+      use stella_layouts, only: lu_option_switch
+      use stella_layouts, only: lu_option_none, lu_option_local, lu_option_global
       use extended_zgrid, only: neigen
       use linear_solve, only: lu_decomposition
 

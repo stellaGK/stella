@@ -100,7 +100,7 @@ contains
       use numerical_parameters, only: avail_cpu_time, nstep, rng_seed, delt, delt_max, delt_min
       use numerical_parameters, only: stream_implicit, driftkinetic_implicit
       use numerical_parameters, only: delt_option_switch, delt_option_auto
-      use numerical_parameters, only: mat_gen, mat_read
+      use stella_layouts, only: mat_gen, mat_read
       use kxky_grid_parameters, only: read_kxky_grid_parameters
       use species, only: init_species, read_species_options
       use species, only: nspec
@@ -599,10 +599,10 @@ contains
       use grids_kxky, only: finish_grids_kxky
       use volume_averages, only: finish_volume_averages
       use multibox, only: finish_multibox, time_multibox
-      use numerical_parameters, only: stream_implicit, drifts_implicit, fields_kxkyz
+      use numerical_parameters, only: stream_implicit, drifts_implicit
+      use stella_layouts, only: fields_kxkyz
       use implicit_solve, only: time_implicit_advance
       use numerical_parameters, only: print_extra_info_to_terminal
-      use numerical_parameters, only: fields_kxkyz
 
       implicit none
 

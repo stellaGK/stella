@@ -69,8 +69,8 @@ contains
          neoclassical_term = 0.
       end if
 
-      !> mirror has sign consistent with being on RHS of GKE;
-      !> it is the factor multiplying dg/dvpa in the mirror term
+      ! mirror has sign consistent with being on RHS of GKE;
+      ! it is the factor multiplying dg/dvpa in the mirror term
       if (include_mirror) then
          do imu = 1, nmu
             do ia = 1, nalpha
@@ -104,8 +104,8 @@ contains
       end if
 
       do ia = 1, nalpha
-         !> mirror_sign set to +/- 1 depending on the sign of the mirror term.
-         !> NB: mirror_sign = -1 corresponds to positive advection velocity
+         ! mirror_sign set to +/- 1 depending on the sign of the mirror term.
+         ! NB: mirror_sign = -1 corresponds to positive advection velocity
          do iz = -nzgrid, nzgrid
             mirror_sign(ia, iz) = int(sign(1.0, mirror(ia, iz, 1, 1)))
          end do
@@ -115,8 +115,8 @@ contains
          if (mirror_semi_lagrange) then
             call init_mirror_semi_lagrange
          else
-            !> set up the tridiagonal matrix that must be inverted
-            !> for the implicit treatment of the mirror operator
+            ! set up the tridiagonal matrix that must be inverted
+            ! for the implicit treatment of the mirror operator
             call init_invert_mirror_operator
 
             ! if advancing apar, need to get response of pdf to unit impulse in apar
@@ -178,9 +178,9 @@ contains
 
       zero = 100.*epsilon(0.)
 
-      !> mirror_int_fac = exp(vpa^2 * (mu*dB/dz)/(mu*dB/dz + Z*e*dpihnc/dz))
-      !> is the integrating factor needed to turn the dg/dvpa part of the GKE advance
-      !> into an advection equation
+      ! mirror_int_fac = exp(vpa^2 * (mu*dB/dz)/(mu*dB/dz + Z*e*dpihnc/dz))
+      ! is the integrating factor needed to turn the dg/dvpa part of the GKE advance
+      ! into an advection equation
       if (.not. allocated(mirror_int_fac)) then
          if (include_neoclassical_terms) then
             allocate (mirror_int_fac(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -203,14 +203,14 @@ contains
          end if
       end if
 
-      !> a, b and c contain the sub-, main- and super-diagonal terms, respectively
+      ! a, b and c contain the sub-, main- and super-diagonal terms, respectively
       allocate (a(nvpa, -1:1)); a = 0.
       allocate (b(nvpa, -1:1)); b = 0.
       allocate (c(nvpa, -1:1)); c = 0.
 
       if (.not. allocated(mirror_tri_a)) then
-         !> if running in full-flux-surface mode, solve mirror advance
-         !> in y-space rather than ky-space due to alpha-dependence of coefficients
+         ! if running in full-flux-surface mode, solve mirror advance
+         ! in y-space rather than ky-space due to alpha-dependence of coefficients
          if (full_flux_surface) then
             llim = kxyz_lo%llim_proc
             ulim = kxyz_lo%ulim_alloc
@@ -224,33 +224,33 @@ contains
          allocate (mirror_tri_c(nvpa, nmu, llim:ulim)); mirror_tri_c = 0.
       end if
 
-      !> corresponds to sign of mirror term positive on RHS of equation
+      ! corresponds to sign of mirror term positive on RHS of equation
       a(2:, 1) = -0.5 * (1.0 - 2.0 * vpa_upwind) / dvpa
       b(2:, 1) = -2.0 * vpa_upwind / dvpa
       c(2:nvpa - 1, 1) = 0.5 * (1.0 + 2.0 * vpa_upwind) / dvpa
-      !> must treat boundary carefully
-      !> assumes fully upwinded at outgoing boundary
+      ! must treat boundary carefully
+      ! assumes fully upwinded at outgoing boundary
       b(1, 1) = -1.0 / dvpa
       c(1, 1) = 1.0 / dvpa
 
-      !> corresponds to sign of mirror term negative on RHS of equation
+      ! corresponds to sign of mirror term negative on RHS of equation
       a(2:nvpa - 1, -1) = -0.5 * (1.0 + 2.0 * vpa_upwind) / dvpa
       b(:nvpa - 1, -1) = 2.0 * vpa_upwind / dvpa
       c(:nvpa - 1, -1) = 0.5 * (1.0 - 2.0 * vpa_upwind) / dvpa
-      !> must treat boundary carefully
-      !> assumes fully upwinded at outgoing boundary
+      ! must treat boundary carefully
+      ! assumes fully upwinded at outgoing boundary
       a(nvpa, -1) = -1.0 / dvpa
       b(nvpa, -1) = 1.0 / dvpa
 
-      !> time_upwind = 0.0 corresponds to centered in time
-      !> time_upwind = 1.0 corresponds to fully implicit (upwinded)
+      ! time_upwind = 0.0 corresponds to centered in time
+      ! time_upwind = 1.0 corresponds to fully implicit (upwinded)
       tupwndfac = 0.5 * (1.0 + time_upwind)
       a = a * tupwndfac
       c = c * tupwndfac
       if (maxwellian_normalization) then
-         !> account for fact that we have expanded d(gnorm)/dvpa, where gnorm = g/exp(-v^s);
-         !> this gives rise to d(gnorm*exp(-vpa^2))/dvpa + 2*vpa*gnorm*exp(-vpa^2) term
-         !> we solve for gnorm*exp(-vpa^2) and later multiply by exp(vpa^2) to get gnorm
+         ! account for fact that we have expanded d(gnorm)/dvpa, where gnorm = g/exp(-v^s);
+         ! this gives rise to d(gnorm*exp(-vpa^2))/dvpa + 2*vpa*gnorm*exp(-vpa^2) term
+         ! we solve for gnorm*exp(-vpa^2) and later multiply by exp(vpa^2) to get gnorm
          b = b + spread(2.0 * vpa, 2, 3)
       end if
 
@@ -269,7 +269,7 @@ contains
             end do
          end do
       else
-         !> multiply by mirror coefficient
+         ! multiply by mirror coefficient
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iy = 1
             iz = iz_idx(kxkyz_lo, ikxkyz)
@@ -337,8 +337,8 @@ contains
 
    end subroutine init_mirror_response
 
-   !> advance_mirror_explicit calculates the contribution to the RHS of the gyrokinetic equation
-   !> due to the mirror force term; it treats all terms explicitly in time
+   ! advance_mirror_explicit calculates the contribution to the RHS of the gyrokinetic equation
+   ! due to the mirror force term; it treats all terms explicitly in time
    subroutine advance_mirror_explicit(g, gout)
 
       use mp, only: proc0
@@ -354,7 +354,8 @@ contains
       use calculations_kxky, only: swap_kxky
       use velocity_grids, only: nvpa, nmu
       use velocity_grids, only: vpa, maxwell_vpa
-      use numerical_parameters, only: fields_kxkyz, maxwellian_normalization
+      use stella_layouts, only: fields_kxkyz
+      use numerical_parameters, only: maxwellian_normalization
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
 
       implicit none
@@ -369,11 +370,11 @@ contains
       integer :: ikxyz, iz, it
       integer :: ivmu, iv, is
 
-      !> start the timer for this subroutine
+      ! start the timer for this subroutine
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
       if (full_flux_surface) then
-         !> assume we are simulating a single flux surface
+         ! assume we are simulating a single flux surface
          it = 1
 
          allocate (g0v(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
@@ -383,33 +384,33 @@ contains
 
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do iz = -nzgrid, nzgrid
-               !> swap from ky >= 0 and all kx to kx >= 0 and all ky
-               !> needed for ky2y transform below
+               ! swap from ky >= 0 and all kx to kx >= 0 and all ky
+               ! needed for ky2y transform below
                call swap_kxky(g(:, :, iz, it, ivmu), g_swap)
-               !> for upwinding of vpa, need to evaluate dg/dvpa in y-space
-               !> this is necessary because the advection speed contains dB/dz, which depends on y
-               !> first must take g(ky,kx) and transform to g(y,kx)
+               ! for upwinding of vpa, need to evaluate dg/dvpa in y-space
+               ! this is necessary because the advection speed contains dB/dz, which depends on y
+               ! first must take g(ky,kx) and transform to g(y,kx)
                call transform_ky2y(g_swap, g0x(:, :, iz, it, ivmu))
             end do
          end do
-         !> remap g so velocities are local
+         ! remap g so velocities are local
          call scatter(kxyz2vmu, g0x, g0v)
-         !> next, calculate dg/dvpa;
-         !> we enforce a boundary condition on <f>, but with full_flux_surface = T,
-         !> g = <f> / F, so we use the chain rule to get two terms:
-         !> one with exp(vpa^2)*d<f>/dvpa and another that is proportional to exp(vpa^2) * <f>/F * d ln F /dvpa
+         ! next, calculate dg/dvpa;
+         ! we enforce a boundary condition on <f>, but with full_flux_surface = T,
+         ! g = <f> / F, so we use the chain rule to get two terms:
+         ! one with exp(vpa^2)*d<f>/dvpa and another that is proportional to exp(vpa^2) * <f>/F * d ln F /dvpa
          do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
             is = is_idx(kxyz_lo, ikxyz)
-            !> remove exp(-vpa^2) normalisation from g before differentiating
+            ! remove exp(-vpa^2) normalisation from g before differentiating
             dgdv(:, :) = g0v(:, :, ikxyz)
-            !> get d <f> / dvpa
+            ! get d <f> / dvpa
             call get_dgdvpa_ffs(dgdv, ikxyz)
             g0v(:, :, ikxyz) = dgdv(:, :)
          end do
-         !> then take the results and remap again so y,kx,z local.
+         ! then take the results and remap again so y,kx,z local.
          call gather(kxyz2vmu, g0v, g0x)
 
-         !> finally add the mirror term to the RHS of the GK eqn
+         ! finally add the mirror term to the RHS of the GK eqn
          call add_mirror_term_ffs(g0x, gout)
          deallocate (dgdv, g_swap)
       else
@@ -462,7 +463,7 @@ contains
       use z_grid, only: nzgrid, ntubes
       use physics_parameters, only: full_flux_surface
       use velocity_grids, only: nvpa, nmu
-      use numerical_parameters, only: fields_kxkyz
+      use stella_layouts, only: fields_kxkyz
       use dist_redistribute, only: kxkyz2vmu
 
       implicit none

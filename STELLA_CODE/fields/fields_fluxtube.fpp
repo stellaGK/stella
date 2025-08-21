@@ -46,7 +46,7 @@ contains
       use arrays_dist_fn, only: gvmu
       use arrays_fields, only: time_field_solve
       !> Parameters
-      use numerical_parameters, only: fields_kxkyz
+      use stella_layouts, only: fields_kxkyz
       use physics_parameters, only: full_flux_surface
       !> Grids
       use z_grid, only: nzgrid

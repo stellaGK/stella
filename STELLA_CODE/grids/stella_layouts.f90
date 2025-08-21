@@ -6,6 +6,10 @@ module stella_layouts
    
    implicit none
 
+   public :: fields_kxkyz, mat_gen, mat_read
+   public :: lu_option_switch
+   public :: lu_option_local, lu_option_none, lu_option_global
+   
    private
 
    public :: xyzs_layout, vms_layout
@@ -26,7 +30,6 @@ module stella_layouts
    character(len=4) :: xyzs_layout
    character(len=3) :: vms_layout
    character(len=5) :: kymus_layout
-   logical :: exist
 
    type(kxkyz_layout_type) :: kxkyz_lo
    type(kxyz_layout_type) :: kxyz_lo
@@ -106,6 +109,12 @@ module stella_layouts
       module procedure idx_local_kymus, iz_local_kymus
    end interface
 
+   logical :: fields_kxkyz, mat_gen, mat_read
+   integer :: lu_option_switch
+   integer, parameter :: lu_option_none = 1, &
+        lu_option_local = 2, &
+        lu_option_global = 3
+
 contains
 
    subroutine init_stella_layouts
@@ -124,52 +133,62 @@ contains
 
    subroutine read_parameters
 
-      use mp, only: mp_abort
-      use file_utils, only: input_unit, error_unit, input_unit_exist, error_unit
+      use input_file_parallelisation, only: read_namelist_parallelisation
+      ! use mp, only: mp_abort
+      ! use file_utils, only: input_unit, error_unit, input_unit_exist, error_unit
 
       implicit none
 
-      integer :: in_file
+      call read_namelist_parallelisation(xyzs_layout, vms_layout, kymus_layout, &
+          mat_gen, mat_read, lu_option_switch, fields_kxkyz)
+      ! integer :: in_file
 
-      namelist /layouts_knobs/ xyzs_layout, vms_layout, kymus_layout
+      ! namelist /layouts_knobs/ xyzs_layout, vms_layout, kymus_layout
 
-      xyzs_layout = 'yxzs'
-      vms_layout = 'vms'
-      kymus_layout = 'kymus'
+      ! xyzs_layout = 'yxzs'
+      ! vms_layout = 'vms'
+      ! kymus_layout = 'kymus'
       
-      in_file = input_unit_exist("layouts_knobs", exist)
-      if (exist) read (unit=input_unit("layouts_knobs"), nml=layouts_knobs)
+      ! in_file = input_unit_exist("layouts_knobs", exist)
+      ! if (exist) read (unit=input_unit("layouts_knobs"), nml=layouts_knobs)
 
-      if (xyzs_layout /= 'xyzs' .and. &
-          xyzs_layout /= 'xzys' .and. &
-          xyzs_layout /= 'yxzs' .and. &
-          xyzs_layout /= 'yzxs' .and. &
-          xyzs_layout /= 'zxys' .and. &
-          xyzs_layout /= 'zyxs') then
-         call mp_abort('stella_layouts: read_parameters finds illegal xyzs_layout. aborting')
-      end if
-      if (vms_layout /= 'vms' .and. &
-          vms_layout /= 'mvs') then
-         call mp_abort('stella_layouts: read_parameters finds illegal vms_layout. aborting')
-      end if
-      if (kymus_layout /= 'kymus' .and. &
-          kymus_layout /= 'mukys') then
-         call mp_abort('stella_layouts: read_parameters finds illegal kymus_layout. aborting')
-      end if
+      ! if (xyzs_layout /= 'xyzs' .and. &
+      !     xyzs_layout /= 'xzys' .and. &
+      !     xyzs_layout /= 'yxzs' .and. &
+      !     xyzs_layout /= 'yzxs' .and. &
+      !     xyzs_layout /= 'zxys' .and. &
+      !     xyzs_layout /= 'zyxs') then
+      !    call mp_abort('stella_layouts: read_parameters finds illegal xyzs_layout. aborting')
+      ! end if
+      ! if (vms_layout /= 'vms' .and. &
+      !     vms_layout /= 'mvs') then
+      !    call mp_abort('stella_layouts: read_parameters finds illegal vms_layout. aborting')
+      ! end if
+      ! if (kymus_layout /= 'kymus' .and. &
+      !     kymus_layout /= 'mukys') then
+      !    call mp_abort('stella_layouts: read_parameters finds illegal kymus_layout. aborting')
+      ! end if
 
    end subroutine read_parameters
 
    subroutine broadcast_results
       use mp, only: broadcast
+
       implicit none
       call broadcast(xyzs_layout)
       call broadcast(vms_layout)
       call broadcast(kymus_layout)
+
+      call broadcast(mat_gen)
+      call broadcast(mat_read)
+      call broadcast(lu_option_switch)
+      call broadcast(fields_kxkyz)
+
    end subroutine broadcast_results
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! Distribution function layouts
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!*****************************************************************************
+!                         Distribution function layouts
+!*****************************************************************************
 
    subroutine init_dist_fn_layouts(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
 

@@ -46,9 +46,9 @@ module numerical_parameters
    public :: nitt
    public :: fphi
    public :: ky_solve_radial, ky_solve_real
-   public :: fields_kxkyz, mat_gen, mat_read
-   public :: lu_option_switch
-   public :: lu_option_local, lu_option_none, lu_option_global
+   ! public :: fields_kxkyz, mat_gen, mat_read
+   ! public :: lu_option_switch
+   ! public :: lu_option_local, lu_option_none, lu_option_global
    public :: rng_seed
    public :: print_extra_info_to_terminal
 
@@ -98,11 +98,11 @@ module numerical_parameters
    real :: fphi
    logical :: ky_solve_real
    integer :: ky_solve_radial
-   logical :: fields_kxkyz, mat_gen, mat_read
-   integer :: lu_option_switch
-   integer, parameter :: lu_option_none = 1, &
-        lu_option_local = 2, &
-        lu_option_global = 3
+   ! logical :: fields_kxkyz, mat_gen, mat_read
+   ! integer :: lu_option_switch
+   ! integer, parameter :: lu_option_none = 1, &
+   !      lu_option_local = 2, &
+   !      lu_option_global = 3
    integer :: rng_seed
    logical :: print_extra_info_to_terminal
 
@@ -151,8 +151,7 @@ contains
       if (proc0) call read_namelist_numerical_upwinding_for_derivatives(time_upwind, zed_upwind, vpa_upwind)
 
       if (proc0) call read_namelist_numerical_extra(nitt, fphi, ky_solve_real, &
-                                             ky_solve_radial, fields_kxkyz, mat_gen, mat_read, &
-                                             lu_option_switch, rng_seed, print_extra_info_to_terminal)
+                                             ky_solve_radial, rng_seed, print_extra_info_to_terminal)
 
       if (proc0) call check_numerical_inputs 
       call broadcast_parameters
@@ -174,7 +173,8 @@ contains
          use physics_parameters, only: include_mirror
          use physics_parameters, only: include_nonlinear
          use physics_parameters, only: rhostar
-
+         use stella_layouts, only: fields_kxkyz
+         
          implicit none
 
          integer :: ierr
@@ -371,10 +371,10 @@ contains
          call broadcast(fphi)
          call broadcast(ky_solve_radial)
          call broadcast(ky_solve_real)
-         call broadcast(fields_kxkyz)
-         call broadcast(mat_gen)
-         call broadcast(mat_read)
-         call broadcast(lu_option_switch)
+         !call broadcast(fields_kxkyz)
+         ! call broadcast(mat_gen)
+         ! call broadcast(mat_read)
+         ! call broadcast(lu_option_switch)
          call broadcast(rng_seed)
          call broadcast(print_extra_info_to_terminal)
 
