@@ -63,6 +63,7 @@ stella_mod = \
 	 $(OBJ_DIR)/input_file_numerical_parameters.o \
 	 $(OBJ_DIR)/input_file_parallelisation.o \
 	 $(OBJ_DIR)/input_file_physics_parameters.o \
+	 $(OBJ_DIR)/input_file_sources.o \
 	 $(OBJ_DIR)/input_file_species.o \
 	 $(OBJ_DIR)/input_file_velocity_grids.o \
 	 $(OBJ_DIR)/input_file_z_grid.o \
@@ -749,6 +750,12 @@ $(OBJ_DIR)/input_file_physics_parameters.o: \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/text_options.o 
+$(OBJ_DIR)/input_file_sources.o: \
+	 $(OBJ_DIR)/file_utils.o \
+	 $(OBJ_DIR)/kxky_grid_parameters.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/physics_parameters.o \
+	 $(OBJ_DIR)/text_options.o 
 $(OBJ_DIR)/input_file_species.o: \
 	 $(OBJ_DIR)/common_types.o \
 	 $(OBJ_DIR)/file_utils.o \
@@ -908,6 +915,7 @@ $(OBJ_DIR)/sources.o: \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/gyro_averages.o \
+	 $(OBJ_DIR)/input_file_sources.o \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/kxky_grid_parameters.o \
 	 $(OBJ_DIR)/linear_solve.o \
@@ -920,7 +928,6 @@ $(OBJ_DIR)/sources.o: \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/stella_time.o \
 	 $(OBJ_DIR)/stella_transforms.o \
-	 $(OBJ_DIR)/text_options.o \
 	 $(OBJ_DIR)/velocity_grids.o \
 	 $(OBJ_DIR)/z_grid.o 
 $(OBJ_DIR)/species.o: \

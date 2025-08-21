@@ -59,7 +59,10 @@ contains
       use physics_parameters, only: adiabatic_option_switch
       use physics_parameters, only: adiabatic_option_fieldlineavg
       use file_utils, only: runtype_option_switch, runtype_multibox
-
+      use kxky_grid_parameters, only: ikx_max
+      use input_file_sources, only: read_namelist_sources
+      use arrays_fields, only: tcorr_source_qn, exclude_boundary_regions_qn
+      use mp, only: broadcast
       implicit none
 
       logical :: has_elec, adia_elec
@@ -67,7 +70,15 @@ contains
 
       debug = debug .and. proc0
 
-      call read_parameters
+      call read_namelist_sources(source_option_switch, nu_krook, tcorr_source, &
+                              ikxmax_source, krook_odd, exclude_boundary_regions, &
+                              tcorr_source_qn, exclude_boundary_regions_qn, from_zero, &
+                              conserve_momentum, conserve_density)
+
+      ikxmax_source = min(ikxmax_source, ikx_max)
+
+      int_proj = -1.
+      int_krook = -1.
 
       if (source_option_switch == source_option_krook .and. .not. allocated(g_krook)) then
          allocate (g_krook(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -108,79 +119,27 @@ contains
          end if
       end if
 
+   contains
+
+      subroutine broadcast_arrays
+
+         implicit none
+
+         call broadcast(source_option_switch)
+         call broadcast(exclude_boundary_regions)
+         call broadcast(exclude_boundary_regions_qn)
+         call broadcast(nu_krook)
+         call broadcast(tcorr_source)
+         call broadcast(tcorr_source_qn)
+         call broadcast(ikxmax_source)
+         call broadcast(krook_odd)
+         call broadcast(from_zero)
+         call broadcast(conserve_momentum)
+         call broadcast(conserve_density)
+
+      end subroutine broadcast_arrays
+
    end subroutine init_sources
-
-   subroutine read_parameters
-
-      use file_utils, only: input_unit_exist, error_unit
-      use physics_parameters, only: radial_variation
-      use mp, only: proc0, broadcast
-      use kxky_grid_parameters, only: ikx_max, periodic_variation
-      use arrays_fields, only: tcorr_source_qn, exclude_boundary_regions_qn
-      use text_options, only: text_option, get_option_value
-
-      implicit none
-
-      type(text_option), dimension(4), parameter :: sourceopts = &
-                                                    (/text_option('default', source_option_none), &
-                                                      text_option('none', source_option_none), &
-                                                      text_option('krook', source_option_krook), &
-                                                      text_option('projection', source_option_projection)/)
-      character(30) :: source_option
-      integer :: in_file, ierr
-      logical :: dexist
-
-      namelist /sources/ &
-         source_option, nu_krook, tcorr_source, &
-         ikxmax_source, krook_odd, exclude_boundary_regions, &
-         tcorr_source_qn, exclude_boundary_regions_qn, from_zero, &
-         conserve_momentum, conserve_density
-
-      if (proc0) then
-         exclude_boundary_regions = radial_variation .and. .not. periodic_variation
-         exclude_boundary_regions_qn = exclude_boundary_regions
-         nu_krook = 0.05
-         tcorr_source = 0.02
-         tcorr_source_qn = 0.0
-         ikxmax_source = 1 ! kx=0
-         if (periodic_variation) ikxmax_source = 2 ! kx=0 and kx=1
-         krook_odd = .true. ! damp only the odd mode that can affect profiles
-         from_zero = .true.
-
-         source_option = 'none'
-
-         conserve_momentum = .false.
-         conserve_density = .false.
-
-         in_file = input_unit_exist("sources", dexist)
-         if (dexist) read (unit=in_file, nml=sources)
-
-         ierr = error_unit()
-         call get_option_value &
-            (source_option, sourceopts, source_option_switch, &
-             ierr, "source_option in sources")
-
-         if (tcorr_source_qn < 0) tcorr_source_qn = tcorr_source
-      end if
-
-      ikxmax_source = min(ikxmax_source, ikx_max)
-
-      int_proj = -1.
-      int_krook = -1.
-
-      call broadcast(source_option_switch)
-      call broadcast(exclude_boundary_regions)
-      call broadcast(exclude_boundary_regions_qn)
-      call broadcast(nu_krook)
-      call broadcast(tcorr_source)
-      call broadcast(tcorr_source_qn)
-      call broadcast(ikxmax_source)
-      call broadcast(krook_odd)
-      call broadcast(from_zero)
-      call broadcast(conserve_momentum)
-      call broadcast(conserve_density)
-
-   end subroutine read_parameters
 
    subroutine init_source_timeaverage
 

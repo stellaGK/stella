@@ -2,33 +2,12 @@ To do :
 
 Neoclassics
 Radial variation
-  
-!-------------------------------
-!--------  Neoclassics  --------
-!-------------------------------
-  
-&neoclassical_input
-  include_neoclassical_terms = .false.
-  neo_option = "sfincs"
-  nradii = 5.0
-  drho = 0.01
- /
+
+
+
 &euterpe_parameters
   nradii = 1000.0
   data_file = "euterpe.dat"
- /
-&sources
-  source_option = "none"
-  nu_krook = 0.05
-  tcorr_source = 0.02
-  ikxmax_source = 1.0
-  krook_odd = .true.
-  exclude_boundary_regions = .false.
-  tcorr_source_qn = 0.0
-  exclude_boundary_regions_qn = .false.
-  from_zero = .true.
-  conserve_momentum = .false.
-  conserve_density = .false.
  /
   
 !--------------------------------
