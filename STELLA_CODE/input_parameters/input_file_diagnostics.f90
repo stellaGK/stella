@@ -61,8 +61,6 @@ contains
 
             save_for_restart = .false.
             write_all = .false.
-            !! Add the following
-            !! add information prompt saying what diagnostic flags are being turned on
             write_all_time_traces = .true. 
             write_all_spectra_kxkyz = .false.
             write_all_spectra_kxky = .false.
@@ -279,7 +277,7 @@ contains
 
             use file_utils, only: error_unit
             use physics_parameters, only: include_nonlinear
-            
+
             implicit none
 
             if (write_all_omega) then
@@ -324,7 +322,6 @@ contains
         logical, intent (out) :: write_distribution_g
         logical, intent (out) :: write_distribution_h
         logical, intent (out) :: write_distribution_f
-
 
         if (.not. proc0) return
         call set_default_parameters_diagnostics_distribution

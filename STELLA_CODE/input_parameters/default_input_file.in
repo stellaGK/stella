@@ -398,3 +398,35 @@
  &geometry_zpinch
   betaprim = 0.0
 /
+!===============================================================================
+!                                    Debug                                   
+!===============================================================================
+
+&debug_flags
+  print_extra_info_to_terminal = .true. 
+  debug_all = .false.
+  stella_debug = .false.
+  ffs_solve_debug = .false.
+  fields_all_debug = .false.
+  fields_debug = .false.
+  fields_fluxtube_debug = .false.
+  fields_electromagnetic_debug = .false.
+  fields_ffs_debug = .false.
+  implicit_solve_debug = .false.
+  parallel_streaming_debug = .false.
+  mirror_terms_debug = .false.
+  neoclassical_terms_debug = .false.
+  response_matrix_debug = .false.
+  time_advance_debug = .false.
+  extended_grid_debug = .false.
+  diagnostics_all_debug = .false.
+  diagnostics_parameters = .false.
+  diagnostics_fluxes_fluxtube_debug = .false.
+  diagnostics_omega_debug = .false.
+  diagnostics_debug = .false.
+  dist_fn_debug = .false.
+  gyro_averages_debug = .false.
+  fluxes_debug = .false.
+  geometry_debug = .false.
+  const_alpha_geo = .false.
+ /

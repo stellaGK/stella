@@ -40,9 +40,9 @@ module debug_flags
   public :: gyro_averages_debug
   public :: ffs_solve_debug
   
-  !> Debug flug for debugging full flux surface
-  !> This will set the geometry of all field lines to be equation to
-  !> the geometry on alpha = 0 (i.e. the first field line) 
+  ! Debug flug for debugging full flux surface
+  ! This will set the geometry of all field lines to be equation to
+  ! the geometry on alpha = 0 (i.e. the first field line) 
   public :: const_alpha_geo
   
   private
@@ -95,130 +95,20 @@ contains
   subroutine read_debug_flags
 
     use mp, only: proc0
-    
+    use input_file_debug, only: read_namelist_debug_flags  
     implicit none
 
-    namelist /debug_flags/ debug_all, stella_debug, ffs_solve_debug, fields_all_debug, fields_debug, &
-        fields_fluxtube_debug, fields_electromagnetic_debug, fields_ffs_debug, & 
-        implicit_solve_debug, parallel_streaming_debug, mirror_terms_debug, neoclassical_terms_debug, &
-        response_matrix_debug, time_advance_debug, extended_grid_debug, &
-        diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
-        diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
-        gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo
-    
-    if (initialised) return
-    initialised = .true.
-    
-    if (proc0) call set_default_parameters
-    if (proc0) call read_input_file
+    call read_namelist_debug_flags (debug_all, stella_debug, ffs_solve_debug, fields_all_debug, fields_debug, &
+                    fields_fluxtube_debug, fields_electromagnetic_debug, fields_ffs_debug, & 
+                    implicit_solve_debug, parallel_streaming_debug, mirror_terms_debug, neoclassical_terms_debug, &
+                    response_matrix_debug, time_advance_debug, extended_grid_debug, &
+                    diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
+                    diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
+                    gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo)
+
     call broadcast_parameters
 
   contains
-
-      !**********************************************************************
-      !                        SET DEFAULT PARAMETERS                       !
-      !**********************************************************************
-      ! If not specified in the input file these are the default options that 
-      ! will be set for all parameters under the namelist 
-      ! &debug_flags'.
-      ! The default here is that all debug flags are set to .false.
-      !**********************************************************************
-      subroutine set_default_parameters
-
-        implicit none
-        
-        ! Turn on all debug flags
-        debug_all = .false.
-        fields_all_debug = .false.
-        diagnostics_all_debug = .false.
-        
-        ! Debug flags
-        stella_debug = .false.
-        ffs_solve_debug = .false.
-        fields_debug = .false.
-        fields_fluxtube_debug = .false.
-        fields_electromagnetic_debug = .false. 
-        fields_ffs_debug = .false. 
-        implicit_solve_debug = .false.
-        mirror_terms_debug = .false.
-        neoclassical_terms_debug = .false.
-        parallel_streaming_debug = .false.
-        response_matrix_debug = .false.
-        time_advance_debug = .false.
-        extended_grid_debug = .false. 
-        geometry_debug = .false.
-        dist_fn_debug = .false.
-        gyro_averages_debug = .false.
-        
-        ! Diagnostics debug flags
-        diagnostics_debug = .false.
-        diagnostics_parameters = .false.
-        diagnostics_omega_debug = .false. 
-        diagnostics_fluxes_fluxtube_debug = .false. 
-        fluxes_debug = .false.
-        
-        !###################################
-        !     FOR THE PURPOSE OF DEBUGGING
-        !###################################
-        const_alpha_geo = .false. 
-
-      end subroutine set_default_parameters
-
-      !**********************************************************************
-      !                         READ INPUT OPTIONS                          !
-      !**********************************************************************
-      ! Overwrite any default options with those specified in the input file. 
-      ! Then change the other parameters consistently.
-      !**********************************************************************
-      subroutine read_input_file
-        
-        use file_utils, only: input_unit, error_unit, input_unit_exist
-        
-        implicit none 
-
-        integer :: in_file
-        logical :: nml_exist
-
-        !> Overwrite the default input parameters by those specified in the input file
-        !> under the heading '&numerical'  
-        in_file = input_unit_exist("debug_flags", nml_exist)
-        if (nml_exist) read (unit=in_file, nml=debug_flags)
-        
-        if (debug_all) then
-          stella_debug = .true.
-          ffs_solve_debug = .true.
-          fields_all_debug = .true. 
-          
-          time_advance_debug = .true.
-          implicit_solve_debug = .true.
-          parallel_streaming_debug = .true.
-          response_matrix_debug = .true.
-          mirror_terms_debug = .true.
-          neoclassical_terms_debug = .true.
-          extended_grid_debug = .true. 
-          !> Set all diagnostics flags to be on
-          diagnostics_all_debug = .true.
-
-          dist_fn_debug = .true.
-          gyro_averages_debug = .true.
-          geometry_debug = .true. 
-        end if
-
-        if(diagnostics_all_debug) then
-           diagnostics_debug = .true.
-           diagnostics_parameters = .true.
-           diagnostics_fluxes_fluxtube_debug = .true.
-           diagnostics_omega_debug = .true. 
-           fluxes_debug = .true.
-        end if
-
-        if (fields_all_debug) then 
-          fields_debug = .true.
-          fields_fluxtube_debug = .true. 
-          fields_electromagnetic_debug = .true. 
-          fields_ffs_debug = .true.
-        end if 
-      end subroutine read_input_file
 
       !**********************************************************************
       !                         BROADCAST OPTIONS                           !
