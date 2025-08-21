@@ -3,11 +3,6 @@ module input_file_geometry
     use common_types, only: flux_surface_type
 
     implicit none
-    !&geometry_option
-    !&geometry_from_txt
-    !&geometry_vmec
-    !&geometry_miller
-    !&geometry_zpinch
 
     public :: read_namelist_geometry_options
     public :: read_namelist_geometry_miller
@@ -226,7 +221,6 @@ contains
         real, intent (out) :: rgeo, betaprim, betadbprim
         real, intent (out) :: d2qdr2, d2psidr2
         integer, intent (out) :: nzed_local
-
         logical, intent (out) :: write_profile_variation, read_profile_variation
 
         if (.not. proc0) return

@@ -192,7 +192,7 @@ contains
 
    subroutine checksaturation(istep, stop_stella)
    
-      use parameters_diagnostics, only: autostop
+      use numerical_parameters, only: autostop
       use parameters_diagnostics, only: navg
       use mp, only: proc0, broadcast
 

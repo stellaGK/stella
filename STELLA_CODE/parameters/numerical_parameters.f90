@@ -305,6 +305,8 @@ contains
             fully_implicit = .false.
          end if
 
+         if (include_nonlinear) autostop = .false.
+
        end subroutine check_numerical_inputs
 
       !**********************************************************************

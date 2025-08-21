@@ -321,11 +321,8 @@
   navg = 50.0
   nsave = -1.0
   nc_mult = 1.0
-  autostop = .false.        (this should only be in numerical_parameters)
   save_for_restart = .false.
   write_all = .false.
-  !! Add the following
-  !! add information prompt saying what diagnostic flags are being turned on
   write_all_time_traces = .true. 
   write_all_spectra_kxkyz = .false.
   write_all_spectra_kxky = .false.
@@ -337,11 +334,17 @@
   write_all_moments = .false.
 /
 &diagnostics_potential
+  write_all_potential_time_traces = .false.
+  write_all_potential_spectra = .false. 
   write_phi2_vs_time = .true.
   write_apar2_vs_time = .true.
   write_bpar2_vs_time = .true.
   write_phi_vs_kxkyz = .false.
+  write_apar_vs_kxkyz = .false.
+  write_bpar_vs_kxkyz = .false.
   write_phi2_vs_kxky = .false.
+  write_apar2_vs_kxky = .false.
+  write_bpar2_vs_kxky = .false.
 /
 &diagnostics_omega
   write_omega_vs_kxky = .true.
