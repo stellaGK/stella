@@ -104,6 +104,10 @@
   phiinit = 0.01
 /
 
+&initialise_distribution_noise
+  rng_seed = 1
+/
+
 !===============================================================================
 !                                    Numerics                                   
 !===============================================================================
@@ -120,17 +124,14 @@
   explicit_algorithm = 'rk2'
 /
 
-&numerical_extra
-  print_extra_info_to_terminal = .false.
-  rng_seed = 1
-/
-
 &parameters_numerical
   delt = 0.01
   nstep = 100
-  print_extra_info_to_terminal = .false.
-  rng_seed = 1
   explicit_option = 'rk2'
+/
+
+&debug_flags
+  print_extra_info_to_terminal = .false.
 /
 
 !===============================================================================

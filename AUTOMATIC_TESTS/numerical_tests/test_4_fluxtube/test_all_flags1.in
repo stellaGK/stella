@@ -36,6 +36,7 @@
   include_nonlinear = .true.				           ! Already tested in test_4_gyrokinetic_equation
   include_parallel_nonlinearity = .false.	   ! (TOGGLE)
   include_electromagnetic = .false.
+  include_radial_variation = .false.
 /
 
 &scale_gyrokinetic_terms
@@ -69,11 +70,17 @@
 !/
 
 &extra
-   include_pressure_variation = .true.
-   include_geometric_variation = .true.
-   radial_variation = .false. 
-   zeff = 0.01
-   vnew_ref = 0.01
+  zeff = 0.01
+  vnew_ref = 0.01
+/
+
+!===============================================================================
+!                               Radial variation                                
+!===============================================================================
+
+&multibox_parameters
+  include_pressure_variation = .true.
+  include_geometric_variation = .true.
 /
 
 !===============================================================================
@@ -147,6 +154,10 @@
   phiinit = 0.01
 /
 
+&initialise_distribution_noise
+  rng_seed = 1
+/
+
 !===============================================================================
 !                                    Numerics                                   
 !===============================================================================
@@ -163,9 +174,8 @@
   explicit_algorithm = 'rk2'
 /
 
-&numerical_extra
+&debug_flags
   print_extra_info_to_terminal = .false.
-  rng_seed = 1
 /
 
 !===============================================================================

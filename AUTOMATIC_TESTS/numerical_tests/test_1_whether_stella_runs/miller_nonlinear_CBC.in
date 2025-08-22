@@ -107,7 +107,11 @@
 
 &initialize_distribution
   initialize_distribution_option = 'noise'
-  phiinit = 0.01 
+  phiinit = 0.01
+/
+
+&initialise_distribution_noise
+  rng_seed = 1
 /
 
 !===============================================================================
@@ -126,7 +130,6 @@
   explicit_algorithm = 'rk2'
 /
 
-&numerical_extra
+&debug_flags
   print_extra_info_to_terminal = .false.
-  rng_seed = 1
 /

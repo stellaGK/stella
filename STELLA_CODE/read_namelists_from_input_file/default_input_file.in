@@ -1,13 +1,74 @@
 
-! Once a namelist has been added to the <input_file.f90> module,
-! add its default variables here.
+! Default input variables for the stella code.
+
+!===============================================================================
+!                                   Geometry                                  
+!===============================================================================
+
+&geometry_options
+  geometry_option = 'local'
+  q_as_x = .false.
+/
+
+&geometry_miller
+  rhoc = 0.5
+  rmaj = 3.0
+  shift = 0.0
+  qinp = 1.4
+  shat = 0.8
+  kappa = 0.0
+  kapprim = 0.0
+  tri = 0.0
+  triprim = 0.0
+  rgeo = 3.0
+  betaprim = 0.0
+  betadbprim = 0.0
+  d2qdr2 = 0.0
+  d2psidr2 = 0.0
+  nzed_local = 128.0
+  read_profile_variation = .false.
+  write_profile_variation = .false.
+/
+
+&geometry_vmec
+  alpha0 = 0.0
+  zeta_center = 0.0
+  rectangular_cross_section = .false.
+  nfield_periods = -1.0
+  torflux = 0.6354167
+  z_grid_refinement_factor = 1.0
+  surface_option = 0.0
+  radial_coordinate = 'sgn(psi_t)psi_t'
+  verbose = .true.
+  vmec_filename = 'equilibria/wout_w7x_standardconfig.nc'
+  n_tolerated_test_arrays_inconsistencies = 0.0
+/
+
+&geometry_zpinch
+  betaprim = 0.0
+/
+
+&geometry_from_txt
+  geometry_file = 'input.geometry'
+  overwrite_bmag = .false.
+  overwrite_b_dot_grad_zeta = .false.
+  overwrite_gds2 = .false.
+  overwrite_gds21 = .false.
+  overwrite_gds22 = .false.
+  overwrite_gds23 = .false.
+  overwrite_gds24 = .false.
+  overwrite_gbdrift = .false.
+  overwrite_cvdrift = .false.
+  overwrite_gbdrift0 = .false.
+  set_bmag_const = .false.
+/
 
 !===============================================================================
 !                                  Physics                                  
 !===============================================================================
 
 &gyrokinetic_terms
-  simulation_domain = 'fluxtube' 
+  simulation_domain = 'fluxtube'
   include_parallel_streaming = .true.
   include_mirror = .true.
   include_xdrift = .true. !! xdriftknob = 1.0 or 0.0 
@@ -21,10 +82,10 @@
 /
 
 &scale_gyrokinetic_terms
-  xdriftknob = 1.0 
+  xdriftknob = 1.0
   ydriftknob = 1.0
   wstarknob = 1.0
-  fphi = 1.0 
+  fphi = 1.0
   suppress_zonal_interaction = .false.
 /
 
@@ -33,6 +94,7 @@
   tite = 1.0
   nine = 1.0
 /
+
 &electromagnetic
   include_apar = .false.
   include_bpar = .false.
@@ -56,18 +118,19 @@
 &flux_annulus
   nitt = 1
 /
+
 !===============================================================================
 !                                Kinetic species                                
 !===============================================================================
 
 &species_options
   nspec = 2.0
-  species_option = "stella"
-  read_profile_variation = .false.    
+  species_option = 'stella'
+  read_profile_variation = .false.
   write_profile_variation = .false.
   ecoll_zeff = .false. !! NB: has to be here to avoid circular dependencies
 /
- 
+
 &species_parameters_1
   z = 1.0
   mass = 1.0
@@ -78,9 +141,9 @@
   d2ndr2 = 0.0
   d2tdr2 = 0.0
   bess_fac = 1.0
-  type = "default"
+  type = 'default'
 /
- 
+
 &species_parameters_2
   z = 1.0
   mass = 1.0
@@ -91,18 +154,20 @@
   d2ndr2 = 0.0
   d2tdr2 = 0.0
   bess_fac = 1.0
-  type = "default"
+  type = 'default'
 /
+
 &euterpe_parameters
   nradii = 1000.0
-  data_file = "euterpe.dat"
- /
+  data_file = 'euterpe.dat'
+/
+
 !===============================================================================
 !                       Discretized (kx,ky,z,mu,vpa) grid                       
 !===============================================================================
 
 &kxky_grid_option
-  grid_option = "default"
+  grid_option = 'default'
 /
 
 &kxky_grid_range
@@ -114,7 +179,7 @@
   theta0_max = -1.0
   akx_min = 0.0
   akx_max = -1.0
-  kyspacing_option = "default"
+  kyspacing_option = 'default'
 /
 
 &kxky_grid_box
@@ -138,7 +203,7 @@
 /
 
 &z_boundary_condition
-  boundary_option = "default"
+  boundary_option = 'default'
   shat_zero = 1e-05
   grad_x_grad_y_zero = 1e-05
   dkx_over_dky = -1.0
@@ -164,7 +229,7 @@
   nc_mult = 1.0
   save_for_restart = .false.
   write_all = .false.
-  write_all_time_traces = .true. 
+  write_all_time_traces = .true.
   write_all_spectra_kxkyz = .false.
   write_all_spectra_kxky = .false.
   write_all_velocity_space = .false.
@@ -174,9 +239,10 @@
   write_all_fluxes = .false.
   write_all_moments = .false.
 /
+
 &diagnostics_potential
   write_all_potential_time_traces = .false.
-  write_all_potential_spectra = .false. 
+  write_all_potential_spectra = .false.
   write_phi2_vs_time = .true.
   write_apar2_vs_time = .true.
   write_bpar2_vs_time = .true.
@@ -187,10 +253,12 @@
   write_apar2_vs_kxky = .false.
   write_bpar2_vs_kxky = .false.
 /
+
 &diagnostics_omega
   write_omega_vs_kxky = .false.
   write_omega_avg_vs_kxky = .false.
 /
+
 &diagnostics_distribution
   write_g2_vs_vpamus = .false.
   write_g2_vs_zvpas = .false.
@@ -201,16 +269,18 @@
   write_distribution_h = .false.
   write_distribution_f = .false.
 /
+
 &diagnostics_fluxes
-  flux_norm = .true. 
+  flux_norm = .true.
   write_fluxes_vs_time = .true.
   write_radial_fluxes = radial_variation
   write_fluxes_kxkyz = .false.
   write_fluxes_kxky = .false.
 /
+
 &diagnostics_moments
   write_moments = .false.
-  write_radial_moments = .false. 
+  write_radial_moments = .false.
 /
 !===============================================================================
 !                              Initialise potential                             
@@ -235,7 +305,7 @@
    zf_init = 1.0
    chop_side = .false.
    left = .true.
-   rng_seed = -1 
+   rng_seed = -1
 /
 
 &initialise_distribution_kpar
@@ -286,7 +356,7 @@
 
 &time_step
   delt = 0.03
-  delt_option = "default"
+  delt_option = 'default'
   delt_max = -1.0
   delt_min = 1e-10
   cfl_cushion_upper = 0.5
@@ -295,7 +365,7 @@
 /
 
 &numerical_algorithms
-  explicit_algorithm = "rk3"
+  explicit_algorithm = 'rk3'
   flip_flop = .false.  
   stream_implicit = .true.
   stream_iterative_implicit = .false.
@@ -307,7 +377,7 @@
   drifts_implicit = .false.
   fully_implicit = .false.
   fully_explicit = .false.
-  split_parallel_dynamics = .false. 
+  split_parallel_dynamics = .false.
   maxwellian_inside_zed_derivative = .false.
   use_deltaphi_for_response_matrix = .false.
   maxwellian_normalization = .false.
@@ -329,12 +399,14 @@
    hyper_dissipation = .false.
    collision_model = 'dougherty'
 /
+
 &collisions_dougherty
   momentum_conservation = .true.
   energy_conservation = .true.
   vpa_operator = .true.
   mu_operator = .true.
- /
+/
+
 &collisions_fokker_planck
   testpart = .true.
   fieldpart = .false.
@@ -368,7 +440,8 @@
   no_j1l1 = .true.
   no_j1l2 = .false.
   no_j0l2 = .false.
- /
+/
+
 &hyper_dissipation
   d_hyper = 0.05
   d_zed = 0.05
@@ -377,65 +450,76 @@
   hyp_vpa = .false.
   use_physical_ksqr = .true.
   scale_to_outboard = .false.
- /
+/
 
 !===============================================================================
-!                                   Geometry                                  
+!                                  Neoclassics                                  
 !===============================================================================
 
-&geometry_options
-  geometry_option = "local"
-  q_as_x = .false.
+&neoclassical_input
+  include_neoclassical_terms = .false.
+  neo_option = 'sfincs'
+  nradii = 5.0
+  drho = 0.01
 /
-&geometry_from_txt
-  geometry_file = "input.geometry"
-  overwrite_bmag = .false.
-  overwrite_b_dot_grad_zeta = .false.
-  overwrite_gds2 = .false.
-  overwrite_gds21 = .false.
-  overwrite_gds22 = .false.
-  overwrite_gds23 = .false.
-  overwrite_gds24 = .false.
-  overwrite_gbdrift = .false.
-  overwrite_cvdrift = .false.
-  overwrite_gbdrift0 = .false.
-  set_bmag_const = .false.
+
+!===============================================================================
+!                                    Sources                                    
+!===============================================================================
+
+&sources
+  source_option = 'none'
+  nu_krook = 0.05
+  tcorr_source = 0.02
+  ikxmax_source = 1.0
+  krook_odd = .true.
+  exclude_boundary_regions = .false.
+  tcorr_source_qn = 0.0
+  exclude_boundary_regions_qn = .false.
+  from_zero = .true.
+  conserve_momentum = .false.
+  conserve_density = .false.
 /
-&geometry_miller
-  rhoc = 0.5
-  rmaj = 3.0
-  shift = 0.0
-  qinp = 1.4
-  shat = 0.8
-  kappa = 0.0
-  kapprim = 0.0
-  tri = 0.0
-  triprim = 0.0
-  rgeo = 3.0
-  betaprim = 0.0
-  betadbprim = 0.0
-  d2qdr2 = 0.0
-  d2psidr2 = 0.0
-  nzed_local = 128.0
-  read_profile_variation = .false.
-  write_profile_variation = .false.
- /
- &geometry_vmec
-  alpha0 = 0.0
-  zeta_center = 0.0
-  rectangular_cross_section = .false.
-  nfield_periods = -1.0
-  torflux = 0.6354167
-  z_grid_refinement_factor = 1.0
-  surface_option = 0.0
-  radial_coordinate = "sgn(psi_t)psi_t"
-  verbose = .true.
-  vmec_filename = "equilibria/wout_w7x_standardconfig.nc"
-  n_tolerated_test_arrays_inconsistencies = 0.0
- /
- &geometry_zpinch
-  betaprim = 0.0
+
+!===============================================================================
+!                                Radial variation                               
+!===============================================================================
+
+&multibox_parameters
+  ky_solve_radial = 0.0
+  ky_solve_real = .false.
+  include_geometric_variation = .true.
+  include_pressure_variation = .false.
+  smooth_zf = .false.
+  zf_option = 'default'
+  lr_debug_option = 'default'
+  krook_option = 'default'
+  krook_size = 0.0
+  rk_step = .false.
+  nu_krook_mb = 0.0
+  mb_debug_step = -1.0
+  krook_exponent = 0.0
+  krook_efold = 3.0
+  phi_bound = 0.0
+  phi_pow = 0.0
+  use_dirichlet_bc = .false.
+  boundary_size = 4.0
+  krook_size = 0.0
 /
+
+!===============================================================================
+!                                Parallelisation                                
+!===============================================================================
+
+&parallelisation
+  xyzs_layout = 'yxzs'
+  vms_layout = 'vms'
+  mat_gen = .false.
+  mat_read = .false.
+  lu_option = 'default'
+  fields_kxkyz = .false.
+/
+
 !===============================================================================
 !                                    Debug                                   
 !===============================================================================
@@ -467,71 +551,5 @@
   fluxes_debug = .false.
   geometry_debug = .false.
   const_alpha_geo = .false.
- /
-
-!-------------------------------
-!--------  Neoclassics  --------
-!-------------------------------
-  
-&neoclassical_input
-  include_neoclassical_terms = .false.
-  neo_option = "sfincs"
-  nradii = 5.0
-  drho = 0.01
- /
-
-!--------------------------------
-!-------  Parallelisation  ------
-!--------------------------------
-
-&parallelisation
-  xyzs_layout = "yxzs"
-  vms_layout = "vms"
-  mat_gen = .false.
-  mat_read = .false.
-  lu_option = "default"
-  fields_kxkyz = .false.
 /
-!--------------------------------
-!-----------  Sources  ----------
-!--------------------------------
-&sources
-  source_option = "none"
-  nu_krook = 0.05
-  tcorr_source = 0.02
-  ikxmax_source = 1.0
-  krook_odd = .true.
-  exclude_boundary_regions = .false.
-  tcorr_source_qn = 0.0
-  exclude_boundary_regions_qn = .false.
-  from_zero = .true.
-  conserve_momentum = .false.
-  conserve_density = .false.
- /
-
-!--------------------------------
-!------  Radial variation  ------
-!--------------------------------
-  &multibox_parameters
-  ky_solve_radial = 0.0
-  ky_solve_real = .false.
-  include_geometric_variation = .true. 
-  include_pressure_variation = .false.
-  smooth_zf = .false.
-  zf_option = "default"
-  lr_debug_option = "default"
-  krook_option = "default"
-  krook_size = 0.0
-  rk_step = .false.
-  nu_krook_mb = 0.0
-  mb_debug_step = -1.0
-  krook_exponent = 0.0
-  krook_efold = 3.0
-  phi_bound = 0.0
-  phi_pow = 0.0
-  use_dirichlet_bc = .false.
-  boundary_size = 4.0
-  krook_size = 0.0  
- /
-
 

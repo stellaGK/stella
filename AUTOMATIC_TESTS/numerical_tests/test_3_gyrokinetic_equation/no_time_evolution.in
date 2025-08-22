@@ -130,7 +130,7 @@
   drifts_implicit = .false.
 /
 
-&numerical_extra 
+&debug_flags 
   print_extra_info_to_terminal = .false. 
 /
 

@@ -1,42 +1,40 @@
- 
-! Simple nonlinear example using CBC, including only the implicit parallel streaming term
+
+! Simple nonlinear example based on a VMEC equillibrium at rho=0.7 
+! Use this to test which flags are useless. Toggle certain flags or
+! change certain variables to see if it changes the output at all.
 
 !===============================================================================
 !                               Magnetic Geometry                               
 !===============================================================================
 
 &geometry_options
-  geometry_option = 'miller'
+  geometry_option = 'vmec'
 /
-&geometry_miller
-  nzed_local = 128
-  rhoc = 0.5
-  shat = 0.796
-  qinp = 1.4
-  rmaj = 2.77778
-  rgeo = 2.77778
-  shift = 0.0
-  kappa = 1.0
-  kapprim = 0.0
-  tri = 0.0
-  triprim = 0.0
-  betaprim = 0.0
-  d2qdr2 = 0.0
-  d2psidr2 = 0.0
-  betadbprim = 0.0
-/ 
+&geometry_vmec
+  nfield_periods = 6.073867
+  surface_option = 0
+  torflux = 0.49
+  verbose = .true.
+  vmec_filename = 'wout_w7x_kjm.nc'
+  zeta_center = 0.0
+/
 
 !===============================================================================
 !                                    Physics                                    
 !===============================================================================
 
 &gyrokinetic_terms
-  include_parallel_streaming = .true.
-  include_mirror = .false.
-  include_xdrift = .false.
-  include_ydrift = .false.
-  include_drive = .false.
   include_nonlinear = .true.
+/
+&electromagnetic
+  beta = 999
+/
+&flux_annulus
+  rhostar = 999
+/
+&extra
+  zeff = 999
+  vnew_ref = 999
 /
 
 !===============================================================================
@@ -44,7 +42,7 @@
 !===============================================================================
 
 &species_options
-  nspec = 2
+  nspec = 2 
 /
 &species_parameters_1
   dens = 1.0
@@ -81,7 +79,7 @@
   nzed = 12
 /
 &z_boundary_condition
-  boundary_option = 'linked'
+  boundary_option = 'stellarator'
 /
 &velocity_grids
   nmu = 2 
@@ -93,21 +91,21 @@
 !===============================================================================
 
 &diagnostics
-  nsave = 100
-  nwrite = 10 
+  nsave = 10
+  nwrite = 1
 /
 
 !===============================================================================
-!                              initialise potential                             
+!                              Initialise potential                             
 !===============================================================================
 
 &initialise_distribution
-  initialise_distribution_option = 'default'
+  initialise_distribution_option = 'noise'
   phiinit = 0.01
 /
 
-&initialise_distribution_maxwellian
-  width0 = 1.0
+&initialise_distribution_noise
+  rng_seed = 1
 /
 
 !===============================================================================
@@ -115,7 +113,7 @@
 !===============================================================================
 
 &time_trace_options
-  nstep = 100
+  nstep = 10
 /
 
 &time_step
@@ -124,12 +122,19 @@
 
 &numerical_algorithms
   explicit_algorithm = 'rk2'
-  stream_implicit = .true.
-  mirror_implicit = .false.
-  drifts_implicit = .false.
 /
 
-&debug_flags 
-  print_extra_info_to_terminal = .false. 
+&debug_flags
+  print_extra_info_to_terminal = .false.
 /
+
+!===============================================================================
+!                                  Dissipation                                  
+!===============================================================================
+
+&dissipation
+  hyper_dissipation = .true.
+/
+
+
 

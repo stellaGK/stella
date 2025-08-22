@@ -44,8 +44,12 @@
   include_electromagnetic = .false.
 /
 
-&flux_annulus
+&physics_inputs
   rhostar = 0.02
+/
+
+&flux_annulus
+  nitt = 5
 /
 
 !===============================================================================
@@ -131,9 +135,7 @@
   mirror_implicit = .false.
 /
 
-&numerical_extra
-  nitt = 5
-  lu_option = 'local'
+&debug_flags
   print_extra_info_to_terminal = .false.
 /
 
