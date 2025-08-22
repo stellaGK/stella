@@ -1,4 +1,4 @@
-module implicit_solve
+module gk_implicit_solve
 
   use debug_flags, only: debug => implicit_solve_debug
   
@@ -1337,4 +1337,4 @@ contains
 
    end subroutine invert_parstream_response
 
-end module implicit_solve
+end module gk_implicit_solve

@@ -32,12 +32,12 @@ contains
       use neoclassical_terms, only: init_neoclassical_terms
       use dissipation, only: init_collisions, include_collisions
       use gk_parallel_streaming, only: init_parallel_streaming
-      use mirror_terms, only: init_mirror
+      use gk_mirror, only: init_mirror
       use gk_flow_shear, only: init_flow_shear
-      use sources, only: init_quasineutrality_source, init_source_timeaverage
+      use gk_sources, only: init_quasineutrality_source, init_source_timeaverage
 
-      use radial_variation_time_advance, only: init_radial_variation
-      use parallel_nonlinearity, only: init_parallel_nonlinearity
+      use gk_radial_variation, only: init_radial_variation
+      use gk_nonlinearity, only: init_parallel_nonlinearity
 
       implicit none
 
@@ -136,7 +136,7 @@ contains
       use grids_kxky, only: akx, aky, rho
       use gk_parallel_streaming, only: stream
       use gk_parallel_streaming, only: stream_rad_var1, stream_rad_var2
-      use mirror_terms, only: mirror
+      use gk_mirror, only: mirror
       use gk_flow_shear, only: prl_shear, shift_times
       use file_utils, only: runtype_option_switch, runtype_multibox
       use dissipation, only: include_collisions, collisions_implicit
@@ -279,15 +279,15 @@ contains
       use fields, only: advance_fields, fields_updated
       use parameters_numerical, only: fully_explicit, fully_implicit
       use parameters_multibox, only: rk_step
-      use sources, only: include_qn_source, update_quasineutrality_source
-      use sources, only: source_option_switch, source_option_projection
-      use sources, only: source_option_krook
-      use sources, only: update_tcorr_krook, project_out_zero
+      use gk_sources, only: include_qn_source, update_quasineutrality_source
+      use gk_sources, only: source_option_switch, source_option_projection
+      use gk_sources, only: source_option_krook
+      use gk_sources, only: update_tcorr_krook, project_out_zero
       use parameters_physics, only: include_apar
       use mp, only: proc0, broadcast
 
       use parameters_numerical, only: flip_flop
-      use radial_variation_time_advance, only: mb_communicate
+      use gk_radial_variation, only: mb_communicate
 
       implicit none
 
@@ -490,7 +490,7 @@ contains
       use z_grid, only: nzgrid
       use stella_layouts, only: vmu_lo
       use parameters_multibox, only: rk_step
-      use radial_variation_time_advance, only: mb_communicate
+      use gk_radial_variation, only: mb_communicate
 
       implicit none
 
@@ -519,7 +519,7 @@ contains
       use z_grid, only: nzgrid
       use stella_layouts, only: vmu_lo
       use parameters_multibox, only: rk_step
-      use radial_variation_time_advance, only: mb_communicate
+      use gk_radial_variation, only: mb_communicate
 
       implicit none
 
@@ -570,7 +570,7 @@ contains
       use z_grid, only: nzgrid
       use stella_layouts, only: vmu_lo
       use parameters_multibox, only: rk_step
-      use radial_variation_time_advance, only: mb_communicate
+      use gk_radial_variation, only: mb_communicate
 
       implicit none
 
@@ -625,7 +625,7 @@ contains
       use z_grid, only: nzgrid
       use stella_layouts, only: vmu_lo
       use parameters_multibox, only: rk_step
-      use radial_variation_time_advance, only: mb_communicate
+      use gk_radial_variation, only: mb_communicate
 
       implicit none
 
@@ -718,16 +718,16 @@ contains
       use grids_kxky, only: zonal_mode, akx
       
       use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
-      use sources, only: source_option_switch, source_option_krook
-      use sources, only: add_krook_operator
+      use gk_sources, only: source_option_switch, source_option_krook
+      use gk_sources, only: add_krook_operator
       use gk_parallel_streaming, only: advance_parallel_streaming_explicit
-      use mirror_terms, only: advance_mirror_explicit
+      use gk_mirror, only: advance_mirror_explicit
       use gk_flow_shear, only: advance_parallel_flow_shear
       use gk_drifts, only: advance_wstar_explicit
       use gk_drifts, only: advance_wdriftx_explicit, advance_wdrifty_explicit
-      use parallel_nonlinearity, only: advance_parallel_nonlinearity
-      use radial_variation_time_advance, only: advance_radial_variation
-      use advance_nonlinearity, only: advance_ExB_nonlinearity
+      use gk_nonlinearity, only: advance_parallel_nonlinearity
+      use gk_radial_variation, only: advance_radial_variation
+      use gk_nonlinearity, only: advance_ExB_nonlinearity
       use dissipation, only: hyper_dissipation
 
       use fields, only: fields_updated, advance_fields
@@ -939,10 +939,10 @@ contains
       use dissipation, only: collisions_implicit, include_collisions
       use dissipation, only: advance_collisions_implicit
       use hyper, only: advance_hyper_dissipation
-      use implicit_solve, only: advance_implicit_terms
-      use mirror_terms, only: advance_mirror_implicit
+      use gk_implicit_solve, only: advance_implicit_terms
+      use gk_mirror, only: advance_mirror_implicit
       use gk_flow_shear, only: advance_perp_flow_shear
-      use radial_variation_time_advance, only: mb_communicate
+      use gk_radial_variation, only: mb_communicate
 
       implicit none
 
@@ -1050,13 +1050,13 @@ contains
       use parameters_physics, only: full_flux_surface
       use extended_zgrid, only: finish_extended_zgrid
       use gk_parallel_streaming, only: finish_parallel_streaming
-      use mirror_terms, only: finish_mirror
+      use gk_mirror, only: finish_mirror
       use gk_flow_shear, only: finish_flow_shear
       use neoclassical_terms, only: finish_neoclassical_terms
       use dissipation, only: finish_dissipation
       use gk_drifts, only: finish_wstar, finish_wdrift
-      use parallel_nonlinearity, only: finish_parallel_nonlinearity
-      use radial_variation_time_advance, only: finish_radial_variation
+      use gk_nonlinearity, only: finish_parallel_nonlinearity
+      use gk_radial_variation, only: finish_radial_variation
 
       implicit none
 

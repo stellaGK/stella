@@ -1,4 +1,4 @@
-module radial_variation_time_advance
+module gk_radial_variation
 
     use debug_flags, only: debug => parallel_streaming_debug 
 
@@ -181,7 +181,7 @@ contains
         use store_arrays_distribution_fn, only: wstar, wstarp
         use store_arrays_useful, only: time_gke
 
-        use mirror_terms, only: add_mirror_radial_variation
+        use gk_mirror, only: add_mirror_radial_variation
         use gk_flow_shear, only: prl_shear, prl_shear_p
         use gk_parallel_streaming, only: add_parallel_streaming_radial_variation
 
@@ -355,4 +355,4 @@ contains
     end subroutine finish_radial_variation
 
 
-end module radial_variation_time_advance
+end module gk_radial_variation

@@ -690,7 +690,7 @@ contains
       use stella_layouts, only: vmu_lo
       use parameters_numerical, only: time_upwind_plus
       use parameters_physics, only: include_apar, include_bpar
-      use implicit_solve, only: get_gke_rhs, sweep_g_zext
+      use gk_implicit_solve, only: get_gke_rhs, sweep_g_zext
       use store_arrays_fields, only: response_matrix
       use extended_zgrid, only: periodic, phase_shift
       use parameters_physics, only: full_flux_surface
@@ -778,7 +778,7 @@ contains
       use stella_layouts, only: vmu_lo
       use parameters_numerical, only: time_upwind_plus
       use parameters_physics, only: include_apar, include_bpar
-      use implicit_solve, only: get_gke_rhs, sweep_g_zext
+      use gk_implicit_solve, only: get_gke_rhs, sweep_g_zext
       use store_arrays_fields, only: response_matrix
       use extended_zgrid, only: periodic
 #ifdef ISO_C_BINDING
@@ -864,7 +864,7 @@ contains
       use stella_layouts, only: vmu_lo
       use parameters_numerical, only: time_upwind_plus
       use parameters_physics, only: include_apar, include_bpar
-      use implicit_solve, only: get_gke_rhs, sweep_g_zext
+      use gk_implicit_solve, only: get_gke_rhs, sweep_g_zext
       use store_arrays_fields, only: response_matrix
       use extended_zgrid, only: periodic
 #ifdef ISO_C_BINDING

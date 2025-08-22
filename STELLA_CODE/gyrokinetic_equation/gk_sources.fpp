@@ -1,4 +1,4 @@
-module sources
+module gk_sources
 
 #ifdef ISO_C_BINDING
    use mpi
@@ -861,4 +861,4 @@ contains
 
    end subroutine update_quasineutrality_source
 
-end module sources
+end module gk_sources

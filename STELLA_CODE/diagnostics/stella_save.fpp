@@ -93,9 +93,9 @@ contains
       use common_types, only: kxkyz_layout_type
       use file_utils, only: error_unit
       use velocity_grids, only: nvpa, nmu
-      use sources, only: source_option_krook, source_option_projection
-      use sources, only: source_option_switch, int_krook, int_proj
-      use sources, only: include_qn_source
+      use gk_sources, only: source_option_krook, source_option_projection
+      use gk_sources, only: source_option_switch, int_krook, int_proj
+      use gk_sources, only: include_qn_source
 
       implicit none
 
@@ -722,9 +722,9 @@ contains
       use velocity_grids, only: nvpa, nmu
       use stella_layouts, only: kxkyz_lo, vmu_lo
       use file_utils, only: error_unit
-      use sources, only: source_option_krook, source_option_projection
-      use sources, only: source_option_switch, int_krook, int_proj
-      use sources, only: include_qn_source
+      use gk_sources, only: source_option_krook, source_option_projection
+      use gk_sources, only: source_option_switch, int_krook, int_proj
+      use gk_sources, only: include_qn_source
 
       implicit none
 

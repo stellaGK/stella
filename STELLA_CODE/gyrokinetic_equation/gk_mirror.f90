@@ -1,6 +1,6 @@
-module mirror_terms
+module gk_mirror
 
-  use debug_flags, only: debug => mirror_terms_debug 
+   use debug_flags, only: debug => mirror_terms_debug 
    implicit none
 
    public :: mirror_initialized
@@ -1174,4 +1174,4 @@ contains
 
    end subroutine finish_mirror_response
 
-end module mirror_terms
+end module gk_mirror

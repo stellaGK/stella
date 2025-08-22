@@ -139,7 +139,7 @@ contains
       use multibox, only: multibox_communicate
       use ran, only: get_rnd_seed_length, init_ranf
       use dissipation, only: init_dissipation
-      use sources, only: init_sources
+      use gk_sources, only: init_sources
       use volume_averages, only: init_volume_averages, volume_average
       
       implicit none
@@ -587,9 +587,9 @@ contains
       use store_arrays_useful, only: time_gke, time_parallel_nl
       use gk_time_advance, only: finish_time_advance
       use gk_parallel_streaming, only: time_parallel_streaming
-      use mirror_terms, only: time_mirror
+      use gk_mirror, only: time_mirror
       use dissipation, only: time_collisions, include_collisions 
-      use sources, only: finish_sources, time_sources, source_option_switch, source_option_none
+      use gk_sources, only: finish_sources, time_sources, source_option_switch, source_option_none
       use initialise_g_distribution_fn, only: finish_init_g
       use arrays_distribution_fn, only: finish_arrays_distribution_fn
       use arrays_constants, only: finish_arrays_vperp_kperp
@@ -607,7 +607,7 @@ contains
       use multibox, only: finish_multibox, time_multibox
       use parameters_numerical, only: stream_implicit, drifts_implicit
       use stella_layouts, only: fields_kxkyz
-      use implicit_solve, only: time_implicit_advance
+      use gk_implicit_solve, only: time_implicit_advance
       use debug_flags, only: print_extra_info_to_terminal
 
       implicit none
