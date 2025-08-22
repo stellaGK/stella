@@ -131,6 +131,11 @@
    type = 'ion'
 /
 
+&euterpe_parameters
+   nradii = 1000
+   data_file = 'euterpe.dat'
+/
+
 &kt_grids_knobs
    grid_option = 'range'
 /
@@ -311,11 +316,6 @@
 !-------------------------------
 !--------  Neoclassics  --------
 !-------------------------------
-
-&euterpe_parameters
-   nradii = 1000
-   data_file = 'euterpe.dat'
-/
 
 &neoclassical_input
    include_neoclassical_terms = .false.

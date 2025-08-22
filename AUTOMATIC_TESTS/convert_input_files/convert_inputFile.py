@@ -19,12 +19,16 @@ import numpy as np
 import f90nml, json
 
 #--------------------------------------------------------------
-def update_inputFile(path_input_file='', add_default_variables=False):
+def update_inputFile(path_input_file='', add_default_variables=False, downgrade=False):
     ''' Update an input file from stella version 5, 6, 7 or 8 to the master version. '''
     
     # Read the input file
     input_parameters = f90nml.read(path_input_file)
     input_parameters = json.loads(json.dumps(input_parameters))  
+    
+    # We can upgrade the input file from stella version v0.5 to v1.0
+    # Or we can downgrade the input file from stella version v1.0 to v0.5c
+    upgrade = not downgrade
     
     # Make sure everything is in lower case
     for namelist in input_parameters.keys():
@@ -66,8 +70,8 @@ def update_inputFile(path_input_file='', add_default_variables=False):
         'vmec_parameters:torflux:0.6354167'         : 'geometry_vmec:torflux:0.6354167',
         'vmec_parameters:surface_option:0'          : 'geometry_vmec:surface_option:0',
         'vmec_parameters:verbose:True'              : 'geometry_vmec:verbose:True',
-        'vmec_parameters:gradpar_zeta_prefac:1.0'   : 'geometry_vmec:gradpar_zeta_prefac:DEPRECATED',
-        'vmec_parameters:zgrid_scalefac:1.0'        : 'geometry_vmec:zgrid_scalefac:DEPRECATED',
+        'vmec_parameters:gradpar_zeta_prefac:1.0'   : 'vmec_parameters:gradpar_zeta_prefac:DEPRECATED',
+        'vmec_parameters:zgrid_scalefac:1.0'        : 'vmec_parameters:zgrid_scalefac:DEPRECATED',
         'geometry_vmec:z_grid_refinement_factor:DOESNT EXIST YET' : 'geometry_vmec:z_grid_refinement_factor:1.0',
         'geometry_vmec:rectangular_cross_section:DOESNT EXIST YET' : 'geometry_vmec:rectangular_cross_section:False',
         'geometry_vmec:radial_coordinate:DOESNT EXIST YET' : 'geometry_vmec:radial_coordinate:sgn(psi_t)psi_t',
@@ -90,18 +94,18 @@ def update_inputFile(path_input_file='', add_default_variables=False):
         'millergeo_parameters:d2psidr2:0.0'         : 'geometry_miller:d2psidr2:0.0',
         'millergeo_parameters:read_profile_variation:False' : 'geometry_miller:read_profile_variation:False',
         'millergeo_parameters:write_profile_variation:False' : 'geometry_miller:write_profile_variation:False',
-        'millergeo_parameters:load_psi0_variables:True' : 'geometry_miller:load_psi0_variables:DEPRECATED',
-        'millergeo_parameters:rhotor:rhoc'          : 'geometry_miller:rhotor:DEPRECATED',
-        'millergeo_parameters:psitor_lcfs:1.0'      : 'geometry_miller:psitor_lcfs:DEPRECATED',
-        'millergeo_parameters:drhotordrho:1.0'      : 'geometry_miller:drhotordrho:DEPRECATED',
-        'millergeo_parameters:rhoc0:0.5'            : 'geometry_miller:rhoc0:DEPRECATED',
+        'millergeo_parameters:load_psi0_variables:True' : 'millergeo_parameters:load_psi0_variables:DEPRECATED',
+        'millergeo_parameters:rhotor:rhoc'          : 'millergeo_parameters:rhotor:DEPRECATED',
+        'millergeo_parameters:psitor_lcfs:1.0'      : 'millergeo_parameters:psitor_lcfs:DEPRECATED',
+        'millergeo_parameters:drhotordrho:1.0'      : 'millergeo_parameters:drhotordrho:DEPRECATED',
+        'millergeo_parameters:rhoc0:0.5'            : 'millergeo_parameters:rhoc0:DEPRECATED',
         #------------------- millergeo_parameters --> geometry_miller ------------------
         'geometry_zpinch:betaprim:DOESNT EXIST YET' : 'geometry_zpinch:betaprim:0.0',
         
         }
     
     # Replace variables
-    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables)
+    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     #===============================================================================
     #                                     Physics                                  
@@ -158,51 +162,84 @@ def update_inputFile(path_input_file='', add_default_variables=False):
         }
     
     # Replace variables
-    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables)
+    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     # Add the default variables
-    if add_default_variables:
-        if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['gyrokinetic_terms'] = {}
-        input_parameters['gyrokinetic_terms']['include_xdrift'] = True
-        input_parameters['gyrokinetic_terms']['include_ydrift'] = True
-        input_parameters['gyrokinetic_terms']['include_drive'] = True
+    if upgrade:
+        if add_default_variables:
+            if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['gyrokinetic_terms'] = {}
+            input_parameters['gyrokinetic_terms']['include_xdrift'] = True
+            input_parameters['gyrokinetic_terms']['include_ydrift'] = True
+            input_parameters['gyrokinetic_terms']['include_drive'] = True
     
     # Manually change some variables
-    if 'time_advance_knobs' in input_parameters.keys():
-        if 'xdriftknob' in input_parameters['time_advance_knobs'].keys():
-            value_old = input_parameters['time_advance_knobs']['xdriftknob']
-            del input_parameters['time_advance_knobs']['xdriftknob']
-            if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['gyrokinetic_terms'] = {}
-            if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['scale_gyrokinetic_terms'] = {}
-            input_parameters['scale_gyrokinetic_terms']['xdriftknob'] = value_old
-            value_old = True if value_old > 0 else False
-            input_parameters['gyrokinetic_terms']['include_xdrift'] = value_old
-        if 'ydriftknob' in input_parameters['time_advance_knobs'].keys():
-            value_old = input_parameters['time_advance_knobs']['ydriftknob']
-            del input_parameters['time_advance_knobs']['ydriftknob']
-            if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['gyrokinetic_terms'] = {}
-            if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['scale_gyrokinetic_terms'] = {}
-            input_parameters['scale_gyrokinetic_terms']['ydriftknob'] = value_old
-            value_old = True if value_old > 0 else False
-            input_parameters['gyrokinetic_terms']['include_ydrift'] = value_old
-        if 'wstarknob' in input_parameters['time_advance_knobs'].keys():
-            value_old = input_parameters['time_advance_knobs']['wstarknob']
-            del input_parameters['time_advance_knobs']['wstarknob']
-            if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['gyrokinetic_terms'] = {}
-            if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['scale_gyrokinetic_terms'] = {}
-            input_parameters['scale_gyrokinetic_terms']['wstarknob'] = value_old
-            value_old = True if value_old > 0 else False
-            input_parameters['gyrokinetic_terms']['include_drive'] = value_old
+    if upgrade:
+        if 'time_advance_knobs' in input_parameters.keys():
+            if 'xdriftknob' in input_parameters['time_advance_knobs'].keys():
+                value_old = input_parameters['time_advance_knobs']['xdriftknob']
+                del input_parameters['time_advance_knobs']['xdriftknob']
+                if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['gyrokinetic_terms'] = {}
+                if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['scale_gyrokinetic_terms'] = {}
+                input_parameters['scale_gyrokinetic_terms']['xdriftknob'] = value_old
+                value_old = True if value_old > 0 else False
+                input_parameters['gyrokinetic_terms']['include_xdrift'] = value_old
+            if 'ydriftknob' in input_parameters['time_advance_knobs'].keys():
+                value_old = input_parameters['time_advance_knobs']['ydriftknob']
+                del input_parameters['time_advance_knobs']['ydriftknob']
+                if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['gyrokinetic_terms'] = {}
+                if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['scale_gyrokinetic_terms'] = {}
+                input_parameters['scale_gyrokinetic_terms']['ydriftknob'] = value_old
+                value_old = True if value_old > 0 else False
+                input_parameters['gyrokinetic_terms']['include_ydrift'] = value_old
+            if 'wstarknob' in input_parameters['time_advance_knobs'].keys():
+                value_old = input_parameters['time_advance_knobs']['wstarknob']
+                del input_parameters['time_advance_knobs']['wstarknob']
+                if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['gyrokinetic_terms'] = {}
+                if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['scale_gyrokinetic_terms'] = {}
+                input_parameters['scale_gyrokinetic_terms']['wstarknob'] = value_old
+                value_old = True if value_old > 0 else False
+                input_parameters['gyrokinetic_terms']['include_drive'] = value_old
+    if downgrade:
+        if 'gyrokinetic_terms' in input_parameters.keys():
+            if 'include_xdrift' in input_parameters['gyrokinetic_terms'].keys():
+                value_old = input_parameters['gyrokinetic_terms']['include_xdrift']
+                del input_parameters['gyrokinetic_terms']['include_xdrift']
+                if 'time_advance_knobs' not in input_parameters.keys(): input_parameters['time_advance_knobs'] = {}
+                value_old = 0 if value_old==False else 1
+                input_parameters['time_advance_knobs']['xdriftknob'] = value_old
+            if 'include_ydrift' in input_parameters['gyrokinetic_terms'].keys():
+                value_old = input_parameters['gyrokinetic_terms']['include_ydrift']
+                del input_parameters['gyrokinetic_terms']['include_ydrift']
+                if 'time_advance_knobs' not in input_parameters.keys(): input_parameters['time_advance_knobs'] = {}
+                value_old = 0 if value_old==False else 1
+                input_parameters['time_advance_knobs']['ydriftknob'] = value_old
+                input_parameters['gyrokinetic_terms']['include_ydrift'] = value_old
+            if 'include_drive' in input_parameters['gyrokinetic_terms'].keys():
+                value_old = input_parameters['gyrokinetic_terms']['include_drive']
+                del input_parameters['gyrokinetic_terms']['include_drive']
+                if 'time_advance_knobs' not in input_parameters.keys(): input_parameters['time_advance_knobs'] = {}
+                value_old = True if value_old > 0 else False
+                input_parameters['time_advance_knobs']['wstarknob'] = value_old
     
     # Manually change some variables
-    if 'physics_flags' in input_parameters.keys():
-        if 'full_flux_surface' in input_parameters['physics_flags'].keys():
-            value_old = input_parameters['physics_flags']['full_flux_surface']
-            if value_old==True: value_old = 'full_flux_annulus'
-            if value_old==False: value_old = 'fluxtube'
-            del input_parameters['physics_flags']['full_flux_surface']
-            if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['gyrokinetic_terms'] = {}
-            input_parameters['gyrokinetic_terms']['simulation_domain'] = value_old
+    if upgrade:
+        if 'physics_flags' in input_parameters.keys():
+            if 'full_flux_surface' in input_parameters['physics_flags'].keys():
+                value_old = input_parameters['physics_flags']['full_flux_surface']
+                if value_old==True: value_old = 'full_flux_annulus'
+                if value_old==False: value_old = 'fluxtube'
+                del input_parameters['physics_flags']['full_flux_surface']
+                if 'gyrokinetic_terms' not in input_parameters.keys(): input_parameters['gyrokinetic_terms'] = {}
+                input_parameters['gyrokinetic_terms']['simulation_domain'] = value_old
+    if downgrade:
+        if 'gyrokinetic_terms' in input_parameters.keys():
+            if 'simulation_domain' in input_parameters['gyrokinetic_terms'].keys():
+                value_old = input_parameters['gyrokinetic_terms']['simulation_domain']
+                if value_old=='full_flux_annulus': value_old = True
+                if value_old!='full_flux_annulus': value_old = False
+                del input_parameters['gyrokinetic_terms']['simulation_domain']
+                if 'physics_flags' not in input_parameters.keys(): input_parameters['physics_flags'] = {}
+                input_parameters['physics_flags']['full_flux_surface'] = value_old
     
     #===============================================================================
     #                                 Kinetic species                                  
@@ -215,13 +252,13 @@ def update_inputFile(path_input_file='', add_default_variables=False):
         'species_knobs:write_profile_variation:False' : 'species_options:write_profile_variation:False',
         'species_knobs:species_option:stella' : 'species_options:species_option:stella',
         'species_knobs:ecoll_zeff:False' : 'species_options:ecoll_zeff:False'}
-    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables)
+    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     # Do this for nspec species
     nspec = 2
     if 'species_knobs' in input_parameters.keys():
         if 'nspec' in input_parameters['species_knobs'].keys():
-            nspec = input_parameters['species_knobs']['nspec']
+            nspec = int(input_parameters['species_knobs']['nspec'])
     for i in range(nspec):
         ispec = i+1
         renamed_variables = { 
@@ -239,7 +276,7 @@ def update_inputFile(path_input_file='', add_default_variables=False):
             }
 
         # Replace variables
-        input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables)
+        input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     #===============================================================================
     #                           Discretized (kx,ky,z,mu,vpa) grid                             
@@ -249,7 +286,7 @@ def update_inputFile(path_input_file='', add_default_variables=False):
         #------------------- kt_grids_knobs --> kxky_grid_option ------------------
         'kt_grids_knobs:grid_option:range'          : 'kxky_grid_option:grid_option:range',
         #------------------- kt_grids_range_parameters --> kxky_grid_range------------------
-        'kt_grids_range_parameters:nalpha:1'        : 'kxky_grid_range:nalpha:1',
+        'kt_grids_range_parameters:nalpha:1'        : 'kt_grids_range_parameters:nalpha:DEPRECATED',
         'kt_grids_range_parameters:naky:1'          : 'kxky_grid_range:naky:1',
         'kt_grids_range_parameters:nakx:1'          : 'kxky_grid_range:nakx:1',
         'kt_grids_range_parameters:aky_min:0.0'     : 'kxky_grid_range:aky_min:0.0',
@@ -258,6 +295,7 @@ def update_inputFile(path_input_file='', add_default_variables=False):
         'kt_grids_range_parameters:akx_max:-1.0'    : 'kxky_grid_range:akx_max:-1.0',
         'kt_grids_range_parameters:theta0_min:0.0'  : 'kxky_grid_range:theta0_min:0.0',
         'kt_grids_range_parameters:theta0_max:-1.0' : 'kxky_grid_range:theta0_max:-1.0',
+        'kt_grids_range_parameters:phase_shift_angle:0.0' : 'kt_grids_range_parameters:phase_shift_angle:DEPRECATED',
         'kxky_grid_range:kyspacing_option:DOESNT EXIST YET' : 'kxky_grid_range:kyspacing_option:default',
         #------------------- kt_grids_box_parameters ------------------
         'kt_grids_box_parameters:nx:1'              : 'kxky_grid_box:nx:1',
@@ -266,11 +304,11 @@ def update_inputFile(path_input_file='', add_default_variables=False):
         'kt_grids_box_parameters:jtwistfac:1.0'     : 'kxky_grid_box:jtwistfac:1.0',
         'kt_grids_box_parameters:x0:-1.0'           : 'kxky_grid_box:x0:-1.0',
         'kt_grids_box_parameters:y0:-1.0'           : 'kxky_grid_box:y0:-1.0',
-        'kt_grids_box_parameters:nalpha:1'          : 'kxky_grid_box:nalpha:1',
+        'kt_grids_box_parameters:nalpha:1'          : 'kt_grids_box_parameters:nalpha:DEPRECATED',
         'kt_grids_box_parameters:centered_in_rho:True' : 'kxky_grid_box:centered_in_rho:True',
         'kt_grids_box_parameters:randomize_phase_shift:False' : 'kxky_grid_box:randomize_phase_shift:False',
         'kt_grids_box_parameters:periodic_variation:False' : 'kxky_grid_box:periodic_variation:False',
-        'kt_grids_range_parameters:phase_shift_angle:0.0' : 'kxky_grid_box:phase_shift_angle:0.0',
+        'kt_grids_box_parameters:phase_shift_angle:0.0' : 'kxky_grid_box:phase_shift_angle:0.0',
         #------------------- zgrid_parameters --> z_grid------------------
         'zgrid_parameters:nzed:24'                  : 'z_grid:nzed:24',
         'zgrid_parameters:nperiod:1'                : 'z_grid:nperiod:1',
@@ -291,7 +329,7 @@ def update_inputFile(path_input_file='', add_default_variables=False):
         }
     
     # Replace variables
-    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables)
+    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     #===============================================================================
     #                                   Diagnostics                                  
@@ -305,7 +343,7 @@ def update_inputFile(path_input_file='', add_default_variables=False):
         'stella_diagnostics_knobs:nc_mult:1'        : 'diagnostics:nc_mult:1',
         'stella_diagnostics_knobs:save_for_restart:False' : 'diagnostics:save_for_restart:False',
         #------------------- stella_diagnostics_knobs --> diagnostics_potential ------------------
-        'stella_diagnostics_knobs:write_phi_vs_time:False' : 'diagnostics_potential:write_phi2_vs_time:False',
+        'stella_diagnostics_knobs:write_phi_vs_time:False' : 'diagnostics_potential:write_phi_vs_kxkyz:False',
         #------------------- stella_diagnostics_knobs --> diagnostics_fluxes ------------------
         'stella_diagnostics_knobs:write_radial_fluxes:False' : 'diagnostics_fluxes:write_radial_fluxes:False',
         'stella_diagnostics_knobs:write_fluxes_kxkyz:False' : 'diagnostics_fluxes:write_fluxes_kxkyz:False',
@@ -319,80 +357,104 @@ def update_inputFile(path_input_file='', add_default_variables=False):
         }
     
     # Replace variables
-    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables)
+    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     # Add the default variables
     if add_default_variables:
-        if 'diagnostics' not in input_parameters.keys(): input_parameters['diagnostics'] = {}
-        if 'diagnostics_potential' not in input_parameters.keys(): input_parameters['diagnostics_potential'] = {}
-        if 'diagnostics_omega' not in input_parameters.keys(): input_parameters['diagnostics_omega'] = {}
-        if 'diagnostics_distribution' not in input_parameters.keys(): input_parameters['diagnostics_distribution'] = {}
-        if 'diagnostics_fluxes' not in input_parameters.keys(): input_parameters['diagnostics_fluxes'] = {}
-        if 'diagnostics_moments' not in input_parameters.keys(): input_parameters['diagnostics_moments'] = {}
-        input_parameters['diagnostics']['nwrite'] = 50.0
-        input_parameters['diagnostics']['navg'] = 50.0
-        input_parameters['diagnostics']['nsave'] = -1.0
-        input_parameters['diagnostics']['nc_mult'] = 1.0
-        input_parameters['diagnostics']['save_for_restart'] = False
-        input_parameters['diagnostics']['write_all'] = False
-        input_parameters['diagnostics']['write_all_time_traces'] = True
-        input_parameters['diagnostics']['write_all_spectra_kxkyz'] = False
-        input_parameters['diagnostics']['write_all_spectra_kxky'] = False
-        input_parameters['diagnostics']['write_all_velocity_space'] = False
-        input_parameters['diagnostics']['write_all_potential'] = False
-        input_parameters['diagnostics']['write_all_omega'] = False
-        input_parameters['diagnostics']['write_all_distribution'] = False
-        input_parameters['diagnostics']['write_all_fluxes'] = False
-        input_parameters['diagnostics']['write_all_moments'] = False
-        input_parameters['diagnostics_potential']['write_all_potential_time_traces'] = False
-        input_parameters['diagnostics_potential']['write_all_potential_spectra'] = False
-        input_parameters['diagnostics_potential']['write_phi2_vs_time'] = True
-        input_parameters['diagnostics_potential']['write_apar2_vs_time'] = True
-        input_parameters['diagnostics_potential']['write_bpar2_vs_time'] = True
-        input_parameters['diagnostics_potential']['write_phi_vs_kxkyz'] = False
-        input_parameters['diagnostics_potential']['write_apar_vs_kxkyz'] = False
-        input_parameters['diagnostics_potential']['write_bpar_vs_kxkyz'] = False
-        input_parameters['diagnostics_potential']['write_phi2_vs_kxky'] = False
-        input_parameters['diagnostics_potential']['write_apar2_vs_kxky'] = False
-        input_parameters['diagnostics_potential']['write_bpar2_vs_kxky'] = False
-        input_parameters['diagnostics_omega']['write_omega_vs_kxky'] = False
-        input_parameters['diagnostics_omega']['write_omega_avg_vs_kxky'] = False
-        input_parameters['diagnostics_distribution']['write_g2_vs_vpamus'] = False
-        input_parameters['diagnostics_distribution']['write_g2_vs_zvpas'] = False
-        input_parameters['diagnostics_distribution']['write_g2_vs_zmus'] = False
-        input_parameters['diagnostics_distribution']['write_g2_vs_kxkyzs'] = False
-        input_parameters['diagnostics_distribution']['write_g2_vs_zvpamus'] = False
-        input_parameters['diagnostics_distribution']['write_distribution_g'] = True
-        input_parameters['diagnostics_distribution']['write_distribution_h'] = False
-        input_parameters['diagnostics_distribution']['write_distribution_f'] = False
-        input_parameters['diagnostics_fluxes']['flux_norm'] = True
-        input_parameters['diagnostics_fluxes']['write_fluxes_vs_time'] = True
-        input_parameters['diagnostics_fluxes']['write_radial_fluxes'] = False
-        input_parameters['diagnostics_fluxes']['write_fluxes_kxkyz'] = False
-        input_parameters['diagnostics_fluxes']['write_fluxes_kxky'] = False
-        input_parameters['diagnostics_moments']['write_moments'] = False
-        input_parameters['diagnostics_moments']['write_radial_moments'] = False
+        if upgrade:
+            if 'diagnostics' not in input_parameters.keys(): input_parameters['diagnostics'] = {}
+            if 'diagnostics_potential' not in input_parameters.keys(): input_parameters['diagnostics_potential'] = {}
+            if 'diagnostics_omega' not in input_parameters.keys(): input_parameters['diagnostics_omega'] = {}
+            if 'diagnostics_distribution' not in input_parameters.keys(): input_parameters['diagnostics_distribution'] = {}
+            if 'diagnostics_fluxes' not in input_parameters.keys(): input_parameters['diagnostics_fluxes'] = {}
+            if 'diagnostics_moments' not in input_parameters.keys(): input_parameters['diagnostics_moments'] = {}
+            input_parameters['diagnostics']['nwrite'] = 50.0
+            input_parameters['diagnostics']['navg'] = 50.0
+            input_parameters['diagnostics']['nsave'] = -1.0
+            input_parameters['diagnostics']['nc_mult'] = 1.0
+            input_parameters['diagnostics']['save_for_restart'] = False
+            input_parameters['diagnostics']['write_all'] = False
+            input_parameters['diagnostics']['write_all_time_traces'] = True
+            input_parameters['diagnostics']['write_all_spectra_kxkyz'] = False
+            input_parameters['diagnostics']['write_all_spectra_kxky'] = False
+            input_parameters['diagnostics']['write_all_velocity_space'] = False
+            input_parameters['diagnostics']['write_all_potential'] = False
+            input_parameters['diagnostics']['write_all_omega'] = False
+            input_parameters['diagnostics']['write_all_distribution'] = False
+            input_parameters['diagnostics']['write_all_fluxes'] = False
+            input_parameters['diagnostics']['write_all_moments'] = False
+            input_parameters['diagnostics_potential']['write_all_potential_time_traces'] = False
+            input_parameters['diagnostics_potential']['write_all_potential_spectra'] = False
+            input_parameters['diagnostics_potential']['write_phi2_vs_time'] = True
+            input_parameters['diagnostics_potential']['write_apar2_vs_time'] = True
+            input_parameters['diagnostics_potential']['write_bpar2_vs_time'] = True
+            input_parameters['diagnostics_potential']['write_phi_vs_kxkyz'] = False
+            input_parameters['diagnostics_potential']['write_apar_vs_kxkyz'] = False
+            input_parameters['diagnostics_potential']['write_bpar_vs_kxkyz'] = False
+            input_parameters['diagnostics_potential']['write_phi2_vs_kxky'] = False
+            input_parameters['diagnostics_potential']['write_apar2_vs_kxky'] = False
+            input_parameters['diagnostics_potential']['write_bpar2_vs_kxky'] = False
+            input_parameters['diagnostics_omega']['write_omega_vs_kxky'] = False
+            input_parameters['diagnostics_omega']['write_omega_avg_vs_kxky'] = False
+            input_parameters['diagnostics_distribution']['write_g2_vs_vpamus'] = False
+            input_parameters['diagnostics_distribution']['write_g2_vs_zvpas'] = False
+            input_parameters['diagnostics_distribution']['write_g2_vs_zmus'] = False
+            input_parameters['diagnostics_distribution']['write_g2_vs_kxkyzs'] = False
+            input_parameters['diagnostics_distribution']['write_g2_vs_zvpamus'] = False
+            input_parameters['diagnostics_distribution']['write_distribution_g'] = True
+            input_parameters['diagnostics_distribution']['write_distribution_h'] = False
+            input_parameters['diagnostics_distribution']['write_distribution_f'] = False
+            input_parameters['diagnostics_fluxes']['flux_norm'] = True
+            input_parameters['diagnostics_fluxes']['write_fluxes_vs_time'] = True
+            input_parameters['diagnostics_fluxes']['write_radial_fluxes'] = False
+            input_parameters['diagnostics_fluxes']['write_fluxes_kxkyz'] = False
+            input_parameters['diagnostics_fluxes']['write_fluxes_kxky'] = False
+            input_parameters['diagnostics_moments']['write_moments'] = False
+            input_parameters['diagnostics_moments']['write_radial_moments'] = False
+        if downgrade:
+            input_parameters['stella_diagnostics_knobs']['write_omega'] = False
+            input_parameters['stella_diagnostics_knobs']['write_phi_vs_time'] = False
+            input_parameters['stella_diagnostics_knobs']['write_gvmus'] = False
+            input_parameters['stella_diagnostics_knobs']['write_gzvs'] = False
+            input_parameters['stella_diagnostics_knobs']['write_kspectra'] = False
+            input_parameters['stella_diagnostics_knobs']['write_moments'] = False
+            input_parameters['stella_diagnostics_knobs']['write_radial_moments'] = False
+            input_parameters['stella_diagnostics_knobs']['write_fluxes_kxkyz'] = False
     
     # Do most of the diagnostics manually
-    if 'stella_diagnostics_knobs' in input_parameters.keys():
-        if 'write_omega' in input_parameters['stella_diagnostics_knobs'].keys():
-            value_old = input_parameters['stella_diagnostics_knobs']['write_omega']
-            del input_parameters['stella_diagnostics_knobs']['write_omega']
-            if 'diagnostics_omega' not in input_parameters.keys(): input_parameters['diagnostics_omega'] = {}
-            input_parameters['diagnostics_omega']['write_omega_vs_kxky'] = value_old
-            input_parameters['diagnostics_omega']['write_omega_avg_vs_kxky'] = value_old
-        if 'write_kspectra' in input_parameters['stella_diagnostics_knobs'].keys():
-            value_old = input_parameters['stella_diagnostics_knobs']['write_kspectra']
-            del input_parameters['stella_diagnostics_knobs']['write_kspectra']
-            if 'diagnostics_potential' not in input_parameters.keys(): input_parameters['diagnostics_potential'] = {}
-            input_parameters['diagnostics_potential']['write_phi2_vs_kxky'] = value_old
-            input_parameters['diagnostics_potential']['write_apar2_vs_kxky'] = value_old
-            input_parameters['diagnostics_potential']['write_bpar2_vs_kxky'] = value_old
-            if 'diagnostics_fluxes' not in input_parameters.keys(): input_parameters['diagnostics_fluxes'] = {}
-            input_parameters['diagnostics_fluxes']['write_fluxes_kxky'] = value_old
-            if 'diagnostics_omega' not in input_parameters.keys(): input_parameters['diagnostics_omega'] = {}
-            input_parameters['diagnostics_omega']['write_omega_vs_kxky'] = value_old
-            input_parameters['diagnostics_omega']['write_omega_avg_vs_kxky'] = value_old
+    if upgrade:
+        if 'stella_diagnostics_knobs' in input_parameters.keys():
+            if 'write_omega' in input_parameters['stella_diagnostics_knobs'].keys():
+                value_old = input_parameters['stella_diagnostics_knobs']['write_omega']
+                del input_parameters['stella_diagnostics_knobs']['write_omega']
+                if 'diagnostics_omega' not in input_parameters.keys(): input_parameters['diagnostics_omega'] = {}
+                input_parameters['diagnostics_omega']['write_omega_vs_kxky'] = value_old
+                input_parameters['diagnostics_omega']['write_omega_avg_vs_kxky'] = value_old
+            if 'write_kspectra' in input_parameters['stella_diagnostics_knobs'].keys():
+                value_old = input_parameters['stella_diagnostics_knobs']['write_kspectra']
+                del input_parameters['stella_diagnostics_knobs']['write_kspectra']
+                if 'diagnostics_potential' not in input_parameters.keys(): input_parameters['diagnostics_potential'] = {}
+                input_parameters['diagnostics_potential']['write_phi2_vs_kxky'] = value_old
+                input_parameters['diagnostics_potential']['write_apar2_vs_kxky'] = value_old
+                input_parameters['diagnostics_potential']['write_bpar2_vs_kxky'] = value_old
+                if 'diagnostics_fluxes' not in input_parameters.keys(): input_parameters['diagnostics_fluxes'] = {}
+                input_parameters['diagnostics_fluxes']['write_fluxes_kxky'] = value_old
+                if 'diagnostics_omega' not in input_parameters.keys(): input_parameters['diagnostics_omega'] = {}
+                input_parameters['diagnostics_omega']['write_omega_vs_kxky'] = value_old
+                input_parameters['diagnostics_omega']['write_omega_avg_vs_kxky'] = value_old
+    if downgrade:
+        if 'diagnostics' in input_parameters.keys():
+            if 'write_all' in input_parameters['diagnostics'].keys():
+                write_all = input_parameters['diagnostics']['write_all']
+                input_parameters['stella_diagnostics_knobs']['write_omega'] = write_all
+                input_parameters['stella_diagnostics_knobs']['write_phi_vs_time'] = write_all
+                input_parameters['stella_diagnostics_knobs']['write_gvmus'] = write_all
+                input_parameters['stella_diagnostics_knobs']['write_gzvs'] = write_all
+                input_parameters['stella_diagnostics_knobs']['write_kspectra'] = write_all
+                input_parameters['stella_diagnostics_knobs']['write_moments'] = write_all
+                input_parameters['stella_diagnostics_knobs']['write_radial_moments'] = write_all
+                input_parameters['stella_diagnostics_knobs']['write_fluxes_kxkyz'] = write_all
+        
     
     #===============================================================================
     #                                Initialise potential                                  
@@ -428,7 +490,7 @@ def update_inputFile(path_input_file='', add_default_variables=False):
         }
     
     # Replace variables
-    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables)
+    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     
     renamed_variables = { 
@@ -436,47 +498,56 @@ def update_inputFile(path_input_file='', add_default_variables=False):
         'init_g_knobs:den0:1.0'                     : 'initialise_distribution_maxwellian:den0:1.0',
         'init_g_knobs:upar0:0.0'                    : 'initialise_distribution_maxwellian:upar0:0.0',
         }
-    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, delete_variable=False)
+    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade, delete_variable=False)
     renamed_variables = { 
         'init_g_knobs:width0:-3.5'                  : 'initialise_distribution_kpar:width0:-3.5',
         'init_g_knobs:den0:1.0'                     : 'initialise_distribution_kpar:den0:1.0',
         'init_g_knobs:upar0:0.0'                    : 'initialise_distribution_kpar:upar0:0.0',
         }
-    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, delete_variable=True)
+    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade, delete_variable=True)
     renamed_variables = { 
         'init_g_knobs:chop_side:False'              : 'initialise_distribution_maxwellian:chop_side:False',
         'init_g_knobs:left:True'                    : 'initialise_distribution_maxwellian:left:True',
         }
-    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, delete_variable=False)
+    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade, delete_variable=False)
     renamed_variables = { 
         'init_g_knobs:chop_side:False'              : 'initialise_distribution_kpar:chop_side:False',
         'init_g_knobs:left:True'                    : 'initialise_distribution_kpar:left:True',
         }
-    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, delete_variable=False)
+    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade, delete_variable=False)
     renamed_variables = { 
         'init_g_knobs:chop_side:False'              : 'initialise_distribution_noise:chop_side:False',
         'init_g_knobs:left:True'                    : 'initialise_distribution_noise:left:True',
         }
-    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, delete_variable=True)
+    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade, delete_variable=True)
     renamed_variables = { 
         'init_g_knobs:refac:1.0'                    : 'initialise_distribution_kpar:refac:1.0',
         'init_g_knobs:imfac:0.0'                    : 'initialise_distribution_kpar:imfac:0.0',
         }
-    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, delete_variable=False)
+    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade, delete_variable=False)
     renamed_variables = { 
         'init_g_knobs:refac:1.0'                    : 'initialise_distribution_rh:refac:1.0',
         'init_g_knobs:imfac:0.0'                    : 'initialise_distribution_rh:imfac:0.0',
         }
-    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, delete_variable=True)
+    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade, delete_variable=True)
     
     # Manually change init_g_knobs:even --> initialise_distribution_maxwellian:oddparity
-    if 'init_g_knobs' in input_parameters.keys():
-        if 'even' in input_parameters['init_g_knobs'].keys():
-            value_old = input_parameters['init_g_knobs']['even']
-            del input_parameters['init_g_knobs']['even']
-            if type(value_old)!=bool: print('This should be a boolean. Abort.'); sys.exit()
-            if 'initialise_distribution_maxwellian' not in input_parameters.keys(): input_parameters['initialise_distribution_maxwellian'] = {}
-            input_parameters['initialise_distribution_maxwellian']['oddparity'] = not value_old
+    if upgrade:
+        if 'init_g_knobs' in input_parameters.keys():
+            if 'even' in input_parameters['init_g_knobs'].keys():
+                value_old = input_parameters['init_g_knobs']['even']
+                del input_parameters['init_g_knobs']['even']
+                if type(value_old)!=bool: print('This should be a boolean. Abort.'); sys.exit()
+                if 'initialise_distribution_maxwellian' not in input_parameters.keys(): input_parameters['initialise_distribution_maxwellian'] = {}
+                input_parameters['initialise_distribution_maxwellian']['oddparity'] = not value_old
+    if downgrade:
+        if 'initialise_distribution_maxwellian' in input_parameters.keys():
+            if 'oddparity' in input_parameters['initialise_distribution_maxwellian'].keys():
+                value_old = input_parameters['initialise_distribution_maxwellian']['oddparity']
+                del input_parameters['initialise_distribution_maxwellian']['oddparity']
+                if type(value_old)!=bool: print('This should be a boolean. Abort.'); sys.exit()
+                if 'init_g_knobs' not in input_parameters.keys(): input_parameters['init_g_knobs'] = {}
+                input_parameters['init_g_knobs']['even'] = not value_old
     
     #===============================================================================
     #                                    Numerics                                  
@@ -491,7 +562,7 @@ def update_inputFile(path_input_file='', add_default_variables=False):
         #------------------- knobs --> time_step------------------
         'knobs:delt:-1'                             : 'time_step:delt:0.03',
         'knobs:delt_option:check_restart'           : 'time_step:delt_option:check_restart',
-        'knobs:delt_adjust:2.0'                     : 'time_step:delt_adjust:DEPRECATED',
+        'knobs:delt_adjust:2.0'                     : 'knobs:delt_adjust:DEPRECATED',
         'knobs:delt_max:-1'                         : 'time_step:delt_max:-1',
         'time_step:delt_min:DOESNT EXIST YET'       : 'time_step:delt_min:1e-10',
         'knobs:cfl_cushion:0.5'                     : 'time_step:cfl_cushion_upper:0.5', 
@@ -525,7 +596,7 @@ def update_inputFile(path_input_file='', add_default_variables=False):
         }
     
     # Replace variables
-    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables)
+    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     # Add the default variables
     if add_default_variables:
@@ -534,19 +605,34 @@ def update_inputFile(path_input_file='', add_default_variables=False):
         input_parameters['electromagnetic']['include_bpar'] = False
         
     # Manually change some values
-    if 'knobs' in input_parameters.keys():
-        if 'fapar' in input_parameters['knobs'].keys():
-            value_old = input_parameters['knobs']['fapar']
-            del input_parameters['knobs']['fapar']
-            value_old = True if value_old > 0 else False
-            if 'electromagnetic' not in input_parameters.keys(): input_parameters['electromagnetic'] = {}
-            input_parameters['electromagnetic']['include_apar'] = value_old
-        if 'fbpar' in input_parameters['knobs'].keys():
-            value_old = input_parameters['knobs']['fbpar']
-            del input_parameters['knobs']['fbpar']
-            value_old = True if value_old > 0 else False
-            if 'electromagnetic' not in input_parameters.keys(): input_parameters['electromagnetic'] = {}
-            input_parameters['electromagnetic']['include_bpar'] = value_old
+    if upgrade:
+        if 'knobs' in input_parameters.keys():
+            if 'fapar' in input_parameters['knobs'].keys():
+                value_old = input_parameters['knobs']['fapar']
+                del input_parameters['knobs']['fapar']
+                value_old = True if value_old > 0 else False
+                if 'electromagnetic' not in input_parameters.keys(): input_parameters['electromagnetic'] = {}
+                input_parameters['electromagnetic']['include_apar'] = value_old
+            if 'fbpar' in input_parameters['knobs'].keys():
+                value_old = input_parameters['knobs']['fbpar']
+                del input_parameters['knobs']['fbpar']
+                value_old = True if value_old > 0 else False
+                if 'electromagnetic' not in input_parameters.keys(): input_parameters['electromagnetic'] = {}
+                input_parameters['electromagnetic']['include_bpar'] = value_old
+    if downgrade:
+        if 'electromagnetic' in input_parameters.keys():
+            if 'include_apar' in input_parameters['electromagnetic'].keys():
+                value_old = input_parameters['electromagnetic']['include_apar']
+                del input_parameters['electromagnetic']['include_apar']
+                value_old = 1 if value_old==True else 0
+                if 'knobs' not in input_parameters.keys(): input_parameters['knobs'] = {}
+                input_parameters['knobs']['fapar'] = value_old
+            if 'include_bpar' in input_parameters['electromagnetic'].keys():
+                value_old = input_parameters['electromagnetic']['include_bpar']
+                del input_parameters['electromagnetic']['include_bpar']
+                value_old = 1 if value_old==True else 0
+                if 'knobs' not in input_parameters.keys(): input_parameters['knobs'] = {}
+                input_parameters['knobs']['fbpar'] = value_old
     
     #===============================================================================
     #                                   Dissipation                                  
@@ -603,17 +689,17 @@ def update_inputFile(path_input_file='', add_default_variables=False):
         }
     
     # Replace variables
-    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables)
+    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     # The next variable is used in two separate namelists, so don't delete it on the first run
     renamed_variables = { 
         'dissipation:vpa_operator:True' : 'collisions_fokker_planck:vpa_operator:True',
         'dissipation:mu_operator:True'  : 'collisions_fokker_planck:mu_operator:True',}
-    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, delete_variable=False)
+    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade, delete_variable=False)
     renamed_variables = { 
         'dissipation:vpa_operator:True' : 'collisions_dougherty:vpa_operator:True',
         'dissipation:mu_operator:True'  : 'collisions_dougherty:mu_operator:True',}
-    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables)
+    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     #===============================================================================
     #                                     Others                                  
@@ -715,7 +801,7 @@ def update_inputFile(path_input_file='', add_default_variables=False):
         }
     
     # Replace variables
-    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables)
+    input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     #===============================================================================
     #                                   Write file                                  
@@ -723,11 +809,15 @@ def update_inputFile(path_input_file='', add_default_variables=False):
     
     # Write the namelist
     path_new_input_file = str(path_input_file).replace('.in', '_updated.in')
-    write_dictionaryToNamelist(path_new_input_file, input_parameters, indent='  ', sort_knobs=True) 
+    if downgrade: path_new_input_file = str(path_input_file).replace('.in', '_downgraded.in')
+    write_dictionaryToNamelist(path_new_input_file, input_parameters, downgrade) 
     return input_parameters
 
 #--------------------------------------------------------------
-def replace_variables(input_parameters, renamed_variables, add_default_variables, delete_variable=True):
+def replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade=False, delete_variable=True):
+    
+    # If we want to downgrade an input file from version 1.0 to version 0.5, invert the dictionary
+    if downgrade: renamed_variables = {v: k for k, v in renamed_variables.items()}
     
     # Find the name change namelist_old:variable_old --> namelist_new:variable_new
     for namelist_variable_value_old in renamed_variables.keys():
@@ -784,7 +874,7 @@ def add_default_variable(input_parameters, namelist_new, variable_new, value_new
     return input_parameters
 
 #--------------------------------------------------------------
-def write_dictionaryToNamelist(path, dictionary, indent="  ", sort_knobs=False):
+def write_dictionaryToNamelist(path, dictionary, downgrade, indent="  ", sort_knobs=False):
     
     # Order of namelists in version 1.0
     ordered_namelists = ['&Geometry', 'geometry_options', 'geometry_miller', 'geometry_vmec', 'geometry_zpinch', 'geometry_from_txt',
@@ -800,6 +890,20 @@ def write_dictionaryToNamelist(path, dictionary, indent="  ", sort_knobs=False):
         '&Radial variation', 'multibox_parameters', 
         '&Parallelisation', 'parallelisation', 
         '&Debug', 'debug_flags']
+    if downgrade:
+        ordered_namelists = ['&Geometry', 'geo_knobs', 'vmec_parameters', 'millergeo_parameters',
+            '&Physics', 'parameters', 'physics_flags',
+            '&Diagnostics', 'stella_diagnostics_knobs',
+            '&Initialise Distribution', 'init_g_knobs',
+            '&Kinetic species', 'species_knobs', 'species_parameters_1', 'species_parameters_2', 'species_parameters_3', 'species_parameters_4', 'species_parameters_5', 'euterpe_parameters', 
+            '&Discretized (kx,ky,z,mu,vpa) grid', 'kt_grids_knobs', 'kt_grids_range_parameters', 'kt_grids_box_parameters', 'zgrid_parameters', 'vpamu_grids_parameters',
+            '&Numerics', 'knobs', 'time_advance_knobs', 
+            '&Dissipation', 'dissipation',
+            '&Neoclassics', 'neoclassical_input', 'sfincs_input', 
+            '&Sources', 'sources', 
+            '&Radial variation', 'multibox_parameters', 
+            '&Parallelisation', 'layouts_knobs']
+        
     
     # Write dictionary as a namelist
     with open(path, 'w') as f:
@@ -969,11 +1073,31 @@ if __name__ == '__main__' and False:
     path_input_file = path.parent / 'input_stella_v0.5.in'
     input_parameters = update_inputFile(path_input_file, add_default_variables=True)
     
+    # Downgrade input file from stella version 1.0 to stella version 0.5
+    path = pathlib.Path(os.path.realpath(__file__))
+    path_input_file = path.parent / 'input_stella_v1.0.in'
+    input_parameters = update_inputFile(path_input_file, add_default_variables=True, downgrade=True)
+    
     # Check whether we can correctly upgrade a file 
-    if True:
+    if False:
         input_parameters_correct = f90nml.read(path.parent/'input_stella_v1.0.in')
         input_parameters_correct = json.loads(json.dumps(input_parameters_correct))  
         input_parameters_testscript = f90nml.read(path.parent/'input_stella_v0.5_updated.in' )
+        input_parameters_testscript = json.loads(json.dumps(input_parameters_testscript))  
+        dict_difference, numberOfDifferences = get_differenceInDictionaries(input_parameters_correct, input_parameters_testscript)
+        print('\n\n------------ Print differences ------------------', numberOfDifferences)
+        for namelist in dict_difference.keys():
+            print('\n==================================')
+            print(f'{namelist}'.center(34))
+            print('==================================')
+            for variable, value in dict_difference[namelist].items():
+                print(f'{variable}: {value}') 
+    
+    # Check whether we can correctly downgrade a file 
+    if True:
+        input_parameters_correct = f90nml.read(path.parent/'input_stella_v0.5.in')
+        input_parameters_correct = json.loads(json.dumps(input_parameters_correct))  
+        input_parameters_testscript = f90nml.read(path.parent/'input_stella_v1.0_downgraded.in' )
         input_parameters_testscript = json.loads(json.dumps(input_parameters_testscript))  
         dict_difference, numberOfDifferences = get_differenceInDictionaries(input_parameters_correct, input_parameters_testscript)
         print('\n\n------------ Print differences ------------------', numberOfDifferences)
@@ -995,12 +1119,27 @@ if __name__ == '__main__' and False:
 #                             RUN AS MAIN SCRIPT                               #
 #===============================================================================
 
-if __name__ == '__main__':
+if __name__ == '__main__' and True:
     import glob
     folder = pathlib.Path(os.getcwd()) 
     input_files = [pathlib.Path(i) for i in glob.glob(str(folder)+'/*.in')]
     input_files = [i for i in input_files if '_updated.in' not in i.name]
+    input_files = [i for i in input_files if '_downgraded.in' not in i.name]
     for input_file in input_files:
-        update_inputFile(input_file)
+        version_05 = False; version_10 = False
+        with open(input_file) as f:
+            text = f.read()
+            if '&geo_knobs' in text: version_05 = True
+            if '&millergeo_parameters' in text: version_05 = True
+            if '&vmec_parameters' in text: version_05 = True
+            if '&geometry_options' in text: version_10 = True
+            if '&geometry_miller' in text: version_10 = True
+            if '&geometry_vmec' in text: version_10 = True
+        if version_05:
+            print(f'\nUpdating {input_file.name} from stella version 0.5 to stella version 1.0')
+            update_inputFile(input_file)
+        if version_10:
+            print(f'\nDowngrading {input_file.name} from stella version 1.0 to stella version 0.5')
+            update_inputFile(input_file, downgrade=True)
         print(f'   --> Converted {input_file.name}')
     
