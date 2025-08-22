@@ -288,13 +288,12 @@ contains
     !                           NUMERICAL EXTRA OPTIONS                         !
     !****************************************************************************
 
-    subroutine read_namelist_numerical_extra(nitt, fphi, rng_seed)
+    subroutine read_namelist_numerical_extra(nitt, rng_seed)
 
         use mp, only: proc0
 
         implicit none
         integer, intent (out)  :: nitt
-        real, intent (out)  :: fphi
         integer, intent (out)  :: rng_seed
 
         if (.not. proc0) return
@@ -309,7 +308,6 @@ contains
 
             ! By default
             nitt = 1
-            fphi = 1.0
             rng_seed = -1
 
         end subroutine set_default_parameters_numerical_extra
@@ -321,7 +319,7 @@ contains
 
             implicit none
 
-            namelist /numerical_extra/ nitt, fphi, rng_seed
+            namelist /numerical_extra/ nitt, rng_seed
 
             in_file = input_unit_exist("numerical_extra", dexist)
             if (dexist) read (unit=in_file, nml=numerical_extra)

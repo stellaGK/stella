@@ -196,8 +196,6 @@ contains
       use kxky_grid_parameters, only: nakx
       use constants, only: zi, pi
       use z_grid, only: ntubes
-
-      use numerical_parameters, only: fphi
       use g_tofrom_h, only: g_to_h
 
       !> For momentum flux

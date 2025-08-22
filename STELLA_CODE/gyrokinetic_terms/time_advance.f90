@@ -1778,8 +1778,8 @@ contains
       use stella_transforms, only: transform_y2ky, transform_x2kx
       use stella_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
       use stella_time, only: cfl_dt_ExB, cfl_dt_linear, code_dt, code_dt_max
-      use numerical_parameters, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower, fphi
-      use physics_parameters, only: g_exb, g_exbfac
+      use numerical_parameters, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
+      use physics_parameters, only: g_exb, g_exbfac, fphi
       use z_grid, only: nzgrid, ntubes
       use geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
       use kxky_grid_parameters, only: nakx, ikx_max, naky, naky_all, nx, ny
@@ -2358,8 +2358,7 @@ contains
       use kxky_grid_parameters, only: nakx, naky
       use calculations_kxky, only: multiply_by_rho
       use gyro_averages, only: gyro_average, gyro_average_j1
-      use numerical_parameters, only: fphi
-      use physics_parameters, only: full_flux_surface
+      use physics_parameters, only: full_flux_surface, fphi
       use physics_parameters, only: include_parallel_streaming, include_mirror
       use arrays_dist_fn, only: wdriftx_phi, wdrifty_phi
       use arrays_dist_fn, only: wdriftpx_g, wdriftpy_g

@@ -46,7 +46,7 @@ contains
       use z_grid, only: nzgrid, ntubes
       use velocity_grids, only: vperp2, vpa, mu
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use numerical_parameters, only: fphi
+      use physics_parameters, only: fphi
       use numerical_parameters, only: maxwellian_normalization
       use grids_kxky, only: aky, theta0
       use kxky_grid_parameters, only: naky, nakx

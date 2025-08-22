@@ -105,7 +105,7 @@ contains
 
       ! Data 
       use arrays_fields, only: phi, apar, bpar
-      use numerical_parameters, only: fphi
+      use physics_parameters, only: fphi
       
       ! Geometry 
       use geometry, only: bmag, btor, gds2, gds21, gds22, geo_surf 

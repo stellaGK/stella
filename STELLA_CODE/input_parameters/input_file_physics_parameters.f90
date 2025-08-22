@@ -369,7 +369,7 @@ contains
 
       real, intent (out) :: rhostar
       !integer, intent (out) :: nitt
-
+      
       if (.not. proc0) return
       call set_default_parameters_flux_annulus
       call read_input_file_flux_annulus

@@ -29,7 +29,6 @@ contains
       use numerical_parameters, only: use_deltaphi_for_response_matrix
       use numerical_parameters, only: tupwnd_p => time_upwind_plus
       use numerical_parameters, only: tupwnd_m => time_upwind_minus
-      use numerical_parameters, only: fphi
       use fields, only: advance_fields, fields_updated
       use extended_zgrid, only: map_to_extended_zgrid, map_from_extended_zgrid
       use extended_zgrid, only: nsegments, nzed_segment

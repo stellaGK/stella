@@ -46,7 +46,7 @@ contains
       use arrays_fields, only: time_field_solve
       !> Parameters
       use physics_parameters, only: beta 
-      use numerical_parameters, only: fphi 
+      use physics_parameters, only: fphi 
       use physics_parameters, only: radial_variation
       use physics_parameters, only: include_apar, include_bpar
       !> Grids
@@ -138,7 +138,7 @@ contains
       !> Parameters
       use physics_parameters, only: beta
       use physics_parameters, only: include_apar, include_bpar
-      use numerical_parameters, only: fphi 
+      use physics_parameters, only: fphi 
       !> Grids
       use z_grid, only: nzgrid, ntubes
       use velocity_grids, only: nvpa, nmu
@@ -390,7 +390,7 @@ contains
       use physics_parameters, only: include_apar, include_bpar
       use kxky_grid_parameters, only : nakx, naky 
       use physics_parameters, only: beta
-      use numerical_parameters, only: fphi 
+      use physics_parameters, only: fphi 
       !> Grids
       use species, only: spec
       use velocity_grids, only: nvpa, nmu
