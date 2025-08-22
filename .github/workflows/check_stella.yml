@@ -15,11 +15,6 @@ jobs:
 #              Build stella on different operating systems              
 #-----------------------------------------------------------------------
   build-stella:
-  
-    # Set environment variables
-    env:
-      OMPI_MCA_rmaps_base_oversubscribe: yes
-      MPIRUN: mpiexec -np
     
     # Run the same set-up multiple times
     # Note that macos-12 has been deprecated on GitHub in 2025 
@@ -31,6 +26,8 @@ jobs:
         compiler: [Make, CMake]
         gcc_v: [9] # Version of GFortran we want to use
       env:
+        OMPI_MCA_rmaps_base_oversubscribe: yes
+        MPIRUN: mpiexec -np
         FC: gfortran-${{ matrix.gcc_v }}
         GCC_V: ${{ matrix.gcc_v }}
       
