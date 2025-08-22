@@ -143,7 +143,7 @@ contains
 
          use file_utils, only: input_unit_exist
 
-         use input_file_diagnostics, only: &
+         use namelist_diagnostics, only: &
             read_namelist_diagnostics, read_namelist_diagnostics_potential, &
             read_namelist_diagnostics_omega, read_namelist_diagnostics_distribution, &
             read_namelist_diagnostics_fluxes, read_namelist_diagnostics_moments

@@ -65,7 +65,7 @@ contains
 
     use mp, only: proc0, mp_abort
 
-    use input_file_kxky_grid, only: read_namelist_kxky_grid_option, &
+    use namelist_kxky_grid, only: read_namelist_kxky_grid_option, &
          read_namelist_kxky_grid_box, read_namelist_kxky_grid_range
     
     implicit none

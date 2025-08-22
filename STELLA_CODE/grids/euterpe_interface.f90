@@ -13,7 +13,7 @@ contains
       use parameters_physics, only: vnew_ref, rhostar, tite, nine
       use geometry, only: geo_surf, aref, bref
 
-      use input_file_species, only: read_namelist_euterpe_parameters
+      use namelist_species, only: read_namelist_euterpe_parameters
 
       implicit none
 

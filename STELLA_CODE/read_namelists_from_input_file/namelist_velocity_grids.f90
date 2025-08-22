@@ -1,4 +1,4 @@
-module input_file_velocity_grids
+module namelist_velocity_grids
 
     implicit none
 
@@ -63,4 +63,4 @@ contains
 
     end subroutine read_namelist_velocity_grids
 
-end module input_file_velocity_grids
+end module namelist_velocity_grids

@@ -1,4 +1,4 @@
-module input_file_radial_variation
+module namelist_radial_variation
 
     implicit none
 
@@ -145,4 +145,4 @@ contains
 
    end subroutine read_namelist_radial_variation
 
-end module input_file_radial_variation
+end module namelist_radial_variation

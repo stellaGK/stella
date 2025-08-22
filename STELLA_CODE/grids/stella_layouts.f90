@@ -133,7 +133,7 @@ contains
 
    subroutine read_parameters
 
-      use input_file_parallelisation, only: read_namelist_parallelisation
+      use namelist_parallelisation, only: read_namelist_parallelisation
       
       implicit none
 

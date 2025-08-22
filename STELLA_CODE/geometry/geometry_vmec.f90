@@ -70,7 +70,7 @@ contains
 
       use z_grid, only: zed_equal_arc
       use mp, only: mp_abort
-      use input_file_geometry, only: read_namelist_geometry_vmec
+      use namelist_geometry, only: read_namelist_geometry_vmec
 
       implicit none
    

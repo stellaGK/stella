@@ -116,7 +116,7 @@ contains
    !============================================================================
    subroutine init_geometry(nalpha, naky)
 
-      use input_file_geometry, only: read_namelist_geometry_from_txt, read_namelist_geometry_options
+      use namelist_geometry, only: read_namelist_geometry_from_txt, read_namelist_geometry_options
       ! Zgrid
       use z_grid, only: nzgrid, zed, delzed, shat_zero, grad_x_grad_y_zero
       use z_grid, only: boundary_option_switch, boundary_option_self_periodic

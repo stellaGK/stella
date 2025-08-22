@@ -23,7 +23,7 @@
 !   restart_options
 ! 
 !###############################################################################
-module input_file_fields
+module namelist_fields
 
    implicit none
 
@@ -385,5 +385,5 @@ contains
 
    end subroutine read_namelist_restart_options
 
-end module input_file_fields
+end module namelist_fields
 

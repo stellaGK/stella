@@ -1,4 +1,4 @@
-module input_file_species
+module namelist_species
     
     use common_types, only: spec_type
 
@@ -90,7 +90,7 @@ contains
             ierr = error_unit()
 
             call get_option_value(species_option, species_opts, species_option_switch, &
-                ierr, "species_option in input_file_species_options")
+                ierr, "species_option in namelist_species_options")
 
         end subroutine read_input_file_species_options
 
@@ -278,4 +278,4 @@ contains
 
     end subroutine read_namelist_euterpe_parameters
 
-end module input_file_species
+end module namelist_species

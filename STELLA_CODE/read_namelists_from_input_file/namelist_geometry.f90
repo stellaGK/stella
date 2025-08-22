@@ -1,4 +1,4 @@
-module input_file_geometry
+module namelist_geometry
 
     use common_types, only: flux_surface_type
 
@@ -53,7 +53,7 @@ contains
         if (.not. proc0) return
         call set_default_geometry_options
         call read_input_file_geometry_options
-        call check_input_file_geometry_options
+        call check_namelist_geometry_options
 
     contains
 
@@ -95,12 +95,12 @@ contains
             ! Read the text option in <initialise_distribution> and store it in <init_distribution_switch>
             ierr = error_unit()
             call get_option_value(geometry_option, geoopts, geometry_option_switch, &
-                ierr, "geometry_option in input_file_geometry_options.f90")
+                ierr, "geometry_option in namelist_geometry_options.f90")
 
         end subroutine read_input_file_geometry_options
 
         !------------------------- Check input parameters ------------------------
-        subroutine check_input_file_geometry_options
+        subroutine check_namelist_geometry_options
 
             use parameters_physics, only: radial_variation
             use file_utils, only: runtype_option_switch, runtype_multibox
@@ -112,7 +112,7 @@ contains
                 geometry_option_switch = geo_option_multibox
             end if
 
-        end subroutine check_input_file_geometry_options
+        end subroutine check_namelist_geometry_options
         
     end subroutine read_namelist_geometry_options
 
@@ -142,7 +142,7 @@ contains
         if (.not. proc0) return
         call set_default_geometry_from_txt
         call read_input_file_geometry_from_txt
-        call check_input_file_geometry_from_txt 
+        call check_namelist_geometry_from_txt 
 
     contains
 
@@ -190,7 +190,7 @@ contains
         end subroutine read_input_file_geometry_from_txt
 
         !------------------------- Check input parameters ------------------------
-        subroutine check_input_file_geometry_from_txt
+        subroutine check_namelist_geometry_from_txt
 
             implicit none
 
@@ -199,7 +199,7 @@ contains
                 .or. overwrite_gds23 .or. overwrite_gds24 &
                 .or. overwrite_cvdrift .or. overwrite_gbdrift .or. overwrite_gbdrift0
 
-        end subroutine check_input_file_geometry_from_txt
+        end subroutine check_namelist_geometry_from_txt
 
     end subroutine read_namelist_geometry_from_txt
 
@@ -371,7 +371,7 @@ contains
 
             ierr = error_unit()
             call get_option_value(radial_coordinate, radial_coordinate_options, &
-                        radial_coordinate_switch, ierr, "radial_coordinate in input_file_geometry.f90")
+                        radial_coordinate_switch, ierr, "radial_coordinate in namelist_geometry.f90")
 
         end subroutine read_input_file_geometry_vmec
 
@@ -420,4 +420,4 @@ contains
     end subroutine read_namelist_geometry_zpinch
 
 
-end module input_file_geometry
+end module namelist_geometry

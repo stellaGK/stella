@@ -77,7 +77,7 @@ contains
    !****************************************************************************
    subroutine read_velocity_grids_parameters
 
-      use input_file_velocity_grids, only: read_namelist_velocity_grids
+      use namelist_velocity_grids, only: read_namelist_velocity_grids
       use mp, only: broadcast
 
       implicit none

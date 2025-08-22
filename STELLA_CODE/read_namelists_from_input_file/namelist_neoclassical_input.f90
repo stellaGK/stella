@@ -1,4 +1,4 @@
-module input_file_neoclassical_input
+module namelist_neoclassical_input
 
     implicit none
 
@@ -96,4 +96,4 @@ contains
 
     end subroutine read_namelist_neoclassical_input
 
-end module input_file_neoclassical_input
+end module namelist_neoclassical_input

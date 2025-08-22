@@ -280,7 +280,7 @@ contains
 #ifdef NETCDF
 
       integer, parameter :: line_length = 200
-      character(line_length), dimension(:), allocatable ::  input_file_array
+      character(line_length), dimension(:), allocatable ::  namelist_array
       integer :: n, unit, status, dim_id, previous_nlines
 
       ! Dont attempt to write zero-sized arrays
@@ -295,10 +295,10 @@ contains
          call neasyf_error(status, ncid=file_id, dim="nlines", dimid=dim_id)
 
          if (previous_nlines > num_input_lines) then
-            allocate (input_file_array(previous_nlines))
-            call neasyf_write(file_id, "input_file", input_file_array, &
+            allocate (namelist_array(previous_nlines))
+            call neasyf_write(file_id, "input_file", namelist_array, &
                               long_name="Input file", dim_names=["char200", "nlines "])
-            deallocate (input_file_array)
+            deallocate (namelist_array)
          end if
       else
          call neasyf_error(status, ncid=file_id, dim="nlines", dimid=dim_id)
@@ -306,15 +306,15 @@ contains
 
       ! We need to convert the input file text into an array, one
       ! element per line
-      allocate (input_file_array(num_input_lines))
+      allocate (namelist_array(num_input_lines))
 
       call get_input_unit(unit)
       rewind (unit=unit)
       do n = 1, num_input_lines
-         read (unit=unit, fmt="(a)") input_file_array(n)
+         read (unit=unit, fmt="(a)") namelist_array(n)
       end do
 
-      call neasyf_write(file_id, "input_file", input_file_array, &
+      call neasyf_write(file_id, "input_file", namelist_array, &
                         long_name="Input file", dim_names=["char200", "nlines "])
 #endif
    end subroutine save_input

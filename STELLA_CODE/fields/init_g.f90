@@ -57,16 +57,16 @@ contains
       use stella_save, only: read_many
       
       ! Read namelist from input file
-      use input_file_fields, only: read_namelist_initialise_distribution
-      use input_file_fields, only: read_namelist_restart_options
+      use namelist_fields, only: read_namelist_initialise_distribution
+      use namelist_fields, only: read_namelist_restart_options
       
       ! Load the <init_distribution_switch> parameters
-      use input_file_fields, only: init_distribution_option_maxwellian
-      use input_file_fields, only: init_distribution_option_noise
-      use input_file_fields, only: init_distribution_option_restart_many
-      use input_file_fields, only: init_distribution_option_kpar
-      use input_file_fields, only: init_distribution_option_rh
-      use input_file_fields, only: init_distribution_option_remap
+      use namelist_fields, only: init_distribution_option_maxwellian
+      use namelist_fields, only: init_distribution_option_noise
+      use namelist_fields, only: init_distribution_option_restart_many
+      use namelist_fields, only: init_distribution_option_kpar
+      use namelist_fields, only: init_distribution_option_rh
+      use namelist_fields, only: init_distribution_option_remap
 
       implicit none
 
@@ -128,12 +128,12 @@ contains
       use parameters_numerical, only: maxwellian_normalization
       
       ! Load the <init_distribution_switch> parameters
-      use input_file_fields, only: init_distribution_option_maxwellian
-      use input_file_fields, only: init_distribution_option_noise
-      use input_file_fields, only: init_distribution_option_restart_many
-      use input_file_fields, only: init_distribution_option_kpar
-      use input_file_fields, only: init_distribution_option_rh
-      use input_file_fields, only: init_distribution_option_remap
+      use namelist_fields, only: init_distribution_option_maxwellian
+      use namelist_fields, only: init_distribution_option_noise
+      use namelist_fields, only: init_distribution_option_restart_many
+      use namelist_fields, only: init_distribution_option_kpar
+      use namelist_fields, only: init_distribution_option_rh
+      use namelist_fields, only: init_distribution_option_remap
 
       logical, intent(out) :: restarted
       integer, intent(out) :: istep0
@@ -185,7 +185,7 @@ contains
       use arrays_dist_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
       use ran, only: ranf
-      use input_file_fields, only: read_namelist_initialise_distribution_maxwellian
+      use namelist_fields, only: read_namelist_initialise_distribution_maxwellian
 
       implicit none
 
@@ -292,7 +292,7 @@ contains
       use file_utils, only: runtype_option_switch, runtype_multibox
       use parameters_physics, only: include_nonlinear
       use ran
-      use input_file_fields, only: read_namelist_initialise_distribution_noise
+      use namelist_fields, only: read_namelist_initialise_distribution_noise
 
       implicit none
 
@@ -443,7 +443,7 @@ contains
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_dist_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx
-      use input_file_fields, only: read_namelist_initialise_distribution_kpar
+      use namelist_fields, only: read_namelist_initialise_distribution_kpar
       use constants, only: zi
 
       implicit none
@@ -554,7 +554,7 @@ contains
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use velocity_grids, only: nvpa, nmu
       use grids_kxky, only: akx
-      use input_file_fields, only: read_namelist_initialise_distribution_rh
+      use namelist_fields, only: read_namelist_initialise_distribution_rh
 
       implicit none
 
@@ -692,7 +692,7 @@ contains
    !****************************************************************************
    subroutine reset_init
    
-      use input_file_fields, only: init_distribution_option_restart_many
+      use namelist_fields, only: init_distribution_option_restart_many
       
       implicit none
 

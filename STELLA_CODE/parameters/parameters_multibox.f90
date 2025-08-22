@@ -66,7 +66,7 @@ contains
 
         use file_utils, only: runtype_option_switch, runtype_multibox
         use mp, only: broadcast, proc0
-        use input_file_radial_variation, only: read_namelist_radial_variation
+        use namelist_radial_variation, only: read_namelist_radial_variation
 
         implicit none
 

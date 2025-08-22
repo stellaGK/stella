@@ -35,7 +35,7 @@ contains
       use stella_layouts, only: vmu_lo
       use sfincs_interface, only: get_neo_from_sfincs
 
-      use input_file_neoclassical_input, only: read_namelist_neoclassical_input
+      use namelist_neoclassical_input, only: read_namelist_neoclassical_input
       implicit none
 
       real, dimension(:, :, :, :, :, :), allocatable :: f_neoclassical

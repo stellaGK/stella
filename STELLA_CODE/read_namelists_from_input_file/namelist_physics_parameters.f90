@@ -1,4 +1,4 @@
-module input_file_parameters_physics
+module namelist_parameters_physics
 
    implicit none
 
@@ -113,7 +113,7 @@ contains
          ! Read the text option in <initialise_distribution> and store it in <init_distribution_switch>
          ierr = error_unit()
          call get_option_value(simulation_domain, simulation_domain_options, simulation_domain_switch, &
-            ierr, "simulation_domain in input_file_parameters.f90")
+            ierr, "simulation_domain in namelist_parameters.f90")
 
       end subroutine read_input_file_gyrokinetic_terms
 
@@ -244,7 +244,7 @@ contains
          ierr = error_unit()
          call get_option_value &
             (adiabatic_option, adiabaticopts, adiabatic_option_switch, &
-            ierr, "adiabatic_option in input_file_parameters.f90")
+            ierr, "adiabatic_option in namelist_parameters.f90")
 
       end subroutine read_input_file_adiabatic_electron_response
 
@@ -402,4 +402,4 @@ contains
 
    end subroutine read_namelist_physics_inputs
 
-end module input_file_parameters_physics
+end module namelist_parameters_physics

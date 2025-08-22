@@ -98,7 +98,8 @@ contains
   subroutine read_debug_flags
 
     use mp, only: proc0
-    use input_file_debug, only: read_namelist_debug_flags  
+    use namelist_debug, only: read_namelist_debug_flags
+
     implicit none
 
     call read_namelist_debug_flags (debug_all, stella_debug, ffs_solve_debug, fields_all_debug, fields_debug, &

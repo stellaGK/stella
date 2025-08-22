@@ -1,4 +1,4 @@
-module input_file_parallelisation
+module namelist_parallelisation
 
     implicit none
 
@@ -113,4 +113,4 @@ contains
 
     end subroutine read_namelist_parallelisation
 
-end module input_file_parallelisation
+end module namelist_parallelisation

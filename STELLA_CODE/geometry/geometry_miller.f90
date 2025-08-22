@@ -70,7 +70,7 @@ contains
 
       use file_utils, only: input_unit_exist
       use common_types, only: flux_surface_type
-      use input_file_geometry, only: read_namelist_geometry_miller
+      use namelist_geometry, only: read_namelist_geometry_miller
 
       implicit none
 

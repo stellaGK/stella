@@ -1,4 +1,4 @@
-module input_file_parameters_numerical
+module namelist_parameters_numerical
 
     implicit none
 
@@ -138,7 +138,7 @@ contains
             ierr = error_unit()
             call get_option_value &
                 (delt_option, deltopts, delt_option_switch, ierr, &
-                "delt_option in input_file_parameters_numerical.f90")
+                "delt_option in namelist_parameters_numerical.f90")
 
         end subroutine read_input_file_time_step
 
@@ -323,4 +323,4 @@ contains
 
     end subroutine read_namelist_flux_annulus
 
-end module input_file_parameters_numerical
+end module namelist_parameters_numerical

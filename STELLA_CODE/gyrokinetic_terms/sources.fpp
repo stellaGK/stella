@@ -60,7 +60,7 @@ contains
       use parameters_physics, only: adiabatic_option_fieldlineavg
       use file_utils, only: runtype_option_switch, runtype_multibox
       use parameters_kxky_grid, only: ikx_max
-      use input_file_sources, only: read_namelist_sources
+      use namelist_sources, only: read_namelist_sources
       use arrays_fields, only: tcorr_source_qn, exclude_boundary_regions_qn
       use mp, only: broadcast
       implicit none

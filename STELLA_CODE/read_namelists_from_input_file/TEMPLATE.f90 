@@ -1,4 +1,4 @@
-module input_file_parameters
+module namelist_parameters
 
    implicit none
 
@@ -31,7 +31,7 @@ contains
 
       if (.not. proc0) return
       call set_default_parameters_ADD
-      call read_input_file_ADD
+      call read_namelist_ADD
       call check_inputs_ADD
    contains
       
@@ -45,7 +45,7 @@ contains
       end subroutine set_default_parameters_ADD
 
    !---------------------------- Read input file ----------------------------
-      subroutine read_input_file_ADD
+      subroutine read_namelist_ADD
 
          use file_utils, only: input_unit_exist
          implicit none
@@ -54,7 +54,7 @@ contains
          in_file = input_unit_exist("ADD", dexist)
          if (dexist) read (unit=in_file, nml=ADD)
 
-      end subroutine read_input_file_ADD
+      end subroutine read_namelist_ADD
 
       !------------------------- Check input parameters ------------------------
       subroutine check_inputs_ADD
@@ -71,4 +71,4 @@ contains
 
 
 
-end module input_file_parameters
+end module namelist_parameters

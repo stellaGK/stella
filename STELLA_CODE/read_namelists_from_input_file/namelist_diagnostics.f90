@@ -1,4 +1,4 @@
-module input_file_diagnostics
+module namelist_diagnostics
 
     implicit none
 
@@ -548,4 +548,4 @@ contains
 
         end subroutine read_namelist_diagnostics_moments
 
-end module input_file_diagnostics
+end module namelist_diagnostics

@@ -50,7 +50,7 @@ contains
    !                                READ INPUT FILE FOR SPECIES
    !****************************************************************************
    subroutine read_species_options
-      use input_file_species, only: read_namelist_species_options
+      use namelist_species, only: read_namelist_species_options
 
       implicit none
 
@@ -86,7 +86,7 @@ contains
       use parameters_physics, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       use geometry_inputprofiles_interface, only: read_inputprof_spec
       use euterpe_interface, only: read_species_euterpe !! CHANGE
-      use input_file_species, only: read_namelist_species_stella
+      use namelist_species, only: read_namelist_species_stella
 
       use parameters_physics, only: full_flux_surface
       implicit none

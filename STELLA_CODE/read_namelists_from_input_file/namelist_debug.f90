@@ -1,4 +1,4 @@
-module input_file_debug
+module namelist_debug
 
     implicit none
 
@@ -152,4 +152,4 @@ contains
 
     end subroutine read_namelist_debug_flags
 
-end module input_file_debug
+end module namelist_debug

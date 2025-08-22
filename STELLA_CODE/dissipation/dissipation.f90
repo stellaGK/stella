@@ -30,7 +30,7 @@ contains
       use debug_flags, only: print_extra_info_to_terminal
       
       ! Read the <dissipation> namelist in the input file
-      use input_file_dissipation, only: read_namelist_dissipation
+      use namelist_dissipation, only: read_namelist_dissipation
       
       ! Read other input parameters related to specific collision models
       use coll_dougherty, only: read_parameters_dougherty

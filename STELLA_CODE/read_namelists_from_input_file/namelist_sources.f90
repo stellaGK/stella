@@ -1,4 +1,4 @@
-module input_file_sources
+module namelist_sources
 
     implicit none
 
@@ -111,4 +111,4 @@ contains
 
     end subroutine read_namelist_sources
 
-end module input_file_sources
+end module namelist_sources

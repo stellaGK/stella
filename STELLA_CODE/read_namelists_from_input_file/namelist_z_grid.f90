@@ -1,4 +1,4 @@
-module input_file_z_grid
+module namelist_z_grid
 
     implicit none
 
@@ -143,10 +143,10 @@ contains
 
             ierr = error_unit()
             call get_option_value(boundary_option, boundaryopts, boundary_option_switch, &
-                ierr, "boundary_option in input_file_z_grid")
+                ierr, "boundary_option in namelist_z_grid")
 
         end subroutine read_input_file_z_boundary_condition
 
     end subroutine read_namelist_z_boundary_condition
 
-end module input_file_z_grid
+end module namelist_z_grid

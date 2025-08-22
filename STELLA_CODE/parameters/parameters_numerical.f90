@@ -103,7 +103,7 @@ contains
       use mp, only: proc0, mp_abort
       use text_options, only: text_option, get_option_value
       use file_utils, only: input_unit, error_unit, input_unit_exist
-      use input_file_parameters_numerical, only: &
+      use namelist_parameters_numerical, only: &
          read_namelist_time_trace_options, read_namelist_time_step, &
          read_namelist_numerical_algorithms, read_namelist_numerical_upwinding_for_derivatives, &
          read_namelist_flux_annulus

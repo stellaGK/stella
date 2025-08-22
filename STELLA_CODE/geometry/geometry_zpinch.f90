@@ -23,7 +23,7 @@ contains
                                                gbdrift0, gbdrift, cvdrift0, cvdrift, btor, rmajor)
 
       use common_types, only: flux_surface_type
-      use input_file_geometry, only: read_namelist_geometry_zpinch
+      use namelist_geometry, only: read_namelist_geometry_zpinch
      
       implicit none
 

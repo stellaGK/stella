@@ -45,7 +45,7 @@ contains
       use mp, only: proc0
       use constants, only: pi
 
-      use input_file_z_grid, only: read_namelist_z_grid, read_namelist_z_boundary_condition
+      use namelist_z_grid, only: read_namelist_z_grid, read_namelist_z_boundary_condition
 
       implicit none
 

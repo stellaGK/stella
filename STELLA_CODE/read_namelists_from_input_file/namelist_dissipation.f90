@@ -21,7 +21,7 @@
 !   hyper_dissipation
 ! 
 !###############################################################################
-module input_file_dissipation
+module namelist_dissipation
 
    implicit none
 
@@ -92,5 +92,5 @@ contains
 
    end subroutine read_namelist_dissipation
 
-end module input_file_dissipation
+end module namelist_dissipation
 

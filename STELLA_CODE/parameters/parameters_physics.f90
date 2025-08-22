@@ -130,7 +130,7 @@ contains
   subroutine read_parameters_physics
 
    use mp, only: proc0
-   use input_file_parameters_physics, only: read_namelist_gyrokinetic_terms, &
+   use namelist_parameters_physics, only: read_namelist_gyrokinetic_terms, &
       read_namelist_scale_gyrokinetic_terms, read_namelist_adiabatic_electron_response, &
       read_namelist_electromagnetic, read_namelist_flow_shear, read_namelist_physics_inputs
 

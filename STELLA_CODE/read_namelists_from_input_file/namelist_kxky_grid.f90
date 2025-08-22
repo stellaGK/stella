@@ -1,4 +1,4 @@
-module input_file_kxky_grid
+module namelist_kxky_grid
 
     implicit none
     public :: read_namelist_kxky_grid_option
@@ -68,7 +68,7 @@ contains
             
             ierr = error_unit()
             call get_option_value(grid_option, grid_options, grid_option_switch, &
-                ierr, "grid_option in input_file_kxky_grid", .true.)
+                ierr, "grid_option in namelist_kxky_grid", .true.)
       
         end subroutine read_input_file_kxky_grid_option
 
@@ -255,4 +255,4 @@ contains
     
     end subroutine read_namelist_kxky_grid_range
 
-end module input_file_kxky_grid
+end module namelist_kxky_grid

@@ -91,21 +91,21 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/gyrokinetic_terms/mirror_terms.f90
   ../STELLA_CODE/gyrokinetic_terms/parallel_streaming.f90
   ../STELLA_CODE/gyrokinetic_terms/time_advance.f90
-  ../STELLA_CODE/input_parameters/input_file_fields.f90
-  ../STELLA_CODE/input_parameters/input_file_dissipation.f90
-  ../STELLA_CODE/input_parameters/input_file_physics_parameters.f90
-  ../STELLA_CODE/input_parameters/input_file_numerical_parameters.f90
-  ../STELLA_CODE/input_parameters/input_file_kxky_grid.f90
-  ../STELLA_CODE/input_parameters/input_file_z_grid.f90
-  ../STELLA_CODE/input_parameters/input_file_species.f90
-  ../STELLA_CODE/input_parameters/input_file_velocity_grids.f90
-  ../STELLA_CODE/input_parameters/input_file_geometry.f90
-  ../STELLA_CODE/input_parameters/input_file_diagnostics.f90
-  ../STELLA_CODE/input_parameters/input_file_debug.f90
-  ../STELLA_CODE/input_parameters/input_file_parallelisation.f90
-  ../STELLA_CODE/input_parameters/input_file_sources.f90
-  ../STELLA_CODE/input_parameters/input_file_neoclassical_input.f90
-  ../STELLA_CODE/input_parameters/input_file_radially_global.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_fields.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_dissipation.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_physics_parameters.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_numerical_parameters.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_kxky_grid.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_z_grid.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_species.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_velocity_grids.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_geometry.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_diagnostics.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_debug.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_parallelisation.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_sources.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_neoclassical_input.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_radially_global.f90
   ../STELLA_CODE/neoclassical/euterpe_interface.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
   ../STELLA_CODE/parameters/debug_flags.f90
