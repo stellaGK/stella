@@ -1,6 +1,6 @@
 
 # Don't upload the executable
-#stella
+stella
 
 # Compiled files
 *.o
