@@ -133,7 +133,6 @@
 
 &numerical_extra
   nitt = 5
-  lu_option = 'local'
   print_extra_info_to_terminal = .false.
 /
 

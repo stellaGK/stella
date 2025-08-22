@@ -118,7 +118,6 @@
 /
 
 &numerical_extra
-  lu_option = 'local'
   print_extra_info_to_terminal = .false.
 /
 
