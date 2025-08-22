@@ -11,7 +11,7 @@ module init_g
    
    ! The stella.f90 script will check if we want to call rescale_fields()
    public :: phiinit, scale_to_phiinit
-   
+   public :: rng_seed
    ! When we restart a simulation, we need to access <tstart>
    public :: tstart
 
@@ -23,7 +23,7 @@ module init_g
    ! Moreover, these are used in rescale_fields() in the fields.fpp module
    logical :: scale_to_phiinit
    real :: phiinit
-   
+   integer :: rng_seed
    ! When we restart a simulation, we need to access <tstart>
    real :: tstart
    
@@ -86,6 +86,7 @@ contains
       call broadcast(init_distribution_switch)
       call broadcast(scale_to_phiinit)
       call broadcast(phiinit)
+      call broadcast(rng_seed)
 
       ! Read <restart_options> namelist
       ! Most of these options will be parsed to other stella modules
@@ -307,7 +308,7 @@ contains
       !-------------------------------------------------------------------------
       
       ! Read <initialise_distribution_noise> namelist
-      if (proc0) call read_namelist_initialise_distribution_noise(zf_init, left, chop_side)
+      if (proc0) call read_namelist_initialise_distribution_noise(zf_init, left, chop_side, rng_seed)
          
       ! Broadcast to all processors
       call broadcast(zf_init)

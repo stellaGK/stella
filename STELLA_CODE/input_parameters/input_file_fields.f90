@@ -181,7 +181,8 @@ contains
    !****************************************************************************
    !                       initialise DISTRIBUTION: NOISE                      !
    !****************************************************************************
-   subroutine read_namelist_initialise_distribution_noise(zf_init, left, chop_side)
+   subroutine read_namelist_initialise_distribution_noise(zf_init, left, chop_side, &
+                           rng_seed)
 
       use mp, only: proc0
 
@@ -190,6 +191,7 @@ contains
       real, intent(out) :: zf_init
       logical, intent(out) :: left
       logical, intent(out) :: chop_side
+      integer, intent (out)  :: rng_seed
 
       if (.not. proc0) return
       call set_default_parameters_initialise_distribution_noise
@@ -205,6 +207,7 @@ contains
          zf_init = 1.0
          chop_side = .false.
          left = .true.
+         rng_seed = -1  ! Default value for random number generator seed
 
       end subroutine set_default_parameters_initialise_distribution_noise
 
@@ -214,7 +217,7 @@ contains
          use file_utils, only: input_unit_exist
          implicit none
 
-         namelist /initialise_distribution_noise/ zf_init, left, chop_side
+         namelist /initialise_distribution_noise/ zf_init, left, chop_side, rng_seed
          in_file = input_unit_exist("initialise_distribution_noise", dexist)
          if (dexist) read (unit=in_file, nml=initialise_distribution_noise) 
 

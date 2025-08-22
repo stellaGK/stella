@@ -33,7 +33,7 @@ contains
       ! Data
       use arrays_dist_fn, only: gnew, gvmu
       use arrays_fields, only: phi, bpar
-      use numerical_parameters, only: fphi
+      use physics_parameters, only: fphi
 
       ! Redistribute data from  i[vpa,mu,s] to i[kx,ky,z,s] 
       use redistribute, only: scatter

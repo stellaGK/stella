@@ -6,7 +6,7 @@
 ! &time_step
 ! &numerical_algorithms 
 ! &numerical_upwinding_for_derivatives
-! &numerical_extra - to be changed
+! &flux_annulus - to be changed
 ! These flags will allow you to toggle the algorithm choices in stella.
 !###############################################################################
 module numerical_parameters
@@ -42,12 +42,9 @@ module numerical_parameters
    public :: zed_upwind, zed_upwind_plus, zed_upwind_minus
    public :: vpa_upwind
 
-   ! extra - need to move
+   ! Flux annulus options
    public :: nitt
-   public :: fphi
-   public :: rng_seed
-   public :: print_extra_info_to_terminal
-
+   
    ! Public subroutines that are read by the main stella routine.
    public :: read_numerical_parameters, finish_read_numerical_parameters
 
@@ -91,9 +88,6 @@ module numerical_parameters
 
    ! Extra - need to move
    integer :: nitt
-   real :: fphi
-   integer :: rng_seed
-   logical :: print_extra_info_to_terminal
 
    ! Internal
    logical :: initialised = .false.
@@ -112,7 +106,7 @@ contains
       use input_file_numerical_parameters, only: &
          read_namelist_time_trace_options, read_namelist_time_step, &
          read_namelist_numerical_algorithms, read_namelist_numerical_upwinding_for_derivatives, &
-         read_namelist_numerical_extra
+         read_namelist_flux_annulus
 
       implicit none
 
@@ -139,11 +133,11 @@ contains
 
       if (proc0) call read_namelist_numerical_upwinding_for_derivatives(time_upwind, zed_upwind, vpa_upwind)
 
-      if (proc0) call read_namelist_numerical_extra(nitt, fphi, rng_seed, print_extra_info_to_terminal)
+      if (proc0) call read_namelist_flux_annulus(nitt)
 
       if (proc0) call check_numerical_inputs 
-      call broadcast_parameters
 
+      call broadcast_parameters
       initialised = .true.
 
    contains
@@ -356,10 +350,7 @@ contains
 
          ! Extra - need to move
          call broadcast(nitt)
-         call broadcast(fphi)
-         call broadcast(rng_seed)
-         call broadcast(print_extra_info_to_terminal)
-
+         
       end subroutine broadcast_parameters
     
     end subroutine read_numerical_parameters

@@ -101,7 +101,7 @@ contains
       use arrays_dist_fn, only: g_scratch
       use arrays_fields, only: time_field_solve
       !> Parameters
-      use numerical_parameters, only: fphi
+      use physics_parameters, only: fphi
       use physics_parameters, only: beta
       use physics_parameters, only: include_apar, include_bpar
       use physics_parameters, only: radial_variation
@@ -195,7 +195,7 @@ contains
       use arrays_fields, only: time_field_solve
       !> Parameters
       use physics_parameters, only: include_apar, include_bpar
-      use numerical_parameters, only: fphi
+      use physics_parameters, only: fphi
       use physics_parameters, only: beta
       use physics_parameters, only: radial_variation
       !> Grids
@@ -407,7 +407,7 @@ contains
       use arrays_fields, only: gamtot, gamtot3
       use arrays_fields, only: gamtot_h, gamtot3_h, efac, efacp
       !> Parameters
-      use numerical_parameters, only: fphi
+      use physics_parameters, only: fphi
       use numerical_parameters, only: maxwellian_normalization
       use physics_parameters, only: tite, nine, beta
       use kxky_grid_parameters, only: nakx

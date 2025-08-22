@@ -96,8 +96,9 @@ contains
       use job_manage, only: checktime, time_message
       use physics_parameters, only: read_physics_parameters
       use physics_parameters, only: radial_variation
+      use init_g, only: rng_seed
       use numerical_parameters, only: read_numerical_parameters
-      use numerical_parameters, only: avail_cpu_time, nstep, rng_seed, delt, delt_max, delt_min
+      use numerical_parameters, only: avail_cpu_time, nstep, delt, delt_max, delt_min
       use numerical_parameters, only: stream_implicit, driftkinetic_implicit
       use numerical_parameters, only: delt_option_switch, delt_option_auto
       use stella_layouts, only: mat_gen, mat_read
@@ -447,7 +448,7 @@ contains
    subroutine write_start_message(git_commit, git_date)
    
       use mp, only: proc0, nproc
-      use numerical_parameters, only: print_extra_info_to_terminal
+      use debug_flags, only: print_extra_info_to_terminal
 
       implicit none
 
@@ -501,7 +502,7 @@ contains
    subroutine print_header
 
       use mp, only: proc0
-      use numerical_parameters, only: print_extra_info_to_terminal
+      use debug_flags, only: print_extra_info_to_terminal
       use physics_parameters, only: include_apar, include_bpar
       implicit none
       
@@ -603,7 +604,7 @@ contains
       use numerical_parameters, only: stream_implicit, drifts_implicit
       use stella_layouts, only: fields_kxkyz
       use implicit_solve, only: time_implicit_advance
-      use numerical_parameters, only: print_extra_info_to_terminal
+      use debug_flags, only: print_extra_info_to_terminal
 
       implicit none
 

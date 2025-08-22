@@ -506,11 +506,8 @@ contains
          use z_grid, only: boundary_option_switch, boundary_option_linked_stellarator 
          use z_grid, only: shat_zero, grad_x_grad_y_zero
          use constants, only: pi
-  
+         use debug_flags, only: print_extra_info_to_terminal
          implicit none  
-         
-         ! TODO-HT TODO-GA Circular dependency, change to use run_parameters, only: print_extra_info_to_terminal
-         logical :: print_extra_info_to_terminal = .false. 
 
          !---------------------------------------------------------------------- 
 

@@ -131,7 +131,6 @@ $(OBJ_DIR)/coll_dougherty.o: \
 	 $(OBJ_DIR)/kxky_grid_parameters.o \
 	 $(OBJ_DIR)/linear_solve.o \
 	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/numerical_parameters.o \
 	 $(OBJ_DIR)/physics_parameters.o \
 	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/species.o \
@@ -208,8 +207,8 @@ $(OBJ_DIR)/diagnostics_distribution.o: \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/kxky_grid_parameters.o \
 	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/numerical_parameters.o \
 	 $(OBJ_DIR)/parameters_diagnostics.o \
+	 $(OBJ_DIR)/physics_parameters.o \
 	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_io.o \
@@ -230,7 +229,6 @@ $(OBJ_DIR)/diagnostics_fluxes.o: \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/kxky_grid_parameters.o \
 	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/numerical_parameters.o \
 	 $(OBJ_DIR)/parameters_diagnostics.o \
 	 $(OBJ_DIR)/physics_parameters.o \
 	 $(OBJ_DIR)/redistribute.o \
@@ -246,7 +244,6 @@ $(OBJ_DIR)/diagnostics_fluxes_fluxtube.o: \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/gyro_averages.o \
 	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/numerical_parameters.o \
 	 $(OBJ_DIR)/parameters_diagnostics.o \
 	 $(OBJ_DIR)/physics_parameters.o \
 	 $(OBJ_DIR)/species.o \
@@ -264,7 +261,6 @@ $(OBJ_DIR)/diagnostics_fluxes_fullfluxsurface.o: \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/gyro_averages.o \
 	 $(OBJ_DIR)/kxky_grid_parameters.o \
-	 $(OBJ_DIR)/numerical_parameters.o \
 	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/stella_transforms.o \
@@ -344,6 +340,7 @@ $(OBJ_DIR)/dissipation.o: \
 	 $(OBJ_DIR)/arrays_dist_fn.o \
 	 $(OBJ_DIR)/coll_dougherty.o \
 	 $(OBJ_DIR)/coll_fokkerplanck.o \
+	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/dist_redistribute.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/hyper.o \
@@ -442,7 +439,6 @@ $(OBJ_DIR)/fields.o: \
 	 $(OBJ_DIR)/kxky_grid_parameters.o \
 	 $(OBJ_DIR)/linear_solve.o \
 	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/numerical_parameters.o \
 	 $(OBJ_DIR)/physics_parameters.o \
 	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
@@ -457,7 +453,6 @@ $(OBJ_DIR)/fields_collisions.o: \
 	 $(OBJ_DIR)/gyro_averages.o \
 	 $(OBJ_DIR)/kxky_grid_parameters.o \
 	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/numerical_parameters.o \
 	 $(OBJ_DIR)/physics_parameters.o \
 	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/spfunc.o \
@@ -473,7 +468,6 @@ $(OBJ_DIR)/fields_electromagnetic.o: \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/kxky_grid_parameters.o \
 	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/numerical_parameters.o \
 	 $(OBJ_DIR)/physics_parameters.o \
 	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
@@ -511,7 +505,6 @@ $(OBJ_DIR)/fields_fullfluxsurface.o: \
 	 $(OBJ_DIR)/gyro_averages.o \
 	 $(OBJ_DIR)/kxky_grid_parameters.o \
 	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/numerical_parameters.o \
 	 $(OBJ_DIR)/physics_parameters.o \
 	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/spfunc.o \
@@ -534,7 +527,6 @@ $(OBJ_DIR)/fields_radialvariation.o: \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/mp_lu_decomposition.o \
 	 $(OBJ_DIR)/multibox.o \
-	 $(OBJ_DIR)/numerical_parameters.o \
 	 $(OBJ_DIR)/parameters_multibox.o \
 	 $(OBJ_DIR)/physics_parameters.o \
 	 $(OBJ_DIR)/species.o \
@@ -624,6 +616,7 @@ $(OBJ_DIR)/geometry_vmec.o: \
 	 $(OBJ_DIR)/stella_transforms.o \
 	 $(OBJ_DIR)/z_grid.o 
 $(OBJ_DIR)/geometry_vmec_read_netCDF_file.o: \
+	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/mp.o 
 $(OBJ_DIR)/geometry_zpinch.o: \
 	 $(OBJ_DIR)/common_types.o \
@@ -933,7 +926,6 @@ $(OBJ_DIR)/sources.o: \
 	 $(OBJ_DIR)/linear_solve.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/mp_lu_decomposition.o \
-	 $(OBJ_DIR)/numerical_parameters.o \
 	 $(OBJ_DIR)/parameters_multibox.o \
 	 $(OBJ_DIR)/physics_parameters.o \
 	 $(OBJ_DIR)/redistribute.o \

@@ -242,9 +242,6 @@ contains
       use mp, only: mp_abort
 
       implicit none
-      
-      ! TODO-GA: import this from run_parameters as "use run_parameters, only: print_extra_info_to_terminal"
-      logical :: print_extra_info_to_terminal = .false.
  
       !*************************************************************************
       !                            Input parameters                            !
@@ -1088,6 +1085,8 @@ contains
 
       subroutine calculate_quantities_on_fluxsurface(s, iota, safety_factor_q, shat)
 
+         use debug_flags, only: print_extra_info_to_terminal
+
          implicit none 
   
          real, intent(in) :: s
@@ -1308,6 +1307,8 @@ contains
 
       subroutine print_variables_to_outputfile()
 
+         use debug_flags, only: print_extra_info_to_terminal
+         
          implicit none
 
          !---------------------------------------------------------------------- 

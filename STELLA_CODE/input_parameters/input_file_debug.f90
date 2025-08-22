@@ -20,7 +20,7 @@ contains
                     response_matrix_debug, time_advance_debug, extended_grid_debug, &
                     diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
                     diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
-                    gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo)
+                    gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo, print_extra_info_to_terminal)
 
         use mp, only: proc0
 
@@ -32,7 +32,7 @@ contains
             response_matrix_debug, time_advance_debug, extended_grid_debug, &
             diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
             diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
-            gyro_averages_debug, fluxes_debug, geometry_debug, const_alpha_geo
+            gyro_averages_debug, fluxes_debug, geometry_debug, const_alpha_geo, print_extra_info_to_terminal
 
         if (.not. proc0) return
         call set_default_parameters_debug_flags
@@ -75,6 +75,8 @@ contains
             diagnostics_omega_debug = .false. 
             diagnostics_fluxes_fluxtube_debug = .false. 
             fluxes_debug = .false.
+
+             print_extra_info_to_terminal = .true. 
             
             !###################################
             !     FOR THE PURPOSE OF DEBUGGING
@@ -96,7 +98,7 @@ contains
                 response_matrix_debug, time_advance_debug, extended_grid_debug, &
                 diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
                 diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
-                gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo
+                gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo, print_extra_info_to_terminal
 
             in_file = input_unit_exist("debug_flags", dexist)
             if (dexist) read (unit=in_file, nml=debug_flags)
@@ -127,6 +129,8 @@ contains
                 dist_fn_debug = .true.
                 gyro_averages_debug = .true.
                 geometry_debug = .true. 
+                
+                print_extra_info_to_terminal = .true. 
             end if
 
             if(diagnostics_all_debug) then

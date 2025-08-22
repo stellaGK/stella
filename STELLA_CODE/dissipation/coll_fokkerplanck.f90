@@ -3297,7 +3297,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use redistribute, only: scatter, gather
       use stella_time, only: code_dt
       use z_grid, only: nzgrid, ntubes
-      use numerical_parameters, only: fphi
+      use physics_parameters, only: fphi
       use physics_parameters, only: full_flux_surface
       use kxky_grid_parameters, only: naky, nakx
       use velocity_grids, only: nvpa, nmu
@@ -4022,7 +4022,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use finite_differences, only: tridag
       use linear_solve, only: lu_back_substitution
       use stella_time, only: code_dt
-      use numerical_parameters, only: fphi
+      use physics_parameters, only: fphi
       use species, only: nspec, spec
       use z_grid, only: nzgrid, ntubes
       use velocity_grids, only: nmu, nvpa, integrate_vmu

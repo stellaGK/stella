@@ -46,7 +46,7 @@ contains
    subroutine init_sources
 
       use mp, only: job, proc0
-      use numerical_parameters, only: fphi
+      use physics_parameters, only: fphi
       use parameters_multibox, only: ky_solve_radial, ky_solve_real
       use kxky_grid_parameters, only: naky, nakx
       use grids_kxky, only: zonal_mode

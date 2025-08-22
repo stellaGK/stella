@@ -27,7 +27,7 @@ contains
 
       use mp, only: proc0, broadcast
       use file_utils, only: input_unit_exist
-      use numerical_parameters, only: print_extra_info_to_terminal
+      use debug_flags, only: print_extra_info_to_terminal
       
       ! Read the <dissipation> namelist in the input file
       use input_file_dissipation, only: read_namelist_dissipation

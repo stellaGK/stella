@@ -120,11 +120,9 @@ contains
       use geometry_vmec_read_netCDF_file, only: calculate_vmec_geometry
       use file_utils, only: open_output_file
       use mp, only: mp_abort
-
-      implicit none
+      use debug_flags, only: print_extra_info_to_terminal
       
-      ! TODO-HT TODO-GA Circular dependency, change to use run_parameters, only: print_extra_info_to_terminal
-      logical :: print_extra_info_to_terminal = .false. 
+      implicit none
 
       integer, intent(in) :: nzgrid, nalpha, naky 
       integer, intent(out) :: sign_torflux

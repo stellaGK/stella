@@ -47,16 +47,15 @@
   omprimfac = 1.0
 /
 
-&flux_annulus
+&physics_inputs
   rhostar = - 1.0
-  !nitt = 1
+  zeff = 1.0
+  vnew_ref = -1.0
 /
 
-&extra - need to move
-   zeff = 1.0
-   vnew_ref = -1.0
+&flux_annulus
+  nitt = 1
 /
-
 !===============================================================================
 !                                Kinetic species                                
 !===============================================================================
@@ -236,6 +235,7 @@
    zf_init = 1.0
    chop_side = .false.
    left = .true.
+   rng_seed = -1 
 /
 
 &initialise_distribution_kpar
@@ -317,13 +317,6 @@
   zed_upwind = 0.02
   vpa_upwind = 0.02
   time_upwind = 0.02
-/
-
-&numerical_extra
-  nitt = 1
-  fphi = 1.0
-  print_extra_info_to_terminal = .true.
-  rng_seed = -1
 /
 
 !===============================================================================
