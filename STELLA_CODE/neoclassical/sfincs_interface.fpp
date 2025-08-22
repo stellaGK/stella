@@ -401,7 +401,7 @@ contains
       use mp, only: nproc
       use file_utils, only: input_unit_exist
       use species, only: nspec
-      use physics_parameters, only: rhostar, vnew_ref
+      use parameters_physics, only: rhostar, vnew_ref
       use geometry, only: geo_surf, aref, bref
 
       implicit none
@@ -547,7 +547,7 @@ contains
    subroutine broadcast_sfincs_parameters
 
       use mp, only: broadcast
-      use physics_parameters, only: rhostar
+      use parameters_physics, only: rhostar
 
       implicit none
 
@@ -590,7 +590,7 @@ contains
       use geometry, only: geo_surf
       use species, only: spec, nspec
       use z_grid, only: nzed
-      use physics_parameters, only: nine, tite
+      use parameters_physics, only: nine, tite
       use globalVariables, only: includeXDotTerm_sfincs => includeXDotTerm
       use globalVariables, only: includeElectricFieldTermInXiDot_sfincs => includeElectricFieldTermInXiDot
 !    use globalVariables, only: includeRadialExBDrive_sfincs => includeRadialExBDrive

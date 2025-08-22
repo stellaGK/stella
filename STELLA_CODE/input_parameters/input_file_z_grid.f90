@@ -67,7 +67,7 @@ contains
 
         subroutine check_inputs_z_grid
 
-            use physics_parameters, only: full_flux_surface
+            use parameters_physics, only: full_flux_surface
 
             implicit none
 

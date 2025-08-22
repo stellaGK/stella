@@ -46,7 +46,7 @@ contains
    subroutine init_sources
 
       use mp, only: job, proc0
-      use physics_parameters, only: fphi
+      use parameters_physics, only: fphi
       use parameters_multibox, only: ky_solve_radial, ky_solve_real
       use kxky_grid_parameters, only: naky, nakx
       use grids_kxky, only: zonal_mode
@@ -54,10 +54,10 @@ contains
       use stella_layouts, only: vmu_lo
       use arrays_dist_fn, only: g_krook, g_proj, g_symm
       use arrays_fields, only: phi_proj, phi_proj_stage
-      use physics_parameters, only: radial_variation
+      use parameters_physics, only: radial_variation
       use species, only: spec, has_electron_species
-      use physics_parameters, only: adiabatic_option_switch
-      use physics_parameters, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
       use file_utils, only: runtype_option_switch, runtype_multibox
       use kxky_grid_parameters, only: ikx_max
       use input_file_sources, only: read_namelist_sources
@@ -435,7 +435,7 @@ contains
 
       use mp, only: sum_allreduce
       use species, only: spec
-      use physics_parameters, only: radial_variation
+      use parameters_physics, only: radial_variation
       use velocity_grids, only: integrate_species, mu, vpa, vperp2
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use kxky_grid_parameters, only: nakx

@@ -78,7 +78,7 @@ contains
       use parameters_multibox, only: boundary_size, krook_size
       use file_utils, only: runtype_option_switch, runtype_multibox
       use job_manage, only: njobs
-      use physics_parameters, only: rhostar
+      use parameters_physics, only: rhostar
       use mp, only: scope, crossdomprocs, subprocs, &
                     send, receive, job
 
@@ -387,8 +387,8 @@ contains
       use file_utils, only: get_unused_unit
       use arrays_fields, only: phi, phi_corr_QN, shift_state
       use job_manage, only: njobs, time_message
-      use physics_parameters, only: radial_variation, prp_shear_enabled, hammett_flow_shear
-      use physics_parameters, only: g_exb, g_exbfac
+      use parameters_physics, only: radial_variation, prp_shear_enabled, hammett_flow_shear
+      use parameters_physics, only: g_exb, g_exbfac
       use stella_layouts, only: vmu_lo
       use geometry, only: dl_over_b
       use z_grid, only: nzgrid
@@ -714,7 +714,7 @@ contains
       use kxky_grid_parameters, only: nakx, naky
       use parameters_multibox, only: boundary_size
       use z_grid, only: nzgrid
-      use physics_parameters, only: radial_variation
+      use parameters_physics, only: radial_variation
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use parameters_multibox, only: ky_solve_radial
       use arrays_fields, only: phi_solve, phizf_solve, gamtot, dgamtotdr

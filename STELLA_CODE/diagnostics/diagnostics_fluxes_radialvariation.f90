@@ -46,12 +46,12 @@ contains
       use z_grid, only: nzgrid, ntubes
       use velocity_grids, only: vperp2, vpa, mu
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use physics_parameters, only: fphi
+      use parameters_physics, only: fphi
       use numerical_parameters, only: maxwellian_normalization
       use grids_kxky, only: aky, theta0
       use kxky_grid_parameters, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
-      use physics_parameters, only: radial_variation
+      use parameters_physics, only: radial_variation
       use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
       
       ! Flags 
@@ -340,7 +340,7 @@ contains
       use volume_averages, only: mode_fac
       use geometry, only: dVolume
       use stella_transforms, only: transform_kx2x_unpadded
-      use physics_parameters, only: radial_variation
+      use parameters_physics, only: radial_variation
 
       implicit none
 

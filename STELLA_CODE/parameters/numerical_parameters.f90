@@ -149,12 +149,12 @@ contains
       !**********************************************************************
       subroutine check_numerical_inputs
 
-         use physics_parameters, only: full_flux_surface
-         use physics_parameters, only: include_apar, include_bpar
-         use physics_parameters, only: include_parallel_streaming
-         use physics_parameters, only: include_mirror
-         use physics_parameters, only: include_nonlinear
-         use physics_parameters, only: rhostar
+         use parameters_physics, only: full_flux_surface
+         use parameters_physics, only: include_apar, include_bpar
+         use parameters_physics, only: include_parallel_streaming
+         use parameters_physics, only: include_mirror
+         use parameters_physics, only: include_nonlinear
+         use parameters_physics, only: rhostar
          use stella_layouts, only: fields_kxkyz
          
          implicit none

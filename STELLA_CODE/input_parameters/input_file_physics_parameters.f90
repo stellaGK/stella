@@ -1,4 +1,4 @@
-module input_file_physics_parameters
+module input_file_parameters_physics
 
    implicit none
 
@@ -402,4 +402,4 @@ contains
 
    end subroutine read_namelist_physics_inputs
 
-end module input_file_physics_parameters
+end module input_file_parameters_physics

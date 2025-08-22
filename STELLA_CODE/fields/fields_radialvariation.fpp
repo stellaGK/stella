@@ -32,12 +32,12 @@ contains
 
       use mp, only: proc0, mp_abort, job
       use job_manage, only: time_message
-      use physics_parameters, only: radial_variation
+      use parameters_physics, only: radial_variation
       use parameters_multibox, only: ky_solve_radial, ky_solve_real
       use z_grid, only: nzgrid, ntubes
       use grids_kxky, only: zonal_mode
-      use physics_parameters, only: adiabatic_option_switch
-      use physics_parameters, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
       use species, only: spec, has_electron_species
       use multibox, only: mb_get_phi
       use arrays_fields, only: gamtot
@@ -120,8 +120,8 @@ contains
       use mp_lu_decomposition, only: lu_matrix_multiply_local
 #endif
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
-      use physics_parameters, only: adiabatic_option_switch
-      use physics_parameters, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
       use parameters_multibox, only: ky_solve_radial
       use z_grid, only: nzgrid, ntubes
       use species, only: spec, has_electron_species
@@ -405,7 +405,7 @@ contains
       use stella_layouts, only: vmu_lo
       use gyro_averages, only: gyro_average, gyro_average_j1
       use gyro_averages, only: aj0x, aj1x
-      use physics_parameters, only: fphi
+      use parameters_physics, only: fphi
       use parameters_multibox, only: ky_solve_radial
       use geometry, only: dl_over_b, d_dl_over_b_drho, bmag, dBdrho
       use stella_layouts, only: imu_idx, is_idx
@@ -420,8 +420,8 @@ contains
       use arrays_fields, only: gamtot, dgamtotdr
       use arrays_fields, only: gamtot3, efac, efacp
       use arrays_dist_fn, only: kperp2, dkperp2dr
-      use physics_parameters, only: adiabatic_option_switch
-      use physics_parameters, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
@@ -578,8 +578,8 @@ contains
       use kxky_grid_parameters, only: naky, nakx
       use grids_kxky, only: akx
       use grids_kxky, only: zonal_mode, rho_d_clamped
-      use physics_parameters, only: adiabatic_option_switch
-      use physics_parameters, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
       use linear_solve, only: lu_decomposition, lu_inverse
       use multibox, only: init_mb_get_phi
       use arrays_fields, only: gamtot, dgamtotdr
@@ -593,7 +593,7 @@ contains
       use velocity_grids, only: vpa, vperp2, mu, nmu, nvpa
       use arrays_dist_fn, only: kperp2, dkperp2dr
       use geometry, only: dBdrho, bmag
-      use physics_parameters, only: tite, nine, beta
+      use parameters_physics, only: tite, nine, beta
 
       use arrays_fields, only: efac, efacp
       use velocity_grids, only: integrate_vmu
@@ -825,7 +825,7 @@ contains
 
    subroutine allocate_arrays_radial_variation
 
-      use physics_parameters, only: radial_variation
+      use parameters_physics, only: radial_variation
       use arrays_fields, only: phi_corr_QN, phi_corr_GA
       use arrays_fields, only: apar_corr_QN, apar_corr_GA
       use arrays_fields, only: dgamtotdr

@@ -100,7 +100,7 @@ contains
             use file_utils, only: runtype_option_switch, runtype_multibox
             use file_utils, only: error_unit
             use mp, only: mp_abort, job
-            use physics_parameters, only: radial_variation
+            use parameters_physics, only: radial_variation
 
             implicit none
 

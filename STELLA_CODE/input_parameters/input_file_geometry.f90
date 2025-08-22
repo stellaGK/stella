@@ -60,7 +60,7 @@ contains
         !------------------------ Default input parameters -----------------------
         subroutine set_default_geometry_options
             
-            use physics_parameters, only: radial_variation
+            use parameters_physics, only: radial_variation
 
             implicit none
             
@@ -102,7 +102,7 @@ contains
         !------------------------- Check input parameters ------------------------
         subroutine check_input_file_geometry_options
 
-            use physics_parameters, only: radial_variation
+            use parameters_physics, only: radial_variation
             use file_utils, only: runtype_option_switch, runtype_multibox
             use mp, only: job 
 

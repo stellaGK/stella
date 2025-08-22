@@ -290,7 +290,7 @@ contains
       use mp, only: proc0, broadcast, max_allreduce
       use mp, only: scope, crossdomprocs, subprocs
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use physics_parameters, only: include_nonlinear
+      use parameters_physics, only: include_nonlinear
       use ran
       use input_file_fields, only: read_namelist_initialise_distribution_noise
 

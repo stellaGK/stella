@@ -30,7 +30,7 @@ contains
       use grids_kxky, only: rho_d_clamped, aky
       use geometry, only: geo_surf, drhodpsip
       use geometry, only: geo_surf, jacob, djacdrho, q_as_x, dVolume
-      use physics_parameters, only: full_flux_surface, radial_variation
+      use parameters_physics, only: full_flux_surface, radial_variation
 
       implicit none
 
@@ -78,7 +78,7 @@ contains
    subroutine finish_volume_averages
 
       use geometry, only: dVolume
-      use physics_parameters, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
 
       implicit none
 

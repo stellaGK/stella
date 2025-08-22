@@ -248,7 +248,7 @@ contains
         !------------------------ Default input parameters -----------------------
         subroutine set_default_parameters_diagnostics_omega
 
-            use physics_parameters, only: include_nonlinear
+            use parameters_physics, only: include_nonlinear
 
             implicit none
 
@@ -274,7 +274,7 @@ contains
         subroutine check_inputs_diagnostics_omega
 
             use file_utils, only: error_unit
-            use physics_parameters, only: include_nonlinear
+            use parameters_physics, only: include_nonlinear
 
             implicit none
 
@@ -431,7 +431,7 @@ contains
         !------------------------ Default input parameters -----------------------
         subroutine set_default_parameters_diagnostics_fluxes
 
-            use physics_parameters, only: radial_variation
+            use parameters_physics, only: radial_variation
 
             implicit none
 
@@ -510,7 +510,7 @@ contains
         !------------------------ Default input parameters -----------------------
         subroutine set_default_parameters_diagnostics_moments
 
-            use physics_parameters, only: radial_variation
+            use parameters_physics, only: radial_variation
 
             implicit none
 

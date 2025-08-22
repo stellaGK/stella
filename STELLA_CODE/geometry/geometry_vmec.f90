@@ -113,7 +113,7 @@ contains
       use constants, only: pi
       use common_types, only: flux_surface_type
       use splines, only: geo_spline
-      use physics_parameters, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
       use debug_flags, only: const_alpha_geo 
       use z_grid, only: zed_equal_arc, get_total_arc_length, get_arc_length_grid
       use z_grid, only: zed 

@@ -50,8 +50,8 @@ contains
       use species, only: nspec
 
       ! Flags 
-      use physics_parameters, only: radial_variation
-      use physics_parameters, only: full_flux_surface
+      use parameters_physics, only: radial_variation
+      use parameters_physics, only: full_flux_surface
       use parameters_diagnostics, only: write_fluxes_vs_time
       use parameters_diagnostics, only: write_fluxes_kxkyz
       use parameters_diagnostics, only: write_fluxes_kxky
@@ -179,12 +179,12 @@ contains
    subroutine write_fluxes_for_fluxtube(pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts, pflux_vs_kxkys, vflux_vs_kxkys, qflux_vs_kxkys)
    
       ! Flags
-      use physics_parameters, only: include_apar, include_bpar
+      use parameters_physics, only: include_apar, include_bpar
 
       ! Load data 
       use arrays_dist_fn, only: gnew, gvmu
       use arrays_fields, only: phi, bpar
-      use physics_parameters, only: fphi
+      use parameters_physics, only: fphi
 
       ! Redistribute data from  i[vpa,mu,s] to i[kx,ky,z,s] 
       use redistribute, only: scatter
@@ -244,7 +244,7 @@ contains
 
       ! Data 
       use arrays_fields, only: phi, phi_corr_QN
-      use physics_parameters, only: radial_variation
+      use parameters_physics, only: radial_variation
       use arrays_dist_fn, only: gnew
    
       ! Dimensions

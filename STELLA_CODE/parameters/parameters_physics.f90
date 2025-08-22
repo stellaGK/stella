@@ -16,13 +16,13 @@
 ! &extra - to be changed 
 !###############################################################################
 
-module physics_parameters
+module parameters_physics
 
    implicit none
 
    ! Public subroutines that are read by the main stella routine.
-   public :: read_physics_parameters
-   public :: finish_read_physics_parameters
+   public :: read_parameters_physics
+   public :: finish_read_parameters_physics
 
    ! Standard gyrokinetic terms that can be turned on/off
    ! with the following toggles.
@@ -127,10 +127,10 @@ contains
   !======================================================================
   !====================== READ PHYSICS PARAMETERS =======================
   !======================================================================
-  subroutine read_physics_parameters
+  subroutine read_parameters_physics
 
    use mp, only: proc0
-   use input_file_physics_parameters, only: read_namelist_gyrokinetic_terms, &
+   use input_file_parameters_physics, only: read_namelist_gyrokinetic_terms, &
       read_namelist_scale_gyrokinetic_terms, read_namelist_adiabatic_electron_response, &
       read_namelist_electromagnetic, read_namelist_flow_shear, read_namelist_physics_inputs
 
@@ -237,7 +237,7 @@ contains
 
    end subroutine broadcast_parameters
 
- end subroutine read_physics_parameters
+ end subroutine read_parameters_physics
 
  !**********************************************************************
  !                      FINISH READ PARAMETERS                         !
@@ -245,9 +245,9 @@ contains
  ! Set the initialised flag to be false such that we do not initialise
  ! twice.
  !**********************************************************************
- subroutine finish_read_physics_parameters
+ subroutine finish_read_parameters_physics
    implicit none
    initialised = .false.
- end subroutine finish_read_physics_parameters
+ end subroutine finish_read_parameters_physics
 
-end module physics_parameters
+end module parameters_physics

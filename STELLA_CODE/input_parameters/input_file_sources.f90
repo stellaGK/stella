@@ -51,7 +51,7 @@ contains
         !------------------------ Default input parameters -----------------------
         subroutine set_default_parameters_sources
 
-            use physics_parameters, only: radial_variation
+            use parameters_physics, only: radial_variation
             use kxky_grid_parameters, only: periodic_variation
 
             implicit none

@@ -61,7 +61,7 @@ contains
    subroutine read_parameters_fp
 
       use file_utils, only: input_unit_exist
-      use physics_parameters, only: full_flux_surface, radial_variation
+      use parameters_physics, only: full_flux_surface, radial_variation
       use mp, only: proc0, broadcast
 
       implicit none
@@ -347,7 +347,7 @@ contains
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use geometry, only: bmag
       use arrays_dist_fn, only: kperp2
-      use physics_parameters, only: zeff
+      use parameters_physics, only: zeff
       use constants, only: pi
       use common_types, only: spec_type
       use kxky_grid_parameters, only: naky, nakx
@@ -3297,8 +3297,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use redistribute, only: scatter, gather
       use stella_time, only: code_dt
       use z_grid, only: nzgrid, ntubes
-      use physics_parameters, only: fphi
-      use physics_parameters, only: full_flux_surface
+      use parameters_physics, only: fphi
+      use parameters_physics, only: full_flux_surface
       use kxky_grid_parameters, only: naky, nakx
       use velocity_grids, only: nvpa, nmu
       use velocity_grids, only: set_vpa_weights
@@ -4022,7 +4022,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use finite_differences, only: tridag
       use linear_solve, only: lu_back_substitution
       use stella_time, only: code_dt
-      use physics_parameters, only: fphi
+      use parameters_physics, only: fphi
       use species, only: nspec, spec
       use z_grid, only: nzgrid, ntubes
       use velocity_grids, only: nmu, nvpa, integrate_vmu

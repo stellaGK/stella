@@ -43,8 +43,8 @@ contains
       use species, only: nspec
       
       ! Flags 
-      use physics_parameters, only: radial_variation
-      use physics_parameters, only: full_flux_surface
+      use parameters_physics, only: radial_variation
+      use parameters_physics, only: full_flux_surface
 
       ! Write to netcdf file 
       use stella_io, only: write_radial_moments_nc
@@ -141,9 +141,9 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use gyro_averages, only: aj0x, gyro_average
       use arrays_fields, only: phi
-      use physics_parameters, only: fphi
+      use parameters_physics, only: fphi
       use numerical_parameters, only: maxwellian_normalization
-      use physics_parameters, only: radial_variation
+      use parameters_physics, only: radial_variation
       use stella_transforms, only: transform_kx2x_unpadded
       
       ! Import temp arrays g1 and g2 with dimensions (nky, nkx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
@@ -269,9 +269,9 @@ contains
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use gyro_averages, only: aj0x, aj1x, gyro_average
       use arrays_fields, only: phi, phi_corr_QN, phi_proj
-      use physics_parameters, only: fphi
+      use parameters_physics, only: fphi
       use numerical_parameters, only: maxwellian_normalization
-      use physics_parameters, only: radial_variation
+      use parameters_physics, only: radial_variation
       use stella_transforms, only: transform_kx2x_unpadded
       
       ! Input file

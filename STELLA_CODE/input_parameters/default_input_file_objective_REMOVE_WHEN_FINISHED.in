@@ -9,7 +9,7 @@
 !    <geo_option>  = 'vmec' uses the <vmec_parameters> namelist 
 !    <geo_option>  = 'zpinch' does not use any extra namelists 
 !    <geo_option>  = 'input.profiles' does not use any extra namelists 
-! Note that q_as_x  = <radial_variation>, from the <physics_parameters> namelist
+! Note that q_as_x  = <radial_variation>, from the <parameters_physics> namelist
 
 ! OLD NAMELIST
 !&geo_knobs
@@ -88,7 +88,7 @@
 !-------------------------------
   
 ! OLD NAMELIST
-!&physics_parameters
+!&parameters_physics
 !  include_parallel_streaming = .true.
 !  include_mirror = .true.
 !  nonlinear = .false.

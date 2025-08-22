@@ -62,8 +62,8 @@ contains
       use z_grid, only: nzgrid, nztot
       use geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
       use numerical_parameters, only: stream_implicit, driftkinetic_implicit
-      use physics_parameters, only: include_parallel_streaming, radial_variation
-      use physics_parameters, only: full_flux_surface
+      use parameters_physics, only: include_parallel_streaming, radial_variation
+      use parameters_physics, only: full_flux_surface
 
       implicit none
 
@@ -249,7 +249,7 @@ contains
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use velocity_grids, only: mu
       use species, only: spec
-      use physics_parameters, only: full_flux_surface, include_bpar
+      use parameters_physics, only: full_flux_surface, include_bpar
       use gyro_averages, only: gyro_average, gyro_average_j1
       use numerical_parameters, only: driftkinetic_implicit, maxwellian_normalization
 	
@@ -835,7 +835,7 @@ contains
    subroutine finish_parallel_streaming
 
       use numerical_parameters, only: stream_implicit, driftkinetic_implicit
-      use physics_parameters, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
       implicit none
 
       if (allocated(stream)) deallocate (stream)

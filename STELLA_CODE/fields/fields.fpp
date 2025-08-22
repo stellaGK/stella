@@ -64,8 +64,8 @@ contains
       !> Arrays
       use arrays_fields, only: time_field_solve
       !> Parameters
-      use physics_parameters, only: include_apar, include_bpar
-      use physics_parameters, only: full_flux_surface
+      use parameters_physics, only: include_apar, include_bpar
+      use parameters_physics, only: full_flux_surface
       !> Grids
       use z_grid, only: nzgrid
       !> Routines from other field modules
@@ -177,9 +177,9 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: is_idx, iv_idx, imu_idx
       !> Parameters
-      use physics_parameters, only: include_apar, include_bpar
-      use physics_parameters, only: full_flux_surface
-      use physics_parameters, only: fphi
+      use parameters_physics, only: include_apar, include_bpar
+      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: fphi
       use kxky_grid_parameters, only: nakx, naky
       !> Grids
       use species, only: spec
@@ -243,9 +243,9 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: is_idx, iv_idx, imu_idx
       !> Parameters
-      use physics_parameters, only: include_apar, include_bpar
-      use physics_parameters, only: full_flux_surface
-      use physics_parameters, only: fphi
+      use parameters_physics, only: include_apar, include_bpar
+      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: fphi
       use kxky_grid_parameters, only: nakx, naky
       !> Grids
       use species, only: spec
@@ -302,9 +302,9 @@ contains
       use stella_layouts, only: is_idx, iv_idx, imu_idx
       !> Parameters
       use kxky_grid_parameters, only: naky, nakx
-      use physics_parameters, only: include_apar, include_bpar
-      use physics_parameters, only: full_flux_surface
-      use physics_parameters, only: fphi
+      use parameters_physics, only: include_apar, include_bpar
+      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: fphi
       !> Grids
       use species, only: spec
       use velocity_grids, only: vpa, mu
@@ -364,8 +364,8 @@ contains
       use linear_solve, only: lu_decomposition
 
       !> Parameters
-      use physics_parameters, only: include_apar, include_bpar
-      use physics_parameters, only: full_flux_surface, radial_variation
+      use parameters_physics, only: include_apar, include_bpar
+      use parameters_physics, only: full_flux_surface, radial_variation
 
       !> Routined needed to initialise the different field arrays depending on the 
       !> physics being simulated
@@ -416,8 +416,8 @@ contains
    subroutine allocate_arrays
        
       ! Parameters
-      use physics_parameters, only: adiabatic_option_switch
-      use physics_parameters, only: adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch
+      use parameters_physics, only: adiabatic_option_fieldlineavg
       use species, only: spec, has_electron_species
       
       ! Arrays to allocate
@@ -460,7 +460,7 @@ contains
    subroutine finish_fields
 
       ! Parameters
-      use physics_parameters, only: full_flux_surface, radial_variation 
+      use parameters_physics, only: full_flux_surface, radial_variation 
       !> Arrays
       use arrays_fields, only: phi, phi_old
       use arrays_fields, only: gamtot, gamtot3

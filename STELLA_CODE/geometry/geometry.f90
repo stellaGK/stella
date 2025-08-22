@@ -991,7 +991,7 @@ contains
    subroutine read_parameters
 
       ! Flags
-      use physics_parameters, only: radial_variation
+      use parameters_physics, only: radial_variation
 
       ! Multibox runs
       use file_utils, only: runtype_option_switch, runtype_multibox
@@ -1243,7 +1243,7 @@ contains
    !============================================================================
    subroutine get_x_to_rho(llim, x_in, rho_out)
 
-      use physics_parameters, only: rhostar
+      use parameters_physics, only: rhostar
 
       implicit none
 

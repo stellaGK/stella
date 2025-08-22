@@ -81,14 +81,14 @@ contains
 
 !    use mp, only: trin_flag
       use mp, only: proc0, broadcast, mp_abort
-      use physics_parameters, only: vnew_ref, zeff
+      use parameters_physics, only: vnew_ref, zeff
       use parameters_multibox, only: include_pressure_variation
-      use physics_parameters, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
+      use parameters_physics, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       use geometry_inputprofiles_interface, only: read_inputprof_spec
       use euterpe_interface, only: read_species_euterpe !! CHANGE
       use input_file_species, only: read_namelist_species_stella
 
-      use physics_parameters, only: full_flux_surface
+      use parameters_physics, only: full_flux_surface
       implicit none
 
       integer :: is, is2

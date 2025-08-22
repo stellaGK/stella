@@ -10,7 +10,7 @@ contains
       use finite_differences, only: fd3pt, d2_3pt
       use common_types, only: spec_type
       use splines, only: geo_spline
-      use physics_parameters, only: vnew_ref, rhostar, tite, nine
+      use parameters_physics, only: vnew_ref, rhostar, tite, nine
       use geometry, only: geo_surf, aref, bref
 
       use input_file_species, only: read_namelist_euterpe_parameters

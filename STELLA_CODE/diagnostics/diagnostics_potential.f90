@@ -42,8 +42,8 @@ contains
       use z_grid, only: ntubes, nzgrid 
 
       ! Flags 
-      use physics_parameters, only: radial_variation
-      use physics_parameters, only: include_apar, include_bpar
+      use parameters_physics, only: radial_variation
+      use parameters_physics, only: include_apar, include_bpar
 
       ! Calculations 
       use volume_averages, only: volume_average, fieldline_average
@@ -253,7 +253,7 @@ contains
 
       ! Data 
       use arrays_fields, only: phi, apar, bpar
-      use physics_parameters, only: include_apar, include_bpar
+      use parameters_physics, only: include_apar, include_bpar
 
       ! Geometry 
       USE arrays_dist_fn, only: kperp2
