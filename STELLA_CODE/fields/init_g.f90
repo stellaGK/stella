@@ -59,6 +59,7 @@ contains
       ! Read namelist from input file
       use input_file_fields, only: read_namelist_initialise_distribution
       use input_file_fields, only: read_namelist_restart_options
+      use input_file_fields, only: read_namelist_initialise_distribution_noise
       
       ! Load the <init_distribution_switch> parameters
       use input_file_fields, only: init_distribution_option_maxwellian
@@ -71,6 +72,10 @@ contains
       implicit none
 
       integer :: ind_slash
+      
+      ! We want to read the rng seed without needing the other noise parameters
+      real :: zf_init
+      logical :: left, chop_side
       
       !-------------------------------------------------------------------------
 
@@ -86,7 +91,12 @@ contains
       call broadcast(init_distribution_switch)
       call broadcast(scale_to_phiinit)
       call broadcast(phiinit)
-      call broadcast(rng_seed)
+      
+      ! If we want <noise> initialisation, we need to read the rng_seed already
+      if (init_distribution_switch == init_distribution_option_noise) then
+          if (proc0) call read_namelist_initialise_distribution_noise(zf_init, left, chop_side, rng_seed)
+          call broadcast(rng_seed)
+      end if
 
       ! Read <restart_options> namelist
       ! Most of these options will be parsed to other stella modules
@@ -314,6 +324,7 @@ contains
       call broadcast(zf_init)
       call broadcast(left)
       call broadcast(chop_side)
+      call broadcast(rng_seed)
 
       if ((naky == 1 .and. nakx == 1) .or. (.not. include_nonlinear)) then
          if (proc0) then

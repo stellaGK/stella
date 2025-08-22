@@ -29,10 +29,8 @@
 &electromagnetic
   beta = 999
 /
-&flux_annulus
-  rhostar = 999
-/
-&extra
+&physics_inputs
+  rhostar = 999 
   zeff = 999
   vnew_ref = 999
 /
@@ -104,6 +102,10 @@
   phiinit = 0.01
 /
 
+&initialise_distribution_noise
+  rng_seed = 1
+/
+
 !===============================================================================
 !                                    Numerics                                   
 !===============================================================================
@@ -120,9 +122,8 @@
   explicit_algorithm = 'rk2'
 /
 
-&numerical_extra
+&debug_flags
   print_extra_info_to_terminal = .false.
-  rng_seed = 1
 /
 
 !===============================================================================
