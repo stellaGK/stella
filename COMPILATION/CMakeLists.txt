@@ -100,6 +100,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/gyrokinetic_equation/mirror_terms.f90
   ../STELLA_CODE/gyrokinetic_equation/parallel_streaming.f90
   ../STELLA_CODE/gyrokinetic_equation/parallel_nonlinearity.f90
+  ../STELLA_CODE/gyrokinetic_equation/advance_nonlinearity.f90
   ../STELLA_CODE/gyrokinetic_equation/time_advance.f90
   ../STELLA_CODE/gyrokinetic_equation/advance_explicit_drifts.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_fields.f90
