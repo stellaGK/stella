@@ -54,8 +54,8 @@ jobs:
           elif [ ${{ matrix.os }} == 'macos-14' ]; then 
             echo "Set STELLA_SYSTEM = macos"
             echo "STELLA_SYSTEM=macos" >> $GITHUB_ENV 
-            echo "Set FFTW_LIB_DIR = /opt/homebrew/Cellar/fftw/3.3.10_1/lib/"
-            echo "FFTW_LIB_DIR=/opt/homebrew/Cellar/fftw/3.3.10_1/lib/" >> $GITHUB_ENV
+            echo "Set FFTW_LIB_DIR = /opt/homebrew/Cellar/fftw/3.3.10_2/lib/"
+            echo "FFTW_LIB_DIR=/opt/homebrew/Cellar/fftw/3.3.10_2/lib/" >> $GITHUB_ENV
             echo "Set FFTW_INC_DIR = /opt/homebrew/include/" 
             echo "FFTW_INC_DIR=/opt/homebrew/include/" >> $GITHUB_ENV
             echo "Set NETCDF_LIB_DIR = /opt/homebrew/lib -L/opt/homebrew/Cellar/netcdf-fortran/4.6.2/lib/"
@@ -71,10 +71,16 @@ jobs:
       - name: Install dependencies
         run: |
           # Install dependencies
-          if ${{ contains(matrix.os, 'macos') }}; then  
-            brew install gcc@11 make openmpi fftw netcdf-fortran gnu-sed
+          if ${{ contains(matrix.os, 'macos') }}; then   
             if [ ${{ matrix.os }} == 'macos-12' ] || [ ${{ matrix.os }} == 'macos-13' ]; then
-              sudo mkdir /usr/local/gfortran; sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib 
+              brew install gcc@11 make openmpi fftw netcdf-fortran gnu-sed
+              sudo mkdir /usr/local/gfortran; sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
+            elif [ ${{ matrix.os }} == 'macos-14' ]; then
+              brew install gcc@11
+              ln -fs /opt/homebrew/bin/gfortran-11 /usr/local/bin/gfortran
+              sudo mkdir -p /usr/local/gfortran
+              sudo ln -sf /opt/homebrew/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
+              brew install make openmpi fftw netcdf-fortran gnu-sed
             fi
           elif ${{ contains(matrix.os, 'ubuntu') }}; then  
             sudo apt update
