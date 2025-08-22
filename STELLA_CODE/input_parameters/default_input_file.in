@@ -430,3 +430,27 @@
   geometry_debug = .false.
   const_alpha_geo = .false.
  /
+
+!-------------------------------
+!--------  Neoclassics  --------
+!-------------------------------
+  
+&neoclassical_input
+  include_neoclassical_terms = .false.
+  neo_option = "sfincs"
+  nradii = 5.0
+  drho = 0.01
+ /
+
+!--------------------------------
+!-------  Parallelisation  ------
+!--------------------------------
+
+&parallelisation
+  xyzs_layout = "yxzs"
+  vms_layout = "vms"
+  mat_gen = .false.
+  mat_read = .false.
+  lu_option = "default"
+  fields_kxkyz = .false.
+/

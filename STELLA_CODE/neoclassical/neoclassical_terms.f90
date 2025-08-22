@@ -35,6 +35,7 @@ contains
       use stella_layouts, only: vmu_lo
       use sfincs_interface, only: get_neo_from_sfincs
 
+      use input_file_neoclassical_input, only: read_namelist_neoclassical_input
       implicit none
 
       real, dimension(:, :, :, :, :, :), allocatable :: f_neoclassical
@@ -48,7 +49,11 @@ contains
 
       debug = debug .and. proc0
       
-      call read_parameters
+      call read_namelist_neoclassical_input(include_neoclassical_terms, neo_option_switch, &
+                nradii, drho)
+
+      call broacast_arrays
+
       if (include_neoclassical_terms) then
          allocate (f_neoclassical(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec, -nradii / 2:nradii / 2))
          allocate (phi_neoclassical(nalpha, -nzgrid:nzgrid, -nradii / 2:nradii / 2))
@@ -91,59 +96,21 @@ contains
          deallocate (f_neoclassical, phi_neoclassical, dfneo_dalpha_local)
       end if
 
+   contains
+   
+      subroutine broacast_arrays
+
+         use mp, only: broadcast
+
+         implicit none
+
+         call broadcast(include_neoclassical_terms)
+         call broadcast(neo_option_switch)
+         call broadcast(nradii)
+         call broadcast(drho)
+      end subroutine broacast_arrays
+
    end subroutine init_neoclassical_terms
-
-   subroutine read_parameters
-
-      use mp, only: proc0, broadcast
-      use file_utils, only: error_unit, input_unit_exist
-      use text_options, only: text_option, get_option_value
-
-      implicit none
-
-      type(text_option), dimension(2), parameter :: neoopts = (/ &
-                                                    text_option('default', neo_option_sfincs), &
-                                                    text_option('sfincs', neo_option_sfincs)/)
-      character(10) :: neo_option
-
-      namelist /neoclassical_input/ include_neoclassical_terms, &
-         neo_option, nradii, drho
-
-      logical :: exist
-      integer :: ierr, in_file
-
-      if (proc0) then
-         ! set to .true. to include neoclassical terms in GK equation
-         include_neoclassical_terms = .false.
-         ! number of radial points used for radial derivatives
-         ! of neoclassical quantities
-         nradii = 5
-         ! spacing in rhoc between points used for radial derivatives
-         drho = 0.01
-         ! option for obtaining neoclassical distribution function and potential
-         neo_option = 'sfincs'
-
-         in_file = input_unit_exist("neoclassical_input", exist)
-         if (exist) read (unit=in_file, nml=neoclassical_input)
-
-         ierr = error_unit()
-         call get_option_value &
-            (neo_option, neoopts, neo_option_switch, &
-             ierr, "neo_option in neoclassical_input")
-
-         if (nradii /= 3 .and. nradii /= 5) then
-            write (*, *) 'WARNING: only nradii of 3 or 5 is currently supported in neoclassical_input namelist'
-            write (*, *) 'WARNING: forcing nradii=5'
-            nradii = 5
-         end if
-      end if
-
-      call broadcast(include_neoclassical_terms)
-      call broadcast(neo_option_switch)
-      call broadcast(nradii)
-      call broadcast(drho)
-
-   end subroutine read_parameters
 
    subroutine distribute_vmus_over_procs(local, distributed)
 
