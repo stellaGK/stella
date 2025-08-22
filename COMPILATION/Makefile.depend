@@ -716,7 +716,8 @@ $(OBJ_DIR)/input_file_diagnostics.o: \
 	 $(OBJ_DIR)/physics_parameters.o 
 $(OBJ_DIR)/input_file_dissipation.o: \
 	 $(OBJ_DIR)/file_utils.o \
-	 $(OBJ_DIR)/mp.o 
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/physics_parameters.o 
 $(OBJ_DIR)/input_file_fields.o: \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/mp.o \
