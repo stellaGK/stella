@@ -13,7 +13,6 @@
 ! &adiabatic_electron_response
 ! &electromagnetic
 ! &flow_shear
-! &flux_annulus
 ! &extra - to be changed 
 !###############################################################################
 
@@ -133,8 +132,7 @@ contains
    use mp, only: proc0
    use input_file_physics_parameters, only: read_namelist_gyrokinetic_terms, &
       read_namelist_scale_gyrokinetic_terms, read_namelist_adiabatic_electron_response, &
-      read_namelist_electromagnetic, read_namelist_flow_shear, read_namelist_flux_annulus, &
-      read_namelist_physics_inputs
+      read_namelist_electromagnetic, read_namelist_flow_shear, read_namelist_physics_inputs
 
    implicit none
 
@@ -154,8 +152,6 @@ contains
    if (proc0) call read_namelist_flow_shear(prp_shear_enabled, hammett_flow_shear, g_exb, g_exbfac, omprimfac)
 
    if (proc0) call read_namelist_electromagnetic(include_electromagnetic, include_apar, include_bpar, beta) 
-
-   !if (proc0) call read_namelist_flux_annulus()!, nitt)
 
    if (proc0) call read_namelist_physics_inputs(rhostar, zeff, vnew_ref)
 

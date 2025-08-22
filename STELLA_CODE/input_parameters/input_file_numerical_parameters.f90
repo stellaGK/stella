@@ -6,7 +6,7 @@ module input_file_numerical_parameters
     public :: read_namelist_time_step
     public :: read_namelist_numerical_algorithms
     public :: read_namelist_numerical_upwinding_for_derivatives
-    public :: read_namelist_numerical_extra ! To be moved
+    public :: read_namelist_flux_annulus
 
     public :: delt_option_hand, delt_option_auto
     public :: explicit_algorithm_rk3, explicit_algorithm_rk2, &
@@ -285,45 +285,42 @@ contains
     end subroutine read_namelist_numerical_upwinding_for_derivatives
 
     !****************************************************************************
-    !                           NUMERICAL EXTRA OPTIONS                         !
+    !                              FULL FLUX ANNULUS                            !
     !****************************************************************************
-
-    subroutine read_namelist_numerical_extra(nitt)
+    subroutine read_namelist_flux_annulus(nitt)!, field_tol, itt_tol)
 
         use mp, only: proc0
 
         implicit none
-        integer, intent (out)  :: nitt
+
+        integer, intent (out) :: nitt
 
         if (.not. proc0) return
-        call set_default_parameters_numerical_extra
-        call read_input_file_numerical_extra
+        call set_default_parameters_flux_annulus
+        call read_input_file_flux_annulus
 
-    contains
-        
-        subroutine set_default_parameters_numerical_extra
+    contains 
 
-            implicit none
-
-            ! By default
-            nitt = 1
-
-        end subroutine set_default_parameters_numerical_extra
-
-        subroutine read_input_file_numerical_extra
-
-            use file_utils, only: input_unit_exist, error_unit
-            use text_options, only: text_option, get_option_value
+        subroutine set_default_parameters_flux_annulus
 
             implicit none
-
-            namelist /numerical_extra/ nitt
-
-            in_file = input_unit_exist("numerical_extra", dexist)
-            if (dexist) read (unit=in_file, nml=numerical_extra)
             
-        end subroutine read_input_file_numerical_extra
+            nitt = 1 
+            
+        end subroutine set_default_parameters_flux_annulus
 
-    end subroutine read_namelist_numerical_extra
+        subroutine read_input_file_flux_annulus
+
+            use file_utils, only: input_unit_exist
+
+            implicit none
+
+            namelist /flux_annulus/ nitt
+            in_file = input_unit_exist("flux_annulus", dexist)
+            if (dexist) read (unit=in_file, nml=flux_annulus)
+
+        end subroutine read_input_file_flux_annulus
+
+    end subroutine read_namelist_flux_annulus
 
 end module input_file_numerical_parameters

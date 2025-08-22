@@ -8,7 +8,6 @@ module input_file_physics_parameters
    public :: read_namelist_electromagnetic
    public :: read_namelist_flow_shear
    public :: read_namelist_physics_inputs
-   public :: read_namelist_flux_annulus
 
    public :: simulation_domain_fluxtube, simulation_domain_multibox, simulation_domain_flux_annulus
    public :: adiabatic_option_periodic, adiabatic_option_zero, adiabatic_option_fieldlineavg
@@ -402,43 +401,5 @@ contains
       end subroutine read_input_file_physics_inputs
 
    end subroutine read_namelist_physics_inputs
-
-   !****************************************************************************
-   !                              FULL FLUX ANNULUS                            !
-   !****************************************************************************
-   subroutine read_namelist_flux_annulus(nitt)!, field_tol, itt_tol)
-
-      use mp, only: proc0
-
-      implicit none
-
-      integer, intent (out) :: nitt
-
-      if (.not. proc0) return
-      call set_default_parameters_flux_annulus
-      call read_input_file_flux_annulus
-
-   contains 
-
-      subroutine set_default_parameters_flux_annulus
-
-         implicit none
-         
-         nitt = 1 
-          
-      end subroutine set_default_parameters_flux_annulus
-
-      subroutine read_input_file_flux_annulus
-
-         use file_utils, only: input_unit_exist
-         implicit none
-
-         namelist /flux_annulus/ nitt
-         in_file = input_unit_exist("flux_annulus", dexist)
-         if (dexist) read (unit=in_file, nml=flux_annulus)
-
-      end subroutine read_input_file_flux_annulus
-
-   end subroutine read_namelist_flux_annulus
 
 end module input_file_physics_parameters
