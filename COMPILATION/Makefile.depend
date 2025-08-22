@@ -384,9 +384,9 @@ $(OBJ_DIR)/dist_redistribute.o: \
 	 $(OBJ_DIR)/z_grid.o 
 $(OBJ_DIR)/euterpe_interface.o: \
 	 $(OBJ_DIR)/common_types.o \
-	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/finite_differences.o \
 	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/input_file_species.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/physics_parameters.o \
 	 $(OBJ_DIR)/spl.o 

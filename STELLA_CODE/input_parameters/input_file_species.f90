@@ -8,6 +8,7 @@ module input_file_species
     public :: read_namelist_species_stella
     public :: species_option_stella, species_option_inputprofs, species_option_euterpe, species_option_multibox
     public :: ion_species, electron_species, slowing_down_species, tracer_species
+    public :: read_namelist_euterpe_parameters
 
     private
 
@@ -233,5 +234,48 @@ contains
         end subroutine set_default_species_parameters
 
     end subroutine read_namelist_species_stella
+
+    !****************************************************************************
+    !                        SPECIES OPTIONS : euterpe                          !
+    !****************************************************************************
+    subroutine read_namelist_euterpe_parameters(nradii, data_file)
+
+        use mp, only: proc0
+
+        implicit none
+
+        integer, intent(out) :: nradii
+        character(*), intent(out) :: data_file
+        
+        if (.not. proc0) return
+        call set_default_euterpe_parameters
+        call read_input_file_euterpe_parameters
+    
+    contains
+        !------------------------ Default input parameters -----------------------
+        subroutine set_default_euterpe_parameters
+
+            implicit none
+
+            nradii = 1000
+            data_file = 'euterpe.dat'
+
+        end subroutine set_default_euterpe_parameters
+
+        !------------------------ Read input file species options ----------------
+        subroutine read_input_file_euterpe_parameters
+
+            use file_utils, only: input_unit_exist, error_unit
+
+            implicit none
+
+            namelist /euterpe_parameters/ nradii, data_file
+
+            in_file = input_unit_exist("euterpe_parameters", dexist)
+            if (dexist) read (unit=in_file, nml=euterpe_parameters)
+
+        end subroutine read_input_file_euterpe_parameters
+
+    end subroutine read_namelist_euterpe_parameters
 
 end module input_file_species

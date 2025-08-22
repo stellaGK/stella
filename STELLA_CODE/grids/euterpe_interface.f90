@@ -13,6 +13,8 @@ contains
       use physics_parameters, only: vnew_ref, rhostar, tite, nine
       use geometry, only: geo_surf, aref, bref
 
+      use input_file_species, only: read_namelist_euterpe_parameters
+
       implicit none
 
       integer, intent(in) :: nspec
@@ -40,7 +42,7 @@ contains
 
       real, dimension(:), allocatable :: loglam
 
-      call read_euterpe_parameters(nradii_euterpe, euterpe_infile)
+      call read_namelist_euterpe_parameters(nradii_euterpe, euterpe_infile)
 
       open (unit=euterpe_unit, file=trim(euterpe_infile), status='old', action='read')
 
@@ -203,33 +205,5 @@ contains
       deallocate (loglam)
 
    end subroutine read_species_euterpe
-
-   subroutine read_euterpe_parameters(nradii_out, data_file_out)
-
-      use file_utils, only: input_unit_exist
-
-      implicit none
-
-      integer :: in_file
-      logical :: exist
-
-      integer, intent(out) :: nradii_out
-      character(*), intent(out) :: data_file_out
-
-      integer :: nradii
-      character(1000) :: data_file
-
-      namelist /euterpe_parameters/ nradii, data_file
-
-      nradii = 1000
-      data_file = 'euterpe.dat'
-
-      in_file = input_unit_exist("euterpe_parameters", exist)
-      if (exist) read (unit=in_file, nml=euterpe_parameters)
-
-      nradii_out = nradii
-      data_file_out = data_file
-
-   end subroutine read_euterpe_parameters
 
 end module euterpe_interface
