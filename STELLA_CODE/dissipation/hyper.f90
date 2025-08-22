@@ -23,29 +23,15 @@ contains
 
    subroutine read_parameters_hyper
 
-      use file_utils, only: input_unit_exist
-      use parameters_physics, only: full_flux_surface, radial_variation
-      use mp, only: proc0, broadcast
+      use physics_parameters, only: full_flux_surface, radial_variation
+      use mp, only: broadcast
+>
 
+      use namelist_dissipation, only: read_namelist_hyper_dissipation
       implicit none
 
-      namelist /hyper/ D_hyper, D_zed, D_vpa, hyp_zed, hyp_vpa, use_physical_ksqr, scale_to_outboard
-
-      integer :: in_file
-      logical :: dexist
-
-      if (proc0) then
-         use_physical_ksqr = .not. (full_flux_surface .or. radial_variation)  ! use kperp2, instead of akx^2 + aky^2
-         scale_to_outboard = .false.                                          ! scales hyperdissipation to zed = 0
-         D_hyper = 0.05
-         D_zed = 0.05
-         D_vpa = 0.05
-         hyp_vpa = .false.
-         hyp_zed = .false.
-
-         in_file = input_unit_exist("hyper", dexist)
-         if (dexist) read (unit=in_file, nml=hyper)
-      end if
+      call read_namelist_hyper_dissipation (D_hyper, D_zed, D_vpa, & 
+                     hyp_zed, hyp_vpa, use_physical_ksqr, scale_to_outboard)
 
       call broadcast(use_physical_ksqr)
       call broadcast(scale_to_outboard)

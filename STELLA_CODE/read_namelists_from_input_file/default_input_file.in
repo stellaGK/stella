@@ -329,6 +329,55 @@
    hyper_dissipation = .false.
    collision_model = 'dougherty'
 /
+&collisions_dougherty
+  momentum_conservation = .true.
+  energy_conservation = .true.
+  vpa_operator = .true.
+  mu_operator = .true.
+ /
+&collisions_fokker_planck
+  testpart = .true.
+  fieldpart = .false.
+  lmax = 1.0
+  jmax = 1.0
+  nvel_local = 512.0
+  interspec = .true.
+  intraspec = .true.
+  iiknob = 1.0
+  ieknob = 1.0
+  eeknob = 1.0
+  eiknob = 1.0
+  eiediffknob = 1.0
+  eideflknob = 1.0
+  deflknob = 1.0
+  eimassr_approx = .false.
+  advfield_coll = .true.
+  spitzer_problem = .false.
+  density_conservation = .false.
+  density_conservation_field = .false.
+  density_conservation_tp = .false.
+  exact_conservation = .false.
+  exact_conservation_tp = .false.
+  vpa_operator = .true.
+  mu_operator = .true.
+  cfac = 1.0
+  cfac2 = 1.0
+  nuxfac = 1.0
+  i1fac = 1.0
+  i2fac = 0.0
+  no_j1l1 = .true.
+  no_j1l2 = .false.
+  no_j0l2 = .false.
+ /
+&hyper_dissipation
+  d_hyper = 0.05
+  d_zed = 0.05
+  d_vpa = 0.05
+  hyp_zed = .false.
+  hyp_vpa = .false.
+  use_physical_ksqr = .true.
+  scale_to_outboard = .false.
+ /
 
 !===============================================================================
 !                                   Geometry                                  

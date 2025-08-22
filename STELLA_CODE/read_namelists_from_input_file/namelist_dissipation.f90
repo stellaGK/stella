@@ -26,6 +26,9 @@ module namelist_dissipation
    implicit none
 
    public :: read_namelist_dissipation
+   public :: read_namelist_collisions_dougherty
+   public :: read_namelist_collisions_fokker_planck
+   public :: read_namelist_hyper_dissipation
    
    private
    
@@ -52,7 +55,7 @@ contains
       call read_input_file_dissipation
       call check_inputs_dissipation
 
-   contains
+   contains 
       
       !------------------------ Default input parameters -----------------------
       subroutine set_default_parameters_dissipation
@@ -92,5 +95,211 @@ contains
 
    end subroutine read_namelist_dissipation
 
+   !****************************************************************************
+   !                           COLLISIONS: dougherty                           !
+   !****************************************************************************
+   subroutine read_namelist_collisions_dougherty(momentum_conservation, &
+                     energy_conservation, vpa_operator, mu_operator)
+
+      use mp, only: proc0
+      
+      implicit none
+
+      logical, intent(out) :: momentum_conservation, energy_conservation, vpa_operator, mu_operator
+
+      if (.not. proc0) return
+      call set_default_parameters_collisions_dougherty
+      call read_input_file_collisions_dougherty
+   contains 
+      
+      !------------------------ Default input parameters -----------------------
+      subroutine set_default_parameters_collisions_dougherty
+
+         implicit none
+
+         momentum_conservation = .true.       ! momentum conservation for Dougherty operator
+         energy_conservation = .true.         ! energy conservation for Dougherty operator
+         vpa_operator = .true.                ! include vpa components in Dougherty or Fokker-Planck operator
+         mu_operator = .true.                 ! include mu components in Dougherty or Fokker-Planck operator
+
+
+      end subroutine set_default_parameters_collisions_dougherty
+
+      !---------------------------- Read input file ----------------------------
+      subroutine read_input_file_collisions_dougherty
+
+         use file_utils, only: input_unit_exist
+
+         implicit none
+
+         namelist /collisions_dougherty/ momentum_conservation, energy_conservation, &
+                                          vpa_operator, mu_operator
+
+         in_file = input_unit_exist("collisions_dougherty", dexist)
+         if (dexist) read (unit=in_file, nml=collisions_dougherty)
+
+      end subroutine read_input_file_collisions_dougherty
+
+   end subroutine read_namelist_collisions_dougherty
+
+   !****************************************************************************
+   !                          COLLISIONS: Fokker-Planck                        !
+   !****************************************************************************
+   subroutine read_namelist_collisions_fokker_planck(testpart, fieldpart, lmax, jmax, nvel_local, &
+                              interspec, intraspec, iiknob, ieknob, eeknob, eiknob, &
+                              eiediffknob, eideflknob, deflknob, eimassr_approx, &
+                              advfield_coll, spitzer_problem, density_conservation, &
+                              density_conservation_field, density_conservation_tp, &
+                              exact_conservation, exact_conservation_tp, &
+                              vpa_operator, mu_operator, &
+                              cfac, cfac2, nuxfac, i1fac, i2fac, no_j1l1, no_j1l2, no_j0l2)
+
+      use mp, only: proc0
+      
+      implicit none
+      
+      logical, intent (out) :: fieldpart, testpart
+      integer, intent (out)  :: jmax 
+      integer, intent (out)  :: lmax 
+      integer, intent (out)  :: nvel_local
+      logical, intent (out)  :: interspec, intraspec
+      real, intent (out)  :: iiknob, ieknob, eeknob, eiknob, eiediffknob, eideflknob, deflknob
+      logical, intent (out)  :: eimassr_approx
+      logical, intent (out)  :: advfield_coll
+      logical, intent (out)  :: spitzer_problem
+      logical, intent (out)  :: density_conservation, density_conservation_field, density_conservation_tp
+      logical, intent (out)  ::exact_conservation_tp, exact_conservation
+      logical, intent (out)  :: vpa_operator, mu_operator
+      real, intent (out)  :: cfac, cfac2
+      real, intent (out)  :: nuxfac
+      real, intent (out)  :: i1fac, i2fac
+      logical, intent (out)  :: no_j1l1, no_j1l2, no_j0l2
+
+      if (.not. proc0) return
+      call set_default_parameters_collisions_fokker_planck
+      call read_input_file_collisions_fokker_planck
+
+   contains 
+      
+      !------------------------ Default input parameters -----------------------
+      subroutine set_default_parameters_collisions_fokker_planck
+
+         implicit none
+
+         testpart = .true.                    ! test particle component (TPO) of fokker-planck operator, must be True
+         fieldpart = .false.                  ! enable the field particle component (FPO) of the fokker-planck operator
+         intraspec = .true.                   ! intra-species collisions in the Fokker-Planck operator
+         interspec = .true.                   ! inter-species
+         iiknob = 1.                          ! control the ion-ion coll freq in Fokker-Planck operator
+         ieknob = 1.                          ! ...ion-eon coll freq
+         eeknob = 1.                          ! ...eon-eon coll freq
+         eiknob = 1.                          ! ...eon-ion coll freq
+         eiediffknob = 1.                     ! control the eon-ion energy diffusion in Fokker-Planck operator
+         eideflknob = 1.                      !
+         deflknob = 1.                        ! control pitch angle scattering in Fokker-Planck operator, must be 1 or 0
+         eimassr_approx = .false.             ! use mass ratio approximation for test particle operator, beta
+         advfield_coll = .true.               ! disable electrostatic potential terms in the field particle operator, beta
+         density_conservation = .false.       ! if True and equally_spaced_mu_grid=True and conservative_wgts_vpa=True, then TPO conserves density to machine precision
+         density_conservation_field = .false. ! if True and jmax, lmax < 2, then FPO conserves density to machine precision
+         density_conservation_tp = .false.    ! if True add term to field particle operator to ensure density conservation, also on non-uniform grids
+         exact_conservation = .false.         ! if True and fieldpart=True and lmax=jmax=1 then momentum and energy conserved to machine precision - in beta &
+         ! & works only if nux = 0, need to correct the discretisation of nux terms in TPO
+         exact_conservation_tp = .false.      ! if True and lmax=jmax=1 then momentum and energy conserved to machine precision, by using the test particle operator &
+         ! to compute field particle terms; this is slower than exact_conservation
+         spitzer_problem = .false.            ! to solve the Spitzer problem for tests of the collision operator
+         cfac = 1                             ! scale gyrodiffusive term in test particle component of Fokker-Planck operator
+         cfac2 = 1                            ! scale gyrodiffusive terms in field particle component of Fokker-Planck operator - in beta
+         nuxfac = 1                           ! scale nux (mixed derivative) terms in test particle component of Fokker-Planck operator
+         jmax = 1                             ! maximum j in Hirshman-Sigmar expansion of the field particle operator
+         lmax = 1                             ! maximum l in spherical harmonic expansion of the field particle operator
+         i1fac = 1                            ! for Spitzer problem
+         i2fac = 0                            ! for Spitzer problem
+         no_j1l1 = .true.                     ! disable j1l1 term in the field particle component of Fokker-Planck operator
+         no_j1l2 = .false.                    ! disable j1l2 term
+         no_j0l2 = .false.                    ! disable j0l2 term
+         
+         vpa_operator = .true.                ! include vpa components in Dougherty or Fokker-Planck operator
+         mu_operator = .true.                 ! include mu components in Dougherty or Fokker-Planck operator
+         nvel_local = 512
+      end subroutine set_default_parameters_collisions_fokker_planck
+
+      !---------------------------- Read input file ----------------------------
+      subroutine read_input_file_collisions_fokker_planck
+
+         use file_utils, only: input_unit_exist
+
+         implicit none
+
+         namelist /collisions_fokker_planck/ testpart, fieldpart, lmax, jmax, nvel_local, &
+                              interspec, intraspec, iiknob, ieknob, eeknob, eiknob, &
+                              eiediffknob, eideflknob, deflknob, eimassr_approx, &
+                              advfield_coll, spitzer_problem, density_conservation, &
+                              density_conservation_field, density_conservation_tp, &
+                              exact_conservation, exact_conservation_tp, &
+                              vpa_operator, mu_operator, &
+                              cfac, cfac2, nuxfac, i1fac, i2fac, no_j1l1, no_j1l2, no_j0l2
+
+         in_file = input_unit_exist("collisions_fokker_planck", dexist)
+         if (dexist) read (unit=in_file, nml=collisions_fokker_planck)
+
+      end subroutine read_input_file_collisions_fokker_planck
+
+   end subroutine read_namelist_collisions_fokker_planck
+
+   !****************************************************************************
+   !                              HYPER DISSIPATION                            !
+   !****************************************************************************
+   subroutine read_namelist_hyper_dissipation(D_hyper, D_zed, D_vpa, hyp_zed, &
+                     hyp_vpa, use_physical_ksqr, scale_to_outboard)
+
+      use mp, only: proc0
+      
+      implicit none
+
+      logical, intent (out) :: use_physical_ksqr, scale_to_outboard
+      real, intent (out) :: D_hyper, D_zed, D_vpa
+      logical, intent (out) :: hyp_vpa, hyp_zed
+
+      if (.not. proc0) return
+      call set_default_parameters_hyper_dissipation
+      call read_input_file_hyper_dissipation
+   contains 
+      
+      !------------------------ Default input parameters -----------------------
+      subroutine set_default_parameters_hyper_dissipation
+
+         use physics_parameters, only: full_flux_surface, radial_variation
+
+         implicit none
+
+         use_physical_ksqr = .not. (full_flux_surface .or. radial_variation)  ! use kperp2, instead of akx^2 + aky^2
+         scale_to_outboard = .false.                                          ! scales hyperdissipation to zed = 0
+         D_hyper = 0.05
+         D_zed = 0.05
+         D_vpa = 0.05
+         hyp_vpa = .false.
+         hyp_zed = .false.
+
+      end subroutine set_default_parameters_hyper_dissipation
+
+      !---------------------------- Read input file ----------------------------
+      subroutine read_input_file_hyper_dissipation
+
+         use file_utils, only: input_unit_exist
+
+         implicit none
+
+         namelist /hyper_dissipation/ D_hyper, D_zed, D_vpa, hyp_zed, &
+                     hyp_vpa, use_physical_ksqr, scale_to_outboard
+
+         in_file = input_unit_exist("hyper_dissipation", dexist)
+         if (dexist) read (unit=in_file, nml=hyper_dissipation)
+
+      end subroutine read_input_file_hyper_dissipation
+
+   end subroutine read_namelist_hyper_dissipation
+
+
 end module namelist_dissipation
+
 
