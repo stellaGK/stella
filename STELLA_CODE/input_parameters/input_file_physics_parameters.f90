@@ -7,8 +7,8 @@ module input_file_physics_parameters
    public :: read_namelist_adiabatic_electron_response
    public :: read_namelist_electromagnetic
    public :: read_namelist_flow_shear
+   public :: read_namelist_physics_inputs
    public :: read_namelist_flux_annulus
-   public :: read_namelist_extra
 
    public :: simulation_domain_fluxtube, simulation_domain_multibox, simulation_domain_flux_annulus
    public :: adiabatic_option_periodic, adiabatic_option_zero, adiabatic_option_fieldlineavg
@@ -359,84 +359,86 @@ contains
    end subroutine read_namelist_flow_shear
 
    !****************************************************************************
-   !                              FULL FLUX ANNULUS                            !
+   !                                PHYSICAL INPUTS                            !
    !****************************************************************************
-   subroutine read_namelist_flux_annulus(rhostar)!, nitt) !, field_tol, itt_tol)
+   subroutine read_namelist_physics_inputs(rhostar, zeff, vnew_ref)
 
       use mp, only: proc0
 
       implicit none
 
       real, intent (out) :: rhostar
-      !integer, intent (out) :: nitt
+      real, intent(out) :: zeff, vnew_ref
       
       if (.not. proc0) return
-      call set_default_parameters_flux_annulus
-      call read_input_file_flux_annulus
+      call set_default_parameters_physics_inputs
+      call read_input_file_physics_inputs
 
    contains
       
       !------------------------ Default input parameters -----------------------
-      subroutine set_default_parameters_flux_annulus
+      subroutine set_default_parameters_physics_inputs
 
          implicit none
          ! By default
          rhostar = -1.0 ! = m_ref * vt_ref / (e * B_ref * a_ref), with refs in SI
-         !nitt = 1 
-      end subroutine set_default_parameters_flux_annulus
+         zeff = 1.0
+         vnew_ref = -1.0 ! various input options will override this value if it is negative
+
+      end subroutine set_default_parameters_physics_inputs
 
       !---------------------------- Read input file ----------------------------
+      subroutine read_input_file_physics_inputs
+
+         use file_utils, only: input_unit_exist
+         implicit none
+
+         namelist /physics_inputs/ rhostar, zeff, vnew_ref
+         !, nitt  !, field_tol, itt_tol
+
+         in_file = input_unit_exist("physics_inputs", dexist)
+         if (dexist) read (unit=in_file, nml=physics_inputs)
+
+      end subroutine read_input_file_physics_inputs
+
+   end subroutine read_namelist_physics_inputs
+
+   !****************************************************************************
+   !                              FULL FLUX ANNULUS                            !
+   !****************************************************************************
+   subroutine read_namelist_flux_annulus(nitt)!, field_tol, itt_tol)
+
+      use mp, only: proc0
+
+      implicit none
+
+      integer, intent (out) :: nitt
+
+      if (.not. proc0) return
+      call set_default_parameters_flux_annulus
+      call read_input_file_flux_annulus
+
+   contains 
+
+      subroutine set_default_parameters_flux_annulus
+
+         implicit none
+         
+         nitt = 1 
+          
+      end subroutine set_default_parameters_flux_annulus
+
       subroutine read_input_file_flux_annulus
 
          use file_utils, only: input_unit_exist
          implicit none
 
-         namelist /flux_annulus/ rhostar!, nitt  !, field_tol, itt_tol
+         namelist /flux_annulus/ nitt
          in_file = input_unit_exist("flux_annulus", dexist)
          if (dexist) read (unit=in_file, nml=flux_annulus)
 
       end subroutine read_input_file_flux_annulus
 
    end subroutine read_namelist_flux_annulus
-
-   !****************************************************************************
-   !                             EXTRA - to be moved                           !
-   !****************************************************************************
-
-   subroutine read_namelist_extra(zeff, vnew_ref)
-
-      use mp, only: proc0
-
-      implicit none
-
-      real, intent(out) :: zeff, vnew_ref
-
-      if (.not. proc0) return
-      call set_default_parameters_extra
-      call read_input_file_extra
-
-   contains 
-
-      subroutine set_default_parameters_extra
-
-         implicit none
-
-         ! Default values for zeff and vnew_ref
-         zeff = 1.0
-         vnew_ref = -1.0 ! various input options will override this value if it is negative
-      end subroutine set_default_parameters_extra
-
-      subroutine read_input_file_extra
-
-         use file_utils, only: input_unit_exist
-         implicit none
-
-         namelist /extra/ zeff, vnew_ref
-         in_file = input_unit_exist("extra", dexist)
-         if (dexist) read (unit=in_file, nml=extra)
-
-      end subroutine read_input_file_extra
-
-   end subroutine read_namelist_extra
 
 end module input_file_physics_parameters
