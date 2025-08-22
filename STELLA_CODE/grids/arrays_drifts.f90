@@ -260,10 +260,7 @@ contains
 
         use store_arrays_distribution_fn, only: wdriftx_g, wdrifty_g
         use store_arrays_distribution_fn, only: wdriftx_phi, wdrifty_phi
-        use store_arrays_distribution_fn, only: wdriftpx_g, wdriftpy_g
-        use store_arrays_distribution_fn, only: wdriftpx_phi, wdriftpy_phi
         use store_arrays_useful, only: wdriftinit
-    !use store_arrays_distribution_fn, only: adiabatic_phi
 
         implicit none
 
@@ -271,11 +268,6 @@ contains
         if (allocated(wdrifty_g)) deallocate (wdrifty_g)
         if (allocated(wdriftx_phi)) deallocate (wdriftx_phi)
         if (allocated(wdrifty_phi)) deallocate (wdrifty_phi)
-        if (allocated(wdriftpx_g)) deallocate (wdriftpx_g)
-        if (allocated(wdriftpy_g)) deallocate (wdriftpy_g)
-        if (allocated(wdriftpx_phi)) deallocate (wdriftpx_phi)
-        if (allocated(wdriftpy_phi)) deallocate (wdriftpy_phi)
-    !   if (allocated(adiabatic_phi)) deallocate (adiabatic_phi)
 
         wdriftinit = .false.
 
@@ -288,9 +280,7 @@ contains
 
         implicit none
 
-        
         if (allocated(wstar)) deallocate (wstar)
-        if (allocated(wstarp)) deallocate (wstarp)
 
         wstarinit = .false.
 

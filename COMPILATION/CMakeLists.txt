@@ -93,10 +93,13 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/grids/write_radial_grid.f90
   ../STELLA_CODE/grids/z_grid.f90
   ../STELLA_CODE/gyrokinetic_equation/ffs_solve.f90
+  ../STELLA_CODE/gyrokinetic_equation/radial_variation_time_advance.f90
+  ../STELLA_CODE/gyrokinetic_equation/timing_of_run.f90
   ../STELLA_CODE/gyrokinetic_equation/flow_shear.f90
   ../STELLA_CODE/gyrokinetic_equation/implicit_solve.f90
   ../STELLA_CODE/gyrokinetic_equation/mirror_terms.f90
   ../STELLA_CODE/gyrokinetic_equation/parallel_streaming.f90
+  ../STELLA_CODE/gyrokinetic_equation/parallel_nonlinearity.f90
   ../STELLA_CODE/gyrokinetic_equation/time_advance.f90
   ../STELLA_CODE/gyrokinetic_equation/advance_explicit_drifts.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_fields.f90

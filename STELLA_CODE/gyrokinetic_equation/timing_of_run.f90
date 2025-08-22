@@ -24,9 +24,11 @@ contains
         use sources, only: init_source_timeaverage
         use sources, only: init_quasineutrality_source, qn_source_initialized
         use arrays_drifts, only: init_wdrift, init_wstar
+        use radial_variation_time_advance, only: init_radial_variation
 
         use store_arrays_useful, only: wdriftinit, wstarinit, parnlinit, &
                         radialinit, driftimpinit
+            
 
         ! need to recompute mirror and streaming terms
         ! to account for updated code_dt
@@ -53,10 +55,10 @@ contains
         call init_source_timeaverage
         if (debug) write (6, *) 'time_advance::reset_dt::init_quasineutrality_source'
         call init_quasineutrality_source
-        ! if (radial_variation) then
-        !     if (debug) write (6, *) 'time_advance::reset_dt::init_radial_variation'
-        !     call init_radial_variation
-        ! end if
+        if (radial_variation) then
+            if (debug) write (6, *) 'time_advance::reset_dt::init_radial_variation'
+            call init_radial_variation
+        end if
         if (include_collisions) then
             if (debug) write (6, *) 'time_advance::reset_dt::init_collisions'
             collisions_initialized = .false.
