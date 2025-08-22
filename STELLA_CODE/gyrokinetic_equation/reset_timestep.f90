@@ -18,8 +18,8 @@ contains
         use response_matrix, only: init_response_matrix
         use mirror_terms, only: mirror_initialized
         use mirror_terms, only: init_mirror
-        use flow_shear, only: flow_shear_initialized
-        use flow_shear, only: init_flow_shear
+        use gk_flow_shear, only: flow_shear_initialized
+        use gk_flow_shear, only: init_flow_shear
         use parameters_physics, only: radial_variation
         use sources, only: init_source_timeaverage
         use sources, only: init_quasineutrality_source, qn_source_initialized

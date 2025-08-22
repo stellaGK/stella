@@ -1,4 +1,4 @@
-module flow_shear
+module gk_flow_shear
 
    implicit none
 
@@ -305,4 +305,4 @@ contains
 
    end subroutine finish_flow_shear
 
-end module flow_shear
+end module gk_flow_shear

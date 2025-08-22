@@ -1,5 +1,5 @@
 
-module time_advance
+module gk_time_advance
 
    use debug_flags, only: debug => time_advance_debug
 
@@ -33,7 +33,7 @@ contains
       use dissipation, only: init_collisions, include_collisions
       use parallel_streaming, only: init_parallel_streaming
       use mirror_terms, only: init_mirror
-      use flow_shear, only: init_flow_shear
+      use gk_flow_shear, only: init_flow_shear
       use sources, only: init_quasineutrality_source, init_source_timeaverage
 
       use radial_variation_time_advance, only: init_radial_variation
@@ -137,7 +137,7 @@ contains
       use parallel_streaming, only: stream
       use parallel_streaming, only: stream_rad_var1, stream_rad_var2
       use mirror_terms, only: mirror
-      use flow_shear, only: prl_shear, shift_times
+      use gk_flow_shear, only: prl_shear, shift_times
       use file_utils, only: runtype_option_switch, runtype_multibox
       use dissipation, only: include_collisions, collisions_implicit
       use dissipation, only: cfl_dt_vpadiff, cfl_dt_mudiff
@@ -722,7 +722,7 @@ contains
       use sources, only: add_krook_operator
       use parallel_streaming, only: advance_parallel_streaming_explicit
       use mirror_terms, only: advance_mirror_explicit
-      use flow_shear, only: advance_parallel_flow_shear
+      use gk_flow_shear, only: advance_parallel_flow_shear
       use advance_explicit_drifts, only: advance_wstar_explicit
       use advance_explicit_drifts, only: advance_wdriftx_explicit, advance_wdrifty_explicit
       use parallel_nonlinearity, only: advance_parallel_nonlinearity
@@ -941,7 +941,7 @@ contains
       use hyper, only: advance_hyper_dissipation
       use implicit_solve, only: advance_implicit_terms
       use mirror_terms, only: advance_mirror_implicit
-      use flow_shear, only: advance_perp_flow_shear
+      use gk_flow_shear, only: advance_perp_flow_shear
       use radial_variation_time_advance, only: mb_communicate
 
       implicit none
@@ -1051,7 +1051,7 @@ contains
       use extended_zgrid, only: finish_extended_zgrid
       use parallel_streaming, only: finish_parallel_streaming
       use mirror_terms, only: finish_mirror
-      use flow_shear, only: finish_flow_shear
+      use gk_flow_shear, only: finish_flow_shear
       use neoclassical_terms, only: finish_neoclassical_terms
       use dissipation, only: finish_dissipation
       use arrays_drifts, only: finish_wstar, finish_wdrift
@@ -1090,4 +1090,4 @@ contains
 
    end subroutine deallocate_arrays
 
-end module time_advance
+end module gk_time_advance

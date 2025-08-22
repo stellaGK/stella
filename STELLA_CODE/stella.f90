@@ -7,7 +7,7 @@ program stella
    use parameters_numerical, only: avail_cpu_time
    use stella_time, only: update_time, code_time, code_dt, checkcodedt
    use dist_redistribute, only: kxkyz2vmu
-   use time_advance, only: advance_stella
+   use gk_time_advance, only: advance_stella
    use diagnostics, only: diagnostics_stella
    use stella_save, only: stella_save_for_restart
    use store_arrays_distribution_fn, only: gnew, gvmu
@@ -125,7 +125,7 @@ contains
       use arrays_constants, only: init_arrays_vperp_kperp
       use dist_redistribute, only: init_redistribute
 !      use dist_redistribute, only: test_kymus_to_vmus_redistribute
-      use time_advance, only: init_time_advance
+      use gk_time_advance, only: init_time_advance
       use extended_zgrid, only: init_extended_zgrid
       use grids_kxky, only: init_grids_kxky
       use parameters_kxky_grid, only: naky, nakx, ny, nx, nalpha
@@ -585,7 +585,7 @@ contains
       use z_grid, only: finish_zgrid
       use species, only: finish_species
       use store_arrays_useful, only: time_gke, time_parallel_nl
-      use time_advance, only: finish_time_advance
+      use gk_time_advance, only: finish_time_advance
       use parallel_streaming, only: time_parallel_streaming
       use mirror_terms, only: time_mirror
       use dissipation, only: time_collisions, include_collisions 
