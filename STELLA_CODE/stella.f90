@@ -96,8 +96,9 @@ contains
       use job_manage, only: checktime, time_message
       use physics_parameters, only: read_physics_parameters
       use physics_parameters, only: radial_variation
+      use init_g, only: rng_seed
       use numerical_parameters, only: read_numerical_parameters
-      use numerical_parameters, only: avail_cpu_time, nstep, rng_seed, delt, delt_max, delt_min
+      use numerical_parameters, only: avail_cpu_time, nstep, delt, delt_max, delt_min
       use numerical_parameters, only: stream_implicit, driftkinetic_implicit
       use numerical_parameters, only: delt_option_switch, delt_option_auto
       use stella_layouts, only: mat_gen, mat_read

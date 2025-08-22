@@ -131,7 +131,6 @@ $(OBJ_DIR)/coll_dougherty.o: \
 	 $(OBJ_DIR)/kxky_grid_parameters.o \
 	 $(OBJ_DIR)/linear_solve.o \
 	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/numerical_parameters.o \
 	 $(OBJ_DIR)/physics_parameters.o \
 	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/species.o \

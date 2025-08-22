@@ -236,6 +236,7 @@
    zf_init = 1.0
    chop_side = .false.
    left = .true.
+   rng_seed = -1 
 /
 
 &initialise_distribution_kpar

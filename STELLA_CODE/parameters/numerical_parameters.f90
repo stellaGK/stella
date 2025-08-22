@@ -44,7 +44,6 @@ module numerical_parameters
 
    ! extra - need to move
    public :: nitt
-   public :: rng_seed
    
    ! Public subroutines that are read by the main stella routine.
    public :: read_numerical_parameters, finish_read_numerical_parameters
@@ -89,7 +88,6 @@ module numerical_parameters
 
    ! Extra - need to move
    integer :: nitt
-   integer :: rng_seed
 
    ! Internal
    logical :: initialised = .false.
@@ -135,7 +133,7 @@ contains
 
       if (proc0) call read_namelist_numerical_upwinding_for_derivatives(time_upwind, zed_upwind, vpa_upwind)
 
-      if (proc0) call read_namelist_numerical_extra(nitt, rng_seed)
+      if (proc0) call read_namelist_numerical_extra(nitt)
 
       if (proc0) call check_numerical_inputs 
       call broadcast_parameters
@@ -352,8 +350,7 @@ contains
 
          ! Extra - need to move
          call broadcast(nitt)
-         call broadcast(rng_seed)
-
+         
       end subroutine broadcast_parameters
     
     end subroutine read_numerical_parameters
