@@ -36,7 +36,7 @@ contains
    subroutine read_parameters_dougherty
 
       use mp, only: broadcast
-      use input_file_dissipation, only: read_namelist_collisions_dougherty
+      use namelist_dissipation, only: read_namelist_collisions_dougherty
 
       implicit none
 

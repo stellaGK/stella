@@ -23,11 +23,9 @@ contains
 
    subroutine read_parameters_hyper
 
-      use physics_parameters, only: full_flux_surface, radial_variation
       use mp, only: broadcast
->
-
       use namelist_dissipation, only: read_namelist_hyper_dissipation
+
       implicit none
 
       call read_namelist_hyper_dissipation (D_hyper, D_zed, D_vpa, & 

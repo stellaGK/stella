@@ -268,7 +268,7 @@ contains
       !------------------------ Default input parameters -----------------------
       subroutine set_default_parameters_hyper_dissipation
 
-         use physics_parameters, only: full_flux_surface, radial_variation
+         use parameters_physics, only: full_flux_surface, radial_variation
 
          implicit none
 
