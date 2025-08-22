@@ -126,7 +126,7 @@ contains
       use vmec_geometry, only: read_vmec_parameters, get_vmec_geometry 
 
       ! Flags
-      use physics_parameters, only: include_geometric_variation
+      use parameters_multibox, only: include_geometric_variation
 
       ! Routines
       use file_utils, only: get_unused_unit

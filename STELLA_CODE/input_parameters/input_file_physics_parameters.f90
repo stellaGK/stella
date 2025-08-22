@@ -33,17 +33,19 @@ contains
    !****************************************************************************
    subroutine read_namelist_gyrokinetic_terms(simulation_domain_switch, include_parallel_streaming, & 
       include_mirror, include_xdrift, include_ydrift, include_drive, include_nonlinear, &
-      include_parallel_nonlinearity, include_electromagnetic, include_flow_shear)
+      include_parallel_nonlinearity, include_electromagnetic, include_flow_shear, &
+      include_full_flux_annulus, include_radial_variation)      
 
       use mp, only: proc0
 
       implicit none
-
+      
       integer, intent(out) :: simulation_domain_switch
       logical, intent(out) :: include_parallel_streaming, &
          include_mirror, include_xdrift, include_ydrift, include_drive, &
          include_nonlinear, include_parallel_nonlinearity, & 
          include_electromagnetic, include_flow_shear
+      logical, intent (out) :: include_full_flux_annulus, include_radial_variation
 
       character(30) :: simulation_domain
 
@@ -75,6 +77,9 @@ contains
          ! By default electromagnetic and flow shear effects are not included
          include_electromagnetic = .false.
          include_flow_shear = .false.
+         include_full_flux_annulus = .false. 
+         include_radial_variation = .false.
+
 
       end subroutine set_default_parameters_gyrokinetic_terms
 
@@ -101,7 +106,7 @@ contains
          namelist /gyrokinetic_terms/ simulation_domain, include_parallel_streaming, &
             include_mirror, include_xdrift, include_ydrift, include_drive, &
             include_nonlinear, include_parallel_nonlinearity, include_electromagnetic, &
-            include_flow_shear
+            include_flow_shear, include_full_flux_annulus, include_radial_variation
 
          in_file = input_unit_exist("gyrokinetic_terms", dexist)
          if (dexist) read (unit=in_file, nml=gyrokinetic_terms)
@@ -356,16 +361,14 @@ contains
    !****************************************************************************
    !                              FULL FLUX ANNULUS                            !
    !****************************************************************************
-   subroutine read_namelist_flux_annulus(full_flux_annulus, rhostar)!, nitt) !, field_tol, itt_tol) - to be radial_variationed GA
+   subroutine read_namelist_flux_annulus(rhostar)!, nitt) !, field_tol, itt_tol)
 
       use mp, only: proc0
 
       implicit none
 
-      logical, intent (out) :: full_flux_annulus
       real, intent (out) :: rhostar
       !integer, intent (out) :: nitt
-      ! neet to radial_variation field_tol and itt_tol
 
       if (.not. proc0) return
       call set_default_parameters_flux_annulus
@@ -378,7 +381,6 @@ contains
 
          implicit none
          ! By default
-         full_flux_annulus = .false.
          rhostar = -1.0 ! = m_ref * vt_ref / (e * B_ref * a_ref), with refs in SI
          !nitt = 1 
       end subroutine set_default_parameters_flux_annulus
@@ -389,7 +391,7 @@ contains
          use file_utils, only: input_unit_exist
          implicit none
 
-         namelist /flux_annulus/ full_flux_annulus, rhostar!, nitt  !, field_tol, itt_tol
+         namelist /flux_annulus/ rhostar!, nitt  !, field_tol, itt_tol
          in_file = input_unit_exist("flux_annulus", dexist)
          if (dexist) read (unit=in_file, nml=flux_annulus)
 
@@ -401,14 +403,12 @@ contains
    !                             EXTRA - to be moved                           !
    !****************************************************************************
 
-   subroutine read_namelist_extra(include_pressure_variation, include_geometric_variation, radial_variation, zeff, vnew_ref)
+   subroutine read_namelist_extra(zeff, vnew_ref)
 
       use mp, only: proc0
 
       implicit none
 
-      
-      logical, intent(out) :: include_pressure_variation, include_geometric_variation, radial_variation
       real, intent(out) :: zeff, vnew_ref
 
       if (.not. proc0) return
@@ -421,13 +421,9 @@ contains
 
          implicit none
 
-         ! By default, no radial variation
-         radial_variation = .false.
          ! Default values for zeff and vnew_ref
          zeff = 1.0
          vnew_ref = -1.0 ! various input options will override this value if it is negative
-         include_pressure_variation = .false.
-         include_geometric_variation = .false.
       end subroutine set_default_parameters_extra
 
       subroutine read_input_file_extra
@@ -435,7 +431,7 @@ contains
          use file_utils, only: input_unit_exist
          implicit none
 
-         namelist /extra/ include_pressure_variation, include_geometric_variation, radial_variation, zeff, vnew_ref
+         namelist /extra/ zeff, vnew_ref
          in_file = input_unit_exist("extra", dexist)
          if (dexist) read (unit=in_file, nml=extra)
 

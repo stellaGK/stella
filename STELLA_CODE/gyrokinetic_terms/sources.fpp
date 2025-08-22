@@ -47,7 +47,7 @@ contains
 
       use mp, only: job, proc0
       use numerical_parameters, only: fphi
-      use numerical_parameters, only: ky_solve_radial, ky_solve_real
+      use parameters_multibox, only: ky_solve_radial, ky_solve_real
       use kxky_grid_parameters, only: naky, nakx
       use grids_kxky, only: zonal_mode
       use z_grid, only: nzgrid, ntubes
@@ -200,7 +200,8 @@ contains
       use job_manage, only: time_message
       use z_grid, only: nzgrid, ntubes
       use constants, only: pi, zi
-      use grids_kxky, only: akx, zonal_mode, boundary_size
+      use grids_kxky, only: akx, zonal_mode 
+      use parameters_multibox, only: boundary_size
       use kxky_grid_parameters, only: nakx
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
@@ -308,7 +309,8 @@ contains
       use constants, only: pi, zi
       use arrays_dist_fn, only: g_krook, g_symm
       use z_grid, only: nzgrid, ntubes
-      use grids_kxky, only: akx, zonal_mode, boundary_size
+      use grids_kxky, only: akx, zonal_mode
+      use parameters_multibox, only: boundary_size
       use kxky_grid_parameters, only: nakx
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
@@ -525,7 +527,8 @@ contains
       use job_manage, only: time_message
       use z_grid, only: nzgrid, ntubes
       use constants, only: pi, zi
-      use grids_kxky, only: zonal_mode, akx, boundary_size
+      use grids_kxky, only: zonal_mode, akx
+      use parameters_multibox, only: boundary_size
       use kxky_grid_parameters, only: nakx
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
@@ -658,7 +661,8 @@ contains
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use z_grid, only: nzgrid, nztot
       use kxky_grid_parameters, only: nakx
-      use grids_kxky, only: rho_d_clamped, boundary_size
+      use grids_kxky, only: rho_d_clamped
+      use parameters_multibox, only: boundary_size
       use linear_solve, only: lu_decomposition
       use arrays_fields, only: phizf_solve, c_mat, theta, phi_ext
       use arrays_fields, only: tcorr_source_qn, exclude_boundary_regions_qn, exp_fac_qn

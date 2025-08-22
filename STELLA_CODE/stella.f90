@@ -131,8 +131,9 @@ contains
       use velocity_grids, only: nvgrid, nmu
       use stella_transforms, only: init_transforms
       use stella_save, only: init_dt
-      use multibox, only: read_multibox_parameters, init_multibox
-      use multibox, only: use_dirichlet_BC, apply_radial_boundary_conditions
+      use parameters_multibox, only: read_multibox_parameters, use_dirichlet_BC
+      use multibox, only: init_multibox
+      use multibox, only: apply_radial_boundary_conditions
       use multibox, only: multibox_communicate
       use ran, only: get_rnd_seed_length, init_ranf
       use dissipation, only: init_dissipation

@@ -295,7 +295,6 @@ contains
       use arrays_fields, only: time_field_solve
       !> Parameters
       use physics_parameters, only: radial_variation
-      use numerical_parameters, only: ky_solve_radial, ky_solve_real
       use kxky_grid_parameters, only: nakx, naky
       use physics_parameters, only: adiabatic_option_switch
       use physics_parameters, only: adiabatic_option_fieldlineavg

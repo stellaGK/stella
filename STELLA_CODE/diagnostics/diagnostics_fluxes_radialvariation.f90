@@ -332,7 +332,8 @@ contains
 
       use velocity_grids, only: integrate_vmu
       use stella_layouts, only: vmu_lo
-      use grids_kxky, only: aky, boundary_size
+      use grids_kxky, only: aky
+      use parameters_multibox, only: boundary_size
       use kxky_grid_parameters, only: nakx, naky
       use z_grid, only: nzgrid, ntubes
       use species, only: nspec

@@ -781,7 +781,7 @@ contains
       use arrays_fields, only: phi_old, apar_old
       use fields, only: advance_fields, fields_updated
       use numerical_parameters, only: fully_explicit, fully_implicit
-      use multibox, only: RK_step
+      use parameters_multibox, only: rk_step
       use sources, only: include_qn_source, update_quasineutrality_source
       use sources, only: source_option_switch, source_option_projection
       use sources, only: source_option_krook
@@ -801,7 +801,7 @@ contains
       !> unless running in multibox mode, no need to worry about
       !> mb_communicate calls as the subroutine is immediately exited
       !> if not in multibox mode.
-      if (.not. RK_step) then
+      if (.not. rk_step) then
          if (debug) write (*, *) 'time_advance::multibox'
          call mb_communicate(gnew)
       end if
@@ -985,7 +985,7 @@ contains
       use arrays_dist_fn, only: g0
       use z_grid, only: nzgrid
       use stella_layouts, only: vmu_lo
-      use multibox, only: RK_step
+      use parameters_multibox, only: rk_step
 
       implicit none
 
@@ -993,8 +993,8 @@ contains
       logical, intent(in out) :: restart_time_step
       integer, intent(in) :: istep
 
-      !> RK_step only true if running in multibox mode
-      if (RK_step) call mb_communicate(g)
+      !> rk_step only true if running in multibox mode
+      if (rk_step) call mb_communicate(g)
 
       g0 = g
 
@@ -1004,13 +1004,13 @@ contains
 
    end subroutine advance_explicit_euler
 
-   !> advance_expliciit_rk2 uses strong stability-preserving RK2 to advance one time step
+   !> advance_expliciit_rk2 uses strong stability-preserving rk2 to advance one time step
    subroutine advance_explicit_rk2(g, restart_time_step, istep)
 
       use arrays_dist_fn, only: g0, g1
       use z_grid, only: nzgrid
       use stella_layouts, only: vmu_lo
-      use multibox, only: RK_step
+      use parameters_multibox, only: rk_step
 
       implicit none
 
@@ -1020,8 +1020,8 @@ contains
 
       integer :: icnt
 
-      !> RK_step only true if running in multibox mode
-      if (RK_step) call mb_communicate(g)
+      !> rk_step only true if running in multibox mode
+      if (rk_step) call mb_communicate(g)
 
       g0 = g
       icnt = 1
@@ -1035,7 +1035,7 @@ contains
             call solve_gke(g0, g1, restart_time_step, istep)
          case (2)
             g1 = g0 + g1
-            if (RK_step) call mb_communicate(g1)
+            if (rk_step) call mb_communicate(g1)
             call solve_gke(g1, g, restart_time_step, istep)
          end select
          if (restart_time_step) then
@@ -1057,7 +1057,7 @@ contains
       use arrays_dist_fn, only: g0, g1, g2
       use z_grid, only: nzgrid
       use stella_layouts, only: vmu_lo
-      use multibox, only: RK_step
+      use parameters_multibox, only: rk_step
 
       implicit none
 
@@ -1067,8 +1067,8 @@ contains
 
       integer :: icnt
 
-      !> RK_STEP = false unless in multibox mode
-      if (RK_step) call mb_communicate(g)
+      !> rk_STEP = false unless in multibox mode
+      if (rk_step) call mb_communicate(g)
 
       g0 = g
       icnt = 1
@@ -1082,11 +1082,11 @@ contains
             call solve_gke(g0, g1, restart_time_step, istep)
          case (2)
             g1 = g0 + g1
-            if (RK_step) call mb_communicate(g1)
+            if (rk_step) call mb_communicate(g1)
             call solve_gke(g1, g2, restart_time_step, istep)
          case (3)
             g2 = g1 + g2
-            if (RK_step) call mb_communicate(g2)
+            if (rk_step) call mb_communicate(g2)
             call solve_gke(g2, g, restart_time_step, istep)
          end select
          if (restart_time_step) then
@@ -1108,7 +1108,7 @@ contains
       use arrays_dist_fn, only: g0, g1, g2, g3
       use z_grid, only: nzgrid
       use stella_layouts, only: vmu_lo
-      use multibox, only: RK_step
+      use parameters_multibox, only: rk_step
 
       implicit none
 
@@ -1118,8 +1118,8 @@ contains
 
       integer :: icnt
 
-      !> RK_step is false unless in multibox mode
-      if (RK_step) call mb_communicate(g)
+      !> rk_step is false unless in multibox mode
+      if (rk_step) call mb_communicate(g)
 
       g0 = g
       icnt = 1
@@ -1134,19 +1134,19 @@ contains
          case (2)
             ! g1 is h*k1
             g3 = g0 + 0.5 * g1
-            if (RK_step) call mb_communicate(g3)
+            if (rk_step) call mb_communicate(g3)
             call solve_gke(g3, g2, restart_time_step, istep)
             g1 = g1 + 2.*g2
          case (3)
             ! g2 is h*k2
             g2 = g0 + 0.5 * g2
-            if (RK_step) call mb_communicate(g2)
+            if (rk_step) call mb_communicate(g2)
             call solve_gke(g2, g3, restart_time_step, istep)
             g1 = g1 + 2.*g3
          case (4)
             ! g3 is h*k3
             g3 = g0 + g3
-            if (RK_step) call mb_communicate(g3)
+            if (rk_step) call mb_communicate(g3)
             call solve_gke(g3, g, restart_time_step, istep)
             g1 = g1 + g
          end select
@@ -1192,7 +1192,8 @@ contains
       use fields_radial_variation, only: get_radial_correction
       use mirror_terms, only: advance_mirror_explicit
       use flow_shear, only: advance_parallel_flow_shear
-      use multibox, only: include_multibox_krook, add_multibox_krook
+      use parameters_multibox, only: include_multibox_krook
+      use multibox, only: add_multibox_krook
       use arrays_dist_fn, only: g_scratch
       use gyro_averages, only: gyro_average, j0_ffs
       use g_tofrom_h, only: gbar_to_g 
@@ -2710,7 +2711,7 @@ contains
       use dissipation, only: collisions_implicit, include_collisions
       use dissipation, only: advance_collisions_implicit
       use flow_shear, only: advance_perp_flow_shear
-      use multibox, only: RK_step
+      use parameters_multibox, only: rk_step
       use numerical_parameters, only: flip_flop
       implicit none
 
@@ -2749,7 +2750,7 @@ contains
       ! g^{*} (coming from explicit solve) is input
       ! get g^{**}, with g^{**}-g^{*} due to mirror term
 
-      if (RK_step) call mb_communicate(g)
+      if (rk_step) call mb_communicate(g)
 
       if (mod(istep, 2) == 1 .or. .not. flip_flop) then
 
@@ -2842,7 +2843,8 @@ contains
       use mp, only: job
       use stella_layouts, only: vmu_lo
       use z_grid, only: nzgrid
-      use multibox, only: multibox_communicate, use_dirichlet_bc, apply_radial_boundary_conditions
+      use multibox, only: multibox_communicate, apply_radial_boundary_conditions
+      use parameters_multibox, only: use_dirichlet_bc
       use fields, only: fields_updated, advance_fields
       use arrays_fields, only: phi, apar, bpar
       use file_utils, only: runtype_option_switch, runtype_multibox

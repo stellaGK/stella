@@ -82,7 +82,7 @@ contains
 !    use mp, only: trin_flag
       use mp, only: proc0, broadcast, mp_abort
       use physics_parameters, only: vnew_ref, zeff
-      use physics_parameters, only: include_pressure_variation
+      use parameters_multibox, only: include_pressure_variation
       use physics_parameters, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       use geometry_inputprofiles_interface, only: read_inputprof_spec
       use euterpe_interface, only: read_species_euterpe !! CHANGE

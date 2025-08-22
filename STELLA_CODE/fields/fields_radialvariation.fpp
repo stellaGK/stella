@@ -33,7 +33,7 @@ contains
       use mp, only: proc0, mp_abort, job
       use job_manage, only: time_message
       use physics_parameters, only: radial_variation
-      use numerical_parameters, only: ky_solve_radial, ky_solve_real
+      use parameters_multibox, only: ky_solve_radial, ky_solve_real
       use z_grid, only: nzgrid, ntubes
       use grids_kxky, only: zonal_mode
       use physics_parameters, only: adiabatic_option_switch
@@ -122,7 +122,7 @@ contains
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use physics_parameters, only: adiabatic_option_switch
       use physics_parameters, only: adiabatic_option_fieldlineavg
-      use numerical_parameters, only: ky_solve_radial
+      use parameters_multibox, only: ky_solve_radial
       use z_grid, only: nzgrid, ntubes
       use species, only: spec, has_electron_species
       use kxky_grid_parameters, only: nakx, naky
@@ -223,7 +223,8 @@ contains
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use kxky_grid_parameters, only: nakx 
-      use grids_kxky, only: boundary_size, rho_d_clamped
+      use parameters_multibox, only: boundary_size
+      use grids_kxky, only: rho_d_clamped
       use arrays_fields, only: phizf_solve, phi_ext
       use arrays_fields, only: phi_proj, phi_proj_stage, theta
       use arrays_fields, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
@@ -350,7 +351,7 @@ contains
       use velocity_grids, only: vperp2
       use kxky_grid_parameters, only: nakx, naky
       use calculations_kxky, only: multiply_by_rho
-      use numerical_parameters, only: ky_solve_radial
+      use parameters_multibox, only: ky_solve_radial
       use species, only: spec
 
       implicit none
@@ -404,7 +405,8 @@ contains
       use stella_layouts, only: vmu_lo
       use gyro_averages, only: gyro_average, gyro_average_j1
       use gyro_averages, only: aj0x, aj1x
-      use numerical_parameters, only: fphi, ky_solve_radial
+      use numerical_parameters, only: fphi
+      use parameters_multibox, only: ky_solve_radial
       use geometry, only: dl_over_b, d_dl_over_b_drho, bmag, dBdrho
       use stella_layouts, only: imu_idx, is_idx
       use z_grid, only: nzgrid, ntubes
@@ -569,7 +571,7 @@ contains
       use mp, only: split_n_tasks, create_shared_memory_window
       use mpi
 #endif
-      use numerical_parameters, only: ky_solve_radial, ky_solve_real
+      use parameters_multibox, only: ky_solve_radial, ky_solve_real
       use species, only: spec, has_electron_species, ion_species
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use z_grid, only: nzgrid, ntubes, nztot
