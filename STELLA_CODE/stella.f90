@@ -584,8 +584,7 @@ contains
       use parameters_numerical, only: finish_read_parameters_numerical
       use z_grid, only: finish_zgrid
       use species, only: finish_species
-      use store_arrays_useful, only: time_gke
-      use time_advance, only: time_parallel_nl
+      use store_arrays_useful, only: time_gke, time_parallel_nl
       use time_advance, only: finish_time_advance
       use parallel_streaming, only: time_parallel_streaming
       use mirror_terms, only: time_mirror

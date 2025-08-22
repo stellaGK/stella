@@ -4,6 +4,11 @@ module store_arrays_useful
     ! Velocity-dependent coefficients used in the equations
     public :: kperp2, dkperp2dr
     public :: time_gke
+    public :: time_parallel_nl
+
+    public :: wdriftinit, wstarinit, parnlinit, &
+            radialinit, driftimpinit
+
     ! public :: wstar, wstarp
     ! public :: wdriftx_g, wdrifty_g
     ! public :: wdriftx_phi, wdrifty_phi
@@ -42,7 +47,14 @@ module store_arrays_useful
 
     !> dkperp2dr will contain the radial variation of kperp2
     real, dimension(:, :, :, :), allocatable :: kperp2, dkperp2dr
-     real, dimension(2, 10) :: time_gke = 0.
+
+    !> for time advance
+    real, dimension(2, 10) :: time_gke = 0.
+    real, dimension(2, 2) :: time_parallel_nl = 0.
+
+    logical :: wdriftinit, wstarinit, parnlinit, &
+            radialinit, driftimpinit
+    
 
     ! (naky, nakx, nalpha, -nzgrid:nzgrid)
     ! note: dkperp2dr is divided by kperp2

@@ -17,7 +17,7 @@ contains
     !*****************************************************************************
     !                           Initialise explicit drifts
     !*****************************************************************************
-    subroutine init_wdrift (wdriftinit)
+    subroutine init_wdrift
 
         use mp, only: mp_abort
         use store_arrays_distribution_fn, only: wdriftx_g, wdrifty_g
@@ -42,9 +42,8 @@ contains
         use parameters_numerical, only: maxwellian_normalization
 
         use parameters_physics, only: xdriftknob, ydriftknob
+        use store_arrays_useful, only: wdriftinit
         implicit none
-
-        logical, intent (inout) :: wdriftinit
 
         integer :: ivmu, iv, imu, is
         real :: fac
@@ -179,7 +178,7 @@ contains
 
     end subroutine init_wdrift
 
-    subroutine init_wstar (wstarinit)
+    subroutine init_wstar
 
         use mp, only: mp_abort
         use stella_layouts, only: vmu_lo
@@ -197,9 +196,10 @@ contains
         use parameters_numerical, only: maxwellian_normalization
 
         use parameters_physics, only: wstarknob
+        use store_arrays_useful, only: wstarinit
+
         implicit none
 
-        logical, intent (inout) :: wstarinit
         integer :: is, imu, iv, ivmu
         real, dimension(:, :), allocatable :: energy
 
@@ -256,17 +256,16 @@ contains
     !*****************************************************************************
     !                           Finalise explicit drifts
     !*****************************************************************************
-    subroutine finish_wdrift (wdriftinit)
+    subroutine finish_wdrift
 
         use store_arrays_distribution_fn, only: wdriftx_g, wdrifty_g
         use store_arrays_distribution_fn, only: wdriftx_phi, wdrifty_phi
         use store_arrays_distribution_fn, only: wdriftpx_g, wdriftpy_g
         use store_arrays_distribution_fn, only: wdriftpx_phi, wdriftpy_phi
+        use store_arrays_useful, only: wdriftinit
     !use store_arrays_distribution_fn, only: adiabatic_phi
 
         implicit none
-
-        logical, intent (inout) :: wdriftinit
 
         if (allocated(wdriftx_g)) deallocate (wdriftx_g)
         if (allocated(wdrifty_g)) deallocate (wdrifty_g)
@@ -282,13 +281,13 @@ contains
 
     end subroutine finish_wdrift
 
-    subroutine finish_wstar (wstarinit)
+    subroutine finish_wstar 
 
         use store_arrays_distribution_fn, only: wstar, wstarp
+        use store_arrays_useful, only: wstarinit
 
         implicit none
 
-        logical, intent (inout) :: wstarinit
         
         if (allocated(wstar)) deallocate (wstar)
         if (allocated(wstarp)) deallocate (wstarp)
