@@ -35,26 +35,12 @@ contains
 
    subroutine read_parameters_dougherty
 
-      use file_utils, only: input_unit_exist
-      use mp, only: proc0, broadcast
+      use mp, only: broadcast
+      use input_file_dissipation, only: read_namelist_collisions_dougherty
 
       implicit none
 
-      namelist /collisions_dougherty/ momentum_conservation, energy_conservation, &
-         vpa_operator, mu_operator
-
-      integer :: in_file
-      logical :: dexist
-
-      if (proc0) then
-         momentum_conservation = .true.       ! momentum conservation for Dougherty operator
-         energy_conservation = .true.         ! energy conservation for Dougherty operator
-         vpa_operator = .true.                ! include vpa components in Dougherty or Fokker-Planck operator
-         mu_operator = .true.                 ! include mu components in Dougherty or Fokker-Planck operator
-
-         in_file = input_unit_exist("collisions_dougherty", dexist)
-         if (dexist) read (unit=in_file, nml=collisions_dougherty)
-      end if
+      call read_namelist_collisions_dougherty(momentum_conservation, energy_conservation, vpa_operator, mu_operator) 
 
       call broadcast(momentum_conservation)
       call broadcast(energy_conservation)
