@@ -33,7 +33,8 @@ contains
  
       use mp, only: sum_reduce
       use constants, only: zi
-      use arrays_dist_fn, only: g1, g2, kperp2, dkperp2dr
+      use store_arrays_distribution_fn, only: g1, g2
+      use store_arrays_useful, only: kperp2, dkperp2dr
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use species, only: spec
@@ -52,7 +53,8 @@ contains
       use parameters_kxky_grid, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
       use parameters_physics, only: radial_variation
-      use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
+      use gyro_averages, only: gyro_average, gyro_average_j1
+      use arrays_gyro_averages, only: aj0x, aj1x
       
       ! Flags 
       use parameters_diagnostics, only: write_radial_fluxes 

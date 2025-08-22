@@ -43,8 +43,8 @@ contains
       use redistribute, only: scatter
       use dist_redistribute, only: kxkyz2vmu
       !> Arrays
-      use arrays_dist_fn, only: gvmu
-      use arrays_fields, only: time_field_solve
+      use store_arrays_distribution_fn, only: gvmu
+      use store_arrays_fields, only: time_field_solve
       !> Parameters
       use stella_layouts, only: fields_kxkyz
       use parameters_physics, only: full_flux_surface
@@ -98,8 +98,8 @@ contains
       !> Layouts
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx
       !> Arrays
-      use arrays_dist_fn, only: g_scratch
-      use arrays_fields, only: time_field_solve
+      use store_arrays_distribution_fn, only: g_scratch
+      use store_arrays_fields, only: time_field_solve
       !> Parameters
       use parameters_physics, only: fphi
       use parameters_physics, only: beta
@@ -192,7 +192,7 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       !> Arrays
-      use arrays_fields, only: time_field_solve
+      use store_arrays_fields, only: time_field_solve
       !> Parameters
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: fphi
@@ -291,8 +291,8 @@ contains
       use job_manage, only: time_message
       use multibox, only: mb_get_phi
       !> Arrays
-      use arrays_fields, only: gamtot, gamtot3, gamtot_h, gamtot3_h
-      use arrays_fields, only: time_field_solve
+      use store_arrays_fields, only: gamtot, gamtot3, gamtot_h, gamtot3_h
+      use store_arrays_fields, only: time_field_solve
       !> Parameters
       use parameters_physics, only: radial_variation
       use parameters_kxky_grid, only: nakx, naky
@@ -404,8 +404,8 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       !> Arrays
-      use arrays_fields, only: gamtot, gamtot3
-      use arrays_fields, only: gamtot_h, gamtot3_h, efac, efacp
+      use store_arrays_fields, only: gamtot, gamtot3
+      use store_arrays_fields, only: gamtot_h, gamtot3_h, efac, efacp
       !> Parameters
       use parameters_physics, only: fphi
       use parameters_numerical, only: maxwellian_normalization
@@ -420,7 +420,7 @@ contains
       use species, only: spec, has_electron_species, ion_species
       use grids_kxky, only: zonal_mode, akx
       !> Calculations
-      use gyro_averages, only: aj0v
+      use arrays_gyro_averages, only: aj0v
       !> Geometry
       use geometry, only: dl_over_b
 

@@ -14,10 +14,8 @@ module fields
    !> Routines for advancing fields in main routine
    public :: advance_fields
 
-   !> TODO-GA: move to separate routine
    !> Calculations
    public :: rescale_fields
-   public :: get_dchidy, get_dchidx
 
    !> Global 
    public :: fields_updated
@@ -34,12 +32,6 @@ module fields
 
    !> For the initialisation 
    logical :: fields_initialised = .false. 
-
-   !> TODO-GA: MOVE 
-   interface get_dchidy
-      module procedure get_dchidy_4d
-      module procedure get_dchidy_2d
-   end interface get_dchidy
 
 contains
 
@@ -62,7 +54,7 @@ contains
       !> Layouts
       use stella_layouts, only: vmu_lo
       !> Arrays
-      use arrays_fields, only: time_field_solve
+      use store_arrays_fields, only: time_field_solve
       !> Parameters
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: full_flux_surface
@@ -120,8 +112,6 @@ contains
 !###############################################################################
 
    !============================================================================
-   !============================ FIELDS DERIVATIVES ============================
-   !============================================================================
    !> Rescale fields, including the distribution function
    !============================================================================
    subroutine rescale_fields(target_amplitude)
@@ -130,8 +120,8 @@ contains
       use job_manage, only: njobs
       use file_utils, only: runtype_option_switch, runtype_multibox
       !> Arrays
-      use arrays_fields, only: phi, apar
-      use arrays_dist_fn, only: gnew, gvmu
+      use store_arrays_fields, only: phi, apar
+      use store_arrays_distribution_fn, only: gnew, gvmu
       !> Calculations
       use volume_averages, only: volume_average
 
@@ -157,199 +147,6 @@ contains
       gvmu = rescale * gvmu
 
    end subroutine rescale_fields
-
-   !============================================================================
-   !============================ FIELDS DERIVATIVES ============================
-   !============================================================================
-   !> Compute d<chi>/dy and d<chi>/dx in (ky,kx) space where <.> is a gyroaverage
-   !>    d<chi>/dy = i * ky * J0 * chi
-   !>    d<chi>/dx = i * kx * J0 * chi
-   !>    chi = phi - Z/T * vpa * apar
-   !> There are different routines depending on the size of the input array
-   !============================================================================
-
-   !> TODO-GA: maybe separate for EM and electrostatic
-   !> Compute d<chi>/dy in (ky,kx,z,tube) space
-   subroutine get_dchidy_4d(phi, apar, bpar, dchidy)
-
-      use constants, only: zi
-      !> Layouts
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: is_idx, iv_idx, imu_idx
-      !> Parameters
-      use parameters_physics, only: include_apar, include_bpar
-      use parameters_physics, only: full_flux_surface
-      use parameters_physics, only: fphi
-      use parameters_kxky_grid, only: nakx, naky
-      !> Grids
-      use species, only: spec
-      use z_grid, only: nzgrid, ntubes
-      use velocity_grids, only: vpa, mu
-      use grids_kxky, only: aky
-      !> Calculations
-      use gyro_averages, only: gyro_average
-      use gyro_averages, only: gyro_average_j1
-      use gyro_averages, only: j0_ffs
-
-      implicit none
-
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, apar, bpar
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: dchidy
-
-      integer :: ivmu, iv, is, iky, imu
-      complex, dimension(:, :, :, :), allocatable :: field, gyro_tmp
-      !-------------------------------------------------------------------------
-      allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
-      allocate (gyro_tmp(naky, nakx, -nzgrid:nzgrid, ntubes))
-
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         is = is_idx(vmu_lo, ivmu)
-         iv = iv_idx(vmu_lo, ivmu)
-         imu = imu_idx(vmu_lo, ivmu)
-         ! intermediate calculation to get factor involving phi contribution
-         field = fphi * phi
-         ! add apar contribution if including it
-         if (include_apar) field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
-         ! take spectral y-derivative
-         do iky = 1, naky
-            field(iky, :, :, :) = zi * aky(iky) * field(iky, :, :, :)
-         end do
-         if (full_flux_surface) then
-            call gyro_average(field, dchidy(:, :, :, :, ivmu), j0_ffs(:, :, :, ivmu))
-         else
-            call gyro_average(field, ivmu, dchidy(:, :, :, :, ivmu))
-         end if
-         if (include_bpar) then
-            field = 4.0 * mu(imu) * (spec(is)%tz) * bpar
-            do iky = 1, naky
-               field(iky, :, :, :) = zi * aky(iky) * field(iky, :, :, :)
-            end do
-            call gyro_average_j1(field, ivmu, gyro_tmp)
-            !> include bpar contribution
-            dchidy(:, :, :, :, ivmu) = dchidy(:, :, :, :, ivmu) + gyro_tmp
-         end if
-      end do
-
-      deallocate (field)
-      deallocate (gyro_tmp)
-
-   end subroutine get_dchidy_4d
-
-   !> Compute d<chi>/dy in (ky,kx) space
-   subroutine get_dchidy_2d(iz, ivmu, phi, apar, bpar, dchidy)
-
-      use constants, only: zi
-      !> Layouts
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: is_idx, iv_idx, imu_idx
-      !> Parameters
-      use parameters_physics, only: include_apar, include_bpar
-      use parameters_physics, only: full_flux_surface
-      use parameters_physics, only: fphi
-      use parameters_kxky_grid, only: nakx, naky
-      !> Grids
-      use species, only: spec
-      use velocity_grids, only: vpa, mu
-      use grids_kxky, only: aky
-      !> Calculations
-      use gyro_averages, only: gyro_average
-      use gyro_averages, only: gyro_average_j1
-      use gyro_averages, only: j0_ffs
-
-      implicit none
-
-      integer, intent(in) :: ivmu, iz
-      complex, dimension(:, :), intent(in) :: phi, apar, bpar
-      complex, dimension(:, :), intent(out) :: dchidy
-
-      integer :: iv, is, imu
-      complex, dimension(:, :), allocatable :: field, gyro_tmp
-      !-------------------------------------------------------------------------
-      allocate (field(naky, nakx))
-      allocate (gyro_tmp(naky, nakx))
-
-      is = is_idx(vmu_lo, ivmu)
-      iv = iv_idx(vmu_lo, ivmu)
-      imu = imu_idx(vmu_lo, ivmu)
-      field = fphi * phi
-      if (include_apar) field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
-      field = zi * spread(aky, 2, nakx) * field
-
-      if (full_flux_surface) then
-         call gyro_average(field, dchidy, j0_ffs(:, :, iz, ivmu))
-      else
-         call gyro_average(field, iz, ivmu, dchidy)
-      end if
-
-      if (include_bpar) then
-         field = 4.0 * mu(imu) * (spec(is)%tz) * bpar
-         field = zi * spread(aky, 2, nakx) * field
-         call gyro_average_j1(field, iz, ivmu, gyro_tmp)
-         !> include bpar contribution
-         dchidy = dchidy + gyro_tmp
-      end if
-      deallocate (field)
-      deallocate (gyro_tmp)
-
-   end subroutine get_dchidy_2d
-
-   !> Compute d<chi>/dx in (ky,kx) space
-   subroutine get_dchidx(iz, ivmu, phi, apar, bpar, dchidx)
-
-      use constants, only: zi
-      !> Layouts
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: is_idx, iv_idx, imu_idx
-      !> Parameters
-      use parameters_kxky_grid, only: naky, nakx
-      use parameters_physics, only: include_apar, include_bpar
-      use parameters_physics, only: full_flux_surface
-      use parameters_physics, only: fphi
-      !> Grids
-      use species, only: spec
-      use velocity_grids, only: vpa, mu
-      use grids_kxky, only: akx
-      !> Calculations
-      use gyro_averages, only: gyro_average
-      use gyro_averages, only: gyro_average_j1
-      use gyro_averages, only: j0_ffs
-
-      implicit none
-
-      integer, intent(in) :: ivmu, iz
-      complex, dimension(:, :), intent(in) :: phi, apar, bpar
-      complex, dimension(:, :), intent(out) :: dchidx
-
-      integer :: iv, is, imu
-      complex, dimension(:, :), allocatable :: field, gyro_tmp
-      !-------------------------------------------------------------------------
-      allocate (field(naky, nakx))
-      allocate (gyro_tmp(naky, nakx))
-
-      is = is_idx(vmu_lo, ivmu)
-      iv = iv_idx(vmu_lo, ivmu)
-      imu = imu_idx(vmu_lo, ivmu)
-      field = fphi * phi
-      if (include_apar) field = field - 2.0 * vpa(iv) * spec(is)%stm_psi0 * apar
-      field = zi * spread(akx, 1, naky) * field
-
-      if (full_flux_surface) then
-         call gyro_average(field, dchidx, j0_ffs(:, :, iz, ivmu))
-      else
-         call gyro_average(field, iz, ivmu, dchidx)
-      end if
-
-      if (include_bpar) then
-         field = 4 * mu(imu) * (spec(is)%tz) * bpar
-         field = zi * spread(akx, 1, naky) * field
-         call gyro_average_j1(field, iz, ivmu, gyro_tmp)
-         !> include bpar contribution
-         dchidx = dchidx + gyro_tmp
-      end if
-      deallocate (field)
-      deallocate (gyro_tmp)
-
-   end subroutine get_dchidx
 
 !###############################################################################
 !############################ INITALIZE & FINALIZE #############################
@@ -421,15 +218,15 @@ contains
       use species, only: spec, has_electron_species
       
       ! Arrays to allocate
-      use arrays_fields, only: phi, phi_old
-      use arrays_fields, only: gamtot, gamtot3
+      use store_arrays_fields, only: phi, phi_old
+      use store_arrays_fields, only: gamtot, gamtot3
       
       ! Grids
       use z_grid, only: nzgrid, ntubes
       use parameters_kxky_grid, only: naky, nakx
       
       ! Time routines
-      use arrays_fields, only: time_field_solve
+      use store_arrays_fields, only: time_field_solve
       
       implicit none
       
@@ -462,8 +259,8 @@ contains
       ! Parameters
       use parameters_physics, only: full_flux_surface, radial_variation 
       !> Arrays
-      use arrays_fields, only: phi, phi_old
-      use arrays_fields, only: gamtot, gamtot3
+      use store_arrays_fields, only: phi, phi_old
+      use store_arrays_fields, only: gamtot, gamtot3
       !> Routines for deallocating arrays fields depending on the physics being simulated
       use fields_ffs, only: finish_fields_ffs
       use fields_radial_variation, only: finish_radial_fields

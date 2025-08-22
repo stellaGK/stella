@@ -12,11 +12,6 @@ module mirror_terms
 
    private
 
-!  interface checksum
-!     module procedure checksum_field
-!     module procedure checksum_dist
-!  end interface
-
    logical :: mirror_initialized = .false.
    real, dimension(2, 2) :: time_mirror = 0.
 
@@ -343,7 +338,7 @@ contains
 
       use mp, only: proc0
       use redistribute, only: gather, scatter
-      use arrays_dist_fn, only: gvmu
+      use store_arrays_distribution_fn, only: gvmu
       use job_manage, only: time_message
       use stella_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
       use stella_layouts, only: iv_idx, is_idx
@@ -456,7 +451,7 @@ contains
 
       use mp, only: proc0
       use redistribute, only: gather, scatter
-      use arrays_dist_fn, only: gvmu
+      use store_arrays_distribution_fn, only: gvmu
       use job_manage, only: time_message
       use stella_layouts, only: kxkyz_lo, vmu_lo
       use stella_layouts, only: is_idx, imu_idx
@@ -642,7 +637,7 @@ contains
       use stella_layouts, only: iv_idx, imu_idx
       use stella_transforms, only: transform_ky2y, transform_y2ky
       use z_grid, only: nzgrid, ntubes
-      use arrays_dist_fn, only: gvmu
+      use store_arrays_distribution_fn, only: gvmu
       use parameters_physics, only: full_flux_surface
       use parameters_kxky_grid, only: ny, nakx
       use velocity_grids, only: nvpa, nmu

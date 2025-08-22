@@ -46,7 +46,7 @@ module init_g
 contains
 
    !****************************************************************************
-   !                          INITIALIZE THIS MODULE                           !
+   !                          INITIALISE THIS MODULE                           !
    !****************************************************************************
    subroutine init_init_g
 
@@ -57,9 +57,9 @@ contains
       use stella_save, only: read_many
       
       ! Read namelist from input file
-      use input_file_fields, only: read_namelist_initialise_distribution
-      use input_file_fields, only: read_namelist_restart_options
-      use input_file_fields, only: read_namelist_initialise_distribution_noise
+      use namelist_fields, only: read_namelist_initialise_distribution
+      use namelist_fields, only: read_namelist_restart_options
+      use namelist_fields, only: read_namelist_initialise_distribution_noise
 
       ! Load the <init_distribution_switch> parameters
       use namelist_fields, only: init_distribution_option_maxwellian
@@ -130,7 +130,7 @@ contains
    end subroutine init_init_g
 
    !****************************************************************************
-   !                   INITIALIZE THE DISTRIBUTION FUNCTION                    !
+   !                   INITIALISE THE DISTRIBUTION FUNCTION                    !
    !****************************************************************************
    subroutine ginit(restarted, istep0)
 
@@ -178,7 +178,7 @@ contains
    end subroutine ginit
 
    !****************************************************************************
-   !                     INITIALIZE POTENTIAL: MAXWELLIAN                      !
+   !                     INITIALISE POTENTIAL: MAXWELLIAN                      !
    !****************************************************************************
    subroutine ginit_maxwellian
 
@@ -192,7 +192,7 @@ contains
       use velocity_grids, only: nvpa, nmu
       use velocity_grids, only: vpa
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use arrays_dist_fn, only: gvmu
+      use store_arrays_distribution_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
       use ran, only: ranf
       use namelist_fields, only: read_namelist_initialise_distribution_maxwellian
@@ -226,7 +226,6 @@ contains
       do iz = -nzgrid, nzgrid
          phi(:, :, iz) = exp(-((zed(iz) - theta0) / width0)**2) * cmplx(1.0, 1.0)
       end do
-
       ! this is a messy way of doing things
       ! could tidy it up a bit
       if (sum(cabs(phi)) < epsilon(0.)) then
@@ -261,7 +260,6 @@ contains
             end do
          end if
       end if
-
       ! need better way to initialise for full flux surface cases
       ia = 1
 
@@ -279,12 +277,12 @@ contains
    end subroutine ginit_maxwellian
 
    !****************************************************************************
-   !                       INITIALIZE POTENTIAL: NOISE                         !
+   !                       INITIALISE POTENTIAL: NOISE                         !
    !****************************************************************************
    subroutine ginit_noise
 
       use mp, only: proc0, broadcast
-      use arrays_dist_fn, only: kperp2
+      use store_arrays_useful, only: kperp2
       use species, only: spec
       use z_grid, only: nzgrid, ntubes
       use extended_zgrid, only: ikxmod, nsegments, neigen
@@ -294,7 +292,7 @@ contains
       use grids_kxky, only: zonal_mode
       use velocity_grids, only: nvpa, nmu
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use arrays_dist_fn, only: gvmu
+      use store_arrays_distribution_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use mp, only: proc0, broadcast, max_allreduce
@@ -441,7 +439,7 @@ contains
    end subroutine ginit_noise
 
    !****************************************************************************
-   !                       INITIALIZE POTENTIAL: KPAR                          !
+   !                       INITIALISE POTENTIAL: KPAR                          !
    !****************************************************************************
    subroutine ginit_kpar 
    
@@ -452,7 +450,7 @@ contains
       use velocity_grids, only: nvpa, nmu
       use velocity_grids, only: vpa, vperp2
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use arrays_dist_fn, only: gvmu
+      use store_arrays_distribution_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx
       use namelist_fields, only: read_namelist_initialise_distribution_kpar
       use constants, only: zi
@@ -553,13 +551,14 @@ contains
    end subroutine ginit_kpar
 
    !****************************************************************************
-   !                        INITIALIZE POTENTIAL: RH                           !
+   !                        INITIALISE POTENTIAL: RH                           !
    !****************************************************************************
    subroutine ginit_rh
 
       use mp, only: proc0, broadcast
       use species, only: spec
-      use arrays_dist_fn, only: gvmu, kperp2
+      use store_arrays_distribution_fn, only: gvmu
+      use store_arrays_useful, only: kperp2
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -586,7 +585,7 @@ contains
       call broadcast(kxmax)
       call broadcast(kxmin)
 
-      ! initialize g to be a Maxwellian with a constant density perturbation
+      ! initialise g to be a Maxwellian with a constant density perturbation
 
       gvmu = 0.
 
@@ -608,12 +607,12 @@ contains
    end subroutine ginit_rh
 
    !****************************************************************************
-   !                      INITIALIZE POTENTIAL: REMAP                          !
+   !                      INITIALISE POTENTIAL: REMAP                          !
    !****************************************************************************
    subroutine ginit_remap
 
       use species, only: spec
-      use arrays_dist_fn, only: gvmu
+      use store_arrays_distribution_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -623,7 +622,7 @@ contains
 
       integer :: ikxkyz, iky, ikx, iz, is, ia
 
-      ! initialize g to be a Maxwellian with a constant density perturbation
+      ! initialise g to be a Maxwellian with a constant density perturbation
 
       gvmu = 0.
 
@@ -644,11 +643,11 @@ contains
    end subroutine ginit_remap
 
    !****************************************************************************
-   !                       INITIALIZE POTENTIAL: MANY                          !
+   !                       INITIALISE POTENTIAL: MANY                          !
    !****************************************************************************
    subroutine ginit_restart_many
 
-      use arrays_dist_fn, only: gvmu
+      use store_arrays_distribution_fn, only: gvmu
       use stella_save, only: stella_restore
       use mp, only: proc0
       use file_utils, only: error_unit
@@ -675,7 +674,7 @@ contains
    subroutine normalize_by_maxwellian
 
       use stella_layouts, only: kxkyz_lo, is_idx, iz_idx
-      use arrays_dist_fn, only: gvmu
+      use store_arrays_distribution_fn, only: gvmu
       use velocity_grids, only: nmu
       use velocity_grids, only: maxwell_mu, maxwell_vpa, maxwell_fac
 

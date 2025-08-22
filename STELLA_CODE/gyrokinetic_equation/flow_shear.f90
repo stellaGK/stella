@@ -32,7 +32,7 @@ contains
       use z_grid, only: nzgrid
       use grids_kxky, only: x, x_d, akx, aky, zonal_mode, box
       use parameters_kxky_grid, only: nalpha, nx, nakx, naky, ikx_max
-      use arrays_fields, only: shift_state
+      use store_arrays_fields, only: shift_state
       use geometry, only: q_as_x, geo_surf, bmag, btor, rmajor, dBdrho, dIdrho
       use geometry, only: dydalpha, drhodpsi
       use parameters_physics, only: g_exb, g_exbfac, omprimfac
@@ -150,8 +150,8 @@ contains
       use stella_layouts, only: vmu_lo
       use z_grid, only: nzgrid, ntubes
       use parameters_kxky_grid, only: nakx, naky
-      use fields, only: get_dchidy
-      use arrays_fields, only: phi, apar, bpar
+      use calculations_kxky_derivatives, only: get_dchidy
+      use store_arrays_fields, only: phi, apar, bpar
 
       implicit none
 
@@ -191,7 +191,7 @@ contains
       use parameters_physics, only: prp_shear_enabled, hammett_flow_shear
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use z_grid, only: nzgrid, ntubes
-      use arrays_fields, only: shift_state
+      use store_arrays_fields, only: shift_state
       use grids_kxky, only: aky, zonal_mode
       use parameters_kxky_grid, only: nakx, naky, ikx_max
       use file_utils, only: runtype_option_switch, runtype_multibox
@@ -291,7 +291,7 @@ contains
    end subroutine advance_perp_flow_shear
 
    subroutine finish_flow_shear
-      use arrays_fields, only: shift_state
+      use store_arrays_fields, only: shift_state
 
       implicit none
 

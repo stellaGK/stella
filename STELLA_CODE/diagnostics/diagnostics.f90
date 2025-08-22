@@ -30,8 +30,8 @@ contains
    subroutine diagnostics_stella(istep)
 
       ! Data 
-      use arrays_fields, only: phi, apar, bpar
-      use arrays_dist_fn, only: gnew 
+      use store_arrays_fields, only: phi, apar, bpar
+      use store_arrays_distribution_fn, only: gnew 
       use fields, only: advance_fields 
       use constants, only: zi 
 
@@ -131,7 +131,10 @@ contains
       use parameters_physics, only: read_parameters_physics
       use parameters_numerical, only: read_parameters_numerical
       use species, only: init_species
-      use dist_fn, only: init_dist_fn
+
+      use arrays_distribution_fn, only: init_arrays_distribution_fn
+      use arrays_constants, only: init_arrays_vperp_kperp
+
       use init_g, only: init_init_g
       use stella_io, only: init_stella_io, get_nout
       use diagnostics_omega, only: init_diagnostics_omega
@@ -163,7 +166,8 @@ contains
       call read_parameters_numerical
       call init_species
       call init_init_g
-      call init_dist_fn
+      call init_arrays_distribution_fn
+      call init_arrays_vperp_kperp
 
       ! Initialize the submodules   
       call init_diagnostics_omega(restart) 
@@ -189,7 +193,7 @@ contains
       use stella_time, only: code_dt, code_time
       use stella_save, only: stella_save_for_restart
       use dist_redistribute, only: kxkyz2vmu
-      use arrays_dist_fn, only: gnew, gvmu
+      use store_arrays_distribution_fn, only: gnew, gvmu
       use diagnostics_omega, only: finish_diagnostics_omega
       use diagnostics_fluxes, only: finish_diagnostics_fluxes 
       use diagnostics_potential, only: finish_diagnostics_potential

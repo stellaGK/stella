@@ -30,13 +30,13 @@ contains
    subroutine init_response_matrix
 
       use linear_solve, only: lu_decomposition
-      use arrays_fields, only: response_matrix
+      use store_arrays_fields, only: response_matrix
       use stella_layouts, only: iv_idx, is_idx
       use parameters_kxky_grid, only: naky
       use mp, only: proc0
       use stella_layouts, only: mat_gen
 #ifdef ISO_C_BINDING
-      use arrays_fields, only: response_window
+      use store_arrays_fields, only: response_window
 #endif
 
       implicit none
@@ -132,7 +132,7 @@ contains
       use, intrinsic :: iso_c_binding, only: c_intptr_t
       use mp, only: sgproc0, real_size
       use mp, only: create_shared_memory_window
-      use arrays_fields, only: response_window
+      use store_arrays_fields, only: response_window
       use fields, only: nfields
       use parameters_kxky_grid, only: naky
       use extended_zgrid, only: neigen, nsegments, nzed_segment
@@ -176,11 +176,11 @@ contains
       use mp, only: proc0
       use job_manage, only: time_message
       use stella_layouts, only: mat_gen
-      use arrays_fields, only: response_matrix
+      use store_arrays_fields, only: response_matrix
       use parameters_kxky_grid, only: naky
       use extended_zgrid, only: neigen
 #ifdef ISO_C_BINDING
-      use arrays_fields, only: response_window
+      use store_arrays_fields, only: response_window
 #endif
 
       implicit none
@@ -358,7 +358,7 @@ contains
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
       use mp, only: nbytes_real
 #endif
-      use arrays_fields, only: response_matrix
+      use store_arrays_fields, only: response_matrix
 
       implicit none
 
@@ -406,7 +406,7 @@ contains
       use extended_zgrid, only: neigen
       use extended_zgrid, only: nsegments, nzed_segment
       use extended_zgrid, only: periodic
-      use arrays_fields, only: response_matrix
+      use store_arrays_fields, only: response_matrix
 
       implicit none
 
@@ -543,7 +543,7 @@ contains
       use mp, only: sgproc0
 #endif
       use mp, only: mp_abort
-      use arrays_fields, only: response_matrix
+      use store_arrays_fields, only: response_matrix
       use stella_layouts, only: lu_option_switch
       use stella_layouts, only: lu_option_none, lu_option_local, lu_option_global
       use extended_zgrid, only: neigen
@@ -586,7 +586,7 @@ contains
 
    subroutine read_response_matrix
 
-      use arrays_fields, only: response_matrix
+      use store_arrays_fields, only: response_matrix
       use common_types, only: response_matrix_type
       use parameters_kxky_grid, only: naky
       use extended_zgrid, only: neigen
@@ -691,7 +691,7 @@ contains
       use parameters_numerical, only: time_upwind_plus
       use parameters_physics, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
-      use arrays_fields, only: response_matrix
+      use store_arrays_fields, only: response_matrix
       use extended_zgrid, only: periodic, phase_shift
       use parameters_physics, only: full_flux_surface
 #ifdef ISO_C_BINDING
@@ -779,7 +779,7 @@ contains
       use parameters_numerical, only: time_upwind_plus
       use parameters_physics, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
-      use arrays_fields, only: response_matrix
+      use store_arrays_fields, only: response_matrix
       use extended_zgrid, only: periodic
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
@@ -865,7 +865,7 @@ contains
       use parameters_numerical, only: time_upwind_plus
       use parameters_physics, only: include_apar, include_bpar
       use implicit_solve, only: get_gke_rhs, sweep_g_zext
-      use arrays_fields, only: response_matrix
+      use store_arrays_fields, only: response_matrix
       use extended_zgrid, only: periodic
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
@@ -978,7 +978,7 @@ contains
 
       use parameters_physics, only: full_flux_surface
 
-      use gyro_averages, only: j0_B_const
+      use arrays_gyro_averages, only: j0_B_const
 
       implicit none
 
@@ -1203,8 +1203,8 @@ contains
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
       use grids_kxky, only: zonal_mode, akx
-      use arrays_fields, only: gamtot, gamtot3
-      use arrays_fields, only: gamtot_h, gamtot3_h
+      use store_arrays_fields, only: gamtot, gamtot3
+      use store_arrays_fields, only: gamtot_h, gamtot3_h
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
 
@@ -1283,8 +1283,8 @@ contains
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
       use grids_kxky, only: zonal_mode, akx
-      use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
-      use arrays_fields, only: gamtot_h
+      use store_arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
+      use store_arrays_fields, only: gamtot_h
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
       use mp, only: mp_abort
@@ -1375,8 +1375,8 @@ contains
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
       use grids_kxky, only: zonal_mode, akx
-      use arrays_fields, only: apar_denom
-      use arrays_dist_fn, only: kperp2
+      use store_arrays_fields, only: apar_denom
+      use store_arrays_useful, only: kperp2
 
       implicit none
 
@@ -1431,13 +1431,13 @@ contains
 
    subroutine finish_response_matrix
 
-      use arrays_fields, only: response_matrix
+      use store_arrays_fields, only: response_matrix
 #if !defined ISO_C_BINDING
 
       implicit none
 
 #else
-      use arrays_fields, only: response_window
+      use store_arrays_fields, only: response_window
       use mpi
 
       implicit none
@@ -1467,7 +1467,7 @@ contains
    subroutine parallel_LU_decomposition_local(iky)
 
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
-      use arrays_fields, only: response_matrix
+      use store_arrays_fields, only: response_matrix
       use mp, only: barrier, broadcast, sum_allreduce
       use mp, only: mp_comm, scope, allprocs, sharedprocs, curr_focus
       use mp, only: scrossdomprocs, sgproc0, mp_abort, real_size
@@ -1622,7 +1622,7 @@ contains
    !all cores. Ideal speed up: ncores
    subroutine parallel_LU_decomposition_global(iky)
 
-      use arrays_fields, only: response_matrix
+      use store_arrays_fields, only: response_matrix
       use mp, only: barrier, broadcast, sum_allreduce
       use mp, only: mp_comm, scope, allprocs, sharedprocs, curr_focus
       use mp, only: job, iproc, proc0, nproc, mpicmplx

@@ -20,7 +20,8 @@ contains
                     response_matrix_debug, time_advance_debug, extended_grid_debug, &
                     diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
                     diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
-                    gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo, print_extra_info_to_terminal)
+                    gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo, print_extra_info_to_terminal, &
+                    debug_test_gyro_average)
 
         use mp, only: proc0
 
@@ -32,7 +33,8 @@ contains
             response_matrix_debug, time_advance_debug, extended_grid_debug, &
             diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
             diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
-            gyro_averages_debug, fluxes_debug, geometry_debug, const_alpha_geo, print_extra_info_to_terminal
+            gyro_averages_debug, fluxes_debug, geometry_debug, const_alpha_geo, print_extra_info_to_terminal, &
+            debug_test_gyro_average
 
         if (.not. proc0) return
         call set_default_parameters_debug_flags
@@ -76,12 +78,14 @@ contains
             diagnostics_fluxes_fluxtube_debug = .false. 
             fluxes_debug = .false.
 
-             print_extra_info_to_terminal = .true. 
+            print_extra_info_to_terminal = .true. 
             
             !###################################
             !     FOR THE PURPOSE OF DEBUGGING
             !###################################
             const_alpha_geo = .false. 
+
+            debug_test_gyro_average = .false.
 
         end subroutine set_default_parameters_debug_flags
 
@@ -98,7 +102,8 @@ contains
                 response_matrix_debug, time_advance_debug, extended_grid_debug, &
                 diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
                 diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
-                gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo, print_extra_info_to_terminal
+                gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo, print_extra_info_to_terminal, &
+                debug_test_gyro_average
 
             in_file = input_unit_exist("debug_flags", dexist)
             if (dexist) read (unit=in_file, nml=debug_flags)

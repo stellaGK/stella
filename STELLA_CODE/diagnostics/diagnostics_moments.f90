@@ -35,7 +35,7 @@ contains
    subroutine write_moments_to_netcdf_file(nout, timer)
 
       ! Data
-      use arrays_dist_fn, only: gnew
+      use store_arrays_distribution_fn, only: gnew
 
       ! Dimensions
       use parameters_kxky_grid, only: naky, nakx
@@ -139,16 +139,17 @@ contains
       use calculations_kxky, only: multiply_by_rho
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use gyro_averages, only: aj0x, gyro_average
-      use arrays_fields, only: phi
+      use gyro_averages, only: gyro_average
+      use arrays_gyro_averages, only: aj0x
+      use store_arrays_fields, only: phi
       use parameters_physics, only: fphi
       use parameters_numerical, only: maxwellian_normalization
       use parameters_physics, only: radial_variation
       use stella_transforms, only: transform_kx2x_unpadded
       
       ! Import temp arrays g1 and g2 with dimensions (nky, nkx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
-      use arrays_dist_fn, only: g_gyro => g1 
-      use arrays_dist_fn, only: integrand => g2 
+      use store_arrays_distribution_fn, only: g_gyro => g1 
+      use store_arrays_distribution_fn, only: integrand => g2 
 
       implicit none
 
@@ -264,11 +265,13 @@ contains
       use calculations_kxky, only: multiply_by_rho
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use arrays_dist_fn, only: g1, g2, kperp2, dkperp2dr
+      use store_arrays_distribution_fn, only: g1, g2
+      use store_arrays_useful, only: kperp2, dkperp2dr
       use geometry, only: bmag, dBdrho
       use geometry, only: dl_over_b, d_dl_over_b_drho
-      use gyro_averages, only: aj0x, aj1x, gyro_average
-      use arrays_fields, only: phi, phi_corr_QN, phi_proj
+      use gyro_averages, only: gyro_average
+      use arrays_gyro_averages, only: aj0x, aj1x
+      use store_arrays_fields, only: phi, phi_corr_QN, phi_proj
       use parameters_physics, only: fphi
       use parameters_numerical, only: maxwellian_normalization
       use parameters_physics, only: radial_variation

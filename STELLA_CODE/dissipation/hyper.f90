@@ -47,7 +47,7 @@ contains
       use grids_kxky, only: aky, akx, theta0
       use z_grid, only: nzgrid, zed
       use geometry, only: geo_surf, q_as_x
-      use arrays_dist_fn, only: kperp2
+      use store_arrays_useful, only: kperp2
 
       implicit none
 
@@ -96,7 +96,7 @@ contains
       use stella_time, only: code_dt
       use z_grid, only: nzgrid, ntubes, zed
       use stella_layouts, only: vmu_lo
-      use arrays_dist_fn, only: kperp2
+      use store_arrays_useful, only: kperp2
       use parameters_kxky_grid, only: naky
       use grids_kxky, only: aky, akx, theta0, zonal_mode
 

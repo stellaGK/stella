@@ -42,7 +42,7 @@ contains
 !     use stella_layouts, only: vmu_lo
 !     use stella_layouts, only: iv_idx, imu_idx, is_idx
 !     use kt_grids, only: naky, nakx
-!     use gyro_averages, only: aj0x
+!     use arrays_gyro_averages, only: aj0x
 
 !     implicit none
 !     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g
@@ -77,7 +77,7 @@ contains
 !     use velocity_grids, only: nvpa, nmu
 !     use stella_layouts, only: kxkyz_lo
 !     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-!     use gyro_averages, only: aj0v
+!     use arrays_gyro_averages, only: aj0v
 
 !     implicit none
 !     complex, dimension (:,:,kxkyz_lo%llim_proc:), intent (in out) :: g
@@ -270,12 +270,13 @@ contains
       use z_grid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use geometry, only: bmag, dBdrho
-      use arrays_dist_fn, only: kperp2, dkperp2dr
+      use store_arrays_useful, only: kperp2, dkperp2dr
       use parameters_kxky_grid, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use velocity_grids, only: vpa, vperp2, mu
-      use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
+      use gyro_averages, only: gyro_average, gyro_average_j1
+      use arrays_gyro_averages, only: aj0x, aj1x
       use parameters_physics, only: radial_variation, include_bpar
       use parameters_numerical, only: maxwellian_normalization
 
@@ -355,7 +356,7 @@ contains
 !     use velocity_grids, only: maxwell_vpa, maxwell_mu
 !     use stella_layouts, only: vmu_lo
 !     use stella_layouts, only: iv_idx, imu_idx, is_idx
-!     use gyro_averages, only: aj0x
+!     use arrays_gyro_averages, only: aj0x
 
 !     implicit none
 !     complex, dimension (:,vmu_lo%llim_proc:), intent (in out) :: gext
@@ -464,16 +465,15 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use geometry, only: bmag, dBdrho
-      use arrays_dist_fn, only: kperp2, dkperp2dr
+      use store_arrays_useful, only: kperp2, dkperp2dr
       use parameters_kxky_grid, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, vperp2, mu, vpa
       use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
-      use gyro_averages, only: gyro_average, aj0x, aj1x
+      use gyro_averages, only: gyro_average
       use parameters_physics, only: radial_variation
-
       use parameters_physics, only: full_flux_surface
-      use gyro_averages, only: j0_ffs
+      use arrays_gyro_averages, only: aj0x, aj1x, j0_ffs
 
       implicit none
 
@@ -586,7 +586,7 @@ contains
 !     use stella_layouts, only: iv_idx, is_idx
 !     use kt_grids, only: naky, nakx
 !     use kt_grids, only: aky
-!     use gyro_averages, only: aj0x
+!     use arrays_gyro_averages, only: aj0x
 
 !     implicit none
 !     complex, dimension (:,:,-nzgrid:,vmu_lo%llim_proc:), intent (in out) :: g

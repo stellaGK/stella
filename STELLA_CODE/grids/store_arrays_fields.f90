@@ -1,4 +1,4 @@
-module arrays_fields
+module store_arrays_fields
 
    use mpi
    use common_types, only: response_matrix_type, eigen_type
@@ -28,6 +28,14 @@ module arrays_fields
    complex, dimension(:, :, :, :, :), allocatable :: phi_corr_GA, apar_corr_GA
    ! (naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
 
+   complex, dimension(:), pointer :: phi_ext => null()
+   ! (nakx*nztot)
+
+   type(eigen_type), dimension(:, :), allocatable :: phi_solve
+   type(eigen_type) :: phizf_solve
+   
+   !!!!!!!!!!!!!!!!!!!!!!!!!
+
    type(response_matrix_type), dimension(:), allocatable :: response_matrix
    integer :: response_window = MPI_WIN_NULL
 
@@ -46,12 +54,6 @@ module arrays_fields
    complex, dimension(:, :), allocatable :: c_mat
    ! (nakx, nakx)
 
-   complex, dimension(:), pointer :: phi_ext => null()
-   ! (nakx*nztot)
-
-   type(eigen_type), dimension(:, :), allocatable :: phi_solve
-   type(eigen_type) :: phizf_solve
-
    !variables needed for the source
    logical :: exclude_boundary_regions_qn
    real :: tcorr_source_qn, exp_fac_qn
@@ -60,4 +62,4 @@ module arrays_fields
    real :: gamtot_h, gamtot3_h, efac, efacp
    real, dimension(2, 5) :: time_field_solve = 0.
 
-end module arrays_fields
+end module store_arrays_fields

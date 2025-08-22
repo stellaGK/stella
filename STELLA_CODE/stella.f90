@@ -10,7 +10,7 @@ program stella
    use time_advance, only: advance_stella
    use diagnostics, only: diagnostics_stella
    use stella_save, only: stella_save_for_restart
-   use arrays_dist_fn, only: gnew, gvmu
+   use store_arrays_distribution_fn, only: gnew, gvmu
    use file_utils, only: error_unit, flush_output_file
    use git_version, only: get_git_version, get_git_date
    use diagnostics_omega, only: checksaturation
@@ -119,9 +119,11 @@ contains
       use stella_time, only: init_tstart, init_delt
       use diagnostics, only: init_diagnostics
       use parameters_diagnostics, only: read_diagnostics_knobs
-      use arrays_fields, only: phi, apar, bpar
-      use arrays_dist_fn, only: gnew
-      use dist_fn, only: init_gxyz, init_dist_fn
+      use store_arrays_fields, only: phi, apar, bpar
+      use store_arrays_distribution_fn, only: gnew
+      use arrays_distribution_fn, only: init_array_gxyz, init_arrays_distribution_fn
+      use arrays_distribution_fn, only: init_array_gxyz
+      use arrays_constants, only: init_arrays_vperp_kperp
       use dist_redistribute, only: init_redistribute
 !      use dist_redistribute, only: test_kymus_to_vmus_redistribute
       use time_advance, only: init_time_advance
@@ -284,7 +286,8 @@ contains
       !> allocates and initialises kperp2, vperp2 and arrays needed
       !> for gyro-averaging (j0 and j1 or equivalents)
       if (debug) write (6, *) "stella::init_stella::init_dist_fn"
-      call init_dist_fn
+      call init_arrays_distribution_fn
+      call init_arrays_vperp_kperp
       !> sets up the mappings between different layouts, needed
       !> to redistribute data when going from one layout to another
       if (debug) write (6, *) "stella::init_stella::init_redistribute"
@@ -304,8 +307,8 @@ contains
       call ginit(restarted, istep0)
       !> use mapping from kxkyz_lo to vmu_lo to get a copy of g that has ky, kx and z local to each core;
       !> stored in gnew and copied to gold
-      if (debug) write (6, *) "stella::init_stella::init_gxyz"
-      call init_gxyz(restarted)
+      if (debug) write (6, *) "stella::init_stella::init_array_gxyz"
+      call init_array_gxyz(restarted)
 !      call test_kymus_to_vmus_redistribute
       !> if initializing from restart file, set the initial time step size appropriately
       if (restarted .and. delt_option_switch == delt_option_auto) then
@@ -589,10 +592,12 @@ contains
       use dissipation, only: time_collisions, include_collisions 
       use sources, only: finish_sources, time_sources, source_option_switch, source_option_none
       use init_g, only: finish_init_g
-      use dist_fn, only: finish_dist_fn
+      use arrays_distribution_fn, only: finish_arrays_distribution_fn
+      use arrays_constants, only: finish_arrays_vperp_kperp
+      !!! NEED TO FINISH KPERP AND VPERP ARRAYS
       use dist_redistribute, only: finish_redistribute
       use fields, only: finish_fields
-      use arrays_fields, only: time_field_solve
+      use store_arrays_fields, only: time_field_solve
       use diagnostics, only: finish_diagnostics, time_diagnostics
       use response_matrix, only: finish_response_matrix
       use geometry, only: finish_geometry
@@ -628,7 +633,8 @@ contains
       if (debug) write (*, *) 'stella::finish_stella::finish_multibox'
       call finish_multibox
       if (debug) write (*, *) 'stella::finish_stella::finish_dist_fn'
-      call finish_dist_fn
+      call finish_arrays_distribution_fn
+      call finish_arrays_vperp_kperp
       if (debug) write (*, *) 'stella::finish_stella::finish_redistribute'
       call finish_redistribute
       if (debug) write (*, *) 'stella::finish_stella::finish_init_g'

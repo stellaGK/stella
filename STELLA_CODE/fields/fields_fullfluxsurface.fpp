@@ -41,8 +41,8 @@ contains
       use parameters_physics, only: fphi
       use parameters_kxky_grid, only: nakx, ikx_max, naky, naky_all
       !> Arrays
-      use arrays_fields, only: gamtot
-      use arrays_fields, only: gamtot3
+      use store_arrays_fields, only: gamtot
+      use store_arrays_fields, only: gamtot3
       !> Grids
       use grids_kxky, only: akx, zonal_mode
       use species, only: spec, has_electron_species
@@ -196,8 +196,8 @@ contains
          use z_grid, only: nzgrid
          use velocity_grids, only: integrate_species_ffs
          !> Calculations
-         use gyro_averages, only: gyro_average, j0_B_ffs
-         use gyro_averages, only: j0_B_const
+         use gyro_averages, only: gyro_average
+         use arrays_gyro_averages, only: j0_B_const, j0_B_ffs
          
          implicit none
 
@@ -288,7 +288,7 @@ contains
       !> Parameters
       use parameters_kxky_grid, only: naky, nakx
       !> Arrays
-      use arrays_fields, only: gamtot
+      use store_arrays_fields, only: gamtot
       !> Grids
       use z_grid, only: nzgrid, ntubes
       use grids_kxky, only: akx
@@ -346,8 +346,8 @@ contains
       use z_grid, only: nzgrid
       use velocity_grids, only: integrate_species_ffs
       !> Calculations
-      use gyro_averages, only: gyro_average, j0_B_ffs
-      use gyro_averages, only: j0_B_const
+      use gyro_averages, only: gyro_average
+      use arrays_gyro_averages, only: j0_B_const, j0_B_ffs
 
       implicit none
       
@@ -430,9 +430,9 @@ contains
       use parameters_kxky_grid, only: nalpha, ikx_max, naky_all, naky, nakx
       use parameters_physics, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       !> Arrays
-      use arrays_dist_fn, only: kperp2
-      use arrays_fields, only: gamtot, gamtot3 
-      use arrays_fields, only: efac, gamtot_h 
+      use store_arrays_useful, only: kperp2
+      use store_arrays_fields, only: gamtot, gamtot3 
+      use store_arrays_fields, only: efac, gamtot_h 
       !> Grids
       use species, only: spec, nspec
       use species, only: adiabatic_electrons
@@ -445,7 +445,7 @@ contains
       use calculations_kxky, only: swap_kxky_ordered
       use calculations_kxky, only: swap_kxky_back_ordered
       use gyro_averages, only: band_lu_factorisation_ffs
-      use gyro_averages, only: find_max_required_kalpha_index
+      use arrays_gyro_averages, only: find_max_required_kalpha_index
       !> Geometry
       use geometry, only: bmag, dl_over_b
 

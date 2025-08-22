@@ -24,7 +24,7 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       use z_grid, only: nzgrid, ntubes
       use parameters_kxky_grid, only: naky, nakx
-      use arrays_dist_fn, only: g1, g2
+      use store_arrays_distribution_fn, only: g1, g2
       use parameters_numerical, only: stream_matrix_inversion
       use parameters_numerical, only: use_deltaphi_for_response_matrix
       use parameters_numerical, only: tupwnd_p => time_upwind_plus
@@ -512,7 +512,7 @@ contains
 
          use constants, only: zi
          use grids_kxky, only: aky, akx
-         use arrays_dist_fn, only: wstar, wdriftx_phi, wdrifty_phi
+         use store_arrays_distribution_fn, only: wstar, wdriftx_phi, wdrifty_phi
          use parallel_streaming, only: center_zed
          use extended_zgrid, only: periodic
 
@@ -654,7 +654,7 @@ contains
 
          use constants, only: zi
          use grids_kxky, only: aky, akx
-         use arrays_dist_fn, only: wstar, wdriftx_bpar, wdrifty_bpar
+         use store_arrays_distribution_fn, only: wstar, wdriftx_bpar, wdrifty_bpar
          use parallel_streaming, only: center_zed
          use extended_zgrid, only: periodic
 
@@ -780,7 +780,7 @@ contains
       use constants, only: zi
       use species, only: spec
       use grids_kxky, only: aky
-      use arrays_dist_fn, only: wstar
+      use store_arrays_distribution_fn, only: wstar
       use parallel_streaming, only: center_zed
       use extended_zgrid, only: periodic
       use velocity_grids, only: vpa
@@ -914,7 +914,7 @@ contains
       use parameters_numerical, only: drifts_implicit
       use parallel_streaming, only: get_zed_derivative_extended_domain, center_zed
       use parallel_streaming, only: gradpar_c, stream_sign
-      use arrays_dist_fn, only: wdriftx_g, wdrifty_g
+      use store_arrays_distribution_fn, only: wdriftx_g, wdrifty_g
       use extended_zgrid, only: fill_zext_ghost_zones
       use extended_zgrid, only: map_to_iz_ikx_from_izext
       use extended_zgrid, only: periodic
@@ -1016,7 +1016,7 @@ contains
       use parameters_numerical, only: time_upwind_plus
       use parameters_kxky_grid, only: nakx
       use grids_kxky, only: akx, aky
-      use arrays_dist_fn, only: wdriftx_g, wdrifty_g
+      use store_arrays_distribution_fn, only: wdriftx_g, wdrifty_g
       use extended_zgrid, only: map_to_extended_zgrid
       use extended_zgrid, only: periodic, phase_shift
       use parallel_streaming, only: stream_sign, stream_c
@@ -1220,7 +1220,7 @@ contains
       use extended_zgrid, only: periodic, phase_shift
       use parameters_kxky_grid, only: naky
       use fields, only: nfields
-      use arrays_fields, only: response_matrix
+      use store_arrays_fields, only: response_matrix
 
       implicit none
 

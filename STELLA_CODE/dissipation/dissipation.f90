@@ -185,7 +185,7 @@ contains
       use z_grid, only: nzgrid
       use velocity_grids, only: set_vpa_weights
       use stella_layouts, only: vmu_lo
-      use arrays_dist_fn, only: gvmu
+      use store_arrays_distribution_fn, only: gvmu
       use coll_dougherty, only: advance_collisions_dougherty_implicit
       use coll_fokkerplanck, only: advance_collisions_fp_implicit
 

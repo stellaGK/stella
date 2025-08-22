@@ -42,8 +42,8 @@ contains
       !> Layouts
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx
       !> Arrays
-      use arrays_dist_fn, only: g_scratch
-      use arrays_fields, only: time_field_solve
+      use store_arrays_distribution_fn, only: g_scratch
+      use store_arrays_fields, only: time_field_solve
       !> Parameters
       use parameters_physics, only: beta 
       use parameters_physics, only: fphi 
@@ -133,8 +133,8 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       !> Arrays
-      use arrays_dist_fn, only: kperp2 
-      use arrays_fields, only: apar_denom, time_field_solve
+      use store_arrays_useful, only: kperp2 
+      use store_arrays_fields, only: apar_denom, time_field_solve
       !> Parameters
       use parameters_physics, only: beta
       use parameters_physics, only: include_apar, include_bpar
@@ -230,8 +230,8 @@ contains
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
       !> Arrays
-      use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv33, gamtotinv31
-      use arrays_fields, only: gamtot_h, time_field_solve
+      use store_arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv33, gamtotinv31
+      use store_arrays_fields, only: gamtot_h, time_field_solve
       !> Parameters
       use parameters_kxky_grid, only: nakx, naky
       !> Grids
@@ -285,8 +285,8 @@ contains
 
       use mp, only: proc0, mp_abort
       !> Arrays
-      use arrays_dist_fn, only: kperp2
-      use arrays_fields, only: apar_denom
+      use store_arrays_useful, only: kperp2
+      use store_arrays_fields, only: apar_denom
       !> Grids
       use z_grid, only: nzgrid, ntubes
       implicit none
@@ -381,11 +381,11 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       !> Arrays
-      use arrays_dist_fn, only: kperp2
-      use arrays_fields, only: gamtot
-      use arrays_fields, only: gamtot13, gamtot31, gamtot33
-      use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
-      use arrays_fields, only: apar_denom
+      use store_arrays_useful, only: kperp2
+      use store_arrays_fields, only: gamtot
+      use store_arrays_fields, only: gamtot13, gamtot31, gamtot33
+      use store_arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
+      use store_arrays_fields, only: apar_denom
       !> Parameters
       use parameters_physics, only: include_apar, include_bpar
       use parameters_kxky_grid, only : nakx, naky 
@@ -399,7 +399,7 @@ contains
       use velocity_grids, only: integrate_vmu
       use z_grid, only: nzgrid
       !> Calculations
-      use gyro_averages, only: aj0v, aj1v
+      use arrays_gyro_averages, only: aj0v, aj1v
 
       implicit none
 
@@ -530,12 +530,12 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       
       !> TOD-GA: Want to put the allocations of these arrays here:  
-      use arrays_fields, only: apar, apar_old
-      use arrays_fields, only: bpar, bpar_old
+      use store_arrays_fields, only: apar, apar_old
+      use store_arrays_fields, only: bpar, bpar_old
 
-      use arrays_fields, only: gamtot13, gamtot31, gamtot33
-      use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
-      use arrays_fields, only: apar_denom
+      use store_arrays_fields, only: gamtot13, gamtot31, gamtot33
+      use store_arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
+      use store_arrays_fields, only: apar_denom
 
       implicit none
       
@@ -582,12 +582,12 @@ contains
       ! Parameters
       use parameters_physics, only: include_apar, include_bpar
      
-      use arrays_fields, only: apar, apar_denom
-      use arrays_fields, only: apar_old, bpar_old
-      use arrays_fields, only: gamtot, gamtot3
-      use arrays_fields, only: gamtot13, gamtot31, gamtot33
-      use arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
-      use arrays_fields, only: apar_denom
+      use store_arrays_fields, only: apar, apar_denom
+      use store_arrays_fields, only: apar_old, bpar_old
+      use store_arrays_fields, only: gamtot, gamtot3
+      use store_arrays_fields, only: gamtot13, gamtot31, gamtot33
+      use store_arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
+      use store_arrays_fields, only: apar_denom
       
       implicit none
 

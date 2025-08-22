@@ -254,7 +254,7 @@ contains
       use parameters_numerical, only: driftkinetic_implicit, maxwellian_normalization
 	
 	!! For FFS 
-      use gyro_averages, only: j0_ffs
+      use arrays_gyro_averages, only: j0_ffs
 
       implicit none
 
@@ -372,7 +372,7 @@ contains
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use species, only: spec
       use gyro_averages, only: gyro_average, gyro_average_j1
-      use arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
+      use store_arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
 
       implicit none
 

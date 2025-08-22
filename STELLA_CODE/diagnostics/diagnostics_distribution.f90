@@ -31,8 +31,8 @@ contains
    subroutine write_distribution_to_netcdf_file(nout, timer) 
 
       ! Data
-      use arrays_dist_fn, only: gnew, gvmu
-      use arrays_fields, only: phi, bpar
+      use store_arrays_distribution_fn, only: gnew, gvmu
+      use store_arrays_fields, only: phi, bpar
       use parameters_physics, only: fphi
 
       ! Redistribute data from  i[vpa,mu,s] to i[kx,ky,z,s] 

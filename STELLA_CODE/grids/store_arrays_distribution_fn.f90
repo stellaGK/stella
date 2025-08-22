@@ -1,14 +1,12 @@
-!> A container for the arrays that are used to store the distribution function among other things.
-!!  These need to be accessible at a lower dependency level than the dist_fn module itself.
-!! These arrays are allocated in the function dist_fn::allocate_arrays.
-
-module arrays_dist_fn
-
+module store_arrays_distribution_fn
+   ! A container for the arrays that are used to store the distribution function arrays
    public :: gnew, gold, g_symm, g_scratch
    public :: g0, g1, g2, g3
    public :: g_krook, g_proj
    public :: gvmu, g_kymus
-   public :: kperp2, dkperp2dr
+
+
+   ! public :: kperp2, dkperp2dr
    public :: wstar, wstarp
    public :: wdriftx_g, wdrifty_g
    public :: wdriftx_phi, wdrifty_phi
@@ -42,6 +40,9 @@ module arrays_dist_fn
    complex, dimension(:, :, :), allocatable :: gvmu
    ! (nvpa, nmu, -kxkyz-layout-)
 
+
+   !---------------------------------------------------------------
+
    real, dimension(:, :, :), allocatable :: wstar, wstarp
    ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
 
@@ -58,4 +59,4 @@ module arrays_dist_fn
    ! (naky, nakx, nalpha, -nzgrid:nzgrid)
    ! note: dkperp2dr is divided by kperp2
 
-end module arrays_dist_fn
+end module store_arrays_distribution_fn

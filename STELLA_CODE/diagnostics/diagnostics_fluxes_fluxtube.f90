@@ -104,7 +104,7 @@ contains
       use parameters_diagnostics, only: write_fluxes_kxky
 
       ! Data 
-      use arrays_fields, only: phi, apar, bpar
+      use store_arrays_fields, only: phi, apar, bpar
       use parameters_physics, only: fphi
       
       ! Geometry 

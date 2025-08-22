@@ -93,7 +93,7 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use geometry, only: bmag
-      use arrays_dist_fn, only: kperp2
+      use store_arrays_useful, only: kperp2
 
       implicit none
 
@@ -136,7 +136,7 @@ contains
       use velocity_grids, only: dmu_cell, mu_cell, wgts_mu_bare
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-      use arrays_dist_fn, only: kperp2
+      use store_arrays_useful, only: kperp2
 
       implicit none
 
@@ -202,11 +202,11 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use geometry, only: dl_over_b
-      use arrays_dist_fn, only: gvmu
-      use gyro_averages, only: aj0v
+      use store_arrays_distribution_fn, only: gvmu
+      use arrays_gyro_averages, only: aj0v
       use fields_fluxtube, only: get_fields_fluxtube
       use fields_collisions, only: get_fields_by_spec
-      use arrays_fields, only: efac, gamtot_h
+      use store_arrays_fields, only: efac, gamtot_h
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
 
@@ -459,11 +459,12 @@ contains
       use geometry, only: dl_over_b, bmag
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use arrays_dist_fn, only: gvmu, kperp2
-      use gyro_averages, only: aj0v, aj1v
+      use store_arrays_distribution_fn, only: gvmu
+      use store_arrays_useful, only: kperp2
+      use arrays_gyro_averages, only: aj0v, aj1v
       use fields_fluxtube, only: get_fields_fluxtube
       use fields_collisions, only: get_fields_by_spec
-      use arrays_fields, only: efac, gamtot_h
+      use store_arrays_fields, only: efac, gamtot_h
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
 
@@ -753,7 +754,7 @@ contains
       use velocity_grids, only: vpa
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use gyro_averages, only: aj0v
+      use arrays_gyro_averages, only: aj0v
 
       implicit none
 
@@ -790,7 +791,7 @@ contains
       use velocity_grids, only: vperp2
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use gyro_averages, only: aj1v
+      use arrays_gyro_averages, only: aj1v
 
       implicit none
 
@@ -828,7 +829,7 @@ contains
       use velocity_grids, only: vpa
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use gyro_averages, only: aj0v
+      use arrays_gyro_averages, only: aj0v
 
       implicit none
 
@@ -865,7 +866,7 @@ contains
       use velocity_grids, only: nvpa, nmu, vperp2
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use gyro_averages, only: aj0v
+      use arrays_gyro_averages, only: aj0v
 
       implicit none
 
@@ -913,8 +914,9 @@ contains
       use stella_layouts, only: vmu_lo, kxkyz_lo
       use stella_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
       use dist_redistribute, only: kxkyz2vmu
-      use arrays_dist_fn, only: gvmu, kperp2, dkperp2dr
-      use arrays_fields, only: phi_corr_QN
+      use store_arrays_distribution_fn, only: gvmu
+      use store_arrays_useful, only: kperp2, dkperp2dr
+      use store_arrays_fields, only: phi_corr_QN
       use g_tofrom_h, only: g_to_h
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
@@ -1181,8 +1183,8 @@ contains
       use velocity_grids, only: vpa, nvpa, nmu, vperp2
       use velocity_grids, only: maxwell_vpa, maxwell_mu
 !     use velocity_grids, only: int_vpa2
-      use arrays_dist_fn, only: kperp2
-      use gyro_averages, only: aj0v, aj1v
+      use store_arrays_useful, only: kperp2
+      use arrays_gyro_averages, only: aj0v, aj1v
 
       implicit none
 
@@ -1227,7 +1229,7 @@ contains
       use velocity_grids, only: vpa, nvpa, nmu, vperp2
       use velocity_grids, only: maxwell_vpa, maxwell_mu
 !   use velocity_grids, only: int_unit, int_vpa2, int_vperp2, int_vfrth
-      use gyro_averages, only: aj0v
+      use arrays_gyro_averages, only: aj0v
 
       implicit none
 
@@ -1272,8 +1274,9 @@ contains
       use z_grid, only: nzgrid, ntubes
       use velocity_grids, only: integrate_species, mu, vpa, vperp2
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use arrays_dist_fn, only: kperp2, dkperp2dr
-      use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
+      use store_arrays_useful, only: kperp2, dkperp2dr
+      use gyro_averages, only: gyro_average, gyro_average_j1
+      use arrays_gyro_averages, only: aj0x, aj1x
 
       implicit none
 
@@ -1408,8 +1411,9 @@ contains
       use velocity_grids, only: integrate_species
       use velocity_grids, only: mu, vpa, nmu, vperp2
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use arrays_dist_fn, only: kperp2, dkperp2dr
-      use gyro_averages, only: gyro_average, gyro_average_j1, aj0x, aj1x
+      use store_arrays_useful, only: kperp2, dkperp2dr
+      use gyro_averages, only: gyro_average, gyro_average_j1
+      use arrays_gyro_averages, only: aj0x, aj1x
 
       implicit none
 
@@ -1502,7 +1506,7 @@ contains
    subroutine advance_collisions_dougherty_implicit(phi, apar, bpar)
 
       use z_grid, only: nzgrid
-      use arrays_dist_fn, only: gvmu
+      use store_arrays_distribution_fn, only: gvmu
 
       implicit none
 
@@ -1531,9 +1535,9 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use g_tofrom_h, only: g_to_h
-      use gyro_averages, only: aj0v
+      use arrays_gyro_averages, only: aj0v
       use fields_fluxtube, only: get_fields_fluxtube
-      use arrays_fields, only: efac, gamtot_h
+      use store_arrays_fields, only: efac, gamtot_h
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
 
@@ -1695,11 +1699,11 @@ contains
       use grids_kxky, only: zonal_mode
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use arrays_dist_fn, only: kperp2
-      use gyro_averages, only: aj0v, aj1v
+      use store_arrays_useful, only: kperp2
+      use arrays_gyro_averages, only: aj0v, aj1v
       use g_tofrom_h, only: g_to_h
       use fields_fluxtube, only: get_fields_fluxtube
-      use arrays_fields, only: efac, gamtot_h
+      use store_arrays_fields, only: efac, gamtot_h
       use geometry, only: bmag, dl_over_b
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg

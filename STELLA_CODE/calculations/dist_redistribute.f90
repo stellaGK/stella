@@ -555,7 +555,7 @@ contains
    subroutine test_kymus_to_vmus_redistribute
 
       use redistribute, only: scatter, gather
-      use arrays_dist_fn, only: g_kymus, gnew
+      use store_arrays_distribution_fn, only: g_kymus, gnew
       use velocity_grids, only: nvpa
       use mp, only: proc0, send, receive
       use z_grid, only: nzgrid, ntubes

@@ -32,7 +32,7 @@ contains
       use z_grid, only: nzgrid, delzed
       use parameters_kxky_grid, only: naky, nakx, ny
       use grids_kxky, only: aky, dy
-      use arrays_fields, only: phi
+      use store_arrays_fields, only: phi
       use geometry, only: grad_x, jacob
 
       implicit none
@@ -188,9 +188,9 @@ contains
       use velocity_grids, only: vpa, vperp2
       use parameters_kxky_grid, only: naky_all, ikx_max, ny
       use calculations_kxky, only: swap_kxky
-      use arrays_dist_fn, only: g0, g1, g2
-      use gyro_averages, only: gyro_average, j0_ffs
-      use arrays_fields, only: phi
+      use store_arrays_distribution_fn, only: g0, g1, g2
+      use gyro_averages, only: gyro_average
+      use store_arrays_fields, only: phi
       use stella_transforms, only: transform_ky2y
       use grids_kxky, only: aky, theta0
       use parameters_kxky_grid, only: nakx
@@ -199,7 +199,7 @@ contains
       use g_tofrom_h, only: g_to_h
 
       !> For momentum flux
-      use gyro_averages, only: j1_ffs
+      use arrays_gyro_averages, only: j0_ffs, j1_ffs
       use geometry, only: gds21, gds22, gds2
       use geometry, only: geo_surf
       use geometry, only: gradzeta_grady_R2overB2, gradzeta_gradx_R2overB2, b_dot_grad_zeta_RR
@@ -326,7 +326,8 @@ contains
       use stella_layouts, only: vmu_lo, is_idx
       use species, only: spec
       use z_grid, only: nzgrid, ntubes
-      use gyro_averages, only: gyro_average, j0_ffs
+      use gyro_averages, only: gyro_average
+      use arrays_gyro_averages, only: j0_ffs
 
       use stella_transforms, only: transform_ky2y, transform_y2ky
       use calculations_kxky, only: swap_kxky, swap_kxky_back
@@ -393,7 +394,8 @@ contains
       use stella_layouts, only: vmu_lo, is_idx
       use species, only: spec
       use z_grid, only: nzgrid, ntubes
-      use gyro_averages, only: gyro_average, j0_ffs
+      use gyro_averages, only: gyro_average
+      use arrays_gyro_averages, only: j0_ffs
 
       use stella_transforms, only: transform_ky2y, transform_y2ky
       use calculations_kxky, only: swap_kxky, swap_kxky_back

@@ -385,7 +385,7 @@ contains
       use parameters_kxky_grid, only: periodic_variation
       use file_utils, only: runtype_option_switch, runtype_multibox
       use file_utils, only: get_unused_unit
-      use arrays_fields, only: phi, phi_corr_QN, shift_state
+      use store_arrays_fields, only: phi, phi_corr_QN, shift_state
       use job_manage, only: njobs, time_message
       use parameters_physics, only: radial_variation, prp_shear_enabled, hammett_flow_shear
       use parameters_physics, only: g_exb, g_exbfac
@@ -717,7 +717,7 @@ contains
       use parameters_physics, only: radial_variation
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use parameters_multibox, only: ky_solve_radial
-      use arrays_fields, only: phi_solve, phizf_solve, gamtot, dgamtotdr
+      use store_arrays_fields, only: phi_solve, phizf_solve, gamtot, dgamtotdr
       use linear_solve, only: lu_decomposition, lu_inverse
 
       use parameters_multibox, only: phi_bound
@@ -834,7 +834,7 @@ contains
       use z_grid, only: nzgrid, ntubes
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use parameters_multibox, only: ky_solve_radial
-      use arrays_fields, only: gamtot, dgamtotdr, phi_solve, phizf_solve
+      use store_arrays_fields, only: gamtot, dgamtotdr, phi_solve, phizf_solve
       use linear_solve, only: lu_back_substitution
 
       use parameters_multibox, only: phi_pow, phi_bound
