@@ -493,7 +493,7 @@
 !-------------------------------
   
 ! OLD NAMELIST
-!&numerical_parameters
+!&parameters_numerical
 !  stream_implicit = .true.
 !  stream_iterative_implicit = .false.
 !  stream_matrix_inversion = .false.

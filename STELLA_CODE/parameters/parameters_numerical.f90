@@ -9,7 +9,7 @@
 ! &flux_annulus - to be changed
 ! These flags will allow you to toggle the algorithm choices in stella.
 !###############################################################################
-module numerical_parameters
+module parameters_numerical
 
    implicit none
 
@@ -46,7 +46,7 @@ module numerical_parameters
    public :: nitt
    
    ! Public subroutines that are read by the main stella routine.
-   public :: read_numerical_parameters, finish_read_numerical_parameters
+   public :: read_parameters_numerical, finish_read_parameters_numerical
 
    !------------------------------------------------------------------
    private
@@ -98,12 +98,12 @@ contains
   !======================================================================
   !===================== READ NUMERICAL PARAMETERS ======================
   !======================================================================
-   subroutine read_numerical_parameters
+   subroutine read_parameters_numerical
 
       use mp, only: proc0, mp_abort
       use text_options, only: text_option, get_option_value
       use file_utils, only: input_unit, error_unit, input_unit_exist
-      use input_file_numerical_parameters, only: &
+      use input_file_parameters_numerical, only: &
          read_namelist_time_trace_options, read_namelist_time_step, &
          read_namelist_numerical_algorithms, read_namelist_numerical_upwinding_for_derivatives, &
          read_namelist_flux_annulus
@@ -165,10 +165,10 @@ contains
          if (tend < 0 .and. nstep < 0) then
             ierr = error_unit()
             write (ierr, *) ''
-            write (ierr, *) 'Please specify either <nstep> or <tend> in the <numerical_parameters> namelist.'
+            write (ierr, *) 'Please specify either <nstep> or <tend> in the <parameters_numerical> namelist.'
             write (ierr, *) 'Aborting.'
             write (*, *) ''
-            write (*, *) 'Please specify either <nstep> or <tend> in the <numerical_parameters> namelist.'
+            write (*, *) 'Please specify either <nstep> or <tend> in the <parameters_numerical> namelist.'
             write (*, *) 'Aborting.'
             error = .true.
          end if
@@ -304,7 +304,7 @@ contains
          implicit none    
          ! Exit stella if we ran into an error
          call broadcast(error)
-         if (error) call mp_abort('Aborting in numerical_parameters.f90')
+         if (error) call mp_abort('Aborting in parameters_numerical.f90')
 
          ! Time trace options
          call broadcast(nstep)
@@ -353,13 +353,13 @@ contains
          
       end subroutine broadcast_parameters
     
-    end subroutine read_numerical_parameters
+    end subroutine read_parameters_numerical
   
-  subroutine finish_read_numerical_parameters
+  subroutine finish_read_parameters_numerical
     
     implicit none
     initialised = .false.
     
-  end subroutine finish_read_numerical_parameters
+  end subroutine finish_read_parameters_numerical
 
-end module numerical_parameters
+end module parameters_numerical

@@ -135,7 +135,7 @@ contains
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
       use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
-      use numerical_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: maxwellian_normalization
 
       use parameters_physics, only: xdriftknob, ydriftknob
       implicit none
@@ -288,7 +288,7 @@ contains
       use arrays_dist_fn, only: wstar
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_drho
-      use numerical_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: maxwellian_normalization
 
       use parameters_physics, only: wstarknob
       implicit none
@@ -547,7 +547,7 @@ contains
       use z_grid, only: nzgrid, ntubes
       use kxky_grid_parameters, only: naky, nakx
       use arrays_dist_fn, only: g0, g1, g2, g3
-      use numerical_parameters, only: explicit_algorithm_switch, explicit_algorithm_rk3, &
+      use parameters_numerical, only: explicit_algorithm_switch, explicit_algorithm_rk3, &
            explicit_algorithm_rk2, explicit_algorithm_rk4, explicit_algorithm_euler
 
       implicit none
@@ -576,13 +576,13 @@ contains
       use mp, only: scope, allprocs, subprocs
       use arrays_dist_fn, only: wdriftx_g, wdrifty_g
       use stella_time, only: code_dt, write_dt, cfl_dt_linear
-      use numerical_parameters, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
+      use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
       use parameters_physics, only: radial_variation, prp_shear_enabled
       use z_grid, only: delzed
       use velocity_grids, only: dvpa
       use grids_kxky, only: akx, aky, rho
       use kxky_grid_parameters, only: nx
-      use numerical_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
+      use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
       use parallel_streaming, only: stream
       use parallel_streaming, only: stream_rad_var1, stream_rad_var2
       use mirror_terms, only: mirror
@@ -717,7 +717,7 @@ contains
       use parallel_streaming, only: parallel_streaming_initialized
       use parallel_streaming, only: init_parallel_streaming
       use dissipation, only: init_collisions, collisions_initialized, include_collisions
-      use numerical_parameters, only: stream_implicit, driftkinetic_implicit
+      use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use response_matrix, only: response_matrix_initialized
       use response_matrix, only: init_response_matrix
       use mirror_terms, only: mirror_initialized
@@ -780,7 +780,7 @@ contains
       use arrays_fields, only: phi, apar, bpar
       use arrays_fields, only: phi_old, apar_old
       use fields, only: advance_fields, fields_updated
-      use numerical_parameters, only: fully_explicit, fully_implicit
+      use parameters_numerical, only: fully_explicit, fully_implicit
       use parameters_multibox, only: rk_step
       use sources, only: include_qn_source, update_quasineutrality_source
       use sources, only: source_option_switch, source_option_projection
@@ -789,7 +789,7 @@ contains
       use parameters_physics, only: include_apar
       use mp, only: proc0, broadcast
 
-      use numerical_parameters, only: flip_flop
+      use parameters_numerical, only: flip_flop
       implicit none
 
       integer, intent(in) :: istep
@@ -914,7 +914,7 @@ contains
       use fields, only: advance_fields
       use g_tofrom_h, only: gbar_to_g
 
-      use numerical_parameters, only: explicit_algorithm_switch, explicit_algorithm_rk3, &
+      use parameters_numerical, only: explicit_algorithm_switch, explicit_algorithm_rk3, &
            explicit_algorithm_rk2, explicit_algorithm_rk4, explicit_algorithm_euler
       
       
@@ -1183,7 +1183,7 @@ contains
       use kxky_grid_parameters, only: ikx_max, ny, naky_all
       use calculations_kxky, only: swap_kxky_back
       use grids_kxky, only: zonal_mode, akx
-      use numerical_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
+      use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
       use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
       use sources, only: source_option_switch, source_option_krook
       use sources, only: add_krook_operator
@@ -1778,7 +1778,7 @@ contains
       use stella_transforms, only: transform_y2ky, transform_x2kx
       use stella_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
       use stella_time, only: cfl_dt_ExB, cfl_dt_linear, code_dt, code_dt_max
-      use numerical_parameters, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
+      use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
       use parameters_physics, only: g_exb, g_exbfac, fphi
       use z_grid, only: nzgrid, ntubes
       use geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
@@ -2067,7 +2067,7 @@ contains
       use stella_transforms, only: transform_ky2y, transform_y2ky
       use stella_transforms, only: transform_kx2x, transform_x2kx
       use stella_time, only: cfl_dt_parallel, cfl_dt_linear, code_dt, code_dt_max
-      use numerical_parameters, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
+      use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
       use z_grid, only: nzgrid, delzed, ntubes
       use extended_zgrid, only: neigen, nsegments, ikxmod
       use extended_zgrid, only: iz_low, iz_up
@@ -2703,7 +2703,7 @@ contains
       use parameters_physics, only: include_parallel_streaming
       use parameters_physics, only: radial_variation, full_flux_surface
       use parameters_physics, only: include_mirror, prp_shear_enabled
-      use numerical_parameters, only: stream_implicit, mirror_implicit, drifts_implicit
+      use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
       use implicit_solve, only: advance_implicit_terms
       use fields, only: advance_fields, fields_updated
       use mirror_terms, only: advance_mirror_implicit
@@ -2711,7 +2711,7 @@ contains
       use dissipation, only: advance_collisions_implicit
       use flow_shear, only: advance_perp_flow_shear
       use parameters_multibox, only: rk_step
-      use numerical_parameters, only: flip_flop
+      use parameters_numerical, only: flip_flop
       implicit none
 
       integer, intent(in) :: istep

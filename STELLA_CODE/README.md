@@ -180,7 +180,7 @@ The `parameters` folder contains the following scripts:
 - kxky_grid_parameters_box.f90  
 - kxky_grid_parameters.f90  
 - kxky_grid_parameters_range.f90  
-- numerical_parameters.f90  
+- parameters_numerical.f90  
 - parameters_physics.f90
 
 <br>

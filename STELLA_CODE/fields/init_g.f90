@@ -125,7 +125,7 @@ contains
    subroutine ginit(restarted, istep0)
 
       use stella_save, only: init_tstart
-      use numerical_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: maxwellian_normalization
       
       ! Load the <init_distribution_switch> parameters
       use input_file_fields, only: init_distribution_option_maxwellian

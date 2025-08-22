@@ -408,7 +408,7 @@ contains
       use arrays_fields, only: gamtot_h, gamtot3_h, efac, efacp
       !> Parameters
       use parameters_physics, only: fphi
-      use numerical_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: maxwellian_normalization
       use parameters_physics, only: tite, nine, beta
       use kxky_grid_parameters, only: nakx
       use parameters_physics, only: adiabatic_option_switch

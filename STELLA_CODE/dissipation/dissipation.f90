@@ -36,7 +36,7 @@ contains
       use coll_dougherty, only: read_parameters_dougherty
       use coll_fokkerplanck, only: read_parameters_fp
       use hyper, only: read_parameters_hyper
-      use numerical_parameters, only: fully_explicit
+      use parameters_numerical, only: fully_explicit
       use hyper, only: init_hyper
 
       implicit none

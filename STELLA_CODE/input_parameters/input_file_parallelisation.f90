@@ -81,7 +81,7 @@ contains
 
             ierr = error_unit()
             call get_option_value(lu_option, luopts, lu_option_switch, ierr, &
-                                  "lu_option in numerical_parameters")
+                                  "lu_option in parameters_numerical")
 
         end subroutine read_input_file_parallelisation
 

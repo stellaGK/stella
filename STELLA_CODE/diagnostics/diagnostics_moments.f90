@@ -142,7 +142,7 @@ contains
       use gyro_averages, only: aj0x, gyro_average
       use arrays_fields, only: phi
       use parameters_physics, only: fphi
-      use numerical_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: maxwellian_normalization
       use parameters_physics, only: radial_variation
       use stella_transforms, only: transform_kx2x_unpadded
       
@@ -270,7 +270,7 @@ contains
       use gyro_averages, only: aj0x, aj1x, gyro_average
       use arrays_fields, only: phi, phi_corr_QN, phi_proj
       use parameters_physics, only: fphi
-      use numerical_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: maxwellian_normalization
       use parameters_physics, only: radial_variation
       use stella_transforms, only: transform_kx2x_unpadded
       

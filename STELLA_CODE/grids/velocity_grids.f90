@@ -139,7 +139,7 @@ contains
       use mp, only: mp_abort
       use constants, only: pi
       use species, only: spec, nspec
-      use numerical_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: maxwellian_normalization
 
       implicit none
 
@@ -269,7 +269,7 @@ contains
       use kxky_grid_parameters, only: nalpha
       use species, only: spec, nspec
       use geometry, only: bmag, bmag_psi0
-      use numerical_parameters, only: maxwellian_normalization
+      use parameters_numerical, only: maxwellian_normalization
 
       use parameters_physics, only: full_flux_surface
       implicit none

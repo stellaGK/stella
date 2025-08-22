@@ -148,7 +148,7 @@ contains
             read_namelist_diagnostics_omega, read_namelist_diagnostics_distribution, &
             read_namelist_diagnostics_fluxes, read_namelist_diagnostics_moments
 
-         use numerical_parameters, only: autostop
+         use parameters_numerical, only: autostop
          implicit none
 
          logical :: exist

@@ -158,7 +158,7 @@ contains
       use velocity_grids, only: dvpa, dmu, mu, nmu
       use geometry, only: bmag
       use stella_layouts
-      use numerical_parameters, only: fully_explicit
+      use parameters_numerical, only: fully_explicit
       use common_types, only: spec_type
 
       implicit none
