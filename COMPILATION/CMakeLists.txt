@@ -91,7 +91,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/grids/velocity_grids.f90
   ../STELLA_CODE/grids/write_radial_grid.f90
   ../STELLA_CODE/grids/z_grid.f90
-  ../STELLA_CODE/gyrokinetic_equation/ffs_solve.f90
+  ../STELLA_CODE/gyrokinetic_equation/gk_ffs_solve.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_radial_variation.f90
   ../STELLA_CODE/gyrokinetic_equation/reset_timestep.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_flow_shear.f90

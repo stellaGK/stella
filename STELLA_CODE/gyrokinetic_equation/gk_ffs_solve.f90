@@ -1,4 +1,4 @@
-module ffs_solve
+module gk_ffs_solve
 
   implicit none 
   
@@ -344,4 +344,4 @@ contains
    end subroutine add_explicit_term_ffs_fields
 
 
-end module ffs_solve
+end module gk_ffs_solve
