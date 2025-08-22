@@ -77,6 +77,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/grids/arrays_dist_fn.f90
   ../STELLA_CODE/grids/arrays_fields.f90
   ../STELLA_CODE/grids/common_types.f90
+  ../STELLA_CODE/grids/euterpe_interface.f90
   ../STELLA_CODE/grids/extended_z_grid.f90
   ../STELLA_CODE/grids/grids_kxky.f90
   ../STELLA_CODE/grids/species.f90
@@ -105,8 +106,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/input_parameters/input_file_parallelisation.f90
   ../STELLA_CODE/input_parameters/input_file_sources.f90
   ../STELLA_CODE/input_parameters/input_file_neoclassical_input.f90
-  ../STELLA_CODE/input_parameters/input_file_radially_global.f90
-  ../STELLA_CODE/neoclassical/euterpe_interface.f90
+  ../STELLA_CODE/input_parameters/input_file_radial_variation.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
   ../STELLA_CODE/parameters/debug_flags.f90
   ../STELLA_CODE/parameters/parameters_diagnostics.f90
