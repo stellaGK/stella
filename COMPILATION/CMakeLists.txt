@@ -77,7 +77,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/geometry/geometry_inputprofiles_interface.f90
   ../STELLA_CODE/geometry/geometry_zpinch.f90
   ../STELLA_CODE/grids/arrays_gyro_averages.f90
-  ../STELLA_CODE/grids/arrays_drifts.f90
   ../STELLA_CODE/grids/arrays_constants.f90
   ../STELLA_CODE/grids/arrays_distribution_fn.f90
   ../STELLA_CODE/grids/store_arrays_useful.f90 
@@ -98,11 +97,11 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/gyrokinetic_equation/gk_flow_shear.f90
   ../STELLA_CODE/gyrokinetic_equation/implicit_solve.f90
   ../STELLA_CODE/gyrokinetic_equation/mirror_terms.f90
-  ../STELLA_CODE/gyrokinetic_equation/parallel_streaming.f90
+  ../STELLA_CODE/gyrokinetic_equation/gk_parallel_streaming.f90
   ../STELLA_CODE/gyrokinetic_equation/parallel_nonlinearity.f90
   ../STELLA_CODE/gyrokinetic_equation/advance_nonlinearity.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_time_advance.f90
-  ../STELLA_CODE/gyrokinetic_equation/advance_explicit_drifts.f90
+  ../STELLA_CODE/gyrokinetic_equation/gk_drifts.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_fields.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_dissipation.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_physics_parameters.f90

@@ -586,7 +586,7 @@ contains
       use species, only: finish_species
       use store_arrays_useful, only: time_gke, time_parallel_nl
       use gk_time_advance, only: finish_time_advance
-      use parallel_streaming, only: time_parallel_streaming
+      use gk_parallel_streaming, only: time_parallel_streaming
       use mirror_terms, only: time_mirror
       use dissipation, only: time_collisions, include_collisions 
       use sources, only: finish_sources, time_sources, source_option_switch, source_option_none

@@ -54,8 +54,8 @@ contains
      use calculations_kxky, only: swap_kxky_back
      use stella_transforms, only: transform_y2ky
      
-     use parallel_streaming, only: center_zed, get_dgdz_centered, get_dzed
-     use parallel_streaming, only: stream_correction, stream_store_full
+     use gk_parallel_streaming, only: center_zed, get_dgdz_centered, get_dzed
+     use gk_parallel_streaming, only: stream_correction, stream_store_full
      
      use species, only: has_electron_species
      implicit none
@@ -189,7 +189,7 @@ contains
       use store_arrays_distribution_fn, only: wdrifty_g, wdrifty_phi
       use store_arrays_distribution_fn, only: wstar
 
-      use parallel_streaming, only: center_zed
+      use gk_parallel_streaming, only: center_zed
 
       implicit none 
 

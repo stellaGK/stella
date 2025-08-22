@@ -10,8 +10,8 @@ contains
     
     subroutine reset_dt
 
-        use parallel_streaming, only: parallel_streaming_initialized
-        use parallel_streaming, only: init_parallel_streaming
+        use gk_parallel_streaming, only: parallel_streaming_initialized
+        use gk_parallel_streaming, only: init_parallel_streaming
         use dissipation, only: init_collisions, collisions_initialized, include_collisions
         use parameters_numerical, only: stream_implicit, driftkinetic_implicit
         use response_matrix, only: response_matrix_initialized
@@ -23,7 +23,7 @@ contains
         use parameters_physics, only: radial_variation
         use sources, only: init_source_timeaverage
         use sources, only: init_quasineutrality_source, qn_source_initialized
-        use arrays_drifts, only: init_wdrift, init_wstar
+        use gk_drifts, only: init_wdrift, init_wstar
         use radial_variation_time_advance, only: init_radial_variation
 
         use store_arrays_useful, only: wdriftinit, wstarinit, parnlinit, &

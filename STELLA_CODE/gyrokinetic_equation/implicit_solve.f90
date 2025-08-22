@@ -446,9 +446,9 @@ contains
       subroutine add_streaming_contribution_phi
 
          use extended_zgrid, only: fill_zext_ghost_zones
-         use parallel_streaming, only: get_zed_derivative_extended_domain
-         use parallel_streaming, only: center_zed
-         use parallel_streaming, only: gradpar_c, stream_sign
+         use gk_parallel_streaming, only: get_zed_derivative_extended_domain
+         use gk_parallel_streaming, only: center_zed
+         use gk_parallel_streaming, only: gradpar_c, stream_sign
 
          use parameters_numerical, only: driftkinetic_implicit
 
@@ -513,7 +513,7 @@ contains
          use constants, only: zi
          use grids_kxky, only: aky, akx
          use store_arrays_distribution_fn, only: wstar, wdriftx_phi, wdrifty_phi
-         use parallel_streaming, only: center_zed
+         use gk_parallel_streaming, only: center_zed
          use extended_zgrid, only: periodic
 
          integer :: izext, iz, ikx
@@ -596,9 +596,9 @@ contains
       subroutine add_streaming_contribution_bpar
 
          use extended_zgrid, only: fill_zext_ghost_zones
-         use parallel_streaming, only: get_zed_derivative_extended_domain
-         use parallel_streaming, only: center_zed
-         use parallel_streaming, only: gradpar_c, stream_sign
+         use gk_parallel_streaming, only: get_zed_derivative_extended_domain
+         use gk_parallel_streaming, only: center_zed
+         use gk_parallel_streaming, only: gradpar_c, stream_sign
 
          integer :: izext
          complex :: scratch_left, scratch_right
@@ -655,7 +655,7 @@ contains
          use constants, only: zi
          use grids_kxky, only: aky, akx
          use store_arrays_distribution_fn, only: wstar, wdriftx_bpar, wdrifty_bpar
-         use parallel_streaming, only: center_zed
+         use gk_parallel_streaming, only: center_zed
          use extended_zgrid, only: periodic
 
          integer :: izext, iz, ikx
@@ -738,7 +738,7 @@ contains
 
       use parameters_numerical, only: maxwellian_normalization
       use velocity_grids, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
-      use parallel_streaming, only: center_zed
+      use gk_parallel_streaming, only: center_zed
       use species, only: spec
       use extended_zgrid, only: periodic
 
@@ -781,7 +781,7 @@ contains
       use species, only: spec
       use grids_kxky, only: aky
       use store_arrays_distribution_fn, only: wstar
-      use parallel_streaming, only: center_zed
+      use gk_parallel_streaming, only: center_zed
       use extended_zgrid, only: periodic
       use velocity_grids, only: vpa
 
@@ -912,8 +912,8 @@ contains
       use stella_layouts, only: vmu_lo, iv_idx, is_idx
       use parameters_numerical, only: time_upwind_minus
       use parameters_numerical, only: drifts_implicit
-      use parallel_streaming, only: get_zed_derivative_extended_domain, center_zed
-      use parallel_streaming, only: gradpar_c, stream_sign
+      use gk_parallel_streaming, only: get_zed_derivative_extended_domain, center_zed
+      use gk_parallel_streaming, only: gradpar_c, stream_sign
       use store_arrays_distribution_fn, only: wdriftx_g, wdrifty_g
       use extended_zgrid, only: fill_zext_ghost_zones
       use extended_zgrid, only: map_to_iz_ikx_from_izext
@@ -1019,8 +1019,8 @@ contains
       use store_arrays_distribution_fn, only: wdriftx_g, wdrifty_g
       use extended_zgrid, only: map_to_extended_zgrid
       use extended_zgrid, only: periodic, phase_shift
-      use parallel_streaming, only: stream_sign, stream_c
-      use parallel_streaming, only: center_zed
+      use gk_parallel_streaming, only: stream_sign, stream_c
+      use gk_parallel_streaming, only: center_zed
       use stella_layouts, only: vmu_lo, iv_idx, is_idx
 
       implicit none
@@ -1114,7 +1114,7 @@ contains
       use parameters_numerical, only: drifts_implicit
       use parameters_numerical, only: zed_upwind_plus, zed_upwind_minus
       use parameters_numerical, only: time_upwind_plus
-      use parallel_streaming, only: stream_c
+      use gk_parallel_streaming, only: stream_c
 
       implicit none
 
@@ -1156,7 +1156,7 @@ contains
       use z_grid, only: nzgrid, delzed
       use extended_zgrid, only: phase_shift
       use parameters_numerical, only: zed_upwind, time_upwind
-      use parallel_streaming, only: stream_c
+      use gk_parallel_streaming, only: stream_c
 
       implicit none
 

@@ -28,10 +28,10 @@ contains
       use store_arrays_useful, only: wdriftinit, wstarinit, parnlinit, &
             radialinit, driftimpinit
 
-      use arrays_drifts, only: init_wdrift, init_wstar
+      use gk_drifts, only: init_wdrift, init_wstar
       use neoclassical_terms, only: init_neoclassical_terms
       use dissipation, only: init_collisions, include_collisions
-      use parallel_streaming, only: init_parallel_streaming
+      use gk_parallel_streaming, only: init_parallel_streaming
       use mirror_terms, only: init_mirror
       use gk_flow_shear, only: init_flow_shear
       use sources, only: init_quasineutrality_source, init_source_timeaverage
@@ -134,8 +134,8 @@ contains
       use z_grid, only: delzed
       use velocity_grids, only: dvpa
       use grids_kxky, only: akx, aky, rho
-      use parallel_streaming, only: stream
-      use parallel_streaming, only: stream_rad_var1, stream_rad_var2
+      use gk_parallel_streaming, only: stream
+      use gk_parallel_streaming, only: stream_rad_var1, stream_rad_var2
       use mirror_terms, only: mirror
       use gk_flow_shear, only: prl_shear, shift_times
       use file_utils, only: runtype_option_switch, runtype_multibox
@@ -413,7 +413,7 @@ contains
       use extended_zgrid, only: periodic, phase_shift
       use parameters_kxky_grid, only: naky
       use parameters_physics, only: include_apar
-      use parallel_streaming, only: stream_sign
+      use gk_parallel_streaming, only: stream_sign
       use parameters_numerical, only: explicit_algorithm_switch, explicit_algorithm_rk3, &
            explicit_algorithm_rk2, explicit_algorithm_rk4, explicit_algorithm_euler
       use fields, only: advance_fields
@@ -720,11 +720,11 @@ contains
       use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
       use sources, only: source_option_switch, source_option_krook
       use sources, only: add_krook_operator
-      use parallel_streaming, only: advance_parallel_streaming_explicit
+      use gk_parallel_streaming, only: advance_parallel_streaming_explicit
       use mirror_terms, only: advance_mirror_explicit
       use gk_flow_shear, only: advance_parallel_flow_shear
-      use advance_explicit_drifts, only: advance_wstar_explicit
-      use advance_explicit_drifts, only: advance_wdriftx_explicit, advance_wdrifty_explicit
+      use gk_drifts, only: advance_wstar_explicit
+      use gk_drifts, only: advance_wdriftx_explicit, advance_wdrifty_explicit
       use parallel_nonlinearity, only: advance_parallel_nonlinearity
       use radial_variation_time_advance, only: advance_radial_variation
       use advance_nonlinearity, only: advance_ExB_nonlinearity
@@ -1049,12 +1049,12 @@ contains
       use stella_transforms, only: finish_transforms
       use parameters_physics, only: full_flux_surface
       use extended_zgrid, only: finish_extended_zgrid
-      use parallel_streaming, only: finish_parallel_streaming
+      use gk_parallel_streaming, only: finish_parallel_streaming
       use mirror_terms, only: finish_mirror
       use gk_flow_shear, only: finish_flow_shear
       use neoclassical_terms, only: finish_neoclassical_terms
       use dissipation, only: finish_dissipation
-      use arrays_drifts, only: finish_wstar, finish_wdrift
+      use gk_drifts, only: finish_wstar, finish_wdrift
       use parallel_nonlinearity, only: finish_parallel_nonlinearity
       use radial_variation_time_advance, only: finish_radial_variation
 

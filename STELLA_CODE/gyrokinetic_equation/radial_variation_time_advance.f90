@@ -183,7 +183,7 @@ contains
 
         use mirror_terms, only: add_mirror_radial_variation
         use gk_flow_shear, only: prl_shear, prl_shear_p
-        use parallel_streaming, only: add_parallel_streaming_radial_variation
+        use gk_parallel_streaming, only: add_parallel_streaming_radial_variation
 
         implicit none
 

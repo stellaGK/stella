@@ -1,4 +1,4 @@
-module parallel_streaming
+module gk_parallel_streaming
 
    use debug_flags, only: debug => parallel_streaming_debug 
    
@@ -875,4 +875,4 @@ contains
 
    end subroutine finish_invert_stream_operator
 
-end module parallel_streaming
+end module gk_parallel_streaming
