@@ -46,8 +46,7 @@ module numerical_parameters
    public :: nitt
    public :: fphi
    public :: rng_seed
-   public :: print_extra_info_to_terminal
-
+   
    ! Public subroutines that are read by the main stella routine.
    public :: read_numerical_parameters, finish_read_numerical_parameters
 
@@ -93,7 +92,6 @@ module numerical_parameters
    integer :: nitt
    real :: fphi
    integer :: rng_seed
-   logical :: print_extra_info_to_terminal
 
    ! Internal
    logical :: initialised = .false.
@@ -139,7 +137,7 @@ contains
 
       if (proc0) call read_namelist_numerical_upwinding_for_derivatives(time_upwind, zed_upwind, vpa_upwind)
 
-      if (proc0) call read_namelist_numerical_extra(nitt, fphi, rng_seed, print_extra_info_to_terminal)
+      if (proc0) call read_namelist_numerical_extra(nitt, fphi, rng_seed)
 
       if (proc0) call check_numerical_inputs 
       call broadcast_parameters
@@ -358,7 +356,6 @@ contains
          call broadcast(nitt)
          call broadcast(fphi)
          call broadcast(rng_seed)
-         call broadcast(print_extra_info_to_terminal)
 
       end subroutine broadcast_parameters
     

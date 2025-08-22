@@ -322,7 +322,6 @@
 &numerical_extra
   nitt = 1
   fphi = 1.0
-  print_extra_info_to_terminal = .true.
   rng_seed = -1
 /
 

@@ -447,7 +447,7 @@ contains
    subroutine write_start_message(git_commit, git_date)
    
       use mp, only: proc0, nproc
-      use numerical_parameters, only: print_extra_info_to_terminal
+      use debug_flags, only: print_extra_info_to_terminal
 
       implicit none
 
@@ -501,7 +501,7 @@ contains
    subroutine print_header
 
       use mp, only: proc0
-      use numerical_parameters, only: print_extra_info_to_terminal
+      use debug_flags, only: print_extra_info_to_terminal
       use physics_parameters, only: include_apar, include_bpar
       implicit none
       
@@ -603,7 +603,7 @@ contains
       use numerical_parameters, only: stream_implicit, drifts_implicit
       use stella_layouts, only: fields_kxkyz
       use implicit_solve, only: time_implicit_advance
-      use numerical_parameters, only: print_extra_info_to_terminal
+      use debug_flags, only: print_extra_info_to_terminal
 
       implicit none
 

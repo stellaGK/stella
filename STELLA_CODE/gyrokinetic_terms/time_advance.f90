@@ -590,7 +590,7 @@ contains
       use file_utils, only: runtype_option_switch, runtype_multibox
       use dissipation, only: include_collisions, collisions_implicit
       use dissipation, only: cfl_dt_vpadiff, cfl_dt_mudiff
-      use numerical_parameters, only: print_extra_info_to_terminal
+      use debug_flags, only: print_extra_info_to_terminal
 
       implicit none
 
