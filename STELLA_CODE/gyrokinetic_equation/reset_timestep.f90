@@ -1,4 +1,4 @@
-module timing_of_run
+module reset_timestep
     use debug_flags, only: debug => time_advance_debug
 
     implicit none
@@ -74,4 +74,4 @@ contains
 
    end subroutine reset_dt
 
-end module timing_of_run
+end module reset_timestep

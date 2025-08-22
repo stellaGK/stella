@@ -143,7 +143,7 @@ contains
       use dissipation, only: cfl_dt_vpadiff, cfl_dt_mudiff
       use debug_flags, only: print_extra_info_to_terminal
 
-      use timing_of_run, only: reset_dt
+       use reset_timestep, only: reset_dt
 
       implicit none
 

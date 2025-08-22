@@ -120,7 +120,7 @@ contains
         use extended_zgrid, only: fill_zed_ghost_zones
 
         use store_arrays_useful, only: time_parallel_nl
-        use timing_of_run, only: reset_dt
+         use reset_timestep, only: reset_dt
 
         implicit none
 

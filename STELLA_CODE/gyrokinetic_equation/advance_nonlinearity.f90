@@ -50,7 +50,7 @@ contains
         use grids_kxky, only: x
         use geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
 
-        use timing_of_run, only: reset_dt
+         use reset_timestep, only: reset_dt
 
         implicit none
 
