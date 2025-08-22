@@ -60,62 +60,20 @@ contains
 
    subroutine read_parameters_fp
 
-      use file_utils, only: input_unit_exist
       use physics_parameters, only: full_flux_surface, radial_variation
-      use mp, only: proc0, broadcast
+      use mp, only: broadcast
+      use input_file_dissipation, only: read_namelist_collisions_fokker_planck
 
       implicit none
 
-      namelist /collisions_fp/ testpart, fieldpart, lmax, jmax, nvel_local, &
-         interspec, intraspec, iiknob, ieknob, eeknob, eiknob, eiediffknob, eideflknob, deflknob, eimassr_approx, advfield_coll, spitzer_problem, &
-         density_conservation, density_conservation_field, density_conservation_tp, exact_conservation, exact_conservation_tp, &
-         vpa_operator, mu_operator, &
-         cfac, cfac2, nuxfac, i1fac, i2fac, no_j1l1, no_j1l2, no_j0l2
-
-      integer :: in_file
-      logical :: dexist
-
-      if (proc0) then
-       !!! control parameters specific to the Fokker-Planck collision model
-         testpart = .true.                    ! test particle component (TPO) of fokker-planck operator, must be True
-         fieldpart = .false.                  ! enable the field particle component (FPO) of the fokker-planck operator
-         intraspec = .true.                   ! intra-species collisions in the Fokker-Planck operator
-         interspec = .true.                   ! inter-species
-         iiknob = 1.                          ! control the ion-ion coll freq in Fokker-Planck operator
-         ieknob = 1.                          ! ...ion-eon coll freq
-         eeknob = 1.                          ! ...eon-eon coll freq
-         eiknob = 1.                          ! ...eon-ion coll freq
-         eiediffknob = 1.                     ! control the eon-ion energy diffusion in Fokker-Planck operator
-         eideflknob = 1.                      !
-         deflknob = 1.                        ! control pitch angle scattering in Fokker-Planck operator, must be 1 or 0
-         eimassr_approx = .false.             ! use mass ratio approximation for test particle operator, beta
-         advfield_coll = .true.               ! disable electrostatic potential terms in the field particle operator, beta
-         density_conservation = .false.       ! if True and equally_spaced_mu_grid=True and conservative_wgts_vpa=True, then TPO conserves density to machine precision
-         density_conservation_field = .false. ! if True and jmax, lmax < 2, then FPO conserves density to machine precision
-         density_conservation_tp = .false.    ! if True add term to field particle operator to ensure density conservation, also on non-uniform grids
-         exact_conservation = .false.         ! if True and fieldpart=True and lmax=jmax=1 then momentum and energy conserved to machine precision - in beta &
-         ! & works only if nux = 0, need to correct the discretisation of nux terms in TPO
-         exact_conservation_tp = .false.      ! if True and lmax=jmax=1 then momentum and energy conserved to machine precision, by using the test particle operator &
-         ! to compute field particle terms; this is slower than exact_conservation
-         spitzer_problem = .false.            ! to solve the Spitzer problem for tests of the collision operator
-         cfac = 1                             ! scale gyrodiffusive term in test particle component of Fokker-Planck operator
-         cfac2 = 1                            ! scale gyrodiffusive terms in field particle component of Fokker-Planck operator - in beta
-         nuxfac = 1                           ! scale nux (mixed derivative) terms in test particle component of Fokker-Planck operator
-         jmax = 1                             ! maximum j in Hirshman-Sigmar expansion of the field particle operator
-         lmax = 1                             ! maximum l in spherical harmonic expansion of the field particle operator
-         i1fac = 1                            ! for Spitzer problem
-         i2fac = 0                            ! for Spitzer problem
-         no_j1l1 = .true.                     ! disable j1l1 term in the field particle component of Fokker-Planck operator
-         no_j1l2 = .false.                    ! disable j1l2 term
-         no_j0l2 = .false.                    ! disable j0l2 term
-       !!!
-         vpa_operator = .true.                ! include vpa components in Dougherty or Fokker-Planck operator
-         mu_operator = .true.                 ! include mu components in Dougherty or Fokker-Planck operator
-         nvel_local = 512
-
-         in_file = input_unit_exist("collisions_fp", dexist)
-         if (dexist) read (unit=in_file, nml=collisions_fp)
-      end if
+      call read_namelist_collisions_fokker_planck (testpart, fieldpart, lmax, jmax, nvel_local, &
+                              interspec, intraspec, iiknob, ieknob, eeknob, eiknob, &
+                              eiediffknob, eideflknob, deflknob, eimassr_approx, &
+                              advfield_coll, spitzer_problem, density_conservation, &
+                              density_conservation_field, density_conservation_tp, &
+                              exact_conservation, exact_conservation_tp, &
+                              vpa_operator, mu_operator, &
+                              cfac, cfac2, nuxfac, i1fac, i2fac, no_j1l1, no_j1l2, no_j0l2)
 
       call broadcast(fieldpart)
       call broadcast(testpart)
