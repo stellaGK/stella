@@ -122,7 +122,6 @@ contains
       use store_arrays_fields, only: phi, apar, bpar
       use store_arrays_distribution_fn, only: gnew
       use arrays_distribution_fn, only: init_array_gxyz, init_arrays_distribution_fn
-      use arrays_distribution_fn, only: init_array_gxyz
       use arrays_constants, only: init_arrays_vperp_kperp
       use dist_redistribute, only: init_redistribute
 !      use dist_redistribute, only: test_kymus_to_vmus_redistribute
