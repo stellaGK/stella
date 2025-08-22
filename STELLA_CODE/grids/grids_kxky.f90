@@ -47,8 +47,8 @@ contains
       use mp, only: mp_abort
       use common_types, only: flux_surface_type
       use z_grid, only: init_zgrid
-      use kxky_grid_parameters, only: grid_option_switch, grid_option_range, grid_option_box
-      use kxky_grid_parameters, only: naky
+      use parameters_kxky_grid, only: grid_option_switch, grid_option_range, grid_option_box
+      use parameters_kxky_grid, only: naky
       
       implicit none
 
@@ -85,7 +85,7 @@ contains
          use geometry, only: geo_surf, q_as_x
          use z_grid, only: shat_zero
 
-         use kxky_grid_parameters, only: naky, nakx, aky_min, aky_max, &
+         use parameters_kxky_grid, only: naky, nakx, aky_min, aky_max, &
                akx_min, akx_max, theta0_min, theta0_max, &
                kyspacing_option_switch, kyspacing_linear, kyspacing_exponential, &
                ikx_max, naky_all
@@ -217,7 +217,7 @@ contains
 
          use write_radial_grid, only: dump_radial_grid
 
-         use kxky_grid_parameters, only: nx, ny, ikx_max, naky_all, naky, nakx, &
+         use parameters_kxky_grid, only: nx, ny, ikx_max, naky_all, naky, nakx, &
                x0, y0, jtwist, jtwistfac, phase_shift_angle, ikx_twist_shift, &
                centered_in_rho, randomize_phase_shift, periodic_variation
          
@@ -418,7 +418,7 @@ contains
 
       subroutine allocate_arrays
       
-         use kxky_grid_parameters, only: nakx, naky, naky_all, nx , ny 
+         use parameters_kxky_grid, only: nakx, naky, naky_all, nx , ny 
          
          implicit none
          
@@ -477,7 +477,7 @@ contains
 
    subroutine finish_grids_kxky
 
-      use kxky_grid_parameters, only: reality 
+      use parameters_kxky_grid, only: reality 
       implicit none
 
       if (allocated(aky)) deallocate (aky)

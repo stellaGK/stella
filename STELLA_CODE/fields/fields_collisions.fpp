@@ -29,7 +29,7 @@ contains
       use z_grid, only: nzgrid, ntubes
       use velocity_grids, only: nvpa, nmu
       use velocity_grids, only: integrate_vmu
-      use kxky_grid_parameters, only: nakx
+      use parameters_kxky_grid, only: nakx
       use grids_kxky, only: zonal_mode
       use species, only: spec, nspec, has_electron_species
       use parameters_physics, only: adiabatic_option_switch
@@ -114,7 +114,7 @@ contains
       use z_grid, only: nzgrid, ntubes
       use velocity_grids, only: vperp2, nvpa, nmu
       use velocity_grids, only: integrate_vmu
-      use kxky_grid_parameters, only: nakx
+      use parameters_kxky_grid, only: nakx
       use grids_kxky, only: zonal_mode
       use species, only: spec, nspec, has_electron_species
       use parameters_physics, only: adiabatic_option_switch

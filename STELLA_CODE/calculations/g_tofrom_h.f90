@@ -203,7 +203,7 @@ contains
       use species, only: spec
       use z_grid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use velocity_grids, only: vpa
@@ -271,7 +271,7 @@ contains
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use geometry, only: bmag, dBdrho
       use arrays_dist_fn, only: kperp2, dkperp2dr
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use velocity_grids, only: vpa, vperp2, mu
@@ -465,7 +465,7 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use geometry, only: bmag, dBdrho
       use arrays_dist_fn, only: kperp2, dkperp2dr
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, vperp2, mu, vpa
       use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst

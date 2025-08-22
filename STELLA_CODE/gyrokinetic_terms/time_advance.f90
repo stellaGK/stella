@@ -124,7 +124,7 @@ contains
       use stella_time, only: code_dt
       use species, only: spec
       use z_grid, only: nzgrid
-      use kxky_grid_parameters, only: nalpha
+      use parameters_kxky_grid, only: nalpha
       use geometry, only: cvdrift, gbdrift
       use geometry, only: cvdrift0, gbdrift0
       use geometry, only: gds23, gds24
@@ -281,7 +281,7 @@ contains
       use stella_time, only: code_dt
       use species, only: spec
       use z_grid, only: nzgrid
-      use kxky_grid_parameters, only: nalpha
+      use parameters_kxky_grid, only: nalpha
       use geometry, only: dydalpha, drhodpsi, clebsch_factor
       use velocity_grids, only: vperp2, vpa
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -416,7 +416,7 @@ contains
       use stella_time, only: code_dt
       use species, only: spec, pfac
       use z_grid, only: nzgrid
-      use kxky_grid_parameters, only: nalpha
+      use parameters_kxky_grid, only: nalpha
       use geometry, only: drhodpsi, dydalpha, gfac
       use geometry, only: dBdrho, geo_surf, q_as_x
       use geometry, only: dcvdriftdrho, dcvdrift0drho
@@ -545,7 +545,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use arrays_dist_fn, only: g0, g1, g2, g3
       use parameters_numerical, only: explicit_algorithm_switch, explicit_algorithm_rk3, &
            explicit_algorithm_rk2, explicit_algorithm_rk4, explicit_algorithm_euler
@@ -581,7 +581,7 @@ contains
       use z_grid, only: delzed
       use velocity_grids, only: dvpa
       use grids_kxky, only: akx, aky, rho
-      use kxky_grid_parameters, only: nx
+      use parameters_kxky_grid, only: nx
       use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
       use parallel_streaming, only: stream
       use parallel_streaming, only: stream_rad_var1, stream_rad_var2
@@ -906,7 +906,7 @@ contains
       use job_manage, only: time_message
       use z_grid, only: nzgrid
       use extended_zgrid, only: periodic, phase_shift
-      use kxky_grid_parameters, only: naky
+      use parameters_kxky_grid, only: naky
       use stella_layouts, only: vmu_lo, iv_idx
       use parameters_physics, only: include_apar
       use parallel_streaming, only: stream_sign
@@ -1180,7 +1180,7 @@ contains
       use parameters_physics, only: full_flux_surface, radial_variation
       use parameters_physics, only: g_exb
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: ikx_max, ny, naky_all
+      use parameters_kxky_grid, only: ikx_max, ny, naky_all
       use calculations_kxky, only: swap_kxky_back
       use grids_kxky, only: zonal_mode, akx
       use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
@@ -1358,7 +1358,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use hyper, only: advance_hyper_vpa, advance_hyper_zed
       use hyper, only: hyp_zed, hyp_vpa
 
@@ -1494,7 +1494,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_transforms, only: transform_ky2y
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: naky, naky_all, nakx, ikx_max, ny
+      use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
       use calculations_kxky, only: swap_kxky
       use parameters_physics, only: full_flux_surface
       use arrays_dist_fn, only: wstar, g_scratch
@@ -1562,7 +1562,7 @@ contains
       use job_manage, only: time_message
       use stella_transforms, only: transform_ky2y
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: nakx, ikx_max, naky, naky_all, ny
+      use parameters_kxky_grid, only: nakx, ikx_max, naky, naky_all, ny
       use calculations_kxky, only: swap_kxky
       use parameters_physics, only: full_flux_surface, include_bpar
       use gyro_averages, only: gyro_average, gyro_average_j1
@@ -1668,7 +1668,7 @@ contains
       use job_manage, only: time_message
       use stella_transforms, only: transform_ky2y
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: nakx, ikx_max, naky, naky_all, ny
+      use parameters_kxky_grid, only: nakx, ikx_max, naky, naky_all, ny
       use grids_kxky, only: akx
       use calculations_kxky, only: swap_kxky
       use parameters_physics, only: full_flux_surface, include_bpar
@@ -1782,7 +1782,7 @@ contains
       use parameters_physics, only: g_exb, g_exbfac, fphi
       use z_grid, only: nzgrid, ntubes
       use geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
-      use kxky_grid_parameters, only: nakx, ikx_max, naky, naky_all, nx, ny
+      use parameters_kxky_grid, only: nakx, ikx_max, naky, naky_all, nx, ny
       use grids_kxky, only: akx, aky, rho_clamped
       use parameters_physics, only: full_flux_surface, radial_variation
       use parameters_physics, only: prp_shear_enabled, hammett_flow_shear
@@ -2074,7 +2074,7 @@ contains
       use extended_zgrid, only: periodic
       use parameters_physics, only: full_flux_surface, radial_variation
       use grids_kxky, only: akx, aky, rho_clamped
-      use kxky_grid_parameters, only: nakx, naky, nx, ny, ikx_max
+      use parameters_kxky_grid, only: nakx, naky, nx, ny, ikx_max
       use calculations_kxky, only: swap_kxky, swap_kxky_back
       use velocity_grids, only: nvpa, nmu
       use velocity_grids, only: dvpa, vpa, mu
@@ -2355,7 +2355,7 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: nakx, naky
+      use parameters_kxky_grid, only: nakx, naky
       use calculations_kxky, only: multiply_by_rho
       use gyro_averages, only: gyro_average, gyro_average_j1
       use parameters_physics, only: full_flux_surface, fphi
@@ -2494,7 +2494,7 @@ contains
    subroutine get_dgdy_2d(g, dgdy)
 
       use constants, only: zi
-      use kxky_grid_parameters, only: nakx
+      use parameters_kxky_grid, only: nakx
       use grids_kxky, only: aky
 
       implicit none
@@ -2511,7 +2511,7 @@ contains
    subroutine get_dgdy_3d(g, dgdy)
 
       use constants, only: zi
-      use kxky_grid_parameters, only: nakx
+      use parameters_kxky_grid, only: nakx
       use grids_kxky, only: aky
       use z_grid, only: nzgrid, ntubes
       
@@ -2539,7 +2539,7 @@ contains
       use constants, only: zi
       use stella_layouts, only: vmu_lo
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: nakx
+      use parameters_kxky_grid, only: nakx
       use grids_kxky, only: aky
 
       implicit none
@@ -2566,7 +2566,7 @@ contains
    subroutine get_dgdx_2d(g, dgdx)
 
       use constants, only: zi
-      use kxky_grid_parameters, only: naky
+      use parameters_kxky_grid, only: naky
       use grids_kxky, only: akx
 
       implicit none
@@ -2584,7 +2584,7 @@ contains
 
       use constants, only: zi
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: nakx
+      use parameters_kxky_grid, only: nakx
       use grids_kxky, only: akx
 
       implicit none
@@ -2611,7 +2611,7 @@ contains
       use constants, only: zi
       use stella_layouts, only: vmu_lo
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: nakx
+      use parameters_kxky_grid, only: nakx
       use grids_kxky, only: akx
 
       implicit none
@@ -2637,7 +2637,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
 
       implicit none
 
@@ -2667,7 +2667,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: ikx_max, nalpha
+      use parameters_kxky_grid, only: ikx_max, nalpha
 
       implicit none
 
@@ -2874,7 +2874,7 @@ contains
    subroutine checksum_field(field, total)
 
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: naky
+      use parameters_kxky_grid, only: naky
       use extended_zgrid, only: neigen, nsegments, ikxmod
       use extended_zgrid, only: iz_low, iz_up
 
@@ -2911,7 +2911,7 @@ contains
       use mp, only: sum_allreduce
       use z_grid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use velocity_grids, only: maxwell_vpa, maxwell_mu
 
       implicit none

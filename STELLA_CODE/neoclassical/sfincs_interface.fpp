@@ -812,7 +812,7 @@ contains
       use z_grid, only: nzgrid, nz2pi
       use export_f, only: h_sfincs => delta_f
       use globalVariables, only: Phi1Hat
-      use kxky_grid_parameters, only: nalpha
+      use parameters_kxky_grid, only: nalpha
 
       implicit none
 
@@ -987,7 +987,7 @@ contains
       use z_grid, only: nz2pi, zed
       use geometry, only: dzetadz
       use geometry, only: alpha
-      use kxky_grid_parameters, only: nalpha
+      use parameters_kxky_grid, only: nalpha
       use globalVariables, only: iota
 
       implicit none
@@ -1221,7 +1221,7 @@ contains
    subroutine get_field_on_extended_zed(field_stella, field_neoclassical)
 
       use z_grid, only: nzgrid, nz2pi, nperiod
-      use kxky_grid_parameters, only: nalpha
+      use parameters_kxky_grid, only: nalpha
 
       implicit none
 

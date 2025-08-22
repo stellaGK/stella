@@ -63,7 +63,7 @@ contains
       use geometry, only: bmag
       use z_grid, only: nzgrid
       use velocity_grids, only: vperp2, nmu
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use stella_layouts, only: kxkyz_lo, vmu_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, imu_idx
       use spfunc, only: j0, j1
@@ -264,11 +264,11 @@ contains
       use z_grid, only: nzgrid, nztot
       use velocity_grids, only: nmu, nvpa
       use velocity_grids, only: vperp2, maxwell_vpa, maxwell_mu
-      use kxky_grid_parameters, only: nalpha, naky, naky_all, ikx_max
+      use parameters_kxky_grid, only: nalpha, naky, naky_all, ikx_max
       use calculations_kxky, only: swap_kxky_ordered
       use arrays_dist_fn, only: kperp2
 
-      use kxky_grid_parameters, only: nakx
+      use parameters_kxky_grid, only: nakx
       use calculations_kxky, only: swap_kxky_back_ordered
       use spfunc, only: j1
 
@@ -721,8 +721,8 @@ contains
 
    subroutine gyro_average_ffs_kxky_local(field, gyro_field, coefs)
 
-      use kxky_grid_parameters, only: naky
-      use kxky_grid_parameters, only: naky_all, ikx_max
+      use parameters_kxky_grid, only: naky
+      use parameters_kxky_grid, only: naky_all, ikx_max
       use calculations_kxky, only: swap_kxky_ordered, swap_kxky_back_ordered
 
       implicit none
@@ -999,7 +999,7 @@ contains
 
       use common_types, only: gam0_ffs_type
       use z_grid, only: nzgrid
-      use kxky_grid_parameters, only: ikx_max
+      use parameters_kxky_grid, only: ikx_max
 
       implicit none
 
@@ -1019,7 +1019,7 @@ contains
    subroutine band_lu_solve_ffs_single(lu, solvec)
 
       use common_types, only: gam0_ffs_type
-      use kxky_grid_parameters, only: naky
+      use parameters_kxky_grid, only: naky
 
       implicit none
 
@@ -1052,7 +1052,7 @@ contains
 
       use common_types, only: coupled_alpha_type, gam0_ffs_type
       use z_grid, only: nzgrid
-      use kxky_grid_parameters, only: ikx_max, naky_all, naky
+      use parameters_kxky_grid, only: ikx_max, naky_all, naky
 
       implicit none
 
@@ -1082,7 +1082,7 @@ contains
    subroutine band_lu_factorisation_single(gam0, lu_gam0)
 
       use common_types, only: gam0_ffs_type
-      use kxky_grid_parameters, only: naky, naky_all
+      use parameters_kxky_grid, only: naky, naky_all
 
       implicit none
 

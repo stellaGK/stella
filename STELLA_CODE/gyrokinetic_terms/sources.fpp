@@ -48,7 +48,7 @@ contains
       use mp, only: job, proc0
       use parameters_physics, only: fphi
       use parameters_multibox, only: ky_solve_radial, ky_solve_real
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use grids_kxky, only: zonal_mode
       use z_grid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
@@ -59,7 +59,7 @@ contains
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use kxky_grid_parameters, only: ikx_max
+      use parameters_kxky_grid, only: ikx_max
       use input_file_sources, only: read_namelist_sources
       use arrays_fields, only: tcorr_source_qn, exclude_boundary_regions_qn
       use mp, only: broadcast
@@ -202,7 +202,7 @@ contains
       use constants, only: pi, zi
       use grids_kxky, only: akx, zonal_mode 
       use parameters_multibox, only: boundary_size
-      use kxky_grid_parameters, only: nakx
+      use parameters_kxky_grid, only: nakx
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
       use arrays_dist_fn, only: g_krook, g_symm
@@ -311,7 +311,7 @@ contains
       use z_grid, only: nzgrid, ntubes
       use grids_kxky, only: akx, zonal_mode
       use parameters_multibox, only: boundary_size
-      use kxky_grid_parameters, only: nakx
+      use parameters_kxky_grid, only: nakx
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
@@ -438,7 +438,7 @@ contains
       use parameters_physics, only: radial_variation
       use velocity_grids, only: integrate_species, mu, vpa, vperp2
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use kxky_grid_parameters, only: nakx
+      use parameters_kxky_grid, only: nakx
       use grids_kxky, only: rho_d_clamped
       use stella_layouts, only: vmu_lo, imu_idx, is_idx, iv_idx
       use geometry, only: bmag, dBdrho, dl_over_b, d_dl_over_b_drho
@@ -529,7 +529,7 @@ contains
       use constants, only: pi, zi
       use grids_kxky, only: zonal_mode, akx
       use parameters_multibox, only: boundary_size
-      use kxky_grid_parameters, only: nakx
+      use parameters_kxky_grid, only: nakx
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
       use arrays_dist_fn, only: g_proj, g_symm
@@ -660,7 +660,7 @@ contains
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use z_grid, only: nzgrid, nztot
-      use kxky_grid_parameters, only: nakx
+      use parameters_kxky_grid, only: nakx
       use grids_kxky, only: rho_d_clamped
       use parameters_multibox, only: boundary_size
       use linear_solve, only: lu_decomposition

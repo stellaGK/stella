@@ -38,7 +38,7 @@ contains
       use arrays_dist_fn, only: gnew
 
       ! Dimensions
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use z_grid, only: nztot, ntubes
       use species, only: nspec
       
@@ -135,7 +135,7 @@ contains
       use species, only: spec, nspec
       use velocity_grids, only: vpa, vperp2, integrate_vmu
       use velocity_grids, only: maxwell_mu, ztmax, maxwell_fac, maxwell_vpa
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -259,7 +259,7 @@ contains
       use velocity_grids, only: integrate_vmu
       use velocity_grids, only: vpa, vperp2, mu
       use velocity_grids, only: maxwell_mu, ztmax, maxwell_fac, maxwell_vpa
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use grids_kxky, only: rho_d_clamped
       use calculations_kxky, only: multiply_by_rho
       use stella_layouts, only: vmu_lo

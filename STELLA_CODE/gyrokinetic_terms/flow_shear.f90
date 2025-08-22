@@ -31,7 +31,7 @@ contains
       use constants, only: zi, pi
       use z_grid, only: nzgrid
       use grids_kxky, only: x, x_d, akx, aky, zonal_mode, box
-      use kxky_grid_parameters, only: nalpha, nx, nakx, naky, ikx_max
+      use parameters_kxky_grid, only: nalpha, nx, nakx, naky, ikx_max
       use arrays_fields, only: shift_state
       use geometry, only: q_as_x, geo_surf, bmag, btor, rmajor, dBdrho, dIdrho
       use geometry, only: dydalpha, drhodpsi
@@ -149,7 +149,7 @@ contains
       use parameters_physics, only: full_flux_surface
       use stella_layouts, only: vmu_lo
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: nakx, naky
+      use parameters_kxky_grid, only: nakx, naky
       use fields, only: get_dchidy
       use arrays_fields, only: phi, apar, bpar
 
@@ -193,7 +193,7 @@ contains
       use z_grid, only: nzgrid, ntubes
       use arrays_fields, only: shift_state
       use grids_kxky, only: aky, zonal_mode
-      use kxky_grid_parameters, only: nakx, naky, ikx_max
+      use parameters_kxky_grid, only: nakx, naky, ikx_max
       use file_utils, only: runtype_option_switch, runtype_multibox
       use stella_time, only: code_dt
 

@@ -1,13 +1,13 @@
 !###############################################################################
 !######################## READ PARAMETES FOR KXKY GRIDS ########################
 !###############################################################################
-! Namelist: &kxky_grid_parameters
+! Namelist: &parameters_kxky_grid
 ! These flags will allow you to toggle the algorithm choices in stella.
 !###############################################################################
 
-module kxky_grid_parameters
+module parameters_kxky_grid
 
-  public :: read_kxky_grid_parameters
+  public :: read_parameters_kxky_grid
 
   ! Public parameters
 
@@ -61,7 +61,7 @@ module kxky_grid_parameters
 
 contains
   
-  subroutine read_kxky_grid_parameters
+  subroutine read_parameters_kxky_grid
 
     use mp, only: proc0, mp_abort
 
@@ -126,6 +126,6 @@ contains
 
     end subroutine broadcast_parameters
     
-  end subroutine read_kxky_grid_parameters
+  end subroutine read_parameters_kxky_grid
   
-end module kxky_grid_parameters
+end module parameters_kxky_grid

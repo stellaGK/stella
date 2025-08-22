@@ -125,7 +125,7 @@ contains
       use parameters_multibox, only: ky_solve_radial
       use z_grid, only: nzgrid, ntubes
       use species, only: spec, has_electron_species
-      use kxky_grid_parameters, only: nakx, naky
+      use parameters_kxky_grid, only: nakx, naky
       use grids_kxky, only: zonal_mode
       use linear_solve, only: lu_back_substitution
       use arrays_fields, only: gamtot, phi_solve
@@ -222,7 +222,7 @@ contains
       use z_grid, only: nzgrid, ntubes
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use geometry, only: dl_over_b, d_dl_over_b_drho
-      use kxky_grid_parameters, only: nakx 
+      use parameters_kxky_grid, only: nakx 
       use parameters_multibox, only: boundary_size
       use grids_kxky, only: rho_d_clamped
       use arrays_fields, only: phizf_solve, phi_ext
@@ -349,7 +349,7 @@ contains
       use arrays_dist_fn, only: kperp2, dkperp2dr
       use z_grid, only: nzgrid, ntubes
       use velocity_grids, only: vperp2
-      use kxky_grid_parameters, only: nakx, naky
+      use parameters_kxky_grid, only: nakx, naky
       use calculations_kxky, only: multiply_by_rho
       use parameters_multibox, only: ky_solve_radial
       use species, only: spec
@@ -411,7 +411,7 @@ contains
       use stella_layouts, only: imu_idx, is_idx
       use z_grid, only: nzgrid, ntubes
       use velocity_grids, only: integrate_species, vperp2
-      use kxky_grid_parameters, only: nakx, naky
+      use parameters_kxky_grid, only: nakx, naky
       use grids_kxky, only: rho_d_clamped
       use grids_kxky, only: zonal_mode
       use calculations_kxky, only: multiply_by_rho
@@ -575,7 +575,7 @@ contains
       use species, only: spec, has_electron_species, ion_species
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use z_grid, only: nzgrid, ntubes, nztot
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use grids_kxky, only: akx
       use grids_kxky, only: zonal_mode, rho_d_clamped
       use parameters_physics, only: adiabatic_option_switch
@@ -831,7 +831,7 @@ contains
       use arrays_fields, only: dgamtotdr
       use z_grid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
 
       implicit none
 

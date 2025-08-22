@@ -11,7 +11,7 @@ contains
   subroutine add_correction_ffs (phiin, gin, source_out) 
 
     use z_grid, only: nzgrid, ntubes
-    use kxky_grid_parameters, only: naky, nakx
+    use parameters_kxky_grid, only: naky, nakx
     use stella_layouts, only: vmu_lo
 
     implicit none 
@@ -43,7 +43,7 @@ contains
      use stella_layouts, only: iv_idx, imu_idx, is_idx
      use stella_transforms, only: transform_ky2y
      use z_grid, only: nzgrid, ntubes
-     use kxky_grid_parameters, only: naky, naky_all, nakx, ikx_max, ny
+     use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
      use calculations_kxky, only: swap_kxky
      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
      use species, only: spec
@@ -181,7 +181,7 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_transforms, only: transform_ky2y,transform_y2ky
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: naky, naky_all, nakx, ikx_max, ny
+      use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
       use calculations_kxky, only: swap_kxky, swap_kxky_back
       use gyro_averages, only: j0_ffs, gyro_average
 
@@ -274,7 +274,7 @@ contains
 
       use constants, only: zi
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: nakx
+      use parameters_kxky_grid, only: nakx
       use grids_kxky, only: aky
 
       implicit none
@@ -298,7 +298,7 @@ contains
 
       use constants, only: zi
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: nakx
+      use parameters_kxky_grid, only: nakx
       use grids_kxky, only: akx
 
       implicit none
@@ -321,7 +321,7 @@ contains
    subroutine add_explicit_term_ffs_fields(g, pre_factor, src)
 
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: ikx_max, nalpha
+      use parameters_kxky_grid, only: ikx_max, nalpha
 
       implicit none
 

@@ -52,7 +52,7 @@ contains
         subroutine set_default_parameters_sources
 
             use parameters_physics, only: radial_variation
-            use kxky_grid_parameters, only: periodic_variation
+            use parameters_kxky_grid, only: periodic_variation
 
             implicit none
 

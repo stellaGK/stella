@@ -295,7 +295,7 @@ contains
       use arrays_fields, only: time_field_solve
       !> Parameters
       use parameters_physics, only: radial_variation
-      use kxky_grid_parameters, only: nakx, naky
+      use parameters_kxky_grid, only: nakx, naky
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
       !> Grids
@@ -410,7 +410,7 @@ contains
       use parameters_physics, only: fphi
       use parameters_numerical, only: maxwellian_normalization
       use parameters_physics, only: tite, nine, beta
-      use kxky_grid_parameters, only: nakx
+      use parameters_kxky_grid, only: nakx
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
       !> Grids

@@ -266,7 +266,7 @@ contains
 
       use gauss_quad, only: get_laguerre_grids
       use z_grid, only: nzgrid, nztot
-      use kxky_grid_parameters, only: nalpha
+      use parameters_kxky_grid, only: nalpha
       use species, only: spec, nspec
       use geometry, only: bmag, bmag_psi0
       use parameters_numerical, only: maxwellian_normalization

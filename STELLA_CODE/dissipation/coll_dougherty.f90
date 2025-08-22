@@ -211,7 +211,7 @@ contains
       use velocity_grids, only: ztmax, maxwell_vpa, maxwell_mu
       use velocity_grids, only: nmu, vpa, vperp2
       use velocity_grids, only: set_vpa_weights
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use grids_kxky, only: zonal_mode
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
@@ -468,7 +468,7 @@ contains
       use z_grid, only: nzgrid, ntubes
       use velocity_grids, only: ztmax, maxwell_vpa, maxwell_mu
       use velocity_grids, only: nvpa, vpa, vperp2
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use grids_kxky, only: zonal_mode
       use geometry, only: dl_over_b, bmag
       use stella_layouts, only: kxkyz_lo
@@ -918,7 +918,7 @@ contains
       use species, only: spec
       use parameters_physics, only: fphi
       use parameters_physics, only: radial_variation, full_flux_surface
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use grids_kxky, only: rho_d_clamped
       use calculations_kxky, only: multiply_by_rho
       use velocity_grids, only: nvpa, nmu
@@ -1281,7 +1281,7 @@ contains
       use species, only: spec
       use parameters_physics, only: radial_variation
       use geometry, only: bmag, dBdrho
-      use kxky_grid_parameters, only: nakx, naky
+      use parameters_kxky_grid, only: nakx, naky
       use calculations_kxky, only: multiply_by_rho
       use z_grid, only: nzgrid, ntubes
       use velocity_grids, only: integrate_species, mu, vpa, vperp2
@@ -1416,7 +1416,7 @@ contains
       use species, only: spec
       use parameters_physics, only: radial_variation
       use geometry, only: bmag, dBdrho
-      use kxky_grid_parameters, only: nakx, naky
+      use parameters_kxky_grid, only: nakx, naky
       use calculations_kxky, only: multiply_by_rho
       use z_grid, only: nzgrid, ntubes
       use velocity_grids, only: integrate_species
@@ -1539,7 +1539,7 @@ contains
       use velocity_grids, only: nmu, nvpa
       use velocity_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
       use velocity_grids, only: set_vpa_weights
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use grids_kxky, only: zonal_mode
       use geometry, only: dl_over_b
       use stella_layouts, only: kxkyz_lo
@@ -1705,7 +1705,7 @@ contains
       use velocity_grids, only: nmu, nvpa
       use velocity_grids, only: maxwell_vpa, maxwell_mu, vpa, vperp2
       use velocity_grids, only: set_vpa_weights
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use grids_kxky, only: zonal_mode
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx

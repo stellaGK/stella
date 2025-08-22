@@ -102,7 +102,7 @@ contains
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_numerical, only: delt_option_switch, delt_option_auto
       use stella_layouts, only: mat_gen, mat_read
-      use kxky_grid_parameters, only: read_kxky_grid_parameters
+      use parameters_kxky_grid, only: read_parameters_kxky_grid
       use species, only: init_species, read_species_options
       use species, only: nspec
       use z_grid, only: init_zgrid
@@ -127,7 +127,7 @@ contains
       use time_advance, only: init_time_advance
       use extended_zgrid, only: init_extended_zgrid
       use grids_kxky, only: init_grids_kxky
-      use kxky_grid_parameters, only: naky, nakx, ny, nx, nalpha
+      use parameters_kxky_grid, only: naky, nakx, ny, nx, nalpha
       use velocity_grids, only: init_velocity_grids, read_velocity_grids_parameters
       use velocity_grids, only: nvgrid, nmu
       use stella_transforms, only: init_transforms
@@ -204,8 +204,8 @@ contains
       !> read the grid option from the kt_grids_knobs namelist in the input file;
       !> depending on the grid option chosen, read the corresponding kt_grids_XXXX_parameters
       !> namelist from the input file and allocate some kx and ky arrays
-      if (debug) write (6, *) "stella::init_stella::read_kxky_grid_parameters"
-      call read_kxky_grid_parameters
+      if (debug) write (6, *) "stella::init_stella::read_parameters_kxky_grid"
+      call read_parameters_kxky_grid
       !> read the velocity_grids_parameters namelist from the input file
       if (debug) write (6, *) "stella::init_stella::read_velocity_grids_parameters"
       call read_velocity_grids_parameters

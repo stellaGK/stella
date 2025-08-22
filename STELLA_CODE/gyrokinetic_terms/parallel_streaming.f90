@@ -58,7 +58,7 @@ contains
       use velocity_grids, only: nvpa, nvpa
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use velocity_grids, only: vperp2, vpa, mu
-      use kxky_grid_parameters, only: nalpha
+      use parameters_kxky_grid, only: nalpha
       use z_grid, only: nzgrid, nztot
       use geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
@@ -244,7 +244,7 @@ contains
       use job_manage, only: time_message
       use stella_transforms, only: transform_ky2y
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: naky, naky_all, nakx, ikx_max, ny
+      use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
       use calculations_kxky, only: swap_kxky
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use velocity_grids, only: mu
@@ -368,7 +368,7 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use job_manage, only: time_message
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use species, only: spec
       use gyro_averages, only: gyro_average, gyro_average_j1
@@ -455,7 +455,7 @@ contains
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: fill_zed_ghost_zones
       use extended_zgrid, only: periodic
-      use kxky_grid_parameters, only: naky
+      use parameters_kxky_grid, only: naky
 
       implicit none
 
@@ -497,7 +497,7 @@ contains
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: fill_zed_ghost_zones
       use extended_zgrid, only: periodic
-      use kxky_grid_parameters, only: naky
+      use parameters_kxky_grid, only: naky
 
       implicit none
 
@@ -595,7 +595,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
       use z_grid, only: nzgrid
-      use kxky_grid_parameters, only: ny
+      use parameters_kxky_grid, only: ny
 
       implicit none
 
@@ -678,7 +678,7 @@ contains
    subroutine get_dzed(iv, g, dgdz)
 
       use finite_differences, only: fd_cell_centres_zed
-      use kxky_grid_parameters, only: naky
+      use parameters_kxky_grid, only: naky
       use z_grid, only: nzgrid, delzed, ntubes
       use extended_zgrid, only: neigen, nsegments
       use extended_zgrid, only: iz_low, iz_up
@@ -732,7 +732,7 @@ contains
    subroutine center_zed_extended(iv, g)
 
       use finite_differences, only: cell_centres_zed
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use z_grid, only: nzgrid, ntubes
       use extended_zgrid, only: neigen, nsegments
       use extended_zgrid, only: iz_low, iz_up

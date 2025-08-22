@@ -39,7 +39,7 @@ contains
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
       use parameters_physics, only: fphi
-      use kxky_grid_parameters, only: nakx, ikx_max, naky, naky_all
+      use parameters_kxky_grid, only: nakx, ikx_max, naky, naky_all
       !> Arrays
       use arrays_fields, only: gamtot
       use arrays_fields, only: gamtot3
@@ -190,7 +190,7 @@ contains
          use stella_layouts, only: vmu_lo
          use stella_layouts, only: iv_idx, imu_idx, is_idx
          !> Parameters
-         use kxky_grid_parameters, only: naky, nakx
+         use parameters_kxky_grid, only: naky, nakx
          !> Grids
          use species, only: spec
          use z_grid, only: nzgrid
@@ -244,7 +244,7 @@ contains
 
       use z_grid, only: nzgrid
       use calculations_kxky, only: swap_kxky_ordered, swap_kxky_back_ordered
-      use kxky_grid_parameters, only: naky_all, ikx_max
+      use parameters_kxky_grid, only: naky_all, ikx_max
       use gyro_averages, only: band_lu_solve_ffs
 
       implicit none
@@ -286,7 +286,7 @@ contains
       !> Layouts
       use stella_layouts, only: vmu_lo 
       !> Parameters
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       !> Arrays
       use arrays_fields, only: gamtot
       !> Grids
@@ -340,7 +340,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx 
       !> Parameters
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       !> Grids
       use species, only: spec
       use z_grid, only: nzgrid
@@ -427,7 +427,7 @@ contains
       use stella_transforms, only: transform_alpha2kalpha
       !> Parameters
       use parameters_physics, only: nine, tite
-      use kxky_grid_parameters, only: nalpha, ikx_max, naky_all, naky, nakx
+      use parameters_kxky_grid, only: nalpha, ikx_max, naky_all, naky, nakx
       use parameters_physics, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       !> Arrays
       use arrays_dist_fn, only: kperp2
@@ -617,7 +617,7 @@ contains
       use stella_transforms, only: transform_alpha2kalpha
       !> Parameters
       use parameters_physics, only: nine, tite
-      use kxky_grid_parameters, only: naky, naky_all, ikx_max
+      use parameters_kxky_grid, only: naky, naky_all, ikx_max
       !> Grids
       use z_grid, only: nzgrid
       !> Calculations

@@ -180,7 +180,7 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: full_flux_surface
       use parameters_physics, only: fphi
-      use kxky_grid_parameters, only: nakx, naky
+      use parameters_kxky_grid, only: nakx, naky
       !> Grids
       use species, only: spec
       use z_grid, only: nzgrid, ntubes
@@ -246,7 +246,7 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: full_flux_surface
       use parameters_physics, only: fphi
-      use kxky_grid_parameters, only: nakx, naky
+      use parameters_kxky_grid, only: nakx, naky
       !> Grids
       use species, only: spec
       use velocity_grids, only: vpa, mu
@@ -301,7 +301,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: is_idx, iv_idx, imu_idx
       !> Parameters
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: full_flux_surface
       use parameters_physics, only: fphi
@@ -426,7 +426,7 @@ contains
       
       ! Grids
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       
       ! Time routines
       use arrays_fields, only: time_field_solve

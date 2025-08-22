@@ -176,9 +176,9 @@ contains
       use constants, only: zi
       use species, only: spec
       use z_grid, only: nzgrid, zed
-      use kxky_grid_parameters, only: naky, nakx, ikx_max
+      use parameters_kxky_grid, only: naky, nakx, ikx_max
       use grids_kxky, only: theta0, akx, zonal_mode
-      use kxky_grid_parameters, only: reality
+      use parameters_kxky_grid, only: reality
       use velocity_grids, only: nvpa, nmu
       use velocity_grids, only: vpa
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -280,7 +280,7 @@ contains
       use extended_zgrid, only: ikxmod, nsegments, neigen
       use extended_zgrid, only: it_right
       use extended_zgrid, only: periodic, phase_shift
-      use kxky_grid_parameters, only: naky, nakx, reality
+      use parameters_kxky_grid, only: naky, nakx, reality
       use grids_kxky, only: zonal_mode
       use velocity_grids, only: nvpa, nmu
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -436,7 +436,7 @@ contains
    
       use mp, only: proc0, broadcast
       use z_grid, only: nzgrid, zed
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use grids_kxky, only: theta0
       use velocity_grids, only: nvpa, nmu
       use velocity_grids, only: vpa, vperp2

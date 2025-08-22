@@ -31,7 +31,7 @@ contains
       use parameters_physics, only: radial_variation
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
-      use kxky_grid_parameters, only: nalpha, nakx, naky
+      use parameters_kxky_grid, only: nalpha, nakx, naky
       use calculations_kxky, only: multiply_by_rho
       use velocity_grids, only: mu, vpa, vperp2
       use z_grid, only: nzgrid, ntubes
@@ -131,7 +131,7 @@ contains
       use geometry, only: gds2, gds21, gds22
       use geometry, only: geo_surf, q_as_x
       use z_grid, only: nzgrid
-      use kxky_grid_parameters, only: naky, nakx, nalpha
+      use parameters_kxky_grid, only: naky, nakx, nalpha
       use grids_kxky, only: akx, aky, theta0
       use grids_kxky, only: zonal_mode
 
@@ -181,7 +181,7 @@ contains
       use geometry, only: dgds2dr, dgds21dr, dgds22dr
       use geometry, only: geo_surf, q_as_x
       use z_grid, only: nzgrid
-      use kxky_grid_parameters, only: naky, nakx, nalpha
+      use parameters_kxky_grid, only: naky, nakx, nalpha
       use grids_kxky, only: akx, aky, theta0
       use grids_kxky, only: zonal_mode
 
@@ -226,7 +226,7 @@ contains
    subroutine enforce_single_valued_kperp2
 
       use arrays_dist_fn, only: kperp2
-      use kxky_grid_parameters, only: naky, nalpha
+      use parameters_kxky_grid, only: naky, nalpha
       use z_grid, only: nzgrid
       use extended_zgrid, only: neigen, nsegments, ikxmod
 
@@ -257,7 +257,7 @@ contains
 
       use stella_layouts, only: kxkyz_lo, vmu_lo, kymus_lo
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use velocity_grids, only: nvpa, nmu
       use arrays_dist_fn, only: gnew, gold, g_scratch
       use arrays_dist_fn, only: gvmu, g_kymus
@@ -294,7 +294,7 @@ contains
       use z_grid, only: nzgrid
       use velocity_grids, only: vperp2
       use velocity_grids, only: nmu, mu
-      use kxky_grid_parameters, only: nalpha
+      use parameters_kxky_grid, only: nalpha
 
       implicit none
 
@@ -370,7 +370,7 @@ contains
    subroutine checksum_field(field, total)
 
       use z_grid, only: nzgrid, ntubes
-      use kxky_grid_parameters, only: naky
+      use parameters_kxky_grid, only: naky
       use extended_zgrid, only: neigen, nsegments, ikxmod
       use extended_zgrid, only: iz_low, iz_up
 
@@ -407,7 +407,7 @@ contains
       use mp, only: sum_allreduce
       use z_grid, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use kxky_grid_parameters, only: naky, nakx
+      use parameters_kxky_grid, only: naky, nakx
       use velocity_grids, only: maxwell_vpa, maxwell_mu
 
       implicit none
