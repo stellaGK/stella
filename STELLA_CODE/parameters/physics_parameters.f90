@@ -36,6 +36,8 @@ module physics_parameters
    public :: include_parallel_nonlinearity
    public :: include_electromagnetic
    public :: include_flow_shear
+   public :: full_flux_surface
+   public :: radial_variation
 
    ! Scaling options
    public :: xdriftknob, ydriftknob, wstarknob
@@ -59,19 +61,21 @@ module physics_parameters
    public :: beta 
 
    ! Full flux annulus effects
-   public :: full_flux_surface
    public :: rhostar
 
    !!!! NEED TO MOVE 
-   public :: include_pressure_variation 
-   public :: include_geometric_variation  
-   public :: radial_variation
+   ! public :: include_pressure_variation 
+   ! public :: include_geometric_variation  
    public :: zeff
    public :: vnew_ref   
 
    private
 
    ! Gyrokinetic terms
+   integer :: simulation_domain_switch
+   integer, parameter :: simulation_domain_fluxtube = 1, &
+                           simulation_domain_multibox = 2, & 
+                           simulation_domain_flux_annulus = 3
    logical :: include_parallel_streaming
    logical :: include_mirror
    logical :: include_xdrift
@@ -81,10 +85,8 @@ module physics_parameters
    logical :: include_parallel_nonlinearity
    logical :: include_electromagnetic
    logical :: include_flow_shear
-   integer :: simulation_domain_switch
-   integer, parameter :: simulation_domain_fluxtube = 1, &
-                           simulation_domain_multibox = 2, & 
-                           simulation_domain_flux_annulus = 3
+   logical :: full_flux_surface
+   logical :: radial_variation
 
    ! Scaling options
    real :: xdriftknob, ydriftknob, wstarknob
@@ -109,14 +111,12 @@ module physics_parameters
    real :: beta
 
    ! Full flux annulus effects
-   logical :: full_flux_surface
    real :: rhostar 
 
    !!!! NEED TO MOVE
    ! Radially global effects
-   logical :: include_pressure_variation 
-   logical :: include_geometric_variation
-   logical :: radial_variation
+   ! logical :: include_pressure_variation 
+   ! logical :: include_geometric_variation
    real :: zeff, vnew_ref
    
    ! Logicals for initialisation and debugging
@@ -143,7 +143,8 @@ contains
    if (proc0) call read_namelist_gyrokinetic_terms (simulation_domain_switch, & 
       include_parallel_streaming, include_mirror, &
       include_xdrift, include_ydrift, include_drive, include_nonlinear, &
-      include_parallel_nonlinearity, include_electromagnetic, include_flow_shear)
+      include_parallel_nonlinearity, include_electromagnetic, include_flow_shear, &
+      full_flux_surface, radial_variation)
 
    if (proc0) call read_namelist_scale_gyrokinetic_terms(include_xdrift, include_ydrift, include_drive, & 
       xdriftknob, ydriftknob, wstarknob, fphi, suppress_zonal_interaction)
@@ -154,10 +155,9 @@ contains
 
    if (proc0) call read_namelist_electromagnetic(include_electromagnetic, include_apar, include_bpar, beta) 
 
-   if (proc0) call read_namelist_flux_annulus(full_flux_surface, rhostar)!, nitt)
+   if (proc0) call read_namelist_flux_annulus(rhostar)!, nitt)
 
-   if (proc0) call read_namelist_extra(include_pressure_variation, & 
-      include_geometric_variation, radial_variation, zeff, vnew_ref)
+   if (proc0) call read_namelist_extra(zeff, vnew_ref)
 
    call broadcast_parameters
    
@@ -203,6 +203,8 @@ contains
       call broadcast(include_parallel_nonlinearity)
       call broadcast(include_electromagnetic)
       call broadcast(include_flow_shear)
+      call broadcast(full_flux_surface)
+      call broadcast(radial_variation)
 
       ! Scaling options
       call broadcast(xdriftknob)
@@ -229,13 +231,11 @@ contains
       call broadcast(beta)
 
       ! Full flux annulus effects
-      call broadcast(full_flux_surface)
       call broadcast(rhostar)
 
       ! EXTRA - NEED TO MOVE 
-      call broadcast(include_pressure_variation)
-      call broadcast(include_geometric_variation)
-      call broadcast(radial_variation)
+      ! call broadcast(include_pressure_variation)
+      ! call broadcast(include_geometric_variation)
       call broadcast(vnew_ref)
       call broadcast(zeff)
 

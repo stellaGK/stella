@@ -288,16 +288,13 @@ contains
     !                           NUMERICAL EXTRA OPTIONS                         !
     !****************************************************************************
 
-    subroutine read_namelist_numerical_extra(nitt, fphi, ky_solve_real, &
-                                ky_solve_radial, rng_seed, print_extra_info_to_terminal)
+    subroutine read_namelist_numerical_extra(nitt, fphi, rng_seed, print_extra_info_to_terminal)
 
         use mp, only: proc0
 
         implicit none
         integer, intent (out)  :: nitt
         real, intent (out)  :: fphi
-        logical, intent (out)  :: ky_solve_real
-        integer, intent (out)  :: ky_solve_radial
         integer, intent (out)  :: rng_seed
         logical, intent (out)  :: print_extra_info_to_terminal
 
@@ -314,8 +311,6 @@ contains
             ! By default
             nitt = 1
             fphi = 1.0
-            ky_solve_radial = 0
-            ky_solve_real = .false.
             rng_seed = -1
             print_extra_info_to_terminal = .true.
 
@@ -328,8 +323,8 @@ contains
 
             implicit none
 
-            namelist /numerical_extra/ nitt, fphi, ky_solve_real, &
-                ky_solve_radial, rng_seed, print_extra_info_to_terminal
+            namelist /numerical_extra/ nitt, fphi, rng_seed, &
+                                print_extra_info_to_terminal
 
             in_file = input_unit_exist("numerical_extra", dexist)
             if (dexist) read (unit=in_file, nml=numerical_extra)

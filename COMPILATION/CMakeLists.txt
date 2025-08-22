@@ -105,11 +105,13 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/input_parameters/input_file_parallelisation.f90
   ../STELLA_CODE/input_parameters/input_file_sources.f90
   ../STELLA_CODE/input_parameters/input_file_neoclassical_input.f90
+  ../STELLA_CODE/input_parameters/input_file_radially_global.f90
   ../STELLA_CODE/neoclassical/euterpe_interface.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
   ../STELLA_CODE/parameters/debug_flags.f90
   ../STELLA_CODE/parameters/parameters_diagnostics.f90
   ../STELLA_CODE/parameters/kxky_grid_parameters.f90
+  ../STELLA_CODE/parameters/parameters_multibox.f90
   ../STELLA_CODE/parameters/numerical_parameters.f90
   ../STELLA_CODE/parameters/physics_parameters.f90
   ../STELLA_CODE/radial_variation/multibox.f90

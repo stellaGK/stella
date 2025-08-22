@@ -16,6 +16,8 @@
   include_nonlinear = .false.
   include_parallel_nonlinearity = .false.
   include_electromagnetic = .false.
+  include_full_flux_annulus = .false.
+  include_radial_variation = .false.
 /
 
 &scale_gyrokinetic_terms
@@ -51,9 +53,6 @@
 /
 
 &extra - need to move
-   include_pressure_variation = .false. 
-   include_geometric_variation = .false.
-   radial_variation = .false. 
    zeff = 1.0
    vnew_ref = -1.0
 /
@@ -323,13 +322,7 @@
 &numerical_extra
   nitt = 1
   fphi = 1.0
-  ky_solve_radial = 0
-  ky_solve_real = .false.
-  fields_kxkyz = .false. 
-  mat_gen = .false. 
-  mat_read = .false.
   print_extra_info_to_terminal = .true.
-  lu_option = 'default'
   rng_seed = -1
 /
 
@@ -473,3 +466,30 @@
   conserve_momentum = .false.
   conserve_density = .false.
  /
+
+!--------------------------------
+!------  Radial variation  ------
+!--------------------------------
+  &multibox_parameters
+  ky_solve_radial = 0.0
+  ky_solve_real = .false.
+  include_geometric_variation = .true. 
+  include_pressure_variation = .false.
+  smooth_zf = .false.
+  zf_option = "default"
+  lr_debug_option = "default"
+  krook_option = "default"
+  krook_size = 0.0
+  rk_step = .false.
+  nu_krook_mb = 0.0
+  mb_debug_step = -1.0
+  krook_exponent = 0.0
+  krook_efold = 3.0
+  phi_bound = 0.0
+  phi_pow = 0.0
+  use_dirichlet_bc = .false.
+  boundary_size = 4.0
+  krook_size = 0.0  
+ /
+
+

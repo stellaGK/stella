@@ -45,7 +45,6 @@ module numerical_parameters
    ! extra - need to move
    public :: nitt
    public :: fphi
-   public :: ky_solve_radial, ky_solve_real
    public :: rng_seed
    public :: print_extra_info_to_terminal
 
@@ -93,8 +92,6 @@ module numerical_parameters
    ! Extra - need to move
    integer :: nitt
    real :: fphi
-   logical :: ky_solve_real
-   integer :: ky_solve_radial
    integer :: rng_seed
    logical :: print_extra_info_to_terminal
 
@@ -142,8 +139,7 @@ contains
 
       if (proc0) call read_namelist_numerical_upwinding_for_derivatives(time_upwind, zed_upwind, vpa_upwind)
 
-      if (proc0) call read_namelist_numerical_extra(nitt, fphi, ky_solve_real, &
-                                             ky_solve_radial, rng_seed, print_extra_info_to_terminal)
+      if (proc0) call read_namelist_numerical_extra(nitt, fphi, rng_seed, print_extra_info_to_terminal)
 
       if (proc0) call check_numerical_inputs 
       call broadcast_parameters
@@ -361,8 +357,6 @@ contains
          ! Extra - need to move
          call broadcast(nitt)
          call broadcast(fphi)
-         call broadcast(ky_solve_radial)
-         call broadcast(ky_solve_real)
          call broadcast(rng_seed)
          call broadcast(print_extra_info_to_terminal)
 
