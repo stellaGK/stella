@@ -85,12 +85,12 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/grids/velocity_grids.f90
   ../STELLA_CODE/grids/write_radial_grid.f90
   ../STELLA_CODE/grids/z_grid.f90
-  ../STELLA_CODE/gyrokinetic_terms/ffs_solve.f90
-  ../STELLA_CODE/gyrokinetic_terms/flow_shear.f90
-  ../STELLA_CODE/gyrokinetic_terms/implicit_solve.f90
-  ../STELLA_CODE/gyrokinetic_terms/mirror_terms.f90
-  ../STELLA_CODE/gyrokinetic_terms/parallel_streaming.f90
-  ../STELLA_CODE/gyrokinetic_terms/time_advance.f90
+  ../STELLA_CODE/gyrokinetic_equation/ffs_solve.f90
+  ../STELLA_CODE/gyrokinetic_equation/flow_shear.f90
+  ../STELLA_CODE/gyrokinetic_equation/implicit_solve.f90
+  ../STELLA_CODE/gyrokinetic_equation/mirror_terms.f90
+  ../STELLA_CODE/gyrokinetic_equation/parallel_streaming.f90
+  ../STELLA_CODE/gyrokinetic_equation/time_advance.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_fields.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_dissipation.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_physics_parameters.f90
@@ -127,8 +127,8 @@ set(STELLA_SOURCES_fpp
   ../STELLA_CODE/fields/fields_fullfluxsurface.fpp
   ../STELLA_CODE/fields/fields_collisions.fpp
   ../STELLA_CODE/fields/fields_radialvariation.fpp
-  ../STELLA_CODE/gyrokinetic_terms/response_matrix.fpp
-  ../STELLA_CODE/gyrokinetic_terms/sources.fpp
+  ../STELLA_CODE/gyrokinetic_equation/response_matrix.fpp
+  ../STELLA_CODE/gyrokinetic_equation/sources.fpp
   ../STELLA_CODE/neoclassical/sfincs_interface.fpp
 )
 
