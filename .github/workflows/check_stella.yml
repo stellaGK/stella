@@ -15,6 +15,11 @@ jobs:
 #              Build stella on different operating systems              
 #-----------------------------------------------------------------------
   build-stella:
+  
+    # Set environment variables
+    env:
+      OMPI_MCA_rmaps_base_oversubscribe: yes
+      MPIRUN: mpiexec -np
     
     # Run the same set-up multiple times
     # Note that macos-12 has been deprecated on GitHub in 2025 
@@ -22,15 +27,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, macos-14] # , ubuntu-22.04, ubuntu-24.04
+        os: [macos-13, macos-14] # ubuntu-22.04, ubuntu-24.04
         compiler: [Make, CMake]
-        gcc_v: [9] # Version of GFortran we want to use
-      env:
-        OMPI_MCA_rmaps_base_oversubscribe: yes
-        MPIRUN: mpiexec -np
-        FC: gfortran-${{ matrix.gcc_v }}
-        GCC_V: ${{ matrix.gcc_v }}
-      
+    
     # Operating system
     runs-on: ${{ matrix.os }}
       
@@ -74,14 +73,13 @@ jobs:
           # Install dependencies
           if ${{ contains(matrix.os, 'macos') }}; then   
             if [ ${{ matrix.os }} == 'macos-12' ] || [ ${{ matrix.os }} == 'macos-13' ]; then
-              brew install gcc@${GCC_V} || brew upgrade gcc@${GCC_V}
-              brew install make openmpi fftw netcdf-fortran gnu-sed
-              sudo mkdir /usr/local/gfortran; sudo ln -s /usr/local/Cellar/gcc@${GCC_V}/*/lib/gcc/11 /usr/local/gfortran/lib
+              brew install gcc@11 make openmpi fftw netcdf-fortran gnu-sed
+              sudo mkdir /usr/local/gfortran; sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
             elif [ ${{ matrix.os }} == 'macos-14' ]; then
-              brew install gcc@${GCC_V} || brew upgrade gcc@${GCC_V}
-              ln -fs /opt/homebrew/bin/gfortran-${GCC_V} /usr/local/bin/gfortran
+              brew install gcc@11
+              ln -fs /opt/homebrew/bin/gfortran-11 /usr/local/bin/gfortran
               sudo mkdir -p /usr/local/gfortran
-              sudo ln -sf /opt/homebrew/Cellar/gcc@${GCC_V}/*/lib/gcc/${GCC_V} /usr/local/gfortran/lib
+              sudo ln -sf /opt/homebrew/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
               brew install make openmpi fftw netcdf-fortran gnu-sed
             fi
           elif ${{ contains(matrix.os, 'ubuntu') }}; then  
