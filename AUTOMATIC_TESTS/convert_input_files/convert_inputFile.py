@@ -804,6 +804,18 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
     input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     #===============================================================================
+    #                                   Extra rules                                  
+    #===============================================================================
+    
+    # For old stella versions, always turn off apar and radial_moments
+    if downgrade:
+        if 'knobs' not in input_parameters.keys(): input_parameters['knobs'] = {}
+        input_parameters['knobs']['fapar'] = 0
+        input_parameters['knobs']['fbpar'] = 0
+        if 'stella_diagnostics_knobs' not in input_parameters.keys(): input_parameters['stella_diagnostics_knobs'] = {}
+        input_parameters['stella_diagnostics_knobs']['write_radial_moments'] = False
+    
+    #===============================================================================
     #                                   Write file                                  
     #===============================================================================
     

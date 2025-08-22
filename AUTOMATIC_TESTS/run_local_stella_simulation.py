@@ -8,7 +8,7 @@ import subprocess
 import configparser
 
 # Package to convert input files
-module_path = str(pathlib.Path(__file__).parent.parent.parent / 'convert_input_files/convert_inputFileToOlderStellaVersions.py')
+module_path = str(pathlib.Path(__file__).parent.parent.parent / 'convert_input_files/convert_inputFile.py')
 with open(module_path, 'r') as file: exec(file.read())
 
 ################################################################################
@@ -95,11 +95,10 @@ def run_local_stella_simulation(input_file, tmp_path, stella_version, vmec_file=
     # If we want to test older stella versions, convert the input file
     # Always turn of electromagnetic effects on old stella versions
     if stella_version!='master': 
-        input_parameters = convert_inputFileToOlderStellaVersions(path_input_file, stella_version)
-        if stella_version in ['0.5', '0.6', '0.7']: 
-            input_parameters['knobs']['fapar'] = 0
-            input_parameters['knobs']['fbpar'] = 0
-        f90nml.write(input_parameters, path_input_file, force=True, sort=True)
+        update_inputFile(path_input_file, downgrade=True)
+        path_input_file_downgraded = str(path_input_file).replace('.in', '_downgraded.in')
+        input_file = pathlib.Path(path_input_file).name
+        shutil.copyfile(path_input_file_downgraded, path_input_file)
         
     # Copy the VMEC files to the temp folder
     if vmec_file: copy_vmec_file(vmec_file, tmp_path)
