@@ -1,7 +1,7 @@
 !> This module contains the subroutines which set the initial value of the
 !! fields and the distribution function.
 
-module init_g
+module initialise_g_distribution_fn
 
    implicit none
    
@@ -725,4 +725,4 @@ contains
 
    end subroutine finish_init_g
 
-end module init_g
+end module initialise_g_distribution_fn

@@ -135,7 +135,7 @@ contains
       use arrays_distribution_fn, only: init_arrays_distribution_fn
       use arrays_constants, only: init_arrays_vperp_kperp
 
-      use init_g, only: init_init_g
+      use initialise_g_distribution_fn, only: init_init_g
       use stella_io, only: init_stella_io, get_nout
       use diagnostics_omega, only: init_diagnostics_omega
       use diagnostics_fluxes, only: init_diagnostics_fluxes 

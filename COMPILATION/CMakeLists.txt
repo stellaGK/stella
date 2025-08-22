@@ -47,6 +47,8 @@ option(STELLA_UPDATE_GIT_SUBMODULES "Check submodules are up-to-date during buil
 set(STELLA_SOURCES_f90 
   ../STELLA_CODE/utils/define.inc
   ../STELLA_CODE/calculations/calculations_kxky.f90
+  ../STELLA_CODE/calculations/calculations_checksum.f90
+  ../STELLA_CODE/calculations/calculations_kxky_derivatives.f90
   ../STELLA_CODE/calculations/dist_redistribute.f90
   ../STELLA_CODE/calculations/finite_differences.f90
   ../STELLA_CODE/calculations/g_tofrom_h.f90
@@ -67,15 +69,19 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/dissipation/dissipation.f90
   ../STELLA_CODE/dissipation/hyper.f90
   ../STELLA_CODE/fields/dist_fn.f90
-  ../STELLA_CODE/fields/init_g.f90
+  ../STELLA_CODE/fields/initialise_g_distribution_fn.f90
   ../STELLA_CODE/geometry/geometry.f90
   ../STELLA_CODE/geometry/geometry_miller.f90
   ../STELLA_CODE/geometry/geometry_vmec.f90
   ../STELLA_CODE/geometry/geometry_vmec_read_netCDF_file.f90 
   ../STELLA_CODE/geometry/geometry_inputprofiles_interface.f90
   ../STELLA_CODE/geometry/geometry_zpinch.f90
-  ../STELLA_CODE/grids/arrays_dist_fn.f90
-  ../STELLA_CODE/grids/arrays_fields.f90
+  ../STELLA_CODE/grids/arrays_gyro_averages.f90
+  ../STELLA_CODE/grids/arrays_constants.f90
+  ../STELLA_CODE/grids/arrays_distribution_fn.f90
+  ../STELLA_CODE/grids/store_arrays_useful.f90 
+  ../STELLA_CODE/grids/store_arrays_distribution_fn.f90
+  ../STELLA_CODE/grids/store_arrays_fields.f90
   ../STELLA_CODE/grids/common_types.f90
   ../STELLA_CODE/grids/extended_z_grid.f90
   ../STELLA_CODE/grids/grids_kxky.f90

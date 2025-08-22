@@ -96,7 +96,7 @@ contains
       use job_manage, only: checktime, time_message
       use parameters_physics, only: read_parameters_physics
       use parameters_physics, only: radial_variation
-      use init_g, only: rng_seed
+      use initialise_g_distribution_fn, only: rng_seed
       use parameters_numerical, only: read_parameters_numerical
       use parameters_numerical, only: avail_cpu_time, nstep, delt, delt_max, delt_min
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
@@ -111,8 +111,8 @@ contains
       use geometry, only: finish_init_geometry
       use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
       use response_matrix, only: init_response_matrix, read_response_matrix
-      use init_g, only: ginit, init_init_g, phiinit, scale_to_phiinit
-      use init_g, only: tstart
+      use initialise_g_distribution_fn, only: ginit, init_init_g, phiinit, scale_to_phiinit
+      use initialise_g_distribution_fn, only: tstart
       use fields, only: init_fields, advance_fields, fields_updated
       use fields_radial_variation, only: get_radial_correction
       use fields, only: rescale_fields
@@ -590,7 +590,7 @@ contains
       use mirror_terms, only: time_mirror
       use dissipation, only: time_collisions, include_collisions 
       use sources, only: finish_sources, time_sources, source_option_switch, source_option_none
-      use init_g, only: finish_init_g
+      use initialise_g_distribution_fn, only: finish_init_g
       use arrays_distribution_fn, only: finish_arrays_distribution_fn
       use arrays_constants, only: finish_arrays_vperp_kperp
       !!! NEED TO FINISH KPERP AND VPERP ARRAYS
