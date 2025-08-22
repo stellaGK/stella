@@ -997,6 +997,7 @@ contains
       use file_utils, only: runtype_option_switch, runtype_multibox
 
       ! Routines
+      use input_file_geometry, only: read_namelist_geometry_options
       use text_options, only: text_option, get_option_value
       use file_utils, only: error_unit, input_unit_exist
       use mp, only: job
