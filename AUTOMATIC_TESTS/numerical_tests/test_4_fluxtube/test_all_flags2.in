@@ -35,6 +35,7 @@
   include_nonlinear = .true.
   include_parallel_nonlinearity = .true.
   include_electromagnetic = .false.
+  include_radial_variation = .false.
 /
 
 &scale_gyrokinetic_terms
@@ -68,13 +69,18 @@
 !/
 
 &extra
-   include_pressure_variation = .true.
-   include_geometric_variation = .true.
-   radial_variation = .false. 
-   zeff = 0.01
-   vnew_ref = 0.01
+  zeff = 0.01
+  vnew_ref = 0.01
 /
 
+!===============================================================================
+!                               Radial variation                                
+!===============================================================================
+
+&multibox_parameters
+  include_pressure_variation = .true.
+  include_geometric_variation = .true.
+/
 !===============================================================================
 !                                Kinetic species                                
 !===============================================================================
