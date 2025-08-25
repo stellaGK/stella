@@ -693,7 +693,6 @@ contains
       use gk_implicit_solve, only: get_gke_rhs, sweep_g_zext
       use arrays_store_useful, only: response_matrix
       use grids_extended_zgrid, only: periodic, phase_shift
-      use parameters_physics, only: full_flux_surface
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif

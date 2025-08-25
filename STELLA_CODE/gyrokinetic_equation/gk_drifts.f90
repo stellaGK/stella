@@ -629,8 +629,7 @@ contains
 
     subroutine finish_wstar 
 
-        use arrays_store_useful, only: wstar, wstarp
-        use arrays_store_useful, only: wstarinit
+        use arrays_store_useful, only: wstar, wstarinit
 
         implicit none
 

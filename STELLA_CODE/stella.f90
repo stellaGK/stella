@@ -94,14 +94,14 @@ contains
       use file_utils, only: run_name, init_job_name
       use file_utils, only: flush_output_file, error_unit
       use job_manage, only: checktime, time_message
-      use stella_layouts, only: mat_gen, mat_read
+      use stella_layouts, only: mat_read
       use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
       use stella_time, only: init_tstart, init_delt
       use stella_save, only: init_dt
       use parameters_physics, only: read_parameters_physics
       use parameters_physics, only: radial_variation
       use parameters_numerical, only: read_parameters_numerical
-      use parameters_numerical, only: avail_cpu_time, nstep, delt, delt_max, delt_min
+      use parameters_numerical, only: avail_cpu_time, delt, delt_max, delt_min
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_numerical, only: delt_option_switch, delt_option_auto
       use parameters_kxky_grid, only: read_parameters_kxky_grid

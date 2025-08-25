@@ -201,6 +201,10 @@ contains
             implicit none
 
             if (write_all_time_traces) write_all_potential_time_traces = .true. 
+            if (write_all_potential) then 
+                write_all_potential_spectra = .true.
+                write_all_potential_time_traces = .true.
+            end if
 
             if (write_all_potential_time_traces) then
                 write_phi2_vs_time = .true.

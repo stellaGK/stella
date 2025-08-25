@@ -139,7 +139,6 @@ contains
    !============================================================================
    subroutine get_modified_fourier_coefficient(moment, moment_ky, flxfac)
 
-      use grids_species, only: nspec
       use grids_z, only: nzgrid
       use parameters_kxky_grid, only: ikx_max, naky_all, ny
       use calculations_kxky, only: swap_kxky_back
@@ -195,7 +194,6 @@ contains
       use grids_kxky, only: aky, theta0
       use parameters_kxky_grid, only: nakx
       use constants, only: zi, pi
-      use grids_z, only: ntubes
       use calculations_tofrom_ghf, only: g_to_h
 
       !> For momentum flux

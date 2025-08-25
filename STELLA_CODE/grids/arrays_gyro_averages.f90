@@ -145,7 +145,7 @@ contains
 
         implicit none
 
-        integer :: j0_ffs_unit, j0_B_ffs_unit
+        ! integer :: j0_ffs_unit, j0_B_ffs_unit
         integer :: iky, ikx, ia, iz
         integer :: ivmu, iv, imu, is
         integer :: ia_max_j0_count, ia_max_j0_B_count

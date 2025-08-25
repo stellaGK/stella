@@ -25,9 +25,6 @@ contains
 
       use parameters_physics, only: radial_variation
       use parameters_physics, only: include_parallel_nonlinearity
-      use arrays_store_useful, only: wdriftinit, wstarinit, parnlinit, &
-            radialinit, driftimpinit
-
       use gk_drifts, only: init_wdrift, init_wstar
       use gk_parallel_streaming, only: init_parallel_streaming
       use gk_mirror, only: init_mirror
@@ -704,7 +701,7 @@ contains
       use parameters_physics, only: include_parallel_nonlinearity
       use parameters_physics, only: include_parallel_streaming
       use parameters_physics, only: include_mirror, include_apar
-      use parameters_physics, only: include_nonlinear, include_bpar
+      use parameters_physics, only: include_nonlinear
       use parameters_physics, only: full_flux_surface, radial_variation
       use parameters_physics, only: xdriftknob, ydriftknob
       use parameters_physics, only: g_exb
@@ -928,7 +925,7 @@ contains
       use parameters_physics, only: include_parallel_streaming
       use parameters_physics, only: radial_variation, full_flux_surface
       use parameters_physics, only: include_mirror, prp_shear_enabled
-      use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
+      use parameters_numerical, only: stream_implicit, mirror_implicit
       use parameters_multibox, only: rk_step
       use parameters_numerical, only: flip_flop
 

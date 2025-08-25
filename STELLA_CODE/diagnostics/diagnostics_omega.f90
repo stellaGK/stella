@@ -67,8 +67,6 @@ contains
       
       ! Input file
       use parameters_diagnostics, only: navg
-      use parameters_diagnostics, only: write_omega_vs_kxky
-      use parameters_diagnostics, only: write_omega_avg_vs_kxky
 
       implicit none 
 
@@ -139,8 +137,6 @@ contains
  
       ! Input file
       use parameters_diagnostics, only: navg
-      use parameters_diagnostics, only: write_omega_vs_kxky
-      use parameters_diagnostics, only: write_omega_avg_vs_kxky
       
       ! Write to netCDF file
       use stella_io, only: write_omega_nc
@@ -283,7 +279,6 @@ contains
    !============================================================================  
    subroutine finish_diagnostics_omega  
 
-      use parameters_diagnostics, only: write_omega_vs_kxky
       use file_utils, only: close_output_file
 
       implicit none  

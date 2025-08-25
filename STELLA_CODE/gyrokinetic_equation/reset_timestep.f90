@@ -26,7 +26,7 @@ contains
         use gk_sources, only: init_source_timeaverage
         use gk_sources, only: init_quasineutrality_source, qn_source_initialized
 
-        use arrays_store_useful, only: wdriftinit, wstarinit, parnlinit, &
+        use arrays_store_useful, only: wdriftinit, wstarinit, &
                         radialinit, driftimpinit
             
 

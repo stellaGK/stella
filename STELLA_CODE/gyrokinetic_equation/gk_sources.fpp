@@ -80,6 +80,8 @@ contains
       int_proj = -1.
       int_krook = -1.
 
+      call broadcast_arrays
+
       if (source_option_switch == source_option_krook .and. .not. allocated(g_krook)) then
          allocate (g_krook(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          g_krook = 0.

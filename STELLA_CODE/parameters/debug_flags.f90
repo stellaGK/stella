@@ -54,7 +54,6 @@ module debug_flags
   logical :: debug_all 
   logical :: dist_fn_debug
   logical :: gyro_averages_debug 
-  logical :: initialised = .false.
   
   ! Main stella file debug flag
   logical :: stella_debug
@@ -101,7 +100,6 @@ contains
   !======================================================================
   subroutine read_debug_flags
 
-    use mp, only: proc0
     use namelist_debug, only: read_namelist_debug_flags
 
     implicit none

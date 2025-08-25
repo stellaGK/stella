@@ -25,7 +25,6 @@ contains
       use grids_z, only: nzgrid, ntubes
       use parameters_kxky_grid, only: naky, nakx
       use arrays_store_distribution_fn, only: g1, g2
-      use parameters_numerical, only: stream_matrix_inversion
       use parameters_numerical, only: use_deltaphi_for_response_matrix
       use parameters_numerical, only: tupwnd_p => time_upwind_plus
       use parameters_numerical, only: tupwnd_m => time_upwind_minus
@@ -395,11 +394,10 @@ contains
 
       use stella_time, only: code_dt
       use grids_species, only: spec
-      use grids_z, only: nzgrid, ntubes
+      use grids_z, only: nzgrid
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
       use grids_velocity, only: vpa
       use parameters_numerical, only: driftkinetic_implicit, maxwellian_normalization
-      use parameters_numerical, only: maxwellian_inside_zed_derivative
       use parameters_numerical, only: drifts_implicit
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use neoclassical_terms, only: include_neoclassical_terms
@@ -542,11 +540,10 @@ contains
 
       use stella_time, only: code_dt
       use grids_species, only: spec
-      use grids_z, only: nzgrid, ntubes
+      use grids_z, only: nzgrid
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: vpa, mu
       use parameters_numerical, only: driftkinetic_implicit, maxwellian_normalization
-      use parameters_numerical, only: maxwellian_inside_zed_derivative
       use parameters_numerical, only: drifts_implicit
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use neoclassical_terms, only: include_neoclassical_terms
@@ -906,7 +903,7 @@ contains
       use stella_time, only: code_dt
       use parameters_physics, only: include_apar
       use grids_species, only: spec
-      use grids_z, only: nzgrid, ntubes
+      use grids_z, only: nzgrid
       use grids_kxky, only: aky, akx
       use grids_velocity, only: vpa
       use stella_layouts, only: vmu_lo, iv_idx, is_idx

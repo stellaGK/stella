@@ -112,15 +112,10 @@ module parameters_physics
    ! Full flux annulus effects
    real :: rhostar 
 
-   !!!! NEED TO MOVE
-   ! Radially global effects
-   ! logical :: include_pressure_variation 
-   ! logical :: include_geometric_variation
+   !!!! NEED TO MOVE ??
    real :: zeff, vnew_ref
    
-   ! Logicals for initialisation and debugging
    logical :: initialised = .false.
-   logical :: debug = .false.
 
 contains
 

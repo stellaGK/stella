@@ -132,7 +132,7 @@ contains
    subroutine get_moments_fluxtube(g, density, upar_vs_kykxzts, temperature, spitzer2_vs_kykxzts)
 
       use grids_z, only: nzgrid, ntubes
-      use grids_species, only: spec, nspec
+      use grids_species, only: spec
       use grids_velocity, only: vpa, vperp2, integrate_vmu
       use grids_velocity, only: maxwell_mu, ztmax, maxwell_fac, maxwell_vpa
       use parameters_kxky_grid, only: naky, nakx
@@ -144,7 +144,6 @@ contains
       use arrays_store_fields, only: phi
       use parameters_physics, only: fphi
       use parameters_numerical, only: maxwellian_normalization
-      use parameters_physics, only: radial_variation
       use calculations_transforms, only: transform_kx2x_unpadded
       
       ! Import temp arrays g1 and g2 with dimensions (nky, nkx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
@@ -279,7 +278,6 @@ contains
       
       ! Input file
       use parameters_diagnostics, only: write_radial_moments
-      use parameters_diagnostics, only: write_moments
 
       implicit none
 

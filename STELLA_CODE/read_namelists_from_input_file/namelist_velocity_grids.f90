@@ -27,6 +27,7 @@ contains
         real, intent(out) :: vpa_max, vperp_max
         logical, intent(out) :: equally_spaced_mu_grid, conservative_wgts_vpa
 
+        if (.not. proc0) return
         call set_default_velocity_grids
         call read_input_file_velocity_grids
 

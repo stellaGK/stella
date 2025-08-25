@@ -37,11 +37,7 @@ module grids_species
 
    integer :: ions, electrons, impurity
    real :: pfac
-!  integer :: ntspec_trin
-!  real, dimension (:), allocatable :: dens_trin, temp_trin, fprim_trin, tprim_trin, nu_trin
-
-   character(20) :: species_option
-
+   
    logical :: initialised = .false.
 
 contains

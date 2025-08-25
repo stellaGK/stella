@@ -119,10 +119,6 @@ contains
       use mp, only: proc0
 
       implicit none
-         
-      ! Logical old variables for backwards compatibility
-      logical :: write_phi_vs_time, write_apar_vs_time, write_bpar_vs_time 
-      logical :: write_kspectra, write_gvmus, write_gzvs, write_omega
       
       ! Set the default parameters, read the namelist "diagnostics_knobs" 
       ! in the input file and broadcast the parameters to all processors
@@ -141,22 +137,14 @@ contains
             
       subroutine read_input_file
 
-         use file_utils, only: input_unit_exist
-
          use namelist_diagnostics, only: &
             read_namelist_diagnostics, read_namelist_diagnostics_potential, &
             read_namelist_diagnostics_omega, read_namelist_diagnostics_distribution, &
             read_namelist_diagnostics_fluxes, read_namelist_diagnostics_moments
 
          use parameters_numerical, only: autostop
+
          implicit none
-
-         logical :: exist
-         integer :: in_file 
-
-         ! Define the namelist "diagnostics_knobs" in the input file.
-         ! TODO-HT Change <stella_diagnostics_knobs> to <diagnostics> (Change all input files in tests)
-         ! and mp_abort if <stella_diagnostics_knobs> is in the input file
 
          ! Track code 
          if (debug) write (*, *) 'read_diagnostics_parameters::read_input_file'

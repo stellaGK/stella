@@ -7,7 +7,6 @@ module zpinch
    private
 
    real :: betaprim
-   logical :: debug = .false.
    
 contains
    ! use Z-pinch equilibrium.

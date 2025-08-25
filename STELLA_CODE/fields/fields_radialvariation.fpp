@@ -34,7 +34,7 @@ contains
       use job_manage, only: time_message
       use parameters_physics, only: radial_variation
       use parameters_multibox, only: ky_solve_radial, ky_solve_real
-      use grids_z, only: nzgrid, ntubes
+      use grids_z, only: nzgrid
       use grids_kxky, only: zonal_mode
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
@@ -597,7 +597,7 @@ contains
       use grids_velocity, only: vpa, vperp2, mu, nmu, nvpa
       use arrays_store_useful, only: kperp2, dkperp2dr
       use geometry, only: dBdrho, bmag
-      use parameters_physics, only: tite, nine, beta
+      use parameters_physics, only: tite, nine
 
       use arrays_store_useful, only: efac, efacp
       use grids_velocity, only: integrate_vmu

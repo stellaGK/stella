@@ -324,7 +324,7 @@ contains
       use parameters_physics, only: beta
       ! Grids
       use grids_species, only: spec
-      use grids_z, only: nzgrid, ntubes
+      use grids_z, only: nzgrid
       use grids_velocity, only: nvpa, nmu, vpa
       use grids_velocity, only: integrate_vmu
       ! Calculations
@@ -578,12 +578,8 @@ contains
    !============================================================================
    subroutine finish_fields_electromagnetic
 
-      ! Parameters
-      use parameters_physics, only: include_apar, include_bpar
-     
       use arrays_store_fields, only: apar
       use arrays_store_fields, only: apar_old, bpar_old
-      use arrays_store_useful, only: gamtot, gamtot3
       use arrays_store_useful, only: gamtot13, gamtot31, gamtot33
       use arrays_store_useful, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
       use arrays_store_useful, only: apar_denom

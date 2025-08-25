@@ -1,7 +1,5 @@
 module namelist_geometry
 
-    use stella_common_types, only: flux_surface_type
-
     implicit none
 
     public :: read_namelist_geometry_options
@@ -24,8 +22,6 @@ module namelist_geometry
     integer, parameter :: geo_option_vmec = 3
     integer, parameter :: geo_option_multibox = 4
     integer, parameter :: geo_option_zpinch = 5
-
-    type(flux_surface_type) :: local
 
     integer, parameter :: radial_coordinate_sgnpsitpsit = 1
     integer, parameter :: radial_coordinate_minuspsit = 2
@@ -171,11 +167,9 @@ contains
         !------------------------ Read input file parameters -----------------------
         subroutine read_input_file_geometry_from_txt
 
-            use file_utils, only: input_unit_exist, error_unit
+            use file_utils, only: input_unit_exist
 
             implicit none
-
-            integer :: ierr 
 
             namelist /geometry_from_txt/ geometry_file, &
                 overwrite_bmag, overwrite_b_dot_grad_zeta, &
@@ -265,9 +259,7 @@ contains
             use file_utils, only: input_unit_exist
 
             implicit none
-
-            integer :: ierr 
-
+            
             namelist /geometry_miller/ rhoc, rmaj, shift, qinp, shat, &
                 kappa, kapprim, tri, triprim, rgeo, betaprim, &
                 betadbprim, d2qdr2, d2psidr2, &

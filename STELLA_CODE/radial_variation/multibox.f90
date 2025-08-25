@@ -51,7 +51,6 @@ module multibox
    integer :: bs_fullgrid
    ! integer :: mb_debug_step
    integer :: x_fft_size
-   integer :: phi_bound, phi_pow
    integer :: ikymin
 
    real :: xL = 0., xR = 0.

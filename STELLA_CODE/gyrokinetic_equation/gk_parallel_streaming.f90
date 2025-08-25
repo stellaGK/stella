@@ -252,7 +252,7 @@ contains
       use grids_species, only: spec
       use parameters_physics, only: full_flux_surface, include_bpar
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
-      use parameters_numerical, only: driftkinetic_implicit, maxwellian_normalization
+      use parameters_numerical, only: maxwellian_normalization
 	
 	!! For FFS 
       use arrays_gyro_averages, only: j0_ffs

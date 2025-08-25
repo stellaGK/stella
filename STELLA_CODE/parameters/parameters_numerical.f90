@@ -91,7 +91,6 @@ module parameters_numerical
 
    ! Internal
    logical :: initialised = .false.
-   logical :: old_nml_exist
    
 contains
 
@@ -150,7 +149,7 @@ contains
       subroutine check_numerical_inputs
 
          use parameters_physics, only: full_flux_surface
-         use parameters_physics, only: include_apar, include_bpar
+         use parameters_physics, only: include_apar
          use parameters_physics, only: include_parallel_streaming
          use parameters_physics, only: include_mirror
          use parameters_physics, only: include_nonlinear

@@ -8,32 +8,32 @@ module gk_ffs_solve
 
 contains
 
-  subroutine add_correction_ffs (phiin, gin, source_out) 
+!   subroutine add_correction_ffs (phiin, gin, source_out) 
 
-    use grids_z, only: nzgrid, ntubes
-    use parameters_kxky_grid, only: naky, nakx
-    use stella_layouts, only: vmu_lo
+!     use grids_z, only: nzgrid, ntubes
+!     use parameters_kxky_grid, only: naky, nakx
+!     use stella_layouts, only: vmu_lo
 
-    implicit none 
+!     implicit none 
     
-    complex, dimension(:, :, -nzgrid:, :), intent(in) :: phiin
-    complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
-    complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent (out) :: source_out
+!     complex, dimension(:, :, -nzgrid:, :), intent(in) :: phiin
+!     complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
+!     complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent (out) :: source_out
     
-    complex, dimension(:,:,:,:,:), allocatable :: source1
+!     complex, dimension(:,:,:,:,:), allocatable :: source1
 
-    if(.not. allocated(source1)) allocate(source1(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+!     if(.not. allocated(source1)) allocate(source1(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
-!      if (drifts_implicit)
-    source1 = 0.0
-    source_out = 0.0 
-    call get_drifts_ffs_itteration (phiin, gin, source1)
-    call get_source_ffs_itteration (phiin, gin, source_out) 
+! !      if (drifts_implicit)
+!     source1 = 0.0
+!     source_out = 0.0 
+!     call get_drifts_ffs_itteration (phiin, gin, source1)
+!     call get_source_ffs_itteration (phiin, gin, source_out) 
     
-    source_out = source_out + source1
+!     source_out = source_out + source1
 
-    if(allocated(source1)) deallocate(source1) 
-  end subroutine add_correction_ffs
+!     if(allocated(source1)) deallocate(source1) 
+!   end subroutine add_correction_ffs
 
 !   contains 
 

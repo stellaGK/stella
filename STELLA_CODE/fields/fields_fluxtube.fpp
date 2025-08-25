@@ -47,7 +47,6 @@ contains
       use arrays_store_useful, only: time_field_solve
       ! Parameters
       use stella_layouts, only: fields_kxkyz
-      use parameters_physics, only: full_flux_surface
       ! Grids
       use grids_z, only: nzgrid
 
@@ -101,10 +100,9 @@ contains
       use arrays_store_distribution_fn, only: g_scratch
       use arrays_store_useful, only: time_field_solve
       ! Parameters
-      use parameters_physics, only: fphi
-      use parameters_physics, only: beta
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: radial_variation
+      use parameters_physics, only: fphi
       ! Grids
       use grids_z, only: nzgrid
       use grids_species, only: spec
@@ -196,13 +194,12 @@ contains
       ! Parameters
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: fphi
-      use parameters_physics, only: beta
       use parameters_physics, only: radial_variation
       ! Grids
-      use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: integrate_vmu
       use grids_species, only: spec
+      use grids_z, only: nzgrid
       ! Calculations
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       ! Routines from other field modules
@@ -294,7 +291,6 @@ contains
       use arrays_store_useful, only: gamtot, gamtot3, gamtot_h, gamtot3_h
       use arrays_store_useful, only: time_field_solve
       ! Parameters
-      use parameters_physics, only: radial_variation
       use parameters_kxky_grid, only: nakx, naky
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
@@ -409,7 +405,7 @@ contains
       ! Parameters
       use parameters_physics, only: fphi
       use parameters_numerical, only: maxwellian_normalization
-      use parameters_physics, only: tite, nine, beta
+      use parameters_physics, only: tite, nine
       use parameters_kxky_grid, only: nakx
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg

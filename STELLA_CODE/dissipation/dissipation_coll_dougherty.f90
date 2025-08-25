@@ -1140,7 +1140,6 @@ contains
 
       use grids_velocity, only: nmu, dmu
       use grids_velocity, only: mu_cell, dmu_cell, wgts_mu_bare
-      use grids_velocity, only: equally_spaced_mu_grid
       use geometry, only: bmag
 
       implicit none
@@ -1409,7 +1408,7 @@ contains
       use calculations_kxky, only: multiply_by_rho
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: integrate_species
-      use grids_velocity, only: mu, vpa, nmu, vperp2
+      use grids_velocity, only: mu, vpa, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_store_useful, only: kperp2, dkperp2dr
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1

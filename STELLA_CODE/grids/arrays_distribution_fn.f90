@@ -73,6 +73,16 @@ contains
 
     end subroutine init_arrays_distribution_fn
 
+    !-------------------------------------------------------------------------
+    !                 INITIALISE GXYZ DISTRIBUTION FUNCTION ARRAYS           !
+    !-------------------------------------------------------------------------
+    !> This subroutine initialises the gxyz arrays, which are used to store the
+    !> distribution function in the kxkyz layout. It gathers the gvmu array
+    !> and calculates the radial corrections to F0 for use in the Krook operator.
+    !> It also initialises the gold array with the values of gnew.
+    !> If the radial variation is not enabled, it simply copies gnew to gold.
+    !> The gxyz arrays are used in the Krook operator and projection method.
+
     subroutine init_array_gxyz(restarted)
 
         use arrays_store_distribution_fn, only: gvmu, gold, gnew
@@ -138,81 +148,6 @@ contains
         gold = gnew
 
     end subroutine init_array_gxyz
-
-    !-------------------------------------------------------------------------
-    !                 INITIALISE GXYZ DISTRIBUTION FUNCTION ARRAYS           !
-    !-------------------------------------------------------------------------
-    !> This subroutine initialises the gxyz arrays, which are used to store the
-    !> distribution function in the kxkyz layout. It gathers the gvmu array
-    !> and calculates the radial corrections to F0 for use in the Krook operator.
-    !> It also initialises the gold array with the values of gnew.
-    !> If the radial variation is not enabled, it simply copies gnew to gold.
-    !> The gxyz arrays are used in the Krook operator and projection method.
-    subroutine init_gxyz(restarted)
-
-        use arrays_store_distribution_fn, only: gvmu, gold, gnew
-        use redistribute, only: gather, scatter
-        use calculations_redistribute, only: kxkyz2vmu
-        use parameters_physics, only: radial_variation
-        use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-        use calculations_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
-        use parameters_kxky_grid, only: nalpha, nakx, naky
-        use calculations_kxky, only: multiply_by_rho
-        use grids_velocity, only: mu, vpa, vperp2
-        use grids_z, only: nzgrid, ntubes
-        use grids_species, only: spec, pfac
-        use geometry, only: dBdrho, gfac
-
-        implicit none
-
-        real :: corr
-        integer :: ivmu, is, imu, iv, it, iz, ia
-        real, dimension(:, :), allocatable :: energy
-        complex, dimension(:, :), allocatable :: g0k
-        logical, intent(in) :: restarted
-
-        if (gxyz_initialised) return
-        gxyz_initialised = .false.
-
-        ! get version of g that has ky,kx,z local
-        call gather(kxkyz2vmu, gvmu, gnew)
-
-        ia = 1
-
-        ! Calculate radial corrections to F0 for use in Krook operator, as well as g1 from initialisation
-        if (radial_variation) then
-            !init_g uses maxwellians, so account for variation in temperature, density, and B
-
-            allocate (energy(nalpha, -nzgrid:nzgrid))
-            allocate (g0k(naky, nakx))
-
-            do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-                is = is_idx(vmu_lo, ivmu)
-                imu = imu_idx(vmu_lo, ivmu)
-                iv = iv_idx(vmu_lo, ivmu)
-                energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
-                do it = 1, ntubes
-                do iz = -nzgrid, nzgrid
-
-                    corr = -(pfac * (spec(is)%fprim + spec(is)%tprim * (energy(ia, iz) - 1.5)) &
-                            + 2 * gfac * mu(imu) * dBdrho(iz))
-
-                    if (.not. restarted) then
-                        g0k = corr * gnew(:, :, iz, it, ivmu)
-                        call multiply_by_rho(g0k)
-                        gnew(:, :, iz, it, ivmu) = gnew(:, :, iz, it, ivmu) + g0k
-                    end if
-                end do
-                end do
-            end do
-            deallocate (energy, g0k)
-
-            if (.not. restarted) call scatter(kxkyz2vmu, gnew, gvmu)
-        end if
-
-        gold = gnew
-
-    end subroutine init_gxyz
 
     !****************************************************************************
     !                   FINALISE DISTRIBUTION FUNCTION ARRAYS                 !

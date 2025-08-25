@@ -21,9 +21,7 @@ module namelist_species
     integer, parameter :: electron_species = 2 ! for collision operator
     integer, parameter :: slowing_down_species = 3 ! slowing-down distn
     integer, parameter :: tracer_species = 4 ! for test particle diffusion studies
-
-    type(spec_type), dimension(:), allocatable :: spec
-
+    
     ! Internal variables
     integer :: in_file
     logical :: dexist
@@ -125,7 +123,7 @@ contains
     !****************************************************************************
     !                          SPECIES OPTION : STELLA                          !
     !****************************************************************************
-    subroutine read_namelist_species_stella (nspec, spec, write_profile_variation, read_profile_variation)
+    subroutine read_namelist_species_stella (nspec, spec)
 
         use mp, only: proc0
 
@@ -133,9 +131,8 @@ contains
 
         integer, intent (in) :: nspec
         type(spec_type), dimension(:), intent (out) :: spec
-        logical, intent (in), optional :: write_profile_variation, read_profile_variation
-        
-        real :: z, mass, dens, temp, tprim, fprim, d2ndr2, d2Tdr2, dr, bess_fac
+
+        real :: z, mass, dens, temp, tprim, fprim, d2ndr2, d2Tdr2, bess_fac
         character(20) :: type
         
         if (.not. proc0) return
@@ -152,7 +149,6 @@ contains
             implicit none
 
             integer :: ierr, unit, is
-            character(len=128) :: filename
             type(text_option), dimension(9), parameter :: typeopts = (/ &
                                                     text_option('default', ion_species), &
                                                     text_option('ion', ion_species), &

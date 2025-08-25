@@ -78,9 +78,8 @@ contains
       integer, intent(in) :: nzed, nzgrid
 
       real :: dum
-      integer :: in_file, np, j
-      logical :: exist
-      
+      integer :: np, j
+
       call read_namelist_geometry_miller(rhoc, rmaj, shift, qinp, shat, &
             kappa, kapprim, tri, triprim, rgeo, betaprim, &
             betadbprim, d2qdr2, d2psidr2, &

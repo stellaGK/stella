@@ -1,4 +1,4 @@
-!> Module for advancing and intitialising all fields-related arrays
+! Module for advancing and intitialising all fields-related arrays
 module fields
 
    use mpi
@@ -8,29 +8,29 @@ module fields
 
    implicit none
 
-   !> Global Routines
+   ! Global Routines
    public :: init_fields, finish_fields
 
-   !> Routines for advancing fields in main routine
+   ! Routines for advancing fields in main routine
    public :: advance_fields
 
-   !> Calculations
+   ! Calculations
    public :: rescale_fields
 
-   !> Global 
+   ! Global 
    public :: fields_updated
    public :: nfields
 
    private
 
-   !> Logicals
+   ! Logicals
    logical :: fields_updated = .false.
    logical :: fields_initialized = .false.
 
-   !> EM - to calculate the number of fields that are in the simulation (1 for electrostatic)
+   ! EM - to calculate the number of fields that are in the simulation (1 for electrostatic)
    integer :: nfields
 
-   !> For the initialisation 
+   ! For the initialisation 
    logical :: fields_initialised = .false. 
 
 contains
@@ -42,25 +42,24 @@ contains
    !============================================================================
    !============================== ADVANCE FIELDS ==============================
    !============================================================================
-   !> This calls the appropriate routines needed to all fields in the main code.
-   !> This routine calls the appropriate update depending on the effects
-   !> included in the simulation (e.g. Electrostatic, Full Flux surface effects
-   !> or Radiatl Variation effects).
+   ! This calls the appropriate routines needed to all fields in the main code.
+   ! This routine calls the appropriate update depending on the effects
+   ! included in the simulation (e.g. Electrostatic, Full Flux surface effects
+   ! or Radiatl Variation effects).
    !============================================================================
    subroutine advance_fields(g, phi, apar, bpar, dist, implicit_solve)
 
       use mp, only: proc0
       use job_manage, only: time_message
-      !> Layouts
+      ! Layouts
       use stella_layouts, only: vmu_lo
-      !> Arrays
+      ! Arrays
       use arrays_store_useful, only: time_field_solve
-      !> Parameters
-      use parameters_physics, only: include_apar, include_bpar
+      ! Parameters
       use parameters_physics, only: full_flux_surface
-      !> Grids
+      ! Grids
       use grids_z, only: nzgrid
-      !> Routines from other field modules
+      ! Routines from other field modules
       use fields_fluxtube, only: advance_fields_fluxtube
       use fields_ffs, only: get_fields_ffs
 
@@ -74,34 +73,34 @@ contains
       !-------------------------------------------------------------------------
       if (fields_updated) return
 
-      !> Time the communications + field solve
+      ! Time the communications + field solve
       if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
 
-      !> Do we need Full Flux surface effects?
+      ! Do we need Full Flux surface effects?
       if (.not. full_flux_surface) then 
-         !> This is the routine for advancing fields in fluxtube.
-         !> Note that this will include Electrostatic and Electromagnetic effects
-         !> as well as any radial variation effects
+         ! This is the routine for advancing fields in fluxtube.
+         ! Note that this will include Electrostatic and Electromagnetic effects
+         ! as well as any radial variation effects
          if (debug) write (*, *) 'fields::advance_fields_vmulo::get_fields_fluxtube'
          call advance_fields_fluxtube(g, phi, apar, bpar, dist)
       else 
-         !> This is if Full Flux Surface effects are included
-         !> This routine is only needed in the 'implicit_solve' algorithm 
+         ! This is if Full Flux Surface effects are included
+         ! This routine is only needed in the 'implicit_solve' algorithm 
          if (present(implicit_solve)) then
             if (debug) write (*, *) 'fields::advance_fields_vmulo::get_fields_ffs_const_in_alpha'
             call get_fields_ffs(g, phi, apar, implicit_solve=.true.)
          else
-            !> This routine is for advancing the full <phi> field in the code with
-            !> FFS effects
+            ! This routine is for advancing the full <phi> field in the code with
+            ! FFS effects
             if (debug) write (*, *) 'fields::advance_fields_vmulo::get_fields_ffs'
             call get_fields_ffs(g, phi, apar)
          end if
       end if
 
-      !> Set a flag to indicate that the fields have been updated
-      !> this helps avoid unnecessary field solves
+      ! Set a flag to indicate that the fields have been updated
+      ! this helps avoid unnecessary field solves
       fields_updated = .true.
-      !> Time the communications + field solve
+      ! Time the communications + field solve
       if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
 
    end subroutine advance_fields
@@ -112,17 +111,17 @@ contains
 !###############################################################################
 
    !============================================================================
-   !> Rescale fields, including the distribution function
+   ! Rescale fields, including the distribution function
    !============================================================================
    subroutine rescale_fields(target_amplitude)
 
       use mp, only: scope, subprocs, crossdomprocs, sum_allreduce
       use job_manage, only: njobs
       use file_utils, only: runtype_option_switch, runtype_multibox
-      !> Arrays
+      ! Arrays
       use arrays_store_fields, only: phi, apar
       use arrays_store_distribution_fn, only: gnew, gvmu
-      !> Calculations
+      ! Calculations
       use calculations_volume_averages, only: volume_average
 
       implicit none
@@ -160,12 +159,11 @@ contains
       use mp, only: proc0
       use linear_solve, only: lu_decomposition
 
-      !> Parameters
-      use parameters_physics, only: include_apar, include_bpar
+      ! Parameters
       use parameters_physics, only: full_flux_surface, radial_variation
 
-      !> Routined needed to initialise the different field arrays depending on the 
-      !> physics being simulated
+      ! Routined needed to initialise the different field arrays depending on the 
+      ! physics being simulated
       use fields_fluxtube, only: init_fields_fluxtube
       use fields_electromagnetic, only: init_fields_electromagnetic
       use fields_ffs, only: init_fields_ffs
@@ -177,7 +175,7 @@ contains
       if (fields_initialised) return
       fields_initialised = .true.
 
-      !> Allocate arrays such as phi that are needed throughout the simulation
+      ! Allocate arrays such as phi that are needed throughout the simulation
       if (debug) write (*, *) 'fields::init_fields::allocate_arrays'
       call allocate_arrays
 
@@ -258,10 +256,10 @@ contains
 
       ! Parameters
       use parameters_physics, only: full_flux_surface, radial_variation 
-      !> Arrays
+      ! Arrays
       use arrays_store_fields, only: phi, phi_old
       use arrays_store_useful, only: gamtot, gamtot3
-      !> Routines for deallocating arrays fields depending on the physics being simulated
+      ! Routines for deallocating arrays fields depending on the physics being simulated
       use fields_ffs, only: finish_fields_ffs
       use fields_radial_variation, only: finish_radial_fields
       use fields_electromagnetic, only: finish_fields_electromagnetic

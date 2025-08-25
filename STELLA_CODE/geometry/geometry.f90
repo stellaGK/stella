@@ -157,14 +157,14 @@ contains
          call read_namelist_geometry_options (geo_option_switch, q_as_x)
 
          ! Only read in the geometry file if the geometry_option is set to be an input profile
-         !if (geo_option_switch==geo_option_inputprof) then
-         call read_namelist_geometry_from_txt(geometry_file, &
-               overwrite_bmag, overwrite_b_dot_grad_zeta, &
-               overwrite_gds2, overwrite_gds21, overwrite_gds22, &
-               overwrite_gds23, overwrite_gds24, &
-               overwrite_gbdrift, overwrite_cvdrift, &
-               overwrite_gbdrift0, set_bmag_const, overwrite_geometry) 
-         !end if
+         if (geo_option_switch==geo_option_inputprof) then
+            call read_namelist_geometry_from_txt(geometry_file, &
+                  overwrite_bmag, overwrite_b_dot_grad_zeta, &
+                  overwrite_gds2, overwrite_gds21, overwrite_gds22, &
+                  overwrite_gds23, overwrite_gds24, &
+                  overwrite_gbdrift, overwrite_cvdrift, &
+                  overwrite_gbdrift0, set_bmag_const, overwrite_geometry) 
+         end if
 
          ! Use Miller parameters or VMEC to get the geometry needed for stella 
          if (geo_option_switch==geo_option_local)     call get_geometry_arrays_from_Miller(nalpha)
@@ -504,7 +504,6 @@ contains
       subroutine calculate_twist_and_shift_geo_fac()
   
          use grids_z, only: boundary_option_switch, boundary_option_linked_stellarator 
-         use grids_z, only: shat_zero, grad_x_grad_y_zero
          use constants, only: pi
          use debug_flags, only: print_extra_info_to_terminal
          implicit none  
@@ -984,35 +983,6 @@ contains
       if (.not. allocated(b_dot_grad_zeta_RR)) allocate (b_dot_grad_zeta_RR(nalpha, -nzgrid:nzgrid)); b_dot_grad_zeta_RR = 0.0 
 
    end subroutine allocate_arrays
-
-   !============================================================================
-   !============= READ THE <GEO_KNOBS> NAMELIST FROM THE INPUT FILE ============
-   !============================================================================
-   subroutine read_parameters
-
-      ! Flags
-      use parameters_physics, only: radial_variation
-
-      ! Multibox runs
-      use file_utils, only: runtype_option_switch, runtype_multibox
-
-      ! Routines
-      use text_options, only: text_option, get_option_value
-      use file_utils, only: error_unit, input_unit_exist
-      use mp, only: job
-
-      implicit none
-      !---------------------------------------------------------------------- 
-
-      call read_namelist_geometry_options (geo_option_switch, q_as_x)
-
-      ! If any geometric array needs to be overwritten, set <overwrite_geometry> = True
-      overwrite_geometry = overwrite_bmag .or. overwrite_b_dot_grad_zeta &
-            .or. overwrite_gds2 .or. overwrite_gds21 .or. overwrite_gds22 &
-            .or. overwrite_gds23 .or. overwrite_gds24 &
-            .or. overwrite_cvdrift .or. overwrite_gbdrift .or. overwrite_gbdrift0
-
-   end subroutine read_parameters
 
    !============================================================================
    !============================= BROADCAST ARRAYS =============================
