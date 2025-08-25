@@ -1,3 +1,12 @@
+!###############################################################################
+!################# NONLINEAR TERM OF THE GYROKINETIC EQUATION ##################
+!###############################################################################
+! 
+! This module evolves the nonlinear term:
+!     (B_r/2) (dy/dalpha) (dx/dpsi) F_k ( F^{-1}_k [ik_y J_0 ϕ_k] F^{-1}_k [ik_x g_{k,s}]
+!        - F^{-1}_k [ik_x J_0 ϕ_k] F^{-1}_k [ik_y g_{k,s} ] )
+! 
+!###############################################################################
 module gk_nonlinearity
 
       use debug_flags, only: debug => time_advance_debug

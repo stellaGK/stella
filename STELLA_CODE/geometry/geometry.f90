@@ -348,6 +348,7 @@ contains
 
    subroutine get_geometry_arrays_from_VMEC(nalpha, naky) 
 
+      use mp, only: mp_abort
       use vmec_geometry, only: read_vmec_parameters, get_vmec_geometry 
       use vmec_geometry, only: radial_coordinate_switch, radial_coordinate_sgnpsitpsit
       use vmec_geometry, only: radial_coordinate_minuspsit, radial_coordinate_r 
@@ -372,16 +373,21 @@ contains
       real :: rho, shat, iota, field_period_ratio
       real :: dpsidpsit, dpsidx, dpsitdx, dxdpsit 
 
-      !---------------------------------------------------------------------- 
-
-      ! Read the <vmec_parameters> namelist in the input file    
+      !----------------------------------------------------------------------
+      
+      ! Pretty sure q_as_x is not implemented for VMEC
+      if (q_as_x) then
+         call mp_abort('q_as_x = True is not implemented for VMEC. Aborting.')
+      end if 
+      
+      ! Read the <vmec_parameters> namelist in the input file
       call read_vmec_parameters()
 
       ! Allocate geometry arrays 
       call allocate_arrays(nalpha, nzgrid)
       call allocate_temporary_arrays(nalpha, nzgrid)
 
-      ! Call the <vmec_geometry> module to calculate the geometric coefficients 
+      ! Call the <vmec_geometry> module to calculate the geometric coefficients
       ! needed by stella, based on the VMEC equilibrium file
       call get_vmec_geometry(nzgrid, nalpha, naky, geo_surf, grho, bmag, &
                b_dot_grad_z_averaged, b_dot_grad_z, & 
@@ -399,13 +405,13 @@ contains
 
       ! Define the (psi,alpha) and (x,y) coordinates
       if (radial_coordinate_switch==radial_coordinate_sgnpsitpsit) then
-         dxdpsi = 1. / rho    
+         dxdpsi = 1. / rho
          dydalpha = rho
          dpsidpsit = sign_torflux
          drhodpsi = 1. / rho
          clebsch_factor = sign_torflux
       else if (radial_coordinate_switch==radial_coordinate_minuspsit) then
-         dxdpsi = -sign_torflux / rho    
+         dxdpsi = -sign_torflux / rho
          dydalpha = rho
          dpsidpsit = -1
          drhodpsi = -sign_torflux / rho

@@ -1,4 +1,10 @@
-
+!###############################################################################
+!###############################################################################
+!###############################################################################
+! 
+! This module ...
+! 
+!###############################################################################
 module gk_time_advance
 
    use debug_flags, only: debug => time_advance_debug
@@ -25,7 +31,8 @@ contains
 
       use parameters_physics, only: radial_variation
       use parameters_physics, only: include_parallel_nonlinearity
-      use gk_drifts, only: init_wdrift, init_wstar
+      use gk_drive, only: init_wstar
+      use gk_magnetic_drift, only: init_wdrift
       use gk_parallel_streaming, only: init_parallel_streaming
       use gk_mirror, only: init_mirror
       use gk_flow_shear, only: init_flow_shear
@@ -577,8 +584,8 @@ contains
       use gk_parallel_streaming, only: advance_parallel_streaming_explicit
       use gk_mirror, only: advance_mirror_explicit
       use gk_flow_shear, only: advance_parallel_flow_shear
-      use gk_drifts, only: advance_wstar_explicit
-      use gk_drifts, only: advance_wdriftx_explicit, advance_wdrifty_explicit
+      use gk_drive, only: advance_wstar_explicit
+      use gk_magnetic_drift, only: advance_wdriftx_explicit, advance_wdrifty_explicit
       use gk_nonlinearity, only: advance_parallel_nonlinearity
       use gk_radial_variation, only: advance_radial_variation
       use gk_nonlinearity, only: advance_ExB_nonlinearity
@@ -906,7 +913,8 @@ contains
       use gk_parallel_streaming, only: finish_parallel_streaming
       use gk_mirror, only: finish_mirror
       use gk_flow_shear, only: finish_flow_shear
-      use gk_drifts, only: finish_wstar, finish_wdrift
+      use gk_drive, only: finish_wstar
+      use gk_magnetic_drift, only: finish_wdrift
       use gk_nonlinearity, only: finish_parallel_nonlinearity
       use gk_radial_variation, only: finish_radial_variation
       use neoclassical_terms, only: finish_neoclassical_terms

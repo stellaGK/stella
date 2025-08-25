@@ -4,6 +4,7 @@
 # >> make depend
 #
 stella_mod = \
+	 $(OBJ_DIR)/add_explicit_terms.o \
 	 $(OBJ_DIR)/arrays_constants.o \
 	 $(OBJ_DIR)/arrays_distribution_fn.o \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \
@@ -52,10 +53,11 @@ stella_mod = \
 	 $(OBJ_DIR)/geometry_vmec_read_netCDF_file.o \
 	 $(OBJ_DIR)/geometry_zpinch.o \
 	 $(OBJ_DIR)/git_version.o \
-	 $(OBJ_DIR)/gk_drifts.o \
+	 $(OBJ_DIR)/gk_drive.o \
 	 $(OBJ_DIR)/gk_ffs_solve.o \
 	 $(OBJ_DIR)/gk_flow_shear.o \
 	 $(OBJ_DIR)/gk_implicit_solve.o \
+	 $(OBJ_DIR)/gk_magnetic_drift.o \
 	 $(OBJ_DIR)/gk_mirror.o \
 	 $(OBJ_DIR)/gk_nonlinearity.o \
 	 $(OBJ_DIR)/gk_parallel_streaming.o \
@@ -113,6 +115,10 @@ stella_mod = \
 	 $(OBJ_DIR)/text_options.o \
 	 $(OBJ_DIR)/timestep_calculations.o 
 
+$(OBJ_DIR)/add_explicit_terms.o: \
+	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/parameters_kxky_grid.o \
+	 $(OBJ_DIR)/stella_layouts.o 
 $(OBJ_DIR)/arrays_constants.o: \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \
 	 $(OBJ_DIR)/arrays_store_useful.o \
@@ -680,7 +686,8 @@ $(OBJ_DIR)/geometry_zpinch.o: \
 	 $(OBJ_DIR)/namelist_geometry.o \
 	 $(OBJ_DIR)/stella_common_types.o 
 $(OBJ_DIR)/git_version.o: 
-$(OBJ_DIR)/gk_drifts.o: \
+$(OBJ_DIR)/gk_drive.o: \
+	 $(OBJ_DIR)/add_explicit_terms.o \
 	 $(OBJ_DIR)/arrays_store_distribution_fn.o \
 	 $(OBJ_DIR)/arrays_store_fields.o \
 	 $(OBJ_DIR)/arrays_store_useful.o \
@@ -690,7 +697,6 @@ $(OBJ_DIR)/gk_drifts.o: \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/geometry.o \
-	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
@@ -753,6 +759,28 @@ $(OBJ_DIR)/gk_implicit_solve.o: \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/linear_solve.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/neoclassical_terms.o \
+	 $(OBJ_DIR)/parameters_kxky_grid.o \
+	 $(OBJ_DIR)/parameters_numerical.o \
+	 $(OBJ_DIR)/parameters_physics.o \
+	 $(OBJ_DIR)/stella_layouts.o \
+	 $(OBJ_DIR)/stella_time.o 
+$(OBJ_DIR)/gk_magnetic_drift.o: \
+	 $(OBJ_DIR)/add_explicit_terms.o \
+	 $(OBJ_DIR)/arrays_store_distribution_fn.o \
+	 $(OBJ_DIR)/arrays_store_useful.o \
+	 $(OBJ_DIR)/calculations_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_kxky.o \
+	 $(OBJ_DIR)/calculations_kxky_derivatives.o \
+	 $(OBJ_DIR)/calculations_transforms.o \
+	 $(OBJ_DIR)/debug_flags.o \
+	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
+	 $(OBJ_DIR)/grids_velocity.o \
+	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/neoclassical_terms.o \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
@@ -900,9 +928,10 @@ $(OBJ_DIR)/gk_time_advance.o: \
 	 $(OBJ_DIR)/dissipation_hyper.o \
 	 $(OBJ_DIR)/fields.o \
 	 $(OBJ_DIR)/fields_radialvariation.o \
-	 $(OBJ_DIR)/gk_drifts.o \
+	 $(OBJ_DIR)/gk_drive.o \
 	 $(OBJ_DIR)/gk_flow_shear.o \
 	 $(OBJ_DIR)/gk_implicit_solve.o \
+	 $(OBJ_DIR)/gk_magnetic_drift.o \
 	 $(OBJ_DIR)/gk_mirror.o \
 	 $(OBJ_DIR)/gk_nonlinearity.o \
 	 $(OBJ_DIR)/gk_parallel_streaming.o \
@@ -1243,8 +1272,9 @@ $(OBJ_DIR)/timestep_calculations.o: \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/dissipation.o \
 	 $(OBJ_DIR)/file_utils.o \
-	 $(OBJ_DIR)/gk_drifts.o \
+	 $(OBJ_DIR)/gk_drive.o \
 	 $(OBJ_DIR)/gk_flow_shear.o \
+	 $(OBJ_DIR)/gk_magnetic_drift.o \
 	 $(OBJ_DIR)/gk_mirror.o \
 	 $(OBJ_DIR)/gk_parallel_streaming.o \
 	 $(OBJ_DIR)/gk_radial_variation.o \

@@ -1,3 +1,10 @@
+!###############################################################################
+!###############################################################################
+!###############################################################################
+! 
+! This module ...
+! 
+!###############################################################################
 module timestep_calculations
 
    use debug_flags, only: debug => time_advance_debug
@@ -167,7 +174,8 @@ contains
         use gk_mirror, only: init_mirror
         use gk_flow_shear, only: flow_shear_initialized
         use gk_flow_shear, only: init_flow_shear
-        use gk_drifts, only: init_wdrift, init_wstar
+        use gk_drive, only: init_wstar
+        use gk_magnetic_drift, only: init_wdrift
         use gk_radial_variation, only: init_radial_variation
         use gk_sources, only: init_source_timeaverage
         use gk_sources, only: init_quasineutrality_source, qn_source_initialized

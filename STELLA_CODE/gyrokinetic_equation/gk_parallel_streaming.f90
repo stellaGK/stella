@@ -1,3 +1,11 @@
+!###############################################################################
+!############# PARALLEL STREAMING TERM OF THE GYROKINETIC EQUATION #############
+!###############################################################################
+! 
+! This module evolves the parallel streaming term:
+!     v_{th,s} v_parallel b . ∇z ( ∂g_{k,s} / ∂z + Z_s/T_s ∂(J_0 ϕ_k) / ∂z exp(-v*2_s))
+! 
+!###############################################################################
 module gk_parallel_streaming
 
    use debug_flags, only: debug => parallel_streaming_debug 

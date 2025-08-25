@@ -1,111 +1,281 @@
-module gk_drifts
+!###############################################################################
+!############### MAGNETIC DRIFT TERM OF THE GYROKINETIC EQUATION ###############
+!###############################################################################
+! 
+! This module evolves the magnetic drift term:
+!     - i omega_{d,k,s} (g_{k,s} + Z_s/T_s J_0 ϕ_k exp(-v²)
+! 
+! 
+! Mathematics
+! -----------
+! 
+! The normalized magnetic drift frequency omega_{d,k,s} is given by equation (24) in [2019 - Barnes]:
+!     omega_{d,k,s} = Ts/Zs 1/B (v_parallel² v_kappa + mu_s v_∇B) (ky ∇y + kx ∇x)
+! 
+! Split up the magnetic drift frequencies in the contributions from curvature and ∇B
+!     omega_{curvature,d,k,s} = Ts/Zs 1/B (v_parallel² v_kappa) (ky ∇y + kx ∇x)
+!                             = v_parallel² 0.5 Ts/Zs (kx/shat*<cvdrift0> + ky*<cvdrift>)
+!                             = -1/code_dt (kx*<wcvdriftx> + ky*<wcvdrifty>)
+!            omega_{∇B,d,k,s} = Ts/Zs 1/B (mu_s v_∇B) (ky ∇y + kx ∇x)
+!                             = v_perp² 0.25 Ts/Zs (kx/shat*<gbvdrift0> + ky*<gbdrift>)
+!                             = -1/code_dt (kx*<wgbdriftx> + ky*<wgbdrifty>)
+! 
+! Variables defined in this routine
+! ---------------------------------
+! Curvature (cv) components of the magnetic drift along (kx,ky):
+!    kx*<wcvdriftx> + ky*<wcvdrifty> = - code_dt * omega_{curvature,d,k,s}
+!    <wcvdriftx> = -0.5 * code_dt * v_parallel² * Ts/Zs * <cvdrift0>/shat
+!    <wcvdrifty> = -0.5 * code_dt * v_parallel² * Ts/Zs * <cvdrift>
+! 
+! Gradient B (gb) components of the magnetic drift along (kx,ky):
+!    kx*<wgbdriftx> + ky*<wgbdrifty> = - code_dt * omega_{∇B,d,k,s}
+!    <wgbdriftx> = -0.25 * code_dt * v_perp² * Ts/Zs * <gbvdrift0>/shat
+!    <wgbdrifty> = -0.25 * code_dt * v_perp² * Ts/Zs * <gbvdrift>
+! 
+!###############################################################################
+module gk_magnetic_drift
 
    use debug_flags, only: debug => time_advance_debug
 
    implicit none
    
+   ! Make these routine available to gk_time_advance()
    public :: init_wdrift
-   public :: init_wstar
    public :: finish_wdrift
-   public :: finish_wstar
-
    public :: advance_wdriftx_explicit
    public :: advance_wdrifty_explicit
-   public :: advance_wstar_explicit
 
    private
 
 contains
 
-   !*****************************************************************************
+   !****************************************************************************
    !                           Initialise explicit drifts
-   !*****************************************************************************
+   !****************************************************************************
+   
    subroutine init_wdrift
 
+      use neoclassical_terms, only: include_neoclassical_terms
+      use arrays_store_useful, only: wdriftinit
+      
+      implicit none
+
+      if (wdriftinit) return
+      wdriftinit = .true.
+      
+      ! Allocate arrays that will be used thoughout the time advance
+      call allocate_arrays_wdrift
+
+      ! Add the neoclassical terms in a seperate subroutine since they 
+      ! require a lot of care with regards to vpa-space
+      if (include_neoclassical_terms) then
+         call init_wdrift_with_neoclassical_terms
+      else
+         call init_wdrift_without_neoclassical_terms
+      end if
+
+   end subroutine init_wdrift
+   
+   !------------------------- Without neoclassical terms -----------------------
+   subroutine init_wdrift_without_neoclassical_terms
+
+      
+      ! Parallelisation
       use mp, only: mp_abort
-      use arrays_store_useful, only: wdriftx_g, wdrifty_g
-      use arrays_store_useful, only: wdriftx_phi, wdrifty_phi
-      use arrays_store_useful, only: wdriftx_bpar, wdrifty_bpar
+      
+      ! Numerics
+      use parameters_numerical, only: maxwellian_normalization
+      
+      ! Geometry
+      use geometry, only: cvdrift, gbdrift
+      use geometry, only: cvdrift0, gbdrift0
+      use geometry, only: geo_surf, q_as_x
+      
+      ! Grids
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_time, only: code_dt
       use grids_species, only: spec
       use grids_z, only: nzgrid
       use parameters_kxky_grid, only: nalpha
-      use geometry, only: cvdrift, gbdrift
-      use geometry, only: cvdrift0, gbdrift0
-      use geometry, only: gds23, gds24
-      use geometry, only: geo_surf, q_as_x
-      use geometry, only: dxdpsi, drhodpsi, dydalpha
       use grids_velocity, only: vpa, vperp2, mu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use neoclassical_terms, only: include_neoclassical_terms
-      use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
-      use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
-      use parameters_numerical, only: maxwellian_normalization
-
+      
+      ! Scale the drift term in the gyrokinetic equation
       use parameters_physics, only: xdriftknob, ydriftknob
-      use arrays_store_useful, only: wdriftinit
+      
+      ! This routine fills the following arrays, with dimensions [ialpha, iz, ivmu]
+      use arrays_store_useful, only: wdriftx_g, wdrifty_g
+      use arrays_store_useful, only: wdriftx_phi, wdrifty_phi
+      use arrays_store_useful, only: wdriftx_bpar, wdrifty_bpar
+      
       implicit none
-
+      
+      ! Indices
       integer :: ivmu, iv, imu, is
+
+      ! Gather calculations
       real :: fac
+      
+      ! Temporary arrays
       real, dimension(:, :), allocatable :: wcvdrifty, wgbdrifty
       real, dimension(:, :), allocatable :: wcvdriftx, wgbdriftx
+      
+      !-------------------------------------------------------------------------
+      ! In this routine we calculate the following arrays with dimensions [ialpha, iz, ivmu]
+      !    <wcvdriftx> = 0.5 * code_dt * v_parallel² * Ts/Zs * <cvdrift0>/shat
+      !    <wcvdrifty> = 0.5 * code_dt * v_parallel² * Ts/Zs * <cvdrift>
+      !    <wgbdriftx> = 0.25 * code_dt * v_perp² * Ts/Zs * <gbvdrift0>/shat
+      !    <wgbdrifty> = 0.25 * code_dt * v_perp² * Ts/Zs * <gbvdrift>
+      ! 
+      ! The magnetic drift term in the gyrokinetic equation is given by,
+      !  - i omega_{d,k,s} (g_{k,s} + Z_s/T_s J_0 ϕ_k exp(-v²) )
+      ! 
+      ! Therefore, we add the fixed terms for g_{k,s} and ϕ_k
+      !    <wdriftx_g>[ialpha, iz, ivmu] = <wcvdriftx> + <wgbdriftx>
+      !    <wdrifty_g>[ialpha, iz, ivmu] = <wcvdrifty> + <wgbdrifty>
+      !    <wdriftx_phi>[ialpha, iz, ivmu] = Z_s/T_s * exp(-v²) * (<wcvdriftx> + <wgbdriftx>)
+      !    <wdrifty_phi>[ialpha, iz, ivmu] = Z_s/T_s * exp(-v²) * (<wcvdrifty> + <wgbdrifty>)
+      !-------------------------------------------------------------------------
 
-      if (wdriftinit) return
-      wdriftinit = .true.
-
-      ! Allocate wdriftx_phi, the factor multiplying dphi/dx in the magnetic drift term
-      if (.not. allocated(wdriftx_phi)) then
-         allocate (wdriftx_phi(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-         wdriftx_phi = 0.0
-      end if
-      ! Allocate wdrifty_phi, the factor multiplying dphi/dy in the magnetic drift term
-      if (.not. allocated(wdrifty_phi)) then
-         allocate (wdrifty_phi(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-         wdrifty_phi = 0.0
-      end if
-      ! Allocate wdriftx_bpar, the factor multiplying dbpar/dx in the magnetic drift term
-      if (.not. allocated(wdriftx_bpar)) then
-         allocate (wdriftx_bpar(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-         wdriftx_bpar = 0.0
-      end if
-      ! Allocate wdrifty_bpar, the factor multiplying dbpar/dy in the magnetic drift term
-      if (.not. allocated(wdrifty_bpar)) then
-         allocate (wdrifty_bpar(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-         wdrifty_bpar = 0.0
-      end if
-      ! Allocate wdriftx_g, the factor multiplying dg/dx in the magnetic drift term
-      if (.not. allocated(wdriftx_g)) then
-         allocate (wdriftx_g(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-         wdriftx_g = 0.0
-      end if
-      ! Allocate wdrifty_g, the factor multiplying dg/dy in the magnetic drift term
-      if (.not. allocated(wdrifty_g)) then
-         allocate (wdrifty_g(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-         wdrifty_g = 0.0
-      end if
-
+      ! Allocate temporary arrays
       allocate (wcvdrifty(nalpha, -nzgrid:nzgrid))
       allocate (wgbdrifty(nalpha, -nzgrid:nzgrid))
       allocate (wcvdriftx(nalpha, -nzgrid:nzgrid))
       allocate (wgbdriftx(nalpha, -nzgrid:nzgrid))
 
-      ! FLAG -- need to deal with shat=0 case.  ideally move away from q as x-coordinate
+      ! Iterate over velocity space
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
 
+         !----------------------------------------------------------------------
+         !----------------------- Calculate y-components -----------------------
+         !----------------------------------------------------------------------
+         
+         ! Calculate <wcvdrifty> = 0.5 * code_dt * Ts/Zs * v_parallel² * <cvdrift>
+         ! and <wgbdrifty> = 0.25 * code_dt * Ts/Zs * v_perp² * <gbvdrift>
+         ! We also add the input parameter <ydriftknob> to rescale the y-drifts
          fac = -ydriftknob * 0.5 * code_dt * spec(is)%tz_psi0
+         wcvdrifty = fac * cvdrift * vpa(iv) * vpa(iv)
+         wgbdrifty = fac * gbdrift * 0.5 * vperp2(:, :, imu)
+         
+         ! Calculate <wdrifty_g>[ialpha, iz, ivmu] = <wcvdrifty> + <wgbdrifty>
+         wdrifty_g(:, :, ivmu) = wcvdrifty + wgbdrifty
+         
+         ! Calculate <wdrifty_phi>[ialpha, iz, ivmu] = Z_s/T_s * exp(-v²) * (<wcvdrifty> + <wgbdrifty>)
+         wdrifty_phi(:, :, ivmu) = spec(is)%zt * (wcvdrifty + wgbdrifty)
+         if (.not. maxwellian_normalization) then
+            wdrifty_phi(:, :, ivmu) = wdrifty_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
+         end if
+         
+         ! TODO - write documentation and neoclassical terms not supported
+         wdrifty_bpar(:,:,ivmu) = 4.0 * mu(imu) * wdrifty_phi(:, :, ivmu) * spec(is)%tz
+         
+         !----------------------------------------------------------------------
+         !----------------------- Calculate x-components -----------------------
+         !----------------------------------------------------------------------
+
+         ! Calculate <wcvdriftx> = 0.5 * code_dt * v_parallel² * Ts/Zs * <cvdrift0>/shat
+         ! and <wgbdriftx> = 0.25 * code_dt * v_perp² * Ts/Zs * <gbvdrift0>/shat
+         ! Note that if x = q instead of x = r, we do not need the shat term here
+         if (q_as_x) then
+            fac = -xdriftknob * 0.5 * code_dt * spec(is)%tz_psi0
+         else
+            fac = -xdriftknob * 0.5 * code_dt * spec(is)%tz_psi0 / geo_surf%shat
+         end if
+         wcvdriftx = fac * cvdrift0 * vpa(iv) * vpa(iv)
+         wgbdriftx = fac * gbdrift0 * 0.5 * vperp2(:, :, imu)
+         
+         ! Calculate <wdriftx_g>[ialpha, iz, ivmu] = <wcvdriftx> + <wgbdriftx>
+         wdriftx_g(:, :, ivmu) = wcvdriftx + wgbdriftx
+         
+         ! Calculate <wdriftx_phi>[ialpha, iz, ivmu] = Z_s/T_s * exp(-v²) * (<wcvdriftx> + <wgbdriftx>)
+         wdriftx_phi(:, :, ivmu) = spec(is)%zt * (wcvdriftx + wgbdriftx)
+         if (.not. maxwellian_normalization) then
+            wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
+         end if
+         
+         ! TODO - write documentation and neoclassical terms not supported
+         wdriftx_bpar(:,:,ivmu) = 4.0 * mu(imu) * wdriftx_phi(:, :, ivmu) * spec(is)%tz
+
+      end do
+
+      deallocate (wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty) 
+
+   end subroutine init_wdrift_without_neoclassical_terms
+   
+   !-------------------------- With neoclassical terms -------------------------
+   subroutine init_wdrift_with_neoclassical_terms
+
+      use mp, only: mp_abort
+      use geometry, only: cvdrift, gbdrift
+      use geometry, only: cvdrift0, gbdrift0
+      use geometry, only: gds23, gds24
+      use geometry, only: geo_surf, q_as_x
+      use geometry, only: dxdpsi, drhodpsi, dydalpha
+      use neoclassical_terms, only: include_neoclassical_terms
+      use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
+      use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
+      use parameters_numerical, only: maxwellian_normalization
+      use parameters_physics, only: xdriftknob, ydriftknob
+      
+      ! Grids
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use stella_time, only: code_dt
+      use grids_species, only: spec
+      use grids_z, only: nzgrid
+      use parameters_kxky_grid, only: nalpha
+      use grids_velocity, only: vpa, vperp2, mu
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      
+      ! This routine fills the following arrays, with dimensions [ialpha, iz, ivmu]
+      use arrays_store_useful, only: wdriftx_g, wdrifty_g
+      use arrays_store_useful, only: wdriftx_phi, wdrifty_phi
+      use arrays_store_useful, only: wdriftx_bpar, wdrifty_bpar
+      
+      implicit none
+      
+      ! Indices
+      integer :: ivmu, iv, imu, is
+
+      ! Gather calculations
+      real :: fac
+      
+      ! Temporary arrays
+      real, dimension(:, :), allocatable :: wcvdrifty, wgbdrifty
+      real, dimension(:, :), allocatable :: wcvdriftx, wgbdriftx
+      
+      !-------------------------------------------------------------------------
+      ! FLAG -- need to deal with shat=0 case.  ideally move away from q as x-coordinate
+      !-------------------------------------------------------------------------
+
+      ! Allocate temporary arrays
+      allocate (wcvdrifty(nalpha, -nzgrid:nzgrid))
+      allocate (wgbdrifty(nalpha, -nzgrid:nzgrid))
+      allocate (wcvdriftx(nalpha, -nzgrid:nzgrid))
+      allocate (wgbdriftx(nalpha, -nzgrid:nzgrid))
+
+      ! Iterate over velocity space
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         iv = iv_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         is = is_idx(vmu_lo, ivmu)
+         
+         fac = -ydriftknob * 0.5 * code_dt * spec(is)%tz_psi0
+         
+         ! Calculate <wcvdrifty> = 0.5 * code_dt * Ts/Zs * v_parallel² * <cvdrift>
          ! This is the curvature drift piece of wdrifty with missing factor of vpa
          ! vpa factor is missing to avoid singularity when including
          ! non-Maxwellian corrections to equilibrium
          wcvdrifty = fac * cvdrift * vpa(iv)
+         
          ! This is the grad-B drift piece of wdrifty
          wgbdrifty = fac * gbdrift * 0.5 * vperp2(:, :, imu)
          wdrifty_g(:, :, ivmu) = wcvdrifty * vpa(iv) + wgbdrifty
+         
          ! if including neoclassical correction to equilibrium Maxwellian,
          ! then add in v_E^{nc} . grad y dg/dy coefficient here
          if (include_neoclassical_terms) then
@@ -119,8 +289,10 @@ contains
          if (.not. maxwellian_normalization) then
                wdrifty_phi(:, :, ivmu) = wdrifty_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          end if
+         
          ! assign wdrifty_bpar, neoclassical terms not supported
          wdrifty_bpar(:,:,ivmu) = 4.0 * mu(imu) * wdrifty_phi(:, :, ivmu) * spec(is)%tz
+         
          ! if including neoclassical corrections to equilibrium,
          ! add in -(Ze/m) * v_curv/vpa . grad y d<phi>/dy * dF^{nc}/dvpa term
          ! and v_E . grad z dF^{nc}/dz (here get the dphi/dy part of v_E)
@@ -131,8 +303,8 @@ contains
                call mp_abort("include_neoclassical_terms=T not currently supported for maxwellian_normalization=T.  aborting")
                end if
                wdrifty_phi(:, :, ivmu) = wdrifty_phi(:, :, ivmu) &
-                                       - 0.5 * spec(is)%zt * dfneo_dvpa(:, :, ivmu) * wcvdrifty &
-                                       - code_dt * 0.5 * dfneo_dzed(:, :, ivmu) * gds23
+                  - 0.5 * spec(is)%zt * dfneo_dvpa(:, :, ivmu) * wcvdrifty &
+                  - code_dt * 0.5 * dfneo_dzed(:, :, ivmu) * gds23
          end if
 
          if (q_as_x) then
@@ -140,26 +312,33 @@ contains
          else
                fac = -xdriftknob * 0.5 * code_dt * spec(is)%tz_psi0 / geo_surf%shat
          end if
+         
          ! This is the curvature drift piece of wdriftx with missing factor of vpa
          ! vpa factor is missing to avoid singularity when including
          ! non-Maxwellian corrections to equilibrium
          wcvdriftx = fac * cvdrift0 * vpa(iv)
+         
          ! This is the grad-B drift piece of wdriftx
          wgbdriftx = fac * gbdrift0 * 0.5 * vperp2(:, :, imu)
          wdriftx_g(:, :, ivmu) = wcvdriftx * vpa(iv) + wgbdriftx
+         
          ! if including neoclassical correction to equilibrium Maxwellian,
          ! then add in v_E^{nc} . grad x dg/dx coefficient here
          if (include_neoclassical_terms) then
                wdriftx_g(:, :, ivmu) = wdriftx_g(:, :, ivmu) + code_dt * 0.5 * (gds24 * dphineo_dzed - dxdpsi * dphineo_dalpha)
          end if
+         
          wdriftx_phi(:, :, ivmu) = spec(is)%zt * (wgbdriftx + wcvdriftx * vpa(iv))
+         
          ! if maxwellian_normalizatiion = .true., evolved distribution function is normalised by a Maxwellian
          ! otherwise, it is not; a Maxwellian weighting factor must thus be included
          if (.not. maxwellian_normalization) then
                wdriftx_phi(:, :, ivmu) = wdriftx_phi(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
          end if
+         
          ! assign wdriftx_bpar, neoclassical terms not supported
          wdriftx_bpar(:,:,ivmu) = 4.0 * mu(imu) * wdriftx_phi(:, :, ivmu) * spec(is)%tz
+         
          ! if including neoclassical corrections to equilibrium,
          ! add in (Ze/m) * v_curv/vpa . grad x d<phi>/dx * dF^{nc}/dvpa term
          ! and v_E . grad z dF^{nc}/dz (here get the dphi/dx part of v_E)
@@ -177,161 +356,69 @@ contains
 
       end do
 
-      deallocate (wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty)
+      deallocate (wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty) 
 
-   end subroutine init_wdrift
-
-   subroutine init_wstar
-
-      use mp, only: mp_abort
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use stella_time, only: code_dt
-      use grids_species, only: spec
+   end subroutine init_wdrift_with_neoclassical_terms
+      
+   !---------------------------- Allocate arrays ---------------------------
+   subroutine allocate_arrays_wdrift
+      
+      ! Grids
       use grids_z, only: nzgrid
       use parameters_kxky_grid, only: nalpha
-      use geometry, only: dydalpha, drhodpsi, clebsch_factor
-      use grids_velocity, only: vperp2, vpa
-      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use arrays_store_useful, only: wstar
-      use neoclassical_terms, only: include_neoclassical_terms
-      use neoclassical_terms, only: dfneo_drho
-      use parameters_numerical, only: maxwellian_normalization
-
-      use parameters_physics, only: wstarknob
-      use arrays_store_useful, only: wstarinit
+      use stella_layouts, only: vmu_lo
+    
+      ! Allocate the following arrays with dimensions [ialpha, iz, ivmu]
+      use arrays_store_useful, only: wdriftx_g, wdrifty_g
+      use arrays_store_useful, only: wdriftx_phi, wdrifty_phi
+      use arrays_store_useful, only: wdriftx_bpar, wdrifty_bpar
 
       implicit none
 
-      integer :: is, imu, iv, ivmu
-      real, dimension(:, :), allocatable :: energy
-
-      if (wstarinit) return
-      wstarinit = .true.
-
-      if (.not. allocated(wstar)) &
-         allocate (wstar(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstar = 0.0
-
-      allocate (energy(nalpha, -nzgrid:nzgrid))
-
-      ! We have wstar = - (1/C) (a*Bref) (dy/dalpha) (d/dpsi) ... 
-      ! The profile gradients are given with respect to r, i.e., <fprim> = -(a/n)(dn/dr)
-      ! wstar = - (1/C) (a*Bref) (dy/dalpha) (1/n) (dn/dpsi) ... 
-      !       = - (1/C) (a*Bref) (dy/dalpha) (dr/dpsi) (1/n) (dn/dr) ... 
-      !       = - (1/C) * (1/a) (dy/dalpha) * (a*Bref) (dr/dpsi) * (a/n) (dn/dr) ... 
-      !       = - (1/<clebsch_factor>) * <dydalpha> * <drhodpsi> * <fprim> ...
-      ! Note that for psi=psit we have B = sign_torflux ∇ψ x ∇α 
-      ! Note that for psi=psip we have B = - ∇ψ x ∇α  
-      !     <dydalpha> = (rhor/a)(d(y/rhor)/dalpha) = (1/a)(dy/dalpha) 
-      !     <drhodpsi> = drho/dψ̃ = d(r/a)/d(psi/(a^2*Br)) = (a*Bref) * dr/dpsi
-      !     1/<clebsch_factor> = -1 or sign_torflux
-      ! Note that for psi=q we have B = - (dpsi_p/dq) ∇ψ x ∇α and,
-      !     <drhodpsi> = drho/dq = d(r/a)/dq = (1/a) * dr/dq
-      !     <dydalpha> = (rhor/a)(d(y/rhor)/dalpha) = (1/a)(dy/dalpha) 
-      !     1/<clebsch_factor> = - dq/d(psip/(a^2*Br)) = - (a^2*Bref) (qd/dpsi_p) 
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         is = is_idx(vmu_lo, ivmu)
-         imu = imu_idx(vmu_lo, ivmu)
-         iv = iv_idx(vmu_lo, ivmu)
-         energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
-         if (include_neoclassical_terms) then
-               if (maxwellian_normalization) then
-               call mp_abort("include_neoclassical_terms = T not yet supported for maxwellian_normalization = T. Aborting.")
-               else
-               wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
-                                 * (maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is) &
-                                       * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5)) &
-                                       - dfneo_drho(:, :, ivmu))
-               end if
-         else
-               wstar(:, :, ivmu) = - (1/clebsch_factor) * dydalpha * drhodpsi * wstarknob * 0.5 * code_dt &
-                                 * (spec(is)%fprim + spec(is)%tprim * (energy - 1.5))
-         end if
-         if (.not. maxwellian_normalization) then
-               wstar(:, :, ivmu) = wstar(:, :, ivmu) * maxwell_vpa(iv, is) * maxwell_mu(:, :, imu, is) * maxwell_fac(is)
-         end if
-      end do
-
-      deallocate (energy)
-
-   end subroutine init_wstar
+      ! Allocate wdriftx_phi, the factor multiplying dphi/dx in the magnetic drift term
+      if (.not. allocated(wdriftx_phi)) then
+         allocate (wdriftx_phi(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         wdriftx_phi = 0.0
+      end if
+      
+      ! Allocate wdrifty_phi, the factor multiplying dphi/dy in the magnetic drift term
+      if (.not. allocated(wdrifty_phi)) then
+         allocate (wdrifty_phi(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         wdrifty_phi = 0.0
+      end if
+      
+      ! Allocate wdriftx_bpar, the factor multiplying dbpar/dx in the magnetic drift term
+      if (.not. allocated(wdriftx_bpar)) then
+         allocate (wdriftx_bpar(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         wdriftx_bpar = 0.0
+      end if
+      
+      ! Allocate wdrifty_bpar, the factor multiplying dbpar/dy in the magnetic drift term
+      if (.not. allocated(wdrifty_bpar)) then
+         allocate (wdrifty_bpar(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         wdrifty_bpar = 0.0
+      end if
+      
+      ! Allocate wdriftx_g, the factor multiplying dg/dx in the magnetic drift term
+      if (.not. allocated(wdriftx_g)) then
+         allocate (wdriftx_g(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         wdriftx_g = 0.0
+      end if
+      
+      ! Allocate wdrifty_g, the factor multiplying dg/dy in the magnetic drift term
+      if (.not. allocated(wdrifty_g)) then
+         allocate (wdrifty_g(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         wdrifty_g = 0.0
+      end if
+      
+   end subroutine allocate_arrays_wdrift
 
    !*****************************************************************************
    !                           Advance explicit drifts
    !*****************************************************************************
-   subroutine advance_wstar_explicit(phi, gout)
-
-      use mp, only: proc0, mp_abort
-      use job_manage, only: time_message
-      use arrays_store_fields, only: apar, bpar
-      use stella_layouts, only: vmu_lo
-      use calculations_transforms, only: transform_ky2y
-      use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
-      use calculations_kxky, only: swap_kxky
-      use parameters_physics, only: full_flux_surface
-      use arrays_store_useful, only: wstar
-      use arrays_store_distribution_fn, only: g_scratch
-      use calculations_gyro_averages, only: gyro_average
-
-      use calculations_kxky_derivatives, only: get_dgdy, get_dchidy
-      use arrays_store_useful, only: time_gke
-
-      implicit none
-
-      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
-
-      complex, dimension(:, :, :, :, :), allocatable :: g0, g0y
-      complex, dimension(:, :), allocatable :: g0_swap
-
-      integer :: iz, it, ivmu
-
-      ! start timing the time advance due to the driving gradients
-      if (proc0) call time_message(.false., time_gke(:, 6), ' wstar advance')
-
-      allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-
-      if (full_flux_surface) then
-         ! assume only a single flux surface simulated
-         it = 1
-         allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-         allocate (g0_swap(naky_all, ikx_max))
-
-         ! calculate d<phi>/dy in k-space
-         ! Here g_scratch is <phi> in k-space that has been pre-calculated and stored
-         call get_dgdy(g_scratch, g0)
-         
-         ! transform d<phi>/dy from ky-space to y-space
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               do iz = -nzgrid, nzgrid
-               call swap_kxky(g0(:, :, iz, it, ivmu), g0_swap)
-               call transform_ky2y(g0_swap, g0y(:, :, iz, it, ivmu))
-               end do
-         end do
-         ! multiply d<chi>/dy with omega_* coefficient and add to source (RHS of GK eqn)
-         !       call add_wstar_term_ffs (g0y, gout)
-         call add_explicit_term_ffs(g0y, wstar, gout)
-         deallocate (g0y, g0_swap)
-      else
-         ! get d<chi>/dy in k-space
-         if (debug) write (*, *) 'time_advance::solve_gke::get_dchidy'
-         call get_dchidy(phi, apar, bpar, g0)
-         ! omega_* stays in ky,kx,z space with ky,kx,z local
-         ! multiply d<chi>/dy with omega_* coefficient and add to source (RHS of GK eqn)
-         if (debug) write (*, *) 'time_advance::solve_gke::add_wstar_term'
-         !       call add_wstar_term (g0, gout)
-         call add_explicit_term(g0, wstar(1, :, :), gout)
-      end if
-      deallocate (g0)
-
-      ! stop timing the time advance due to the driving gradients
-      if (proc0) call time_message(.false., time_gke(:, 6), ' wstar advance')
-
-   end subroutine advance_wstar_explicit
-
    ! advance_wdrifty_explicit subroutine calculates and adds the y-component of the
    ! magnetic drift term to the RHS of the GK equation
+   !*****************************************************************************
    subroutine advance_wdrifty_explicit(g, phi, bpar, gout)
 
       use mp, only: proc0
@@ -345,9 +432,8 @@ contains
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use arrays_store_useful, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
       use arrays_store_distribution_fn, only: g_scratch
-
+      use add_explicit_terms, only: add_explicit_term, add_explicit_term_ffs
       use calculations_kxky_derivatives, only: get_dgdy
-
       use arrays_store_useful, only: time_gke
 
       implicit none
@@ -457,7 +543,7 @@ contains
       use arrays_store_useful, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
       use arrays_store_distribution_fn, only: g_scratch
       use calculations_kxky_derivatives, only: get_dgdx
-
+      use add_explicit_terms, only: add_explicit_term, add_explicit_term_ffs
       use arrays_store_useful, only: time_gke
 
       implicit none
@@ -548,65 +634,6 @@ contains
       
    end subroutine advance_wdriftx_explicit
 
-   subroutine add_explicit_term(g, pre_factor, src)
-
-      use stella_layouts, only: vmu_lo
-      use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: naky, nakx
-
-      implicit none
-
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      real, dimension(-nzgrid:, vmu_lo%llim_proc:), intent(in) :: pre_factor
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: src
-
-      integer :: ivmu
-      integer :: iky, ikx, iz, it
-
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
-               do ikx = 1, nakx
-                  do iky = 1, naky
-                     src(iky, ikx, iz, it, ivmu) = src(iky, ikx, iz, it, ivmu) + pre_factor(iz, ivmu) * g(iky, ikx, iz, it, ivmu)
-                  end do
-               end do
-               end do
-         end do
-      end do
-
-   end subroutine add_explicit_term
-
-   ! add vM . grad y d<phi>/dy or vM . grad x d<phi>/dx (or equivalents with g) or omega_* * d<phi>/dy term to RHS of GK equation
-   subroutine add_explicit_term_ffs(g, pre_factor, src)
-
-      use stella_layouts, only: vmu_lo
-      use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: ikx_max, nalpha
-
-      implicit none
-
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      real, dimension(:, -nzgrid:, vmu_lo%llim_proc:), intent(in) :: pre_factor
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: src
-
-      integer :: ivmu
-      integer :: ia, ikx, iz, it
-
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
-               do ikx = 1, ikx_max
-                  do ia = 1, nalpha
-                     src(ia, ikx, iz, it, ivmu) = src(ia, ikx, iz, it, ivmu) + pre_factor(ia, iz, ivmu) * g(ia, ikx, iz, it, ivmu)
-                  end do
-               end do
-               end do
-         end do
-      end do
-
-   end subroutine add_explicit_term_ffs
-
    !*****************************************************************************
    !                           Finalise explicit drifts
    !*****************************************************************************
@@ -626,17 +653,5 @@ contains
       wdriftinit = .false.
 
    end subroutine finish_wdrift
-
-   subroutine finish_wstar 
-
-      use arrays_store_useful, only: wstar, wstarinit
-
-      implicit none
-
-      if (allocated(wstar)) deallocate (wstar)
-
-      wstarinit = .false.
-
-   end subroutine finish_wstar
    
-end module gk_drifts
+end module gk_magnetic_drift

@@ -1,3 +1,11 @@
+!###############################################################################
+!################### MIRROR TERM OF THE GYROKINETIC EQUATION ###################
+!###############################################################################
+! 
+! This module evolves the magnetic mirror term:
+!     - v_{th,s} mu_s b . ∇B ∂g_{k,s} / ∂v_parallel
+! 
+!###############################################################################
 module gk_mirror
 
    use debug_flags, only: debug => mirror_terms_debug 
