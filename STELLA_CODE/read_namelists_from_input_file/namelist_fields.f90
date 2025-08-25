@@ -2,31 +2,79 @@
 !####################### READ STELLA NAMELISTS FOR FIELDS ######################
 !###############################################################################
 ! 
-! This module will set the default input input parameters for each name list,
-! and it will read the stella input file per namelist.
+! This module will read the namelists associated with the fields:
 ! 
-! For each namelists two (or three) routines will exist:
+!   initialise_distribution
+!      initialise_distribution_option = 'default'
+!      phiinit = 1.0
+!      scale_to_phiinit = .false.
+! 
+!   initialise_distribution_maxwellian
+!      width0 = -3.5
+!      den0 = 1.
+!      upar0 = 0.
+!      oddparity = .false.
+!      chop_side = .false.
+!      left = .true.
+! 
+!   initialise_distribution_noise
+!      zf_init = 1.0
+!      chop_side = .false.
+!      left = .true.
+!      rng_seed = -1
+! 
+!   initialise_distribution_kpar
+!      width0 = -3.5
+!      refac = 1.
+!      imfac = 0.
+!      den0 = 1.
+!      upar0 = 0.
+!      tpar0 = 0.
+!      tperp0 = 0.
+!      den1 = 0.
+!      upar1 = 0.
+!      tpar1 = 0.
+!      tperp1 = 0.
+!      den2 = 0.
+!      upar2 = 0.
+!      tpar2 = 0.
+!      tperp2 = 0.
+!      chop_side = .false.
+!      left = .true.
+! 
+!   initialise_distribution_rh
+!      kxmax = 1e+100
+!      kxmin = 0.0
+!      imfac = 0.0
+!      refac = 1.0
+! 
+!   restart_options
+!      tstart = 0.0
+!      scale = 1.0
+!      restart_file = trim(run_name)//'.nc'
+!      restart_dir = './'
+!      read_many = .true.
+! 
+! Text options for <initialise_distribution:initialise_distribution_option> are:
+!   {default, maxwellian, noise, many, kpar, rh, remap}
+!  
+! The default option is the Maxwellian initialisation.
+! 
+! For each namelists two (or three) routines exist:
 !    - set_default_parameters_<namelist>
 !    - read_namelist_<namelist>
 !    - check_inputs_<namelist>
 ! 
-! First we will set the default input parameters, and then we will overwrite
-! any default options with those specified in the input file. Optionally
-! we can check if any input variables are clashing with each other.
-! 
-! Overview of stella namelists in the fields folder:
-!   initialise_distribution (renamed from init_g_knobs)
-!   initialise_distribution_maxwellian
-!   initialise_distribution_noise
-!   initialise_distribution_kpar
-!   initialise_distribution_rh
-!   restart_options
+! First the default input parameters are set, then the default options are
+! overwritten with those specified in the input file. Optionally, it is 
+! checked whether any input variables are clashing with each other.
 ! 
 !###############################################################################
 module namelist_fields
 
    implicit none
 
+   ! Make reading routines accesible to other modules
    public :: read_namelist_initialise_distribution
    public :: read_namelist_initialise_distribution_maxwellian
    public :: read_namelist_initialise_distribution_noise
@@ -40,7 +88,7 @@ module namelist_fields
    
    private
    
-   ! Create parameters for the <init_distribution_option>
+   ! Create parameters for <init_distribution_option>
    integer, parameter :: init_distribution_option_maxwellian = 1
    integer, parameter :: init_distribution_option_noise = 2
    integer, parameter :: init_distribution_option_restart_many = 3
@@ -55,7 +103,7 @@ module namelist_fields
 contains
    
    !****************************************************************************
-   !                   initialise POTENTIAL: READ THE SWITCH                   !
+   !                   INITIALISE POTENTIAL: READ THE SWITCH                   !
    !****************************************************************************
    subroutine read_namelist_initialise_distribution(init_distribution_switch, phiinit, scale_to_phiinit)
 
@@ -70,6 +118,8 @@ contains
       
       ! Local variable to set <init_distribution_switch>
       character(20) :: initialise_distribution_option
+      
+      !-------------------------------------------------------------------------
 
       if (.not. proc0) return
       call set_default_parameters_initialise_distribution
@@ -82,10 +132,7 @@ contains
 
          implicit none
 
-         ! Options: {default, maxwellian, snoise, many, kpar, rh, remap}
-         initialise_distribution_option = "maxwellian"
-         
-         ! Other options
+         initialise_distribution_option = 'maxwellian'
          phiinit = 1.0
          scale_to_phiinit = .false.
 
@@ -118,31 +165,34 @@ contains
          !----------------------------------------------------------------------
 
          ! Overwrite the default input parameters by those specified in the input file
-         in_file = input_unit_exist("initialise_distribution", dexist)
+         in_file = input_unit_exist('initialise_distribution', dexist)
          if (dexist) read (unit=in_file, nml=initialise_distribution)
          
          ! Read the text option in <initialise_distribution> and store it in <init_distribution_switch>
          ierr = error_unit()
          call get_option_value(initialise_distribution_option, init_distribution_options, init_distribution_switch, &
-            ierr, "initialise_distribution_option in initialise_distribution")
+            ierr, 'initialise_distribution_option in initialise_distribution')
 
       end subroutine read_input_file_initialise_distribution
 
    end subroutine read_namelist_initialise_distribution
    
    !****************************************************************************
-   !                      initialise POTENTIAL: MAXWELLIAN                     !
+   !                      INITIALISE POTENTIAL: MAXWELLIAN                     !
    !****************************************************************************
    subroutine read_namelist_initialise_distribution_maxwellian(width0, den0, upar0, oddparity, left, chop_side)
 
       use mp, only: proc0
-
+      
       implicit none
       
+      ! Variables that are read from the input file
       real, intent(out) :: width0, den0, upar0
       logical, intent(out) :: oddparity
       logical, intent(out) :: left
       logical, intent(out) :: chop_side
+      
+      !-------------------------------------------------------------------------
 
       if (.not. proc0) return
       call set_default_parameters_initialise_distribution_maxwellian
@@ -168,10 +218,11 @@ contains
       subroutine read_input_file_initialise_distribution_maxwellian
 
          use file_utils, only: input_unit_exist
+         
          implicit none
 
          namelist /initialise_distribution_maxwellian/ width0, den0, upar0, oddparity, left, chop_side
-         in_file = input_unit_exist("initialise_distribution_maxwellian", dexist)
+         in_file = input_unit_exist('initialise_distribution_maxwellian', dexist)
          if (dexist) read (unit=in_file, nml=initialise_distribution_maxwellian) 
 
       end subroutine read_input_file_initialise_distribution_maxwellian
@@ -179,7 +230,7 @@ contains
    end subroutine read_namelist_initialise_distribution_maxwellian
    
    !****************************************************************************
-   !                       initialise DISTRIBUTION: NOISE                      !
+   !                       INITIALISE DISTRIBUTION: NOISE                      !
    !****************************************************************************
    subroutine read_namelist_initialise_distribution_noise(zf_init, left, chop_side, &
                            rng_seed)
@@ -188,10 +239,13 @@ contains
 
       implicit none
       
+      ! Variables that are read from the input file
       real, intent(out) :: zf_init
       logical, intent(out) :: left
       logical, intent(out) :: chop_side
       integer, intent (out)  :: rng_seed
+      
+      !-------------------------------------------------------------------------
 
       if (.not. proc0) return
       call set_default_parameters_initialise_distribution_noise
@@ -218,7 +272,7 @@ contains
          implicit none
 
          namelist /initialise_distribution_noise/ zf_init, left, chop_side, rng_seed
-         in_file = input_unit_exist("initialise_distribution_noise", dexist)
+         in_file = input_unit_exist('initialise_distribution_noise', dexist)
          if (dexist) read (unit=in_file, nml=initialise_distribution_noise) 
 
       end subroutine read_input_file_initialise_distribution_noise
@@ -226,7 +280,7 @@ contains
    end subroutine read_namelist_initialise_distribution_noise
    
    !****************************************************************************
-   !                         initialise POTENTIAL: KPAR                        !
+   !                         INITIALISE POTENTIAL: KPAR                        !
    !****************************************************************************
    subroutine read_namelist_initialise_distribution_kpar(&
          width0, refac, imfac, den0, upar0, tpar0, tperp0, &
@@ -236,12 +290,15 @@ contains
 
       implicit none
       
+      ! Variables that are read from the input file
       real, intent(out) :: width0, imfac, refac
       real, intent(out) :: den0, upar0, tpar0, tperp0
       real, intent(out) :: den1, upar1, tpar1, tperp1
       real, intent(out) :: den2, upar2, tpar2, tperp2
       logical, intent(out) :: left
       logical, intent(out) :: chop_side
+      
+      !-------------------------------------------------------------------------
 
       if (.not. proc0) return
       call set_default_parameters_initialise_distribution_kpar
@@ -282,7 +339,7 @@ contains
 
          namelist /initialise_distribution_kpar/ width0, refac, imfac, den0, upar0, &
             tpar0, tperp0, den1, upar1, tpar1, tperp1, den2, upar2, tpar2, tperp2, left, chop_side
-         in_file = input_unit_exist("initialise_distribution_kpar", dexist)
+         in_file = input_unit_exist('initialise_distribution_kpar', dexist)
          if (dexist) read (unit=in_file, nml=initialise_distribution_kpar) 
 
       end subroutine read_input_file_initialise_distribution_kpar
@@ -290,7 +347,7 @@ contains
    end subroutine read_namelist_initialise_distribution_kpar
    
    !****************************************************************************
-   !                          initialise POTENTIAL: RH                         !
+   !                          INITIALISE POTENTIAL: RH                         !
    !****************************************************************************
    subroutine read_namelist_initialise_distribution_rh(kxmin, kxmax, imfac, refac)
 
@@ -298,8 +355,11 @@ contains
 
       implicit none
       
+      ! Variables that are read from the input file
       real, intent(out) :: kxmax, kxmin
       real, intent(out) :: imfac, refac
+      
+      !-------------------------------------------------------------------------
 
       if (.not. proc0) return
       call set_default_parameters_initialise_distribution_rh
@@ -326,7 +386,7 @@ contains
          implicit none
 
          namelist /initialise_distribution_rh/ kxmin, kxmax, imfac, refac
-         in_file = input_unit_exist("initialise_distribution_rh", dexist)
+         in_file = input_unit_exist('initialise_distribution_rh', dexist)
          if (dexist) read (unit=in_file, nml=initialise_distribution_rh) 
 
       end subroutine read_input_file_initialise_distribution_rh
@@ -342,10 +402,13 @@ contains
 
       implicit none
        
+      ! Variables that are read from the input file
       real, intent(out) :: tstart, scale
       logical, intent(out) :: read_many
       character(len=300), intent(inout) :: restart_file
       character(len=150), intent(inout) :: restart_dir
+      
+      !-------------------------------------------------------------------------
 
       if (.not. proc0) return
       call set_default_parameters_restart_options
@@ -362,8 +425,8 @@ contains
          
          tstart = 0.0
          scale = 1.0
-         restart_file = trim(run_name)//".nc"
-         restart_dir = "./"
+         restart_file = trim(run_name)//'.nc'
+         restart_dir = './'
          read_many = .true.
          
          ! Note that the <read_many> and <save_many> are initialised at the
@@ -378,7 +441,7 @@ contains
          implicit none
 
          namelist /restart_options/ tstart, scale, restart_file, restart_dir, read_many
-         in_file = input_unit_exist("restart_options", dexist)
+         in_file = input_unit_exist('restart_options', dexist)
          if (dexist) read (unit=in_file, nml=restart_options) 
 
       end subroutine read_input_file_restart_options

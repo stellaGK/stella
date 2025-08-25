@@ -66,7 +66,9 @@ module parameters_physics
    ! public :: include_pressure_variation 
    ! public :: include_geometric_variation  
    public :: zeff
-   public :: vnew_ref   
+   public :: vnew_ref
+   
+   public :: initialised_parameters_physics
 
    private
 
@@ -115,7 +117,7 @@ module parameters_physics
    !!!! NEED TO MOVE ??
    real :: zeff, vnew_ref
    
-   logical :: initialised = .false.
+   logical :: initialised_parameters_physics = .false.
 
 contains
 
@@ -131,7 +133,7 @@ contains
 
    implicit none
 
-   if (initialised) return
+   if (initialised_parameters_physics) return
 
    if (proc0) call read_namelist_gyrokinetic_terms (simulation_domain_switch, & 
       include_parallel_streaming, include_mirror, &
@@ -167,7 +169,7 @@ contains
       stop
    end if
 
-   initialised = .true.
+   initialised_parameters_physics = .true.
 
  contains 
    
@@ -242,7 +244,7 @@ contains
  !**********************************************************************
  subroutine finish_read_parameters_physics
    implicit none
-   initialised = .false.
+   initialised_parameters_physics = .false.
  end subroutine finish_read_parameters_physics
 
 end module parameters_physics

@@ -282,6 +282,7 @@
   write_moments = .false.
   write_radial_moments = .false.
 /
+
 !===============================================================================
 !                              Initialise potential                             
 !===============================================================================
@@ -525,7 +526,7 @@
 !===============================================================================
 
 &debug_flags
-  print_extra_info_to_terminal = .true. 
+  print_extra_info_to_terminal = .true.
   debug_all = .false.
   stella_debug = .false.
   ffs_solve_debug = .false.
