@@ -35,20 +35,20 @@
  nalpha=1
 /
 &kt_grids_box_parameters
- ny = 91
- nx = 91
- y0 = 15
+ ny = 6
+ nx = 6
+ y0 = 10
 /
 &zgrid_parameters
- nzed = 48
+ nzed = 12
  nperiod = 1
  boundary_option = 'linked'
  zed_equal_arc = T
  twist_shift_option = 'stellarator'
 /
 &vpamu_grids_parameters
- nvgrid = 24
- nmu = 12
+ nvgrid = 12
+ nmu = 6
  vpa_max = 3.0
  vperp_max = 3.0
 /

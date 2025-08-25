@@ -40,7 +40,7 @@
   surface_option = 0.0
   radial_coordinate = 'sgn(psi_t)psi_t'
   verbose = .true.
-  vmec_filename = 'equilibria/wout_w7x_standardconfig.nc'
+  vmec_filename = 'wout.nc'
   n_tolerated_test_arrays_inconsistencies = 0.0
 /
 
@@ -71,13 +71,12 @@
   simulation_domain = 'fluxtube'
   include_parallel_streaming = .true.
   include_mirror = .true.
-  include_xdrift = .true.
-  include_ydrift = .true.
+  include_xdrift = .true. !! xdriftknob = 1.0 or 0.0 
+  include_ydrift = .true. !! ydriftknob = 1.0 or 0.0
   include_drive = .true. !! wstarknob = 1.0 or 0.0
   include_nonlinear = .false.
   include_parallel_nonlinearity = .false.
   include_electromagnetic = .false.
-  include_full_flux_annulus = .false.
   include_radial_variation = .false.
 /
 
@@ -110,7 +109,7 @@
 /
 
 &physics_inputs
-  rhostar = - 1.0
+  rhostar = -1.0
   zeff = 1.0
   vnew_ref = -1.0
 /
@@ -141,7 +140,7 @@
   d2ndr2 = 0.0
   d2tdr2 = 0.0
   bess_fac = 1.0
-  type = 'default'
+  type = 'ion'
 /
 
 &species_parameters_2
@@ -154,7 +153,7 @@
   d2ndr2 = 0.0
   d2tdr2 = 0.0
   bess_fac = 1.0
-  type = 'default'
+  type = 'ion'
 /
 
 &euterpe_parameters
@@ -167,7 +166,7 @@
 !===============================================================================
 
 &kxky_grid_option
-  grid_option = 'default'
+  grid_option = 'range'
 /
 
 &kxky_grid_range
@@ -203,7 +202,7 @@
 /
 
 &z_boundary_condition
-  boundary_option = 'default'
+  boundary_option = 'zero'
   shat_zero = 1e-05
   grad_x_grad_y_zero = 1e-05
   dkx_over_dky = -1.0
@@ -273,7 +272,7 @@
 &diagnostics_fluxes
   flux_norm = .true.
   write_fluxes_vs_time = .true.
-  write_radial_fluxes = radial_variation
+  write_radial_fluxes = .false.
   write_fluxes_kxkyz = .false.
   write_fluxes_kxky = .false.
 /
@@ -338,7 +337,7 @@
 &restart_options
    tstart = 0.0
    scale = 1.0
-   restart_file = trim(run_name)//'.nc'
+   restart_file = '.nc'
    restart_dir = './'
    read_many = .true.
 /
@@ -356,7 +355,7 @@
 
 &time_step
   delt = 0.03
-  delt_option = 'default'
+  delt_option = 'check_restart'
   delt_max = -1.0
   delt_min = 1e-10
   cfl_cushion_upper = 0.5
@@ -453,6 +452,19 @@
 /
 
 !===============================================================================
+!                                Parallelisation                                
+!===============================================================================
+
+&parallelisation
+  xyzs_layout = 'yxzs'
+  vms_layout = 'vms'
+  mat_gen = .false.
+  mat_read = .false.
+  lu_option = 'default'
+  fields_kxkyz = .false.
+/
+
+!===============================================================================
 !                                  Neoclassics                                  
 !===============================================================================
 
@@ -461,6 +473,32 @@
   neo_option = 'sfincs'
   nradii = 5.0
   drho = 0.01
+/
+
+&sfincs_input
+   read_sfincs_output_from_file = .false.
+   nproc_sfincs = 1
+   calculate_radial_electric_field = .true.
+   includeXDotTerm = .true.
+   includeElectricFieldTermInXiDot = .true.
+   magneticDriftScheme = 0
+   includePhi1 = .true.
+   includePhi1InKineticEquation = .false.
+   geometryScheme = 1
+   VMECRadialOption = 0
+   equilibriumFile = 'wout_161s1.nc'
+   coordinateSystem = 3
+   inputRadialCoordinate = 3
+   inputRadialCoordinateForGradients = 3
+   aHat = 1.0
+   Delta = -1.0
+   nu_n = -1.0
+   dPhiHatdrN = -9999.9
+   Er_window = 0.3
+   nxi = 48
+   nx = 12
+   Ntheta = 65
+   Nzeta = 1
 /
 
 !===============================================================================
@@ -493,7 +531,7 @@
   smooth_zf = .false.
   zf_option = 'default'
   lr_debug_option = 'default'
-  krook_option = 'default'
+  krook_option = 'exp'
   krook_size = 0.0
   rk_step = .false.
   nu_krook_mb = 0.0
@@ -505,19 +543,6 @@
   use_dirichlet_bc = .false.
   boundary_size = 4.0
   krook_size = 0.0
-/
-
-!===============================================================================
-!                                Parallelisation                                
-!===============================================================================
-
-&parallelisation
-  xyzs_layout = 'yxzs'
-  vms_layout = 'vms'
-  mat_gen = .false.
-  mat_read = .false.
-  lu_option = 'default'
-  fields_kxkyz = .false.
 /
 
 !===============================================================================

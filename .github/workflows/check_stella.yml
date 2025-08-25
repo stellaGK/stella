@@ -27,7 +27,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-
         os: [macos-13, macos-14] # ubuntu-22.04, ubuntu-24.04
         compiler: [Make, CMake]
     
