@@ -417,7 +417,7 @@ contains
         use velocity_grids, only: dvpa, vpa, mu
         use calculations_gyro_averages, only: gyro_average
         use gk_parallel_streaming, only: stream_sign
-        use dist_redistribute, only: xyz2vmu
+        use calculations_redistribute, only: xyz2vmu
         use file_utils, only: runtype_option_switch, runtype_multibox
         use extended_zgrid, only: fill_zed_ghost_zones
 

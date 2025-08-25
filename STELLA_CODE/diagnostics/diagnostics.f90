@@ -192,7 +192,7 @@ contains
       use stella_io, only: finish_stella_io
       use stella_time, only: code_dt, code_time
       use stella_save, only: stella_save_for_restart
-      use dist_redistribute, only: kxkyz2vmu
+      use calculations_redistribute, only: kxkyz2vmu
       use store_arrays_distribution_fn, only: gnew, gvmu
       use diagnostics_omega, only: finish_diagnostics_omega
       use diagnostics_fluxes, only: finish_diagnostics_fluxes 

@@ -141,7 +141,7 @@ contains
       use z_grid, only: nzgrid
       use stella_layouts, only: vmu_lo, kxkyz_lo
       use redistribute, only: gather, scatter
-      use dist_redistribute, only: kxkyz2vmu
+      use calculations_redistribute, only: kxkyz2vmu
       use velocity_grids, only: nmu, nvpa, dvpa
 
       implicit none

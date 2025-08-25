@@ -188,7 +188,7 @@ contains
 
       ! Redistribute data from  i[vpa,mu,s] to i[kx,ky,z,s] 
       use redistribute, only: scatter
-      use dist_redistribute, only: kxkyz2vmu
+      use calculations_redistribute, only: kxkyz2vmu
 
       ! Calculations 
       use diagnostics_fluxes_fluxtube, only: calculate_fluxes_fluxtube

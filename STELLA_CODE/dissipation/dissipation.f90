@@ -180,7 +180,7 @@ contains
 
       use mp, only: proc0
       use redistribute, only: gather, scatter
-      use dist_redistribute, only: kxkyz2vmu
+      use calculations_redistribute, only: kxkyz2vmu
       use job_manage, only: time_message
       use z_grid, only: nzgrid
       use velocity_grids, only: set_vpa_weights

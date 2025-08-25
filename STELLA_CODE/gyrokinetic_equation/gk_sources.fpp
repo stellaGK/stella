@@ -399,7 +399,7 @@ contains
       use stella_layouts, only: vmu_lo, kxkyz_lo
       use stella_layouts, only: imu_idx, is_idx, iv_idx
       use velocity_grids, only: nvgrid, nvpa, nmu
-      use dist_redistribute, only: kxkyz2vmu
+      use calculations_redistribute, only: kxkyz2vmu
       use store_arrays_distribution_fn, only: gvmu
       use z_grid, only: nzgrid
 

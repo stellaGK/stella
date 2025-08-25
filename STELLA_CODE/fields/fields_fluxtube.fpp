@@ -41,7 +41,7 @@ contains
       !> Layouts
       use stella_layouts, only: vmu_lo
       use redistribute, only: scatter
-      use dist_redistribute, only: kxkyz2vmu
+      use calculations_redistribute, only: kxkyz2vmu
       !> Arrays
       use store_arrays_distribution_fn, only: gvmu
       use store_arrays_fields, only: time_field_solve

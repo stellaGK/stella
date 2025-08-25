@@ -77,7 +77,7 @@ contains
 
         use store_arrays_distribution_fn, only: gvmu, gold, gnew
         use redistribute, only: gather, scatter
-        use dist_redistribute, only: kxkyz2vmu
+        use calculations_redistribute, only: kxkyz2vmu
         use parameters_physics, only: radial_variation
         use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
         use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
@@ -152,7 +152,7 @@ contains
 
         use store_arrays_distribution_fn, only: gvmu, gold, gnew
         use redistribute, only: gather, scatter
-        use dist_redistribute, only: kxkyz2vmu
+        use calculations_redistribute, only: kxkyz2vmu
         use parameters_physics, only: radial_variation
         use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
         use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst

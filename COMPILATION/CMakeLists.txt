@@ -49,7 +49,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/calculations/calculations_kxky.f90
   ../STELLA_CODE/calculations/calculations_checksum.f90
   ../STELLA_CODE/calculations/calculations_kxky_derivatives.f90
-  ../STELLA_CODE/calculations/dist_redistribute.f90
+  ../STELLA_CODE/calculations/calculations_redistribute.f90
   ../STELLA_CODE/calculations/calculations_finite_differences.f90
   ../STELLA_CODE/calculations/calculations_tofrom_ghf.f90
   ../STELLA_CODE/calculations/calculations_gyro_averages.f90
@@ -68,7 +68,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/dissipation/coll_fokkerplanck.f90
   ../STELLA_CODE/dissipation/dissipation.f90
   ../STELLA_CODE/dissipation/hyper.f90
-  ../STELLA_CODE/fields/dist_fn.f90
   ../STELLA_CODE/fields/initialise_distribution_fn.f90
   ../STELLA_CODE/geometry/geometry.f90
   ../STELLA_CODE/geometry/geometry_miller.f90
@@ -76,18 +75,19 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/geometry/geometry_vmec_read_netCDF_file.f90 
   ../STELLA_CODE/geometry/geometry_inputprofiles_interface.f90
   ../STELLA_CODE/geometry/geometry_zpinch.f90
-  ../STELLA_CODE/grids/arrays_gyro_averages.f90
   ../STELLA_CODE/grids/arrays_constants.f90
   ../STELLA_CODE/grids/arrays_distribution_fn.f90
-  ../STELLA_CODE/grids/store_arrays_useful.f90 
-  ../STELLA_CODE/grids/store_arrays_distribution_fn.f90
-  ../STELLA_CODE/grids/store_arrays_fields.f90
+  ../STELLA_CODE/grids/arrays_gyro_averages.f90
   ../STELLA_CODE/grids/common_types.f90
+  ../STELLA_CODE/grids/euterpe_interface.f90
   ../STELLA_CODE/grids/extended_z_grid.f90
   ../STELLA_CODE/grids/grids_kxky.f90
   ../STELLA_CODE/grids/species.f90
   ../STELLA_CODE/grids/stella_layouts.f90
   ../STELLA_CODE/grids/stella_time.f90
+  ../STELLA_CODE/grids/store_arrays_distribution_fn.f90
+  ../STELLA_CODE/grids/store_arrays_fields.f90
+  ../STELLA_CODE/grids/store_arrays_useful.f90 
   ../STELLA_CODE/grids/velocity_grids.f90
   ../STELLA_CODE/grids/write_radial_grid.f90
   ../STELLA_CODE/grids/z_grid.f90

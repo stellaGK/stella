@@ -3261,7 +3261,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use velocity_grids, only: set_vpa_weights
       use stella_layouts, only: vmu_lo, kxkyz_lo
       use stella_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
-      use dist_redistribute, only: kxkyz2vmu
+      use calculations_redistribute, only: kxkyz2vmu
       use store_arrays_distribution_fn, only: gvmu
       use calculations_tofrom_ghf, only: g_to_h
 

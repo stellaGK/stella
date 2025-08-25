@@ -351,7 +351,7 @@ contains
       use velocity_grids, only: vpa, maxwell_vpa
       use stella_layouts, only: fields_kxkyz
       use parameters_numerical, only: maxwellian_normalization
-      use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
+      use calculations_redistribute, only: kxkyz2vmu, kxyz2vmu
 
       implicit none
 
@@ -459,7 +459,7 @@ contains
       use parameters_physics, only: full_flux_surface
       use velocity_grids, only: nvpa, nmu
       use stella_layouts, only: fields_kxkyz
-      use dist_redistribute, only: kxkyz2vmu
+      use calculations_redistribute, only: kxkyz2vmu
 
       implicit none
 
@@ -646,7 +646,7 @@ contains
       use parameters_numerical, only: vpa_upwind, time_upwind
       use parameters_numerical, only: mirror_semi_lagrange, maxwellian_normalization
       use parameters_physics, only: include_apar
-      use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
+      use calculations_redistribute, only: kxkyz2vmu, kxyz2vmu
       use fields_electromagnetic, only: advance_apar
       use fields, only: fields_updated
       use calculations_tofrom_ghf, only: gbar_to_g

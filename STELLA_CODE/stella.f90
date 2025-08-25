@@ -6,7 +6,7 @@ program stella
    use parameters_numerical, only: nstep, tend
    use parameters_numerical, only: avail_cpu_time
    use stella_time, only: update_time, code_time, code_dt, checkcodedt
-   use dist_redistribute, only: kxkyz2vmu
+   use calculations_redistribute, only: kxkyz2vmu
    use gk_time_advance, only: advance_stella
    use diagnostics, only: diagnostics_stella
    use stella_save, only: stella_save_for_restart
@@ -151,8 +151,8 @@ contains
       use dissipation, only: init_dissipation
       
       use volume_averages, only: init_volume_averages, volume_average
-      use dist_redistribute, only: init_redistribute
-!      use dist_redistribute, only: test_kymus_to_vmus_redistribute
+      use calculations_redistribute, only: init_redistribute
+!      use calculations_redistribute, only: test_kymus_to_vmus_redistribute
       
       implicit none
 
@@ -606,7 +606,7 @@ contains
       use arrays_distribution_fn, only: finish_arrays_distribution_fn
       use arrays_constants, only: finish_arrays_vperp_kperp
       !!! NEED TO FINISH KPERP AND VPERP ARRAYS
-      use dist_redistribute, only: finish_redistribute
+      use calculations_redistribute, only: finish_redistribute
       use fields, only: finish_fields
       use store_arrays_fields, only: time_field_solve
       use diagnostics, only: finish_diagnostics, time_diagnostics
@@ -782,7 +782,7 @@ contains
    !   use z_grid, only: nzgrid, ntubes
    !   use velocity_grids, only: nvpa, nmu
    !   use kt_grids, only: ny, ikx_max
-   !   use dist_redistribute, only: kxyz2vmu
+   !   use calculations_redistribute, only: kxyz2vmu
    !   use redistribute, only: scatter
 
    !   implicit none

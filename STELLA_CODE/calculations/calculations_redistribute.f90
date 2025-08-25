@@ -1,4 +1,4 @@
-module dist_redistribute
+module calculations_redistribute
 
    use redistribute, only: redist_type
 
@@ -672,4 +672,4 @@ contains
 
    end subroutine finish_redistribute
 
-end module dist_redistribute
+end module calculations_redistribute

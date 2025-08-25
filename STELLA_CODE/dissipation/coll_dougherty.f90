@@ -913,7 +913,7 @@ contains
       use geometry, only: bmag, dBdrho
       use stella_layouts, only: vmu_lo, kxkyz_lo
       use stella_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
-      use dist_redistribute, only: kxkyz2vmu
+      use calculations_redistribute, only: kxkyz2vmu
       use store_arrays_distribution_fn, only: gvmu
       use store_arrays_useful, only: kperp2, dkperp2dr
       use store_arrays_fields, only: phi_corr_QN
