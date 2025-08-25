@@ -135,7 +135,7 @@ contains
 
    subroutine get_dfneo_dvpa(fneo, dfneo)
 
-      use finite_differences, only: fd5pt
+      use calculations_finite_differences, only: fd5pt
       use stella_layouts, only: vmu_lo
       use z_grid, only: nzgrid
       use velocity_grids, only: nvpa, nmu
@@ -181,7 +181,7 @@ contains
 
    subroutine get_dfneo_dzed(fneo, dfneo)
 
-      use finite_differences, only: fd5pt
+      use calculations_finite_differences, only: fd5pt
       use z_grid, only: nztot, nzgrid, delzed
       use velocity_grids, only: nvpa, nmu
       use species, only: nspec
@@ -226,7 +226,7 @@ contains
 
    subroutine get_dfneo_drho(fneo, dfneo)
 
-      use finite_differences, only: fd3pt, fd5pt
+      use calculations_finite_differences, only: fd3pt, fd5pt
       use z_grid, only: nzgrid
       use velocity_grids, only: nvpa, nmu
       use species, only: nspec
@@ -277,7 +277,7 @@ contains
 
    subroutine get_dphineo_dzed(phineo, dphineo)
 
-      use finite_differences, only: fd5pt
+      use calculations_finite_differences, only: fd5pt
       use z_grid, only: nztot, nzgrid, delzed
       use parameters_kxky_grid, only: nalpha
 
@@ -304,7 +304,7 @@ contains
 
    subroutine get_dphineo_drho(phineo, dphineo)
 
-      use finite_differences, only: fd3pt, fd5pt
+      use calculations_finite_differences, only: fd3pt, fd5pt
       use z_grid, only: nzgrid
       use parameters_kxky_grid, only: nalpha
 

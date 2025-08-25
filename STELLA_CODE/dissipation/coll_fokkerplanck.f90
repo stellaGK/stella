@@ -205,7 +205,7 @@ contains
       use geometry, only: bmag
       use species, only: spec, nspec
       use spfunc, only: erf => erf_ext
-      use finite_differences, only: fd3pt
+      use calculations_finite_differences, only: fd3pt
       use velocity_grids, only: maxwell_mu, maxwell_vpa
       use constants, only: pi
 
@@ -2850,7 +2850,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! solve for responses dh_a / dpsi^{aa}, dh_a / dpsi^{ab}, dh_a / dpsi^{ac} ... for all species b, c, ...
 
-      use finite_differences, only: tridag
+      use calculations_finite_differences, only: tridag
       use linear_solve, only: lu_decomposition
       use stella_time, only: code_dt
       use species, only: nspec, spec
@@ -3976,7 +3976,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
    subroutine advance_implicit_fp(phi, apar, bpar, g)
 
       use mp, only: sum_allreduce
-      use finite_differences, only: tridag
+      use calculations_finite_differences, only: tridag
       use linear_solve, only: lu_back_substitution
       use stella_time, only: code_dt
       use parameters_physics, only: fphi

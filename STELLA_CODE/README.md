@@ -55,7 +55,7 @@ The `calculations` folder contains the following scripts:
 
 - calculations_kxky.f90  
 - dist_redistribute.f90  
-- finite_differences.f90  
+- calculations_finite_differences.f90  
 - calculations_tofrom_ghf.f90  
 - gyro_averages.f90  
 - stella_transforms.f90  

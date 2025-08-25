@@ -51,7 +51,7 @@ contains
     
       use mp, only: proc0
      
-      use finite_differences, only: fd3pt
+      use calculations_finite_differences, only: fd3pt
       use stella_time, only: code_dt
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -447,7 +447,7 @@ contains
 
    subroutine get_dgdz(g, ivmu, dgdz)
 
-      use finite_differences, only: third_order_upwind_zed
+      use calculations_finite_differences, only: third_order_upwind_zed
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx
       use z_grid, only: nzgrid, delzed, ntubes
@@ -489,7 +489,7 @@ contains
 
    subroutine get_dgdz_centered(g, ivmu, dgdz)
 
-      use finite_differences, only: second_order_centered_zed
+      use calculations_finite_differences, only: second_order_centered_zed
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx
       use z_grid, only: nzgrid, delzed, ntubes
@@ -530,7 +530,7 @@ contains
 
 ! subroutine get_dgdz_variable (g, ivmu, dgdz)
 
-!    use finite_differences, only: fd_variable_upwinding_zed
+!    use calculations_finite_differences, only: fd_variable_upwinding_zed
 !    use stella_layouts, only: vmu_lo
 !    use stella_layouts, only: iv_idx
 !    use z_grid, only: nzgrid, delzed, ntubes
@@ -618,7 +618,7 @@ contains
 
    subroutine stream_tridiagonal_solve(iky, ie, iv, is, g)
 
-      use finite_differences, only: tridag
+      use calculations_finite_differences, only: tridag
       use extended_zgrid, only: iz_low, iz_up
       use extended_zgrid, only: nsegments
       use extended_zgrid, only: nzed_segment
@@ -678,7 +678,7 @@ contains
 
    subroutine get_dzed(iv, g, dgdz)
 
-      use finite_differences, only: fd_cell_centres_zed
+      use calculations_finite_differences, only: fd_cell_centres_zed
       use parameters_kxky_grid, only: naky
       use z_grid, only: nzgrid, delzed, ntubes
       use extended_zgrid, only: neigen, nsegments
@@ -717,7 +717,7 @@ contains
    subroutine get_zed_derivative_extended_domain(iv, f, f_left, f_right, df_dz)
 
       use z_grid, only: delzed
-      use finite_differences, only: fd_cell_centres_zed
+      use calculations_finite_differences, only: fd_cell_centres_zed
 
       implicit none
 
@@ -732,7 +732,7 @@ contains
 
    subroutine center_zed_extended(iv, g)
 
-      use finite_differences, only: cell_centres_zed
+      use calculations_finite_differences, only: cell_centres_zed
       use parameters_kxky_grid, only: naky, nakx
       use z_grid, only: nzgrid, ntubes
       use extended_zgrid, only: neigen, nsegments

@@ -166,7 +166,7 @@ contains
 
    subroutine get_dgdvpa_fourth_order(g, gout)
 
-      use finite_differences, only: fourth_derivate_second_centered_vpa
+      use calculations_finite_differences, only: fourth_derivate_second_centered_vpa
       use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
       use velocity_grids, only: nvpa, nmu, dvpa
 
@@ -210,7 +210,7 @@ contains
 
    subroutine get_dgdz_fourth_order(g, dgdz)
 
-      use finite_differences, only: fourth_derivative_second_centered_zed
+      use calculations_finite_differences, only: fourth_derivative_second_centered_zed
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx
       use z_grid, only: nzgrid, delzed, ntubes

@@ -1,4 +1,4 @@
-module finite_differences
+module calculations_finite_differences
 
    implicit none
 
@@ -1316,4 +1316,4 @@ contains
 
    end subroutine fourth_derivative_second_centered_zed
 
-end module finite_differences
+end module calculations_finite_differences

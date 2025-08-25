@@ -514,7 +514,7 @@ contains
 
    subroutine get_dgdvpa_ffs(g, ikxyz)
 
-      use finite_differences, only: third_order_upwind
+      use calculations_finite_differences, only: third_order_upwind
       use stella_layouts, only: kxyz_lo, iz_idx, iy_idx, is_idx
       use velocity_grids, only: nvpa, nmu, dvpa
 
@@ -541,7 +541,7 @@ contains
 
    subroutine get_dgdvpa_explicit(g)
 
-      use finite_differences, only: third_order_upwind
+      use calculations_finite_differences, only: third_order_upwind
       use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
       use velocity_grids, only: nvpa, nmu, dvpa
 
@@ -631,7 +631,7 @@ contains
       use mp, only: proc0
       use job_manage, only: time_message
       use redistribute, only: gather, scatter
-      use finite_differences, only: fd_variable_upwinding_vpa
+      use calculations_finite_differences, only: fd_variable_upwinding_vpa
       use stella_layouts, only: vmu_lo, kxyz_lo, kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use stella_layouts, only: iv_idx, imu_idx
@@ -886,7 +886,7 @@ contains
       use parameters_numerical, only: maxwellian_normalization
       use calculations_tofrom_ghf, only: gbar_to_g
       use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
-      use finite_differences, only: fd_variable_upwinding_vpa
+      use calculations_finite_differences, only: fd_variable_upwinding_vpa
       use velocity_grids, only: dvpa, vpa, nvpa
 
       implicit none
@@ -1109,7 +1109,7 @@ contains
 
    subroutine invert_mirror_operator(imu, ilo, g)
 
-      use finite_differences, only: tridag
+      use calculations_finite_differences, only: tridag
 
       implicit none
 

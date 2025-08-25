@@ -35,7 +35,7 @@ contains
 
       use constants, only: pi
       use common_types, only: flux_surface_type
-      use finite_differences, only: fd3pt, d2_3pt
+      use calculations_finite_differences, only: fd3pt, d2_3pt
       use splines, only: geo_spline
       use geometry_miller, only: local
 
@@ -198,7 +198,7 @@ contains
    subroutine read_inputprof_spec(nspec, spec)
 
       use mp, only: mp_abort
-      use finite_differences, only: fd3pt, d2_3pt
+      use calculations_finite_differences, only: fd3pt, d2_3pt
       use splines, only: geo_spline
       use common_types, only: spec_type
       use geometry_miller, only: local

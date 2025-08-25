@@ -189,7 +189,7 @@ contains
    subroutine init_vpadiff_conserve
 
       use mp, only: sum_allreduce
-      use finite_differences, only: tridag
+      use calculations_finite_differences, only: tridag
       use linear_solve, only: lu_decomposition, lu_inverse
       use stella_time, only: code_dt
       use species, only: nspec, spec, has_electron_species
@@ -447,7 +447,7 @@ contains
    subroutine init_mudiff_conserve
 
       use mp, only: sum_allreduce
-      use finite_differences, only: tridag
+      use calculations_finite_differences, only: tridag
       use linear_solve, only: lu_decomposition, lu_inverse
       use stella_time, only: code_dt
       use species, only: nspec, spec, has_electron_species
@@ -1520,7 +1520,7 @@ contains
    subroutine advance_vpadiff_implicit(phi, apar, bpar, g)
 
       use mp, only: sum_allreduce
-      use finite_differences, only: tridag
+      use calculations_finite_differences, only: tridag
       use linear_solve, only: lu_back_substitution
       use stella_time, only: code_dt
       use parameters_physics, only: fphi
@@ -1686,7 +1686,7 @@ contains
    subroutine advance_mudiff_implicit(phi, apar, bpar, g)
 
       use mp, only: sum_allreduce
-      use finite_differences, only: tridag
+      use calculations_finite_differences, only: tridag
       use linear_solve, only: lu_back_substitution
       use stella_time, only: code_dt
       use parameters_physics, only: fphi

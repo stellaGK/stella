@@ -397,8 +397,8 @@ contains
         use stella_layouts, only: vmu_lo, xyz_lo
         use stella_layouts, only: iv_idx, imu_idx, is_idx
         use job_manage, only: time_message
-        use finite_differences, only: second_order_centered_zed
-        use finite_differences, only: third_order_upwind
+        use calculations_finite_differences, only: second_order_centered_zed
+        use calculations_finite_differences, only: third_order_upwind
         use redistribute, only: gather, scatter
         use store_arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
         use stella_transforms, only: transform_ky2y, transform_y2ky

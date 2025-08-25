@@ -7,6 +7,7 @@ stella_mod = \
 	 $(OBJ_DIR)/arrays_constants.o \
 	 $(OBJ_DIR)/arrays_distribution_fn.o \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_finite_differences.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_kxky.o \
 	 $(OBJ_DIR)/calculations_kxky_derivatives.o \
@@ -39,7 +40,6 @@ stella_mod = \
 	 $(OBJ_DIR)/fields_fullfluxsurface.o \
 	 $(OBJ_DIR)/fields_radialvariation.o \
 	 $(OBJ_DIR)/file_utils.o \
-	 $(OBJ_DIR)/finite_differences.o \
 	 $(OBJ_DIR)/gauss_quad.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/geometry_inputprofiles_interface.o \
@@ -165,6 +165,7 @@ $(OBJ_DIR)/calculations_checksum.o: \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/velocity_grids.o \
 	 $(OBJ_DIR)/z_grid.o 
+$(OBJ_DIR)/calculations_finite_differences.o: 
 $(OBJ_DIR)/calculations_gyro_averages.o: \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_kxky.o \
@@ -209,13 +210,13 @@ $(OBJ_DIR)/calculations_tofrom_ghf.o: \
 	 $(OBJ_DIR)/z_grid.o 
 $(OBJ_DIR)/coll_dougherty.o: \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_finite_differences.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_kxky.o \
 	 $(OBJ_DIR)/calculations_tofrom_ghf.o \
 	 $(OBJ_DIR)/dist_redistribute.o \
 	 $(OBJ_DIR)/fields_collisions.o \
 	 $(OBJ_DIR)/fields_fluxtube.o \
-	 $(OBJ_DIR)/finite_differences.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/job_manage.o \
@@ -236,6 +237,7 @@ $(OBJ_DIR)/coll_dougherty.o: \
 	 $(OBJ_DIR)/z_grid.o 
 $(OBJ_DIR)/coll_fokkerplanck.o: \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_finite_differences.o \
 	 $(OBJ_DIR)/calculations_tofrom_ghf.o \
 	 $(OBJ_DIR)/common_types.o \
 	 $(OBJ_DIR)/constants.o \
@@ -243,7 +245,6 @@ $(OBJ_DIR)/coll_fokkerplanck.o: \
 	 $(OBJ_DIR)/fields_collisions.o \
 	 $(OBJ_DIR)/fields_fluxtube.o \
 	 $(OBJ_DIR)/file_utils.o \
-	 $(OBJ_DIR)/finite_differences.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/linear_solve.o \
@@ -467,8 +468,8 @@ $(OBJ_DIR)/dist_redistribute.o: \
 	 $(OBJ_DIR)/velocity_grids.o \
 	 $(OBJ_DIR)/z_grid.o 
 $(OBJ_DIR)/euterpe_interface.o: \
+	 $(OBJ_DIR)/calculations_finite_differences.o \
 	 $(OBJ_DIR)/common_types.o \
-	 $(OBJ_DIR)/finite_differences.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/namelist_species.o \
@@ -607,7 +608,6 @@ $(OBJ_DIR)/fields_radialvariation.o: \
 	 $(OBJ_DIR)/z_grid.o 
 $(OBJ_DIR)/file_utils.o: \
 	 $(OBJ_DIR)/command_line.o 
-$(OBJ_DIR)/finite_differences.o: 
 $(OBJ_DIR)/gauss_quad.o: \
 	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/file_utils.o \
@@ -628,9 +628,9 @@ $(OBJ_DIR)/geometry.o: \
 	 $(OBJ_DIR)/text_options.o \
 	 $(OBJ_DIR)/z_grid.o 
 $(OBJ_DIR)/geometry_inputprofiles_interface.o: \
+	 $(OBJ_DIR)/calculations_finite_differences.o \
 	 $(OBJ_DIR)/common_types.o \
 	 $(OBJ_DIR)/constants.o \
-	 $(OBJ_DIR)/finite_differences.o \
 	 $(OBJ_DIR)/geometry_miller.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/parameters_physics.o \
@@ -742,6 +742,7 @@ $(OBJ_DIR)/gk_implicit_solve.o: \
 	 $(OBJ_DIR)/velocity_grids.o \
 	 $(OBJ_DIR)/z_grid.o 
 $(OBJ_DIR)/gk_mirror.o: \
+	 $(OBJ_DIR)/calculations_finite_differences.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_kxky.o \
 	 $(OBJ_DIR)/calculations_tofrom_ghf.o \
@@ -750,7 +751,6 @@ $(OBJ_DIR)/gk_mirror.o: \
 	 $(OBJ_DIR)/dist_redistribute.o \
 	 $(OBJ_DIR)/fields.o \
 	 $(OBJ_DIR)/fields_electromagnetic.o \
-	 $(OBJ_DIR)/finite_differences.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/mp.o \
@@ -767,6 +767,7 @@ $(OBJ_DIR)/gk_mirror.o: \
 	 $(OBJ_DIR)/velocity_grids.o \
 	 $(OBJ_DIR)/z_grid.o 
 $(OBJ_DIR)/gk_nonlinearity.o: \
+	 $(OBJ_DIR)/calculations_finite_differences.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_kxky.o \
 	 $(OBJ_DIR)/calculations_kxky_derivatives.o \
@@ -776,7 +777,6 @@ $(OBJ_DIR)/gk_nonlinearity.o: \
 	 $(OBJ_DIR)/dist_redistribute.o \
 	 $(OBJ_DIR)/extended_z_grid.o \
 	 $(OBJ_DIR)/file_utils.o \
-	 $(OBJ_DIR)/finite_differences.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/gk_parallel_streaming.o \
 	 $(OBJ_DIR)/grids_kxky.o \
@@ -798,11 +798,11 @@ $(OBJ_DIR)/gk_nonlinearity.o: \
 	 $(OBJ_DIR)/z_grid.o 
 $(OBJ_DIR)/gk_parallel_streaming.o: \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_finite_differences.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_kxky.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/extended_z_grid.o \
-	 $(OBJ_DIR)/finite_differences.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/mp.o \
@@ -918,9 +918,9 @@ $(OBJ_DIR)/grids_kxky.o: \
 	 $(OBJ_DIR)/write_radial_grid.o \
 	 $(OBJ_DIR)/z_grid.o 
 $(OBJ_DIR)/hyper.o: \
+	 $(OBJ_DIR)/calculations_finite_differences.o \
 	 $(OBJ_DIR)/dist_redistribute.o \
 	 $(OBJ_DIR)/extended_z_grid.o \
-	 $(OBJ_DIR)/finite_differences.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/mp.o \
@@ -1045,9 +1045,9 @@ $(OBJ_DIR)/namelist_z_grid.o: \
 	 $(OBJ_DIR)/text_options.o 
 $(OBJ_DIR)/neasyf.o: 
 $(OBJ_DIR)/neoclassical_terms.o: \
+	 $(OBJ_DIR)/calculations_finite_differences.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/file_utils.o \
-	 $(OBJ_DIR)/finite_differences.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/namelist_neoclassical_input.o \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
