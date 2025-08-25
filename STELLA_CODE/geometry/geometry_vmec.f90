@@ -475,7 +475,7 @@ contains
    !============================================================================ 
    subroutine filter_geo_coef(naky, geocoef)
 
-      use calculations_stella_transforms, only: transform_alpha2kalpha, transform_kalpha2alpha
+      use calculations_transforms, only: transform_alpha2kalpha, transform_kalpha2alpha
 
       implicit none
 

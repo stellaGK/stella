@@ -156,7 +156,7 @@ contains
         use mp, only: mp_abort, proc0
         use job_manage, only: time_message
 
-        use calculations_stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
+        use calculations_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
 
         use stella_layouts, only: vmu_lo
         use stella_layouts, only: iv_idx, imu_idx, is_idx

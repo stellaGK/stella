@@ -265,7 +265,7 @@ contains
         use job_manage, only: time_message
         use store_arrays_fields, only: apar, bpar
         use stella_layouts, only: vmu_lo
-        use calculations_stella_transforms, only: transform_ky2y
+        use calculations_transforms, only: transform_ky2y
         use z_grid, only: nzgrid, ntubes
         use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
         use calculations_kxky, only: swap_kxky
@@ -336,7 +336,7 @@ contains
         use mp, only: proc0
         use stella_layouts, only: vmu_lo
         use job_manage, only: time_message
-        use calculations_stella_transforms, only: transform_ky2y
+        use calculations_transforms, only: transform_ky2y
         use z_grid, only: nzgrid, ntubes
         use parameters_kxky_grid, only: nakx, ikx_max, naky, naky_all, ny
         use calculations_kxky, only: swap_kxky
@@ -446,7 +446,7 @@ contains
         use mp, only: proc0
         use stella_layouts, only: vmu_lo
         use job_manage, only: time_message
-        use calculations_stella_transforms, only: transform_ky2y
+        use calculations_transforms, only: transform_ky2y
         use z_grid, only: nzgrid, ntubes
         use parameters_kxky_grid, only: nakx, ikx_max, naky, naky_all, ny
         use grids_kxky, only: akx

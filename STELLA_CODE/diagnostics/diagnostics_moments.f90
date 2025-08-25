@@ -145,7 +145,7 @@ contains
       use parameters_physics, only: fphi
       use parameters_numerical, only: maxwellian_normalization
       use parameters_physics, only: radial_variation
-      use calculations_stella_transforms, only: transform_kx2x_unpadded
+      use calculations_transforms, only: transform_kx2x_unpadded
       
       ! Import temp arrays g1 and g2 with dimensions (nky, nkx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
       use store_arrays_distribution_fn, only: g_gyro => g1 
@@ -275,7 +275,7 @@ contains
       use parameters_physics, only: fphi
       use parameters_numerical, only: maxwellian_normalization
       use parameters_physics, only: radial_variation
-      use calculations_stella_transforms, only: transform_kx2x_unpadded
+      use calculations_transforms, only: transform_kx2x_unpadded
       
       ! Input file
       use parameters_diagnostics, only: write_radial_moments

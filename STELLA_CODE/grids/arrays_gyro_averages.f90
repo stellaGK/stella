@@ -129,7 +129,7 @@ contains
         use spfunc, only: j0
         use stella_layouts, only: vmu_lo
         use stella_layouts, only: iv_idx, imu_idx, is_idx
-        use calculations_stella_transforms, only: transform_alpha2kalpha
+        use calculations_transforms, only: transform_alpha2kalpha
         use species, only: nspec, spec
         use geometry, only: bmag
         use z_grid, only: nzgrid, nztot

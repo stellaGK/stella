@@ -58,7 +58,7 @@ The `calculations` folder contains the following scripts:
 - calculations_finite_differences.f90  
 - calculations_tofrom_ghf.f90  
 - gyro_averages.f90  
-- calculations_stella_transforms.f90  
+- calculations_transforms.f90  
 - volume_averages.f90
 
 <br>

@@ -243,7 +243,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use job_manage, only: time_message
-      use calculations_stella_transforms, only: transform_ky2y
+      use calculations_transforms, only: transform_ky2y
       use z_grid, only: nzgrid, ntubes
       use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
       use calculations_kxky, only: swap_kxky

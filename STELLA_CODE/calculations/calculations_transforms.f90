@@ -1,4 +1,4 @@
-module calculations_stella_transforms
+module calculations_transforms
 
    use fft_work, only: fft_type
 
@@ -608,4 +608,4 @@ contains
 
    end subroutine finish_transforms
 
-end module calculations_stella_transforms
+end module calculations_transforms
