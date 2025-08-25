@@ -87,7 +87,7 @@ contains
       use species, only: nspec
       use z_grid, only: nzgrid
       use parameters_kxky_grid, only: naky, nakx
-      use volume_averages, only: mode_fac
+      use calculations_volume_averages, only: mode_fac
 
       implicit none
 

@@ -339,7 +339,7 @@ contains
       use parameters_kxky_grid, only: nakx, naky
       use z_grid, only: nzgrid, ntubes
       use species, only: nspec
-      use volume_averages, only: mode_fac
+      use calculations_volume_averages, only: mode_fac
       use geometry, only: dVolume
       use stella_transforms, only: transform_kx2x_unpadded
       use parameters_physics, only: radial_variation
@@ -418,7 +418,7 @@ contains
       use parameters_kxky_grid, only: nakx, naky
       use z_grid, only: nzgrid, ntubes
       use species, only: nspec
-      use volume_averages, only: mode_fac
+      use calculations_volume_averages, only: mode_fac
 
       implicit none
 
@@ -461,7 +461,7 @@ contains
       use parameters_kxky_grid, only: nakx, naky
       use z_grid, only: nzgrid, ntubes
       use species, only: nspec
-      use volume_averages, only: mode_fac
+      use calculations_volume_averages, only: mode_fac
       use stella_transforms, only: transform_kx2x_unpadded 
 
       implicit none

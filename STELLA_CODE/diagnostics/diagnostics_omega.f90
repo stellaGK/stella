@@ -63,7 +63,7 @@ contains
       use constants, only: zi
       
       ! Calculations 
-      use volume_averages, only: fieldline_average
+      use calculations_volume_averages, only: fieldline_average
       
       ! Input file
       use parameters_diagnostics, only: navg

@@ -231,7 +231,7 @@ contains
 
       ! Dimensions
       use grids_kxky, only: zonal_mode
-      use volume_averages, only: mode_fac
+      use calculations_volume_averages, only: mode_fac
       use z_grid, only: nzgrid, ntubes
       use velocity_grids, only: nvpa, nmu
       use parameters_kxky_grid, only: nakx, naky

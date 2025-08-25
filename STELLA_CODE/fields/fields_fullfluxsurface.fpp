@@ -50,7 +50,7 @@ contains
       use z_grid, only: nzgrid, ntubes
       !> Calculations
       use calculations_kxky, only: swap_kxky_ordered, swap_kxky_back_ordered
-      use volume_averages, only: flux_surface_average_ffs
+      use calculations_volume_averages, only: flux_surface_average_ffs
       !> Geometry
       use geometry, only: dl_over_b
 
@@ -622,7 +622,7 @@ contains
       use z_grid, only: nzgrid
       !> Calculations
       use calculations_gyro_averages, only: band_lu_solve_ffs
-      use volume_averages, only: flux_surface_average_ffs
+      use calculations_volume_averages, only: flux_surface_average_ffs
 
       implicit none
 

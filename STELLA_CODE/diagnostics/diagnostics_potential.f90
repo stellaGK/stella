@@ -46,7 +46,7 @@ contains
       use parameters_physics, only: include_apar, include_bpar
 
       ! Calculations 
-      use volume_averages, only: volume_average, fieldline_average
+      use calculations_volume_averages, only: volume_average, fieldline_average
       use fields, only: advance_fields
 
       ! Write to netcdf file 

@@ -150,7 +150,7 @@ contains
       use ran, only: get_rnd_seed_length, init_ranf
       use dissipation, only: init_dissipation
       
-      use volume_averages, only: init_volume_averages, volume_average
+      use calculations_volume_averages, only: init_volume_averages, volume_average
       use calculations_redistribute, only: init_redistribute
 !      use calculations_redistribute, only: test_kymus_to_vmus_redistribute
       
@@ -615,7 +615,7 @@ contains
       use extended_zgrid, only: finish_extended_zgrid
       use velocity_grids, only: finish_velocity_grids
       use grids_kxky, only: finish_grids_kxky
-      use volume_averages, only: finish_volume_averages
+      use calculations_volume_averages, only: finish_volume_averages
       use multibox, only: finish_multibox, time_multibox
       use parameters_numerical, only: stream_implicit, drifts_implicit
       use stella_layouts, only: fields_kxkyz

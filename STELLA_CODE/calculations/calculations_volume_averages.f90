@@ -1,4 +1,4 @@
-module volume_averages
+module calculations_volume_averages
 
    public :: init_volume_averages, finish_volume_averages
    public :: fieldline_average
@@ -242,4 +242,4 @@ contains
 
    end subroutine flux_surface_average_ffs
 
-end module volume_averages
+end module calculations_volume_averages

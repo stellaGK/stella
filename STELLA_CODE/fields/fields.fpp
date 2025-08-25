@@ -123,7 +123,7 @@ contains
       use store_arrays_fields, only: phi, apar
       use store_arrays_distribution_fn, only: gnew, gvmu
       !> Calculations
-      use volume_averages, only: volume_average
+      use calculations_volume_averages, only: volume_average
 
       implicit none
 

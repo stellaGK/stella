@@ -121,7 +121,7 @@ contains
       use species, only: spec, nspec
 
       ! Calculations
-      use volume_averages, only: fieldline_average
+      use calculations_volume_averages, only: fieldline_average
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use constants, only: zi
 
@@ -373,7 +373,7 @@ contains
    subroutine get_one_flux(iky, iz, norm, velocityintegrand_vs_vpamu, phi, flux_out)
 
       use velocity_grids, only: integrate_vmu
-      use volume_averages, only: mode_fac
+      use calculations_volume_averages, only: mode_fac
       use geometry, only: flux_fac
       use grids_kxky, only: aky
 
