@@ -138,7 +138,7 @@ set(STELLA_SOURCES_fpp
   ../STELLA_CODE/fields/fields_collisions.fpp
   ../STELLA_CODE/fields/fields_radialvariation.fpp
   ../STELLA_CODE/gyrokinetic_equation/response_matrix.fpp
-  ../STELLA_CODE/gyrokinetic_equation/sources.fpp
+  ../STELLA_CODE/gyrokinetic_equation/gk_sources.fpp
   ../STELLA_CODE/neoclassical/sfincs_interface.fpp
 )
 
