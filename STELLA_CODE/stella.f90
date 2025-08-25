@@ -593,7 +593,7 @@ contains
       use grids_kxky, only: finish_grids_kxky
       use arrays_distribution_fn, only: finish_arrays_distribution_fn
       use arrays_constants, only: finish_arrays_vperp_kperp
-      use arrays_store_fields, only: time_field_solve
+      use arrays_store_useful, only: time_field_solve
       use arrays_store_useful, only: time_gke, time_parallel_nl
       use initialise_distribution_fn, only: finish_initialise_distribution
       use fields, only: finish_fields

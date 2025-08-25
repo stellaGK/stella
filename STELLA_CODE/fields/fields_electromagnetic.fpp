@@ -1,4 +1,4 @@
-!> Module for advancing and initialising the fields when Electromagnetic effects are included
+! Module for advancing and initialising the fields when Electromagnetic effects are included
 module fields_electromagnetic
 
    use debug_flags, only: debug => fields_electromagnetic_debug
@@ -18,7 +18,7 @@ module fields_electromagnetic
       module procedure get_fields_electromagnetic_vmulo
    end interface
 
-   !> TODO-GA: add debug flag
+   ! TODO-GA: add debug flag
 
 contains
 
@@ -29,33 +29,33 @@ contains
    !============================================================================
    !============================= GET FIELDS VMULO =============================
    !============================================================================
-   !> If we are parallelising over (vpa,mu) then this subroutine is called
-   !> This is the more common version used compared with parallelising over 
-   !> (kx,ky,z) and is the default for stella.
-   !> This advances the fields when Electromagnetic effects are included, so 
-   !> we advance <phi>, <B_parallel>, and <A_parallel>.
+   ! If we are parallelising over (vpa,mu) then this subroutine is called
+   ! This is the more common version used compared with parallelising over 
+   ! (kx,ky,z) and is the default for stella.
+   ! This advances the fields when Electromagnetic effects are included, so 
+   ! we advance <phi>, <B_parallel>, and <A_parallel>.
    !============================================================================
    subroutine get_fields_electromagnetic_vmulo(g, phi, apar, bpar, dist)
 
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
-      !> Layouts
+      ! Layouts
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx
-      !> Arrays
+      ! Arrays
       use arrays_store_distribution_fn, only: g_scratch
-      use arrays_store_fields, only: time_field_solve
-      !> Parameters
+      use arrays_store_useful, only: time_field_solve
+      ! Parameters
       use parameters_physics, only: beta 
       use parameters_physics, only: fphi 
       use parameters_physics, only: radial_variation
       use parameters_physics, only: include_apar, include_bpar
-      !> Grids
+      ! Grids
       use grids_species, only: spec
       use grids_velocity, only: integrate_species, vpa, mu
       use grids_z, only: nzgrid
-      !> Calculations
+      ! Calculations
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
-      !> Routines from other fields modules
+      ! Routines from other fields modules
       use fields_radial_variation, only: add_radial_correction_int_species
 
       implicit none
@@ -74,7 +74,7 @@ contains
          ! <g> requires modification if radial profile variation is included
          if (radial_variation) call add_radial_correction_int_species(g_scratch)
          ! integrate <g> over velocity space and sum over species
-         !> store result in phi, which will be further modified below to account for polarization term
+         ! store result in phi, which will be further modified below to account for polarization term
          if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_vmulo::integrate_species_phi'
          call integrate_species(g_scratch, spec%z * spec%dens_psi0, phi)
          ! gyroaverage the distribution function g at each phase space location
@@ -87,7 +87,7 @@ contains
          ! <g> requires modification if radial profile variation is included
          ! not supported for bpar MRH
          ! integrate <g> over velocity space and sum over species
-         !> store result in bpar, which will be further modified below to account for polarization term
+         ! store result in bpar, which will be further modified below to account for polarization term
          if (debug) write (*, *) 'fields_electromagnetic::get_fields_electromagnetic_vmulo::integrate_species_bpar'
          call integrate_species(g_scratch, -2.0 * beta * spec%temp_psi0 * spec%dens_psi0, bpar)
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
@@ -109,7 +109,7 @@ contains
             g_scratch(:, :, :, :, ivmu) = g_scratch(:, :, :, :, ivmu) * vpa(iv)
          end do
          ! integrate vpa*<g> over velocity space and sum over species
-         !> store result in apar, which will be further modified below to account for apar pre-factor
+         ! store result in apar, which will be further modified below to account for apar pre-factor
          if (debug) write (*, *) 'fields_electromagnetic::get_fields_electromagnetic_vmulo::integrate_species_apar'
          call integrate_species(g_scratch, spec%z * spec%dens_psi0 * spec%stm_psi0 * beta, apar)
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
@@ -129,23 +129,23 @@ contains
       use mp, only: proc0
       use mp, only: sum_allreduce, mp_abort
       use job_manage, only: time_message
-      !> Layouts
+      ! Layouts
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
-      !> Arrays
+      ! Arrays
       use arrays_store_useful, only: kperp2 
-      use arrays_store_fields, only: apar_denom, time_field_solve
-      !> Parameters
+      use arrays_store_useful, only: apar_denom, time_field_solve
+      ! Parameters
       use parameters_physics, only: beta
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: fphi 
-      !> Grids
+      ! Grids
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa, mu 
       use grids_velocity, only: integrate_vmu
       use grids_species, only: spec
-      !> Calculations
+      ! Calculations
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
 
       implicit none
@@ -171,12 +171,12 @@ contains
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
             iky = iky_idx(kxkyz_lo, ikxkyz)
             is = is_idx(kxkyz_lo, ikxkyz)
-            !> integrate g to get sum_s Z_s n_s J0 g and store in phi
+            ! integrate g to get sum_s Z_s n_s J0 g and store in phi
             call gyro_average(g(:, :, ikxkyz), ikxkyz, g0)
             wgt = spec(is)%z * spec(is)%dens_psi0
             call integrate_vmu(g0, iz, tmp)
             phi(iky, ikx, iz, it) = phi(iky, ikx, iz, it) + wgt * tmp
-            !> integrate g to get - 2 beta sum_s n_s T_s J1 mu g and store in bpar
+            ! integrate g to get - 2 beta sum_s n_s T_s J1 mu g and store in bpar
             call gyro_average_j1(spread(mu, 1, nvpa) * g(:, :, ikxkyz), ikxkyz, g0)
             wgt = -2.0 * beta* spec(is)%z * spec(is)%dens_psi0 * spec(is)%temp_psi0
             call integrate_vmu(g0, iz, tmp)
@@ -229,12 +229,12 @@ contains
 
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
-      !> Arrays
-      use arrays_store_fields, only: gamtotinv11, gamtotinv13, gamtotinv33, gamtotinv31
-      use arrays_store_fields, only: gamtot_h, time_field_solve
-      !> Parameters
+      ! Arrays
+      use arrays_store_useful, only: gamtotinv11, gamtotinv13, gamtotinv33, gamtotinv31
+      use arrays_store_useful, only: gamtot_h, time_field_solve
+      ! Parameters
       use parameters_kxky_grid, only: nakx, naky
-      !> Grids
+      ! Grids
       use grids_z, only: nzgrid, ntubes
 
       implicit none
@@ -263,11 +263,11 @@ contains
             end do
          end do
       else if (dist == 'h') then
-         !> divide sum ( Zs int J0 h d^3 v) by sum(Zs^2 ns / Ts) 
+         ! divide sum ( Zs int J0 h d^3 v) by sum(Zs^2 ns / Ts) 
          phi = phi / gamtot_h
-         !> do nothing for bpar because
-         !> bpar = - 2 * beta * sum(Ts ns int (J1/bs) mu h d^3 v)
-         !> which is already stored in bpar when dist = 'h'.         
+         ! do nothing for bpar because
+         ! bpar = - 2 * beta * sum(Ts ns int (J1/bs) mu h d^3 v)
+         ! which is already stored in bpar when dist = 'h'.         
       else
          if (proc0) write (*, *) 'unknown dist option in get_fields. aborting'
          call mp_abort('unknown dist option in get_fields. aborting')
@@ -276,18 +276,18 @@ contains
 
    end subroutine get_phi_and_bpar
 
-   !> Get_apar solves pre-factor * Apar = beta_ref * sum_s Z_s n_s vth_s int d3v vpa * J0 * pdf
-   !> for apar, with pdf being either g or gbar (specified by dist input).
-   !> the input apar is the RHS of the above equation and is overwritten by the true apar
-   !> the pre-factor depends on whether g or gbar is used (kperp2 in former case, with additional
-   !> term appearing in latter case)
+   ! Get_apar solves pre-factor * Apar = beta_ref * sum_s Z_s n_s vth_s int d3v vpa * J0 * pdf
+   ! for apar, with pdf being either g or gbar (specified by dist input).
+   ! the input apar is the RHS of the above equation and is overwritten by the true apar
+   ! the pre-factor depends on whether g or gbar is used (kperp2 in former case, with additional
+   ! term appearing in latter case)
    subroutine get_apar(apar, dist)
 
       use mp, only: proc0, mp_abort
-      !> Arrays
+      ! Arrays
       use arrays_store_useful, only: kperp2
-      use arrays_store_fields, only: apar_denom
-      !> Grids
+      use arrays_store_useful, only: apar_denom
+      ! Grids
       use grids_z, only: nzgrid, ntubes
       implicit none
 
@@ -316,18 +316,18 @@ contains
    subroutine advance_apar(g, dist, apar)
 
       use mp, only: mp_abort, sum_allreduce
-      !> Layouts
+      ! Layouts
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      !> Parameters
+      ! Parameters
       use parameters_physics, only: include_apar
       use parameters_physics, only: beta
-      !> Grids
+      ! Grids
       use grids_species, only: spec
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu, vpa
       use grids_velocity, only: integrate_vmu
-      !> Calculations
+      ! Calculations
       use calculations_gyro_averages, only: gyro_average
 
       implicit none
@@ -372,33 +372,33 @@ contains
    !============================================================================
    !=========================== INITALISE THE FIELDS ===========================
    !============================================================================
-   !> Fill arrays needed for the electromagnetic calculations
+   ! Fill arrays needed for the electromagnetic calculations
    !============================================================================
    subroutine init_fields_electromagnetic (nfields)
 
       use mp, only: sum_allreduce
-      !> Layouts
+      ! Layouts
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
-      !> Arrays
+      ! Arrays
       use arrays_store_useful, only: kperp2
-      use arrays_store_fields, only: gamtot
-      use arrays_store_fields, only: gamtot13, gamtot31, gamtot33
-      use arrays_store_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
-      use arrays_store_fields, only: apar_denom
-      !> Parameters
+      use arrays_store_useful, only: gamtot
+      use arrays_store_useful, only: gamtot13, gamtot31, gamtot33
+      use arrays_store_useful, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
+      use arrays_store_useful, only: apar_denom
+      ! Parameters
       use parameters_physics, only: include_apar, include_bpar
       use parameters_kxky_grid, only : nakx, naky 
       use parameters_physics, only: beta
       use parameters_physics, only: fphi 
-      !> Grids
+      ! Grids
       use grids_species, only: spec
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa, mu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: integrate_vmu
       use grids_z, only: nzgrid
-      !> Calculations
+      ! Calculations
       use arrays_gyro_averages, only: aj0v, aj1v
 
       implicit none
@@ -487,18 +487,18 @@ contains
 
             
       if (fphi > epsilon(0.0) .and. include_bpar) then
-         !> compute coefficients for even part of field solve (phi, bpar)
+         ! compute coefficients for even part of field solve (phi, bpar)
          do iz = -nzgrid,nzgrid 
             do ikx = 1, nakx
                do iky = 1, naky 
-                  !> gamtotinv11
+                  ! gamtotinv11
                   denom_tmp = gamtot(iky,ikx,iz) - ((gamtot13(iky,ikx,iz)*gamtot31(iky,ikx,iz))/gamtot33(iky,ikx,iz))
                   if (denom_tmp < epsilon(0.0)) then
                      gamtotinv11(iky,ikx,iz) = 0.0
                   else
                      gamtotinv11(iky,ikx,iz) = 1.0/denom_tmp
                   end if
-                  !> gamtotinv13, gamtotinv31, gamtotinv33
+                  ! gamtotinv13, gamtotinv31, gamtotinv33
                   denom_tmp = gamtot(iky,ikx,iz)*gamtot33(iky,ikx,iz) - gamtot13(iky,ikx,iz)*gamtot31(iky,ikx,iz)
                   if (denom_tmp < epsilon(0.0)) then
                      gamtotinv13(iky,ikx,iz) = 0.0
@@ -519,8 +519,8 @@ contains
    !============================================================================
    !============================= ALLOCATE ARRAYS ==============================
    !============================================================================
-   !> Allocate arrays needed for solving electromagnetic fields
-   !> This includes Apar and Bpar
+   ! Allocate arrays needed for solving electromagnetic fields
+   ! This includes Apar and Bpar
    !============================================================================
    subroutine allocate_fields_electromagnetic
 
@@ -528,14 +528,13 @@ contains
       
       use parameters_kxky_grid, only: naky, nakx
       use parameters_physics, only: include_apar, include_bpar
-      
-      !> TOD-GA: Want to put the allocations of these arrays here:  
+   
       use arrays_store_fields, only: apar, apar_old
       use arrays_store_fields, only: bpar, bpar_old
 
-      use arrays_store_fields, only: gamtot13, gamtot31, gamtot33
-      use arrays_store_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
-      use arrays_store_fields, only: apar_denom
+      use arrays_store_useful, only: gamtot13, gamtot31, gamtot33
+      use arrays_store_useful, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
+      use arrays_store_useful, only: apar_denom
 
       implicit none
       
@@ -582,16 +581,16 @@ contains
       ! Parameters
       use parameters_physics, only: include_apar, include_bpar
      
-      use arrays_store_fields, only: apar, apar_denom
+      use arrays_store_fields, only: apar
       use arrays_store_fields, only: apar_old, bpar_old
-      use arrays_store_fields, only: gamtot, gamtot3
-      use arrays_store_fields, only: gamtot13, gamtot31, gamtot33
-      use arrays_store_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
-      use arrays_store_fields, only: apar_denom
+      use arrays_store_useful, only: gamtot, gamtot3
+      use arrays_store_useful, only: gamtot13, gamtot31, gamtot33
+      use arrays_store_useful, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
+      use arrays_store_useful, only: apar_denom
       
       implicit none
 
-      !>TODO-GA:
+      !TODO-GA:
       !if (allocated(apar)) deallocate (apar)
       if (allocated(apar_old)) deallocate(apar_old)
       if (allocated(bpar_old)) deallocate(bpar_old)

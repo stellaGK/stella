@@ -1,13 +1,13 @@
-!> Module for advancing and initialising the fields for a fluxtube simulation
+! Module for advancing and initialising the fields for a fluxtube simulation
 module fields_fluxtube
 
    use debug_flags, only: debug => fields_fluxtube_debug
    implicit none
 
-   !> Advance fields for fluxtube routines
+   ! Advance fields for fluxtube routines
    public :: advance_fields_fluxtube
    public :: get_fields_fluxtube
-   !> Initialise Routine
+   ! Initialise Routine
    public :: init_fields_fluxtube   
 
    private
@@ -28,27 +28,27 @@ contains
    !============================================================================
    !============================== ADVANCE FIELDS ==============================
    !============================================================================
-   !> This calls the appropriate routines needed to advance phi in the main code
-   !> when using fluxtube stella, depending on the distribution (i.e. if the
-   !> information is parallelised over (kx,ky,z) or (vpa,mu) ).
-   !> Note that Apar and Bpar are only advanced when using EM so these are in
-   !> fields_electromagnetic.fpp
+   ! This calls the appropriate routines needed to advance phi in the main code
+   ! when using fluxtube stella, depending on the distribution (i.e. if the
+   ! information is parallelised over (kx,ky,z) or (vpa,mu) ).
+   ! Note that Apar and Bpar are only advanced when using EM so these are in
+   ! fields_electromagnetic.fpp
    !============================================================================
    subroutine advance_fields_fluxtube (g, phi, apar, bpar, dist, skip_fsa)
 
       use mp, only: proc0
       use job_manage, only: time_message
-      !> Layouts
+      ! Layouts
       use stella_layouts, only: vmu_lo
       use redistribute, only: scatter
       use calculations_redistribute, only: kxkyz2vmu
-      !> Arrays
+      ! Arrays
       use arrays_store_distribution_fn, only: gvmu
-      use arrays_store_fields, only: time_field_solve
-      !> Parameters
+      use arrays_store_useful, only: time_field_solve
+      ! Parameters
       use stella_layouts, only: fields_kxkyz
       use parameters_physics, only: full_flux_surface
-      !> Grids
+      ! Grids
       use grids_z, only: nzgrid
 
       implicit none
@@ -59,21 +59,21 @@ contains
 
       logical, optional, intent(in) :: skip_fsa
       !-------------------------------------------------------------------------
-      !> Note that fields_kxkyz = F is the default
+      ! Note that fields_kxkyz = F is the default
       if (.not. fields_kxkyz) then 
          if (debug) write (*, *) 'fields_fluxtube::advance_fields_fluxtube::get_fields_fluxtube_vmlo'
-         !> This will call get_fields_fluxtube_vmlo
+         ! This will call get_fields_fluxtube_vmlo
          call get_fields_fluxtube(g, phi, apar, bpar, dist, skip_fsa)
       else if (fields_kxkyz) then 
-         !> Note that to use this option it has to be specified by the user
-         !> First gather (vpa,mu) onto processor for v-space operations
-         !> v-space operations are field solve, dg/dvpa, and collisions
+         ! Note that to use this option it has to be specified by the user
+         ! First gather (vpa,mu) onto processor for v-space operations
+         ! v-space operations are field solve, dg/dvpa, and collisions
          if (debug) write (*, *) 'fields_fluxtube::advance_fields_fluxtube::scatter'
          if (proc0) call time_message(.false., time_field_solve(:, 2), ' fields_redist')
          call scatter(kxkyz2vmu, g, gvmu)
          if (proc0) call time_message(.false., time_field_solve(:, 2), ' fields_redist')
-         !> Given gvmu with vpa and mu local, calculate the corresponding fields
-         !> This will call get_fields_fluxtube_kxkyzlo
+         ! Given gvmu with vpa and mu local, calculate the corresponding fields
+         ! This will call get_fields_fluxtube_kxkyzlo
          if (debug) write (*, *) 'fields_fluxtube::advance_fields_fluxtube::get_fields_fluxtube_kxkyzlo'
          call get_fields_fluxtube(gvmu, phi, apar, bpar, dist, skip_fsa)
       end if 
@@ -83,35 +83,35 @@ contains
    !============================================================================
    !=========================== ADVANCE FIELDS VMULO ===========================
    !============================================================================
-   !> If we are parallelising over (vpa,mu) then this subroutine is called
-   !> This is the more common version used compared with parallelising over 
-   !> (kx,ky,z) and is the default for stella.
-   !> Here we calculate:
-   !>    sum_s int dv (J0 * g)
-   !> and then call get_phi which divides this by the appropriate gamtot factor
+   ! If we are parallelising over (vpa,mu) then this subroutine is called
+   ! This is the more common version used compared with parallelising over 
+   ! (kx,ky,z) and is the default for stella.
+   ! Here we calculate:
+   !    sum_s int dv (J0 * g)
+   ! and then call get_phi which divides this by the appropriate gamtot factor
    !============================================================================
-   !> TODO-GA: remove apar from this and make it only needed for EM stella
+   ! TODO-GA: remove apar from this and make it only needed for EM stella
    subroutine get_fields_fluxtube_vmlo(g, phi, apar, bpar, dist, skip_fsa)
 
       use mp, only: mp_abort, proc0
       use job_manage, only: time_message
-      !> Layouts
+      ! Layouts
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx
-      !> Arrays
+      ! Arrays
       use arrays_store_distribution_fn, only: g_scratch
-      use arrays_store_fields, only: time_field_solve
-      !> Parameters
+      use arrays_store_useful, only: time_field_solve
+      ! Parameters
       use parameters_physics, only: fphi
       use parameters_physics, only: beta
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: radial_variation
-      !> Grids
+      ! Grids
       use grids_z, only: nzgrid
       use grids_species, only: spec
       use grids_velocity, only: integrate_species
-      !> Calculations
+      ! Calculations
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
-      !> Routines from other field modules
+      ! Routines from other field modules
       use fields_electromagnetic, only: get_fields_electromagnetic
       use fields_radial_variation, only: add_radial_correction_int_species, get_phi_for_radial
       
@@ -129,39 +129,39 @@ contains
       if (debug) write (*, *) 'fields_fluxtube::get_fields_fluxtube_vmulo'
 
       phi = 0.
-      !> Note that this advances phi for the electrostatic, fluxtube case.
-      !> If electromagnetic effects are included then phi will be advanced below
+      ! Note that this advances phi for the electrostatic, fluxtube case.
+      ! If electromagnetic effects are included then phi will be advanced below
       if (fphi > epsilon(0.0) .and. .not. include_bpar) then 
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
-         !> First gyroaverage the distribution function g at each phase space location
-         !> and store this as g_scratch = <g> = J_0 g in k-space
+         ! First gyroaverage the distribution function g at each phase space location
+         ! and store this as g_scratch = <g> = J_0 g in k-space
          call gyro_average(g, g_scratch)
-         !> If we are allowing for Radial Variation then we must modify <g>.
-         !> This is done in the fields_radialvariation module, but is not needed
-         !> for standard stella (as these are false by default).
+         ! If we are allowing for Radial Variation then we must modify <g>.
+         ! This is done in the fields_radialvariation module, but is not needed
+         ! for standard stella (as these are false by default).
          if (radial_variation) call add_radial_correction_int_species(g_scratch)
-         !> Next, integrate <g> over velocity space and sum over species and store
-         !> the result in phi, which will be further modified below to account for polarization term
+         ! Next, integrate <g> over velocity space and sum over species and store
+         ! the result in phi, which will be further modified below to account for polarization term
          if (debug) write (*, *) 'fields_fluxtube::get_fields_fluxtube_vmulo::integrate_species_phi'
          call integrate_species(g_scratch, spec%z * spec%dens_psi0, phi)
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
-         !> Get phi routine inverts the appropriate 'Gamma_0' factor that multiplies the <phi> terms
-         !> onto the RHS of the equation. The exact form of this factor depends on the simulation
-         !> e.g. we may have adiabatic electrons, kinetic electrons etc. and also if Radial Varation 
-         !> effects are included (these are false by default)
+         ! Get phi routine inverts the appropriate 'Gamma_0' factor that multiplies the <phi> terms
+         ! onto the RHS of the equation. The exact form of this factor depends on the simulation
+         ! e.g. we may have adiabatic electrons, kinetic electrons etc. and also if Radial Varation 
+         ! effects are included (these are false by default)
          if (.not. radial_variation) then 
-            !> This is the inversion routine for electrostatic, fluxtube stella
+            ! This is the inversion routine for electrostatic, fluxtube stella
             if (debug) write (*, *) 'fields_fluxtube::get_fields_fluxtube_vmulo::get_phi'
             call get_phi(phi, dist, skip_fsa_local)
          else if (radial_variation) then 
-            !> If we are allowing for radial variation this factor changes further
+            ! If we are allowing for radial variation this factor changes further
             if (debug) write (*, *) 'fields_fluxtube::get_fields_fluxtube_vmulo::get_phi_for_radial'
             call get_phi_for_radial (phi, dist , skip_fsa)
          end if 
       end if 
 
-      !> If we have electromagnetic effects we need to add the terms due to A_parallel and B_parallel 
-      !> and also need to advance phi including electromagnetic effects
+      ! If we have electromagnetic effects we need to add the terms due to A_parallel and B_parallel 
+      ! and also need to advance phi including electromagnetic effects
       if (include_apar .or. include_bpar) then
          apar = 0.
          bpar = 0.
@@ -174,38 +174,38 @@ contains
    !============================================================================
    !=========================== ADVANCE FIELDS KXKYZ ===========================
    !============================================================================
-   !> If we are parallelising over (kx,ky,z) then this subroutine is called
-   !> This is the less common version used compared with parallelising over 
-   !> (vpa, mu). This is NOT the default routine for stella, and the flag 
-   !> <fields_kxkyz = .True.> must be set to use this routine. 
-   !> Here we calculate:
-   !>    sum_s int dv (J0 * g)
-   !> and then call get_phi which divides this by the appropriate gamtot factor
+   ! If we are parallelising over (kx,ky,z) then this subroutine is called
+   ! This is the less common version used compared with parallelising over 
+   ! (vpa, mu). This is NOT the default routine for stella, and the flag 
+   ! <fields_kxkyz = .True.> must be set to use this routine. 
+   ! Here we calculate:
+   !    sum_s int dv (J0 * g)
+   ! and then call get_phi which divides this by the appropriate gamtot factor
    !============================================================================
-   !> TODO-GA: remove apar from this and make it only needed for EM stella
+   ! TODO-GA: remove apar from this and make it only needed for EM stella
    subroutine get_fields_fluxtube_kxkyzlo(g, phi, apar, bpar, dist, skip_fsa)
 
       use mp, only: proc0
       use mp, only: sum_allreduce, mp_abort
       use job_manage, only: time_message
-      !> Layouts
+      ! Layouts
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
-      !> Arrays
-      use arrays_store_fields, only: time_field_solve
-      !> Parameters
+      ! Arrays
+      use arrays_store_useful, only: time_field_solve
+      ! Parameters
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: fphi
       use parameters_physics, only: beta
       use parameters_physics, only: radial_variation
-      !> Grids
+      ! Grids
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: integrate_vmu
       use grids_species, only: spec
-      !> Calculations
+      ! Calculations
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
-      !> Routines from other field modules
+      ! Routines from other field modules
       use fields_electromagnetic, only: get_fields_electromagnetic
       use fields_radial_variation, only: get_phi_for_radial
 
@@ -230,8 +230,8 @@ contains
       ia = 1
       phi = 0.
 
-      !> Note that this advances phi for the electrostatic, fluxtube case.
-      !> If electromagnetic effects are included then phi will be advanced below
+      ! Note that this advances phi for the electrostatic, fluxtube case.
+      ! If electromagnetic effects are included then phi will be advanced below
       if (fphi > epsilon(0.0) .and. .not. include_bpar) then
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
          if (debug) write (*, *) 'fields::get_fields_fluxtube_kxkyzlo_int_dv_g'
@@ -242,11 +242,11 @@ contains
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
             iky = iky_idx(kxkyz_lo, ikxkyz)
             is = is_idx(kxkyz_lo, ikxkyz)
-            !> First gyroaverage the distribution function g at each phase space location
-            !> and store this as g0 = <g> = J_0 g in k-space
+            ! First gyroaverage the distribution function g at each phase space location
+            ! and store this as g0 = <g> = J_0 g in k-space
             call gyro_average(g(:, :, ikxkyz), ikxkyz, g0)
-             !> Next, integrate <g> over velocity space and sum over species and store
-            !> the result in phi, which will be further modified below to account for polarization term
+             ! Next, integrate <g> over velocity space and sum over species and store
+            ! the result in phi, which will be further modified below to account for polarization term
             wgt = spec(is)%z * spec(is)%dens_psi0
             call integrate_vmu(g0, iz, tmp)
             phi(iky, ikx, iz, it) = phi(iky, ikx, iz, it) + wgt * tmp
@@ -258,14 +258,14 @@ contains
             if (debug) write (*, *) 'fields_fluxtube::get_fields_fluxtube_kxkyzlo::get_phi'
             call get_phi(phi, dist, skip_fsa_local)
          else if (radial_variation) then
-            !> If we are allowing for radial variation this factor changes further
+            ! If we are allowing for radial variation this factor changes further
             if (debug) write (*, *) 'fields_fluxtube::get_fields_fluxtube_kxkyzlo::get_phi_for_radial'
             call get_phi_for_radial (phi, dist , skip_fsa)
          end if
       end if
 
-      !> If we have electromagnetic effects we need to add the terms due to A_parallel and B_parallel 
-      !> and also need to advance phi including electromagnetic effects
+      ! If we have electromagnetic effects we need to add the terms due to A_parallel and B_parallel 
+      ! and also need to advance phi including electromagnetic effects
       if (include_apar .or. include_bpar) then 
          bpar = 0.
          apar = 0.
@@ -278,31 +278,31 @@ contains
    !============================================================================
    !================================ UPDATE PHI ================================
    !============================================================================
-   !> The 'phi' variable passed in is:
-   !>    sum_s int dv (J0 * g)
-   !> This routine divides by the appropriate gamtot factor depending on if we
-   !> have kinetic or adiabatic electrons, and also on whether we are using 'g'
-   !> or 'h' as our distribution function that we are evolving.
-   !> Note that this routine is only called in the Electrostatic, Fluxtube case. 
+   ! The 'phi' variable passed in is:
+   !    sum_s int dv (J0 * g)
+   ! This routine divides by the appropriate gamtot factor depending on if we
+   ! have kinetic or adiabatic electrons, and also on whether we are using 'g'
+   ! or 'h' as our distribution function that we are evolving.
+   ! Note that this routine is only called in the Electrostatic, Fluxtube case. 
    !============================================================================
    subroutine get_phi(phi, dist, skip_fsa)
 
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
       use multibox, only: mb_get_phi
-      !> Arrays
-      use arrays_store_fields, only: gamtot, gamtot3, gamtot_h, gamtot3_h
-      use arrays_store_fields, only: time_field_solve
-      !> Parameters
+      ! Arrays
+      use arrays_store_useful, only: gamtot, gamtot3, gamtot_h, gamtot3_h
+      use arrays_store_useful, only: time_field_solve
+      ! Parameters
       use parameters_physics, only: radial_variation
       use parameters_kxky_grid, only: nakx, naky
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
-      !> Grids
+      ! Grids
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: zonal_mode
       use grids_species, only: spec, has_electron_species
-      !> Geometry 
+      ! Geometry 
       use geometry, only: dl_over_b
 
       implicit none
@@ -333,7 +333,7 @@ contains
          phi = phi / gamtot_h
       else if (dist == 'g' .or. dist == 'gbar') then
          if (debug) write(*, *) 'fields_fluxtube::get_phi::dist==gbar'
-         !> Divide <g> by sum_s (1 - Gamma_0) Z^2*n/T to get phi
+         ! Divide <g> by sum_s (1 - Gamma_0) Z^2*n/T to get phi
          allocate (gamtot_t(naky, nakx, -nzgrid:nzgrid, ntubes))
          gamtot_t = spread(gamtot, 4, ntubes)
          where (gamtot_t < epsilon(0.0))
@@ -348,13 +348,13 @@ contains
          return
       end if
 
-      !> The kx = ky = 0.0 mode is not evolved by stella so make sure this term
-      !> is set to zero.
+      ! The kx = ky = 0.0 mode is not evolved by stella so make sure this term
+      ! is set to zero.
       if (debug) write(*, *) 'fields_fluxtube::get_phi::set kxky=0.0 to zero'
       if (any(gamtot(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
       if (proc0) call time_message(.false., time_field_solve(:, 4), ' get_phi')
 
-      !> Now handle adiabatic electrons only if needed.
+      ! Now handle adiabatic electrons only if needed.
       if (proc0) call time_message(.false., time_field_solve(:, 5), 'get_phi_adia_elec')
       if (adia_elec .and. zonal_mode(1) .and. .not. skip_fsa_local) then
          if (debug) write (*, *) 'dist_fn::advance_stella::adiabatic_electrons'
@@ -390,38 +390,38 @@ contains
    !============================================================================
    !============================= INITALISE ARRAYS =============================
    !============================================================================
-   !> Initialise arrays that are needed during the main time advance loop in the
-   !> field solve for the flux tube simulations only
-   !> These are initialised once and then used throughout the rest of the simulation
-   !>    gamtot = 1 - gamma0 = Z^2*n/T * int e^(-v^2) * (1 - J0^2) dv
-   !> If using adiabatic electrons then this factor is modified and we use gamtot3
-   !> which includes the Boltmann response
+   ! Initialise arrays that are needed during the main time advance loop in the
+   ! field solve for the flux tube simulations only
+   ! These are initialised once and then used throughout the rest of the simulation
+   !    gamtot = 1 - gamma0 = Z^2*n/T * int e^(-v^2) * (1 - J0^2) dv
+   ! If using adiabatic electrons then this factor is modified and we use gamtot3
+   ! which includes the Boltmann response
    !============================================================================
    subroutine init_fields_fluxtube
 
       use mp, only: proc0, sum_allreduce
-      !> Layouts
+      ! Layouts
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
-      !> Arrays
-      use arrays_store_fields, only: gamtot, gamtot3
-      use arrays_store_fields, only: gamtot_h, gamtot3_h, efac, efacp
-      !> Parameters
+      ! Arrays
+      use arrays_store_useful, only: gamtot, gamtot3
+      use arrays_store_useful, only: gamtot_h, gamtot3_h, efac, efacp
+      ! Parameters
       use parameters_physics, only: fphi
       use parameters_numerical, only: maxwellian_normalization
       use parameters_physics, only: tite, nine, beta
       use parameters_kxky_grid, only: nakx
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
-      !> Grids
+      ! Grids
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: integrate_vmu
       use grids_species, only: spec, has_electron_species, ion_species
       use grids_kxky, only: zonal_mode, akx
-      !> Calculations
+      ! Calculations
       use arrays_gyro_averages, only: aj0v
-      !> Geometry
+      ! Geometry
       use geometry, only: dl_over_b
 
       implicit none
@@ -435,27 +435,27 @@ contains
       ia = 1
       zm = 0
 
-      !> Initialise gamtot
+      ! Initialise gamtot
       if (fphi > epsilon(0.0)) then
          if (debug) write(*, *) 'fields_fluxtube::init_fields_fluxtube::init_gamtot'
          allocate (g0(nvpa, nmu))
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             it = it_idx(kxkyz_lo, ikxkyz)
-            !> Gamtot does not depend on flux tube index, so only compute for one flux tube index
+            ! Gamtot does not depend on flux tube index, so only compute for one flux tube index
             if (it /= 1) cycle
             iky = iky_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
             iz = iz_idx(kxkyz_lo, ikxkyz)
             is = is_idx(kxkyz_lo, ikxkyz)
 
-            !> Calculate (1- j0^2) for each kx,ky,z
+            ! Calculate (1- j0^2) for each kx,ky,z
             g0 = spread((1.0 - aj0v(:, ikxkyz)**2), 1, nvpa)
-            !> TODO-GA: remove maxwellian_normalisation flag
+            ! TODO-GA: remove maxwellian_normalisation flag
             if (.not. maxwellian_normalization) then
                g0 = g0 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
             end if
 
-            !> Integrate over vpa mu with weight = Z^2*n/T
+            ! Integrate over vpa mu with weight = Z^2*n/T
             wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp
             call integrate_vmu(g0, iz, tmp)
             gamtot(iky, ikx, iz) = gamtot(iky, ikx, iz) + tmp * wgt
@@ -464,14 +464,14 @@ contains
 
          gamtot_h = sum(spec%z * spec%z * spec%dens / spec%temp)
 
-         !> Avoid divide by zero when kx=ky=0
-         !> We do not evolve this mode, so the value is irrelevant
+         ! Avoid divide by zero when kx=ky=0
+         ! We do not evolve this mode, so the value is irrelevant
          if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then
             gamtot(1, 1, :) = 0.0
             zm = 1
          end if
 
-         !> Initialise gamtot3
+         ! Initialise gamtot3
          if (.not. has_electron_species(spec)) then
             if (debug) write(*, *) 'fields_fluxtube::init_fields_fluxtube::init_gamtot3'
             efac = tite / nine * (spec(ion_species)%dens / spec(ion_species)%temp)
@@ -485,7 +485,7 @@ contains
                      tmp = 1./efac - sum(dl_over_b(ia, :) / gamtot(1, ikx, :))
                      gamtot3(ikx, :) = 1./(gamtot(1, ikx, :) * tmp)
                   end do
-                  !> Avoid divide by zero for kx=ky=0 mode, which we do not need anyway
+                  ! Avoid divide by zero for kx=ky=0 mode, which we do not need anyway
                   if (akx(1) < epsilon(0.)) then
                      gamtot3(1, :) = 0.0
                   end if

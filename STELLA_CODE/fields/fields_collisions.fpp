@@ -35,7 +35,7 @@ contains
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
 
-      use arrays_store_fields, only: gamtot3_h, gamtot_h
+      use arrays_store_useful, only: gamtot3_h, gamtot_h
 
       implicit none
 
@@ -122,7 +122,7 @@ contains
       use arrays_store_useful, only: kperp2
       use spfunc, only: j0
 
-      use arrays_store_fields, only: gamtot_h, gamtot3_h
+      use arrays_store_useful, only: gamtot_h, gamtot3_h
       implicit none
 
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g

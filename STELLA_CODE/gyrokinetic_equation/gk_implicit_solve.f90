@@ -1220,7 +1220,7 @@ contains
       use grids_extended_zgrid, only: periodic, phase_shift
       use parameters_kxky_grid, only: naky
       use fields, only: nfields
-      use arrays_store_fields, only: response_matrix
+      use arrays_store_useful, only: response_matrix
 
       implicit none
 

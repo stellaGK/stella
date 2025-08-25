@@ -206,7 +206,7 @@ contains
       use arrays_gyro_averages, only: aj0v
       use fields_fluxtube, only: get_fields_fluxtube
       use fields_collisions, only: get_fields_by_spec
-      use arrays_store_fields, only: efac, gamtot_h
+      use arrays_store_useful, only: efac, gamtot_h
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
 
@@ -464,7 +464,7 @@ contains
       use arrays_gyro_averages, only: aj0v, aj1v
       use fields_fluxtube, only: get_fields_fluxtube
       use fields_collisions, only: get_fields_by_spec
-      use arrays_store_fields, only: efac, gamtot_h
+      use arrays_store_useful, only: efac, gamtot_h
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
 
@@ -1537,7 +1537,7 @@ contains
       use calculations_tofrom_ghf, only: g_to_h
       use arrays_gyro_averages, only: aj0v
       use fields_fluxtube, only: get_fields_fluxtube
-      use arrays_store_fields, only: efac, gamtot_h
+      use arrays_store_useful, only: efac, gamtot_h
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
 
@@ -1703,7 +1703,7 @@ contains
       use arrays_gyro_averages, only: aj0v, aj1v
       use calculations_tofrom_ghf, only: g_to_h
       use fields_fluxtube, only: get_fields_fluxtube
-      use arrays_store_fields, only: efac, gamtot_h
+      use arrays_store_useful, only: efac, gamtot_h
       use geometry, only: bmag, dl_over_b
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg

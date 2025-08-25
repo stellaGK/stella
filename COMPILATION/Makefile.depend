@@ -160,7 +160,8 @@ $(OBJ_DIR)/arrays_gyro_averages.o: \
 $(OBJ_DIR)/arrays_store_distribution_fn.o: 
 $(OBJ_DIR)/arrays_store_fields.o: \
 	 $(OBJ_DIR)/stella_common_types.o 
-$(OBJ_DIR)/arrays_store_useful.o: 
+$(OBJ_DIR)/arrays_store_useful.o: \
+	 $(OBJ_DIR)/stella_common_types.o 
 $(OBJ_DIR)/calculations_checksum.o: \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/grids_extended_zgrid.o \
@@ -523,6 +524,7 @@ $(OBJ_DIR)/fft_work.o: \
 $(OBJ_DIR)/fields.o: \
 	 $(OBJ_DIR)/arrays_store_distribution_fn.o \
 	 $(OBJ_DIR)/arrays_store_fields.o \
+	 $(OBJ_DIR)/arrays_store_useful.o \
 	 $(OBJ_DIR)/calculations_volume_averages.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/fields_electromagnetic.o \
@@ -540,7 +542,6 @@ $(OBJ_DIR)/fields.o: \
 	 $(OBJ_DIR)/stella_common_types.o \
 	 $(OBJ_DIR)/stella_layouts.o 
 $(OBJ_DIR)/fields_collisions.o: \
-	 $(OBJ_DIR)/arrays_store_fields.o \
 	 $(OBJ_DIR)/arrays_store_useful.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/geometry.o \
@@ -572,7 +573,7 @@ $(OBJ_DIR)/fields_electromagnetic.o: \
 $(OBJ_DIR)/fields_fluxtube.o: \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \
 	 $(OBJ_DIR)/arrays_store_distribution_fn.o \
-	 $(OBJ_DIR)/arrays_store_fields.o \
+	 $(OBJ_DIR)/arrays_store_useful.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_redistribute.o \
 	 $(OBJ_DIR)/debug_flags.o \
@@ -593,7 +594,6 @@ $(OBJ_DIR)/fields_fluxtube.o: \
 	 $(OBJ_DIR)/stella_layouts.o 
 $(OBJ_DIR)/fields_fullfluxsurface.o: \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \
-	 $(OBJ_DIR)/arrays_store_fields.o \
 	 $(OBJ_DIR)/arrays_store_useful.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_kxky.o \
@@ -713,7 +713,7 @@ $(OBJ_DIR)/gk_drifts.o: \
 	 $(OBJ_DIR)/stella_time.o 
 $(OBJ_DIR)/gk_ffs_solve.o: \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \
-	 $(OBJ_DIR)/arrays_store_distribution_fn.o \
+	 $(OBJ_DIR)/arrays_store_useful.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_kxky.o \
 	 $(OBJ_DIR)/calculations_transforms.o \
@@ -728,6 +728,7 @@ $(OBJ_DIR)/gk_ffs_solve.o: \
 	 $(OBJ_DIR)/stella_layouts.o 
 $(OBJ_DIR)/gk_flow_shear.o: \
 	 $(OBJ_DIR)/arrays_store_fields.o \
+	 $(OBJ_DIR)/arrays_store_useful.o \
 	 $(OBJ_DIR)/calculations_kxky_derivatives.o \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/constants.o \
@@ -746,7 +747,6 @@ $(OBJ_DIR)/gk_flow_shear.o: \
 	 $(OBJ_DIR)/stella_time.o 
 $(OBJ_DIR)/gk_implicit_solve.o: \
 	 $(OBJ_DIR)/arrays_store_distribution_fn.o \
-	 $(OBJ_DIR)/arrays_store_fields.o \
 	 $(OBJ_DIR)/arrays_store_useful.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/constants.o \
@@ -845,7 +845,6 @@ $(OBJ_DIR)/gk_parallel_streaming.o: \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/stella_time.o 
 $(OBJ_DIR)/gk_radial_variation.o: \
-	 $(OBJ_DIR)/arrays_store_distribution_fn.o \
 	 $(OBJ_DIR)/arrays_store_fields.o \
 	 $(OBJ_DIR)/arrays_store_useful.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
@@ -1008,6 +1007,7 @@ $(OBJ_DIR)/mp_lu_decomposition.o: \
 	 $(OBJ_DIR)/linear_solve.o 
 $(OBJ_DIR)/multibox.o: \
 	 $(OBJ_DIR)/arrays_store_fields.o \
+	 $(OBJ_DIR)/arrays_store_useful.o \
 	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/fft_work.o \
 	 $(OBJ_DIR)/file_utils.o \
@@ -1148,7 +1148,6 @@ $(OBJ_DIR)/reset_timestep.o: \
 	 $(OBJ_DIR)/response_matrix.o 
 $(OBJ_DIR)/response_matrix.o: \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \
-	 $(OBJ_DIR)/arrays_store_fields.o \
 	 $(OBJ_DIR)/arrays_store_useful.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/debug_flags.o \
@@ -1244,6 +1243,7 @@ $(OBJ_DIR)/stella_layouts.o: \
 $(OBJ_DIR)/stella_save.o: \
 	 $(OBJ_DIR)/arrays_store_distribution_fn.o \
 	 $(OBJ_DIR)/arrays_store_fields.o \
+	 $(OBJ_DIR)/arrays_store_useful.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/gk_sources.o \
 	 $(OBJ_DIR)/grids_velocity.o \

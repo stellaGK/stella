@@ -109,8 +109,9 @@ contains
         use calculations_kxky_derivatives, only: get_dgdy, get_dgdx
         use calculations_kxky, only: swap_kxky, swap_kxky_back
 
-        use arrays_store_fields, only: phi, apar, bpar, shift_state
+        use arrays_store_fields, only: phi, apar, bpar
         use arrays_store_fields, only: phi_corr_QN, phi_corr_GA
+        use arrays_store_useful, only: shift_state
         use arrays_store_distribution_fn, only: g_scratch
         use arrays_store_useful, only: time_gke
         
