@@ -129,6 +129,6 @@
 !                                  Dissipation                                  
 !===============================================================================
  
-&dissipation
+&dissipation_and_collisions_options
   hyper_dissipation = .true.
 /

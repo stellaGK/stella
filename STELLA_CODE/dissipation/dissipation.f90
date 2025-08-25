@@ -30,7 +30,7 @@ contains
       use debug_flags, only: print_extra_info_to_terminal
       
       ! Read the <dissipation> namelist in the input file
-      use namelist_dissipation, only: read_namelist_dissipation
+      use namelist_dissipation, only: read_namelist_dissipation_and_collisions_options
       
       ! Read other input parameters related to specific collision models
       use dissipation_coll_dougherty, only: read_parameters_dougherty
@@ -44,7 +44,8 @@ contains
       !-------------------------------------------------------------------------
       
       ! Read <dissipation> namelist in the input file
-      if (proc0) call read_namelist_dissipation(include_collisions, collisions_implicit, collision_model, hyper_dissipation)
+      if (proc0) call read_namelist_dissipation_and_collisions_options(&
+         include_collisions, collisions_implicit, collision_model, hyper_dissipation)
 
       ! Broadcast to all processors
       call broadcast(include_collisions)

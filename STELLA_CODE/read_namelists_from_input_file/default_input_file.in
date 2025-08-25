@@ -394,7 +394,7 @@
 !                                  Dissipation                                  
 !===============================================================================
 
-&dissipation
+&dissipation_and_collisions_options
    include_collisions = .false.
    collisions_implicit = .true.
    hyper_dissipation = .false.

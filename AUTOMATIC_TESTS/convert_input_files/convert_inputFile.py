@@ -640,10 +640,10 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
     
     renamed_variables = { 
         #------------------- dissipation --> dissipation ------------------
-        'dissipation:include_collisions:False'      : 'dissipation:include_collisions:False',
-        'dissipation:hyper_dissipation:False'       : 'dissipation:hyper_dissipation:False',
-        'dissipation:collision_model:dougherty'     : 'dissipation:collision_model:dougherty',
-        'dissipation:collisions_implicit:True'      : 'dissipation:collisions_implicit:True',
+        'dissipation:include_collisions:False'      : 'dissipation_and_collisions_options:include_collisions:False',
+        'dissipation:hyper_dissipation:False'       : 'dissipation_and_collisions_options:hyper_dissipation:False',
+        'dissipation:collision_model:dougherty'     : 'dissipation_and_collisions_options:collision_model:dougherty',
+        'dissipation:collisions_implicit:True'      : 'dissipation_and_collisions_options:collisions_implicit:True',
         #------------------- dissipation --> hyper_dissipation ------------------
         'dissipation:d_hyper:0.05'                  : 'hyper_dissipation:d_hyper:0.05',
         'hyper_dissipation:d_zed:DOESNT EXIST YET'  : 'hyper_dissipation:d_zed:0.05',

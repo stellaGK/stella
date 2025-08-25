@@ -4,7 +4,7 @@
 ! 
 ! This module will read the namelists associated with dissipation:
 ! 
-!   dissipation
+!   dissipation_and_collisions_options
 !      include_collisions = .false.
 !      collisions_implicit = .true.
 !      hyper_dissipation = .false.
@@ -77,7 +77,7 @@ module namelist_dissipation
    implicit none
 
    ! Make reading routines accesible to other modules
-   public :: read_namelist_dissipation
+   public :: read_namelist_dissipation_and_collisions_options
    public :: read_namelist_collisions_dougherty
    public :: read_namelist_collisions_fokker_planck
    public :: read_namelist_hyper_dissipation
@@ -93,7 +93,8 @@ contains
    !****************************************************************************
    !                                DISSIPATION                                !
    !****************************************************************************
-   subroutine read_namelist_dissipation(include_collisions, collisions_implicit, collision_model, hyper_dissipation)
+   subroutine read_namelist_dissipation_and_collisions_options(include_collisions, &
+      collisions_implicit, collision_model, hyper_dissipation)
 
       use mp, only: proc0
       
@@ -106,14 +107,14 @@ contains
       !-------------------------------------------------------------------------
 
       if (.not. proc0) return
-      call set_default_parameters_dissipation
-      call read_input_file_dissipation
-      call check_inputs_dissipation
+      call set_default_parameters_dissipation_and_collisions_options
+      call read_input_file_dissipation_and_collisions_options
+      call check_inputs_dissipation_and_collisions_options
 
    contains 
       
       !------------------------ Default input parameters -----------------------
-      subroutine set_default_parameters_dissipation
+      subroutine set_default_parameters_dissipation_and_collisions_options
 
          implicit none
 
@@ -125,30 +126,30 @@ contains
          ! Text options: dougherty or fokker-planck
          collision_model = 'dougherty'
 
-      end subroutine set_default_parameters_dissipation
+      end subroutine set_default_parameters_dissipation_and_collisions_options
 
       !---------------------------- Read input file ----------------------------
-      subroutine read_input_file_dissipation
+      subroutine read_input_file_dissipation_and_collisions_options
 
          use file_utils, only: input_unit_exist
          implicit none
 
-         namelist /dissipation/ include_collisions, collisions_implicit, collision_model, hyper_dissipation
-         in_file = input_unit_exist('dissipation', dexist)
-         if (dexist) read (unit=in_file, nml=dissipation)
+         namelist /dissipation_and_collisions_options/ include_collisions, collisions_implicit, collision_model, hyper_dissipation
+         in_file = input_unit_exist('dissipation_and_collisions_options', dexist)
+         if (dexist) read (unit=in_file, nml=dissipation_and_collisions_options)
 
-      end subroutine read_input_file_dissipation
+      end subroutine read_input_file_dissipation_and_collisions_options
 
       !------------------------- Check input parameters ------------------------
-      subroutine check_inputs_dissipation
+      subroutine check_inputs_dissipation_and_collisions_options
 
          implicit none
 
          if (.not. include_collisions) collisions_implicit = .false.
 
-      end subroutine check_inputs_dissipation
+      end subroutine check_inputs_dissipation_and_collisions_options
 
-   end subroutine read_namelist_dissipation
+   end subroutine read_namelist_dissipation_and_collisions_options
 
    !****************************************************************************
    !                           COLLISIONS: DOUGHERTY                           !
