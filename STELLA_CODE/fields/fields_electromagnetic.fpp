@@ -50,7 +50,7 @@ contains
       use parameters_physics, only: radial_variation
       use parameters_physics, only: include_apar, include_bpar
       !> Grids
-      use species, only: spec
+      use grids_species, only: spec
       use grids_velocity, only: integrate_species, vpa, mu
       use grids_z, only: nzgrid
       !> Calculations
@@ -144,7 +144,7 @@ contains
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa, mu 
       use grids_velocity, only: integrate_vmu
-      use species, only: spec
+      use grids_species, only: spec
       !> Calculations
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
 
@@ -323,7 +323,7 @@ contains
       use parameters_physics, only: include_apar
       use parameters_physics, only: beta
       !> Grids
-      use species, only: spec
+      use grids_species, only: spec
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu, vpa
       use grids_velocity, only: integrate_vmu
@@ -392,7 +392,7 @@ contains
       use parameters_physics, only: beta
       use parameters_physics, only: fphi 
       !> Grids
-      use species, only: spec
+      use grids_species, only: spec
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa, mu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac

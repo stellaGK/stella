@@ -195,7 +195,7 @@ contains
         use parameters_physics, only: fphi
         use parameters_kxky_grid, only: nakx, naky
         !> Grids
-        use species, only: spec
+        use grids_species, only: spec
         use grids_z, only: nzgrid, ntubes
         use grids_velocity, only: vpa, mu
         use grids_kxky, only: aky
@@ -261,7 +261,7 @@ contains
         use parameters_physics, only: fphi
         use parameters_kxky_grid, only: nakx, naky
         !> Grids
-        use species, only: spec
+        use grids_species, only: spec
         use grids_velocity, only: vpa, mu
         use grids_kxky, only: aky
         !> Calculations
@@ -319,7 +319,7 @@ contains
         use parameters_physics, only: full_flux_surface
         use parameters_physics, only: fphi
         !> Grids
-        use species, only: spec
+        use grids_species, only: spec
         use grids_velocity, only: vpa, mu
         use grids_kxky, only: akx
         !> Calculations

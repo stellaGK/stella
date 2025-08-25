@@ -36,7 +36,7 @@ contains
 
 !   subroutine gbar_to_h_vmu (g, phi, apar, facphi, facapar)
 
-!     use species, only: spec
+!     use grids_species, only: spec
 !     use grids_z, only: nzgrid
 !     use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
 !     use stella_layouts, only: vmu_lo
@@ -71,7 +71,7 @@ contains
 
 !   subroutine gbar_to_h_kxkyz (g, phi, apar, facphi, facapar)
 
-!     use species, only: spec
+!     use grids_species, only: spec
 !     use grids_z, only: nzgrid
 !     use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
 !     use grids_velocity, only: nvpa, nmu
@@ -105,7 +105,7 @@ contains
 
    subroutine gbar_to_g_kxkyz(g, apar, facapar)
 
-      use species, only: spec
+      use grids_species, only: spec
       use grids_z, only: nzgrid
       use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
       use grids_velocity, only: nvpa, nmu
@@ -145,7 +145,7 @@ contains
 
    subroutine gbar_to_g_1d_vpa(g, apar, imu, ikxkyz, facapar)
 
-      use species, only: spec
+      use grids_species, only: spec
       use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
       use grids_velocity, only: nvpa
       use stella_layouts, only: kxkyz_lo
@@ -200,7 +200,7 @@ contains
 
    subroutine gbar_to_g_vmu_single(ivmu, g0, apar, facapar)
 
-      use species, only: spec
+      use grids_species, only: spec
       use grids_z, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use parameters_kxky_grid, only: naky, nakx
@@ -266,7 +266,7 @@ contains
 
    subroutine g_to_h_vmu_single(ivmu, g0, phi, bpar, facphi, phi_corr)
 
-      use species, only: spec
+      use grids_species, only: spec
       use grids_z, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use geometry, only: bmag, dBdrho
@@ -349,7 +349,7 @@ contains
 
 !   subroutine g_to_h_vmu_zext (gext, phiext, facphi, iky, ie)
 
-!     use species, only: spec
+!     use grids_species, only: spec
 !     use grids_extended_zgrid, only: ikxmod
 !     use grids_extended_zgrid, only: iz_low, iz_up
 !     use grids_extended_zgrid, only: nsegments
@@ -399,7 +399,7 @@ contains
 
    subroutine g_to_h_kxkyz(g, phi, bpar, facphi)
 
-      use species, only: spec
+      use grids_species, only: spec
       use grids_z, only: nzgrid
       use grids_velocity, only: nvpa, nmu, mu
       use grids_velocity, only: maxwell_vpa, maxwell_mu
@@ -460,7 +460,7 @@ contains
 
    subroutine g_to_f_vmu(g, phi, facphi, phi_corr)
 
-      use species, only: spec
+      use grids_species, only: spec
       use grids_z, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -535,7 +535,7 @@ contains
 
    subroutine g_to_f_kxkyz(g, phi, facphi)
 
-      use species, only: spec
+      use grids_species, only: spec
       use grids_z, only: nzgrid
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -579,7 +579,7 @@ contains
 !   subroutine gstar_to_g (g, phi, apar, facphi, facapar)
 
 !     use constants, only: zi
-!     use species, only: spec
+!     use grids_species, only: spec
 !     use grids_z, only: nzgrid
 !     use grids_velocity, only: vpa
 !     use stella_layouts, only: vmu_lo

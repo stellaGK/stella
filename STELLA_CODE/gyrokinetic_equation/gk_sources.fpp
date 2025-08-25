@@ -55,7 +55,7 @@ contains
       use store_arrays_distribution_fn, only: g_krook, g_proj, g_symm
       use store_arrays_fields, only: phi_proj, phi_proj_stage
       use parameters_physics, only: radial_variation
-      use species, only: spec, has_electron_species
+      use grids_species, only: spec, has_electron_species
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
       use file_utils, only: runtype_option_switch, runtype_multibox
@@ -434,7 +434,7 @@ contains
    subroutine enforce_density_conservation(g_work)
 
       use mp, only: sum_allreduce
-      use species, only: spec
+      use grids_species, only: spec
       use parameters_physics, only: radial_variation
       use grids_velocity, only: integrate_species, mu, vpa, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac

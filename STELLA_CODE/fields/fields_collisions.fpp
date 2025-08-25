@@ -31,7 +31,7 @@ contains
       use grids_velocity, only: integrate_vmu
       use parameters_kxky_grid, only: nakx
       use grids_kxky, only: zonal_mode
-      use species, only: spec, nspec, has_electron_species
+      use grids_species, only: spec, nspec, has_electron_species
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
 
@@ -116,7 +116,7 @@ contains
       use grids_velocity, only: integrate_vmu
       use parameters_kxky_grid, only: nakx
       use grids_kxky, only: zonal_mode
-      use species, only: spec, nspec, has_electron_species
+      use grids_species, only: spec, nspec, has_electron_species
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
       use store_arrays_useful, only: kperp2

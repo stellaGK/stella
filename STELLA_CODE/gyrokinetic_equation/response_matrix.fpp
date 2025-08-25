@@ -964,7 +964,7 @@ contains
    subroutine integrate_over_velocity_phi(g, phi, iky, ie)
 
       use stella_layouts, only: vmu_lo
-      use species, only: nspec, spec
+      use grids_species, only: nspec, spec
       use grids_extended_zgrid, only: iz_low, iz_up
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: nsegments
@@ -1049,7 +1049,7 @@ contains
    subroutine integrate_over_velocity_bpar(g, bpar, iky, ie)
 
       use stella_layouts, only: vmu_lo, imu_idx
-      use species, only: nspec, spec
+      use grids_species, only: nspec, spec
       use parameters_physics, only: beta
       use grids_extended_zgrid, only: iz_low, iz_up
       use grids_extended_zgrid, only: ikxmod
@@ -1113,7 +1113,7 @@ contains
 
       use stella_layouts, only: vmu_lo, iv_idx
       use parameters_physics, only: beta
-      use species, only: nspec, spec
+      use grids_species, only: nspec, spec
       use grids_extended_zgrid, only: iz_low, iz_up
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: nsegments
@@ -1196,8 +1196,8 @@ contains
    subroutine get_phi_for_response_matrix(phi, iky, ie, dist)
 
       use grids_z, only: nzgrid
-      use species, only: spec
-      use species, only: has_electron_species
+      use grids_species, only: spec
+      use grids_species, only: has_electron_species
       use geometry, only: dl_over_b
       use grids_extended_zgrid, only: iz_low, iz_up
       use grids_extended_zgrid, only: ikxmod
@@ -1277,8 +1277,8 @@ contains
    subroutine get_phi_and_bpar_for_response_matrix(phi, bpar, iky, ie, dist)
 
       use grids_z, only: nzgrid
-      use species, only: spec
-      use species, only: has_electron_species
+      use grids_species, only: spec
+      use grids_species, only: has_electron_species
       use grids_extended_zgrid, only: iz_low, iz_up
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: nsegments

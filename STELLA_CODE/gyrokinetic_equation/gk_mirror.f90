@@ -30,7 +30,7 @@ contains
     
       use mp, only: proc0 
       use stella_time, only: code_dt
-      use species, only: spec, nspec
+      use grids_species, only: spec, nspec
       use grids_velocity, only: nmu
       use grids_velocity, only: mu
       use grids_z, only: nzgrid, nztot
@@ -126,7 +126,7 @@ contains
 
       use grids_z, only: nzgrid
       use grids_velocity, only: nmu, dvpa
-      use species, only: nspec
+      use grids_species, only: nspec
       use parameters_kxky_grid, only: nalpha
 
       implicit none
@@ -154,7 +154,7 @@ contains
       use grids_velocity, only: dvpa, vpa, mu
       use grids_velocity, only: nvpa, nmu
       use parameters_physics, only: full_flux_surface
-      use species, only: spec
+      use grids_species, only: spec
       use parameters_kxky_grid, only: nalpha
       use geometry, only: dbdzed
       use neoclassical_terms, only: include_neoclassical_terms
@@ -935,7 +935,7 @@ contains
 
    subroutine get_mirror_rhs_apar_contribution(rhs, apar, imu, ikxkyz)
 
-      use species, only: spec
+      use grids_species, only: spec
       use grids_velocity, only: nvpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
       use parameters_numerical, only: maxwellian_normalization

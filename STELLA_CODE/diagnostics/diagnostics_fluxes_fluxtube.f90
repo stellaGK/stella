@@ -118,7 +118,7 @@ contains
       use grids_velocity, only: nvpa, nmu
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: aky, theta0
-      use species, only: spec, nspec
+      use grids_species, only: spec, nspec
 
       ! Calculations
       use calculations_volume_averages, only: fieldline_average

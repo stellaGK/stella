@@ -47,7 +47,7 @@ contains
       ! Dimensions
       use parameters_kxky_grid, only: naky, nakx
       use grids_z, only: nztot, ntubes
-      use species, only: nspec
+      use grids_species, only: nspec
 
       ! Flags 
       use parameters_physics, only: radial_variation
@@ -250,7 +250,7 @@ contains
       ! Dimensions
       use parameters_kxky_grid, only: nakx, naky
       use grids_z, only: nzgrid, ntubes
-      use species, only: nspec
+      use grids_species, only: nspec
    
       ! Write data 
       use stella_io, only: write_radial_fluxes_nc
@@ -315,7 +315,7 @@ contains
 
       ! Dimensions 
       use parameters_kxky_grid, only: ny, ikx_max
-      use species, only: nspec
+      use grids_species, only: nspec
       use grids_z, only: nzgrid
 
       ! Calculations
@@ -362,7 +362,7 @@ contains
    subroutine write_fluxes_to_ascii_file(pflux_vs_s, vflux_vs_s, qflux_vs_s)
 
       use stella_time, only: code_time  
-      use species, only: nspec
+      use grids_species, only: nspec
       use mp, only: proc0
 
       implicit none
@@ -398,7 +398,7 @@ contains
    subroutine open_fluxes_ascii_file(restart)
 
       use file_utils, only: open_output_file
-      use species, only: nspec
+      use grids_species, only: nspec
       use mp, only: proc0
 
       implicit none
@@ -442,7 +442,7 @@ contains
    !============================================================================  
    subroutine init_diagnostics_fluxes(restart)
   
-      use species, only: nspec 
+      use grids_species, only: nspec 
       use mp, only: proc0
 
       implicit none 

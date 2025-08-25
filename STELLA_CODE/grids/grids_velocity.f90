@@ -110,7 +110,7 @@ contains
    !****************************************************************************
    subroutine init_velocity_grids
 
-      use species, only: spec, nspec
+      use grids_species, only: spec, nspec
 
       implicit none
 
@@ -138,7 +138,7 @@ contains
 
       use mp, only: mp_abort
       use constants, only: pi
-      use species, only: spec, nspec
+      use grids_species, only: spec, nspec
       use parameters_numerical, only: maxwellian_normalization
 
       implicit none
@@ -267,7 +267,7 @@ contains
       use gauss_quad, only: get_laguerre_grids
       use grids_z, only: nzgrid, nztot
       use parameters_kxky_grid, only: nalpha
-      use species, only: spec, nspec
+      use grids_species, only: spec, nspec
       use geometry, only: bmag, bmag_psi0
       use parameters_numerical, only: maxwellian_normalization
 
@@ -358,7 +358,7 @@ contains
    !----------------------------------------------------------------------------
    subroutine integrate_mu_local(iz, g, total)
 
-      use species, only: nspec
+      use grids_species, only: nspec
 
       implicit none
 
@@ -864,7 +864,7 @@ contains
    subroutine calculate_velocity_integrals
 
       use grids_z, only: nzgrid
-      use species, only: nspec
+      use grids_species, only: nspec
 
       implicit none
 

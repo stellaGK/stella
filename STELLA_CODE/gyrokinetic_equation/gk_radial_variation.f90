@@ -23,7 +23,7 @@ contains
         use stella_layouts, only: iv_idx, imu_idx, is_idx
         use stella_time, only: code_dt
 
-        use species, only: spec, pfac
+        use grids_species, only: spec, pfac
         use grids_z, only: nzgrid
 
         use parameters_kxky_grid, only: nalpha

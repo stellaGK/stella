@@ -184,7 +184,7 @@ contains
 
       use mp, only: proc0, broadcast
       use constants, only: zi
-      use species, only: spec
+      use grids_species, only: spec
       use grids_z, only: nzgrid, zed
       use parameters_kxky_grid, only: naky, nakx, ikx_max
       use grids_kxky, only: theta0, akx, zonal_mode
@@ -283,7 +283,7 @@ contains
 
       use mp, only: proc0, broadcast
       use store_arrays_useful, only: kperp2
-      use species, only: spec
+      use grids_species, only: spec
       use grids_z, only: nzgrid, ntubes
       use grids_extended_zgrid, only: ikxmod, nsegments, neigen
       use grids_extended_zgrid, only: it_right
@@ -556,7 +556,7 @@ contains
    subroutine initialise_distribution_rh
 
       use mp, only: proc0, broadcast
-      use species, only: spec
+      use grids_species, only: spec
       use store_arrays_distribution_fn, only: gvmu
       use store_arrays_useful, only: kperp2
       use stella_layouts, only: kxkyz_lo
@@ -611,7 +611,7 @@ contains
    !****************************************************************************
    subroutine initialise_distribution_remap
 
-      use species, only: spec
+      use grids_species, only: spec
       use store_arrays_distribution_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx

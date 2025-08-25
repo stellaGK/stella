@@ -41,7 +41,7 @@ contains
       use parameters_numerical, only: nitt
 
       use gk_ffs_solve, only: get_source_ffs_itteration, get_drifts_ffs_itteration
-      use species, only: has_electron_species
+      use grids_species, only: has_electron_species
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
@@ -394,7 +394,7 @@ contains
    subroutine get_contributions_from_phi(phi, ivmu, iky, iz_from_izext, ikx_from_izext, scratch, rhs)
 
       use stella_time, only: code_dt
-      use species, only: spec
+      use grids_species, only: spec
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
       use grids_velocity, only: vpa
@@ -541,7 +541,7 @@ contains
    subroutine get_contributions_from_bpar(bpar, ivmu, iky, iz_from_izext, ikx_from_izext, scratch, rhs)
 
       use stella_time, only: code_dt
-      use species, only: spec
+      use grids_species, only: spec
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: vpa, mu
@@ -739,7 +739,7 @@ contains
       use parameters_numerical, only: maxwellian_normalization
       use grids_velocity, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
       use gk_parallel_streaming, only: center_zed
-      use species, only: spec
+      use grids_species, only: spec
       use grids_extended_zgrid, only: periodic
 
       implicit none
@@ -778,7 +778,7 @@ contains
    subroutine add_drifts_contribution_apar(scratch, iky, ia, ivmu, iv, is, nz_ext, iz_from_izext, rhs)
 
       use constants, only: zi
-      use species, only: spec
+      use grids_species, only: spec
       use grids_kxky, only: aky
       use store_arrays_distribution_fn, only: wstar
       use gk_parallel_streaming, only: center_zed
@@ -809,7 +809,7 @@ contains
 
    subroutine gbar_to_g_zext(pdf, apar, facapar, iky, ivmu, ikx_from_izext, iz_from_izext)
 
-      use species, only: spec
+      use grids_species, only: spec
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use parameters_numerical, only: maxwellian_normalization
       use grids_velocity, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
@@ -905,7 +905,7 @@ contains
       use constants, only: zi
       use stella_time, only: code_dt
       use parameters_physics, only: include_apar
-      use species, only: spec
+      use grids_species, only: spec
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: aky, akx
       use grids_velocity, only: vpa

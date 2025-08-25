@@ -43,7 +43,7 @@ contains
       use parameters_kxky_grid, only: nakx, naky
       use grids_velocity, only: nvpa, nmu 
       use grids_z, only: nztot, ntubes
-      use species, only: nspec
+      use grids_species, only: nspec
 
       ! Write to netcdf file 
       use stella_io, only: write_g2_vs_vpamus_nc

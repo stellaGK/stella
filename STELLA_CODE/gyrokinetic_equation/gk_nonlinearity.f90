@@ -24,7 +24,7 @@ contains
     subroutine init_parallel_nonlinearity
 
         use parameters_physics, only: rhostar
-        use species, only: spec, nspec
+        use grids_species, only: spec, nspec
         use grids_z, only: nztot, nzgrid
         use geometry, only: geo_surf, drhodpsi, q_as_x
         use geometry, only: gradpar, dbdzed, bmag

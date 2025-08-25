@@ -38,7 +38,7 @@ contains
       use grids_kxky, only: zonal_mode
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
-      use species, only: spec, has_electron_species
+      use grids_species, only: spec, has_electron_species
       use multibox, only: mb_get_phi
       use store_arrays_fields, only: gamtot
       use file_utils, only: runtype_option_switch, runtype_multibox
@@ -124,7 +124,7 @@ contains
       use parameters_physics, only: adiabatic_option_fieldlineavg
       use parameters_multibox, only: ky_solve_radial
       use grids_z, only: nzgrid, ntubes
-      use species, only: spec, has_electron_species
+      use grids_species, only: spec, has_electron_species
       use parameters_kxky_grid, only: nakx, naky
       use grids_kxky, only: zonal_mode
       use linear_solve, only: lu_back_substitution
@@ -352,7 +352,7 @@ contains
       use parameters_kxky_grid, only: nakx, naky
       use calculations_kxky, only: multiply_by_rho
       use parameters_multibox, only: ky_solve_radial
-      use species, only: spec
+      use grids_species, only: spec
 
       implicit none
 
@@ -415,7 +415,7 @@ contains
       use grids_kxky, only: rho_d_clamped
       use grids_kxky, only: zonal_mode
       use calculations_kxky, only: multiply_by_rho
-      use species, only: spec, has_electron_species
+      use grids_species, only: spec, has_electron_species
       use store_arrays_fields, only: phi_corr_QN, phi_corr_GA
       use store_arrays_fields, only: gamtot, dgamtotdr
       use store_arrays_fields, only: gamtot3, efac, efacp
@@ -572,7 +572,7 @@ contains
       use mpi
 #endif
       use parameters_multibox, only: ky_solve_radial, ky_solve_real
-      use species, only: spec, has_electron_species, ion_species
+      use grids_species, only: spec, has_electron_species, ion_species
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use grids_z, only: nzgrid, ntubes, nztot
       use parameters_kxky_grid, only: naky, nakx

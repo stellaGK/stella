@@ -62,6 +62,7 @@ stella_mod = \
 	 $(OBJ_DIR)/gk_time_advance.o \
 	 $(OBJ_DIR)/grids_extended_zgrid.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/initialise_distribution_fn.o \
@@ -98,7 +99,6 @@ stella_mod = \
 	 $(OBJ_DIR)/reset_timestep.o \
 	 $(OBJ_DIR)/response_matrix.o \
 	 $(OBJ_DIR)/sfincs_interface.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/spfunc.o \
 	 $(OBJ_DIR)/spl.o \
 	 $(OBJ_DIR)/stella.o \
@@ -132,6 +132,7 @@ $(OBJ_DIR)/arrays_distribution_fn.o: \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o \
@@ -139,7 +140,6 @@ $(OBJ_DIR)/arrays_distribution_fn.o: \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/redistribute.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/store_arrays_distribution_fn.o 
 $(OBJ_DIR)/arrays_gyro_averages.o: \
@@ -147,12 +147,12 @@ $(OBJ_DIR)/arrays_gyro_averages.o: \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/spfunc.o \
 	 $(OBJ_DIR)/stella_common_types.o \
 	 $(OBJ_DIR)/stella_layouts.o \
@@ -188,11 +188,11 @@ $(OBJ_DIR)/calculations_kxky_derivatives.o: \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o 
 $(OBJ_DIR)/calculations_redistribute.o: \
 	 $(OBJ_DIR)/grids_velocity.o \
@@ -210,12 +210,12 @@ $(OBJ_DIR)/calculations_tofrom_ghf.o: \
 	 $(OBJ_DIR)/calculations_kxky.o \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/store_arrays_useful.o 
 $(OBJ_DIR)/calculations_transforms.o: \
@@ -249,6 +249,7 @@ $(OBJ_DIR)/diagnostics.o: \
 	 $(OBJ_DIR)/diagnostics_potential.o \
 	 $(OBJ_DIR)/fields.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/initialise_distribution_fn.o \
 	 $(OBJ_DIR)/job_manage.o \
@@ -257,7 +258,6 @@ $(OBJ_DIR)/diagnostics.o: \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/redistribute.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_io.o \
 	 $(OBJ_DIR)/stella_save.o \
 	 $(OBJ_DIR)/stella_time.o \
@@ -269,6 +269,7 @@ $(OBJ_DIR)/diagnostics_distribution.o: \
 	 $(OBJ_DIR)/calculations_volume_averages.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
@@ -277,7 +278,6 @@ $(OBJ_DIR)/diagnostics_distribution.o: \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/redistribute.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_io.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/store_arrays_distribution_fn.o \
@@ -290,6 +290,7 @@ $(OBJ_DIR)/diagnostics_fluxes.o: \
 	 $(OBJ_DIR)/diagnostics_fluxes_fullfluxsurface.o \
 	 $(OBJ_DIR)/diagnostics_fluxes_radialvariation.o \
 	 $(OBJ_DIR)/file_utils.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/mp.o \
@@ -297,7 +298,6 @@ $(OBJ_DIR)/diagnostics_fluxes.o: \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/redistribute.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_io.o \
 	 $(OBJ_DIR)/stella_time.o \
 	 $(OBJ_DIR)/store_arrays_distribution_fn.o \
@@ -309,12 +309,12 @@ $(OBJ_DIR)/diagnostics_fluxes_fluxtube.o: \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/parameters_diagnostics.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/store_arrays_fields.o 
 $(OBJ_DIR)/diagnostics_fluxes_fullfluxsurface.o: \
@@ -327,10 +327,10 @@ $(OBJ_DIR)/diagnostics_fluxes_fullfluxsurface.o: \
 	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/store_arrays_distribution_fn.o \
 	 $(OBJ_DIR)/store_arrays_fields.o 
@@ -343,6 +343,7 @@ $(OBJ_DIR)/diagnostics_fluxes_radialvariation.o: \
 	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o \
@@ -351,7 +352,6 @@ $(OBJ_DIR)/diagnostics_fluxes_radialvariation.o: \
 	 $(OBJ_DIR)/parameters_multibox.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/store_arrays_distribution_fn.o \
 	 $(OBJ_DIR)/store_arrays_useful.o 
@@ -362,6 +362,7 @@ $(OBJ_DIR)/diagnostics_moments.o: \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
@@ -370,7 +371,6 @@ $(OBJ_DIR)/diagnostics_moments.o: \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_io.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/store_arrays_distribution_fn.o \
@@ -440,6 +440,7 @@ $(OBJ_DIR)/dissipation_coll_dougherty.o: \
 	 $(OBJ_DIR)/fields_fluxtube.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
@@ -449,7 +450,6 @@ $(OBJ_DIR)/dissipation_coll_dougherty.o: \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/redistribute.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/stella_time.o \
 	 $(OBJ_DIR)/store_arrays_distribution_fn.o \
@@ -465,6 +465,7 @@ $(OBJ_DIR)/dissipation_coll_fokkerplanck.o: \
 	 $(OBJ_DIR)/fields_fluxtube.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
@@ -475,7 +476,6 @@ $(OBJ_DIR)/dissipation_coll_fokkerplanck.o: \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/redistribute.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/spfunc.o \
 	 $(OBJ_DIR)/stella_common_types.o \
 	 $(OBJ_DIR)/stella_layouts.o \
@@ -524,13 +524,13 @@ $(OBJ_DIR)/fields.o: \
 	 $(OBJ_DIR)/fields_fullfluxsurface.o \
 	 $(OBJ_DIR)/fields_radialvariation.o \
 	 $(OBJ_DIR)/file_utils.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/linear_solve.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_common_types.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/store_arrays_distribution_fn.o \
@@ -539,12 +539,12 @@ $(OBJ_DIR)/fields_collisions.o: \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/spfunc.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/store_arrays_fields.o \
@@ -554,13 +554,13 @@ $(OBJ_DIR)/fields_electromagnetic.o: \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/fields_radialvariation.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/store_arrays_distribution_fn.o \
 	 $(OBJ_DIR)/store_arrays_fields.o \
@@ -574,6 +574,7 @@ $(OBJ_DIR)/fields_fluxtube.o: \
 	 $(OBJ_DIR)/fields_radialvariation.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
@@ -583,7 +584,6 @@ $(OBJ_DIR)/fields_fluxtube.o: \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/redistribute.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/store_arrays_distribution_fn.o \
 	 $(OBJ_DIR)/store_arrays_fields.o 
@@ -596,12 +596,12 @@ $(OBJ_DIR)/fields_fullfluxsurface.o: \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/spfunc.o \
 	 $(OBJ_DIR)/stella_common_types.o \
 	 $(OBJ_DIR)/stella_layouts.o \
@@ -615,6 +615,7 @@ $(OBJ_DIR)/fields_radialvariation.o: \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
@@ -625,7 +626,6 @@ $(OBJ_DIR)/fields_radialvariation.o: \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_multibox.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/store_arrays_fields.o \
 	 $(OBJ_DIR)/store_arrays_useful.o 
@@ -693,6 +693,7 @@ $(OBJ_DIR)/gk_drifts.o: \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
@@ -701,7 +702,6 @@ $(OBJ_DIR)/gk_drifts.o: \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/stella_time.o \
 	 $(OBJ_DIR)/store_arrays_distribution_fn.o \
@@ -716,10 +716,10 @@ $(OBJ_DIR)/gk_ffs_solve.o: \
 	 $(OBJ_DIR)/fields.o \
 	 $(OBJ_DIR)/gk_parallel_streaming.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/store_arrays_distribution_fn.o 
 $(OBJ_DIR)/gk_flow_shear.o: \
@@ -729,6 +729,7 @@ $(OBJ_DIR)/gk_flow_shear.o: \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
@@ -736,7 +737,6 @@ $(OBJ_DIR)/gk_flow_shear.o: \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/stella_time.o \
 	 $(OBJ_DIR)/store_arrays_fields.o 
@@ -750,6 +750,7 @@ $(OBJ_DIR)/gk_implicit_solve.o: \
 	 $(OBJ_DIR)/gk_parallel_streaming.o \
 	 $(OBJ_DIR)/grids_extended_zgrid.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
@@ -759,7 +760,6 @@ $(OBJ_DIR)/gk_implicit_solve.o: \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/stella_time.o \
 	 $(OBJ_DIR)/store_arrays_distribution_fn.o \
@@ -776,6 +776,7 @@ $(OBJ_DIR)/gk_mirror.o: \
 	 $(OBJ_DIR)/fields.o \
 	 $(OBJ_DIR)/fields_electromagnetic.o \
 	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
@@ -785,7 +786,6 @@ $(OBJ_DIR)/gk_mirror.o: \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/redistribute.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/stella_time.o \
 	 $(OBJ_DIR)/store_arrays_distribution_fn.o 
@@ -804,6 +804,7 @@ $(OBJ_DIR)/gk_nonlinearity.o: \
 	 $(OBJ_DIR)/gk_parallel_streaming.o \
 	 $(OBJ_DIR)/grids_extended_zgrid.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
@@ -813,7 +814,6 @@ $(OBJ_DIR)/gk_nonlinearity.o: \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/reset_timestep.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/stella_time.o \
 	 $(OBJ_DIR)/store_arrays_distribution_fn.o \
@@ -828,6 +828,7 @@ $(OBJ_DIR)/gk_parallel_streaming.o: \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_extended_zgrid.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
@@ -835,7 +836,6 @@ $(OBJ_DIR)/gk_parallel_streaming.o: \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/stella_time.o \
 	 $(OBJ_DIR)/store_arrays_fields.o 
@@ -851,6 +851,7 @@ $(OBJ_DIR)/gk_radial_variation.o: \
 	 $(OBJ_DIR)/gk_flow_shear.o \
 	 $(OBJ_DIR)/gk_mirror.o \
 	 $(OBJ_DIR)/gk_parallel_streaming.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
@@ -859,7 +860,6 @@ $(OBJ_DIR)/gk_radial_variation.o: \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_multibox.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/stella_time.o \
 	 $(OBJ_DIR)/store_arrays_distribution_fn.o \
@@ -874,6 +874,7 @@ $(OBJ_DIR)/gk_sources.o: \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
@@ -885,7 +886,6 @@ $(OBJ_DIR)/gk_sources.o: \
 	 $(OBJ_DIR)/parameters_multibox.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/redistribute.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/stella_time.o \
 	 $(OBJ_DIR)/store_arrays_distribution_fn.o \
@@ -947,17 +947,27 @@ $(OBJ_DIR)/grids_kxky.o: \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/ran.o \
 	 $(OBJ_DIR)/stella_common_types.o 
+$(OBJ_DIR)/grids_species.o: \
+	 $(OBJ_DIR)/euterpe_interface.o \
+	 $(OBJ_DIR)/file_utils.o \
+	 $(OBJ_DIR)/geometry_inputprofiles_interface.o \
+	 $(OBJ_DIR)/job_manage.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/namelist_species.o \
+	 $(OBJ_DIR)/parameters_multibox.o \
+	 $(OBJ_DIR)/parameters_physics.o \
+	 $(OBJ_DIR)/stella_common_types.o 
 $(OBJ_DIR)/grids_velocity.o: \
 	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/gauss_quad.o \
 	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/namelist_velocity_grids.o \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o 
 $(OBJ_DIR)/grids_z.o: \
 	 $(OBJ_DIR)/constants.o \
@@ -968,6 +978,7 @@ $(OBJ_DIR)/initialise_distribution_fn.o: \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/grids_extended_zgrid.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o \
@@ -976,7 +987,6 @@ $(OBJ_DIR)/initialise_distribution_fn.o: \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/ran.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/stella_save.o \
 	 $(OBJ_DIR)/store_arrays_distribution_fn.o \
@@ -1079,13 +1089,13 @@ $(OBJ_DIR)/neoclassical_terms.o: \
 	 $(OBJ_DIR)/calculations_finite_differences.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/file_utils.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/namelist_neoclassical_input.o \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/sfincs_interface.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o 
 $(OBJ_DIR)/netcdf_utils.o: \
 	 $(OBJ_DIR)/constants.o \
@@ -1140,6 +1150,7 @@ $(OBJ_DIR)/response_matrix.o: \
 	 $(OBJ_DIR)/gk_implicit_solve.o \
 	 $(OBJ_DIR)/grids_extended_zgrid.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/job_manage.o \
@@ -1149,7 +1160,6 @@ $(OBJ_DIR)/response_matrix.o: \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_common_types.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/store_arrays_fields.o \
@@ -1158,16 +1168,6 @@ $(OBJ_DIR)/response_matrix.o: \
 $(OBJ_DIR)/sfincs_interface.o: \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o 
-$(OBJ_DIR)/species.o: \
-	 $(OBJ_DIR)/euterpe_interface.o \
-	 $(OBJ_DIR)/file_utils.o \
-	 $(OBJ_DIR)/geometry_inputprofiles_interface.o \
-	 $(OBJ_DIR)/job_manage.o \
-	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/namelist_species.o \
-	 $(OBJ_DIR)/parameters_multibox.o \
-	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/stella_common_types.o 
 $(OBJ_DIR)/spfunc.o: \
 	 $(OBJ_DIR)/constants.o 
 $(OBJ_DIR)/spl.o: \
@@ -1195,6 +1195,7 @@ $(OBJ_DIR)/stella.o: \
 	 $(OBJ_DIR)/gk_time_advance.o \
 	 $(OBJ_DIR)/grids_extended_zgrid.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/initialise_distribution_fn.o \
@@ -1209,7 +1210,6 @@ $(OBJ_DIR)/stella.o: \
 	 $(OBJ_DIR)/ran.o \
 	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/response_matrix.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/stella_save.o \
 	 $(OBJ_DIR)/stella_time.o \
@@ -1223,6 +1223,7 @@ $(OBJ_DIR)/stella_io.o: \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/git_version.o \
 	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/mp.o \
@@ -1230,7 +1231,6 @@ $(OBJ_DIR)/stella_io.o: \
 	 $(OBJ_DIR)/netcdf_utils.o \
 	 $(OBJ_DIR)/parameters_kxky_grid.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/species.o \
 	 $(OBJ_DIR)/store_arrays_useful.o 
 $(OBJ_DIR)/stella_layouts.o: \
 	 $(OBJ_DIR)/mp.o \

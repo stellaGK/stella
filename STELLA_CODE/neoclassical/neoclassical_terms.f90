@@ -31,7 +31,7 @@ contains
       use grids_z, only: nzgrid
       use parameters_kxky_grid, only: nalpha
       use grids_velocity, only: nvpa, nmu
-      use species, only: nspec
+      use grids_species, only: nspec
       use stella_layouts, only: vmu_lo
       use sfincs_interface, only: get_neo_from_sfincs
 
@@ -140,7 +140,7 @@ contains
       use grids_z, only: nzgrid
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: dvpa
-      use species, only: nspec
+      use grids_species, only: nspec
       use parameters_kxky_grid, only: nalpha
 
       implicit none
@@ -184,7 +184,7 @@ contains
       use calculations_finite_differences, only: fd5pt
       use grids_z, only: nztot, nzgrid, delzed
       use grids_velocity, only: nvpa, nmu
-      use species, only: nspec
+      use grids_species, only: nspec
       use stella_layouts, only: vmu_lo
       use parameters_kxky_grid, only: nalpha
 
@@ -229,7 +229,7 @@ contains
       use calculations_finite_differences, only: fd3pt, fd5pt
       use grids_z, only: nzgrid
       use grids_velocity, only: nvpa, nmu
-      use species, only: nspec
+      use grids_species, only: nspec
       use stella_layouts, only: vmu_lo
       use parameters_kxky_grid, only: nalpha
 

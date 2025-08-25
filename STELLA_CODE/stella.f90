@@ -114,8 +114,8 @@ contains
       use geometry, only: init_geometry
       use geometry, only: finish_init_geometry
       
-      use species, only: init_species, read_species_options
-      use species, only: nspec
+      use grids_species, only: init_species, read_species_options
+      use grids_species, only: nspec
       use grids_z, only: init_zgrid
       use grids_z, only: nzgrid, ntubes
       use grids_extended_zgrid, only: init_extended_zgrid
@@ -396,7 +396,7 @@ contains
    subroutine init_multibox_subcalls
 
       use mp, only: proc0, job
-      use species, only: communicate_species_multibox
+      use grids_species, only: communicate_species_multibox
       use geometry, only: communicate_geo_multibox
       use calculations_kxky, only: communicate_ktgrids_multibox
       use file_utils, only: runtype_option_switch, runtype_multibox
@@ -595,7 +595,7 @@ contains
       use parameters_physics, only: include_parallel_nonlinearity, radial_variation
       use parameters_numerical, only: finish_read_parameters_numerical
       use grids_z, only: finish_zgrid
-      use species, only: finish_species
+      use grids_species, only: finish_species
       use store_arrays_useful, only: time_gke, time_parallel_nl
       use gk_time_advance, only: finish_time_advance
       use gk_parallel_streaming, only: time_parallel_streaming

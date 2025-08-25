@@ -553,7 +553,7 @@ contains
     !     use calculations_transforms, only: transform_kx2x, transform_ky2y
     !     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
     !     use grids_velocity, only: nmu
-    !     use species, only: nspec, spec
+    !     use grids_species, only: nspec, spec
     !     use geometry, only: alpha, bmag, x_displacement_fac
 
     !     implicit none

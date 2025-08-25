@@ -45,8 +45,8 @@ contains
       use store_arrays_fields, only: gamtot3
       !> Grids
       use grids_kxky, only: akx, zonal_mode
-      use species, only: spec, has_electron_species
-      use species, only: modified_adiabatic_electrons, adiabatic_electrons
+      use grids_species, only: spec, has_electron_species
+      use grids_species, only: modified_adiabatic_electrons, adiabatic_electrons
       use grids_z, only: nzgrid, ntubes
       !> Calculations
       use calculations_kxky, only: swap_kxky_ordered, swap_kxky_back_ordered
@@ -192,7 +192,7 @@ contains
          !> Parameters
          use parameters_kxky_grid, only: naky, nakx
          !> Grids
-         use species, only: spec
+         use grids_species, only: spec
          use grids_z, only: nzgrid
          use grids_velocity, only: integrate_species_ffs
          !> Calculations
@@ -342,7 +342,7 @@ contains
       !> Parameters
       use parameters_kxky_grid, only: naky, nakx
       !> Grids
-      use species, only: spec
+      use grids_species, only: spec
       use grids_z, only: nzgrid
       use grids_velocity, only: integrate_species_ffs
       !> Calculations
@@ -395,7 +395,7 @@ contains
 
       use mp, only: proc0 
       !> Grids
-      use species, only: modified_adiabatic_electrons
+      use grids_species, only: modified_adiabatic_electrons
 
       implicit none
 
@@ -434,9 +434,9 @@ contains
       use store_arrays_fields, only: gamtot, gamtot3 
       use store_arrays_fields, only: efac, gamtot_h 
       !> Grids
-      use species, only: spec, nspec
-      use species, only: adiabatic_electrons
-      use species, only: has_electron_species, ion_species
+      use grids_species, only: spec, nspec
+      use grids_species, only: adiabatic_electrons
+      use grids_species, only: has_electron_species, ion_species
       use grids_z, only: nzgrid, nztot
       use grids_velocity, only: vperp2, maxwell_vpa, maxwell_mu
       use grids_velocity, only: integrate_species

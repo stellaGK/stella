@@ -46,7 +46,7 @@ contains
      use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
      use calculations_kxky, only: swap_kxky
      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
-     use species, only: spec
+     use grids_species, only: spec
 
      use fields, only: advance_fields
      use calculations_gyro_averages, only: gyro_average
@@ -57,7 +57,7 @@ contains
      use gk_parallel_streaming, only: center_zed, get_dgdz_centered, get_dzed
      use gk_parallel_streaming, only: stream_correction, stream_store_full
      
-     use species, only: has_electron_species
+     use grids_species, only: has_electron_species
      implicit none
 
      complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi

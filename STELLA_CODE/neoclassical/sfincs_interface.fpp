@@ -41,7 +41,7 @@ contains
       use mp, only: proc0, iproc
       use mp, only: comm_split, comm_free
       use geometry, only: geo_surf
-      use species, only: spec, nspec
+      use grids_species, only: spec, nspec
 # endif
       use mp, only: mp_abort
       use grids_z, only: nzgrid
@@ -302,7 +302,7 @@ contains
       use mp, only: iproc, broadcast_with_comm
       use sfincs_main, only: finish_sfincs
       use globalVariables, only: Zs, particleFlux_vd_psiHat
-      use species, only: nspec
+      use grids_species, only: nspec
 
       implicit none
 
@@ -326,7 +326,7 @@ contains
       use mp, only: proc0, iproc
       use sfincs_main, only: init_sfincs, prepare_sfincs, run_sfincs, finish_sfincs
       use globalVariables, only: Zs, particleFlux_vd_psiHat
-      use species, only: nspec
+      use grids_species, only: nspec
 
       implicit none
 
@@ -400,7 +400,7 @@ contains
       use constants, only: pi
       use mp, only: nproc
       use file_utils, only: input_unit_exist
-      use species, only: nspec
+      use grids_species, only: nspec
       use parameters_physics, only: rhostar, vnew_ref
       use geometry, only: geo_surf, aref, bref
 
@@ -588,7 +588,7 @@ contains
 
       use mp, only: mp_abort
       use geometry, only: geo_surf
-      use species, only: spec, nspec
+      use grids_species, only: spec, nspec
       use grids_z, only: nzed
       use parameters_physics, only: nine, tite
       use globalVariables, only: includeXDotTerm_sfincs => includeXDotTerm
@@ -808,7 +808,7 @@ contains
 
       use constants, only: pi
       use sort, only: sort_array_ascending, unsort_array_ascending
-      use species, only: nspec
+      use grids_species, only: nspec
       use grids_z, only: nzgrid, nz2pi
       use export_f, only: h_sfincs => delta_f
       use globalVariables, only: Phi1Hat
@@ -1253,7 +1253,7 @@ contains
    subroutine sfincs_vspace_to_stella_vspace(ialpha, iz, is, h_stella, phi_neoclassical, f_neoclassical)
 
       use constants, only: pi
-      use species, only: spec
+      use grids_species, only: spec
       use grids_velocity, only: nvpa, nvgrid, nmu
       use grids_velocity, only: vpa, vperp2
       use grids_velocity, only: maxwell_mu, maxwell_vpa
@@ -1488,7 +1488,7 @@ contains
 
    subroutine write_sfincs(irad, nrad_max)
 
-      use species, only: nspec
+      use grids_species, only: nspec
       use globalVariables, only: Phi1Hat
       use export_f, only: export_f_zeta, export_f_theta
       use export_f, only: delta_f
@@ -1533,7 +1533,7 @@ contains
 
    subroutine read_sfincs_output(irad, nrad_max)
 
-      use species, only: nspec
+      use grids_species, only: nspec
       use globalVariables, only: Phi1Hat
       use export_f, only: export_f_zeta, export_f_theta
       use export_f, only: delta_f

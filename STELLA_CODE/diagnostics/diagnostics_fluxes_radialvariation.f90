@@ -37,7 +37,7 @@ contains
       use store_arrays_useful, only: kperp2, dkperp2dr
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use species, only: spec
+      use grids_species, only: spec
       use geometry, only: grho_norm, bmag, btor
       use geometry, only: drhodpsi
       use geometry, only: gds21, gds22
@@ -338,7 +338,7 @@ contains
       use parameters_multibox, only: boundary_size
       use parameters_kxky_grid, only: nakx, naky
       use grids_z, only: nzgrid, ntubes
-      use species, only: nspec
+      use grids_species, only: nspec
       use calculations_volume_averages, only: mode_fac
       use geometry, only: dVolume
       use calculations_transforms, only: transform_kx2x_unpadded
@@ -417,7 +417,7 @@ contains
       use grids_kxky, only: aky
       use parameters_kxky_grid, only: nakx, naky
       use grids_z, only: nzgrid, ntubes
-      use species, only: nspec
+      use grids_species, only: nspec
       use calculations_volume_averages, only: mode_fac
 
       implicit none
@@ -460,7 +460,7 @@ contains
       use grids_kxky, only: aky
       use parameters_kxky_grid, only: nakx, naky
       use grids_z, only: nzgrid, ntubes
-      use species, only: nspec
+      use grids_species, only: nspec
       use calculations_volume_averages, only: mode_fac
       use calculations_transforms, only: transform_kx2x_unpadded 
 

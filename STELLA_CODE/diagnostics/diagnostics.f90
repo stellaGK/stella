@@ -130,7 +130,7 @@ contains
       use grids_kxky, only: init_grids_kxky
       use parameters_physics, only: read_parameters_physics
       use parameters_numerical, only: read_parameters_numerical
-      use species, only: init_species
+      use grids_species, only: init_species
 
       use arrays_distribution_fn, only: init_arrays_distribution_fn
       use arrays_constants, only: init_arrays_vperp_kperp

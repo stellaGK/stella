@@ -107,7 +107,7 @@ contains
       use parameters_physics, only: radial_variation
       !> Grids
       use grids_z, only: nzgrid
-      use species, only: spec
+      use grids_species, only: spec
       use grids_velocity, only: integrate_species
       !> Calculations
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
@@ -202,7 +202,7 @@ contains
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: integrate_vmu
-      use species, only: spec
+      use grids_species, only: spec
       !> Calculations
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       !> Routines from other field modules
@@ -301,7 +301,7 @@ contains
       !> Grids
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: zonal_mode
-      use species, only: spec, has_electron_species
+      use grids_species, only: spec, has_electron_species
       !> Geometry 
       use geometry, only: dl_over_b
 
@@ -417,7 +417,7 @@ contains
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: integrate_vmu
-      use species, only: spec, has_electron_species, ion_species
+      use grids_species, only: spec, has_electron_species, ion_species
       use grids_kxky, only: zonal_mode, akx
       !> Calculations
       use arrays_gyro_averages, only: aj0v

@@ -84,7 +84,7 @@ contains
    !============================================================================
    subroutine get_one_flux_ffs(mom, dphidy, flxfac, flx, flx_vs_kxkyz)
 
-      use species, only: nspec
+      use grids_species, only: nspec
       use grids_z, only: nzgrid
       use parameters_kxky_grid, only: naky, nakx
       use calculations_volume_averages, only: mode_fac
@@ -139,7 +139,7 @@ contains
    !============================================================================
    subroutine get_modified_fourier_coefficient(moment, moment_ky, flxfac)
 
-      use species, only: nspec
+      use grids_species, only: nspec
       use grids_z, only: nzgrid
       use parameters_kxky_grid, only: ikx_max, naky_all, ny
       use calculations_kxky, only: swap_kxky_back
@@ -182,7 +182,7 @@ contains
    subroutine calculate_moments_fullfluxsurface(g, dens, upar, pres)
 
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use species, only: spec, nspec
+      use grids_species, only: spec, nspec
       use grids_z, only: nzgrid
       use grids_velocity, only: integrate_vmu_ffs
       use grids_velocity, only: vpa, vperp2
@@ -324,7 +324,7 @@ contains
    subroutine g_to_f0(g, phi, f)
 
       use stella_layouts, only: vmu_lo, is_idx
-      use species, only: spec
+      use grids_species, only: spec
       use grids_z, only: nzgrid, ntubes
       use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: j0_ffs
@@ -392,7 +392,7 @@ contains
    subroutine g_to_f1(g, phi, f)
 
       use stella_layouts, only: vmu_lo, is_idx
-      use species, only: spec
+      use grids_species, only: spec
       use grids_z, only: nzgrid, ntubes
       use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: j0_ffs

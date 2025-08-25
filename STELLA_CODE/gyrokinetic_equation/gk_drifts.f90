@@ -29,7 +29,7 @@ contains
         use stella_layouts, only: vmu_lo
         use stella_layouts, only: iv_idx, imu_idx, is_idx
         use stella_time, only: code_dt
-        use species, only: spec
+        use grids_species, only: spec
         use grids_z, only: nzgrid
         use parameters_kxky_grid, only: nalpha
         use geometry, only: cvdrift, gbdrift
@@ -187,7 +187,7 @@ contains
         use stella_layouts, only: vmu_lo
         use stella_layouts, only: iv_idx, imu_idx, is_idx
         use stella_time, only: code_dt
-        use species, only: spec
+        use grids_species, only: spec
         use grids_z, only: nzgrid
         use parameters_kxky_grid, only: nalpha
         use geometry, only: dydalpha, drhodpsi, clebsch_factor

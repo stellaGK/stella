@@ -215,7 +215,7 @@ contains
       ! Parameters
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
-      use species, only: spec, has_electron_species
+      use grids_species, only: spec, has_electron_species
       
       ! Arrays to allocate
       use store_arrays_fields, only: phi, phi_old

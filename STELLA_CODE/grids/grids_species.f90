@@ -1,4 +1,4 @@
-module species
+module grids_species
 
    use stella_common_types, only: spec_type
 
@@ -500,4 +500,4 @@ contains
 
 !   end subroutine init_trin_species
 
-end module species
+end module grids_species

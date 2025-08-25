@@ -156,7 +156,7 @@ contains
       use grids_kxky, only: x_d, rho_d, akx, aky, theta0
       use grids_z, only: nzgrid, ntubes, zed
       use grids_velocity, only: nvpa, vpa, nmu, mu
-      use species, only: nspec
+      use grids_species, only: nspec
       use parameters_physics, only: radial_variation
       use parameters_physics, only: rhostar
       use geometry, only: geo_surf, dxdpsi, q_as_x
@@ -1346,7 +1346,7 @@ contains
    subroutine nc_species(file_id)
 
 #ifdef NETCDF
-      use species, only: spec, nspec
+      use grids_species, only: spec, nspec
       use neasyf, only: neasyf_write
 #endif
 

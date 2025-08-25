@@ -40,7 +40,7 @@ contains
 
         use store_arrays_useful, only: kperp2
         use parameters_physics, only: full_flux_surface
-        use species, only: spec
+        use grids_species, only: spec
         use geometry, only: bmag
         use grids_z, only: nzgrid
         use grids_velocity, only: vperp2, nmu
@@ -130,7 +130,7 @@ contains
         use stella_layouts, only: vmu_lo
         use stella_layouts, only: iv_idx, imu_idx, is_idx
         use calculations_transforms, only: transform_alpha2kalpha
-        use species, only: nspec, spec
+        use grids_species, only: nspec, spec
         use geometry, only: bmag
         use grids_z, only: nzgrid, nztot
         use grids_velocity, only: nmu, nvpa

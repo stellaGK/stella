@@ -27,7 +27,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_time, only: code_dt
-      use species, only: spec
+      use grids_species, only: spec
       use constants, only: zi, pi
       use grids_z, only: nzgrid
       use grids_kxky, only: x, x_d, akx, aky, zonal_mode, box

@@ -55,7 +55,7 @@ contains
       use stella_time, only: code_dt
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use species, only: spec, nspec, pfac
+      use grids_species, only: spec, nspec, pfac
       use grids_velocity, only: nvpa, nvpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: vperp2, vpa, mu
@@ -249,7 +249,7 @@ contains
       use calculations_kxky, only: swap_kxky
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: mu
-      use species, only: spec
+      use grids_species, only: spec
       use parameters_physics, only: full_flux_surface, include_bpar
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use parameters_numerical, only: driftkinetic_implicit, maxwellian_normalization
@@ -371,7 +371,7 @@ contains
       use grids_z, only: nzgrid, ntubes
       use parameters_kxky_grid, only: naky, nakx
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use species, only: spec
+      use grids_species, only: spec
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use store_arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
 

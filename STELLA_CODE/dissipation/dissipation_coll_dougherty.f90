@@ -51,7 +51,7 @@ contains
 
    subroutine init_collisions_dougherty(collisions_implicit, cfl_dt_vpadiff, cfl_dt_mudiff)
 
-      use species, only: spec, nspec
+      use grids_species, only: spec, nspec
       use grids_velocity, only: dvpa, dmu, mu, nmu
       use geometry, only: bmag
 
@@ -88,7 +88,7 @@ contains
    subroutine init_vpadiff_matrix
 
       use stella_time, only: code_dt
-      use species, only: nspec, spec
+      use grids_species, only: nspec, spec
       use grids_velocity, only: dvpa, vpa, nvpa
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
@@ -129,7 +129,7 @@ contains
    subroutine init_mudiff_matrix
 
       use stella_time, only: code_dt
-      use species, only: nspec, spec
+      use grids_species, only: nspec, spec
       use grids_z, only: nzgrid
       use geometry, only: bmag
       use grids_velocity, only: dmu, nmu
@@ -192,7 +192,7 @@ contains
       use calculations_finite_differences, only: tridag
       use linear_solve, only: lu_decomposition, lu_inverse
       use stella_time, only: code_dt
-      use species, only: nspec, spec, has_electron_species
+      use grids_species, only: nspec, spec, has_electron_species
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: ztmax, maxwell_vpa, maxwell_mu
       use grids_velocity, only: nmu, vpa, vperp2
@@ -450,7 +450,7 @@ contains
       use calculations_finite_differences, only: tridag
       use linear_solve, only: lu_decomposition, lu_inverse
       use stella_time, only: code_dt
-      use species, only: nspec, spec, has_electron_species
+      use grids_species, only: nspec, spec, has_electron_species
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: ztmax, maxwell_vpa, maxwell_mu
       use grids_velocity, only: nvpa, vpa, vperp2
@@ -902,7 +902,7 @@ contains
       use redistribute, only: scatter, gather
       use stella_time, only: code_dt
       use grids_z, only: nzgrid, ntubes
-      use species, only: spec
+      use grids_species, only: spec
       use parameters_physics, only: fphi
       use parameters_physics, only: radial_variation, full_flux_surface
       use parameters_kxky_grid, only: naky, nakx
@@ -1177,7 +1177,7 @@ contains
 
    subroutine conserve_momentum(iky, ikx, iz, is, ikxkyz, h, Ch)
 
-      use species, only: spec
+      use grids_species, only: spec
       use geometry, only: bmag
       use grids_velocity, only: integrate_vmu
       use grids_velocity, only: vpa, nvpa, nmu, vperp2
@@ -1266,7 +1266,7 @@ contains
       use stella_time, only: code_dt
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, iv_idx, is_idx
-      use species, only: spec
+      use grids_species, only: spec
       use parameters_physics, only: radial_variation
       use geometry, only: bmag, dBdrho
       use parameters_kxky_grid, only: nakx, naky
@@ -1402,7 +1402,7 @@ contains
       use stella_time, only: code_dt
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, iv_idx, is_idx
-      use species, only: spec
+      use grids_species, only: spec
       use parameters_physics, only: radial_variation
       use geometry, only: bmag, dBdrho
       use parameters_kxky_grid, only: nakx, naky
@@ -1524,7 +1524,7 @@ contains
       use linear_solve, only: lu_back_substitution
       use stella_time, only: code_dt
       use parameters_physics, only: fphi
-      use species, only: nspec, spec, has_electron_species
+      use grids_species, only: nspec, spec, has_electron_species
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nmu, nvpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa, vperp2
@@ -1690,7 +1690,7 @@ contains
       use linear_solve, only: lu_back_substitution
       use stella_time, only: code_dt
       use parameters_physics, only: fphi
-      use species, only: nspec, spec, has_electron_species
+      use grids_species, only: nspec, spec, has_electron_species
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nmu, nvpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa, vperp2

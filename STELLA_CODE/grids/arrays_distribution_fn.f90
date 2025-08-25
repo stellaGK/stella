@@ -85,7 +85,7 @@ contains
         use calculations_kxky, only: multiply_by_rho
         use grids_velocity, only: mu, vpa, vperp2
         use grids_z, only: nzgrid, ntubes
-        use species, only: spec, pfac
+        use grids_species, only: spec, pfac
         use geometry, only: dBdrho, gfac
 
         implicit none
@@ -160,7 +160,7 @@ contains
         use calculations_kxky, only: multiply_by_rho
         use grids_velocity, only: mu, vpa, vperp2
         use grids_z, only: nzgrid, ntubes
-        use species, only: spec, pfac
+        use grids_species, only: spec, pfac
         use geometry, only: dBdrho, gfac
 
         implicit none
