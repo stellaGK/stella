@@ -1,4 +1,4 @@
-module common_types
+module stella_common_types
 
    implicit none
 
@@ -107,4 +107,4 @@ module common_types
       complex, dimension(:, :), pointer :: matrix => null()
    end type gam0_ffs_type
 
-end module common_types
+end module stella_common_types

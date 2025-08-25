@@ -79,7 +79,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/grids/arrays_constants.f90
   ../STELLA_CODE/grids/arrays_distribution_fn.f90
   ../STELLA_CODE/grids/arrays_gyro_averages.f90
-  ../STELLA_CODE/grids/common_types.f90
   ../STELLA_CODE/grids/euterpe_interface.f90
   ../STELLA_CODE/grids/grids_extended_zgrid.
   ../STELLA_CODE/grids/grids_velocity.f90f90
@@ -125,6 +124,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/radial_variation/multibox.f90
   ../STELLA_CODE/stella_calculations/stella_layouts.f90
   ../STELLA_CODE/stella_calculations/stella_time.f90
+  ../STELLA_CODE/stella_calculations/stella_common_types.f90
 )
 
 # Sources that _do_ need preprocessing (because they have MPI flags, ...)

@@ -1,6 +1,6 @@
 module calculations_gyro_averages
 
-   use common_types, only: coupled_alpha_type
+   use stella_common_types, only: coupled_alpha_type
    use debug_flags, only: debug => gyro_averages_debug
    use arrays_gyro_averages, only: aj0x, aj1x, aj0v, aj1v
    use arrays_gyro_averages, only: j0_ffs
@@ -210,7 +210,7 @@ contains
 
    subroutine gyro_average_ffs_field(field, gyro_field, coefs)
 
-      use common_types, only: coupled_alpha_type
+      use stella_common_types, only: coupled_alpha_type
       use stella_layouts, only: vmu_lo
       use z_grid, only: nzgrid
 
@@ -230,7 +230,7 @@ contains
 
    subroutine gyro_average_ffs(dist, gyro_dist, coefs)
 
-      use common_types, only: coupled_alpha_type
+      use stella_common_types, only: coupled_alpha_type
       use stella_layouts, only: vmu_lo
       use z_grid, only: nzgrid
 
@@ -401,7 +401,7 @@ contains
    
    subroutine band_lu_solve_ffs(lu, solvec)
 
-      use common_types, only: gam0_ffs_type
+      use stella_common_types, only: gam0_ffs_type
       use z_grid, only: nzgrid
       use parameters_kxky_grid, only: ikx_max
 
@@ -422,7 +422,7 @@ contains
 
    subroutine band_lu_solve_ffs_single(lu, solvec)
 
-      use common_types, only: gam0_ffs_type
+      use stella_common_types, only: gam0_ffs_type
       use parameters_kxky_grid, only: naky
 
       implicit none
@@ -454,7 +454,7 @@ contains
 
    subroutine band_lu_factorisation_ffs(gam0, lu_gam0)
 
-      use common_types, only: coupled_alpha_type, gam0_ffs_type
+      use stella_common_types, only: coupled_alpha_type, gam0_ffs_type
       use z_grid, only: nzgrid
       use parameters_kxky_grid, only: ikx_max, naky_all, naky
 
@@ -485,7 +485,7 @@ contains
 
    subroutine band_lu_factorisation_single(gam0, lu_gam0)
 
-      use common_types, only: gam0_ffs_type
+      use stella_common_types, only: gam0_ffs_type
       use parameters_kxky_grid, only: naky, naky_all
 
       implicit none
@@ -654,7 +654,7 @@ contains
 
    ! subroutine test_band_lu_factorisation (gam0, lu_gam0)
 
-   !   use common_types, only: coupled_alpha_type, gam0_ffs_type
+   !   use stella_common_types, only: coupled_alpha_type, gam0_ffs_type
    !   use z_grid, only: nzgrid
    !   use kt_grids, only: naky_all, naky
 

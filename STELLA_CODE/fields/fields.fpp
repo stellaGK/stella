@@ -2,8 +2,8 @@
 module fields
 
    use mpi
-   use common_types, only: eigen_type
-   use common_types, only: coupled_alpha_type, gam0_ffs_type
+   use stella_common_types, only: eigen_type
+   use stella_common_types, only: coupled_alpha_type, gam0_ffs_type
    use debug_flags, only: debug => fields_debug
 
    implicit none

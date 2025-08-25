@@ -1,8 +1,8 @@
 module stella_layouts
 
-   use common_types, only: vmu_layout_type
-   use common_types, only: kxkyz_layout_type, kxyz_layout_type, xyz_layout_type
-   use common_types, only: kymus_layout_type
+   use stella_common_types, only: vmu_layout_type
+   use stella_common_types, only: kxkyz_layout_type, kxyz_layout_type, xyz_layout_type
+   use stella_common_types, only: kymus_layout_type
    
    implicit none
 

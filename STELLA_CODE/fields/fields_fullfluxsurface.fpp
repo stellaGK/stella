@@ -2,7 +2,7 @@
 module fields_ffs
 
    use debug_flags, only: debug => fields_ffs_debug
-   use common_types, only: coupled_alpha_type, gam0_ffs_type
+   use stella_common_types, only: coupled_alpha_type, gam0_ffs_type
 
    implicit none
 

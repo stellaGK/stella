@@ -22,7 +22,7 @@ contains
                                                grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, &
                                                gbdrift0, gbdrift, cvdrift0, cvdrift, btor, rmajor)
 
-      use common_types, only: flux_surface_type
+      use stella_common_types, only: flux_surface_type
       use namelist_geometry, only: read_namelist_geometry_zpinch
      
       implicit none

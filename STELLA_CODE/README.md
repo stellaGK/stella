@@ -131,7 +131,7 @@ The `grids` folder contains the following scripts:
 
 - store_arrays_distribution_fn.f90
 - arrays_fields.f90
-- common_types.f90
+- stella_common_types.f90
 - extended_zgrid.f90
 - grids_kxky.f90
 - species.f90

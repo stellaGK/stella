@@ -1,6 +1,6 @@
 module arrays_gyro_averages
 
-    use common_types, only: coupled_alpha_type
+    use stella_common_types, only: coupled_alpha_type
     use debug_flags, only: debug => gyro_averages_debug
     use debug_flags, only: debug_test_gyro_average
 

@@ -1,6 +1,6 @@
 module species
 
-   use common_types, only: spec_type
+   use stella_common_types, only: spec_type
 
    implicit none
 
@@ -211,7 +211,7 @@ contains
    !                                FUNCTIONS
    !****************************************************************************
    pure function has_electron_species(spec)
-      use common_types, only: spec_type
+      use stella_common_types, only: spec_type
       implicit none
       type(spec_type), dimension(:), intent(in) :: spec
       logical :: has_electron_species
@@ -219,7 +219,7 @@ contains
    end function has_electron_species
 
    pure function has_slowing_down_species(spec)
-      use common_types, only: spec_type
+      use stella_common_types, only: spec_type
       implicit none
       type(spec_type), dimension(:), intent(in) :: spec
       logical :: has_slowing_down_species

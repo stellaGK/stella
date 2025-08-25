@@ -1,6 +1,6 @@
 module namelist_species
     
-    use common_types, only: spec_type
+    use stella_common_types, only: spec_type
 
     implicit none
 

@@ -1,7 +1,7 @@
 module store_arrays_fields
 
    use mpi
-   use common_types, only: response_matrix_type, eigen_type
+   use stella_common_types, only: response_matrix_type, eigen_type
 
    implicit none
 

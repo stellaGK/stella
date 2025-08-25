@@ -116,7 +116,7 @@ contains
       use geometry, only: bmag
       use stella_layouts
       use parameters_numerical, only: fully_explicit
-      use common_types, only: spec_type
+      use stella_common_types, only: spec_type
 
       implicit none
 
@@ -306,7 +306,7 @@ contains
       use store_arrays_useful, only: kperp2
       use parameters_physics, only: zeff
       use constants, only: pi
-      use common_types, only: spec_type
+      use stella_common_types, only: spec_type
       use parameters_kxky_grid, only: naky, nakx
       use spfunc, only: erf => erf_ext
       use file_utils, only: open_output_file, close_output_file

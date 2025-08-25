@@ -1,6 +1,6 @@
 module namelist_geometry
 
-    use common_types, only: flux_surface_type
+    use stella_common_types, only: flux_surface_type
 
     implicit none
 

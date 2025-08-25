@@ -16,7 +16,7 @@
 module geometry
 
    use debug_flags, only: debug => geometry_debug
-   use common_types, only: flux_surface_type
+   use stella_common_types, only: flux_surface_type
 
    implicit none
 

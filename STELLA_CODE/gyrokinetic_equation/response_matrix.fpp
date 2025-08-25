@@ -587,7 +587,7 @@ contains
    subroutine read_response_matrix
 
       use store_arrays_fields, only: response_matrix
-      use common_types, only: response_matrix_type
+      use stella_common_types, only: response_matrix_type
       use parameters_kxky_grid, only: naky
       use grids_extended_zgrid, only: neigen
       use grids_extended_zgrid, only: nsegments
