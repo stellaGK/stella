@@ -37,10 +37,10 @@ contains
         use grids_velocity, only: vperp2, vpa, mu
         use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
 
-        use arrays_store_distribution_fn, only: wstarp
-        use arrays_store_distribution_fn, only: wdriftx_phi, wdrifty_phi
-        use arrays_store_distribution_fn, only: wdriftpx_g, wdriftpy_g
-        use arrays_store_distribution_fn, only: wdriftpx_phi, wdriftpy_phi
+        use arrays_store_useful, only: wstarp
+        use arrays_store_useful, only: wdriftx_phi, wdrifty_phi
+        use arrays_store_useful, only: wdriftpx_g, wdriftpy_g
+        use arrays_store_useful, only: wdriftpx_phi, wdriftpy_phi
         use arrays_store_useful, only: radialinit
       
         implicit none
@@ -175,10 +175,10 @@ contains
         use parameters_physics, only: full_flux_surface, fphi
         use parameters_physics, only: include_parallel_streaming, include_mirror
 
-        use arrays_store_distribution_fn, only: wdriftx_phi, wdrifty_phi
-        use arrays_store_distribution_fn, only: wdriftpx_g, wdriftpy_g
-        use arrays_store_distribution_fn, only: wdriftpx_phi, wdriftpy_phi 
-        use arrays_store_distribution_fn, only: wstar, wstarp
+        use arrays_store_useful, only: wdriftx_phi, wdrifty_phi
+        use arrays_store_useful, only: wdriftpx_g, wdriftpy_g
+        use arrays_store_useful, only: wdriftpx_phi, wdriftpy_phi 
+        use arrays_store_useful, only: wstar, wstarp
         use arrays_store_useful, only: time_gke
 
         use gk_mirror, only: add_mirror_radial_variation
@@ -338,9 +338,9 @@ contains
     subroutine finish_radial_variation
 
         use arrays_store_useful, only: radialinit
-        use arrays_store_distribution_fn, only: wdriftpx_g, wdriftpy_g
-        use arrays_store_distribution_fn, only: wdriftpx_phi, wdriftpy_phi
-        use arrays_store_distribution_fn, only: wstarp
+        use arrays_store_useful, only: wdriftpx_g, wdriftpy_g
+        use arrays_store_useful, only: wdriftpx_phi, wdriftpy_phi
+        use arrays_store_useful, only: wstarp
 
         implicit none
 

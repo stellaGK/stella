@@ -185,9 +185,9 @@ contains
       use calculations_kxky, only: swap_kxky, swap_kxky_back
       use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: j0_ffs
-      use arrays_store_distribution_fn, only: wdriftx_g, wdriftx_phi
-      use arrays_store_distribution_fn, only: wdrifty_g, wdrifty_phi
-      use arrays_store_distribution_fn, only: wstar
+      use arrays_store_useful, only: wdriftx_g, wdriftx_phi
+      use arrays_store_useful, only: wdrifty_g, wdrifty_phi
+      use arrays_store_useful, only: wstar
 
       use gk_parallel_streaming, only: center_zed
 

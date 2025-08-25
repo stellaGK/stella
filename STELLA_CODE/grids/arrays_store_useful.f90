@@ -9,12 +9,12 @@ module arrays_store_useful
     public :: wdriftinit, wstarinit, parnlinit, &
             radialinit, driftimpinit
 
-    ! public :: wstar, wstarp
-    ! public :: wdriftx_g, wdrifty_g
-    ! public :: wdriftx_phi, wdrifty_phi
-    ! public :: wdriftx_bpar, wdrifty_bpar
-    ! public :: wdriftpx_g, wdriftpy_g
-    ! public :: wdriftpx_phi, wdriftpy_phi
+    public :: wstar, wstarp
+    public :: wdriftx_g, wdrifty_g
+    public :: wdriftx_phi, wdrifty_phi
+    public :: wdriftx_bpar, wdrifty_bpar
+    public :: wdriftpx_g, wdriftpy_g
+    public :: wdriftpx_phi, wdriftpy_phi
 
     ! ! Arrays without velocity dependence. Used mostly in field calculations.
     ! public :: response_matrix, response_window
@@ -34,16 +34,16 @@ module arrays_store_useful
     ! public :: gamtot_h, gamtot3_h, efac, efacp
     
     !----------------------------------------------------------------------------
-    ! real, dimension(:, :, :), allocatable :: wstar, wstarp
-    ! ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
+    real, dimension(:, :, :), allocatable :: wstar, wstarp
+    ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
 
-    ! real, dimension(:, :, :), allocatable :: wdriftx_g, wdrifty_g
-    ! real, dimension(:, :, :), allocatable :: wdriftx_phi, wdrifty_phi
-    ! real, dimension(:, :, :), allocatable :: wdriftx_bpar, wdrifty_bpar
+    real, dimension(:, :, :), allocatable :: wdriftx_g, wdrifty_g
+    real, dimension(:, :, :), allocatable :: wdriftx_phi, wdrifty_phi
+    real, dimension(:, :, :), allocatable :: wdriftx_bpar, wdrifty_bpar
 
-    ! real, dimension(:, :, :), allocatable :: wdriftpx_g, wdriftpy_g
-    ! real, dimension(:, :, :), allocatable :: wdriftpx_phi, wdriftpy_phi
-    ! ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
+    real, dimension(:, :, :), allocatable :: wdriftpx_g, wdriftpy_g
+    real, dimension(:, :, :), allocatable :: wdriftpx_phi, wdriftpy_phi
+    ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
 
     !> dkperp2dr will contain the radial variation of kperp2
     real, dimension(:, :, :, :), allocatable :: kperp2, dkperp2dr
@@ -54,10 +54,6 @@ module arrays_store_useful
 
     logical :: wdriftinit, wstarinit, parnlinit, &
             radialinit, driftimpinit
-    
-
-    ! (naky, nakx, nalpha, -nzgrid:nzgrid)
-    ! note: dkperp2dr is divided by kperp2
 
     !----------------------------------------------------------------------------
     ! type(response_matrix_type), dimension(:), allocatable :: response_matrix

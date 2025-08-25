@@ -747,6 +747,7 @@ $(OBJ_DIR)/gk_flow_shear.o: \
 $(OBJ_DIR)/gk_implicit_solve.o: \
 	 $(OBJ_DIR)/arrays_store_distribution_fn.o \
 	 $(OBJ_DIR)/arrays_store_fields.o \
+	 $(OBJ_DIR)/arrays_store_useful.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/debug_flags.o \

@@ -23,9 +23,9 @@ contains
     subroutine init_wdrift
 
         use mp, only: mp_abort
-        use arrays_store_distribution_fn, only: wdriftx_g, wdrifty_g
-        use arrays_store_distribution_fn, only: wdriftx_phi, wdrifty_phi
-        use arrays_store_distribution_fn, only: wdriftx_bpar, wdrifty_bpar
+        use arrays_store_useful, only: wdriftx_g, wdrifty_g
+        use arrays_store_useful, only: wdriftx_phi, wdrifty_phi
+        use arrays_store_useful, only: wdriftx_bpar, wdrifty_bpar
         use stella_layouts, only: vmu_lo
         use stella_layouts, only: iv_idx, imu_idx, is_idx
         use stella_time, only: code_dt
@@ -193,7 +193,7 @@ contains
         use geometry, only: dydalpha, drhodpsi, clebsch_factor
         use grids_velocity, only: vperp2, vpa
         use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-        use arrays_store_distribution_fn, only: wstar
+        use arrays_store_useful, only: wstar
         use neoclassical_terms, only: include_neoclassical_terms
         use neoclassical_terms, only: dfneo_drho
         use parameters_numerical, only: maxwellian_normalization
@@ -270,7 +270,8 @@ contains
         use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
         use calculations_kxky, only: swap_kxky
         use parameters_physics, only: full_flux_surface
-        use arrays_store_distribution_fn, only: wstar, g_scratch
+        use arrays_store_useful, only: wstar
+        use arrays_store_distribution_fn, only: g_scratch
         use calculations_gyro_averages, only: gyro_average
 
         use calculations_kxky_derivatives, only: get_dgdy, get_dchidy
@@ -342,7 +343,7 @@ contains
         use calculations_kxky, only: swap_kxky
         use parameters_physics, only: full_flux_surface, include_bpar
         use calculations_gyro_averages, only: gyro_average, gyro_average_j1
-        use arrays_store_distribution_fn, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
+        use arrays_store_useful, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
         use arrays_store_distribution_fn, only: g_scratch
 
         use calculations_kxky_derivatives, only: get_dgdy
@@ -453,7 +454,7 @@ contains
         use calculations_kxky, only: swap_kxky
         use parameters_physics, only: full_flux_surface, include_bpar
         use calculations_gyro_averages, only: gyro_average
-        use arrays_store_distribution_fn, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
+        use arrays_store_useful, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
         use arrays_store_distribution_fn, only: g_scratch
         use calculations_kxky_derivatives, only: get_dgdx
 
@@ -611,8 +612,8 @@ contains
     !*****************************************************************************
     subroutine finish_wdrift
 
-        use arrays_store_distribution_fn, only: wdriftx_g, wdrifty_g
-        use arrays_store_distribution_fn, only: wdriftx_phi, wdrifty_phi
+        use arrays_store_useful, only: wdriftx_g, wdrifty_g
+        use arrays_store_useful, only: wdriftx_phi, wdrifty_phi
         use arrays_store_useful, only: wdriftinit
 
         implicit none
@@ -628,7 +629,7 @@ contains
 
     subroutine finish_wstar 
 
-        use arrays_store_distribution_fn, only: wstar, wstarp
+        use arrays_store_useful, only: wstar, wstarp
         use arrays_store_useful, only: wstarinit
 
         implicit none

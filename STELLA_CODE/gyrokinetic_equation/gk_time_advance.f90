@@ -126,7 +126,7 @@ contains
       use mp, only: proc0, nproc, max_allreduce, min_allreduce
       use mp, only: scope, allprocs, subprocs
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use arrays_store_distribution_fn, only: wdriftx_g, wdrifty_g
+      use arrays_store_useful, only: wdriftx_g, wdrifty_g
       use stella_time, only: code_dt, write_dt, cfl_dt_linear
       use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
       use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
