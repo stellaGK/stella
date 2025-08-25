@@ -1,4 +1,4 @@
-module hyper
+module dissipation_hyper
 
    implicit none
 
@@ -252,4 +252,4 @@ contains
       end do
    end subroutine get_dgdz_fourth_order
 
-end module hyper
+end module dissipation_hyper

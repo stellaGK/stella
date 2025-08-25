@@ -890,8 +890,8 @@ contains
       use stella_layouts, only: vmu_lo
       use z_grid, only: nzgrid, ntubes
       use parameters_kxky_grid, only: naky, nakx
-      use hyper, only: advance_hyper_vpa, advance_hyper_zed
-      use hyper, only: hyp_zed, hyp_vpa
+      use dissipation_hyper, only: advance_hyper_vpa, advance_hyper_zed
+      use dissipation_hyper, only: hyp_zed, hyp_vpa
 
       implicit none
       
@@ -938,7 +938,7 @@ contains
       use dissipation, only: hyper_dissipation
       use dissipation, only: collisions_implicit, include_collisions
       use dissipation, only: advance_collisions_implicit
-      use hyper, only: advance_hyper_dissipation
+      use dissipation_hyper, only: advance_hyper_dissipation
       use gk_implicit_solve, only: advance_implicit_terms
       use gk_mirror, only: advance_mirror_implicit
       use gk_flow_shear, only: advance_perp_flow_shear

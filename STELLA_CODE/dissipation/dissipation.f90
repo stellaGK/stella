@@ -35,9 +35,9 @@ contains
       ! Read other input parameters related to specific collision models
       use dissipation_coll_dougherty, only: read_parameters_dougherty
       use dissipation_coll_fokkerplanck, only: read_parameters_fp
-      use hyper, only: read_parameters_hyper
+      use dissipation_hyper, only: read_parameters_hyper
       use parameters_numerical, only: fully_explicit
-      use hyper, only: init_hyper
+      use dissipation_hyper, only: init_hyper
 
       implicit none
       
