@@ -1,6 +1,6 @@
-# Input parameters
+# Read namelists from input file
 
-This module will set the default input input parameters for each name list,
+This module will set the default input parameters for each name list,
 and it will read the stella input file per namelist.
 
 For each namelists two (or three) routines will exist:
@@ -14,13 +14,17 @@ we can check if any input variables are clashing with each other.
 
 ### Namelists
 
+An overview of all default input parameters of stella can be found in 
+   STELLA_CODE/read_namelists_from_input_file/default_input_file.in
+
 Overview of stella namelists:
 
 GEOMETRY
-  geometry_option
-  overwrite_geometry
-  geometry_vmec (renamed from vmec_parameters)
-  geometry_miller (renamed from millergeo_parameters)
+  geometry_options
+  geometry_vmec
+  geometry_miller
+  geometry_zpinch
+  geometry_from_txt
 
 PHYSICS
   gyrokinetic_terms
@@ -28,19 +32,19 @@ PHYSICS
   adiabatic_electron_response
   adiabatic_ion_response
   electromagnetic
-  full_flux_surface
-  extra_physics
-
+  flow_shear
+  physics_inputs
+  
 GRIDS
-  vpamu_grid
-  z_grid (renamed from z_grid_parameters)
-  z_boundary_condition
-  species_knobs
+  species_options
   species_parameters_1
   species_parameters_2
   kxky_grid_option
   kxky_grid_range
   kxky_grid_box
+  z_grid
+  z_boundary_condition
+  velocity_grids
 
 DIAGNOSTICS
   diagnostics
@@ -71,6 +75,7 @@ TIME TRACE
 NUMERICS
   numerical_algorithms
   numerical_upwinding_for_derivatives
+  full_flux_surface
 
 NEOCLASSICS
   neoclassical_input

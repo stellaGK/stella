@@ -53,7 +53,6 @@
 ! First the default input parameters are set, then the default options are
 ! overwritten with those specified in the input file. Optionally, it is
 ! checked whether any input variables are clashing with each other.
-! 
 !###############################################################################
 module namelist_species
    
