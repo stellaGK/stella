@@ -35,7 +35,7 @@ module grids_kxky
    real :: dkx, dky, dx_d
    logical :: box
    
-   logical :: initialised
+   logical :: initialised_grids_kxky
 
 contains
 
@@ -52,7 +52,7 @@ contains
       
       implicit none
 
-      if (initialised) return
+      if (initialised_grids_kxky) return
 
 
       call init_zgrid
@@ -69,7 +69,7 @@ contains
       zonal_mode = .false.
       if (abs(aky(1)) < epsilon(0.)) zonal_mode(1) = .true.
 
-      initialised = .true.
+      initialised_grids_kxky = .true.
 
    contains
 
@@ -498,8 +498,8 @@ contains
 
       if (allocated(g0x)) deallocate (g0x)
 
-      reality = .false. 
-      initialised = .false.
+      reality = .false.
+      initialised_grids_kxky = .false.
       
    end subroutine finish_grids_kxky
 

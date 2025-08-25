@@ -31,6 +31,8 @@ module parameters_kxky_grid
    ! ky spaction options
    public :: kyspacing_option_switch, kyspacing_linear, kyspacing_exponential
    
+   public :: initialised_parameters_kxky_grid
+   
    private
 
    integer :: grid_option_switch
@@ -57,7 +59,7 @@ module parameters_kxky_grid
    real :: x0, y0
    
    ! Internal variables
-   logical :: initialised 
+   logical :: initialised_parameters_kxky_grid
 
 contains
   
@@ -70,7 +72,7 @@ contains
       
       implicit none
 
-      if (initialised) return
+      if (initialised_parameters_kxky_grid) return
 
       if (proc0) then
          call read_namelist_kxky_grid_option (grid_option_switch)
@@ -87,7 +89,7 @@ contains
       end if
       
       call broadcast_parameters
-      initialised = .true.
+      initialised_parameters_kxky_grid = .true.
 
    contains
     

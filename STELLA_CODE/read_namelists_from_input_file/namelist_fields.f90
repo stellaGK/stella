@@ -153,7 +153,7 @@ contains
 
          ! Variables needed to read the input file
          integer :: ierr
-      
+         
          ! Link text options for <initialise_distribution_option> to an integer value
          type(text_option), dimension(7), parameter :: init_distribution_options = &
              (/text_option('default', init_distribution_option_maxwellian), &
@@ -455,3 +455,4 @@ contains
 
 end module namelist_fields
 
+         

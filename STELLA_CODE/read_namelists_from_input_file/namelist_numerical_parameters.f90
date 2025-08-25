@@ -42,6 +42,9 @@
 !     vpa_upwind = 0.02
 !     time_upwind = 0.02
 ! 
+!   flux_annulus
+!     nitt = 1
+! 
 ! Text options for <delt_option>:
 !    - Automatic: {check_restart, default}
 !    - Manual: {set_by_hand}
