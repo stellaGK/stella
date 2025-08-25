@@ -104,7 +104,7 @@ contains
         use stella_layouts, only: vmu_lo, imu_idx, is_idx
         
         use g_tofrom_h, only: g_to_h
-        use gyro_averages, only: gyro_average
+        use calculations_gyro_averages, only: gyro_average
         use calculations_kxky_derivatives, only: get_dchidx, get_dchidy
         use calculations_kxky_derivatives, only: get_dgdy, get_dgdx
         use calculations_kxky, only: swap_kxky, swap_kxky_back
@@ -415,7 +415,7 @@ contains
         use calculations_kxky, only: swap_kxky, swap_kxky_back
         use velocity_grids, only: nvpa, nmu
         use velocity_grids, only: dvpa, vpa, mu
-        use gyro_averages, only: gyro_average
+        use calculations_gyro_averages, only: gyro_average
         use gk_parallel_streaming, only: stream_sign
         use dist_redistribute, only: xyz2vmu
         use file_utils, only: runtype_option_switch, runtype_multibox

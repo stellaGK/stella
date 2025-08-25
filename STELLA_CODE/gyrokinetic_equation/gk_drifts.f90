@@ -271,7 +271,7 @@ contains
         use calculations_kxky, only: swap_kxky
         use parameters_physics, only: full_flux_surface
         use store_arrays_distribution_fn, only: wstar, g_scratch
-        use gyro_averages, only: gyro_average
+        use calculations_gyro_averages, only: gyro_average
 
         use calculations_kxky_derivatives, only: get_dgdy, get_dchidy
         use store_arrays_useful, only: time_gke
@@ -341,7 +341,7 @@ contains
         use parameters_kxky_grid, only: nakx, ikx_max, naky, naky_all, ny
         use calculations_kxky, only: swap_kxky
         use parameters_physics, only: full_flux_surface, include_bpar
-        use gyro_averages, only: gyro_average, gyro_average_j1
+        use calculations_gyro_averages, only: gyro_average, gyro_average_j1
         use store_arrays_distribution_fn, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
         use store_arrays_distribution_fn, only: g_scratch
 
@@ -452,7 +452,7 @@ contains
         use grids_kxky, only: akx
         use calculations_kxky, only: swap_kxky
         use parameters_physics, only: full_flux_surface, include_bpar
-        use gyro_averages, only: gyro_average
+        use calculations_gyro_averages, only: gyro_average
         use store_arrays_distribution_fn, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
         use store_arrays_distribution_fn, only: g_scratch
         use calculations_kxky_derivatives, only: get_dgdx

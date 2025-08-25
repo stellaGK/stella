@@ -122,7 +122,7 @@ contains
 
       ! Calculations
       use volume_averages, only: fieldline_average
-      use gyro_averages, only: gyro_average, gyro_average_j1
+      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use constants, only: zi
 
       ! Routines

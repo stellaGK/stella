@@ -111,7 +111,7 @@ contains
       use velocity_grids, only: nvpa, nmu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
       use parameters_numerical, only: maxwellian_normalization
       
       implicit none
@@ -150,7 +150,7 @@ contains
       use velocity_grids, only: nvpa
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, is_idx
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
       use parameters_numerical, only: maxwellian_normalization
       
       implicit none
@@ -207,7 +207,7 @@ contains
       use calculations_kxky, only: multiply_by_rho
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use velocity_grids, only: vpa
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
       use parameters_numerical, only: maxwellian_normalization
       
       implicit none
@@ -275,7 +275,7 @@ contains
       use calculations_kxky, only: multiply_by_rho
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use velocity_grids, only: vpa, vperp2, mu
-      use gyro_averages, only: gyro_average, gyro_average_j1
+      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use arrays_gyro_averages, only: aj0x, aj1x
       use parameters_physics, only: radial_variation, include_bpar
       use parameters_numerical, only: maxwellian_normalization
@@ -405,7 +405,7 @@ contains
       use velocity_grids, only: maxwell_vpa, maxwell_mu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use gyro_averages, only: gyro_average, gyro_average_j1
+      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use parameters_numerical, only: maxwellian_normalization
       use parameters_physics, only: include_bpar
       
@@ -470,7 +470,7 @@ contains
       use calculations_kxky, only: multiply_by_rho
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, vperp2, mu, vpa
       use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
       use parameters_physics, only: radial_variation
       use parameters_physics, only: full_flux_surface
       use arrays_gyro_averages, only: aj0x, aj1x, j0_ffs
@@ -541,7 +541,7 @@ contains
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
 
       implicit none
 

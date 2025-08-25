@@ -1275,7 +1275,7 @@ contains
       use velocity_grids, only: integrate_species, mu, vpa, vperp2
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use store_arrays_useful, only: kperp2, dkperp2dr
-      use gyro_averages, only: gyro_average, gyro_average_j1
+      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use arrays_gyro_averages, only: aj0x, aj1x
 
       implicit none
@@ -1412,7 +1412,7 @@ contains
       use velocity_grids, only: mu, vpa, nmu, vperp2
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use store_arrays_useful, only: kperp2, dkperp2dr
-      use gyro_averages, only: gyro_average, gyro_average_j1
+      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use arrays_gyro_averages, only: aj0x, aj1x
 
       implicit none

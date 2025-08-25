@@ -139,7 +139,7 @@ contains
       use calculations_kxky, only: multiply_by_rho
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: aj0x
       use store_arrays_fields, only: phi
       use parameters_physics, only: fphi
@@ -269,7 +269,7 @@ contains
       use store_arrays_useful, only: kperp2, dkperp2dr
       use geometry, only: bmag, dBdrho
       use geometry, only: dl_over_b, d_dl_over_b_drho
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: aj0x, aj1x
       use store_arrays_fields, only: phi, phi_corr_QN, phi_proj
       use parameters_physics, only: fphi

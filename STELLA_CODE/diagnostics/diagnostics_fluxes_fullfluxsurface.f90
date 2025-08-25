@@ -189,7 +189,7 @@ contains
       use parameters_kxky_grid, only: naky_all, ikx_max, ny
       use calculations_kxky, only: swap_kxky
       use store_arrays_distribution_fn, only: g0, g1, g2
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
       use store_arrays_fields, only: phi
       use stella_transforms, only: transform_ky2y
       use grids_kxky, only: aky, theta0
@@ -326,7 +326,7 @@ contains
       use stella_layouts, only: vmu_lo, is_idx
       use species, only: spec
       use z_grid, only: nzgrid, ntubes
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: j0_ffs
 
       use stella_transforms, only: transform_ky2y, transform_y2ky
@@ -394,7 +394,7 @@ contains
       use stella_layouts, only: vmu_lo, is_idx
       use species, only: spec
       use z_grid, only: nzgrid, ntubes
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: j0_ffs
 
       use stella_transforms, only: transform_ky2y, transform_y2ky

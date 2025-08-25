@@ -700,7 +700,7 @@ contains
       use arrays_gyro_averages, only: j0_ffs
 
       use calculations_kxky, only: swap_kxky_back
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
       use g_tofrom_h, only: gbar_to_g 
 
       use parameters_physics, only: include_parallel_nonlinearity

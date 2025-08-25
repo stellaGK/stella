@@ -196,7 +196,7 @@ contains
          use z_grid, only: nzgrid
          use velocity_grids, only: integrate_species_ffs
          !> Calculations
-         use gyro_averages, only: gyro_average
+         use calculations_gyro_averages, only: gyro_average
          use arrays_gyro_averages, only: j0_B_const, j0_B_ffs
          
          implicit none
@@ -245,7 +245,7 @@ contains
       use z_grid, only: nzgrid
       use calculations_kxky, only: swap_kxky_ordered, swap_kxky_back_ordered
       use parameters_kxky_grid, only: naky_all, ikx_max
-      use gyro_averages, only: band_lu_solve_ffs
+      use calculations_gyro_averages, only: band_lu_solve_ffs
 
       implicit none
 
@@ -293,7 +293,7 @@ contains
       use z_grid, only: nzgrid, ntubes
       use grids_kxky, only: akx
       !> Calculations
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
  
       implicit none
       complex, dimension(:, :, -nzgrid:, :), intent (in out) :: source
@@ -346,7 +346,7 @@ contains
       use z_grid, only: nzgrid
       use velocity_grids, only: integrate_species_ffs
       !> Calculations
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: j0_B_const, j0_B_ffs
 
       implicit none
@@ -444,7 +444,7 @@ contains
       !> Calculations
       use calculations_kxky, only: swap_kxky_ordered
       use calculations_kxky, only: swap_kxky_back_ordered
-      use gyro_averages, only: band_lu_factorisation_ffs
+      use calculations_gyro_averages, only: band_lu_factorisation_ffs
       use arrays_gyro_averages, only: find_max_required_kalpha_index
       !> Geometry
       use geometry, only: bmag, dl_over_b
@@ -621,7 +621,7 @@ contains
       !> Grids
       use z_grid, only: nzgrid
       !> Calculations
-      use gyro_averages, only: band_lu_solve_ffs
+      use calculations_gyro_averages, only: band_lu_solve_ffs
       use volume_averages, only: flux_surface_average_ffs
 
       implicit none

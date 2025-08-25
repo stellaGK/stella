@@ -442,7 +442,7 @@ contains
       use grids_kxky, only: rho_d_clamped
       use stella_layouts, only: vmu_lo, imu_idx, is_idx, iv_idx
       use geometry, only: bmag, dBdrho, dl_over_b, d_dl_over_b_drho
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: aj0x, aj1x
       use store_arrays_useful, only: kperp2, dkperp2dr
       use z_grid, only: nzgrid, ntubes

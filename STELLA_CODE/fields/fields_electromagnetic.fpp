@@ -54,7 +54,7 @@ contains
       use velocity_grids, only: integrate_species, vpa, mu
       use z_grid, only: nzgrid
       !> Calculations
-      use gyro_averages, only: gyro_average, gyro_average_j1
+      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       !> Routines from other fields modules
       use fields_radial_variation, only: add_radial_correction_int_species
 
@@ -146,7 +146,7 @@ contains
       use velocity_grids, only: integrate_vmu
       use species, only: spec
       !> Calculations
-      use gyro_averages, only: gyro_average, gyro_average_j1
+      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
 
       implicit none
 
@@ -328,7 +328,7 @@ contains
       use velocity_grids, only: nvpa, nmu, vpa
       use velocity_grids, only: integrate_vmu
       !> Calculations
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
 
       implicit none
 

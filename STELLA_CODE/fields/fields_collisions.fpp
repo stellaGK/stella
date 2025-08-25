@@ -23,7 +23,7 @@ contains
       use mp, only: sum_allreduce
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
       use parameters_physics, only: fphi
       use geometry, only: dl_over_b
       use z_grid, only: nzgrid, ntubes
@@ -108,7 +108,7 @@ contains
       use mp, only: sum_allreduce
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
       use parameters_physics, only: fphi
       use geometry, only: dl_over_b, bmag
       use z_grid, only: nzgrid, ntubes

@@ -969,7 +969,7 @@ contains
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
       use velocity_grids, only: integrate_species
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
       use mp, only: sum_allreduce
 
       use stella_layouts, only: iv_idx, imu_idx, is_idx
@@ -1055,7 +1055,7 @@ contains
       use extended_zgrid, only: ikxmod
       use extended_zgrid, only: nsegments
       use velocity_grids, only: integrate_species, mu
-      use gyro_averages, only: gyro_average_j1
+      use calculations_gyro_averages, only: gyro_average_j1
       use mp, only: sum_allreduce
 
       implicit none
@@ -1119,7 +1119,7 @@ contains
       use extended_zgrid, only: nsegments
       use velocity_grids, only: integrate_species
       use velocity_grids, only: vpa
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
       use mp, only: sum_allreduce
 
       implicit none

@@ -52,7 +52,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/calculations/dist_redistribute.f90
   ../STELLA_CODE/calculations/finite_differences.f90
   ../STELLA_CODE/calculations/g_tofrom_h.f90
-  ../STELLA_CODE/calculations/gyro_averages.f90
+  ../STELLA_CODE/calculations/calculations_gyro_averages.f90
   ../STELLA_CODE/calculations/stella_transforms.f90
   ../STELLA_CODE/calculations/volume_averages.f90
   ../STELLA_CODE/diagnostics/diagnostics.f90

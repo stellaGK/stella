@@ -940,7 +940,7 @@ contains
       use velocity_grids, only: maxwell_vpa, maxwell_mu, vpa
       use parameters_numerical, only: maxwellian_normalization
       use stella_layouts, only: kxkyz_lo, is_idx, iz_idx
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
 
       implicit none
 

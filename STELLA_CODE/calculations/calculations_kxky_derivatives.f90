@@ -200,8 +200,8 @@ contains
         use velocity_grids, only: vpa, mu
         use grids_kxky, only: aky
         !> Calculations
-        use gyro_averages, only: gyro_average
-        use gyro_averages, only: gyro_average_j1
+        use calculations_gyro_averages, only: gyro_average
+        use calculations_gyro_averages, only: gyro_average_j1
         use arrays_gyro_averages, only: j0_ffs
 
         implicit none
@@ -265,8 +265,8 @@ contains
         use velocity_grids, only: vpa, mu
         use grids_kxky, only: aky
         !> Calculations
-        use gyro_averages, only: gyro_average
-        use gyro_averages, only: gyro_average_j1
+        use calculations_gyro_averages, only: gyro_average
+        use calculations_gyro_averages, only: gyro_average_j1
         use arrays_gyro_averages, only: j0_ffs
 
         implicit none
@@ -323,8 +323,8 @@ contains
         use velocity_grids, only: vpa, mu
         use grids_kxky, only: akx
         !> Calculations
-        use gyro_averages, only: gyro_average
-        use gyro_averages, only: gyro_average_j1
+        use calculations_gyro_averages, only: gyro_average
+        use calculations_gyro_averages, only: gyro_average_j1
         use arrays_gyro_averages, only: j0_ffs
 
         implicit none

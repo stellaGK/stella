@@ -34,7 +34,7 @@ contains
       use extended_zgrid, only: nsegments, nzed_segment
 
       use parameters_numerical, only: driftkinetic_implicit
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
       use stella_layouts, only: iv_idx, imu_idx, is_idx
 
       use fields_ffs, only: get_fields_source
@@ -857,7 +857,7 @@ contains
 
    subroutine gyro_average_zext(iky, ivmu, ikx_from_izext, iz_from_izext, fld, gyro_fld)
 
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
 
       implicit none
 
@@ -878,7 +878,7 @@ contains
 
    subroutine gyro_average_j1_zext(iky, ivmu, ikx_from_izext, iz_from_izext, fld, gyro_fld)
 
-      use gyro_averages, only: gyro_average_j1
+      use calculations_gyro_averages, only: gyro_average_j1
 
       implicit none
 

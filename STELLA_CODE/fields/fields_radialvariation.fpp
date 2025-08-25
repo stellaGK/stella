@@ -403,7 +403,7 @@ contains
 
       use mp, only: proc0, mp_abort, sum_allreduce
       use stella_layouts, only: vmu_lo
-      use gyro_averages, only: gyro_average, gyro_average_j1
+      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use arrays_gyro_averages, only: aj0x, aj1x
       use parameters_physics, only: fphi
       use parameters_multibox, only: ky_solve_radial

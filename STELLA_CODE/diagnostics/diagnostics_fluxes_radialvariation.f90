@@ -53,7 +53,7 @@ contains
       use parameters_kxky_grid, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
       use parameters_physics, only: radial_variation
-      use gyro_averages, only: gyro_average, gyro_average_j1
+      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use arrays_gyro_averages, only: aj0x, aj1x
       
       ! Flags 

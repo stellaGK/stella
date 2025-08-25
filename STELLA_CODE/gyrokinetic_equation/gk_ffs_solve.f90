@@ -49,7 +49,7 @@ contains
      use species, only: spec
 
      use fields, only: advance_fields
-     use gyro_averages, only: gyro_average
+     use calculations_gyro_averages, only: gyro_average
      use arrays_gyro_averages, only: j0_ffs
      use calculations_kxky, only: swap_kxky_back
      use stella_transforms, only: transform_y2ky
@@ -183,7 +183,7 @@ contains
       use z_grid, only: nzgrid, ntubes
       use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
       use calculations_kxky, only: swap_kxky, swap_kxky_back
-      use gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: j0_ffs
       use store_arrays_distribution_fn, only: wdriftx_g, wdriftx_phi
       use store_arrays_distribution_fn, only: wdrifty_g, wdrifty_phi

@@ -58,7 +58,7 @@ contains
         if (bessinit) return
         bessinit = .true.
 
-        if (debug) write (*, *) 'gyro_averages::init_bessel::allocate_aj0v_aj1v'
+        if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::allocate_aj0v_aj1v'
         if (.not. allocated(aj0v)) then
             allocate (aj0v(nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
             aj0v = 0.
@@ -68,7 +68,7 @@ contains
             aj1v = 0.
         end if
 
-        if (debug) write (*, *) 'gyro_averages::init_bessel::calculate_aj0v_aj1v'
+        if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::calculate_aj0v_aj1v'
         ia = 1
         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -83,7 +83,7 @@ contains
             end do
         end do
 
-        if (debug) write (*, *) 'gyro_averages::init_bessel::full_flux_surface'
+        if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::full_flux_surface'
         if (full_flux_surface) then
             call init_bessel_ffs 
         else
@@ -113,7 +113,7 @@ contains
                 end do
             end do
         end if
-        if (debug) write (*, *) 'gyro_averages::init_bessel::test_gyro_average'
+        if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::test_gyro_average'
 
         ! if(debug_test_gyro_average) call test_gyro_average
 
@@ -174,7 +174,7 @@ contains
         allocate (wgts(nspec))
         wgts = spec%dens * spec%z**2 / spec%temp
 
-        if (debug) write (*, *) 'gyro_averages::init_bessel::full_flux_surface::allocate_arrays'
+        if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::full_flux_surface::allocate_arrays'
         !> aj0_alpha will contain J_0 as a function of k_alpha and alpha
         allocate (aj0_alpha(nalpha))
         allocate (aj0_kalpha(naky))
@@ -213,11 +213,11 @@ contains
             !> for each value of alpha, take kperp^2 calculated on domain kx = [-kx_max, kx_max] and ky = [0, ky_max]
             !> and use symmetry to obtain kperp^2 on domain kx = [0, kx_max] and ky = [-ky_max, ky_max]
             !> this makes later convolutions involving sums over all ky more straightforward
-            if (debug) write (*, *) 'gyro_averages::init_bessel::full_flux_surface::swap_kxky'
+            if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::full_flux_surface::swap_kxky'
             do ia = 1, nalpha
                 call swap_kxky_ordered(kperp2(:, :, ia, iz), kperp2_swap(:, :, ia))
             end do
-            if (debug) write (*, *) 'gyro_averages::init_bessel::full_flux_surface::j0_loop'
+            if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::full_flux_surface::j0_loop'
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                 is = is_idx(vmu_lo, ivmu)
                 iv = iv_idx(vmu_lo, ivmu)
@@ -249,7 +249,7 @@ contains
                         
                     !> given the Fourier coefficients aj0_kalpha, calculate the minimum number of coefficients needed,
                     !> called j0_ffs%max_idx, to ensure that the relative error in the total spectral energy is below a specified tolerance
-                    !if (debug) write (*,*) 'gyro_averages::init_bessel::full_flux_surface::find_max_required_kalpha_index'
+                    !if (debug) write (*,*) 'arrays_gyro_averages:init_bessel::full_flux_surface::find_max_required_kalpha_index'
                     !                ! TMP FOR TESTING
                     !                j0_ffs(iky,ikx,iz,ivmu)%max_idx = naky
                     call find_max_required_kalpha_index(aj0_kalpha, j0_ffs(iky, ikx, iz, ivmu)%max_idx, imu, iz, is)

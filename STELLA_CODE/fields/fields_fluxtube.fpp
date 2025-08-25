@@ -110,7 +110,7 @@ contains
       use species, only: spec
       use velocity_grids, only: integrate_species
       !> Calculations
-      use gyro_averages, only: gyro_average, gyro_average_j1
+      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       !> Routines from other field modules
       use fields_electromagnetic, only: get_fields_electromagnetic
       use fields_radial_variation, only: add_radial_correction_int_species, get_phi_for_radial
@@ -204,7 +204,7 @@ contains
       use velocity_grids, only: integrate_vmu
       use species, only: spec
       !> Calculations
-      use gyro_averages, only: gyro_average, gyro_average_j1
+      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       !> Routines from other field modules
       use fields_electromagnetic, only: get_fields_electromagnetic
       use fields_radial_variation, only: get_phi_for_radial

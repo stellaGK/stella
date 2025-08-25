@@ -251,7 +251,7 @@ contains
       use velocity_grids, only: mu
       use species, only: spec
       use parameters_physics, only: full_flux_surface, include_bpar
-      use gyro_averages, only: gyro_average, gyro_average_j1
+      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use parameters_numerical, only: driftkinetic_implicit, maxwellian_normalization
 	
 	!! For FFS 
@@ -372,7 +372,7 @@ contains
       use parameters_kxky_grid, only: naky, nakx
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use species, only: spec
-      use gyro_averages, only: gyro_average, gyro_average_j1
+      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use store_arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
 
       implicit none

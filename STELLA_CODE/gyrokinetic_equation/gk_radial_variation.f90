@@ -164,7 +164,7 @@ contains
         use calculations_kxky_derivatives, only: get_dgdy, get_dgdx
         use calculations_kxky_derivatives, only: get_dchidy
         use calculations_kxky, only: multiply_by_rho
-        use gyro_averages, only: gyro_average, gyro_average_j1
+        use calculations_gyro_averages, only: gyro_average, gyro_average_j1
 
         use store_arrays_fields, only: phi, apar, bpar
         use store_arrays_fields, only: phi_corr_QN, phi_corr_GA

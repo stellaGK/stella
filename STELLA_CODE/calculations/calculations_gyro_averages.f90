@@ -1,4 +1,4 @@
-module gyro_averages
+module calculations_gyro_averages
 
    use common_types, only: coupled_alpha_type
    use debug_flags, only: debug => gyro_averages_debug
@@ -790,4 +790,4 @@ contains
         !     end if
 
         ! end subroutine test_ffs_bessel_coefs_subset
-end module gyro_averages
+end module calculations_gyro_averages
