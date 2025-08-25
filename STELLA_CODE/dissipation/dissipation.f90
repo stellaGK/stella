@@ -33,7 +33,7 @@ contains
       use namelist_dissipation, only: read_namelist_dissipation
       
       ! Read other input parameters related to specific collision models
-      use coll_dougherty, only: read_parameters_dougherty
+      use dissipation_coll_dougherty, only: read_parameters_dougherty
       use coll_fokkerplanck, only: read_parameters_fp
       use hyper, only: read_parameters_hyper
       use parameters_numerical, only: fully_explicit
@@ -105,7 +105,7 @@ contains
    !****************************************************************************
    subroutine init_collisions
 
-      use coll_dougherty, only: init_collisions_dougherty
+      use dissipation_coll_dougherty, only: init_collisions_dougherty
       use coll_fokkerplanck, only: init_collisions_fp
 
       implicit none
@@ -132,7 +132,7 @@ contains
 
    subroutine finish_collisions
 
-      use coll_dougherty, only: finish_collisions_dougherty
+      use dissipation_coll_dougherty, only: finish_collisions_dougherty
       use coll_fokkerplanck, only: finish_collisions_fp
 
       implicit none
@@ -154,7 +154,7 @@ contains
       use parameters_physics, only: full_flux_surface
       use stella_layouts, only: vmu_lo
       use z_grid, only: nzgrid
-      use coll_dougherty, only: advance_collisions_dougherty_explicit
+      use dissipation_coll_dougherty, only: advance_collisions_dougherty_explicit
       use coll_fokkerplanck, only: advance_collisions_fp_explicit
 
       implicit none
@@ -186,7 +186,7 @@ contains
       use velocity_grids, only: set_vpa_weights
       use stella_layouts, only: vmu_lo
       use store_arrays_distribution_fn, only: gvmu
-      use coll_dougherty, only: advance_collisions_dougherty_implicit
+      use dissipation_coll_dougherty, only: advance_collisions_dougherty_implicit
       use coll_fokkerplanck, only: advance_collisions_fp_implicit
 
       implicit none

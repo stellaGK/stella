@@ -1,4 +1,4 @@
-module coll_dougherty
+module dissipation_coll_dougherty
 
    implicit none
 
@@ -1871,4 +1871,4 @@ contains
 
    end subroutine advance_mudiff_implicit
 
-end module coll_dougherty
+end module dissipation_coll_dougherty
