@@ -98,8 +98,8 @@ contains
         use constants, only: pi, zi
         use file_utils, only: runtype_option_switch, runtype_multibox
 
-        use stella_transforms, only: transform_y2ky, transform_x2kx
-        use stella_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
+        use calculations_stella_transforms, only: transform_y2ky, transform_x2kx
+        use calculations_stella_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
         use stella_time, only: cfl_dt_ExB, cfl_dt_linear, code_dt, code_dt_max
         use stella_layouts, only: vmu_lo, imu_idx, is_idx
         
@@ -352,8 +352,8 @@ contains
 
         subroutine forward_transform(gk, gx)
 
-            use stella_transforms, only: transform_ky2y, transform_kx2x
-            use stella_transforms, only: transform_ky2y_xfirst, transform_kx2x_xfirst
+            use calculations_stella_transforms, only: transform_ky2y, transform_kx2x
+            use calculations_stella_transforms, only: transform_ky2y_xfirst, transform_kx2x_xfirst
 
             implicit none
 
@@ -401,8 +401,8 @@ contains
         use calculations_finite_differences, only: third_order_upwind
         use redistribute, only: gather, scatter
         use store_arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
-        use stella_transforms, only: transform_ky2y, transform_y2ky
-        use stella_transforms, only: transform_kx2x, transform_x2kx
+        use calculations_stella_transforms, only: transform_ky2y, transform_y2ky
+        use calculations_stella_transforms, only: transform_kx2x, transform_x2kx
         use stella_time, only: cfl_dt_parallel, cfl_dt_linear, code_dt, code_dt_max
         use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
         use z_grid, only: nzgrid, delzed, ntubes

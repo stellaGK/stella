@@ -41,7 +41,7 @@ contains
 
      use stella_layouts, only: vmu_lo
      use stella_layouts, only: iv_idx, imu_idx, is_idx
-     use stella_transforms, only: transform_ky2y
+     use calculations_stella_transforms, only: transform_ky2y
      use z_grid, only: nzgrid, ntubes
      use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
      use calculations_kxky, only: swap_kxky
@@ -52,7 +52,7 @@ contains
      use calculations_gyro_averages, only: gyro_average
      use arrays_gyro_averages, only: j0_ffs
      use calculations_kxky, only: swap_kxky_back
-     use stella_transforms, only: transform_y2ky
+     use calculations_stella_transforms, only: transform_y2ky
      
      use gk_parallel_streaming, only: center_zed, get_dgdz_centered, get_dzed
      use gk_parallel_streaming, only: stream_correction, stream_store_full
@@ -179,7 +179,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use stella_transforms, only: transform_ky2y,transform_y2ky
+      use calculations_stella_transforms, only: transform_ky2y,transform_y2ky
       use z_grid, only: nzgrid, ntubes
       use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
       use calculations_kxky, only: swap_kxky, swap_kxky_back

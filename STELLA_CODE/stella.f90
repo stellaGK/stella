@@ -98,7 +98,7 @@ contains
       use stella_layouts, only: mat_gen, mat_read
       use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
       use stella_time, only: init_tstart, init_delt
-      use stella_transforms, only: init_transforms
+      use calculations_stella_transforms, only: init_transforms
       use stella_save, only: init_dt
 
       use parameters_physics, only: read_parameters_physics

@@ -178,7 +178,7 @@ contains
       use parameters_kxky_grid, only: naky
       use extended_zgrid, only: periodic
       use geometry, only: jacob
-      use stella_transforms, only: transform_alpha2kalpha
+      use calculations_stella_transforms, only: transform_alpha2kalpha
 
       implicit none
 

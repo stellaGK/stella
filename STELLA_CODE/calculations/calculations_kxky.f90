@@ -244,8 +244,8 @@ contains
   
   subroutine multiply_by_rho(gin)
     
-    use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
-    !   use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
+    use calculations_stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+    !   use calculations_stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
     use grids_kxky, only: rho_d_clamped, zonal_mode, g0x
     use parameters_kxky_grid, only: nakx, naky 
     implicit none

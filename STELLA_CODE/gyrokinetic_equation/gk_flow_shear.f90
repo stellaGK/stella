@@ -189,7 +189,7 @@ contains
       use stella_layouts, only: vmu_lo
       use constants, only: zi
       use parameters_physics, only: prp_shear_enabled, hammett_flow_shear
-      use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+      use calculations_stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use z_grid, only: nzgrid, ntubes
       use store_arrays_fields, only: shift_state
       use grids_kxky, only: aky, zonal_mode

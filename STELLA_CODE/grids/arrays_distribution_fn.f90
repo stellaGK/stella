@@ -80,7 +80,7 @@ contains
         use calculations_redistribute, only: kxkyz2vmu
         use parameters_physics, only: radial_variation
         use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-        use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
+        use calculations_stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
         use parameters_kxky_grid, only: nalpha, nakx, naky
         use calculations_kxky, only: multiply_by_rho
         use velocity_grids, only: mu, vpa, vperp2
@@ -155,7 +155,7 @@ contains
         use calculations_redistribute, only: kxkyz2vmu
         use parameters_physics, only: radial_variation
         use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-        use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
+        use calculations_stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
         use parameters_kxky_grid, only: nalpha, nakx, naky
         use calculations_kxky, only: multiply_by_rho
         use velocity_grids, only: mu, vpa, vperp2

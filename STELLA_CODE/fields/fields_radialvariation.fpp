@@ -119,7 +119,7 @@ contains
       use store_arrays_fields, only: phi_shared
       use mp_lu_decomposition, only: lu_matrix_multiply_local
 #endif
-      use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+      use calculations_stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
       use parameters_multibox, only: ky_solve_radial
@@ -220,7 +220,7 @@ contains
       use linear_solve, only: lu_back_substitution
 #endif
       use z_grid, only: nzgrid, ntubes
-      use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+      use calculations_stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use parameters_kxky_grid, only: nakx 
       use parameters_multibox, only: boundary_size
@@ -422,7 +422,7 @@ contains
       use store_arrays_useful, only: kperp2, dkperp2dr
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
-      use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+      use calculations_stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
 
@@ -573,7 +573,7 @@ contains
 #endif
       use parameters_multibox, only: ky_solve_radial, ky_solve_real
       use species, only: spec, has_electron_species, ion_species
-      use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+      use calculations_stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use z_grid, only: nzgrid, ntubes, nztot
       use parameters_kxky_grid, only: naky, nakx
       use grids_kxky, only: akx

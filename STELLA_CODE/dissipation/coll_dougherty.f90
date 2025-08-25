@@ -918,7 +918,7 @@ contains
       use store_arrays_useful, only: kperp2, dkperp2dr
       use store_arrays_fields, only: phi_corr_QN
       use calculations_tofrom_ghf, only: g_to_h
-      use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+      use calculations_stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
 

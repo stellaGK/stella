@@ -693,7 +693,7 @@ contains
       use multibox, only: add_multibox_krook
 
       use stella_layouts, only: vmu_lo
-      use stella_transforms, only: transform_y2ky
+      use calculations_stella_transforms, only: transform_y2ky
 
       use store_arrays_fields, only: phi, apar, bpar
       use store_arrays_distribution_fn, only: g_scratch
@@ -1046,7 +1046,7 @@ contains
    !******************************************************************************
    subroutine finish_time_advance
 
-      use stella_transforms, only: finish_transforms
+      use calculations_stella_transforms, only: finish_transforms
       use parameters_physics, only: full_flux_surface
       use extended_zgrid, only: finish_extended_zgrid
       use gk_parallel_streaming, only: finish_parallel_streaming

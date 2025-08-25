@@ -143,7 +143,7 @@ contains
       use z_grid, only: nzgrid
       use parameters_kxky_grid, only: ikx_max, naky_all, ny
       use calculations_kxky, only: swap_kxky_back
-      use stella_transforms, only: transform_y2ky
+      use calculations_stella_transforms, only: transform_y2ky
 
       implicit none
 
@@ -191,7 +191,7 @@ contains
       use store_arrays_distribution_fn, only: g0, g1, g2
       use calculations_gyro_averages, only: gyro_average
       use store_arrays_fields, only: phi
-      use stella_transforms, only: transform_ky2y
+      use calculations_stella_transforms, only: transform_ky2y
       use grids_kxky, only: aky, theta0
       use parameters_kxky_grid, only: nakx
       use constants, only: zi, pi
@@ -329,7 +329,7 @@ contains
       use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: j0_ffs
 
-      use stella_transforms, only: transform_ky2y, transform_y2ky
+      use calculations_stella_transforms, only: transform_ky2y, transform_y2ky
       use calculations_kxky, only: swap_kxky, swap_kxky_back
       use velocity_grids, only: maxwell_vpa, maxwell_mu
       use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
@@ -397,7 +397,7 @@ contains
       use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: j0_ffs
 
-      use stella_transforms, only: transform_ky2y, transform_y2ky
+      use calculations_stella_transforms, only: transform_ky2y, transform_y2ky
       use calculations_kxky, only: swap_kxky, swap_kxky_back
       use velocity_grids, only: maxwell_vpa, maxwell_mu
       use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny

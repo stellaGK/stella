@@ -342,7 +342,7 @@ contains
       use job_manage, only: time_message
       use stella_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
       use stella_layouts, only: iv_idx, is_idx
-      use stella_transforms, only: transform_ky2y
+      use calculations_stella_transforms, only: transform_ky2y
       use z_grid, only: nzgrid, ntubes
       use parameters_physics, only: full_flux_surface
       use parameters_kxky_grid, only: nakx, naky, naky_all, ny, ikx_max
@@ -635,7 +635,7 @@ contains
       use stella_layouts, only: vmu_lo, kxyz_lo, kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use stella_layouts, only: iv_idx, imu_idx
-      use stella_transforms, only: transform_ky2y, transform_y2ky
+      use calculations_stella_transforms, only: transform_ky2y, transform_y2ky
       use z_grid, only: nzgrid, ntubes
       use store_arrays_distribution_fn, only: gvmu
       use parameters_physics, only: full_flux_surface

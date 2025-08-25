@@ -995,7 +995,7 @@ contains
    end subroutine mb_get_phi
 
 !!>DSO - The following subroutines are the _ analogues of the ones found in
-! stella_transforms.f90.
+! calculations_stella_transforms.f90.
 ! The ones uses here ensure that the grid spacing in real space is consistent between
 ! domains (since we do not keep the checkboard mode)
 

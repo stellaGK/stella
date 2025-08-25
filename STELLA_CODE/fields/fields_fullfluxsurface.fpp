@@ -424,7 +424,7 @@ contains
       !> Layouts
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use stella_transforms, only: transform_alpha2kalpha
+      use calculations_stella_transforms, only: transform_alpha2kalpha
       !> Parameters
       use parameters_physics, only: nine, tite
       use parameters_kxky_grid, only: nalpha, ikx_max, naky_all, naky, nakx
@@ -614,7 +614,7 @@ contains
    subroutine init_adiabatic_response_factor
 
       !> Layouts
-      use stella_transforms, only: transform_alpha2kalpha
+      use calculations_stella_transforms, only: transform_alpha2kalpha
       !> Parameters
       use parameters_physics, only: nine, tite
       use parameters_kxky_grid, only: naky, naky_all, ikx_max

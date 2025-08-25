@@ -341,7 +341,7 @@ contains
       use species, only: nspec
       use calculations_volume_averages, only: mode_fac
       use geometry, only: dVolume
-      use stella_transforms, only: transform_kx2x_unpadded
+      use calculations_stella_transforms, only: transform_kx2x_unpadded
       use parameters_physics, only: radial_variation
 
       implicit none
@@ -462,7 +462,7 @@ contains
       use z_grid, only: nzgrid, ntubes
       use species, only: nspec
       use calculations_volume_averages, only: mode_fac
-      use stella_transforms, only: transform_kx2x_unpadded 
+      use calculations_stella_transforms, only: transform_kx2x_unpadded 
 
       implicit none
 

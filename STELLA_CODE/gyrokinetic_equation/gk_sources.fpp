@@ -206,7 +206,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
       use store_arrays_distribution_fn, only: g_krook, g_symm
-      use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+      use calculations_stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
 
@@ -314,7 +314,7 @@ contains
       use parameters_kxky_grid, only: nakx
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
-      use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+      use calculations_stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
 
@@ -446,7 +446,7 @@ contains
       use arrays_gyro_averages, only: aj0x, aj1x
       use store_arrays_useful, only: kperp2, dkperp2dr
       use z_grid, only: nzgrid, ntubes
-      use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+      use calculations_stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
 
@@ -534,7 +534,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
       use store_arrays_distribution_fn, only: g_proj, g_symm
-      use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+      use calculations_stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
 
@@ -659,7 +659,7 @@ contains
       use mpi
 #endif
       use geometry, only: dl_over_b, d_dl_over_b_drho
-      use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+      use calculations_stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use z_grid, only: nzgrid, nztot
       use parameters_kxky_grid, only: nakx
       use grids_kxky, only: rho_d_clamped

@@ -469,7 +469,7 @@ contains
       use parameters_kxky_grid, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
       use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, vperp2, mu, vpa
-      use stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
+      use calculations_stella_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
       use calculations_gyro_averages, only: gyro_average
       use parameters_physics, only: radial_variation
       use parameters_physics, only: full_flux_surface

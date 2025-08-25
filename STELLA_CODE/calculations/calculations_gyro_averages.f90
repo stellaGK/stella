@@ -549,8 +549,8 @@ contains
     !     use parameters_kxky_grid, only: nakx, ikx_max, naky, naky_all
     !     use grids_kxky, only: x, y
     !     use calculations_kxky, only: swap_kxky, swap_kxky_back
-    !     use stella_transforms, only: transform_x2kx, transform_y2ky
-    !     use stella_transforms, only: transform_kx2x, transform_ky2y
+    !     use calculations_stella_transforms, only: transform_x2kx, transform_y2ky
+    !     use calculations_stella_transforms, only: transform_kx2x, transform_ky2y
     !     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
     !     use velocity_grids, only: nmu
     !     use species, only: nspec, spec
@@ -729,7 +729,7 @@ contains
         !     use parameters_kxky_grid, only: naky, nalpha
         !     use grids_kxky, only: aky_all_ordered
         !     use velocity_grids, only: mu
-        !     use stella_transforms, only: transform_kalpha2alpha
+        !     use calculations_stella_transforms, only: transform_kalpha2alpha
         !     use geometry, only: alpha
 
         !     implicit none
