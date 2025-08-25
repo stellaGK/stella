@@ -214,11 +214,11 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx
       use z_grid, only: nzgrid, delzed, ntubes
-      use extended_zgrid, only: neigen, nsegments
-      use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: fill_zed_ghost_zones
-      use extended_zgrid, only: periodic
+      use grids_extended_zgrid, only: neigen, nsegments
+      use grids_extended_zgrid, only: iz_low, iz_up
+      use grids_extended_zgrid, only: ikxmod
+      use grids_extended_zgrid, only: fill_zed_ghost_zones
+      use grids_extended_zgrid, only: periodic
       use parameters_kxky_grid, only: naky
 
       use stella_layouts, only: iv_idx, imu_idx, is_idx

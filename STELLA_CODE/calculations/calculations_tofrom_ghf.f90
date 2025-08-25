@@ -350,9 +350,9 @@ contains
 !   subroutine g_to_h_vmu_zext (gext, phiext, facphi, iky, ie)
 
 !     use species, only: spec
-!     use extended_zgrid, only: ikxmod
-!     use extended_zgrid, only: iz_low, iz_up
-!     use extended_zgrid, only: nsegments
+!     use grids_extended_zgrid, only: ikxmod
+!     use grids_extended_zgrid, only: iz_low, iz_up
+!     use grids_extended_zgrid, only: nsegments
 !     use velocity_grids, only: maxwell_vpa, maxwell_mu
 !     use stella_layouts, only: vmu_lo
 !     use stella_layouts, only: iv_idx, imu_idx, is_idx

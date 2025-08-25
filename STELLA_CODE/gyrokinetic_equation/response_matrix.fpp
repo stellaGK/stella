@@ -135,8 +135,8 @@ contains
       use store_arrays_fields, only: response_window
       use fields, only: nfields
       use parameters_kxky_grid, only: naky
-      use extended_zgrid, only: neigen, nsegments, nzed_segment
-      use extended_zgrid, only: periodic
+      use grids_extended_zgrid, only: neigen, nsegments, nzed_segment
+      use grids_extended_zgrid, only: periodic
 
       implicit none
 
@@ -178,7 +178,7 @@ contains
       use stella_layouts, only: mat_gen
       use store_arrays_fields, only: response_matrix
       use parameters_kxky_grid, only: naky
-      use extended_zgrid, only: neigen
+      use grids_extended_zgrid, only: neigen
 #ifdef ISO_C_BINDING
       use store_arrays_fields, only: response_window
 #endif
@@ -263,10 +263,10 @@ contains
       use mp, only: proc0
       use stella_layouts, only: mat_gen
       use parameters_physics, only: include_apar, include_bpar
-      use extended_zgrid, only: neigen, ikxmod
-      use extended_zgrid, only: nsegments, nzed_segment
-      use extended_zgrid, only: periodic
-      use extended_zgrid, only: iz_low, iz_up
+      use grids_extended_zgrid, only: neigen, ikxmod
+      use grids_extended_zgrid, only: nsegments, nzed_segment
+      use grids_extended_zgrid, only: periodic
+      use grids_extended_zgrid, only: iz_low, iz_up
       use stella_layouts, only: vmu_lo
       use fields, only: nfields
 
@@ -403,9 +403,9 @@ contains
       use mp, only: sgproc0
 #endif
       use parameters_physics, only: include_apar, include_bpar
-      use extended_zgrid, only: neigen
-      use extended_zgrid, only: nsegments, nzed_segment
-      use extended_zgrid, only: periodic
+      use grids_extended_zgrid, only: neigen
+      use grids_extended_zgrid, only: nsegments, nzed_segment
+      use grids_extended_zgrid, only: periodic
       use store_arrays_fields, only: response_matrix
 
       implicit none
@@ -546,7 +546,7 @@ contains
       use store_arrays_fields, only: response_matrix
       use stella_layouts, only: lu_option_switch
       use stella_layouts, only: lu_option_none, lu_option_local, lu_option_global
-      use extended_zgrid, only: neigen
+      use grids_extended_zgrid, only: neigen
       use linear_solve, only: lu_decomposition
 
       implicit none
@@ -589,10 +589,10 @@ contains
       use store_arrays_fields, only: response_matrix
       use common_types, only: response_matrix_type
       use parameters_kxky_grid, only: naky
-      use extended_zgrid, only: neigen
-      use extended_zgrid, only: nsegments
-      use extended_zgrid, only: nzed_segment
-      use extended_zgrid, only: periodic
+      use grids_extended_zgrid, only: neigen
+      use grids_extended_zgrid, only: nsegments
+      use grids_extended_zgrid, only: nzed_segment
+      use grids_extended_zgrid, only: periodic
       use mp, only: proc0, job, broadcast, mp_abort
       use fields, only: nfields
 
@@ -692,7 +692,7 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       use gk_implicit_solve, only: get_gke_rhs, sweep_g_zext
       use store_arrays_fields, only: response_matrix
-      use extended_zgrid, only: periodic, phase_shift
+      use grids_extended_zgrid, only: periodic, phase_shift
       use parameters_physics, only: full_flux_surface
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
@@ -780,7 +780,7 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       use gk_implicit_solve, only: get_gke_rhs, sweep_g_zext
       use store_arrays_fields, only: response_matrix
-      use extended_zgrid, only: periodic
+      use grids_extended_zgrid, only: periodic
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
@@ -866,7 +866,7 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       use gk_implicit_solve, only: get_gke_rhs, sweep_g_zext
       use store_arrays_fields, only: response_matrix
-      use extended_zgrid, only: periodic
+      use grids_extended_zgrid, only: periodic
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
 #endif
@@ -965,9 +965,9 @@ contains
 
       use stella_layouts, only: vmu_lo
       use species, only: nspec, spec
-      use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: nsegments
+      use grids_extended_zgrid, only: iz_low, iz_up
+      use grids_extended_zgrid, only: ikxmod
+      use grids_extended_zgrid, only: nsegments
       use velocity_grids, only: integrate_species
       use calculations_gyro_averages, only: gyro_average
       use mp, only: sum_allreduce
@@ -1051,9 +1051,9 @@ contains
       use stella_layouts, only: vmu_lo, imu_idx
       use species, only: nspec, spec
       use parameters_physics, only: beta
-      use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: nsegments
+      use grids_extended_zgrid, only: iz_low, iz_up
+      use grids_extended_zgrid, only: ikxmod
+      use grids_extended_zgrid, only: nsegments
       use velocity_grids, only: integrate_species, mu
       use calculations_gyro_averages, only: gyro_average_j1
       use mp, only: sum_allreduce
@@ -1114,9 +1114,9 @@ contains
       use stella_layouts, only: vmu_lo, iv_idx
       use parameters_physics, only: beta
       use species, only: nspec, spec
-      use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: nsegments
+      use grids_extended_zgrid, only: iz_low, iz_up
+      use grids_extended_zgrid, only: ikxmod
+      use grids_extended_zgrid, only: nsegments
       use velocity_grids, only: integrate_species
       use velocity_grids, only: vpa
       use calculations_gyro_averages, only: gyro_average
@@ -1199,9 +1199,9 @@ contains
       use species, only: spec
       use species, only: has_electron_species
       use geometry, only: dl_over_b
-      use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: nsegments
+      use grids_extended_zgrid, only: iz_low, iz_up
+      use grids_extended_zgrid, only: ikxmod
+      use grids_extended_zgrid, only: nsegments
       use grids_kxky, only: zonal_mode, akx
       use store_arrays_fields, only: gamtot, gamtot3
       use store_arrays_fields, only: gamtot_h, gamtot3_h
@@ -1279,9 +1279,9 @@ contains
       use z_grid, only: nzgrid
       use species, only: spec
       use species, only: has_electron_species
-      use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: nsegments
+      use grids_extended_zgrid, only: iz_low, iz_up
+      use grids_extended_zgrid, only: ikxmod
+      use grids_extended_zgrid, only: nsegments
       use grids_kxky, only: zonal_mode, akx
       use store_arrays_fields, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
       use store_arrays_fields, only: gamtot_h
@@ -1371,9 +1371,9 @@ contains
    subroutine get_apar_for_response_matrix(apar, iky, ie, dist)
 
       use z_grid, only: nzgrid
-      use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: nsegments
+      use grids_extended_zgrid, only: iz_low, iz_up
+      use grids_extended_zgrid, only: ikxmod
+      use grids_extended_zgrid, only: nsegments
       use grids_kxky, only: zonal_mode, akx
       use store_arrays_fields, only: apar_denom
       use store_arrays_useful, only: kperp2
@@ -1474,7 +1474,7 @@ contains
       use mp, only: job, iproc, proc0, nproc, numnodes, inode
       use mp_lu_decomposition, only: lu_decomposition_local
       use job_manage, only: njobs
-      use extended_zgrid, only: neigen
+      use grids_extended_zgrid, only: neigen
       use mpi
 
       implicit none
@@ -1630,7 +1630,7 @@ contains
       use mp, only: sgproc0, scrossdomprocs
 #endif
       use job_manage, only: njobs
-      use extended_zgrid, only: neigen
+      use grids_extended_zgrid, only: neigen
       use mpi
       use linear_solve, only: imaxloc
 

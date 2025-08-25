@@ -410,7 +410,7 @@ contains
       use store_arrays_fields, only: phi, apar, bpar
       use store_arrays_useful, only: time_gke
       use z_grid, only: nzgrid
-      use extended_zgrid, only: periodic, phase_shift
+      use grids_extended_zgrid, only: periodic, phase_shift
       use parameters_kxky_grid, only: naky
       use parameters_physics, only: include_apar
       use gk_parallel_streaming, only: stream_sign
@@ -1048,7 +1048,7 @@ contains
 
       use calculations_transforms, only: finish_transforms
       use parameters_physics, only: full_flux_surface
-      use extended_zgrid, only: finish_extended_zgrid
+      use grids_extended_zgrid, only: finish_extended_zgrid
       use gk_parallel_streaming, only: finish_parallel_streaming
       use gk_mirror, only: finish_mirror
       use gk_flow_shear, only: finish_flow_shear

@@ -1,4 +1,4 @@
-module extended_zgrid
+module grids_extended_zgrid
 
    use debug_flags, only: debug => extended_grid_debug
 
@@ -494,4 +494,4 @@ contains
 
    end subroutine finish_extended_zgrid
 
-end module extended_zgrid
+end module grids_extended_zgrid

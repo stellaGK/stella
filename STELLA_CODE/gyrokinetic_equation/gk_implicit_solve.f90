@@ -30,8 +30,8 @@ contains
       use parameters_numerical, only: tupwnd_p => time_upwind_plus
       use parameters_numerical, only: tupwnd_m => time_upwind_minus
       use fields, only: advance_fields, fields_updated
-      use extended_zgrid, only: map_to_extended_zgrid, map_from_extended_zgrid
-      use extended_zgrid, only: nsegments, nzed_segment
+      use grids_extended_zgrid, only: map_to_extended_zgrid, map_from_extended_zgrid
+      use grids_extended_zgrid, only: nsegments, nzed_segment
 
       use parameters_numerical, only: driftkinetic_implicit
       use calculations_gyro_averages, only: gyro_average
@@ -212,7 +212,7 @@ contains
 
       subroutine update_pdf(mod)
 
-         use extended_zgrid, only: neigen
+         use grids_extended_zgrid, only: neigen
 
          integer :: ie, it, iky, ivmu
          integer :: ulim
@@ -353,7 +353,7 @@ contains
    subroutine get_contributions_from_fields(phi, apar, aparnew, bpar, ivmu, iky, ie, scratch, rhs)
 
       use parameters_physics, only: include_apar, include_bpar
-      use extended_zgrid, only: map_to_iz_ikx_from_izext
+      use grids_extended_zgrid, only: map_to_iz_ikx_from_izext
 
       implicit none
 
@@ -445,7 +445,7 @@ contains
 
       subroutine add_streaming_contribution_phi
 
-         use extended_zgrid, only: fill_zext_ghost_zones
+         use grids_extended_zgrid, only: fill_zext_ghost_zones
          use gk_parallel_streaming, only: get_zed_derivative_extended_domain
          use gk_parallel_streaming, only: center_zed
          use gk_parallel_streaming, only: gradpar_c, stream_sign
@@ -514,7 +514,7 @@ contains
          use grids_kxky, only: aky, akx
          use store_arrays_distribution_fn, only: wstar, wdriftx_phi, wdrifty_phi
          use gk_parallel_streaming, only: center_zed
-         use extended_zgrid, only: periodic
+         use grids_extended_zgrid, only: periodic
 
          integer :: izext, iz, ikx
        
@@ -551,7 +551,7 @@ contains
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_dvpa
-      use extended_zgrid, only: map_to_iz_ikx_from_izext
+      use grids_extended_zgrid, only: map_to_iz_ikx_from_izext
 
       implicit none
 
@@ -595,7 +595,7 @@ contains
 
       subroutine add_streaming_contribution_bpar
 
-         use extended_zgrid, only: fill_zext_ghost_zones
+         use grids_extended_zgrid, only: fill_zext_ghost_zones
          use gk_parallel_streaming, only: get_zed_derivative_extended_domain
          use gk_parallel_streaming, only: center_zed
          use gk_parallel_streaming, only: gradpar_c, stream_sign
@@ -656,7 +656,7 @@ contains
          use grids_kxky, only: aky, akx
          use store_arrays_distribution_fn, only: wstar, wdriftx_bpar, wdrifty_bpar
          use gk_parallel_streaming, only: center_zed
-         use extended_zgrid, only: periodic
+         use grids_extended_zgrid, only: periodic
 
          integer :: izext, iz, ikx
          real :: constant_factor 
@@ -740,7 +740,7 @@ contains
       use velocity_grids, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
       use gk_parallel_streaming, only: center_zed
       use species, only: spec
-      use extended_zgrid, only: periodic
+      use grids_extended_zgrid, only: periodic
 
       implicit none
 
@@ -782,7 +782,7 @@ contains
       use grids_kxky, only: aky
       use store_arrays_distribution_fn, only: wstar
       use gk_parallel_streaming, only: center_zed
-      use extended_zgrid, only: periodic
+      use grids_extended_zgrid, only: periodic
       use velocity_grids, only: vpa
 
       implicit none
@@ -915,9 +915,9 @@ contains
       use gk_parallel_streaming, only: get_zed_derivative_extended_domain, center_zed
       use gk_parallel_streaming, only: gradpar_c, stream_sign
       use store_arrays_distribution_fn, only: wdriftx_g, wdrifty_g
-      use extended_zgrid, only: fill_zext_ghost_zones
-      use extended_zgrid, only: map_to_iz_ikx_from_izext
-      use extended_zgrid, only: periodic
+      use grids_extended_zgrid, only: fill_zext_ghost_zones
+      use grids_extended_zgrid, only: map_to_iz_ikx_from_izext
+      use grids_extended_zgrid, only: periodic
 
       implicit none
 
@@ -1017,8 +1017,8 @@ contains
       use parameters_kxky_grid, only: nakx
       use grids_kxky, only: akx, aky
       use store_arrays_distribution_fn, only: wdriftx_g, wdrifty_g
-      use extended_zgrid, only: map_to_extended_zgrid
-      use extended_zgrid, only: periodic, phase_shift
+      use grids_extended_zgrid, only: map_to_extended_zgrid
+      use grids_extended_zgrid, only: periodic, phase_shift
       use gk_parallel_streaming, only: stream_sign, stream_c
       use gk_parallel_streaming, only: center_zed
       use stella_layouts, only: vmu_lo, iv_idx, is_idx
@@ -1154,7 +1154,7 @@ contains
    subroutine sweep_zed_zonal(iky, iv, is, sgn, g, llim)
 
       use z_grid, only: nzgrid, delzed
-      use extended_zgrid, only: phase_shift
+      use grids_extended_zgrid, only: phase_shift
       use parameters_numerical, only: zed_upwind, time_upwind
       use gk_parallel_streaming, only: stream_c
 
@@ -1211,13 +1211,13 @@ contains
       use linear_solve, only: lu_back_substitution
       use parameters_physics, only: include_apar, include_bpar
       use z_grid, only: nzgrid, ntubes
-      use extended_zgrid, only: neigen
-      use extended_zgrid, only: nsegments
-      use extended_zgrid, only: nzed_segment
-      use extended_zgrid, only: map_to_extended_zgrid
-      use extended_zgrid, only: map_from_extended_zgrid
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: periodic, phase_shift
+      use grids_extended_zgrid, only: neigen
+      use grids_extended_zgrid, only: nsegments
+      use grids_extended_zgrid, only: nzed_segment
+      use grids_extended_zgrid, only: map_to_extended_zgrid
+      use grids_extended_zgrid, only: map_from_extended_zgrid
+      use grids_extended_zgrid, only: ikxmod
+      use grids_extended_zgrid, only: periodic, phase_shift
       use parameters_kxky_grid, only: naky
       use fields, only: nfields
       use store_arrays_fields, only: response_matrix

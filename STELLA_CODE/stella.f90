@@ -119,7 +119,7 @@ contains
       use species, only: nspec
       use z_grid, only: init_zgrid
       use z_grid, only: nzgrid, ntubes
-      use extended_zgrid, only: init_extended_zgrid
+      use grids_extended_zgrid, only: init_extended_zgrid
       use grids_kxky, only: init_grids_kxky
       use velocity_grids, only: init_velocity_grids, read_velocity_grids_parameters
       use velocity_grids, only: nvgrid, nmu
@@ -612,7 +612,7 @@ contains
       use diagnostics, only: finish_diagnostics, time_diagnostics
       use response_matrix, only: finish_response_matrix
       use geometry, only: finish_geometry
-      use extended_zgrid, only: finish_extended_zgrid
+      use grids_extended_zgrid, only: finish_extended_zgrid
       use velocity_grids, only: finish_velocity_grids
       use grids_kxky, only: finish_grids_kxky
       use calculations_volume_averages, only: finish_volume_averages

@@ -152,7 +152,7 @@ contains
       use store_arrays_useful, only: kperp2
       use parameters_kxky_grid, only: naky, nalpha
       use z_grid, only: nzgrid
-      use extended_zgrid, only: neigen, nsegments, ikxmod
+      use grids_extended_zgrid, only: neigen, nsegments, ikxmod
 
       implicit none
 

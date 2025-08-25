@@ -176,7 +176,7 @@ contains
 
       use z_grid, only: nzgrid
       use parameters_kxky_grid, only: naky
-      use extended_zgrid, only: periodic
+      use grids_extended_zgrid, only: periodic
       use geometry, only: jacob
       use calculations_transforms, only: transform_alpha2kalpha
 

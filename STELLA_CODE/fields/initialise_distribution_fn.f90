@@ -285,9 +285,9 @@ contains
       use store_arrays_useful, only: kperp2
       use species, only: spec
       use z_grid, only: nzgrid, ntubes
-      use extended_zgrid, only: ikxmod, nsegments, neigen
-      use extended_zgrid, only: it_right
-      use extended_zgrid, only: periodic, phase_shift
+      use grids_extended_zgrid, only: ikxmod, nsegments, neigen
+      use grids_extended_zgrid, only: it_right
+      use grids_extended_zgrid, only: periodic, phase_shift
       use parameters_kxky_grid, only: naky, nakx, reality
       use grids_kxky, only: zonal_mode
       use velocity_grids, only: nvpa, nmu

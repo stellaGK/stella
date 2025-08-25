@@ -190,8 +190,8 @@ contains
    subroutine init_invert_stream_operator
 
       use z_grid, only: delzed
-      use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: nsegments, neigen_max
+      use grids_extended_zgrid, only: iz_low, iz_up
+      use grids_extended_zgrid, only: nsegments, neigen_max
       use parameters_numerical, only: zed_upwind_plus, zed_upwind_minus, time_upwind_plus
 
       implicit none
@@ -451,11 +451,11 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx
       use z_grid, only: nzgrid, delzed, ntubes
-      use extended_zgrid, only: neigen, nsegments
-      use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: fill_zed_ghost_zones
-      use extended_zgrid, only: periodic
+      use grids_extended_zgrid, only: neigen, nsegments
+      use grids_extended_zgrid, only: iz_low, iz_up
+      use grids_extended_zgrid, only: ikxmod
+      use grids_extended_zgrid, only: fill_zed_ghost_zones
+      use grids_extended_zgrid, only: periodic
       use parameters_kxky_grid, only: naky
 
       implicit none
@@ -493,11 +493,11 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx
       use z_grid, only: nzgrid, delzed, ntubes
-      use extended_zgrid, only: neigen, nsegments
-      use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: fill_zed_ghost_zones
-      use extended_zgrid, only: periodic
+      use grids_extended_zgrid, only: neigen, nsegments
+      use grids_extended_zgrid, only: iz_low, iz_up
+      use grids_extended_zgrid, only: ikxmod
+      use grids_extended_zgrid, only: fill_zed_ghost_zones
+      use grids_extended_zgrid, only: periodic
       use parameters_kxky_grid, only: naky
 
       implicit none
@@ -534,11 +534,11 @@ contains
 !    use stella_layouts, only: vmu_lo
 !    use stella_layouts, only: iv_idx
 !    use z_grid, only: nzgrid, delzed, ntubes
-!    use extended_zgrid, only: neigen, nsegments
-!    use extended_zgrid, only: iz_low, iz_up
-!    use extended_zgrid, only: ikxmod
-!    use extended_zgrid, only: fill_zed_ghost_zones
-!    use extended_zgrid, only: periodic
+!    use grids_extended_zgrid, only: neigen, nsegments
+!    use grids_extended_zgrid, only: iz_low, iz_up
+!    use grids_extended_zgrid, only: ikxmod
+!    use grids_extended_zgrid, only: fill_zed_ghost_zones
+!    use grids_extended_zgrid, only: periodic
 !    use run_parameters, only: zed_upwind
 !    use kt_grids, only: naky
 
@@ -619,9 +619,9 @@ contains
    subroutine stream_tridiagonal_solve(iky, ie, iv, is, g)
 
       use calculations_finite_differences, only: tridag
-      use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: nsegments
-      use extended_zgrid, only: nzed_segment
+      use grids_extended_zgrid, only: iz_low, iz_up
+      use grids_extended_zgrid, only: nsegments
+      use grids_extended_zgrid, only: nzed_segment
 
       implicit none
 
@@ -681,10 +681,10 @@ contains
       use calculations_finite_differences, only: fd_cell_centres_zed
       use parameters_kxky_grid, only: naky
       use z_grid, only: nzgrid, delzed, ntubes
-      use extended_zgrid, only: neigen, nsegments
-      use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: fill_zed_ghost_zones
+      use grids_extended_zgrid, only: neigen, nsegments
+      use grids_extended_zgrid, only: iz_low, iz_up
+      use grids_extended_zgrid, only: ikxmod
+      use grids_extended_zgrid, only: fill_zed_ghost_zones
 
       implicit none
 
@@ -735,10 +735,10 @@ contains
       use calculations_finite_differences, only: cell_centres_zed
       use parameters_kxky_grid, only: naky, nakx
       use z_grid, only: nzgrid, ntubes
-      use extended_zgrid, only: neigen, nsegments
-      use extended_zgrid, only: iz_low, iz_up
-      use extended_zgrid, only: ikxmod
-      use extended_zgrid, only: fill_zed_ghost_zones
+      use grids_extended_zgrid, only: neigen, nsegments
+      use grids_extended_zgrid, only: iz_low, iz_up
+      use grids_extended_zgrid, only: ikxmod
+      use grids_extended_zgrid, only: fill_zed_ghost_zones
       use parameters_numerical, only: zed_upwind
 
       implicit none

@@ -406,9 +406,9 @@ contains
         use stella_time, only: cfl_dt_parallel, cfl_dt_linear, code_dt, code_dt_max
         use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
         use z_grid, only: nzgrid, delzed, ntubes
-        use extended_zgrid, only: neigen, nsegments, ikxmod
-        use extended_zgrid, only: iz_low, iz_up
-        use extended_zgrid, only: periodic
+        use grids_extended_zgrid, only: neigen, nsegments, ikxmod
+        use grids_extended_zgrid, only: iz_low, iz_up
+        use grids_extended_zgrid, only: periodic
         use parameters_physics, only: full_flux_surface, radial_variation
         use grids_kxky, only: akx, aky, rho_clamped
         use parameters_kxky_grid, only: nakx, naky, nx, ny, ikx_max
@@ -419,7 +419,7 @@ contains
         use gk_parallel_streaming, only: stream_sign
         use calculations_redistribute, only: xyz2vmu
         use file_utils, only: runtype_option_switch, runtype_multibox
-        use extended_zgrid, only: fill_zed_ghost_zones
+        use grids_extended_zgrid, only: fill_zed_ghost_zones
 
         use store_arrays_useful, only: time_parallel_nl
          use reset_timestep, only: reset_dt

@@ -19,8 +19,8 @@ contains
 
         use z_grid, only: nzgrid, ntubes
         use parameters_kxky_grid, only: naky
-        use extended_zgrid, only: neigen, nsegments, ikxmod
-        use extended_zgrid, only: iz_low, iz_up
+        use grids_extended_zgrid, only: neigen, nsegments, ikxmod
+        use grids_extended_zgrid, only: iz_low, iz_up
 
         implicit none
 
