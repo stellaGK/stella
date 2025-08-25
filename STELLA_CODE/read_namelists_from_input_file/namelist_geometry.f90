@@ -57,10 +57,11 @@
 !     overwrite_gbdrift0 = .false.
 !     set_bmag_const = .false.
 ! 
-! Text options for <geometry_options:geometry_option> are:
-!   {default, miller, local, zpinch, input.profiles, vmec}
-! 
-! The default option is 'miller', which is the same as 'local'.
+! Text options for <geometry_option>:
+!    - miller: {default, miller, local}
+!    - VMEC: {vmec}
+!    - z-pinch: {zpinch}
+!    - input profiles: {input.profiles}
 ! 
 ! For each namelists two (or three) routines exist:
 !    - set_default_parameters_<namelist>
