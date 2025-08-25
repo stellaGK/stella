@@ -102,22 +102,22 @@ contains
   !======================================================================
   subroutine read_debug_flags
 
-    use namelist_debug, only: read_namelist_debug_flags
+   use namelist_debug, only: read_namelist_debug_flags
 
-    implicit none
+   implicit none
 
-    call read_namelist_debug_flags (debug_all, stella_debug, ffs_solve_debug, fields_all_debug, fields_debug, &
-                    fields_fluxtube_debug, fields_electromagnetic_debug, fields_ffs_debug, & 
-                    implicit_solve_debug, parallel_streaming_debug, mirror_terms_debug, neoclassical_terms_debug, &
-                    response_matrix_debug, time_advance_debug, extended_grid_debug, &
-                    diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
-                    diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
-                    gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo, print_extra_info_to_terminal, &
-                    debug_test_gyro_average, calculations_debug)
+   call read_namelist_debug_flags (debug_all, stella_debug, ffs_solve_debug, fields_all_debug, fields_debug, &
+      fields_fluxtube_debug, fields_electromagnetic_debug, fields_ffs_debug, & 
+      implicit_solve_debug, parallel_streaming_debug, mirror_terms_debug, neoclassical_terms_debug, &
+      response_matrix_debug, time_advance_debug, extended_grid_debug, &
+      diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
+      diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
+      gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo, print_extra_info_to_terminal, &
+      debug_test_gyro_average, calculations_debug)
 
-    call broadcast_parameters
+   call broadcast_parameters
 
-  contains
+   contains
 
       !**********************************************************************
       !                         BROADCAST OPTIONS                           !
@@ -127,35 +127,36 @@ contains
       !**********************************************************************
       subroutine broadcast_parameters  
 
-        use mp, only: broadcast
+         use mp, only: broadcast
 
-        call broadcast(stella_debug)
-        call broadcast(ffs_solve_debug)
-        call broadcast(fields_debug)
-        call broadcast(fields_fluxtube_debug)
-        call broadcast(fields_electromagnetic_debug)
-        call broadcast(fields_ffs_debug)
-        call broadcast(implicit_solve_debug)
-        call broadcast(mirror_terms_debug)
-        call broadcast(neoclassical_terms_debug)
-        call broadcast(parallel_streaming_debug)
-        call broadcast(response_matrix_debug)
-        call broadcast(time_advance_debug)
-        call broadcast(extended_grid_debug)
-        call broadcast(diagnostics_debug)
-        call broadcast(diagnostics_parameters)
-        call broadcast(diagnostics_fluxes_fluxtube_debug)
-        call broadcast(diagnostics_omega_debug) 
-        call broadcast(dist_fn_debug)
-        call broadcast(gyro_averages_debug)
-        call broadcast(fluxes_debug) 
-        call broadcast(geometry_debug)
-        call broadcast(const_alpha_geo)
-        call broadcast(print_extra_info_to_terminal) 
-        call broadcast(debug_test_gyro_average)
-        call broadcast(calculations_debug)
+         call broadcast(stella_debug)
+         call broadcast(ffs_solve_debug)
+         call broadcast(fields_debug)
+         call broadcast(fields_fluxtube_debug)
+         call broadcast(fields_electromagnetic_debug)
+         call broadcast(fields_ffs_debug)
+         call broadcast(implicit_solve_debug)
+         call broadcast(mirror_terms_debug)
+         call broadcast(neoclassical_terms_debug)
+         call broadcast(parallel_streaming_debug)
+         call broadcast(response_matrix_debug)
+         call broadcast(time_advance_debug)
+         call broadcast(extended_grid_debug)
+         call broadcast(diagnostics_debug)
+         call broadcast(diagnostics_parameters)
+         call broadcast(diagnostics_fluxes_fluxtube_debug)
+         call broadcast(diagnostics_omega_debug) 
+         call broadcast(dist_fn_debug)
+         call broadcast(gyro_averages_debug)
+         call broadcast(fluxes_debug) 
+         call broadcast(geometry_debug)
+         call broadcast(const_alpha_geo)
+         call broadcast(print_extra_info_to_terminal) 
+         call broadcast(debug_test_gyro_average)
+         call broadcast(calculations_debug)
+
       end subroutine broadcast_parameters
 
-  end subroutine read_debug_flags
+   end subroutine read_debug_flags
    
 end module debug_flags
