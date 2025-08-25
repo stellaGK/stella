@@ -1,4 +1,4 @@
-module velocity_grids
+module grids_velocity
 
    implicit none
 
@@ -947,4 +947,4 @@ contains
 
    end subroutine finish_mu_grid
 
-end module velocity_grids
+end module grids_velocity

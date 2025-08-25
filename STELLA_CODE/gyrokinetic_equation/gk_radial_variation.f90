@@ -34,8 +34,8 @@ contains
         use geometry, only: dcvdriftdrho, dcvdrift0drho
         use geometry, only: dgbdriftdrho, dgbdrift0drho
 
-        use velocity_grids, only: vperp2, vpa, mu
-        use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+        use grids_velocity, only: vperp2, vpa, mu
+        use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
 
         use store_arrays_distribution_fn, only: wstarp
         use store_arrays_distribution_fn, only: wdriftx_phi, wdrifty_phi

@@ -1254,9 +1254,9 @@ contains
 
       use constants, only: pi
       use species, only: spec
-      use velocity_grids, only: nvpa, nvgrid, nmu
-      use velocity_grids, only: vpa, vperp2
-      use velocity_grids, only: maxwell_mu, maxwell_vpa
+      use grids_velocity, only: nvpa, nvgrid, nmu
+      use grids_velocity, only: vpa, vperp2
+      use grids_velocity, only: maxwell_mu, maxwell_vpa
       use globalVariables, only: nxi_sfincs => nxi
       use globalVariables, only: nx_sfincs => nx
       use globalVariables, only: x_sfincs => x

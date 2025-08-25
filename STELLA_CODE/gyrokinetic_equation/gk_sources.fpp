@@ -398,7 +398,7 @@ contains
       use redistribute, only: scatter, gather
       use stella_layouts, only: vmu_lo, kxkyz_lo
       use stella_layouts, only: imu_idx, is_idx, iv_idx
-      use velocity_grids, only: nvgrid, nvpa, nmu
+      use grids_velocity, only: nvgrid, nvpa, nmu
       use calculations_redistribute, only: kxkyz2vmu
       use store_arrays_distribution_fn, only: gvmu
       use z_grid, only: nzgrid
@@ -436,8 +436,8 @@ contains
       use mp, only: sum_allreduce
       use species, only: spec
       use parameters_physics, only: radial_variation
-      use velocity_grids, only: integrate_species, mu, vpa, vperp2
-      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use grids_velocity, only: integrate_species, mu, vpa, vperp2
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use parameters_kxky_grid, only: nakx
       use grids_kxky, only: rho_d_clamped
       use stella_layouts, only: vmu_lo, imu_idx, is_idx, iv_idx

@@ -80,13 +80,13 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/grids/arrays_gyro_averages.f90
   ../STELLA_CODE/grids/common_types.f90
   ../STELLA_CODE/grids/euterpe_interface.f90
-  ../STELLA_CODE/grids/grids_extended_zgrid.f90
+  ../STELLA_CODE/grids/grids_extended_zgrid.
+  ../STELLA_CODE/grids/grids_velocity.f90f90
   ../STELLA_CODE/grids/grids_kxky.f90
   ../STELLA_CODE/grids/species.f90
   ../STELLA_CODE/grids/store_arrays_distribution_fn.f90
   ../STELLA_CODE/grids/store_arrays_fields.f90
   ../STELLA_CODE/grids/store_arrays_useful.f90 
-  ../STELLA_CODE/grids/velocity_grids.f90
   ../STELLA_CODE/grids/write_radial_grid.f90
   ../STELLA_CODE/grids/z_grid.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_ffs_solve.f90

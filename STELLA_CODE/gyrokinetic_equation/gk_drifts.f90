@@ -37,8 +37,8 @@ contains
         use geometry, only: gds23, gds24
         use geometry, only: geo_surf, q_as_x
         use geometry, only: dxdpsi, drhodpsi, dydalpha
-        use velocity_grids, only: vpa, vperp2, mu
-        use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+        use grids_velocity, only: vpa, vperp2, mu
+        use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
         use neoclassical_terms, only: include_neoclassical_terms
         use neoclassical_terms, only: dphineo_dzed, dphineo_drho, dphineo_dalpha
         use neoclassical_terms, only: dfneo_dvpa, dfneo_dzed, dfneo_dalpha
@@ -191,8 +191,8 @@ contains
         use z_grid, only: nzgrid
         use parameters_kxky_grid, only: nalpha
         use geometry, only: dydalpha, drhodpsi, clebsch_factor
-        use velocity_grids, only: vperp2, vpa
-        use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+        use grids_velocity, only: vperp2, vpa
+        use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
         use store_arrays_distribution_fn, only: wstar
         use neoclassical_terms, only: include_neoclassical_terms
         use neoclassical_terms, only: dfneo_drho

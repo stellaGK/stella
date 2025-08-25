@@ -184,8 +184,8 @@ contains
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use species, only: spec, nspec
       use z_grid, only: nzgrid
-      use velocity_grids, only: integrate_vmu_ffs
-      use velocity_grids, only: vpa, vperp2
+      use grids_velocity, only: integrate_vmu_ffs
+      use grids_velocity, only: vpa, vperp2
       use parameters_kxky_grid, only: naky_all, ikx_max, ny
       use calculations_kxky, only: swap_kxky
       use store_arrays_distribution_fn, only: g0, g1, g2
@@ -331,7 +331,7 @@ contains
 
       use calculations_transforms, only: transform_ky2y, transform_y2ky
       use calculations_kxky, only: swap_kxky, swap_kxky_back
-      use velocity_grids, only: maxwell_vpa, maxwell_mu
+      use grids_velocity, only: maxwell_vpa, maxwell_mu
       use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       implicit none
@@ -399,7 +399,7 @@ contains
 
       use calculations_transforms, only: transform_ky2y, transform_y2ky
       use calculations_kxky, only: swap_kxky, swap_kxky_back
-      use velocity_grids, only: maxwell_vpa, maxwell_mu
+      use grids_velocity, only: maxwell_vpa, maxwell_mu
       use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       implicit none

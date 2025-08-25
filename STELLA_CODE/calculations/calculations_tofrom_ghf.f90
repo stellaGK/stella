@@ -38,7 +38,7 @@ contains
 
 !     use species, only: spec
 !     use z_grid, only: nzgrid
-!     use velocity_grids, only: maxwell_vpa, maxwell_mu, vpa
+!     use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
 !     use stella_layouts, only: vmu_lo
 !     use stella_layouts, only: iv_idx, imu_idx, is_idx
 !     use kt_grids, only: naky, nakx
@@ -73,8 +73,8 @@ contains
 
 !     use species, only: spec
 !     use z_grid, only: nzgrid
-!     use velocity_grids, only: maxwell_vpa, maxwell_mu, vpa
-!     use velocity_grids, only: nvpa, nmu
+!     use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
+!     use grids_velocity, only: nvpa, nmu
 !     use stella_layouts, only: kxkyz_lo
 !     use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
 !     use arrays_gyro_averages, only: aj0v
@@ -107,8 +107,8 @@ contains
 
       use species, only: spec
       use z_grid, only: nzgrid
-      use velocity_grids, only: maxwell_vpa, maxwell_mu, vpa
-      use velocity_grids, only: nvpa, nmu
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
+      use grids_velocity, only: nvpa, nmu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use calculations_gyro_averages, only: gyro_average
@@ -146,8 +146,8 @@ contains
    subroutine gbar_to_g_1d_vpa(g, apar, imu, ikxkyz, facapar)
 
       use species, only: spec
-      use velocity_grids, only: maxwell_vpa, maxwell_mu, vpa
-      use velocity_grids, only: nvpa
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
+      use grids_velocity, only: nvpa
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, is_idx
       use calculations_gyro_averages, only: gyro_average
@@ -205,8 +205,8 @@ contains
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use parameters_kxky_grid, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
-      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use velocity_grids, only: vpa
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use grids_velocity, only: vpa
       use calculations_gyro_averages, only: gyro_average
       use parameters_numerical, only: maxwellian_normalization
       
@@ -273,8 +273,8 @@ contains
       use store_arrays_useful, only: kperp2, dkperp2dr
       use parameters_kxky_grid, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
-      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use velocity_grids, only: vpa, vperp2, mu
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use grids_velocity, only: vpa, vperp2, mu
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use arrays_gyro_averages, only: aj0x, aj1x
       use parameters_physics, only: radial_variation, include_bpar
@@ -353,7 +353,7 @@ contains
 !     use grids_extended_zgrid, only: ikxmod
 !     use grids_extended_zgrid, only: iz_low, iz_up
 !     use grids_extended_zgrid, only: nsegments
-!     use velocity_grids, only: maxwell_vpa, maxwell_mu
+!     use grids_velocity, only: maxwell_vpa, maxwell_mu
 !     use stella_layouts, only: vmu_lo
 !     use stella_layouts, only: iv_idx, imu_idx, is_idx
 !     use arrays_gyro_averages, only: aj0x
@@ -401,8 +401,8 @@ contains
 
       use species, only: spec
       use z_grid, only: nzgrid
-      use velocity_grids, only: nvpa, nmu, mu
-      use velocity_grids, only: maxwell_vpa, maxwell_mu
+      use grids_velocity, only: nvpa, nmu, mu
+      use grids_velocity, only: maxwell_vpa, maxwell_mu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
@@ -468,7 +468,7 @@ contains
       use store_arrays_useful, only: kperp2, dkperp2dr
       use parameters_kxky_grid, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
-      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac, vperp2, mu, vpa
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, vperp2, mu, vpa
       use calculations_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
       use calculations_gyro_averages, only: gyro_average
       use parameters_physics, only: radial_variation
@@ -537,8 +537,8 @@ contains
 
       use species, only: spec
       use z_grid, only: nzgrid
-      use velocity_grids, only: nvpa, nmu
-      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use grids_velocity, only: nvpa, nmu
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use calculations_gyro_averages, only: gyro_average
@@ -581,7 +581,7 @@ contains
 !     use constants, only: zi
 !     use species, only: spec
 !     use z_grid, only: nzgrid
-!     use velocity_grids, only: vpa
+!     use grids_velocity, only: vpa
 !     use stella_layouts, only: vmu_lo
 !     use stella_layouts, only: iv_idx, is_idx
 !     use kt_grids, only: naky, nakx

@@ -27,7 +27,7 @@ contains
         use stella_layouts, only: kxkyz_lo, vmu_lo, kymus_lo
         use z_grid, only: nzgrid, ntubes
         use parameters_kxky_grid, only: naky, nakx
-        use velocity_grids, only: nvpa, nmu
+        use grids_velocity, only: nvpa, nmu
         use store_arrays_distribution_fn, only: gnew, gold, g_scratch
         use store_arrays_distribution_fn, only: gvmu, g_kymus
         use parameters_numerical, only: split_parallel_dynamics
@@ -83,7 +83,7 @@ contains
         use calculations_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
         use parameters_kxky_grid, only: nalpha, nakx, naky
         use calculations_kxky, only: multiply_by_rho
-        use velocity_grids, only: mu, vpa, vperp2
+        use grids_velocity, only: mu, vpa, vperp2
         use z_grid, only: nzgrid, ntubes
         use species, only: spec, pfac
         use geometry, only: dBdrho, gfac
@@ -158,7 +158,7 @@ contains
         use calculations_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
         use parameters_kxky_grid, only: nalpha, nakx, naky
         use calculations_kxky, only: multiply_by_rho
-        use velocity_grids, only: mu, vpa, vperp2
+        use grids_velocity, only: mu, vpa, vperp2
         use z_grid, only: nzgrid, ntubes
         use species, only: spec, pfac
         use geometry, only: dBdrho, gfac

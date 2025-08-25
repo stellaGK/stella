@@ -348,7 +348,7 @@ contains
       use geometry, only: dBdrho, bmag
       use store_arrays_useful, only: kperp2, dkperp2dr
       use z_grid, only: nzgrid, ntubes
-      use velocity_grids, only: vperp2
+      use grids_velocity, only: vperp2
       use parameters_kxky_grid, only: nakx, naky
       use calculations_kxky, only: multiply_by_rho
       use parameters_multibox, only: ky_solve_radial
@@ -410,7 +410,7 @@ contains
       use geometry, only: dl_over_b, d_dl_over_b_drho, bmag, dBdrho
       use stella_layouts, only: imu_idx, is_idx
       use z_grid, only: nzgrid, ntubes
-      use velocity_grids, only: integrate_species, vperp2
+      use grids_velocity, only: integrate_species, vperp2
       use parameters_kxky_grid, only: nakx, naky
       use grids_kxky, only: rho_d_clamped
       use grids_kxky, only: zonal_mode
@@ -589,14 +589,14 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use arrays_gyro_averages, only: aj0v, aj1v
-      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use velocity_grids, only: vpa, vperp2, mu, nmu, nvpa
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use grids_velocity, only: vpa, vperp2, mu, nmu, nvpa
       use store_arrays_useful, only: kperp2, dkperp2dr
       use geometry, only: dBdrho, bmag
       use parameters_physics, only: tite, nine, beta
 
       use store_arrays_fields, only: efac, efacp
-      use velocity_grids, only: integrate_vmu
+      use grids_velocity, only: integrate_vmu
 
       implicit none
 

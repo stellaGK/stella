@@ -197,7 +197,7 @@ contains
         !> Grids
         use species, only: spec
         use z_grid, only: nzgrid, ntubes
-        use velocity_grids, only: vpa, mu
+        use grids_velocity, only: vpa, mu
         use grids_kxky, only: aky
         !> Calculations
         use calculations_gyro_averages, only: gyro_average
@@ -262,7 +262,7 @@ contains
         use parameters_kxky_grid, only: nakx, naky
         !> Grids
         use species, only: spec
-        use velocity_grids, only: vpa, mu
+        use grids_velocity, only: vpa, mu
         use grids_kxky, only: aky
         !> Calculations
         use calculations_gyro_averages, only: gyro_average
@@ -320,7 +320,7 @@ contains
         use parameters_physics, only: fphi
         !> Grids
         use species, only: spec
-        use velocity_grids, only: vpa, mu
+        use grids_velocity, only: vpa, mu
         use grids_kxky, only: akx
         !> Calculations
         use calculations_gyro_averages, only: gyro_average

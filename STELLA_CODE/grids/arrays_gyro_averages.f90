@@ -43,7 +43,7 @@ contains
         use species, only: spec
         use geometry, only: bmag
         use z_grid, only: nzgrid
-        use velocity_grids, only: vperp2, nmu
+        use grids_velocity, only: vperp2, nmu
         use parameters_kxky_grid, only: naky, nakx
         use stella_layouts, only: kxkyz_lo, vmu_lo
         use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, imu_idx
@@ -133,8 +133,8 @@ contains
         use species, only: nspec, spec
         use geometry, only: bmag
         use z_grid, only: nzgrid, nztot
-        use velocity_grids, only: nmu, nvpa
-        use velocity_grids, only: vperp2, maxwell_vpa, maxwell_mu
+        use grids_velocity, only: nmu, nvpa
+        use grids_velocity, only: vperp2, maxwell_vpa, maxwell_mu
         use parameters_kxky_grid, only: nalpha, naky, naky_all, ikx_max
         use calculations_kxky, only: swap_kxky_ordered
         use store_arrays_useful, only: kperp2
@@ -331,7 +331,7 @@ contains
     !> below a specified tolerance (tol_floor)
     subroutine find_max_required_kalpha_index(ft, idx, imu, iz, is, tol_in)
 
-        use velocity_grids, only: maxwell_mu
+        use grids_velocity, only: maxwell_mu
 
         implicit none
 

@@ -31,8 +31,8 @@ contains
       use mp, only: proc0 
       use stella_time, only: code_dt
       use species, only: spec, nspec
-      use velocity_grids, only: nmu
-      use velocity_grids, only: mu
+      use grids_velocity, only: nmu
+      use grids_velocity, only: mu
       use z_grid, only: nzgrid, nztot
       use parameters_kxky_grid, only: nalpha
       use geometry, only: dbdzed, b_dot_grad_z, gfac
@@ -125,7 +125,7 @@ contains
    subroutine init_mirror_semi_lagrange
 
       use z_grid, only: nzgrid
-      use velocity_grids, only: nmu, dvpa
+      use grids_velocity, only: nmu, dvpa
       use species, only: nspec
       use parameters_kxky_grid, only: nalpha
 
@@ -151,8 +151,8 @@ contains
       use stella_layouts, only: kxkyz_lo, kxyz_lo, vmu_lo
       use stella_layouts, only: iz_idx, is_idx, imu_idx, iv_idx, iy_idx
       use z_grid, only: nzgrid
-      use velocity_grids, only: dvpa, vpa, mu
-      use velocity_grids, only: nvpa, nmu
+      use grids_velocity, only: dvpa, vpa, mu
+      use grids_velocity, only: nvpa, nmu
       use parameters_physics, only: full_flux_surface
       use species, only: spec
       use parameters_kxky_grid, only: nalpha
@@ -288,7 +288,7 @@ contains
 
       use stella_layouts, only: kxkyz_lo
       use z_grid, only: nzgrid, ntubes
-      use velocity_grids, only: nmu, nvpa
+      use grids_velocity, only: nmu, nvpa
       use parameters_kxky_grid, only: naky, nakx
       use fields_electromagnetic, only: advance_apar
 
@@ -347,8 +347,8 @@ contains
       use parameters_physics, only: full_flux_surface
       use parameters_kxky_grid, only: nakx, naky, naky_all, ny, ikx_max
       use calculations_kxky, only: swap_kxky
-      use velocity_grids, only: nvpa, nmu
-      use velocity_grids, only: vpa, maxwell_vpa
+      use grids_velocity, only: nvpa, nmu
+      use grids_velocity, only: vpa, maxwell_vpa
       use stella_layouts, only: fields_kxkyz
       use parameters_numerical, only: maxwellian_normalization
       use calculations_redistribute, only: kxkyz2vmu, kxyz2vmu
@@ -457,7 +457,7 @@ contains
       use stella_layouts, only: is_idx, imu_idx
       use z_grid, only: nzgrid, ntubes
       use parameters_physics, only: full_flux_surface
-      use velocity_grids, only: nvpa, nmu
+      use grids_velocity, only: nvpa, nmu
       use stella_layouts, only: fields_kxkyz
       use calculations_redistribute, only: kxkyz2vmu
 
@@ -516,7 +516,7 @@ contains
 
       use calculations_finite_differences, only: third_order_upwind
       use stella_layouts, only: kxyz_lo, iz_idx, iy_idx, is_idx
-      use velocity_grids, only: nvpa, nmu, dvpa
+      use grids_velocity, only: nvpa, nmu, dvpa
 
       implicit none
 
@@ -543,7 +543,7 @@ contains
 
       use calculations_finite_differences, only: third_order_upwind
       use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
-      use velocity_grids, only: nvpa, nmu, dvpa
+      use grids_velocity, only: nvpa, nmu, dvpa
 
       implicit none
 
@@ -640,8 +640,8 @@ contains
       use store_arrays_distribution_fn, only: gvmu
       use parameters_physics, only: full_flux_surface
       use parameters_kxky_grid, only: ny, nakx
-      use velocity_grids, only: nvpa, nmu
-      use velocity_grids, only: maxwell_vpa
+      use grids_velocity, only: nvpa, nmu
+      use grids_velocity, only: maxwell_vpa
       use neoclassical_terms, only: include_neoclassical_terms
       use parameters_numerical, only: vpa_upwind, time_upwind
       use parameters_numerical, only: mirror_semi_lagrange, maxwellian_normalization
@@ -652,7 +652,7 @@ contains
       use calculations_tofrom_ghf, only: gbar_to_g
 
       use parameters_numerical, only: time_upwind
-      use velocity_grids, only: dvpa
+      use grids_velocity, only: dvpa
       use stella_layouts, only: iy_idx
       use calculations_kxky, only: swap_kxky, swap_kxky_back
       use parameters_kxky_grid, only: naky_all, ikx_max
@@ -887,7 +887,7 @@ contains
       use calculations_tofrom_ghf, only: gbar_to_g
       use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
       use calculations_finite_differences, only: fd_variable_upwinding_vpa
-      use velocity_grids, only: dvpa, vpa, nvpa
+      use grids_velocity, only: dvpa, vpa, nvpa
 
       implicit none
 
@@ -936,8 +936,8 @@ contains
    subroutine get_mirror_rhs_apar_contribution(rhs, apar, imu, ikxkyz)
 
       use species, only: spec
-      use velocity_grids, only: nvpa
-      use velocity_grids, only: maxwell_vpa, maxwell_mu, vpa
+      use grids_velocity, only: nvpa
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
       use parameters_numerical, only: maxwellian_normalization
       use stella_layouts, only: kxkyz_lo, is_idx, iz_idx
       use calculations_gyro_averages, only: gyro_average
@@ -972,7 +972,7 @@ contains
 
    subroutine vpa_interpolation(grid, interp)
 
-      use velocity_grids, only: nvpa, nmu
+      use grids_velocity, only: nvpa, nmu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, is_idx
       use parameters_numerical, only: mirror_linear_interp

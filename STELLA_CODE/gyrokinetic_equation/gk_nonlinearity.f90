@@ -413,8 +413,8 @@ contains
         use grids_kxky, only: akx, aky, rho_clamped
         use parameters_kxky_grid, only: nakx, naky, nx, ny, ikx_max
         use calculations_kxky, only: swap_kxky, swap_kxky_back
-        use velocity_grids, only: nvpa, nmu
-        use velocity_grids, only: dvpa, vpa, mu
+        use grids_velocity, only: nvpa, nmu
+        use grids_velocity, only: dvpa, vpa, mu
         use calculations_gyro_averages, only: gyro_average
         use gk_parallel_streaming, only: stream_sign
         use calculations_redistribute, only: xyz2vmu

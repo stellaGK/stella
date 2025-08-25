@@ -262,7 +262,7 @@ contains
 
    subroutine gyro_average_vmu_local(distfn, ikxkyz, gyro_distfn)
 
-      use velocity_grids, only: nvpa
+      use grids_velocity, only: nvpa
 
       implicit none
 
@@ -348,7 +348,7 @@ contains
 
    subroutine gyro_average_j1_vmu_local(distfn, ikxkyz, gyro_distfn)
 
-      use velocity_grids, only: nvpa
+      use grids_velocity, only: nvpa
 
       implicit none
 
@@ -552,7 +552,7 @@ contains
     !     use calculations_transforms, only: transform_x2kx, transform_y2ky
     !     use calculations_transforms, only: transform_kx2x, transform_ky2y
     !     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-    !     use velocity_grids, only: nmu
+    !     use grids_velocity, only: nmu
     !     use species, only: nspec, spec
     !     use geometry, only: alpha, bmag, x_displacement_fac
 
@@ -728,7 +728,7 @@ contains
         !     use z_grid, only: nzgrid, zed
         !     use parameters_kxky_grid, only: naky, nalpha
         !     use grids_kxky, only: aky_all_ordered
-        !     use velocity_grids, only: mu
+        !     use grids_velocity, only: mu
         !     use calculations_transforms, only: transform_kalpha2alpha
         !     use geometry, only: alpha
 

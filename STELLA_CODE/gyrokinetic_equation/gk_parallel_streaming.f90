@@ -56,9 +56,9 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use species, only: spec, nspec, pfac
-      use velocity_grids, only: nvpa, nvpa
-      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use velocity_grids, only: vperp2, vpa, mu
+      use grids_velocity, only: nvpa, nvpa
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use grids_velocity, only: vperp2, vpa, mu
       use parameters_kxky_grid, only: nalpha
       use z_grid, only: nzgrid, nztot
       use geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
@@ -247,8 +247,8 @@ contains
       use z_grid, only: nzgrid, ntubes
       use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
       use calculations_kxky, only: swap_kxky
-      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use velocity_grids, only: mu
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use grids_velocity, only: mu
       use species, only: spec
       use parameters_physics, only: full_flux_surface, include_bpar
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
@@ -370,7 +370,7 @@ contains
       use job_manage, only: time_message
       use z_grid, only: nzgrid, ntubes
       use parameters_kxky_grid, only: naky, nakx
-      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use species, only: spec
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use store_arrays_fields, only: phi, phi_corr_QN, phi_corr_GA

@@ -132,7 +132,7 @@ contains
       use parameters_physics, only: radial_variation, prp_shear_enabled
       use parameters_kxky_grid, only: nx
       use z_grid, only: delzed
-      use velocity_grids, only: dvpa
+      use grids_velocity, only: dvpa
       use grids_kxky, only: akx, aky, rho
       use gk_parallel_streaming, only: stream
       use gk_parallel_streaming, only: stream_rad_var1, stream_rad_var2

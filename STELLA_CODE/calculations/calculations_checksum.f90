@@ -56,7 +56,7 @@ contains
         use z_grid, only: nzgrid, ntubes
         use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
         use parameters_kxky_grid, only: naky, nakx
-        use velocity_grids, only: maxwell_vpa, maxwell_mu
+        use grids_velocity, only: maxwell_vpa, maxwell_mu
 
         implicit none
 

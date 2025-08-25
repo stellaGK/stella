@@ -98,7 +98,6 @@ contains
       use stella_layouts, only: mat_gen, mat_read
       use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
       use stella_time, only: init_tstart, init_delt
-      use calculations_transforms, only: init_transforms
       use stella_save, only: init_dt
 
       use parameters_physics, only: read_parameters_physics
@@ -121,8 +120,8 @@ contains
       use z_grid, only: nzgrid, ntubes
       use grids_extended_zgrid, only: init_extended_zgrid
       use grids_kxky, only: init_grids_kxky
-      use velocity_grids, only: init_velocity_grids, read_velocity_grids_parameters
-      use velocity_grids, only: nvgrid, nmu
+      use grids_velocity, only: init_velocity_grids, read_velocity_grids_parameters
+      use grids_velocity, only: nvgrid, nmu
 
       use initialise_distribution_fn, only: rng_seed
       use initialise_distribution_fn, only: read_initialise_distribution, initialise_distribution
@@ -152,6 +151,7 @@ contains
       
       use calculations_volume_averages, only: init_volume_averages, volume_average
       use calculations_redistribute, only: init_redistribute
+      use calculations_transforms, only: init_transforms
 !      use calculations_redistribute, only: test_kymus_to_vmus_redistribute
       
       implicit none
@@ -613,7 +613,7 @@ contains
       use response_matrix, only: finish_response_matrix
       use geometry, only: finish_geometry
       use grids_extended_zgrid, only: finish_extended_zgrid
-      use velocity_grids, only: finish_velocity_grids
+      use grids_velocity, only: finish_velocity_grids
       use grids_kxky, only: finish_grids_kxky
       use calculations_volume_averages, only: finish_volume_averages
       use multibox, only: finish_multibox, time_multibox
@@ -780,7 +780,7 @@ contains
 
    !   use stella_layouts, only: kxyz_lo, vmu_lo
    !   use z_grid, only: nzgrid, ntubes
-   !   use velocity_grids, only: nvpa, nmu
+   !   use grids_velocity, only: nvpa, nmu
    !   use kt_grids, only: ny, ikx_max
    !   use calculations_redistribute, only: kxyz2vmu
    !   use redistribute, only: scatter

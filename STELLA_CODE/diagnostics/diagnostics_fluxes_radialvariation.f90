@@ -45,8 +45,8 @@ contains
       use geometry, only: geo_surf
       use geometry, only: dBdrho, dIdrho
       use z_grid, only: nzgrid, ntubes
-      use velocity_grids, only: vperp2, vpa, mu
-      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use grids_velocity, only: vperp2, vpa, mu
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use parameters_physics, only: fphi
       use parameters_numerical, only: maxwellian_normalization
       use grids_kxky, only: aky, theta0
@@ -332,7 +332,7 @@ contains
    !==============================================
    subroutine get_one_flux_vmulo_int(weights, gin, fld, flxout)
 
-      use velocity_grids, only: integrate_vmu
+      use grids_velocity, only: integrate_vmu
       use stella_layouts, only: vmu_lo
       use grids_kxky, only: aky
       use parameters_multibox, only: boundary_size
@@ -412,7 +412,7 @@ contains
 
    subroutine get_one_flux_vmulo_kxkyz(weights, gin, fld, flxout)
 
-      use velocity_grids, only: integrate_vmu
+      use grids_velocity, only: integrate_vmu
       use stella_layouts, only: vmu_lo
       use grids_kxky, only: aky
       use parameters_kxky_grid, only: nakx, naky
@@ -454,7 +454,7 @@ contains
    !==============================================
    subroutine get_one_flux_radial(weights, gin, fld, flxout)
 
-      use velocity_grids, only: integrate_vmu
+      use grids_velocity, only: integrate_vmu
       use geometry, only: dVolume
       use stella_layouts, only: vmu_lo
       use grids_kxky, only: aky

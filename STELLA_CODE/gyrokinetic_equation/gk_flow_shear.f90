@@ -36,8 +36,8 @@ contains
       use geometry, only: q_as_x, geo_surf, bmag, btor, rmajor, dBdrho, dIdrho
       use geometry, only: dydalpha, drhodpsi
       use parameters_physics, only: g_exb, g_exbfac, omprimfac
-      use velocity_grids, only: vperp2, vpa, mu
-      use velocity_grids, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      use grids_velocity, only: vperp2, vpa, mu
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use parameters_physics, only: radial_variation, prp_shear_enabled, hammett_flow_shear
       use file_utils, only: runtype_option_switch, runtype_multibox
       use job_manage, only: njobs

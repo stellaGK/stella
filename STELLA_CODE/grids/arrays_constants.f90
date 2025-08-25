@@ -181,8 +181,8 @@ contains
 
       use geometry, only: bmag
       use z_grid, only: nzgrid
-      use velocity_grids, only: vperp2
-      use velocity_grids, only: nmu, mu
+      use grids_velocity, only: vperp2
+      use grids_velocity, only: nmu, mu
       use parameters_kxky_grid, only: nalpha
 
       implicit none
@@ -228,7 +228,7 @@ contains
 
    subroutine finish_vperp2
 
-      use velocity_grids, only: vperp2
+      use grids_velocity, only: vperp2
 
       implicit none
 

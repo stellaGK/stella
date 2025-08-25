@@ -92,7 +92,7 @@ contains
       use stella_layouts, only: kxkyz_lo, vmu_lo
       use common_types, only: kxkyz_layout_type
       use file_utils, only: error_unit
-      use velocity_grids, only: nvpa, nmu
+      use grids_velocity, only: nvpa, nmu
       use gk_sources, only: source_option_krook, source_option_projection
       use gk_sources, only: source_option_switch, int_krook, int_proj
       use gk_sources, only: include_qn_source
@@ -719,7 +719,7 @@ contains
 # endif
       use mp, only: iproc, broadcast
       use z_grid, only: nzgrid, ntubes
-      use velocity_grids, only: nvpa, nmu
+      use grids_velocity, only: nvpa, nmu
       use stella_layouts, only: kxkyz_lo, vmu_lo
       use file_utils, only: error_unit
       use gk_sources, only: source_option_krook, source_option_projection
