@@ -45,7 +45,7 @@ contains
 
       use parameters_kxky_grid, only: ikx_max, nakx, naky
       use grids_kxky, only: aky, akx, theta0
-      use z_grid, only: nzgrid, zed
+      use grids_z, only: nzgrid, zed
       use geometry, only: geo_surf, q_as_x
       use store_arrays_useful, only: kperp2
 
@@ -94,7 +94,7 @@ contains
    subroutine advance_hyper_dissipation(g)
 
       use stella_time, only: code_dt
-      use z_grid, only: nzgrid, ntubes, zed
+      use grids_z, only: nzgrid, ntubes, zed
       use stella_layouts, only: vmu_lo
       use store_arrays_useful, only: kperp2
       use parameters_kxky_grid, only: naky
@@ -138,7 +138,7 @@ contains
    !> computes the fourth derivative of g in vpa and returns this in dgdvpa
    !> multiplied by the vpa diffusion coefficient
       use stella_time, only: code_dt
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use stella_layouts, only: vmu_lo, kxkyz_lo
       use redistribute, only: gather, scatter
       use calculations_redistribute, only: kxkyz2vmu
@@ -195,7 +195,7 @@ contains
    !> computes the fourth derivative of g in z and returns this in
    !> dgdz multiplied by the z hyper diffusion coefficient
       use stella_time, only: code_dt
-      use z_grid, only: nzgrid, delzed
+      use grids_z, only: nzgrid, delzed
       use stella_layouts, only: vmu_lo
 
       implicit none
@@ -213,7 +213,7 @@ contains
       use calculations_finite_differences, only: fourth_derivative_second_centered_zed
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx
-      use z_grid, only: nzgrid, delzed, ntubes
+      use grids_z, only: nzgrid, delzed, ntubes
       use grids_extended_zgrid, only: neigen, nsegments
       use grids_extended_zgrid, only: iz_low, iz_up
       use grids_extended_zgrid, only: ikxmod

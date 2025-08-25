@@ -30,7 +30,7 @@ contains
         use stella_layouts, only: iv_idx, imu_idx, is_idx
         use stella_time, only: code_dt
         use species, only: spec
-        use z_grid, only: nzgrid
+        use grids_z, only: nzgrid
         use parameters_kxky_grid, only: nalpha
         use geometry, only: cvdrift, gbdrift
         use geometry, only: cvdrift0, gbdrift0
@@ -188,7 +188,7 @@ contains
         use stella_layouts, only: iv_idx, imu_idx, is_idx
         use stella_time, only: code_dt
         use species, only: spec
-        use z_grid, only: nzgrid
+        use grids_z, only: nzgrid
         use parameters_kxky_grid, only: nalpha
         use geometry, only: dydalpha, drhodpsi, clebsch_factor
         use grids_velocity, only: vperp2, vpa
@@ -266,7 +266,7 @@ contains
         use store_arrays_fields, only: apar, bpar
         use stella_layouts, only: vmu_lo
         use calculations_transforms, only: transform_ky2y
-        use z_grid, only: nzgrid, ntubes
+        use grids_z, only: nzgrid, ntubes
         use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
         use calculations_kxky, only: swap_kxky
         use parameters_physics, only: full_flux_surface
@@ -337,7 +337,7 @@ contains
         use stella_layouts, only: vmu_lo
         use job_manage, only: time_message
         use calculations_transforms, only: transform_ky2y
-        use z_grid, only: nzgrid, ntubes
+        use grids_z, only: nzgrid, ntubes
         use parameters_kxky_grid, only: nakx, ikx_max, naky, naky_all, ny
         use calculations_kxky, only: swap_kxky
         use parameters_physics, only: full_flux_surface, include_bpar
@@ -447,7 +447,7 @@ contains
         use stella_layouts, only: vmu_lo
         use job_manage, only: time_message
         use calculations_transforms, only: transform_ky2y
-        use z_grid, only: nzgrid, ntubes
+        use grids_z, only: nzgrid, ntubes
         use parameters_kxky_grid, only: nakx, ikx_max, naky, naky_all, ny
         use grids_kxky, only: akx
         use calculations_kxky, only: swap_kxky
@@ -550,7 +550,7 @@ contains
     subroutine add_explicit_term(g, pre_factor, src)
 
         use stella_layouts, only: vmu_lo
-        use z_grid, only: nzgrid, ntubes
+        use grids_z, only: nzgrid, ntubes
         use parameters_kxky_grid, only: naky, nakx
 
         implicit none
@@ -580,7 +580,7 @@ contains
     subroutine add_explicit_term_ffs(g, pre_factor, src)
 
         use stella_layouts, only: vmu_lo
-        use z_grid, only: nzgrid, ntubes
+        use grids_z, only: nzgrid, ntubes
         use parameters_kxky_grid, only: ikx_max, nalpha
 
         implicit none

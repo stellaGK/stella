@@ -154,7 +154,7 @@ contains
 #ifdef NETCDF
       use parameters_kxky_grid, only: nakx, naky, nalpha, phase_shift_angle
       use grids_kxky, only: x_d, rho_d, akx, aky, theta0
-      use z_grid, only: nzgrid, ntubes, zed
+      use grids_z, only: nzgrid, ntubes, zed
       use grids_velocity, only: nvpa, vpa, nmu, mu
       use species, only: nspec
       use parameters_physics, only: radial_variation
@@ -512,7 +512,7 @@ contains
    !-------------------------- phi(ri,ky,kx,z,tube,t) --------------------------
    subroutine write_phi_nc(nout, phi)
 
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
 
       implicit none
 
@@ -536,7 +536,7 @@ contains
    !-------------------------- apar(ri,ky,kx,z,tube,t) --------------------------
    !> Write time trace of electromagnetic field A|| to netCDF
    subroutine write_apar_nc(nout, apar)
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       implicit none
       !> Current timestep
       integer, intent(in) :: nout
@@ -553,7 +553,7 @@ contains
    !-------------------------- bpar(ri,ky,kx,z,tube,t) --------------------------
    !> Write time trace of electromagnetic field B|| to netCDF
    subroutine write_bpar_nc(nout, bpar)
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       implicit none
       !> Current timestep
       integer, intent(in) :: nout

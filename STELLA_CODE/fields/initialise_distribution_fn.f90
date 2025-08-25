@@ -185,7 +185,7 @@ contains
       use mp, only: proc0, broadcast
       use constants, only: zi
       use species, only: spec
-      use z_grid, only: nzgrid, zed
+      use grids_z, only: nzgrid, zed
       use parameters_kxky_grid, only: naky, nakx, ikx_max
       use grids_kxky, only: theta0, akx, zonal_mode
       use parameters_kxky_grid, only: reality
@@ -284,7 +284,7 @@ contains
       use mp, only: proc0, broadcast
       use store_arrays_useful, only: kperp2
       use species, only: spec
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_extended_zgrid, only: ikxmod, nsegments, neigen
       use grids_extended_zgrid, only: it_right
       use grids_extended_zgrid, only: periodic, phase_shift
@@ -444,7 +444,7 @@ contains
    subroutine initialise_distribution_kpar 
    
       use mp, only: proc0, broadcast
-      use z_grid, only: nzgrid, zed
+      use grids_z, only: nzgrid, zed
       use parameters_kxky_grid, only: naky, nakx
       use grids_kxky, only: theta0
       use grids_velocity, only: nvpa, nmu

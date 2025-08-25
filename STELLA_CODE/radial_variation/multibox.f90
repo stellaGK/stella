@@ -68,7 +68,7 @@ contains
       use stella_layouts, only: vmu_lo
       use geometry, only: geo_surf, q_as_x, get_x_to_rho
       use geometry, only: drhodpsi, dxdpsi
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use parameters_kxky_grid, only: nakx, naky, nx, x0
       use grids_kxky, only: akx, aky
       use grids_kxky, only: x, x_d
@@ -391,7 +391,7 @@ contains
       use parameters_physics, only: g_exb, g_exbfac
       use stella_layouts, only: vmu_lo
       use geometry, only: dl_over_b
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use mp, only: job, scope, mp_abort, &
                     crossdomprocs, subprocs, allprocs, &
                     ssend, receive, proc0
@@ -576,7 +576,7 @@ contains
       use parameters_multibox, only: boundary_size
       use parameters_kxky_grid, only: periodic_variation, naky
       use stella_layouts, only: vmu_lo
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
 
       use parameters_multibox, only: smooth_zf
 
@@ -643,7 +643,7 @@ contains
       use stella_layouts, only: vmu_lo
       use parameters_kxky_grid, only: nakx, naky, periodic_variation
       use parameters_multibox, only: boundary_size
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use mp, only: job, proc0
       use job_manage, only: time_message
       use parameters_multibox, only: nu_krook_mb
@@ -713,7 +713,7 @@ contains
    subroutine init_mb_get_phi(has_elec, adiabatic_elec, efac, efacp)
       use parameters_kxky_grid, only: nakx, naky
       use parameters_multibox, only: boundary_size
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use parameters_physics, only: radial_variation
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use parameters_multibox, only: ky_solve_radial
@@ -831,7 +831,7 @@ contains
       use parameters_kxky_grid, only: nakx, naky
       use parameters_multibox, only: boundary_size
       use grids_kxky, only: zonal_mode, akx
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use parameters_multibox, only: ky_solve_radial
       use store_arrays_fields, only: gamtot, dgamtotdr, phi_solve, phizf_solve

@@ -25,7 +25,7 @@ contains
 
         use mp, only: proc0
         use stella_layouts, only: kxkyz_lo, vmu_lo, kymus_lo
-        use z_grid, only: nzgrid, ntubes
+        use grids_z, only: nzgrid, ntubes
         use parameters_kxky_grid, only: naky, nakx
         use grids_velocity, only: nvpa, nmu
         use store_arrays_distribution_fn, only: gnew, gold, g_scratch
@@ -84,7 +84,7 @@ contains
         use parameters_kxky_grid, only: nalpha, nakx, naky
         use calculations_kxky, only: multiply_by_rho
         use grids_velocity, only: mu, vpa, vperp2
-        use z_grid, only: nzgrid, ntubes
+        use grids_z, only: nzgrid, ntubes
         use species, only: spec, pfac
         use geometry, only: dBdrho, gfac
 
@@ -159,7 +159,7 @@ contains
         use parameters_kxky_grid, only: nalpha, nakx, naky
         use calculations_kxky, only: multiply_by_rho
         use grids_velocity, only: mu, vpa, vperp2
-        use z_grid, only: nzgrid, ntubes
+        use grids_z, only: nzgrid, ntubes
         use species, only: spec, pfac
         use geometry, only: dBdrho, gfac
 

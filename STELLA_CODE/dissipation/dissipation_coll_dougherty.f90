@@ -130,7 +130,7 @@ contains
 
       use stella_time, only: code_dt
       use species, only: nspec, spec
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use geometry, only: bmag
       use grids_velocity, only: dmu, nmu
       use grids_velocity, only: dmu_cell, mu_cell, wgts_mu_bare
@@ -193,7 +193,7 @@ contains
       use linear_solve, only: lu_decomposition, lu_inverse
       use stella_time, only: code_dt
       use species, only: nspec, spec, has_electron_species
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: ztmax, maxwell_vpa, maxwell_mu
       use grids_velocity, only: nmu, vpa, vperp2
       use grids_velocity, only: set_vpa_weights
@@ -451,7 +451,7 @@ contains
       use linear_solve, only: lu_decomposition, lu_inverse
       use stella_time, only: code_dt
       use species, only: nspec, spec, has_electron_species
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: ztmax, maxwell_vpa, maxwell_mu
       use grids_velocity, only: nvpa, vpa, vperp2
       use parameters_kxky_grid, only: naky, nakx
@@ -748,7 +748,7 @@ contains
    subroutine get_upar(g, fld)
 
       use mp, only: sum_allreduce
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use grids_velocity, only: integrate_vmu
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa
@@ -785,7 +785,7 @@ contains
    subroutine get_uperp(g, fld)
 
       use mp, only: sum_allreduce
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use grids_velocity, only: integrate_vmu
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vperp2
@@ -823,7 +823,7 @@ contains
    subroutine get_temp(g, fld)
 
       use mp, only: sum_allreduce
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use grids_velocity, only: integrate_vmu
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa
@@ -861,7 +861,7 @@ contains
    subroutine get_temp_mu(g, fld)
 
       use mp, only: sum_allreduce
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use grids_velocity, only: integrate_vmu
       use grids_velocity, only: nvpa, nmu, vperp2
       use stella_layouts, only: kxkyz_lo
@@ -901,7 +901,7 @@ contains
       use job_manage, only: time_message
       use redistribute, only: scatter, gather
       use stella_time, only: code_dt
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use species, only: spec
       use parameters_physics, only: fphi
       use parameters_physics, only: radial_variation, full_flux_surface
@@ -1271,7 +1271,7 @@ contains
       use geometry, only: bmag, dBdrho
       use parameters_kxky_grid, only: nakx, naky
       use calculations_kxky, only: multiply_by_rho
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: integrate_species, mu, vpa, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use store_arrays_useful, only: kperp2, dkperp2dr
@@ -1407,7 +1407,7 @@ contains
       use geometry, only: bmag, dBdrho
       use parameters_kxky_grid, only: nakx, naky
       use calculations_kxky, only: multiply_by_rho
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: integrate_species
       use grids_velocity, only: mu, vpa, nmu, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -1505,7 +1505,7 @@ contains
 
    subroutine advance_collisions_dougherty_implicit(phi, apar, bpar)
 
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use store_arrays_distribution_fn, only: gvmu
 
       implicit none
@@ -1525,7 +1525,7 @@ contains
       use stella_time, only: code_dt
       use parameters_physics, only: fphi
       use species, only: nspec, spec, has_electron_species
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nmu, nvpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa, vperp2
       use grids_velocity, only: set_vpa_weights
@@ -1691,7 +1691,7 @@ contains
       use stella_time, only: code_dt
       use parameters_physics, only: fphi
       use species, only: nspec, spec, has_electron_species
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nmu, nvpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa, vperp2
       use grids_velocity, only: set_vpa_weights

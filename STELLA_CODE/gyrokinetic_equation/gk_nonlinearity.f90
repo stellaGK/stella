@@ -25,7 +25,7 @@ contains
 
         use parameters_physics, only: rhostar
         use species, only: spec, nspec
-        use z_grid, only: nztot, nzgrid
+        use grids_z, only: nztot, nzgrid
         use geometry, only: geo_surf, drhodpsi, q_as_x
         use geometry, only: gradpar, dbdzed, bmag
         use geometry, only: cvdrift, cvdrift0
@@ -122,7 +122,7 @@ contains
         use parameters_physics, only: suppress_zonal_interaction
         use parameters_kxky_grid, only: nakx, ikx_max, naky, naky_all, nx, ny
 
-        use z_grid, only: nzgrid, ntubes
+        use grids_z, only: nzgrid, ntubes
         use grids_kxky, only: akx, aky, rho_clamped
         use grids_kxky, only: x
         use geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
@@ -405,7 +405,7 @@ contains
         use calculations_transforms, only: transform_kx2x, transform_x2kx
         use stella_time, only: cfl_dt_parallel, cfl_dt_linear, code_dt, code_dt_max
         use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
-        use z_grid, only: nzgrid, delzed, ntubes
+        use grids_z, only: nzgrid, delzed, ntubes
         use grids_extended_zgrid, only: neigen, nsegments, ikxmod
         use grids_extended_zgrid, only: iz_low, iz_up
         use grids_extended_zgrid, only: periodic

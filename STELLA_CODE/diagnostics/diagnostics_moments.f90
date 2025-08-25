@@ -39,7 +39,7 @@ contains
 
       ! Dimensions
       use parameters_kxky_grid, only: naky, nakx
-      use z_grid, only: nztot, ntubes
+      use grids_z, only: nztot, ntubes
       use species, only: nspec
       
       ! Flags 
@@ -131,7 +131,7 @@ contains
    !============================================================================
    subroutine get_moments_fluxtube(g, density, upar_vs_kykxzts, temperature, spitzer2_vs_kykxzts)
 
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use species, only: spec, nspec
       use grids_velocity, only: vpa, vperp2, integrate_vmu
       use grids_velocity, only: maxwell_mu, ztmax, maxwell_fac, maxwell_vpa
@@ -255,7 +255,7 @@ contains
    !============================================================================
    subroutine get_moments_radial_variation(g, dens, upar_vs_kykxzts, temp, dens_kxs, upar_kxs, temp_kxs, spitzer2_vs_kykxzts)
 
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use species, only: spec, nspec
       use grids_velocity, only: integrate_vmu
       use grids_velocity, only: vpa, vperp2, mu

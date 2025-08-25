@@ -59,7 +59,7 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: full_flux_surface
       !> Grids
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       !> Routines from other field modules
       use fields_fluxtube, only: advance_fields_fluxtube
       use fields_ffs, only: get_fields_ffs
@@ -222,7 +222,7 @@ contains
       use store_arrays_fields, only: gamtot, gamtot3
       
       ! Grids
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use parameters_kxky_grid, only: naky, nakx
       
       ! Time routines

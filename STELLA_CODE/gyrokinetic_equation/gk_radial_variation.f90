@@ -24,7 +24,7 @@ contains
         use stella_time, only: code_dt
 
         use species, only: spec, pfac
-        use z_grid, only: nzgrid
+        use grids_z, only: nzgrid
 
         use parameters_kxky_grid, only: nalpha
         use parameters_physics, only: xdriftknob, ydriftknob, wstarknob
@@ -169,7 +169,7 @@ contains
         use store_arrays_fields, only: phi, apar, bpar
         use store_arrays_fields, only: phi_corr_QN, phi_corr_GA
         
-        use z_grid, only: nzgrid, ntubes
+        use grids_z, only: nzgrid, ntubes
 
         use parameters_kxky_grid, only: nakx, naky
         use parameters_physics, only: full_flux_surface, fphi
@@ -305,7 +305,7 @@ contains
 
         use mp, only: job
         use stella_layouts, only: vmu_lo
-        use z_grid, only: nzgrid
+        use grids_z, only: nzgrid
         use multibox, only: multibox_communicate, apply_radial_boundary_conditions
         use parameters_multibox, only: use_dirichlet_bc
         use fields, only: fields_updated, advance_fields

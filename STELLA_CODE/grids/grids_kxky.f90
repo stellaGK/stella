@@ -46,7 +46,7 @@ contains
 
       use mp, only: mp_abort
       use stella_common_types, only: flux_surface_type
-      use z_grid, only: init_zgrid
+      use grids_z, only: init_zgrid
       use parameters_kxky_grid, only: grid_option_switch, grid_option_range, grid_option_box
       use parameters_kxky_grid, only: naky
       
@@ -83,7 +83,7 @@ contains
 
          use stella_common_types, only: flux_surface_type
          use geometry, only: geo_surf, q_as_x
-         use z_grid, only: shat_zero
+         use grids_z, only: shat_zero
 
          use parameters_kxky_grid, only: naky, nakx, aky_min, aky_max, &
                akx_min, akx_max, theta0_min, theta0_max, &
@@ -210,9 +210,9 @@ contains
          use parameters_physics, only: rhostar
          use parameters_physics, only: full_flux_surface, radial_variation
          use file_utils, only: runtype_option_switch, runtype_multibox
-         use z_grid, only: nperiod
-         use z_grid, only: boundary_option_switch, boundary_option_linked
-         use z_grid, only: boundary_option_linked_stellarator
+         use grids_z, only: nperiod
+         use grids_z, only: boundary_option_switch, boundary_option_linked
+         use grids_z, only: boundary_option_linked_stellarator
          use ran, only: ranf
 
          use write_radial_grid, only: dump_radial_grid

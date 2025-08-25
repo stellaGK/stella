@@ -95,7 +95,7 @@ contains
    subroutine allocate_arrays
 
       use stella_layouts, only: vmu_lo
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use parameters_kxky_grid, only: naky, nakx
       use store_arrays_distribution_fn, only: g0, g1, g2, g3
       use parameters_numerical, only: explicit_algorithm_switch, explicit_algorithm_rk3, &
@@ -131,7 +131,7 @@ contains
       use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
       use parameters_physics, only: radial_variation, prp_shear_enabled
       use parameters_kxky_grid, only: nx
-      use z_grid, only: delzed
+      use grids_z, only: delzed
       use grids_velocity, only: dvpa
       use grids_kxky, only: akx, aky, rho
       use gk_parallel_streaming, only: stream
@@ -409,7 +409,7 @@ contains
       use stella_layouts, only: vmu_lo, iv_idx
       use store_arrays_fields, only: phi, apar, bpar
       use store_arrays_useful, only: time_gke
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use grids_extended_zgrid, only: periodic, phase_shift
       use parameters_kxky_grid, only: naky
       use parameters_physics, only: include_apar
@@ -487,7 +487,7 @@ contains
    subroutine advance_explicit_euler(g, restart_time_step, istep)
 
       use store_arrays_distribution_fn, only: g0
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use stella_layouts, only: vmu_lo
       use parameters_multibox, only: rk_step
       use gk_radial_variation, only: mb_communicate
@@ -516,7 +516,7 @@ contains
    subroutine advance_explicit_rk2(g, restart_time_step, istep)
 
       use store_arrays_distribution_fn, only: g0, g1
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use stella_layouts, only: vmu_lo
       use parameters_multibox, only: rk_step
       use gk_radial_variation, only: mb_communicate
@@ -567,7 +567,7 @@ contains
    subroutine advance_explicit_rk3(g, restart_time_step, istep)
 
       use store_arrays_distribution_fn, only: g0, g1, g2
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use stella_layouts, only: vmu_lo
       use parameters_multibox, only: rk_step
       use gk_radial_variation, only: mb_communicate
@@ -622,7 +622,7 @@ contains
    subroutine advance_explicit_rk4(g, restart_time_step, istep)
 
       use store_arrays_distribution_fn, only: g0, g1, g2, g3
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use stella_layouts, only: vmu_lo
       use parameters_multibox, only: rk_step
       use gk_radial_variation, only: mb_communicate
@@ -714,7 +714,7 @@ contains
       use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
       use parameters_multibox, only: include_multibox_krook
 
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: zonal_mode, akx
       
       use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
@@ -888,7 +888,7 @@ contains
    subroutine advance_hyper_explicit(gin, gout)
 
       use stella_layouts, only: vmu_lo
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use parameters_kxky_grid, only: naky, nakx
       use dissipation_hyper, only: advance_hyper_vpa, advance_hyper_zed
       use dissipation_hyper, only: hyp_zed, hyp_vpa
@@ -924,7 +924,7 @@ contains
 
       use stella_layouts, only: vmu_lo
 
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use store_arrays_useful, only: time_gke
 
       use parameters_physics, only: include_parallel_streaming

@@ -52,7 +52,7 @@ contains
       !> Grids
       use species, only: spec
       use grids_velocity, only: integrate_species, vpa, mu
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       !> Calculations
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       !> Routines from other fields modules
@@ -140,7 +140,7 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: fphi 
       !> Grids
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa, mu 
       use grids_velocity, only: integrate_vmu
@@ -235,7 +235,7 @@ contains
       !> Parameters
       use parameters_kxky_grid, only: nakx, naky
       !> Grids
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
 
       implicit none
 
@@ -288,7 +288,7 @@ contains
       use store_arrays_useful, only: kperp2
       use store_arrays_fields, only: apar_denom
       !> Grids
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: apar
@@ -324,7 +324,7 @@ contains
       use parameters_physics, only: beta
       !> Grids
       use species, only: spec
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu, vpa
       use grids_velocity, only: integrate_vmu
       !> Calculations
@@ -397,7 +397,7 @@ contains
       use grids_velocity, only: vpa, mu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: integrate_vmu
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       !> Calculations
       use arrays_gyro_averages, only: aj0v, aj1v
 
@@ -524,7 +524,7 @@ contains
    !============================================================================
    subroutine allocate_fields_electromagnetic
 
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       
       use parameters_kxky_grid, only: naky, nakx
       use parameters_physics, only: include_apar, include_bpar

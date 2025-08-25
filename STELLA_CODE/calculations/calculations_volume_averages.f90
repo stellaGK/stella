@@ -25,7 +25,7 @@ contains
 
    subroutine init_volume_averages
 
-      use z_grid, only: nzgrid, nztot, delzed
+      use grids_z, only: nzgrid, nztot, delzed
       use parameters_kxky_grid, only: nalpha, nakx, naky
       use grids_kxky, only: rho_d_clamped, aky
       use geometry, only: geo_surf, drhodpsip
@@ -95,7 +95,7 @@ contains
    !==============================================
    subroutine fieldline_average_real(unavg, avg)
 
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use parameters_kxky_grid, only: nakx, naky
       use geometry, only: dl_over_b
 
@@ -118,7 +118,7 @@ contains
 
    subroutine fieldline_average_complex(unavg, avg)
 
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use parameters_kxky_grid, only: nakx, naky
       use geometry, only: dl_over_b
 
@@ -144,7 +144,7 @@ contains
    !==============================================
    subroutine volume_average(unavg, avg)
 
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use parameters_kxky_grid, only: naky, nakx
       use geometry, only: dl_over_b
 
@@ -174,7 +174,7 @@ contains
 
    subroutine init_flux_surface_average_ffs
 
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use parameters_kxky_grid, only: naky
       use grids_extended_zgrid, only: periodic
       use geometry, only: jacob
@@ -199,7 +199,7 @@ contains
 
    subroutine flux_surface_average_ffs(no_fsa, fsa)
 
-      use z_grid, only: nzgrid, delzed 
+      use grids_z, only: nzgrid, delzed 
       use parameters_kxky_grid, only: naky, naky_all 
 
       implicit none

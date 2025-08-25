@@ -312,7 +312,7 @@ contains
         !------------------------ Default input parameters -----------------------
         subroutine set_default_geometry_vmec
 
-            use z_grid, only: zed_equal_arc
+            use grids_z, only: zed_equal_arc
 
             implicit none
 

@@ -50,7 +50,7 @@ contains
         use constants, only: zi
         use parameters_kxky_grid, only: nakx
         use grids_kxky, only: aky
-        use z_grid, only: nzgrid, ntubes
+        use grids_z, only: nzgrid, ntubes
         
         implicit none
 
@@ -75,7 +75,7 @@ contains
 
         use constants, only: zi
         use stella_layouts, only: vmu_lo
-        use z_grid, only: nzgrid, ntubes
+        use grids_z, only: nzgrid, ntubes
         use parameters_kxky_grid, only: nakx
         use grids_kxky, only: aky
 
@@ -120,7 +120,7 @@ contains
     subroutine get_dgdx_3d(g, dgdx)
 
         use constants, only: zi
-        use z_grid, only: nzgrid, ntubes
+        use grids_z, only: nzgrid, ntubes
         use parameters_kxky_grid, only: nakx
         use grids_kxky, only: akx
 
@@ -147,7 +147,7 @@ contains
 
         use constants, only: zi
         use stella_layouts, only: vmu_lo
-        use z_grid, only: nzgrid, ntubes
+        use grids_z, only: nzgrid, ntubes
         use parameters_kxky_grid, only: nakx
         use grids_kxky, only: akx
 
@@ -196,7 +196,7 @@ contains
         use parameters_kxky_grid, only: nakx, naky
         !> Grids
         use species, only: spec
-        use z_grid, only: nzgrid, ntubes
+        use grids_z, only: nzgrid, ntubes
         use grids_velocity, only: vpa, mu
         use grids_kxky, only: aky
         !> Calculations

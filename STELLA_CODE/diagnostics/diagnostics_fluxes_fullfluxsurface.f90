@@ -29,7 +29,7 @@ contains
          vflux_vs_s, qflux_vs_s, pflux_kxkyzts, vflux_kxkyzts, qflux_kxkyzts)
 
       use constants, only: zi
-      use z_grid, only: nzgrid, delzed
+      use grids_z, only: nzgrid, delzed
       use parameters_kxky_grid, only: naky, nakx, ny
       use grids_kxky, only: aky, dy
       use store_arrays_fields, only: phi
@@ -85,7 +85,7 @@ contains
    subroutine get_one_flux_ffs(mom, dphidy, flxfac, flx, flx_vs_kxkyz)
 
       use species, only: nspec
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use parameters_kxky_grid, only: naky, nakx
       use calculations_volume_averages, only: mode_fac
 
@@ -140,7 +140,7 @@ contains
    subroutine get_modified_fourier_coefficient(moment, moment_ky, flxfac)
 
       use species, only: nspec
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use parameters_kxky_grid, only: ikx_max, naky_all, ny
       use calculations_kxky, only: swap_kxky_back
       use calculations_transforms, only: transform_y2ky
@@ -183,7 +183,7 @@ contains
 
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use species, only: spec, nspec
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use grids_velocity, only: integrate_vmu_ffs
       use grids_velocity, only: vpa, vperp2
       use parameters_kxky_grid, only: naky_all, ikx_max, ny
@@ -195,7 +195,7 @@ contains
       use grids_kxky, only: aky, theta0
       use parameters_kxky_grid, only: nakx
       use constants, only: zi, pi
-      use z_grid, only: ntubes
+      use grids_z, only: ntubes
       use calculations_tofrom_ghf, only: g_to_h
 
       !> For momentum flux
@@ -325,7 +325,7 @@ contains
 
       use stella_layouts, only: vmu_lo, is_idx
       use species, only: spec
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: j0_ffs
 
@@ -393,7 +393,7 @@ contains
 
       use stella_layouts, only: vmu_lo, is_idx
       use species, only: spec
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: j0_ffs
 

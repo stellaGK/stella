@@ -50,7 +50,7 @@ contains
       use parameters_multibox, only: ky_solve_radial, ky_solve_real
       use parameters_kxky_grid, only: naky, nakx
       use grids_kxky, only: zonal_mode
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
       use store_arrays_distribution_fn, only: g_krook, g_proj, g_symm
       use store_arrays_fields, only: phi_proj, phi_proj_stage
@@ -198,7 +198,7 @@ contains
 
       use mp, only: proc0
       use job_manage, only: time_message
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use constants, only: pi, zi
       use grids_kxky, only: akx, zonal_mode 
       use parameters_multibox, only: boundary_size
@@ -308,7 +308,7 @@ contains
       use job_manage, only: time_message
       use constants, only: pi, zi
       use store_arrays_distribution_fn, only: g_krook, g_symm
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: akx, zonal_mode
       use parameters_multibox, only: boundary_size
       use parameters_kxky_grid, only: nakx
@@ -401,7 +401,7 @@ contains
       use grids_velocity, only: nvgrid, nvpa, nmu
       use calculations_redistribute, only: kxkyz2vmu
       use store_arrays_distribution_fn, only: gvmu
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
 
       implicit none
 
@@ -445,7 +445,7 @@ contains
       use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: aj0x, aj1x
       use store_arrays_useful, only: kperp2, dkperp2dr
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
@@ -526,7 +526,7 @@ contains
 
       use mp, only: proc0
       use job_manage, only: time_message
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use constants, only: pi, zi
       use grids_kxky, only: zonal_mode, akx
       use parameters_multibox, only: boundary_size
@@ -660,7 +660,7 @@ contains
 #endif
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
-      use z_grid, only: nzgrid, nztot
+      use grids_z, only: nzgrid, nztot
       use parameters_kxky_grid, only: nakx
       use grids_kxky, only: rho_d_clamped
       use parameters_multibox, only: boundary_size

@@ -44,7 +44,7 @@ contains
       use geometry, only: dgds21dr, dgds22dr
       use geometry, only: geo_surf
       use geometry, only: dBdrho, dIdrho
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: vperp2, vpa, mu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use parameters_physics, only: fphi
@@ -337,7 +337,7 @@ contains
       use grids_kxky, only: aky
       use parameters_multibox, only: boundary_size
       use parameters_kxky_grid, only: nakx, naky
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use species, only: nspec
       use calculations_volume_averages, only: mode_fac
       use geometry, only: dVolume
@@ -416,7 +416,7 @@ contains
       use stella_layouts, only: vmu_lo
       use grids_kxky, only: aky
       use parameters_kxky_grid, only: nakx, naky
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use species, only: nspec
       use calculations_volume_averages, only: mode_fac
 
@@ -459,7 +459,7 @@ contains
       use stella_layouts, only: vmu_lo
       use grids_kxky, only: aky
       use parameters_kxky_grid, only: nakx, naky
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use species, only: nspec
       use calculations_volume_averages, only: mode_fac
       use calculations_transforms, only: transform_kx2x_unpadded 

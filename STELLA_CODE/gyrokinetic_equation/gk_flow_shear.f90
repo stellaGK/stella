@@ -29,7 +29,7 @@ contains
       use stella_time, only: code_dt
       use species, only: spec
       use constants, only: zi, pi
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use grids_kxky, only: x, x_d, akx, aky, zonal_mode, box
       use parameters_kxky_grid, only: nalpha, nx, nakx, naky, ikx_max
       use store_arrays_fields, only: shift_state
@@ -148,7 +148,7 @@ contains
       use mp, only: proc0, mp_abort
       use parameters_physics, only: full_flux_surface
       use stella_layouts, only: vmu_lo
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use parameters_kxky_grid, only: nakx, naky
       use calculations_kxky_derivatives, only: get_dchidy
       use store_arrays_fields, only: phi, apar, bpar
@@ -190,7 +190,7 @@ contains
       use constants, only: zi
       use parameters_physics, only: prp_shear_enabled, hammett_flow_shear
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use store_arrays_fields, only: shift_state
       use grids_kxky, only: aky, zonal_mode
       use parameters_kxky_grid, only: nakx, naky, ikx_max

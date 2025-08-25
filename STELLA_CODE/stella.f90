@@ -116,8 +116,8 @@ contains
       
       use species, only: init_species, read_species_options
       use species, only: nspec
-      use z_grid, only: init_zgrid
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: init_zgrid
+      use grids_z, only: nzgrid, ntubes
       use grids_extended_zgrid, only: init_extended_zgrid
       use grids_kxky, only: init_grids_kxky
       use grids_velocity, only: init_velocity_grids, read_velocity_grids_parameters
@@ -594,7 +594,7 @@ contains
       use parameters_physics, only: finish_read_parameters_physics
       use parameters_physics, only: include_parallel_nonlinearity, radial_variation
       use parameters_numerical, only: finish_read_parameters_numerical
-      use z_grid, only: finish_zgrid
+      use grids_z, only: finish_zgrid
       use species, only: finish_species
       use store_arrays_useful, only: time_gke, time_parallel_nl
       use gk_time_advance, only: finish_time_advance
@@ -779,7 +779,7 @@ contains
    ! subroutine test_redistribute
 
    !   use stella_layouts, only: kxyz_lo, vmu_lo
-   !   use z_grid, only: nzgrid, ntubes
+   !   use grids_z, only: nzgrid, ntubes
    !   use grids_velocity, only: nvpa, nmu
    !   use kt_grids, only: ny, ikx_max
    !   use calculations_redistribute, only: kxyz2vmu

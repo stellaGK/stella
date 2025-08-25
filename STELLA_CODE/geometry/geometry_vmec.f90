@@ -68,7 +68,7 @@ contains
    !============================================================================  
    subroutine read_vmec_parameters
 
-      use z_grid, only: zed_equal_arc
+      use grids_z, only: zed_equal_arc
       use mp, only: mp_abort
       use namelist_geometry, only: read_namelist_geometry_vmec
 
@@ -84,7 +84,7 @@ contains
       ! If we set <zed_equal_arc> = True, we also define <z_grid_refinement_factor>
       if (.not. zed_equal_arc) then
          if (z_grid_refinement_factor > 1) then
-            write (*, *) 'There is no reason to use z_grid_refinement_factor > 1 unless zed_equal_arc=T'
+            write (*, *) 'There is no reason to use grids_z_refinement_factor > 1 unless zed_equal_arc=T'
             write (*, *) 'Setting z_grid_refinement_factor = 1'
             z_grid_refinement_factor = 1
          end if
@@ -115,8 +115,8 @@ contains
       use splines, only: geo_spline
       use parameters_physics, only: full_flux_surface
       use debug_flags, only: const_alpha_geo 
-      use z_grid, only: zed_equal_arc, get_total_arc_length, get_arc_length_grid
-      use z_grid, only: zed 
+      use grids_z, only: zed_equal_arc, get_total_arc_length, get_arc_length_grid
+      use grids_z, only: zed 
       use geometry_vmec_read_netCDF_file, only: calculate_vmec_geometry
       use file_utils, only: open_output_file
       use mp, only: mp_abort

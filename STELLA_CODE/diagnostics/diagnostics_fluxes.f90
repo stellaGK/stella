@@ -46,7 +46,7 @@ contains
 
       ! Dimensions
       use parameters_kxky_grid, only: naky, nakx
-      use z_grid, only: nztot, ntubes
+      use grids_z, only: nztot, ntubes
       use species, only: nspec
 
       ! Flags 
@@ -249,7 +249,7 @@ contains
    
       ! Dimensions
       use parameters_kxky_grid, only: nakx, naky
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use species, only: nspec
    
       ! Write data 
@@ -316,7 +316,7 @@ contains
       ! Dimensions 
       use parameters_kxky_grid, only: ny, ikx_max
       use species, only: nspec
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
 
       ! Calculations
       use diagnostics_fluxes_fullfluxsurface, only: calculate_moments_fullfluxsurface

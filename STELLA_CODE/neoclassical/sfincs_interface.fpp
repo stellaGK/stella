@@ -44,7 +44,7 @@ contains
       use species, only: spec, nspec
 # endif
       use mp, only: mp_abort
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
 
       implicit none
 
@@ -371,7 +371,7 @@ contains
 
       use mp, only: proc0
       use sfincs_main, only: finish_sfincs
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
 
       implicit none
 
@@ -589,7 +589,7 @@ contains
       use mp, only: mp_abort
       use geometry, only: geo_surf
       use species, only: spec, nspec
-      use z_grid, only: nzed
+      use grids_z, only: nzed
       use parameters_physics, only: nine, tite
       use globalVariables, only: includeXDotTerm_sfincs => includeXDotTerm
       use globalVariables, only: includeElectricFieldTermInXiDot_sfincs => includeElectricFieldTermInXiDot
@@ -699,7 +699,7 @@ contains
 
       use constants, only: pi
       use splines, only: linear_interp_periodic
-      use z_grid, only: nz2pi, zed
+      use grids_z, only: nz2pi, zed
       use geometry, only: bmag, dbdzed, gradpar
       use geometry, only: dBdrho, d2Bdrdth, dgradpardrho, dIdrho
       use geometry, only: geo_surf
@@ -809,7 +809,7 @@ contains
       use constants, only: pi
       use sort, only: sort_array_ascending, unsort_array_ascending
       use species, only: nspec
-      use z_grid, only: nzgrid, nz2pi
+      use grids_z, only: nzgrid, nz2pi
       use export_f, only: h_sfincs => delta_f
       use globalVariables, only: Phi1Hat
       use parameters_kxky_grid, only: nalpha
@@ -984,7 +984,7 @@ contains
    subroutine get_stella_theta_zeta_grids(alpha_like_stella, zed_stella)
 
       use constants, only: pi
-      use z_grid, only: nz2pi, zed
+      use grids_z, only: nz2pi, zed
       use geometry, only: dzetadz
       use geometry, only: alpha
       use parameters_kxky_grid, only: nalpha
@@ -1025,7 +1025,7 @@ contains
    subroutine get_nzed_per_field_period(zed_stella, nfp, nzed_per_field_period)
 
       use constants, only: pi
-      use z_grid, only: nz2pi
+      use grids_z, only: nz2pi
 
       implicit none
 
@@ -1200,7 +1200,7 @@ contains
    subroutine get_field_stella(field_stella_zgrid, alpha_like_sfincs, alpha_like_stella, field_stella)
 
       use splines, only: linear_interp_periodic
-      use z_grid, only: nz2pi
+      use grids_z, only: nz2pi
 
       implicit none
 
@@ -1220,7 +1220,7 @@ contains
 
    subroutine get_field_on_extended_zed(field_stella, field_neoclassical)
 
-      use z_grid, only: nzgrid, nz2pi, nperiod
+      use grids_z, only: nzgrid, nz2pi, nperiod
       use parameters_kxky_grid, only: nalpha
 
       implicit none
@@ -1347,7 +1347,7 @@ contains
 
    subroutine get_dfield_dalpha(field, alpha_like_sfincs, dfield_dalpha)
 
-      use z_grid, only: nz2pi
+      use grids_z, only: nz2pi
 
       implicit none
 
@@ -1394,7 +1394,7 @@ contains
 
 !   subroutine bilinear_interpolation (alpha_in, zed_in, phi_in, alpha_out, zed_out, phi_out)
 
-!     use z_grid, only: nz2pi
+!     use grids_z, only: nz2pi
 
 !     implicit none
 
@@ -1416,7 +1416,7 @@ contains
 
 !     subroutine find_sfincs_cell (alpha_target, zed_target, alpha, zed, ialpha_out, ized_out)
 
-!       use z_grid, only: nz2pi
+!       use grids_z, only: nz2pi
 
 !       implicit none
 
@@ -1478,7 +1478,7 @@ contains
 
    subroutine broadcast_sfincs_output(fneo, phineo)
       use mp, only: broadcast
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       implicit none
       real, dimension(-nzgrid:, :, :, :, :), intent(in out) :: fneo
       real, dimension(-nzgrid:, :), intent(in out) :: phineo

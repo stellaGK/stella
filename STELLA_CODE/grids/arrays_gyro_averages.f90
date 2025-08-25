@@ -42,7 +42,7 @@ contains
         use parameters_physics, only: full_flux_surface
         use species, only: spec
         use geometry, only: bmag
-        use z_grid, only: nzgrid
+        use grids_z, only: nzgrid
         use grids_velocity, only: vperp2, nmu
         use parameters_kxky_grid, only: naky, nakx
         use stella_layouts, only: kxkyz_lo, vmu_lo
@@ -132,7 +132,7 @@ contains
         use calculations_transforms, only: transform_alpha2kalpha
         use species, only: nspec, spec
         use geometry, only: bmag
-        use z_grid, only: nzgrid, nztot
+        use grids_z, only: nzgrid, nztot
         use grids_velocity, only: nmu, nvpa
         use grids_velocity, only: vperp2, maxwell_vpa, maxwell_mu
         use parameters_kxky_grid, only: nalpha, naky, naky_all, ikx_max

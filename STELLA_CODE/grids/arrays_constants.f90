@@ -54,7 +54,7 @@ contains
       use store_arrays_useful, only: kperp2
       use geometry, only: gds2, gds21, gds22
       use geometry, only: geo_surf, q_as_x
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use parameters_kxky_grid, only: naky, nakx, nalpha
       use grids_kxky, only: akx, aky, theta0
       use grids_kxky, only: zonal_mode
@@ -104,7 +104,7 @@ contains
       use store_arrays_useful, only: kperp2, dkperp2dr
       use geometry, only: dgds2dr, dgds21dr, dgds22dr
       use geometry, only: geo_surf, q_as_x
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use parameters_kxky_grid, only: naky, nakx, nalpha
       use grids_kxky, only: akx, aky, theta0
       use grids_kxky, only: zonal_mode
@@ -151,7 +151,7 @@ contains
 
       use store_arrays_useful, only: kperp2
       use parameters_kxky_grid, only: naky, nalpha
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use grids_extended_zgrid, only: neigen, nsegments, ikxmod
 
       implicit none
@@ -180,7 +180,7 @@ contains
    subroutine init_array_vperp2
 
       use geometry, only: bmag
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use grids_velocity, only: vperp2
       use grids_velocity, only: nmu, mu
       use parameters_kxky_grid, only: nalpha

@@ -42,7 +42,7 @@ contains
       ! Dimensions
       use parameters_kxky_grid, only: nakx, naky
       use grids_velocity, only: nvpa, nmu 
-      use z_grid, only: nztot, ntubes
+      use grids_z, only: nztot, ntubes
       use species, only: nspec
 
       ! Write to netcdf file 
@@ -232,7 +232,7 @@ contains
       ! Dimensions
       use grids_kxky, only: zonal_mode
       use calculations_volume_averages, only: mode_fac
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
       use parameters_kxky_grid, only: nakx, naky
 

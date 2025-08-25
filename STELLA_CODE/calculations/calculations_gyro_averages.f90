@@ -79,7 +79,7 @@ contains
    subroutine gyro_average_kxkyz_local(field, ivmu, gyro_field)
 
       use parameters_physics, only: full_flux_surface
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
 
       implicit none
 
@@ -101,7 +101,7 @@ contains
    subroutine gyro_average_kxkyzv_local(field, gyro_field)
 
       use parameters_physics, only: full_flux_surface
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use stella_layouts, only: vmu_lo
 
       implicit none
@@ -190,7 +190,7 @@ contains
 
    subroutine gyro_average_ffs_kxkyz_local(field, gyro_field, coefs)
 
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
 
       implicit none
 
@@ -212,7 +212,7 @@ contains
 
       use stella_common_types, only: coupled_alpha_type
       use stella_layouts, only: vmu_lo
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
 
       implicit none
 
@@ -232,7 +232,7 @@ contains
 
       use stella_common_types, only: coupled_alpha_type
       use stella_layouts, only: vmu_lo
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
 
       implicit none
 
@@ -328,7 +328,7 @@ contains
 
    subroutine gyro_average_j1_kxkyz_local(field, ivmu, gyro_field)
 
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
 
       implicit none
 
@@ -374,7 +374,7 @@ contains
 
    subroutine gyro_average_j1_kxkyzv_local(field, gyro_field)
       use mp, only: proc0, mp_abort
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use stella_layouts, only: vmu_lo
       use parameters_physics, only: full_flux_surface
       
@@ -402,7 +402,7 @@ contains
    subroutine band_lu_solve_ffs(lu, solvec)
 
       use stella_common_types, only: gam0_ffs_type
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use parameters_kxky_grid, only: ikx_max
 
       implicit none
@@ -455,7 +455,7 @@ contains
    subroutine band_lu_factorisation_ffs(gam0, lu_gam0)
 
       use stella_common_types, only: coupled_alpha_type, gam0_ffs_type
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use parameters_kxky_grid, only: ikx_max, naky_all, naky
 
       implicit none
@@ -655,7 +655,7 @@ contains
    ! subroutine test_band_lu_factorisation (gam0, lu_gam0)
 
    !   use stella_common_types, only: coupled_alpha_type, gam0_ffs_type
-   !   use z_grid, only: nzgrid
+   !   use grids_z, only: nzgrid
    !   use kt_grids, only: naky_all, naky
 
    !   implicit none
@@ -725,7 +725,7 @@ contains
         ! subroutine test_ffs_bessel_coefs_subset (coefs, f_alpha, iky, ikx, iz, unit, iv, imu, is)
 
         !     use constants, only: pi
-        !     use z_grid, only: nzgrid, zed
+        !     use grids_z, only: nzgrid, zed
         !     use parameters_kxky_grid, only: naky, nalpha
         !     use grids_kxky, only: aky_all_ordered
         !     use grids_velocity, only: mu

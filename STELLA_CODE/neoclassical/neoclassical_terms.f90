@@ -28,7 +28,7 @@ contains
    subroutine init_neoclassical_terms
 
       use mp, only: proc0 
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use parameters_kxky_grid, only: nalpha
       use grids_velocity, only: nvpa, nmu
       use species, only: nspec
@@ -137,7 +137,7 @@ contains
 
       use calculations_finite_differences, only: fd5pt
       use stella_layouts, only: vmu_lo
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: dvpa
       use species, only: nspec
@@ -182,7 +182,7 @@ contains
    subroutine get_dfneo_dzed(fneo, dfneo)
 
       use calculations_finite_differences, only: fd5pt
-      use z_grid, only: nztot, nzgrid, delzed
+      use grids_z, only: nztot, nzgrid, delzed
       use grids_velocity, only: nvpa, nmu
       use species, only: nspec
       use stella_layouts, only: vmu_lo
@@ -227,7 +227,7 @@ contains
    subroutine get_dfneo_drho(fneo, dfneo)
 
       use calculations_finite_differences, only: fd3pt, fd5pt
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use grids_velocity, only: nvpa, nmu
       use species, only: nspec
       use stella_layouts, only: vmu_lo
@@ -278,7 +278,7 @@ contains
    subroutine get_dphineo_dzed(phineo, dphineo)
 
       use calculations_finite_differences, only: fd5pt
-      use z_grid, only: nztot, nzgrid, delzed
+      use grids_z, only: nztot, nzgrid, delzed
       use parameters_kxky_grid, only: nalpha
 
       implicit none
@@ -305,7 +305,7 @@ contains
    subroutine get_dphineo_drho(phineo, dphineo)
 
       use calculations_finite_differences, only: fd3pt, fd5pt
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use parameters_kxky_grid, only: nalpha
 
       implicit none
@@ -340,7 +340,7 @@ contains
       use mp, only: proc0
       use mp, only: send, receive
       use file_utils, only: open_output_file, close_output_file
-      use z_grid, only: nzgrid, zed
+      use grids_z, only: nzgrid, zed
       use grids_velocity, only: vpa, mu
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx

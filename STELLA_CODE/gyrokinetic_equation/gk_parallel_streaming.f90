@@ -60,7 +60,7 @@ contains
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: vperp2, vpa, mu
       use parameters_kxky_grid, only: nalpha
-      use z_grid, only: nzgrid, nztot
+      use grids_z, only: nzgrid, nztot
       use geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_physics, only: include_parallel_streaming, radial_variation
@@ -189,7 +189,7 @@ contains
 
    subroutine init_invert_stream_operator
 
-      use z_grid, only: delzed
+      use grids_z, only: delzed
       use grids_extended_zgrid, only: iz_low, iz_up
       use grids_extended_zgrid, only: nsegments, neigen_max
       use parameters_numerical, only: zed_upwind_plus, zed_upwind_minus, time_upwind_plus
@@ -244,7 +244,7 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use job_manage, only: time_message
       use calculations_transforms, only: transform_ky2y
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
       use calculations_kxky, only: swap_kxky
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -368,7 +368,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use job_manage, only: time_message
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use parameters_kxky_grid, only: naky, nakx
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use species, only: spec
@@ -450,7 +450,7 @@ contains
       use calculations_finite_differences, only: third_order_upwind_zed
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx
-      use z_grid, only: nzgrid, delzed, ntubes
+      use grids_z, only: nzgrid, delzed, ntubes
       use grids_extended_zgrid, only: neigen, nsegments
       use grids_extended_zgrid, only: iz_low, iz_up
       use grids_extended_zgrid, only: ikxmod
@@ -492,7 +492,7 @@ contains
       use calculations_finite_differences, only: second_order_centered_zed
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx
-      use z_grid, only: nzgrid, delzed, ntubes
+      use grids_z, only: nzgrid, delzed, ntubes
       use grids_extended_zgrid, only: neigen, nsegments
       use grids_extended_zgrid, only: iz_low, iz_up
       use grids_extended_zgrid, only: ikxmod
@@ -533,7 +533,7 @@ contains
 !    use calculations_finite_differences, only: fd_variable_upwinding_zed
 !    use stella_layouts, only: vmu_lo
 !    use stella_layouts, only: iv_idx
-!    use z_grid, only: nzgrid, delzed, ntubes
+!    use grids_z, only: nzgrid, delzed, ntubes
 !    use grids_extended_zgrid, only: neigen, nsegments
 !    use grids_extended_zgrid, only: iz_low, iz_up
 !    use grids_extended_zgrid, only: ikxmod
@@ -573,7 +573,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
 
       implicit none
 
@@ -595,7 +595,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use parameters_kxky_grid, only: ny
 
       implicit none
@@ -680,7 +680,7 @@ contains
 
       use calculations_finite_differences, only: fd_cell_centres_zed
       use parameters_kxky_grid, only: naky
-      use z_grid, only: nzgrid, delzed, ntubes
+      use grids_z, only: nzgrid, delzed, ntubes
       use grids_extended_zgrid, only: neigen, nsegments
       use grids_extended_zgrid, only: iz_low, iz_up
       use grids_extended_zgrid, only: ikxmod
@@ -716,7 +716,7 @@ contains
 
    subroutine get_zed_derivative_extended_domain(iv, f, f_left, f_right, df_dz)
 
-      use z_grid, only: delzed
+      use grids_z, only: delzed
       use calculations_finite_differences, only: fd_cell_centres_zed
 
       implicit none
@@ -734,7 +734,7 @@ contains
 
       use calculations_finite_differences, only: cell_centres_zed
       use parameters_kxky_grid, only: naky, nakx
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_extended_zgrid, only: neigen, nsegments
       use grids_extended_zgrid, only: iz_low, iz_up
       use grids_extended_zgrid, only: ikxmod

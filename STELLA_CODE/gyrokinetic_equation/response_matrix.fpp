@@ -1195,7 +1195,7 @@ contains
 
    subroutine get_phi_for_response_matrix(phi, iky, ie, dist)
 
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use species, only: spec
       use species, only: has_electron_species
       use geometry, only: dl_over_b
@@ -1276,7 +1276,7 @@ contains
 
    subroutine get_phi_and_bpar_for_response_matrix(phi, bpar, iky, ie, dist)
 
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use species, only: spec
       use species, only: has_electron_species
       use grids_extended_zgrid, only: iz_low, iz_up
@@ -1370,7 +1370,7 @@ contains
 
    subroutine get_apar_for_response_matrix(apar, iky, ie, dist)
 
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use grids_extended_zgrid, only: iz_low, iz_up
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: nsegments

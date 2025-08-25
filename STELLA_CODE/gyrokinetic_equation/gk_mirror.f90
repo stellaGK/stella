@@ -33,7 +33,7 @@ contains
       use species, only: spec, nspec
       use grids_velocity, only: nmu
       use grids_velocity, only: mu
-      use z_grid, only: nzgrid, nztot
+      use grids_z, only: nzgrid, nztot
       use parameters_kxky_grid, only: nalpha
       use geometry, only: dbdzed, b_dot_grad_z, gfac
       use geometry, only: d2Bdrdth, dgradpardrho
@@ -124,7 +124,7 @@ contains
 
    subroutine init_mirror_semi_lagrange
 
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use grids_velocity, only: nmu, dvpa
       use species, only: nspec
       use parameters_kxky_grid, only: nalpha
@@ -150,7 +150,7 @@ contains
       use mp, only: mp_abort
       use stella_layouts, only: kxkyz_lo, kxyz_lo, vmu_lo
       use stella_layouts, only: iz_idx, is_idx, imu_idx, iv_idx, iy_idx
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use grids_velocity, only: dvpa, vpa, mu
       use grids_velocity, only: nvpa, nmu
       use parameters_physics, only: full_flux_surface
@@ -287,7 +287,7 @@ contains
    subroutine init_mirror_response
 
       use stella_layouts, only: kxkyz_lo
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nmu, nvpa
       use parameters_kxky_grid, only: naky, nakx
       use fields_electromagnetic, only: advance_apar
@@ -343,7 +343,7 @@ contains
       use stella_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
       use stella_layouts, only: iv_idx, is_idx
       use calculations_transforms, only: transform_ky2y
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use parameters_physics, only: full_flux_surface
       use parameters_kxky_grid, only: nakx, naky, naky_all, ny, ikx_max
       use calculations_kxky, only: swap_kxky
@@ -455,7 +455,7 @@ contains
       use job_manage, only: time_message
       use stella_layouts, only: kxkyz_lo, vmu_lo
       use stella_layouts, only: is_idx, imu_idx
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use parameters_physics, only: full_flux_surface
       use grids_velocity, only: nvpa, nmu
       use stella_layouts, only: fields_kxkyz
@@ -570,7 +570,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, is_idx
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use parameters_kxky_grid, only: nakx
 
       implicit none
@@ -599,7 +599,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, is_idx
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use parameters_kxky_grid, only: ikx_max
 
       implicit none
@@ -636,7 +636,7 @@ contains
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use stella_layouts, only: iv_idx, imu_idx
       use calculations_transforms, only: transform_ky2y, transform_y2ky
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use store_arrays_distribution_fn, only: gvmu
       use parameters_physics, only: full_flux_surface
       use parameters_kxky_grid, only: ny, nakx

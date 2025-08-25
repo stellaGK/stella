@@ -26,7 +26,7 @@ contains
       use calculations_gyro_averages, only: gyro_average
       use parameters_physics, only: fphi
       use geometry, only: dl_over_b
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: integrate_vmu
       use parameters_kxky_grid, only: nakx
@@ -111,7 +111,7 @@ contains
       use calculations_gyro_averages, only: gyro_average
       use parameters_physics, only: fphi
       use geometry, only: dl_over_b, bmag
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: vperp2, nvpa, nmu
       use grids_velocity, only: integrate_vmu
       use parameters_kxky_grid, only: nakx

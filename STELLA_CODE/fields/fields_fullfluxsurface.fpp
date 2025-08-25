@@ -47,7 +47,7 @@ contains
       use grids_kxky, only: akx, zonal_mode
       use species, only: spec, has_electron_species
       use species, only: modified_adiabatic_electrons, adiabatic_electrons
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       !> Calculations
       use calculations_kxky, only: swap_kxky_ordered, swap_kxky_back_ordered
       use calculations_volume_averages, only: flux_surface_average_ffs
@@ -193,7 +193,7 @@ contains
          use parameters_kxky_grid, only: naky, nakx
          !> Grids
          use species, only: spec
-         use z_grid, only: nzgrid
+         use grids_z, only: nzgrid
          use grids_velocity, only: integrate_species_ffs
          !> Calculations
          use calculations_gyro_averages, only: gyro_average
@@ -242,7 +242,7 @@ contains
 
    subroutine get_phi_ffs(rhs, phi)
 
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use calculations_kxky, only: swap_kxky_ordered, swap_kxky_back_ordered
       use parameters_kxky_grid, only: naky_all, ikx_max
       use calculations_gyro_averages, only: band_lu_solve_ffs
@@ -290,7 +290,7 @@ contains
       !> Arrays
       use store_arrays_fields, only: gamtot
       !> Grids
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: akx
       !> Calculations
       use calculations_gyro_averages, only: gyro_average
@@ -343,7 +343,7 @@ contains
       use parameters_kxky_grid, only: naky, nakx
       !> Grids
       use species, only: spec
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       use grids_velocity, only: integrate_species_ffs
       !> Calculations
       use calculations_gyro_averages, only: gyro_average
@@ -437,7 +437,7 @@ contains
       use species, only: spec, nspec
       use species, only: adiabatic_electrons
       use species, only: has_electron_species, ion_species
-      use z_grid, only: nzgrid, nztot
+      use grids_z, only: nzgrid, nztot
       use grids_velocity, only: vperp2, maxwell_vpa, maxwell_mu
       use grids_velocity, only: integrate_species
       use grids_kxky, only: zonal_mode, akx
@@ -619,7 +619,7 @@ contains
       use parameters_physics, only: nine, tite
       use parameters_kxky_grid, only: naky, naky_all, ikx_max
       !> Grids
-      use z_grid, only: nzgrid
+      use grids_z, only: nzgrid
       !> Calculations
       use calculations_gyro_averages, only: band_lu_solve_ffs
       use calculations_volume_averages, only: flux_surface_average_ffs

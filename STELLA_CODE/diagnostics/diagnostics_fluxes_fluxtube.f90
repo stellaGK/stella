@@ -116,7 +116,7 @@ contains
       ! Dimensions
       use grids_velocity, only: vperp2, vpa, mu
       use grids_velocity, only: nvpa, nmu
-      use z_grid, only: nzgrid, ntubes
+      use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: aky, theta0
       use species, only: spec, nspec
 
@@ -424,7 +424,7 @@ contains
 
       use parameters_diagnostics, only: flux_norm
       use geometry, only: jacob, grho
-      use z_grid, only: delzed, nzgrid  
+      use grids_z, only: delzed, nzgrid  
 
       implicit none
 
