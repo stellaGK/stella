@@ -88,6 +88,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/grids/grids_species.f90
   ../STELLA_CODE/grids/grids_velocity.f90
   ../STELLA_CODE/grids/grids_z.f90
+  ../STELLA_CODE/gyrokinetic_equation/add_explicit_terms.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_magnetic_drift.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_drive.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_ffs_solve.f90
