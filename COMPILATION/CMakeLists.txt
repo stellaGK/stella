@@ -64,6 +64,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/diagnostics/diagnostics_moments.f90
   ../STELLA_CODE/diagnostics/diagnostics_omega.f90
   ../STELLA_CODE/diagnostics/diagnostics_potential.f90
+  ../STELLA_CODE/diagnostics/diagnostics_write_radial_grid.f90
   ../STELLA_CODE/dissipation/dissipation_coll_dougherty.f90
   ../STELLA_CODE/dissipation/dissipation_coll_fokkerplanck.f90
   ../STELLA_CODE/dissipation/dissipation.f90
@@ -87,7 +88,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/grids/store_arrays_distribution_fn.f90
   ../STELLA_CODE/grids/store_arrays_fields.f90
   ../STELLA_CODE/grids/store_arrays_useful.f90 
-  ../STELLA_CODE/grids/write_radial_grid.f90
   ../STELLA_CODE/grids/z_grid.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_ffs_solve.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_radial_variation.f90
