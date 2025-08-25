@@ -398,7 +398,7 @@ contains
       use parameters_multibox, only: lr_debug_switch, lr_debug_option_default, & 
                                      lr_debug_option_L, lr_debug_option_R
       use parameters_multibox, only: mb_debug_step
-      use parameters_multibox, only: phi_bound, phi_pow
+      use parameters_multibox, only: phi_pow
       use parameters_multibox, only: boundary_size
       use parameters_multibox, only: mb_zf_option_switch, mb_zf_option_skip_ky0, &
                                      mb_zf_option_zero_ky0, mb_zf_option_zero_fsa

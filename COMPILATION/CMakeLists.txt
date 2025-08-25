@@ -46,16 +46,15 @@ option(STELLA_UPDATE_GIT_SUBMODULES "Check submodules are up-to-date during buil
 # Sources that don't need preprocessing
 set(STELLA_SOURCES_f90 
   ../STELLA_CODE/utils/define.inc
-  ../STELLA_CODE/calculations/calculations_kxky.f90
   ../STELLA_CODE/calculations/calculations_checksum.f90
-  ../STELLA_CODE/calculations/calculations_kxky_derivatives.f90
-  ../STELLA_CODE/calculations/calculations_redistribute.f90
   ../STELLA_CODE/calculations/calculations_finite_differences.f90
-  ../STELLA_CODE/calculations/calculations_tofrom_ghf.f90
   ../STELLA_CODE/calculations/calculations_gyro_averages.f90
+  ../STELLA_CODE/calculations/calculations_kxky_derivatives.f90  
+  ../STELLA_CODE/calculations/calculations_kxky.f90
+  ../STELLA_CODE/calculations/calculations_redistribute.f90
+  ../STELLA_CODE/calculations/calculations_tofrom_ghf.f90
   ../STELLA_CODE/calculations/calculations_transforms.f90
   ../STELLA_CODE/calculations/calculations_volume_averages.f90
-  ../STELLA_CODE/diagnostics/diagnostics.f90
   ../STELLA_CODE/diagnostics/diagnostics_distribution.f90
   ../STELLA_CODE/diagnostics/diagnostics_fluxes_fluxtube.f90
   ../STELLA_CODE/diagnostics/diagnostics_fluxes_fullfluxsurface.f90 
@@ -65,66 +64,67 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/diagnostics/diagnostics_omega.f90
   ../STELLA_CODE/diagnostics/diagnostics_potential.f90
   ../STELLA_CODE/diagnostics/diagnostics_write_radial_grid.f90
+  ../STELLA_CODE/diagnostics/diagnostics.f90
   ../STELLA_CODE/dissipation/dissipation_coll_dougherty.f90
   ../STELLA_CODE/dissipation/dissipation_coll_fokkerplanck.f90
-  ../STELLA_CODE/dissipation/dissipation.f90
   ../STELLA_CODE/dissipation/dissipation_hyper.f90
+  ../STELLA_CODE/dissipation/dissipation.f90
   ../STELLA_CODE/fields/initialise_distribution_fn.f90
-  ../STELLA_CODE/geometry/geometry.f90
-  ../STELLA_CODE/geometry/geometry_miller.f90
-  ../STELLA_CODE/geometry/geometry_vmec.f90
-  ../STELLA_CODE/geometry/geometry_vmec_read_netCDF_file.f90 
   ../STELLA_CODE/geometry/geometry_inputprofiles_interface.f90
+  ../STELLA_CODE/geometry/geometry_miller.f90
+  ../STELLA_CODE/geometry/geometry_vmec_read_netCDF_file.f90 
+  ../STELLA_CODE/geometry/geometry_vmec.f90
   ../STELLA_CODE/geometry/geometry_zpinch.f90
+  ../STELLA_CODE/geometry/geometry.f90
   ../STELLA_CODE/grids/arrays_constants.f90
   ../STELLA_CODE/grids/arrays_distribution_fn.f90
   ../STELLA_CODE/grids/arrays_gyro_averages.f90
+  ../STELLA_CODE/grids/store_arrays _distribution_fn.f90
+  ../STELLA_CODE/grids/store_arrays _fields.f90
+  ../STELLA_CODE/grids/store_arrays _useful.f90 
   ../STELLA_CODE/grids/euterpe_interface.f90
   ../STELLA_CODE/grids/grids_extended_zgrid.f90
   ../STELLA_CODE/grids/grids_kxky.f90
   ../STELLA_CODE/grids/grids_species.f90
   ../STELLA_CODE/grids/grids_velocity.f90
   ../STELLA_CODE/grids/grids_z.f90
-  ../STELLA_CODE/grids/arrays_store_distribution_fn.f90
-  ../STELLA_CODE/grids/arrays_store_fields.f90
-  ../STELLA_CODE/grids/arrays_store_useful.f90 
+  ../STELLA_CODE/gyrokinetic_equation/gk_drifts.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_ffs_solve.f90
-  ../STELLA_CODE/gyrokinetic_equation/gk_radial_variation.f90
-  ../STELLA_CODE/gyrokinetic_equation/reset_timestep.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_flow_shear.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_implicit_solve.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_mirror.f90
-  ../STELLA_CODE/gyrokinetic_equation/gk_parallel_streaming.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_nonlinearity.f90
+  ../STELLA_CODE/gyrokinetic_equation/gk_parallel_streaming.f90
+  ../STELLA_CODE/gyrokinetic_equation/gk_radial_variation.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_time_advance.f90
-  ../STELLA_CODE/gyrokinetic_equation/gk_drifts.f90
-  ../STELLA_CODE/read_namelists_from_input_file/namelist_fields.f90
-  ../STELLA_CODE/read_namelists_from_input_file/namelist_dissipation.f90
-  ../STELLA_CODE/read_namelists_from_input_file/namelist_physics_parameters.f90
-  ../STELLA_CODE/read_namelists_from_input_file/namelist_numerical_parameters.f90
-  ../STELLA_CODE/read_namelists_from_input_file/namelist_kxky_grid.f90
-  ../STELLA_CODE/read_namelists_from_input_file/namelist_z_grid.f90
-  ../STELLA_CODE/read_namelists_from_input_file/namelist_species.f90
-  ../STELLA_CODE/read_namelists_from_input_file/namelist_velocity_grids.f90
-  ../STELLA_CODE/read_namelists_from_input_file/namelist_geometry.f90
-  ../STELLA_CODE/read_namelists_from_input_file/namelist_diagnostics.f90
-  ../STELLA_CODE/read_namelists_from_input_file/namelist_debug.f90
-  ../STELLA_CODE/read_namelists_from_input_file/namelist_parallelisation.f90
-  ../STELLA_CODE/read_namelists_from_input_file/namelist_sources.f90
-  ../STELLA_CODE/read_namelists_from_input_file/namelist_neoclassical_input.f90
-  ../STELLA_CODE/read_namelists_from_input_file/namelist_radially_global.f90
-  ../STELLA_CODE/neoclassical/euterpe_interface.f90
+  ../STELLA_CODE/gyrokinetic_equation/reset_timestep.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
   ../STELLA_CODE/parameters/debug_flags.f90
   ../STELLA_CODE/parameters/parameters_diagnostics.f90
-  ../STELLA_CODE/parameters/kxky_grid_parameters.f90
+  ../STELLA_CODE/parameters/parameters_kxky_grid.f90
   ../STELLA_CODE/parameters/parameters_multibox.f90
-  ../STELLA_CODE/parameters/numerical_parameters.f90
-  ../STELLA_CODE/parameters/physics_parameters.f90
+  ../STELLA_CODE/parameters/parameters_numerical.f90
+  ../STELLA_CODE/parameters/parameters_physics.f90
   ../STELLA_CODE/radial_variation/multibox.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_debug.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_diagnostics.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_dissipation.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_fields.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_geometry.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_kxky_grid.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_neoclassical_input.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_numerical_parameters.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_parallelisation.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_physics_parameters.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_radial_variation.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_sources.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_species.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_velocity_grids.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_z_grid.f90
+  ../STELLA_CODE/stella_calculations/stella_common_types.f90
   ../STELLA_CODE/stella_calculations/stella_layouts.f90
   ../STELLA_CODE/stella_calculations/stella_time.f90
-  ../STELLA_CODE/stella_calculations/stella_common_types.f90
+  
 )
 
 # Sources that _do_ need preprocessing (because they have MPI flags, ...)
