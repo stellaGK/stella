@@ -113,6 +113,8 @@ contains
       logical, intent (out) :: write_all_distribution
       logical, intent (out) :: write_all_fluxes
       logical, intent (out) :: write_all_moments
+         
+      !-------------------------------------------------------------------------
 
       if (.not. proc0) return
       call set_default_parameters_diagnostics

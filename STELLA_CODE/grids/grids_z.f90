@@ -16,6 +16,7 @@ module grids_z
    public :: boundary_option_linked_stellarator
    public :: nzed, nperiod, ntubes, shat_zero, dkx_over_dky
    public :: boundary_option, zed_equal_arc, grad_x_grad_y_zero
+   public :: initialised_grids_z
 
    private
 
@@ -31,7 +32,7 @@ module grids_z
                          boundary_option_linked = 3, &
                          boundary_option_linked_stellarator = 4
 
-   logical :: initialised = .false.
+   logical :: initialised_grids_z = .false.
    character(20) :: boundary_option
 
 contains
@@ -51,8 +52,8 @@ contains
 
       integer :: i
 
-      if (initialised) return
-      initialised = .true.
+      if (initialised_grids_z) return
+      initialised_grids_z = .true.
 
       if (proc0) then
          call read_namelist_z_grid(nzed, nperiod, ntubes, zed_equal_arc)
@@ -117,7 +118,7 @@ contains
       if (allocated(zed)) deallocate (zed)
       if (allocated(delzed)) deallocate (delzed)
 
-      initialised = .false.
+      initialised_grids_z = .false.
 
    end subroutine finish_zgrid
 

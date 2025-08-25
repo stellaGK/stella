@@ -132,9 +132,12 @@ contains
 
          implicit none
 
-         initialise_distribution_option = 'maxwellian'
+         ! Initial size of the potential
          phiinit = 1.0
          scale_to_phiinit = .false.
+         
+         ! Text options: {default, maxwellian, noise, many, kpar, rh, remap}
+         initialise_distribution_option = 'maxwellian'
 
       end subroutine set_default_parameters_initialise_distribution
 
