@@ -917,7 +917,7 @@ contains
       use store_arrays_distribution_fn, only: gvmu
       use store_arrays_useful, only: kperp2, dkperp2dr
       use store_arrays_fields, only: phi_corr_QN
-      use g_tofrom_h, only: g_to_h
+      use calculations_tofrom_ghf, only: g_to_h
       use stella_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
@@ -1534,7 +1534,7 @@ contains
       use geometry, only: dl_over_b
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use g_tofrom_h, only: g_to_h
+      use calculations_tofrom_ghf, only: g_to_h
       use arrays_gyro_averages, only: aj0v
       use fields_fluxtube, only: get_fields_fluxtube
       use store_arrays_fields, only: efac, gamtot_h
@@ -1701,7 +1701,7 @@ contains
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use store_arrays_useful, only: kperp2
       use arrays_gyro_averages, only: aj0v, aj1v
-      use g_tofrom_h, only: g_to_h
+      use calculations_tofrom_ghf, only: g_to_h
       use fields_fluxtube, only: get_fields_fluxtube
       use store_arrays_fields, only: efac, gamtot_h
       use geometry, only: bmag, dl_over_b

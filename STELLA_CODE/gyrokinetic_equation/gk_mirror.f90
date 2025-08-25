@@ -649,7 +649,7 @@ contains
       use dist_redistribute, only: kxkyz2vmu, kxyz2vmu
       use fields_electromagnetic, only: advance_apar
       use fields, only: fields_updated
-      use g_tofrom_h, only: gbar_to_g
+      use calculations_tofrom_ghf, only: gbar_to_g
 
       use parameters_numerical, only: time_upwind
       use velocity_grids, only: dvpa
@@ -884,7 +884,7 @@ contains
       use parameters_physics, only: include_apar
       use parameters_numerical, only: vpa_upwind, time_upwind_minus
       use parameters_numerical, only: maxwellian_normalization
-      use g_tofrom_h, only: gbar_to_g
+      use calculations_tofrom_ghf, only: gbar_to_g
       use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
       use finite_differences, only: fd_variable_upwinding_vpa
       use velocity_grids, only: dvpa, vpa, nvpa

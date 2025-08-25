@@ -192,7 +192,7 @@ contains
 
       ! Calculations 
       use diagnostics_fluxes_fluxtube, only: calculate_fluxes_fluxtube
-      use g_tofrom_h, only: g_to_h, g_to_f
+      use calculations_tofrom_ghf, only: g_to_h, g_to_f
 
       implicit none    
 

@@ -103,7 +103,7 @@ contains
         use stella_time, only: cfl_dt_ExB, cfl_dt_linear, code_dt, code_dt_max
         use stella_layouts, only: vmu_lo, imu_idx, is_idx
         
-        use g_tofrom_h, only: g_to_h
+        use calculations_tofrom_ghf, only: g_to_h
         use calculations_gyro_averages, only: gyro_average
         use calculations_kxky_derivatives, only: get_dchidx, get_dchidy
         use calculations_kxky_derivatives, only: get_dgdy, get_dgdx

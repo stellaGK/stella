@@ -85,7 +85,7 @@ contains
       use parameters_diagnostics, only: write_g2_vs_zvpamus 
       
       ! Routines
-      use g_tofrom_h, only: g_to_f, g_to_h
+      use calculations_tofrom_ghf, only: g_to_f, g_to_h
       use job_manage, only: time_message
       use mp, only: proc0
 

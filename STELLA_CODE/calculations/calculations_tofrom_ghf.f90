@@ -1,4 +1,4 @@
-module g_tofrom_h
+module calculations_tofrom_ghf
 
    public :: gbar_to_g
 !  public :: gbar_to_h
@@ -614,4 +614,4 @@ contains
 
 !   end subroutine gstar_to_g
 
-end module g_tofrom_h
+end module calculations_tofrom_ghf

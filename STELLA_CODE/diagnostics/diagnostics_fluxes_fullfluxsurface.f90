@@ -196,7 +196,7 @@ contains
       use parameters_kxky_grid, only: nakx
       use constants, only: zi, pi
       use z_grid, only: ntubes
-      use g_tofrom_h, only: g_to_h
+      use calculations_tofrom_ghf, only: g_to_h
 
       !> For momentum flux
       use arrays_gyro_averages, only: j0_ffs, j1_ffs

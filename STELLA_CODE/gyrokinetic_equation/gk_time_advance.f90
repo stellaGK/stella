@@ -417,7 +417,7 @@ contains
       use parameters_numerical, only: explicit_algorithm_switch, explicit_algorithm_rk3, &
            explicit_algorithm_rk2, explicit_algorithm_rk4, explicit_algorithm_euler
       use fields, only: advance_fields
-      use g_tofrom_h, only: gbar_to_g
+      use calculations_tofrom_ghf, only: gbar_to_g
 
       implicit none
 
@@ -701,7 +701,7 @@ contains
 
       use calculations_kxky, only: swap_kxky_back
       use calculations_gyro_averages, only: gyro_average
-      use g_tofrom_h, only: gbar_to_g 
+      use calculations_tofrom_ghf, only: gbar_to_g 
 
       use parameters_physics, only: include_parallel_nonlinearity
       use parameters_physics, only: include_parallel_streaming
