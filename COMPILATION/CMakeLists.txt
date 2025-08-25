@@ -82,7 +82,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/arrays/arrays_store_distribution_fn.f90
   ../STELLA_CODE/arrays/arrays_store_fields.f90
   ../STELLA_CODE/arrays/arrays_store_useful.f90 
-  ../STELLA_CODE/grids/grids_species_from_euterpe.f90.f90
+  ../STELLA_CODE/grids/grids_species_from_euterpe.f90
   ../STELLA_CODE/grids/grids_extended_zgrid.f90
   ../STELLA_CODE/grids/grids_kxky.f90
   ../STELLA_CODE/grids/grids_species.f90
