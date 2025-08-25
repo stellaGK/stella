@@ -15,7 +15,7 @@ module diagnostics
    integer :: nout = 1
 
    ! Has this module been initialised?
-   logical :: diagnostics_initialized = .false.
+   logical :: diagnostics_initialised = .false.
 
    ! Needed for timing various pieces of the diagnostics
    real, dimension(2, 6) :: time_diagnostics = 0.
@@ -121,7 +121,7 @@ contains
    !======================== INITALIZE THE DIAGNOSTICS =========================
    !============================================================================ 
    ! Initialize the <diagnostics> module. Make sure that the other modules
-   ! are initialized (zgrid, kt_grids, ...). Open/append the netcdf file with
+   ! are initialised (zgrid, kt_grids, ...). Open/append the netcdf file with
    ! extension '.out.nc'. Open/append the ascii files ('.out'; '.fluxes'; '.omega').
    ! Gets called in the <init_stella> subroutine in the <stella> module. 
    subroutine init_diagnostics(restart, tstart, git_commit, git_date)
@@ -135,7 +135,7 @@ contains
       use arrays_distribution_fn, only: init_arrays_distribution_fn
       use arrays_constants, only: init_arrays_vperp_kperp
 
-      use initialise_g_distribution_fn, only: init_init_g
+      use initialise_distribution_fn, only: read_initialise_distribution
       use stella_io, only: init_stella_io, get_nout
       use diagnostics_omega, only: init_diagnostics_omega
       use diagnostics_fluxes, only: init_diagnostics_fluxes 
@@ -154,9 +154,9 @@ contains
       character(len=40), intent(in) :: git_commit 
       character(len=10), intent(in) :: git_date
 
-      ! Only initialize the diagnostics once
-      if (diagnostics_initialized) return
-      diagnostics_initialized = .true.
+      ! Only initialise the diagnostics once
+      if (diagnostics_initialised) return
+      diagnostics_initialised = .true.
 
       ! Should have been taken care off in the <init_stella> subroutine in the <stella> module. 
       ! Nonetheless, make sure that the other routines are intialized.
@@ -165,7 +165,7 @@ contains
       call init_grids_kxky
       call read_parameters_numerical
       call init_species
-      call init_init_g
+      call read_initialise_distribution
       call init_arrays_distribution_fn
       call init_arrays_vperp_kperp
 
@@ -219,7 +219,7 @@ contains
       call finish_diagnostics_potential   
 
       nout = 1
-      diagnostics_initialized = .false.
+      diagnostics_initialised = .false.
 
    end subroutine finish_diagnostics
 

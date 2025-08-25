@@ -69,7 +69,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/dissipation/dissipation.f90
   ../STELLA_CODE/dissipation/hyper.f90
   ../STELLA_CODE/fields/dist_fn.f90
-  ../STELLA_CODE/fields/initialise_g_distribution_fn.f90
+  ../STELLA_CODE/fields/initialise_distribution_fn.f90
   ../STELLA_CODE/geometry/geometry.f90
   ../STELLA_CODE/geometry/geometry_miller.f90
   ../STELLA_CODE/geometry/geometry_vmec.f90

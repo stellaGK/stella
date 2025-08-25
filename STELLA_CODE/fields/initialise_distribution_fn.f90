@@ -1,13 +1,13 @@
 !> This module contains the subroutines which set the initial value of the
 !! fields and the distribution function.
 
-module initialise_g_distribution_fn
+module initialise_distribution_fn
 
    implicit none
    
    ! Public routines
-   public :: ginit, reset_init
-   public :: init_init_g, finish_init_g
+   public :: initialise_distribution, reset_init
+   public :: read_initialise_distribution, finish_initialise_distribution
    
    ! The stella.f90 script will check if we want to call rescale_fields()
    public :: phiinit, scale_to_phiinit
@@ -48,7 +48,7 @@ contains
    !****************************************************************************
    !                          INITIALISE THIS MODULE                           !
    !****************************************************************************
-   subroutine init_init_g
+   subroutine read_initialise_distribution
 
       use stella_save, only: init_save, read_many
       use stella_layouts, only: init_stella_layouts
@@ -127,12 +127,12 @@ contains
       ! Initialize the netcdf saving
       call init_save(restart_file)
 
-   end subroutine init_init_g
+   end subroutine read_initialise_distribution
 
    !****************************************************************************
    !                   INITIALISE THE DISTRIBUTION FUNCTION                    !
    !****************************************************************************
-   subroutine ginit(restarted, istep0)
+   subroutine initialise_distribution(restarted, istep0)
 
       use stella_save, only: init_tstart
       use parameters_numerical, only: maxwellian_normalization
@@ -153,17 +153,17 @@ contains
       istep0 = 0
       select case (init_distribution_switch)
       case (init_distribution_option_maxwellian)
-         call ginit_maxwellian
+         call initialise_distribution_maxwellian
       case (init_distribution_option_noise)
-         call ginit_noise
+         call initialise_distribution_noise
       case (init_distribution_option_kpar)
-         call ginit_kpar
+         call initialise_distribution_kpar
       case (init_distribution_option_rh)
-         call ginit_rh
+         call initialise_distribution_rh
       case (init_distribution_option_remap)
-         call ginit_remap
+         call initialise_distribution_remap
       case (init_distribution_option_restart_many)
-         call ginit_restart_many
+         call initialise_distribution_restart_many
          call init_tstart(tstart, istep0, istatus)
          restarted = .true.
          scale = 1.
@@ -175,12 +175,12 @@ contains
          call normalize_by_maxwellian
       end if
 
-   end subroutine ginit
+   end subroutine initialise_distribution
 
    !****************************************************************************
    !                     INITIALISE POTENTIAL: MAXWELLIAN                      !
    !****************************************************************************
-   subroutine ginit_maxwellian
+   subroutine initialise_distribution_maxwellian
 
       use mp, only: proc0, broadcast
       use constants, only: zi
@@ -274,12 +274,12 @@ contains
                               * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is)
       end do
 
-   end subroutine ginit_maxwellian
+   end subroutine initialise_distribution_maxwellian
 
    !****************************************************************************
    !                       INITIALISE POTENTIAL: NOISE                         !
    !****************************************************************************
-   subroutine ginit_noise
+   subroutine initialise_distribution_noise
 
       use mp, only: proc0, broadcast
       use store_arrays_useful, only: kperp2
@@ -330,7 +330,7 @@ contains
             write (*, *) 'or linear simulations, using default initialization option instead.'
             write (*, *)
          end if
-         call ginit_maxwellian
+         call initialise_distribution_maxwellian
          return
       else
          ! zero out ky=kx=0 mode
@@ -436,12 +436,12 @@ contains
                               * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
       end do
 
-   end subroutine ginit_noise
+   end subroutine initialise_distribution_noise
 
    !****************************************************************************
    !                       INITIALISE POTENTIAL: KPAR                          !
    !****************************************************************************
-   subroutine ginit_kpar 
+   subroutine initialise_distribution_kpar 
    
       use mp, only: proc0, broadcast
       use z_grid, only: nzgrid, zed
@@ -548,12 +548,12 @@ contains
 !    end if
 !    gnew = gold
 
-   end subroutine ginit_kpar
+   end subroutine initialise_distribution_kpar
 
    !****************************************************************************
    !                        INITIALISE POTENTIAL: RH                           !
    !****************************************************************************
-   subroutine ginit_rh
+   subroutine initialise_distribution_rh
 
       use mp, only: proc0, broadcast
       use species, only: spec
@@ -604,12 +604,12 @@ contains
          end if
       end do
 
-   end subroutine ginit_rh
+   end subroutine initialise_distribution_rh
 
    !****************************************************************************
    !                      INITIALISE POTENTIAL: REMAP                          !
    !****************************************************************************
-   subroutine ginit_remap
+   subroutine initialise_distribution_remap
 
       use species, only: spec
       use store_arrays_distribution_fn, only: gvmu
@@ -640,12 +640,12 @@ contains
          end if
       end do
 
-   end subroutine ginit_remap
+   end subroutine initialise_distribution_remap
 
    !****************************************************************************
    !                       INITIALISE POTENTIAL: MANY                          !
    !****************************************************************************
-   subroutine ginit_restart_many
+   subroutine initialise_distribution_restart_many
 
       use store_arrays_distribution_fn, only: gvmu
       use stella_save, only: stella_restore
@@ -666,7 +666,7 @@ contains
          gvmu = 0.
       end if
 
-   end subroutine ginit_restart_many
+   end subroutine initialise_distribution_restart_many
 
    !****************************************************************************
    !                        NORMALIZE BY MAXWELLIAN                            !
@@ -713,7 +713,7 @@ contains
    !****************************************************************************
    !                                                                           !
    !****************************************************************************
-   subroutine finish_init_g
+   subroutine finish_initialise_distribution
 
       use stella_save, only: finish_save
 
@@ -723,6 +723,6 @@ contains
 
       call finish_save
 
-   end subroutine finish_init_g
+   end subroutine finish_initialise_distribution
 
-end module initialise_g_distribution_fn
+end module initialise_distribution_fn

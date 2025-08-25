@@ -74,16 +74,17 @@ program stella
       istep = istep + 1
    end do
 
-   !> Finish stella
+   ! Finish stella
    if (debug) write (*, *) 'stella::finish_stella'
    call finish_stella(last_call=.true.)
 
 contains
 
-   !> Initialise stella
-   !>
-   !> Calls the initialisation routines for all the geometry, physics, and
-   !> diagnostic modules
+   !###############################################################################
+   !############################# INITIALISE STELLA ###############################
+   !###############################################################################
+   ! Calls the initialisation routines for all the geometry, physics, and
+   ! diagnostic modules
    subroutine init_stella(istep0, git_commit, git_date)
 
       use mp, only: init_mp, broadcast, sum_allreduce
@@ -94,53 +95,64 @@ contains
       use file_utils, only: run_name, init_job_name
       use file_utils, only: flush_output_file, error_unit
       use job_manage, only: checktime, time_message
+      use stella_layouts, only: mat_gen, mat_read
+      use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
+      use stella_time, only: init_tstart, init_delt
+      use stella_transforms, only: init_transforms
+      use stella_save, only: init_dt
+
       use parameters_physics, only: read_parameters_physics
       use parameters_physics, only: radial_variation
-      use initialise_g_distribution_fn, only: rng_seed
       use parameters_numerical, only: read_parameters_numerical
       use parameters_numerical, only: avail_cpu_time, nstep, delt, delt_max, delt_min
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_numerical, only: delt_option_switch, delt_option_auto
-      use stella_layouts, only: mat_gen, mat_read
       use parameters_kxky_grid, only: read_parameters_kxky_grid
+      use parameters_diagnostics, only: read_diagnostics_knobs
+      use parameters_kxky_grid, only: naky, nakx, ny, nx, nalpha
+      use parameters_multibox, only: read_multibox_parameters, use_dirichlet_BC
+
+      use geometry, only: init_geometry
+      use geometry, only: finish_init_geometry
+      
       use species, only: init_species, read_species_options
       use species, only: nspec
       use z_grid, only: init_zgrid
       use z_grid, only: nzgrid, ntubes
-      use geometry, only: init_geometry
-      use geometry, only: finish_init_geometry
-      use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
-      use response_matrix, only: init_response_matrix, read_response_matrix
-      use initialise_g_distribution_fn, only: ginit, init_init_g, phiinit, scale_to_phiinit
-      use initialise_g_distribution_fn, only: tstart
+      use extended_zgrid, only: init_extended_zgrid
+      use grids_kxky, only: init_grids_kxky
+      use velocity_grids, only: init_velocity_grids, read_velocity_grids_parameters
+      use velocity_grids, only: nvgrid, nmu
+
+      use initialise_distribution_fn, only: rng_seed
+      use initialise_distribution_fn, only: read_initialise_distribution, initialise_distribution
+      use initialise_distribution_fn, only: phiinit, scale_to_phiinit
+      use initialise_distribution_fn, only: tstart
       use fields, only: init_fields, advance_fields, fields_updated
       use fields_radial_variation, only: get_radial_correction
       use fields, only: rescale_fields
-      use stella_time, only: init_tstart, init_delt
+      
       use diagnostics, only: init_diagnostics
-      use parameters_diagnostics, only: read_diagnostics_knobs
+      
       use store_arrays_fields, only: phi, apar, bpar
       use store_arrays_distribution_fn, only: gnew
       use arrays_distribution_fn, only: init_array_gxyz, init_arrays_distribution_fn
       use arrays_constants, only: init_arrays_vperp_kperp
-      use dist_redistribute, only: init_redistribute
-!      use dist_redistribute, only: test_kymus_to_vmus_redistribute
+
+      use response_matrix, only: init_response_matrix, read_response_matrix
       use gk_time_advance, only: init_time_advance
-      use extended_zgrid, only: init_extended_zgrid
-      use grids_kxky, only: init_grids_kxky
-      use parameters_kxky_grid, only: naky, nakx, ny, nx, nalpha
-      use velocity_grids, only: init_velocity_grids, read_velocity_grids_parameters
-      use velocity_grids, only: nvgrid, nmu
-      use stella_transforms, only: init_transforms
-      use stella_save, only: init_dt
-      use parameters_multibox, only: read_multibox_parameters, use_dirichlet_BC
+      use gk_sources, only: init_sources
+      
       use multibox, only: init_multibox
       use multibox, only: apply_radial_boundary_conditions
       use multibox, only: multibox_communicate
+
       use ran, only: get_rnd_seed_length, init_ranf
       use dissipation, only: init_dissipation
-      use gk_sources, only: init_sources
+      
       use volume_averages, only: init_volume_averages, volume_average
+      use dist_redistribute, only: init_redistribute
+!      use dist_redistribute, only: test_kymus_to_vmus_redistribute
       
       implicit none
 
@@ -239,8 +251,8 @@ contains
       call init_species
       !> read init_g_knobs namelist from the input file
       !> and prepare for reading in from restart file if requested
-      if (debug) write (6, *) "stella::init_stella::init_init_g"
-      call init_init_g
+      if (debug) write (6, *) "stella::init_stella::read_initialise_distribution"
+      call read_initialise_distribution
       !> read knobs namelist from the input file
       !> and the info to determine the mixture of implicit and explicit time advance
       if (debug) write (6, *) "stella::init_stella::init_run_parameters"
@@ -302,8 +314,8 @@ contains
       if (debug) write (6, *) 'stella::init_stella::init_fields'
       call init_fields
       !> initialise the distribution function in the kxkyz_lo and store in gvmu
-      if (debug) write (6, *) "stella::init_stella::ginit"
-      call ginit(restarted, istep0)
+      if (debug) write (6, *) "stella::init_stella::initialise_distribution"
+      call initialise_distribution(restarted, istep0)
       !> use mapping from kxkyz_lo to vmu_lo to get a copy of g that has ky, kx and z local to each core;
       !> stored in gnew and copied to gold
       if (debug) write (6, *) "stella::init_stella::init_array_gxyz"
@@ -590,7 +602,7 @@ contains
       use gk_mirror, only: time_mirror
       use dissipation, only: time_collisions, include_collisions 
       use gk_sources, only: finish_sources, time_sources, source_option_switch, source_option_none
-      use initialise_g_distribution_fn, only: finish_init_g
+      use initialise_distribution_fn, only: finish_initialise_distribution
       use arrays_distribution_fn, only: finish_arrays_distribution_fn
       use arrays_constants, only: finish_arrays_vperp_kperp
       !!! NEED TO FINISH KPERP AND VPERP ARRAYS
@@ -636,8 +648,8 @@ contains
       call finish_arrays_vperp_kperp
       if (debug) write (*, *) 'stella::finish_stella::finish_redistribute'
       call finish_redistribute
-      if (debug) write (*, *) 'stella::finish_stella::finish_init_g'
-      call finish_init_g
+      if (debug) write (*, *) 'stella::finish_stella::finish_initialise_distribution'
+      call finish_initialise_distribution
       if (debug) write (*, *) 'stella::finish_stella::finish_velocity_grids'
       call finish_velocity_grids
       if (debug) write (*, *) 'stella::finish_stella::finish_grids_kxky'
