@@ -42,6 +42,7 @@ module debug_flags
   public :: print_extra_info_to_terminal
 
   public :: debug_test_gyro_average
+  public :: calculations_debug
   
   ! Debug flug for debugging full flux surface
   ! This will set the geometry of all field lines to be equation to
@@ -92,6 +93,7 @@ module debug_flags
   logical :: print_extra_info_to_terminal
 
   logical :: debug_test_gyro_average
+  logical :: calculations_debug
 
 contains
 
@@ -111,7 +113,7 @@ contains
                     diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
                     diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
                     gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo, print_extra_info_to_terminal, &
-                    debug_test_gyro_average)
+                    debug_test_gyro_average, calculations_debug)
 
     call broadcast_parameters
 
@@ -151,7 +153,7 @@ contains
         call broadcast(const_alpha_geo)
         call broadcast(print_extra_info_to_terminal) 
         call broadcast(debug_test_gyro_average)
-
+        call broadcast(calculations_debug)
       end subroutine broadcast_parameters
 
   end subroutine read_debug_flags

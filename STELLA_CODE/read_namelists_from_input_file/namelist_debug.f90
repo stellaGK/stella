@@ -21,7 +21,7 @@ contains
                     diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
                     diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
                     gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo, print_extra_info_to_terminal, &
-                    debug_test_gyro_average)
+                    debug_test_gyro_average, calculations_debug)
 
         use mp, only: proc0
 
@@ -34,7 +34,7 @@ contains
             diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
             diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
             gyro_averages_debug, fluxes_debug, geometry_debug, const_alpha_geo, print_extra_info_to_terminal, &
-            debug_test_gyro_average
+            debug_test_gyro_average, calculations_debug
 
         if (.not. proc0) return
         call set_default_parameters_debug_flags
@@ -86,6 +86,7 @@ contains
             const_alpha_geo = .false. 
 
             debug_test_gyro_average = .false.
+            calculations_debug = .false.
 
         end subroutine set_default_parameters_debug_flags
 
@@ -103,7 +104,7 @@ contains
                 diagnostics_all_debug, diagnostics_parameters, diagnostics_fluxes_fluxtube_debug, &
                 diagnostics_omega_debug, diagnostics_debug, dist_fn_debug,&
                 gyro_averages_debug, fluxes_debug, geometry_debug,  const_alpha_geo, print_extra_info_to_terminal, &
-                debug_test_gyro_average
+                debug_test_gyro_average, calculations_debug
 
             in_file = input_unit_exist("debug_flags", dexist)
             if (dexist) read (unit=in_file, nml=debug_flags)
@@ -136,6 +137,7 @@ contains
                 geometry_debug = .true. 
                 
                 print_extra_info_to_terminal = .true. 
+                calculations_debug = .true.
             end if
 
             if(diagnostics_all_debug) then
