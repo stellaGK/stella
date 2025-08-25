@@ -87,7 +87,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/grids/store_arrays_distribution_fn.f90
   ../STELLA_CODE/grids/store_arrays_fields.f90
   ../STELLA_CODE/grids/store_arrays_useful.f90 
-  ../STELLA_CODE/grids/z_grid.f90
+  ../STELLA_CODE/grids/grids_z.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_ffs_solve.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_radial_variation.f90
   ../STELLA_CODE/gyrokinetic_equation/reset_timestep.f90
