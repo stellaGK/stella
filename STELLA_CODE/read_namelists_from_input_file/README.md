@@ -14,7 +14,7 @@ we can check if any input variables are clashing with each other.
 
 ### Namelists
 
-An overview of all default input parameters of stella can be found in 
+An overview of all default input parameters of stella can be found in:
    STELLA_CODE/read_namelists_from_input_file/default_input_file.in
 
 Overview of stella namelists:
@@ -34,11 +34,14 @@ PHYSICS
   electromagnetic
   flow_shear
   physics_inputs
-  
-GRIDS
+
+KINETIC SPECIES
   species_options
   species_parameters_1
   species_parameters_2
+  euterpe_parameters
+  
+GRIDS
   kxky_grid_option
   kxky_grid_range
   kxky_grid_box
@@ -55,7 +58,7 @@ DIAGNOSTICS
   diagnostics_moments
 
 INITIALIZE FIELDS
-  initialize_distribution (renamed from init_g_knobs)
+  initialize_distribution
   initialize_distribution_maxwellian
   initialize_distribution_noise
   initialize_distribution_kpar
@@ -63,9 +66,9 @@ INITIALIZE FIELDS
   restart_options
 
 DISSIPATION AND COLLISIONS
-  dissipation_and_collisions_options (renamed from &dissipation)
+  dissipation_and_collisions_options
   collisions_dougherty
-  collisions_fokker_planck (renamed from &collisions_fp)
+  collisions_fokker_planck
   hyper_dissipation
 
 TIME TRACE
@@ -75,18 +78,17 @@ TIME TRACE
 NUMERICS
   numerical_algorithms
   numerical_upwinding_for_derivatives
-  full_flux_surface
+  flux_annulus
 
 NEOCLASSICS
   neoclassical_input
-  euterpe_parameters
-  sources
 
 RADIAL VARIATION
-  radial_variation
+  multibox_parameters
+  sources
 
 PARALLELISATION
-  parallelisation (renamed from &layout_knobs)
+  parallelisation
 
 VERBOSE
   debug_flags
