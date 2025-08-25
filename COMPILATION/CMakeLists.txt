@@ -79,9 +79,9 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/grids/arrays_constants.f90
   ../STELLA_CODE/grids/arrays_distribution_fn.f90
   ../STELLA_CODE/grids/arrays_gyro_averages.f90
-  ../STELLA_CODE/grids/store_arrays_distribution_fn.f90
-  ../STELLA_CODE/grids/store_arrays_fields.f90
-  ../STELLA_CODE/grids/store_arrays_useful.f90 
+  ../STELLA_CODE/grids/arrays_store_distribution_fn.f90
+  ../STELLA_CODE/grids/arrays_store_fields.f90
+  ../STELLA_CODE/grids/arrays_store_useful.f90 
   ../STELLA_CODE/grids/euterpe_interface.f90
   ../STELLA_CODE/grids/grids_extended_zgrid.f90
   ../STELLA_CODE/grids/grids_kxky.f90
@@ -97,7 +97,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/gyrokinetic_equation/gk_parallel_streaming.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_radial_variation.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_time_advance.f90
-  ../STELLA_CODE/gyrokinetic_equation/reset_timestep.f90
+  ../STELLA_CODE/gyrokinetic_equation/timestep_calculations.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
   ../STELLA_CODE/parameters/debug_flags.f90
   ../STELLA_CODE/parameters/parameters_diagnostics.f90

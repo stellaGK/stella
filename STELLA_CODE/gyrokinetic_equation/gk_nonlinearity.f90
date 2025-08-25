@@ -128,7 +128,7 @@ contains
         use grids_kxky, only: x
         use geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
 
-         use reset_timestep, only: reset_dt
+        use timestep_calculations, only: reset_dt
 
         implicit none
 
@@ -423,7 +423,7 @@ contains
         use grids_extended_zgrid, only: fill_zed_ghost_zones
 
         use arrays_store_useful, only: time_parallel_nl
-         use reset_timestep, only: reset_dt
+        use timestep_calculations, only: reset_dt
 
         implicit none
 
