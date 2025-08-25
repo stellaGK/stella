@@ -83,8 +83,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/grids/extended_z_grid.f90
   ../STELLA_CODE/grids/grids_kxky.f90
   ../STELLA_CODE/grids/species.f90
-  ../STELLA_CODE/grids/stella_layouts.f90
-  ../STELLA_CODE/grids/stella_time.f90
   ../STELLA_CODE/grids/store_arrays_distribution_fn.f90
   ../STELLA_CODE/grids/store_arrays_fields.f90
   ../STELLA_CODE/grids/store_arrays_useful.f90 
@@ -125,12 +123,14 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/parameters/numerical_parameters.f90
   ../STELLA_CODE/parameters/physics_parameters.f90
   ../STELLA_CODE/radial_variation/multibox.f90
+  ../STELLA_CODE/stella_calculations/stella_layouts.f90
+  ../STELLA_CODE/stella_calculations/stella_time.f90
 )
 
 # Sources that _do_ need preprocessing (because they have MPI flags, ...)
 set(STELLA_SOURCES_fpp
-  ../STELLA_CODE/diagnostics/stella_io.fpp
-  ../STELLA_CODE/diagnostics/stella_save.fpp
+  ../STELLA_CODE/stella_calculations/stella_io.fpp
+  ../STELLA_CODE/stella_calculations/stella_save.fpp
   ../STELLA_CODE/fields/fields.fpp
   ../STELLA_CODE/fields/fields_fluxtube.fpp
   ../STELLA_CODE/fields/fields_electromagnetic.fpp

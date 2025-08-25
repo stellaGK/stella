@@ -2,6 +2,13 @@ module stella_time
 
    implicit none
 
+   public :: code_dt, update_time, code_dt_old
+   public :: code_time
+   public :: write_dt
+   public :: init_tstart, init_delt, checkcodedt
+   public :: cfl_dt_linear, cfl_dt_ExB, cfl_dt_parallel
+   public :: code_dt_min, code_dt_max
+
    private
 
    real :: cfl_dt_linear = -1.
@@ -13,13 +20,6 @@ module stella_time
    ! in exb_shear calculation after change in time step size
    real :: code_dt_old = 0.
    real :: code_time = 0.
-
-   public :: code_dt, update_time, code_dt_old
-   public :: code_time
-   public :: write_dt
-   public :: init_tstart, init_delt, checkcodedt
-   public :: cfl_dt_linear, cfl_dt_ExB, cfl_dt_parallel
-   public :: code_dt_min, code_dt_max
 
 contains
 
