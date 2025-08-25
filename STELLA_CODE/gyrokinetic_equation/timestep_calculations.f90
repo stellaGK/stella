@@ -1,13 +1,13 @@
 module timestep_calculations
 
-    use debug_flags, only: debug => time_advance_debug
+   use debug_flags, only: debug => time_advance_debug
 
-    implicit none
+   implicit none
 
-    public :: init_cfl
-    public :: reset_dt
+   public :: init_cfl
+   public :: reset_dt
 
-    private
+   private
     
 contains
     
