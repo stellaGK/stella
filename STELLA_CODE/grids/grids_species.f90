@@ -81,7 +81,7 @@ contains
       use parameters_multibox, only: include_pressure_variation
       use parameters_physics, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       use geometry_inputprofiles_interface, only: read_inputprof_spec
-      use euterpe_interface, only: read_species_euterpe !! CHANGE
+      use grids_species_from_euterpe, only: read_species_euterpe !! CHANGE
       use namelist_species, only: read_namelist_species_stella
 
       use parameters_physics, only: full_flux_surface

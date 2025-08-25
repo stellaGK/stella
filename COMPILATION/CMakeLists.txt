@@ -76,13 +76,13 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/geometry/geometry_vmec.f90
   ../STELLA_CODE/geometry/geometry_zpinch.f90
   ../STELLA_CODE/geometry/geometry.f90
-  ../STELLA_CODE/grids/arrays_constants.f90
-  ../STELLA_CODE/grids/arrays_distribution_fn.f90
-  ../STELLA_CODE/grids/arrays_gyro_averages.f90
-  ../STELLA_CODE/grids/arrays_store_distribution_fn.f90
-  ../STELLA_CODE/grids/arrays_store_fields.f90
-  ../STELLA_CODE/grids/arrays_store_useful.f90 
-  ../STELLA_CODE/grids/euterpe_interface.f90
+  ../STELLA_CODE/arrays/arrays_constants.f90
+  ../STELLA_CODE/arrays/arrays_distribution_fn.f90
+  ../STELLA_CODE/arrays/arrays_gyro_averages.f90
+  ../STELLA_CODE/arrays/arrays_store_distribution_fn.f90
+  ../STELLA_CODE/arrays/arrays_store_fields.f90
+  ../STELLA_CODE/arrays/arrays_store_useful.f90 
+  ../STELLA_CODE/grids/grids_species_from_euterpe.f90.f90
   ../STELLA_CODE/grids/grids_extended_zgrid.f90
   ../STELLA_CODE/grids/grids_kxky.f90
   ../STELLA_CODE/grids/grids_species.f90

@@ -53,14 +53,15 @@ export FIELDS=$(STELLA_DIR)/fields
 export STELLA_CALCULATIONS=$(STELLA_DIR)/stella_calculations
 export GEOMETRY=$(STELLA_DIR)/geometry
 export GRIDS=$(STELLA_DIR)/grids
+export ARRAYS=$(STELLA_DIR)/arrays
 export GYROKINETIC_EQUATION=$(STELLA_DIR)/gyrokinetic_equation
 export NEOCLASSICAL=$(STELLA_DIR)/neoclassical
 export PARAMETERS=$(STELLA_DIR)/parameters
 export INPUT_PARAMETERS=$(STELLA_DIR)/read_namelists_from_input_file
 export RADIAL_VARIATION=$(STELLA_DIR)/radial_variation
-SUBFOLDERS := $(CALCULATIONS) $(DIAGNOSTICS) $(COLLISIONS) $(FIELDS) $(STELLA_CALCULATIONS) $(GEOMETRY) $(GRIDS) 
+SUBFOLDERS := $(CALCULATIONS) $(DIAGNOSTICS) $(COLLISIONS) $(FIELDS) $(STELLA_CALCULATIONS) $(GEOMETRY) $(GRIDS) $(ARRAYS)
 SUBFOLDERS := $(SUBFOLDERS) $(GYROKINETIC_EQUATION) $(NEOCLASSICAL) $(PARAMETERS) $(INPUT_PARAMETERS) $(RADIAL_VARIATION)
-VPATH_SUBFOLDERS := :$(CALCULATIONS):$(DIAGNOSTICS):$(COLLISIONS):$(FIELDS):$(STELLA_CALCULATIONS):$(GEOMETRY):$(GRIDS):
+VPATH_SUBFOLDERS := :$(CALCULATIONS):$(DIAGNOSTICS):$(COLLISIONS):$(FIELDS):$(STELLA_CALCULATIONS):$(GEOMETRY):$(GRIDS):$(ARRAYS)
 VPATH_SUBFOLDERS := :$(VPATH_SUBFOLDERS):$(GYROKINETIC_EQUATION):$(NEOCLASSICAL):$(PARAMETERS):$(INPUT_PARAMETERS):$(RADIAL_VARIATION):
 
 # Check directories
@@ -262,6 +263,9 @@ $(OBJ)/%.o: $(GEOMETRY)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 $(OBJ)/%.o: $(GRIDS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
+$(OBJ)/%.o: $(ARRAYS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
+	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
+	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(GYROKINETIC_EQUATION)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
@@ -421,7 +425,7 @@ remove-stella-files:
 remove-temp-files:
 	@echo "   - remove temp files" 
 	@-rm -f $(UTILS)/*~ $(CALCULATIONS)/*~ $(DIAGNOSTICS)/*~ $(COLLISIONS)/*~ 
-	@-rm -f $(FIELDS)/*~ $(GEOMETRY)/*~ $(GRIDS)/*~ $(GYROKINETIC_EQUATION)/*~ $(STELLA_CALCULATIONS)/*~ 
+	@-rm -f $(FIELDS)/*~ $(GEOMETRY)/*~ $(GRIDS)/*~ $(ARRAYS)/*~ $(GYROKINETIC_EQUATION)/*~ $(STELLA_CALCULATIONS)/*~ 
 	@-rm -f $(NEOCLASSICAL)/*~ $(PARAMETERS)/*~ $(RADIAL_VARIATION)/*~ 
 
 # In case cmake was used, clean it up as well

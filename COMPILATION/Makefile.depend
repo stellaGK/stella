@@ -36,7 +36,6 @@ stella_mod = \
 	 $(OBJ_DIR)/dissipation_coll_dougherty.o \
 	 $(OBJ_DIR)/dissipation_coll_fokkerplanck.o \
 	 $(OBJ_DIR)/dissipation_hyper.o \
-	 $(OBJ_DIR)/euterpe_interface.o \
 	 $(OBJ_DIR)/fft_work.o \
 	 $(OBJ_DIR)/fields.o \
 	 $(OBJ_DIR)/fields_collisions.o \
@@ -66,6 +65,7 @@ stella_mod = \
 	 $(OBJ_DIR)/grids_extended_zgrid.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/grids_species.o \
+	 $(OBJ_DIR)/grids_species_from_euterpe.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/initialise_distribution_fn.o \
@@ -502,14 +502,6 @@ $(OBJ_DIR)/dissipation_hyper.o: \
 	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/stella_layouts.o \
 	 $(OBJ_DIR)/stella_time.o 
-$(OBJ_DIR)/euterpe_interface.o: \
-	 $(OBJ_DIR)/calculations_finite_differences.o \
-	 $(OBJ_DIR)/geometry.o \
-	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/namelist_species.o \
-	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/spl.o \
-	 $(OBJ_DIR)/stella_common_types.o 
 $(OBJ_DIR)/ezcdf.o: \
 	 $(OBJ_DIR)/ezcdf_GenGet.o \
 	 $(OBJ_DIR)/ezcdf_opncls.o 
@@ -948,14 +940,22 @@ $(OBJ_DIR)/grids_kxky.o: \
 	 $(OBJ_DIR)/ran.o \
 	 $(OBJ_DIR)/stella_common_types.o 
 $(OBJ_DIR)/grids_species.o: \
-	 $(OBJ_DIR)/euterpe_interface.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/geometry_inputprofiles_interface.o \
+	 $(OBJ_DIR)/grids_species_from_euterpe.o \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/namelist_species.o \
 	 $(OBJ_DIR)/parameters_multibox.o \
 	 $(OBJ_DIR)/parameters_physics.o \
+	 $(OBJ_DIR)/stella_common_types.o 
+$(OBJ_DIR)/grids_species_from_euterpe.o: \
+	 $(OBJ_DIR)/calculations_finite_differences.o \
+	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/namelist_species.o \
+	 $(OBJ_DIR)/parameters_physics.o \
+	 $(OBJ_DIR)/spl.o \
 	 $(OBJ_DIR)/stella_common_types.o 
 $(OBJ_DIR)/grids_velocity.o: \
 	 $(OBJ_DIR)/constants.o \

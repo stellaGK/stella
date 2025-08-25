@@ -164,7 +164,7 @@ The `gyrokinetic_terms` folder contains the following scripts:
 
 The `neoclassical` folder contains the following scripts:
 
-- euterpe_interface.f90
+- grids_species_from_euterpe.f90
 - neoclassical_terms.f90
 - sfincs_interface.fpp
 

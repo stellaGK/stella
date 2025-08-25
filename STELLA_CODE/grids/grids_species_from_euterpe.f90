@@ -1,4 +1,4 @@
-module euterpe_interface
+module grids_species_from_euterpe
 
    implicit none
 
@@ -206,4 +206,4 @@ contains
 
    end subroutine read_species_euterpe
 
-end module euterpe_interface
+end module grids_species_from_euterpe
