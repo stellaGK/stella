@@ -303,7 +303,7 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use geometry, only: bmag
-      use store_arrays_useful, only: kperp2
+      use arrays_store_useful, only: kperp2
       use parameters_physics, only: zeff
       use constants, only: pi
       use stella_common_types, only: spec_type
@@ -1557,7 +1557,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_species, only: spec, nspec
       use geometry, only: bmag
       use parameters_kxky_grid, only: naky, nakx
-      use store_arrays_useful, only: kperp2
+      use arrays_store_useful, only: kperp2
       use file_utils, only: open_output_file, close_output_file
 
       implicit none
@@ -2517,7 +2517,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_velocity, only: ztmax, maxwell_mu, nmu, nvpa, set_vpa_weights
       use parameters_kxky_grid, only: naky, nakx
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx, it_idx
-      use store_arrays_distribution_fn, only: gvmu
+      use arrays_store_distribution_fn, only: gvmu
       use fields_fluxtube, only: get_fields_fluxtube
       use fields_collisions, only: get_fields_by_spec_idx
       use job_manage, only: time_message, timer_local
@@ -3262,7 +3262,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use stella_layouts, only: vmu_lo, kxkyz_lo
       use stella_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
       use calculations_redistribute, only: kxkyz2vmu
-      use store_arrays_distribution_fn, only: gvmu
+      use arrays_store_distribution_fn, only: gvmu
       use calculations_tofrom_ghf, only: g_to_h
 
       implicit none
@@ -3496,7 +3496,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_velocity, only: nmu, mu, dmu, vpa, dvpa, nvpa, maxwell_vpa, equally_spaced_mu_grid
       use geometry, only: bmag
       use grids_species, only: spec
-      use store_arrays_useful, only: kperp2
+      use arrays_store_useful, only: kperp2
       use constants, only: pi
       use job_manage, only: timer_local, time_message
 
@@ -3792,7 +3792,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_velocity, only: nmu, mu, dmu, vpa, dvpa, nvpa, maxwell_vpa, equally_spaced_mu_grid
       use geometry, only: bmag
       use grids_species, only: spec
-      use store_arrays_useful, only: kperp2
+      use arrays_store_useful, only: kperp2
       use constants, only: pi
       use job_manage, only: timer_local, time_message
 
@@ -3952,7 +3952,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       use grids_z, only: nzgrid
       use grids_velocity, only: set_vpa_weights
-      use store_arrays_distribution_fn, only: gvmu
+      use arrays_store_distribution_fn, only: gvmu
 
       implicit none
 

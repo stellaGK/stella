@@ -23,9 +23,9 @@ contains
     subroutine init_wdrift
 
         use mp, only: mp_abort
-        use store_arrays_distribution_fn, only: wdriftx_g, wdrifty_g
-        use store_arrays_distribution_fn, only: wdriftx_phi, wdrifty_phi
-        use store_arrays_distribution_fn, only: wdriftx_bpar, wdrifty_bpar
+        use arrays_store_distribution_fn, only: wdriftx_g, wdrifty_g
+        use arrays_store_distribution_fn, only: wdriftx_phi, wdrifty_phi
+        use arrays_store_distribution_fn, only: wdriftx_bpar, wdrifty_bpar
         use stella_layouts, only: vmu_lo
         use stella_layouts, only: iv_idx, imu_idx, is_idx
         use stella_time, only: code_dt
@@ -45,7 +45,7 @@ contains
         use parameters_numerical, only: maxwellian_normalization
 
         use parameters_physics, only: xdriftknob, ydriftknob
-        use store_arrays_useful, only: wdriftinit
+        use arrays_store_useful, only: wdriftinit
         implicit none
 
         integer :: ivmu, iv, imu, is
@@ -193,13 +193,13 @@ contains
         use geometry, only: dydalpha, drhodpsi, clebsch_factor
         use grids_velocity, only: vperp2, vpa
         use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-        use store_arrays_distribution_fn, only: wstar
+        use arrays_store_distribution_fn, only: wstar
         use neoclassical_terms, only: include_neoclassical_terms
         use neoclassical_terms, only: dfneo_drho
         use parameters_numerical, only: maxwellian_normalization
 
         use parameters_physics, only: wstarknob
-        use store_arrays_useful, only: wstarinit
+        use arrays_store_useful, only: wstarinit
 
         implicit none
 
@@ -263,18 +263,18 @@ contains
 
         use mp, only: proc0, mp_abort
         use job_manage, only: time_message
-        use store_arrays_fields, only: apar, bpar
+        use arrays_store_fields, only: apar, bpar
         use stella_layouts, only: vmu_lo
         use calculations_transforms, only: transform_ky2y
         use grids_z, only: nzgrid, ntubes
         use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
         use calculations_kxky, only: swap_kxky
         use parameters_physics, only: full_flux_surface
-        use store_arrays_distribution_fn, only: wstar, g_scratch
+        use arrays_store_distribution_fn, only: wstar, g_scratch
         use calculations_gyro_averages, only: gyro_average
 
         use calculations_kxky_derivatives, only: get_dgdy, get_dchidy
-        use store_arrays_useful, only: time_gke
+        use arrays_store_useful, only: time_gke
 
         implicit none
 
@@ -342,12 +342,12 @@ contains
         use calculations_kxky, only: swap_kxky
         use parameters_physics, only: full_flux_surface, include_bpar
         use calculations_gyro_averages, only: gyro_average, gyro_average_j1
-        use store_arrays_distribution_fn, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
-        use store_arrays_distribution_fn, only: g_scratch
+        use arrays_store_distribution_fn, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
+        use arrays_store_distribution_fn, only: g_scratch
 
         use calculations_kxky_derivatives, only: get_dgdy
 
-        use store_arrays_useful, only: time_gke
+        use arrays_store_useful, only: time_gke
 
         implicit none
 
@@ -453,11 +453,11 @@ contains
         use calculations_kxky, only: swap_kxky
         use parameters_physics, only: full_flux_surface, include_bpar
         use calculations_gyro_averages, only: gyro_average
-        use store_arrays_distribution_fn, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
-        use store_arrays_distribution_fn, only: g_scratch
+        use arrays_store_distribution_fn, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
+        use arrays_store_distribution_fn, only: g_scratch
         use calculations_kxky_derivatives, only: get_dgdx
 
-        use store_arrays_useful, only: time_gke
+        use arrays_store_useful, only: time_gke
 
         implicit none
 
@@ -611,9 +611,9 @@ contains
     !*****************************************************************************
     subroutine finish_wdrift
 
-        use store_arrays_distribution_fn, only: wdriftx_g, wdrifty_g
-        use store_arrays_distribution_fn, only: wdriftx_phi, wdrifty_phi
-        use store_arrays_useful, only: wdriftinit
+        use arrays_store_distribution_fn, only: wdriftx_g, wdrifty_g
+        use arrays_store_distribution_fn, only: wdriftx_phi, wdrifty_phi
+        use arrays_store_useful, only: wdriftinit
 
         implicit none
 
@@ -628,8 +628,8 @@ contains
 
     subroutine finish_wstar 
 
-        use store_arrays_distribution_fn, only: wstar, wstarp
-        use store_arrays_useful, only: wstarinit
+        use arrays_store_distribution_fn, only: wstar, wstarp
+        use arrays_store_useful, only: wstarinit
 
         implicit none
 

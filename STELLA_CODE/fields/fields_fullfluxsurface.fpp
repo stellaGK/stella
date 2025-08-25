@@ -41,8 +41,8 @@ contains
       use parameters_physics, only: fphi
       use parameters_kxky_grid, only: nakx, ikx_max, naky, naky_all
       !> Arrays
-      use store_arrays_fields, only: gamtot
-      use store_arrays_fields, only: gamtot3
+      use arrays_store_fields, only: gamtot
+      use arrays_store_fields, only: gamtot3
       !> Grids
       use grids_kxky, only: akx, zonal_mode
       use grids_species, only: spec, has_electron_species
@@ -288,7 +288,7 @@ contains
       !> Parameters
       use parameters_kxky_grid, only: naky, nakx
       !> Arrays
-      use store_arrays_fields, only: gamtot
+      use arrays_store_fields, only: gamtot
       !> Grids
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: akx
@@ -430,9 +430,9 @@ contains
       use parameters_kxky_grid, only: nalpha, ikx_max, naky_all, naky, nakx
       use parameters_physics, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       !> Arrays
-      use store_arrays_useful, only: kperp2
-      use store_arrays_fields, only: gamtot, gamtot3 
-      use store_arrays_fields, only: efac, gamtot_h 
+      use arrays_store_useful, only: kperp2
+      use arrays_store_fields, only: gamtot, gamtot3 
+      use arrays_store_fields, only: efac, gamtot_h 
       !> Grids
       use grids_species, only: spec, nspec
       use grids_species, only: adiabatic_electrons

@@ -129,7 +129,7 @@ The `geometry` folder contains the following scripts:
 
 The `grids` folder contains the following scripts:
 
-- store_arrays_distribution_fn.f90
+- arrays_store_distribution_fn.f90
 - arrays_fields.f90
 - stella_common_types.f90
 - extended_zgrid.f90

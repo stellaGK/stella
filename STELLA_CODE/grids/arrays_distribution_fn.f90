@@ -28,8 +28,8 @@ contains
         use grids_z, only: nzgrid, ntubes
         use parameters_kxky_grid, only: naky, nakx
         use grids_velocity, only: nvpa, nmu
-        use store_arrays_distribution_fn, only: gnew, gold, g_scratch
-        use store_arrays_distribution_fn, only: gvmu, g_kymus
+        use arrays_store_distribution_fn, only: gnew, gold, g_scratch
+        use arrays_store_distribution_fn, only: gvmu, g_kymus
         use parameters_numerical, only: split_parallel_dynamics
         
         implicit none
@@ -75,7 +75,7 @@ contains
 
     subroutine init_array_gxyz(restarted)
 
-        use store_arrays_distribution_fn, only: gvmu, gold, gnew
+        use arrays_store_distribution_fn, only: gvmu, gold, gnew
         use redistribute, only: gather, scatter
         use calculations_redistribute, only: kxkyz2vmu
         use parameters_physics, only: radial_variation
@@ -150,7 +150,7 @@ contains
     !> The gxyz arrays are used in the Krook operator and projection method.
     subroutine init_gxyz(restarted)
 
-        use store_arrays_distribution_fn, only: gvmu, gold, gnew
+        use arrays_store_distribution_fn, only: gvmu, gold, gnew
         use redistribute, only: gather, scatter
         use calculations_redistribute, only: kxkyz2vmu
         use parameters_physics, only: radial_variation
@@ -221,7 +221,7 @@ contains
     !> them and resetting the initialised flags.
     subroutine finish_arrays_distribution_fn
 
-        use store_arrays_distribution_fn, only: gnew, gold, g_scratch, gvmu, g_kymus
+        use arrays_store_distribution_fn, only: gnew, gold, g_scratch, gvmu, g_kymus
 
         implicit none
 

@@ -54,8 +54,8 @@ contains
       use parameters_physics, only: include_apar
       
       ! Fields
-      use store_arrays_fields, only: phi, phi_old
-      use store_arrays_fields, only: apar, apar_old
+      use arrays_store_fields, only: phi, phi_old
+      use arrays_store_fields, only: apar, apar_old
       
       ! Grids
       use parameters_kxky_grid, only: nakx, naky 

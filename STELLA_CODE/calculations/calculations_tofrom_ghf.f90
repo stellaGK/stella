@@ -270,7 +270,7 @@ contains
       use grids_z, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use geometry, only: bmag, dBdrho
-      use store_arrays_useful, only: kperp2, dkperp2dr
+      use arrays_store_useful, only: kperp2, dkperp2dr
       use parameters_kxky_grid, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -465,7 +465,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use geometry, only: bmag, dBdrho
-      use store_arrays_useful, only: kperp2, dkperp2dr
+      use arrays_store_useful, only: kperp2, dkperp2dr
       use parameters_kxky_grid, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, vperp2, mu, vpa

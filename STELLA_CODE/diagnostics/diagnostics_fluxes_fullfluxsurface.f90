@@ -32,7 +32,7 @@ contains
       use grids_z, only: nzgrid, delzed
       use parameters_kxky_grid, only: naky, nakx, ny
       use grids_kxky, only: aky, dy
-      use store_arrays_fields, only: phi
+      use arrays_store_fields, only: phi
       use geometry, only: grad_x, jacob
 
       implicit none
@@ -188,9 +188,9 @@ contains
       use grids_velocity, only: vpa, vperp2
       use parameters_kxky_grid, only: naky_all, ikx_max, ny
       use calculations_kxky, only: swap_kxky
-      use store_arrays_distribution_fn, only: g0, g1, g2
+      use arrays_store_distribution_fn, only: g0, g1, g2
       use calculations_gyro_averages, only: gyro_average
-      use store_arrays_fields, only: phi
+      use arrays_store_fields, only: phi
       use calculations_transforms, only: transform_ky2y
       use grids_kxky, only: aky, theta0
       use parameters_kxky_grid, only: nakx

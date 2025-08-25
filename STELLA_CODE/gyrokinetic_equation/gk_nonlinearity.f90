@@ -34,7 +34,7 @@ contains
         use parameters_physics, only: radial_variation
 
         use parameters_physics, only: ydriftknob
-        use store_arrays_useful, only: parnlinit
+        use arrays_store_useful, only: parnlinit
 
         implicit none
 
@@ -109,10 +109,10 @@ contains
         use calculations_kxky_derivatives, only: get_dgdy, get_dgdx
         use calculations_kxky, only: swap_kxky, swap_kxky_back
 
-        use store_arrays_fields, only: phi, apar, bpar, shift_state
-        use store_arrays_fields, only: phi_corr_QN, phi_corr_GA
-        use store_arrays_distribution_fn, only: g_scratch
-        use store_arrays_useful, only: time_gke
+        use arrays_store_fields, only: phi, apar, bpar, shift_state
+        use arrays_store_fields, only: phi_corr_QN, phi_corr_GA
+        use arrays_store_distribution_fn, only: g_scratch
+        use arrays_store_useful, only: time_gke
         
         use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
         use parameters_physics, only: g_exb, g_exbfac, fphi
@@ -400,7 +400,7 @@ contains
         use calculations_finite_differences, only: second_order_centered_zed
         use calculations_finite_differences, only: third_order_upwind
         use redistribute, only: gather, scatter
-        use store_arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
+        use arrays_store_fields, only: phi, phi_corr_QN, phi_corr_GA
         use calculations_transforms, only: transform_ky2y, transform_y2ky
         use calculations_transforms, only: transform_kx2x, transform_x2kx
         use stella_time, only: cfl_dt_parallel, cfl_dt_linear, code_dt, code_dt_max
@@ -421,7 +421,7 @@ contains
         use file_utils, only: runtype_option_switch, runtype_multibox
         use grids_extended_zgrid, only: fill_zed_ghost_zones
 
-        use store_arrays_useful, only: time_parallel_nl
+        use arrays_store_useful, only: time_parallel_nl
          use reset_timestep, only: reset_dt
 
         implicit none
@@ -688,7 +688,7 @@ contains
     !****************************************************************************
     subroutine finish_parallel_nonlinearity
 
-        use store_arrays_useful, only: parnlinit
+        use arrays_store_useful, only: parnlinit
 
         implicit none
 

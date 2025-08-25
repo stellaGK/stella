@@ -51,7 +51,7 @@ contains
    ! init_array_kperp2 allocates and initialises the kperp2 array
    subroutine init_array_kperp2
 
-      use store_arrays_useful, only: kperp2
+      use arrays_store_useful, only: kperp2
       use geometry, only: gds2, gds21, gds22
       use geometry, only: geo_surf, q_as_x
       use grids_z, only: nzgrid
@@ -101,7 +101,7 @@ contains
    ! init_dkperp2dr allocates and initialises the dkperp2dr array, needed for radial variation
    subroutine init_dkperp2dr
 
-      use store_arrays_useful, only: kperp2, dkperp2dr
+      use arrays_store_useful, only: kperp2, dkperp2dr
       use geometry, only: dgds2dr, dgds21dr, dgds22dr
       use geometry, only: geo_surf, q_as_x
       use grids_z, only: nzgrid
@@ -149,7 +149,7 @@ contains
 
    subroutine enforce_single_valued_kperp2
 
-      use store_arrays_useful, only: kperp2
+      use arrays_store_useful, only: kperp2
       use parameters_kxky_grid, only: naky, nalpha
       use grids_z, only: nzgrid
       use grids_extended_zgrid, only: neigen, nsegments, ikxmod
@@ -214,7 +214,7 @@ contains
 
    subroutine finish_kperp2
 
-      use store_arrays_useful, only: kperp2, dkperp2dr
+      use arrays_store_useful, only: kperp2, dkperp2dr
 
       implicit none
 

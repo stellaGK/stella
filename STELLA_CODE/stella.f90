@@ -3,26 +3,25 @@ program stella
    use redistribute, only: scatter
    use job_manage, only: time_message, checkstop, job_fork
    use job_manage, only: checktime
+   use file_utils, only: error_unit, flush_output_file
+   use git_version, only: get_git_version, get_git_date
+   use stella_time, only: update_time, code_time, code_dt, checkcodedt
+   use stella_save, only: stella_save_for_restart
    use parameters_numerical, only: nstep, tend
    use parameters_numerical, only: avail_cpu_time
-   use stella_time, only: update_time, code_time, code_dt, checkcodedt
+   use parameters_diagnostics, only: nsave
    use calculations_redistribute, only: kxkyz2vmu
    use gk_time_advance, only: advance_stella
    use diagnostics, only: diagnostics_stella
-   use stella_save, only: stella_save_for_restart
-   use store_arrays_distribution_fn, only: gnew, gvmu
-   use file_utils, only: error_unit, flush_output_file
-   use git_version, only: get_git_version, get_git_date
    use diagnostics_omega, only: checksaturation
+   use arrays_store_distribution_fn, only: gnew, gvmu
 
-   use debug_flags, only: debug => stella_debug
-   ! Input file
-   use parameters_diagnostics, only: nsave
+   use debug_flags, only: debug => stella_debug   
 
    implicit none
 
    logical :: stop_stella = .false.
-   logical :: mpi_initialized = .false.
+   logical :: mpi_initialised = .false.
 
    integer :: istep0, istep, ierr
    integer :: istatus
@@ -40,14 +39,14 @@ program stella
    git_commit = get_git_version()
    git_date = get_git_date()
 
-   !> Initialize stella
+   ! Initialise stella
    call init_stella(istep0, git_commit, git_date)
 
-   !> Diagnose stella
+   ! Diagnose stella
    if (debug) write (*, *) 'stella::diagnostics_stella'
    if (istep0 == 0) call diagnostics_stella(istep0)
 
-   !> Advance stella until istep=nstep
+   ! Advance stella until istep=nstep
    if (debug) write (*, *) 'stella::advance_stella'
    istep = istep0 + 1
    do while ((code_time <= tend .AND. tend > 0) .OR. (istep <= nstep .AND. nstep > 0))
@@ -99,7 +98,6 @@ contains
       use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
       use stella_time, only: init_tstart, init_delt
       use stella_save, only: init_dt
-
       use parameters_physics, only: read_parameters_physics
       use parameters_physics, only: radial_variation
       use parameters_numerical, only: read_parameters_numerical
@@ -110,10 +108,8 @@ contains
       use parameters_diagnostics, only: read_diagnostics_knobs
       use parameters_kxky_grid, only: naky, nakx, ny, nx, nalpha
       use parameters_multibox, only: read_multibox_parameters, use_dirichlet_BC
-
       use geometry, only: init_geometry
       use geometry, only: finish_init_geometry
-      
       use grids_species, only: init_species, read_species_options
       use grids_species, only: nspec
       use grids_z, only: init_zgrid
@@ -122,7 +118,6 @@ contains
       use grids_kxky, only: init_grids_kxky
       use grids_velocity, only: init_velocity_grids, read_velocity_grids_parameters
       use grids_velocity, only: nvgrid, nmu
-
       use initialise_distribution_fn, only: rng_seed
       use initialise_distribution_fn, only: read_initialise_distribution, initialise_distribution
       use initialise_distribution_fn, only: phiinit, scale_to_phiinit
@@ -130,25 +125,19 @@ contains
       use fields, only: init_fields, advance_fields, fields_updated
       use fields_radial_variation, only: get_radial_correction
       use fields, only: rescale_fields
-      
       use diagnostics, only: init_diagnostics
-      
-      use store_arrays_fields, only: phi, apar, bpar
-      use store_arrays_distribution_fn, only: gnew
+      use arrays_store_fields, only: phi, apar, bpar
+      use arrays_store_distribution_fn, only: gnew
       use arrays_distribution_fn, only: init_array_gxyz, init_arrays_distribution_fn
       use arrays_constants, only: init_arrays_vperp_kperp
-
       use response_matrix, only: init_response_matrix, read_response_matrix
       use gk_time_advance, only: init_time_advance
       use gk_sources, only: init_sources
-      
       use multibox, only: init_multibox
       use multibox, only: apply_radial_boundary_conditions
       use multibox, only: multibox_communicate
-
       use ran, only: get_rnd_seed_length, init_ranf
       use dissipation, only: init_dissipation
-      
       use calculations_volume_averages, only: init_volume_averages, volume_average
       use calculations_redistribute, only: init_redistribute
       use calculations_transforms, only: init_transforms
@@ -156,7 +145,7 @@ contains
       
       implicit none
 
-      !> Starting timestep: zero unless the simulation has been restarted
+      ! Starting timestep: zero unless the simulation has been restarted
       integer, intent(out) :: istep0
 
       ! Stella version number and release date 
@@ -169,22 +158,21 @@ contains
       integer :: i, n, ierr
       real :: delt_saved
 
-      !> initialize mpi message passing
-      if (.not. mpi_initialized) call init_mp
-      mpi_initialized = .true.
+      ! Initialise mpi message passing
+      if (.not. mpi_initialised) call init_mp
+      mpi_initialised = .true.
 
-      !> initialize timer
+      ! Initialise timer
       if (debug) write (*, *) 'stella::init_stella::check_time'
       call checktime(avail_cpu_time, exit)
 
       if (proc0) then 
-         !> initialize file i/o
+         ! Initialise file i/o
          if (debug) write (*, *) 'stella::init_stella::init_file_utils'
          call init_file_utils(list)
       end if  
 
       call read_debug_flags
-!      if(stella_debug) debug = .true. 
       debug = debug .and. proc0
 
       call broadcast(list)
@@ -200,61 +188,61 @@ contains
       call broadcast(cbuff)
       if (.not. proc0) call init_job_name(cbuff)
       
-      !> read the parameters_physics namelist from the input file
+      ! Read the parameters_physics namelist from the input file
       if (debug) write (6, *) "stella::init_stella::read_parameters_physics"
       call read_parameters_physics
       if (debug) write (6, *) "stella::init_stella::read_parameters_numerical"
       call read_parameters_numerical 
-      !> write message to screen with useful info regarding start of simulation
+      ! Write message to screen with useful info regarding start of simulation
       if (debug) write (*, *) 'stella::init_stella::write_start_message'
       call write_start_message(git_commit, git_date) 
-      !> read the z_grid_parameters namelist from the input file and setup the z grid
+      ! Read the z_grid_parameters namelist from the input file and setup the z grid
       if (debug) write (6, *) "stella::init_stella::init_zgrid"
       call init_zgrid
-      !> read the species_knobs namelist from the input file
+      ! Read the species_knobs namelist from the input file
       if (debug) write (6, *) "stella::init_stella::read_species_options"
       call read_species_options
-      !> read the grid option from the kt_grids_knobs namelist in the input file;
-      !> depending on the grid option chosen, read the corresponding kt_grids_XXXX_parameters
-      !> namelist from the input file and allocate some kx and ky arrays
+      ! Read the grid option from the kt_grids_knobs namelist in the input file;
+      ! depending on the grid option chosen, read the corresponding kt_grids_XXXX_parameters
+      ! namelist from the input file and allocate some kx and ky arrays
       if (debug) write (6, *) "stella::init_stella::read_parameters_kxky_grid"
       call read_parameters_kxky_grid
-      !> read the velocity_grids_parameters namelist from the input file
+      ! Read the velocity_grids_parameters namelist from the input file
       if (debug) write (6, *) "stella::init_stella::read_velocity_grids_parameters"
       call read_velocity_grids_parameters
       if (debug) write (6, *) "stella::init_stella::read_multibox_parameters"
       call read_multibox_parameters
       if (debug) write (6, *) "stella::init_stella::read_diagnostics_knobs"
       call read_diagnostics_knobs
-      !> setup the various data layouts for the distribution function;
-      !> e.g., vmu_lo is the layout in which vpa, mu and species may be distributed
-      !> amongst processors, depending on the number of phase space points and processors
+      ! Setup the various data layouts for the distribution function;
+      ! e.g., vmu_lo is the layout in which vpa, mu and species may be distributed
+      ! amongst processors, depending on the number of phase space points and processors
       if (debug) write (6, *) "stella::init_stella::init_dist_fn_layouts"
       call init_dist_fn_layouts(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
-      !> needs_transforms indicates whether or not FFTs will be needed in the simulation
+      ! needs_transforms indicates whether or not FFTs will be needed in the simulation
       call check_transforms(needs_transforms)
-      !> if FFTs are needed, init_transforms sets up the various FFTW plans
-      !> and allocates the necessary arrays
+      ! If FFTs are needed, init_transforms sets up the various FFTW plans
+      ! and allocates the necessary arrays
       if (needs_transforms) then
          if (debug) write (*, *) "stella::init_stella::init_transforms"
          call init_transforms
       end if
-      !> read in the geometry option and any necessary magnetic geometry info
-      !> and use it to calculate all of the required geometric coefficients
+      ! Read in the geometry option and any necessary magnetic geometry info
+      ! and use it to calculate all of the required geometric coefficients
       if (debug) write (6, *) "stella::init_stella::init_geometry"
       call init_geometry(nalpha, naky)
       if (debug) write (6, *) 'stella::init_stella::init_grids_kxky'
       call init_grids_kxky
-      !> read species_parameters from input file and use the info to, e.g.,
-      !> determine if a modified Boltzmann response is to be used
+      ! Read species_parameters from input file and use the info to, e.g.,
+      ! determine if a modified Boltzmann response is to be used
       if (debug) write (6, *) 'stella::init_stella::init_species'
       call init_species
-      !> read init_g_knobs namelist from the input file
-      !> and prepare for reading in from restart file if requested
+      ! Read init_g_knobs namelist from the input file
+      ! and prepare for reading in from restart file if requested
       if (debug) write (6, *) "stella::init_stella::read_initialise_distribution"
       call read_initialise_distribution
-      !> read knobs namelist from the input file
-      !> and the info to determine the mixture of implicit and explicit time advance
+      ! Read knobs namelist from the input file
+      ! and the info to determine the mixture of implicit and explicit time advance
       if (debug) write (6, *) "stella::init_stella::init_run_parameters"
       call read_parameters_physics
 
@@ -269,70 +257,70 @@ contains
       end if
       deallocate (seed)
 
-      !> read layouts_knobs namelist from the input file,
-      !> which determines the order of parallelisation within the different layouts
+      ! Read layouts_knobs namelist from the input file,
+      ! which determines the order of parallelisation within the different layouts
       if (debug) write (6, *) 'stella::init_stella::init_stella_layouts'
       call init_stella_layouts
-      !> setup the (kx,ky) grids and (x,y) grids, if applicable
+      ! Setup the (kx,ky) grids and (x,y) grids, if applicable
       if (debug) write (6, *) 'stella::init_stella::init_multibox_subcalls'
       call init_multibox_subcalls
-      !> finish_init_geometry deallocates various geometric arrays that
-      !> were defined locally within the geometry_miller module when using Miller geometry
+      ! finish_init_geometry deallocates various geometric arrays that
+      ! were defined locally within the geometry_miller module when using Miller geometry
       if (debug) write (6, *) 'stella::init_stella::finish_init_geometry'
       call finish_init_geometry
-      !> setup the (vpa,mu) grids and associated integration weights
+      ! Setup the (vpa,mu) grids and associated integration weights
       if (debug) write (6, *) 'stella::init_stella::init_velocity_grids'
       call init_velocity_grids
-      !> set up all of the logic needed to do calculations on an extended grid in z.
-      !> this extended grid could be due to use of a ballooning angle so that
-      !> z goes from -N*pi to N*pi, or it could be due to the coupling of different
-      !> kx modes arising from the twist-and-shift boundary condition
+      ! Set up all of the logic needed to do calculations on an extended grid in z.
+      ! this extended grid could be due to use of a ballooning angle so that
+      ! z goes from -N*pi to N*pi, or it could be due to the coupling of different
+      ! kx modes arising from the twist-and-shift boundary condition
       if (debug) write (6, *) 'stella::init_stella::init_extended_zgrid'
       call init_extended_zgrid
-      !> when doing a volume average using Fourier coefficients, the
-      !> ky=0 mode gets a different weighting than finite ky modes, due
-      !> to the reality condition being imposed; init_volume_averages accounts for this
+      ! When doing a volume average using Fourier coefficients, the
+      ! ky=0 mode gets a different weighting than finite ky modes, due
+      ! to the reality condition being imposed; init_volume_averages accounts for this
       if (debug) write (6, *) 'stella::init_stella::init_volume_averages'
       call init_volume_averages
-      !> allocates and initialises kperp2, vperp2 and arrays needed
-      !> for gyro-averaging (j0 and j1 or equivalents)
+      ! Allocates and initialises kperp2, vperp2 and arrays needed
+      ! for gyro-averaging (j0 and j1 or equivalents)
       if (debug) write (6, *) "stella::init_stella::init_dist_fn"
       call init_arrays_distribution_fn
       call init_arrays_vperp_kperp
-      !> sets up the mappings between different layouts, needed
-      !> to redistribute data when going from one layout to another
+      ! sets up the mappings between different layouts, needed
+      ! to redistribute data when going from one layout to another
       if (debug) write (6, *) "stella::init_stella::init_redistribute"
       call init_redistribute
-      !> read dissipation namelist from the input file and print information
-      !> about chosen options to stdout
+      ! Read dissipation namelist from the input file and print information
+      ! about chosen options to stdout
       if (debug) write (6, *) 'stella::init_stella::init_dissipation'
       call init_dissipation
       if (debug) write (6, *) 'stella::init_stella::init_sources'
       call init_sources
-      !> allocate and initialise time-independent arrays needed to
-      !> solve the field equations; e.g., sum_s (Z_s^2 n_s / T_s)*(1-Gamma0_s)
+      ! Allocate and initialise time-independent arrays needed to
+      ! solve the field equations; e.g., sum_s (Z_s^2 n_s / T_s)*(1-Gamma0_s)
       if (debug) write (6, *) 'stella::init_stella::init_fields'
       call init_fields
-      !> initialise the distribution function in the kxkyz_lo and store in gvmu
+      ! Initialise the distribution function in the kxkyz_lo and store in gvmu
       if (debug) write (6, *) "stella::init_stella::initialise_distribution"
       call initialise_distribution(restarted, istep0)
-      !> use mapping from kxkyz_lo to vmu_lo to get a copy of g that has ky, kx and z local to each core;
-      !> stored in gnew and copied to gold
+      ! Use mapping from kxkyz_lo to vmu_lo to get a copy of g that has ky, kx and z local to each core;
+      ! stored in gnew and copied to gold
       if (debug) write (6, *) "stella::init_stella::init_array_gxyz"
       call init_array_gxyz(restarted)
-!      call test_kymus_to_vmus_redistribute
-      !> if initializing from restart file, set the initial time step size appropriately
+      !! call test_kymus_to_vmus_redistribute
+      ! If initializing from restart file, set the initial time step size appropriately
       if (restarted .and. delt_option_switch == delt_option_auto) then
          delt_saved = delt
          if (debug) write (6, *) "stella::init_stella::init_dt"
          call init_dt(delt_saved, istatus)
          if (istatus == 0) delt = delt_saved
       end if
-      !> set the internal time step size variable code_dt from the input variable delt
+      ! Set the internal time step size variable code_dt from the input variable delt
       if (debug) write (6, *) "stella::init_stella::init_delt"
       call init_delt(delt, delt_max, delt_min)
-      !> allocate and calculate arrays needed for the mirror, parallel streaming,
-      !> magnetic drifts, gradient drive, etc. terms during time advance
+      ! Allocate and calculate arrays needed for the mirror, parallel streaming,
+      ! magnetic drifts, gradient drive, etc. terms during time advance
       if (debug) write (6, *) 'stella::init_stella::init_time_advance'
       call init_time_advance
       if (stream_implicit .or. driftkinetic_implicit) then
@@ -345,7 +333,7 @@ contains
          end if
       end if
 
-      !> get initial field from initial distribution function
+      ! Get initial field from initial distribution function
       if (debug) write (6, *) 'stella::init_stella::advance_fields'
       call advance_fields(gnew, phi, apar, bpar, dist='g')
 
@@ -354,8 +342,8 @@ contains
          call get_radial_correction(gnew, phi, dist='g')
       end if
 
-      !> fill in the boundary regions using auxilliary simulations if using
-      !> multibox, or zero it out if using Dirichlet boundary conditions
+      ! Fill in the boundary regions using auxilliary simulations if using
+      ! multibox, or zero it out if using Dirichlet boundary conditions
       if (runtype_option_switch == runtype_multibox) then
          if (debug) write (6, *) 'stella::init_stella:multibox_communicate'
          call multibox_communicate(gnew)
@@ -370,29 +358,29 @@ contains
          call advance_fields(gnew, phi, apar, bpar, dist='g')
       end if
 
-      !> rescale to phiinit if just beginning a new run
+      ! Rescale to phiinit if just beginning a new run
       if (.not. restarted .and. scale_to_phiinit) call rescale_fields(phiinit)
 
-      !> read diagnostics_knob namelist from the input file,
-      !> open ascii output files and initialise the neetcdf file with extension .out.nc
+      ! Read diagnostics_knob namelist from the input file,
+      ! open ascii output files and initialise the neetcdf file with extension .out.nc
       if (debug) write (6, *) 'stella::init_stella::init_diagnostics'
       call init_diagnostics(restarted, tstart, git_commit, git_date)
-      !> initialise the code_time
+      ! Initialise the code_time
       if (debug) write (6, *) 'stella::init_stella::init_tstart'
       call init_tstart(tstart)
 
       ierr = error_unit()
       if (proc0) call flush_output_file(ierr)
 
-      !> Add a header to the output file
+      ! Add a header to the output file
       call print_header
-      !> stop the timing of the initialization
+      ! Stop the timing of the initialization
       if (proc0) call time_message(.false., time_init, ' Initialization')
 
    end subroutine init_stella
 
-   !> call all the multibox communication subroutines to make sure all the jobs have
-   !> the appropriate information
+   ! Call all the multibox communication subroutines to make sure all the jobs have
+   ! the appropriate information
    subroutine init_multibox_subcalls
 
       use mp, only: proc0, job
@@ -426,8 +414,8 @@ contains
 
    end subroutine init_multibox_subcalls
 
-   !> check_transforms checks the various physics flag choices
-   !> to determine if FFTs are needed for the simulation
+   ! check_transforms checks the various physics flag choices
+   ! to determine if FFTs are needed for the simulation
    subroutine check_transforms(needs_transforms)
 
       use file_utils, only: runtype_option_switch, runtype_multibox
@@ -444,21 +432,21 @@ contains
       logical, intent(out) :: needs_transforms
 
       needs_transforms = .false.
-      !> if ExB or parallel nonlinearity included in the simulations, need FFTs
+      ! If ExB or parallel nonlinearity included in the simulations, need FFTs
       if (include_nonlinear .or. include_parallel_nonlinearity) needs_transforms = .true.
-      !> if 'global' in radial or bi-normal directions, need FFTs
+      ! If 'global' in radial or bi-normal directions, need FFTs
       if (radial_variation .or. full_flux_surface) needs_transforms = .true.
-      !> if running in multibox mode, need FFTs
+      ! If running in multibox mode, need FFTs
       if (runtype_option_switch == runtype_multibox) needs_transforms = .true.
-      !> if including flow shear using anything other than wavenumber re-mapping, need FFTs
+      ! If including flow shear using anything other than wavenumber re-mapping, need FFTs
       if (abs(g_exb * g_exbfac) > epsilon(0.) .and. .not. hammett_flow_shear) &
          needs_transforms = .true.
-      !> if printing out flux-surface-averaged radial fluxes or moments, need FFTs
+      ! If printing out flux-surface-averaged radial fluxes or moments, need FFTs
       if (write_radial_fluxes .or. write_radial_moments) needs_transforms = .true.
 
    end subroutine check_transforms
 
-   !> Write the start message to screen
+   ! Write the start message to screen
    subroutine write_start_message(git_commit, git_date)
    
       use mp, only: proc0, nproc
@@ -549,9 +537,8 @@ contains
 
    end subroutine print_header
 
-   !> Parse some basic command line arguments. Currently just 'version' and 'help'.
-   !>
-   !> This should be called before anything else, but especially before initialising MPI.
+   ! Parse some basic command line arguments. Currently just 'version' and 'help'.
+   ! This should be called before anything else, but especially before initialising MPI.
    subroutine parse_command_line()
       use git_version, only: get_git_version
       integer :: arg_count, arg_n
@@ -584,42 +571,44 @@ contains
       end do
    end subroutine parse_command_line
 
-   !> Finish a simulation, call the finialisation routines of all modules
+   !###############################################################################
+   !############################## FINIALISE STELLA ###############################
+   !###############################################################################
+   ! Finish a simulation, call the finialisation routines of all modules
    subroutine finish_stella(last_call)
 
       use mp, only: finish_mp
       use mp, only: proc0
       use file_utils, only: finish_file_utils, runtype_option_switch, runtype_multibox
       use job_manage, only: time_message
+      use stella_layouts, only: fields_kxkyz
       use parameters_physics, only: finish_read_parameters_physics
       use parameters_physics, only: include_parallel_nonlinearity, radial_variation
       use parameters_numerical, only: finish_read_parameters_numerical
+      use parameters_numerical, only: stream_implicit, drifts_implicit
       use grids_z, only: finish_zgrid
       use grids_species, only: finish_species
-      use store_arrays_useful, only: time_gke, time_parallel_nl
-      use gk_time_advance, only: finish_time_advance
-      use gk_parallel_streaming, only: time_parallel_streaming
-      use gk_mirror, only: time_mirror
-      use dissipation, only: time_collisions, include_collisions 
-      use gk_sources, only: finish_sources, time_sources, source_option_switch, source_option_none
-      use initialise_distribution_fn, only: finish_initialise_distribution
-      use arrays_distribution_fn, only: finish_arrays_distribution_fn
-      use arrays_constants, only: finish_arrays_vperp_kperp
-      !!! NEED TO FINISH KPERP AND VPERP ARRAYS
-      use calculations_redistribute, only: finish_redistribute
-      use fields, only: finish_fields
-      use store_arrays_fields, only: time_field_solve
-      use diagnostics, only: finish_diagnostics, time_diagnostics
-      use response_matrix, only: finish_response_matrix
-      use geometry, only: finish_geometry
       use grids_extended_zgrid, only: finish_extended_zgrid
       use grids_velocity, only: finish_velocity_grids
       use grids_kxky, only: finish_grids_kxky
+      use arrays_distribution_fn, only: finish_arrays_distribution_fn
+      use arrays_constants, only: finish_arrays_vperp_kperp
+      use arrays_store_fields, only: time_field_solve
+      use arrays_store_useful, only: time_gke, time_parallel_nl
+      use initialise_distribution_fn, only: finish_initialise_distribution
+      use fields, only: finish_fields
+      use gk_time_advance, only: finish_time_advance
+      use gk_parallel_streaming, only: time_parallel_streaming
+      use gk_mirror, only: time_mirror
+      use gk_sources, only: finish_sources, time_sources, source_option_switch, source_option_none
+      use gk_implicit_solve, only: time_implicit_advance
+      use response_matrix, only: finish_response_matrix
+      use dissipation, only: time_collisions, include_collisions 
+      use calculations_redistribute, only: finish_redistribute
+      use diagnostics, only: finish_diagnostics, time_diagnostics
+      use geometry, only: finish_geometry
       use calculations_volume_averages, only: finish_volume_averages
       use multibox, only: finish_multibox, time_multibox
-      use parameters_numerical, only: stream_implicit, drifts_implicit
-      use stella_layouts, only: fields_kxkyz
-      use gk_implicit_solve, only: time_implicit_advance
       use debug_flags, only: print_extra_info_to_terminal
 
       implicit none
@@ -771,7 +760,7 @@ contains
       ! finish (clean up) mpi message passing
       if (present(last_call)) then
          call finish_mp
-         mpi_initialized = .false.
+         mpi_initialised = .false.
       end if
 
    end subroutine finish_stella

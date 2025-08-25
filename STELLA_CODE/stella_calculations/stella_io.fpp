@@ -1392,7 +1392,7 @@ contains
       use geometry, only: cvdrift, cvdrift0, gds2, gds21, gds22, grho, jacob
       use geometry, only: drhodpsi, djacdrho, b_dot_grad_z, geo_surf 
       use parameters_physics, only: beta
-      use store_arrays_useful, only: kperp2
+      use arrays_store_useful, only: kperp2
       use parameters_kxky_grid, only: jtwist
 #endif
 

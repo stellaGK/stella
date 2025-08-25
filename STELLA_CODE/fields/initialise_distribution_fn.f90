@@ -192,7 +192,7 @@ contains
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use store_arrays_distribution_fn, only: gvmu
+      use arrays_store_distribution_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
       use ran, only: ranf
       use namelist_fields, only: read_namelist_initialise_distribution_maxwellian
@@ -282,7 +282,7 @@ contains
    subroutine initialise_distribution_noise
 
       use mp, only: proc0, broadcast
-      use store_arrays_useful, only: kperp2
+      use arrays_store_useful, only: kperp2
       use grids_species, only: spec
       use grids_z, only: nzgrid, ntubes
       use grids_extended_zgrid, only: ikxmod, nsegments, neigen
@@ -292,7 +292,7 @@ contains
       use grids_kxky, only: zonal_mode
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use store_arrays_distribution_fn, only: gvmu
+      use arrays_store_distribution_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use mp, only: proc0, broadcast, max_allreduce
@@ -450,7 +450,7 @@ contains
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use store_arrays_distribution_fn, only: gvmu
+      use arrays_store_distribution_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx
       use namelist_fields, only: read_namelist_initialise_distribution_kpar
       use constants, only: zi
@@ -557,8 +557,8 @@ contains
 
       use mp, only: proc0, broadcast
       use grids_species, only: spec
-      use store_arrays_distribution_fn, only: gvmu
-      use store_arrays_useful, only: kperp2
+      use arrays_store_distribution_fn, only: gvmu
+      use arrays_store_useful, only: kperp2
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -612,7 +612,7 @@ contains
    subroutine initialise_distribution_remap
 
       use grids_species, only: spec
-      use store_arrays_distribution_fn, only: gvmu
+      use arrays_store_distribution_fn, only: gvmu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -647,7 +647,7 @@ contains
    !****************************************************************************
    subroutine initialise_distribution_restart_many
 
-      use store_arrays_distribution_fn, only: gvmu
+      use arrays_store_distribution_fn, only: gvmu
       use stella_save, only: stella_restore
       use mp, only: proc0
       use file_utils, only: error_unit
@@ -674,7 +674,7 @@ contains
    subroutine normalize_by_maxwellian
 
       use stella_layouts, only: kxkyz_lo, is_idx, iz_idx
-      use store_arrays_distribution_fn, only: gvmu
+      use arrays_store_distribution_fn, only: gvmu
       use grids_velocity, only: nmu
       use grids_velocity, only: maxwell_mu, maxwell_vpa, maxwell_fac
 

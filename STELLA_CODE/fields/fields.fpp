@@ -54,7 +54,7 @@ contains
       !> Layouts
       use stella_layouts, only: vmu_lo
       !> Arrays
-      use store_arrays_fields, only: time_field_solve
+      use arrays_store_fields, only: time_field_solve
       !> Parameters
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: full_flux_surface
@@ -120,8 +120,8 @@ contains
       use job_manage, only: njobs
       use file_utils, only: runtype_option_switch, runtype_multibox
       !> Arrays
-      use store_arrays_fields, only: phi, apar
-      use store_arrays_distribution_fn, only: gnew, gvmu
+      use arrays_store_fields, only: phi, apar
+      use arrays_store_distribution_fn, only: gnew, gvmu
       !> Calculations
       use calculations_volume_averages, only: volume_average
 
@@ -218,15 +218,15 @@ contains
       use grids_species, only: spec, has_electron_species
       
       ! Arrays to allocate
-      use store_arrays_fields, only: phi, phi_old
-      use store_arrays_fields, only: gamtot, gamtot3
+      use arrays_store_fields, only: phi, phi_old
+      use arrays_store_fields, only: gamtot, gamtot3
       
       ! Grids
       use grids_z, only: nzgrid, ntubes
       use parameters_kxky_grid, only: naky, nakx
       
       ! Time routines
-      use store_arrays_fields, only: time_field_solve
+      use arrays_store_fields, only: time_field_solve
       
       implicit none
       
@@ -259,8 +259,8 @@ contains
       ! Parameters
       use parameters_physics, only: full_flux_surface, radial_variation 
       !> Arrays
-      use store_arrays_fields, only: phi, phi_old
-      use store_arrays_fields, only: gamtot, gamtot3
+      use arrays_store_fields, only: phi, phi_old
+      use arrays_store_fields, only: gamtot, gamtot3
       !> Routines for deallocating arrays fields depending on the physics being simulated
       use fields_ffs, only: finish_fields_ffs
       use fields_radial_variation, only: finish_radial_fields

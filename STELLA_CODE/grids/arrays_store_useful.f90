@@ -1,4 +1,4 @@
-module store_arrays_useful
+module arrays_store_useful
     implicit none
     
     ! Velocity-dependent coefficients used in the equations
@@ -79,4 +79,4 @@ module store_arrays_useful
     ! real :: gamtot_h, gamtot3_h, efac, efacp
     ! real, dimension(2, 5) :: time_field_solve = 0.
 
-end module store_arrays_useful
+end module arrays_store_useful

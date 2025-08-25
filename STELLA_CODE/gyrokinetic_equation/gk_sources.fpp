@@ -52,8 +52,8 @@ contains
       use grids_kxky, only: zonal_mode
       use grids_z, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
-      use store_arrays_distribution_fn, only: g_krook, g_proj, g_symm
-      use store_arrays_fields, only: phi_proj, phi_proj_stage
+      use arrays_store_distribution_fn, only: g_krook, g_proj, g_symm
+      use arrays_store_fields, only: phi_proj, phi_proj_stage
       use parameters_physics, only: radial_variation
       use grids_species, only: spec, has_electron_species
       use parameters_physics, only: adiabatic_option_switch
@@ -61,7 +61,7 @@ contains
       use file_utils, only: runtype_option_switch, runtype_multibox
       use parameters_kxky_grid, only: ikx_max
       use namelist_sources, only: read_namelist_sources
-      use store_arrays_fields, only: tcorr_source_qn, exclude_boundary_regions_qn
+      use arrays_store_fields, only: tcorr_source_qn, exclude_boundary_regions_qn
       use mp, only: broadcast
       implicit none
 
@@ -144,7 +144,7 @@ contains
    subroutine init_source_timeaverage
 
       use stella_time, only: code_dt
-      use store_arrays_fields, only: tcorr_source_qn, exp_fac_qn
+      use arrays_store_fields, only: tcorr_source_qn, exp_fac_qn
 
       implicit none
 
@@ -164,12 +164,12 @@ contains
 
    subroutine finish_sources
 
-      use store_arrays_distribution_fn, only: g_krook, g_proj, g_symm
-      use store_arrays_fields, only: phi_proj, phi_proj_stage
+      use arrays_store_distribution_fn, only: g_krook, g_proj, g_symm
+      use arrays_store_fields, only: phi_proj, phi_proj_stage
 #ifdef ISO_C_BINDING
-      use store_arrays_fields, only: qn_zf_window
+      use arrays_store_fields, only: qn_zf_window
 #else
-      use store_arrays_fields, only: phizf_solve, phi_ext
+      use arrays_store_fields, only: phizf_solve, phi_ext
 #endif
 
       implicit none
@@ -205,7 +205,7 @@ contains
       use parameters_kxky_grid, only: nakx
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
-      use store_arrays_distribution_fn, only: g_krook, g_symm
+      use arrays_store_distribution_fn, only: g_krook, g_symm
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
@@ -307,7 +307,7 @@ contains
       use mp, only: proc0
       use job_manage, only: time_message
       use constants, only: pi, zi
-      use store_arrays_distribution_fn, only: g_krook, g_symm
+      use arrays_store_distribution_fn, only: g_krook, g_symm
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: akx, zonal_mode
       use parameters_multibox, only: boundary_size
@@ -400,7 +400,7 @@ contains
       use stella_layouts, only: imu_idx, is_idx, iv_idx
       use grids_velocity, only: nvgrid, nvpa, nmu
       use calculations_redistribute, only: kxkyz2vmu
-      use store_arrays_distribution_fn, only: gvmu
+      use arrays_store_distribution_fn, only: gvmu
       use grids_z, only: nzgrid
 
       implicit none
@@ -444,7 +444,7 @@ contains
       use geometry, only: bmag, dBdrho, dl_over_b, d_dl_over_b_drho
       use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: aj0x, aj1x
-      use store_arrays_useful, only: kperp2, dkperp2dr
+      use arrays_store_useful, only: kperp2, dkperp2dr
       use grids_z, only: nzgrid, ntubes
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
@@ -533,7 +533,7 @@ contains
       use parameters_kxky_grid, only: nakx
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
-      use store_arrays_distribution_fn, only: g_proj, g_symm
+      use arrays_store_distribution_fn, only: g_proj, g_symm
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
@@ -652,7 +652,7 @@ contains
 
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
-      use store_arrays_fields, only: qn_zf_window
+      use arrays_store_fields, only: qn_zf_window
       use mp, only: sgproc0, sharedsubprocs, comm_sgroup
       use mp, only: real_size, nbytes_real, create_shared_memory_window
       use mp_lu_decomposition, only: lu_decomposition_local, lu_inverse_local
@@ -665,8 +665,8 @@ contains
       use grids_kxky, only: rho_d_clamped
       use parameters_multibox, only: boundary_size
       use linear_solve, only: lu_decomposition
-      use store_arrays_fields, only: phizf_solve, c_mat, theta, phi_ext
-      use store_arrays_fields, only: tcorr_source_qn, exclude_boundary_regions_qn, exp_fac_qn
+      use arrays_store_fields, only: phizf_solve, c_mat, theta, phi_ext
+      use arrays_store_fields, only: tcorr_source_qn, exclude_boundary_regions_qn, exp_fac_qn
 
       implicit none
 
@@ -848,8 +848,8 @@ contains
 
    subroutine update_quasineutrality_source
 
-      use store_arrays_fields, only: phi_proj, phi_proj_stage
-      use store_arrays_fields, only: tcorr_source_qn, exp_fac_qn
+      use arrays_store_fields, only: phi_proj, phi_proj_stage
+      use arrays_store_fields, only: tcorr_source_qn, exp_fac_qn
 
       implicit none
 

@@ -182,8 +182,8 @@ contains
       use parameters_physics, only: include_apar, include_bpar
 
       ! Load data 
-      use store_arrays_distribution_fn, only: gnew, gvmu
-      use store_arrays_fields, only: phi, bpar
+      use arrays_store_distribution_fn, only: gnew, gvmu
+      use arrays_store_fields, only: phi, bpar
       use parameters_physics, only: fphi
 
       ! Redistribute data from  i[vpa,mu,s] to i[kx,ky,z,s] 
@@ -243,9 +243,9 @@ contains
       use parameters_diagnostics, only: write_radial_fluxes 
 
       ! Data 
-      use store_arrays_fields, only: phi, phi_corr_QN
+      use arrays_store_fields, only: phi, phi_corr_QN
       use parameters_physics, only: radial_variation
-      use store_arrays_distribution_fn, only: gnew
+      use arrays_store_distribution_fn, only: gnew
    
       ! Dimensions
       use parameters_kxky_grid, only: nakx, naky
@@ -311,7 +311,7 @@ contains
    subroutine write_fluxes_for_fullfluxsurface(pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts)
 
       ! Data 
-      use store_arrays_distribution_fn, only: gnew
+      use arrays_store_distribution_fn, only: gnew
 
       ! Dimensions 
       use parameters_kxky_grid, only: ny, ikx_max

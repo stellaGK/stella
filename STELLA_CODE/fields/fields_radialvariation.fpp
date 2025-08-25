@@ -40,9 +40,9 @@ contains
       use parameters_physics, only: adiabatic_option_fieldlineavg
       use grids_species, only: spec, has_electron_species
       use multibox, only: mb_get_phi
-      use store_arrays_fields, only: gamtot
+      use arrays_store_fields, only: gamtot
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use store_arrays_fields, only: time_field_solve
+      use arrays_store_fields, only: time_field_solve
 
       implicit none
 
@@ -116,7 +116,7 @@ contains
       use mp, only: curr_focus, sharedsubprocs, scope
       use mp, only: split_n_tasks, sgproc0
       use grids_z, only: nztot
-      use store_arrays_fields, only: phi_shared
+      use arrays_store_fields, only: phi_shared
       use mp_lu_decomposition, only: lu_matrix_multiply_local
 #endif
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
@@ -128,7 +128,7 @@ contains
       use parameters_kxky_grid, only: nakx, naky
       use grids_kxky, only: zonal_mode
       use linear_solve, only: lu_back_substitution
-      use store_arrays_fields, only: gamtot, phi_solve
+      use arrays_store_fields, only: gamtot, phi_solve
 
       implicit none
 
@@ -214,7 +214,7 @@ contains
 #ifdef ISO_C_BINDING
       use mpi
       use mp, only: sgproc0, comm_sgroup
-      use store_arrays_fields, only: qn_zf_window
+      use arrays_store_fields, only: qn_zf_window
       use mp_lu_decomposition, only: lu_matrix_multiply_local
 #else
       use linear_solve, only: lu_back_substitution
@@ -225,9 +225,9 @@ contains
       use parameters_kxky_grid, only: nakx 
       use parameters_multibox, only: boundary_size
       use grids_kxky, only: rho_d_clamped
-      use store_arrays_fields, only: phizf_solve, phi_ext
-      use store_arrays_fields, only: phi_proj, phi_proj_stage, theta
-      use store_arrays_fields, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
+      use arrays_store_fields, only: phizf_solve, phi_ext
+      use arrays_store_fields, only: phi_proj, phi_proj_stage, theta
+      use arrays_store_fields, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
 
       implicit none
 
@@ -346,7 +346,7 @@ contains
       use stella_layouts, only: imu_idx, is_idx
       use arrays_gyro_averages, only: aj0x, aj1x
       use geometry, only: dBdrho, bmag
-      use store_arrays_useful, only: kperp2, dkperp2dr
+      use arrays_store_useful, only: kperp2, dkperp2dr
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: vperp2
       use parameters_kxky_grid, only: nakx, naky
@@ -416,10 +416,10 @@ contains
       use grids_kxky, only: zonal_mode
       use calculations_kxky, only: multiply_by_rho
       use grids_species, only: spec, has_electron_species
-      use store_arrays_fields, only: phi_corr_QN, phi_corr_GA
-      use store_arrays_fields, only: gamtot, dgamtotdr
-      use store_arrays_fields, only: gamtot3, efac, efacp
-      use store_arrays_useful, only: kperp2, dkperp2dr
+      use arrays_store_fields, only: phi_corr_QN, phi_corr_GA
+      use arrays_store_fields, only: gamtot, dgamtotdr
+      use arrays_store_fields, only: gamtot3, efac, efacp
+      use arrays_store_useful, only: kperp2, dkperp2dr
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
@@ -565,7 +565,7 @@ contains
       use mp, only: sum_allreduce
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
-      use store_arrays_fields, only: qn_window, phi_shared
+      use arrays_store_fields, only: qn_window, phi_shared
       use mp, only: sgproc0, curr_focus, sharedsubprocs
       use mp, only: scope, real_size, nbytes_real
       use mp, only: split_n_tasks, create_shared_memory_window
@@ -582,8 +582,8 @@ contains
       use parameters_physics, only: adiabatic_option_fieldlineavg
       use linear_solve, only: lu_decomposition, lu_inverse
       use multibox, only: init_mb_get_phi
-      use store_arrays_fields, only: gamtot, dgamtotdr
-      use store_arrays_fields, only: phi_solve, c_mat, theta
+      use arrays_store_fields, only: gamtot, dgamtotdr
+      use arrays_store_fields, only: phi_solve, c_mat, theta
       use file_utils, only: runtype_option_switch, runtype_multibox
 
       use stella_layouts, only: kxkyz_lo
@@ -591,11 +591,11 @@ contains
       use arrays_gyro_averages, only: aj0v, aj1v
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: vpa, vperp2, mu, nmu, nvpa
-      use store_arrays_useful, only: kperp2, dkperp2dr
+      use arrays_store_useful, only: kperp2, dkperp2dr
       use geometry, only: dBdrho, bmag
       use parameters_physics, only: tite, nine, beta
 
-      use store_arrays_fields, only: efac, efacp
+      use arrays_store_fields, only: efac, efacp
       use grids_velocity, only: integrate_vmu
 
       implicit none
@@ -826,9 +826,9 @@ contains
    subroutine allocate_arrays_radial_variation
 
       use parameters_physics, only: radial_variation
-      use store_arrays_fields, only: phi_corr_QN, phi_corr_GA
-      use store_arrays_fields, only: apar_corr_QN, apar_corr_GA
-      use store_arrays_fields, only: dgamtotdr
+      use arrays_store_fields, only: phi_corr_QN, phi_corr_GA
+      use arrays_store_fields, only: apar_corr_QN, apar_corr_GA
+      use arrays_store_fields, only: dgamtotdr
       use grids_z, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo
       use parameters_kxky_grid, only: naky, nakx
@@ -864,12 +864,12 @@ contains
    !============================================================================
    subroutine finish_radial_fields
 
-      use store_arrays_fields, only: phi_corr_QN, phi_corr_GA
-      use store_arrays_fields, only: apar_corr_QN, apar_corr_GA
-      use store_arrays_fields, only: dgamtotdr
-      use store_arrays_fields, only: c_mat, theta
+      use arrays_store_fields, only: phi_corr_QN, phi_corr_GA
+      use arrays_store_fields, only: apar_corr_QN, apar_corr_GA
+      use arrays_store_fields, only: dgamtotdr
+      use arrays_store_fields, only: c_mat, theta
 #ifdef ISO_C_BINDING
-      use store_arrays_fields, only: qn_window
+      use arrays_store_fields, only: qn_window
       use mpi
 #endif
 

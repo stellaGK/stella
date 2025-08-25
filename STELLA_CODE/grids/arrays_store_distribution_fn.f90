@@ -1,4 +1,4 @@
-module store_arrays_distribution_fn
+module arrays_store_distribution_fn
    ! A container for the arrays that are used to store the distribution function arrays
    public :: gnew, gold, g_symm, g_scratch
    public :: g0, g1, g2, g3
@@ -59,4 +59,4 @@ module store_arrays_distribution_fn
    ! (naky, nakx, nalpha, -nzgrid:nzgrid)
    ! note: dkperp2dr is divided by kperp2
 
-end module store_arrays_distribution_fn
+end module arrays_store_distribution_fn

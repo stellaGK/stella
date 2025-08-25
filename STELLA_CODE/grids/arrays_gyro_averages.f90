@@ -38,7 +38,7 @@ contains
     !###############################################################################
     subroutine init_bessel
 
-        use store_arrays_useful, only: kperp2
+        use arrays_store_useful, only: kperp2
         use parameters_physics, only: full_flux_surface
         use grids_species, only: spec
         use geometry, only: bmag
@@ -137,7 +137,7 @@ contains
         use grids_velocity, only: vperp2, maxwell_vpa, maxwell_mu
         use parameters_kxky_grid, only: nalpha, naky, naky_all, ikx_max
         use calculations_kxky, only: swap_kxky_ordered
-        use store_arrays_useful, only: kperp2
+        use arrays_store_useful, only: kperp2
 
         use parameters_kxky_grid, only: nakx
         use calculations_kxky, only: swap_kxky_back_ordered

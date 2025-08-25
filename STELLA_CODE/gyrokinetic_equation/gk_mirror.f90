@@ -338,7 +338,7 @@ contains
 
       use mp, only: proc0
       use redistribute, only: gather, scatter
-      use store_arrays_distribution_fn, only: gvmu
+      use arrays_store_distribution_fn, only: gvmu
       use job_manage, only: time_message
       use stella_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
       use stella_layouts, only: iv_idx, is_idx
@@ -451,7 +451,7 @@ contains
 
       use mp, only: proc0
       use redistribute, only: gather, scatter
-      use store_arrays_distribution_fn, only: gvmu
+      use arrays_store_distribution_fn, only: gvmu
       use job_manage, only: time_message
       use stella_layouts, only: kxkyz_lo, vmu_lo
       use stella_layouts, only: is_idx, imu_idx
@@ -637,7 +637,7 @@ contains
       use stella_layouts, only: iv_idx, imu_idx
       use calculations_transforms, only: transform_ky2y, transform_y2ky
       use grids_z, only: nzgrid, ntubes
-      use store_arrays_distribution_fn, only: gvmu
+      use arrays_store_distribution_fn, only: gvmu
       use parameters_physics, only: full_flux_surface
       use parameters_kxky_grid, only: ny, nakx
       use grids_velocity, only: nvpa, nmu

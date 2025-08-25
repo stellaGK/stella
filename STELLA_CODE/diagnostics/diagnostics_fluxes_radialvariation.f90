@@ -33,8 +33,8 @@ contains
  
       use mp, only: sum_reduce
       use constants, only: zi
-      use store_arrays_distribution_fn, only: g1, g2
-      use store_arrays_useful, only: kperp2, dkperp2dr
+      use arrays_store_distribution_fn, only: g1, g2
+      use arrays_store_useful, only: kperp2, dkperp2dr
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use grids_species, only: spec

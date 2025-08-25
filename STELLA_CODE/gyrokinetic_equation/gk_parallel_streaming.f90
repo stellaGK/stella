@@ -373,7 +373,7 @@ contains
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_species, only: spec
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
-      use store_arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
+      use arrays_store_fields, only: phi, phi_corr_QN, phi_corr_GA
 
       implicit none
 

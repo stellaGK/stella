@@ -1,4 +1,4 @@
-module store_arrays_fields
+module arrays_store_fields
 
    use mpi
    use stella_common_types, only: response_matrix_type, eigen_type
@@ -62,4 +62,4 @@ module store_arrays_fields
    real :: gamtot_h, gamtot3_h, efac, efacp
    real, dimension(2, 5) :: time_field_solve = 0.
 
-end module store_arrays_fields
+end module arrays_store_fields

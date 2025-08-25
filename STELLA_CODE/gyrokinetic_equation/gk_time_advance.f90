@@ -25,19 +25,19 @@ contains
 
       use parameters_physics, only: radial_variation
       use parameters_physics, only: include_parallel_nonlinearity
-      use store_arrays_useful, only: wdriftinit, wstarinit, parnlinit, &
+      use arrays_store_useful, only: wdriftinit, wstarinit, parnlinit, &
             radialinit, driftimpinit
 
       use gk_drifts, only: init_wdrift, init_wstar
-      use neoclassical_terms, only: init_neoclassical_terms
-      use dissipation, only: init_collisions, include_collisions
       use gk_parallel_streaming, only: init_parallel_streaming
       use gk_mirror, only: init_mirror
       use gk_flow_shear, only: init_flow_shear
       use gk_sources, only: init_quasineutrality_source, init_source_timeaverage
-
       use gk_radial_variation, only: init_radial_variation
       use gk_nonlinearity, only: init_parallel_nonlinearity
+
+      use neoclassical_terms, only: init_neoclassical_terms
+      use dissipation, only: init_collisions, include_collisions
 
       implicit none
 
@@ -95,11 +95,11 @@ contains
    subroutine allocate_arrays
 
       use stella_layouts, only: vmu_lo
-      use grids_z, only: nzgrid, ntubes
       use parameters_kxky_grid, only: naky, nakx
-      use store_arrays_distribution_fn, only: g0, g1, g2, g3
       use parameters_numerical, only: explicit_algorithm_switch, explicit_algorithm_rk3, &
            explicit_algorithm_rk2, explicit_algorithm_rk4, explicit_algorithm_euler
+      use arrays_store_distribution_fn, only: g0, g1, g2, g3
+      use grids_z, only: nzgrid, ntubes
 
       implicit none
 
@@ -125,7 +125,8 @@ contains
 
       use mp, only: proc0, nproc, max_allreduce, min_allreduce
       use mp, only: scope, allprocs, subprocs
-      use store_arrays_distribution_fn, only: wdriftx_g, wdrifty_g
+      use file_utils, only: runtype_option_switch, runtype_multibox
+      use arrays_store_distribution_fn, only: wdriftx_g, wdrifty_g
       use stella_time, only: code_dt, write_dt, cfl_dt_linear
       use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
       use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
@@ -138,12 +139,10 @@ contains
       use gk_parallel_streaming, only: stream_rad_var1, stream_rad_var2
       use gk_mirror, only: mirror
       use gk_flow_shear, only: prl_shear, shift_times
-      use file_utils, only: runtype_option_switch, runtype_multibox
       use dissipation, only: include_collisions, collisions_implicit
       use dissipation, only: cfl_dt_vpadiff, cfl_dt_mudiff
       use debug_flags, only: print_extra_info_to_terminal
-
-       use reset_timestep, only: reset_dt
+      use reset_timestep, only: reset_dt
 
       implicit none
 
@@ -273,20 +272,19 @@ contains
 
    subroutine advance_stella(istep, stop_stella)
 
-      use store_arrays_distribution_fn, only: gold, gnew
-      use store_arrays_fields, only: phi, apar, bpar
-      use store_arrays_fields, only: phi_old, apar_old
+      use mp, only: proc0, broadcast
+      use arrays_store_distribution_fn, only: gold, gnew
+      use arrays_store_fields, only: phi, apar, bpar
+      use arrays_store_fields, only: phi_old, apar_old
       use fields, only: advance_fields, fields_updated
+      use parameters_physics, only: include_apar
+      use parameters_numerical, only: flip_flop
       use parameters_numerical, only: fully_explicit, fully_implicit
       use parameters_multibox, only: rk_step
       use gk_sources, only: include_qn_source, update_quasineutrality_source
       use gk_sources, only: source_option_switch, source_option_projection
       use gk_sources, only: source_option_krook
       use gk_sources, only: update_tcorr_krook, project_out_zero
-      use parameters_physics, only: include_apar
-      use mp, only: proc0, broadcast
-
-      use parameters_numerical, only: flip_flop
       use gk_radial_variation, only: mb_communicate
 
       implicit none
@@ -407,15 +405,15 @@ contains
       use mp, only: proc0
       use job_manage, only: time_message
       use stella_layouts, only: vmu_lo, iv_idx
-      use store_arrays_fields, only: phi, apar, bpar
-      use store_arrays_useful, only: time_gke
+      use arrays_store_fields, only: phi, apar, bpar
+      use arrays_store_useful, only: time_gke
       use grids_z, only: nzgrid
       use grids_extended_zgrid, only: periodic, phase_shift
       use parameters_kxky_grid, only: naky
       use parameters_physics, only: include_apar
-      use gk_parallel_streaming, only: stream_sign
       use parameters_numerical, only: explicit_algorithm_switch, explicit_algorithm_rk3, &
            explicit_algorithm_rk2, explicit_algorithm_rk4, explicit_algorithm_euler
+      use gk_parallel_streaming, only: stream_sign
       use fields, only: advance_fields
       use calculations_tofrom_ghf, only: gbar_to_g
 
@@ -486,7 +484,7 @@ contains
    !> advance_explicit_euler uses forward Euler to advance one time step
    subroutine advance_explicit_euler(g, restart_time_step, istep)
 
-      use store_arrays_distribution_fn, only: g0
+      use arrays_store_distribution_fn, only: g0
       use grids_z, only: nzgrid
       use stella_layouts, only: vmu_lo
       use parameters_multibox, only: rk_step
@@ -515,7 +513,7 @@ contains
    !> advance_expliciit_rk2 uses strong stability-preserving rk2 to advance one time step
    subroutine advance_explicit_rk2(g, restart_time_step, istep)
 
-      use store_arrays_distribution_fn, only: g0, g1
+      use arrays_store_distribution_fn, only: g0, g1
       use grids_z, only: nzgrid
       use stella_layouts, only: vmu_lo
       use parameters_multibox, only: rk_step
@@ -566,7 +564,7 @@ contains
    !> advance_expliciit_rk3 uses strong stability-preserving rk3 to advance one time step
    subroutine advance_explicit_rk3(g, restart_time_step, istep)
 
-      use store_arrays_distribution_fn, only: g0, g1, g2
+      use arrays_store_distribution_fn, only: g0, g1, g2
       use grids_z, only: nzgrid
       use stella_layouts, only: vmu_lo
       use parameters_multibox, only: rk_step
@@ -621,7 +619,7 @@ contains
    !> advance_expliciit_rk4 uses rk4 to advance one time step
    subroutine advance_explicit_rk4(g, restart_time_step, istep)
 
-      use store_arrays_distribution_fn, only: g0, g1, g2, g3
+      use arrays_store_distribution_fn, only: g0, g1, g2, g3
       use grids_z, only: nzgrid
       use stella_layouts, only: vmu_lo
       use parameters_multibox, only: rk_step
@@ -695,8 +693,8 @@ contains
       use stella_layouts, only: vmu_lo
       use calculations_transforms, only: transform_y2ky
 
-      use store_arrays_fields, only: phi, apar, bpar
-      use store_arrays_distribution_fn, only: g_scratch
+      use arrays_store_fields, only: phi, apar, bpar
+      use arrays_store_distribution_fn, only: g_scratch
       use arrays_gyro_averages, only: j0_ffs
 
       use calculations_kxky, only: swap_kxky_back
@@ -925,7 +923,7 @@ contains
       use stella_layouts, only: vmu_lo
 
       use grids_z, only: nzgrid
-      use store_arrays_useful, only: time_gke
+      use arrays_store_useful, only: time_gke
 
       use parameters_physics, only: include_parallel_streaming
       use parameters_physics, only: radial_variation, full_flux_surface
@@ -1052,12 +1050,12 @@ contains
       use gk_parallel_streaming, only: finish_parallel_streaming
       use gk_mirror, only: finish_mirror
       use gk_flow_shear, only: finish_flow_shear
-      use neoclassical_terms, only: finish_neoclassical_terms
-      use dissipation, only: finish_dissipation
       use gk_drifts, only: finish_wstar, finish_wdrift
       use gk_nonlinearity, only: finish_parallel_nonlinearity
       use gk_radial_variation, only: finish_radial_variation
-
+      use neoclassical_terms, only: finish_neoclassical_terms
+      use dissipation, only: finish_dissipation
+      
       implicit none
 
       if (full_flux_surface) call finish_transforms
@@ -1079,7 +1077,7 @@ contains
 
    subroutine deallocate_arrays
 
-      use store_arrays_distribution_fn, only: g0, g1, g2, g3
+      use arrays_store_distribution_fn, only: g0, g1, g2, g3
 
       implicit none
 

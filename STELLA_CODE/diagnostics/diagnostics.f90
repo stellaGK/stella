@@ -30,8 +30,8 @@ contains
    subroutine diagnostics_stella(istep)
 
       ! Data 
-      use store_arrays_fields, only: phi, apar, bpar
-      use store_arrays_distribution_fn, only: gnew 
+      use arrays_store_fields, only: phi, apar, bpar
+      use arrays_store_distribution_fn, only: gnew 
       use fields, only: advance_fields 
       use constants, only: zi 
 
@@ -193,7 +193,7 @@ contains
       use stella_time, only: code_dt, code_time
       use stella_save, only: stella_save_for_restart
       use calculations_redistribute, only: kxkyz2vmu
-      use store_arrays_distribution_fn, only: gnew, gvmu
+      use arrays_store_distribution_fn, only: gnew, gvmu
       use diagnostics_omega, only: finish_diagnostics_omega
       use diagnostics_fluxes, only: finish_diagnostics_fluxes 
       use diagnostics_potential, only: finish_diagnostics_potential
