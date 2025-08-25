@@ -65,7 +65,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/diagnostics/diagnostics_omega.f90
   ../STELLA_CODE/diagnostics/diagnostics_potential.f90
   ../STELLA_CODE/dissipation/dissipation_coll_dougherty.f90
-  ../STELLA_CODE/dissipation/coll_fokkerplanck.f90
+  ../STELLA_CODE/dissipation/dissipation_coll_fokkerplanck.f90
   ../STELLA_CODE/dissipation/dissipation.f90
   ../STELLA_CODE/dissipation/hyper.f90
   ../STELLA_CODE/fields/initialise_distribution_fn.f90

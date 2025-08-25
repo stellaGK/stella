@@ -1,4 +1,4 @@
-module coll_fokkerplanck
+module dissipation_coll_fokkerplanck
 
    implicit none
 
@@ -4207,4 +4207,4 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine advance_implicit_fp
 
-end module coll_fokkerplanck
+end module dissipation_coll_fokkerplanck

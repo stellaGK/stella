@@ -96,7 +96,7 @@ contains
    !============================================================================
    !========================= ADVANCE FIELDS BY SPEC ===========================
    !============================================================================
-   !> This is used in coll_fokkerplanck.f90
+   !> This is used in dissipation_coll_fokkerplanck.f90
    !> Note that is looks identical to the routine above - we don't know why they
    !> are separated
    !============================================================================

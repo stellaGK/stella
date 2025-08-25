@@ -87,7 +87,7 @@ The `diagnostics` folder contains the following scripts:
 The `dissipation` folder contains the following scripts:
 
 - dissipation_coll_dougherty.f90
-- coll_fokkerplanck.f90
+- dissipation_coll_fokkerplanck.f90
 - dissipation.f90
 - hyper.f90
 
