@@ -14,6 +14,9 @@ module grids_species
    public :: has_electron_species, has_slowing_down_species
    public :: ions, electrons, impurity
    public :: modified_adiabatic_electrons, adiabatic_electrons
+   
+   ! Allow other routines to check whether we are using multibox
+   public :: species_option_switch, species_option_multibox
 
    private
 
@@ -38,7 +41,8 @@ module grids_species
    integer :: ions, electrons, impurity
    real :: pfac
    
-   logical :: initialised = .false.
+   logical :: initialised_init_species = .false.
+   logical :: initialised_read_species = .false.
 
 contains
 
@@ -49,11 +53,16 @@ contains
       use namelist_species, only: read_namelist_species_options
 
       implicit none
+      
+      if (initialised_read_species) return
+      initialised_read_species = .true.
 
       call read_namelist_species_options(nspec, species_option_switch, &
                                 read_profile_variation, write_profile_variation, ecoll_zeff)
       call broadcast_species_options
+      
    contains
+   
       subroutine broadcast_species_options
 
          use mp, only: broadcast
@@ -89,8 +98,8 @@ contains
 
       integer :: is, is2
 
-      if (initialised) return
-      initialised = .true.
+      if (initialised_init_species) return
+      initialised_init_species = .true.
 
       allocate (spec(nspec))
       if (proc0) then
@@ -231,7 +240,7 @@ contains
 
       deallocate (spec)
 
-      initialised = .false.
+      initialised_init_species = .false.
 
    end subroutine finish_species
 
