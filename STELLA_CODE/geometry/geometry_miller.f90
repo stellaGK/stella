@@ -637,7 +637,6 @@ contains
          allocate (zed_arc(-nzgrid:nzgrid))
 
          call geo_spline(arc, theta, zed_in, zed_arc)
-
          call geo_spline(theta, grho_psi0, zed_arc, grho_out) !grho is used to normalize fluxes
          call geo_spline(theta, bmag, zed_arc, bmag_out)
          call geo_spline(theta, bmag_psi0, zed_arc, bmag_psi0_out)

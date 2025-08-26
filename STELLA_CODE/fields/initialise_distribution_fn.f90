@@ -51,7 +51,7 @@ contains
    subroutine read_parameters_init_distribution
 
       use stella_save, only: init_save, read_many
-      use stella_layouts, only: init_stella_layouts
+      use stella_layouts, only: read_parameters_parallelisation_layouts
       use system_fortran, only: systemf
       use mp, only: proc0, broadcast
       use stella_save, only: read_many
@@ -78,7 +78,7 @@ contains
       if (initialised) return
       initialised = .true.
 
-      call init_stella_layouts
+      call read_parameters_parallelisation_layouts
       
       ! Read <initialise_distribution> namelist 
       if (proc0) call read_namelist_initialise_distribution(init_distribution_switch, phiinit, scale_to_phiinit)

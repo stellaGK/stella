@@ -294,7 +294,9 @@ contains
             end do
          end do
       end if
-   
+      
+      ! Deallocate the local arrays within the Miller module
+      call finish_init_geometry
 
    end subroutine init_geometry
 
@@ -1295,6 +1297,8 @@ contains
 
    !============================================================================ 
    !====================== FINISH INITIALIZING THE GEOMETRY ====================
+   !============================================================================
+   ! TODO - Is this really necessary, can Miller not deallocate everything immediatly?
    !============================================================================
    subroutine finish_init_geometry
 

@@ -134,14 +134,14 @@ contains
    subroutine init_transforms
 
       use parameters_physics, only: full_flux_surface
-      use stella_layouts, only: init_stella_layouts
+      use stella_layouts, only: read_parameters_parallelisation_layouts
 
       implicit none
 
       if (transforms_initialized) return
       transforms_initialized = .true.
 
-      call init_stella_layouts
+      call read_parameters_parallelisation_layouts
       call init_y_fft
       call init_x_fft
       call init_x_xfirst_fft

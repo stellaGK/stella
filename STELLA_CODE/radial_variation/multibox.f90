@@ -1003,7 +1003,7 @@ contains
 
    subroutine init_mb_transforms
 
-      use stella_layouts, only: init_stella_layouts
+      use stella_layouts, only: read_parameters_parallelisation_layouts
       use grids_kxky, only: nakx, naky, naky_all
 
       implicit none

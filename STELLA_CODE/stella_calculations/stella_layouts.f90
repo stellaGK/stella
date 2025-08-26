@@ -66,7 +66,7 @@ module stella_layouts
    public :: xyzs_layout, vms_layout
    public :: finish_layouts
 
-   public :: init_stella_layouts, init_dist_fn_layouts
+   public :: read_parameters_parallelisation_layouts, init_dist_fn_layouts
    public :: kxkyz_lo, kxyz_lo, xyz_lo, vmu_lo
    
    ! this layout has the kx, z and vpa local,
@@ -181,7 +181,7 @@ contains
    ! Read the parameters in the namelist <layouts_knobs> to determine
    ! the layout of the xyzs grid and the vms grid and broadcast it.
    !****************************************************************************
-   subroutine init_stella_layouts
+   subroutine read_parameters_parallelisation_layouts
 
       use mp, only: proc0
       implicit none
@@ -191,9 +191,9 @@ contains
       initialized = .true.
 
       if (proc0) call read_parameters
-      call broadcast_results
+      call broadcast_parameters
 
-   end subroutine init_stella_layouts
+   end subroutine read_parameters_parallelisation_layouts
 
    !****************************************************************************
    !                               READ PARAMETERS 
@@ -217,20 +217,19 @@ contains
    !****************************************************************************
    ! Broadcast the <xyzs_layout> and <vms_layout> to all processors.
    !****************************************************************************
-   subroutine broadcast_results
+   subroutine broadcast_parameters
       use mp, only: broadcast
 
       implicit none
       call broadcast(xyzs_layout)
       call broadcast(vms_layout)
       call broadcast(kymus_layout)
-
       call broadcast(mat_gen)
       call broadcast(mat_read)
       call broadcast(lu_option_switch)
       call broadcast(fields_kxkyz)
 
-   end subroutine broadcast_results
+   end subroutine broadcast_parameters
     
    !****************************************************************************
    !                 INIT DISTRIBUTION FUNCTION LAYOUTS  
@@ -251,7 +250,6 @@ contains
       call init_kymus_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
       
    end subroutine init_dist_fn_layouts
-   
    
 !###############################################################################
 !                                  KXKYZ LAYOUT

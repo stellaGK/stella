@@ -148,7 +148,7 @@ contains
       use file_utils, only: flush_output_file, error_unit
       use job_manage, only: time_message
       use stella_layouts, only: mat_read
-      use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
+      use stella_layouts, only: init_dist_fn_layouts
       use stella_time, only: init_tstart, init_delt
       use stella_save, only: init_dt
       use parameters_physics, only: radial_variation
@@ -207,7 +207,8 @@ contains
       ! read and write files. Once we can open files, we want to read the debug
       ! flags. If a list of input files needs to be launched, we divide the number
       ! of jobs (or input files) over the number of processors using job_fork().
-      ! Finally, we start more internal timers and get the <run_name>.
+      ! Finally, we start more internal timers, get the <run_name> and initialise
+      ! the random nunmber generator based on <rng_seed> in the input file
       call init_mpi_files_utils_and_timers
 
       ! Write message to command prompt with useful info regarding at the start of the simulation
@@ -216,6 +217,7 @@ contains
       call write_start_message() 
       
       ! Read the input file
+      if (debug) write (*, *) 'stella::init_stella::read_parameters_from_input_file'
       call read_parameters_from_input_file
       
       ! The grid points of the distribution function g(kx,ky,z,mu,vpa,species),
@@ -248,19 +250,10 @@ contains
       if (debug) write (6, *) 'stella::init_stella::init_species'
       call init_species
       
-      
-
-      ! Read layouts_knobs namelist from the input file,
-      ! which determines the order of parallelisation within the different layouts
-      if (debug) write (6, *) 'stella::init_stella::init_stella_layouts'
-      call init_stella_layouts
       ! Setup the (kx,ky) grids and (x,y) grids, if applicable
       if (debug) write (6, *) 'stella::init_stella::init_multibox_subcalls'
       call init_multibox_subcalls
-      ! finish_init_geometry deallocates various geometric arrays that
-      ! were defined locally within the geometry_miller module when using Miller geometry
-      if (debug) write (6, *) 'stella::init_stella::finish_init_geometry'
-      call finish_init_geometry
+      
       ! Setup the (vpa,mu) grids and associated integration weights
       if (debug) write (6, *) 'stella::init_stella::init_velocity_grids'
       call init_velocity_grids
@@ -476,6 +469,7 @@ contains
       
       ! Other parameters
       use initialise_distribution_fn, only: read_parameters_init_distribution
+      use stella_layouts, only: read_parameters_parallelisation_layouts
       
       implicit none
       
@@ -505,14 +499,17 @@ contains
       call read_parameters_diagnostics
       if (debug) write (6, *) "stella::init_stella::read_parameters_init_distribution"
       call read_parameters_init_distribution
+      if (debug) write (6, *) 'stella::init_stella::read_parameters_parallelisation_layouts'
+      call read_parameters_parallelisation_layouts
       
    end subroutine read_parameters_from_input_file
       
    !----------------------------------------------------------------------------
    !----------------------------------------------------------------------------
    !----------------------------------------------------------------------------
-   ! Call all the multibox communication subroutines to make sure all the jobs have
-   ! the appropriate information
+   ! Call all the multibox communication subroutines to make sure all the jobs 
+   ! have the appropriate information
+   !----------------------------------------------------------------------------
    subroutine init_multibox_subcalls
 
       use mp, only: proc0, job
