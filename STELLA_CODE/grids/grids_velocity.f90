@@ -382,7 +382,6 @@ contains
       ! Grids
       use grids_z, only: nztot
       use grids_kxky, only: nalpha
-      use grids_species, only: spec, nspec
       
       implicit none
       

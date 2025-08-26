@@ -142,20 +142,31 @@ contains
    !****************************************************************************
    subroutine init_stella(istep0)
 
-      use stella_time, only: init_tstart
-      use mp, only: broadcast, sum_allreduce
-      use mp, only: proc0, job
-      use file_utils, only: flush_output_file, error_unit
+      ! Parallelisation
+      use mp, only: proc0
       use job_manage, only: time_message
-      use stella_layouts, only: init_dist_fn_layouts
-      use grids_kxky, only: naky, nakx, ny, nx, nalpha
-      use grids_species, only: nspec
-      use grids_z, only: nzgrid, ntubes
-      use grids_velocity, only: nvgrid, nmu
+      
+      ! Time trace
+      use stella_time, only: init_tstart
       use initialise_distribution_fn, only: tstart
+      
+      ! Files
+      use file_utils, only: flush_output_file
+      use file_utils, only: error_unit
+      
+      ! Init modules
+      use stella_layouts, only: init_dist_fn_layouts
       use diagnostics, only: init_diagnostics
+      
+      ! Calculations
       use calculations_volume_averages, only: volume_average
       use calculations_transforms, only: init_transforms
+      
+      ! Grids
+      use grids_kxky, only: naky, nakx, ny, nx, nalpha
+      use grids_velocity, only: nvgrid, nmu
+      use grids_species, only: nspec
+      use grids_z, only: nzgrid, ntubes
       
       
       implicit none
@@ -214,13 +225,12 @@ contains
       ! Initialise <delt>m the time advance module, and the response matrix
       call init_time_step_and_time_advance(restarted)
      
-      ! We have initialised the distribution function g(kx,ky,z,mu,vpa,species)
-      ! in initialise_distribution(). Use the quasineutrality condition to initialise 
+      ! The distribution function g(kx,ky,z,mu,vpa,species) has been initialised
+      ! in initialise_distribution(). Use the quasineutrality condition to initialise
       ! the electrostatic and electromagnetic fields (phi, apar, bpar).
       call init_electrostatic_and_magnetic_potential(restarted)
 
-      ! Read diagnostics_knob namelist from the input file,
-      ! open ascii output files and initialise the neetcdf file with extension .out.nc
+      ! Open ascii output files and initialise the netcdf file with extension .out.nc
       if (debug) write (6, *) 'stella::init_stella::init_diagnostics'
       call init_diagnostics(restarted, tstart)
       
@@ -239,135 +249,6 @@ contains
       if (proc0) call time_message(.false., time_init, ' Initialization')
 
    end subroutine init_stella
-   
-   
-   !----------------------------------------------------------------------------
-   !------------------- Initialise time step and time advance ------------------
-   !----------------------------------------------------------------------------
-   subroutine init_time_step_and_time_advance(restarted)
-      
-      ! Set the time step
-      use parameters_numerical, only: delt_option_switch
-      use parameters_numerical, only: delt_option_auto
-      use parameters_numerical, only: delt, delt_max, delt_min
-      use stella_time, only: init_delt
-      use stella_save, only: init_dt
-      
-      ! Initialise parts of the gyrokinetic equation
-      use gk_time_advance, only: init_time_advance
-      use response_matrix, only: init_response_matrix
-      use response_matrix, only: read_response_matrix
-      
-      ! Flags related to the gyrokinetic equation
-      use parameters_numerical, only: stream_implicit
-      use parameters_numerical, only: driftkinetic_implicit
-      use stella_layouts, only: mat_read
-      
-      implicit none
-      
-      ! Arguments
-      logical, intent(in out) :: restarted
-      
-      ! Local variables
-      real :: delt_saved
-      
-      !----------------------------------------------------------------------
-
-      ! If initializing from restart file, set the initial time step size appropriately
-      if (restarted .and. delt_option_switch == delt_option_auto) then
-         delt_saved = delt
-         if (debug) write (6, *) "stella::init_stella::init_dt"
-         call init_dt(delt_saved, istatus)
-         if (istatus == 0) delt = delt_saved
-      end if
-      
-      ! Set the internal time step size variable code_dt from the input variable delt
-      if (debug) write (6, *) "stella::init_stella::init_delt"
-      call init_delt(delt, delt_max, delt_min)
-      
-      ! Allocate and calculate arrays needed for the mirror, parallel streaming,
-      ! magnetic drifts, gradient drive, etc. terms during time advance
-      if (debug) write (6, *) 'stella::init_stella::init_time_advance'
-      call init_time_advance
-      if (stream_implicit .or. driftkinetic_implicit) then
-         if (mat_read) then
-            if (debug) write (6, *) "stella::init_stella::read_response_matrix"
-            call read_response_matrix
-         else
-            if (debug) write (6, *) "stella::init_stella::init_response_matrix"
-            call init_response_matrix
-         end if
-      end if
-      
-   end subroutine init_time_step_and_time_advance
-   
-   !----------------------------------------------------------------------------
-   !----------------------- Initialise phi, apar and bpar ----------------------
-   !----------------------------------------------------------------------------
-   subroutine init_electrostatic_and_magnetic_potential(restarted)
-      
-      ! The fields are phi(kx,ky,z), apar(kx,ky,z) and bpar(kx,ky,z)
-      use fields, only: advance_fields
-      use fields, only: fields_updated
-      use fields, only: rescale_fields
-      use initialise_distribution_fn, only: phiinit
-      use initialise_distribution_fn, only: scale_to_phiinit
-      
-      ! Load the fields and the distribution function g(kx,ky,z,mu,vpa,species)
-      use arrays_store_fields, only: phi, apar, bpar
-      use arrays_store_distribution_fn, only: gnew
-      
-      ! Radial variation runs
-      use parameters_physics, only: radial_variation
-      use file_utils, only: runtype_option_switch
-      use file_utils, only: runtype_multibox
-      use parameters_multibox, only: use_dirichlet_BC
-      use multibox, only: apply_radial_boundary_conditions
-      use multibox, only: multibox_communicate
-      use fields_radial_variation, only: get_radial_correction
-      
-      ! Parallelisation
-      use mp, only: job
-      
-      implicit none
-      
-      ! Arguments
-      logical, intent(in out) :: restarted
-      
-      !----------------------------------------------------------------------
-
-      ! We have initialised the distribution function g(kx,ky,z,mu,vpa,species)
-      ! in initialise_distribution(). Use the quasineutrality condition to initialise 
-      ! the electrostatic and electromagnetic fields (phi, apar, bpar).
-      if (debug) write (6, *) 'stella::init_stella::advance_fields'
-      call advance_fields(gnew, phi, apar, bpar, dist='g')
-      
-      ! Add the radial variation correction to the fields
-      if (radial_variation) then
-         if (debug) write (6, *) 'stella::init_stella::get_radial_correction'
-         call get_radial_correction(gnew, phi, dist='g')
-      end if
-
-      ! Fill in the boundary regions using auxilliary simulations if using
-      ! multibox, or zero it out if using Dirichlet boundary conditions
-      if (runtype_option_switch == runtype_multibox) then
-         if (debug) write (6, *) 'stella::init_stella:multibox_communicate'
-         call multibox_communicate(gnew)
-         if (job == 1) then
-            fields_updated = .false.
-            call advance_fields(gnew, phi, apar, bpar, dist='g')
-         end if
-      else if (use_dirichlet_BC) then
-         if (debug) write (6, *) 'stella::init_stella:multibox_radial_BC'
-         call apply_radial_boundary_conditions(gnew)
-         fields_updated = .false.
-         call advance_fields(gnew, phi, apar, bpar, dist='g')
-      end if
-
-      ! Rescale to phiinit if just beginning a new run
-      if (.not. restarted .and. scale_to_phiinit) call rescale_fields(phiinit)
-      
-   end subroutine init_electrostatic_and_magnetic_potential
    
    !----------------------------------------------------------------------------
    !------------- Intialise MPI environment, file utils and timers -------------
@@ -635,6 +516,134 @@ contains
    end subroutine init_arrays_and_stella_modules
    
    !----------------------------------------------------------------------------
+   !------------------- Initialise time step and time advance ------------------
+   !----------------------------------------------------------------------------
+   subroutine init_time_step_and_time_advance(restarted)
+      
+      ! Set the time step
+      use parameters_numerical, only: delt_option_switch
+      use parameters_numerical, only: delt_option_auto
+      use parameters_numerical, only: delt, delt_max, delt_min
+      use stella_time, only: init_delt
+      use stella_save, only: init_dt
+      
+      ! Initialise parts of the gyrokinetic equation
+      use gk_time_advance, only: init_time_advance
+      use response_matrix, only: init_response_matrix
+      use response_matrix, only: read_response_matrix
+      
+      ! Flags related to the gyrokinetic equation
+      use parameters_numerical, only: stream_implicit
+      use parameters_numerical, only: driftkinetic_implicit
+      use stella_layouts, only: mat_read
+      
+      implicit none
+      
+      ! Arguments
+      logical, intent(in out) :: restarted
+      
+      ! Local variables
+      real :: delt_saved
+      
+      !----------------------------------------------------------------------
+
+      ! If initializing from restart file, set the initial time step size appropriately
+      if (restarted .and. delt_option_switch == delt_option_auto) then
+         delt_saved = delt
+         if (debug) write (6, *) "stella::init_stella::init_dt"
+         call init_dt(delt_saved, istatus)
+         if (istatus == 0) delt = delt_saved
+      end if
+      
+      ! Set the internal time step size variable code_dt from the input variable delt
+      if (debug) write (6, *) "stella::init_stella::init_delt"
+      call init_delt(delt, delt_max, delt_min)
+      
+      ! Allocate and calculate arrays needed for the mirror, parallel streaming,
+      ! magnetic drifts, gradient drive, etc. terms during time advance
+      if (debug) write (6, *) 'stella::init_stella::init_time_advance'
+      call init_time_advance
+      if (stream_implicit .or. driftkinetic_implicit) then
+         if (mat_read) then
+            if (debug) write (6, *) "stella::init_stella::read_response_matrix"
+            call read_response_matrix
+         else
+            if (debug) write (6, *) "stella::init_stella::init_response_matrix"
+            call init_response_matrix
+         end if
+      end if
+      
+   end subroutine init_time_step_and_time_advance
+   
+   !----------------------------------------------------------------------------
+   !----------------------- Initialise phi, apar and bpar ----------------------
+   !----------------------------------------------------------------------------
+   subroutine init_electrostatic_and_magnetic_potential(restarted)
+      
+      ! The fields are phi(kx,ky,z), apar(kx,ky,z) and bpar(kx,ky,z)
+      use fields, only: advance_fields
+      use fields, only: fields_updated
+      use fields, only: rescale_fields
+      use initialise_distribution_fn, only: phiinit
+      use initialise_distribution_fn, only: scale_to_phiinit
+      
+      ! Load the fields and the distribution function g(kx,ky,z,mu,vpa,species)
+      use arrays_store_fields, only: phi, apar, bpar
+      use arrays_store_distribution_fn, only: gnew
+      
+      ! Radial variation runs
+      use parameters_physics, only: radial_variation
+      use file_utils, only: runtype_option_switch
+      use file_utils, only: runtype_multibox
+      use parameters_multibox, only: use_dirichlet_BC
+      use multibox, only: apply_radial_boundary_conditions
+      use multibox, only: multibox_communicate
+      use fields_radial_variation, only: get_radial_correction
+      
+      ! Parallelisation
+      use mp, only: job
+      
+      implicit none
+      
+      ! Arguments
+      logical, intent(in out) :: restarted
+      
+      !----------------------------------------------------------------------
+
+      ! The distribution function g(kx,ky,z,mu,vpa,species) has been initialised
+      ! in initialise_distribution(). Use the quasineutrality condition to initialise 
+      ! the electrostatic and electromagnetic fields (phi, apar, bpar).
+      if (debug) write (6, *) 'stella::init_stella::advance_fields'
+      call advance_fields(gnew, phi, apar, bpar, dist='g')
+      
+      ! Add the radial variation correction to the fields
+      if (radial_variation) then
+         if (debug) write (6, *) 'stella::init_stella::get_radial_correction'
+         call get_radial_correction(gnew, phi, dist='g')
+      end if
+
+      ! Fill in the boundary regions using auxilliary simulations if using
+      ! multibox, or zero it out if using Dirichlet boundary conditions
+      if (runtype_option_switch == runtype_multibox) then
+         if (debug) write (6, *) 'stella::init_stella:multibox_communicate'
+         call multibox_communicate(gnew)
+         if (job == 1) then
+            fields_updated = .false.
+            call advance_fields(gnew, phi, apar, bpar, dist='g')
+         end if
+      else if (use_dirichlet_BC) then
+         if (debug) write (6, *) 'stella::init_stella:multibox_radial_BC'
+         call apply_radial_boundary_conditions(gnew)
+         fields_updated = .false.
+         call advance_fields(gnew, phi, apar, bpar, dist='g')
+      end if
+
+      ! Rescale to phiinit if just beginning a new run
+      if (.not. restarted .and. scale_to_phiinit) call rescale_fields(phiinit)
+      
+   end subroutine init_electrostatic_and_magnetic_potential
+   
+   !----------------------------------------------------------------------------
    !----------------------------------------------------------------------------
    !----------------------------------------------------------------------------
    ! Call all the multibox communication subroutines to make sure all the jobs 
@@ -652,6 +661,8 @@ contains
       use multibox, only: communicate_multibox_parameters, multibox_communicate
 
       implicit none
+      
+      !----------------------------------------------------------------------
 
       if (debug) write (6, *) 'stella::init_stella::init_multibox'
       call init_multibox
@@ -684,12 +695,12 @@ contains
       use parameters_physics, only: include_nonlinear, include_parallel_nonlinearity
       use parameters_physics, only: radial_variation, full_flux_surface
       use parameters_physics, only: hammett_flow_shear
-      use parameters_physics, only: g_exb, g_exbfac 
-      
-      ! Input file
+      use parameters_physics, only: g_exb, g_exbfac
       use parameters_diagnostics, only: write_radial_moments, write_radial_fluxes
 
       implicit none
+      
+      !----------------------------------------------------------------------
 
       logical, intent(out) :: fourier_transformations_are_needed
 
@@ -714,9 +725,8 @@ contains
    end subroutine are_fourier_transformations_needed
 
    !----------------------------------------------------------------------------
+   !---------------------- Write start message to screen -----------------------
    !----------------------------------------------------------------------------
-   !----------------------------------------------------------------------------
-   ! Write the start message to screen
    subroutine write_start_message()
    
       use mp, only: proc0, nproc
@@ -724,6 +734,8 @@ contains
       use git_version, only: get_git_version, get_git_date
 
       implicit none
+      
+      !----------------------------------------------------------------------
 
       ! Stella version number and release date
       character(len=40) :: git_commit
@@ -777,14 +789,17 @@ contains
    end subroutine write_start_message
 
    !----------------------------------------------------------------------------
-   !----------------------------------------------------------------------------
+   !------------------------------- Print header -------------------------------
    !----------------------------------------------------------------------------
    subroutine print_header
 
       use mp, only: proc0
       use debug_flags, only: print_extra_info_to_terminal
       use parameters_physics, only: include_apar, include_bpar
+      
       implicit none
+      
+      !----------------------------------------------------------------------
       
       ! Only print the header on the first processor
       if (.not. proc0) return 
@@ -820,12 +835,16 @@ contains
    !----------------------------------------------------------------------------
    ! Parse some basic command line arguments. Currently just 'version' and 'help'.
    ! This should be called before anything else, but especially before initialising MPI.
+   !----------------------------------------------------------------------------
    subroutine parse_command_line()
+   
       use git_version, only: get_git_version
       integer :: arg_count, arg_n
       integer :: arg_length
       character(len=:), allocatable :: argument
       character(len=*), parameter :: endl = new_line('a')
+      
+      !----------------------------------------------------------------------
 
       arg_count = command_argument_count()
 
@@ -897,7 +916,10 @@ contains
 
       logical, intent(in), optional :: last_call
       real :: sum_timings
+      
+      !----------------------------------------------------------------------
 
+      ! Make a clean exit of stella
       if (debug) write (*, *) 'stella::finish_stella::finish_diagnostics'
       call finish_diagnostics(istep)
       if (debug) write (*, *) 'stella::finish_stella::finish_response_matrix'
@@ -936,6 +958,8 @@ contains
       if (debug) write (*, *) 'stella::finish_stella::finish_z_grid'
       call finish_z_grid
       if (debug) write (*, *) 'stella::finish_stella::finish_file_utils'
+      
+      ! Print timings
       if (proc0 .and. print_extra_info_to_terminal) then
          call finish_file_utils
          call time_message(.false., time_total, ' Total')
@@ -1038,8 +1062,8 @@ contains
       end if
 101   format(a20, f9.2, a4, f9.2, a1)
 
+      ! Finish (clean up) mpi message passing
       if (debug) write (*, *) 'stella::finish_stella::finish_mp'
-      ! finish (clean up) mpi message passing
       if (present(last_call)) then
          call finish_mp
          mpi_initialised = .false.
