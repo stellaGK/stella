@@ -160,27 +160,22 @@ contains
       use grids_species, only: nspec
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvgrid, nmu
-      use initialise_distribution_fn, only: initialise_distribution
       use initialise_distribution_fn, only: phiinit, scale_to_phiinit
       use initialise_distribution_fn, only: tstart
-      use fields, only: init_fields, advance_fields, fields_updated
+      use fields, only: advance_fields, fields_updated
       use fields_radial_variation, only: get_radial_correction
       use fields, only: rescale_fields
       use diagnostics, only: init_diagnostics
       use arrays_store_fields, only: phi, apar, bpar
       use arrays_store_distribution_fn, only: gnew
-      use arrays_distribution_fn, only: init_array_gxyz, init_arrays_distribution_fn
-      use arrays_constants, only: init_arrays_vperp_kperp
       use response_matrix, only: init_response_matrix, read_response_matrix
       use gk_time_advance, only: init_time_advance
-      use gk_sources, only: init_sources
       use multibox, only: init_multibox
       use multibox, only: apply_radial_boundary_conditions
       use multibox, only: multibox_communicate
-      use dissipation, only: init_dissipation
-      use calculations_volume_averages, only: init_volume_averages, volume_average
-      use calculations_redistribute, only: init_redistribute
+      use calculations_volume_averages, only: volume_average
       use calculations_transforms, only: init_transforms
+      
       
       implicit none
 
@@ -229,42 +224,13 @@ contains
       ! Initialise the (kx,ky,z,mu,vpa,species) grids as well as the magnetic geometry
       call init_grids_and_geometry
       
-      ! When doing a volume average using Fourier coefficients, the
-      ! ky=0 mode gets a different weighting than finite ky modes, due
-      ! to the reality condition being imposed; init_volume_averages accounts for this
-      if (debug) write (6, *) 'stella::init_stella::init_volume_averages'
-      call init_volume_averages
-      
-      ! Allocates and initialises kperp2, vperp2 and arrays needed
-      ! for gyro-averaging (j0 and j1 or equivalents)
-      if (debug) write (6, *) "stella::init_stella::init_dist_fn"
-      call init_arrays_distribution_fn
-      call init_arrays_vperp_kperp
-      
-      ! sets up the mappings between different layouts, needed
-      ! to redistribute data when going from one layout to another
-      if (debug) write (6, *) "stella::init_stella::init_redistribute"
-      call init_redistribute
-      
-      ! Read dissipation namelist from the input file and print information
-      ! about chosen options to stdout
-      if (debug) write (6, *) 'stella::init_stella::init_dissipation'
-      call init_dissipation
-      
-      if (debug) write (6, *) 'stella::init_stella::init_sources'
-      call init_sources
-      ! Allocate and initialise time-independent arrays needed to
-      ! solve the field equations; e.g., sum_s (Z_s^2 n_s / T_s)*(1-Gamma0_s)
-      if (debug) write (6, *) 'stella::init_stella::init_fields'
-      call init_fields
-      ! Initialise the distribution function in the kxkyz_lo and store in gvmu
-      if (debug) write (6, *) "stella::init_stella::initialise_distribution"
-      call initialise_distribution(restarted, istep0)
-      ! Use mapping from kxkyz_lo to vmu_lo to get a copy of g that has ky, kx and z local to each core;
-      ! stored in gnew and copied to gold
-      if (debug) write (6, *) "stella::init_stella::init_array_gxyz"
-      call init_array_gxyz(restarted)
-      !! call test_kymus_to_vmus_redistribute
+      ! Initialise the arrays for the distribution function g(kx,ky,z,i[mu,vpa,species])
+      ! as <gold> and <gnew> as well as gvmu(vpa,mu,i[kx,ky,z,species]). Also allocate
+      ! arrays for vperp2 and kperp2 and arrays needed for gyro-averaging (j0 and j1).
+      ! Moreover, initialise the redistribute, dissipation, soueces, fields, 
+      ! distribution and volume_averaged modules
+      call init_arrays_and_stella_modules(restarted, istep0)
+
       ! If initializing from restart file, set the initial time step size appropriately
       if (restarted .and. delt_option_switch == delt_option_auto) then
          delt_saved = delt
@@ -272,9 +238,11 @@ contains
          call init_dt(delt_saved, istatus)
          if (istatus == 0) delt = delt_saved
       end if
+      
       ! Set the internal time step size variable code_dt from the input variable delt
       if (debug) write (6, *) "stella::init_stella::init_delt"
       call init_delt(delt, delt_max, delt_min)
+      
       ! Allocate and calculate arrays needed for the mirror, parallel streaming,
       ! magnetic drifts, gradient drive, etc. terms during time advance
       if (debug) write (6, *) 'stella::init_stella::init_time_advance'
@@ -321,6 +289,7 @@ contains
       ! open ascii output files and initialise the neetcdf file with extension .out.nc
       if (debug) write (6, *) 'stella::init_stella::init_diagnostics'
       call init_diagnostics(restarted, tstart)
+      
       ! Initialise the code_time
       if (debug) write (6, *) 'stella::init_stella::init_tstart'
       call init_tstart(tstart)
@@ -330,10 +299,81 @@ contains
 
       ! Add a header to the output file
       call print_header
+      
       ! Stop the timing of the initialization
       if (proc0) call time_message(.false., time_init, ' Initialization')
 
    end subroutine init_stella
+   
+   
+   !----------------------------------------------------------------------------
+   !------------------- Intialise arrays and stella modules --------------------
+   !----------------------------------------------------------------------------
+   subroutine init_arrays_and_stella_modules(restarted, istep0)
+   
+      ! Initialise arrays
+      use arrays_distribution_fn, only: init_array_gxyz
+      use arrays_distribution_fn, only: init_arrays_distribution_fn
+      use arrays_constants, only: init_arrays_vperp_kperp
+   
+      ! Initialise other modules
+      use initialise_distribution_fn, only: initialise_distribution
+      use calculations_volume_averages, only: init_volume_averages
+      use calculations_redistribute, only: init_redistribute
+      use dissipation, only: init_dissipation
+      use gk_sources, only: init_sources
+      use fields, only: init_fields
+      
+      implicit none
+      
+      ! Arguments
+      integer, intent(in out) :: istep0
+      logical, intent(in out) :: restarted
+      
+      !----------------------------------------------------------------------
+      
+      ! When doing a volume average using Fourier coefficients, the
+      ! ky=0 mode gets a different weighting than finite ky modes, due
+      ! to the reality condition being imposed; init_volume_averages accounts for this
+      if (debug) write (6, *) 'stella::init_stella::init_volume_averages'
+      call init_volume_averages
+      
+      ! Initialise the arrays for the distribution function g(kx,ky,z,i[mu,vpa,species])
+      ! as <gold> and <gnew> as well as gvmu(vpa,mu,i[kx,ky,z,species]).
+      ! Aloso allocate vperp2, kperp2 and arrays needed for gyro-averaging (j0 and j1)
+      if (debug) write (6, *) "stella::init_stella::init_dist_fn"
+      call init_arrays_distribution_fn
+      call init_arrays_vperp_kperp
+      
+      ! sets up the mappings between different layouts, needed
+      ! to redistribute data when going from one layout to another
+      if (debug) write (6, *) "stella::init_stella::init_redistribute"
+      call init_redistribute
+      
+      ! Read dissipation namelist from the input file and print information
+      ! about chosen options to stdout
+      if (debug) write (6, *) 'stella::init_stella::init_dissipation'
+      call init_dissipation
+      
+      ! Initialise sources
+      if (debug) write (6, *) 'stella::init_stella::init_sources'
+      call init_sources
+      
+      ! Allocate and initialise time-independent arrays needed to
+      ! solve the field equations; e.g., sum_s (Z_s^2 n_s / T_s)*(1-Gamma0_s)
+      if (debug) write (6, *) 'stella::init_stella::init_fields'
+      call init_fields
+      
+      ! Initialise the distribution function in the kxkyz_lo and store in gvmu
+      if (debug) write (6, *) "stella::init_stella::initialise_distribution"
+      call initialise_distribution(restarted, istep0)
+      
+      ! Use mapping from kxkyz_lo to vmu_lo to get a copy of g that has ky, kx and z local to each core;
+      ! stored in gnew and copied to gold
+      if (debug) write (6, *) "stella::init_stella::init_array_gxyz"
+      call init_array_gxyz(restarted)
+      
+   end subroutine init_arrays_and_stella_modules
 
    !----------------------------------------------------------------------------
    !------------- Intialise MPI environment, file utils and timers -------------
