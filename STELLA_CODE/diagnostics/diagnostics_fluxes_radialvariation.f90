@@ -50,7 +50,7 @@ contains
       use parameters_physics, only: fphi
       use parameters_numerical, only: maxwellian_normalization
       use grids_kxky, only: aky, theta0
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
       use parameters_physics, only: radial_variation
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
@@ -336,7 +336,7 @@ contains
       use stella_layouts, only: vmu_lo
       use grids_kxky, only: aky
       use parameters_multibox, only: boundary_size
-      use parameters_kxky_grid, only: nakx, naky
+      use grids_kxky, only: nakx, naky
       use grids_z, only: nzgrid, ntubes
       use grids_species, only: nspec
       use calculations_volume_averages, only: mode_fac
@@ -415,7 +415,7 @@ contains
       use calculations_velocity_integrals, only: integrate_vmu
       use stella_layouts, only: vmu_lo
       use grids_kxky, only: aky
-      use parameters_kxky_grid, only: nakx, naky
+      use grids_kxky, only: nakx, naky
       use grids_z, only: nzgrid, ntubes
       use grids_species, only: nspec
       use calculations_volume_averages, only: mode_fac
@@ -458,7 +458,7 @@ contains
       use geometry, only: dVolume
       use stella_layouts, only: vmu_lo
       use grids_kxky, only: aky
-      use parameters_kxky_grid, only: nakx, naky
+      use grids_kxky, only: nakx, naky
       use grids_z, only: nzgrid, ntubes
       use grids_species, only: nspec
       use calculations_volume_averages, only: mode_fac

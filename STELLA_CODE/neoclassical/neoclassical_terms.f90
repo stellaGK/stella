@@ -29,7 +29,7 @@ contains
 
       use mp, only: proc0 
       use grids_z, only: nzgrid
-      use parameters_kxky_grid, only: nalpha
+      use grids_kxky, only: nalpha
       use grids_velocity, only: nvpa, nmu
       use grids_species, only: nspec
       use stella_layouts, only: vmu_lo
@@ -141,7 +141,7 @@ contains
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: dvpa
       use grids_species, only: nspec
-      use parameters_kxky_grid, only: nalpha
+      use grids_kxky, only: nalpha
 
       implicit none
 
@@ -186,7 +186,7 @@ contains
       use grids_velocity, only: nvpa, nmu
       use grids_species, only: nspec
       use stella_layouts, only: vmu_lo
-      use parameters_kxky_grid, only: nalpha
+      use grids_kxky, only: nalpha
 
       implicit none
 
@@ -231,7 +231,7 @@ contains
       use grids_velocity, only: nvpa, nmu
       use grids_species, only: nspec
       use stella_layouts, only: vmu_lo
-      use parameters_kxky_grid, only: nalpha
+      use grids_kxky, only: nalpha
 
       implicit none
 
@@ -279,7 +279,7 @@ contains
 
       use calculations_finite_differences, only: fd5pt
       use grids_z, only: nztot, nzgrid, delzed
-      use parameters_kxky_grid, only: nalpha
+      use grids_kxky, only: nalpha
 
       implicit none
 
@@ -306,7 +306,7 @@ contains
 
       use calculations_finite_differences, only: fd3pt, fd5pt
       use grids_z, only: nzgrid
-      use parameters_kxky_grid, only: nalpha
+      use grids_kxky, only: nalpha
 
       implicit none
 
@@ -345,7 +345,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_layouts, only: idx_local, proc_id
-      use parameters_kxky_grid, only: nalpha
+      use grids_kxky, only: nalpha
 
       implicit none
 

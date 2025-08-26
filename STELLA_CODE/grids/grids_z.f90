@@ -1,8 +1,12 @@
 module grids_z
 
    implicit none
-
-   public :: init_zgrid, finish_zgrid
+   
+   ! Make the routines available to other modules
+   public :: read_parameters_z_grid
+   public :: init_z_grid
+   public :: finish_z_grid
+   
    public :: nzgrid
    public :: nztot, nz2pi
    public :: zed
@@ -33,59 +37,37 @@ module grids_z
                          boundary_option_linked_stellarator = 4
 
    logical :: initialised_grids_z = .false.
+   logical :: initialised_read_grids_z = .false.
    character(20) :: boundary_option
 
 contains
 
-   !============================================================================
-   !============================= INITIALISE Z GRID ============================
-   !============================================================================ 
+!###############################################################################
+!################################ READ NAMELIST ################################
+!###############################################################################
 
-   subroutine init_zgrid
+   subroutine read_parameters_z_grid
 
-      use mp, only: proc0
-      use constants, only: pi
-
-      use namelist_z_grid, only: read_namelist_z_grid, read_namelist_z_boundary_condition
+      use namelist_z_grid, only: read_namelist_z_grid
+      use namelist_z_grid, only: read_namelist_z_boundary_condition
 
       implicit none
-
-      integer :: i
-
-      if (initialised_grids_z) return
-      initialised_grids_z = .true.
-
-      if (proc0) then
-         call read_namelist_z_grid(nzed, nperiod, ntubes, zed_equal_arc)
-         call read_namelist_z_boundary_condition (boundary_option_switch, shat_zero, & 
-                                                   grad_x_grad_y_zero, dkx_over_dky)
-      end if
       
-      ! <nzed> specifies the grid points left and right of z=0 in a single segment
-      ! whereas <nzgrid> is the total number of grid points
-      nzgrid = nzed / 2 + (nperiod - 1) * nzed
+      !-------------------------------------------------------------------------
+
+      ! Only initialise once
+      if (initialised_read_grids_z) return
+      initialised_read_grids_z = .true.
+
+      ! Read the "z_grid" and "z_boundary_condition" namelists in the input file
+      call read_namelist_z_grid(nzed, nzgrid, nperiod, ntubes, zed_equal_arc)
+      call read_namelist_z_boundary_condition (boundary_option_switch, &
+         shat_zero, grad_x_grad_y_zero, dkx_over_dky)
+      
+      ! Broadcast the parameters to all processors
       call broadcast_parameters
-      call compute_useful_quantities
       
    contains
-
-      subroutine compute_useful_quantities
-
-         implicit none
-         
-
-         if (.not. allocated(zed)) allocate (zed(-nzgrid:nzgrid))
-         if (.not. allocated(delzed)) allocate (delzed(-nzgrid:nzgrid))
-
-         zed = (/(i * pi / real(nzed / 2), i=-nzgrid, nzgrid)/)
-         delzed(:nzgrid - 1) = zed(-nzgrid + 1:) - zed(:nzgrid - 1)
-         delzed(nzgrid) = delzed(-nzgrid)
-
-         nztot = 2 * nzgrid + 1
-         ! number of zed in a 2*pi segment, including points at +/- pi
-         nz2pi = 2 * (nzed / 2) + 1
-
-      end subroutine compute_useful_quantities
 
       subroutine broadcast_parameters
 
@@ -105,13 +87,48 @@ contains
 
       end subroutine broadcast_parameters
 
-   end subroutine init_zgrid
+   end subroutine read_parameters_z_grid
 
-   !============================================================================
-   !============================= FINIALISE Z GRID ============================
-   !============================================================================ 
+!###############################################################################
+!############################### INITIALISE Z GRID #############################
+!###############################################################################
 
-   subroutine finish_zgrid
+   subroutine init_z_grid
+   
+      use constants, only: pi
+
+      implicit none
+      
+      integer :: i
+      
+      !-------------------------------------------------------------------------
+
+      ! Only initialise once
+      if (initialised_grids_z) return
+      initialised_grids_z = .true.
+
+      ! Allocate arrays
+      if (.not. allocated(zed)) allocate (zed(-nzgrid:nzgrid))
+      if (.not. allocated(delzed)) allocate (delzed(-nzgrid:nzgrid))
+
+      ! Calculate the z-grid, which ranges from -pi to pi
+      zed = (/(i * pi / real(nzed / 2), i=-nzgrid, nzgrid)/)
+      delzed(:nzgrid - 1) = zed(-nzgrid + 1:) - zed(:nzgrid - 1)
+      delzed(nzgrid) = delzed(-nzgrid)
+
+      ! Total number of z-grid points
+      nztot = 2 * nzgrid + 1
+      
+      ! number of zed in a 2*pi segment, including points at +/- pi
+      nz2pi = 2 * (nzed / 2) + 1
+
+   end subroutine init_z_grid
+
+!###############################################################################
+!################################ FINIALISE Z GRID #############################
+!############################################################################### 
+
+   subroutine finish_z_grid
 
       implicit none
 
@@ -120,11 +137,16 @@ contains
 
       initialised_grids_z = .false.
 
-   end subroutine finish_zgrid
+   end subroutine finish_z_grid
 
-   !============================================================================
-   !======================== CALCULATE TOTAL ARC LENGTH ========================
-   !============================================================================  
+!###############################################################################
+!################################# CALCULATIONS ################################
+!############################################################################### 
+
+
+   !****************************************************************************
+   !                         CALCULATE TOTAL ARC LENGTH
+   !****************************************************************************
    subroutine get_total_arc_length(nz, gp, dz, length)
 
       implicit none
@@ -143,9 +165,9 @@ contains
 
    end subroutine get_total_arc_length
 
-   !============================================================================
-   !======================== CALCULATE ARC LENGTH GRID =========================
-   !============================================================================  
+   !****************************************************************************
+   !                         CALCULATE ARC LENGTH GRID 
+   !****************************************************************************
    subroutine get_arc_length_grid(nz_max, nzext_max, zboundary, gp, dz, zarc)
 
       implicit none
@@ -175,9 +197,9 @@ contains
 
    end subroutine get_arc_length_grid
 
-   !============================================================================
-   !============================ INTEGRATE ALONG Z =============================
-   !============================================================================  
+   !****************************************************************************
+   !                             INTEGRATE ALONG Z 
+   !****************************************************************************
    ! Use the trapezoidal rule to integrate in zed
    subroutine integrate_zed(nz, dz, f, intf)
 

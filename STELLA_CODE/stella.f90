@@ -1,99 +1,152 @@
+!###############################################################################
+!###################### STELLA: Delta-f gyrokinetic code #######################
+!###############################################################################
+! 
+! This is the main stella program. Here all parameters and grid are initialised,
+! and the gyrokinetic is evolved in time.
+! 
+!###############################################################################
 program stella
 
-   use redistribute, only: scatter
-   use job_manage, only: time_message, checkstop, job_fork
-   use job_manage, only: checktime
-   use file_utils, only: error_unit, flush_output_file
-   use git_version, only: get_git_version, get_git_date
-   use stella_time, only: update_time, code_time, code_dt, checkcodedt
-   use stella_save, only: stella_save_for_restart
-   use parameters_numerical, only: nstep, tend
-   use parameters_numerical, only: avail_cpu_time
-   use parameters_diagnostics, only: nsave
-   use calculations_redistribute, only: kxkyz2vmu
-   use gk_time_advance, only: advance_stella
+   use debug_flags, only: debug => stella_debug
    use diagnostics, only: diagnostics_stella
-   use diagnostics_omega, only: checksaturation
-   use arrays_store_distribution_fn, only: gnew, gvmu
-
-   use debug_flags, only: debug => stella_debug   
-
+      
    implicit none
-
-   logical :: stop_stella = .false.
+   
+   ! Make sure we only initialise mpi once
    logical :: mpi_initialised = .false.
-
-   integer :: istep0, istep, ierr
-   integer :: istatus
+   
+   ! Time the routines (need to be available to init_stella and finish_stella)
    real, dimension(2) :: time_init = 0.
    real, dimension(2) :: time_diagnose_stella = 0.
    real, dimension(2) :: time_total = 0.
 
-   ! Stella version number and release date 
-   character(len=40) :: git_commit 
-   character(len=10) :: git_date
+   ! For a restarted simulation, istep0 > 0
+   integer :: istep0
+   
+   ! istep is used by evolve_gyrokinetic_equation() and finish_stella()
+   integer :: istep
+   
+   ! Used for restarted simulations
+   integer :: istatus
+      
+   !----------------------------------------------------------------------------
 
+   ! Read options from the command line such as --help and --version
    call parse_command_line()
 
-   ! Set git data automatically or manually
-   git_commit = get_git_version()
-   git_date = get_git_date()
-
    ! Initialise stella
-   call init_stella(istep0, git_commit, git_date)
+   if (debug) write (*, *) 'stella::init_stella'
+   call init_stella(istep0)
 
-   ! Diagnose stella
+   ! Diagnose stella for istep=0
    if (debug) write (*, *) 'stella::diagnostics_stella'
    if (istep0 == 0) call diagnostics_stella(istep0)
 
-   ! Advance stella until istep=nstep
-   if (debug) write (*, *) 'stella::advance_stella'
-   istep = istep0 + 1
-   do while ((code_time <= tend .AND. tend > 0) .OR. (istep <= nstep .AND. nstep > 0))
-      if (debug) write (*, *) 'istep = ', istep
-      if (mod(istep, 10) == 0) then
-         call checkstop(stop_stella)
-         call checktime(avail_cpu_time, stop_stella)
-         call checkcodedt(stop_stella)
-         call checksaturation(istep, stop_stella)
-      end if
-      if (stop_stella) exit
-      call advance_stella(istep, stop_stella)
-      if (stop_stella) exit
-      call update_time
-      if (nsave > 0 .and. mod(istep, nsave) == 0) then
-         call scatter(kxkyz2vmu, gnew, gvmu)
-         call stella_save_for_restart(gvmu, istep, code_time, code_dt, istatus)
-      end if
-      call time_message(.false., time_diagnose_stella, ' diagnostics') 
-      call diagnostics_stella(istep) 
-      call time_message(.false., time_diagnose_stella, ' diagnostics')
-      ierr = error_unit()
-      call flush_output_file(ierr)
-      istep = istep + 1
-   end do
-
+   ! Evolve the gyrokinetic equation in time until istep=nstep or t=tend
+   if (debug) write (*, *) 'stella::evolve_gyrokinetic_equation'
+   call evolve_gyrokinetic_equation
+   
    ! Finish stella
    if (debug) write (*, *) 'stella::finish_stella'
    call finish_stella(last_call=.true.)
 
 contains
 
-   !###############################################################################
-   !############################# INITIALISE STELLA ###############################
-   !###############################################################################
-   ! Calls the initialisation routines for all the geometry, physics, and
-   ! diagnostic modules
-   subroutine init_stella(istep0, git_commit, git_date)
+   !****************************************************************************
+   !                        EVOLVE GYROKINETIC EQUATION                        !
+   !****************************************************************************
+   subroutine evolve_gyrokinetic_equation
+   
+      use redistribute, only: scatter
+      use job_manage, only: time_message, checkstop
+      use job_manage, only: checktime
+      use file_utils, only: error_unit, flush_output_file
+      use stella_time, only: update_time, code_time, code_dt, checkcodedt
+      use stella_save, only: stella_save_for_restart
+      use parameters_numerical, only: nstep, tend
+      use parameters_numerical, only: avail_cpu_time
+      use parameters_diagnostics, only: nsave
+      use calculations_redistribute, only: kxkyz2vmu
+      use gk_time_advance, only: advance_stella
+      use diagnostics_omega, only: checksaturation
+      use arrays_store_distribution_fn, only: gnew, gvmu
+      
+      implicit none
 
-      use mp, only: init_mp, broadcast, sum_allreduce
+      logical :: stop_stella = .false.
+      integer :: ierr
+      
+      !-------------------------------------------------------------------------
+
+      ! Initialise the time step counter
+      istep = istep0 + 1
+      
+      ! Evolve the gyrokinetic equation in time until <istep>=<nstep> or <code_time>=<tend>
+      do while ((code_time <= tend .and. tend > 0) .or. (istep <= nstep .and. nstep > 0))
+      
+         ! Keep track of the steps when debugging
+         if (debug) write (*, *) 'istep = ', istep
+         
+         ! Every 10 time steps, check if stella should be stopped, so stella can make a clean exit
+         !     - stop stella is a *.stop file has appeared
+         !     - stop stella if <elapsed_time> is within 5 minutes of <avail_cpu_time>
+         !     - stop stella of <code_dt> < <code_dt_min> which happens when |phi| blows up
+         !     - stop stella if <autostop> = True and <omega_vs_tkykx> has saturated over <navg> time steps
+         if (mod(istep, 10) == 0) then
+            call checkstop(stop_stella)
+            call checktime(avail_cpu_time, stop_stella)
+            call checkcodedt(stop_stella)
+            call checksaturation(istep, stop_stella)
+         end if
+         if (stop_stella) exit
+         
+         ! Advance the fields in time, which are the gyro-averaged distribution function g 
+         ! and the electrostaticl potential phi, based on the gyrokinetic equation
+         call advance_stella(istep, stop_stella)
+         
+         ! During the time advance, the time step is sometimes changed and the 
+         ! time advance is retried, if it is changed unsuccesfully more than 5 times,
+         ! we give up on evolving the gyroketinic equation and <stop_stella> = True
+         if (stop_stella) exit
+         
+         ! After succesfully evolving the fields, we can update code_time to code_time + code_dt
+         call update_time
+         
+         ! Every <nsave> time steps, save the data necessary to restart stella
+         if (nsave > 0 .and. mod(istep, nsave) == 0) then
+            call scatter(kxkyz2vmu, gnew, gvmu)
+            call stella_save_for_restart(gvmu, istep, code_time, code_dt, istatus)
+         end if
+         
+         ! Calculate diagnostics, e.g., turbulent fluxes, growth rates, density fluctuations, ...
+         call time_message(.false., time_diagnose_stella, ' diagnostics') 
+         call diagnostics_stella(istep) 
+         call time_message(.false., time_diagnose_stella, ' diagnostics')
+         
+         ! Make sure the error file is written
+         ierr = error_unit()
+         call flush_output_file(ierr)
+         
+         ! Increase the time step counter
+         istep = istep + 1
+         
+      end do
+   
+   end subroutine evolve_gyrokinetic_equation
+
+   !****************************************************************************
+   !                              INITIALISE STELLA                            !
+   !****************************************************************************
+   ! Calls the initialisation routines for all the modules
+   !****************************************************************************
+   subroutine init_stella(istep0)
+
+      use mp, only: broadcast, sum_allreduce
       use mp, only: proc0, job
-      use debug_flags, only: read_debug_flags
-      use file_utils, only: init_file_utils
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use file_utils, only: run_name, init_job_name
       use file_utils, only: flush_output_file, error_unit
-      use job_manage, only: checktime, time_message
+      use job_manage, only: time_message
       use stella_layouts, only: mat_read
       use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
       use stella_time, only: init_tstart, init_delt
@@ -101,22 +154,23 @@ contains
       use parameters_physics, only: read_parameters_physics
       use parameters_physics, only: radial_variation
       use parameters_numerical, only: read_parameters_numerical
-      use parameters_numerical, only: avail_cpu_time, delt, delt_max, delt_min
+      use parameters_numerical, only: delt, delt_max, delt_min
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_numerical, only: delt_option_switch, delt_option_auto
-      use parameters_kxky_grid, only: read_parameters_kxky_grid
+      use grids_kxky, only: read_grids_kxky
       use parameters_diagnostics, only: read_diagnostics_knobs
-      use parameters_kxky_grid, only: naky, nakx, ny, nx, nalpha
+      use grids_kxky, only: naky, nakx, ny, nx, nalpha
       use parameters_multibox, only: read_multibox_parameters, use_dirichlet_BC
       use geometry, only: init_geometry
       use geometry, only: finish_init_geometry
-      use grids_species, only: init_species, read_species_options
+      use grids_species, only: init_species, read_parameters_species
       use grids_species, only: nspec
-      use grids_z, only: init_zgrid
+      use grids_z, only: read_parameters_z_grid
+      use grids_z, only: init_z_grid
       use grids_z, only: nzgrid, ntubes
       use grids_extended_zgrid, only: init_extended_zgrid
       use grids_kxky, only: init_grids_kxky
-      use grids_velocity, only: init_velocity_grids, read_velocity_grids_parameters
+      use grids_velocity, only: init_velocity_grids, read_parameters_velocity_grids
       use grids_velocity, only: nvgrid, nmu
       use initialise_distribution_fn, only: rng_seed
       use initialise_distribution_fn, only: read_initialise_distribution, initialise_distribution
@@ -148,72 +202,56 @@ contains
       ! Starting timestep: zero unless the simulation has been restarted
       integer, intent(out) :: istep0
 
-      ! Stella version number and release date 
-      character(len=40), intent(in) :: git_commit 
-      character(len=10), intent(in) :: git_date
-
-      logical :: exit, list, restarted, needs_transforms
-      character(500), target :: cbuff
+      logical :: restarted, needs_transforms
       integer, dimension(:), allocatable  :: seed
       integer :: i, n, ierr
       real :: delt_saved
 
-      ! Initialise mpi message passing
-      if (.not. mpi_initialised) call init_mp
-      mpi_initialised = .true.
-
-      ! Initialise timer
-      if (debug) write (*, *) 'stella::init_stella::check_time'
-      call checktime(avail_cpu_time, exit)
-
-      if (proc0) then 
-         ! Initialise file i/o
-         if (debug) write (*, *) 'stella::init_stella::init_file_utils'
-         call init_file_utils(list)
-      end if  
-
-      call read_debug_flags
-      debug = debug .and. proc0
-
-      call broadcast(list)
-      call broadcast(runtype_option_switch)
-      if (list) call job_fork
-
-      if (proc0) then
-         call time_message(.false., time_total, ' Total')
-         call time_message(.false., time_init, ' Initialization')
-      end if
-
-      if (proc0) cbuff = trim(run_name)
-      call broadcast(cbuff)
-      if (.not. proc0) call init_job_name(cbuff)
+      !-------------------------------------------------------------------------
       
-      ! Read the parameters_physics namelist from the input file
+      ! It is important to first initialise the MPI environment, so that we can 
+      ! parallelise computations over the <nproc> available processors, and so 
+      ! that a specific processor is assigned to <proc0>. Moreover, we need to
+      ! start the overall timer, and initialise the file utilities so we can
+      ! read and write files. Once we can open files, we want to read the debug
+      ! flags. If a list of input files needs to be launched, we divide the number
+      ! of jobs (or input files) over the number of processors using job_fork().
+      ! Finally, we start more internal timers and get the <run_name>.
+      call init_mpi_files_utils_and_timers
+
+      ! Write message to screen with useful info regarding start of simulation
+      ! This routine uses <print_extra_info_to_terminal> from the debug_flags namelist
+      if (debug) write (*, *) 'stella::init_stella::write_start_message'
+      call write_start_message() 
+      
+      ! Read the phsyics and numerical parameters from the input file
+      ! These namelists contain many variables and flags used by other modules
       if (debug) write (6, *) "stella::init_stella::read_parameters_physics"
       call read_parameters_physics
       if (debug) write (6, *) "stella::init_stella::read_parameters_numerical"
-      call read_parameters_numerical 
-      ! Write message to screen with useful info regarding start of simulation
-      if (debug) write (*, *) 'stella::init_stella::write_start_message'
-      call write_start_message(git_commit, git_date) 
-      ! Read the z_grid_parameters namelist from the input file and setup the z grid
-      if (debug) write (6, *) "stella::init_stella::init_zgrid"
-      call init_zgrid
+      call read_parameters_numerical
+      
+      ! Read the namelist related to the z-grid
+      if (debug) write (6, *) "stella::init_stella::read_parameters_z_grid"
+      call read_parameters_z_grid
       ! Read the species_knobs namelist from the input file
       if (debug) write (6, *) "stella::init_stella::read_species_options"
-      call read_species_options
+      call read_parameters_species
       ! Read the grid option from the kt_grids_knobs namelist in the input file;
       ! depending on the grid option chosen, read the corresponding kt_grids_XXXX_parameters
       ! namelist from the input file and allocate some kx and ky arrays
-      if (debug) write (6, *) "stella::init_stella::read_parameters_kxky_grid"
-      call read_parameters_kxky_grid
+      if (debug) write (6, *) "stella::init_stella::read_grids_kxky"
+      call read_grids_kxky
       ! Read the velocity_grids_parameters namelist from the input file
       if (debug) write (6, *) "stella::init_stella::read_velocity_grids_parameters"
-      call read_velocity_grids_parameters
+      call read_parameters_velocity_grids
+      
       if (debug) write (6, *) "stella::init_stella::read_multibox_parameters"
       call read_multibox_parameters
       if (debug) write (6, *) "stella::init_stella::read_diagnostics_knobs"
       call read_diagnostics_knobs
+      
+      
       ! Setup the various data layouts for the distribution function;
       ! e.g., vmu_lo is the layout in which vpa, mu and species may be distributed
       ! amongst processors, depending on the number of phase space points and processors
@@ -227,6 +265,10 @@ contains
          if (debug) write (*, *) "stella::init_stella::init_transforms"
          call init_transforms
       end if
+      
+      ! Set-up the z-grid
+      if (debug) write (6, *) "stella::init_stella::init_z_grid"
+      call init_z_grid
       ! Read in the geometry option and any necessary magnetic geometry info
       ! and use it to calculate all of the required geometric coefficients
       if (debug) write (6, *) "stella::init_stella::init_geometry"
@@ -241,10 +283,11 @@ contains
       ! and prepare for reading in from restart file if requested
       if (debug) write (6, *) "stella::init_stella::read_initialise_distribution"
       call read_initialise_distribution
+      
       ! Read knobs namelist from the input file
       ! and the info to determine the mixture of implicit and explicit time advance
-      if (debug) write (6, *) "stella::init_stella::init_run_parameters"
-      call read_parameters_physics
+      !if (debug) write (6, *) "stella::init_stella::init_run_parameters"
+      !call read_parameters_physics
 
       if (debug) write (6, *) "stella::init_stella::init_ranf"
       n = get_rnd_seed_length()
@@ -364,7 +407,7 @@ contains
       ! Read diagnostics_knob namelist from the input file,
       ! open ascii output files and initialise the neetcdf file with extension .out.nc
       if (debug) write (6, *) 'stella::init_stella::init_diagnostics'
-      call init_diagnostics(restarted, tstart, git_commit, git_date)
+      call init_diagnostics(restarted, tstart)
       ! Initialise the code_time
       if (debug) write (6, *) 'stella::init_stella::init_tstart'
       call init_tstart(tstart)
@@ -379,6 +422,86 @@ contains
 
    end subroutine init_stella
 
+   !----------------------------------------------------------------------------
+   !------------- Intialise MPI environment, file utils and timers -------------
+   !----------------------------------------------------------------------------
+   subroutine init_mpi_files_utils_and_timers
+   
+      ! After we initialised the MPI environment, we can access <proc0> and <broadcast>
+      use mp, only: init_mp
+      use mp, only: proc0
+      use mp, only: broadcast
+      
+      ! Start timer, so stella exits 5 minutes before <avail_cpu_time>
+      use job_manage, only: checktime
+
+      ! Initialise file utils
+      use file_utils, only: init_file_utils
+      
+      ! Read debug flags
+      use debug_flags, only: read_debug_flags
+      
+      ! Divide input files over processors
+      use job_manage, only: job_fork
+      use file_utils, only: runtype_option_switch
+      
+      ! Start more timers
+      use job_manage, only: time_message
+      
+      ! Assign the <run_name> to each job
+      use file_utils, only: run_name
+      use file_utils, only: init_job_name
+      
+      implicit none
+      
+      character(500), target :: cbuff
+      real :: avail_cpu_time_dummy = 10000000000.0
+      logical :: list, exit
+      
+      !----------------------------------------------------------------------
+
+      ! Initialise MPI (Message Passing Interface) which allows us to parallelise
+      ! computations over the <nproc> available processors. It will assign a <proc0>.
+      if (.not. mpi_initialised) call init_mp
+      mpi_initialised = .true.
+
+      ! Initialise timer, so that stella exits 5 minutes before <avail_cpu_time>
+      if (debug) write (*, *) 'stella::init_stella::check_time'
+      call checktime(avail_cpu_time_dummy, exit)
+
+      ! Initialise file utilities, this will open the input and error files
+      if (proc0) then 
+         if (debug) write (*, *) 'stella::init_stella::init_file_utils'
+         call init_file_utils(list)
+      end if
+
+      ! Read the debug flags, since the input file is now available
+      ! Note that any previous debug statements are not printed since debug = False
+      ! by default, and it's value isn't changed until we read the debug flags below
+      call read_debug_flags
+      debug = debug .and. proc0
+
+      ! We can launch a list of input files which are divided over the processors
+      call broadcast(list)
+      call broadcast(runtype_option_switch)
+      if (list) call job_fork
+
+      ! Start internal timers, this is part of job_manage and needs to be called after job_fork
+      if (proc0) then
+         call time_message(.false., time_total, ' Total')
+         call time_message(.false., time_init, ' Initialization')
+      end if
+
+      ! Assign a <run_name> to each job, generally this is the name of the input file
+      if (proc0) cbuff = trim(run_name)
+      call broadcast(cbuff)
+      if (.not. proc0) call init_job_name(cbuff)
+      
+   end subroutine init_mpi_files_utils_and_timers
+
+   !----------------------------------------------------------------------------
+   !----------------------------------------------------------------------------
+   !----------------------------------------------------------------------------
    ! Call all the multibox communication subroutines to make sure all the jobs have
    ! the appropriate information
    subroutine init_multibox_subcalls
@@ -414,6 +537,9 @@ contains
 
    end subroutine init_multibox_subcalls
 
+   !----------------------------------------------------------------------------
+   !----------------------------------------------------------------------------
+   !----------------------------------------------------------------------------
    ! check_transforms checks the various physics flag choices
    ! to determine if FFTs are needed for the simulation
    subroutine check_transforms(needs_transforms)
@@ -446,23 +572,31 @@ contains
 
    end subroutine check_transforms
 
+   !----------------------------------------------------------------------------
+   !----------------------------------------------------------------------------
+   !----------------------------------------------------------------------------
    ! Write the start message to screen
-   subroutine write_start_message(git_commit, git_date)
+   subroutine write_start_message()
    
       use mp, only: proc0, nproc
       use debug_flags, only: print_extra_info_to_terminal
+      use git_version, only: get_git_version, get_git_date
 
       implicit none
 
-      ! Stella version number and release date 
-      character(len=40), intent(in) :: git_commit 
-      character(len=10), intent(in) :: git_date
+      ! Stella version number and release date
+      character(len=40) :: git_commit
+      character(len=10) :: git_date
 
       ! Strings to format data
       character(len=23) :: str
       
       ! Only print the header on the first processor
       if (.not. proc0) return 
+      
+      ! Get git data
+      git_commit = get_git_version()
+      git_date = get_git_date()
       
       ! Print the stella header
       if (print_extra_info_to_terminal) then
@@ -501,6 +635,9 @@ contains
 
    end subroutine write_start_message
 
+   !----------------------------------------------------------------------------
+   !----------------------------------------------------------------------------
+   !----------------------------------------------------------------------------
    subroutine print_header
 
       use mp, only: proc0
@@ -537,6 +674,9 @@ contains
 
    end subroutine print_header
 
+   !----------------------------------------------------------------------------
+   !----------------------------------------------------------------------------
+   !----------------------------------------------------------------------------
    ! Parse some basic command line arguments. Currently just 'version' and 'help'.
    ! This should be called before anything else, but especially before initialising MPI.
    subroutine parse_command_line()
@@ -571,10 +711,11 @@ contains
       end do
    end subroutine parse_command_line
 
-   !###############################################################################
-   !############################## FINIALISE STELLA ###############################
-   !###############################################################################
+   !****************************************************************************
+   !                            FINIALISE STELLA  
+   !****************************************************************************
    ! Finish a simulation, call the finialisation routines of all modules
+   !****************************************************************************
    subroutine finish_stella(last_call)
 
       use mp, only: finish_mp
@@ -586,7 +727,7 @@ contains
       use parameters_physics, only: include_parallel_nonlinearity, radial_variation
       use parameters_numerical, only: finish_read_parameters_numerical
       use parameters_numerical, only: stream_implicit, drifts_implicit
-      use grids_z, only: finish_zgrid
+      use grids_z, only: finish_z_grid
       use grids_species, only: finish_species
       use grids_extended_zgrid, only: finish_extended_zgrid
       use grids_velocity, only: finish_velocity_grids
@@ -651,8 +792,8 @@ contains
       call finish_read_parameters_physics
       if (debug) write (*, *) 'stella::finish_stella::finish_geometry'
       call finish_geometry
-      if (debug) write (*, *) 'stella::finish_stella::finish_zgrid'
-      call finish_zgrid
+      if (debug) write (*, *) 'stella::finish_stella::finish_z_grid'
+      call finish_z_grid
       if (debug) write (*, *) 'stella::finish_stella::finish_file_utils'
       if (proc0 .and. print_extra_info_to_terminal) then
          call finish_file_utils
@@ -764,34 +905,5 @@ contains
       end if
 
    end subroutine finish_stella
-
-   ! subroutine test_redistribute
-
-   !   use stella_layouts, only: kxyz_lo, vmu_lo
-   !   use grids_z, only: nzgrid, ntubes
-   !   use grids_velocity, only: nvpa, nmu
-   !   use kt_grids, only: ny, ikx_max
-   !   use calculations_redistribute, only: kxyz2vmu
-   !   use redistribute, only: scatter
-
-   !   implicit none
-
-   !   complex, dimension (:,:,:), allocatable :: g_kxyz_lo
-   !   complex, dimension (:,:,:,:,:), allocatable :: g_vmu_lo
-
-   !   allocate (g_kxyz_lo(nvpa,nmu,kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
-   !   allocate (g_vmu_lo(ny,ikx_max,-nzgrid:nzgrid,ntubes,vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-
-   !   g_kxyz_lo = 1.0
-   !   g_vmu_lo = 2.0
-
-   !   call scatter (kxyz2vmu, g_vmu_lo, g_kxyz_lo)
-
-   !   write (*,*) 'g_vmu_lo', maxval(cabs(g_vmu_lo)), minval(cabs(g_vmu_lo))
-   !   write (*,*) 'g_kxyz_lo', maxval(cabs(g_kxyz_lo)), minval(cabs(g_kxyz_lo))
-
-   !   deallocate (g_vmu_lo, g_kxyz_lo)
-
-   ! end subroutine test_redistribute
 
 end program stella

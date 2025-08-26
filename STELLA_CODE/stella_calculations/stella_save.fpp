@@ -79,7 +79,7 @@ contains
       use arrays_store_useful, only: shift_state
       use arrays_store_fields, only: phi_proj
       use arrays_store_distribution_fn, only: g_krook, g_proj
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
 # else
       use mp, only: proc0
 # endif
@@ -714,7 +714,7 @@ contains
       use arrays_store_useful, only: shift_state
       use arrays_store_fields, only: phi_proj
       use arrays_store_distribution_fn, only: g_krook, g_proj
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
 # endif
 # ifdef NETCDF_PARALLEL
       use grids_z, only: nztot

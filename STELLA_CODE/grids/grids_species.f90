@@ -1,35 +1,45 @@
 module grids_species
 
    use stella_common_types, only: spec_type
+   
+   ! Read the parameters for <species_option_switch> from namelist_species.f90
+   use namelist_species, only: species_option_stella
+   use namelist_species, only: species_option_inputprofs
+   use namelist_species, only: species_option_euterpe
+   use namelist_species, only: species_option_multibox
+   
+   ! Read the parameters for <type> from namelist_species.f90
+   use namelist_species, only: ion_species
+   use namelist_species, only: electron_species
+   use namelist_species, only: slowing_down_species
+   use namelist_species, only: tracer_species
 
    implicit none
 
+   ! Make routines available to other modules
    public :: init_species, finish_species
-   public :: read_species_options
+   public :: read_parameters_species
    public :: reinit_species
    public :: communicate_species_multibox
-   !public :: init_trin_species
+   
+   ! Although the parameters are available through namelist_species, 
+   ! make them available through grids_species as well
+   public :: ion_species, electron_species
+   public :: slowing_down_species, tracer_species
+   public :: species_option_stella, species_option_inputprofs
+   public :: species_option_euterpe, species_option_multibox
+   
    public :: nspec, spec, pfac
-   public :: ion_species, electron_species, slowing_down_species, tracer_species
    public :: has_electron_species, has_slowing_down_species
    public :: ions, electrons, impurity
    public :: modified_adiabatic_electrons, adiabatic_electrons
    
    ! Allow other routines to check whether we are using multibox
-   public :: species_option_switch, species_option_multibox
+   public :: species_option_switch
 
    private
-
-   integer, parameter :: ion_species = 1
-   integer, parameter :: electron_species = 2 ! for collision operator
-   integer, parameter :: slowing_down_species = 3 ! slowing-down distn
-   integer, parameter :: tracer_species = 4 ! for test particle diffusion studies
-
+   
    integer :: species_option_switch
-   integer, parameter :: species_option_stella = 1
-   integer, parameter :: species_option_inputprofs = 2
-   integer, parameter :: species_option_euterpe = 3
-   integer, parameter :: species_option_multibox = 4
 
    integer :: nspec
    logical :: read_profile_variation, write_profile_variation
@@ -46,20 +56,48 @@ module grids_species
 
 contains
 
-   !****************************************************************************
-   !                                READ INPUT FILE FOR SPECIES
-   !****************************************************************************
-   subroutine read_species_options
+!###############################################################################
+!################################ READ NAMELIST ################################
+!###############################################################################
+
+   subroutine read_parameters_species
+   
+      use mp, only: proc0
       use namelist_species, only: read_namelist_species_options
+      use namelist_species, only: read_namelist_species_stella
+      use grids_species_from_euterpe, only: read_species_euterpe
+      use geometry_inputprofiles_interface, only: read_inputprof_spec
 
       implicit none
       
+      !-------------------------------------------------------------------------
+      
+      ! Only initialise once
       if (initialised_read_species) return
       initialised_read_species = .true.
 
+      ! Read the "species_options" namelists in the input file
       call read_namelist_species_options(nspec, species_option_switch, &
-                                read_profile_variation, write_profile_variation, ecoll_zeff)
+         read_profile_variation, write_profile_variation, ecoll_zeff)
+         
+      ! Broadcast the parameters to all processors
       call broadcast_species_options
+         
+      ! Allocate species now that we know <nspec>
+      allocate (spec(nspec))
+         
+      ! Read the "species_parameters_i" and "euterpe_parameters" namelists in the input file
+       call read_namelist_species_stella(nspec, spec)
+       
+      ! Read the "euterpe_parameters" namelists in the input file or an input profile
+      if (proc0) then
+         if (species_option_switch == species_option_inputprofs) then
+            call read_inputprof_spec(nspec, spec)
+         end if
+         if (species_option_switch == species_option_euterpe) then
+            call read_species_euterpe(nspec, spec)
+         end if
+      end if
       
    contains
    
@@ -77,21 +115,21 @@ contains
 
       end subroutine broadcast_species_options
       
-   end subroutine read_species_options
+   end subroutine read_parameters_species
+
+!###############################################################################
+!############################### INITIALISE Z GRID #############################
+!###############################################################################
 
    !****************************************************************************
    !                                INITIALISE SPECIES
    !****************************************************************************
    subroutine init_species
 
-!    use mp, only: trin_flag
       use mp, only: proc0, broadcast, mp_abort
       use parameters_physics, only: vnew_ref, zeff
       use parameters_multibox, only: include_pressure_variation
       use parameters_physics, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
-      use geometry_inputprofiles_interface, only: read_inputprof_spec
-      use grids_species_from_euterpe, only: read_species_euterpe !! CHANGE
-      use namelist_species, only: read_namelist_species_stella
 
       use parameters_physics, only: full_flux_surface
       implicit none
@@ -101,24 +139,15 @@ contains
       if (initialised_init_species) return
       initialised_init_species = .true.
 
-      allocate (spec(nspec))
+      !this will be called by the central box in stella.f90 after
+      !ktgrids is set up as we need to know the radial box size
       if (proc0) then
-         select case (species_option_switch)
-         case (species_option_stella)
-            call read_namelist_species_stella (nspec, spec)
-         case (species_option_inputprofs)
-            call read_namelist_species_stella (nspec, spec)
-            call read_inputprof_spec(nspec, spec)
-         case (species_option_euterpe)
-            call read_namelist_species_stella (nspec, spec)
-            call read_species_euterpe(nspec, spec)
-         case (species_option_multibox)
-            call read_namelist_species_stella (nspec, spec)
-            !this will be called by the central box in stella.f90 after
-            !ktgrids is set up as we need to know the radial box size
+         if (species_option_switch == species_option_multibox) then
             call communicate_species_multibox
-         end select
+         end if
+      end if
 
+      if (proc0) then
          if (ecoll_zeff) then
             ! AVB: only intra-species collisions, account for e-i and e-impurity collisions using zeff
             do is = 1, nspec
@@ -170,8 +199,7 @@ contains
          write (*,*) 'full_flux_surface is not set up for kinetic electrons yet'
          call mp_abort('full_flux_surface is not set up for kinetic electrons yet')
       end if
-!    if (trin_flag) call reinit_species (ntspec_trin, dens_trin, &
-!         temp_trin, fprim_trin, tprim_trin, nu_trin)
+
    end subroutine init_species
 
    subroutine broadcast_parameters

@@ -101,7 +101,7 @@ contains
    subroutine allocate_arrays
 
       use stella_layouts, only: vmu_lo
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use parameters_numerical, only: explicit_algorithm_switch, explicit_algorithm_rk3, &
            explicit_algorithm_rk2, explicit_algorithm_rk4, explicit_algorithm_euler
       use arrays_store_distribution_fn, only: g0, g1, g2, g3
@@ -272,7 +272,7 @@ contains
       use arrays_store_useful, only: time_gke
       use grids_z, only: nzgrid
       use grids_extended_zgrid, only: periodic, phase_shift
-      use parameters_kxky_grid, only: naky
+      use grids_kxky, only: naky
       use parameters_physics, only: include_apar
       use parameters_numerical, only: explicit_algorithm_switch, explicit_algorithm_rk3, &
            explicit_algorithm_rk2, explicit_algorithm_rk4, explicit_algorithm_euler
@@ -571,7 +571,7 @@ contains
       use parameters_physics, only: full_flux_surface, radial_variation
       use parameters_physics, only: xdriftknob, ydriftknob
       use parameters_physics, only: g_exb
-      use parameters_kxky_grid, only: ikx_max, ny, naky_all
+      use grids_kxky, only: ikx_max, ny, naky_all
       use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
       use parameters_multibox, only: include_multibox_krook
 
@@ -750,7 +750,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use dissipation_hyper, only: advance_hyper_vpa, advance_hyper_zed
       use dissipation_hyper, only: hyp_zed, hyp_vpa
 

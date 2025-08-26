@@ -234,7 +234,7 @@ contains
       use arrays_store_useful, only: gamtotinv11, gamtotinv13, gamtotinv33, gamtotinv31
       use arrays_store_useful, only: gamtot_h, time_field_solve
       ! Parameters
-      use parameters_kxky_grid, only: nakx, naky
+      use grids_kxky, only: nakx, naky
       ! Grids
       use grids_z, only: nzgrid, ntubes
 
@@ -389,7 +389,7 @@ contains
       use arrays_store_useful, only: apar_denom
       ! Parameters
       use parameters_physics, only: include_apar, include_bpar
-      use parameters_kxky_grid, only : nakx, naky 
+      use grids_kxky, only : nakx, naky 
       use parameters_physics, only: beta
       use parameters_physics, only: fphi 
       ! Grids
@@ -527,7 +527,7 @@ contains
 
       use grids_z, only: nzgrid, ntubes
       
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use parameters_physics, only: include_apar, include_bpar
    
       use arrays_store_fields, only: apar, apar_old

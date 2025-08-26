@@ -291,7 +291,7 @@ contains
       use arrays_store_useful, only: gamtot, gamtot3, gamtot_h, gamtot3_h
       use arrays_store_useful, only: time_field_solve
       ! Parameters
-      use parameters_kxky_grid, only: nakx, naky
+      use grids_kxky, only: nakx, naky
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
       ! Grids
@@ -406,7 +406,7 @@ contains
       use parameters_physics, only: fphi
       use parameters_numerical, only: maxwellian_normalization
       use parameters_physics, only: tite, nine
-      use parameters_kxky_grid, only: nakx
+      use grids_kxky, only: nakx
       use parameters_physics, only: adiabatic_option_switch
       use parameters_physics, only: adiabatic_option_fieldlineavg
       ! Grids

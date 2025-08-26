@@ -289,12 +289,17 @@ module mp
 contains
 
    subroutine init_mp(comm_in)
+   
       use constants, only: pi, kind_rs, kind_rd
       use file_utils, only: error_unit
+      
       implicit none
+      
       integer, intent(in), optional :: comm_in
       integer :: ierror
       logical :: init
+      
+      !-------------------------------------------------------------------------
 
       call mpi_initialized(init, ierror)
       if (.not. init) call mpi_init(ierror)
@@ -308,7 +313,7 @@ contains
       call mpi_comm_rank(comm_all, aproc, ierror)
       aproc0 = aproc == 0
 
-      !the next communicator is between all cores on a given node (i.e. shared memory)
+      ! The next communicator is between all cores on a given node (i.e. shared memory)
       call mpi_comm_split_type(comm_all, mpi_comm_type_shared, aproc, mp_info, comm_shared, ierror)
 
       call mpi_comm_size(comm_shared, nshared_proc, ierror)
@@ -319,7 +324,7 @@ contains
       call mpi_comm_size(comm_node, numnodes, ierror)
       call mpi_comm_rank(comm_node, inode, ierror)
 
-      !group communicator is global communicator unless changed by job fork
+      ! Group communicator is global communicator unless changed by job fork
       comm_group = comm_all
       ngroup_proc = ntot_proc
       gproc = aproc

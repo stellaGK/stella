@@ -104,7 +104,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
   ../STELLA_CODE/parameters/debug_flags.f90
   ../STELLA_CODE/parameters/parameters_diagnostics.f90
-  ../STELLA_CODE/parameters/parameters_kxky_grid.f90
   ../STELLA_CODE/parameters/parameters_multibox.f90
   ../STELLA_CODE/parameters/parameters_numerical.f90
   ../STELLA_CODE/parameters/parameters_physics.f90

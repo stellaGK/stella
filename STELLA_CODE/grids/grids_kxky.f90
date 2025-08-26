@@ -1,20 +1,52 @@
 module grids_kxky
+   
+   ! Read the parameters for <grid_option_switch> from namelist_kxky_grid.f90
+   use namelist_kxky_grid, only: grid_option_range
+   use namelist_kxky_grid, only: grid_option_box
+   
+   ! Read the parameters for <kyspacing_option_switch> from namelist_kxky_grid.f90
+   use namelist_kxky_grid, only: kyspacing_linear
+   use namelist_kxky_grid, only: kyspacing_exponential
 
    implicit none
+   
+   ! Although the parameters are available through namelist_kxky_grid
+   ! make them available through grids_kxky as well
+   public :: grid_option_switch
+   public :: grid_option_range, grid_option_box 
+   public :: kyspacing_option_switch
+   public :: kyspacing_linear, kyspacing_exponential
 
    public :: init_grids_kxky, finish_grids_kxky
-
    public :: aky, akx
    public :: aky_all, aky_all_ordered
    public :: theta0, zed0
    public :: zonal_mode
-
    public :: x, x_d, y
    public :: dy, dx
-   
    public :: rho, rho_d, rho_clamped, rho_d_clamped
    public :: g0x
    public :: box
+   
+   
+   public :: read_grids_kxky
+
+
+   ! For Box/Range 
+   public :: naky, nakx
+   public :: nx, ny
+   public :: nalpha, naky_all, ikx_max
+   public :: reality 
+   public :: phase_shift_angle
+   public :: jtwist, jtwistfac, ikx_twist_shift
+   public :: centered_in_rho
+   public :: periodic_variation, randomize_phase_shift
+   public :: aky_min, aky_max
+   public :: akx_min, akx_max
+   public :: theta0_min, theta0_max
+   public :: x0, y0
+
+   public :: initialised_grids_kxky
    
    private 
 
@@ -35,27 +67,130 @@ module grids_kxky
    real :: dkx, dky, dx_d
    logical :: box
    
+   
+ 
+   integer :: grid_option_switch
+
+   integer :: naky, nakx, nx, ny
+   integer :: nalpha, naky_all, ikx_max
+   logical :: reality = .false. 
+   real :: phase_shift_angle
+   integer :: jtwist
+   real :: jtwistfac
+   real :: ikx_twist_shift
+
+   logical :: centered_in_rho, periodic_variation, randomize_phase_shift
+
+   ! For Range
+   real :: aky_min, aky_max
+   real :: akx_min, akx_max
+   real :: theta0_min, theta0_max
+   integer :: kyspacing_option_switch
+
+   ! For Box
+   real :: x0, y0
+   
+   ! Internal variables
    logical :: initialised_grids_kxky
+   logical :: initialised_read_grids_kxky
 
 contains
 
-   !======================================================================
-   !======================= INITIALISE KXKY GRIDS ========================
-   !======================================================================
+!###############################################################################
+!################################ READ NAMELIST ################################
+!###############################################################################
+
+   subroutine read_grids_kxky
+
+      use mp, only: proc0, mp_abort
+
+      use namelist_kxky_grid, only: read_namelist_kxky_grid_option, &
+            read_namelist_kxky_grid_box, read_namelist_kxky_grid_range
+      
+      implicit none
+      
+      !-------------------------------------------------------------------------
+
+      ! Only initialise once
+      if (initialised_read_grids_kxky) return
+      initialised_read_grids_kxky = .true.
+
+      ! Read the "kxky_grid_option" namelist in the input file
+      call read_namelist_kxky_grid_option (grid_option_switch)
+      
+      ! Read the "kxky_grid_range" or "kxky_grid_box" namelist in the input file
+      if (proc0) then
+         select case (grid_option_switch)
+         case (grid_option_range)
+            call read_namelist_kxky_grid_range (nalpha, naky, nakx, aky_min, aky_max, & 
+               akx_min, akx_max, theta0_min, theta0_max, &
+               kyspacing_option_switch, phase_shift_angle, ikx_max, naky_all)
+         case (grid_option_box)
+            call read_namelist_kxky_grid_box (nx, ny, ikx_max, naky_all, naky, nakx, nalpha, &
+               x0, y0, jtwist, jtwistfac, phase_shift_angle, &
+               centered_in_rho, randomize_phase_shift, periodic_variation, reality)
+         end select
+      end if
+      
+      ! Broadcast the parameters to all processors
+      call broadcast_parameters
+
+   contains
+    
+      ! Broadcast parameters to all processes
+      subroutine broadcast_parameters
+         
+         use mp, only: broadcast
+         
+         implicit none
+
+         call broadcast(grid_option_switch)
+         call broadcast(naky)
+         call broadcast(nakx)
+         call broadcast(ny)
+         call broadcast(nx)
+         call broadcast(nalpha)
+         call broadcast(naky_all)
+         call broadcast(ikx_max)
+         call broadcast(reality)
+         call broadcast(phase_shift_angle)
+         call broadcast(jtwist)
+         call broadcast(jtwistfac)
+         call broadcast(ikx_twist_shift)
+         call broadcast(centered_in_rho)
+         call broadcast(periodic_variation)
+         call broadcast(randomize_phase_shift)
+         call broadcast(aky_min)
+         call broadcast(aky_max)
+         call broadcast(akx_min)
+         call broadcast(akx_max)
+         call broadcast(theta0_min)
+         call broadcast(theta0_max)
+         call broadcast(kyspacing_option_switch)
+         call broadcast(x0)
+         call broadcast(y0)
+
+      end subroutine broadcast_parameters
+      
+   end subroutine read_grids_kxky
+
+
+!###############################################################################
+!########################### INITIALISE (KX,KY) GRIDS ##########################
+!###############################################################################
+
    subroutine init_grids_kxky
 
       use mp, only: mp_abort
       use stella_common_types, only: flux_surface_type
-      use grids_z, only: init_zgrid
-      use parameters_kxky_grid, only: grid_option_switch, grid_option_range, grid_option_box
-      use parameters_kxky_grid, only: naky
+      use grids_z, only: read_parameters_z_grid
       
       implicit none
 
       if (initialised_grids_kxky) return
 
-
-      call init_zgrid
+      ! Make sure the parameters in the z-grid namelists have been read
+      call read_parameters_z_grid
       
       select case (grid_option_switch)
       case (grid_option_range)
@@ -84,11 +219,6 @@ contains
          use stella_common_types, only: flux_surface_type
          use geometry, only: geo_surf, q_as_x
          use grids_z, only: shat_zero
-
-         use parameters_kxky_grid, only: naky, nakx, aky_min, aky_max, &
-               akx_min, akx_max, theta0_min, theta0_max, &
-               kyspacing_option_switch, kyspacing_linear, kyspacing_exponential, &
-               ikx_max, naky_all
            
          implicit none
 
@@ -216,10 +346,6 @@ contains
          use ran, only: ranf
 
          use write_radial_grid, only: dump_radial_grid
-
-         use parameters_kxky_grid, only: nx, ny, ikx_max, naky_all, naky, nakx, &
-               x0, y0, jtwist, jtwistfac, phase_shift_angle, ikx_twist_shift, &
-               centered_in_rho, randomize_phase_shift, periodic_variation
          
          implicit none
    
@@ -417,8 +543,6 @@ contains
       !**********************************************************************
 
       subroutine allocate_arrays
-      
-         use parameters_kxky_grid, only: nakx, naky, naky_all, nx , ny 
          
          implicit none
          
@@ -477,7 +601,6 @@ contains
 
    subroutine finish_grids_kxky
 
-      use parameters_kxky_grid, only: reality 
       implicit none
 
       if (allocated(aky)) deallocate (aky)

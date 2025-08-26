@@ -97,7 +97,7 @@ contains
       use stella_time, only: code_dt
       use grids_species, only: spec
       use grids_z, only: nzgrid
-      use parameters_kxky_grid, only: nalpha
+      use grids_kxky, only: nalpha
       use grids_velocity, only: vpa, vperp2, mu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       
@@ -227,7 +227,7 @@ contains
       use stella_time, only: code_dt
       use grids_species, only: spec
       use grids_z, only: nzgrid
-      use parameters_kxky_grid, only: nalpha
+      use grids_kxky, only: nalpha
       use grids_velocity, only: vpa, vperp2, mu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       
@@ -365,7 +365,7 @@ contains
       
       ! Grids
       use grids_z, only: nzgrid
-      use parameters_kxky_grid, only: nalpha
+      use grids_kxky, only: nalpha
       use stella_layouts, only: vmu_lo
     
       ! Allocate the following arrays with dimensions [ialpha, iz, ivmu]
@@ -426,7 +426,7 @@ contains
       use job_manage, only: time_message
       use calculations_transforms, only: transform_ky2y
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: nakx, ikx_max, naky, naky_all, ny
+      use grids_kxky, only: nakx, ikx_max, naky, naky_all, ny
       use calculations_kxky, only: swap_kxky
       use parameters_physics, only: full_flux_surface, include_bpar
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
@@ -535,7 +535,7 @@ contains
       use job_manage, only: time_message
       use calculations_transforms, only: transform_ky2y
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: nakx, ikx_max, naky, naky_all, ny
+      use grids_kxky, only: nakx, ikx_max, naky, naky_all, ny
       use grids_kxky, only: akx
       use calculations_kxky, only: swap_kxky
       use parameters_physics, only: full_flux_surface, include_bpar

@@ -26,7 +26,7 @@ contains
    subroutine init_volume_averages
 
       use grids_z, only: nzgrid, nztot, delzed
-      use parameters_kxky_grid, only: nalpha, nakx, naky
+      use grids_kxky, only: nalpha, nakx, naky
       use grids_kxky, only: rho_d_clamped, aky
       use geometry, only: geo_surf, drhodpsip
       use geometry, only: geo_surf, jacob, djacdrho, q_as_x, dVolume
@@ -96,7 +96,7 @@ contains
    subroutine fieldline_average_real(unavg, avg)
 
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: nakx, naky
+      use grids_kxky, only: nakx, naky
       use geometry, only: dl_over_b
 
       implicit none
@@ -119,7 +119,7 @@ contains
    subroutine fieldline_average_complex(unavg, avg)
 
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: nakx, naky
+      use grids_kxky, only: nakx, naky
       use geometry, only: dl_over_b
 
       implicit none
@@ -145,7 +145,7 @@ contains
    subroutine volume_average(unavg, avg)
 
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use geometry, only: dl_over_b
 
       implicit none
@@ -175,7 +175,7 @@ contains
    subroutine init_flux_surface_average_ffs
 
       use grids_z, only: nzgrid
-      use parameters_kxky_grid, only: naky
+      use grids_kxky, only: naky
       use grids_extended_zgrid, only: periodic
       use geometry, only: jacob
       use calculations_transforms, only: transform_alpha2kalpha
@@ -200,7 +200,7 @@ contains
    subroutine flux_surface_average_ffs(no_fsa, fsa)
 
       use grids_z, only: nzgrid, delzed 
-      use parameters_kxky_grid, only: naky, naky_all 
+      use grids_kxky, only: naky, naky_all 
 
       implicit none
 

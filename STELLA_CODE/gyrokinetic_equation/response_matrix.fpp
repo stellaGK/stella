@@ -39,7 +39,7 @@ contains
       use linear_solve, only: lu_decomposition
       use arrays_store_useful, only: response_matrix
       use stella_layouts, only: iv_idx, is_idx
-      use parameters_kxky_grid, only: naky
+      use grids_kxky, only: naky
       use mp, only: proc0
       use stella_layouts, only: mat_gen
 #ifdef ISO_C_BINDING
@@ -110,7 +110,7 @@ contains
       use mp, only: proc0, job
       use stella_layouts, only: mat_gen
       use system_fortran, only: systemf
-      use parameters_kxky_grid, only: naky
+      use grids_kxky, only: naky
 
       implicit none
 
@@ -141,7 +141,7 @@ contains
       use mp, only: create_shared_memory_window
       use arrays_store_useful, only: response_window
       use fields, only: nfields
-      use parameters_kxky_grid, only: naky
+      use grids_kxky, only: naky
       use grids_extended_zgrid, only: neigen, nsegments, nzed_segment
       use grids_extended_zgrid, only: periodic
 
@@ -184,7 +184,7 @@ contains
       use job_manage, only: time_message
       use stella_layouts, only: mat_gen
       use arrays_store_useful, only: response_matrix
-      use parameters_kxky_grid, only: naky
+      use grids_kxky, only: naky
       use grids_extended_zgrid, only: neigen
 #ifdef ISO_C_BINDING
       use arrays_store_useful, only: response_window
@@ -595,7 +595,7 @@ contains
 
       use arrays_store_useful, only: response_matrix
       use stella_common_types, only: response_matrix_type
-      use parameters_kxky_grid, only: naky
+      use grids_kxky, only: naky
       use grids_extended_zgrid, only: neigen
       use grids_extended_zgrid, only: nsegments
       use grids_extended_zgrid, only: nzed_segment

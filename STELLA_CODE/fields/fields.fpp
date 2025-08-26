@@ -221,7 +221,7 @@ contains
       
       ! Grids
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       
       ! Time routines
       use arrays_store_useful, only: time_field_solve

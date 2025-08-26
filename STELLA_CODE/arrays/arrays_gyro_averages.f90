@@ -44,7 +44,7 @@ contains
       use geometry, only: bmag
       use grids_z, only: nzgrid
       use grids_velocity, only: vperp2, nmu
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use stella_layouts, only: kxkyz_lo, vmu_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, imu_idx
       use spfunc, only: j0, j1
@@ -135,11 +135,11 @@ contains
       use grids_z, only: nzgrid, nztot
       use grids_velocity, only: nmu, nvpa
       use grids_velocity, only: vperp2, maxwell_vpa, maxwell_mu
-      use parameters_kxky_grid, only: nalpha, naky, naky_all, ikx_max
+      use grids_kxky, only: nalpha, naky, naky_all, ikx_max
       use calculations_kxky, only: swap_kxky_ordered
       use arrays_store_useful, only: kperp2
 
-      use parameters_kxky_grid, only: nakx
+      use grids_kxky, only: nakx
       use calculations_kxky, only: swap_kxky_back_ordered
       use spfunc, only: j1
 

@@ -56,8 +56,8 @@ module namelist_kxky_grid
    public :: read_namelist_kxky_grid_option
    public :: read_namelist_kxky_grid_box
    public :: read_namelist_kxky_grid_range
-
-   ! Parameters need to be public
+   
+   ! Make parameters accesible to grids_kxky
    public :: kyspacing_linear, kyspacing_exponential
    public :: grid_option_range, grid_option_box
    

@@ -67,7 +67,7 @@ contains
       use grids_velocity, only: nvpa, nvpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: vperp2, vpa, mu
-      use parameters_kxky_grid, only: nalpha
+      use grids_kxky, only: nalpha
       use grids_z, only: nzgrid, nztot
       use geometry, only: gradpar, dgradpardrho, dBdrho, gfac, b_dot_grad_z
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
@@ -253,7 +253,7 @@ contains
       use job_manage, only: time_message
       use calculations_transforms, only: transform_ky2y
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
+      use grids_kxky, only: naky, naky_all, nakx, ikx_max, ny
       use calculations_kxky, only: swap_kxky
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: mu
@@ -377,7 +377,7 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use job_manage, only: time_message
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_species, only: spec
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
@@ -464,7 +464,7 @@ contains
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: fill_zed_ghost_zones
       use grids_extended_zgrid, only: periodic
-      use parameters_kxky_grid, only: naky
+      use grids_kxky, only: naky
 
       implicit none
 
@@ -506,7 +506,7 @@ contains
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: fill_zed_ghost_zones
       use grids_extended_zgrid, only: periodic
-      use parameters_kxky_grid, only: naky
+      use grids_kxky, only: naky
 
       implicit none
 
@@ -604,7 +604,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, is_idx
       use grids_z, only: nzgrid
-      use parameters_kxky_grid, only: ny
+      use grids_kxky, only: ny
 
       implicit none
 
@@ -687,7 +687,7 @@ contains
    subroutine get_dzed(iv, g, dgdz)
 
       use calculations_finite_differences, only: fd_cell_centres_zed
-      use parameters_kxky_grid, only: naky
+      use grids_kxky, only: naky
       use grids_z, only: nzgrid, delzed, ntubes
       use grids_extended_zgrid, only: neigen, nsegments
       use grids_extended_zgrid, only: iz_low, iz_up
@@ -741,7 +741,7 @@ contains
    subroutine center_zed_extended(iv, g)
 
       use calculations_finite_differences, only: cell_centres_zed
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use grids_z, only: nzgrid, ntubes
       use grids_extended_zgrid, only: neigen, nsegments
       use grids_extended_zgrid, only: iz_low, iz_up

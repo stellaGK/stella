@@ -18,7 +18,7 @@ module gk_ffs_solve
    !   subroutine add_correction_ffs (phiin, gin, source_out) 
 
    !     use grids_z, only: nzgrid, ntubes
-   !     use parameters_kxky_grid, only: naky, nakx
+   !     use grids_kxky, only: naky, nakx
    !     use stella_layouts, only: vmu_lo
 
    !     implicit none 
@@ -50,7 +50,7 @@ module gk_ffs_solve
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use calculations_transforms, only: transform_ky2y
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
+      use grids_kxky, only: naky, naky_all, nakx, ikx_max, ny
       use calculations_kxky, only: swap_kxky
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
       use grids_species, only: spec
@@ -188,7 +188,7 @@ module gk_ffs_solve
          use stella_layouts, only: iv_idx, imu_idx, is_idx
          use calculations_transforms, only: transform_ky2y,transform_y2ky
          use grids_z, only: nzgrid, ntubes
-         use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
+         use grids_kxky, only: naky, naky_all, nakx, ikx_max, ny
          use calculations_kxky, only: swap_kxky, swap_kxky_back
          use calculations_gyro_averages, only: gyro_average
          use arrays_gyro_averages, only: j0_ffs
@@ -281,7 +281,7 @@ module gk_ffs_solve
 
          use constants, only: zi
          use grids_z, only: nzgrid, ntubes
-         use parameters_kxky_grid, only: nakx
+         use grids_kxky, only: nakx
          use grids_kxky, only: aky
 
          implicit none
@@ -305,7 +305,7 @@ module gk_ffs_solve
 
          use constants, only: zi
          use grids_z, only: nzgrid, ntubes
-         use parameters_kxky_grid, only: nakx
+         use grids_kxky, only: nakx
          use grids_kxky, only: akx
 
          implicit none
@@ -328,7 +328,7 @@ module gk_ffs_solve
       subroutine add_explicit_term_ffs_fields(g, pre_factor, src)
 
          use grids_z, only: nzgrid, ntubes
-         use parameters_kxky_grid, only: ikx_max, nalpha
+         use grids_kxky, only: ikx_max, nalpha
 
          implicit none
 

@@ -38,7 +38,7 @@ contains
       use arrays_store_fields, only: phi, apar, bpar, phi_corr_QN
 
       ! Dimensions
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use grids_z, only: ntubes, nzgrid 
 
       ! Flags 
@@ -260,7 +260,7 @@ contains
       use geometry, only: zed_eqarc
 
       ! Dimensions
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use grids_kxky, only: aky, akx, zed0
       use grids_z, only: nzgrid, ntubes, zed
 

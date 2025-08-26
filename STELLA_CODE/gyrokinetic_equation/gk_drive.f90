@@ -82,7 +82,7 @@ contains
       use arrays_store_useful, only: wstar, wstarinit
       
       ! Grids
-      use parameters_kxky_grid, only: nalpha
+      use grids_kxky, only: nalpha
       use grids_z, only: nzgrid
       use grids_species, only: spec
       use grids_velocity, only: vperp2, vpa
@@ -187,7 +187,7 @@ contains
       ! Grids
       use stella_layouts, only: vmu_lo
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       
       ! Calculations
       use add_explicit_terms, only: add_explicit_term
@@ -245,7 +245,7 @@ contains
       use stella_layouts, only: vmu_lo
       use calculations_transforms, only: transform_ky2y
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
+      use grids_kxky, only: naky, naky_all, nakx, ikx_max, ny
       use calculations_kxky, only: swap_kxky
       use arrays_store_useful, only: wstar
       use arrays_store_distribution_fn, only: g_scratch

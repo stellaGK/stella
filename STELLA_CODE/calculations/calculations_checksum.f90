@@ -18,7 +18,7 @@ contains
    subroutine checksum_field(field, total)
 
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: naky
+      use grids_kxky, only: naky
       use grids_extended_zgrid, only: neigen, nsegments, ikxmod
       use grids_extended_zgrid, only: iz_low, iz_up
 
@@ -55,7 +55,7 @@ contains
       use mp, only: sum_allreduce
       use grids_z, only: nzgrid, ntubes
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use grids_velocity, only: maxwell_vpa, maxwell_mu
 
       implicit none

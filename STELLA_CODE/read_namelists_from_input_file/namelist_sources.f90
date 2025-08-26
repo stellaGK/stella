@@ -60,7 +60,7 @@ contains
 
       use mp, only: proc0, mp_abort
       use parameters_physics, only: initialised_parameters_physics
-      use parameters_kxky_grid, only: initialised_parameters_kxky_grid
+      use grids_kxky, only: initialised_grids_kxky
 
       implicit none
 
@@ -82,7 +82,7 @@ contains
       if (.not. initialised_parameters_physics) then
          call mp_abort('Initialise physics parameters before reading sources namelists. Aborting.')
       end if
-      if (.not. initialised_parameters_kxky_grid) then
+      if (.not. initialised_grids_kxky) then
          call mp_abort('Initialise (kx,ky) grids before reading sources namelists. Aborting.')
       end if
 
@@ -98,7 +98,7 @@ contains
       subroutine set_default_parameters_sources
 
          use parameters_physics, only: radial_variation
-         use parameters_kxky_grid, only: periodic_variation
+         use grids_kxky, only: periodic_variation
 
          implicit none
 

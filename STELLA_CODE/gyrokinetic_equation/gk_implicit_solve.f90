@@ -30,7 +30,7 @@ contains
       use stella_layouts, only: vmu_lo
       use parameters_physics, only: include_apar, include_bpar
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use arrays_store_distribution_fn, only: g1, g2
       use parameters_numerical, only: use_deltaphi_for_response_matrix
       use parameters_numerical, only: tupwnd_p => time_upwind_plus
@@ -1018,7 +1018,7 @@ contains
       use parameters_numerical, only: drifts_implicit
       use parameters_numerical, only: zed_upwind_plus, zed_upwind_minus
       use parameters_numerical, only: time_upwind_plus
-      use parameters_kxky_grid, only: nakx
+      use grids_kxky, only: nakx
       use grids_kxky, only: akx, aky
       use arrays_store_useful, only: wdriftx_g, wdrifty_g
       use grids_extended_zgrid, only: map_to_extended_zgrid
@@ -1222,7 +1222,7 @@ contains
       use grids_extended_zgrid, only: map_from_extended_zgrid
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: periodic, phase_shift
-      use parameters_kxky_grid, only: naky
+      use grids_kxky, only: naky
       use fields, only: nfields
       use arrays_store_useful, only: response_matrix
 

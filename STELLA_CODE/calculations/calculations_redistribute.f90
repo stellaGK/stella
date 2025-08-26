@@ -423,7 +423,7 @@ contains
       use redistribute, only: index_list_type, init_redist
       use redistribute, only: delete_list, set_redist_character_type
       use grids_velocity, only: nvpa
-      use parameters_kxky_grid, only: nakx
+      use grids_kxky, only: nakx
       use grids_z, only: nzgrid, ntubes
 
       implicit none
@@ -559,7 +559,7 @@ contains
       use grids_velocity, only: nvpa
       use mp, only: proc0, send, receive
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: nakx, naky
+      use grids_kxky, only: nakx, naky
       use stella_layouts, only: vmu_lo, kymus_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx, iky_idx, idx_local, proc_id
 

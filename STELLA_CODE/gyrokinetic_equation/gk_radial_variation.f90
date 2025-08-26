@@ -33,7 +33,7 @@ contains
       use grids_species, only: spec, pfac
       use grids_z, only: nzgrid
 
-      use parameters_kxky_grid, only: nalpha
+      use grids_kxky, only: nalpha
       use parameters_physics, only: xdriftknob, ydriftknob, wstarknob
 
       use geometry, only: drhodpsi, dydalpha, gfac
@@ -178,7 +178,7 @@ contains
       
       use grids_z, only: nzgrid, ntubes
 
-      use parameters_kxky_grid, only: nakx, naky
+      use grids_kxky, only: nakx, naky
       use parameters_physics, only: full_flux_surface, fphi
       use parameters_physics, only: include_parallel_streaming, include_mirror
 

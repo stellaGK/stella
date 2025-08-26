@@ -176,11 +176,8 @@ The `neoclassical` folder contains the following scripts:
 The `parameters` folder contains the following scripts:
 
 - debug_flags.f90
-- parameters_diagnostics.f90  
-- parameters_kxky_grid_box.f90  
-- parameters_kxky_grid.f90  
-- parameters_kxky_grid_range.f90  
-- parameters_numerical.f90  
+- parameters_diagnostics.f90
+- parameters_numerical.f90
 - parameters_physics.f90
 
 <br>

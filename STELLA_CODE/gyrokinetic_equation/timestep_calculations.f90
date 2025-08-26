@@ -29,7 +29,7 @@ contains
       use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
       use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
       use parameters_physics, only: radial_variation, prp_shear_enabled
-      use parameters_kxky_grid, only: nx
+      use grids_kxky, only: nx
       use grids_z, only: delzed
       use grids_velocity, only: dvpa
       use grids_kxky, only: akx, aky, rho

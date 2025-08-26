@@ -307,7 +307,7 @@ contains
       use arrays_store_useful, only: kperp2
       use constants, only: pi
       use stella_common_types, only: spec_type
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use spfunc, only: erf => erf_ext
       use file_utils, only: open_output_file, close_output_file
 
@@ -1556,7 +1556,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use arrays_gyro_averages, only: aj0v
       use grids_species, only: spec, nspec
       use geometry, only: bmag
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use arrays_store_useful, only: kperp2
       use file_utils, only: open_output_file, close_output_file
 
@@ -1921,7 +1921,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use constants, only: pi
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx, it_idx
       use stella_time, only: code_dt
-      use parameters_kxky_grid, only: naky
+      use grids_kxky, only: naky
 
       implicit none
 
@@ -2515,7 +2515,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_species, only: nspec
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: ztmax, maxwell_mu, nmu, nvpa, set_vpa_weights
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx, it_idx
       use arrays_store_distribution_fn, only: gvmu
       use fields_fluxtube, only: get_fields_fluxtube
@@ -3256,7 +3256,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_z, only: nzgrid, ntubes
       use parameters_physics, only: fphi
       use parameters_physics, only: full_flux_surface
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: set_vpa_weights
       use stella_layouts, only: vmu_lo, kxkyz_lo
@@ -3986,7 +3986,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_velocity, only: nmu, nvpa
       use grids_velocity, only: vpa
       use grids_velocity, only: set_vpa_weights
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
       use calculations_tofrom_ghf, only: g_to_h

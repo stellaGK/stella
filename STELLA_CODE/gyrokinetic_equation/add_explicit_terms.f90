@@ -25,7 +25,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
 
       implicit none
 
@@ -55,7 +55,7 @@ contains
 
       use stella_layouts, only: vmu_lo
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: ikx_max, nalpha
+      use grids_kxky, only: ikx_max, nalpha
 
       implicit none
 

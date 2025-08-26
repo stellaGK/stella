@@ -38,7 +38,7 @@ contains
       use constants, only: zi, pi
       use grids_z, only: nzgrid
       use grids_kxky, only: x, x_d, akx, aky, zonal_mode, box
-      use parameters_kxky_grid, only: nalpha, nx, nakx, naky, ikx_max
+      use grids_kxky, only: nalpha, nx, nakx, naky, ikx_max
       use arrays_store_useful, only: shift_state
       use geometry, only: q_as_x, geo_surf, bmag, btor, rmajor, dBdrho, dIdrho
       use geometry, only: dydalpha, drhodpsi
@@ -156,7 +156,7 @@ contains
       use parameters_physics, only: full_flux_surface
       use stella_layouts, only: vmu_lo
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: nakx, naky
+      use grids_kxky, only: nakx, naky
       use calculations_kxky_derivatives, only: get_dchidy
       use arrays_store_fields, only: phi, apar, bpar
 
@@ -200,7 +200,7 @@ contains
       use grids_z, only: nzgrid, ntubes
       use arrays_store_useful, only: shift_state
       use grids_kxky, only: aky, zonal_mode
-      use parameters_kxky_grid, only: nakx, naky, ikx_max
+      use grids_kxky, only: nakx, naky, ikx_max
       use file_utils, only: runtype_option_switch, runtype_multibox
       use stella_time, only: code_dt
 

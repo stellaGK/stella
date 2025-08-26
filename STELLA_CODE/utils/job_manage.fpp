@@ -195,7 +195,7 @@ contains
       ! true if elapse time exceed available time
       logical, intent(in out) :: exit
       logical, save :: initialized = .false.
-      real :: elapse_time = 0.
+      real :: elapsed_time = 0.
       real :: initial_time = 0.
       real :: margin = 300. ! 5 minutes
 
@@ -205,12 +205,12 @@ contains
          return
       end if
 
-      elapse_time = timer_local() - initial_time
+      elapsed_time = timer_local() - initial_time
 
       if (proc0) then
-         if (elapse_time >= avail_time - margin) then
+         if (elapsed_time >= avail_time - margin) then
             write (error_unit(), '(a,f12.4,a,f12.4)') &
-                 & 'Elapse time ', elapse_time, &
+                 & 'Elapse time ', elapsed_time, &
                  & ' exceeds available time', avail_time - margin
             write (error_unit(), '(a,f12.4,a,f12.4,a)') &
                  & '  (Given CPU time: ', avail_time, &

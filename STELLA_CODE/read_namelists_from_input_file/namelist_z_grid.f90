@@ -60,7 +60,7 @@ contains
    !****************************************************************************
    !                                   Z GRID                                  !
    !****************************************************************************
-   subroutine read_namelist_z_grid(nzed, nperiod, ntubes, zed_equal_arc)
+   subroutine read_namelist_z_grid(nzed, nzgrid, nperiod, ntubes, zed_equal_arc)
 
       use mp, only: proc0, mp_abort
       use parameters_physics, only: initialised_parameters_physics
@@ -68,11 +68,14 @@ contains
       implicit none
 
       ! Variables that are read from the input file
-      integer, intent (out) :: nzed
+      integer, intent (out) :: nzed, nzgrid
       integer, intent (out) :: nperiod, ntubes
       logical, intent (out) :: zed_equal_arc
       
       !-------------------------------------------------------------------------
+      
+      ! Only read parameters on the first processor
+      if (.not. proc0) return
       
       ! Some z-grid flags are based on <full_flux_surface>
       ! Therefore, we need to read the physics parameters first
@@ -81,10 +84,10 @@ contains
       end if
 
       ! Set the default input parameters and read the input file
-      if (.not. proc0) return
       call set_default_z_grid
       call read_input_file_z_grid
       call check_inputs_z_grid
+      call calculate_z_grid_parameters
 
    contains
    
@@ -103,6 +106,9 @@ contains
          !     - zed is the poloidal angle when using Miller geometry (axisymmetric)
          !     - zed is the toroidal angle when using VMEC geometry
          zed_equal_arc = .false.
+         
+         ! The following variable is calculated based on <nzed>
+         nzgrid = -1
 
       end subroutine set_default_z_grid
 
@@ -118,6 +124,17 @@ contains
          if (dexist) read (unit=in_file, nml=z_grid)
 
       end subroutine read_input_file_z_grid
+      
+      !-------------------------- Calculate parameters -------------------------
+      subroutine calculate_z_grid_parameters
+
+         implicit none
+         
+         ! While <nzed> specifies the grid points left and right of z=0 in a 
+         ! single segment, <nzgrid> is the total number of grid points
+         nzgrid = nzed / 2 + (nperiod - 1) * nzed
+      
+      end subroutine calculate_z_grid_parameters
 
       !------------------------- Check input parameters ------------------------
       subroutine check_inputs_z_grid

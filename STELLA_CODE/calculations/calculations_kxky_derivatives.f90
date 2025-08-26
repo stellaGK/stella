@@ -31,7 +31,7 @@ contains
    subroutine get_dgdy_2d(g, dgdy)
 
       use constants, only: zi
-      use parameters_kxky_grid, only: nakx
+      use grids_kxky, only: nakx
       use grids_kxky, only: aky
 
       implicit none
@@ -48,7 +48,7 @@ contains
    subroutine get_dgdy_3d(g, dgdy)
 
       use constants, only: zi
-      use parameters_kxky_grid, only: nakx
+      use grids_kxky, only: nakx
       use grids_kxky, only: aky
       use grids_z, only: nzgrid, ntubes
       
@@ -76,7 +76,7 @@ contains
       use constants, only: zi
       use stella_layouts, only: vmu_lo
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: nakx
+      use grids_kxky, only: nakx
       use grids_kxky, only: aky
 
       implicit none
@@ -103,7 +103,7 @@ contains
    subroutine get_dgdx_2d(g, dgdx)
 
       use constants, only: zi
-      use parameters_kxky_grid, only: naky
+      use grids_kxky, only: naky
       use grids_kxky, only: akx
 
       implicit none
@@ -121,7 +121,7 @@ contains
 
       use constants, only: zi
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: nakx
+      use grids_kxky, only: nakx
       use grids_kxky, only: akx
 
       implicit none
@@ -148,7 +148,7 @@ contains
       use constants, only: zi
       use stella_layouts, only: vmu_lo
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: nakx
+      use grids_kxky, only: nakx
       use grids_kxky, only: akx
 
       implicit none
@@ -193,7 +193,7 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: full_flux_surface
       use parameters_physics, only: fphi
-      use parameters_kxky_grid, only: nakx, naky
+      use grids_kxky, only: nakx, naky
       !> Grids
       use grids_species, only: spec
       use grids_z, only: nzgrid, ntubes
@@ -259,7 +259,7 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: full_flux_surface
       use parameters_physics, only: fphi
-      use parameters_kxky_grid, only: nakx, naky
+      use grids_kxky, only: nakx, naky
       !> Grids
       use grids_species, only: spec
       use grids_velocity, only: vpa, mu
@@ -314,7 +314,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: is_idx, iv_idx, imu_idx
       !> Parameters
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: full_flux_surface
       use parameters_physics, only: fphi

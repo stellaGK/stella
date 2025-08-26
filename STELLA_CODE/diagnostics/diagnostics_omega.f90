@@ -26,7 +26,7 @@ module diagnostics_omega
    ! stella if <omega> has saturated during linear simulations
    public :: checksaturation
 
-   private    
+   private
 
    ! The <units> are used to identify the external ascii files
    integer :: omega_unit
@@ -58,7 +58,7 @@ contains
       use arrays_store_fields, only: apar, apar_old
       
       ! Grids
-      use parameters_kxky_grid, only: nakx, naky 
+      use grids_kxky, only: nakx, naky 
       use stella_time, only: code_dt
       use constants, only: zi
       
@@ -246,7 +246,7 @@ contains
       use parameters_diagnostics, only: navg
       
       ! Grids
-      use parameters_kxky_grid, only: nakx, naky
+      use grids_kxky, only: nakx, naky
       
       ! Multiprocessing
       use mp, only: proc0
@@ -345,7 +345,7 @@ contains
       use parameters_diagnostics, only: write_omega_avg_vs_kxky
       use parameters_diagnostics, only: write_omega_vs_kxky
       use stella_time, only: code_time 
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use grids_kxky, only: aky, akx 
 
       implicit none

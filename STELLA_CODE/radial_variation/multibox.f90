@@ -68,12 +68,12 @@ contains
       use geometry, only: geo_surf, q_as_x, get_x_to_rho
       use geometry, only: drhodpsi, dxdpsi
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: nakx, naky, nx, x0
+      use grids_kxky, only: nakx, naky, nx, x0
       use grids_kxky, only: akx, aky
       use grids_kxky, only: x, x_d
       use grids_kxky, only: rho_clamped, rho_d, rho_d_clamped
-      use parameters_kxky_grid, only: centered_in_rho
-      use parameters_kxky_grid, only: periodic_variation
+      use grids_kxky, only: centered_in_rho
+      use grids_kxky, only: periodic_variation
       use parameters_multibox, only: boundary_size, krook_size
       use file_utils, only: runtype_option_switch, runtype_multibox
       use job_manage, only: njobs
@@ -379,9 +379,9 @@ contains
    subroutine multibox_communicate(gin)
 
       use constants, only: zi
-      use parameters_kxky_grid, only: nakx, naky, naky_all, nx, ny
+      use grids_kxky, only: nakx, naky, naky_all, nx, ny
       use grids_kxky, only: akx, aky, dx, dy, zonal_mode
-      use parameters_kxky_grid, only: periodic_variation
+      use grids_kxky, only: periodic_variation
       use file_utils, only: runtype_option_switch, runtype_multibox
       use file_utils, only: get_unused_unit
       use arrays_store_fields, only: phi, phi_corr_QN
@@ -574,7 +574,7 @@ contains
  
       use grids_kxky, only: zonal_mode
       use parameters_multibox, only: boundary_size
-      use parameters_kxky_grid, only: periodic_variation, naky
+      use grids_kxky, only: periodic_variation, naky
       use stella_layouts, only: vmu_lo
       use grids_z, only: nzgrid
 
@@ -641,7 +641,7 @@ contains
 
       use stella_time, only: code_dt
       use stella_layouts, only: vmu_lo
-      use parameters_kxky_grid, only: nakx, naky, periodic_variation
+      use grids_kxky, only: nakx, naky, periodic_variation
       use parameters_multibox, only: boundary_size
       use grids_z, only: nzgrid, ntubes
       use mp, only: job, proc0
@@ -711,7 +711,7 @@ contains
 !!       It is done here because the radial grid may include an extra point
 
    subroutine init_mb_get_phi(has_elec, adiabatic_elec, efac, efacp)
-      use parameters_kxky_grid, only: nakx, naky
+      use grids_kxky, only: nakx, naky
       use parameters_multibox, only: boundary_size
       use grids_z, only: nzgrid
       use parameters_physics, only: radial_variation
@@ -829,7 +829,7 @@ contains
 
    subroutine mb_get_phi(phi, has_elec, adiabatic_elec)
       use constants, only: zi
-      use parameters_kxky_grid, only: nakx, naky
+      use grids_kxky, only: nakx, naky
       use parameters_multibox, only: boundary_size
       use grids_kxky, only: zonal_mode, akx
       use grids_z, only: nzgrid, ntubes
@@ -1004,7 +1004,7 @@ contains
    subroutine init_mb_transforms
 
       use stella_layouts, only: init_stella_layouts
-      use parameters_kxky_grid, only: nakx, naky, naky_all
+      use grids_kxky, only: nakx, naky, naky_all
 
       implicit none
 
@@ -1036,7 +1036,7 @@ contains
 
    subroutine init_y_fft
 
-      use parameters_kxky_grid, only: naky, naky_all
+      use grids_kxky, only: naky, naky_all
       use fft_work, only: init_crfftw, init_rcfftw, FFT_BACKWARD, FFT_FORWARD
 
       implicit none
@@ -1055,7 +1055,7 @@ contains
 
    subroutine transform_kx2x(gkx, gx)
 
-      use parameters_kxky_grid, only: ikx_max
+      use grids_kxky, only: ikx_max
 
       implicit none
 
@@ -1076,7 +1076,7 @@ contains
 
    subroutine transform_x2kx(gx, gkx)
 
-      use parameters_kxky_grid, only: ikx_max
+      use grids_kxky, only: ikx_max
 
       implicit none
 

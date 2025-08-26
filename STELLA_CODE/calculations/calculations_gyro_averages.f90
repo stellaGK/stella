@@ -125,8 +125,8 @@ contains
 
    subroutine gyro_average_ffs_kxky_local(field, gyro_field, coefs)
 
-      use parameters_kxky_grid, only: naky
-      use parameters_kxky_grid, only: naky_all, ikx_max
+      use grids_kxky, only: naky
+      use grids_kxky, only: naky_all, ikx_max
       use calculations_kxky, only: swap_kxky_ordered, swap_kxky_back_ordered
 
       implicit none
@@ -403,7 +403,7 @@ contains
 
       use stella_common_types, only: gam0_ffs_type
       use grids_z, only: nzgrid
-      use parameters_kxky_grid, only: ikx_max
+      use grids_kxky, only: ikx_max
 
       implicit none
 
@@ -423,7 +423,7 @@ contains
    subroutine band_lu_solve_ffs_single(lu, solvec)
 
       use stella_common_types, only: gam0_ffs_type
-      use parameters_kxky_grid, only: naky
+      use grids_kxky, only: naky
 
       implicit none
 
@@ -456,7 +456,7 @@ contains
 
       use stella_common_types, only: coupled_alpha_type, gam0_ffs_type
       use grids_z, only: nzgrid
-      use parameters_kxky_grid, only: ikx_max, naky_all, naky
+      use grids_kxky, only: ikx_max, naky_all, naky
 
       implicit none
 
@@ -486,7 +486,7 @@ contains
    subroutine band_lu_factorisation_single(gam0, lu_gam0)
 
       use stella_common_types, only: gam0_ffs_type
-      use parameters_kxky_grid, only: naky, naky_all
+      use grids_kxky, only: naky, naky_all
 
       implicit none
 
@@ -545,8 +545,8 @@ contains
     !     subroutine test_gyro_average
 
     !     use constants, only: pi
-    !     use parameters_kxky_grid, only: ny, nx, x0, y0
-    !     use parameters_kxky_grid, only: nakx, ikx_max, naky, naky_all
+    !     use grids_kxky, only: ny, nx, x0, y0
+    !     use grids_kxky, only: nakx, ikx_max, naky, naky_all
     !     use grids_kxky, only: x, y
     !     use calculations_kxky, only: swap_kxky, swap_kxky_back
     !     use calculations_transforms, only: transform_x2kx, transform_y2ky
@@ -726,7 +726,7 @@ contains
 
         !     use constants, only: pi
         !     use grids_z, only: nzgrid, zed
-        !     use parameters_kxky_grid, only: naky, nalpha
+        !     use grids_kxky, only: naky, nalpha
         !     use grids_kxky, only: aky_all_ordered
         !     use grids_velocity, only: mu
         !     use calculations_transforms, only: transform_kalpha2alpha

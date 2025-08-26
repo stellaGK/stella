@@ -26,7 +26,7 @@ contains
       use mp, only: proc0
       use stella_layouts, only: kxkyz_lo, vmu_lo, kymus_lo
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use grids_velocity, only: nvpa, nmu
       use arrays_store_distribution_fn, only: gnew, gold, g_scratch
       use arrays_store_distribution_fn, only: gvmu, g_kymus
@@ -91,7 +91,7 @@ contains
       use parameters_physics, only: radial_variation
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use calculations_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
-      use parameters_kxky_grid, only: nalpha, nakx, naky
+      use grids_kxky, only: nalpha, nakx, naky
       use calculations_kxky, only: multiply_by_rho
       use grids_velocity, only: mu, vpa, vperp2
       use grids_z, only: nzgrid, ntubes

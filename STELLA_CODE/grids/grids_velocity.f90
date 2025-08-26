@@ -61,7 +61,7 @@ module grids_velocity
    ! Make routines accesible to other modules
    public :: init_velocity_grids
    public :: finish_velocity_grids
-   public :: read_velocity_grids_parameters
+   public :: read_parameters_velocity_grids
    
    ! Grid points
    public :: vpa, nvgrid, nvpa
@@ -125,7 +125,7 @@ contains
 !################################ READ NAMELIST ################################
 !###############################################################################
 
-   subroutine read_velocity_grids_parameters
+   subroutine read_parameters_velocity_grids
 
       use namelist_velocity_grids, only: read_namelist_velocity_grids
 
@@ -165,7 +165,7 @@ contains
 
       end subroutine broadcast_velocity_grids
 
-   end subroutine read_velocity_grids_parameters
+   end subroutine read_parameters_velocity_grids
 
 !###############################################################################
 !########################### INITIALISE VELOCITY GRIDS #########################
@@ -173,7 +173,7 @@ contains
 
    subroutine init_velocity_grids
 
-      use grids_species, only: read_species_options
+      use grids_species, only: read_parameters_species
       use parameters_numerical, only: read_parameters_numerical
 
       implicit none
@@ -186,7 +186,7 @@ contains
       
       ! Make sure the dependencies of the velocity grids are initialised
       call read_parameters_numerical
-      call read_species_options
+      call read_parameters_species
 
       ! Set up the vpa and mu grid points and integration weights
       call init_vpa_grid
@@ -381,7 +381,7 @@ contains
       
       ! Grids
       use grids_z, only: nztot
-      use parameters_kxky_grid, only: nalpha
+      use grids_kxky, only: nalpha
       use grids_species, only: spec, nspec
       
       implicit none
@@ -525,7 +525,7 @@ contains
       use grids_species, only: species_option_switch
       use grids_species, only: species_option_multibox
       use grids_z, only: nztot
-      use parameters_kxky_grid, only: nalpha
+      use grids_kxky, only: nalpha
       use geometry, only: bmag
    
       implicit none

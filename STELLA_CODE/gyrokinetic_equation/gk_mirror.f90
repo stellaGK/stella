@@ -42,7 +42,7 @@ contains
       use grids_velocity, only: nmu
       use grids_velocity, only: mu
       use grids_z, only: nzgrid, nztot
-      use parameters_kxky_grid, only: nalpha
+      use grids_kxky, only: nalpha
       use geometry, only: dbdzed, b_dot_grad_z, gfac
       use geometry, only: d2Bdrdth, dgradpardrho
       use neoclassical_terms, only: include_neoclassical_terms
@@ -135,7 +135,7 @@ contains
       use grids_z, only: nzgrid
       use grids_velocity, only: nmu, dvpa
       use grids_species, only: nspec
-      use parameters_kxky_grid, only: nalpha
+      use grids_kxky, only: nalpha
 
       implicit none
 
@@ -163,7 +163,7 @@ contains
       use grids_velocity, only: nvpa, nmu
       use parameters_physics, only: full_flux_surface
       use grids_species, only: spec
-      use parameters_kxky_grid, only: nalpha
+      use grids_kxky, only: nalpha
       use geometry, only: dbdzed
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dphineo_dzed
@@ -297,7 +297,7 @@ contains
       use stella_layouts, only: kxkyz_lo
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nmu, nvpa
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use fields_electromagnetic, only: advance_apar
 
       implicit none
@@ -353,7 +353,7 @@ contains
       use calculations_transforms, only: transform_ky2y
       use grids_z, only: nzgrid, ntubes
       use parameters_physics, only: full_flux_surface
-      use parameters_kxky_grid, only: nakx, naky, naky_all, ny, ikx_max
+      use grids_kxky, only: nakx, naky, naky_all, ny, ikx_max
       use calculations_kxky, only: swap_kxky
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa, maxwell_vpa
@@ -579,7 +579,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, is_idx
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: nakx
+      use grids_kxky, only: nakx
 
       implicit none
 
@@ -608,7 +608,7 @@ contains
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, is_idx
       use grids_z, only: nzgrid, ntubes
-      use parameters_kxky_grid, only: ikx_max
+      use grids_kxky, only: ikx_max
 
       implicit none
 
@@ -647,7 +647,7 @@ contains
       use grids_z, only: nzgrid, ntubes
       use arrays_store_distribution_fn, only: gvmu
       use parameters_physics, only: full_flux_surface
-      use parameters_kxky_grid, only: ny, nakx
+      use grids_kxky, only: ny, nakx
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: maxwell_vpa
       use neoclassical_terms, only: include_neoclassical_terms
@@ -663,7 +663,7 @@ contains
       use grids_velocity, only: dvpa
       use stella_layouts, only: iy_idx
       use calculations_kxky, only: swap_kxky, swap_kxky_back
-      use parameters_kxky_grid, only: naky_all, ikx_max
+      use grids_kxky, only: naky_all, ikx_max
       
       implicit none
 

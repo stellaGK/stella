@@ -63,15 +63,22 @@ contains
       !---------------------------------------------------------------------- 
 
       ! We only write data at every <nwrite> or every <nwrite>*<nc_mult> time steps
+      if (debug) write (*, *) 'COOKIE diagnostics::diagnostics_stella::start - 1'
+      if (debug) write (*, *) 'COOKIE istep', istep
+      if (debug) write (*, *) 'COOKIE nwrite', nwrite
+      if (debug) write (*, *) 'COOKIE nc_mult', nc_mult
       write_to_ascii_files = (mod(istep, nwrite) == 0)
       write_to_netcdf_file = (mod(istep, nwrite * nc_mult) == 0)
+      if (debug) write (*, *) 'COOKIE diagnostics::diagnostics_stella::start - 2'
       
       !**********************************************************************
       !                 RUNNING AVERAGES AT EVERY TIME STEP                 !
       !**********************************************************************
 
       ! Calculate Omega from <phi> = exp(-i*<0mega>*t) at every time step
+      if (debug) write (*, *) 'COOKIE diagnostics::diagnostics_stella::start - 3'
       call calculate_omega(istep, time_diagnostics(:, 1))    
+      if (debug) write (*, *) 'COOKIE diagnostics::diagnostics_stella::start - 4'
       
       !**********************************************************************
       !                 WRITE TO ASCII FILES EVERY <NWRITE>                 !
@@ -124,13 +131,17 @@ contains
    ! are initialised (zgrid, kt_grids, ...). Open/append the netcdf file with
    ! extension '.out.nc'. Open/append the ascii files ('.out'; '.fluxes'; '.omega').
    ! Gets called in the <init_stella> subroutine in the <stella> module. 
-   subroutine init_diagnostics(restart, tstart, git_commit, git_date)
+   subroutine init_diagnostics(restart, tstart)
 
-      use grids_z, only: init_zgrid
+      use grids_z, only: init_z_grid
+      use grids_z, only: read_parameters_z_grid
       use grids_kxky, only: init_grids_kxky
+      use grids_kxky, only: read_grids_kxky
       use parameters_physics, only: read_parameters_physics
       use parameters_numerical, only: read_parameters_numerical
       use grids_species, only: init_species
+      use grids_species, only: read_parameters_species
+      use parameters_diagnostics, only: read_diagnostics_knobs
 
       use arrays_distribution_fn, only: init_arrays_distribution_fn
       use arrays_constants, only: init_arrays_vperp_kperp
@@ -138,8 +149,9 @@ contains
       use initialise_distribution_fn, only: read_initialise_distribution
       use stella_io, only: init_stella_io, get_nout
       use diagnostics_omega, only: init_diagnostics_omega
-      use diagnostics_fluxes, only: init_diagnostics_fluxes 
-      use diagnostics_potential, only: init_diagnostics_potential 
+      use diagnostics_fluxes, only: init_diagnostics_fluxes
+      use diagnostics_potential, only: init_diagnostics_potential
+      use git_version, only: get_git_version, get_git_date
       use mp, only: broadcast, proc0
 
       implicit none
@@ -150,32 +162,42 @@ contains
       ! Current simulation time (in case of a restart)
       real, intent(in) :: tstart
 
-      ! Print git information to netcdf file
-      character(len=40), intent(in) :: git_commit 
-      character(len=10), intent(in) :: git_date
+      ! Stella version number and release date
+      character(len=40) :: git_commit
+      character(len=10) :: git_date
+      
+      !-------------------------------------------------------------------------
 
       ! Only initialise the diagnostics once
       if (diagnostics_initialised) return
       diagnostics_initialised = .true.
 
-      ! Should have been taken care off in the <init_stella> subroutine in the <stella> module. 
-      ! Nonetheless, make sure that the other routines are intialized.
-      call init_zgrid
+      ! Get git data
+      git_commit = get_git_version()
+      git_date = get_git_date()
+
+      ! Should have been taken care off in the <init_stella> subroutine in the <stella> module.
+      ! Nonetheless, make sure that the other routines are intialised.
       call read_parameters_physics
-      call init_grids_kxky
       call read_parameters_numerical
+      call read_parameters_z_grid
+      call read_parameters_species
+      call read_grids_kxky
+      call read_diagnostics_knobs
+      call init_z_grid
+      call init_grids_kxky
       call init_species
       call read_initialise_distribution
       call init_arrays_distribution_fn
       call init_arrays_vperp_kperp
 
-      ! Initialize the submodules   
-      call init_diagnostics_omega(restart) 
-      call init_diagnostics_fluxes(restart)  
-      call init_diagnostics_potential(restart)  
+      ! Initialize the submodules
+      call init_diagnostics_omega(restart)
+      call init_diagnostics_fluxes(restart)
+      call init_diagnostics_potential(restart)
 
       ! Open the netcdf file with extension '.out.nc'
-      call init_stella_io(restart, git_commit, git_date) 
+      call init_stella_io(restart, git_commit, git_date)
 
       ! Get the final position <nout> of the time axis in the netcdf file
       if (proc0) call get_nout(tstart, nout)

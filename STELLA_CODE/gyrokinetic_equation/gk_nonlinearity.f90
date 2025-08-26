@@ -130,7 +130,7 @@ module gk_nonlinearity
          use parameters_physics, only: prp_shear_enabled, hammett_flow_shear
          use parameters_physics, only: include_apar, include_bpar
          use parameters_physics, only: suppress_zonal_interaction
-         use parameters_kxky_grid, only: nakx, ikx_max, naky, naky_all, nx, ny
+         use grids_kxky, only: nakx, ikx_max, naky, naky_all, nx, ny
 
          use grids_z, only: nzgrid, ntubes
          use grids_kxky, only: akx, aky, rho_clamped
@@ -421,7 +421,7 @@ module gk_nonlinearity
          use grids_extended_zgrid, only: periodic
          use parameters_physics, only: full_flux_surface, radial_variation
          use grids_kxky, only: akx, aky, rho_clamped
-         use parameters_kxky_grid, only: nakx, naky, nx, ny, ikx_max
+         use grids_kxky, only: nakx, naky, nx, ny, ikx_max
          use calculations_kxky, only: swap_kxky, swap_kxky_back
          use grids_velocity, only: nvpa, nmu
          use grids_velocity, only: dvpa, vpa, mu

@@ -30,7 +30,7 @@ contains
 
       use constants, only: zi
       use grids_z, only: nzgrid, delzed
-      use parameters_kxky_grid, only: naky, nakx, ny
+      use grids_kxky, only: naky, nakx, ny
       use grids_kxky, only: aky, dy
       use arrays_store_fields, only: phi
       use geometry, only: grad_x, jacob
@@ -86,7 +86,7 @@ contains
 
       use grids_species, only: nspec
       use grids_z, only: nzgrid
-      use parameters_kxky_grid, only: naky, nakx
+      use grids_kxky, only: naky, nakx
       use calculations_volume_averages, only: mode_fac
 
       implicit none
@@ -140,7 +140,7 @@ contains
    subroutine get_modified_fourier_coefficient(moment, moment_ky, flxfac)
 
       use grids_z, only: nzgrid
-      use parameters_kxky_grid, only: ikx_max, naky_all, ny
+      use grids_kxky, only: ikx_max, naky_all, ny
       use calculations_kxky, only: swap_kxky_back
       use calculations_transforms, only: transform_y2ky
 
@@ -185,14 +185,14 @@ contains
       use grids_z, only: nzgrid
       use calculations_velocity_integrals, only: integrate_vmu_ffs
       use grids_velocity, only: vpa, vperp2
-      use parameters_kxky_grid, only: naky_all, ikx_max, ny
+      use grids_kxky, only: naky_all, ikx_max, ny
       use calculations_kxky, only: swap_kxky
       use arrays_store_distribution_fn, only: g0, g1, g2
       use calculations_gyro_averages, only: gyro_average
       use arrays_store_fields, only: phi
       use calculations_transforms, only: transform_ky2y
       use grids_kxky, only: aky, theta0
-      use parameters_kxky_grid, only: nakx
+      use grids_kxky, only: nakx
       use constants, only: zi, pi
       use calculations_tofrom_ghf, only: g_to_h
 
@@ -330,7 +330,7 @@ contains
       use calculations_transforms, only: transform_ky2y, transform_y2ky
       use calculations_kxky, only: swap_kxky, swap_kxky_back
       use grids_velocity, only: maxwell_vpa, maxwell_mu
-      use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
+      use grids_kxky, only: naky, naky_all, nakx, ikx_max, ny
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       implicit none
 
@@ -398,7 +398,7 @@ contains
       use calculations_transforms, only: transform_ky2y, transform_y2ky
       use calculations_kxky, only: swap_kxky, swap_kxky_back
       use grids_velocity, only: maxwell_vpa, maxwell_mu
-      use parameters_kxky_grid, only: naky, naky_all, nakx, ikx_max, ny
+      use grids_kxky, only: naky, naky_all, nakx, ikx_max, ny
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       implicit none
 
