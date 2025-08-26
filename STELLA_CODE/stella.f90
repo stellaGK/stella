@@ -3,7 +3,7 @@
 !###############################################################################
 ! 
 ! This is the main stella program. Here all parameters and grid are initialised,
-! and the gyrokinetic is evolved in time.
+! and the gyrokinetic equation is evolved in time.
 ! 
 !###############################################################################
 program stella
