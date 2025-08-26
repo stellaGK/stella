@@ -592,13 +592,14 @@ contains
       kxyz_lo%ny = ny
       kxyz_lo%naky = naky
       kxyz_lo%nakx = nakx
+      kxyz_lo%ikx_max = nakx/2 + 1
 
       ! The current processor
       kxyz_lo%iproc = iproc
 
       ! Number of points that need to be divided over the processors
       kxyz_lo%llim_world = 0
-      kxyz_lo%ulim_world = ny*nakx*kxyz_lo%nzed*ntubes*nspec - 1
+      kxyz_lo%ulim_world = ny * kxyz_lo%ikx_max * kxyz_lo%nzed * ntubes * nspec - 1
 
       ! Number of points per processor
       kxyz_lo%blocksize = kxyz_lo%ulim_world/nproc + 1
