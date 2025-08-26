@@ -196,7 +196,7 @@ contains
       ! Starting timestep: zero unless the simulation has been restarted
       integer, intent(out) :: istep0
 
-      logical :: restarted, needs_transforms
+      logical :: restarted, fourier_transformations_are_needed
       integer, dimension(:), allocatable  :: seed
       integer :: i, n, ierr
       real :: delt_saved
@@ -221,39 +221,36 @@ contains
       ! Read the input file
       call read_parameters_from_input_file
       
-      ! Setup the various data layouts for the distribution function;
-      ! e.g., vmu_lo is the layout in which vpa, mu and species may be distributed
-      ! amongst processors, depending on the number of phase space points and processors
+      ! The grid points of the distribution function g(kx,ky,z,mu,vpa,species),
+      ! are distributed among the various processors according to different layouts.
       if (debug) write (6, *) "stella::init_stella::init_dist_fn_layouts"
       call init_dist_fn_layouts(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
-      ! needs_transforms indicates whether or not FFTs will be needed in the simulation
-      call check_transforms(needs_transforms)
-      ! If FFTs are needed, init_transforms sets up the various FFTW plans
-      ! and allocates the necessary arrays
-      if (needs_transforms) then
+      
+      ! Check whether Fourier transformations are needed (e.g., the nonlinear term
+      ! requires it, radial variation requires it, ...) and if so, set up the FFTW plans
+      call are_fourier_transformations_needed(fourier_transformations_are_needed)
+      if (fourier_transformations_are_needed) then
          if (debug) write (*, *) "stella::init_stella::init_transforms"
          call init_transforms
       end if
       
-      ! Set-up the z-grid
+      ! Set-up the z-grid, and calculate all of the required geometric coefficients
+      ! Note that the geometry namelists will be read from the input file within init_geometry
       if (debug) write (6, *) "stella::init_stella::init_z_grid"
       call init_z_grid
-      ! Read in the geometry option and any necessary magnetic geometry info
-      ! and use it to calculate all of the required geometric coefficients
       if (debug) write (6, *) "stella::init_stella::init_geometry"
       call init_geometry(nalpha, naky)
+      
+      ! The (kx,ky) grids require <shat> and <rhotor> from the geometry module,
+      ! so make sure to initialise the geometry before initialising the (kx,ky) grids
       if (debug) write (6, *) 'stella::init_stella::init_grids_kxky'
       call init_grids_kxky
+      
       ! Read species_parameters from input file and use the info to, e.g.,
       ! determine if a modified Boltzmann response is to be used
       if (debug) write (6, *) 'stella::init_stella::init_species'
       call init_species
       
-      ! Read knobs namelist from the input file
-      ! and the info to determine the mixture of implicit and explicit time advance
-      !if (debug) write (6, *) "stella::init_stella::init_run_parameters"
-      !call read_parameters_physics
-
       if (debug) write (6, *) "stella::init_stella::init_ranf"
       n = get_rnd_seed_length()
       allocate (seed(n))
@@ -556,9 +553,9 @@ contains
    !----------------------------------------------------------------------------
    !----------------------------------------------------------------------------
    !----------------------------------------------------------------------------
-   ! check_transforms checks the various physics flag choices
+   ! <are_fourier_transformations_needed> checks the various physics flag choices
    ! to determine if FFTs are needed for the simulation
-   subroutine check_transforms(needs_transforms)
+   subroutine are_fourier_transformations_needed(fourier_transformations_are_needed)
 
       use file_utils, only: runtype_option_switch, runtype_multibox
       use parameters_physics, only: include_nonlinear, include_parallel_nonlinearity
@@ -571,22 +568,27 @@ contains
 
       implicit none
 
-      logical, intent(out) :: needs_transforms
+      logical, intent(out) :: fourier_transformations_are_needed
 
-      needs_transforms = .false.
+      ! Assume we don't need Fourier transformations
+      fourier_transformations_are_needed = .false.
+      
       ! If ExB or parallel nonlinearity included in the simulations, need FFTs
-      if (include_nonlinear .or. include_parallel_nonlinearity) needs_transforms = .true.
+      if (include_nonlinear .or. include_parallel_nonlinearity) fourier_transformations_are_needed = .true.
+      
       ! If 'global' in radial or bi-normal directions, need FFTs
-      if (radial_variation .or. full_flux_surface) needs_transforms = .true.
+      if (radial_variation .or. full_flux_surface) fourier_transformations_are_needed = .true.
+      
       ! If running in multibox mode, need FFTs
-      if (runtype_option_switch == runtype_multibox) needs_transforms = .true.
+      if (runtype_option_switch == runtype_multibox) fourier_transformations_are_needed = .true.
+      
       ! If including flow shear using anything other than wavenumber re-mapping, need FFTs
-      if (abs(g_exb * g_exbfac) > epsilon(0.) .and. .not. hammett_flow_shear) &
-         needs_transforms = .true.
+      if (abs(g_exb * g_exbfac) > epsilon(0.) .and. .not. hammett_flow_shear) fourier_transformations_are_needed = .true.
+      
       ! If printing out flux-surface-averaged radial fluxes or moments, need FFTs
-      if (write_radial_fluxes .or. write_radial_moments) needs_transforms = .true.
+      if (write_radial_fluxes .or. write_radial_moments) fourier_transformations_are_needed = .true.
 
-   end subroutine check_transforms
+   end subroutine are_fourier_transformations_needed
 
    !----------------------------------------------------------------------------
    !----------------------------------------------------------------------------
