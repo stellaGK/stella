@@ -142,37 +142,18 @@ contains
    !****************************************************************************
    subroutine init_stella(istep0)
 
+      use stella_time, only: init_tstart
       use mp, only: broadcast, sum_allreduce
       use mp, only: proc0, job
-      use file_utils, only: runtype_option_switch, runtype_multibox
       use file_utils, only: flush_output_file, error_unit
       use job_manage, only: time_message
-      use stella_layouts, only: mat_read
       use stella_layouts, only: init_dist_fn_layouts
-      use stella_time, only: init_tstart, init_delt
-      use stella_save, only: init_dt
-      use parameters_physics, only: radial_variation
-      use parameters_numerical, only: delt, delt_max, delt_min
-      use parameters_numerical, only: stream_implicit, driftkinetic_implicit
-      use parameters_numerical, only: delt_option_switch, delt_option_auto
       use grids_kxky, only: naky, nakx, ny, nx, nalpha
-      use parameters_multibox, only: use_dirichlet_BC
       use grids_species, only: nspec
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvgrid, nmu
-      use initialise_distribution_fn, only: phiinit, scale_to_phiinit
       use initialise_distribution_fn, only: tstart
-      use fields, only: advance_fields, fields_updated
-      use fields_radial_variation, only: get_radial_correction
-      use fields, only: rescale_fields
       use diagnostics, only: init_diagnostics
-      use arrays_store_fields, only: phi, apar, bpar
-      use arrays_store_distribution_fn, only: gnew
-      use response_matrix, only: init_response_matrix, read_response_matrix
-      use gk_time_advance, only: init_time_advance
-      use multibox, only: init_multibox
-      use multibox, only: apply_radial_boundary_conditions
-      use multibox, only: multibox_communicate
       use calculations_volume_averages, only: volume_average
       use calculations_transforms, only: init_transforms
       
@@ -184,7 +165,6 @@ contains
 
       logical :: restarted, fourier_transformations_are_needed
       integer :: ierr
-      real :: delt_saved
 
       !-------------------------------------------------------------------------
       
@@ -230,6 +210,68 @@ contains
       ! Moreover, initialise the redistribute, dissipation, soueces, fields, 
       ! distribution and volume_averaged modules
       call init_arrays_and_stella_modules(restarted, istep0)
+      
+      ! Initialise <delt>m the time advance module, and the response matrix
+      call init_time_step_and_time_advance(restarted)
+     
+      ! We have initialised the distribution function g(kx,ky,z,mu,vpa,species)
+      ! in initialise_distribution(). Use the quasineutrality condition to initialise 
+      ! the electrostatic and electromagnetic fields (phi, apar, bpar).
+      call init_electrostatic_and_magnetic_potential(restarted)
+
+      ! Read diagnostics_knob namelist from the input file,
+      ! open ascii output files and initialise the neetcdf file with extension .out.nc
+      if (debug) write (6, *) 'stella::init_stella::init_diagnostics'
+      call init_diagnostics(restarted, tstart)
+      
+      ! Initialise the code_time
+      if (debug) write (6, *) 'stella::init_stella::init_tstart'
+      call init_tstart(tstart)
+
+      ! Make sure the error file is written
+      ierr = error_unit()
+      if (proc0) call flush_output_file(ierr)
+
+      ! Add a header to the output file
+      call print_header
+      
+      ! Stop the timing of the initialization
+      if (proc0) call time_message(.false., time_init, ' Initialization')
+
+   end subroutine init_stella
+   
+   
+   !----------------------------------------------------------------------------
+   !------------------- Initialise time step and time advance ------------------
+   !----------------------------------------------------------------------------
+   subroutine init_time_step_and_time_advance(restarted)
+      
+      ! Set the time step
+      use parameters_numerical, only: delt_option_switch
+      use parameters_numerical, only: delt_option_auto
+      use parameters_numerical, only: delt, delt_max, delt_min
+      use stella_time, only: init_delt
+      use stella_save, only: init_dt
+      
+      ! Initialise parts of the gyrokinetic equation
+      use gk_time_advance, only: init_time_advance
+      use response_matrix, only: init_response_matrix
+      use response_matrix, only: read_response_matrix
+      
+      ! Flags related to the gyrokinetic equation
+      use parameters_numerical, only: stream_implicit
+      use parameters_numerical, only: driftkinetic_implicit
+      use stella_layouts, only: mat_read
+      
+      implicit none
+      
+      ! Arguments
+      logical, intent(in out) :: restarted
+      
+      ! Local variables
+      real :: delt_saved
+      
+      !----------------------------------------------------------------------
 
       ! If initializing from restart file, set the initial time step size appropriately
       if (restarted .and. delt_option_switch == delt_option_auto) then
@@ -256,11 +298,51 @@ contains
             call init_response_matrix
          end if
       end if
+      
+   end subroutine init_time_step_and_time_advance
+   
+   !----------------------------------------------------------------------------
+   !----------------------- Initialise phi, apar and bpar ----------------------
+   !----------------------------------------------------------------------------
+   subroutine init_electrostatic_and_magnetic_potential(restarted)
+      
+      ! The fields are phi(kx,ky,z), apar(kx,ky,z) and bpar(kx,ky,z)
+      use fields, only: advance_fields
+      use fields, only: fields_updated
+      use fields, only: rescale_fields
+      use initialise_distribution_fn, only: phiinit
+      use initialise_distribution_fn, only: scale_to_phiinit
+      
+      ! Load the fields and the distribution function g(kx,ky,z,mu,vpa,species)
+      use arrays_store_fields, only: phi, apar, bpar
+      use arrays_store_distribution_fn, only: gnew
+      
+      ! Radial variation runs
+      use parameters_physics, only: radial_variation
+      use file_utils, only: runtype_option_switch
+      use file_utils, only: runtype_multibox
+      use parameters_multibox, only: use_dirichlet_BC
+      use multibox, only: apply_radial_boundary_conditions
+      use multibox, only: multibox_communicate
+      use fields_radial_variation, only: get_radial_correction
+      
+      ! Parallelisation
+      use mp, only: job
+      
+      implicit none
+      
+      ! Arguments
+      logical, intent(in out) :: restarted
+      
+      !----------------------------------------------------------------------
 
-      ! Get initial field from initial distribution function
+      ! We have initialised the distribution function g(kx,ky,z,mu,vpa,species)
+      ! in initialise_distribution(). Use the quasineutrality condition to initialise 
+      ! the electrostatic and electromagnetic fields (phi, apar, bpar).
       if (debug) write (6, *) 'stella::init_stella::advance_fields'
       call advance_fields(gnew, phi, apar, bpar, dist='g')
-
+      
+      ! Add the radial variation correction to the fields
       if (radial_variation) then
          if (debug) write (6, *) 'stella::init_stella::get_radial_correction'
          call get_radial_correction(gnew, phi, dist='g')
@@ -284,97 +366,9 @@ contains
 
       ! Rescale to phiinit if just beginning a new run
       if (.not. restarted .and. scale_to_phiinit) call rescale_fields(phiinit)
-
-      ! Read diagnostics_knob namelist from the input file,
-      ! open ascii output files and initialise the neetcdf file with extension .out.nc
-      if (debug) write (6, *) 'stella::init_stella::init_diagnostics'
-      call init_diagnostics(restarted, tstart)
       
-      ! Initialise the code_time
-      if (debug) write (6, *) 'stella::init_stella::init_tstart'
-      call init_tstart(tstart)
-
-      ierr = error_unit()
-      if (proc0) call flush_output_file(ierr)
-
-      ! Add a header to the output file
-      call print_header
-      
-      ! Stop the timing of the initialization
-      if (proc0) call time_message(.false., time_init, ' Initialization')
-
-   end subroutine init_stella
+   end subroutine init_electrostatic_and_magnetic_potential
    
-   
-   !----------------------------------------------------------------------------
-   !------------------- Intialise arrays and stella modules --------------------
-   !----------------------------------------------------------------------------
-   subroutine init_arrays_and_stella_modules(restarted, istep0)
-   
-      ! Initialise arrays
-      use arrays_distribution_fn, only: init_array_gxyz
-      use arrays_distribution_fn, only: init_arrays_distribution_fn
-      use arrays_constants, only: init_arrays_vperp_kperp
-   
-      ! Initialise other modules
-      use initialise_distribution_fn, only: initialise_distribution
-      use calculations_volume_averages, only: init_volume_averages
-      use calculations_redistribute, only: init_redistribute
-      use dissipation, only: init_dissipation
-      use gk_sources, only: init_sources
-      use fields, only: init_fields
-      
-      implicit none
-      
-      ! Arguments
-      integer, intent(in out) :: istep0
-      logical, intent(in out) :: restarted
-      
-      !----------------------------------------------------------------------
-      
-      ! When doing a volume average using Fourier coefficients, the
-      ! ky=0 mode gets a different weighting than finite ky modes, due
-      ! to the reality condition being imposed; init_volume_averages accounts for this
-      if (debug) write (6, *) 'stella::init_stella::init_volume_averages'
-      call init_volume_averages
-      
-      ! Initialise the arrays for the distribution function g(kx,ky,z,i[mu,vpa,species])
-      ! as <gold> and <gnew> as well as gvmu(vpa,mu,i[kx,ky,z,species]).
-      ! Aloso allocate vperp2, kperp2 and arrays needed for gyro-averaging (j0 and j1)
-      if (debug) write (6, *) "stella::init_stella::init_dist_fn"
-      call init_arrays_distribution_fn
-      call init_arrays_vperp_kperp
-      
-      ! sets up the mappings between different layouts, needed
-      ! to redistribute data when going from one layout to another
-      if (debug) write (6, *) "stella::init_stella::init_redistribute"
-      call init_redistribute
-      
-      ! Read dissipation namelist from the input file and print information
-      ! about chosen options to stdout
-      if (debug) write (6, *) 'stella::init_stella::init_dissipation'
-      call init_dissipation
-      
-      ! Initialise sources
-      if (debug) write (6, *) 'stella::init_stella::init_sources'
-      call init_sources
-      
-      ! Allocate and initialise time-independent arrays needed to
-      ! solve the field equations; e.g., sum_s (Z_s^2 n_s / T_s)*(1-Gamma0_s)
-      if (debug) write (6, *) 'stella::init_stella::init_fields'
-      call init_fields
-      
-      ! Initialise the distribution function in the kxkyz_lo and store in gvmu
-      if (debug) write (6, *) "stella::init_stella::initialise_distribution"
-      call initialise_distribution(restarted, istep0)
-      
-      ! Use mapping from kxkyz_lo to vmu_lo to get a copy of g that has ky, kx and z local to each core;
-      ! stored in gnew and copied to gold
-      if (debug) write (6, *) "stella::init_stella::init_array_gxyz"
-      call init_array_gxyz(restarted)
-      
-   end subroutine init_arrays_and_stella_modules
-
    !----------------------------------------------------------------------------
    !------------- Intialise MPI environment, file utils and timers -------------
    !----------------------------------------------------------------------------
@@ -570,7 +564,76 @@ contains
       call init_extended_zgrid
       
    end subroutine init_grids_and_geometry
+
+   !----------------------------------------------------------------------------
+   !------------------- Intialise arrays and stella modules --------------------
+   !----------------------------------------------------------------------------
+   subroutine init_arrays_and_stella_modules(restarted, istep0)
+   
+      ! Initialise arrays
+      use arrays_distribution_fn, only: init_array_gxyz
+      use arrays_distribution_fn, only: init_arrays_distribution_fn
+      use arrays_constants, only: init_arrays_vperp_kperp
+   
+      ! Initialise other modules
+      use initialise_distribution_fn, only: initialise_distribution
+      use calculations_volume_averages, only: init_volume_averages
+      use calculations_redistribute, only: init_redistribute
+      use dissipation, only: init_dissipation
+      use gk_sources, only: init_sources
+      use fields, only: init_fields
       
+      implicit none
+      
+      ! Arguments
+      integer, intent(in out) :: istep0
+      logical, intent(in out) :: restarted
+      
+      !----------------------------------------------------------------------
+      
+      ! When doing a volume average using Fourier coefficients, the
+      ! ky=0 mode gets a different weighting than finite ky modes, due
+      ! to the reality condition being imposed; init_volume_averages accounts for this
+      if (debug) write (6, *) 'stella::init_stella::init_volume_averages'
+      call init_volume_averages
+      
+      ! Initialise the arrays for the distribution function g(kx,ky,z,i[mu,vpa,species])
+      ! as <gold> and <gnew> as well as gvmu(vpa,mu,i[kx,ky,z,species]).
+      ! Aloso allocate vperp2, kperp2 and arrays needed for gyro-averaging (j0 and j1)
+      if (debug) write (6, *) "stella::init_stella::init_dist_fn"
+      call init_arrays_distribution_fn
+      call init_arrays_vperp_kperp
+      
+      ! sets up the mappings between different layouts, needed
+      ! to redistribute data when going from one layout to another
+      if (debug) write (6, *) "stella::init_stella::init_redistribute"
+      call init_redistribute
+      
+      ! Read dissipation namelist from the input file and print information
+      ! about chosen options to stdout
+      if (debug) write (6, *) 'stella::init_stella::init_dissipation'
+      call init_dissipation
+      
+      ! Initialise sources
+      if (debug) write (6, *) 'stella::init_stella::init_sources'
+      call init_sources
+      
+      ! Allocate and initialise time-independent arrays needed to
+      ! solve the field equations; e.g., sum_s (Z_s^2 n_s / T_s)*(1-Gamma0_s)
+      if (debug) write (6, *) 'stella::init_stella::init_fields'
+      call init_fields
+      
+      ! Initialise the distribution function in the kxkyz_lo and store in gvmu
+      if (debug) write (6, *) "stella::init_stella::initialise_distribution"
+      call initialise_distribution(restarted, istep0)
+      
+      ! Use mapping from kxkyz_lo to vmu_lo to get a copy of g that has ky, kx and z local to each core;
+      ! stored in gnew and copied to gold
+      if (debug) write (6, *) "stella::init_stella::init_array_gxyz"
+      call init_array_gxyz(restarted)
+      
+   end subroutine init_arrays_and_stella_modules
+   
    !----------------------------------------------------------------------------
    !----------------------------------------------------------------------------
    !----------------------------------------------------------------------------
