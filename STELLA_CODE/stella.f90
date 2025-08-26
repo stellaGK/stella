@@ -157,15 +157,8 @@ contains
       use parameters_numerical, only: delt_option_switch, delt_option_auto
       use grids_kxky, only: naky, nakx, ny, nx, nalpha
       use parameters_multibox, only: use_dirichlet_BC
-      use geometry, only: init_geometry
-      use geometry, only: finish_init_geometry
-      use grids_species, only: init_species
       use grids_species, only: nspec
-      use grids_z, only: init_z_grid
       use grids_z, only: nzgrid, ntubes
-      use grids_extended_zgrid, only: init_extended_zgrid
-      use grids_kxky, only: init_grids_kxky
-      use grids_velocity, only: init_velocity_grids
       use grids_velocity, only: nvgrid, nmu
       use initialise_distribution_fn, only: initialise_distribution
       use initialise_distribution_fn, only: phiinit, scale_to_phiinit
@@ -233,54 +226,31 @@ contains
          call init_transforms
       end if
       
-      ! Set-up the z-grid, and calculate all of the required geometric coefficients
-      ! Note that the geometry namelists will be read from the input file within init_geometry
-      if (debug) write (6, *) "stella::init_stella::init_z_grid"
-      call init_z_grid
-      if (debug) write (6, *) "stella::init_stella::init_geometry"
-      call init_geometry(nalpha, naky)
+      ! Initialise the (kx,ky,z,mu,vpa,species) grids as well as the magnetic geometry
+      call init_grids_and_geometry
       
-      ! The (kx,ky) grids require <shat> and <rhotor> from the geometry module,
-      ! so make sure to initialise the geometry before initialising the (kx,ky) grids
-      if (debug) write (6, *) 'stella::init_stella::init_grids_kxky'
-      call init_grids_kxky
-      
-      ! Read species_parameters from input file and use the info to, e.g.,
-      ! determine if a modified Boltzmann response is to be used
-      if (debug) write (6, *) 'stella::init_stella::init_species'
-      call init_species
-      
-      ! Setup the (kx,ky) grids and (x,y) grids, if applicable
-      if (debug) write (6, *) 'stella::init_stella::init_multibox_subcalls'
-      call init_multibox_subcalls
-      
-      ! Setup the (vpa,mu) grids and associated integration weights
-      if (debug) write (6, *) 'stella::init_stella::init_velocity_grids'
-      call init_velocity_grids
-      ! Set up all of the logic needed to do calculations on an extended grid in z.
-      ! this extended grid could be due to use of a ballooning angle so that
-      ! z goes from -N*pi to N*pi, or it could be due to the coupling of different
-      ! kx modes arising from the twist-and-shift boundary condition
-      if (debug) write (6, *) 'stella::init_stella::init_extended_zgrid'
-      call init_extended_zgrid
       ! When doing a volume average using Fourier coefficients, the
       ! ky=0 mode gets a different weighting than finite ky modes, due
       ! to the reality condition being imposed; init_volume_averages accounts for this
       if (debug) write (6, *) 'stella::init_stella::init_volume_averages'
       call init_volume_averages
+      
       ! Allocates and initialises kperp2, vperp2 and arrays needed
       ! for gyro-averaging (j0 and j1 or equivalents)
       if (debug) write (6, *) "stella::init_stella::init_dist_fn"
       call init_arrays_distribution_fn
       call init_arrays_vperp_kperp
+      
       ! sets up the mappings between different layouts, needed
       ! to redistribute data when going from one layout to another
       if (debug) write (6, *) "stella::init_stella::init_redistribute"
       call init_redistribute
+      
       ! Read dissipation namelist from the input file and print information
       ! about chosen options to stdout
       if (debug) write (6, *) 'stella::init_stella::init_dissipation'
       call init_dissipation
+      
       if (debug) write (6, *) 'stella::init_stella::init_sources'
       call init_sources
       ! Allocate and initialise time-independent arrays needed to
@@ -462,7 +432,7 @@ contains
       use parameters_multibox, only: read_parameters_multibox
       
       ! Parameters from grids
-      use grids_kxky, only: read_grids_kxky
+      use grids_kxky, only: read_parameters_kxky_grids
       use grids_species, only: read_parameters_species
       use grids_z, only: read_parameters_z_grid
       use grids_velocity, only: read_parameters_velocity_grids
@@ -487,8 +457,8 @@ contains
       call read_parameters_z_grid
       if (debug) write (6, *) "stella::init_stella::read_species_options"
       call read_parameters_species
-      if (debug) write (6, *) "stella::init_stella::read_grids_kxky"
-      call read_grids_kxky
+      if (debug) write (6, *) "stella::init_stella::read_parameters_kxky_grids"
+      call read_parameters_kxky_grids
       if (debug) write (6, *) "stella::init_stella::read_velocity_grids_parameters"
       call read_parameters_velocity_grids
       
@@ -503,6 +473,63 @@ contains
       call read_parameters_parallelisation_layouts
       
    end subroutine read_parameters_from_input_file
+   
+   !----------------------------------------------------------------------------
+   !------------------ Initialise grids and magnetic geometry ------------------
+   !----------------------------------------------------------------------------
+   subroutine init_grids_and_geometry
+   
+      ! Intialise grids
+      use grids_z, only: init_z_grid
+      use grids_kxky, only: init_grids_kxky
+      use grids_velocity, only: init_velocity_grids
+      use grids_species, only: init_species
+      use grids_extended_zgrid, only: init_extended_zgrid
+   
+      ! Initialise geometry
+      use geometry, only: init_geometry
+      
+      ! The geometry module needs <nalpha> and <naky> which have already been read
+      ! by read_parameters_kxky_grids() in read_parameters_from_input_file()
+      use grids_kxky, only: naky, nalpha
+   
+      implicit none
+      
+      !----------------------------------------------------------------------
+   
+      ! Set-up the z-grid, and calculate all of the required geometric coefficients
+      ! Note that the geometry namelists will be read from the input file within init_geometry
+      if (debug) write (6, *) "stella::init_stella::init_z_grid"
+      call init_z_grid
+      if (debug) write (6, *) "stella::init_stella::init_geometry"
+      call init_geometry(nalpha, naky)
+      
+      ! The (kx,ky) grids require <shat> and <rhotor> from the geometry module,
+      ! so make sure to initialise the geometry before initialising the (kx,ky) grids
+      if (debug) write (6, *) 'stella::init_stella::init_grids_kxky'
+      call init_grids_kxky
+      
+      ! Read species_parameters from input file and use the info to, e.g.,
+      ! determine if a modified Boltzmann response is to be used
+      if (debug) write (6, *) 'stella::init_stella::init_species'
+      call init_species
+      
+      ! Setup the (kx,ky) grids and (x,y) grids, if applicable
+      if (debug) write (6, *) 'stella::init_stella::init_multibox_subcalls'
+      call init_multibox_subcalls
+      
+      ! Setup the (vpa,mu) grids and associated integration weights
+      if (debug) write (6, *) 'stella::init_stella::init_velocity_grids'
+      call init_velocity_grids
+      
+      ! Set up all of the logic needed to do calculations on an extended grid in z.
+      ! this extended grid could be due to use of a ballooning angle so that
+      ! z goes from -N*pi to N*pi, or it could be due to the coupling of different
+      ! kx modes arising from the twist-and-shift boundary condition
+      if (debug) write (6, *) 'stella::init_stella::init_extended_zgrid'
+      call init_extended_zgrid
+      
+   end subroutine init_grids_and_geometry
       
    !----------------------------------------------------------------------------
    !----------------------------------------------------------------------------

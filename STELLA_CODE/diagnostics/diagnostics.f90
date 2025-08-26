@@ -136,7 +136,7 @@ contains
       use grids_z, only: init_z_grid
       use grids_z, only: read_parameters_z_grid
       use grids_kxky, only: init_grids_kxky
-      use grids_kxky, only: read_grids_kxky
+      use grids_kxky, only: read_parameters_kxky_grids
       use parameters_physics, only: read_parameters_physics
       use parameters_numerical, only: read_parameters_numerical
       use grids_species, only: init_species
@@ -182,7 +182,7 @@ contains
       call read_parameters_numerical
       call read_parameters_z_grid
       call read_parameters_species
-      call read_grids_kxky
+      call read_parameters_kxky_grids
       call read_parameters_diagnostics
       call init_z_grid
       call init_grids_kxky

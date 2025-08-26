@@ -29,7 +29,7 @@ module grids_kxky
    public :: box
    
    
-   public :: read_grids_kxky
+   public :: read_parameters_kxky_grids
 
 
    ! For Box/Range 
@@ -92,7 +92,7 @@ module grids_kxky
    
    ! Internal variables
    logical :: initialised_grids_kxky
-   logical :: initialised_read_grids_kxky
+   logical :: initialised_read_parameters_kxky_grids
 
 contains
 
@@ -100,7 +100,7 @@ contains
 !################################ READ NAMELIST ################################
 !###############################################################################
 
-   subroutine read_grids_kxky
+   subroutine read_parameters_kxky_grids
 
       use mp, only: proc0, mp_abort
 
@@ -112,8 +112,8 @@ contains
       !-------------------------------------------------------------------------
 
       ! Only initialise once
-      if (initialised_read_grids_kxky) return
-      initialised_read_grids_kxky = .true.
+      if (initialised_read_parameters_kxky_grids) return
+      initialised_read_parameters_kxky_grids = .true.
 
       ! Read the "kxky_grid_option" namelist in the input file
       call read_namelist_kxky_grid_option (grid_option_switch)
@@ -172,7 +172,7 @@ contains
 
       end subroutine broadcast_parameters
       
-   end subroutine read_grids_kxky
+   end subroutine read_parameters_kxky_grids
 
 
 !###############################################################################
