@@ -237,8 +237,7 @@ contains
    !****************************************************************************
    !                       INITIALISE DISTRIBUTION: NOISE                      !
    !****************************************************************************
-   subroutine read_namelist_initialise_distribution_noise(zf_init, left, chop_side, &
-                           rng_seed)
+   subroutine read_namelist_initialise_distribution_noise(zf_init, left, chop_side)
 
       use mp, only: proc0
 
@@ -248,7 +247,10 @@ contains
       real, intent(out) :: zf_init
       logical, intent(out) :: left
       logical, intent(out) :: chop_side
-      integer, intent (out)  :: rng_seed
+      
+      ! The <rng_seed> is read in init_random_number_generator()
+      ! Here we need to define it, but will not be used
+      integer  :: rng_seed
       
       !-------------------------------------------------------------------------
 

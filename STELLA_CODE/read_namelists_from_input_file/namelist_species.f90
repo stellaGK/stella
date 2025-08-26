@@ -184,8 +184,6 @@ contains
 
          implicit none
 
-         integer :: ierr
-
          ! Make sure we have at least one kinetic species
          if (nspec < 1) call mp_abort('Invalid nspec in species_options. Aborting.')
          

@@ -11,7 +11,7 @@ module initialise_distribution_fn
    
    ! The stella.f90 script will check if we want to call rescale_fields()
    public :: phiinit, scale_to_phiinit
-   public :: rng_seed
+
    ! When we restart a simulation, we need to access <tstart>
    public :: tstart
 
@@ -23,7 +23,7 @@ module initialise_distribution_fn
    ! Moreover, these are used in rescale_fields() in the fields.fpp module
    logical :: scale_to_phiinit
    real :: phiinit
-   integer :: rng_seed
+
    ! When we restart a simulation, we need to access <tstart>
    real :: tstart
    
@@ -73,10 +73,6 @@ contains
 
       integer :: ind_slash
       
-      ! We want to read the rng seed without needing the other noise parameters
-      real :: zf_init
-      logical :: left, chop_side
-      
       !-------------------------------------------------------------------------
 
       if (initialised) return
@@ -91,12 +87,6 @@ contains
       call broadcast(init_distribution_switch)
       call broadcast(scale_to_phiinit)
       call broadcast(phiinit)
-      
-      ! If we want <noise> initialisation, we need to read the rng_seed already
-      if (init_distribution_switch == init_distribution_option_noise) then
-          if (proc0) call read_namelist_initialise_distribution_noise(zf_init, left, chop_side, rng_seed)
-          call broadcast(rng_seed)
-      end if
 
       ! Read <restart_options> namelist
       ! Most of these options will be parsed to other stella modules
@@ -316,13 +306,12 @@ contains
       !-------------------------------------------------------------------------
       
       ! Read <initialise_distribution_noise> namelist
-      if (proc0) call read_namelist_initialise_distribution_noise(zf_init, left, chop_side, rng_seed)
+      if (proc0) call read_namelist_initialise_distribution_noise(zf_init, left, chop_side)
          
       ! Broadcast to all processors
       call broadcast(zf_init)
       call broadcast(left)
       call broadcast(chop_side)
-      call broadcast(rng_seed)
 
       if ((naky == 1 .and. nakx == 1) .or. (.not. include_nonlinear)) then
          if (proc0) then

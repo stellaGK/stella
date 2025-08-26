@@ -167,7 +167,6 @@ contains
       use grids_kxky, only: init_grids_kxky
       use grids_velocity, only: init_velocity_grids
       use grids_velocity, only: nvgrid, nmu
-      use initialise_distribution_fn, only: rng_seed
       use initialise_distribution_fn, only: initialise_distribution
       use initialise_distribution_fn, only: phiinit, scale_to_phiinit
       use initialise_distribution_fn, only: tstart
@@ -185,7 +184,6 @@ contains
       use multibox, only: init_multibox
       use multibox, only: apply_radial_boundary_conditions
       use multibox, only: multibox_communicate
-      use ran, only: get_rnd_seed_length, init_ranf
       use dissipation, only: init_dissipation
       use calculations_volume_averages, only: init_volume_averages, volume_average
       use calculations_redistribute, only: init_redistribute
@@ -197,8 +195,7 @@ contains
       integer, intent(out) :: istep0
 
       logical :: restarted, fourier_transformations_are_needed
-      integer, dimension(:), allocatable  :: seed
-      integer :: i, n, ierr
+      integer :: ierr
       real :: delt_saved
 
       !-------------------------------------------------------------------------
@@ -251,16 +248,7 @@ contains
       if (debug) write (6, *) 'stella::init_stella::init_species'
       call init_species
       
-      if (debug) write (6, *) "stella::init_stella::init_ranf"
-      n = get_rnd_seed_length()
-      allocate (seed(n))
-      if (rng_seed < 0) then
-         call init_ranf(.true., seed, job + 2)
-      else
-         seed = rng_seed + 37 * (/(i - 1, i=1, n)/)
-         call init_ranf(.false., seed, job + 2)
-      end if
-      deallocate (seed)
+      
 
       ! Read layouts_knobs namelist from the input file,
       ! which determines the order of parallelisation within the different layouts
@@ -414,6 +402,9 @@ contains
       use file_utils, only: run_name
       use file_utils, only: init_job_name
       
+      ! Initialise the random number generator
+      use interface_random_number_generator, only: init_random_number_generator
+      
       implicit none
       
       character(500), target :: cbuff
@@ -458,6 +449,11 @@ contains
       if (proc0) cbuff = trim(run_name)
       call broadcast(cbuff)
       if (.not. proc0) call init_job_name(cbuff)
+      
+      ! Set up the random number generator (rng) in the ran.fpp module. It will read 
+      ! <rng_seed> from the the "initialise_distribution_noise" namelist in the input file
+      if (debug) write (6, *) "stella::init_stella::init_random_number_generator"
+      call init_random_number_generator
       
    end subroutine init_mpi_files_utils_and_timers
 
