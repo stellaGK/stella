@@ -412,7 +412,8 @@ contains
       use geometry, only: dl_over_b, d_dl_over_b_drho, bmag, dBdrho
       use stella_layouts, only: imu_idx, is_idx
       use grids_z, only: nzgrid, ntubes
-      use grids_velocity, only: integrate_species, vperp2
+      use calculations_velocity_integrals, only: integrate_species
+      use grids_velocity, only: vperp2
       use parameters_kxky_grid, only: nakx, naky
       use grids_kxky, only: rho_d_clamped
       use grids_kxky, only: zonal_mode
@@ -600,7 +601,7 @@ contains
       use parameters_physics, only: tite, nine
 
       use arrays_store_useful, only: efac, efacp
-      use grids_velocity, only: integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
 
       implicit none
 

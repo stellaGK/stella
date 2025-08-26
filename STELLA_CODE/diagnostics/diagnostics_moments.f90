@@ -133,7 +133,8 @@ contains
 
       use grids_z, only: nzgrid, ntubes
       use grids_species, only: spec
-      use grids_velocity, only: vpa, vperp2, integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
+      use grids_velocity, only: vpa, vperp2
       use grids_velocity, only: maxwell_mu, ztmax, maxwell_fac, maxwell_vpa
       use parameters_kxky_grid, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
@@ -256,7 +257,7 @@ contains
 
       use grids_z, only: nzgrid, ntubes
       use grids_species, only: spec, nspec
-      use grids_velocity, only: integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
       use grids_velocity, only: vpa, vperp2, mu
       use grids_velocity, only: maxwell_mu, ztmax, maxwell_fac, maxwell_vpa
       use parameters_kxky_grid, only: naky, nakx

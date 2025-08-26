@@ -445,7 +445,8 @@ contains
       use mp, only: sum_allreduce
       use grids_species, only: spec
       use parameters_physics, only: radial_variation
-      use grids_velocity, only: integrate_species, mu, vpa, vperp2
+      use calculations_velocity_integrals, only: integrate_species
+      use grids_velocity, only: mu, vpa, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use parameters_kxky_grid, only: nakx
       use grids_kxky, only: rho_d_clamped

@@ -201,7 +201,8 @@ contains
       ! AVB: compute the collision frequencies nuD, nus and nupa
 
       use grids_z, only: nzgrid
-      use grids_velocity, only: nmu, mu, vpa, nvpa, integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
+      use grids_velocity, only: nmu, mu, vpa, nvpa
       use geometry, only: bmag
       use grids_species, only: spec, nspec
       use spfunc, only: erf => erf_ext
@@ -1832,7 +1833,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       ! and normalised everthing to species thermal speeds
 
       use grids_species, only: spec
-      use grids_velocity, only: nmu, nvpa, integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
+      use grids_velocity, only: nmu, nvpa
       use grids_z, only: nzgrid
 
       implicit none
@@ -1913,7 +1915,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_species, only: nspec, spec
       use grids_z, only: nzgrid
       use geometry, only: bmag
-      use grids_velocity, only: mu, nmu, vpa, nvpa, integrate_vmu, set_vpa_weights
+      use calculations_velocity_integrals, only: integrate_vmu
+      use grids_velocity, only: mu, nmu, vpa, nvpa, set_vpa_weights
       use file_utils, only: open_output_file, close_output_file
       use constants, only: pi
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx, it_idx
@@ -2422,7 +2425,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       use mp, only: sum_allreduce
       use grids_z, only: nzgrid
-      use grids_velocity, only: integrate_vmu, set_vpa_weights, nvpa, nmu
+      use calculations_velocity_integrals, only: integrate_vmu
+      use grids_velocity, only: set_vpa_weights, nvpa, nmu
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use constants, only: pi
       use file_utils, only: open_output_file, close_output_file
@@ -2946,7 +2950,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       use mp, only: sum_allreduce
       use grids_z, only: nzgrid
-      use grids_velocity, only: integrate_vmu, set_vpa_weights, nvpa, nmu, vpa
+      use calculations_velocity_integrals, only: integrate_vmu
+      use grids_velocity, only: set_vpa_weights, nvpa, nmu, vpa
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use constants, only: pi
       use grids_species, only: spec, nspec
@@ -3977,7 +3982,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use parameters_physics, only: fphi
       use grids_species, only: nspec, spec
       use grids_z, only: nzgrid, ntubes
-      use grids_velocity, only: nmu, nvpa, integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
+      use grids_velocity, only: nmu, nvpa
       use grids_velocity, only: vpa
       use grids_velocity, only: set_vpa_weights
       use parameters_kxky_grid, only: naky, nakx

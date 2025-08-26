@@ -332,7 +332,7 @@ contains
    !==============================================
    subroutine get_one_flux_vmulo_int(weights, gin, fld, flxout)
 
-      use grids_velocity, only: integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
       use stella_layouts, only: vmu_lo
       use grids_kxky, only: aky
       use parameters_multibox, only: boundary_size
@@ -412,7 +412,7 @@ contains
 
    subroutine get_one_flux_vmulo_kxkyz(weights, gin, fld, flxout)
 
-      use grids_velocity, only: integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
       use stella_layouts, only: vmu_lo
       use grids_kxky, only: aky
       use parameters_kxky_grid, only: nakx, naky
@@ -454,7 +454,7 @@ contains
    !==============================================
    subroutine get_one_flux_radial(weights, gin, fld, flxout)
 
-      use grids_velocity, only: integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
       use geometry, only: dVolume
       use stella_layouts, only: vmu_lo
       use grids_kxky, only: aky

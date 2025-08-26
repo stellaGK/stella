@@ -372,7 +372,7 @@ contains
    !============================================================================ 
    subroutine get_one_flux(iky, iz, norm, velocityintegrand_vs_vpamu, phi, flux_out)
 
-      use grids_velocity, only: integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
       use calculations_volume_averages, only: mode_fac
       use geometry, only: flux_fac
       use grids_kxky, only: aky

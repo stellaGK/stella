@@ -183,7 +183,7 @@ contains
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use grids_species, only: spec, nspec
       use grids_z, only: nzgrid
-      use grids_velocity, only: integrate_vmu_ffs
+      use calculations_velocity_integrals, only: integrate_vmu_ffs
       use grids_velocity, only: vpa, vperp2
       use parameters_kxky_grid, only: naky_all, ikx_max, ny
       use calculations_kxky, only: swap_kxky

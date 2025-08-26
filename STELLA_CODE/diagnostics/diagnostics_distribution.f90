@@ -237,7 +237,7 @@ contains
       use parameters_kxky_grid, only: nakx, naky
 
       ! Calculations
-      use grids_velocity, only: integrate_vpa, integrate_mu, integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vpa, integrate_mu, integrate_vmu
 
       ! Routines
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx, kxkyz_lo

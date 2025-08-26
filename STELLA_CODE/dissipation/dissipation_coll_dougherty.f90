@@ -749,7 +749,7 @@ contains
 
       use mp, only: sum_allreduce
       use grids_z, only: nzgrid
-      use grids_velocity, only: integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa
       use stella_layouts, only: kxkyz_lo
@@ -786,7 +786,7 @@ contains
 
       use mp, only: sum_allreduce
       use grids_z, only: nzgrid
-      use grids_velocity, only: integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vperp2
       use stella_layouts, only: kxkyz_lo
@@ -824,7 +824,7 @@ contains
 
       use mp, only: sum_allreduce
       use grids_z, only: nzgrid
-      use grids_velocity, only: integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa
       use stella_layouts, only: kxkyz_lo
@@ -862,7 +862,7 @@ contains
 
       use mp, only: sum_allreduce
       use grids_z, only: nzgrid
-      use grids_velocity, only: integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
       use grids_velocity, only: nvpa, nmu, vperp2
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
@@ -1178,7 +1178,7 @@ contains
 
       use grids_species, only: spec
       use geometry, only: bmag
-      use grids_velocity, only: integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
       use grids_velocity, only: vpa, nvpa, nmu, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu
 !     use grids_velocity, only: int_vpa2
@@ -1224,7 +1224,7 @@ contains
 
    subroutine conserve_energy(iz, is, ikxkyz, h, Ch)
 
-      use grids_velocity, only: integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
       use grids_velocity, only: vpa, nvpa, nmu, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu
 !   use grids_velocity, only: int_unit, int_vpa2, int_vperp2, int_vfrth
@@ -1271,7 +1271,8 @@ contains
       use parameters_kxky_grid, only: nakx, naky
       use calculations_kxky, only: multiply_by_rho
       use grids_z, only: nzgrid, ntubes
-      use grids_velocity, only: integrate_species, mu, vpa, vperp2
+      use calculations_velocity_integrals, only: integrate_species
+      use grids_velocity, only: mu, vpa, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_store_useful, only: kperp2, dkperp2dr
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
@@ -1407,7 +1408,7 @@ contains
       use parameters_kxky_grid, only: nakx, naky
       use calculations_kxky, only: multiply_by_rho
       use grids_z, only: nzgrid, ntubes
-      use grids_velocity, only: integrate_species
+      use calculations_velocity_integrals, only: integrate_species
       use grids_velocity, only: mu, vpa, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_store_useful, only: kperp2, dkperp2dr

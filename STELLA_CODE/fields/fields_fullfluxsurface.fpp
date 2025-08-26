@@ -194,7 +194,7 @@ contains
          !> Grids
          use grids_species, only: spec
          use grids_z, only: nzgrid
-         use grids_velocity, only: integrate_species_ffs
+         use calculations_velocity_integrals, only: integrate_species_ffs
          !> Calculations
          use calculations_gyro_averages, only: gyro_average
          use arrays_gyro_averages, only: j0_B_const, j0_B_ffs
@@ -344,7 +344,7 @@ contains
       !> Grids
       use grids_species, only: spec
       use grids_z, only: nzgrid
-      use grids_velocity, only: integrate_species_ffs
+      use calculations_velocity_integrals, only: integrate_species_ffs
       !> Calculations
       use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: j0_B_const, j0_B_ffs
@@ -439,7 +439,7 @@ contains
       use grids_species, only: has_electron_species, ion_species
       use grids_z, only: nzgrid, nztot
       use grids_velocity, only: vperp2, maxwell_vpa, maxwell_mu
-      use grids_velocity, only: integrate_species
+      use calculations_velocity_integrals, only: integrate_species
       use grids_kxky, only: zonal_mode, akx
       !> Calculations
       use calculations_kxky, only: swap_kxky_ordered

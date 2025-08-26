@@ -51,7 +51,8 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       ! Grids
       use grids_species, only: spec
-      use grids_velocity, only: integrate_species, vpa, mu
+      use calculations_velocity_integrals, only: integrate_species
+      use grids_velocity, only: vpa, mu
       use grids_z, only: nzgrid
       ! Calculations
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
@@ -143,7 +144,7 @@ contains
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa, mu 
-      use grids_velocity, only: integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
       use grids_species, only: spec
       ! Calculations
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
@@ -326,7 +327,7 @@ contains
       use grids_species, only: spec
       use grids_z, only: nzgrid
       use grids_velocity, only: nvpa, nmu, vpa
-      use grids_velocity, only: integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
       ! Calculations
       use calculations_gyro_averages, only: gyro_average
 
@@ -396,7 +397,7 @@ contains
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa, mu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use grids_velocity, only: integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
       use grids_z, only: nzgrid
       ! Calculations
       use arrays_gyro_averages, only: aj0v, aj1v

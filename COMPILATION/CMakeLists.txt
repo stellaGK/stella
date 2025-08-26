@@ -54,6 +54,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/calculations/calculations_redistribute.f90
   ../STELLA_CODE/calculations/calculations_tofrom_ghf.f90
   ../STELLA_CODE/calculations/calculations_transforms.f90
+  ../STELLA_CODE/calculations/calculations_velocity_integrals.f90
   ../STELLA_CODE/calculations/calculations_volume_averages.f90
   ../STELLA_CODE/diagnostics/diagnostics_distribution.f90
   ../STELLA_CODE/diagnostics/diagnostics_fluxes_fluxtube.f90

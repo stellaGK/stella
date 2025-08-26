@@ -28,7 +28,7 @@ contains
       use geometry, only: dl_over_b
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
-      use grids_velocity, only: integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
       use parameters_kxky_grid, only: nakx
       use grids_kxky, only: zonal_mode
       use grids_species, only: spec, nspec, has_electron_species
@@ -113,7 +113,7 @@ contains
       use geometry, only: dl_over_b, bmag
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: vperp2, nvpa, nmu
-      use grids_velocity, only: integrate_vmu
+      use calculations_velocity_integrals, only: integrate_vmu
       use parameters_kxky_grid, only: nakx
       use grids_kxky, only: zonal_mode
       use grids_species, only: spec, nspec, has_electron_species
