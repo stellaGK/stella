@@ -141,12 +141,12 @@ contains
       use parameters_numerical, only: read_parameters_numerical
       use grids_species, only: init_species
       use grids_species, only: read_parameters_species
-      use parameters_diagnostics, only: read_diagnostics_knobs
+      use parameters_diagnostics, only: read_parameters_diagnostics
 
       use arrays_distribution_fn, only: init_arrays_distribution_fn
       use arrays_constants, only: init_arrays_vperp_kperp
 
-      use initialise_distribution_fn, only: read_initialise_distribution
+      use initialise_distribution_fn, only: read_parameters_init_distribution
       use stella_io, only: init_stella_io, get_nout
       use diagnostics_omega, only: init_diagnostics_omega
       use diagnostics_fluxes, only: init_diagnostics_fluxes
@@ -183,11 +183,11 @@ contains
       call read_parameters_z_grid
       call read_parameters_species
       call read_grids_kxky
-      call read_diagnostics_knobs
+      call read_parameters_diagnostics
       call init_z_grid
       call init_grids_kxky
       call init_species
-      call read_initialise_distribution
+      call read_parameters_init_distribution
       call init_arrays_distribution_fn
       call init_arrays_vperp_kperp
 

@@ -151,29 +151,24 @@ contains
       use stella_layouts, only: init_stella_layouts, init_dist_fn_layouts
       use stella_time, only: init_tstart, init_delt
       use stella_save, only: init_dt
-      use parameters_physics, only: read_parameters_physics
       use parameters_physics, only: radial_variation
-      use parameters_numerical, only: read_parameters_numerical
       use parameters_numerical, only: delt, delt_max, delt_min
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_numerical, only: delt_option_switch, delt_option_auto
-      use grids_kxky, only: read_grids_kxky
-      use parameters_diagnostics, only: read_diagnostics_knobs
       use grids_kxky, only: naky, nakx, ny, nx, nalpha
-      use parameters_multibox, only: read_multibox_parameters, use_dirichlet_BC
+      use parameters_multibox, only: use_dirichlet_BC
       use geometry, only: init_geometry
       use geometry, only: finish_init_geometry
-      use grids_species, only: init_species, read_parameters_species
+      use grids_species, only: init_species
       use grids_species, only: nspec
-      use grids_z, only: read_parameters_z_grid
       use grids_z, only: init_z_grid
       use grids_z, only: nzgrid, ntubes
       use grids_extended_zgrid, only: init_extended_zgrid
       use grids_kxky, only: init_grids_kxky
-      use grids_velocity, only: init_velocity_grids, read_parameters_velocity_grids
+      use grids_velocity, only: init_velocity_grids
       use grids_velocity, only: nvgrid, nmu
       use initialise_distribution_fn, only: rng_seed
-      use initialise_distribution_fn, only: read_initialise_distribution, initialise_distribution
+      use initialise_distribution_fn, only: initialise_distribution
       use initialise_distribution_fn, only: phiinit, scale_to_phiinit
       use initialise_distribution_fn, only: tstart
       use fields, only: init_fields, advance_fields, fields_updated
@@ -195,7 +190,6 @@ contains
       use calculations_volume_averages, only: init_volume_averages, volume_average
       use calculations_redistribute, only: init_redistribute
       use calculations_transforms, only: init_transforms
-!      use calculations_redistribute, only: test_kymus_to_vmus_redistribute
       
       implicit none
 
@@ -219,38 +213,13 @@ contains
       ! Finally, we start more internal timers and get the <run_name>.
       call init_mpi_files_utils_and_timers
 
-      ! Write message to screen with useful info regarding start of simulation
+      ! Write message to command prompt with useful info regarding at the start of the simulation
       ! This routine uses <print_extra_info_to_terminal> from the debug_flags namelist
       if (debug) write (*, *) 'stella::init_stella::write_start_message'
       call write_start_message() 
       
-      ! Read the phsyics and numerical parameters from the input file
-      ! These namelists contain many variables and flags used by other modules
-      if (debug) write (6, *) "stella::init_stella::read_parameters_physics"
-      call read_parameters_physics
-      if (debug) write (6, *) "stella::init_stella::read_parameters_numerical"
-      call read_parameters_numerical
-      
-      ! Read the namelist related to the z-grid
-      if (debug) write (6, *) "stella::init_stella::read_parameters_z_grid"
-      call read_parameters_z_grid
-      ! Read the species_knobs namelist from the input file
-      if (debug) write (6, *) "stella::init_stella::read_species_options"
-      call read_parameters_species
-      ! Read the grid option from the kt_grids_knobs namelist in the input file;
-      ! depending on the grid option chosen, read the corresponding kt_grids_XXXX_parameters
-      ! namelist from the input file and allocate some kx and ky arrays
-      if (debug) write (6, *) "stella::init_stella::read_grids_kxky"
-      call read_grids_kxky
-      ! Read the velocity_grids_parameters namelist from the input file
-      if (debug) write (6, *) "stella::init_stella::read_velocity_grids_parameters"
-      call read_parameters_velocity_grids
-      
-      if (debug) write (6, *) "stella::init_stella::read_multibox_parameters"
-      call read_multibox_parameters
-      if (debug) write (6, *) "stella::init_stella::read_diagnostics_knobs"
-      call read_diagnostics_knobs
-      
+      ! Read the input file
+      call read_parameters_from_input_file
       
       ! Setup the various data layouts for the distribution function;
       ! e.g., vmu_lo is the layout in which vpa, mu and species may be distributed
@@ -279,10 +248,6 @@ contains
       ! determine if a modified Boltzmann response is to be used
       if (debug) write (6, *) 'stella::init_stella::init_species'
       call init_species
-      ! Read init_g_knobs namelist from the input file
-      ! and prepare for reading in from restart file if requested
-      if (debug) write (6, *) "stella::init_stella::read_initialise_distribution"
-      call read_initialise_distribution
       
       ! Read knobs namelist from the input file
       ! and the info to determine the mixture of implicit and explicit time advance
@@ -499,6 +464,57 @@ contains
       
    end subroutine init_mpi_files_utils_and_timers
 
+   !----------------------------------------------------------------------------
+   !----------------------------- Read input file ------------------------------
+   !----------------------------------------------------------------------------
+   subroutine read_parameters_from_input_file
+      
+      ! Parameters 
+      use parameters_physics, only: read_parameters_physics
+      use parameters_numerical, only: read_parameters_numerical
+      use parameters_diagnostics, only: read_parameters_diagnostics
+      use parameters_multibox, only: read_parameters_multibox
+      
+      ! Parameters from grids
+      use grids_kxky, only: read_grids_kxky
+      use grids_species, only: read_parameters_species
+      use grids_z, only: read_parameters_z_grid
+      use grids_velocity, only: read_parameters_velocity_grids
+      
+      ! Other parameters
+      use initialise_distribution_fn, only: read_parameters_init_distribution
+      
+      implicit none
+      
+      !----------------------------------------------------------------------
+   
+      ! Read the phsyics and numerical parameters from the input file
+      ! These namelists contain many variables used by other modules, so read it first
+      if (debug) write (6, *) "stella::init_stella::read_parameters_physics"
+      call read_parameters_physics
+      if (debug) write (6, *) "stella::init_stella::read_parameters_numerical"
+      call read_parameters_numerical
+      
+      ! Read the namelists related to the (kx,ky,z,mu,vpa,species) grids
+      if (debug) write (6, *) "stella::init_stella::read_parameters_z_grid"
+      call read_parameters_z_grid
+      if (debug) write (6, *) "stella::init_stella::read_species_options"
+      call read_parameters_species
+      if (debug) write (6, *) "stella::init_stella::read_grids_kxky"
+      call read_grids_kxky
+      if (debug) write (6, *) "stella::init_stella::read_velocity_grids_parameters"
+      call read_parameters_velocity_grids
+      
+      ! Read remaining parameters
+      if (debug) write (6, *) "stella::init_stella::read_parameters_multibox"
+      call read_parameters_multibox
+      if (debug) write (6, *) "stella::init_stella::read_parameters_diagnostics"
+      call read_parameters_diagnostics
+      if (debug) write (6, *) "stella::init_stella::read_parameters_init_distribution"
+      call read_parameters_init_distribution
+      
+   end subroutine read_parameters_from_input_file
+      
    !----------------------------------------------------------------------------
    !----------------------------------------------------------------------------
    !----------------------------------------------------------------------------

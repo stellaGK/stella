@@ -7,7 +7,7 @@ module initialise_distribution_fn
    
    ! Public routines
    public :: initialise_distribution, reset_init
-   public :: read_initialise_distribution, finish_initialise_distribution
+   public :: read_parameters_init_distribution, finish_initialise_distribution
    
    ! The stella.f90 script will check if we want to call rescale_fields()
    public :: phiinit, scale_to_phiinit
@@ -48,7 +48,7 @@ contains
    !****************************************************************************
    !                          INITIALISE THIS MODULE                           !
    !****************************************************************************
-   subroutine read_initialise_distribution
+   subroutine read_parameters_init_distribution
 
       use stella_save, only: init_save, read_many
       use stella_layouts, only: init_stella_layouts
@@ -127,7 +127,7 @@ contains
       ! Initialize the netcdf saving
       call init_save(restart_file)
 
-   end subroutine read_initialise_distribution
+   end subroutine read_parameters_init_distribution
 
    !****************************************************************************
    !                   INITIALISE THE DISTRIBUTION FUNCTION                    !

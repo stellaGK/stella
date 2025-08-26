@@ -5,7 +5,7 @@ module parameters_diagnostics
    implicit none
 
    ! Routine to read "diagnostics_knobs" in the input file
-   public :: read_diagnostics_knobs 
+   public :: read_parameters_diagnostics 
 
    ! Variables used to write diagnostics
    public :: nwrite, nsave, navg, nc_mult
@@ -114,7 +114,7 @@ contains
    ! Read-in the parameters from the namelist "diagnostics_knobs" in the 
    ! input file and broadcast the parameters to all the processors.
    ! Gets called in the <init_stella> subroutine in the <stella> module. 
-   subroutine read_diagnostics_knobs
+   subroutine read_parameters_diagnostics
  
       use mp, only: proc0
 
@@ -132,7 +132,7 @@ contains
       !**********************************************************************
       ! Define default parameters for the <diagnostics> module and overwrite them
       ! with those defined in the namelist "diagnostics_knobs" in the input file.
-      ! Gets called in the <read_diagnostics_knobs> subroutine above. 
+      ! Gets called in the <read_parameters_diagnostics> subroutine above. 
       !**********************************************************************
             
       subroutine read_input_file
@@ -253,6 +253,6 @@ contains
          
       end subroutine broadcast_parameters
 
-   end subroutine read_diagnostics_knobs
+   end subroutine read_parameters_diagnostics
 
 end module parameters_diagnostics

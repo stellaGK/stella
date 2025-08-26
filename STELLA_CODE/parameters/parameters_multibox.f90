@@ -2,7 +2,7 @@ module parameters_multibox
 
    implicit none
 
-   public :: read_multibox_parameters
+   public :: read_parameters_multibox
 
    public :: ky_solve_real, ky_solve_radial
    public :: include_pressure_variation 
@@ -62,7 +62,7 @@ module parameters_multibox
    
 contains
 
-   subroutine read_multibox_parameters
+   subroutine read_parameters_multibox
 
       use mp, only: broadcast
       use namelist_radial_variation, only: read_namelist_radial_variation
@@ -96,6 +96,6 @@ contains
       call broadcast(include_geometric_variation)
       call broadcast(use_dirichlet_bc)
 
-   end subroutine read_multibox_parameters
+   end subroutine read_parameters_multibox
 
 end module parameters_multibox
