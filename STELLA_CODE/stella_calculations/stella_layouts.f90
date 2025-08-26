@@ -1,3 +1,56 @@
+!###############################################################################
+!                   STELLA LAYOUTS FOR PARALLELISATION
+!###############################################################################
+! This modules defines the layout/division of the (x-y-z); (kx-y-z); (kx-ky-z)
+! and (v-mu-s) grid on the processors, that are needed for the distribution functions.
+! The layouts depend on the grid divisions along (x,y,kx,ky,z,mu,v,species,tubes).
+! 
+! First, read the parameters in the namelist <parallelisation> to determine
+! the layout of the xyzs grid and the vms grid and broadcast it.
+! 
+! Divide the total number of points for each grid over the processors.
+!       kxkyz_layout    (naky*nakx*nzed*ntubes*nspec - 1) points
+!       kxyz_layout     (ny*nakx*nzed*ntubes*nspec - 1) points
+!       xyz_layout      (ny*nx*nzed*ntubes*nspec - 1) points
+!       vmu_layout      (2*nvgrid*nmu*nspec - 1) points
+! 
+! Each processor will be in charge of <blocksize> points ranging from <llim_proc>
+! up to <ulim_proc>. The "is_idx", "ix_idx", "iy_idx", "iz_idx", "it_idx", ...
+! routines will return the values of (x, y, kx, ky, z, mu, v, species, tubes)
+! associated with the point <idx> which is <ikxkyz>; <ikxyz>; <ixyz> or <ivmu>.
+! 
+! The KXYZ Layout options are "xyzs", "xzys", "yxzs", "zxys", "yzxs", which
+! decide the order of (kx, y, z, species, tubes) of the points <idx>. The VMU
+! layout options are "vms" and "mvs" which decide the order of (species, mu, vgrid)
+!       x --> [1, ..., nx or nakx]
+!       y --> [1, ..., ny or naky]
+!       z --> [1, ..., nzed = 2*nzgrid+1]
+!       s --> [1, ..., nspec]
+!       t --> [1, ..., ntubes]
+!       v --> [1, ..., 2*nvgrid = nvpa]
+!       m --> [1, ..., nmu]
+!       s --> [1, ..., nspec]
+! 
+! The "proc_id" routine returns the id of the processor.
+!       proc_id --> [0, ..., nproc-1]
+! 
+! The "idx_kxkyz"; "idx_kxyz"; "idx_xyz" or "idx_vmu" routine returns the id of the point.
+!       idx_kxkyz    -->    point (iky,ikx,iz,it,is)
+!       idx_kxyz     -->    point (iy, ikx,iz,it,is)
+!       idx_xyz      -->    point (iy, ix, iz,it,is)
+!       idx_vmu      -->    point (iv,imu,is)
+! 
+! The "idx_local" routine returns true if the point <idx> lies on the current
+! processor <iproc> and returns false if the point <idx> does not lie on it.
+! 
+! The routines "kxkyzidx2vmuidx", "kxyzidx2vmuidx" and "xyzidx2vmuidx" allows us
+! to find the correspondence between the points on the different layout types:
+!        <ikxkyz> = point (iky,ikx,iz,it,is)
+!        <ikxyz>  = point (iy, ikx,iz,it,is)
+!        <ixyz>   = point (iy, ix, iz,it,is)
+!        <ivmu>   = point (iv,imu,is)
+! As well as the corresponding values of (iv,imu,is,iy,ix,iky,ikx,iz,it).
+!###############################################################################
 module stella_layouts
 
    use stella_common_types, only: vmu_layout_type
@@ -15,6 +68,7 @@ module stella_layouts
 
    public :: init_stella_layouts, init_dist_fn_layouts
    public :: kxkyz_lo, kxyz_lo, xyz_lo, vmu_lo
+   
    ! this layout has the kx, z and vpa local,
    ! with ky, mu and species available to spread over processors
    public :: kymus_lo
@@ -117,6 +171,16 @@ module stella_layouts
 
 contains
 
+!###############################################################################
+!                                INITIALIZATION
+!###############################################################################
+
+   !****************************************************************************
+   !                       INITIALIZE THE STELLA LAYOUTS  
+   !****************************************************************************
+   ! Read the parameters in the namelist <layouts_knobs> to determine
+   ! the layout of the xyzs grid and the vms grid and broadcast it.
+   !****************************************************************************
    subroutine init_stella_layouts
 
       use mp, only: proc0
@@ -131,6 +195,12 @@ contains
 
    end subroutine init_stella_layouts
 
+   !****************************************************************************
+   !                               READ PARAMETERS 
+   !****************************************************************************
+   ! Read the parameters in the namelist <parallelisation> to determine
+   ! the layout of the xyzs grid and the vms grid.
+   !****************************************************************************
    subroutine read_parameters
 
       use namelist_parallelisation, only: read_namelist_parallelisation
@@ -142,6 +212,11 @@ contains
 
    end subroutine read_parameters
 
+   !****************************************************************************
+   !                            BROADCAST PARAMETERS  
+   !****************************************************************************
+   ! Broadcast the <xyzs_layout> and <vms_layout> to all processors.
+   !****************************************************************************
    subroutine broadcast_results
       use mp, only: broadcast
 
@@ -156,11 +231,13 @@ contains
       call broadcast(fields_kxkyz)
 
    end subroutine broadcast_results
-
-!*****************************************************************************
-!                         Distribution function layouts
-!*****************************************************************************
-
+    
+   !****************************************************************************
+   !                 INIT DISTRIBUTION FUNCTION LAYOUTS  
+   !****************************************************************************
+   ! Initialize the four layouts that are needed for the distribution functions.
+   ! The layouts depend on the grid divisions along (x,y,kx,ky,z,mu,v,species,tubes).
+   !**************************************************************************** 
    subroutine init_dist_fn_layouts(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
 
       implicit none
@@ -174,7 +251,40 @@ contains
       call init_kymus_layout(nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
       
    end subroutine init_dist_fn_layouts
+   
+   
+!###############################################################################
+!                                  KXKYZ LAYOUT
+!###############################################################################
+! Define the layout/division of the (kx-ky-z) grid on the processors.
+!
+! Divide (naky*nakx*nzed*ntubes*nspec - 1) points over the processors.
+! Each processor will be in charge of <blocksize> points ranging from <llim_proc>
+! up to <ulim_proc>. The "is_idx", "ikx_idx", "iky_idx", "iz_idx" and "it_idx"
+! routines will return the values of (species, kx, ky, z, tube) associated with
+! point <i> = <idx> = <ikxkyz>.
+!
+! The KXKYZ Layout options are "xyzs", "xzys", "yxzs", "zxys", "yzxs", which
+! decide the order of (kx, ky, z, species, tubes) of the points <idx>.
+!       x --> [1, ..., nakx]
+!       y --> [1, ..., naky]
+!       z --> [1, ..., nzed = 2*nzgrid+1]
+!       s --> [1, ..., nspec]
+!       t --> [1, ..., ntubes]
+!
+! The "proc_id" routine returns the id of the processor.
+!       proc_id --> [0, ..., nproc-1]
+!
+! The "idx_kxkyz" routine returns the id of the point.
+!       idx --> [0, ..., ulim_world] --> point (iky,ikx,iz,it,is)
+!
+! The "idx_local" routine returns true if the point <idx> lies on the current
+! processor <iproc> and returns false if the point <idx> does not lie on it.
+!###############################################################################
 
+   !==============================================
+   !========= INITITIALIZE KXKYZ LAYOUT ==========
+   !==============================================
    subroutine init_kxkyz_layout &
       (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
 
@@ -188,18 +298,31 @@ contains
       if (kxkyz_initialized) return
       kxkyz_initialized = .true.
 
-      kxkyz_lo%iproc = iproc
-      kxkyz_lo%nzgrid = nzgrid
-      kxkyz_lo%nzed = 2 * nzgrid + 1
+      ! Tubes and species
+      kxkyz_lo%nspec = nspec
       kxkyz_lo%ntubes = ntubes
-      kxkyz_lo%naky = naky
-      kxkyz_lo%nakx = nakx
+      
+      ! Velocity grid
+      kxkyz_lo%nmu = nmu
       kxkyz_lo%nvgrid = nvgrid
       kxkyz_lo%nvpa = 2 * nvgrid
-      kxkyz_lo%nmu = nmu
-      kxkyz_lo%nspec = nspec
+      
+      ! Parallel space grid
+      kxkyz_lo%nzgrid = nzgrid
+      kxkyz_lo%nzed = 2 * nzgrid + 1
+      
+      ! Perpendicular space grid
+      kxkyz_lo%naky = naky
+      kxkyz_lo%nakx = nakx
+
+      ! The current processor
+      kxkyz_lo%iproc = iproc
+      
+      ! Number of points that need to be divided over the processors
       kxkyz_lo%llim_world = 0
       kxkyz_lo%ulim_world = naky * nakx * kxkyz_lo%nzed * ntubes * nspec - 1
+      
+      ! Number of points per processor
       kxkyz_lo%blocksize = kxkyz_lo%ulim_world / nproc + 1
       kxkyz_lo%llim_proc = kxkyz_lo%blocksize * iproc
       kxkyz_lo%ulim_proc = min(kxkyz_lo%ulim_world, kxkyz_lo%llim_proc + kxkyz_lo%blocksize - 1)
@@ -207,6 +330,11 @@ contains
 
    end subroutine init_kxkyz_layout
 
+   !====================
+   !====== IS_IDX ======
+   !====================
+   ! Returns the species index, in the range [1, ..., nspec], of point i.
+   ! The order of the division does not matter, so no need for branching
    elemental function is_idx_kxkyz(lo, i)
       implicit none
       integer :: is_idx_kxkyz
@@ -215,6 +343,10 @@ contains
       is_idx_kxkyz = 1 + mod((i - lo%llim_world) / lo%nakx / lo%naky / lo%nzed / lo%ntubes, lo%nspec)
    end function is_idx_kxkyz
 
+   !=====================
+   !====== IKX_IDX ======
+   !=====================
+   ! Returns the kx index, in the range [1, ..., nakx], of point i.
    elemental function ikx_idx_kxkyz(lo, i)
 
       implicit none
@@ -240,6 +372,10 @@ contains
 
    end function ikx_idx_kxkyz
 
+   !=====================
+   !====== IKY_IDX ======
+   !=====================
+   ! Returns the ky index, in the range [1, ..., naky], of point i.
    elemental function iky_idx_kxkyz(lo, i)
 
       implicit none
@@ -264,6 +400,10 @@ contains
 
    end function iky_idx_kxkyz
 
+   !====================
+   !====== IZ_IDX ======
+   !====================
+   ! Returns the z index, in the range [1, ..., nzed], of point i.
    elemental function iz_idx_kxkyz(lo, i)
 
       implicit none
@@ -287,7 +427,11 @@ contains
       end select
 
    end function iz_idx_kxkyz
-
+   
+   !====================
+   !====== IT_IDX ======
+   !====================
+   ! Returns the tubes index, in the range [1, ..., ntubes], of point i.
    elemental function it_idx_kxkyz(lo, i)
 
       implicit none
@@ -312,6 +456,10 @@ contains
 
    end function it_idx_kxkyz
 
+   !=====================
+   !====== PROC_ID ======
+   !=====================
+   ! Returns the processor index, in the range [0, ..., nproc-1], of point i.
    elemental function proc_id_kxkyz(lo, i)
       implicit none
       integer :: proc_id_kxkyz
@@ -322,6 +470,10 @@ contains
 
    end function proc_id_kxkyz
 
+   !=======================
+   !====== IDX_KXKYZ ======
+   !=======================
+   ! Returns the index <idx> in [0, ..., ulim_world] of point (iky,ikx,iz,it,is).
    elemental function idx_kxkyz(lo, iky, ikx, iz, it, is)
 
       implicit none
@@ -347,6 +499,13 @@ contains
 
    end function idx_kxkyz
 
+   !=====================
+   !===== IDX_LOCAL =====
+   !=====================
+   ! When <lo> = <kxkyz_layout_type> then the interface "idx_local" will call
+   ! idx_local_kxkyz, next "idx_local" will call iz_local_kxkyz(lo, idx).
+   ! Returns true if the point <idx> lies on the current processor <iproc>.
+   ! Returns false if the point <idx> does not lie on the current processor <iproc>.
    elemental function idx_local_kxkyz(lo, iky, ikx, iz, it, is)
 
       implicit none
@@ -357,6 +516,11 @@ contains
       idx_local_kxkyz = idx_local(lo, idx(lo, iky, ikx, iz, it, is))
    end function idx_local_kxkyz
 
+   !====================
+   !===== IZ_LOCAL =====
+   !====================
+   ! Returns true if the point <idx=iz> lies on the current processor <iproc>.
+   ! Returns false if the point <idx=iz> does not lie on the current processor <iproc>.
    elemental function iz_local_kxkyz(lo, iz)
       implicit none
       logical :: iz_local_kxkyz
@@ -366,6 +530,38 @@ contains
       iz_local_kxkyz = lo%iproc == proc_id(lo, iz)
    end function iz_local_kxkyz
 
+!###############################################################################
+!                                  KXYZ LAYOUT
+!###############################################################################
+! Define the layout/division of the (kx-y-z) grid on the processors.
+!
+! Divide (ny*nakx*nzed*ntubes*nspec - 1) points over the processors.
+! Each processor will be in charge of <blocksize> points ranging from <llim_proc>
+! up to <ulim_proc>. The "is_idx", "ikx_idx", "iy_idx", "iz_idx" and "it_idx"
+! routines will return the values of (species, kx, y, z, tube) associated with
+! point <i> = <idx> = <ikxyz>.
+!
+! The KXYZ Layout options are "xyzs", "xzys", "yxzs", "zxys", "yzxs", which
+! decide the order of (kx, y, z, species, tubes) of the points <idx>.
+!       x --> [1, ..., nakx]
+!       y --> [1, ..., ny]
+!       z --> [1, ..., nzed = 2*nzgrid+1]
+!       s --> [1, ..., nspec]
+!       t --> [1, ..., ntubes]
+!
+! The "proc_id" routine returns the id of the processor.
+!       proc_id --> [0, ..., nproc-1]
+!
+! The "idx_kxkyz" routine returns the id of the point.
+!       idx --> [0, ..., ulim_world] --> point (iky,ikx,iz,it,is)
+!
+! The "idx_local" routine returns true if the point <idx> lies on the current
+! processor <iproc> and returns false if the point <idx> does not lie on it.
+!###############################################################################
+
+   !==============================================
+   !========== INITITIALIZE KXYZ LAYOUT ==========
+   !==============================================
    subroutine init_kxyz_layout &
       (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny)
 
@@ -379,27 +575,44 @@ contains
       if (kxyz_initialized) return
       kxyz_initialized = .true.
 
-      kxyz_lo%iproc = iproc
-      kxyz_lo%nzgrid = nzgrid
-      kxyz_lo%nzed = 2 * nzgrid + 1
+      ! Tubes and species
+      kxyz_lo%nspec = nspec
       kxyz_lo%ntubes = ntubes
+
+      ! Velocity grid
+      kxyz_lo%nmu = nmu
+      kxyz_lo%nvgrid = nvgrid
+      kxyz_lo%nvpa = 2*nvgrid
+
+      ! Parallel space grid
+      kxyz_lo%nzgrid = nzgrid
+      kxyz_lo%nzed = 2*nzgrid+1
+
+      ! Perpendicular space grid
       kxyz_lo%ny = ny
       kxyz_lo%naky = naky
       kxyz_lo%nakx = nakx
-      kxyz_lo%ikx_max = nakx / 2 + 1
-      kxyz_lo%nvgrid = nvgrid
-      kxyz_lo%nvpa = 2 * nvgrid
-      kxyz_lo%nmu = nmu
-      kxyz_lo%nspec = nspec
+
+      ! The current processor
+      kxyz_lo%iproc = iproc
+
+      ! Number of points that need to be divided over the processors
       kxyz_lo%llim_world = 0
-      kxyz_lo%ulim_world = ny * kxyz_lo%ikx_max * kxyz_lo%nzed * ntubes * nspec - 1
-      kxyz_lo%blocksize = kxyz_lo%ulim_world / nproc + 1
-      kxyz_lo%llim_proc = kxyz_lo%blocksize * iproc
+      kxyz_lo%ulim_world = ny*nakx*kxyz_lo%nzed*ntubes*nspec - 1
+
+      ! Number of points per processor
+      kxyz_lo%blocksize = kxyz_lo%ulim_world/nproc + 1
+      kxyz_lo%llim_proc = kxyz_lo%blocksize*iproc
       kxyz_lo%ulim_proc = min(kxyz_lo%ulim_world, kxyz_lo%llim_proc + kxyz_lo%blocksize - 1)
       kxyz_lo%ulim_alloc = max(kxyz_lo%llim_proc, kxyz_lo%ulim_proc)
 
    end subroutine init_kxyz_layout
 
+   !====================
+   !====== IS_IDX ======
+   !====================
+   ! Returns the species index, in the range [1, ..., nspec], of point i.
+   ! The order of the division does not matter, so no need for branching
    elemental function is_idx_kxyz(lo, i)
       implicit none
       integer :: is_idx_kxyz
@@ -408,6 +621,10 @@ contains
       is_idx_kxyz = 1 + mod((i - lo%llim_world) / lo%ikx_max / lo%ny / lo%nzed / lo%ntubes, lo%nspec)
    end function is_idx_kxyz
 
+   !=====================
+   !====== IKX_IDX ======
+   !=====================
+   ! Returns the kx index, in the range [1, ..., nakx], of point i.
    elemental function ikx_idx_kxyz(lo, i)
 
       implicit none
@@ -433,6 +650,10 @@ contains
 
    end function ikx_idx_kxyz
 
+   !====================
+   !====== IY_IDX ======
+   !====================
+   ! Returns the y index, in the range [1, ..., ny], of point i.
    elemental function iy_idx_kxyz(lo, i)
 
       implicit none
@@ -457,6 +678,10 @@ contains
 
    end function iy_idx_kxyz
 
+   !====================
+   !====== IZ_IDX ======
+   !====================
+   ! Returns the z index, in the range [1, ..., nzed], of point i.
    elemental function iz_idx_kxyz(lo, i)
 
       implicit none
@@ -481,6 +706,10 @@ contains
 
    end function iz_idx_kxyz
 
+   !====================
+   !====== IT_IDX ======
+   !====================
+   ! Returns the tubes index, in the range [1, ..., ntubes], of point i.
    elemental function it_idx_kxyz(lo, i)
 
       implicit none
@@ -505,6 +734,10 @@ contains
 
    end function it_idx_kxyz
 
+   !=====================
+   !====== PROC_ID ======
+   !=====================
+   ! Returns the processor index, in the range [0, ..., nproc-1], of point i.
    elemental function proc_id_kxyz(lo, i)
       implicit none
       integer :: proc_id_kxyz
@@ -515,6 +748,10 @@ contains
 
    end function proc_id_kxyz
 
+   !======================
+   !====== IDX_KXYZ ======
+   !======================
+   ! Returns the index <idx> in [0, ..., ulim_world] of point (iy,ikx,iz,it,is).
    elemental function idx_kxyz(lo, iy, ikx, iz, it, is)
 
       implicit none
@@ -540,6 +777,13 @@ contains
 
    end function idx_kxyz
 
+   !=====================
+   !===== IDX_LOCAL =====
+   !=====================
+   ! When <lo> = <kxyz_layout_type> then the interface "idx_local" will call
+   ! idx_local_kxkyz, next "idx_local" will call iz_local_kxyz(lo, idx).
+   ! Returns true if the point <idx> lies on the current processor <iproc>.
+   ! Returns false if the point <idx> does not lie on the current processor <iproc>.
    elemental function idx_local_kxyz(lo, iy, ikx, iz, it, is)
 
       implicit none
@@ -550,6 +794,11 @@ contains
       idx_local_kxyz = idx_local(lo, idx(lo, iy, ikx, iz, it, is))
    end function idx_local_kxyz
 
+   !====================
+   !===== IZ_LOCAL =====
+   !====================
+   ! Returns true if the point <idx=iz> lies on the current processor <iproc>.
+   ! Returns false if the point <idx=iz> does not lie on the current processor <iproc>.
    elemental function iz_local_kxyz(lo, iz)
       implicit none
       logical :: iz_local_kxyz
@@ -558,6 +807,35 @@ contains
 
       iz_local_kxyz = lo%iproc == proc_id(lo, iz)
    end function iz_local_kxyz
+
+!###############################################################################
+!                                   XYZ LAYOUT
+!###############################################################################
+! Define the layout/division of the (x-y-z) grid on the processors.
+!
+! Divide (ny*nx*nzed*ntubes*nspec - 1) points over the processors.
+! Each processor will be in charge of <blocksize> points ranging from <llim_proc>
+! up to <ulim_proc>. The "is_idx", "ix_idx", "iy_idx", "iz_idx" and "it_idx"
+! routines will return the values of (species, kx, y, z, tube) associated with
+! point <i> = <idx> = <ikxyz>.
+!
+! The KXYZ Layout options are "xyzs", "xzys", "yxzs", "zxys", "yzxs", which
+! decide the order of (kx, y, z, species, tubes) of the points <idx>.
+!       x --> [1, ..., nx]
+!       y --> [1, ..., ny]
+!       z --> [1, ..., nzed = 2*nzgrid+1]
+!       s --> [1, ..., nspec]
+!       t --> [1, ..., ntubes]
+!
+! The "proc_id" routine returns the id of the processor.
+!       proc_id --> [0, ..., nproc-1]
+!
+! The "idx_kxkyz" routine returns the id of the point.
+!       idx --> [0, ..., ulim_world] --> point (iky,ikx,iz,it,is)
+!
+! The "idx_local" routine returns true if the point <idx> lies on the current
+! processor <iproc> and returns false if the point <idx> does not lie on it.
+!###############################################################################
 
    subroutine init_xyz_layout &
       (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx)
@@ -571,28 +849,46 @@ contains
 
       if (xyz_initialized) return
       xyz_initialized = .true.
+   
+    ! Tubes and species
+    xyz_lo%nspec = nspec
+    xyz_lo%ntubes = ntubes
 
-      xyz_lo%iproc = iproc
-      xyz_lo%nzgrid = nzgrid
-      xyz_lo%nzed = 2 * nzgrid + 1
-      xyz_lo%ntubes = ntubes
-      xyz_lo%ny = ny
-      xyz_lo%nx = nx
-      xyz_lo%naky = naky
-      xyz_lo%nakx = nakx
-      xyz_lo%nvgrid = nvgrid
-      xyz_lo%nvpa = 2 * nvgrid
-      xyz_lo%nmu = nmu
-      xyz_lo%nspec = nspec
-      xyz_lo%llim_world = 0
-      xyz_lo%ulim_world = ny * nx * xyz_lo%nzed * xyz_lo%ntubes * nspec - 1
-      xyz_lo%blocksize = xyz_lo%ulim_world / nproc + 1
-      xyz_lo%llim_proc = xyz_lo%blocksize * iproc
-      xyz_lo%ulim_proc = min(xyz_lo%ulim_world, xyz_lo%llim_proc + xyz_lo%blocksize - 1)
-      xyz_lo%ulim_alloc = max(xyz_lo%llim_proc, xyz_lo%ulim_proc)
+    ! Velocity grid
+    xyz_lo%nmu = nmu
+    xyz_lo%nvgrid = nvgrid
+    xyz_lo%nvpa = 2*nvgrid
+
+    ! Parallel space grid
+    xyz_lo%nzgrid = nzgrid
+    xyz_lo%nzed = 2*nzgrid+1
+
+    ! Perpendicular space grid
+    xyz_lo%ny = ny
+    xyz_lo%nx = nx
+    xyz_lo%naky = naky
+    xyz_lo%nakx = nakx
+
+    ! The current processor
+    xyz_lo%iproc = iproc
+
+    ! Number of points that need to be divided over the processors
+    xyz_lo%llim_world = 0
+    xyz_lo%ulim_world = ny*nx*xyz_lo%nzed*xyz_lo%ntubes*nspec - 1
+
+    ! Number of points per processor
+    xyz_lo%blocksize = xyz_lo%ulim_world/nproc + 1
+    xyz_lo%llim_proc = xyz_lo%blocksize*iproc
+    xyz_lo%ulim_proc = min(xyz_lo%ulim_world, xyz_lo%llim_proc + xyz_lo%blocksize - 1)
+    xyz_lo%ulim_alloc = max(xyz_lo%llim_proc, xyz_lo%ulim_proc)
 
    end subroutine init_xyz_layout
 
+   !====================
+   !====== IS_IDX ======
+   !====================
+   ! Returns the species index, in the range [1, ..., nspec], of point i.
+   ! The order of the division does not matter, so no need for branching
    elemental function is_idx_xyz(lo, i)
       implicit none
       integer :: is_idx_xyz
@@ -601,6 +897,10 @@ contains
       is_idx_xyz = 1 + mod((i - lo%llim_world) / lo%nx / lo%ny / lo%nzed / lo%ntubes, lo%nspec)
    end function is_idx_xyz
 
+   !====================
+   !====== IX_IDX ======
+   !====================
+   ! Returns the x index, in the range [1, ..., nx], of point i.
    elemental function ix_idx_xyz(lo, i)
 
       implicit none
@@ -626,6 +926,10 @@ contains
 
    end function ix_idx_xyz
 
+   !====================
+   !====== IY_IDX ======
+   !====================
+   ! Returns the y index, in the range [1, ..., ny], of point i.
    elemental function iy_idx_xyz(lo, i)
 
       implicit none
@@ -650,6 +954,10 @@ contains
 
    end function iy_idx_xyz
 
+   !====================
+   !====== IZ_IDX ======
+   !====================
+   ! Returns the z index, in the range [1, ..., nzed], of point i.
    elemental function iz_idx_xyz(lo, i)
 
       implicit none
@@ -674,6 +982,10 @@ contains
 
    end function iz_idx_xyz
 
+   !====================
+   !====== IT_IDX ======
+   !====================
+   ! Returns the tubes index, in the range [1, ..., ntubes], of point i.
    elemental function it_idx_xyz(lo, i)
 
       implicit none
@@ -698,6 +1010,10 @@ contains
 
    end function it_idx_xyz
 
+   !=====================
+   !====== PROC_ID ======
+   !=====================
+   ! Returns the processor index, in the range [0, ..., nproc-1], of point i.
    elemental function proc_id_xyz(lo, i)
       implicit none
       integer :: proc_id_xyz
@@ -708,6 +1024,10 @@ contains
 
    end function proc_id_xyz
 
+   !=======================
+   !======= IDX_XYZ =======
+   !=======================
+   ! Returns the index <idx> in [0, ..., ulim_world] of point (iy,ix,iz,it,is).
    elemental function idx_xyz(lo, iy, ix, iz, it, is)
 
       implicit none
@@ -733,6 +1053,13 @@ contains
 
    end function idx_xyz
 
+   !=====================
+   !===== IDX_LOCAL =====
+   !=====================
+   ! When <lo> = <xyz_layout_type> then the interface "idx_local" will call
+   ! idx_local_kxkyz, next "idx_local" will call iz_local_kxyz(lo, idx).
+   ! Returns true if the point <idx> lies on the current processor <iproc>.
+   ! Returns false if the point <idx> does not lie on the current processor <iproc>.
    elemental function idx_local_xyz(lo, iy, ix, iz, it, is)
 
       implicit none
@@ -743,6 +1070,11 @@ contains
       idx_local_xyz = idx_local(lo, idx(lo, iy, ix, iz, it, is))
    end function idx_local_xyz
 
+   !====================
+   !===== IZ_LOCAL =====
+   !====================
+   ! Returns true if the point <idx=iz> lies on the current processor <iproc>.
+   ! Returns false if the point <idx=iz> does not lie on the current processor <iproc>.
    elemental function iz_local_xyz(lo, iz)
       implicit none
       logical :: iz_local_xyz
@@ -752,6 +1084,35 @@ contains
       iz_local_xyz = lo%iproc == proc_id(lo, iz)
    end function iz_local_xyz
 
+!###############################################################################
+!                                  VMU LAYOUT
+!###############################################################################
+! Define the layout/division of the (v, mu, s) grid on the processors.
+!
+! Divide (2*nvgrid*nmu*nspec - 1) points over the total amount of processors.
+! Each processor will be in charge of <blocksize> points ranging from <llim_proc>
+! up to <ulim_proc>. The "is_idx", "imu_idx", "iv_idx" routines will return the
+! values of (species, mu, vgrid) associated with point <i>=<idx>=<ivmu>.
+!
+! The VMU Layout options are "vms" and "mvs" which decide the order of the points.
+! First iterate over the first letter, with constant second and third letter, ...
+!       v --> [1, ..., 2*nvgrid = nvpa]
+!       m --> [1, ..., nmu]
+!       s --> [1, ..., nspec]
+!
+! The "proc_id" routine returns the id of the processor.
+!       proc_id --> [0, ..., nproc-1]
+!
+! The "idx_vmu" routine returns the id of the point.
+!       idx --> [0, ..., ulim_world] --> point(iv,imu,is)
+!
+! The "idx_local" routine returns true if the point <idx> lies on the current
+! processor <iproc> and returns false if the point <idx> does not lie on it.
+!###############################################################################
+
+   !==============================================
+   !========== INITITIALIZE VMU LAYOUT ===========
+   !==============================================
    subroutine init_vmu_layout &
       (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec, ny, nx, nalpha)
 
@@ -764,31 +1125,48 @@ contains
 
       if (vmu_initialized) return
       vmu_initialized = .true.
+   
+       ! Layout, tubes and species
+       vmu_lo%xyz = .true.
+       vmu_lo%ntubes = ntubes
+       vmu_lo%nspec = nspec
 
-      vmu_lo%xyz = .true.
-      vmu_lo%iproc = iproc
-      vmu_lo%nzed = 2 * nzgrid + 1
-      vmu_lo%nzgrid = nzgrid
-      vmu_lo%ntubes = ntubes
-      vmu_lo%ny = ny
-      vmu_lo%nalpha = nalpha
-      vmu_lo%naky = naky
-      vmu_lo%nx = nx
-      vmu_lo%nakx = nakx
-      vmu_lo%nvgrid = nvgrid
-      vmu_lo%nvpa = 2 * nvgrid
-      vmu_lo%nmu = nmu
-      vmu_lo%nspec = nspec
-      vmu_lo%llim_world = 0
-      vmu_lo%ulim_world = vmu_lo%nvpa * nmu * nspec - 1
+       ! Velocity grid
+       vmu_lo%nmu = nmu
+       vmu_lo%nvgrid = nvgrid
+       vmu_lo%nvpa = 2*nvgrid
 
-      vmu_lo%blocksize = vmu_lo%ulim_world / nproc + 1
-      vmu_lo%llim_proc = vmu_lo%blocksize * iproc
-      vmu_lo%ulim_proc = min(vmu_lo%ulim_world, vmu_lo%llim_proc + vmu_lo%blocksize - 1)
-      vmu_lo%ulim_alloc = max(vmu_lo%llim_proc, vmu_lo%ulim_proc)
+       ! Parallel space grid
+       vmu_lo%nzgrid = nzgrid
+       vmu_lo%nzed = 2*nzgrid+1
+
+       ! Perpendicular space grid
+       vmu_lo%nx = nx
+       vmu_lo%ny = ny
+       vmu_lo%nakx = nakx
+       vmu_lo%naky = naky
+       vmu_lo%nalpha = nalpha
+
+       ! The current processor
+       vmu_lo%iproc = iproc
+
+       ! Number of points that need to be divided over the processors
+       vmu_lo%llim_world = 0
+       vmu_lo%ulim_world = vmu_lo%nvpa*nmu*nspec - 1
+
+       ! Number of points per processor
+       vmu_lo%blocksize = vmu_lo%ulim_world/nproc + 1
+       vmu_lo%llim_proc = vmu_lo%blocksize*iproc
+       vmu_lo%ulim_proc = min(vmu_lo%ulim_world, vmu_lo%llim_proc + vmu_lo%blocksize - 1)
+       vmu_lo%ulim_alloc = max(vmu_lo%llim_proc, vmu_lo%ulim_proc)
 
    end subroutine init_vmu_layout
 
+   !====================
+   !====== IS_IDX ======
+   !====================
+   ! Returns the species index, in the range [1, ..., nspec], of point i.
+   ! The order of the division does not matter, so no need for branching
    elemental function is_idx_vmu(lo, i)
 
       implicit none
@@ -801,6 +1179,10 @@ contains
 
    end function is_idx_vmu
 
+   !=====================
+   !====== IMU_IDX ======
+   !=====================
+   ! Returns the mu index, in the range [1, ..., nmu], of point i.
    elemental function imu_idx_vmu(lo, i)
 
       implicit none
@@ -818,6 +1200,10 @@ contains
 
    end function imu_idx_vmu
 
+   !====================
+   !====== IV_IDX ======
+   !====================
+   ! Returns the v index, in the range [1, ..., 2*nvgrid = nvpa], of point i.
    elemental function iv_idx_vmu(lo, i)
 
       implicit none
@@ -834,6 +1220,10 @@ contains
 
    end function iv_idx_vmu
 
+   !=====================
+   !====== PROC_ID ======
+   !=====================
+   ! Returns the processor index, in the range [0, ..., nproc-1], of point i.
    elemental function proc_id_vmu(lo, i)
       implicit none
       integer :: proc_id_vmu
@@ -844,6 +1234,10 @@ contains
 
    end function proc_id_vmu
 
+   !=====================
+   !====== IDX_VMU ======
+   !=====================
+   ! Returns the index <idx> in [0, ..., ulim_world] of point (iv,imu,is).
    elemental function idx_vmu(lo, iv, imu, is)
 
       implicit none
@@ -861,6 +1255,13 @@ contains
 
    end function idx_vmu
 
+   !=====================
+   !===== IDX_LOCAL =====
+   !=====================
+   ! When <lo> = <vmu_layout_type> then the interface "idx_local" will call
+   ! idx_local_vmu, next "idx_local" will call iz_local_vmu(lo, idx).
+   ! Returns true if the point <idx> lies on the current processor <iproc>.
+   ! Returns false if the point <idx> does not lie on the current processor <iproc>.
    elemental function idx_local_vmu(lo, iv, imu, is)
 
       implicit none
@@ -871,6 +1272,11 @@ contains
       idx_local_vmu = idx_local(lo, idx(lo, iv, imu, is))
    end function idx_local_vmu
 
+   !====================
+   !===== IZ_LOCAL =====
+   !====================
+   ! Returns true if the point <idx=iz> lies on the current processor <iproc>.
+   ! Returns false if the point <idx=iz> does not lie on the current processor <iproc>.
    elemental function iz_local_vmu(lo, iz)
       implicit none
       logical :: iz_local_vmu
@@ -879,6 +1285,13 @@ contains
 
       iz_local_vmu = lo%iproc == proc_id(lo, iz)
    end function iz_local_vmu
+
+
+!###############################################################################
+!                                  KYMUS LAYOUT
+!###############################################################################
+! ....
+!###############################################################################
 
    subroutine init_kymus_layout &
       (nzgrid, ntubes, naky, nakx, nvgrid, nmu, nspec)
@@ -998,6 +1411,24 @@ contains
       iz_local_kymus = lo%iproc == proc_id(lo, iz)
    end function iz_local_kymus
    
+
+!###############################################################################
+!                            SWITCH BETWEEN LAYOUTS
+!###############################################################################
+! The routines "kxkyzidx2vmuidx", "kxyzidx2vmuidx" and "xyzidx2vmuidx" allows us
+! to find the correspondence between the points on the different layout types:
+!        <ikxkyz> = point (iky,ikx,iz,it,is)
+!        <ikxyz>  = point (iy, ikx,iz,it,is)
+!        <ixyz>   = point (iy, ix, iz,it,is)
+!        <ivmu>   = point (iv,imu,is)
+! As well as the corresponding values of (iv,imu,is,iy,ix,iky,ikx,iz,it).
+!###############################################################################
+
+   !===============================
+   !===== KXKYZ IDX 2 VMU IDX =====
+   !===============================
+   ! From the indices (iv, imu) we can return the point <ivmu> on the vmu_layout.
+   ! From the point <ikxkyz> on the kxkyz_layout we can retun (iky, ikx, iz, it).
    elemental subroutine kxkyzidx2vmuidx(iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, iz, it, ivmu)
       implicit none
       integer, intent(in) :: iv, imu, ikxkyz
@@ -1012,6 +1443,11 @@ contains
       ivmu = idx(vmu_lo, iv, imu, is_idx(kxkyz_lo, ikxkyz))
    end subroutine kxkyzidx2vmuidx
 
+   !==============================
+   !===== KXYZ IDX 2 VMU IDX =====
+   !==============================
+   ! From the indices (iv, imu) we can return the point <ivmu> on the vmu_layout.
+   ! From the point <ikxyz> on the kxyz_layout we can retun (iy, ikx, iz, it).
    elemental subroutine kxyzidx2vmuidx(iv, imu, ikxyz, kxyz_lo, vmu_lo, iy, ikx, iz, it, ivmu)
       implicit none
       integer, intent(in) :: iv, imu, ikxyz
@@ -1026,6 +1462,11 @@ contains
       ivmu = idx(vmu_lo, iv, imu, is_idx(kxyz_lo, ikxyz))
    end subroutine kxyzidx2vmuidx
 
+   !===============================
+   !====== XYZ IDX 2 VMU IDX ======
+   !===============================
+   ! From the indices (iv, imu) we can return the point <ivmu> on the vmu_layout.
+   ! From the point <ixyz> on the xyz_layout we can retun (iy, ix, iz, it).
    elemental subroutine xyzidx2vmuidx(iv, imu, ixyz, xyz_lo, vmu_lo, iy, ix, iz, it, ivmu)
       implicit none
       integer, intent(in) :: iv, imu, ixyz
@@ -1040,6 +1481,9 @@ contains
       ivmu = idx(vmu_lo, iv, imu, is_idx(xyz_lo, ixyz))
    end subroutine xyzidx2vmuidx
 
+   !===============================
+   !===============================
+   !===============================
    elemental subroutine kymusidx2vmuidx(iv, ikymus, kymus_lo, vmu_lo, iky, ivmu)
       implicit none
       integer, intent(in) :: iv, ikymus
@@ -1050,6 +1494,11 @@ contains
       iky = iky_idx(kymus_lo, ikymus)
       ivmu = idx(vmu_lo, iv, imu_idx(kymus_lo, ikymus), is_idx(kymus_lo, ikymus))
    end subroutine kymusidx2vmuidx
+   
+
+!###############################################################################
+!                              FINISH LAYOUTS
+!###############################################################################
    
    subroutine finish_layouts
 
