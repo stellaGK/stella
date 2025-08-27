@@ -305,13 +305,16 @@ contains
       subroutine check_adiabatic_electron_response
       
          use mp, only: mp_abort
+         use debug_flags, only: print_extra_info_to_terminal
       
          implicit none
          
-         if (adiabatic_option_switch /= adiabatic_option_fieldlineavg) then
-            call mp_abort('If the adiabatic electron namelist is read, it means that no kinetic ion species &
-               &have been specified. Therefore, adiabatic electrons are added which require a Modified &
-               &Boltzmann response. Aborting.')
+         if (adiabatic_option_switch /= adiabatic_option_periodic) then
+            if (print_extra_info_to_terminal) then
+               write(*,*) 'WARNING: If the adiabatic electron namelist is read, it means that no kinetic ion '
+               write(*,*) 'species have been specified. Therefore, adiabatic electrons are added which are best'
+               write(*,*) 'modeled with a modified Boltzmann response instead of a periodic Boltzmann reponse.'
+            end if
          end if
             
       end subroutine check_adiabatic_electron_response
@@ -397,13 +400,16 @@ contains
       subroutine check_adiabatic_ion_response
       
          use mp, only: mp_abort
+         use debug_flags, only: print_extra_info_to_terminal
       
          implicit none
          
          if (adiabatic_option_switch /= adiabatic_option_periodic) then
-            call mp_abort('If the adiabatic ion namelist is read, it means that no kinetic electron species &
-               &have been specified. Therefore, adiabatic ions are added which require a  &
-               &periodic Boltzmann response. Aborting.')
+            if (print_extra_info_to_terminal) then
+               write(*,*) 'WARNING: If the adiabatic ion namelist is read, it means that no kinetic electron '
+               write(*,*) 'species have been specified. Therefore, adiabatic ions are added which are best'
+               write(*,*) 'modeled with a periodic Boltzmann response instead of a modifified Boltzmann reponse.'
+            end if
          end if
             
       end subroutine check_adiabatic_ion_response
