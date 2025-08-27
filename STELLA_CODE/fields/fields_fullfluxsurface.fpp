@@ -402,7 +402,6 @@ contains
       if (fields_initialised) return
       fields_initialised = .true.
 
-      debug = debug .and. proc0
       !> calculate and LU factorise the matrix multiplying the electrostatic potential in quasineutrality
       !> this involves the factor 1-Gamma_0(kperp(alpha))
       call init_gamma0_factor_ffs

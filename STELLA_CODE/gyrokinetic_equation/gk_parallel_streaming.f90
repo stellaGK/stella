@@ -56,9 +56,7 @@ module gk_parallel_streaming
 contains
 
   subroutine init_parallel_streaming
-    
-      use mp, only: proc0
-     
+
       use calculations_finite_differences, only: fd3pt
       use stella_time, only: code_dt
       use stella_layouts, only: vmu_lo
@@ -82,13 +80,10 @@ contains
       real, dimension(:), allocatable :: energy
       real, dimension(:, :, :), allocatable :: stream_store
 
-      debug = debug .and. proc0
       if(debug) write (*,*) 'No debug messages for parallel_streaming.f90 yet'
       
       if (parallel_streaming_initialized) return
       parallel_streaming_initialized = .true.
-      
-      debug = debug .and. proc0
 
       if (debug) write (6, *) 'parallel_streaming::init_parallel_streaming'
       if (.not. allocated(stream)) allocate (stream(nalpha, -nzgrid:nzgrid, nvpa, nspec)); stream = 0.

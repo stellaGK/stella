@@ -65,7 +65,6 @@ contains
       integer :: itt
       logical :: modify
 
-      debug = debug .and. proc0
       if (debug) write (*, *) 'implicit_solve::advance_implicit_terms'
       
       if(driftkinetic_implicit) then 

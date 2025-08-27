@@ -37,8 +37,6 @@ contains
       if (dist_fn_initialised) return
       dist_fn_initialised = .true.
 
-      debug = debug .and. proc0
-
       if (debug) write (*, *) 'dist_fn::init_arrays_distribution_fn::allocate_arrays'
       call allocate_arrays
 

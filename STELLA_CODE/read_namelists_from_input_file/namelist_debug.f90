@@ -8,7 +8,6 @@
 !      print_extra_info_to_terminal = .true.
 !      debug_all = .false.
 !      stella_debug = .false.
-!      ffs_solve_debug = .false.
 !      fields_all_debug = .false.
 !      fields_debug = .false.
 !      fields_fluxtube_debug = .false.
@@ -60,7 +59,7 @@ contains
    !****************************************************************************
    !                                DEBUG FLAGS                                !
    !****************************************************************************
-   subroutine read_namelist_debug_flags(debug_all, stella_debug, ffs_solve_debug, fields_all_debug, fields_debug, &
+   subroutine read_namelist_debug_flags(debug_all, stella_debug, fields_all_debug, fields_debug, &
       fields_fluxtube_debug, fields_electromagnetic_debug, fields_ffs_debug, implicit_solve_debug, & 
       parallel_streaming_debug, mirror_terms_debug, neoclassical_terms_debug, response_matrix_debug, &
       time_advance_debug, extended_grid_debug, diagnostics_all_debug, diagnostics_parameters, &
@@ -73,7 +72,7 @@ contains
       implicit none
 
       ! Variables that are read from the input file
-      logical, intent(out) :: debug_all, stella_debug, ffs_solve_debug, fields_all_debug, fields_debug, &
+      logical, intent(out) :: debug_all, stella_debug, fields_all_debug, fields_debug, &
          fields_fluxtube_debug, fields_electromagnetic_debug, fields_ffs_debug, & 
          implicit_solve_debug, parallel_streaming_debug, mirror_terms_debug, neoclassical_terms_debug, &
          response_matrix_debug, time_advance_debug, extended_grid_debug, &
@@ -103,7 +102,6 @@ contains
 
          ! Debug flags
          stella_debug = .false.
-         ffs_solve_debug = .false.
          fields_debug = .false.
          fields_fluxtube_debug = .false.
          fields_electromagnetic_debug = .false.
@@ -144,7 +142,7 @@ contains
          implicit none
 
          ! Variables in the <debug_flags> namelist
-         namelist /debug_flags/ debug_all, stella_debug, ffs_solve_debug, fields_all_debug, fields_debug, &
+         namelist /debug_flags/ debug_all, stella_debug, fields_all_debug, fields_debug, &
              fields_fluxtube_debug, fields_electromagnetic_debug, fields_ffs_debug, & 
              implicit_solve_debug, parallel_streaming_debug, mirror_terms_debug, neoclassical_terms_debug, &
              response_matrix_debug, time_advance_debug, extended_grid_debug, &
@@ -172,7 +170,6 @@ contains
 
          if (debug_all) then
              stella_debug = .true.
-             ffs_solve_debug = .true.
              fields_all_debug = .true.
              time_advance_debug = .true.
              implicit_solve_debug = .true.

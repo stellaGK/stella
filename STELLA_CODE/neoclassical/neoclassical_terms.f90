@@ -46,8 +46,6 @@ contains
 
       if (neoinit) return
       neoinit = .true.
-
-      debug = debug .and. proc0
       
       call read_namelist_neoclassical_input(include_neoclassical_terms, neo_option_switch, &
                 nradii, drho)

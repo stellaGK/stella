@@ -425,8 +425,8 @@ contains
       integer :: ikxkyz, iz, it, ikx, iky, is, ia
       real :: tmp, wgt
       real, dimension(:, :), allocatable :: g0
+      
       !-------------------------------------------------------------------------
-      debug = debug .and. proc0
 
       ia = 1
       zm = 0

@@ -1,34 +1,50 @@
+!###############################################################################
+!                            ARRAYS CONTAINING CONSTANTS                        
+!###############################################################################
+! 
+! This module will fill the following arrays:
+!        - kperp2(ky, kx, alpha, z)
+!        - dkperp2dr(ky, kx, alpha, z)
+!        - vperp2(alpha, z, mu)
+! 
+!###############################################################################
 module arrays_constants
 
-  use debug_flags, only: debug => dist_fn_debug
+   ! Load debug flags
+   use debug_flags, only: debug => dist_fn_debug
   
    implicit none
 
+   ! Make routines available to other modules
    public :: init_arrays_vperp_kperp
    public :: finish_arrays_vperp_kperp
 
    private
 
-   logical :: init_kperp_vperp = .false.
-   logical :: kp2init = .false.
-   logical :: dkp2drinit = .false.
-   logical :: vp2init = .false.
+   ! Only initialize the arrays once
+   logical :: initialised_constant_arrays = .false.
+   logical :: initialised_kperp2 = .false.
+   logical :: initialised_dkperp2dr = .false.
+   logical :: initialised_vperp2 = .false.
 
 contains
 
+!###############################################################################
+!######################### INITIALISE CONSTANT ARRAYS ##########################
+!###############################################################################
    subroutine init_arrays_vperp_kperp
 
       use mp, only: proc0
       use parameters_physics, only: radial_variation
       use stella_layouts, only: init_dist_fn_layouts
-      use arrays_gyro_averages, only: init_bessel
 
       implicit none
+      
+      !-------------------------------------------------------------------------
 
-      if (init_kperp_vperp) return
-      init_kperp_vperp = .true.
-
-      debug = debug .and. proc0
+      ! Only initialise once
+      if (initialised_constant_arrays) return
+      initialised_constant_arrays = .true.
 
       ! allocate and initialise kperp2 and dkperp2dr
       if (debug) write (*, *) 'dist_fn::init_dist_fn::init_array_kperp2'
@@ -38,13 +54,6 @@ contains
       ! allocate and initialise vperp2
       if (debug) write (*, *) 'dist_fn::init_dist_fn::init_array_vperp2'
       call init_array_vperp2
-
-      ! init_bessel sets up arrays needed for gyro-averaging;
-      ! for a flux tube simulation, this is j0 and j1;
-      ! for a flux annulus simulation, gyro-averaging is non-local in ky
-      ! and so more effort is required
-      if (debug) write (*, *) 'dist_fn::init_dist_fn::init_bessel'
-      call init_bessel
 
    end subroutine init_arrays_vperp_kperp
 
@@ -63,8 +72,8 @@ contains
 
       integer :: iky, ikx
 
-      if (kp2init) return
-      kp2init = .true.
+      if (initialised_kperp2) return
+      initialised_kperp2 = .true.
 
       ! allocate the kperp2 array to contain |k_perp|^2
       allocate (kperp2(naky, nakx, nalpha, -nzgrid:nzgrid))
@@ -113,8 +122,8 @@ contains
 
       integer :: iky, ikx
 
-      if (dkp2drinit) return
-      dkp2drinit = .true.
+      if (initialised_dkperp2dr) return
+      initialised_dkperp2dr = .true.
 
       allocate (dkperp2dr(naky, nakx, nalpha, -nzgrid:nzgrid))
       do iky = 1, naky
@@ -189,8 +198,8 @@ contains
 
       integer :: imu
 
-      if (vp2init) return
-      vp2init = .true.
+      if (initialised_vperp2) return
+      initialised_vperp2 = .true.
 
       if (.not. allocated(vperp2)) allocate (vperp2(nalpha, -nzgrid:nzgrid, nmu)); vperp2 = 0.
 
@@ -202,11 +211,8 @@ contains
 
    subroutine finish_arrays_vperp_kperp
 
-      use arrays_gyro_averages, only: finish_bessel
-
       implicit none
 
-      call finish_bessel
       call finish_kperp2
       call finish_vperp2
 
@@ -221,8 +227,8 @@ contains
       if (allocated(kperp2)) deallocate (kperp2)
       if (allocated(dkperp2dr)) deallocate (dkperp2dr)
 
-      kp2init = .false.
-      dkp2drinit = .false.
+      initialised_kperp2 = .false.
+      initialised_dkperp2dr = .false.
 
    end subroutine finish_kperp2
 
@@ -234,7 +240,7 @@ contains
 
       if (allocated(vperp2)) deallocate (vperp2)
 
-      vp2init = .false.
+      initialised_vperp2 = .false.
 
    end subroutine finish_vperp2
 

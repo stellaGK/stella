@@ -79,8 +79,6 @@ contains
       real :: zero
 
       !----------------------------------------------------------------------
-
-      debug = debug .and. proc0
       
       ! We only calculate omega on the first processor and if <write_omega> = True
       if (.not. write_omega) return  

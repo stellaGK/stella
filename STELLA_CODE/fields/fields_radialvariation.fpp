@@ -626,8 +626,6 @@ contains
       zm = 0
       ia = 1
 
-      debug = debug .and. proc0
-
       call allocate_arrays_radial_variation
 
       allocate (g1(nmu))

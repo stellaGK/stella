@@ -63,30 +63,22 @@ contains
       !---------------------------------------------------------------------- 
 
       ! We only write data at every <nwrite> or every <nwrite>*<nc_mult> time steps
-      if (debug) write (*, *) 'COOKIE diagnostics::diagnostics_stella::start - 1'
-      if (debug) write (*, *) 'COOKIE istep', istep
-      if (debug) write (*, *) 'COOKIE nwrite', nwrite
-      if (debug) write (*, *) 'COOKIE nc_mult', nc_mult
       write_to_ascii_files = (mod(istep, nwrite) == 0)
       write_to_netcdf_file = (mod(istep, nwrite * nc_mult) == 0)
-      if (debug) write (*, *) 'COOKIE diagnostics::diagnostics_stella::start - 2'
       
       !**********************************************************************
       !                 RUNNING AVERAGES AT EVERY TIME STEP                 !
       !**********************************************************************
 
       ! Calculate Omega from <phi> = exp(-i*<0mega>*t) at every time step
-      if (debug) write (*, *) 'COOKIE diagnostics::diagnostics_stella::start - 3'
       call calculate_omega(istep, time_diagnostics(:, 1))    
-      if (debug) write (*, *) 'COOKIE diagnostics::diagnostics_stella::start - 4'
       
       !**********************************************************************
       !                 WRITE TO ASCII FILES EVERY <NWRITE>                 !
       !**********************************************************************
 
       ! 0nly write data to the ascii and netcdf files every <nwrite> time steps
-      if (.not. write_to_ascii_files) return 
-      if (debug) write (*, *) 'diagnostics::diagnostics_stella::txt_files'
+      if (.not. write_to_ascii_files) return
 
       ! Get the updated fields <phi>(ky,kx,z,tube) corresponding to <gnew>(ky,kx,z,tube,i[vpa,mu,s])
       if (radial_variation) fields_updated = .false. 
@@ -103,19 +95,16 @@ contains
 
       ! The ascii files are finished, the netcdf files are written every <nwrite*nc_mult> time steps
       if (.not. write_to_netcdf_file) return
-      if (debug) write (*, *) 'diagnostics::diagnostics_stella::netcdf_files' 
  
       ! Write data to the netcdf files
-      if (debug) write (*, *) 'diagnostics::diagnostics_stella::netcdf_files_moments' 
       call write_moments_to_netcdf_file(nout, time_diagnostics(:, 5))
-      if (debug) write (*, *) 'diagnostics::diagnostics_stella::netcdf_files_distribution' 
       call write_distribution_to_netcdf_file(nout, time_diagnostics(:, 6))
 
-      ! Synchronize the disk copy of a netCDF dataset with in-memory buffers    
+      ! Synchronize the disk copy of a netCDF dataset with in-memory buffers
       if (proc0) call sync_nc
 
-      ! Keep track of the netcdf pointer  
-      nout = nout + 1       
+      ! Keep track of the netcdf pointer
+      nout = nout + 1
 
    end subroutine diagnostics_stella
 
@@ -148,6 +137,7 @@ contains
       use initialise_distribution_fn, only: read_parameters_init_distribution
       use arrays_distribution_fn, only: init_arrays_distribution_fn
       use arrays_constants, only: init_arrays_vperp_kperp
+      use arrays_gyro_averages, only: init_arrays_bessel_functions
       use parameters_diagnostics, only: read_parameters_diagnostics
       use diagnostics_omega, only: init_diagnostics_omega
       use diagnostics_fluxes, only: init_diagnostics_fluxes
@@ -195,6 +185,7 @@ contains
       call read_parameters_init_distribution
       call init_arrays_distribution_fn
       call init_arrays_vperp_kperp
+      call init_arrays_bessel_functions
 
       ! Initialize the submodules
       call init_diagnostics_omega(restart)
@@ -241,9 +232,9 @@ contains
       call finish_stella_io
 
       ! Finish submodules
-      call finish_diagnostics_omega    
-      call finish_diagnostics_fluxes    
-      call finish_diagnostics_potential   
+      call finish_diagnostics_omega
+      call finish_diagnostics_fluxes
+      call finish_diagnostics_potential
 
       nout = 1
       diagnostics_initialised = .false.

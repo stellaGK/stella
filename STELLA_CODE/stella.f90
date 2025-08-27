@@ -310,7 +310,6 @@ contains
       ! Note that any previous debug statements are not printed since debug = False
       ! by default, and it's value isn't changed until we read the debug flags below
       call read_debug_flags
-      debug = debug .and. proc0
 
       ! We can launch a list of input files which are divided over the processors
       call broadcast(list)
@@ -462,6 +461,7 @@ contains
       use arrays_distribution_fn, only: init_array_gxyz
       use arrays_distribution_fn, only: init_arrays_distribution_fn
       use arrays_constants, only: init_arrays_vperp_kperp
+      use arrays_gyro_averages, only: init_arrays_bessel_functions
    
       ! Initialise other modules
       use initialise_distribution_fn, only: initialise_distribution
@@ -488,9 +488,10 @@ contains
       ! Initialise the arrays for the distribution function g(kx,ky,z,i[mu,vpa,species])
       ! as <gold> and <gnew> as well as gvmu(vpa,mu,i[kx,ky,z,species]).
       ! Aloso allocate vperp2, kperp2 and arrays needed for gyro-averaging (j0 and j1)
-      if (debug) write (6, *) "stella::init_stella::init_dist_fn"
+      if (debug) write (6, *) "stella::init_stella::init_arrays"
       call init_arrays_distribution_fn
       call init_arrays_vperp_kperp
+      call init_arrays_bessel_functions
       
       ! sets up the mappings between different layouts, needed
       ! to redistribute data when going from one layout to another
@@ -901,6 +902,7 @@ contains
       use grids_kxky, only: finish_grids_kxky
       use arrays_distribution_fn, only: finish_arrays_distribution_fn
       use arrays_constants, only: finish_arrays_vperp_kperp
+      use arrays_gyro_averages, only: finish_arrays_bessel_functions
       use arrays_store_useful, only: time_field_solve
       use arrays_store_useful, only: time_gke, time_parallel_nl
       use initialise_distribution_fn, only: finish_initialise_distribution
@@ -946,6 +948,7 @@ contains
       if (debug) write (*, *) 'stella::finish_stella::finish_dist_fn'
       call finish_arrays_distribution_fn
       call finish_arrays_vperp_kperp
+      call finish_arrays_bessel_functions
       if (debug) write (*, *) 'stella::finish_stella::finish_redistribute'
       call finish_redistribute
       if (debug) write (*, *) 'stella::finish_stella::finish_initialise_distribution'

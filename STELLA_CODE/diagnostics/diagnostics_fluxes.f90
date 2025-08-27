@@ -75,11 +75,6 @@ contains
       ! We want to write flux(ky,kx,z,tube,s) and flux(ky,kx,s) to the netcdf file
       real, dimension(:, :, :, :, :), allocatable :: pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts
       real, dimension(:, :, :), allocatable :: pflux_vs_kxkys, vflux_vs_kxkys, qflux_vs_kxkys
-
-      !---------------------------------------------------------------------- 
-      ! Debugging
-      debug = debug .and. proc0
-      !----------------------------------------------------------------------
       
       ! Start timer
       if (proc0) call time_message(.false., timer(:), 'Write fluxes')
@@ -450,9 +445,6 @@ contains
       logical, intent(in) :: restart 
 
       !----------------------------------------------------------------------
-
-      ! Only debug on the first processor
-      debug = debug .and. proc0
 
       ! Allocate the arrays for the fluxes
       ! These are needed on all processors since <get_one_flux> will add data to it from each processor

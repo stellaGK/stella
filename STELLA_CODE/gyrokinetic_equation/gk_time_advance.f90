@@ -27,8 +27,6 @@ contains
 
    subroutine init_time_advance
 
-      use mp, only: proc0
-
       use parameters_physics, only: radial_variation
       use parameters_physics, only: include_parallel_nonlinearity
       use gk_drive, only: init_wstar
@@ -49,8 +47,6 @@ contains
 
       if (time_advance_initialized) return
       time_advance_initialized = .true.
-
-      debug = debug .and. proc0
 
       ! Read time_advance_knobs namelist from the input file;
       ! sets the explicit time advance option, as well as allows for scaling of

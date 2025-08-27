@@ -60,8 +60,6 @@ contains
       integer :: nseg_max
       integer, dimension(:), allocatable :: ikx_shift_end
       integer, dimension(:, :), allocatable :: ikx_shift
-      
-      debug = debug .and. proc0
 
       if (extended_zgrid_initialized) return
       extended_zgrid_initialized = .true.

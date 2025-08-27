@@ -39,7 +39,8 @@ module arrays_gyro_averages
    implicit none
    
    ! Make routines available to other modules
-   public :: init_bessel, finish_bessel
+   public :: init_arrays_bessel_functions
+   public :: finish_arrays_bessel_functions
    public :: find_max_required_kalpha_index
 
    ! Make arrays available
@@ -85,7 +86,7 @@ contains
 !        = sqrt(kperp2*vperp2)*spec(is)%smz_psi0/bmag
 !###############################################################################
 
-   subroutine init_bessel
+   subroutine init_arrays_bessel_functions
 
       implicit none
       
@@ -105,7 +106,7 @@ contains
       !if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::test_gyro_average'
       !if(debug_test_gyro_average) call test_gyro_average
       
-   end subroutine init_bessel
+   end subroutine init_arrays_bessel_functions
    
    !****************************************************************************
    !                  Initialise Bessel functions versus mu
@@ -529,7 +530,7 @@ contains
 !################### FINALISE BESSEL FUNCTIONS FOR FLUX TUBE ###################
 !###############################################################################
 
-   subroutine finish_bessel
+   subroutine finish_arrays_bessel_functions
 
       implicit none
 
@@ -546,6 +547,6 @@ contains
 
       initialised_bessels = .false.
 
-   end subroutine finish_bessel
+   end subroutine finish_arrays_bessel_functions
 
 end module arrays_gyro_averages

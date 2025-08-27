@@ -171,7 +171,7 @@ contains
 
       implicit none
       !-------------------------------------------------------------------------
-      debug = debug .and. proc0
+
       if (fields_initialised) return
       fields_initialised = .true.
 

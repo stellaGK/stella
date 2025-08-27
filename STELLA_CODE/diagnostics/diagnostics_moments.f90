@@ -507,18 +507,9 @@ contains
    !============================================================================
    !======================== INITALIZE THE DIAGNOSTICS =========================
    !============================================================================  
-   subroutine init_diagnostics_moments()  
-
-      use mp, only: proc0
-
-      implicit none 
-
-      !----------------------------------------------------------------------
-      
-      ! Only debug on the first processor
-      debug = debug .and. proc0
-
-   end subroutine init_diagnostics_moments 
+   subroutine init_diagnostics_moments()
+      implicit none
+   end subroutine init_diagnostics_moments
 
 end module diagnostics_moments
 

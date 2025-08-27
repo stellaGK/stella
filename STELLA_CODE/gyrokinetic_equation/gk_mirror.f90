@@ -36,7 +36,6 @@ contains
 
   subroutine init_mirror
     
-      use mp, only: proc0 
       use stella_time, only: code_dt
       use grids_species, only: spec, nspec
       use grids_velocity, only: nmu
@@ -58,8 +57,7 @@ contains
 
       if (mirror_initialized) return
       mirror_initialized = .true.
-
-      debug = debug .and. proc0
+ 
       if (debug) write(*,*) 'no debug messages for mirror_terms.f90 yet'
       
       if (.not. allocated(mirror)) allocate (mirror(nalpha, -nzgrid:nzgrid, nmu, nspec)); mirror = 0.

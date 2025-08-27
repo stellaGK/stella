@@ -52,7 +52,7 @@ contains
 
    subroutine init_sources
 
-      use mp, only: job, proc0
+      use mp, only: job
       use parameters_physics, only: fphi
       use parameters_multibox, only: ky_solve_radial, ky_solve_real
       use grids_kxky, only: naky, nakx
@@ -74,8 +74,6 @@ contains
 
       logical :: has_elec, adia_elec
       real :: fac
-
-      debug = debug .and. proc0
 
       call read_namelist_sources(source_option_switch, nu_krook, tcorr_source, &
                               ikxmax_source, krook_odd, exclude_boundary_regions, &
