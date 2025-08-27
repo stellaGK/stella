@@ -1,3 +1,8 @@
+!###############################################################################
+!                                                                               
+!###############################################################################
+! This module ...
+!###############################################################################
 module calculations_finite_differences
 
    implicit none
@@ -77,6 +82,13 @@ module calculations_finite_differences
 
 contains
 
+!###############################################################################
+!################################# CALCULATIONS ################################
+!############################################################################### 
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine first_order_upwind_real(llim, f, del, sgn, df)
 
       implicit none
@@ -88,6 +100,8 @@ contains
       real, dimension(llim:), intent(out) :: df
 
       integer :: i, n, istart, iend
+
+      !----------------------------------------------------------------------
 
       n = size(f)
 
@@ -107,6 +121,9 @@ contains
 
    end subroutine first_order_upwind_real
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine first_order_upwind_complex(llim, f, del, sgn, df)
 
       implicit none
@@ -118,6 +135,8 @@ contains
       complex, dimension(llim:), intent(out) :: df
 
       integer :: i, n, istart, iend
+
+      !----------------------------------------------------------------------
 
       n = size(f)
 
@@ -137,6 +156,9 @@ contains
 
    end subroutine first_order_upwind_complex
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine third_order_upwind_complex(llim, f, del, sgn, df)
 
       implicit none
@@ -148,6 +170,8 @@ contains
       complex, dimension(llim:), intent(out) :: df
 
       integer :: i, n, istart, iend
+
+      !----------------------------------------------------------------------
 
       n = size(f)
       if (sgn == -1) then
@@ -175,6 +199,9 @@ contains
 
    end subroutine third_order_upwind_complex
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine third_order_upwind_real(llim, f, del, sgn, df)
 
       implicit none
@@ -186,6 +213,8 @@ contains
       real, dimension(llim:), intent(out) :: df
 
       integer :: i, n, istart, iend
+
+      !----------------------------------------------------------------------
 
       n = size(f)
       if (sgn == -1) then
@@ -212,6 +241,9 @@ contains
 
    end subroutine third_order_upwind_real
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine fifth_order_upwind_complex(llim, f, del, sgn, df)
 
       implicit none
@@ -223,6 +255,8 @@ contains
       complex, dimension(llim:), intent(out) :: df
 
       integer :: i, n, istart, iend
+
+      !----------------------------------------------------------------------
 
       n = size(f)
       if (sgn == -1) then
@@ -255,6 +289,9 @@ contains
 
    end subroutine fifth_order_upwind_complex
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine fifth_order_upwind_real(llim, f, del, sgn, df)
 
       implicit none
@@ -266,6 +303,8 @@ contains
       real, dimension(llim:), intent(out) :: df
 
       integer :: i, n, istart, iend
+
+      !----------------------------------------------------------------------
 
       n = size(f)
       if (sgn == -1) then
@@ -298,6 +337,9 @@ contains
 
    end subroutine fifth_order_upwind_real
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine third_order_upwind_zed(llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
 
       implicit none
@@ -311,6 +353,8 @@ contains
       complex, dimension(llim:), intent(out) :: df
 
       integer :: i, istart, iend, ulim
+
+      !----------------------------------------------------------------------
 
       ulim = size(f) + llim - 1
       ! if sgn > 0, then stream speed is negative
@@ -366,6 +410,9 @@ contains
 
    end subroutine third_order_upwind_zed
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine first_order_upwind_zed(llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
 
       implicit none
@@ -379,6 +426,8 @@ contains
       complex, dimension(llim:), intent(out) :: df
 
       integer :: i, istart, iend, ulim
+
+      !----------------------------------------------------------------------
 
       ulim = size(f) + llim - 1
       ! if sgn > 0, then stream speed is negative
@@ -424,6 +473,9 @@ contains
 
    end subroutine first_order_upwind_zed
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine second_order_centered_real(llim, f, del, df)
 
       implicit none
@@ -434,6 +486,8 @@ contains
       real, dimension(llim:), intent(out) :: df
 
       integer :: i, n, istart, iend
+
+      !----------------------------------------------------------------------
 
       n = size(f)
       istart = llim
@@ -476,6 +530,9 @@ contains
 
    end subroutine second_order_centered_complex
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine four_point_triangle_real(llim, f, del, df)
 
       implicit none
@@ -486,6 +543,8 @@ contains
       real, dimension(llim:), intent(out) :: df
 
       integer :: i, n, istart, iend
+
+      !----------------------------------------------------------------------
 
       n = size(f)
       istart = llim
@@ -513,6 +572,9 @@ contains
 
    end subroutine four_point_triangle_real
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine four_point_triangle_complex(llim, f, del, df)
 
       implicit none
@@ -523,6 +585,8 @@ contains
       complex, dimension(llim:), intent(out) :: df
 
       integer :: i, n, istart, iend
+
+      !----------------------------------------------------------------------
 
       n = size(f)
       istart = llim
@@ -550,6 +614,9 @@ contains
 
    end subroutine four_point_triangle_complex
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine fourth_order_centered_real(llim, f, del, df)
 
       implicit none
@@ -560,6 +627,8 @@ contains
       real, dimension(llim:), intent(out) :: df
 
       integer :: i, n, istart, iend
+
+      !----------------------------------------------------------------------
 
       n = size(f)
       istart = llim
@@ -581,6 +650,9 @@ contains
 
    end subroutine fourth_order_centered_real
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine fourth_order_centered_complex(llim, f, del, df)
 
       implicit none
@@ -591,6 +663,8 @@ contains
       complex, dimension(llim:), intent(out) :: df
 
       integer :: i, n, istart, iend
+
+      !----------------------------------------------------------------------
 
       n = size(f)
       istart = llim
@@ -612,6 +686,9 @@ contains
 
    end subroutine fourth_order_centered_complex
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine second_order_centered_zed_real(llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
 
       implicit none
@@ -625,6 +702,8 @@ contains
       real, dimension(llim:), intent(out) :: df
 
       integer :: i, ulim
+
+      !----------------------------------------------------------------------
 
       ulim = size(f) + llim - 1
 
@@ -652,6 +731,9 @@ contains
 
    end subroutine second_order_centered_zed_real
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine second_order_centered_zed_complex(llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
 
       implicit none
@@ -665,6 +747,8 @@ contains
       complex, dimension(llim:), intent(out) :: df
 
       integer :: i, ulim
+
+      !----------------------------------------------------------------------
 
       ulim = size(f) + llim - 1
 
@@ -692,6 +776,9 @@ contains
 
    end subroutine second_order_centered_zed_complex
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine second_order_centered_vpa(llim, f, del, df)
 
       implicit none
@@ -702,6 +789,8 @@ contains
       complex, dimension(llim:), intent(out) :: df
 
       integer :: i, ulim
+
+      !----------------------------------------------------------------------
 
       ulim = size(f) + llim - 1
 
@@ -717,6 +806,9 @@ contains
 
    end subroutine second_order_centered_vpa
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine fd_cell_centres_zed(llim, f, del, sgn, fl, fr, df)
 
       implicit none
@@ -729,6 +821,8 @@ contains
       complex, dimension(llim:), intent(out) :: df
 
       integer :: i, ulim
+
+      !----------------------------------------------------------------------
 
       ulim = size(f) + llim - 1
 
@@ -752,6 +846,9 @@ contains
 
    end subroutine fd_cell_centres_zed
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! cell_centres_zed takes f at z grid locations
    ! and returns f at cell centres
    ! (with possible offset due to upwinding)
@@ -767,6 +864,8 @@ contains
       complex, dimension(llim:), intent(out) :: fc
 
       integer :: i, ulim
+
+      !----------------------------------------------------------------------
 
       ulim = size(f) + llim - 1
 
@@ -790,6 +889,9 @@ contains
 
    end subroutine cell_centres_zed
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine fd_variable_upwinding_zed(llim, iseg, nseg, f, del, sgn, upwnd, fl, fr, periodic, df)
 
       implicit none
@@ -803,6 +905,8 @@ contains
       complex, dimension(llim:), intent(out) :: df
 
       integer :: i, istart, iend, ulim
+
+      !----------------------------------------------------------------------
 
       ! if upwnd is zero or if vpa=0, then use centered differences
       if (abs(upwnd) < epsilon(0.) .or. sgn == 0) then
@@ -859,6 +963,9 @@ contains
 
    end subroutine fd_variable_upwinding_zed
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine fd_variable_upwinding_vpa(llim, f, del, sgn, upwnd, df)
 
       implicit none
@@ -870,6 +977,8 @@ contains
       complex, dimension(llim:), intent(out) :: df
 
       integer :: i, istart, iend, ulim
+
+      !----------------------------------------------------------------------
 
       ! if upwnd is zero or if z=0, then use centered differences
       if (abs(upwnd) < epsilon(0.) .or. sgn == 0) then
@@ -904,6 +1013,9 @@ contains
 
    end subroutine fd_variable_upwinding_vpa
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! only good for equally-spaced grid-pts
    subroutine fd3pt_real(prof, profgrad, dr)
 
@@ -915,6 +1027,8 @@ contains
 
       integer :: ix, npts
       real, dimension(:), allocatable :: aa, bb, cc
+
+      !----------------------------------------------------------------------
 
       npts = size(prof)
       allocate (aa(npts), bb(npts), cc(npts))
@@ -935,6 +1049,9 @@ contains
 
    end subroutine fd3pt_real
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine fd3pt_real_array(prof, profgrad, dr)
 
       implicit none
@@ -944,6 +1061,8 @@ contains
 
       integer :: ix, npts
       real :: a, b, c
+
+      !----------------------------------------------------------------------
 
       npts = size(prof)
 
@@ -964,6 +1083,9 @@ contains
 
    end subroutine fd3pt_real_array
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine fd3pt_complex_array(prof, profgrad, dr)
 
       implicit none
@@ -974,6 +1096,8 @@ contains
 
       integer :: ix, npts
       real :: a, b, c
+
+      !----------------------------------------------------------------------
 
       npts = size(prof)
 
@@ -994,6 +1118,9 @@ contains
 
    end subroutine fd3pt_complex_array
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! boundary points are 2nd-order accurate (2-pt compact difference)
    ! next to boundary points are 4th-order accurate (2-pt centered compact difference)
    ! interior points are 6th-order accurate (4-pt centered compact difference)
@@ -1007,6 +1134,8 @@ contains
 
       integer :: ix, npts
       real, dimension(:), allocatable :: aa, bb, cc
+
+      !----------------------------------------------------------------------
 
       npts = size(prof)
       allocate (aa(npts), bb(npts), cc(npts))
@@ -1031,6 +1160,9 @@ contains
 
    end subroutine fd5pt_real
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! boundary points are 2nd-order accurate (2-pt compact difference)
    ! next to boundary points are 4th-order accurate (2-pt centered compact difference)
    ! interior points are 6th-order accurate (4-pt centered compact difference)
@@ -1043,6 +1175,8 @@ contains
 
       integer :: ix, npts
       real, dimension(:), allocatable :: aa, bb, cc
+
+      !----------------------------------------------------------------------
 
       npts = size(prof)
       allocate (aa(npts), bb(npts), cc(npts))
@@ -1067,6 +1201,9 @@ contains
 
    end subroutine fd5pt_array
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! second derivative using centered differences
    ! second order accurate
    subroutine d2_3pt_real(f, d2f, dr)
@@ -1079,6 +1216,8 @@ contains
 
       real :: a, b, c, d
       integer :: i, n
+
+      !----------------------------------------------------------------------
 
       n = size(f)
 
@@ -1117,6 +1256,9 @@ contains
 
    end subroutine d2_3pt_real
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine d2_3pt_complex(f, d2f, dr)
 
       implicit none
@@ -1127,6 +1269,8 @@ contains
 
       real :: a, b, c, d
       integer :: i, n
+
+      !----------------------------------------------------------------------
 
       n = size(f)
 
@@ -1159,6 +1303,9 @@ contains
 
    end subroutine d2_3pt_complex
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine tridag_real(aa, bb, cc, sol)
 
       implicit none
@@ -1170,6 +1317,8 @@ contains
       real :: bet
 
       real, dimension(:), allocatable :: gam
+
+      !----------------------------------------------------------------------
 
       npts = size(aa)
       allocate (gam(npts))
@@ -1192,6 +1341,9 @@ contains
 
    end subroutine tridag_real
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine tridag_complex(llim, aa, bb, cc, sol)
 
       implicit none
@@ -1204,6 +1356,8 @@ contains
       real :: bet
 
       real, dimension(:), allocatable :: gam
+
+      !----------------------------------------------------------------------
 
       npts = size(bb)
       allocate (gam(llim:llim + npts - 1))
@@ -1226,6 +1380,9 @@ contains
 
    end subroutine tridag_complex
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine fourth_derivate_second_centered_vpa(llim, f, del, df)
 
       implicit none
@@ -1236,6 +1393,8 @@ contains
       complex, dimension(llim:), intent(out) :: df
 
       integer :: i, ulim
+
+      !----------------------------------------------------------------------
 
       ulim = size(f) + llim - 1
 
@@ -1263,6 +1422,9 @@ contains
 
    end subroutine fourth_derivate_second_centered_vpa
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine fourth_derivative_second_centered_zed(llim, iseg, nseg, f, del, fl, fr, periodic, df)
 
       implicit none
@@ -1275,6 +1437,8 @@ contains
       complex, dimension(llim:), intent(out) :: df
 
       integer :: i, ulim
+
+      !----------------------------------------------------------------------
 
       ulim = size(f) + llim - 1
 

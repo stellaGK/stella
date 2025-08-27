@@ -1,4 +1,9 @@
-   module calculations_kxky
+!###############################################################################
+!                                                                               
+!###############################################################################
+! This module ...
+!###############################################################################
+module calculations_kxky
 
    implicit none 
    
@@ -13,16 +18,25 @@
       module procedure swap_kxky_real
       module procedure swap_kxky_complex
    end interface swap_kxky
+   
    interface swap_kxky_ordered
       module procedure swap_kxky_ordered_real
       module procedure swap_kxky_ordered_complex
    end interface swap_kxky_ordered
    
-   contains
-      
+contains
+
+!###############################################################################
+!################################# CALCULATIONS ################################
+!############################################################################### 
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! take an array with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
    ! and uses reality condition to return array
    ! with kx >= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)
+   !****************************************************************************
    subroutine swap_kxky_complex(gin, gout)
       
       use grids_kxky, only: naky, naky_all, ikx_max, nakx
@@ -34,6 +48,8 @@
       
       integer :: ikx, ikxneg
       integer :: iky, ikyneg
+
+      !----------------------------------------------------------------------
       
       ! first set arrays equal for ky >= 0 and kx >= 0
       gout(:naky, :) = gin(:, :ikx_max)
@@ -56,9 +72,13 @@
       
    end subroutine swap_kxky_complex
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! take an array with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
    ! and uses reality condition to return array
    ! with kx >= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)
+   !****************************************************************************
    subroutine swap_kxky_real(gin, gout)
       
       use grids_kxky, only: naky, naky_all, ikx_max, nakx
@@ -69,6 +89,8 @@
       
       integer :: ikx, ikxneg
       integer :: iky, ikyneg
+
+      !----------------------------------------------------------------------
       
       ! first set arrays equal for ky >= 0 and kx >= 0
       gout(:naky, :) = gin(:, :ikx_max)
@@ -91,9 +113,13 @@
       
    end subroutine swap_kxky_real
    
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! take an array with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
    ! and uses reality condition to return array
    ! with kx >= 0 and all ky (ordered like -kymax, ..., 0, ..., kymax)
+   !****************************************************************************
    subroutine swap_kxky_ordered_real(gin, gout)
       
       use grids_kxky, only: ikx_max, naky, nakx
@@ -104,6 +130,8 @@
       
       integer :: ikx, ikxneg
       integer :: iky, ikyneg
+
+      !----------------------------------------------------------------------
       
       ! first set arrays equal for ky >= 0 and kx >= 0
       gout(naky:, :) = gin(:, :ikx_max)
@@ -126,9 +154,13 @@
       
    end subroutine swap_kxky_ordered_real
    
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! take an array with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
    ! and uses reality condition to return array
    ! with kx >= 0 and all ky (ordered like -kymax, ..., 0, ..., kymax)
+   !****************************************************************************
    subroutine swap_kxky_ordered_complex(gin, gout)
       
       use grids_kxky, only: naky, nakx, ikx_max
@@ -139,6 +171,8 @@
       
       integer :: ikx, ikxneg
       integer :: iky, ikyneg
+
+      !----------------------------------------------------------------------
       
       ! first set arrays equal for ky >= 0 and kx >= 0
       gout(naky:, :) = gin(:, :ikx_max)
@@ -161,9 +195,13 @@
       
    end subroutine swap_kxky_ordered_complex
    
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! take an array with kx >= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)
    ! and uses reality condition to return array
    ! with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
+   !****************************************************************************
    subroutine swap_kxky_back(gin, gout)
       
       use grids_kxky, only: naky, nakx, naky_all, ikx_max
@@ -174,6 +212,8 @@
       
       integer :: ikx, ikxneg
       integer :: iky, ikyneg
+
+      !----------------------------------------------------------------------
       
       ! first set arrays equal for ky >= 0 and kx >= 0
       gout(:, :ikx_max) = gin(:naky, :)
@@ -191,9 +231,13 @@
       
    end subroutine swap_kxky_back
    
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! take an array with kx >= 0 and all ky (ordered like -kymax, ..., 0, ..., kymax)
    ! and uses reality condition to return array
    ! with ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
+   !****************************************************************************
    subroutine swap_kxky_back_ordered(gin, gout)
       
       use grids_kxky, only: ikx_max, naky, nakx 
@@ -204,6 +248,8 @@
       
       integer :: ikx, ikxneg
       integer :: iky, ikyneg
+
+      !----------------------------------------------------------------------
       
       ! first set arrays equal for ky >= 0 and kx >= 0
       gout(:, :ikx_max) = gin(naky:, :)
@@ -218,7 +264,11 @@
       
    end subroutine swap_kxky_back_ordered
    
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine communicate_ktgrids_multibox
+   
       use job_manage, only: njobs
       use mp, only: job, scope, &
             crossdomprocs, subprocs, &
@@ -226,6 +276,8 @@
       use grids_kxky, only: phase_shift_angle
       
       implicit none
+
+      !----------------------------------------------------------------------
       
       call scope(crossdomprocs)
       
@@ -242,6 +294,9 @@
       
    end subroutine communicate_ktgrids_multibox
    
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine multiply_by_rho(gin)
       
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
@@ -251,6 +306,8 @@
       implicit none
       
       complex, dimension(:, :), intent(inout) :: gin
+
+      !----------------------------------------------------------------------
       
       if (.not. allocated(g0x)) allocate (g0x(naky, nakx))
       

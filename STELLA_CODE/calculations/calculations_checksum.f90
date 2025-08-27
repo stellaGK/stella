@@ -1,3 +1,8 @@
+!###############################################################################
+!                                                                               
+!###############################################################################
+! This module ...
+!###############################################################################
 module calculations_checksum
 
    use debug_flags, only: debug => calculations_debug
@@ -9,12 +14,19 @@ module calculations_checksum
    private
 
    interface checksum
-   module procedure checksum_field
-   module procedure checksum_dist
+      module procedure checksum_field
+      module procedure checksum_dist
    end interface
 
 contains 
 
+!###############################################################################
+!################################# CALCULATIONS ################################
+!############################################################################### 
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine checksum_field(field, total)
 
       use grids_z, only: nzgrid, ntubes
@@ -29,6 +41,8 @@ contains
 
       integer :: it, iky, ie, iseg
       integer :: ikx
+
+      !----------------------------------------------------------------------
 
       total = 0.
 
@@ -50,6 +64,9 @@ contains
 
    end subroutine checksum_field
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine checksum_dist(dist, total, norm)
 
       use mp, only: sum_allreduce
@@ -70,8 +87,9 @@ contains
 
       complex, dimension(:, :, :, :), allocatable :: dist_single
 
-      total = 0.
+      !----------------------------------------------------------------------
 
+      total = 0.
 
       allocate (dist_single(naky, nakx, -nzgrid:nzgrid, ntubes))
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
