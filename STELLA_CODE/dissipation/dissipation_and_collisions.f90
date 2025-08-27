@@ -1,4 +1,4 @@
-module dissipation_and_collisions
+module dissipation
 
    implicit none
 
@@ -273,4 +273,4 @@ contains
 
    end subroutine advance_collisions_implicit
 
-end module dissipation_and_collisions
+end module dissipation

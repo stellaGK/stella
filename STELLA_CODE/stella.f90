@@ -355,7 +355,7 @@ contains
       ! Other parameters
       use initialise_distribution_fn, only: read_parameters_init_distribution
       use stella_layouts, only: read_parameters_parallelisation_layouts
-      use dissipation, only: read_parameters_dissipation_and_collisions
+      use dissipation_and_collisions, only: read_parameters_dissipation_and_collisions
       
       implicit none
       
@@ -412,7 +412,7 @@ contains
       use grids_kxky, only: naky, nalpha
       
       ! Parse <ecoll_zeff> to init_species
-      use dissipation, only: ecoll_zeff
+      use dissipation_and_collisions, only: ecoll_zeff
    
       implicit none
       
@@ -467,7 +467,7 @@ contains
       use initialise_distribution_fn, only: initialise_distribution
       use calculations_volume_averages, only: init_volume_averages
       use calculations_redistribute, only: init_redistribute
-      use dissipation, only: init_dissipation
+      use dissipation_and_collisions, only: init_dissipation
       use gk_sources, only: init_sources
       use fields, only: init_fields
       
@@ -911,7 +911,7 @@ contains
       use gk_sources, only: finish_sources, time_sources, source_option_switch, source_option_none
       use gk_implicit_solve, only: time_implicit_advance
       use response_matrix, only: finish_response_matrix
-      use dissipation, only: time_collisions, include_collisions 
+      use dissipation_and_collisions, only: time_collisions, include_collisions 
       use calculations_redistribute, only: finish_redistribute
       use diagnostics, only: finish_diagnostics, time_diagnostics
       use geometry, only: finish_geometry

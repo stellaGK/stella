@@ -66,10 +66,10 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/diagnostics/diagnostics_potential.f90
   ../STELLA_CODE/diagnostics/diagnostics_write_radial_grid.f90
   ../STELLA_CODE/diagnostics/diagnostics.f90
+  ../STELLA_CODE/dissipation/dissipation_and_collisions.f90
   ../STELLA_CODE/dissipation/dissipation_coll_dougherty.f90
   ../STELLA_CODE/dissipation/dissipation_coll_fokkerplanck.f90
   ../STELLA_CODE/dissipation/dissipation_hyper.f90
-  ../STELLA_CODE/dissipation/dissipation.f90
   ../STELLA_CODE/fields/initialise_distribution_fn.f90
   ../STELLA_CODE/geometry/geometry_inputprofiles_interface.f90
   ../STELLA_CODE/geometry/geometry_miller.f90

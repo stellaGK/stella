@@ -152,7 +152,7 @@ contains
       use diagnostics_omega, only: init_diagnostics_omega
       use diagnostics_fluxes, only: init_diagnostics_fluxes
       use diagnostics_potential, only: init_diagnostics_potential
-      use dissipation, only: ecoll_zeff
+      use dissipation_and_collisions, only: ecoll_zeff
       
       ! Netcdf output file
       use git_version, only: get_git_version, get_git_date

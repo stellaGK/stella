@@ -41,7 +41,7 @@ contains
       use gk_nonlinearity, only: init_parallel_nonlinearity
 
       use neoclassical_terms, only: init_neoclassical_terms
-      use dissipation, only: init_collisions, include_collisions
+      use dissipation_and_collisions, only: init_collisions, include_collisions
 
       use timestep_calculations, only: init_cfl
 
@@ -578,7 +578,7 @@ contains
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: zonal_mode, akx
       
-      use dissipation, only: include_collisions, advance_collisions_explicit, collisions_implicit
+      use dissipation_and_collisions, only: include_collisions, advance_collisions_explicit, collisions_implicit
       use gk_sources, only: source_option_switch, source_option_krook
       use gk_sources, only: add_krook_operator
       use gk_parallel_streaming, only: advance_parallel_streaming_explicit
@@ -589,7 +589,7 @@ contains
       use gk_nonlinearity, only: advance_parallel_nonlinearity
       use gk_radial_variation, only: advance_radial_variation
       use gk_nonlinearity, only: advance_ExB_nonlinearity
-      use dissipation, only: hyper_dissipation
+      use dissipation_and_collisions, only: hyper_dissipation
 
       use fields, only: fields_updated, advance_fields
       use fields_radial_variation, only: get_radial_correction
@@ -796,9 +796,9 @@ contains
       use parameters_numerical, only: flip_flop
 
       use fields, only: advance_fields, fields_updated
-      use dissipation, only: hyper_dissipation
-      use dissipation, only: collisions_implicit, include_collisions
-      use dissipation, only: advance_collisions_implicit
+      use dissipation_and_collisions, only: hyper_dissipation
+      use dissipation_and_collisions, only: collisions_implicit, include_collisions
+      use dissipation_and_collisions, only: advance_collisions_implicit
       use dissipation_hyper, only: advance_hyper_dissipation
       use gk_implicit_solve, only: advance_implicit_terms
       use gk_mirror, only: advance_mirror_implicit
@@ -918,7 +918,7 @@ contains
       use gk_nonlinearity, only: finish_parallel_nonlinearity
       use gk_radial_variation, only: finish_radial_variation
       use neoclassical_terms, only: finish_neoclassical_terms
-      use dissipation, only: finish_dissipation
+      use dissipation_and_collisions, only: finish_dissipation
       
       implicit none
 

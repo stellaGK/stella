@@ -443,6 +443,23 @@ $(OBJ_DIR)/dissipation.o: \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/stella_layouts.o 
+$(OBJ_DIR)/dissipation_and_collisions.o: \
+	 $(OBJ_DIR)/arrays_store_distribution_fn.o \
+	 $(OBJ_DIR)/calculations_redistribute.o \
+	 $(OBJ_DIR)/debug_flags.o \
+	 $(OBJ_DIR)/dissipation_coll_dougherty.o \
+	 $(OBJ_DIR)/dissipation_coll_fokkerplanck.o \
+	 $(OBJ_DIR)/dissipation_hyper.o \
+	 $(OBJ_DIR)/file_utils.o \
+	 $(OBJ_DIR)/grids_velocity.o \
+	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/job_manage.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/namelist_dissipation.o \
+	 $(OBJ_DIR)/parameters_numerical.o \
+	 $(OBJ_DIR)/parameters_physics.o \
+	 $(OBJ_DIR)/redistribute.o \
+	 $(OBJ_DIR)/stella_layouts.o 
 $(OBJ_DIR)/dissipation_coll_dougherty.o: \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \
 	 $(OBJ_DIR)/arrays_store_distribution_fn.o \

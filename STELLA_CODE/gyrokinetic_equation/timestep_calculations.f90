@@ -37,8 +37,8 @@ contains
       use gk_parallel_streaming, only: stream_rad_var1, stream_rad_var2
       use gk_mirror, only: mirror
       use gk_flow_shear, only: prl_shear, shift_times
-      use dissipation, only: include_collisions, collisions_implicit
-      use dissipation, only: cfl_dt_vpadiff, cfl_dt_mudiff
+      use dissipation_and_collisions, only: include_collisions, collisions_implicit
+      use dissipation_and_collisions, only: cfl_dt_vpadiff, cfl_dt_mudiff
       use debug_flags, only: print_extra_info_to_terminal
 
       implicit none
@@ -163,7 +163,7 @@ contains
 
     subroutine reset_dt
 
-        use dissipation, only: init_collisions, initialised_collisions, include_collisions
+        use dissipation_and_collisions, only: init_collisions, initialised_collisions, include_collisions
         use parameters_numerical, only: stream_implicit, driftkinetic_implicit
         use parameters_physics, only: radial_variation
         use response_matrix, only: response_matrix_initialized
