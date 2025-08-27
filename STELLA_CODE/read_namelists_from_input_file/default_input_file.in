@@ -89,18 +89,6 @@
   suppress_zonal_interaction = .false.
 /
 
-&adiabatic_electron_response
-  adiabatic_option = 'field-line-average-term'
-  tite = 1.0
-  nine = 1.0
-/
-
-&adiabatic_ion_response
-  adiabatic_option = 'no-field-line-average-term'
-  tite = 1.0
-  nine = 1.0
-/
-
 &electromagnetic
   include_apar = .false.
   include_bpar = .false.
@@ -122,7 +110,7 @@
 /
 
 !===============================================================================
-!                                Kinetic species                                
+!                      Ion, electron and impurity species                       
 !===============================================================================
 
 &species_options
@@ -161,6 +149,18 @@
 &euterpe_parameters
   nradii = 1000.0
   data_file = 'euterpe.dat'
+/
+
+&adiabatic_electron_response
+  adiabatic_option = 'field-line-average-term'
+  tite = 1.0
+  nine = 1.0
+/
+
+&adiabatic_ion_response
+  adiabatic_option = 'no-field-line-average-term'
+  tite = 1.0
+  nine = 1.0
 /
 
 !===============================================================================

@@ -967,6 +967,7 @@ $(OBJ_DIR)/grids_kxky.o: \
 	 $(OBJ_DIR)/ran.o \
 	 $(OBJ_DIR)/stella_common_types.o 
 $(OBJ_DIR)/grids_species.o: \
+	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/geometry_inputprofiles_interface.o \
 	 $(OBJ_DIR)/grids_species_from_euterpe.o \

@@ -36,8 +36,8 @@ contains
       use parameters_multibox, only: ky_solve_radial, ky_solve_real
       use grids_z, only: nzgrid
       use grids_kxky, only: zonal_mode
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use grids_species, only: adiabatic_option_switch
+      use grids_species, only: adiabatic_option_fieldlineavg
       use grids_species, only: spec, has_electron_species
       use multibox, only: mb_get_phi
       use arrays_store_useful, only: gamtot
@@ -120,8 +120,8 @@ contains
       use mp_lu_decomposition, only: lu_matrix_multiply_local
 #endif
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use grids_species, only: adiabatic_option_switch
+      use grids_species, only: adiabatic_option_fieldlineavg
       use parameters_multibox, only: ky_solve_radial
       use grids_z, only: nzgrid, ntubes
       use grids_species, only: spec, has_electron_species
@@ -423,8 +423,8 @@ contains
       use arrays_store_useful, only: gamtot, dgamtotdr
       use arrays_store_useful, only: gamtot3, efac, efacp
       use arrays_store_useful, only: kperp2, dkperp2dr
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use grids_species, only: adiabatic_option_switch
+      use grids_species, only: adiabatic_option_fieldlineavg
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
@@ -582,8 +582,8 @@ contains
       use grids_kxky, only: naky, nakx
       use grids_kxky, only: akx
       use grids_kxky, only: zonal_mode, rho_d_clamped
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use grids_species, only: adiabatic_option_switch
+      use grids_species, only: adiabatic_option_fieldlineavg
       use linear_solve, only: lu_decomposition, lu_inverse
       use multibox, only: init_mb_get_phi
       use arrays_store_fields, only: phi_solve
@@ -598,7 +598,7 @@ contains
       use grids_velocity, only: vpa, vperp2, mu, nmu, nvpa
       use arrays_store_useful, only: kperp2, dkperp2dr
       use geometry, only: dBdrho, bmag
-      use parameters_physics, only: tite, nine
+      use grids_species, only: tite, nine
 
       use arrays_store_useful, only: efac, efacp
       use calculations_velocity_integrals, only: integrate_vmu

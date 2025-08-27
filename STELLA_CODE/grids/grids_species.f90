@@ -16,8 +16,10 @@ module grids_species
    ! Read the parameters for <type> from namelist_species.f90
    use namelist_species, only: ion_species
    use namelist_species, only: electron_species
-   use namelist_species, only: slowing_down_species
-   use namelist_species, only: tracer_species
+   
+   ! Read the parameters for <adiabatic_option_switch> from namelist_species.f90
+   use namelist_species, only: adiabatic_option_periodic
+   use namelist_species, only: adiabatic_option_fieldlineavg
 
    implicit none
 
@@ -29,30 +31,43 @@ module grids_species
    ! Although the parameters are available through namelist_species, 
    ! make them available through grids_species as well
    public :: ion_species, electron_species
-   public :: slowing_down_species, tracer_species
    public :: species_option_stella, species_option_inputprofs
    public :: species_option_euterpe, species_option_multibox
+   public :: adiabatic_option_periodic, adiabatic_option_fieldlineavg
    
    ! Make the following parameters public
    public :: nspec, spec
-   public :: has_electron_species, has_slowing_down_species
-   public :: modified_adiabatic_electrons, adiabatic_electrons
+   public :: has_electron_species, has_ion_species
+   
+   ! Adiabatic species
+   public :: modified_adiabatic_electrons
+   public :: adiabatic_electrons
+   public :: adiabatic_option_switch
+   public :: tite, nine
    
    ! Pressure variation
    public :: pfac
    
    ! Allow other routines to check whether we are using multibox
    public :: species_option_switch
+   
 
    private
    
-   integer :: species_option_switch
+   ! Flags for radial variation
+   logical :: read_profile_variation
+   logical :: write_profile_variation
 
+   ! Species parameters
    integer :: nspec
-   logical :: read_profile_variation, write_profile_variation
-   logical :: modified_adiabatic_electrons, adiabatic_electrons
-
+   integer :: species_option_switch
    type(spec_type), dimension(:), allocatable :: spec
+ 
+   ! Adiabatic species flags and options
+   logical :: modified_adiabatic_electrons
+   logical :: adiabatic_electrons
+   integer :: adiabatic_option_switch
+   real :: tite, nine
    
    ! Pressure variation
    real :: pfac
@@ -68,9 +83,11 @@ contains
 
    subroutine read_parameters_species
    
-      use mp, only: proc0
+      use mp, only: proc0, broadcast, mp_abort
       use namelist_species, only: read_namelist_species_options
       use namelist_species, only: read_namelist_species_stella
+      use namelist_species, only: read_namelist_adiabatic_electron_response
+      use namelist_species, only: read_namelist_adiabatic_ion_response
       use grids_species_from_euterpe, only: read_species_euterpe
       use geometry_inputprofiles_interface, only: read_inputprof_spec
 
@@ -85,28 +102,33 @@ contains
       ! Read the "species_options" namelists in the input file
       call read_namelist_species_options(nspec, species_option_switch, &
          read_profile_variation, write_profile_variation)
-         
-      ! Broadcast the parameters to all processors
+   
+      ! Broadcast the species options to all processors
       call broadcast_species_options
          
       ! Allocate species now that we know <nspec>
       allocate (spec(nspec))
          
-      ! Read the "species_parameters_i" and "euterpe_parameters" namelists in the input file
-       call read_namelist_species_stella(nspec, spec)
+      ! Read the "species_parameters_i" namelists in the input file
+      call read_namelist_species_stella(nspec, spec)
+      
+      ! If there are no kinetic electrons, or no kinetic ions, treat them with a Boltzmann response
+      call add_adiabatic_species
        
       ! Read the "euterpe_parameters" namelists in the input file or an input profile
+      ! Note that these will set their own <nine> and <tite> for adiabatic species
       if (proc0) then
          if (species_option_switch == species_option_inputprofs) then
             call read_inputprof_spec(nspec, spec)
          end if
          if (species_option_switch == species_option_euterpe) then
-            call read_species_euterpe(nspec, spec)
+            call read_species_euterpe(nspec, spec, tite, nine)
          end if
       end if
       
    contains
    
+      !-------------------------- Broadcast parameters--------------------------
       subroutine broadcast_species_options
 
          use mp, only: broadcast
@@ -120,6 +142,83 @@ contains
 
       end subroutine broadcast_species_options
       
+      !------------------------- Add adiabatic species -------------------------
+      subroutine add_adiabatic_species
+
+         use mp, only: proc0
+         use mp, only: broadcast
+         use debug_flags, only: print_extra_info_to_terminal
+
+         implicit none
+      
+         integer :: is
+      
+         !----------------------------------------------------------------------
+         
+         ! Make sure all processors know which species types we have
+         do is = 1, nspec
+            call broadcast(spec(is)%type)
+         end do
+         
+         ! Set default values to nonsense, these should not be read 
+         ! if all species are kinetic, i.e., if no adiabatic species are added
+         adiabatic_option_switch = -1
+         tite = -1.0
+         nine = -1.0
+            
+         ! Read the namelist for adiabatic electrons in the input file
+         if (.not. has_electron_species(spec)) then
+            call read_namelist_adiabatic_electron_response(adiabatic_option_switch, tite, nine)
+         end if
+         
+         ! Read the namelist for adiabatic ions in the input file
+         if (.not. has_ion_species(spec)) then
+            call read_namelist_adiabatic_ion_response(adiabatic_option_switch, tite, nine)
+         end if
+         
+         ! The namelists are only read on the first processor, so broadcast the results
+         if ((.not. has_electron_species(spec)) .or. (.not. has_electron_species(spec))) then
+            call broadcast(adiabatic_option_switch)
+            call broadcast(tite)
+            call broadcast(nine)
+         end if
+         
+         ! Print info to the command prompt
+         if (proc0 .and. print_extra_info_to_terminal) then
+            if ((.not. has_electron_species(spec)) .or. (.not. has_electron_species(spec))) then
+               write (*, '(A)') "############################################################"
+               write (*, '(A)') "                      ADIABATIC SPECIES"
+               write (*, '(A)') "############################################################"
+               if (.not. has_electron_species(spec)) then
+                  write(*,*) 'No kinetic electrons have been found.'
+                  write(*,*) 'Using a modified Bolztmann response for the electrons.'
+                  write (*, *)
+               end if
+               if (.not. has_ion_species(spec)) then
+                  write(*,*) 'No kinetic ions have been found.'
+                  write(*,*) 'Using a periodic Bolztmann response for the ions.'
+                  write (*, *)
+               end if
+            end if
+         end if
+         
+         ! The adiabatic ion response is assuming the first species are electrons
+         ! and then adding a Boltzmann response for the ions. The way the code is 
+         ! written for now, we can say the first species type is ions, but use
+         ! a normal Botlzmann response instead of a modified Boltzmann reponse.
+         ! This way the '.not. has_electron_species' will be triggered which 
+         ! adds Boltzmann responses. This hack needs to be checked carefully!
+         if (.not. has_ion_species(spec)) then
+            do is = 1, nspec
+               spec(is)%type = ion_species
+            end do
+            nine = 1 / nine
+            tite = 1 / tite
+            call mp_abort('The code for adiabatic ions has not beed tested yet. Aborting.')
+         end if
+         
+      end subroutine add_adiabatic_species
+      
    end subroutine read_parameters_species
 
 !###############################################################################
@@ -131,9 +230,8 @@ contains
    !****************************************************************************
    subroutine init_species(ecoll_zeff)
 
-      use mp, only: proc0, broadcast, mp_abort
+      use mp, only: broadcast, mp_abort
       use parameters_multibox, only: include_pressure_variation
-      use parameters_physics, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       use parameters_physics, only: full_flux_surface
       
       implicit none
@@ -161,12 +259,14 @@ contains
       ! Broadcast the species parameters
       call broadcast_species_parameters
 
-      ! set flag adiabatic_electrons to true if no kinetic electron species evolved
+      ! Check whether any of the species are labelled as 'electrons' in spec%type
+      ! Set the <adiabatic_electrons> flag to true if no kinetic electron species are present
       adiabatic_electrons = .not. has_electron_species(spec)
+      
+      ! Use a modified adiabatic electron response if do not have kinetic electrons and we want 
       ! set flag modified_adiabatic_electrons to true if no kinetic electron species evolved
       ! and field-line-avg chosen as the adiabatic option
-      modified_adiabatic_electrons = adiabatic_electrons &
-                                     .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
+      modified_adiabatic_electrons = adiabatic_electrons .and. (adiabatic_option_switch == adiabatic_option_fieldlineavg)
 
       if(has_electron_species(spec) .and. full_flux_surface) then
          write (*,*) 'full_flux_surface is not set up for kinetic electrons yet'
@@ -310,13 +410,13 @@ contains
       has_electron_species = any(spec%type == electron_species)
    end function has_electron_species
 
-   pure function has_slowing_down_species(spec)
+   pure function has_ion_species(spec)
       use stella_common_types, only: spec_type
       implicit none
       type(spec_type), dimension(:), intent(in) :: spec
-      logical :: has_slowing_down_species
-      has_slowing_down_species = any(spec%type == slowing_down_species)
-   end function has_slowing_down_species
+      logical :: has_ion_species
+      has_ion_species = any(spec%type == ion_species)
+   end function has_ion_species
    
 !###############################################################################
 !########################## WRITE SPECIES TO TXT FILE ##########################

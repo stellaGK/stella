@@ -10,7 +10,6 @@
 ! Here, the following namelists are read: 
 ! &gyrokinetic_terms
 ! &scale_gyrokinetic_terms
-! &adiabatic_electron_response
 ! &electromagnetic
 ! &flow_shear
 ! &extra - to be changed 
@@ -41,13 +40,6 @@ module parameters_physics
    ! Scaling options
    public :: xdriftknob, ydriftknob, wstarknob
    public :: fphi, suppress_zonal_interaction
-   
-   ! Adiabatic options: This is used when nspec = 1. The non-kinetic
-   ! species (usually electrons) is set to have an adiabatic response.
-   ! This can be either the classic adiabatic option, or the modified
-   ! adiabatic option (i.e. modified Boltzmann electrons).
-   public :: adiabatic_option_switch, adiabatic_option_fieldlineavg
-   public :: tite, nine
 
    ! Flow shear physics effects
    public :: prp_shear_enabled
@@ -93,13 +85,6 @@ module parameters_physics
    real :: xdriftknob, ydriftknob, wstarknob
    real :: fphi
    logical :: suppress_zonal_interaction
- 
-   ! Adiabatic options
-   integer :: adiabatic_option_switch
-   integer, parameter :: adiabatic_option_periodic = 1, &
-                       adiabatic_option_zero = 2, &
-                       adiabatic_option_fieldlineavg = 3
-   real :: tite, nine
    
    ! Flow shear physics effects
    logical :: prp_shear_enabled
@@ -127,9 +112,11 @@ contains
   subroutine read_parameters_physics
 
    use mp, only: proc0
-   use namelist_parameters_physics, only: read_namelist_gyrokinetic_terms, &
-      read_namelist_scale_gyrokinetic_terms, read_namelist_adiabatic_electron_response, &
-      read_namelist_electromagnetic, read_namelist_flow_shear, read_namelist_physics_inputs
+   use namelist_parameters_physics, only: read_namelist_gyrokinetic_terms
+   use namelist_parameters_physics, only: read_namelist_scale_gyrokinetic_terms
+   use namelist_parameters_physics, only: read_namelist_electromagnetic
+   use namelist_parameters_physics, only: read_namelist_flow_shear
+   use namelist_parameters_physics, only: read_namelist_physics_inputs
 
    implicit none
 
@@ -143,8 +130,6 @@ contains
 
    if (proc0) call read_namelist_scale_gyrokinetic_terms(include_xdrift, include_ydrift, include_drive, & 
       xdriftknob, ydriftknob, wstarknob, fphi, suppress_zonal_interaction)
-
-   if (proc0) call read_namelist_adiabatic_electron_response(adiabatic_option_switch, tite, nine)
 
    if (proc0) call read_namelist_flow_shear(prp_shear_enabled, hammett_flow_shear, g_exb, g_exbfac, omprimfac)
 
@@ -205,11 +190,6 @@ contains
       call broadcast(wstarknob)
       call broadcast(fphi)
       call broadcast(suppress_zonal_interaction)
-
-      ! Adiabatic options
-      call broadcast(adiabatic_option_switch)
-      call broadcast(tite)
-      call broadcast(nine)
 
       ! Flow shear physics effects
       call broadcast(prp_shear_enabled)

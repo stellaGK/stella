@@ -292,8 +292,8 @@ contains
       use arrays_store_useful, only: time_field_solve
       ! Parameters
       use grids_kxky, only: nakx, naky
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use grids_species, only: adiabatic_option_switch
+      use grids_species, only: adiabatic_option_fieldlineavg
       ! Grids
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: zonal_mode
@@ -405,10 +405,10 @@ contains
       ! Parameters
       use parameters_physics, only: fphi
       use parameters_numerical, only: maxwellian_normalization
-      use parameters_physics, only: tite, nine
+      use grids_species, only: tite, nine
       use grids_kxky, only: nakx
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use grids_species, only: adiabatic_option_switch
+      use grids_species, only: adiabatic_option_fieldlineavg
       ! Grids
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac

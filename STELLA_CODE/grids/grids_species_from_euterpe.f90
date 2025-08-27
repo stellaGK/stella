@@ -4,22 +4,26 @@ module grids_species_from_euterpe
 
 contains
 
-   subroutine read_species_euterpe(nspec, spec)
+   subroutine read_species_euterpe(nspec, spec, tite, nine)
 
       use mp, only: mp_abort
       use calculations_finite_differences, only: fd3pt, d2_3pt
       use stella_common_types, only: spec_type
       use splines, only: geo_spline
-      use parameters_physics, only: vnew_ref, rhostar, tite, nine
+      use parameters_physics, only: vnew_ref, rhostar
       use geometry, only: geo_surf, aref, bref
-
       use namelist_species, only: read_namelist_euterpe_parameters
 
       implicit none
 
+      ! Parse in the following species parameters so that we do not need to 
+      ! import the species module, since this would give a circular dependency
+      real, intent(out) :: tite
+      real, intent(out) :: nine
       integer, intent(in) :: nspec
       type(spec_type), dimension(:), intent(in out) :: spec
 
+      ! Local variables
       integer, parameter :: electron_species = 2
       integer :: euterpe_unit = 1099, out_unit = 1098
       integer :: nradii_euterpe
@@ -41,6 +45,8 @@ contains
       real, dimension(:), allocatable :: nidbprim, Tidbprim
 
       real, dimension(:), allocatable :: loglam
+      
+      !-------------------------------------------------------------------------
 
       call read_namelist_euterpe_parameters(nradii_euterpe, euterpe_infile)
 

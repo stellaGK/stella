@@ -2,6 +2,8 @@
 !################## READ STELLA NAMELISTS FOR KINETIC SPECIES ##################
 !###############################################################################
 ! 
+!                                 INPUT FILE
+! 
 ! This module will read the namelists associated with the kinetic species:
 ! 
 !   species_options
@@ -38,11 +40,34 @@
 !     nradii = 1000.0
 !     data_file = 'euterpe.dat'
 ! 
+!   adiabatic_electron_response
+!     adiabatic_option = 'field-line-average-term'
+!     tite = 1.0
+!     nine = 1.0
+!   
+!   adiabatic_ion_response
+!     adiabatic_option = 'no-field-line-average-term'
+!     tite = 1.0
+!     nine = 1.0
+! 
+!                             TEXT OPTIONS
+!   
 ! Text options for <initialise_distribution_option>:
 !    - Ions: {default, ion}
 !    - Electrons: {electron, e}
-!    - Slowing down species: {beam, fast, alpha, slowing-down}
-!    - Trace species: {trace}
+! 
+! Text options for <adiabatic_option>:
+!    - Adiabatic electron response: {default, field-line-average-term, iphi00=2}
+!    - Adiabatic ion response: {no-field-line-average-term, iphi00=0, iphi00=1}
+! 
+!                          ADIABATIC SPECIES
+! 
+! Adiabatic options: This is used when no kinetic electrons are present. The 
+! non-kineticspecies (usually electrons) is set to have an adiabatic response.
+! This can be either the classic adiabatic option, or the modified
+! adiabatic option (i.e. modified Boltzmann electrons).
+! 
+!                              MODUlE
 ! 
 ! For each namelists two (or three) routines exist:
 !    - set_default_parameters_<namelist>
@@ -63,12 +88,17 @@ module namelist_species
    public :: read_namelist_species_options
    public :: read_namelist_species_stella
    public :: read_namelist_euterpe_parameters
+   public :: read_namelist_adiabatic_electron_response
+   public :: read_namelist_adiabatic_ion_response
    
    ! Parameters need to be public (species_option)
    public :: species_option_stella, species_option_inputprofs, species_option_euterpe, species_option_multibox
    
    ! Parameters need to be public (type)
-   public :: ion_species, electron_species, slowing_down_species, tracer_species
+   public :: ion_species, electron_species
+   
+   ! Parameters need to be public (adiabatic_option)
+   public :: adiabatic_option_periodic, adiabatic_option_fieldlineavg
 
    private
 
@@ -80,9 +110,11 @@ module namelist_species
 
    ! Create parameters for <type>
    integer, parameter :: ion_species = 1
-   integer, parameter :: electron_species = 2      ! for collision operator
-   integer, parameter :: slowing_down_species = 3  ! slowing-down distn
-   integer, parameter :: tracer_species = 4        ! for test particle diffusion studies
+   integer, parameter :: electron_species = 2
+
+   ! Create parameters for <adiabatic_option>
+   integer, parameter :: adiabatic_option_periodic = 1
+   integer, parameter :: adiabatic_option_fieldlineavg = 2
    
    ! These variables are used in every single subroutine, so make them global
    integer :: in_file
@@ -193,6 +225,190 @@ contains
       end subroutine check_inputs_species_options
 
    end subroutine read_namelist_species_options
+   
+   !****************************************************************************
+   !                        ADIABATIC ELECTRON RESPONSE                        !
+   !****************************************************************************
+   subroutine read_namelist_adiabatic_electron_response(adiabatic_option_switch, tite, nine)
+
+      use mp, only: proc0
+
+      implicit none
+
+      ! Variables that are read from the input file
+      integer, intent(out) :: adiabatic_option_switch
+      real, intent(out) :: tite, nine
+
+      ! Local variable to set <adiabatic_option_switch>
+      character(30):: adiabatic_option
+      
+      !-------------------------------------------------------------------------
+
+      if (.not. proc0) return
+      call set_default_parameters_adiabatic_electron_response
+      call read_input_file_adiabatic_electron_response
+      call check_adiabatic_electron_response
+
+   contains
+      
+      !------------------------ Default input parameters -----------------------
+      subroutine set_default_parameters_adiabatic_electron_response
+
+         implicit none
+
+         ! If no 'electron' species are specified in the kinetic species, then
+         ! adiabatic electrons will be added. They need a modified Boltzmann response.
+         ! The electron density and temperature are set through Ti/Te and ni/ne.
+         adiabatic_option = 'field-line-average-term'
+         tite = 1.0
+         nine = 1.0
+
+      end subroutine set_default_parameters_adiabatic_electron_response
+
+      !---------------------------- Read input file ----------------------------
+      subroutine read_input_file_adiabatic_electron_response
+
+         use file_utils, only: input_unit_exist, error_unit
+         use text_options, only: text_option, get_option_value
+
+         implicit none
+
+         ! Variables needed to read the input file
+         integer :: ierr
+
+         ! Link text options for <adiabatic_option> to an integer value
+         type(text_option), dimension(6), parameter :: adiabaticopts = &
+            (/text_option('default', adiabatic_option_fieldlineavg), &
+            text_option('no-field-line-average-term', adiabatic_option_periodic), &
+            text_option('field-line-average-term', adiabatic_option_fieldlineavg), &
+            text_option('iphi00=0', adiabatic_option_periodic), &
+            text_option('iphi00=1', adiabatic_option_periodic), &
+            text_option('iphi00=2', adiabatic_option_fieldlineavg)/)
+            
+         ! Variables in the <adiabatic_electron_response> namelist
+         namelist /adiabatic_electron_response/ adiabatic_option, tite, nine
+
+         !----------------------------------------------------------------------
+         
+         ! Overwrite the default input parameters by those specified in the input file
+         in_file = input_unit_exist('adiabatic_electron_response', dexist)
+         if (dexist) read (unit=in_file, nml=adiabatic_electron_response)
+
+         ! Read the text option in <adiabatic_option> and store it in <adiabatic_option_switch>
+         ierr = error_unit()
+         call get_option_value(adiabatic_option, adiabaticopts, adiabatic_option_switch, &
+            ierr, 'adiabatic_option in namelist_parameters.f90')
+
+      end subroutine read_input_file_adiabatic_electron_response
+      
+      !--------------------------- Check parameters ----------------------------
+      subroutine check_adiabatic_electron_response
+      
+         use mp, only: mp_abort
+      
+         implicit none
+         
+         if (adiabatic_option_switch /= adiabatic_option_fieldlineavg) then
+            call mp_abort('If the adiabatic electron namelist is read, it means that no kinetic ion species &
+               &have been specified. Therefore, adiabatic electrons are added which require a Modified &
+               &Boltzmann response. Aborting.')
+         end if
+            
+      end subroutine check_adiabatic_electron_response
+
+   end subroutine read_namelist_adiabatic_electron_response
+   
+   !****************************************************************************
+   !                           ADIABATIC ION RESPONSE                          !
+   !****************************************************************************
+   subroutine read_namelist_adiabatic_ion_response(adiabatic_option_switch, tite, nine)
+
+      use mp, only: proc0
+
+      implicit none
+
+      ! Variables that are read from the input file
+      integer, intent(out) :: adiabatic_option_switch
+      real, intent(out) :: tite, nine
+
+      ! Local variable to set <adiabatic_option_switch>
+      character(30):: adiabatic_option
+      
+      !-------------------------------------------------------------------------
+
+      if (.not. proc0) return
+      call set_default_parameters_adiabatic_ion_response
+      call read_input_file_adiabatic_ion_response
+      call check_adiabatic_ion_response
+      
+   contains
+      
+      !------------------------ Default input parameters -----------------------
+      subroutine set_default_parameters_adiabatic_ion_response
+
+         implicit none
+
+         ! If no 'ion' species are specified in the kinetic species, then
+         ! adiabatic ions will be added. They need a normal Boltzmann response.
+         ! The ion density and temperature are set through Ti/Te and ni/ne.
+         adiabatic_option = 'no-field-line-average-term'
+         tite = 1.0
+         nine = 1.0
+
+      end subroutine set_default_parameters_adiabatic_ion_response
+
+      !---------------------------- Read input file ----------------------------
+      subroutine read_input_file_adiabatic_ion_response
+
+         use file_utils, only: input_unit_exist, error_unit
+         use text_options, only: text_option, get_option_value
+
+         implicit none
+
+         ! Variables needed to read the input file
+         integer :: ierr
+
+         ! Link text options for <adiabatic_option> to an integer value
+         type(text_option), dimension(6), parameter :: adiabaticopts = &
+            (/text_option('default', adiabatic_option_fieldlineavg), &
+            text_option('no-field-line-average-term', adiabatic_option_periodic), &
+            text_option('field-line-average-term', adiabatic_option_fieldlineavg), &
+            text_option('iphi00=0', adiabatic_option_periodic), &
+            text_option('iphi00=1', adiabatic_option_periodic), &
+            text_option('iphi00=2', adiabatic_option_fieldlineavg)/)
+            
+         ! Variables in the <adiabatic_electron_response> namelist
+         namelist /adiabatic_ion_response/ adiabatic_option, tite, nine
+
+         !----------------------------------------------------------------------
+         
+         ! Overwrite the default input parameters by those specified in the input file
+         in_file = input_unit_exist('adiabatic_ion_response', dexist)
+         if (dexist) read (unit=in_file, nml=adiabatic_ion_response)
+
+         ! Read the text option in <adiabatic_option> and store it in <adiabatic_option_switch>
+         ierr = error_unit()
+         call get_option_value(adiabatic_option, adiabaticopts, adiabatic_option_switch, &
+            ierr, 'adiabatic_option in namelist_parameters.f90')
+
+      end subroutine read_input_file_adiabatic_ion_response
+      
+      !--------------------------- Check parameters ----------------------------
+      subroutine check_adiabatic_ion_response
+      
+         use mp, only: mp_abort
+      
+         implicit none
+         
+         if (adiabatic_option_switch /= adiabatic_option_periodic) then
+            call mp_abort('If the adiabatic ion namelist is read, it means that no kinetic electron species &
+               &have been specified. Therefore, adiabatic ions are added which require a  &
+               &periodic Boltzmann response. Aborting.')
+         end if
+            
+      end subroutine check_adiabatic_ion_response
+
+   end subroutine read_namelist_adiabatic_ion_response
 
    !****************************************************************************
    !                          SPECIES OPTION: STELLA                           !
@@ -255,16 +471,11 @@ contains
          integer :: unit, is
          
          ! Link text options for <type> to an integer value
-         type(text_option), dimension(9), parameter :: typeopts = (/ &
+         type(text_option), dimension(4), parameter :: typeopts = (/ &
               text_option('default', ion_species), &
               text_option('ion', ion_species), &
               text_option('electron', electron_species), &
-              text_option('e', electron_species), &
-              text_option('beam', slowing_down_species), &
-              text_option('fast', slowing_down_species), &
-              text_option('alpha', slowing_down_species), &
-              text_option('slowing-down', slowing_down_species), &
-              text_option('trace', tracer_species)/)
+              text_option('e', electron_species)/)
 
          ! Variables in the <species_parameters> namelist
          namelist /species_parameters/ z, mass, dens, temp, &

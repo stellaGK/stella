@@ -34,10 +34,10 @@ contains
       !> Layouts
       use stella_layouts, only: vmu_lo
       !> Parameters
-      use parameters_physics, only: nine, tite
+      use grids_species, only: nine, tite
       use parameters_physics, only: include_apar
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use grids_species, only: adiabatic_option_switch
+      use grids_species, only: adiabatic_option_fieldlineavg
       use parameters_physics, only: fphi
       use grids_kxky, only: nakx, ikx_max, naky, naky_all
       !> Arrays
@@ -426,9 +426,9 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use calculations_transforms, only: transform_alpha2kalpha
       !> Parameters
-      use parameters_physics, only: nine, tite
+      use grids_species, only: nine, tite
       use grids_kxky, only: nalpha, ikx_max, naky_all, naky, nakx
-      use parameters_physics, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
+      use grids_species, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
       !> Arrays
       use arrays_store_useful, only: kperp2
       use arrays_store_useful, only: gamtot, gamtot3 
@@ -616,7 +616,7 @@ contains
       !> Layouts
       use calculations_transforms, only: transform_alpha2kalpha
       !> Parameters
-      use parameters_physics, only: nine, tite
+      use grids_species, only: nine, tite
       use grids_kxky, only: naky, naky_all, ikx_max
       !> Grids
       use grids_z, only: nzgrid

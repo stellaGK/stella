@@ -63,8 +63,8 @@ contains
       use arrays_store_fields, only: phi_proj, phi_proj_stage
       use parameters_physics, only: radial_variation
       use grids_species, only: spec, has_electron_species
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use grids_species, only: adiabatic_option_switch
+      use grids_species, only: adiabatic_option_fieldlineavg
       use file_utils, only: runtype_option_switch, runtype_multibox
       use grids_kxky, only: ikx_max
       use namelist_sources, only: read_namelist_sources

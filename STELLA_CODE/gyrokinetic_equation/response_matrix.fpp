@@ -1212,8 +1212,8 @@ contains
       use grids_kxky, only: zonal_mode, akx
       use arrays_store_useful, only: gamtot, gamtot3
       use arrays_store_useful, only: gamtot_h, gamtot3_h
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use grids_species, only: adiabatic_option_switch
+      use grids_species, only: adiabatic_option_fieldlineavg
 
       implicit none
 
@@ -1292,8 +1292,8 @@ contains
       use grids_kxky, only: zonal_mode, akx
       use arrays_store_useful, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
       use arrays_store_useful, only: gamtot_h
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use grids_species, only: adiabatic_option_switch
+      use grids_species, only: adiabatic_option_fieldlineavg
       use mp, only: mp_abort
       
       implicit none

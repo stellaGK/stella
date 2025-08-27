@@ -23,12 +23,7 @@
 !     wstarknob = 1.0
 !     fphi = 1.0
 !     suppress_zonal_interaction = .false.
-!   
-!   adiabatic_electron_response
-!     adiabatic_option = 'field-line-average-term'
-!     tite = 1.0
-!     nine = 1.0
-!   
+! 
 !   electromagnetic
 !     include_apar = .false.
 !     include_bpar = .false.
@@ -51,10 +46,6 @@
 !    - Flux flux annulus: {full_flux_annulus, ffa}
 !    - Multibox from radial variation: {multibox, radial}
 ! 
-! Text options for <adiabatic_option>:
-!    - Adiabatic electron response: {default, field-line-average-term, iphi00=2}
-!    - Adiabatic ion response: {no-field-line-average-term, iphi00=0, iphi00=1}
-! 
 ! For each namelists two (or three) routines exist:
 !    - set_default_parameters_<namelist>
 !    - read_namelist_<namelist>
@@ -72,16 +63,12 @@ module namelist_parameters_physics
    ! Make reading routines accesible to other modules
    public :: read_namelist_gyrokinetic_terms
    public :: read_namelist_scale_gyrokinetic_terms
-   public :: read_namelist_adiabatic_electron_response
    public :: read_namelist_electromagnetic
    public :: read_namelist_flow_shear
    public :: read_namelist_physics_inputs
 
    ! Parameters need to be public (simulation_domain)
    public :: simulation_domain_fluxtube, simulation_domain_multibox, simulation_domain_flux_annulus
-   
-   ! Parameters need to be public (adiabatic_option)
-   public :: adiabatic_option_periodic, adiabatic_option_zero, adiabatic_option_fieldlineavg
 
    private 
 
@@ -89,11 +76,6 @@ module namelist_parameters_physics
    integer, parameter :: simulation_domain_fluxtube = 1
    integer, parameter :: simulation_domain_multibox = 2
    integer, parameter :: simulation_domain_flux_annulus = 3
-
-   ! Create parameters for <adiabatic_option>
-   integer, parameter :: adiabatic_option_periodic = 1
-   integer, parameter :: adiabatic_option_zero = 2
-   integer, parameter :: adiabatic_option_fieldlineavg = 3
    
    ! These variables are used in every single subroutine, so make them global
    integer :: in_file
@@ -282,82 +264,6 @@ contains
       end subroutine check_inputs_scale_gyrokinetic_terms
 
    end subroutine read_namelist_scale_gyrokinetic_terms
-
-   !****************************************************************************
-   !                        ADIABATIC ELECTRON RESPONSE                        !
-   !****************************************************************************
-   subroutine read_namelist_adiabatic_electron_response(adiabatic_option_switch, tite, nine)
-
-      use mp, only: proc0
-
-      implicit none
-
-      ! Variables that are read from the input file
-      integer, intent(out) :: adiabatic_option_switch
-      real, intent(out) :: tite, nine
-
-      ! Local variable to set <adiabatic_option_switch>
-      character(30):: adiabatic_option
-      
-      !-------------------------------------------------------------------------
-
-      if (.not. proc0) return
-      call set_default_parameters_adiabatic_electron_response
-      call read_input_file_adiabatic_electron_response
-
-   contains
-      
-      !------------------------ Default input parameters -----------------------
-      subroutine set_default_parameters_adiabatic_electron_response
-
-         implicit none
-
-         ! If no 'electron' species are specified in the kinetic species, then
-         ! adiabatic electrons will be added. They need a modified Boltzmann response.
-         ! The electron density and temperature are set through Ti/Te and ni/ne.
-         adiabatic_option = 'field-line-average-term'
-         tite = 1.0
-         nine = 1.0
-
-      end subroutine set_default_parameters_adiabatic_electron_response
-
-      !---------------------------- Read input file ----------------------------
-      subroutine read_input_file_adiabatic_electron_response
-
-         use file_utils, only: input_unit_exist, error_unit
-         use text_options, only: text_option, get_option_value
-
-         implicit none
-
-         ! Variables needed to read the input file
-         integer :: ierr
-
-         ! Link text options for <adiabatic_option> to an integer value
-         type(text_option), dimension(6), parameter :: adiabaticopts = &
-            (/text_option('default', adiabatic_option_fieldlineavg), &
-            text_option('no-field-line-average-term', adiabatic_option_periodic), &
-            text_option('field-line-average-term', adiabatic_option_fieldlineavg), &
-            text_option('iphi00=0', adiabatic_option_periodic), &
-            text_option('iphi00=1', adiabatic_option_periodic), &
-            text_option('iphi00=2', adiabatic_option_fieldlineavg)/)
-            
-         ! Variables in the <adiabatic_electron_response> namelist
-         namelist /adiabatic_electron_response/ adiabatic_option, tite, nine
-
-         !----------------------------------------------------------------------
-         
-         ! Overwrite the default input parameters by those specified in the input file
-         in_file = input_unit_exist('adiabatic_electron_response', dexist)
-         if (dexist) read (unit=in_file, nml=adiabatic_electron_response)
-
-         ! Read the text option in <adiabatic_option> and store it in <adiabatic_option_switch>
-         ierr = error_unit()
-         call get_option_value(adiabatic_option, adiabaticopts, adiabatic_option_switch, &
-            ierr, 'adiabatic_option in namelist_parameters.f90')
-
-      end subroutine read_input_file_adiabatic_electron_response
-
-   end subroutine read_namelist_adiabatic_electron_response
 
    !****************************************************************************
    !                            ELECTROMAGNETIC TERMS                          !

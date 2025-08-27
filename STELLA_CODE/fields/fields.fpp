@@ -211,8 +211,8 @@ contains
    subroutine allocate_arrays
        
       ! Parameters
-      use parameters_physics, only: adiabatic_option_switch
-      use parameters_physics, only: adiabatic_option_fieldlineavg
+      use grids_species, only: adiabatic_option_switch
+      use grids_species, only: adiabatic_option_fieldlineavg
       use grids_species, only: spec, has_electron_species
       
       ! Arrays to allocate

@@ -590,7 +590,7 @@ contains
       use geometry, only: geo_surf
       use grids_species, only: spec, nspec
       use grids_z, only: nzed
-      use parameters_physics, only: nine, tite
+      use grids_species, only: nine, tite
       use globalVariables, only: includeXDotTerm_sfincs => includeXDotTerm
       use globalVariables, only: includeElectricFieldTermInXiDot_sfincs => includeElectricFieldTermInXiDot
 !    use globalVariables, only: includeRadialExBDrive_sfincs => includeRadialExBDrive

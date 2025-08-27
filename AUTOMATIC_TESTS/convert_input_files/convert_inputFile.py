@@ -890,10 +890,10 @@ def write_dictionaryToNamelist(path, dictionary, downgrade, indent="  ", sort_kn
     
     # Order of namelists in version 1.0
     ordered_namelists = ['&Geometry', 'geometry_options', 'geometry_miller', 'geometry_vmec', 'geometry_zpinch', 'geometry_from_txt',
-        '&Physics', 'gyrokinetic_terms', 'scale_gyrokinetic_terms', 'adiabatic_electron_response', 'physics_inputs', 'flux_annulus', 'electromagnetic',  'flow_shear', 
+        '&Physics', 'gyrokinetic_terms', 'scale_gyrokinetic_terms', 'physics_inputs', 'flux_annulus', 'electromagnetic',  'flow_shear', 
         '&Diagnostics', 'diagnostics', 'diagnostics_moments', 'diagnostics_omega', 'diagnostics_distribution', 'diagnostics_fluxes', 'diagnostics_potential',
         '&Initialise Distribution', 'initialise_distribution', 'initialise_distribution_maxwellian', 'initialise_distribution_noise', 'initialise_distribution_kpar', 'initialise_distribution_rh', 'restart_options',
-        '&Kinetic species', 'species_options', 'species_parameters_1', 'species_parameters_2', 'species_parameters_3', 'species_parameters_4', 'species_parameters_5', 'euterpe_parameters', 
+        '&Ion, electron and impurity species', 'species_options', 'adiabatic_electron_response', 'adiabatic_ion_response', 'species_parameters_1', 'species_parameters_2', 'species_parameters_3', 'species_parameters_4', 'species_parameters_5', 'euterpe_parameters', 
         '&Discretized (kx,ky,z,mu,vpa) grid', 'kxky_grid_option', 'kxky_grid_range', 'kxky_grid_box', 'z_grid', 'z_boundary_condition', 'velocity_grids',
         '&Numerics', 'time_trace_options', 'time_step', 'numerical_algorithms', 'numerical_upwinding_for_derivatives', 
         '&Dissipation', 'dissipation', 'hyper_dissipation', 'collisions_dougherty', 'collisions_fokker_planck',
@@ -907,7 +907,7 @@ def write_dictionaryToNamelist(path, dictionary, downgrade, indent="  ", sort_kn
             '&Physics', 'parameters', 'physics_flags',
             '&Diagnostics', 'stella_diagnostics_knobs',
             '&Initialise Distribution', 'init_g_knobs',
-            '&Kinetic species', 'species_knobs', 'species_parameters_1', 'species_parameters_2', 'species_parameters_3', 'species_parameters_4', 'species_parameters_5', 'euterpe_parameters', 
+            '&Ion, electron and impurity species', 'species_knobs', 'species_parameters_1', 'species_parameters_2', 'species_parameters_3', 'species_parameters_4', 'species_parameters_5', 'euterpe_parameters', 
             '&Discretized (kx,ky,z,mu,vpa) grid', 'kt_grids_knobs', 'kt_grids_range_parameters', 'kt_grids_box_parameters', 'zgrid_parameters', 'vpamu_grids_parameters',
             '&Numerics', 'knobs', 'time_advance_knobs', 
             '&Dissipation', 'dissipation',
