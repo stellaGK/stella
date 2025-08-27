@@ -1,44 +1,55 @@
+!###############################################################################
+!                                                                               
+!###############################################################################
+! This module ...
+!###############################################################################
 module grids_z
 
+   ! Read the parameters for <boundary_option_switch> from namelist_z_grid.f90
+   use namelist_z_grid, only: boundary_option_zero
+   use namelist_z_grid, only: boundary_option_self_periodic
+   use namelist_z_grid, only: boundary_option_linked
+   use namelist_z_grid, only: boundary_option_linked_stellarator 
+
    implicit none
+   
+   ! Although the parameters are available through namelist_species,
+   ! make them available through grids_species as well
+   public :: boundary_option_switch
+   public :: boundary_option_zero
+   public :: boundary_option_self_periodic
+   public :: boundary_option_linked
+   public :: boundary_option_linked_stellarator
    
    ! Make the routines available to other modules
    public :: read_parameters_z_grid
    public :: init_z_grid
    public :: finish_z_grid
    
+   ! Make the parameters available to other modules
    public :: nzgrid
    public :: nztot, nz2pi
    public :: zed
    public :: delzed
    public :: get_total_arc_length
    public :: get_arc_length_grid
-   public :: boundary_option_switch
-   public :: boundary_option_zero
-   public :: boundary_option_self_periodic
-   public :: boundary_option_linked
-   public :: boundary_option_linked_stellarator
    public :: nzed, nperiod, ntubes, shat_zero, dkx_over_dky
-   public :: boundary_option, zed_equal_arc, grad_x_grad_y_zero
+   public :: zed_equal_arc, grad_x_grad_y_zero
    public :: initialised_grids_z
 
    private
 
+   ! Parameters
    integer :: nzed, nzgrid, nztot, nz2pi
    integer :: nperiod, ntubes
    logical :: zed_equal_arc
    real :: shat_zero, grad_x_grad_y_zero, dkx_over_dky
    real, dimension(:), allocatable :: zed, delzed
-
    integer :: boundary_option_switch
-   integer, parameter :: boundary_option_zero = 1, &
-                         boundary_option_self_periodic = 2, &
-                         boundary_option_linked = 3, &
-                         boundary_option_linked_stellarator = 4
-
+   
+   ! Only initialise once
    logical :: initialised_grids_z = .false.
    logical :: initialised_read_grids_z = .false.
-   character(20) :: boundary_option
 
 contains
 

@@ -1,3 +1,8 @@
+!###############################################################################
+!                                                                               
+!###############################################################################
+! This module ...
+!###############################################################################
 module grids_species_from_euterpe
 
    implicit none
@@ -63,7 +68,6 @@ contains
       allocate (dlnTeds(nradii_euterpe))
       allocate (dlnnids(nradii_euterpe))
       allocate (dlnneds(nradii_euterpe))
-
       allocate (neprim(nradii_euterpe))
       allocate (nedbprim(nradii_euterpe))
       allocate (niprim(nradii_euterpe))
@@ -72,7 +76,6 @@ contains
       allocate (Tedbprim(nradii_euterpe))
       allocate (Tiprim(nradii_euterpe))
       allocate (Tidbprim(nradii_euterpe))
-
       allocate (loglam(nradii_euterpe))
 
       ! column 1 is s=psitor/psitor_LCFS, 2 is dlog(Ti)/ds, 3 is Ti in eV, 4 is dlog(Te)/ds, 5 is Te in eV
@@ -204,10 +207,8 @@ contains
       deallocate (dr, rhotor, psitor)
       deallocate (ni, ne, Ti, Te)
       deallocate (dlnTids, dlnTeds, dlnnids, dlnneds)
-
       deallocate (niprim, neprim, nidbprim, nedbprim)
       deallocate (Tiprim, Teprim, Tidbprim, Tedbprim)
-
       deallocate (loglam)
 
    end subroutine read_species_euterpe

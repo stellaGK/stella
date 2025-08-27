@@ -1,3 +1,8 @@
+!###############################################################################
+!                                                                               
+!###############################################################################
+! This module ...
+!###############################################################################
 module grids_kxky
    
    ! Read the parameters for <grid_option_switch> from namelist_kxky_grid.f90
@@ -17,7 +22,11 @@ module grids_kxky
    public :: kyspacing_option_switch
    public :: kyspacing_linear, kyspacing_exponential
 
+   ! Make the routines available to other modules
    public :: init_grids_kxky, finish_grids_kxky
+   public :: read_parameters_kxky_grids
+   
+   ! Make the parameters available to other modules
    public :: aky, akx
    public :: aky_all, aky_all_ordered
    public :: theta0, zed0
@@ -27,16 +36,12 @@ module grids_kxky
    public :: rho, rho_d, rho_clamped, rho_d_clamped
    public :: g0x
    public :: box
-   
-   
-   public :: read_parameters_kxky_grids
-
 
    ! For Box/Range 
    public :: naky, nakx
    public :: nx, ny
    public :: nalpha, naky_all, ikx_max
-   public :: reality 
+   public :: reality
    public :: phase_shift_angle
    public :: jtwist, jtwistfac, ikx_twist_shift
    public :: centered_in_rho
@@ -46,6 +51,7 @@ module grids_kxky
    public :: theta0_min, theta0_max
    public :: x0, y0
 
+   ! Check initialisation
    public :: initialised_grids_kxky
    
    private 
@@ -67,10 +73,8 @@ module grids_kxky
    real :: dkx, dky, dx_d
    logical :: box
    
-   
- 
+   ! Parameters
    integer :: grid_option_switch
-
    integer :: naky, nakx, nx, ny
    integer :: nalpha, naky_all, ikx_max
    logical :: reality = .false. 
@@ -78,7 +82,6 @@ module grids_kxky
    integer :: jtwist
    real :: jtwistfac
    real :: ikx_twist_shift
-
    logical :: centered_in_rho, periodic_variation, randomize_phase_shift
 
    ! For Range
@@ -90,7 +93,7 @@ module grids_kxky
    ! For Box
    real :: x0, y0
    
-   ! Internal variables
+   ! Only intialise once
    logical :: initialised_grids_kxky
    logical :: initialised_read_parameters_kxky_grids
 
@@ -576,28 +579,17 @@ contains
 
       implicit none
 
-      ! call broadcast(akx)
-      ! call broadcast(aky)
-      ! call broadcast(aky_all)
-      ! call broadcast(aky_all_ordered)
-      ! call broadcast(theta0)
-      ! call broadcast(zed0)
-
-!       if(box) then
       call broadcast(x_d)
       call broadcast(rho)
       call broadcast(rho_d)
       call broadcast(rho_clamped)
       call broadcast(rho_d_clamped)
-!          call broadcast(x)
-!          call broadcast(y)
-!       end if
-            
+
    end subroutine broadcast_parameters
    
-   !======================================================================
-   !======================= INITIALISE KXKY GRIDS ========================
-   !======================================================================
+!###############################################################################
+!############################ FINISH (KX,KY) GRIDS #############################
+!###############################################################################
 
    subroutine finish_grids_kxky
 
@@ -609,16 +601,13 @@ contains
       if (allocated(akx)) deallocate (akx)
       if (allocated(theta0)) deallocate (theta0)
       if (allocated(zed0)) deallocate (zed0)
-
       if (allocated(x)) deallocate (x)
       if (allocated(y)) deallocate (y)
-
       if (allocated(x_d)) deallocate (x_d)
       if (allocated(rho)) deallocate (rho)
       if (allocated(rho_d)) deallocate (rho_d)
       if (allocated(rho_clamped)) deallocate (rho_clamped)
       if (allocated(rho_d_clamped)) deallocate (rho_d_clamped)
-
       if (allocated(g0x)) deallocate (g0x)
 
       reality = .false.

@@ -1,3 +1,8 @@
+!###############################################################################
+!                                                                               
+!###############################################################################
+! This module ...
+!###############################################################################
 module arrays_store_useful
 
    use mpi
@@ -9,10 +14,8 @@ module arrays_store_useful
    public :: kperp2, dkperp2dr
    public :: time_gke
    public :: time_parallel_nl
-
-   public :: wdriftinit, wstarinit, parnlinit, &
-         radialinit, driftimpinit
-
+   public :: wdriftinit, wstarinit
+   public :: parnlinit,  radialinit, driftimpinit
    public :: wstar, wstarp
    public :: wdriftx_g, wdrifty_g
    public :: wdriftx_phi, wdrifty_phi
@@ -20,7 +23,7 @@ module arrays_store_useful
    public :: wdriftpx_g, wdriftpy_g
    public :: wdriftpx_phi, wdriftpy_phi
 
-   ! ! Arrays without velocity dependence. Used mostly in field calculations.
+   ! Arrays without velocity dependence. Used mostly in field calculations.
    public :: response_matrix, response_window
    public :: shift_state
    public :: gamtot, dgamtotdr
@@ -37,32 +40,32 @@ module arrays_store_useful
    public :: time_field_solve
    
    !----------------------------------------------------------------------------
-   ! For GK eqn
+   ! For the gyrokinetic equation
    !----------------------------------------------------------------------------
-   real, dimension(:, :, :), allocatable :: wstar, wstarp
+   
    ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
+   real, dimension(:, :, :), allocatable :: wstar, wstarp
 
+   ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
    real, dimension(:, :, :), allocatable :: wdriftx_g, wdrifty_g
    real, dimension(:, :, :), allocatable :: wdriftx_phi, wdrifty_phi
-   real, dimension(:, :, :), allocatable :: wdriftx_bpar, wdrifty_bpar
-
+   real, dimension(:, :, :), allocatable :: wdriftx_bpar, wdrifty_bpar 
    real, dimension(:, :, :), allocatable :: wdriftpx_g, wdriftpy_g
    real, dimension(:, :, :), allocatable :: wdriftpx_phi, wdriftpy_phi
-   ! (nalpha, -nzgrid:nzgrid, -vmu-layout-)
 
-   !> dkperp2dr will contain the radial variation of kperp2
+   ! dkperp2dr will contain the radial variation of kperp2
    real, dimension(:, :, :, :), allocatable :: kperp2, dkperp2dr
 
-   !> for time advance
+   ! for time advance
    real, dimension(2, 10) :: time_gke = 0.
    real, dimension(2, 2) :: time_parallel_nl = 0.
 
-   logical :: wdriftinit, wstarinit, parnlinit, &
-         radialinit, driftimpinit
+   logical :: wdriftinit, wstarinit, parnlinit, radialinit, driftimpinit
 
    !----------------------------------------------------------------------------
-   ! For field solves 
+   ! For field solves
    !----------------------------------------------------------------------------
+   
    type(response_matrix_type), dimension(:), allocatable :: response_matrix
    integer :: response_window = MPI_WIN_NULL
    real, dimension(:), allocatable :: shift_state
@@ -71,11 +74,14 @@ module arrays_store_useful
    real, dimension(:, :, :), allocatable :: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
    real, dimension(:, :), allocatable :: gamtot3
    real, dimension(:, :, :), allocatable ::  apar_denom
-   complex, dimension(:, :, :), allocatable :: theta
+   
    ! (nakx, nakx, -nzgrid:nzgrid)
-   complex, dimension(:, :), allocatable :: c_mat
+   complex, dimension(:, :, :), allocatable :: theta
+   
    ! (nakx, nakx)
-   !variables needed for the source
+   complex, dimension(:, :), allocatable :: c_mat
+   
+   ! Variables needed for the sources
    logical :: exclude_boundary_regions_qn
    real :: tcorr_source_qn, exp_fac_qn
    integer :: qn_window = MPI_WIN_NULL, qn_zf_window = MPI_WIN_NULL
