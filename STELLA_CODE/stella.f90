@@ -355,6 +355,7 @@ contains
       ! Other parameters
       use initialise_distribution_fn, only: read_parameters_init_distribution
       use stella_layouts, only: read_parameters_parallelisation_layouts
+      use dissipation, only: read_parameters_dissipation_and_collisions
       
       implicit none
       
@@ -386,6 +387,8 @@ contains
       call read_parameters_init_distribution
       if (debug) write (6, *) 'stella::init_stella::read_parameters_parallelisation_layouts'
       call read_parameters_parallelisation_layouts
+      if (debug) write (6, *) 'stella::init_stella::read_parameters_dissipation_and_collisions'
+      call read_parameters_dissipation_and_collisions
       
    end subroutine read_parameters_from_input_file
    
@@ -407,6 +410,9 @@ contains
       ! The geometry module needs <nalpha> and <naky> which have already been read
       ! by read_parameters_kxky_grids() in read_parameters_from_input_file()
       use grids_kxky, only: naky, nalpha
+      
+      ! Parse <ecoll_zeff> to init_species
+      use dissipation, only: ecoll_zeff
    
       implicit none
       
@@ -426,8 +432,9 @@ contains
       
       ! Read species_parameters from input file and use the info to, e.g.,
       ! determine if a modified Boltzmann response is to be used
+      ! Note that <ecoll_zeff> has already been read in read_parameters_dissipation_and_collisions()
       if (debug) write (6, *) 'stella::init_stella::init_species'
-      call init_species
+      call init_species(ecoll_zeff)
       
       ! Setup the (kx,ky) grids and (x,y) grids, if applicable
       if (debug) write (6, *) 'stella::init_stella::init_multibox_subcalls'

@@ -2,28 +2,45 @@ module dissipation
 
    implicit none
 
+   ! Make routines available to other modules
+   public :: read_parameters_dissipation_and_collisions
    public :: init_dissipation, finish_dissipation
-   public :: init_collisions, collisions_initialized
+   public :: init_collisions, initialised_collisions
    public :: advance_collisions_explicit, advance_collisions_implicit
-   public :: include_collisions, hyper_dissipation
+   
+   ! Make parmeters available
+   public :: include_collisions, hyper_dissipation, ecoll_zeff
    public :: collisions_implicit, cfl_dt_mudiff, cfl_dt_vpadiff
    public :: time_collisions
 
    private
 
-   logical :: collisions_initialized = .false.
+   ! Flags
    logical :: include_collisions
    logical :: collisions_implicit
    logical :: hyper_dissipation
+   logical :: ecoll_zeff
+   
+   ! Collision model is "dougherty" or "fokker-planck"
    character(30) :: collision_model
 
+   ! Parameters
    real :: cfl_dt_mudiff = huge(0.0), cfl_dt_vpadiff = huge(0.0)
    real, dimension(2, 2) :: time_collisions = 0.
+   
+   ! Only initialise once
+   logical :: initialised_read_dissipation_and_collisions = .false.
+   logical :: initialised_dissipation = .false.
+   logical :: initialised_collisions = .false.
 
 contains
 
+!###############################################################################
+!################################ READ NAMELIST ################################
+!###############################################################################
+
    !****************************************************************************
-   subroutine init_dissipation
+   subroutine read_parameters_dissipation_and_collisions
 
       use mp, only: proc0, broadcast
       use file_utils, only: input_unit_exist
@@ -37,21 +54,25 @@ contains
       use dissipation_coll_fokkerplanck, only: read_parameters_fp
       use dissipation_hyper, only: read_parameters_hyper
       use parameters_numerical, only: fully_explicit
-      use dissipation_hyper, only: init_hyper
 
       implicit none
       
       !-------------------------------------------------------------------------
+
+      ! Only initialise once
+      if (initialised_read_dissipation_and_collisions) return
+      initialised_read_dissipation_and_collisions = .true.
       
       ! Read <dissipation> namelist in the input file
-      if (proc0) call read_namelist_dissipation_and_collisions_options(&
-         include_collisions, collisions_implicit, collision_model, hyper_dissipation)
+      if (proc0) call read_namelist_dissipation_and_collisions_options(include_collisions, &
+         collisions_implicit, collision_model, hyper_dissipation, ecoll_zeff)
 
       ! Broadcast to all processors
       call broadcast(include_collisions)
       call broadcast(collisions_implicit)
       call broadcast(collision_model)
       call broadcast(hyper_dissipation)
+      call broadcast(ecoll_zeff)
 
       ! Read input parameters for the dougherty or fokker-planck collision model
       if (include_collisions) then
@@ -97,22 +118,46 @@ contains
          end if
       end if
 
+   end subroutine read_parameters_dissipation_and_collisions
+   
+   
+!###############################################################################
+!#################### INITIALISE DISSIPATION AND COLLISIONS #################### 
+!###############################################################################
+
+   !--------------------------- Initialise dissipation -------------------------
+   subroutine init_dissipation
+   
+      use dissipation_hyper, only: init_hyper
+
+      implicit none
+      
+      !-------------------------------------------------------------------------
+
+      ! Only initialise once
+      if (initialised_dissipation) return
+      initialised_dissipation = .true.
+
+      ! Initialise hyper dissipation
       if (hyper_dissipation) then
          call init_hyper
       end if
-
+   
    end subroutine init_dissipation
 
-   !****************************************************************************
+   !--------------------------- Initialise collisions --------------------------
    subroutine init_collisions
 
       use dissipation_coll_dougherty, only: init_collisions_dougherty
       use dissipation_coll_fokkerplanck, only: init_collisions_fp
 
       implicit none
+      
+      !-------------------------------------------------------------------------
 
-      if (collisions_initialized) return
-      collisions_initialized = .true.
+      ! Only initialise once
+      if (initialised_collisions) return
+      initialised_collisions = .true.
 
       if (collision_model == "dougherty") then
          call init_collisions_dougherty(collisions_implicit, cfl_dt_vpadiff, cfl_dt_mudiff)
@@ -144,7 +189,7 @@ contains
          call finish_collisions_fp
       end if
 
-      collisions_initialized = .false.
+      initialised_collisions = .false.
 
    end subroutine finish_collisions
 

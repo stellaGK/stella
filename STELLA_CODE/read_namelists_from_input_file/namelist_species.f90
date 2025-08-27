@@ -9,7 +9,6 @@
 !     species_option = 'stella'
 !     read_profile_variation = .false.
 !     write_profile_variation = .false.
-!     ecoll_zeff = .false. !! NB: has to be here to avoid circular dependencies
 !   
 !   species_parameters_1
 !     z = 1.0
@@ -95,7 +94,7 @@ contains
    !                              SPECIES OPTIONS                              !
    !****************************************************************************
    subroutine read_namelist_species_options(nspec, species_option_switch, &
-      read_profile_variation, write_profile_variation, ecoll_zeff)
+      read_profile_variation, write_profile_variation)
 
       use mp, only: proc0, mp_abort
       use parameters_physics, only: initialised_parameters_physics
@@ -106,7 +105,6 @@ contains
       integer, intent (out) :: nspec
       logical, intent (out) :: read_profile_variation, write_profile_variation
       integer, intent (out) :: species_option_switch
-      logical, intent (out) :: ecoll_zeff
       
       ! Local variable to set <species_option_switch>
       character(20) :: species_option
@@ -136,7 +134,6 @@ contains
          species_option = 'stella'
          read_profile_variation = .false.
          write_profile_variation = .false.
-         ecoll_zeff = .false.
 
       end subroutine set_default_species_options
 
@@ -160,7 +157,8 @@ contains
 
          ! Variables in the <species_options> namelist
          namelist /species_options/ nspec, read_profile_variation, &
-            write_profile_variation, species_option, ecoll_zeff
+            write_profile_variation, species_option
+            
          !----------------------------------------------------------------------
 
          ! Overwrite the default input parameters by those specified in the input file

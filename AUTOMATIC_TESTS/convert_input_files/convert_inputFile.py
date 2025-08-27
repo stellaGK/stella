@@ -251,7 +251,7 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         'species_knobs:read_profile_variation:False' : 'species_options:read_profile_variation:False',
         'species_knobs:write_profile_variation:False' : 'species_options:write_profile_variation:False',
         'species_knobs:species_option:stella' : 'species_options:species_option:stella',
-        'species_knobs:ecoll_zeff:False' : 'species_options:ecoll_zeff:False'}
+        'species_knobs:ecoll_zeff:False' : 'dissipation_and_collisions_options:ecoll_zeff:False'}
     input_parameters = replace_variables(input_parameters, renamed_variables, add_default_variables, downgrade)
     
     # Do this for nspec species

@@ -5,10 +5,11 @@
 ! This module will read the namelists associated with dissipation:
 ! 
 !   dissipation_and_collisions_options
-!      include_collisions = .false.
-!      collisions_implicit = .true.
-!      hyper_dissipation = .false.
-!      collision_model = 'dougherty'
+!     include_collisions = .false.
+!     collisions_implicit = .true.
+!     hyper_dissipation = .false.
+!     collision_model = 'dougherty'
+!     ecoll_zeff = .false.
 !   
 !   collisions_dougherty
 !     momentum_conservation = .true.
@@ -94,7 +95,7 @@ contains
    !                                DISSIPATION                                !
    !****************************************************************************
    subroutine read_namelist_dissipation_and_collisions_options(include_collisions, &
-      collisions_implicit, collision_model, hyper_dissipation)
+      collisions_implicit, collision_model, hyper_dissipation, ecoll_zeff)
 
       use mp, only: proc0
       
@@ -103,6 +104,7 @@ contains
       ! Variables that are read from the input file
       logical, intent(out) :: include_collisions, collisions_implicit, hyper_dissipation
       character(30), intent(out) :: collision_model
+      logical, intent (out) :: ecoll_zeff
          
       !-------------------------------------------------------------------------
 
@@ -122,6 +124,7 @@ contains
          include_collisions = .false.
          collisions_implicit = .true.
          hyper_dissipation = .false.
+         ecoll_zeff = .false.
          
          ! Text options: dougherty or fokker-planck
          collision_model = 'dougherty'
@@ -134,7 +137,8 @@ contains
          use file_utils, only: input_unit_exist
          implicit none
 
-         namelist /dissipation_and_collisions_options/ include_collisions, collisions_implicit, collision_model, hyper_dissipation
+         namelist /dissipation_and_collisions_options/ include_collisions, &
+            collisions_implicit, collision_model, hyper_dissipation, ecoll_zeff
          in_file = input_unit_exist('dissipation_and_collisions_options', dexist)
          if (dexist) read (unit=in_file, nml=dissipation_and_collisions_options)
 

@@ -133,26 +133,31 @@ contains
    ! Gets called in the <init_stella> subroutine in the <stella> module. 
    subroutine init_diagnostics(restart, tstart)
 
+      ! Parallelisation
+      use mp, only: broadcast, proc0
+
+      ! Make sure all grids have been initialised
+      use parameters_physics, only: read_parameters_physics
+      use parameters_numerical, only: read_parameters_numerical
       use grids_z, only: init_z_grid
       use grids_z, only: read_parameters_z_grid
       use grids_kxky, only: init_grids_kxky
       use grids_kxky, only: read_parameters_kxky_grids
-      use parameters_physics, only: read_parameters_physics
-      use parameters_numerical, only: read_parameters_numerical
       use grids_species, only: init_species
       use grids_species, only: read_parameters_species
-      use parameters_diagnostics, only: read_parameters_diagnostics
-
+      use initialise_distribution_fn, only: read_parameters_init_distribution
       use arrays_distribution_fn, only: init_arrays_distribution_fn
       use arrays_constants, only: init_arrays_vperp_kperp
-
-      use initialise_distribution_fn, only: read_parameters_init_distribution
-      use stella_io, only: init_stella_io, get_nout
+      use parameters_diagnostics, only: read_parameters_diagnostics
       use diagnostics_omega, only: init_diagnostics_omega
       use diagnostics_fluxes, only: init_diagnostics_fluxes
       use diagnostics_potential, only: init_diagnostics_potential
+      use dissipation, only: ecoll_zeff
+      
+      ! Netcdf output file
       use git_version, only: get_git_version, get_git_date
-      use mp, only: broadcast, proc0
+      use stella_io, only: init_stella_io
+      use stella_io, only: get_nout
 
       implicit none
 
@@ -186,7 +191,7 @@ contains
       call read_parameters_diagnostics
       call init_z_grid
       call init_grids_kxky
-      call init_species
+      call init_species(ecoll_zeff)
       call read_parameters_init_distribution
       call init_arrays_distribution_fn
       call init_arrays_vperp_kperp

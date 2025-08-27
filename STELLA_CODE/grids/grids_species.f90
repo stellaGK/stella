@@ -1,3 +1,8 @@
+!###############################################################################
+!                                MODULE SPECIES
+!###############################################################################
+! This module reads the number of species and the specifics of each specie.
+!###############################################################################
 module grids_species
 
    use stella_common_types, only: spec_type
@@ -29,6 +34,7 @@ module grids_species
    public :: species_option_stella, species_option_inputprofs
    public :: species_option_euterpe, species_option_multibox
    
+   ! Make the following parameters public
    public :: nspec, spec, pfac
    public :: has_electron_species, has_slowing_down_species
    public :: ions, electrons, impurity
@@ -43,7 +49,6 @@ module grids_species
 
    integer :: nspec
    logical :: read_profile_variation, write_profile_variation
-   logical :: ecoll_zeff
    logical :: modified_adiabatic_electrons, adiabatic_electrons
 
    type(spec_type), dimension(:), allocatable :: spec
@@ -78,7 +83,7 @@ contains
 
       ! Read the "species_options" namelists in the input file
       call read_namelist_species_options(nspec, species_option_switch, &
-         read_profile_variation, write_profile_variation, ecoll_zeff)
+         read_profile_variation, write_profile_variation)
          
       ! Broadcast the parameters to all processors
       call broadcast_species_options
@@ -111,45 +116,45 @@ contains
          call broadcast(read_profile_variation)
          call broadcast(write_profile_variation)
          call broadcast(species_option_switch)
-         call broadcast(ecoll_zeff)
 
       end subroutine broadcast_species_options
       
    end subroutine read_parameters_species
 
 !###############################################################################
-!############################### INITIALISE Z GRID #############################
+!########################### INITIALISE SPECIES GRID ###########################
 !###############################################################################
 
    !****************************************************************************
    !                                INITIALISE SPECIES
    !****************************************************************************
-   subroutine init_species
+   subroutine init_species(ecoll_zeff)
 
       use mp, only: proc0, broadcast, mp_abort
       use parameters_physics, only: vnew_ref, zeff
       use parameters_multibox, only: include_pressure_variation
       use parameters_physics, only: adiabatic_option_switch, adiabatic_option_fieldlineavg
-
       use parameters_physics, only: full_flux_surface
+      
       implicit none
 
-      integer :: is, is2
+      ! Mote that the dissipation module depends on the species module so we 
+      ! can not import <ecoll_zeff> and have to pass it through instead
+      logical, intent (in) :: ecoll_zeff
 
+      ! Local variables
+      integer :: is, is2
+      
+      !-------------------------------------------------------------------------
+
+      ! Only initialise once
       if (initialised_init_species) return
       initialised_init_species = .true.
 
-      !this will be called by the central box in stella.f90 after
-      !ktgrids is set up as we need to know the radial box size
       if (proc0) then
-         if (species_option_switch == species_option_multibox) then
-            call communicate_species_multibox
-         end if
-      end if
-
-      if (proc0) then
+         ! If <ecoll_zeff> = True, we only consider intra-species collisions, so
+         ! account for e-i and e-impurity collisions using zeff.
          if (ecoll_zeff) then
-            ! AVB: only intra-species collisions, account for e-i and e-impurity collisions using zeff
             do is = 1, nspec
                ! initialize nu_ss' = 0 for all s'
                spec(is)%vnew = 0.
@@ -162,18 +167,18 @@ contains
                end if
             end do
          else
-            ! AVB: full intra- and inter-species collision frequencies
+            ! If <ecoll_zeff> = False, we consider full intra- and inter-species collision frequencies
             do is = 1, nspec
                do is2 = 1, nspec
                   if (spec(is)%type == electron_species) then
                      spec(is)%vnew(is2) = vnew_ref * spec(is2)%dens * spec(is)%z**2 * spec(is2)%z**2 &
-                                          / (sqrt(spec(is)%mass) * spec(is)%temp**1.5)
+                         / (sqrt(spec(is)%mass) * spec(is)%temp**1.5)
                   else if ((spec(is)%type == ion_species) .and. (spec(is2)%type == ion_species)) then
                      spec(is)%vnew(is2) = vnew_ref * spec(is2)%dens * spec(is)%z**2 * spec(is2)%z**2 &
-                                          / (sqrt(spec(is)%mass) * spec(is)%temp**1.5)
+                         / (sqrt(spec(is)%mass) * spec(is)%temp**1.5)
                   else if ((spec(is)%type == ion_species) .and. (spec(is2)%type == electron_species)) then
                      spec(is)%vnew(is2) = vnew_ref * spec(is2)%dens * spec(is)%z**2 * spec(is2)%z**2 &
-                                          / (sqrt(spec(is)%mass) * spec(is)%temp**1.5)
+                         / (sqrt(spec(is)%mass) * spec(is)%temp**1.5)
                   end if
                end do
             end do

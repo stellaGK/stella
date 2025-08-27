@@ -163,7 +163,7 @@ contains
 
     subroutine reset_dt
 
-        use dissipation, only: init_collisions, collisions_initialized, include_collisions
+        use dissipation, only: init_collisions, initialised_collisions, include_collisions
         use parameters_numerical, only: stream_implicit, driftkinetic_implicit
         use parameters_physics, only: radial_variation
         use response_matrix, only: response_matrix_initialized
@@ -215,7 +215,7 @@ contains
         end if
         if (include_collisions) then
             if (debug) write (6, *) 'time_advance::reset_dt::init_collisions'
-            collisions_initialized = .false.
+            initialised_collisions = .false.
             call init_collisions
         end if
         ! do not try to re-init response matrix

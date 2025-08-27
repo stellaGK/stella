@@ -127,7 +127,6 @@
   species_option = 'stella'
   read_profile_variation = .false.
   write_profile_variation = .false.
-  ecoll_zeff = .false. !! NB: has to be here to avoid circular dependencies
 /
 
 &species_parameters_1
@@ -393,10 +392,11 @@
 !===============================================================================
 
 &dissipation_and_collisions_options
-   include_collisions = .false.
-   collisions_implicit = .true.
-   hyper_dissipation = .false.
-   collision_model = 'dougherty'
+  include_collisions = .false.
+  collisions_implicit = .true.
+  hyper_dissipation = .false.
+  collision_model = 'dougherty'
+  ecoll_zeff = .false.
 /
 
 &collisions_dougherty

@@ -263,6 +263,7 @@ $(OBJ_DIR)/diagnostics.o: \
 	 $(OBJ_DIR)/diagnostics_moments.o \
 	 $(OBJ_DIR)/diagnostics_omega.o \
 	 $(OBJ_DIR)/diagnostics_potential.o \
+	 $(OBJ_DIR)/dissipation.o \
 	 $(OBJ_DIR)/fields.o \
 	 $(OBJ_DIR)/git_version.o \
 	 $(OBJ_DIR)/grids_kxky.o \
