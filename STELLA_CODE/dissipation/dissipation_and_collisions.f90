@@ -1,4 +1,14 @@
-module dissipation
+!###############################################################################
+!                          DISSIPATION AND COLLISIONS                           
+!###############################################################################
+! 
+! Add various types of dissipation to the simulations:
+!     - hyoer dissipation
+!     - dougherty collisions
+!     - fokker-planck collisions
+! 
+!###############################################################################
+module dissipation_and_collisions
 
    implicit none
 
@@ -273,4 +283,4 @@ contains
 
    end subroutine advance_collisions_implicit
 
-end module dissipation
+end module dissipation_and_collisions

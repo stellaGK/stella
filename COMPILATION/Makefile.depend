@@ -34,7 +34,7 @@ stella_mod = \
 	 $(OBJ_DIR)/diagnostics_omega.o \
 	 $(OBJ_DIR)/diagnostics_potential.o \
 	 $(OBJ_DIR)/diagnostics_write_radial_grid.o \
-	 $(OBJ_DIR)/dissipation.o \
+	 $(OBJ_DIR)/dissipation_and_collisions.o \
 	 $(OBJ_DIR)/dissipation_coll_dougherty.o \
 	 $(OBJ_DIR)/dissipation_coll_fokkerplanck.o \
 	 $(OBJ_DIR)/dissipation_hyper.o \
@@ -263,7 +263,7 @@ $(OBJ_DIR)/diagnostics.o: \
 	 $(OBJ_DIR)/diagnostics_moments.o \
 	 $(OBJ_DIR)/diagnostics_omega.o \
 	 $(OBJ_DIR)/diagnostics_potential.o \
-	 $(OBJ_DIR)/dissipation.o \
+	 $(OBJ_DIR)/dissipation_and_collisions.o \
 	 $(OBJ_DIR)/fields.o \
 	 $(OBJ_DIR)/git_version.o \
 	 $(OBJ_DIR)/grids_kxky.o \
@@ -426,23 +426,6 @@ $(OBJ_DIR)/diagnostics_write_radial_grid.o: \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/parameters_physics.o 
-$(OBJ_DIR)/dissipation.o: \
-	 $(OBJ_DIR)/arrays_store_distribution_fn.o \
-	 $(OBJ_DIR)/calculations_redistribute.o \
-	 $(OBJ_DIR)/debug_flags.o \
-	 $(OBJ_DIR)/dissipation_coll_dougherty.o \
-	 $(OBJ_DIR)/dissipation_coll_fokkerplanck.o \
-	 $(OBJ_DIR)/dissipation_hyper.o \
-	 $(OBJ_DIR)/file_utils.o \
-	 $(OBJ_DIR)/grids_velocity.o \
-	 $(OBJ_DIR)/grids_z.o \
-	 $(OBJ_DIR)/job_manage.o \
-	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/namelist_dissipation.o \
-	 $(OBJ_DIR)/parameters_numerical.o \
-	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/redistribute.o \
-	 $(OBJ_DIR)/stella_layouts.o 
 $(OBJ_DIR)/dissipation_and_collisions.o: \
 	 $(OBJ_DIR)/arrays_store_distribution_fn.o \
 	 $(OBJ_DIR)/calculations_redistribute.o \
@@ -941,7 +924,7 @@ $(OBJ_DIR)/gk_time_advance.o: \
 	 $(OBJ_DIR)/calculations_tofrom_ghf.o \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/debug_flags.o \
-	 $(OBJ_DIR)/dissipation.o \
+	 $(OBJ_DIR)/dissipation_and_collisions.o \
 	 $(OBJ_DIR)/dissipation_hyper.o \
 	 $(OBJ_DIR)/fields.o \
 	 $(OBJ_DIR)/fields_radialvariation.o \
@@ -1211,7 +1194,7 @@ $(OBJ_DIR)/stella.o: \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/diagnostics.o \
 	 $(OBJ_DIR)/diagnostics_omega.o \
-	 $(OBJ_DIR)/dissipation.o \
+	 $(OBJ_DIR)/dissipation_and_collisions.o \
 	 $(OBJ_DIR)/fields.o \
 	 $(OBJ_DIR)/fields_radialvariation.o \
 	 $(OBJ_DIR)/file_utils.o \
@@ -1281,7 +1264,7 @@ $(OBJ_DIR)/text_options.o: \
 $(OBJ_DIR)/timestep_calculations.o: \
 	 $(OBJ_DIR)/arrays_store_useful.o \
 	 $(OBJ_DIR)/debug_flags.o \
-	 $(OBJ_DIR)/dissipation.o \
+	 $(OBJ_DIR)/dissipation_and_collisions.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/gk_drive.o \
 	 $(OBJ_DIR)/gk_flow_shear.o \
