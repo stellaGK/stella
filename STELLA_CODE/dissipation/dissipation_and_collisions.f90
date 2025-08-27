@@ -3,7 +3,7 @@
 !###############################################################################
 ! 
 ! Add various types of dissipation to the simulations:
-!     - hyoer dissipation
+!     - hyper dissipation
 !     - dougherty collisions
 !     - fokker-planck collisions
 ! 
@@ -49,7 +49,6 @@ contains
 !################################ READ NAMELIST ################################
 !###############################################################################
 
-   !****************************************************************************
    subroutine read_parameters_dissipation_and_collisions
 
       use mp, only: proc0, broadcast
@@ -177,7 +176,11 @@ contains
 
    end subroutine init_collisions
 
-   !****************************************************************************
+!###############################################################################
+!##################### FINALISE DISSIPATION AND COLLISIONS ##################### 
+!###############################################################################
+
+   !---------------------------- Finalise dissipation --------------------------
    subroutine finish_dissipation
 
       implicit none
@@ -186,6 +189,7 @@ contains
 
    end subroutine finish_dissipation
 
+   !---------------------------- Finalise collisions ---------------------------
    subroutine finish_collisions
 
       use dissipation_coll_dougherty, only: finish_collisions_dougherty
@@ -203,26 +207,42 @@ contains
 
    end subroutine finish_collisions
 
-   !****************************************************************************
+!###############################################################################
+!################################## ROUTINES ###################################
+!###############################################################################
+
+   !----------------------- Advance collisions: explicit -----------------------
    subroutine advance_collisions_explicit(g, phi, bpar, gke_rhs)
 
+      ! Parallelisation
       use mp, only: mp_abort
-      use parameters_physics, only: full_flux_surface
-      use stella_layouts, only: vmu_lo
+      
+      ! Grids
       use grids_z, only: nzgrid
+      use stella_layouts, only: vmu_lo
+      
+      ! Flags
+      use parameters_physics, only: full_flux_surface
+      
+      ! Collision models
       use dissipation_coll_dougherty, only: advance_collisions_dougherty_explicit
       use dissipation_coll_fokkerplanck, only: advance_collisions_fp_explicit
 
       implicit none
 
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+      ! Fields
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, bpar
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gke_rhs
+      
+      !-------------------------------------------------------------------------
 
+      ! Abort if collisions are on in full_flux_surface simulations
       if (full_flux_surface) then
-         call mp_abort("collisions not currently supported for full_flux_surface=T.  Aborting.")
+         call mp_abort("Collisions are not currently supported for full_flux_surface = True. Aborting.")
       end if
 
+      ! Advance the explicit collisions
       if (collision_model == "dougherty") then
          call advance_collisions_dougherty_explicit(g, phi, bpar, gke_rhs, time_collisions)
       else if (collision_model == "fokker-planck") then
@@ -231,54 +251,72 @@ contains
 
    end subroutine advance_collisions_explicit
 
-   !****************************************************************************
+   !----------------------- Advance collisions: implicit -----------------------
    subroutine advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
 
+      ! Parallelisation
       use mp, only: proc0
       use redistribute, only: gather, scatter
       use calculations_redistribute, only: kxkyz2vmu
       use job_manage, only: time_message
+      
+      ! Grids
       use grids_z, only: nzgrid
       use grids_velocity, only: set_vpa_weights
       use stella_layouts, only: vmu_lo
+      
+      ! Fields
       use arrays_store_distribution_fn, only: gvmu
+      
+      ! Collision models
       use dissipation_coll_dougherty, only: advance_collisions_dougherty_implicit
       use dissipation_coll_fokkerplanck, only: advance_collisions_fp_implicit
 
       implicit none
 
+      ! Numerical schemes
       logical, intent(in) :: mirror_implicit
+      
+      ! Fields
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
 
+      ! Local variables
       logical :: conservative_wgts
+      
+      !-------------------------------------------------------------------------
 
+      ! Start timer
       if (proc0) call time_message(.false., time_collisions(:, 1), ' collisions')
 
-      !> switch the vpa integration weights to ensure correct integration by parts
+      ! Switch the vpa integration weights to ensure correct integration by parts
       conservative_wgts = .true.
       call set_vpa_weights(conservative_wgts)
 
+      ! Redistribute the distribution function from ikxkyz to imuvpa
       if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
       call scatter(kxkyz2vmu, g, gvmu)
       if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
 
+      ! Advance the implicit collisions
       if (collision_model == "dougherty") then
          call advance_collisions_dougherty_implicit(phi, apar, bpar)
       else if (collision_model == "fokker-planck") then
          call advance_collisions_fp_implicit(phi, apar, bpar)
       end if
 
+      ! Take the results and remap again so ky,kx,z is local.
       if (.not. mirror_implicit) then
-         ! then take the results and remap again so ky,kx,z local.
          if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
          call gather(kxkyz2vmu, gvmu, g)
          if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
       end if
 
+      ! Switch the vpa integration weights back to its original definition
       conservative_wgts = .false.
       call set_vpa_weights(conservative_wgts)
 
+      ! Stop timer
       if (proc0) call time_message(.false., time_collisions(:, 1), ' collisions')
 
    end subroutine advance_collisions_implicit
