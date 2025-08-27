@@ -31,13 +31,18 @@
 !###############################################################################
 module calculations_gyro_averages
 
+   ! Load debug flags
    use stella_common_types, only: coupled_alpha_type
    use debug_flags, only: debug => gyro_averages_debug
-   use arrays_gyro_averages, only: aj0x, aj1x, aj0v, aj1v
+   
+   ! Load the Bessel functions
+   use arrays_gyro_averages, only: aj0x, aj1x
+   use arrays_gyro_averages, only: aj0v, aj1v
    use arrays_gyro_averages, only: j0_ffs
 
    implicit none 
-
+   
+   ! Make routines available to other modules
    public :: gyro_average
    public :: gyro_average_j1
    public :: band_lu_solve_ffs, band_lu_factorisation_ffs
@@ -72,10 +77,12 @@ module calculations_gyro_averages
 
 contains
 
-   !> gyro_average_local takes a field at a given ky, kx, z and (vpa, mu, s) value
-   !> and returns the gyro-average of that field;
+   !------------------------------- gyro-average -------------------------------
+   ! gyro_average_local takes a field at a given ky, kx, z and (vpa, mu, s) value
+   ! and returns the gyro-average of that field;
    ! this should never be called for a full flux surface simulation, so no need
    ! to check if flux tube or full flux surface
+   !----------------------------------------------------------------------------
    subroutine gyro_average_local(field, iky, ikx, iz, ivmu, gyro_field)
 
       implicit none
@@ -83,11 +90,14 @@ contains
       complex, intent(in) :: field
       integer, intent(in) :: iky, ikx, iz, ivmu
       complex, intent(out) :: gyro_field
+      
+      !-------------------------------------------------------------------------
 
       gyro_field = aj0x(iky, ikx, iz, ivmu) * field
 
    end subroutine gyro_average_local
 
+   !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_kxky_local(field, iz, ivmu, gyro_field)
 
       use parameters_physics, only: full_flux_surface
@@ -97,18 +107,23 @@ contains
       complex, dimension(:, :), intent(in) :: field
       integer, intent(in) :: iz, ivmu
       complex, dimension(:, :), intent(out) :: gyro_field
+      
+      !-------------------------------------------------------------------------
 
+      ! If simulating a full flux surface, the alpha dependence present
+      ! in kperp makes gyro-averaging non-local in k-space
       if (full_flux_surface) then
-         !> if simulating a full flux surface, the alpha dependence present
-         !> in kperp makes gyro-averaging non-local in k-space
          call gyro_average(field, gyro_field, j0_ffs(:, :, iz, ivmu))
+        
+      ! If simulating a flux tube, a gyro-average is local in k-space
       else
-         !> if simulating a flux tube, a gyro-average is local in k-space
          gyro_field = aj0x(:, :, iz, ivmu) * field
+         
       end if
 
    end subroutine gyro_average_kxky_local
 
+   !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_kxkyz_local(field, ivmu, gyro_field)
 
       use parameters_physics, only: full_flux_surface
@@ -119,18 +134,23 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: field
       integer, intent(in) :: ivmu
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: gyro_field
+      
+      !-------------------------------------------------------------------------
 
+      ! If simulating a full flux surface, the alpha dependence present
+      ! in kperp makes gyro-averaging non-local in k-space
       if (full_flux_surface) then
-         !> if simulating a full flux surface, the alpha dependence present
-         !> in kperp makes gyro-averaging non-local in k-space
          call gyro_average(field, gyro_field, j0_ffs(:, :, :, ivmu))
+         
+      ! If simulating a flux tube, a gyro-average is local in k-space
       else
-         !> if simulating a flux tube, a gyro-average is local in k-space
          gyro_field = spread(aj0x(:, :, :, ivmu), 4, ntubes) * field
+         
       end if
 
    end subroutine gyro_average_kxkyz_local
 
+   !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_kxkyzv_local(field, gyro_field)
 
       use parameters_physics, only: full_flux_surface
@@ -142,20 +162,25 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: field
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: gyro_field
       integer :: ivmu
+      
+      !-------------------------------------------------------------------------
 
+      ! If simulating a full flux surface, the alpha dependence present
+      ! in kperp makes gyro-averaging non-local in k-space
       if (full_flux_surface) then
-         !> if simulating a full flux surface, the alpha dependence present
-         !> in kperp makes gyro-averaging non-local in k-space
          call gyro_average(field, gyro_field, j0_ffs)
+         
+      ! If simulating a flux tube, a gyro-average is local in k-space
       else
-         !> if simulating a flux tube, a gyro-average is local in k-space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             call gyro_average(field(:, :, :, :, ivmu), ivmu, gyro_field(:, :, :, :, ivmu))
          end do
+         
       end if
 
    end subroutine gyro_average_kxkyzv_local
 
+   !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_ffs_kxky_local(field, gyro_field, coefs)
 
       use grids_kxky, only: naky
@@ -171,6 +196,9 @@ contains
       integer :: iky, ikx, ikyp
       integer :: idx
       complex, dimension(:, :), allocatable :: field_kyall, gyro_field_kyall
+      integer :: ivmu
+      
+      !-------------------------------------------------------------------------
 
       ! need to switch from ky>=0 and all kx
       ! to kx>=0 and all ky (using reality condition)
@@ -221,6 +249,8 @@ contains
 
    end subroutine gyro_average_ffs_kxky_local
 
+
+   !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_ffs_kxkyz_local(field, gyro_field, coefs)
 
       use grids_z, only: nzgrid, ntubes
@@ -232,6 +262,8 @@ contains
       type(coupled_alpha_type), dimension(:, :, -nzgrid:), intent(in) :: coefs
 
       integer :: iz, it
+      
+      !-------------------------------------------------------------------------
 
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
@@ -241,6 +273,7 @@ contains
 
    end subroutine gyro_average_ffs_kxkyz_local
 
+   !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_ffs_field(field, gyro_field, coefs)
 
       use stella_common_types, only: coupled_alpha_type
@@ -254,6 +287,8 @@ contains
       type(coupled_alpha_type), dimension(:, :, -nzgrid:, vmu_lo%llim_proc:), intent(in) :: coefs
 
       integer :: ivmu
+      
+      !-------------------------------------------------------------------------
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          call gyro_average(field(:, :, :, :), gyro_field(:, :, :, :, ivmu), coefs(:, :, :, ivmu))
@@ -261,6 +296,7 @@ contains
 
    end subroutine gyro_average_ffs_field
 
+   !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_ffs(dist, gyro_dist, coefs)
 
       use stella_common_types, only: coupled_alpha_type
@@ -274,6 +310,8 @@ contains
       type(coupled_alpha_type), dimension(:, :, -nzgrid:, vmu_lo%llim_proc:), intent(in) :: coefs
 
       integer :: ivmu
+      
+      !-------------------------------------------------------------------------
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          call gyro_average(dist(:, :, :, :, ivmu), gyro_dist(:, :, :, :, ivmu), coefs(:, :, :, ivmu))
@@ -281,6 +319,7 @@ contains
 
    end subroutine gyro_average_ffs
 
+   !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_v_local(distfn, imu, ikxkyz, gyro_distfn)
 
       implicit none
@@ -288,11 +327,14 @@ contains
       complex, dimension(:), intent(in) :: distfn
       integer, intent(in) :: imu, ikxkyz
       complex, dimension(:), intent(out) :: gyro_distfn
+      
+      !-------------------------------------------------------------------------
 
       gyro_distfn = aj0v(imu, ikxkyz) * distfn
 
    end subroutine gyro_average_v_local
 
+   !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_vmu_local(distfn, ikxkyz, gyro_distfn)
 
       use grids_velocity, only: nvpa
@@ -302,11 +344,14 @@ contains
       complex, dimension(:, :), intent(in) :: distfn
       integer, intent(in) :: ikxkyz
       complex, dimension(:, :), intent(out) :: gyro_distfn
+      
+      !-------------------------------------------------------------------------
 
       gyro_distfn = spread(aj0v(:, ikxkyz), 1, nvpa) * distfn
 
    end subroutine gyro_average_vmu_local
 
+   !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_vmus_nonlocal(field, iky, ikx, iz, gyro_field)
 
       use stella_layouts, only: vmu_lo
@@ -316,11 +361,14 @@ contains
       complex, dimension(vmu_lo%llim_proc:), intent(in) :: field
       integer, intent(in) :: iky, ikx, iz
       complex, dimension(vmu_lo%llim_proc:), intent(out) :: gyro_field
+      
+      !-------------------------------------------------------------------------
 
       gyro_field = aj0x(iky, ikx, iz, :) * field
 
    end subroutine gyro_average_vmus_nonlocal
    
+   !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_j1_vmus_nonlocal(field, iky, ikx, iz, gyro_field)
 
       use stella_layouts, only: vmu_lo
@@ -330,11 +378,14 @@ contains
       complex, dimension(vmu_lo%llim_proc:), intent(in) :: field
       integer, intent(in) :: iky, ikx, iz
       complex, dimension(vmu_lo%llim_proc:), intent(out) :: gyro_field
+      
+      !-------------------------------------------------------------------------
 
       gyro_field = aj1x(iky, ikx, iz, :) * field
 
    end subroutine gyro_average_j1_vmus_nonlocal
    
+   !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_j1_local(field, iky, ikx, iz, ivmu, gyro_field)
 
       implicit none
@@ -342,11 +393,14 @@ contains
       complex, intent(in) :: field
       integer, intent(in) :: iky, ikx, iz, ivmu
       complex, intent(out) :: gyro_field
+      
+      !-------------------------------------------------------------------------
 
       gyro_field = aj1x(iky, ikx, iz, ivmu) * field
 
    end subroutine gyro_average_j1_local
    
+   !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_j1_kxky_local(field, iz, ivmu, gyro_field)
 
       implicit none
@@ -354,11 +408,14 @@ contains
       complex, dimension(:, :), intent(in) :: field
       integer, intent(in) :: iz, ivmu
       complex, dimension(:, :), intent(out) :: gyro_field
+      
+      !-------------------------------------------------------------------------
 
       gyro_field = aj1x(:, :, iz, ivmu) * field
 
    end subroutine gyro_average_j1_kxky_local
 
+   !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_j1_kxkyz_local(field, ivmu, gyro_field)
 
       use grids_z, only: nzgrid, ntubes
@@ -370,6 +427,8 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: gyro_field
 
       integer :: iz, it
+      
+      !-------------------------------------------------------------------------
 
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
@@ -379,6 +438,7 @@ contains
 
    end subroutine gyro_average_j1_kxkyz_local
 
+   !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_j1_vmu_local(distfn, ikxkyz, gyro_distfn)
 
       use grids_velocity, only: nvpa
@@ -388,11 +448,14 @@ contains
       complex, dimension(:, :), intent(in) :: distfn
       integer, intent(in) :: ikxkyz
       complex, dimension(:, :), intent(out) :: gyro_distfn
+      
+      !-------------------------------------------------------------------------
 
       gyro_distfn = spread(aj1v(:, ikxkyz), 1, nvpa) * distfn
 
    end subroutine gyro_average_j1_vmu_local
 
+   !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_j1_v_local(distfn, imu, ikxkyz, gyro_distfn)
 
       implicit none
@@ -400,11 +463,14 @@ contains
       complex, dimension(:), intent(in) :: distfn
       integer, intent(in) :: imu, ikxkyz
       complex, dimension(:), intent(out) :: gyro_distfn
+      
+      !-------------------------------------------------------------------------
 
       gyro_distfn = aj1v(imu, ikxkyz) * distfn
 
    end subroutine gyro_average_j1_v_local
 
+   !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_j1_kxkyzv_local(field, gyro_field)
       use mp, only: proc0, mp_abort
       use grids_z, only: nzgrid
@@ -416,6 +482,8 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: field
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: gyro_field
       integer :: ivmu
+      
+      !-------------------------------------------------------------------------
 
       if (full_flux_surface) then
          if (proc0) write (*, *) 'gyro_average_j1_kxkyzv_local does not support full_flux_surface'
@@ -432,6 +500,7 @@ contains
       end if
    end subroutine 
    
+   !--------------------------------- band-lu ----------------------------------
    subroutine band_lu_solve_ffs(lu, solvec)
 
       use stella_common_types, only: gam0_ffs_type
@@ -444,6 +513,8 @@ contains
       complex, dimension(:, :, -nzgrid:), intent(in out) :: solvec
 
       integer :: ikx, iz
+      
+      !-------------------------------------------------------------------------
 
       do iz = -nzgrid, nzgrid
          do ikx = 1, ikx_max
@@ -453,6 +524,7 @@ contains
 
    end subroutine band_lu_solve_ffs
 
+   !--------------------------------- band-lu ----------------------------------
    subroutine band_lu_solve_ffs_single(lu, solvec)
 
       use stella_common_types, only: gam0_ffs_type
@@ -466,6 +538,8 @@ contains
       integer :: n, nsubdiag, nsupdiag, nrhs
       integer :: info
       complex, dimension(:, :), allocatable :: solmat
+      
+      !-------------------------------------------------------------------------
 
       ! n is the order of the matrix for which we have the LU factorisation
       n = size(lu%pivot_index)
@@ -485,6 +559,7 @@ contains
 
    end subroutine band_lu_solve_ffs_single
 
+   !--------------------------------- band-lu ----------------------------------
    subroutine band_lu_factorisation_ffs(gam0, lu_gam0)
 
       use stella_common_types, only: coupled_alpha_type, gam0_ffs_type
@@ -499,6 +574,8 @@ contains
       integer :: iky, ikx, iz
 
       complex, dimension(:, :), allocatable :: gam0tmp
+      
+      !-------------------------------------------------------------------------
 
       allocate (gam0tmp(naky, naky_all))
 
@@ -516,6 +593,7 @@ contains
 
    end subroutine band_lu_factorisation_ffs
 
+   !--------------------------------- band-lu ----------------------------------
    subroutine band_lu_factorisation_single(gam0, lu_gam0)
 
       use stella_common_types, only: gam0_ffs_type
@@ -529,6 +607,8 @@ contains
       integer :: nrows, ncols, nsubdiag, nsupdiag, leading_dim
       integer :: info
       integer :: i, imod
+      
+      !-------------------------------------------------------------------------
 
       ! nrows and ncols are the number of rows and columns of the matrix to be LU-decomposed (variant of gam0)
       ! this matrix is naky_all x naky_all
@@ -569,8 +649,10 @@ contains
       ! and info, which should be zero if the LU factorisation is successful
       call zgbtrf(nrows, ncols, nsubdiag, nsupdiag, lu_gam0%matrix, leading_dim, lu_gam0%pivot_index, info)
 
+   !--------------------------------- band-lu ----------------------------------
    end subroutine band_lu_factorisation_single
 
+   ! Flag -- remove the code below?
    ! set up field that varies as x^2 = rho^2 * cos(angle)^2,
         ! with rho the distance from the origin, and 'angle' is the angle made with the horizontal
         ! if considering a particle at x=0, then rho is thee gyro-radius and angle is the gyro-angle
@@ -823,4 +905,5 @@ contains
         !     end if
 
         ! end subroutine test_ffs_bessel_coefs_subset
+        
 end module calculations_gyro_averages
