@@ -1,3 +1,34 @@
+!###############################################################################
+!                            CALCULATE GYRO AVERAGES
+!###############################################################################
+! This module computes the gyro-average of the fields.
+! 
+! Gyro-averaging in real space is an integral over theta:
+!    < phi >_theta = 1/(2*pi) * int_0^(2*pi) phi dtheta
+! In reciprocal space this is equivalent with multiplying with the Bessel function:
+!    Fourier < phi >_theta = J_0(k_perp*rho_s) * phi
+! 
+! There are gyro-average routines each layout of the grid on the processors:
+!       kxkyz_layout    (naky*nakx*nzed*ntubes*nspec - 1) points
+!       kxyz_layout     (ny*nakx*nzed*ntubes*nspec - 1) points
+!       xyz_layout      (ny*nx*nzed*ntubes*nspec - 1) points
+!       vmu_layout      (2*nvgrid*nmu*nspec - 1) points
+! 
+! The Bessel functions J0(x) and J1(x) are stored only for the points <ivmu> and
+! <ikxkyz> that are located on the current processor <iproc>.
+! 
+! For the (v,mu,s)-grid we have aj0x and aj1x(iky, ikx, iz, ivmu)
+! For the (kx,ky,z)-grid we have aj0v and aj1v(imu, ikxkyz)
+! 
+! The argument of the bessel function is a_k = k_perp*rho_s     see Eq.(19)
+! if we use v_th = sqrt(2*T/m) and w = q*B/m we find:
+!    a_k = k_perpN/rho_r*rho_s = k_perpN/(v_thr/w_r)*(v_perps/w_s)
+!        = k_perpN*v_perpsN*(v_ths/v_thr)*(w_r/w_s)
+!        = k_perpN*v_perpsN*sqrt(T_s/T_r)*sqrt(m_r/m_s)*(Z_r/Z_s)*(m_s/m_r)*B_r/B_s
+!        = k_perpN*v_perpsN*sqrt(T_N*m_N)/Z_N/bmag(ia,iz)
+!        = sqrt(kperp2*vperp2)*spec(is)%smz_psi0/bmag
+!
+!###############################################################################
 module calculations_gyro_averages
 
    use stella_common_types, only: coupled_alpha_type
@@ -13,6 +44,7 @@ module calculations_gyro_averages
 
    private
 
+   ! Gyro-average by multiplying with J_O(x)
    interface gyro_average
       module procedure gyro_average_local
       module procedure gyro_average_kxky_local
@@ -27,6 +59,7 @@ module calculations_gyro_averages
       module procedure gyro_average_ffs
    end interface gyro_average
 
+   ! Gyro-average by multiplying with J_1(x)
    interface gyro_average_j1
       module procedure gyro_average_j1_vmus_nonlocal
       module procedure gyro_average_j1_local

@@ -1,3 +1,34 @@
+!###############################################################################
+!                            ARRAYS GYRO AVERAGES
+!###############################################################################
+! This module computes the gyro-average of the fields.
+! 
+! Gyro-averaging in real space is an integral over theta:
+!    < phi >_theta = 1/(2*pi) * int_0^(2*pi) phi dtheta
+! In reciprocal space this is equivalent with multiplying with the Bessel function:
+!    Fourier < phi >_theta = J_0(k_perp*rho_s) * phi
+! 
+! There are gyro-average routines each layout of the grid on the processors:
+!       kxkyz_layout    (naky*nakx*nzed*ntubes*nspec - 1) points
+!       kxyz_layout     (ny*nakx*nzed*ntubes*nspec - 1) points
+!       xyz_layout      (ny*nx*nzed*ntubes*nspec - 1) points
+!       vmu_layout      (2*nvgrid*nmu*nspec - 1) points
+! 
+! The Bessel functions J0(x) and J1(x) are stored only for the points <ivmu> and
+! <ikxkyz> that are located on the current processor <iproc>.
+! 
+! For the (v,mu,s)-grid we have aj0x and aj1x(iky, ikx, iz, ivmu)
+! For the (kx,ky,z)-grid we have aj0v and aj1v(imu, ikxkyz)
+! 
+! The argument of the bessel function is a_k = k_perp*rho_s     see Eq.(19)
+! if we use v_th = sqrt(2*T/m) and w = q*B/m we find:
+!    a_k = k_perpN/rho_r*rho_s = k_perpN/(v_thr/w_r)*(v_perps/w_s)
+!        = k_perpN*v_perpsN*(v_ths/v_thr)*(w_r/w_s)
+!        = k_perpN*v_perpsN*sqrt(T_s/T_r)*sqrt(m_r/m_s)*(Z_r/Z_s)*(m_s/m_r)*B_r/B_s
+!        = k_perpN*v_perpsN*sqrt(T_N*m_N)/Z_N/bmag(ia,iz)
+!        = sqrt(kperp2*vperp2)*spec(is)%smz_psi0/bmag
+!
+!###############################################################################
 module arrays_gyro_averages
 
    use stella_common_types, only: coupled_alpha_type
@@ -6,58 +37,106 @@ module arrays_gyro_averages
 
    implicit none
    
+   ! Make routines available to other modules
    public :: init_bessel, finish_bessel
-
-   public :: aj0x, aj0v, aj1x, aj1v    
-   public :: j0_B_ffs, j0_ffs
-
    public :: find_max_required_kalpha_index
+
+   ! Make arrays available
+   public :: aj0x, aj0v, aj1x, aj1v
+   public :: j0_B_ffs, j0_ffs 
    public :: j1_ffs
    public :: j0_const, j0_B_const
    public :: j0max_const
 
    private
 
-   ! Local variables for gyro averages
+   ! Dimension (naky, nakx, nalpha, -nzgrid:nzgrid, imuvpaspecies) on vmu-layout[llim_proc:ulim_alloc]
    real, dimension(:, :, :, :), allocatable :: aj0x, aj1x
-   ! (naky, nakx, nalpha, -nzgrid:nzgrid, -vmu-layout-)
+   
+   ! Dimension (nmu, ikxkyzspecies) on kxkyz-layout[llim_proc:ulim_alloc])
    real, dimension(:, :), allocatable :: aj0v, aj1v
-   ! (nmu, -kxkyz-layout-)
 
-   ! Flux surface gyro averages
+   ! Variables for the full flux surface simulations
    type(coupled_alpha_type), dimension(:, :, :, :), allocatable :: j0_ffs, j0_B_ffs
    type(coupled_alpha_type), dimension(:, :, :, :), allocatable :: j1_ffs
    real, dimension(:, :, :, :), allocatable :: j0_const, j0_B_const, j0max_const
 
-   logical :: bessinit = .false.
+   ! Only initialize the Bessel functions once
+   logical :: initialised_bessels = .false.
 
 contains
 
-   !###############################################################################
-   !################## INITIALISE BESSEL FUNCTIONS FOR FLUX TUBE ##################
-   !###############################################################################
+!###############################################################################
+!                              BESSEL FUNCTIONS
+!###############################################################################
+! Store the Bessel functions J0(x) and J1(x) only for the points <ivmu> and
+! <ikxkyz> that are located on the current processor <iproc>.
+!
+! For the (v,mu,s)-grid we have aj0x and aj1x(iky, ikx, iz, ivmu)
+! For the (kx,ky,z)-grod we have aj0v and aj1v(imu, ikxkyz)
+!
+! The argument of the bessel function is a_k = k_perp*rho_s     Eq.(19)
+! if we use v_th = sqrt(2*T/m) and w = q*B/m we find:
+!    a_k = k_perpN/rho_r*rho_s = k_perpN/(v_thr/w_r)*(v_perps/w_s)
+!        = k_perpN*v_perpsN*(v_ths/v_thr)*(w_r/w_s)
+!        = k_perpN*v_perpsN*sqrt(T_s/T_r)*sqrt(m_r/m_s)*(Z_r/Z_s)*(m_s/m_r)*B_r/B_s
+!        = k_perpN*v_perpsN*sqrt(T_N*m_N)/Z_N/bmag(ia,iz)
+!        = sqrt(kperp2*vperp2)*spec(is)%smz_psi0/bmag
+!###############################################################################
+
    subroutine init_bessel
 
-      use arrays_store_useful, only: kperp2
-      use parameters_physics, only: full_flux_surface
-      use grids_species, only: spec
-      use geometry, only: bmag
-      use grids_z, only: nzgrid
-      use grids_velocity, only: vperp2, nmu
-      use grids_kxky, only: naky, nakx
-      use stella_layouts, only: kxkyz_lo, vmu_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, imu_idx
-      use spfunc, only: j0, j1
-
       implicit none
+      
+      !-------------------------------------------------------------------------
 
+      ! Only initialise once
+      if (initialised_bessels) return
+      initialised_bessels = .true.
+      
+      ! Initialise Bessel functions J_0(x) and J_1(x) on the (nmu) grid
+      call init_bessel_versus_mu_aj0v_aj1v
+      
+      ! Initialise Bessel functions J_0(x) and J_1(x) on the (kx,ky) grid
+      call init_bessel_versus_kxky_aj0x_aj1x
+      
+      ! Flag -- remove this
+      !if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::test_gyro_average'
+      !if(debug_test_gyro_average) call test_gyro_average
+      
+   end subroutine init_bessel
+   
+   !****************************************************************************
+   !                  Initialise Bessel functions versus mu
+   !****************************************************************************
+   subroutine init_bessel_versus_mu_aj0v_aj1v
+
+      ! Import Bessel functions
+      use spfunc, only: j0, j1
+      
+      ! Parallelisation
+      use stella_layouts, only: kxkyz_lo
+      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+      
+      ! Grids and geometry
+      use geometry, only: bmag
+      use grids_velocity, only: nmu
+      use grids_velocity, only: vperp2
+      use arrays_store_useful, only: kperp2
+      
+      ! Species parameters
+      use grids_species, only: spec
+      
+      implicit none
+      
+      ! Local variables
       integer :: iz, iky, ikx, imu, is, ia
-      integer :: ikxkyz, ivmu
+      integer :: ikxkyz
       real :: arg
+      
+      !-------------------------------------------------------------------------
 
-      if (bessinit) return
-      bessinit = .true.
-
+      ! Allocate the arrays
       if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::allocate_aj0v_aj1v'
       if (.not. allocated(aj0v)) then
          allocate (aj0v(nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
@@ -67,62 +146,115 @@ contains
          allocate (aj1v(nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
          aj1v = 0.
       end if
-
-      if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::calculate_aj0v_aj1v'
+      
+      ! Assume we have a single field line
       ia = 1
+
+      ! Calculate the Bessel functions J_0(x) and J_1(x) on the (nmu) grid
+      ! Note that j1 returns J_1(x)/x, not J_1(x)
+      if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::calculate_aj0v_aj1v'
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
          iz = iz_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
          do imu = 1, nmu
-               arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
-               aj0v(imu, ikxkyz) = j0(arg)
-               ! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)),
-               aj1v(imu, ikxkyz) = j1(arg)
+         
+            ! The argument of the bessel function is a_k = k_perp*rho_s
+            arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
+            
+            ! Calculate the Bessel functions with arg = a_k = k_perp*rho_s
+            aj0v(imu, ikxkyz) = j0(arg)
+            aj1v(imu, ikxkyz) = j1(arg)
+            
          end do
       end do
+      
+   end subroutine init_bessel_versus_mu_aj0v_aj1v
 
-      if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::full_flux_surface'
+   !****************************************************************************
+   !                  Initialise Bessel functions versus (kx,ky)
+   !****************************************************************************
+   subroutine init_bessel_versus_kxky_aj0x_aj1x
+
+      ! Import Bessel functions
+      use spfunc, only: j0, j1
+      
+      ! Parallelisation
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: is_idx, imu_idx
+      
+      ! Grids and geometry
+      use geometry, only: bmag
+      use grids_z, only: nzgrid
+      use grids_kxky, only: naky, nakx
+      use grids_velocity, only: vperp2
+      use arrays_store_useful, only: kperp2
+      
+      ! Species parameters
+      use grids_species, only: spec
+      
+      ! Flags
+      use parameters_physics, only: full_flux_surface
+      
+      implicit none
+      
+      ! Local variables
+      integer :: iz, iky, ikx, imu, is, ia
+      integer :: ivmu
+      real :: arg
+      
+      !-------------------------------------------------------------------------
+ 
+      ! Calculate the Bessel functions for full-flux-surface simulations
       if (full_flux_surface) then
          call init_bessel_ffs 
+         
+      ! Calculate the Bessel functions for flux-tube simulations
       else
+      
+         ! Allocate the arrays
+         if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::allocate_aj0x_aj1x'
          if (.not. allocated(aj0x)) then
                allocate (aj0x(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
                aj0x = 0.
-         end if
-         
+         end if 
          if (.not. allocated(aj1x)) then
                allocate (aj1x(naky, nakx, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
                aj1x = 0.
          end if
 
+         ! Assume we have a single field line
          ia = 1
+         
+         ! Calculate the Bessel functions J_0(x) and J_1(x) on the (kx,ky) grid
+         ! Note that j1 returns J_1(x)/x, not J_1(x)
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-               is = is_idx(vmu_lo, ivmu)
-               imu = imu_idx(vmu_lo, ivmu)
-               do iz = -nzgrid, nzgrid
+            is = is_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
+            do iz = -nzgrid, nzgrid
                do ikx = 1, nakx
                   do iky = 1, naky
+                   
+                     ! The argument of the bessel function is a_k = k_perp*rho_s
                      arg = spec(is)%bess_fac * spec(is)%smz_psi0 * sqrt(vperp2(ia, iz, imu) * kperp2(iky, ikx, ia, iz)) / bmag(ia, iz)
+                     
+                     ! Calculate the Bessel functions with arg = a_k = k_perp*rho_s
                      aj0x(iky, ikx, iz, ivmu) = j0(arg)
-                     ! note that j1 returns and aj1 stores J_1(x)/x (NOT J_1(x)),
                      aj1x(iky, ikx, iz, ivmu) = j1(arg)
+                     
                   end do
                end do
-               end do
+            end do
          end do
+         
       end if
-      if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::test_gyro_average'
-
-      ! if(debug_test_gyro_average) call test_gyro_average
-
-   end subroutine init_bessel
-
-   !###############################################################################
-   !################## INITIALISE BESSEL FUNCTIONS FOR FULL FLUX ##################
-   !###############################################################################
-
+      
+   end subroutine init_bessel_versus_kxky_aj0x_aj1x
+   
+   !****************************************************************************
+   !              Initialise Bessel function for full-flux-surface
+   !****************************************************************************
    subroutine init_bessel_ffs
 
       use mp, only: sum_allreduce, proc0
@@ -138,7 +270,6 @@ contains
       use grids_kxky, only: nalpha, naky, naky_all, ikx_max
       use calculations_kxky, only: swap_kxky_ordered
       use arrays_store_useful, only: kperp2
-
       use grids_kxky, only: nakx
       use calculations_kxky, only: swap_kxky_back_ordered
       use spfunc, only: j1
@@ -166,6 +297,11 @@ contains
 
       real, dimension(:), allocatable :: j0max
       complex, dimension(:, :), allocatable :: j0max_const_in_kalpha, j0max_const_c
+      
+      !-------------------------------------------------------------------------
+      
+      
+      if (debug) write (*, *) 'arrays_gyro_averages:init_bessel::full_flux_surface'
 
       ! if (debug_test_gyro_average) call open_output_file (j0_ffs_unit, '.j0_ffs')
       ! if (debug_test_gyro_average) call open_output_file (j0_B_ffs_unit, '.j0_over_B_ffs')
@@ -325,10 +461,14 @@ contains
       
    end subroutine init_bessel_ffs
 
-   !> subroutine takes a set of Fourier coefficients (ft)
-   !> and returns the minimum number of coeffients that must be retained (idx)
-   !> to ensure that the relative error in the total spectral energy is
-   !> below a specified tolerance (tol_floor)
+!###############################################################################
+!################################## FUNCTIONS ##################################
+!###############################################################################
+
+   ! subroutine takes a set of Fourier coefficients (ft)
+   ! and returns the minimum number of coeffients that must be retained (idx)
+   ! to ensure that the relative error in the total spectral energy is
+   ! below a specified tolerance (tol_floor)
    subroutine find_max_required_kalpha_index(ft, idx, imu, iz, is, tol_in)
 
       use grids_velocity, only: maxwell_mu
@@ -384,9 +524,9 @@ contains
 
    end subroutine find_max_required_kalpha_index
 
-   !###############################################################################
-   !################### FINALISE BESSEL FUNCTIONS FOR FLUX TUBE ###################
-   !###############################################################################
+!###############################################################################
+!################### FINALISE BESSEL FUNCTIONS FOR FLUX TUBE ###################
+!###############################################################################
 
    subroutine finish_bessel
 
@@ -403,7 +543,7 @@ contains
       if (allocated(j0_const)) deallocate (j0_const)
       if (allocated(j0max_const)) deallocate (j0max_const)
 
-      bessinit = .false.
+      initialised_bessels = .false.
 
    end subroutine finish_bessel
 
