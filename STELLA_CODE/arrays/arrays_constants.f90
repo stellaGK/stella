@@ -3,9 +3,9 @@
 !###############################################################################
 ! 
 ! This module will fill the following arrays:
-!        - kperp2(ky, kx, alpha, z)
-!        - dkperp2dr(ky, kx, alpha, z)
-!        - vperp2(alpha, z, mu)
+!        - kperp2(ky, kx, alpha, z) = |k_perp|^2
+!        - dkperp2dr(ky, kx, alpha, z) 
+!        - vperp2(alpha, z, mu) = |v_perp|^2
 ! 
 !###############################################################################
 module arrays_constants
@@ -36,7 +36,6 @@ contains
 
       use mp, only: proc0
       use parameters_physics, only: radial_variation
-      use stella_layouts, only: init_dist_fn_layouts
 
       implicit none
       
@@ -46,18 +45,23 @@ contains
       if (initialised_constant_arrays) return
       initialised_constant_arrays = .true.
 
-      ! allocate and initialise kperp2 and dkperp2dr
+      ! Allocate and initialise kperp2
       if (debug) write (*, *) 'dist_fn::init_dist_fn::init_array_kperp2'
       call init_array_kperp2
-      if (radial_variation) call init_dkperp2dr
+      
+      ! Allocate and initialise dkperp2dr
+      if (debug) write (*, *) 'dist_fn::init_dist_fn::init_array_dkperp2dr'
+      if (radial_variation) call init_array_dkperp2dr
 
-      ! allocate and initialise vperp2
+      ! Allocate and initialise vperp2
       if (debug) write (*, *) 'dist_fn::init_dist_fn::init_array_vperp2'
       call init_array_vperp2
 
    end subroutine init_arrays_vperp_kperp
 
-   ! init_array_kperp2 allocates and initialises the kperp2 array
+   !****************************************************************************
+   !                            Calculate |k_perp|^2  
+   !****************************************************************************
    subroutine init_array_kperp2
 
       use arrays_store_useful, only: kperp2
@@ -71,14 +75,20 @@ contains
       implicit none
 
       integer :: iky, ikx
+      
+      !-------------------------------------------------------------------------
 
+      ! Only initialise once
       if (initialised_kperp2) return
       initialised_kperp2 = .true.
 
-      ! allocate the kperp2 array to contain |k_perp|^2
+      ! Allocate the array
       allocate (kperp2(naky, nakx, nalpha, -nzgrid:nzgrid))
 
+      ! Calculate |k_perp|^2
       do iky = 1, naky
+      
+         ! Take care of the zonal modes, i.e., modes with ky=0
          if (zonal_mode(iky)) then
             do ikx = 1, nakx
                if (q_as_x) then
@@ -87,28 +97,36 @@ contains
                   kperp2(iky, ikx, :, :) = akx(ikx) * akx(ikx) * gds22 / (geo_surf%shat**2)
                end if
             end do
+            
+         ! Calculate |k_perp|^2
          else
             do ikx = 1, nakx
                kperp2(iky, ikx, :, :) = aky(iky) * aky(iky) &
-                                        * (gds2 + 2.0 * theta0(iky, ikx) * gds21 &
-                                           + theta0(iky, ikx) * theta0(iky, ikx) * gds22)
+                   * (gds2 + 2.0 * theta0(iky, ikx) * gds21 &
+                   + theta0(iky, ikx) * theta0(iky, ikx) * gds22)
             end do
          end if
       end do
 
+      ! Ensure kperp2 is positive everywhere (only might go negative if using full-flux-surface due to interpolation)
       ! NB: should really avoid this by using higher resolution when reading in VMEC geometry and then
       ! NB: course-graining if necessary to map onto lower-resolution stella grid
-      ! ensure kperp2 is positive everywhere (only might go negative if using full-flux-surface due to interpolation)
       where (kperp2 < 0.0)
          kperp2 = 0.0
       end where
 
+      ! Make sure |k_perp^2| has the same value on z-points where (kx,ky) modes
+      ! are connected to each other through the boundary conditions along z
       call enforce_single_valued_kperp2
 
    end subroutine init_array_kperp2
 
-   ! init_dkperp2dr allocates and initialises the dkperp2dr array, needed for radial variation
-   subroutine init_dkperp2dr
+   !****************************************************************************
+   !                            Calculate dkperp2dr
+   !****************************************************************************
+   ! This array is only needed for radial variation
+   !****************************************************************************
+   subroutine init_array_dkperp2dr
 
       use arrays_store_useful, only: kperp2, dkperp2dr
       use geometry, only: dgds2dr, dgds21dr, dgds22dr
@@ -121,11 +139,17 @@ contains
       implicit none
 
       integer :: iky, ikx
+      
+      !-------------------------------------------------------------------------
 
+      ! Only initialise once
       if (initialised_dkperp2dr) return
       initialised_dkperp2dr = .true.
 
+      ! Allocate the array
       allocate (dkperp2dr(naky, nakx, nalpha, -nzgrid:nzgrid))
+      
+      ! Calculate dkperp2dr
       do iky = 1, naky
          if (zonal_mode(iky)) then
             do ikx = 1, nakx
@@ -146,16 +170,22 @@ contains
          else
             do ikx = 1, nakx
                dkperp2dr(iky, ikx, :, :) = aky(iky) * aky(iky) &
-                                           * (dgds2dr + 2.0 * theta0(iky, ikx) * dgds21dr &
-                                              + theta0(iky, ikx) * theta0(iky, ikx) * dgds22dr)
+                   * (dgds2dr + 2.0 * theta0(iky, ikx) * dgds21dr &
+                      + theta0(iky, ikx) * theta0(iky, ikx) * dgds22dr)
                dkperp2dr(iky, ikx, :, :) = dkperp2dr(iky, ikx, :, :) / kperp2(iky, ikx, :, :)
                if (any(kperp2(iky, ikx, :, :) < epsilon(0.))) dkperp2dr(iky, ikx, :, :) = 0.
             end do
          end if
       end do
 
-   end subroutine init_dkperp2dr
+   end subroutine init_array_dkperp2dr
 
+   !****************************************************************************
+   !                            Calculate dkperp2dr
+   !****************************************************************************
+   ! Make sure |k_perp^2| has the same value on z-points where (kx,ky) modes
+   ! are connected to each other through the boundary conditions along z
+   !****************************************************************************
    subroutine enforce_single_valued_kperp2
 
       use arrays_store_useful, only: kperp2
@@ -167,9 +197,13 @@ contains
 
       integer :: iky, ie, iseg
       real, dimension(:), allocatable :: tmp
+      
+      !-------------------------------------------------------------------------
 
+      ! Allocate temporary array
       allocate (tmp(nalpha)); tmp = 0.0
 
+      ! Set connected z-points to their average |k_perp^2| value
       do iky = 1, naky
          do ie = 1, neigen(iky)
             if (nsegments(ie, iky) > 1) then
@@ -182,10 +216,14 @@ contains
          end do
       end do
 
+      ! Deallocate temporary array
       deallocate (tmp)
 
    end subroutine enforce_single_valued_kperp2
 
+   !****************************************************************************
+   !                            Calculate |v_perp|^2
+   !****************************************************************************
    subroutine init_array_vperp2
 
       use geometry, only: bmag
@@ -197,17 +235,26 @@ contains
       implicit none
 
       integer :: imu
+      
+      !-------------------------------------------------------------------------
 
+      ! Only initialise once
       if (initialised_vperp2) return
       initialised_vperp2 = .true.
 
+      ! Allocate the array
       if (.not. allocated(vperp2)) allocate (vperp2(nalpha, -nzgrid:nzgrid, nmu)); vperp2 = 0.
 
+      ! Calculate |v_perp|^2
       do imu = 1, nmu
          vperp2(:, :, imu) = 2.0 * mu(imu) * bmag
       end do
 
    end subroutine init_array_vperp2
+
+!###############################################################################
+!########################## FINALISE CONSTANT ARRAYS ###########################
+!###############################################################################
 
    subroutine finish_arrays_vperp_kperp
 
@@ -218,6 +265,7 @@ contains
 
    end subroutine finish_arrays_vperp_kperp
 
+   !------------------------ Finish kperp2 and dkperp2dr -----------------------
    subroutine finish_kperp2
 
       use arrays_store_useful, only: kperp2, dkperp2dr
@@ -226,12 +274,12 @@ contains
 
       if (allocated(kperp2)) deallocate (kperp2)
       if (allocated(dkperp2dr)) deallocate (dkperp2dr)
-
       initialised_kperp2 = .false.
       initialised_dkperp2dr = .false.
 
    end subroutine finish_kperp2
 
+   !------------------------------ Finish vperp2 -------------------------------
    subroutine finish_vperp2
 
       use grids_velocity, only: vperp2
@@ -239,7 +287,6 @@ contains
       implicit none
 
       if (allocated(vperp2)) deallocate (vperp2)
-
       initialised_vperp2 = .false.
 
    end subroutine finish_vperp2
