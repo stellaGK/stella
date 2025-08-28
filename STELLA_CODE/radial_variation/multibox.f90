@@ -1,3 +1,8 @@
+!###############################################################################
+!                                                                               
+!###############################################################################
+! This module ...
+!###############################################################################
 module multibox
 
    use fft_work, only: fft_type
@@ -60,7 +65,9 @@ module multibox
 
 contains
 
-
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_multibox
 
       use constants, only: pi
@@ -326,6 +333,9 @@ contains
 
    end subroutine init_multibox
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine communicate_multibox_parameters
       use job_manage, only: njobs
       use mp, only: scope, crossdomprocs, subprocs, &
@@ -348,6 +358,9 @@ contains
 
    end subroutine communicate_multibox_parameters
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine finish_multibox
 
       implicit none
@@ -376,6 +389,9 @@ contains
 
    end subroutine finish_multibox
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine multibox_communicate(gin)
 
       use constants, only: zi
@@ -570,6 +586,9 @@ contains
 
    end subroutine multibox_communicate
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine apply_radial_boundary_conditions(gin)
  
       use grids_kxky, only: zonal_mode
@@ -637,6 +656,9 @@ contains
 
    end subroutine apply_radial_boundary_conditions
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine add_multibox_krook(g, rhs)
 
       use stella_time, only: code_dt
@@ -710,6 +732,9 @@ contains
 !!>DSO - The following subroutines solve for phi in the _physical_ region of space
 !!       It is done here because the radial grid may include an extra point
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_mb_get_phi(has_elec, adiabatic_elec, efac, efacp)
       use grids_kxky, only: nakx, naky
       use parameters_multibox, only: boundary_size
@@ -827,6 +852,9 @@ contains
       deallocate (g0k, g1k, g0x)
    end subroutine init_mb_get_phi
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine mb_get_phi(phi, has_elec, adiabatic_elec)
       use constants, only: zi
       use grids_kxky, only: nakx, naky
@@ -996,11 +1024,13 @@ contains
 
    end subroutine mb_get_phi
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
 !!>DSO - The following subroutines are the _ analogues of the ones found in
 ! calculations_transforms.f90.
 ! The ones uses here ensure that the grid spacing in real space is consistent between
 ! domains (since we do not keep the checkboard mode)
-
    subroutine init_mb_transforms
 
       use stella_layouts, only: read_parameters_parallelisation_layouts
@@ -1020,6 +1050,9 @@ contains
 
    end subroutine init_mb_transforms
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_x_fft
 
       use fft_work, only: init_ccfftw, FFT_BACKWARD, FFT_FORWARD
@@ -1034,6 +1067,9 @@ contains
 
    end subroutine init_x_fft
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_y_fft
 
       use grids_kxky, only: naky, naky_all
@@ -1053,6 +1089,9 @@ contains
 !> transform routines start here
 !
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine transform_kx2x(gkx, gx)
 
       use grids_kxky, only: ikx_max
@@ -1074,6 +1113,9 @@ contains
 
    end subroutine transform_kx2x
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine transform_x2kx(gx, gkx)
 
       use grids_kxky, only: ikx_max
@@ -1111,6 +1153,9 @@ contains
 
    end subroutine transform_ky2y
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
 !   subroutine transform_y2ky (gy, gky)
 !
 !    implicit none
@@ -1128,6 +1173,9 @@ contains
 !
 !  end subroutine transform_y2ky
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine finish_mb_transforms
 
       implicit none

@@ -9,7 +9,6 @@
 ! The variable <nout> keeps track of the current time step.
 ! 
 !###############################################################################
-
 module stella_io
 
 #ifdef NETCDF
