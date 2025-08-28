@@ -10,12 +10,19 @@
 !                                  MATHEMATICS                                  
 ! 
 ! One can convert between f, g and h using:
-!     delta f_s = h_s - Z_s*e/T_s * phi * F_s
-!     g_s = h_s - Z_s*e/T_s * <phi>_theta * F_s
-!     h_s = delta f_s + Z_s*e/T_s * phi * F_s = g_s + Z_s*e/T_s * <phi>_theta * F_s
+!     delta f_s = h_s - Z_s/T_s * phi * F_s
+!     g_s = h_s - Z_s/T_s * <phi>_theta * F_s
+!     h_s = delta f_s + Z_s/T_s * phi * F_s = g_s + Z_s/T_s * <phi>_theta * F_s
 ! 
 ! For electromagnetic simulations we redefine g as gbar
-!     gbar = g + (Z_s*e/T_s) * 2 * J_0 * vpa * <apar> * F_s
+!     <chi>_theta = J_0*phi - 2*vpa*J_0*apar + 4*mu*(T_s/Z_s)*bpar*J_1/b_s
+!     gbar = h - (Z_s/T_s) * <chi>_theta * F_s
+!     gbar = h - (Z_s/T_s)*J_0*phi*F_s + 2*(Z_s/T_s)*J_0*vpa*apar*F_s - 4*mu*bpar*F_s*J_1/b_s
+!     g = h - Z_s/T_s * <phi>_theta * F_s
+!     gbar = g + 2*(Z_s/T_s)*J_0*vpa*apar*F_s - 4*mu*bpar*F_s*J_1/b_s
+! 
+! Note that a factor 2 appears in front of <apar> and <bpar> due to the 
+! normalisation of the velocities with v_th = sqrt(2T/m).
 ! 
 ! Here F_s is a Maxwellian distribution. J_0 is the zeroth order Bessel function
 ! of the first kind, coming from the gyro-averages, i.e. <phi>_theta --> J_0 * phi.
@@ -58,10 +65,10 @@ contains
 !###############################################################################
 ! 
 ! Recall the definition of <gbar>
-!    <gbar> = <g> + 2 * (Z_s*e/T_s) * J_0 * vpa * <apar> * F_s
+!    <gbar> = <g> + 2 * (Z_s/T_s) * J_0 * vpa * <apar> * F_s
 ! 
-! To obtain <g> we distract [2*(Z_s*e/T_s)*J_0*vpa*apar*F_s] from <gbar>
-!    <gyro_averaged_field> = 2*(Z_s*e/T_s)*J_0*vpa*<apar>*F_s
+! To obtain <g> we distract [2*(Z_s/T_s)*J_0*vpa*apar*F_s] from <gbar>
+!    <gyro_averaged_field> = 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s
 !    g(kx,ky,z,mu,vpa,s) = gbar(kx,ky,z,mu,vpa,s) - gyro_averaged_field
 ! 
 ! To convert <g> to <gbar> simply supply <g> as an argument instead of <gbar>, 
@@ -106,7 +113,7 @@ contains
       allocate (field(nvpa, nmu))
       allocate (gyro_averaged_field(nvpa, nmu))
 
-      ! Assume we only have one flux tube
+      ! Assume we only have one field line
       ia = 1
       
       ! Iterate over the (kx,ky,z,mu,vpa,s) grid
@@ -117,15 +124,15 @@ contains
          iky = iky_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
          
-         ! Calculate <gyro_averaged_field> = 2*(Z_s*e/T_s)*J_0*vpa*<apar>*F_s 
-         ! First calculate [2*apar*(Z_s*e/T_s)*vpa], then add F_s, and then J_0
+         ! Calculate <gyro_averaged_field> = 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
+         ! First calculate [2*apar*(Z_s/T_s)*vpa], then add F_s, and then J_0
          field = 2.0 * facapar * apar(iky, ikx, iz, it) * spec(is)%zt * spec(is)%stm_psi0 * spread(vpa, 2, nmu)
          if (.not. maxwellian_normalization) then
             field = field * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
          end if
          call gyro_average(field, ikxkyz, gyro_averaged_field)
          
-         ! Calculate <g>  = <gbar> - 2*(Z_s*e/T_s)*J_0*vpa*<apar>*F_s 
+         ! Calculate <g>  = <gbar> - 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
          g(:, :, ikxkyz) = g(:, :, ikxkyz) - gyro_averaged_field
          
       end do
@@ -171,22 +178,22 @@ contains
       allocate (field(nvpa))
       allocate (gyro_averaged_field(nvpa))
 
-      ! Assume we only have one flux tube
+      ! Assume we only have one field line
       ia = 1
       
       ! Get the specific (kx,ky,z,s,mu) point
       iz = iz_idx(kxkyz_lo, ikxkyz)
       is = is_idx(kxkyz_lo, ikxkyz)
       
-      ! Calculate <gyro_averaged_field> = 2*(Z_s*e/T_s)*J_0*vpa*<apar>*F_s 
-      ! First calculate [2*apar*(Z_s*e/T_s)*vpa], then add F_s, and then J_0
+      ! Calculate <gyro_averaged_field> = 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
+      ! First calculate [2*apar*(Z_s/T_s)*vpa], then add F_s, and then J_0
       field = 2.0 * facapar * apar * spec(is)%zt * spec(is)%stm_psi0 * vpa
       if (.not. maxwellian_normalization) then
          field = field * maxwell_vpa(:, is) * maxwell_mu(ia, iz, imu, is)
       end if
       call gyro_average(field, imu, ikxkyz, gyro_averaged_field)
       
-      ! Calculate <g>  = <gbar> - 2*(Z_s*e/T_s)*J_0*vpa*<apar>*F_s 
+      ! Calculate <g>  = <gbar> - 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
       g = g - gyro_averaged_field
       
       ! Deallocate local arrays
@@ -267,23 +274,24 @@ contains
       imu = imu_idx(vmu_lo, ivmu)
       is = is_idx(vmu_lo, ivmu)
 
-      ! Assume we only have one flux tube
+      ! Assume we only have one field line
       ia = 1
       
       ! Iterate over the (it,iz) points
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
          
-            ! Calculate <gyro_averaged_field> = 2*(Z_s*e/T_s)*J_0*vpa*<apar>*F_s 
-            ! First calculate [2*apar*(Z_s*e/T_s)*vpa], then add F_s, and then J_0
+            ! Calculate <gyro_averaged_field> = 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s 
+            ! First calculate [2*apar*(Z_s/T_s)*vpa], then add F_s, and then J_0
             field = 2.0 * spec(is)%zt * spec(is)%stm_psi0 * vpa(iv) * facapar * apar(:, :, iz, it)
             if (.not. maxwellian_normalization) then
                field = field * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
             end if
             call gyro_average(field, iz, ivmu, gyro_averaged_field)
             
-            ! Calculate <g>  = <gbar> - 2*(Z_s*e/T_s)*J_0*vpa*<apar>*F_s 
+            ! Calculate <g>  = <gbar> - 2*(Z_s/T_s)*J_0*vpa*<apar>*F_s
             g0(:, :, iz, it) = g0(:, :, iz, it) - gyro_averaged_field
+            
          end do
       end do
       
@@ -298,11 +306,11 @@ contains
 !###############################################################################
 ! 
 ! Recall the definition of <g> and <h>
-!     <g> = <h> - Z_s*e/T_s * <phi>_theta * F_s
-!     <h> = <g> + Z_s*e/T_s * <phi>_theta * F_s
+!     <g> = <h> - Z_s/T_s * <phi>_theta * F_s
+!     <h> = <g> + Z_s/T_s * <phi>_theta * F_s
 ! 
-! To obtain <h> we add [Z_s*e/T_s * <phi>_theta * F_s] to <g>
-!    <gyro_averaged_field> = Z_s*e/T_s * <phi>_theta * F_s
+! To obtain <h> we add [Z_s/T_s * <phi>_theta * F_s] to <g>
+!    <gyro_averaged_field> = Z_s/T_s * <phi>_theta * F_s
 !    h(kx,ky,z,mu,vpa,s) = g(kx,ky,z,mu,vpa,s) + <gyro_averaged_field>
 ! 
 ! To convert <h> to <g> simply supply <h> as an argument instead of <g>,
@@ -354,7 +362,7 @@ contains
       allocate (field(nvpa, nmu))
       allocate (gyro_averaged_field(nvpa, nmu))
 
-      ! Assume we only have one flux tube
+      ! Assume we only have one field line
       ia = 1
       
       ! Iterate over the (kx,ky,z,mu,vpa,s) grid
@@ -365,15 +373,15 @@ contains
          iky = iky_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
          
-         ! Calculate <gyro_averaged_field> = Z_s*e/T_s * <phi>_theta * F_s
-         ! First calculate [(Z_s*e/T_s)*<phi>], then add F_s and J_0
+         ! Calculate <gyro_averaged_field> = Z_s/T_s * <phi>_theta * F_s
+         ! First calculate [(Z_s/T_s)*<phi>], then add F_s and J_0
          field = facphi * phi(iky, ikx, iz, it) * spec(is)%zt
          if (.not. maxwellian_normalization) then
             field = field * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa)
          end if
          call gyro_average(field, ikxkyz, gyro_averaged_field)
          
-         ! Calculate <h> = <g> + (Z_s*e/T_s)*J_0*phi*F_s
+         ! Calculate <h> = <g> + (Z_s/T_s)*J_0*phi*F_s
          g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field
          
       end do
@@ -401,7 +409,7 @@ contains
             end if
             call gyro_average_j1(field, ikxkyz, gyro_averaged_field)
             
-            ! Calculate <h> = <g> + Z_s*e/T_s*J_0*phi*Fs + 4*mu*<bpar>*Fs*J_1/b_s
+            ! Calculate <h> = <g> + Z_s/T_s*J_0*phi*Fs + 4*mu*<bpar>*Fs*J_1/b_s
             g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field
             
          end do
@@ -498,15 +506,15 @@ contains
       imu = imu_idx(vmu_lo, ivmu)
       is = is_idx(vmu_lo, ivmu)
 
-      ! Assume we only have one flux tube
+      ! Assume we only have one field line
       ia = 1
       
       ! Iterate over the (it,iz) points
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
          
-            ! Calculate <gyro_averaged_field> = Z_s*e/T_s * <phi>_theta * F_s
-            ! First calculate [(Z_s*e/T_s)*<phi>] and add F_s
+            ! Calculate <gyro_averaged_field> = Z_s/T_s * <phi>_theta * F_s
+            ! First calculate [(Z_s/T_s)*<phi>] and add F_s
             field = spec(is)%zt * facphi * phi(:, :, iz, it)
             if (.not. maxwellian_normalization) then
                field = field * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
@@ -529,7 +537,7 @@ contains
             ! Finally add <...>_theta, which is equivalent to adding J_0
             call gyro_average(field, iz, ivmu, gyro_averaged_field)
             
-            ! Calculate <h> = <g> + Z_s*e/T_s * <phi>_theta * F_s
+            ! Calculate <h> = <g> + Z_s/T_s * <phi>_theta * F_s
             g0(:, :, iz, it) = g0(:, :, iz, it) + gyro_averaged_field
             
          end do
@@ -553,7 +561,7 @@ contains
                end if
                call gyro_average_j1(field, iz, ivmu, gyro_averaged_field)
                
-               ! Calculate <h> = <g> + Z_s*e/T_s*J_0*phi*Fs + 4*mu*<bpar>*Fs*J_1/b_s
+               ! Calculate <h> = <g> + Z_s/T_s*J_0*phi*Fs + 4*mu*<bpar>*Fs*J_1/b_s
                g0(:, :, iz, it) = g0(:, :, iz, it) + gyro_averaged_field
                
             end do
@@ -572,16 +580,16 @@ contains
 !###############################################################################
 ! 
 ! Recall the definitions of the distribution functions
-!     delta f_s = h_s - Z_s*e/T_s * phi * F_s
-!     g_s = h_s - Z_s*e/T_s * <phi>_theta * F_s
-!     h_s = delta f_s + Z_s*e/T_s * phi * F_s = g_s + Z_s*e/T_s * <phi>_theta * F_s
+!     delta f_s = h_s - Z_s/T_s * phi * F_s
+!     g_s = h_s - Z_s/T_s * <phi>_theta * F_s
+!     h_s = delta f_s + Z_s/T_s * phi * F_s = g_s + Z_s/T_s * <phi>_theta * F_s
 ! 
 ! To convert <g> to <f> we use,
-!     <f> = <g> + (Z_s*e/T_s)*<phi>_theta*F_s - (Z_s*e/T_s)*phi*F_s
+!     <f> = <g> + (Z_s/T_s)*<phi>_theta*F_s - (Z_s/T_s)*phi*F_s
 ! 
-! To obtain <f> we add [(Z_s*e/T_s)*<phi>_theta*F_s - (Z_s*e/T_s)*phi*F_s] to <g>
-!    <field> = (Z_s*e/T_s)*phi*F_s
-!    <gyro_averaged_field> = (Z_s*e/T_s)*<phi>_theta*F_s
+! To obtain <f> we add [(Z_s/T_s)*<phi>_theta*F_s - (Z_s/T_s)*phi*F_s] to <g>
+!    <field> = (Z_s/T_s)*phi*F_s
+!    <gyro_averaged_field> = (Z_s/T_s)*<phi>_theta*F_s
 !    f(kx,ky,z,mu,vpa,s) = g(kx,ky,z,mu,vpa,s) + <gyro_averaged_field> - <field>
 ! 
 ! To convert <g> to <f> simply supply <f> as an argument instead of <g>,
@@ -630,7 +638,7 @@ contains
       allocate (field(nvpa, nmu))
       allocate (gyro_averaged_field(nvpa, nmu))
 
-      ! Assume we only have one flux tube
+      ! Assume we only have one field line
       ia = 1
 
       ! Iterate over the (kx,ky,z,mu,vpa,s) grid
@@ -641,8 +649,8 @@ contains
          iky = iky_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
          
-         ! Calculate <gyro_averaged_field> = Z_s*e/T_s * <phi>_theta * F_s
-         ! First calculate [(Z_s*e/T_s)*<phi>], add F_s and J_0
+         ! Calculate <gyro_averaged_field> = Z_s/T_s * <phi>_theta * F_s
+         ! First calculate [(Z_s/T_s)*<phi>], add F_s and J_0
          field = facphi * phi(iky, ikx, iz, it) * spec(is)%zt
          if (.not. maxwellian_normalization) then
             field = field * spread(maxwell_vpa(:, is), 2, nmu) * &
@@ -650,7 +658,7 @@ contains
          end if
          call gyro_average(field, ikxkyz, gyro_averaged_field)
          
-         ! Calculate <f> = <g> + (Z_s*e/T_s)*<phi>_theta*F_s - (Z_s*e/T_s)*phi*F_s
+         ! Calculate <f> = <g> + (Z_s/T_s)*<phi>_theta*F_s - (Z_s/T_s)*phi*F_s
          g(:, :, ikxkyz) = g(:, :, ikxkyz) + gyro_averaged_field - field
          
       end do
@@ -709,7 +717,7 @@ contains
       allocate (gyro_averaged_field(naky, nakx))
       if (radial_variation) allocate (g0k(naky, nakx))
 
-      ! Assume we only have one flux tube
+      ! Assume we only have one field line
       ia = 1
       
       ! Iterate over the (kx,ky,z,mu,vpa,s) points
@@ -731,8 +739,8 @@ contains
                ! Flux-tube
                else
                
-                  ! Calculate <gyro_averaged_field> = Z_s*e/T_s * <phi>_theta * F_s
-                  ! First calculate [(Z_s*e/T_s)*<phi>] and add F_s
+                  ! Calculate <gyro_averaged_field> = Z_s/T_s * <phi>_theta * F_s
+                  ! First calculate [(Z_s/T_s)*<phi>] and add F_s
                   field = spec(is)%zt * facphi * phi(:, :, iz, it)
                   if (.not. maxwellian_normalization) then
                      field = field * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
@@ -755,7 +763,7 @@ contains
                   
                end if
                
-               ! Calculate <f> = <g> + (Z_s*e/T_s)*<phi>_theta*F_s - (Z_s*e/T_s)*phi*F_s
+               ! Calculate <f> = <g> + (Z_s/T_s)*<phi>_theta*F_s - (Z_s/T_s)*phi*F_s
                g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) + gyro_averaged_field - field
                
             end do
