@@ -1,23 +1,23 @@
-
 !###############################################################################
 !############################ DIAGNOSE DISTRIBUTION ############################
 !###############################################################################
 ! 
-! Routines for calculating and writing the distribution.  
+! Routines for calculating and writing the distribution.
 ! 
 !###############################################################################
  
 module diagnostics_distribution
 
+   ! Load debug flags
+   use debug_flags, only: debug => diagnostics_debug
+
    implicit none
  
+   ! Make routines available to other modules
    public :: init_diagnostics_distribution
-   public :: write_distribution_to_netcdf_file 
+   public :: write_distribution_to_netcdf_file
 
-   private   
-
-   ! Debugging
-   logical :: debug = .false.
+   private
 
 contains
 
@@ -28,61 +28,61 @@ contains
    !============================================================================
    !============== CALCULATE AND WRITE DISTRIBUTION TO NETCDF FILE =============
    !============================================================================
-   subroutine write_distribution_to_netcdf_file(nout, timer) 
+   subroutine write_distribution_to_netcdf_file(nout, timer)
 
       ! Data
       use arrays_store_distribution_fn, only: gnew, gvmu
       use arrays_store_fields, only: phi, bpar
       use parameters_physics, only: fphi
 
-      ! Redistribute data from  i[vpa,mu,s] to i[kx,ky,z,s] 
+      ! Redistribute data from  i[vpa,mu,s] to i[kx,ky,z,s]
       use redistribute, only: scatter
       use calculations_redistribute, only: kxkyz2vmu
 
       ! Dimensions
       use grids_kxky, only: nakx, naky
-      use grids_velocity, only: nvpa, nmu 
+      use grids_velocity, only: nvpa, nmu
       use grids_z, only: nztot, ntubes
       use grids_species, only: nspec
 
-      ! Write to netcdf file 
+      ! Write to netcdf file
       use stella_io, only: write_g2_vs_vpamus_nc
       use stella_io, only: write_g2_vs_zvpas_nc
-      use stella_io, only: write_g2_vs_zmus_nc 
+      use stella_io, only: write_g2_vs_zmus_nc
       use stella_io, only: write_g2_vs_zkykxs_nc
-      use stella_io, only: write_g2_vs_zvpamus_nc 
+      use stella_io, only: write_g2_vs_zvpamus_nc
       use stella_io, only: write_g2nozonal_vs_vpamus_nc
       use stella_io, only: write_g2nozonal_vs_zvpas_nc
-      use stella_io, only: write_g2nozonal_vs_zmus_nc  
-      use stella_io, only: write_g2nozonal_vs_zvpamus_nc 
+      use stella_io, only: write_g2nozonal_vs_zmus_nc
+      use stella_io, only: write_g2nozonal_vs_zvpamus_nc
       use stella_io, only: write_h2_vs_vpamus_nc
       use stella_io, only: write_h2_vs_zvpas_nc
-      use stella_io, only: write_h2_vs_zmus_nc 
+      use stella_io, only: write_h2_vs_zmus_nc
       use stella_io, only: write_h2_vs_zkykxs_nc
-      use stella_io, only: write_h2_vs_zvpamus_nc  
+      use stella_io, only: write_h2_vs_zvpamus_nc
       use stella_io, only: write_h2nozonal_vs_vpamus_nc
       use stella_io, only: write_h2nozonal_vs_zvpas_nc
-      use stella_io, only: write_h2nozonal_vs_zmus_nc  
-      use stella_io, only: write_h2nozonal_vs_zvpamus_nc 
+      use stella_io, only: write_h2nozonal_vs_zmus_nc
+      use stella_io, only: write_h2nozonal_vs_zvpamus_nc
       use stella_io, only: write_f2_vs_vpamus_nc
       use stella_io, only: write_f2_vs_zvpas_nc
-      use stella_io, only: write_f2_vs_zmus_nc 
+      use stella_io, only: write_f2_vs_zmus_nc
       use stella_io, only: write_f2_vs_zkykxs_nc
-      use stella_io, only: write_f2_vs_zvpamus_nc  
+      use stella_io, only: write_f2_vs_zvpamus_nc
       use stella_io, only: write_f2nozonal_vs_vpamus_nc
       use stella_io, only: write_f2nozonal_vs_zvpas_nc
-      use stella_io, only: write_f2nozonal_vs_zmus_nc  
-      use stella_io, only: write_f2nozonal_vs_zvpamus_nc 
+      use stella_io, only: write_f2nozonal_vs_zmus_nc
+      use stella_io, only: write_f2nozonal_vs_zvpamus_nc
       
       ! Input file
-      use parameters_diagnostics, only: write_distribution_g 
+      use parameters_diagnostics, only: write_distribution_g
       use parameters_diagnostics, only: write_distribution_h
-      use parameters_diagnostics, only: write_distribution_f 
-      use parameters_diagnostics, only: write_g2_vs_vpamus 
-      use parameters_diagnostics, only: write_g2_vs_zvpas 
+      use parameters_diagnostics, only: write_distribution_f
+      use parameters_diagnostics, only: write_g2_vs_vpamus
+      use parameters_diagnostics, only: write_g2_vs_zvpas
       use parameters_diagnostics, only: write_g2_vs_zmus
-      use parameters_diagnostics, only: write_g2_vs_kxkyzs 
-      use parameters_diagnostics, only: write_g2_vs_zvpamus 
+      use parameters_diagnostics, only: write_g2_vs_kxkyzs
+      use parameters_diagnostics, only: write_g2_vs_zvpamus
       
       ! Routines
       use calculations_tofrom_ghf, only: g_to_f, g_to_h
@@ -92,8 +92,8 @@ contains
       implicit none 
 
       ! The pointer in the netcdf file and a timer
-      real, dimension(:), intent(in out) :: timer   
-      integer, intent(in) :: nout   
+      real, dimension(:), intent(in out) :: timer
+      integer, intent(in) :: nout
 
       ! We will write g(vpa,mu,s), g(tube,z,vpa,s), g(tube,z,mu,s)
       ! And we will do this for g, h and delta f
@@ -101,7 +101,7 @@ contains
       real, dimension(:, :, :, :), allocatable :: g2_vs_zvpas, g2_vs_zmus, g2nozonal_vs_zvpas, g2nozonal_vs_zmus
       real, dimension(:, :, :, :, :), allocatable :: g2_vs_zkykxs, g2_vs_zvpamus, g2nozonal_vs_zvpamus
 
-      !----------------------------------------------------------------------  
+      !-------------------------------------------------------------------------
 
       ! Only continue if we write data 
       if ((.not. write_distribution_g) .and. (.not. write_distribution_h) .and. (.not. write_distribution_f)) return
@@ -203,7 +203,7 @@ contains
          if (write_g2_vs_kxkyzs) call g_to_h(gvmu, phi, bpar, -fphi)
          call g_to_f(gnew, phi, -fphi)
 
-      end if 
+      end if
 
       ! Deallocate arrays
       if (write_g2_vs_vpamus) deallocate (g2_vs_vpamus) 
@@ -218,13 +218,15 @@ contains
    end subroutine write_distribution_to_netcdf_file
 
    !============================================================================
-   !======================== Calculate |g|^2(z,mu,s) ==========================
+   !======================== Calculate |g|^2(z,mu,s) ===========================
    !============================================================================
    ! Calculate int dxdydmu  |g(x,y,z,mu,vpa,s)|^2 = |g(vpa,z,s)|^2
    ! We use Parsevals theorem: int dxdy |g(x,y)|^2 = sum_{kx,ky} |g(kx,ky)|^2 
-   ! And the mirror condition: int dxdy |g(x,y)|^2 = sum_ky |g(ky=0,kx)|^2 + 2 * sum_{kx,ky} |g(ky>0,kx)|^2  
-   subroutine calculate_distribution(g_vs_kykxztube, g_vs_vpamuikxkyzs, g2_vs_tzmus, g2_vs_zvpas, g2_vs_vpamus, g2_vs_zkykxs, g2_vs_zvpamus, &
-                  g2nozonal_vs_tzmus, g2nozonal_vs_zvpas, g2nozonal_vs_vpamus, g2nozonal_vs_zvpamus)
+   ! And the mirror condition: int dxdy |g(x,y)|^2 = sum_ky |g(ky=0,kx)|^2 + 2 * sum_{kx,ky} |g(ky>0,kx)|^2
+   !===========================================================================
+   subroutine calculate_distribution(g_vs_kykxztube, g_vs_vpamuikxkyzs, g2_vs_tzmus, &
+      g2_vs_zvpas, g2_vs_vpamus, g2_vs_zkykxs, g2_vs_zvpamus, &
+      g2nozonal_vs_tzmus, g2nozonal_vs_zvpas, g2nozonal_vs_vpamus, g2nozonal_vs_zvpamus)
 
       ! Geometry
       use geometry, only: dl_over_b
@@ -253,6 +255,7 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g_vs_kykxztube
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g_vs_vpamuikxkyzs 
       real, dimension(:, :, :, :, :), intent(out) :: g2_vs_zkykxs, g2_vs_zvpamus, g2nozonal_vs_zvpamus
@@ -263,6 +266,8 @@ contains
       real, dimension(:, :, :), allocatable :: g2_vs_ztubeivmus, g2nozonal_vs_ztubeivmus 
       real, dimension(:, :), allocatable :: g2_vs_ztube, g2_vs_vpamu
       integer :: ivmus, ia, iz, it, ikx, iky, izp, is, iv, imu, ikxkyzs
+
+      !---------------------------------------------------------------------- 
 
       ! Allocate local arrays
       if (debug) write (*, *) 'diagnostics::diagnostics_distribution::calculate_distribution' 
@@ -384,11 +389,11 @@ contains
    !============================================================================
    !======================== INITALIZE THE DIAGNOSTICS =========================
    !============================================================================  
-   subroutine init_diagnostics_distribution()  
+   subroutine init_diagnostics_distribution()
 
       implicit none 
 
-   end subroutine init_diagnostics_distribution 
+   end subroutine init_diagnostics_distribution
 
 end module diagnostics_distribution
 

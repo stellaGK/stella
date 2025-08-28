@@ -11,12 +11,11 @@
 ! We take the running average of <Omega> over the last <navg> time points. 
 ! 
 !###############################################################################
-
 module diagnostics_omega
 
    use debug_flags, only: debug => diagnostics_omega_debug
   
-   implicit none 
+   implicit none
 
    ! These routines are called from diagnostics.f90
    public :: calculate_omega, write_omega_to_netcdf_file
@@ -46,7 +45,7 @@ contains
    !========================================================================= 
    subroutine calculate_omega(istep, timer)
       
-      ! Multiprocessing
+      ! Parallelisation
       use job_manage, only: time_message
       use mp, only: proc0
       
@@ -183,7 +182,6 @@ contains
    !=========================================================================
    !=========================== CHECK SATURATION ============================
    !========================================================================= 
-
    subroutine checksaturation(istep, stop_stella)
    
       use parameters_numerical, only: autostop

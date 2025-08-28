@@ -1,4 +1,10 @@
+!###############################################################################
+!                                  DIAGNOSTICS                                  
+!###############################################################################
+! 
 ! Routines for calculating and writing various physical diagnostics.
+! 
+!###############################################################################
 module diagnostics
 
    ! Debug Flags
@@ -6,6 +12,7 @@ module diagnostics
 
    implicit none
 
+   ! Make routines available to other modules
    public :: diagnostics_stella, init_diagnostics, finish_diagnostics 
    public :: time_diagnostics
 
@@ -14,11 +21,11 @@ module diagnostics
    ! Current maximum index of the time dimension in the netCDF file
    integer :: nout = 1
 
-   ! Has this module been initialised?
-   logical :: diagnostics_initialised = .false.
-
    ! Needed for timing various pieces of the diagnostics
    real, dimension(2, 6) :: time_diagnostics = 0.
+
+   ! Only initialise once
+   logical :: initialised_diagnostics = .false.
 
 contains
 
@@ -115,11 +122,12 @@ contains
 
    !============================================================================
    !======================== INITALIZE THE DIAGNOSTICS =========================
-   !============================================================================ 
+   !============================================================================
    ! Initialize the <diagnostics> module. Make sure that the other modules
    ! are initialised (zgrid, kt_grids, ...). Open/append the netcdf file with
    ! extension '.out.nc'. Open/append the ascii files ('.out'; '.fluxes'; '.omega').
    ! Gets called in the <init_stella> subroutine in the <stella> module. 
+   !============================================================================
    subroutine init_diagnostics(restart, tstart)
 
       ! Parallelisation
@@ -164,8 +172,8 @@ contains
       !-------------------------------------------------------------------------
 
       ! Only initialise the diagnostics once
-      if (diagnostics_initialised) return
-      diagnostics_initialised = .true.
+      if (initialised_diagnostics) return
+      initialised_diagnostics = .true.
 
       ! Get git data
       git_commit = get_git_version()
@@ -221,6 +229,8 @@ contains
 
       integer :: istatus
       integer, intent(in) :: istep
+      
+      !-------------------------------------------------------------------------
 
       ! Save stella to be restarted
       if (save_for_restart) then
@@ -237,7 +247,7 @@ contains
       call finish_diagnostics_potential
 
       nout = 1
-      diagnostics_initialised = .false.
+      initialised_diagnostics = .false.
 
    end subroutine finish_diagnostics
 

@@ -3,25 +3,25 @@
 !############################### DIAGNOSE MOMENTS ##############################
 !###############################################################################
 ! 
-! Routines for calculating and writing the moments. 
+! Routines for calculating and writing the moments.
 ! 
 ! The dens_vs_kykxzts is denoted by dens.
 ! The temp_vs_kykxzts is denoted by temp.
 ! The parallel velocity is denoted by upar.
 ! 
 !###############################################################################
- 
 module diagnostics_moments
+
+   ! Load debug flags
+   use debug_flags, only: debug => diagnostics_debug
 
    implicit none
  
+   ! Make routines available to other modules
    public :: init_diagnostics_moments 
    public :: write_moments_to_netcdf_file 
 
-   private 
-
-   ! Debugging
-   logical :: debug = .false.
+   private
 
 contains
 
@@ -41,28 +41,28 @@ contains
       use grids_kxky, only: naky, nakx
       use grids_z, only: nztot, ntubes
       use grids_species, only: nspec
-      
-      ! Flags 
+
+      ! Flags
       use parameters_physics, only: radial_variation
       use parameters_physics, only: full_flux_surface
 
       ! Write to netcdf file 
       use stella_io, only: write_radial_moments_nc
       use stella_io, only: write_moments_nc
-      
+
       ! Routines
       use job_manage, only: time_message
       use mp, only: proc0
-      
+
       ! Input file
       use parameters_diagnostics, only: write_radial_moments
       use parameters_diagnostics, only: write_moments
 
-      implicit none 
+      implicit none
 
       ! The pointer in the netcdf file and a timer
-      real, dimension(:), intent(in out) :: timer   
-      integer, intent(in) :: nout    
+      real, dimension(:), intent(in out) :: timer
+      integer, intent(in) :: nout
 
       ! Variables needed to write and calculate diagnostics 
       complex, dimension(:, :, :, :, :), allocatable :: dens_vs_kykxzts, upar_vs_kykxzts, temp_vs_kykxzts, spitzer2_vs_kykxzts 
@@ -75,7 +75,7 @@ contains
 
       ! Start timer
       if (proc0) call time_message(.false., timer(:), 'Write moments')
-      
+
       ! Allocate the arrays for the moments
       allocate (dens_vs_kykxzts(naky, nakx, nztot, ntubes, nspec))
       allocate (upar_vs_kykxzts(naky, nakx, nztot, ntubes, nspec))
@@ -92,7 +92,7 @@ contains
       if (radial_variation .or. write_radial_moments) then 
          call get_moments_radial_variation(gnew, dens_vs_kykxzts, upar_vs_kykxzts, temp_vs_kykxzts, dens_kxs, upar_kxs, temp_kxs, spitzer2_vs_kykxzts)
       end if
-      
+
       ! Calculate the moments if <full_flux_surface> = True
       if (full_flux_surface .and. write_moments) then  
          
@@ -153,14 +153,16 @@ contains
 
       implicit none
 
-		! The distribution function enters with dimensions (ky, kx, z, tube, ivmus)
+      ! The distribution function enters with dimensions (ky, kx, z, tube, ivmus)
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       
-		! The moments are returned with dimensions (ky, kx, z, tube, s)
+      ! The moments are returned with dimensions (ky, kx, z, tube, s)
       complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: density, temperature, upar_vs_kykxzts, spitzer2_vs_kykxzts
 
-		! Local variables
+      ! Local variables
       integer :: ivmu, iv, imu, is, ia
+
+      !-------------------------------------------------------------------------
       
       ! We only have one field line because <full_flux_surface> = .false.
       ia = 1
@@ -168,14 +170,14 @@ contains
       !=========================================================================
       !                     TURBULENT DENSITY FLUCTUATIONS                     !
       !=========================================================================
-		! The normalized turbulent density fluctuations are calculated as:
-		!		<dens> = tilde{δn} = (δn_s / n_r) (a / rho_r) 
-		! 		<dens> = tilde{n_s} * velocity_integral( g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) )
-		! We do this in the following steps
-		! 		<g_gyro> = g*J0 = <g> * <aj0x(iky, ikx, iz, ivmu)>
-		! 		<integrand> = (Zs/Ts)*phi*(J0^2 - 1) = <spec(is)%zt> * <phi> * (<aj0x>**2 - 1)
-		! 		<integrand> = (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) = <integrand> * <maxwell_vpa> * <maxwell_mu> * <maxwell_fac> 
-		! 		<integrand> = g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) = <g_gyro> + <integrand> 
+      ! The normalized turbulent density fluctuations are calculated as:
+      !     <dens> = tilde{δn} = (δn_s / n_r) (a / rho_r) 
+      !     <dens> = tilde{n_s} * velocity_integral( g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) )
+      ! We do this in the following steps
+      !     <g_gyro> = g*J0 = <g> * <aj0x(iky, ikx, iz, ivmu)>
+      !     <integrand> = (Zs/Ts)*phi*(J0^2 - 1) = <spec(is)%zt> * <phi> * (<aj0x>**2 - 1)
+      !     <integrand> = (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) = <integrand> * <maxwell_vpa> * <maxwell_mu> * <maxwell_fac> 
+      !     <integrand> = g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s) = <g_gyro> + <integrand> 
       !=========================================================================
       
       ! Calculate <integrand> = g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * exp(-E_s/T_s)
@@ -198,9 +200,9 @@ contains
       !=========================================================================
       !                   TURBULENT TEMPERATURE FLUCTUATIONS                   !
       !=========================================================================
-		! Calculate the turbulent temperature fluctuations
-		!		<temp> = tilde{δT} = (δT_s / T_r) (a / rho_r) 
-		! 		<temp> = tilde{T_s} * velocity_integral( g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * ... * exp(-E_s/T_s) )
+      ! Calculate the turbulent temperature fluctuations
+      !     <temp> = tilde{δT} = (δT_s / T_r) (a / rho_r) 
+      !     <temp> = tilde{T_s} * velocity_integral( g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * ... * exp(-E_s/T_s) )
       !=========================================================================
          
       ! Calculate <integrand> = g*J0 + (Zs/Ts)*phi*(J0^2 - 1) * ... * exp(-E_s/T_s)
@@ -292,6 +294,9 @@ contains
       integer :: ivmu, iv, imu, is, ia
       integer :: iz, it
 
+      !-------------------------------------------------------------------------
+
+      ! Allocate temporary arrays
       if (radial_variation) then
          allocate (g0k(naky, nakx))
       end if
@@ -493,13 +498,13 @@ contains
          upar_kxs = upar_kxs / ntubes
       end if
 
+      ! Deallocate temporary arrays
       if (allocated(g0k)) deallocate (g0k)
       if (allocated(g1k)) deallocate (g1k)
       if (allocated(g1x)) deallocate (g1x)
 
    end subroutine get_moments_radial_variation
    
-
 !###############################################################################
 !############################ INITALIZE & FINALIZE #############################
 !###############################################################################

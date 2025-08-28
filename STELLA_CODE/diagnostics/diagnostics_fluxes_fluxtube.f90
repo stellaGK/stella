@@ -3,7 +3,7 @@
 !####################### CALCULATE FLUXES IN A FLUXTUBE ########################
 !###############################################################################
 ! 
-! Routines for calculating and writing the turbulent fluxes. 
+! Routines for calculating and writing the turbulent fluxes.
 ! 
 ! 
 ! DEFINITION DISTRIBUTION
@@ -12,7 +12,7 @@
 ! h = <h>_gyroaverage
 ! g = <delta f>_gyroaverage 
 ! g = h - Zs*e/Ts * <phi>_gyroaverage * F0 
-! δf = g + Zs*e/Ts * (<phi>_gyroaverage - phi) * F0   
+! δf = g + Zs*e/Ts * (<phi>_gyroaverage - phi) * F0
 ! 
 ! 
 ! DEFINITIONS FLUXES
@@ -45,16 +45,17 @@
 ! Note that for pflux and qflux, we can replace δf by g or h in the integrand.
 ! This has been tested numerically, and gives the same fluxes.
 !###############################################################################
- 
 module diagnostics_fluxes_fluxtube
 
+   ! Load debug flags
    use debug_flags, only: debug => diagnostics_fluxes_fluxtube_debug
   
    implicit none
- 
-   public :: calculate_fluxes_fluxtube  
+   
+   ! Make routines available to other modules
+   public :: calculate_fluxes_fluxtube
 
-   private      
+   private
 
 contains
 
@@ -92,7 +93,7 @@ contains
    ! we have g = h - Zs*e/Ts * <phi>_gyroaverage * F0 and δf = g + Zs*e/Ts * (<phi>_gyroaverage - phi) * F0   
    ! It's been tested numerically, and whether we give <g>, <h> or <δf> does not make a difference for 
    ! <qflux> or <pflux>, but it does matter for <vflux>! Only <δf> is the correct options for <vflux> TODO is it? 
-   !============================================================================ 
+   !============================================================================
    subroutine calculate_fluxes_fluxtube(df_vs_vpamuikxkyzs, pflux_vs_s, vflux_vs_s, qflux_vs_s, &
       pflux_vs_kxkyzts, vflux_vs_kxkyzts, qflux_vs_kxkyzts, pflux_vs_kxkys, vflux_vs_kxkys, qflux_vs_kxkys)
 
@@ -100,7 +101,7 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       
       ! Input file
-      use parameters_diagnostics, only: write_fluxes_kxkyz 
+      use parameters_diagnostics, only: write_fluxes_kxkyz
       use parameters_diagnostics, only: write_fluxes_kxky
 
       ! Data 
@@ -145,22 +146,22 @@ contains
       integer :: ikxkyz, iky, ikx, iz, it, is, ia
       real :: one_over_nablarho
 
+      !-------------------------------------------------------------------------
+
       ! Allocate arrays
       allocate (fluxnorm_vs_z(-nzgrid:nzgrid))
       allocate (velocityintegrand_vs_vpamu(nvpa, nmu), temp1_vs_vpamu(nvpa, nmu), temp2_vs_vpamu(nvpa, nmu))
-
-      !-------------------------------------------------------------------------  
       
       ! Track the code 
       if (debug) write (*, *) 'diagnostics::diagnostics_fluxes_fluxtube::calculate_fluxes_fluxtube'
 
-      ! Make sure that the ararys we will fill are empty 
-      pflux_vs_s = 0.; vflux_vs_s = 0.; qflux_vs_s = 0. 
+      ! Make sure that the ararys we will fill are empty
+      pflux_vs_s = 0.; vflux_vs_s = 0.; qflux_vs_s = 0.
       pflux_vs_kxkyzts = 0.; vflux_vs_kxkyzts = 0.; qflux_vs_kxkyzts = 0.
 
-      ! Get <fluxnorm_vs_z> which takes care of the flux surface average, 
-      ! and the factor <one_over_nablarho> which is used if <flux_norm> = True, otherwise its set to 1. 
-      call get_factor_for_fluxsurfaceaverage(fluxnorm_vs_z, one_over_nablarho) 
+      ! Get <fluxnorm_vs_z> which takes care of the flux surface average,
+      ! and the factor <one_over_nablarho> which is used if <flux_norm> = True, otherwise its set to 1.
+      call get_factor_for_fluxsurfaceaverage(fluxnorm_vs_z, one_over_nablarho)
 
       ! We only have one flux tube since <radial_variation> = False
       ia = 1
@@ -197,8 +198,8 @@ contains
 
             ! For the parallel (first term) and perpendicular (second term) component of the momentum flux we have,
             ! <VELOCITY_INTEGRAND>(vpa,mu) = δf*J0*vpa*(b.∇ζ)*R^2 
-            !			- i*δf*J1*ky*vperp^2*rho*(gds21+theta0*gds22)*(∇ζ.∇y)*(sqrt(T*m)/Z)/(q*shat*B^2))
-            ! 			+ i*δf*J1*ky*vperp^2*rho*(theta0*gds21+gds2)*(∇ζ.∇x)*(sqrt(T*m)/Z)/(q*B^2)) 
+            !        - i*δf*J1*ky*vperp^2*rho*(gds21+theta0*gds22)*(∇ζ.∇y)*(sqrt(T*m)/Z)/(q*shat*B^2))
+            !        + i*δf*J1*ky*vperp^2*rho*(theta0*gds21+gds2)*(∇ζ.∇x)*(sqrt(T*m)/Z)/(q*B^2)) 
             
             ! First add the parallel component of the momentum flux: δf*J0*vpa*(b.∇ζ)*R^2 
             velocityintegrand_vs_vpamu = df_vs_vpamuikxkyzs(:, :, ikxkyz) * spread(vpa, 2, nmu) * b_dot_grad_zeta_RR(ia, iz)
@@ -213,8 +214,8 @@ contains
             
             ! Sum parallel and perpendicular components together
             velocityintegrand_vs_vpamu = temp1_vs_vpamu + temp2_vs_vpamu
-	
-			! Add the contribution (-sgn(psi_t)*(k̃_y/2)*Im[conj(phi)*integrate_vmu(VELOCITY_INTEGRAND)]*NORM) to the momentum flux
+
+            ! Add the contribution (-sgn(psi_t)*(k̃_y/2)*Im[conj(phi)*integrate_vmu(VELOCITY_INTEGRAND)]*NORM) to the momentum flux
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, phi(iky, ikx, iz, it), vflux_vs_s(is))
             if (write_fluxes_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, phi(iky, ikx, iz, it), vflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
@@ -222,7 +223,7 @@ contains
       end if
 
       !===================================
-      !          ELECTROMAGNETIC                    
+      !          ELECTROMAGNETIC    
       !===================================
       if (debug) write (*, *) 'diagnostics::diagnostics_fluxes_fluxtube::calculate_fluxes_fluxtube::apar'
       if (include_apar) then
@@ -231,7 +232,7 @@ contains
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
             iz = iz_idx(kxkyz_lo, ikxkyz)
             it = it_idx(kxkyz_lo, ikxkyz)
-            is = is_idx(kxkyz_lo, ikxkyz) 
+            is = is_idx(kxkyz_lo, ikxkyz)
 
             ! Apar contribution to particle flux
             temp1_vs_vpamu = -2.0*df_vs_vpamuikxkyzs(:, :, ikxkyz) * spec(is)%stm * spread(vpa, 2, nmu)
@@ -262,7 +263,7 @@ contains
                apar(iky, ikx, iz, it), vflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
          end do
-      end if 
+      end if
       
       
       if (debug) write (*, *) 'diagnostics::diagnostics_fluxes_fluxtube::calculate_fluxes_fluxtube::bpar'
@@ -331,7 +332,7 @@ contains
             call fieldline_average(qflux_vs_kxkyzts(:, :, :, :, is), qflux_vs_kxkys(:, :, is))
             call fieldline_average(vflux_vs_kxkyzts(:, :, :, :, is), vflux_vs_kxkys(:, :, is)) 
          end do
-      end if 
+      end if
 
       ! Deallocate the arrays
       deallocate (velocityintegrand_vs_vpamu, temp1_vs_vpamu, temp2_vs_vpamu)

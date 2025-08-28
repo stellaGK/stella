@@ -7,6 +7,7 @@ module calculations_finite_differences
 
    implicit none
 
+   ! Make routines available to other modules
    public :: first_order_upwind
    public :: third_order_upwind
    public :: fifth_order_upwind
@@ -113,7 +114,7 @@ contains
          iend = llim
       end if
 
-      ! zero BC, 1st order accurate upwind
+      ! Zero BC, 1st order accurate upwind
       df(istart) = -f(istart) * sgn / del
       do i = istart - sgn, iend, -sgn
          df(i) = sgn * (f(i + sgn) - f(i)) / del
@@ -148,7 +149,7 @@ contains
          iend = llim
       end if
 
-      ! zero BC, 1st order accurate upwind
+      ! Zero BC, 1st order accurate upwind
       df(istart) = -f(istart) * sgn / del
       do i = istart - sgn, iend, -sgn
          df(i) = sgn * (f(i + sgn) - f(i)) / del
@@ -183,10 +184,10 @@ contains
       end if
 
       i = istart - sgn
-      ! zero BC, 1st order accurate upwind
+      ! Zero BC, 1st order accurate upwind
       df(istart) = -f(istart) * sgn / del
 
-      ! zero BC, 3rd order accurate upwind
+      ! Zero BC, 3rd order accurate upwind
       df(i) = -sgn * (2.*f(i - sgn) + 3.*f(i) - 6.*f(i + sgn)) / (6.*del)
 
       ! 1st order accurate upwind
@@ -226,9 +227,11 @@ contains
       end if
 
       i = istart - sgn
-      ! zero BC, 1st order accurate upwind
+      
+      ! Zero BC, 1st order accurate upwind
       df(istart) = -f(istart) * sgn / del
-      ! zero BC, 3rd order accurate upwind
+      
+      ! Zero BC, 3rd order accurate upwind
       df(i) = -sgn * (2.*f(i - sgn) + 3.*f(i) - 6.*f(i + sgn)) / (6.*del)
 
       ! 1st order accurate upwind
@@ -267,24 +270,27 @@ contains
          iend = llim
       end if
 
-      ! zero BC, 1st order accurate upwind
+      ! Zero BC, 1st order accurate upwind
       df(istart) = -f(istart) * sgn / del
-      ! zero BC, 3rd order accurate upwind
+      
+      ! Zero BC, 3rd order accurate upwind
       i = istart - sgn
       df(i) = -sgn * (2.*f(i - sgn) + 3.*f(i) - 6.*f(i + sgn)) / (6.*del)
-      ! zero BC, 5th order accurate upwind
+      
+      ! Zero BC, 5th order accurate upwind
       i = istart - 2 * sgn
       df(i) = -sgn * (-3.*f(i - 2 * sgn) + 30.*f(i - sgn) + 20.*f(i) - 60.*f(i + sgn) + 15.*f(i + 2 * sgn)) / (60.*del)
 
       ! 1st order accurate upwind
       df(iend) = sgn * (f(iend + sgn) - f(iend)) / del
+      
       ! 3rd order accurate upwind
       df(iend + sgn) = -sgn * (2.*f(iend) + 3 * f(iend + sgn) - 6.*f(iend + 2 * sgn) + f(iend + 3 * sgn)) / (6.*del)
 
       ! 5th order accurate upwind
       do i = istart - 3 * sgn, iend + 2 * sgn, -sgn
-         df(i) = -sgn * (-3.*f(i - 2 * sgn) + 30.*f(i - sgn) + 20.*f(i) - 60.*f(i + sgn) + 15.*f(i + 2 * sgn) - 2.*f(i + 3 * sgn)) &
-                 / (60.*del)
+         df(i) = -sgn * (-3.*f(i - 2 * sgn) + 30.*f(i - sgn) + 20.*f(i) - 60.*f(i + sgn) &
+            + 15.*f(i + 2 * sgn) - 2.*f(i + 3 * sgn)) / (60.*del)
       end do
 
    end subroutine fifth_order_upwind_complex
@@ -315,24 +321,27 @@ contains
          iend = llim
       end if
 
-      ! zero BC, 1st order accurate upwind
+      ! Zero BC, 1st order accurate upwind
       df(istart) = -f(istart) * sgn / del
+      
       ! zero BC, 3rd order accurate upwind
       i = istart - sgn
       df(i) = -sgn * (2.*f(i - sgn) + 3.*f(i) - 6.*f(i + sgn)) / (6.*del)
-      ! zero BC, 5th order accurate upwind
+      
+      ! Zero BC, 5th order accurate upwind
       i = istart - 2 * sgn
       df(i) = -sgn * (-3.*f(i - 2 * sgn) + 30.*f(i - sgn) + 20.*f(i) - 60.*f(i + sgn) + 15.*f(i + 2 * sgn)) / (60.*del)
 
       ! 1st order accurate upwind
       df(iend) = -sgn * (f(iend) - f(iend + sgn)) / del
+      
       ! 3rd order accurate upwind
       df(iend + sgn) = -sgn * (2.*f(iend) + 3 * f(iend + sgn) - 6.*f(iend + 2 * sgn) + f(iend + 3 * sgn)) / (6.*del)
 
       ! 5th order accurate upwind
       do i = istart - 3 * sgn, iend + 2 * sgn, -sgn
-         df(i) = -sgn * (-3.*f(i - 2 * sgn) + 30.*f(i - sgn) + 20.*f(i) - 60.*f(i + sgn) + 15.*f(i + 2 * sgn) - 2.*f(i + 3 * sgn)) &
-                 / (60.*del)
+         df(i) = -sgn * (-3.*f(i - 2 * sgn) + 30.*f(i - sgn) + 20.*f(i) - 60.*f(i + sgn) &
+            + 15.*f(i + 2 * sgn) - 2.*f(i + 3 * sgn)) / (60.*del)
       end do
 
    end subroutine fifth_order_upwind_real
@@ -357,7 +366,8 @@ contains
       !----------------------------------------------------------------------
 
       ulim = size(f) + llim - 1
-      ! if sgn > 0, then stream speed is negative
+      
+      ! If sgn > 0, then stream speed is negative
       ! so sweep from more positive to more negative zed
       if (sgn > 0) then
          if (iseg == nseg .and. .not. periodic) then
@@ -430,7 +440,8 @@ contains
       !----------------------------------------------------------------------
 
       ulim = size(f) + llim - 1
-      ! if sgn > 0, then stream speed is negative
+      
+      ! If sgn > 0, then stream speed is negative
       ! so sweep from more positive to more negative zed
       if (sgn > 0) then
          if (iseg == nseg .and. .not. periodic) then
@@ -493,7 +504,7 @@ contains
       istart = llim
       iend = llim + n - 1
 
-      ! zero BC
+      ! Zero BC
       df(istart) = f(istart + 1) / (2.*del)
       df(iend) = -f(iend - 1) / (2.*del)
 
@@ -515,11 +526,13 @@ contains
 
       integer :: i, n, istart, iend
 
+      !----------------------------------------------------------------------
+
       n = size(f)
       istart = llim
       iend = llim + n - 1
 
-      ! zero BC
+      ! Zero BC
       df(istart) = f(istart + 1) / (2.*del)
       df(iend) = -f(iend - 1) / (2.*del)
 
@@ -592,7 +605,7 @@ contains
       istart = llim
       iend = llim + n - 1
 
-      ! zero BC
+      ! Zero BC
       i = istart
       df(i) = f(i + 1) / (2.0 * del)
       i = istart + 1
@@ -634,7 +647,7 @@ contains
       istart = llim
       iend = llim + n - 1
 
-      ! zero BC
+      ! Zero BC
       ! 2nd order accurate centered
       df(istart) = f(istart + 1) / (2.*del)
       df(iend) = -f(iend - 1) / (2.*del)
@@ -670,7 +683,7 @@ contains
       istart = llim
       iend = llim + n - 1
 
-      ! zero BC
+      ! Zero BC
       ! 2nd order accurate centered
       df(istart) = f(istart + 1) / (2.*del)
       df(iend) = -f(iend - 1) / (2.*del)
@@ -908,13 +921,13 @@ contains
 
       !----------------------------------------------------------------------
 
-      ! if upwnd is zero or if vpa=0, then use centered differences
+      ! If upwnd is zero or if vpa=0, then use centered differences
       if (abs(upwnd) < epsilon(0.) .or. sgn == 0) then
          call second_order_centered_zed(llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
       else
          ulim = size(f) + llim - 1
 
-         ! if sgn > 0, then stream speed is negative
+         ! If sgn > 0, then stream speed is negative
          ! so sweep from more positive to more negative zed
          if (sgn > 0) then
             if (iseg == nseg .and. .not. periodic) then
@@ -954,7 +967,7 @@ contains
             iend = ulim
          end if
 
-         ! mixed 2nd order centered and 1st order upwind scheme
+         ! Mixed 2nd order centered and 1st order upwind scheme
          do i = istart - sgn, iend + sgn, -sgn
             df(i) = sgn * (0.5 * (1.+upwnd) * f(i + sgn) - upwnd * f(i) + 0.5 * (upwnd - 1.) * f(i - sgn)) / del
          end do
@@ -980,13 +993,13 @@ contains
 
       !----------------------------------------------------------------------
 
-      ! if upwnd is zero or if z=0, then use centered differences
+      ! If upwnd is zero or if z=0, then use centered differences
       if (abs(upwnd) < epsilon(0.) .or. sgn == 0) then
          call second_order_centered_vpa(llim, f, del, df)
       else
          ulim = size(f) + llim - 1
 
-         ! if sgn > 0, then stream speed is negative
+         ! If sgn > 0, then stream speed is negative
          ! so sweep from more positive to more negative zed
          if (sgn > 0) then
             istart = ulim
@@ -996,12 +1009,10 @@ contains
             iend = ulim
          end if
 
-         ! zero_bc assumes that g -> zero beyond grid
-         ! boundaries in vpa
+         ! Zero_bc assumes that g -> zero beyond grid boundaries in vpa
          df(istart) = sgn * (0.5 * (2.0 * upwnd - 1.0) * f(istart - sgn) - 2.0 * upwnd * f(istart)) / del
 
-         ! as do not have info beyond grid boundary at end of sweep
-         ! use pure upwinding
+         ! As do not have info beyond grid boundary at end of sweep use pure upwinding
          df(iend) = sgn * (f(iend + sgn) - f(iend)) / del
 
          ! mixed centered and 1st order upwind scheme
@@ -1016,7 +1027,8 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   ! only good for equally-spaced grid-pts
+   ! Only good for equally-spaced grid-pts
+   !****************************************************************************
    subroutine fd3pt_real(prof, profgrad, dr)
 
       implicit none
@@ -1068,7 +1080,7 @@ contains
 
       do ix = 2, npts - 1
          profgrad(ix) = ((prof(ix) - prof(ix - 1)) * dr(ix) / dr(ix - 1) &
-                         + (prof(ix + 1) - prof(ix)) * dr(ix - 1) / dr(ix)) / (dr(ix - 1) + dr(ix))
+             + (prof(ix + 1) - prof(ix)) * dr(ix - 1) / dr(ix)) / (dr(ix - 1) + dr(ix))
       end do
       ix = 1
       a = -(2.*dr(1) + dr(2)) / (dr(1) * (dr(1) + dr(2)))
@@ -1103,8 +1115,9 @@ contains
 
       do ix = 2, npts - 1
          profgrad(ix) = ((prof(ix) - prof(ix - 1)) * dr(ix) / dr(ix - 1) &
-                         + (prof(ix + 1) - prof(ix)) * dr(ix - 1) / dr(ix)) / (dr(ix - 1) + dr(ix))
+            + (prof(ix + 1) - prof(ix)) * dr(ix - 1) / dr(ix)) / (dr(ix - 1) + dr(ix))
       end do
+      
       ix = 1
       a = -(2.*dr(1) + dr(2)) / (dr(1) * (dr(1) + dr(2)))
       b = (dr(1) + dr(2)) / (dr(1) * dr(2))
@@ -1138,6 +1151,7 @@ contains
       !----------------------------------------------------------------------
 
       npts = size(prof)
+      
       allocate (aa(npts), bb(npts), cc(npts))
 
       aa = 1.0; bb = 3.0; cc = 1.0
@@ -1149,6 +1163,7 @@ contains
       do ix = 3, npts - 2
          profgrad(ix) = (7.*(prof(ix + 1) - prof(ix - 1)) + 0.25 * (prof(ix + 2) - prof(ix - 2))) / (3.*dr)
       end do
+      
       profgrad(1) = (prof(2) - prof(1)) / dr
       profgrad(2) = 3.0 * (prof(3) - prof(1)) / dr
       profgrad(npts - 1) = 3.0 * (prof(npts) - prof(npts - 2)) / dr
@@ -1179,6 +1194,7 @@ contains
       !----------------------------------------------------------------------
 
       npts = size(prof)
+      
       allocate (aa(npts), bb(npts), cc(npts))
 
       aa = 1.0; bb = 3.0; cc = 1.0
@@ -1190,6 +1206,7 @@ contains
       do ix = 3, npts - 2
          profgrad(ix) = (7.*(prof(ix + 1) - prof(ix - 1)) + 0.25 * (prof(ix + 2) - prof(ix - 2))) / (3.*dr(ix))
       end do
+      
       profgrad(1) = (prof(2) - prof(1)) / dr(1)
       profgrad(2) = 3.0 * (prof(3) - prof(1)) / dr(2)
       profgrad(npts - 1) = 3.0 * (prof(npts) - prof(npts - 2)) / dr(npts - 1)
@@ -1227,6 +1244,7 @@ contains
          c = 2./(dr(i) * (dr(i) + dr(i - 1)))
          d2f(i) = a * f(i - 1) + b * f(i) + c * f(i + 1)
       end do
+      
       i = 1
       a = (6.*dr(1) + 4.*dr(2) + 2.*dr(3)) &
           / (dr(1) * (dr(1) + dr(2)) * (dr(1) + dr(2) + dr(3)))
@@ -1280,6 +1298,7 @@ contains
          c = 2./(dr(i) * (dr(i) + dr(i - 1)))
          d2f(i) = a * f(i - 1) + b * f(i) + c * f(i + 1)
       end do
+      
       i = 1
       a = (6.*dr(1) + 4.*dr(2) + 2.*dr(3)) &
           / (dr(1) * (dr(1) + dr(2)) * (dr(1) + dr(2) + dr(3)))
@@ -1321,6 +1340,7 @@ contains
       !----------------------------------------------------------------------
 
       npts = size(aa)
+      
       allocate (gam(npts))
 
       bet = bb(1)
@@ -1360,6 +1380,7 @@ contains
       !----------------------------------------------------------------------
 
       npts = size(bb)
+      
       allocate (gam(llim:llim + npts - 1))
 
       bet = bb(llim)

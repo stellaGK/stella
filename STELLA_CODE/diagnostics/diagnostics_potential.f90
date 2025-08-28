@@ -6,22 +6,22 @@
 ! Routines for calculating and writing the potential.  
 ! 
 !###############################################################################
- 
 module diagnostics_potential
+
+   ! Load debug flags
+   use debug_flags, only: debug => diagnostics_debug
 
    implicit none
  
+   ! Make routines available to other modules
    public :: init_diagnostics_potential
    public :: finish_diagnostics_potential
-   public :: write_potential_to_netcdf_file  
+   public :: write_potential_to_netcdf_file
 
    private 
 
    ! The <units> are used to identify the external ascii files
-   integer :: stdout_unit     
-
-   ! Debugging
-   logical :: debug = .false. 
+   integer :: stdout_unit
 
 contains
 
@@ -173,49 +173,49 @@ contains
       end if
       
       
-		! if (full_flux_surface) then
-		!    it = 1
-			
-		!    allocate (phi2_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes))
-		!    allocate (phi_swap(naky_all, ikx_max))
-		!    allocate (phi2_y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
-		!    allocate (flxfac(ny, -nzgrid:nzgrid))
-		!    allocate (phi2_mod(naky, nakx, -nzgrid:nzgrid, ntubes))
+      ! if (full_flux_surface) then
+      !    it = 1
+	      
+      !    allocate (phi2_kxkyz(naky, nakx, -nzgrid:nzgrid, ntubes))
+      !    allocate (phi_swap(naky_all, ikx_max))
+      !    allocate (phi2_y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
+      !    allocate (flxfac(ny, -nzgrid:nzgrid))
+      !    allocate (phi2_mod(naky, nakx, -nzgrid:nzgrid, ntubes))
 
-		!    phi2 = 0.0
-		!    phi2_kxkyz = real(phi_out * conjg(phi_out))
+      !    phi2 = 0.0
+      !    phi2_kxkyz = real(phi_out * conjg(phi_out))
 
-		!    do iz = -nzgrid, nzgrid
-		!       call swap_kxky(phi2_kxkyz(:, :, iz, it), phi_swap(:, :))
-		!       call transform_ky2y(phi_swap(:, :), phi2_y(:, :, iz, it))
-		!    end do
+      !    do iz = -nzgrid, nzgrid
+      !       call swap_kxky(phi2_kxkyz(:, :, iz, it), phi_swap(:, :))
+      !       call transform_ky2y(phi_swap(:, :), phi2_y(:, :, iz, it))
+      !    end do
 
-		!    flxfac = spread(delzed * dy, 1, ny) * jacob
-		!    flxfac(:, -nzgrid) = 0.5 * flxfac(:, -nzgrid)
-		!    flxfac(:, nzgrid) = 0.5 * flxfac(:, nzgrid)
+      !    flxfac = spread(delzed * dy, 1, ny) * jacob
+      !    flxfac(:, -nzgrid) = 0.5 * flxfac(:, -nzgrid)
+      !    flxfac(:, nzgrid) = 0.5 * flxfac(:, nzgrid)
 
-		!    !! Area of flux annulus
-		!    area = sum(flxfac) / ny 
-		!    !! Ny * Area of fluxtube for ia = 1 
-		!    area1 = sum(flxfac(1,:))
+      !    !! Area of flux annulus
+      !    area = sum(flxfac) / ny 
+      !    !! Ny * Area of fluxtube for ia = 1 
+      !    area1 = sum(flxfac(1,:))
 
-		!    flxfac = flxfac * area / area1**2
+      !    flxfac = flxfac * area / area1**2
 
-		!    call get_modified_fourier_coefficient(phi2_y, phi2_mod, flxfac)
+      !    call get_modified_fourier_coefficient(phi2_y, phi2_mod, flxfac)
 
-		!    do iz = -nzgrid, nzgrid
-		!       do ikx = 1, nakx
-		!          do iky = 1, naky
-		!             phi2 = phi2 + mode_fac(iky) * phi2_mod(iky, ikx, iz, it)
-		!          end do
-		!       end do
-		!    end do
-			
-		!    apar2 = 0.0 
-		!    deallocate (phi2_kxkyz, phi_swap, phi2_y, flxfac, phi2_mod)
-		! else
+      !    do iz = -nzgrid, nzgrid
+      !       do ikx = 1, nakx
+      !          do iky = 1, naky
+      !             phi2 = phi2 + mode_fac(iky) * phi2_mod(iky, ikx, iz, it)
+      !          end do
+      !       end do
+      !    end do
+	      
+      !    apar2 = 0.0 
+      !    deallocate (phi2_kxkyz, phi_swap, phi2_y, flxfac, phi2_mod)
+      ! else
 
-      ! Deallocate arrays 
+      ! Deallocate arrays
       deallocate (phi_vs_kykxzt)
       if (include_apar) deallocate (apar_vs_kykxzt)
       if (include_bpar) deallocate (bpar_vs_kykxzt)
@@ -337,7 +337,7 @@ contains
    ! or replace an old file. When restarting a simulation, append to the old files.
    subroutine open_potential_ascii_file(restart)
 
-      use file_utils, only: open_output_file 
+      use file_utils, only: open_output_file
       use mp, only: proc0
 
       implicit none
@@ -348,7 +348,7 @@ contains
       !----------------------------------------------------------------------
 
       ! We only open the ascii file on the first processor
-      if (.not. proc0) return   
+      if (.not. proc0) return
  
       ! For a new simulation <overwrite> = True since we wish to create a new ascii file.   
       ! For a restart <overwrite> = False since we wish to append to the existing file. 
@@ -372,21 +372,21 @@ contains
    !============================================================================
    !======================== INITALIZE THE DIAGNOSTICS =========================
    !============================================================================  
-   subroutine init_diagnostics_potential(restart)  
+   subroutine init_diagnostics_potential(restart)
   
       use mp, only: proc0
 
-      implicit none 
+      implicit none
  
-      logical, intent(in) :: restart 
+      logical, intent(in) :: restart
 
       !---------------------------------------------------------------------
 
       ! We only need the module arrays on the first processor 
-      if (.not. proc0) return          
+      if (.not. proc0) return
 
-      ! Open the '.out' ascii file  
-      call open_potential_ascii_file(restart) 
+      ! Open the '.out' ascii file
+      call open_potential_ascii_file(restart)
 
    end subroutine init_diagnostics_potential
 
@@ -396,12 +396,12 @@ contains
    subroutine finish_diagnostics_potential
 
       use file_utils, only: close_output_file
-      use mp, only: proc0 
+      use mp, only: proc0
 
       implicit none
 
       ! We only have the module arrays on the first processor 
-      if (.not. proc0) return     
+      if (.not. proc0) return
 
       ! Close the ascii file
       call close_output_file(stdout_unit)

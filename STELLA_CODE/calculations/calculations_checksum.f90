@@ -5,10 +5,12 @@
 !###############################################################################
 module calculations_checksum
 
+   ! Load flags
    use debug_flags, only: debug => calculations_debug
 
    implicit none
 
+   ! Make routines available to other modules
    public :: checksum
 
    private
@@ -36,16 +38,20 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: field
       real, intent(out) :: total
 
+      ! Local variables
       integer :: it, iky, ie, iseg
       integer :: ikx
 
       !----------------------------------------------------------------------
 
+      ! Initialise sum
       total = 0.
 
+      ! Check the sum
       do iky = 1, naky
          do it = 1, ntubes
                do ie = 1, neigen(iky)
@@ -77,21 +83,26 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: dist
       real, intent(out) :: total
       logical, intent(in), optional :: norm
 
+      ! Local variables
       integer :: ivmu, iv, imu, is
       integer :: iky, ikx, it
       real :: subtotal
-
       complex, dimension(:, :, :, :), allocatable :: dist_single
 
       !----------------------------------------------------------------------
 
+      ! Initialise sum
       total = 0.
 
+      ! Allocate temporary arrays
       allocate (dist_single(naky, nakx, -nzgrid:nzgrid, ntubes))
+      
+      ! Check the sum
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          dist_single = dist(:, :, :, :, ivmu)
          if (present(norm)) then
@@ -112,8 +123,11 @@ contains
          call checksum(dist_single, subtotal)
          total = total + subtotal
       end do
+      
+      ! Deallocate temporary arrays
       deallocate (dist_single)
 
+      ! Sum the values on all proccesors and send them to <proc0>
       call sum_allreduce(total)
 
    end subroutine checksum_dist
