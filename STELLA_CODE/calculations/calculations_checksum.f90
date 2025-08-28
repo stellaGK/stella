@@ -127,7 +127,7 @@ contains
       ! Deallocate temporary arrays
       deallocate (dist_single)
 
-      ! Sum the values on all proccesors and send them to <proc0>
+      ! Sum the values on all processors and send them to <proc0>
       call sum_allreduce(total)
 
    end subroutine checksum_dist

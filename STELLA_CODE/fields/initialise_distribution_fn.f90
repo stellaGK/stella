@@ -1,6 +1,10 @@
-!> This module contains the subroutines which set the initial value of the
-!! fields and the distribution function.
-
+!###############################################################################
+!                                                                               
+!###############################################################################
+! 
+! This module contains the subroutines which set the initial value of the
+! fields and the distribution function.
+!###############################################################################
 module initialise_distribution_fn
 
    implicit none
@@ -50,10 +54,10 @@ contains
    !****************************************************************************
    subroutine read_parameters_init_distribution
 
+      use mp, only: proc0, broadcast
       use stella_save, only: init_save, read_many
       use stella_layouts, only: read_parameters_parallelisation_layouts
       use system_fortran, only: systemf
-      use mp, only: proc0, broadcast
       use stella_save, only: read_many
       
       ! Read namelist from input file
@@ -75,13 +79,15 @@ contains
       
       !-------------------------------------------------------------------------
 
+      ! Only initialise once
       if (initialised) return
       initialised = .true.
-
+   
+      ! Make sure the parallelisation parameters are already read
       call read_parameters_parallelisation_layouts
       
-      ! Read <initialise_distribution> namelist 
-      if (proc0) call read_namelist_initialise_distribution(init_distribution_switch, phiinit, scale_to_phiinit)
+      ! Read <initialise_distribution> namelist
+      call read_namelist_initialise_distribution(init_distribution_switch, phiinit, scale_to_phiinit)
          
       ! Broadcast to all processors
       call broadcast(init_distribution_switch)
@@ -139,8 +145,11 @@ contains
       integer, intent(out) :: istep0
       integer :: istatus
 
+      !-------------------------------------------------------------------------
+
       restarted = .false.
       istep0 = 0
+      
       select case (init_distribution_switch)
       case (init_distribution_option_maxwellian)
          call initialise_distribution_maxwellian
@@ -159,8 +168,8 @@ contains
          scale = 1.
       end select
 
-      !> if maxwwellian_normalization = .true., the pdf is normalized by F0 (which is not the case otherwise)
-      !> unless reading in g from a restart file, normalise g by F0 for a full flux surface simulation
+      ! if maxwwellian_normalization = .true., the pdf is normalized by F0 (which is not the case otherwise)
+      ! unless reading in g from a restart file, normalise g by F0 for a full flux surface simulation
       if (maxwellian_normalization .and. init_distribution_switch /= init_distribution_option_restart_many) then
          call normalize_by_maxwellian
       end if
@@ -611,6 +620,8 @@ contains
 
       integer :: ikxkyz, iky, ikx, iz, is, ia
 
+      !-------------------------------------------------------------------------
+
       ! initialise g to be a Maxwellian with a constant density perturbation
 
       gvmu = 0.
@@ -645,6 +656,8 @@ contains
 
       integer :: istatus, ierr
 
+      !-------------------------------------------------------------------------
+
       ! should really check if profile_variation=T here but need
       ! to move profile_variation to module that is accessible here
       call stella_restore(gvmu, scale, istatus)
@@ -672,9 +685,11 @@ contains
       integer :: ia, imu
       integer :: ikxkyz, iz, is
 
-      !> gvmu is initialised with a Maxwellian weighting for flux tube simulations,
-      !> with the Maxwellian evaluated at ia = 1
-      !> we are undoing that weighting here, so also need to use ia = 1
+      !-------------------------------------------------------------------------
+
+      ! gvmu is initialised with a Maxwellian weighting for flux tube simulations,
+      ! with the Maxwellian evaluated at ia = 1
+      ! we are undoing that weighting here, so also need to use ia = 1
       ia = 1
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iz = iz_idx(kxkyz_lo, ikxkyz)

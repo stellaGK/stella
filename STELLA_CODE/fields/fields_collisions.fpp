@@ -1,22 +1,36 @@
+!###############################################################################
+!                                                                               
+!###############################################################################
+! 
+! Module for ...
+! 
+!###############################################################################
 module fields_collisions
 
+   ! Load debug flags
+   use debug_flags, only: debug => fields_debug
+
+   implicit none
+
+   ! Make routines available to other modules
    public :: get_fields_by_spec
    public :: get_fields_by_spec_idx
 
    private
 
 contains
+
 !###############################################################################
 !########################## ADVANCE FIELDS BY SPECIES ##########################
 !###############################################################################
-!> Note that these advance fields routines are only needed when advancing the
-!> collision operators
+! Note that these advance fields routines are only needed when advancing the
+! collision operators
 !###############################################################################
 
    !============================================================================
    !========================= ADVANCE FIELDS BY SPEC ===========================
    !============================================================================
-   !> This is used in dissipation_coll_dougherty.f90
+   ! This is used in dissipation_coll_dougherty.f90
    !============================================================================
    subroutine get_fields_by_spec(g, fld, skip_fsa)
 
@@ -34,31 +48,39 @@ contains
       use grids_species, only: spec, nspec, has_electron_species
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
-
       use arrays_store_useful, only: gamtot3_h, gamtot_h
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: fld
       logical, optional, intent(in) :: skip_fsa
 
+      ! Local variables
       real :: wgt
       complex, dimension(:, :), allocatable :: g0
       integer :: ikxkyz, iz, it, ikx, iky, is, ia
       logical :: skip_fsa_local
       complex, dimension(nspec) :: tmp
 
+      !----------------------------------------------------------------------
+
+      if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_by_spec'
       skip_fsa_local = .false.
       if (present(skip_fsa)) skip_fsa_local = skip_fsa
 
-      !      if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_by_spec'
-
+      ! Assume we only have one field line
       ia = 1
 
+      ! Initialise field
       fld = 0.
+      
       if (fphi > epsilon(0.0)) then
+      
+         ! Allocate temporary arrays
          allocate (g0(nvpa, nmu))
+         
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iz = iz_idx(kxkyz_lo, ikxkyz)
             it = it_idx(kxkyz_lo, ikxkyz)
@@ -88,7 +110,9 @@ contains
             end if
          end if
 
+         ! Deallocate temporary arrays
          deallocate (g0)
+         
       end if
 
    end subroutine get_fields_by_spec
@@ -96,14 +120,14 @@ contains
    !============================================================================
    !========================= ADVANCE FIELDS BY SPEC ===========================
    !============================================================================
-   !> This is used in dissipation_coll_fokkerplanck.f90
-   !> Note that is looks identical to the routine above - we don't know why they
-   !> are separated
+   ! This is used in dissipation_coll_fokkerplanck.f90
+   ! Note that is looks identical to the routine above - we don't know why they
+   ! are separated
+   ! 
+   ! apply phi_isa[ ] to all species indices contained in g
+   ! ie get phi_isa[g_is1], phi_isa[g_is2], phi_isa[g_is3] ...
    !============================================================================
    subroutine get_fields_by_spec_idx(isa, g, fld)
-
-      ! apply phi_isa[ ] to all species indices contained in g
-      ! ie get phi_isa[g_is1], phi_isa[g_is2], phi_isa[g_is3] ...
 
       use mp, only: sum_allreduce
       use stella_layouts, only: kxkyz_lo
@@ -121,25 +145,35 @@ contains
       use grids_species, only: adiabatic_option_fieldlineavg
       use arrays_store_useful, only: kperp2
       use spfunc, only: j0
-
       use arrays_store_useful, only: gamtot_h, gamtot3_h
+      
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: fld
       integer, intent(in) :: isa
 
+      ! Local variables
       complex, dimension(:, :), allocatable :: g0
       integer :: ikxkyz, iz, it, ikx, iky, is, ia, imu
       complex, dimension(nspec) :: tmp
       real :: wgt
       real :: arg
+      
+      !----------------------------------------------------------------------
 
+      ! Assume we only have one field line
       ia = 1
 
+      ! Initialise field
       fld = 0.
+      
       if (fphi > epsilon(0.0)) then
+      
+         ! Allocate temporary arrays
          allocate (g0(nvpa, nmu))
+         
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iz = iz_idx(kxkyz_lo, ikxkyz)
             it = it_idx(kxkyz_lo, ikxkyz)
@@ -155,10 +189,13 @@ contains
             g0 = g0 * wgt
             call integrate_vmu(g0, iz, fld(iky, ikx, iz, it, is))
          end do
+         
+         ! Sum the values on all processors and send them to <proc0>
          call sum_allreduce(fld)
 
          fld = fld / gamtot_h
 
+         ! Add a Boltzmann response for adiabatic species
          if (.not. has_electron_species(spec) .and. &
              adiabatic_option_switch == adiabatic_option_fieldlineavg) then
             if (zonal_mode(1)) then
@@ -173,6 +210,7 @@ contains
             end if
          end if
 
+         ! Deallocate temporary arrays
          deallocate (g0)
       end if
 

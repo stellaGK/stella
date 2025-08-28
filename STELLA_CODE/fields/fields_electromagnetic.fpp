@@ -1,14 +1,23 @@
-! Module for advancing and initialising the fields when Electromagnetic effects are included
+!###############################################################################
+!                                                                               
+!###############################################################################
+! 
+! Module for advancing and initialising the fields when electromagnetic 
+! effects are included, i.e., when evolving the apar and bpar fields.
+! 
+!###############################################################################
 module fields_electromagnetic
 
+   ! Load debug flags
    use debug_flags, only: debug => fields_electromagnetic_debug
 
+   implicit none
+
+   ! Make routines available to other modules
    public :: init_fields_electromagnetic
    public :: allocate_fields_electromagnetic
    public :: finish_fields_electromagnetic
-
    public :: get_fields_electromagnetic
-
    public :: advance_apar
    
    private
@@ -18,195 +27,266 @@ module fields_electromagnetic
       module procedure get_fields_electromagnetic_vmulo
    end interface
 
-   ! TODO-GA: add debug flag
-
 contains
 
 !###############################################################################
 !###################### ADVANCE ELECTROMAGNETIC FIELDS #########################
 !###############################################################################
 
-   !============================================================================
-   !============================= GET FIELDS VMULO =============================
-   !============================================================================
+   !****************************************************************************
+   !***************************** GET FIELDS VMULO *****************************
+   !****************************************************************************
    ! If we are parallelising over (vpa,mu) then this subroutine is called
    ! This is the more common version used compared with parallelising over 
    ! (kx,ky,z) and is the default for stella.
    ! This advances the fields when Electromagnetic effects are included, so 
    ! we advance <phi>, <B_parallel>, and <A_parallel>.
-   !============================================================================
+   !****************************************************************************
    subroutine get_fields_electromagnetic_vmulo(g, phi, apar, bpar, dist)
 
+      ! Parallelisation
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
-      ! Layouts
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx
+      
       ! Arrays
       use arrays_store_distribution_fn, only: g_scratch
       use arrays_store_useful, only: time_field_solve
+      
       ! Parameters
-      use parameters_physics, only: beta 
-      use parameters_physics, only: fphi 
+      use parameters_physics, only: beta
+      use parameters_physics, only: fphi
       use parameters_physics, only: radial_variation
       use parameters_physics, only: include_apar, include_bpar
+      
       ! Grids
       use grids_species, only: spec
       use calculations_velocity_integrals, only: integrate_species
       use grids_velocity, only: vpa, mu
       use grids_z, only: nzgrid
+      
       ! Calculations
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
+      
       ! Routines from other fields modules
       use fields_radial_variation, only: add_radial_correction_int_species
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar, bpar
       character(*), intent(in) :: dist
 
+      ! Local variables
       integer :: imu, iv, ivmu 
+      
       !-------------------------------------------------------------------------
+      
+      ! Calculate the phi and bpar fields
       if (fphi > epsilon(0.0) .and. include_bpar) then
+      
+         ! Start timer
          if (debug) write (*, *) 'fields_electromagnetic::get_fields_electromagnetic_vmulo::include_bpar'
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
-         ! gyroaverage the distribution function g at each phase space location
+         
+         ! Gyroaverage the distribution function g at each phase space location
          call gyro_average(g, g_scratch)
+         
          ! <g> requires modification if radial profile variation is included
          if (radial_variation) call add_radial_correction_int_species(g_scratch)
-         ! integrate <g> over velocity space and sum over species
+         
+         ! Integrate <g> over velocity space and sum over species
          ! store result in phi, which will be further modified below to account for polarization term
          if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_vmulo::integrate_species_phi'
          call integrate_species(g_scratch, spec%z * spec%dens_psi0, phi)
-         ! gyroaverage the distribution function g at each phase space location
+         
+         ! Gyroaverage the distribution function g at each phase space location
          call gyro_average_j1(g, g_scratch)
-         ! multiply by mu factor from vperp2
+         
+         ! Multiply by mu factor from vperp2
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             imu = imu_idx(vmu_lo, ivmu)
             g_scratch(:, :, :, :, ivmu) = g_scratch(:, :, :, :, ivmu) * mu(imu)
          end do
-         ! <g> requires modification if radial profile variation is included
-         ! not supported for bpar MRH
-         ! integrate <g> over velocity space and sum over species
+         
+         ! <g> requires modification if radial profile variation is included; not supported for bpar MRH
+         ! Integrate <g> over velocity space and sum over species
          ! store result in bpar, which will be further modified below to account for polarization term
          if (debug) write (*, *) 'fields_electromagnetic::get_fields_electromagnetic_vmulo::integrate_species_bpar'
          call integrate_species(g_scratch, -2.0 * beta * spec%temp_psi0 * spec%dens_psi0, bpar)
+         
+         ! End timer
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
+         
+         ! Get phi and bpar
          call get_phi_and_bpar(phi, bpar, dist)
+         
       end if
 
+      ! Initialise the apar field
       apar = 0.
+      
+      ! Evolve the apar field
       if (include_apar) then
+      
+         ! Start timer
          if (debug) write (*, *) 'fields_electromagnetic::get_fields_electromagnetic_vmulo::include_apar'
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
-         ! if fphi > 0, then g_scratch = <g> already calculated above
+         
+         ! If fphi > 0, then g_scratch = <g> already calculated above
          call gyro_average(g, g_scratch)
-         ! for parallel Amperes Law, need to calculate parallel current rather than density,
-         ! so multiply <g> by vpa before integrating
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            ! get the vpa index
-            iv = iv_idx(vmu_lo, ivmu)
-            ! multiply by vpa
+         
+         ! For parallel Amperes Law, need to calculate parallel current rather than density,
+         ! so multiply <g> by vpa before integrating. First get the vpa index, then multiply with vpa
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc¡
+            iv = iv_idx(vmu_lo, ivmu)¡
             g_scratch(:, :, :, :, ivmu) = g_scratch(:, :, :, :, ivmu) * vpa(iv)
          end do
-         ! integrate vpa*<g> over velocity space and sum over species
+         
+         ! Integrate vpa*<g> over velocity space and sum over species
          ! store result in apar, which will be further modified below to account for apar pre-factor
          if (debug) write (*, *) 'fields_electromagnetic::get_fields_electromagnetic_vmulo::integrate_species_apar'
          call integrate_species(g_scratch, spec%z * spec%dens_psi0 * spec%stm_psi0 * beta, apar)
+         
+         ! End timer
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
-         ! divide the apar obtained above by the appropriate Apar pre-factor;
+         
+         ! Divide the apar obtained above by the appropriate Apar pre-factor;
          ! this is just kperp2 if g = <f> is used or apar_denom = (kperp2 + ...)
          ! if gbar = g + <vpa*apar/c> * Ze/T * F_0 is used
          call get_apar(apar, dist)
+         
       end if
 
    end subroutine get_fields_electromagnetic_vmulo
 
-   !============================================================================
-   !============================ GET FIELDS KXKYZLO ============================
-   !============================================================================
+   !****************************************************************************
+   !**************************** GET FIELDS KXKYZLO ****************************
+   !****************************************************************************
    subroutine get_fields_electromagnetic_kxkyzlo(g, phi, apar, bpar, dist)
 
+      ! Parallelisation
       use mp, only: proc0
       use mp, only: sum_allreduce, mp_abort
       use job_manage, only: time_message
-      ! Layouts
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
+      
       ! Arrays
       use arrays_store_useful, only: kperp2 
       use arrays_store_useful, only: apar_denom, time_field_solve
+      
       ! Parameters
       use parameters_physics, only: beta
       use parameters_physics, only: include_apar, include_bpar
-      use parameters_physics, only: fphi 
+      use parameters_physics, only: fphi
+     
       ! Grids
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
-      use grids_velocity, only: vpa, mu 
-      use calculations_velocity_integrals, only: integrate_vmu
+      use grids_velocity, only: vpa, mu
       use grids_species, only: spec
+      
       ! Calculations
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
+      use calculations_velocity_integrals, only: integrate_vmu
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(inout) :: phi, apar, bpar
       character(*), intent(in) :: dist
+      
+      ! Local variables
       complex :: tmp
-
       real :: wgt
       complex, dimension(:, :), allocatable :: g0
       integer :: ikxkyz, iz, it, ikx, iky, is, ia
+      
       !-------------------------------------------------------------------------
+      
+      ! Assume we only have one field line
       ia = 1
 
+      ! Calculate the phi and bpar fields
       if (fphi > epsilon(0.0) .and. include_bpar) then
+      
+         ! Start timer
          if (debug) write (*, *) 'fields_electromagnetic::get_fields_electromagnetic_kxkyzlo::include_bpar'
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
+         
+         ! Allocate temporary arrays
          allocate (g0(nvpa, nmu))
+          
+         ! Iterate over the (kx,ky,z,mu,vpa,s) points
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iz = iz_idx(kxkyz_lo, ikxkyz)
             it = it_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
             iky = iky_idx(kxkyz_lo, ikxkyz)
             is = is_idx(kxkyz_lo, ikxkyz)
-            ! integrate g to get sum_s Z_s n_s J0 g and store in phi
+            
+            ! Integrate g to get sum_s Z_s n_s J0 g and store in phi
             call gyro_average(g(:, :, ikxkyz), ikxkyz, g0)
             wgt = spec(is)%z * spec(is)%dens_psi0
             call integrate_vmu(g0, iz, tmp)
             phi(iky, ikx, iz, it) = phi(iky, ikx, iz, it) + wgt * tmp
-            ! integrate g to get - 2 beta sum_s n_s T_s J1 mu g and store in bpar
+            
+            ! Integrate g to get - 2 beta sum_s n_s T_s J1 mu g and store in bpar
             call gyro_average_j1(spread(mu, 1, nvpa) * g(:, :, ikxkyz), ikxkyz, g0)
             wgt = -2.0 * beta* spec(is)%z * spec(is)%dens_psi0 * spec(is)%temp_psi0
             call integrate_vmu(g0, iz, tmp)
             bpar(iky, ikx, iz, it) = bpar(iky, ikx, iz, it) + wgt * tmp
+            
          end do
+         
+         ! Deallocate temporary arrays
          deallocate (g0)
+         
+         ! Sum the values on all processors and send them to <proc0>
          call sum_allreduce(phi)
          call sum_allreduce(bpar)
+         
+         ! End timer
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
 
+         ! Get phi and bpar
          call get_phi_and_bpar(phi, bpar, dist)
+         
       end if
 
+      ! Initialise the apar field
       apar = 0.
+      
+      ! Evolve the apar field
       if (include_apar) then
+      
+         ! Debug 
          if (debug) write (*, *) 'fields_electromagnetic::get_fields_electromagnetic_kxkyzlo::include_apar'
+         
+         ! Allocate temporary arrays
          allocate (g0(nvpa, nmu))
+         
+         ! Iterate over the (kx,ky,z,mu,vpa,s) points
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iz = iz_idx(kxkyz_lo, ikxkyz)
             it = it_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
             iky = iky_idx(kxkyz_lo, ikxkyz)
             is = is_idx(kxkyz_lo, ikxkyz)
+            
             call gyro_average(spread(vpa, 2, nmu) * g(:, :, ikxkyz), ikxkyz, g0)
             wgt = 2.0 * beta * spec(is)%z * spec(is)%dens * spec(is)%stm
             call integrate_vmu(g0, iz, tmp)
             apar(iky, ikx, iz, it) = apar(iky, ikx, iz, it) + tmp * wgt
+            
          end do
+         
+         ! Sum the values on all processors and send them to <proc0>
          call sum_allreduce(apar)
+         
          if (dist == 'h') then
             apar = apar / spread(kperp2(:, :, ia, :), 4, ntubes)
          else if (dist == 'gbar') then
@@ -218,38 +298,50 @@ contains
             if (proc0) write (*, *) 'unknown dist option in get_fields. aborting'
             call mp_abort('unknown dist option in get_fields. aborting')
          end if
+         
+         ! Deallocate temporary arrays
          deallocate (g0)
+         
       end if
 
    end subroutine get_fields_electromagnetic_kxkyzlo
 
-   !============================================================================
-   !============================ GET APAR AND BPAR= ============================
-   !============================================================================
+   !****************************************************************************
+   !**************************** GET APAR AND BPAR *****************************
+   !****************************************************************************
    subroutine get_phi_and_bpar(phi, bpar, dist)
 
+      ! Parallelisation
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
+      
       ! Arrays
       use arrays_store_useful, only: gamtotinv11, gamtotinv13, gamtotinv33, gamtotinv31
       use arrays_store_useful, only: gamtot_h, time_field_solve
-      ! Parameters
-      use grids_kxky, only: nakx, naky
+
       ! Grids
       use grids_z, only: nzgrid, ntubes
+      use grids_kxky, only: nakx, naky
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, bpar
+      character(*), intent(in) :: dist
+      
+      ! Local variables
       integer :: ia, it, ikx, iky, iz
       complex :: antot1, antot3
       
-      character(*), intent(in) :: dist
       !-------------------------------------------------------------------------
+      
+      ! Start timer
       if (debug) write (*, *) 'fields_electromagnetic::get_phi_and_bpar'
-
-      ia = 1
       if (proc0) call time_message(.false., time_field_solve(:, 4), ' get_phi_and_bpar')
+
+      ! Assume we only have one field line
+      ia = 1
+      
       if (dist == 'gbar' .or. dist == 'g') then
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
@@ -263,42 +355,57 @@ contains
                end do
             end do
          end do
+         
       else if (dist == 'h') then
-         ! divide sum ( Zs int J0 h d^3 v) by sum(Zs^2 ns / Ts) 
+         ! divide sum ( Zs int J0 h d^3 v) by sum(Zs^2 ns / Ts)
          phi = phi / gamtot_h
          ! do nothing for bpar because
          ! bpar = - 2 * beta * sum(Ts ns int (J1/bs) mu h d^3 v)
-         ! which is already stored in bpar when dist = 'h'.         
+         ! which is already stored in bpar when dist = 'h'.
+         
       else
-         if (proc0) write (*, *) 'unknown dist option in get_fields. aborting'
-         call mp_abort('unknown dist option in get_fields. aborting')
+         if (proc0) write (*, *) 'Unknown dist option in get_fields. Aborting.'
+         call mp_abort('Unknown dist option in get_fields. Aborting.')
          return
+         
       end if
 
    end subroutine get_phi_and_bpar
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! Get_apar solves pre-factor * Apar = beta_ref * sum_s Z_s n_s vth_s int d3v vpa * J0 * pdf
    ! for apar, with pdf being either g or gbar (specified by dist input).
    ! the input apar is the RHS of the above equation and is overwritten by the true apar
    ! the pre-factor depends on whether g or gbar is used (kperp2 in former case, with additional
    ! term appearing in latter case)
+   !****************************************************************************
    subroutine get_apar(apar, dist)
 
+      ! Parallelisation
       use mp, only: proc0, mp_abort
+      
       ! Arrays
       use arrays_store_useful, only: kperp2
       use arrays_store_useful, only: apar_denom
+      
       ! Grids
       use grids_z, only: nzgrid, ntubes
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: apar
       character(*), intent(in) :: dist
 
+      ! Local variables
       integer :: ia
+      
       !-------------------------------------------------------------------------
-      ! This subroutine only considers flux tubes, so set ia = 1
+      
+      ! Assume we only have one field line
       ia = 1
+      
       if (dist == 'g') then
          where (spread(kperp2(:, :, ia, :), 4, ntubes) > epsilon(0.0))
             apar = apar / spread(kperp2(:, :, ia, :), 4, ntubes)
@@ -314,35 +421,47 @@ contains
 
    end subroutine get_apar
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine advance_apar(g, dist, apar)
 
+      ! Parallelisation
       use mp, only: mp_abort, sum_allreduce
-      ! Layouts
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      
       ! Parameters
       use parameters_physics, only: include_apar
       use parameters_physics, only: beta
+      
       ! Grids
       use grids_species, only: spec
       use grids_z, only: nzgrid
       use grids_velocity, only: nvpa, nmu, vpa
       use calculations_velocity_integrals, only: integrate_vmu
+      
       ! Calculations
       use calculations_gyro_averages, only: gyro_average
 
       implicit none
 
-      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
+      ! Arguments
       character(*), intent(in) :: dist
+      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: apar
 
+      ! Local variables
       integer :: ikxkyz, iky, ikx, iz, it, is
       real :: wgt
       complex :: tmp
       complex, dimension(:, :), allocatable :: scratch
+      
       !-------------------------------------------------------------------------
+      
+      ! Initialise the apar field
       apar = 0.
+      
       if (include_apar) then
          allocate (scratch(nvpa, nmu))
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -365,33 +484,36 @@ contains
       end if
 
    end subroutine advance_apar
-   
 
 !###############################################################################
 !############################ INITALISE & FINALIZE #############################
 !###############################################################################
-   !============================================================================
-   !=========================== INITALISE THE FIELDS ===========================
-   !============================================================================
+
+   !****************************************************************************
+   !*************************** INITALISE THE FIELDS ***************************
+   !****************************************************************************
    ! Fill arrays needed for the electromagnetic calculations
-   !============================================================================
+   !****************************************************************************
    subroutine init_fields_electromagnetic (nfields)
 
+      ! Parallelisation
       use mp, only: sum_allreduce
-      ! Layouts
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
+      
       ! Arrays
       use arrays_store_useful, only: kperp2
       use arrays_store_useful, only: gamtot
       use arrays_store_useful, only: gamtot13, gamtot31, gamtot33
       use arrays_store_useful, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
       use arrays_store_useful, only: apar_denom
+      
       ! Parameters
       use parameters_physics, only: include_apar, include_bpar
-      use grids_kxky, only : nakx, naky 
+      use grids_kxky, only : nakx, naky
       use parameters_physics, only: beta
-      use parameters_physics, only: fphi 
+      use parameters_physics, only: fphi
+      
       ! Grids
       use grids_species, only: spec
       use grids_velocity, only: nvpa, nmu
@@ -399,6 +521,7 @@ contains
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use calculations_velocity_integrals, only: integrate_vmu
       use grids_z, only: nzgrid
+      
       ! Calculations
       use arrays_gyro_averages, only: aj0v, aj1v
 
@@ -410,14 +533,17 @@ contains
       real, dimension(:, :), allocatable :: g0
 
       !-------------------------------------------------------------------------
+      
       if (include_apar) nfields = nfields + 1
       if (include_bpar) nfields = nfields + 1
 
       call allocate_fields_electromagnetic
 
-      if (.not. (include_apar .or. include_bpar)) return 
+      if (.not. (include_apar .or. include_bpar)) return
       
-      ia = 1 
+      ! Assume we only have one field line
+      ia = 1
+      
       if (include_apar) then
          allocate (g0(nvpa, nmu))
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -487,8 +613,8 @@ contains
       end if
 
             
+      ! Compute coefficients for even part of field solve (phi, bpar)
       if (fphi > epsilon(0.0) .and. include_bpar) then
-         ! compute coefficients for even part of field solve (phi, bpar)
          do iz = -nzgrid,nzgrid 
             do ikx = 1, nakx
                do iky = 1, naky 
@@ -517,27 +643,26 @@ contains
       
    end subroutine init_fields_electromagnetic
 
-   !============================================================================
-   !============================= ALLOCATE ARRAYS ==============================
-   !============================================================================
+   !****************************************************************************
+   !***************************** ALLOCATE ARRAYS ******************************
+   !****************************************************************************
    ! Allocate arrays needed for solving electromagnetic fields
    ! This includes Apar and Bpar
-   !============================================================================
+   !****************************************************************************
    subroutine allocate_fields_electromagnetic
 
       use grids_z, only: nzgrid, ntubes
-      
       use grids_kxky, only: naky, nakx
       use parameters_physics, only: include_apar, include_bpar
-   
       use arrays_store_fields, only: apar, apar_old
       use arrays_store_fields, only: bpar, bpar_old
-
       use arrays_store_useful, only: gamtot13, gamtot31, gamtot33
       use arrays_store_useful, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
       use arrays_store_useful, only: apar_denom
 
       implicit none
+
+      !----------------------------------------------------------------------
       
       ! Allocate electromagnetic arrays on each processor
       if (include_apar) then
@@ -574,9 +699,9 @@ contains
 
    end subroutine allocate_fields_electromagnetic
 
-   !============================================================================
-   !==================== FINISH THE ELECTROMAGNETIC FIELDS =====================
-   !============================================================================
+   !****************************************************************************
+   !******************** FINISH THE ELECTROMAGNETIC FIELDS *********************
+   !****************************************************************************
    subroutine finish_fields_electromagnetic
 
       use arrays_store_fields, only: apar
@@ -586,6 +711,8 @@ contains
       use arrays_store_useful, only: apar_denom
       
       implicit none
+
+      !----------------------------------------------------------------------
 
       !TODO-GA:
       !if (allocated(apar)) deallocate (apar)

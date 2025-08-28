@@ -52,7 +52,7 @@ contains
       integer :: ikx, ikxneg
       integer :: iky, ikyneg
 
-      !----------------------------------------------------------------------
+      !-------------------------------------------------------------------------
       
       ! First set arrays equal for ky >= 0 and kx >= 0
       gout(:naky, :) = gin(:, :ikx_max)

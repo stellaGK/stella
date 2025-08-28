@@ -359,7 +359,7 @@ contains
       end if
 
       ! For the field line average normalise to account for contributions from multiple flux tubes 
-      ! in a flux tube train, and sum the values on all proccesors and to send them to <proc0>
+      ! in a flux tube train, and sum the values on all processors and to send them to <proc0>
       if (debug) write (*, *) 'diagnostics::diagnostics_distribution::calculate_distribution::sum_all_reduce' 
       if (write_g2_vs_vpamus) then   
          g2_vs_vpamus = g2_vs_vpamus / real(ntubes)   

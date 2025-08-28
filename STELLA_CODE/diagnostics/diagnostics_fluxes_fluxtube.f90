@@ -298,7 +298,7 @@ contains
          end do
       end if
 
-      ! Sum the values on all proccesors and send them to <proc0>
+      ! Sum the values on all processors and send them to <proc0>
       call sum_reduce(pflux_vs_s, 0)
       call sum_reduce(qflux_vs_s, 0)
       call sum_reduce(vflux_vs_s, 0)
@@ -313,7 +313,7 @@ contains
       qflux_vs_s = qflux_vs_s / real(ntubes)
       vflux_vs_s = vflux_vs_s / real(ntubes)
 
-      ! Sum the values on all proccesors and send them to <proc0>
+      ! Sum the values on all processors and send them to <proc0>
       call sum_reduce(pflux_vs_kxkyzts, 0)
       call sum_reduce(qflux_vs_kxkyzts, 0)
       call sum_reduce(vflux_vs_kxkyzts, 0) 

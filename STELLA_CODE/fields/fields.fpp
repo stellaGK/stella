@@ -1,4 +1,10 @@
+!###############################################################################
+!                                                                               
+!###############################################################################
+! 
 ! Module for advancing and intitialising all fields-related arrays
+! 
+!###############################################################################
 module fields
 
    use mpi
@@ -8,30 +14,26 @@ module fields
 
    implicit none
 
-   ! Global Routines
+   ! Make routines available to other modules
    public :: init_fields, finish_fields
-
-   ! Routines for advancing fields in main routine
    public :: advance_fields
-
-   ! Calculations
    public :: rescale_fields
 
-   ! Global 
+   ! Make parameters available to other modules
    public :: fields_updated
    public :: nfields
 
    private
 
-   ! Logicals
-   logical :: fields_updated = .false.
-   logical :: fields_initialized = .false.
-
-   ! EM - to calculate the number of fields that are in the simulation (1 for electrostatic)
+   ! Number of fields that are in the simulation 
+   ! 1 for electrostatic, i.e. phi, 2 or 3 for electromagnetic, i.e., apar and bpar
    integer :: nfields
 
-   ! For the initialisation 
-   logical :: fields_initialised = .false. 
+   ! Logicals
+   logical :: fields_updated = .false.
+   
+   ! Only initialise once
+   logical :: initialised_fields = .false.
 
 contains
 
@@ -49,28 +51,33 @@ contains
    !============================================================================
    subroutine advance_fields(g, phi, apar, bpar, dist, implicit_solve)
 
+      ! Parallelisation
       use mp, only: proc0
       use job_manage, only: time_message
-      ! Layouts
       use stella_layouts, only: vmu_lo
-      ! Arrays
-      use arrays_store_useful, only: time_field_solve
-      ! Parameters
+
+      ! Flags
       use parameters_physics, only: full_flux_surface
+      
       ! Grids
       use grids_z, only: nzgrid
+      use arrays_store_useful, only: time_field_solve
+      
       ! Routines from other field modules
       use fields_fluxtube, only: advance_fields_fluxtube
       use fields_ffs, only: get_fields_ffs
 
-
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(out) :: phi, apar, bpar 
       character(*), intent(in) :: dist
       logical, optional, intent(in) :: implicit_solve
+      
       !-------------------------------------------------------------------------
+      
+      ! Only update the fields once
       if (fields_updated) return
 
       ! Time the communications + field solve
@@ -98,13 +105,13 @@ contains
       end if
 
       ! Set a flag to indicate that the fields have been updated
-      ! this helps avoid unnecessary field solves
+      ! This helps avoid unnecessary field solves
       fields_updated = .true.
+      
       ! Time the communications + field solve
       if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
 
    end subroutine advance_fields
-
 
 !###############################################################################
 !########################## CALCULATIONS FOR FIELDS ############################
@@ -114,21 +121,30 @@ contains
    ! Rescale fields, including the distribution function
    !============================================================================
    subroutine rescale_fields(target_amplitude)
-
-      use mp, only: scope, subprocs, crossdomprocs, sum_allreduce
+  
+      ! Parallelisation
+      use mp, only: scope, subprocs
+      use mp, only: crossdomprocs, sum_allreduce
       use job_manage, only: njobs
       use file_utils, only: runtype_option_switch, runtype_multibox
-      ! Arrays
+      
+      ! Fields and distribution functions
       use arrays_store_fields, only: phi, apar
       use arrays_store_distribution_fn, only: gnew, gvmu
+      
       ! Calculations
       use calculations_volume_averages, only: volume_average
 
       implicit none
 
+      ! Arguments
       real, intent(in) :: target_amplitude
+      
+      ! Local variables
       real :: phi2, rescale
+      
       !-------------------------------------------------------------------------
+      
       call volume_average(phi, phi2)
 
       if (runtype_option_switch == runtype_multibox) then
@@ -156,13 +172,14 @@ contains
    !============================================================================
    subroutine init_fields
 
+      ! Parallelisation
       use mp, only: proc0
       use linear_solve, only: lu_decomposition
 
       ! Parameters
       use parameters_physics, only: full_flux_surface, radial_variation
 
-      ! Routined needed to initialise the different field arrays depending on the 
+      ! Routines needed to initialise the different field arrays depending on the
       ! physics being simulated
       use fields_fluxtube, only: init_fields_fluxtube
       use fields_electromagnetic, only: init_fields_electromagnetic
@@ -170,10 +187,12 @@ contains
       use fields_radial_variation, only: init_fields_radial_variation
 
       implicit none
+      
       !-------------------------------------------------------------------------
 
-      if (fields_initialised) return
-      fields_initialised = .true.
+      ! Only initialise once
+      if (initialised_fields) return
+      initialised_fields = .true.
 
       ! Allocate arrays such as phi that are needed throughout the simulation
       if (debug) write (*, *) 'fields::init_fields::allocate_arrays'
@@ -195,10 +214,7 @@ contains
             if (debug) write (*, *) 'fields::init_fields::init_fields_radial_variation'
             call init_fields_radial_variation
          end if
-
       end if
-
-      fields_initialised = .true.
 
    end subroutine init_fields
 
@@ -207,7 +223,6 @@ contains
    !============================================================================
    ! Allocate arrays needed for solving fields for all versions of stella
    !============================================================================
-   
    subroutine allocate_arrays
        
       ! Parameters
@@ -255,28 +270,34 @@ contains
    subroutine finish_fields
 
       ! Parameters
-      use parameters_physics, only: full_flux_surface, radial_variation 
+      use parameters_physics, only: full_flux_surface, radial_variation
+      
       ! Arrays
       use arrays_store_fields, only: phi, phi_old
       use arrays_store_useful, only: gamtot, gamtot3
+      
       ! Routines for deallocating arrays fields depending on the physics being simulated
       use fields_ffs, only: finish_fields_ffs
       use fields_radial_variation, only: finish_radial_fields
       use fields_electromagnetic, only: finish_fields_electromagnetic
+      
       implicit none
+      
+      !-------------------------------------------------------------------------
 
+      ! Deallocate ararys
       if (allocated(phi)) deallocate (phi)
       if (allocated(phi_old)) deallocate (phi_old)
       if (allocated(gamtot)) deallocate (gamtot)
       if (allocated(gamtot3)) deallocate (gamtot3)
 
-      ! Deallocate EM arrays. Even if not needed these arrays are allocated with size 1
+      ! Deallocate arrays from other field routines
       call finish_fields_electromagnetic
-      
       if (full_flux_surface) call finish_fields_ffs
       if (radial_variation) call finish_radial_fields
 
-      fields_initialized = .false.
+      ! The fields are no longer initialised
+      initialised_fields = .false.
 
    end subroutine finish_fields
 

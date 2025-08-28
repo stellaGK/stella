@@ -1,16 +1,24 @@
-!> Module for advancing and initialising the fields when Radial Variation effects are included
+!###############################################################################
+!                                                                               
+!###############################################################################
+! 
+! Module for advancing and initialising the fields when Radial Variation effects are included
+! 
+!###############################################################################
 module fields_radial_variation
 
    use mpi
+   use debug_flags, only: debug => fields_debug
 
    implicit none
 
-   !> Advance EM fields routines
+   ! Advance EM fields routines
    public :: get_radial_correction
    public :: get_phi_for_radial, add_adiabatic_response_radial
    public :: add_radial_correction_int_species
-   !> Initialise and Finalise Routines
-   !> TODO-GA: probably can make private -- need to do!
+   
+   ! Initialise and Finalise Routines
+   ! TODO-GA: probably can make private -- need to do!
    public :: init_fields_radial_variation
    public :: finish_radial_fields
 
@@ -21,13 +29,16 @@ module fields_radial_variation
 #endif
 
    integer :: zm
-   logical :: debug = .false.
 
 contains
 
 !###############################################################################
 !####################### ADVANCE RADIALLY GLOBAL FIELDS ########################
 !###############################################################################
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_phi_for_radial(phi, dist, skip_fsa)
 
       use mp, only: proc0, mp_abort, job
@@ -46,25 +57,30 @@ contains
 
       implicit none
 
+      ! Arguments
+      character(*), intent(in) :: dist
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi
       logical, optional, intent(in) :: skip_fsa
+      
+      ! Local variables
       integer :: ia
       logical :: skip_fsa_local
       logical :: has_elec, adia_elec
       logical :: global_quasineutrality, center_cell
       logical :: multibox_mode
 
-      character(*), intent(in) :: dist
+      !----------------------------------------------------------------------
 
       if (debug) write (*, *) 'dist_fn::advance_stella::get_phi'
-
       skip_fsa_local = .false.
       if (present(skip_fsa)) skip_fsa_local = skip_fsa
 
+      ! Assume we only have one field line
       ia = 1
+      
+      ! Check if we need a Boltzmann response for adiabatic species
       has_elec = has_electron_species(spec)
-      adia_elec = .not. has_elec &
-                  .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
+      adia_elec = .not. has_elec .and. (adiabatic_option_switch == adiabatic_option_fieldlineavg)
 
       global_quasineutrality = radial_variation .and. ky_solve_radial > 0
       multibox_mode = runtype_option_switch == runtype_multibox
@@ -86,16 +102,15 @@ contains
       if (any(gamtot(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
       if (proc0) call time_message(.false., time_field_solve(:, 4), ' get_phi')
 
-      ! now handle adiabatic electrons if needed
+      ! Now handle adiabatic electrons if needed
       if (proc0) call time_message(.false., time_field_solve(:, 5), 'get_phi_adia_elec')
       if (adia_elec .and. zonal_mode(1) .and. .not. skip_fsa_local) then
          if (debug) write (*, *) 'dist_fn::advance_stella::adiabatic_electrons'
 
          if (dist == 'gbar') then
             if (global_quasineutrality .and. center_cell .and. ky_solve_real) then
-               !this is already taken care of in mb_get_phi
-            elseif (global_quasineutrality .and. (center_cell .or. .not. multibox_mode) &
-                    .and. .not. ky_solve_real) then
+                !this is already taken care of in mb_get_phi
+            elseif (global_quasineutrality .and. (center_cell .or. .not. multibox_mode) .and. .not. ky_solve_real) then
                call add_adiabatic_response_radial(phi)
             end if
          else
@@ -107,10 +122,14 @@ contains
 
    end subroutine get_phi_for_radial
 
-   !> Non-perturbative approach to solving quasineutrality for radially
-   !> global simulations
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   ! Non-perturbative approach to solving quasineutrality for radially global simulations
+   !****************************************************************************
    subroutine get_phi_radial(phi)
 
+      ! Parallelisation
 #ifdef ISO_C_BINDING
       use mpi
       use mp, only: curr_focus, sharedsubprocs, scope
@@ -119,21 +138,24 @@ contains
       use arrays_store_fields, only: phi_shared
       use mp_lu_decomposition, only: lu_matrix_multiply_local
 #endif
-      use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
-      use grids_species, only: adiabatic_option_switch
-      use grids_species, only: adiabatic_option_fieldlineavg
-      use parameters_multibox, only: ky_solve_radial
+      use linear_solve, only: lu_back_substitution
       use grids_z, only: nzgrid, ntubes
       use grids_species, only: spec, has_electron_species
       use grids_kxky, only: nakx, naky
       use grids_kxky, only: zonal_mode
-      use linear_solve, only: lu_back_substitution
+      use grids_species, only: adiabatic_option_switch
+      use grids_species, only: adiabatic_option_fieldlineavg
+      use parameters_multibox, only: ky_solve_radial
       use arrays_store_useful, only: gamtot
       use arrays_store_fields, only: phi_solve
+      use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi
+      
+      ! Local variables
       integer :: it, iz, iky, zmi
       integer :: naky_r
       complex, dimension(:, :), allocatable :: g0k, g0x
@@ -143,12 +165,15 @@ contains
       integer :: prior_focus, ierr
 #endif
 
+      !----------------------------------------------------------------------
+
+      ! Allocate temporary arrays
       allocate (g0k(1, nakx))
       allocate (g0x(1, nakx))
 
+      ! Check if we need a Boltzmann response for adiabatic species
       has_elec = has_electron_species(spec)
-      adia_elec = .not. has_elec &
-                  .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
+      adia_elec = .not. has_elec .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
 
       naky_r = min(naky, ky_solve_radial)
 #ifdef ISO_C_BINDING
@@ -208,10 +233,15 @@ contains
 
    end subroutine get_phi_radial
 
-   !> Add the adiabatic eletron contribution for globally radial simulations.
-   !> This actually entails solving for the whole ky = 0 slice of phi at once (not really adding!)
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   ! Add the adiabatic eletron contribution for globally radial simulations.
+   ! This actually entails solving for the whole ky = 0 slice of phi at once (not really adding!)
+   !****************************************************************************
    subroutine add_adiabatic_response_radial(phi)
 
+      ! Parallelisation
 #ifdef ISO_C_BINDING
       use mpi
       use mp, only: sgproc0, comm_sgroup
@@ -220,20 +250,24 @@ contains
 #else
       use linear_solve, only: lu_back_substitution
 #endif
-      use grids_z, only: nzgrid, ntubes
-      use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+
       use geometry, only: dl_over_b, d_dl_over_b_drho
-      use grids_kxky, only: nakx 
       use parameters_multibox, only: boundary_size
+      use grids_z, only: nzgrid, ntubes
+      use grids_kxky, only: nakx 
       use grids_kxky, only: rho_d_clamped
       use arrays_store_fields, only: phizf_solve, phi_ext
       use arrays_store_fields, only: phi_proj, phi_proj_stage
       use arrays_store_useful, only: theta
       use arrays_store_useful, only: exclude_boundary_regions_qn, exp_fac_qn, tcorr_source_qn
+      use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi
+      
+      ! Local variables
       integer :: ia, it, iz, ikx
       integer :: inmat
       complex, dimension(:, :), allocatable :: g0k, g1k, g0x
@@ -241,14 +275,18 @@ contains
       integer :: ierr
 #endif
 
+      !----------------------------------------------------------------------
+
+      ! Allocate temporary arrays
       allocate (g0k(1, nakx))
       allocate (g1k(1, nakx))
       allocate (g0x(1, nakx))
 
+      ! Assume we only have one field line
       ia = 1
 
+      ! Calculate <<g>_psi>_T
       do it = 1, ntubes
-         ! calculate <<g>_psi>_T
          g1k = 0.0
          do iz = -nzgrid, nzgrid - 1
             g0k(1, :) = phi(1, :, iz, it)
@@ -308,10 +346,10 @@ contains
             end do
          end do
 
-         !enforce periodicity
+         ! Enforce periodicity
          phi(1, :, nzgrid, it) = phi(1, :, -nzgrid, it)
 
-         ! calculate Theta.phi
+         ! Calculate Theta.phi
          g1k = 0.0
          do iz = -nzgrid, nzgrid - 1
             do ikx = 1, nakx
@@ -340,8 +378,12 @@ contains
 
    end subroutine add_adiabatic_response_radial
 
-   !> Add radial variation of the Jacobian and gyroaveraing in the velocity integration of
-   !> <g>, needed for radially global simulations
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   ! Add radial variation of the Jacobian and gyroaveraing in the velocity integration of
+   ! <g>, needed for radially global simulations
+   !****************************************************************************
    subroutine add_radial_correction_int_species(g_in)
 
       use stella_layouts, only: vmu_lo
@@ -358,49 +400,62 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(inout) :: g_in
 
+      ! Local variables
       integer :: ivmu, iz, it, ia, imu, is, iky
       complex, dimension(:, :), allocatable :: g0k
 
+      !----------------------------------------------------------------------
+
       if (ky_solve_radial <= 0) return
 
+      ! Allocate temporary arrays
       allocate (g0k(naky, nakx))
 
+      ! Assume we only have one field line
       ia = 1
 
-      ! loop over super-index ivmu, which include vpa, mu and spec
+      ! Loop over super-index ivmu, which include vpa, mu and spec
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         ! is = species index
          is = is_idx(vmu_lo, ivmu)
-         ! imu = mu index
          imu = imu_idx(vmu_lo, ivmu)
 
          ! loop over flux tubes in flux tube train
          do it = 1, ntubes
-            ! loop over zed location within flux tube
+         
+            ! Loop over zed location within flux tube
             do iz = -nzgrid, nzgrid
+            
                g0k = 0.0
                do iky = 1, min(ky_solve_radial, naky)
                   g0k(iky, :) = g_in(iky, :, iz, it, ivmu) &
-                                * (-0.5 * aj1x(iky, :, iz, ivmu) / aj0x(iky, :, iz, ivmu) * (spec(is)%smz)**2 &
-                                   * (kperp2(iky, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
-                                   * (dkperp2dr(iky, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
-                                   + dBdrho(iz) / bmag(ia, iz))
+                    * (-0.5 * aj1x(iky, :, iz, ivmu) / aj0x(iky, :, iz, ivmu) * (spec(is)%smz)**2 &
+                       * (kperp2(iky, :, ia, iz) * vperp2(ia, iz, imu) / bmag(ia, iz)**2) &
+                       * (dkperp2dr(iky, :, ia, iz) - dBdrho(iz) / bmag(ia, iz)) &
+                       + dBdrho(iz) / bmag(ia, iz))
 
                end do
+               
                !g0k(1,1) = 0.
                call multiply_by_rho(g0k)
                g_in(:, :, iz, it, ivmu) = g_in(:, :, iz, it, ivmu) + g0k
+               
             end do
          end do
       end do
 
+      ! Deallocate temporary arrays
       deallocate (g0k)
 
    end subroutine add_radial_correction_int_species
 
-   !> the following routine gets the correction in phi both from gyroaveraging and quasineutrality
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   ! The following routine gets the correction in phi both from gyroaveraging and quasineutrality
+   !****************************************************************************
    subroutine get_radial_correction(g, phi0, dist)
 
       use mp, only: proc0, mp_abort, sum_allreduce
@@ -429,10 +484,12 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi0
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       character(*), intent(in) :: dist
 
+      ! Local variables
       integer :: ikx, iky, ivmu, iz, it, ia, is, imu
       complex :: tmp
       real, dimension(:, :, :, :), allocatable :: gamtot_t
@@ -440,13 +497,20 @@ contains
       complex, dimension(:, :, :), allocatable :: gyro_g
       complex, dimension(:, :), allocatable :: g0k, g1k, g1x
 
+      !----------------------------------------------------------------------
+
+      ! Assume we only have one field line
       ia = 1
 
       if (fphi > epsilon(0.0)) then
+      
+         ! Allocate temporary arrays
          allocate (gyro_g(naky, nakx, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          allocate (g0k(naky, nakx))
          allocate (phi1(naky, nakx, -nzgrid:nzgrid, ntubes))
+         
          phi1 = 0.
+         
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
                do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -465,9 +529,11 @@ contains
                call integrate_species(gyro_g, iz, spec%z * spec%dens_psi0, phi1(:, :, iz, it), reduce_in=.false.)
             end do
          end do
+         
+         ! Sum the values on all processors and send them to <proc0>
          call sum_allreduce(phi1)
 
-         !apply radial operator Xhat
+         ! Apply radial operator Xhat
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
                g0k = phi1(:, :, iz, it) - dgamtotdr(:, :, iz) * phi0(:, :, iz, it)
@@ -522,17 +588,17 @@ contains
             end if
          end if
 
-         !> collect quasineutrality corrections in wavenumber space
+         ! Collect quasineutrality corrections in wavenumber space
          phi_corr_QN = phi1
 
-         !> zero out the ones we have already solved for using the full method
+         ! zero out the ones we have already solved for using the full method
          do iky = 1, min(ky_solve_radial, naky)
             phi_corr_QN(iky, :, :, :) = 0.0
          end do
 
          deallocate (phi1)
 
-         !> collect gyroaveraging corrections in wavenumber space
+         ! Collect gyroaveraging corrections in wavenumber space
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
             imu = imu_idx(vmu_lo, ivmu)
@@ -549,6 +615,7 @@ contains
             end do
          end do
 
+         ! Deallocate temporary arrays
          deallocate (g0k)
          deallocate (gyro_g)
 
@@ -560,10 +627,12 @@ contains
 !############################ INITALIZE & FINALIZE #############################
 !###############################################################################
 
-   !============================================================================
-   !============= INITALISE THE FIELDS FOR RADIALLY GLOBAL STELLA ==============
-   !============================================================================
+   !****************************************************************************
+   !              INITALISE THE FIELDS FOR RADIALLY GLOBAL STELLA
+   !****************************************************************************
    subroutine init_fields_radial_variation
+   
+      ! Parallelisation
       use mp, only: proc0, job
       use mp, only: sum_allreduce
 #ifdef ISO_C_BINDING
@@ -575,6 +644,9 @@ contains
       use mp, only: split_n_tasks, create_shared_memory_window
       use mpi
 #endif
+      use stella_layouts, only: kxkyz_lo
+      use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
+
       use parameters_multibox, only: ky_solve_radial, ky_solve_real
       use grids_species, only: spec, has_electron_species, ion_species
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
@@ -590,21 +662,18 @@ contains
       use arrays_store_useful, only: gamtot, dgamtotdr
       use arrays_store_useful, only: c_mat, theta
       use file_utils, only: runtype_option_switch, runtype_multibox
-
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use arrays_gyro_averages, only: aj0v, aj1v
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: vpa, vperp2, mu, nmu, nvpa
       use arrays_store_useful, only: kperp2, dkperp2dr
       use geometry, only: dBdrho, bmag
       use grids_species, only: tite, nine
-
       use arrays_store_useful, only: efac, efacp
       use calculations_velocity_integrals, only: integrate_vmu
 
       implicit none
 
+      ! Local variables
       integer :: ikxkyz, it, is
       integer :: iz, ikx, iky, ia, zmi, naky_r
       real :: dum
@@ -617,7 +686,6 @@ contains
       complex, dimension(:), pointer :: phi_shared_temp
       type(c_ptr) :: cptr
 #endif
-
       real, dimension(:, :), allocatable :: g0
       real, dimension(:), allocatable :: g1
       complex, dimension(:, :), allocatable :: g0k, g0x
@@ -626,13 +694,16 @@ contains
       zm = 0
       ia = 1
 
-      call allocate_arrays_radial_variation
+      !-------------------------------------------------------------------------
 
+      ! Allocate temporary arrays
+      call allocate_arrays_radial_variation
       allocate (g1(nmu))
+      
+      ! <gamtot> does not depend on flux tube index,
+      ! so only compute for one flux tube index
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          it = it_idx(kxkyz_lo, ikxkyz)
-         ! gamtot does not depend on flux tube index,
-         ! so only compute for one flux tube index
          if (it /= 1) cycle
          iky = iky_idx(kxkyz_lo, ikxkyz)
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -652,7 +723,11 @@ contains
          call integrate_vmu(g0, iz, tmp)
          dgamtotdr(iky, ikx, iz) = dgamtotdr(iky, ikx, iz) + tmp * wgt
       end do
+      
+      ! Sum the values on all processors and send them to <proc0>
       call sum_allreduce(dgamtotdr)
+      
+      ! Deallocate temporary arrays
       deallocate (g1)
 
       if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then
@@ -713,7 +788,7 @@ contains
 
             call create_shared_memory_window(win_size, qn_window, cur_pos)
 
-            !allocate the memory
+            ! Allocate the memory
             do iky = 1, naky_r
                zmi = 0
                if (iky == 1) zmi = zm !zero mode may or may not be included in matrix
@@ -822,10 +897,9 @@ contains
 
    end subroutine init_fields_radial_variation
 
-   !============================================================================
-   !======================= ALLOCATE ARRAYS FOR EM FIELDS ======================
-   !============================================================================
-
+   !****************************************************************************
+   !                        ALLOCATE ARRAYS FOR EM FIELDS
+   !****************************************************************************
    subroutine allocate_arrays_radial_variation
 
       use parameters_physics, only: radial_variation
@@ -837,6 +911,8 @@ contains
       use grids_kxky, only: naky, nakx
 
       implicit none
+
+      !----------------------------------------------------------------------
 
       if (.not. allocated(phi_corr_QN) .and. radial_variation) then
          allocate (phi_corr_QN(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -862,9 +938,9 @@ contains
 
    end subroutine allocate_arrays_radial_variation
 
-   !============================================================================
-   !==================== FINISH THE RADIALLY GLOBAL FIELDS =====================
-   !============================================================================
+   !****************************************************************************
+   !                     FINISH THE RADIALLY GLOBAL FIELDS
+   !****************************************************************************
    subroutine finish_radial_fields
 
       use arrays_store_fields, only: phi_corr_QN, phi_corr_GA
@@ -882,6 +958,8 @@ contains
       integer ierr
 #endif
 
+      !-------------------------------------------------------------------------
+
 #ifdef ISO_C_BINDING
       if (phi_shared_window /= MPI_WIN_NULL) call mpi_win_free(phi_shared_window, ierr)
       if (qn_window /= MPI_WIN_NULL) then
@@ -891,13 +969,10 @@ contains
 
       if (allocated(c_mat)) deallocate (c_mat)
       if (allocated(theta)) deallocate (theta)
-
       if (allocated(phi_corr_QN)) deallocate (phi_corr_QN)
       if (allocated(phi_corr_GA)) deallocate (phi_corr_GA)
-
       if (allocated(apar_corr_QN)) deallocate (apar_corr_QN)
       if (allocated(apar_corr_GA)) deallocate (apar_corr_GA)
-
       if (allocated(dgamtotdr)) deallocate (dgamtotdr)
 
    end subroutine finish_radial_fields

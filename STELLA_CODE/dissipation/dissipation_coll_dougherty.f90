@@ -868,7 +868,7 @@ contains
       ! Deallocate temporary arrays
       deallocate (g0)
       
-      ! Sum the values on all proccesors and send them to <proc0>
+      ! Sum the values on all processors and send them to <proc0>
       call sum_allreduce(fld)
 
    end subroutine get_upar
@@ -919,7 +919,7 @@ contains
       ! Deallocate temporary arrays
       deallocate (g0)
 
-      ! Sum the values on all proccesors and send them to <proc0>
+      ! Sum the values on all processors and send them to <proc0>
       call sum_allreduce(fld)
 
    end subroutine get_uperp
@@ -970,7 +970,7 @@ contains
       ! Deallocate temporary arrays
       deallocate (g0)
 
-      ! Sum the values on all proccesors and send them to <proc0>
+      ! Sum the values on all processors and send them to <proc0>
       call sum_allreduce(fld)
 
    end subroutine get_temp
@@ -1020,7 +1020,7 @@ contains
       ! Deallocate temporary arrays
       deallocate (g0)
 
-      ! Sum the values on all proccesors and send them to <proc0>
+      ! Sum the values on all processors and send them to <proc0>
       call sum_allreduce(fld)
 
    end subroutine get_temp_mu
