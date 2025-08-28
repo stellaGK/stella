@@ -10,8 +10,24 @@
 ! These flags will allow you to toggle the algorithm choices in stella.
 !###############################################################################
 module parameters_numerical
+   
+   ! Read the parameters for <delt_option_switch> from namelist_parameters_numerical.f90
+   use namelist_parameters_numerical, only: delt_option_hand
+   use namelist_parameters_numerical, only: delt_option_auto
+   
+   ! Read the parameters for <explicit_algorithm_switch> from namelist_parameters_numerical.f90
+   use namelist_parameters_numerical, only: explicit_algorithm_rk2
+   use namelist_parameters_numerical, only: explicit_algorithm_rk3
+   use namelist_parameters_numerical, only: explicit_algorithm_rk4
+   use namelist_parameters_numerical, only: explicit_algorithm_euler
 
    implicit none
+   
+   ! Although the parameters are available through namelist_species
+   ! make them available through grids_species as well
+   public :: delt_option_hand, delt_option_auto
+   public :: explicit_algorithm_rk3, explicit_algorithm_rk2
+   public :: explicit_algorithm_rk4, explicit_algorithm_euler
 
    ! Time trace options
    public :: nstep, tend
@@ -21,13 +37,11 @@ module parameters_numerical
    ! Time step options
    public :: delt
    public :: delt_option_switch
-   public :: delt_option_hand, delt_option_auto
    public :: delt_max, delt_min
    public :: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
 
    ! Numerical algorithms
    public :: explicit_algorithm_switch
-   public :: explicit_algorithm_rk3, explicit_algorithm_rk2, explicit_algorithm_rk4, explicit_algorithm_euler
    public :: flip_flop
    public :: stream_implicit, stream_iterative_implicit, stream_matrix_inversion, driftkinetic_implicit
    public :: mirror_implicit, mirror_semi_lagrange, mirror_linear_interp
@@ -60,25 +74,22 @@ module parameters_numerical
    ! Time step options
    real :: delt
    integer :: delt_option_switch
-   integer, parameter :: delt_option_hand = 1, delt_option_auto = 2
    real :: delt_max, delt_min
    real :: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
 
    ! Numerical algorithms
    integer :: explicit_algorithm_switch
-   integer, parameter :: explicit_algorithm_rk3 = 1, &
-        explicit_algorithm_rk2 = 2, &
-        explicit_algorithm_rk4 = 3, &
-        explicit_algorithm_euler = 4
    logical :: flip_flop
    logical :: stream_implicit, stream_iterative_implicit, stream_matrix_inversion, driftkinetic_implicit
    logical :: mirror_implicit, mirror_semi_lagrange, mirror_linear_interp
    logical :: drifts_implicit, fully_implicit, fully_explicit
    logical :: maxwellian_inside_zed_derivative, use_deltaphi_for_response_matrix
+   
    ! if split_parallel_dynamics = .true. (default), use operator splitting
    ! to treat parallel streaming and mirror term separately
    logical :: split_parallel_dynamics
-   ! REMOVE
+   
+   ! GA - REMOVE
    logical :: maxwellian_normalization
 
    ! numerical_upwinding_for_derivatives
@@ -102,14 +113,17 @@ contains
       use mp, only: proc0, mp_abort
       use text_options, only: text_option, get_option_value
       use file_utils, only: input_unit, error_unit, input_unit_exist
-      use namelist_parameters_numerical, only: &
-         read_namelist_time_trace_options, read_namelist_time_step, &
-         read_namelist_numerical_algorithms, read_namelist_numerical_upwinding_for_derivatives, &
-         read_namelist_flux_annulus
+      use namelist_parameters_numerical, only: read_namelist_time_trace_options
+      use namelist_parameters_numerical, only: read_namelist_time_step
+      use namelist_parameters_numerical, only: read_namelist_numerical_algorithms
+      use namelist_parameters_numerical, only: read_namelist_numerical_upwinding_for_derivatives
+      use namelist_parameters_numerical, only: read_namelist_flux_annulus
 
       implicit none
 
       logical :: error = .false.
+
+      !-------------------------------------------------------------------------
 
       if (initialised) return
 
@@ -159,6 +173,8 @@ contains
          implicit none
 
          integer :: ierr
+
+         !----------------------------------------------------------------------
 
          ! Abort if neither tend nor nstep are set
          if (tend < 0 .and. nstep < 0) then

@@ -12,8 +12,16 @@
 !###############################################################################
 module geometry
 
+   ! Load debug flags
    use debug_flags, only: debug => geometry_debug
    use stella_common_types, only: flux_surface_type
+   
+   ! Read the parameters for <geo_option_switch> from namelist_geometry.f90
+   use namelist_geometry, only: geo_option_local
+   use namelist_geometry, only: geo_option_inputprof
+   use namelist_geometry, only: geo_option_vmec
+   use namelist_geometry, only: geo_option_multibox
+   use namelist_geometry, only: geo_option_zpinch
 
    implicit none
 
@@ -91,11 +99,6 @@ module geometry
 
    integer :: sign_torflux
    integer :: geo_option_switch
-   integer, parameter :: geo_option_local = 1
-   integer, parameter :: geo_option_inputprof = 2
-   integer, parameter :: geo_option_vmec = 3
-   integer, parameter :: geo_option_multibox = 4
-   integer, parameter :: geo_option_zpinch = 5
  
    logical :: overwrite_bmag, overwrite_b_dot_grad_zeta, overwrite_geometry
    logical :: overwrite_gds2, overwrite_gds21, overwrite_gds22

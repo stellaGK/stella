@@ -146,6 +146,8 @@ contains
 
          implicit none
 
+         !-------------------------------------------------------------------------
+
          ! Track code 
          if (debug) write (*, *) 'read_diagnostics_parameters::read_input_file'
 
@@ -209,6 +211,8 @@ contains
          use mp, only: broadcast
       
          implicit none
+
+         !-------------------------------------------------------------------------
          
          ! Track code 
          if (debug) write (*, *) 'read_diagnostics_parameters::broadcast_parameters'

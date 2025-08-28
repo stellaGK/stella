@@ -1,8 +1,16 @@
+!###############################################################################
+!                                                                               
+!###############################################################################
+! This module ...
+!###############################################################################
 module neoclassical_terms
 
-  use debug_flags, only: debug => neoclassical_terms_debug
+   ! Load debug flags
+   use debug_flags, only: debug => neoclassical_terms_debug
+   
    implicit none
 
+   ! Make routines available to other modules
    public :: init_neoclassical_terms
    public :: finish_neoclassical_terms
    public :: include_neoclassical_terms
@@ -14,17 +22,19 @@ module neoclassical_terms
    logical :: include_neoclassical_terms
    integer :: nradii
    real :: drho
-
    integer :: neo_option_switch
    integer, parameter :: neo_option_sfincs = 1
-
    real, dimension(:, :, :), allocatable :: dfneo_dzed, dfneo_dvpa, dfneo_drho, dfneo_dalpha
    real, dimension(:, :), allocatable :: dphineo_dzed, dphineo_drho, dphineo_dalpha
 
-   logical :: neoinit = .false.
+   ! Only initialise once
+   logical :: initialised_neoclassical_terms = .false.
 
 contains
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_neoclassical_terms
 
       use grids_z, only: nzgrid
@@ -43,12 +53,16 @@ contains
 
       integer :: iz, ialpha
 
-      if (neoinit) return
-      neoinit = .true.
+      !-------------------------------------------------------------------------
+   
+      ! Only initialise once
+      if (initialised_neoclassical_terms) return
+      initialised_neoclassical_terms = .true.
       
-      call read_namelist_neoclassical_input(include_neoclassical_terms, neo_option_switch, &
-                nradii, drho)
+      ! Read the input parameters in the input file
+      call read_namelist_neoclassical_input(include_neoclassical_terms, neo_option_switch, nradii, drho)
 
+      ! Broadcast the input parameters to all processors
       call broacast_arrays
 
       if (include_neoclassical_terms) then
@@ -105,10 +119,14 @@ contains
          call broadcast(neo_option_switch)
          call broadcast(nradii)
          call broadcast(drho)
+         
       end subroutine broacast_arrays
 
    end subroutine init_neoclassical_terms
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine distribute_vmus_over_procs(local, distributed)
 
       use stella_layouts, only: vmu_lo
@@ -121,6 +139,8 @@ contains
 
       integer :: ivmu, iv, imu, is
 
+      !-------------------------------------------------------------------------
+
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
@@ -130,6 +150,9 @@ contains
 
    end subroutine distribute_vmus_over_procs
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dfneo_dvpa(fneo, dfneo)
 
       use calculations_finite_differences, only: fd5pt
@@ -148,6 +171,8 @@ contains
       integer :: ia, iz, imu, is
       real, dimension(:), allocatable :: tmp1, tmp2
       real, dimension(:, :, :, :, :), allocatable :: dfneo_local
+
+      !-------------------------------------------------------------------------
 
       allocate (tmp1(nvpa), tmp2(nvpa))
       allocate (dfneo_local(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
@@ -176,6 +201,9 @@ contains
 
    end subroutine get_dfneo_dvpa
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dfneo_dzed(fneo, dfneo)
 
       use calculations_finite_differences, only: fd5pt
@@ -193,6 +221,8 @@ contains
       integer :: iv, imu, is, iz, ia
       real, dimension(:), allocatable :: tmp1, tmp2
       real, dimension(:), allocatable :: dfneo_local(:, :, :, :, :)
+
+      !-------------------------------------------------------------------------
 
       allocate (tmp1(nztot), tmp2(nztot))
       allocate (dfneo_local(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
@@ -221,6 +251,9 @@ contains
 
    end subroutine get_dfneo_dzed
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dfneo_drho(fneo, dfneo)
 
       use calculations_finite_differences, only: fd3pt, fd5pt
@@ -238,6 +271,8 @@ contains
       integer :: ia, iz, iv, imu, is
       real, dimension(:), allocatable :: tmp1, tmp2
       real, dimension(:, :, :, :, :), allocatable :: dfneo_local
+
+      !-------------------------------------------------------------------------
 
       allocate (tmp1(nradii), tmp2(nradii))
       allocate (dfneo_local(nalpha, -nzgrid:nzgrid, nvpa, nmu, nspec))
@@ -272,6 +307,9 @@ contains
 
    end subroutine get_dfneo_drho
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dphineo_dzed(phineo, dphineo)
 
       use calculations_finite_differences, only: fd5pt
@@ -286,6 +324,8 @@ contains
       integer :: ia
       real, dimension(:), allocatable :: tmp1, tmp2
 
+      !-------------------------------------------------------------------------
+
       allocate (tmp1(nztot), tmp2(nztot))
 
       do ia = 1, nalpha
@@ -299,6 +339,9 @@ contains
 
    end subroutine get_dphineo_dzed
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dphineo_drho(phineo, dphineo)
 
       use calculations_finite_differences, only: fd3pt, fd5pt
@@ -312,6 +355,8 @@ contains
 
       integer :: iz, ia
       real, dimension(:), allocatable :: tmp1, tmp2
+
+      !-------------------------------------------------------------------------
 
       allocate (tmp1(nradii), tmp2(nradii))
 
@@ -332,6 +377,9 @@ contains
 
    end subroutine get_dphineo_drho
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine write_neoclassical(fnc, phinc)
 
       use mp, only: proc0
@@ -352,6 +400,8 @@ contains
       integer :: neo_unit
       integer :: irad, iz, ivmu, iv, imu, is, ia
       real, dimension(:, :), allocatable :: dfdv_local, dfdr_local, dfdz_local
+
+      !-------------------------------------------------------------------------
 
       allocate (dfdv_local(nalpha, -nzgrid:nzgrid))
       allocate (dfdr_local(nalpha, -nzgrid:nzgrid))
@@ -404,6 +454,9 @@ contains
 
    end subroutine write_neoclassical
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine finish_neoclassical_terms
 
       implicit none
@@ -416,7 +469,7 @@ contains
       if (allocated(dphineo_drho)) deallocate (dphineo_drho)
       if (allocated(dphineo_dalpha)) deallocate (dphineo_dalpha)
 
-      neoinit = .false.
+      initialised_neoclassical_terms = .false.
 
    end subroutine finish_neoclassical_terms
 

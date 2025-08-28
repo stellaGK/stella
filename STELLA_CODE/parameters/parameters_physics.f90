@@ -17,6 +17,11 @@
 
 module parameters_physics
 
+   ! Read the parameters for <simulation_domain_switch> from namelist_parameters_physics.f90
+   use namelist_parameters_physics, only: simulation_domain_fluxtube
+   use namelist_parameters_physics, only: simulation_domain_multibox
+   use namelist_parameters_physics, only: simulation_domain_flux_annulus
+
    implicit none
 
    ! Public subroutines that are read by the main stella routine.
@@ -66,9 +71,6 @@ module parameters_physics
 
    ! Gyrokinetic terms
    integer :: simulation_domain_switch
-   integer, parameter :: simulation_domain_fluxtube = 1, &
-                           simulation_domain_multibox = 2, & 
-                           simulation_domain_flux_annulus = 3
    logical :: include_parallel_streaming
    logical :: include_mirror
    logical :: include_xdrift

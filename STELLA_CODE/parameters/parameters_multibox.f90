@@ -1,21 +1,42 @@
 module parameters_multibox
 
+   ! Read the parameters for <lr_debug_switch> from namelist_radial_variation.f90
+   use namelist_radial_variation, only: lr_debug_option_default
+   use namelist_radial_variation, only: lr_debug_option_L
+   use namelist_radial_variation, only: lr_debug_option_R
+   
+   ! Read the parameters for <krook_option_switch> from namelist_radial_variation.f90
+   use namelist_radial_variation, only: krook_option_default
+   use namelist_radial_variation, only: krook_option_flat
+   use namelist_radial_variation, only: krook_option_linear
+   use namelist_radial_variation, only: krook_option_exp
+   use namelist_radial_variation, only: krook_option_exp_rev
+   
+   ! Read the parameters for <mb_zf_option_switch> from namelist_radial_variation.f90
+   use namelist_radial_variation, only: mb_zf_option_default
+   use namelist_radial_variation, only: mb_zf_option_skip_ky0
+   use namelist_radial_variation, only: mb_zf_option_zero_ky0
+   use namelist_radial_variation, only: mb_zf_option_zero_fsa
+
    implicit none
 
-   public :: read_parameters_multibox
+   ! Although the parameters are available through namelist_species, 
+   ! make them available through grids_species as well
+   public :: lr_debug_switch, lr_debug_option_default
+   public :: lr_debug_option_L, lr_debug_option_R
+   public :: krook_option_switch, krook_option_default
+   public :: krook_option_flat, krook_option_linear
+   public :: krook_option_exp, krook_option_exp_rev
+   public :: mb_zf_option_switch, mb_zf_option_default
+   public :: mb_zf_option_skip_ky0, mb_zf_option_zero_ky0
+   public :: mb_zf_option_zero_fsa
 
+   ! Make routines available to other modules
+   public :: read_parameters_multibox
    public :: ky_solve_real, ky_solve_radial
    public :: include_pressure_variation 
    public :: include_geometric_variation
    public :: smooth_zf
-   public :: lr_debug_switch, lr_debug_option_default, & 
-            lr_debug_option_L, lr_debug_option_R
-   public :: krook_option_switch, krook_option_default, &
-            krook_option_flat, krook_option_linear, &
-            krook_option_exp, krook_option_exp_rev
-   public :: mb_zf_option_switch, mb_zf_option_default, &
-            mb_zf_option_skip_ky0, mb_zf_option_zero_ky0, &
-            mb_zf_option_zero_fsa
    public :: rk_step
    public :: nu_krook_mb
    public :: mb_debug_step
@@ -27,30 +48,16 @@ module parameters_multibox
 
    private
 
+   ! Text option switches
+   integer :: lr_debug_switch
+   integer :: krook_option_switch
+   integer:: mb_zf_option_switch
+   
    logical :: ky_solve_real
    integer :: ky_solve_radial
    logical :: include_pressure_variation 
    logical :: include_geometric_variation
    logical :: smooth_zf
-
-   integer :: lr_debug_switch
-   integer, parameter:: lr_debug_option_default = 0, &
-                     lr_debug_option_L = 1, &
-                     lr_debug_option_R = 2
-
-   integer :: krook_option_switch
-   integer, parameter:: krook_option_default = 2, &
-                           krook_option_flat = 0, &
-                           krook_option_linear = 1, &
-                           krook_option_exp = 2, &
-                           krook_option_exp_rev = 3
-
-   integer:: mb_zf_option_switch
-   integer, parameter :: mb_zf_option_default = 0, &
-                           mb_zf_option_skip_ky0 = 1, &
-                           mb_zf_option_zero_ky0 = 2, &
-                           mb_zf_option_zero_fsa = 3
-
    logical :: rk_step
    real :: nu_krook_mb
    integer :: mb_debug_step
@@ -62,6 +69,9 @@ module parameters_multibox
    
 contains
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine read_parameters_multibox
 
       use mp, only: broadcast
@@ -69,12 +79,14 @@ contains
 
       implicit none
 
+      !-------------------------------------------------------------------------
+
       call read_namelist_radial_variation(ky_solve_real, ky_solve_radial, &
-               include_pressure_variation, include_geometric_variation, &
-               smooth_zf, lr_debug_switch, krook_option_switch, mb_zf_option_switch, &
-               rk_step, nu_krook_mb, mb_debug_step, &
-               krook_exponent, krook_efold, phi_bound, phi_pow, &
-               use_dirichlet_bc, boundary_size, krook_size)
+         include_pressure_variation, include_geometric_variation, &
+         smooth_zf, lr_debug_switch, krook_option_switch, mb_zf_option_switch, &
+         rk_step, nu_krook_mb, mb_debug_step, &
+         krook_exponent, krook_efold, phi_bound, phi_pow, &
+         use_dirichlet_bc, boundary_size, krook_size)
 
       call broadcast(boundary_size)
       call broadcast(krook_size)

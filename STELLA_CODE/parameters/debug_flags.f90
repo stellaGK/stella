@@ -108,6 +108,8 @@ contains
 
       implicit none
 
+      !-------------------------------------------------------------------------
+
       ! Read the "debug_flags" namelist in the input file
       call read_namelist_debug_flags (debug_all, stella_debug, fields_all_debug, fields_debug, &
          fields_fluxtube_debug, fields_electromagnetic_debug, fields_ffs_debug, & 
@@ -159,7 +161,7 @@ contains
       ! Broadcast these parameters to all the processors - necessary because
       ! the above was only done for the first processor (proc0).
       !**********************************************************************
-      subroutine broadcast_parameters  
+      subroutine broadcast_parameters
 
          use mp, only: broadcast
 

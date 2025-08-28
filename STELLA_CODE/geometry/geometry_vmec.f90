@@ -31,13 +31,19 @@
 !###############################################################################
 module vmec_geometry
 
+   ! Read the parameters for <radial_coordinate_switch> from namelist_geometry.f90
+   use namelist_geometry, only: radial_coordinate_sgnpsitpsit
+   use namelist_geometry, only: radial_coordinate_minuspsit
+   use namelist_geometry, only: radial_coordinate_r
+
    implicit none
 
    ! Routines
    public :: read_vmec_parameters
    public :: get_vmec_geometry
 
-   ! Radial coordinate options
+   ! Although the parameters are available through namelist_geometry, 
+   ! make them available through vmec_geometry as well
    public :: radial_coordinate_switch
    public :: radial_coordinate_sgnpsitpsit
    public :: radial_coordinate_minuspsit
@@ -46,9 +52,6 @@ module vmec_geometry
    private
    
    integer :: radial_coordinate_switch
-   integer, parameter :: radial_coordinate_sgnpsitpsit = 1
-   integer, parameter :: radial_coordinate_minuspsit = 2
-   integer, parameter :: radial_coordinate_r = 3
  
    real :: alpha0, nfield_periods
    real :: zeta_center, torflux
