@@ -51,9 +51,12 @@ contains
 
    subroutine read_parameters_dissipation_and_collisions
 
+      ! Parallelisation
       use mp, only: proc0, broadcast
-      use file_utils, only: input_unit_exist
       use debug_flags, only: print_extra_info_to_terminal
+      
+      ! Files
+      use file_utils, only: input_unit_exist
       
       ! Read the <dissipation> namelist in the input file
       use namelist_dissipation, only: read_namelist_dissipation_and_collisions_options
@@ -168,6 +171,7 @@ contains
       if (initialised_collisions) return
       initialised_collisions = .true.
 
+      ! Initialise collision model
       if (collision_model == "dougherty") then
          call init_collisions_dougherty(collisions_implicit, cfl_dt_vpadiff, cfl_dt_mudiff)
       else if (collision_model == "fokker-planck") then

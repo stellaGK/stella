@@ -1,7 +1,17 @@
+!###############################################################################
+!                                                                               
+!###############################################################################
+! 
+! This module ...
+! 
+! TODO - Write docs and split up in smaller modules
+! 
+!###############################################################################
 module dissipation_coll_dougherty
 
    implicit none
 
+   ! Make routines available to other modules
    public :: read_parameters_dougherty
    public :: init_collisions_dougherty
    public :: finish_collisions_dougherty
@@ -10,12 +20,11 @@ module dissipation_coll_dougherty
 
    private
 
+   ! Parameters
    logical :: vpa_operator, mu_operator
    logical :: momentum_conservation, energy_conservation
-
    integer :: nresponse_vpa = 1
    integer :: nresponse_mu = 1
-
    real, dimension(:, :), allocatable :: aa_vpa, bb_vpa, cc_vpa
    real, dimension(:, :, :), allocatable :: aa_mu, cc_mu
    real, dimension(:, :), allocatable :: bb_mu
@@ -23,16 +32,23 @@ module dissipation_coll_dougherty
    integer, dimension(:, :), allocatable :: vpadiff_idx
    complex, dimension(:, :, :), allocatable :: mudiff_response
    integer, dimension(:, :), allocatable :: mudiff_idx
-
    complex, dimension(:, :, :), allocatable :: vpadiff_zf_response
    integer, dimension(:, :), allocatable :: vpadiff_zf_idx
    complex, dimension(:, :, :), allocatable :: mudiff_zf_response
    integer, dimension(:, :), allocatable :: mudiff_zf_idx
 
-   logical :: dougherty_initialized = .false.
+   ! Only initialise once
+   logical :: initialised_dougherty = .false.
 
 contains
 
+!###############################################################################
+!################################ READ PARAMETERS ##############################
+!###############################################################################
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine read_parameters_dougherty
 
       use mp, only: broadcast
@@ -40,8 +56,12 @@ contains
 
       implicit none
 
+      !-------------------------------------------------------------------------
+
+      ! Read collisions namelist from input file
       call read_namelist_collisions_dougherty(momentum_conservation, energy_conservation, vpa_operator, mu_operator) 
 
+      ! Broadcast the parameters to all processors
       call broadcast(momentum_conservation)
       call broadcast(energy_conservation)
       call broadcast(vpa_operator)
@@ -49,6 +69,13 @@ contains
 
    end subroutine read_parameters_dougherty
 
+!###############################################################################
+!########################## INITIALISE COLLISION MODEL #########################
+!###############################################################################
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_collisions_dougherty(collisions_implicit, cfl_dt_vpadiff, cfl_dt_mudiff)
 
       use grids_species, only: spec, nspec
@@ -57,15 +84,21 @@ contains
 
       implicit none
 
+      ! Arguments
       logical, intent(in) :: collisions_implicit
       real, intent(out) :: cfl_dt_vpadiff, cfl_dt_mudiff
 
+      ! Local variables
       integer :: is
       real :: vnew_max
 
-      if (dougherty_initialized) return
-      dougherty_initialized = .true.
+      !----------------------------------------------------------------------
 
+      ! Only initialise once
+      if (initialised_dougherty) return
+      initialised_dougherty = .true.
+
+      ! Initialise implicit collision scheme
       if (collisions_implicit) then
          if (vpa_operator) then
             call init_vpadiff_matrix
@@ -75,6 +108,8 @@ contains
             call init_mudiff_matrix
             call init_mudiff_conserve
          end if
+         
+      ! Initialise explicit collision scheme
       else
          vnew_max = 0.0
          do is = 1, nspec
@@ -85,6 +120,9 @@ contains
       end if
    end subroutine init_collisions_dougherty
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_vpadiff_matrix
 
       use stella_time, only: code_dt
@@ -97,20 +135,23 @@ contains
 
       implicit none
 
+      ! Local variables
       integer :: ikxkyz, iky, ikx, iz, is
       integer :: ia
 
+      !----------------------------------------------------------------------
+
+      ! Allocate arrays
       if (.not. allocated(aa_vpa)) allocate (aa_vpa(nvpa, nspec))
-!    if (.not.allocated(bb_vpa)) allocate (bb_vpa(nvpa,nspec))
       if (.not. allocated(bb_vpa)) allocate (bb_vpa(nvpa, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
       if (.not. allocated(cc_vpa)) allocate (cc_vpa(nvpa, nspec))
 
-      ! deal with boundary points (BC is f(vpa)=0 beyond +/- vpa_max)
+      ! Deal with boundary points (BC is f(vpa)=0 beyond +/- vpa_max)
       aa_vpa(1, :) = 0.0; cc_vpa(nvpa, :) = 0.0
+      
       ! 2nd order centered differences for d/dvpa (1/2 dh/dvpa + vpa h)
       do is = 1, nspec
          aa_vpa(2:, is) = -code_dt * spec(is)%vnew(is) * 0.5 * (1.0 / dvpa - vpa(:nvpa - 1)) / dvpa
-!       bb_vpa(:,is) = 1.0+code_dt*spec(is)%vnew(is)/dvpa**2
          cc_vpa(:nvpa - 1, is) = -code_dt * spec(is)%vnew(is) * 0.5 * (1.0 / dvpa + vpa(2:)) / dvpa
       end do
 
@@ -121,11 +162,14 @@ contains
          iz = iz_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
          bb_vpa(:, ikxkyz) = 1.0 + code_dt * spec(is)%vnew(is) &
-                             * (0.25 * kperp2(iky, ikx, ia, iz) * (spec(is)%smz / bmag(ia, iz))**2 + 1./dvpa**2)
+            * (0.25 * kperp2(iky, ikx, ia, iz) * (spec(is)%smz / bmag(ia, iz))**2 + 1./dvpa**2)
       end do
 
    end subroutine init_vpadiff_matrix
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_mudiff_matrix
 
       use stella_time, only: code_dt
@@ -140,19 +184,22 @@ contains
 
       implicit none
 
+      ! Local variables
       integer :: ikxkyz, iky, ikx, iz, is
       integer :: ia
-      ! TMP FOR TESTING -- MAB
-!    integer :: imu
 
+      !----------------------------------------------------------------------
+
+      ! Allocate arrays
       if (.not. allocated(aa_mu)) allocate (aa_mu(-nzgrid:nzgrid, nmu, nspec))
       if (.not. allocated(bb_mu)) allocate (bb_mu(nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
       if (.not. allocated(cc_mu)) allocate (cc_mu(-nzgrid:nzgrid, nmu, nspec))
 
       ia = 1
 
-      ! deal with boundary points (BC is f(mu)=0 beyond mu_max and collision operator vanishes for mu -> 0)
+      ! Deal with boundary points (BC is f(mu)=0 beyond mu_max and collision operator vanishes for mu -> 0)
       aa_mu(:, 1, :) = 0.0; cc_mu(:, nmu, :) = 0.0
+      
       ! 2nd order centered differences for dt * nu * d/dmu (mu/B*dh/dmu + 2*mu*h)
       do is = 1, nspec
          do iz = -nzgrid, nzgrid
@@ -161,31 +208,34 @@ contains
          end do
       end do
 
-      !1st derivative here is  2 d/dmu( mu h) -> (mu(i+1/2)h(i+1/2) - mu(i-1/2)h(i-1/2))/(mu(i+1/2)-mu(i-1/2))
-      !where h(i+1/2) = 0.5*[h(i+1)+h(i)] and mu(i+1/2) = 0.5*(mu(i+1)+mu(i))
-      !2nd derivative here is d/dmu ( mu dh/dmu ) = (mu(i+1/2)h'(i+1/2) - mu(i-1/2)h'(i-1/2))/(mu(i+1/2)-mu(i-1/2))
-      !where h'(i+1/2) = (h(i+1)-h(i))/(mu(i+1)-mu(i))
-      !left  endpoint i=1   -> mu(i-1/2) = 0
-      !right endpoint i=nmu -> h(i+1/2) = h'(i+1/2) = 0 (these are the two boundary conditions)
+      ! 1st derivative here is  2 d/dmu( mu h) -> (mu(i+1/2)h(i+1/2) - mu(i-1/2)h(i-1/2))/(mu(i+1/2)-mu(i-1/2))
+      ! where h(i+1/2) = 0.5*[h(i+1)+h(i)] and mu(i+1/2) = 0.5*(mu(i+1)+mu(i))
+      ! 2nd derivative here is d/dmu ( mu dh/dmu ) = (mu(i+1/2)h'(i+1/2) - mu(i-1/2)h'(i-1/2))/(mu(i+1/2)-mu(i-1/2))
+      ! where h'(i+1/2) = (h(i+1)-h(i))/(mu(i+1)-mu(i))
+      ! left  endpoint i=1   -> mu(i-1/2) = 0
+      ! right endpoint i=nmu -> h(i+1/2) = h'(i+1/2) = 0 (these are the two boundary conditions)
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
          iz = iz_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
          bb_mu(1, ikxkyz) = 1.0 + code_dt * spec(is)%vnew(is) &
-                            * (0.25 * kperp2(iky, ikx, ia, iz) * (spec(is)%smz / bmag(ia, iz))**2 &
-                               + dmu_cell(1) * (1.0 / (dmu(1) * bmag(ia, iz)) - 1.0) / wgts_mu_bare(1))
+             * (0.25 * kperp2(iky, ikx, ia, iz) * (spec(is)%smz / bmag(ia, iz))**2 &
+                + dmu_cell(1) * (1.0 / (dmu(1) * bmag(ia, iz)) - 1.0) / wgts_mu_bare(1))
          bb_mu(2:nmu - 1, ikxkyz) = 1.0 + code_dt * spec(is)%vnew(is) &
-                                    * (0.25 * kperp2(iky, ikx, ia, iz) * (spec(is)%smz / bmag(ia, iz))**2 &
-                                       + (mu_cell(2:nmu - 1) / dmu(2:) + mu_cell(:nmu - 2) / dmu(:nmu - 2)) &
-                                       / (wgts_mu_bare(2:nmu - 1) * bmag(ia, iz)) - dmu_cell(2:nmu - 1) / wgts_mu_bare(2:nmu - 1))
+            * (0.25 * kperp2(iky, ikx, ia, iz) * (spec(is)%smz / bmag(ia, iz))**2 &
+               + (mu_cell(2:nmu - 1) / dmu(2:) + mu_cell(:nmu - 2) / dmu(:nmu - 2)) &
+               / (wgts_mu_bare(2:nmu - 1) * bmag(ia, iz)) - dmu_cell(2:nmu - 1) / wgts_mu_bare(2:nmu - 1))
          bb_mu(nmu, ikxkyz) = 1.0 + code_dt * spec(is)%vnew(is) &
-                              * (0.25 * kperp2(iky, ikx, ia, iz) * (spec(is)%smz / bmag(ia, iz))**2 &
-                                 + mu_cell(nmu - 1) * (1.0 / (dmu(nmu - 1) * bmag(ia, iz)) + 1.0) / wgts_mu_bare(nmu))
+            * (0.25 * kperp2(iky, ikx, ia, iz) * (spec(is)%smz / bmag(ia, iz))**2 &
+               + mu_cell(nmu - 1) * (1.0 / (dmu(nmu - 1) * bmag(ia, iz)) + 1.0) / wgts_mu_bare(nmu))
       end do
 
    end subroutine init_mudiff_matrix
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_vpadiff_conserve
 
       use mp, only: sum_allreduce
@@ -212,6 +262,7 @@ contains
 
       implicit none
 
+      ! Local variables
       integer :: ikxkyz, iky, ikx, iz, it, is, ia
       integer :: imu
       integer :: idx
@@ -222,9 +273,12 @@ contains
       complex, dimension(:, :, :, :, :), allocatable :: field
       complex, dimension(:, :), allocatable :: temp_mat
 
+      !----------------------------------------------------------------------
+
       ia = 1
 
       nresponse_vpa = 1
+      
       if (momentum_conservation) nresponse_vpa = nresponse_vpa + nspec
       if (energy_conservation) nresponse_vpa = nresponse_vpa + nspec
 
@@ -242,11 +296,12 @@ contains
          end if
       end if
 
+      ! Allocate temporary arrays
       allocate (dum1(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (dum3(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
 
-      ! set wgts to be equally spaced to ensure exact conservation properties
+      ! Set wgts to be equally spaced to ensure exact conservation properties
       conservative_wgts = .true.
       call set_vpa_weights(conservative_wgts)
 
@@ -394,12 +449,12 @@ contains
          end do
       end if
 
-      ! now get LU decomposition for vpadiff_response
+      ! Now get LU decomposition for vpadiff_response
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          call lu_decomposition(vpadiff_response(:, :, ikxkyz), vpadiff_idx(:, ikxkyz), dum2)
       end do
 
-      ! if electrons are adiabatic, compute the matrices for the flux-surface-average
+      ! If electrons are adiabatic, compute the matrices for the flux-surface-average
       if (.not. has_electron_species(spec) .and. zonal_mode(1) &
           .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
          allocate (temp_mat(nresponse_vpa, nresponse_vpa))
@@ -411,20 +466,20 @@ contains
             it = it_idx(kxkyz_lo, ikxkyz)
             if (iky /= 1 .or. it /= 1) cycle
 
-            !calculate inverse of vpadiff_response
+            ! Calculate inverse of vpadiff_response
             call lu_inverse(vpadiff_response(:, :, ikxkyz), vpadiff_idx(:, ikxkyz), temp_mat)
 
-            !calculate -inv(vpadiff_response).Q, where Q has a single entry
+            ! Calculate -inv(vpadiff_response).Q, where Q has a single entry
             do idx = 1, nresponse_vpa
                vpadiff_zf_response(idx, 1, ikx) = vpadiff_zf_response(idx, 1, ikx) &
                                                   - temp_mat(idx, 1) * (efac / gamtot_h) * dl_over_b(ia, iz)
             end do
          end do
 
-         !finish the flux surface average
+         ! Finish the flux surface average
          call sum_allreduce(vpadiff_zf_response)
 
-         !calculate 1 - fsa(inv(vpadiff_response).Q)
+         ! Calculate 1 - fsa(inv(vpadiff_response).Q)
          do idx = 1, nresponse_vpa
             vpadiff_zf_response(idx, idx, :) = vpadiff_zf_response(idx, idx, :) + 1.0
          end do
@@ -436,14 +491,18 @@ contains
          deallocate (temp_mat)
       end if
 
-      ! reset wgts to default setting
+      ! Reset wgts to default setting
       conservative_wgts = .false.
       call set_vpa_weights(conservative_wgts)
 
+      ! Deallocate temporary arrays
       deallocate (dum1, dum3, field)
 
    end subroutine init_vpadiff_conserve
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_mudiff_conserve
 
       use mp, only: sum_allreduce
@@ -470,6 +529,7 @@ contains
 
       implicit none
 
+      ! Local variables
       integer :: ikxkyz, iky, ikx, iz, it, is, ia
       integer :: iv
       integer :: idx
@@ -477,6 +537,8 @@ contains
       complex, dimension(:, :), allocatable :: temp_mat
       complex, dimension(:, :, :, :), allocatable :: dum1, dum3
       complex, dimension(:, :, :, :, :), allocatable :: field
+
+      !----------------------------------------------------------------------
 
       nresponse_mu = 1
       if (momentum_conservation) nresponse_mu = nresponse_mu + nspec
@@ -496,6 +558,7 @@ contains
          end if
       end if
 
+      ! Allocate temporary arrays
       allocate (dum1(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (dum3(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes, nspec))
@@ -648,12 +711,12 @@ contains
          end do
       end if
 
-      ! now get LU decomposition for mudiff_response
+      ! Now get LU decomposition for mudiff_response
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          call lu_decomposition(mudiff_response(:, :, ikxkyz), mudiff_idx(:, ikxkyz), dum2)
       end do
 
-      ! if electrons are adiabatic, compute the matrices for the flux-surface-average
+      ! If electrons are adiabatic, compute the matrices for the flux-surface-average
       if (.not. has_electron_species(spec) .and. zonal_mode(1) &
           .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
          allocate (temp_mat(nresponse_mu, nresponse_mu))
@@ -665,20 +728,20 @@ contains
             it = it_idx(kxkyz_lo, ikxkyz)
             if (iky /= 1 .or. it /= 1) cycle
 
-            !calculate inverse of mudiff_response
+            ! Calculate inverse of mudiff_response
             call lu_inverse(mudiff_response(:, :, ikxkyz), mudiff_idx(:, ikxkyz), temp_mat)
 
-            !calculate -inv(mudiff_response).Q, where Q has a single entry
+            ! Calculate -inv(mudiff_response).Q, where Q has a single entry
             do idx = 1, nresponse_mu
                mudiff_zf_response(idx, 1, ikx) = mudiff_zf_response(idx, 1, ikx) &
                                                  - temp_mat(idx, 1) * (efac / gamtot_h) * dl_over_b(ia, iz)
             end do
          end do
 
-         !finish the flux surface average
+         ! Finish the flux surface average
          call sum_allreduce(mudiff_zf_response)
 
-         !calculate 1 - fsa(inv(mudiff_response).Q)
+         ! Calculate 1 - fsa(inv(mudiff_response).Q)
          do idx = 1, nresponse_mu
             mudiff_zf_response(idx, idx, :) = mudiff_zf_response(idx, idx, :) + 1.0
          end do
@@ -688,12 +751,19 @@ contains
          end do
 
          deallocate (temp_mat)
+         
       end if
 
+      ! Deallocate temporary arrays
       deallocate (dum1, dum3, field)
 
    end subroutine init_mudiff_conserve
 
+
+!###############################################################################
+!############################ FINISH COLLISION MODEL ###########################
+!###############################################################################
+ 
    subroutine finish_collisions_dougherty
 
       implicit none
@@ -703,10 +773,11 @@ contains
       call finish_vpadiff_response
       call finish_mudiff_response
 
-      dougherty_initialized = .false.
+      initialised_dougherty = .false.
 
    end subroutine finish_collisions_dougherty
 
+   !----------------------------------------------------------------------------
    subroutine finish_vpadiff_matrix
 
       implicit none
@@ -717,6 +788,7 @@ contains
 
    end subroutine finish_vpadiff_matrix
 
+   !----------------------------------------------------------------------------
    subroutine finish_mudiff_matrix
 
       implicit none
@@ -727,6 +799,7 @@ contains
 
    end subroutine finish_mudiff_matrix
 
+   !----------------------------------------------------------------------------
    subroutine finish_vpadiff_response
 
       implicit none
@@ -736,6 +809,7 @@ contains
 
    end subroutine finish_vpadiff_response
 
+   !----------------------------------------------------------------------------
    subroutine finish_mudiff_response
 
       implicit none
@@ -745,6 +819,13 @@ contains
 
    end subroutine finish_mudiff_response
 
+!###############################################################################
+!################################# CALCULATIONS ################################
+!###############################################################################
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_upar(g, fld)
 
       use mp, only: sum_allreduce
@@ -758,15 +839,22 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: fld
 
+      ! Local variables
       integer :: ikxkyz, iky, ikx, iz, it, is
       complex, dimension(:, :), allocatable :: g0
 
+      !----------------------------------------------------------------------
+
+      ! Allocate temporary arrays
       allocate (g0(nvpa, nmu))
 
+      ! Initialise sum
       fld = 0.
+      
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -776,12 +864,18 @@ contains
          g0 = g(:, :, ikxkyz) * spread(vpa, 2, nmu) * spread(aj0v(:, ikxkyz), 1, nvpa)
          call integrate_vmu(g0, iz, fld(iky, ikx, iz, it, is))
       end do
+      
+      ! Deallocate temporary arrays
       deallocate (g0)
-
+      
+      ! Sum the values on all proccesors and send them to <proc0>
       call sum_allreduce(fld)
 
    end subroutine get_upar
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_uperp(g, fld)
 
       use mp, only: sum_allreduce
@@ -795,31 +889,44 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: fld
 
+      ! Local variables
       integer :: ikxkyz, iky, ikx, iz, it, is
       complex, dimension(:, :), allocatable :: g0
 
+      !----------------------------------------------------------------------
+
+      ! Allocate temporary arrays
       allocate (g0(nvpa, nmu))
 
+      ! Initialise sum
       fld = 0.
+      
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
          iz = iz_idx(kxkyz_lo, ikxkyz)
          it = it_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
-!        g0 = 2.0*g(:,:,ikxkyz)*spread((vperp2(1,iz,:)-0.5)*aj1v(:,ikxkyz),1,nvpa)
+         !g0 = 2.0*g(:,:,ikxkyz)*spread((vperp2(1,iz,:)-0.5)*aj1v(:,ikxkyz),1,nvpa)
          g0 = g(:, :, ikxkyz) * spread((vperp2(1, iz, :) - 0.5) * aj1v(:, ikxkyz), 1, nvpa)
          call integrate_vmu(g0, iz, fld(iky, ikx, iz, it, is))
       end do
+      
+      ! Deallocate temporary arrays
       deallocate (g0)
 
+      ! Sum the values on all proccesors and send them to <proc0>
       call sum_allreduce(fld)
 
    end subroutine get_uperp
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_temp(g, fld)
 
       use mp, only: sum_allreduce
@@ -833,15 +940,22 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: fld
 
+      ! Local variables
       integer :: ikxkyz, iky, ikx, iz, it, is
       complex, dimension(:, :), allocatable :: g0
 
+      !----------------------------------------------------------------------
+
+      ! Allocate temporary arrays
       allocate (g0(nvpa, nmu))
 
+      ! Initialise sum
       fld = 0.
+      
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -852,12 +966,18 @@ contains
               * spread(aj0v(:, ikxkyz), 1, nvpa) / 1.5
          call integrate_vmu(g0, iz, fld(iky, ikx, iz, it, is))
       end do
+      
+      ! Deallocate temporary arrays
       deallocate (g0)
 
+      ! Sum the values on all proccesors and send them to <proc0>
       call sum_allreduce(fld)
 
    end subroutine get_temp
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_temp_mu(g, fld)
 
       use mp, only: sum_allreduce
@@ -870,15 +990,22 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: fld
 
+      ! Local variables
       integer :: ikxkyz, iky, ikx, iz, it, is
       complex, dimension(:, :), allocatable :: g0
 
+      !----------------------------------------------------------------------
+
+      ! Allocate temporary arrays
       allocate (g0(nvpa, nmu))
 
+      ! Initialise sum
       fld = 0.
+      
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
          ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -889,12 +1016,22 @@ contains
               * spread(aj0v(:, ikxkyz), 1, nvpa) / 1.5
          call integrate_vmu(g0, iz, fld(iky, ikx, iz, it, is))
       end do
+      
+      ! Deallocate temporary arrays
       deallocate (g0)
 
+      ! Sum the values on all proccesors and send them to <proc0>
       call sum_allreduce(fld)
 
    end subroutine get_temp_mu
 
+!###############################################################################
+!######################### ADVANCE COLLISIONS: EXPLICIT ########################
+!###############################################################################
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine advance_collisions_dougherty_explicit(g, phi, bpar, gke_rhs, time_collisions)
 
       use mp, only: proc0, mp_abort
@@ -922,20 +1059,22 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gke_rhs
       real, dimension(:, :), intent(in out) :: time_collisions
 
+      ! Local variables
       integer :: is, ikxkyz, imu, iv, ivmu, ikx, iky, iz, ia, it
       logical :: conservative_wgts
       real :: tfac, kfac
-
       complex, dimension(:), allocatable :: mucoll
       complex, dimension(:, :, :), allocatable :: coll
       complex, dimension(:, :, :, :, :), allocatable :: tmp_vmulo
-
       complex, dimension(:, :), allocatable :: g0k, g0x
+
+      !----------------------------------------------------------------------
 
       ia = 1
 
@@ -951,7 +1090,7 @@ contains
 
       allocate (tmp_vmulo(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
 
-      ! want exact conservation properties for collision operator
+      ! Want exact conservation properties for collision operator
       conservative_wgts = .true.
       call set_vpa_weights(conservative_wgts)
 
@@ -961,11 +1100,11 @@ contains
          !TODO (DSO) - could perhaps operator split the profile variation pieces off the main pieces, and so
          !             this portion of the code could just treat the terms that vary in x
 
-         ! switch from g = <f> to h = f + Z*e*phi/T * F0
+         ! Switch from g = <f> to h = f + Z*e*phi/T * F0
          tmp_vmulo = g
          call g_to_h(tmp_vmulo, phi, bpar, fphi, phi_corr_QN)
 
-         !handle gyroviscous term
+         ! Handle gyroviscous term
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
             do it = 1, ntubes
@@ -980,11 +1119,11 @@ contains
             end do
          end do
 
-         !handle the conservation terms
+         ! Handle the conservation terms
          if (momentum_conservation) call conserve_momentum_vmulo(tmp_vmulo, gke_rhs)
          if (energy_conservation) call conserve_energy_vmulo(tmp_vmulo, gke_rhs)
 
-         !since Bessel functions do not appear under the velocity derivatives, these terms are one-point in x space
+         ! Since Bessel functions do not appear under the velocity derivatives, these terms are one-point in x space
          ! and we can simply inverse Fourier transform
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do it = 1, ntubes
@@ -995,12 +1134,12 @@ contains
             end do
          end do
 
-         ! remap so that (vpa,mu) local
+         ! Remap so that (vpa,mu) local
          if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
          call scatter(kxkyz2vmu, tmp_vmulo, gvmu)
          if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
 
-         ! take vpa derivatives
+         ! Take vpa derivatives
          allocate (coll(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
          allocate (mucoll(nmu))
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -1009,8 +1148,8 @@ contains
             iz = iz_idx(kxkyz_lo, ikxkyz)
             is = is_idx(kxkyz_lo, ikxkyz)
 
+            ! Fix the temperature term
             if (vpa_operator) then
-               !fix the temperature term
                tfac = (spec(is)%temp / spec(is)%temp_psi0) * (1.0 - rho_d_clamped(ikx) * spec(is)%tprim)
                do imu = 1, nmu
                   call vpa_differential_operator(tfac, gvmu(:, imu, ikxkyz), coll(:, imu, ikxkyz))
@@ -1019,8 +1158,8 @@ contains
                coll(:, :, ikxkyz) = 0.0
             end if
 
+            ! Fix the temperature/bmag term
             if (mu_operator) then
-               !fix the temperature/bmag term
                tfac = (spec(is)%temp / spec(is)%temp_psi0) &
                       * (1.0 - rho_d_clamped(ikx) * (spec(is)%tprim + dBdrho(iz) / bmag(ia, iz)))
                do iv = 1, nvpa
@@ -1032,10 +1171,10 @@ contains
          end do
          deallocate (coll, mucoll)
 
-         ! remap so that (ky,kx,z,tube) local
+         ! Remap so that (ky,kx,z,tube) local
          call gather(kxkyz2vmu, gvmu, tmp_vmulo)
 
-         !don't forget to Fourier transform
+         ! Don't forget to Fourier transform
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             is = is_idx(vmu_lo, ivmu)
             do it = 1, ntubes
@@ -1052,19 +1191,21 @@ contains
          end do
 
          deallocate (g0k, g0x)
+         
       else
-         ! switch from g = <f> to h = f + Z*e*phi/T * F0
+      
+         ! Dwitch from g = <f> to h = f + Z*e*phi/T * F0
          tmp_vmulo = g
          call g_to_h(tmp_vmulo, phi, bpar, fphi)
 
-         ! remap so that (vpa,mu) local
+         ! Remap so that (vpa,mu) local
          if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
          call scatter(kxkyz2vmu, tmp_vmulo, gvmu)
          if (proc0) call time_message(.false., time_collisions(:, 2), ' coll_redist')
 
          ia = 1
 
-         ! take vpa derivatives
+         ! Take vpa derivatives
          allocate (coll(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
          allocate (mucoll(nmu))
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -1093,7 +1234,7 @@ contains
          end do
          deallocate (coll, mucoll)
 
-         ! remap so that (ky,kx,z,tube) local
+         ! Remap so that (ky,kx,z,tube) local
          call gather(kxkyz2vmu, gvmu, tmp_vmulo)
 
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1104,7 +1245,7 @@ contains
 
       deallocate (tmp_vmulo)
 
-      ! reset to default integration wgts
+      ! Reset to default integration wgts
       conservative_wgts = .false.
       call set_vpa_weights(conservative_wgts)
 
@@ -1112,17 +1253,24 @@ contains
 
    end subroutine advance_collisions_dougherty_explicit
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine vpa_differential_operator(tfac, h, Dh)
 
       use grids_velocity, only: nvpa, vpa, dvpa
 
       implicit none
 
+      ! Arguments
       real, intent(in) :: tfac
       complex, dimension(:), intent(in) :: h
       complex, dimension(:), intent(out) :: Dh
 
+      ! Local variables
       integer :: iv
+
+      !----------------------------------------------------------------------
 
       ! use h = 0 at ghost cells beyond +/- vpa_max
       iv = 1
@@ -1131,11 +1279,14 @@ contains
       Dh(iv) = (-tfac * h(iv) / dvpa + 0.5 * h(iv - 1) * (tfac / dvpa - vpa(iv - 1))) / dvpa
       do iv = 2, nvpa - 1
          Dh(iv) = (0.5 * h(iv + 1) * (tfac / dvpa + vpa(iv + 1)) - tfac * h(iv) / dvpa &
-                   + 0.5 * h(iv - 1) * (tfac / dvpa - vpa(iv - 1))) / dvpa
+            + 0.5 * h(iv - 1) * (tfac / dvpa - vpa(iv - 1))) / dvpa
       end do
 
    end subroutine vpa_differential_operator
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine mu_differential_operator(tfac, iz, ia, h, Dh)
 
       use grids_velocity, only: nmu, dmu
@@ -1144,15 +1295,19 @@ contains
 
       implicit none
 
+      ! Arguments
       real, intent(in) :: tfac
       integer, intent(in) :: iz, ia
       complex, dimension(:), intent(in) :: h
       complex, dimension(:), intent(out) :: Dh
 
+      ! Local variables
       integer :: imu
       real :: mm, m0, mp
 
-      ! the following finite difference method is explained in init_mudiff_matrix
+      !----------------------------------------------------------------------
+
+      ! The following finite difference method is explained in init_mudiff_matrix
 
       imu = 1
       m0 = dmu_cell(imu) * (1.0 - tfac / (dmu(imu) * bmag(ia, iz))) / wgts_mu_bare(imu)
@@ -1174,6 +1329,9 @@ contains
 
    end subroutine mu_differential_operator
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine conserve_momentum(iky, ikx, iz, is, ikxkyz, h, Ch)
 
       use grids_species, only: spec
@@ -1181,27 +1339,31 @@ contains
       use calculations_velocity_integrals, only: integrate_vmu
       use grids_velocity, only: vpa, nvpa, nmu, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu
-!     use grids_velocity, only: int_vpa2
+      !use grids_velocity, only: int_vpa2
       use arrays_store_useful, only: kperp2
       use arrays_gyro_averages, only: aj0v, aj1v
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: iky, ikx, iz, is, ikxkyz
       complex, dimension(:, :), intent(in) :: h
       complex, dimension(:, :), intent(in out) :: Ch
 
+      ! Local variables
       complex, dimension(:, :), allocatable :: u_fac
       complex :: integral
       integer :: ia
 
       real :: norm
 
+      !----------------------------------------------------------------------
+
       allocate (u_fac(nvpa, nmu))
 
       ia = 1
 
-!   norm = 1.0/int_vpa2(ia,iz,is)
+      !norm = 1.0/int_vpa2(ia,iz,is)
       norm = 2.0
 
       if (vpa_operator) then
@@ -1222,25 +1384,32 @@ contains
 
    end subroutine conserve_momentum
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine conserve_energy(iz, is, ikxkyz, h, Ch)
 
       use calculations_velocity_integrals, only: integrate_vmu
       use grids_velocity, only: vpa, nvpa, nmu, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu
-!   use grids_velocity, only: int_unit, int_vpa2, int_vperp2, int_vfrth
+      !use grids_velocity, only: int_unit, int_vpa2, int_vperp2, int_vfrth
       use arrays_gyro_averages, only: aj0v
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: iz, is, ikxkyz
       complex, dimension(:, :), intent(in) :: h
       complex, dimension(:, :), intent(in out) :: Ch
 
+      ! Local variables
       complex, dimension(:, :), allocatable :: T_fac
       complex :: integral
       real :: norm
 
       integer :: ia
+
+      !----------------------------------------------------------------------
 
       allocate (T_fac(nvpa, nmu))
 
@@ -1250,7 +1419,7 @@ contains
       if (mu_operator) T_fac = T_fac + spread(vperp2(ia, iz, :), 1, nvpa) - 1.0
       call integrate_vmu(T_fac * h, iz, integral)
 
-!     norm = 1.0/(int_vfrth(ia,iz,is) - (int_vperp2(ia,iz,is) + int_vpa2(ia,iz,is))**2/int_unit(ia,iz,is))
+      !norm = 1.0/(int_vfrth(ia,iz,is) - (int_vperp2(ia,iz,is) + int_vpa2(ia,iz,is))**2/int_unit(ia,iz,is))
       norm = 2.0 / 3.0
 
       Ch = Ch + 2.0 * norm * T_fac * integral * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu)
@@ -1259,6 +1428,9 @@ contains
 
    end subroutine conserve_energy
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine conserve_momentum_vmulo(h, gke_rhs)
 
       use mp, only: sum_allreduce
@@ -1280,14 +1452,18 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: h
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gke_rhs
 
+      ! Local variables
       complex, dimension(:, :), allocatable :: g0k, g1k
       complex, dimension(:, :, :), allocatable :: gyro_g
       complex, dimension(:, :, :, :), allocatable :: field1, field2
       real :: prefac, energy
       integer :: it, iz, ivmu, imu, iv, ia, is
+
+      !----------------------------------------------------------------------
 
       ia = 1
 
@@ -1298,7 +1474,7 @@ contains
       allocate (field1(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (field2(naky, nakx, -nzgrid:nzgrid, ntubes))
 
-      !component from vpa
+      ! Component from vpa
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1326,7 +1502,7 @@ contains
       end do
       call sum_allreduce(field1)
 
-      !component from vperp
+      ! Component from vperp
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1334,7 +1510,7 @@ contains
                imu = imu_idx(vmu_lo, ivmu)
                iv = iv_idx(vmu_lo, ivmu)
 
-               !component from vpa
+               ! Component from vpa
                call gyro_average_j1(h(:, :, iz, it, ivmu), iz, ivmu, gyro_g(:, :, ivmu))
                gyro_g(:, :, ivmu) = gyro_g(:, :, ivmu) * vperp2(ia, iz, imu) * sqrt(kperp2(:, :, ia, iz)) * spec(is)%smz_psi0 / bmag(ia, iz)
                g0k = 0.0
@@ -1396,6 +1572,9 @@ contains
 
    end subroutine conserve_momentum_vmulo
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine conserve_energy_vmulo(h, gke_rhs)
 
       use mp, only: sum_allreduce
@@ -1417,14 +1596,18 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: h
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gke_rhs
 
+      ! Local variables
       complex, dimension(:, :), allocatable :: g0k, g1k
       complex, dimension(:, :, :), allocatable :: gyro_g
       complex, dimension(:, :, :, :), allocatable :: field
       real :: prefac, energy
       integer :: it, iz, ivmu, imu, iv, ia, is
+
+      !----------------------------------------------------------------------
 
       ia = 1
 
@@ -1434,7 +1617,7 @@ contains
 
       allocate (field(naky, nakx, -nzgrid:nzgrid, ntubes))
 
-      !component from vpa
+      ! Component from vpa
       do it = 1, ntubes
          do iz = -nzgrid, nzgrid
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
@@ -1502,7 +1685,14 @@ contains
       deallocate (field)
 
    end subroutine conserve_energy_vmulo
+   
+!###############################################################################
+!######################### ADVANCE COLLISIONS: IMPLICIT ########################
+!###############################################################################
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine advance_collisions_dougherty_implicit(phi, apar, bpar)
 
       use grids_z, only: nzgrid
@@ -1510,13 +1700,19 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
+
+      !----------------------------------------------------------------------
 
       if (vpa_operator) call advance_vpadiff_implicit(phi, apar, bpar, gvmu)
       if (mu_operator) call advance_mudiff_implicit(phi, apar, bpar, gvmu)
 
    end subroutine advance_collisions_dougherty_implicit
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine advance_vpadiff_implicit(phi, apar, bpar, g)
 
       use mp, only: sum_allreduce
@@ -1543,9 +1739,11 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
 
+      ! Local variables
       integer :: ikxkyz, iky, ikx, iz, it, is, ia
       integer :: imu
       integer :: idx
@@ -1554,13 +1752,15 @@ contains
       complex, dimension(:), allocatable :: tmp2
       complex, dimension(:, :, :), allocatable :: flds_zf, g_in
 
+      !----------------------------------------------------------------------
+
       ia = 1
 
-      ! store input g for use later, as g will be overwritten below
+      ! Store input g for use later, as g will be overwritten below
       allocate (g_in(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
       g_in = g
 
-      ! since backwards difference in time, (I-dt*D)h_inh^{n+1} = g^{***}
+      ! Since backwards difference in time, (I-dt*D)h_inh^{n+1} = g^{***}
       ! g = g^{***}.  tridag below inverts above equation to get h_inh^{n+1}
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          is = is_idx(kxkyz_lo, ikxkyz)
@@ -1572,19 +1772,20 @@ contains
       allocate (flds(naky, nakx, -nzgrid:nzgrid, ntubes, nresponse_vpa))
       allocate (flds_zf(nakx, ntubes, nresponse_vpa)); flds_zf = 0.
 
-      ! need to obtain phi^{n+1} and conservation terms using response matrix approach
+      ! Need to obtain phi^{n+1} and conservation terms using response matrix approach
       ! first get phi_inh^{n+1}
       call get_fields_fluxtube(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
       flds(:, :, :, :, 1) = phi
 
       idx = 2
-      ! get upar_inh^{n+1}
+      
+      ! Get upar_inh^{n+1}
       if (momentum_conservation) then
          call get_upar(g, flds(:, :, :, :, idx:idx + nspec - 1))
          idx = idx + nspec
       end if
 
-      ! get temp_inh^{n+1}
+      ! Get temp_inh^{n+1}
       if (energy_conservation) call get_temp(g, flds(:, :, :, :, idx:idx + nspec - 1))
 
       phi = 0.0
@@ -1607,13 +1808,13 @@ contains
 
       if (.not. has_electron_species(spec) .and. zonal_mode(1) &
           .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
-         !complete flux-surface average
+         ! Complete flux-surface average
          call sum_allreduce(flds_zf)
          do it = 1, ntubes
             do ikx = 1, nakx
                call lu_back_substitution(vpadiff_zf_response(:, :, ikx), vpadiff_zf_idx(:, ikx), &
                                          flds_zf(ikx, it, :))
-               !multiply by Q, which has a single non-zero component
+               ! Multiply by Q, which has a single non-zero component
                flds_zf(ikx, it, 1) = (efac / gamtot_h) * flds_zf(ikx, it, 1)
                flds_zf(ikx, it, 2:) = 0.
             end do
@@ -1668,7 +1869,7 @@ contains
 
       deallocate (tmp, flds, flds_zf)
 
-      ! now invert system to get h^{n+1}
+      ! Now invert system to get h^{n+1}
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          is = is_idx(kxkyz_lo, ikxkyz)
          do imu = 1, nmu
@@ -1676,13 +1877,16 @@ contains
          end do
       end do
 
-      ! now get g^{n+1} from h^{n+1} and phi^{n+1}
+      ! Now get g^{n+1} from h^{n+1} and phi^{n+1}
       call g_to_h(g, phi, bpar, -fphi)
 
       deallocate (g_in)
 
    end subroutine advance_vpadiff_implicit
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine advance_mudiff_implicit(phi, apar, bpar, g)
 
       use mp, only: sum_allreduce
@@ -1708,67 +1912,56 @@ contains
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
 
-      ! TMP FOR TESTING
-!    use grids_velocity, only: mu
-
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in out) :: g
 
+      ! Local variables
       integer :: ikxkyz, iky, ikx, iz, it, is, ia
       integer :: iv
       integer :: idx
-
-      ! TMP FOR TESTING
-!    integer :: imu
-
       real, dimension(:, :), allocatable :: tmp
       complex, dimension(:), allocatable :: tmp2
       complex, dimension(:, :, :, :, :), allocatable :: flds
       complex, dimension(:, :, :), allocatable :: flds_zf, g_in
 
+      !----------------------------------------------------------------------
+
       ia = 1
 
-      ! store input g for use later, as g will be overwritten below
+      ! Store input g for use later, as g will be overwritten below
       allocate (g_in(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
       g_in = g
 
-      ! since backwards difference in time, (I-dt*D)h_inh^{n+1} = g^{***}
+      ! Since backwards difference in time, (I-dt*D)h_inh^{n+1} = g^{***}
       ! g = g^{***}.  tridag below inverts above equation to get h_inh^{n+1}
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iz = iz_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
-         ! TMP FOR TESTING
-!       do imu = 1, nmu
-!          g(:,imu,ikxkyz) = maxwell_vpa*maxwell_mu(1,iz,imu)
-!       end do
          do iv = 1, nvpa
             call tridag(1, aa_mu(iz, :, is), bb_mu(:, ikxkyz), cc_mu(iz, :, is), g(iv, :, ikxkyz))
          end do
-         ! TMP FOR TESTING
-!       iv = nvpa/2
-!       do imu = 1, nmu
-!          write (*,*) 'ggg', mu(imu), real(g(iv,imu,ikxkyz)), aimag(g(iv,imu,ikxkyz)), maxwell_vpa(iv,is)*maxwell_mu(1,iz,imu)
-!       end do
       end do
 
       allocate (flds(naky, nakx, -nzgrid:nzgrid, ntubes, nresponse_mu))
       allocate (flds_zf(nakx, ntubes, nresponse_mu)); flds_zf = 0.
 
-      ! need to obtain phi^{n+1} and conservation terms using response matrix approach
+      ! Need to obtain phi^{n+1} and conservation terms using response matrix approach
       ! first get phi_inh^{n+1}
       call get_fields_fluxtube(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
       flds(:, :, :, :, 1) = phi
 
       idx = 2
-      ! get upar_inh^{n+1}
+      
+      ! Get upar_inh^{n+1}
       if (momentum_conservation) then
          call get_uperp(g, flds(:, :, :, :, idx:idx + nspec - 1))
          idx = idx + nspec
       end if
 
-      ! get temp_inh^{n+1}
+      ! Get temp_inh^{n+1}
       if (energy_conservation) call get_temp_mu(g, flds(:, :, :, :, idx:idx + nspec - 1))
 
       phi = 0.0
@@ -1791,13 +1984,12 @@ contains
 
       if (.not. has_electron_species(spec) .and. zonal_mode(1) &
           .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
-         !complete flux-surface average
+         ! Complete flux-surface average
          call sum_allreduce(flds_zf)
          do it = 1, ntubes
             do ikx = 1, nakx
-               call lu_back_substitution(mudiff_zf_response(:, :, ikx), mudiff_zf_idx(:, ikx), &
-                                         flds_zf(ikx, it, :))
-               !multiply by Q, which has a single non-zero component
+               call lu_back_substitution(mudiff_zf_response(:, :, ikx), mudiff_zf_idx(:, ikx), flds_zf(ikx, it, :))
+               ! Multiply by Q, which has a single non-zero component
                flds_zf(ikx, it, 1) = (efac / gamtot_h) * flds_zf(ikx, it, 1)
                flds_zf(ikx, it, 2:) = 0.
             end do
@@ -1855,7 +2047,7 @@ contains
 
       deallocate (tmp, flds, flds_zf)
 
-      ! now invert system to get h^{n+1}
+      ! Now invert system to get h^{n+1}
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iz = iz_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
@@ -1864,7 +2056,7 @@ contains
          end do
       end do
 
-      ! now get g^{n+1} from h^{n+1} and phi^{n+1}
+      ! Now get g^{n+1} from h^{n+1} and phi^{n+1}
       call g_to_h(g, phi, bpar, -fphi)
 
       deallocate (g_in)

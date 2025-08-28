@@ -1,7 +1,15 @@
+!###############################################################################
+!                               HYPER DISSIPATION                               
+!###############################################################################
+! 
+! This module ...
+! 
+!###############################################################################
 module dissipation_hyper
 
    implicit none
 
+   ! Make routines available to other modules
    public :: read_parameters_hyper
    public :: init_hyper
    public :: advance_hyper_dissipation
@@ -21,6 +29,13 @@ module dissipation_hyper
 
 contains
 
+!###############################################################################
+!################################ READ PARAMETERS ##############################
+!###############################################################################
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine read_parameters_hyper
 
       use mp, only: broadcast
@@ -28,9 +43,13 @@ contains
 
       implicit none
 
-      call read_namelist_hyper_dissipation (D_hyper, D_zed, D_vpa, & 
-                     hyp_zed, hyp_vpa, use_physical_ksqr, scale_to_outboard)
+      !-------------------------------------------------------------------------
 
+      ! Read hyper dissipation namelist from input file
+      call read_namelist_hyper_dissipation (D_hyper, D_zed, D_vpa, & 
+         hyp_zed, hyp_vpa, use_physical_ksqr, scale_to_outboard)
+
+      ! Broadcast the parameters to all processors
       call broadcast(use_physical_ksqr)
       call broadcast(scale_to_outboard)
       call broadcast(D_hyper)
@@ -41,6 +60,13 @@ contains
 
    end subroutine read_parameters_hyper
 
+!###############################################################################
+!######################### INITIALISE HYPER DISSIPATION ########################
+!###############################################################################
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_hyper
 
       use grids_kxky, only: ikx_max, nakx, naky
@@ -51,22 +77,25 @@ contains
 
       implicit none
 
+      ! Local variables
       integer :: iky, ikx, iz, ia
       real :: temp
 
+      !-------------------------------------------------------------------------
+
       ia = 1
 
+      ! Avoid spatially dependent kperp (through the geometric coefficients)
+      ! Still allowed to vary along zed with global magnetic shear
+      ! Useful for full_flux_surface and radial_variation runs
       if (.not. use_physical_ksqr) then
-         !> avoid spatially dependent kperp (through the geometric coefficients)
-         !> still allowed to vary along zed with global magnetic shear
-         !> useful for full_flux_surface and radial_variation runs
          tfac = geo_surf%shat**2
 
-         !> q_as_x uses a different definition of theta0
+         ! q_as_x uses a different definition of theta0
          if (q_as_x) tfac = 1.0
 
+         ! Get k2max at outboard midplane
          if (scale_to_outboard) then
-            !get k2max at outboard midplane
             k2max = akx(ikx_max)**2 + aky(naky)**2
          else
             k2max = -1.0
@@ -80,8 +109,8 @@ contains
             end do
          end if
       else
+         ! Get k2max at outboard midplane
          if (scale_to_outboard) then
-            !> get k2max at outboard midplane
             k2max = maxval(kperp2(:, :, ia, 0))
          else
             k2max = maxval(kperp2)
@@ -90,7 +119,14 @@ contains
       if (k2max < epsilon(0.0)) k2max = 1.0
 
    end subroutine init_hyper
+   
+!###############################################################################
+!########################### ADVANCE HYPER DISSIPATION #########################
+!###############################################################################
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine advance_hyper_dissipation(g)
 
       use stella_time, only: code_dt
@@ -102,15 +138,19 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
 
+      ! Local variables
       integer :: ia, ivmu, iz, it, iky
+
+      !-------------------------------------------------------------------------
 
       ia = 1
 
+      ! Avoid spatially dependent kperp
+      ! Add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
       if (.not. use_physical_ksqr) then
-         !> avoid spatially dependent kperp
-         !> add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
@@ -126,17 +166,24 @@ contains
             end do
          end do
       else
-         !> add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
+      
+         ! Add in hyper-dissipation of form dg/dt = -D*(k/kmax)^4*g
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             g(:, :, :, :, ivmu) = g(:, :, :, :, ivmu) / (1.+code_dt * (spread(kperp2(:, :, ia, :), 4, ntubes) / k2max)**2 * D_hyper)
          end do
+         
       end if
 
    end subroutine advance_hyper_dissipation
  
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   ! Computes the fourth derivative of g in vpa and returns this in dgdvpa
+   ! multiplied by the vpa diffusion coefficient
+   !****************************************************************************
    subroutine advance_hyper_vpa(g, dgdvpa)
-   !> computes the fourth derivative of g in vpa and returns this in dgdvpa
-   !> multiplied by the vpa diffusion coefficient
+   
       use stella_time, only: code_dt
       use grids_z, only: nzgrid
       use stella_layouts, only: vmu_lo, kxkyz_lo
@@ -146,10 +193,14 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: dgdvpa
 
+      ! Local variables
       complex, dimension(:, :, :), allocatable :: g0v, g1v
+
+      !-------------------------------------------------------------------------
 
       allocate (g0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
       allocate (g1v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
@@ -164,6 +215,36 @@ contains
 
    end subroutine advance_hyper_vpa
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   subroutine advance_hyper_zed(g, dgdz)
+   ! computes the fourth derivative of g in z and returns this in
+   ! dgdz multiplied by the z hyper diffusion coefficient
+      use stella_time, only: code_dt
+      use grids_z, only: nzgrid, delzed
+      use stella_layouts, only: vmu_lo
+
+      implicit none
+
+      ! Arguments
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: dgdz
+
+      !-------------------------------------------------------------------------
+
+      call get_dgdz_fourth_order(g, dgdz)
+      dgdz = -code_dt * D_zed * delzed(0)**4 / 16 * dgdz
+
+   end subroutine advance_hyper_zed
+   
+!###############################################################################
+!################################## CALCULATIONS ###############################
+!###############################################################################
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dgdvpa_fourth_order(g, gout)
 
       use calculations_finite_differences, only: fourth_derivate_second_centered_vpa
@@ -172,13 +253,18 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(inout) :: gout
 
+      ! Local variables
       integer :: ikxkyz, imu, iz, is
       complex, dimension(:), allocatable :: tmp
 
+      !-------------------------------------------------------------------------
+
       allocate (tmp(nvpa))
+      
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iz = iz_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
@@ -189,25 +275,12 @@ contains
       end do
 
       deallocate (tmp)
+      
    end subroutine get_dgdvpa_fourth_order
 
-   subroutine advance_hyper_zed(g, dgdz)
-   !> computes the fourth derivative of g in z and returns this in
-   !> dgdz multiplied by the z hyper diffusion coefficient
-      use stella_time, only: code_dt
-      use grids_z, only: nzgrid, delzed
-      use stella_layouts, only: vmu_lo
-
-      implicit none
-
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out) :: dgdz
-
-      call get_dgdz_fourth_order(g, dgdz)
-      dgdz = -code_dt * D_zed * delzed(0)**4 / 16 * dgdz
-
-   end subroutine advance_hyper_zed
-
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dgdz_fourth_order(g, dgdz)
 
       use calculations_finite_differences, only: fourth_derivative_second_centered_zed
@@ -220,16 +293,20 @@ contains
       use grids_extended_zgrid, only: fill_zed_ghost_zones
       use grids_extended_zgrid, only: periodic
       use grids_kxky, only: naky
-
       use stella_layouts, only: iv_idx, imu_idx, is_idx
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(inout) :: dgdz
 
+      ! Local variables
       integer :: iseg, ie, iky, iv, it, ivmu, imu
       complex, dimension(2) :: gleft, gright
+
+      !-------------------------------------------------------------------------
+      
       ! FLAG -- assuming delta zed is equally spaced below!
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          iv = iv_idx(vmu_lo, ivmu)
@@ -238,13 +315,16 @@ contains
             do it = 1, ntubes
                do ie = 1, neigen(iky)
                   do iseg = 1, nsegments(ie, iky)
-                     ! first fill in ghost zones at boundaries in g(z)
+                  
+                     ! Fill in ghost zones at boundaries in g(z)
                      call fill_zed_ghost_zones(it, iseg, ie, iky, g(:, :, :, :, ivmu), gleft, gright)
-                     ! now get dg/dz
+                     
+                     ! Get dg/dz
                      call fourth_derivative_second_centered_zed(iz_low(iseg), iseg, nsegments(ie, iky), &
-                                                                g(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it, ivmu), &
-                                                                delzed(0), gleft, gright, periodic(iky), &
-                                                                dgdz(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it, ivmu))
+                        g(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it, ivmu), &
+                        delzed(0), gleft, gright, periodic(iky), &
+                        dgdz(iky, ikxmod(iseg, ie, iky), iz_low(iseg):iz_up(iseg), it, ivmu))
+                        
                   end do
                end do
             end do

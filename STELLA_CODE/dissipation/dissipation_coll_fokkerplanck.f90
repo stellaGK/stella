@@ -1,7 +1,17 @@
+!###############################################################################
+!                                                                               
+!###############################################################################
+! 
+! This module ...
+! 
+! TODO - Write docs and split up in smaller modules
+! 
+!###############################################################################
 module dissipation_coll_fokkerplanck
 
    implicit none
 
+   ! Make routines available to other modules
    public :: read_parameters_fp
    public :: init_collisions_fp, finish_collisions_fp
    public :: advance_collisions_fp_explicit, advance_collisions_fp_implicit
@@ -52,12 +62,20 @@ module dissipation_coll_fokkerplanck
    real, dimension(:, :, :, :, :), allocatable :: jm0
    real, dimension(:), allocatable :: mwnorm
    real, dimension(:), allocatable :: modmwnorm
-
-   logical :: fp_initialized = .false.
    real :: i1fac, i2fac
+
+   ! Only initialise once
+   logical :: initialised_fokker_planck = .false.
 
 contains
 
+!###############################################################################
+!################################ READ PARAMETERS ##############################
+!###############################################################################
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine read_parameters_fp
 
       use mp, only: broadcast
@@ -65,15 +83,19 @@ contains
 
       implicit none
 
-      call read_namelist_collisions_fokker_planck (testpart, fieldpart, lmax, jmax, nvel_local, &
-                              interspec, intraspec, iiknob, ieknob, eeknob, eiknob, &
-                              eiediffknob, eideflknob, deflknob, eimassr_approx, &
-                              advfield_coll, spitzer_problem, density_conservation, &
-                              density_conservation_field, density_conservation_tp, &
-                              exact_conservation, exact_conservation_tp, &
-                              vpa_operator, mu_operator, &
-                              cfac, cfac2, nuxfac, i1fac, i2fac, no_j1l1, no_j1l2, no_j0l2)
+      !----------------------------------------------------------------------
 
+      ! Read collisions namelist from input file
+      call read_namelist_collisions_fokker_planck (testpart, fieldpart, lmax, jmax, nvel_local, &
+               interspec, intraspec, iiknob, ieknob, eeknob, eiknob, &
+               eiediffknob, eideflknob, deflknob, eimassr_approx, &
+               advfield_coll, spitzer_problem, density_conservation, &
+               density_conservation_field, density_conservation_tp, &
+               exact_conservation, exact_conservation_tp, &
+               vpa_operator, mu_operator, &
+               cfac, cfac2, nuxfac, i1fac, i2fac, no_j1l1, no_j1l2, no_j0l2)
+
+      ! Broadcast the parameters to all processors
       call broadcast(fieldpart)
       call broadcast(testpart)
       call broadcast(interspec)
@@ -109,6 +131,13 @@ contains
 
    end subroutine read_parameters_fp
 
+!###############################################################################
+!########################## INITIALISE COLLISION MODEL #########################
+!###############################################################################
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_collisions_fp(collisions_implicit, cfl_dt_vpadiff, cfl_dt_mudiff)
 
       use grids_species, only: spec, nspec
@@ -129,8 +158,10 @@ contains
       integer, parameter :: impurity_species = 3 ! AVB: clear up difference between slowing down species ('3' in species.f90) and impurity species
       real :: vnew_max
 
-      if (fp_initialized) return
-      fp_initialized = .true.
+      !-------------------------------------------------------------------------
+
+      if (initialised_fokker_planck) return
+      initialised_fokker_planck = .true.
 
       ! disable inter-species collisions if interspec==false
       if (.not. interspec) then
@@ -196,6 +227,9 @@ contains
 
    end subroutine init_collisions_fp
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_nusDpa
 
       ! AVB: compute the collision frequencies nuD, nus and nupa
@@ -215,6 +249,8 @@ contains
       real, dimension(-nzgrid:nzgrid) :: v2mwint, v4mwint
       integer :: ia, imu, iv, iz, is, isb
       real :: x, Gf, massr
+
+      !-------------------------------------------------------------------------
 
       if (.not. allocated(nus)) allocate (nus(nvpa, nmu, -nzgrid:nzgrid, nspec, nspec))
       if (.not. allocated(nuD)) allocate (nuD(nvpa, nmu, -nzgrid:nzgrid, nspec, nspec))
@@ -280,21 +316,9 @@ contains
 
    end subroutine init_nusDpa
 
-   subroutine finish_nusDpa
-
-      implicit none
-
-      if (allocated(nus)) deallocate (nus)
-      if (allocated(nuD)) deallocate (nuD)
-      if (allocated(nupa)) deallocate (nupa)
-      if (allocated(nux)) deallocate (nux)
-      if (allocated(mw)) deallocate (mw)
-      if (allocated(modmw)) deallocate (modmw)
-
-      if (allocated(velvpamu)) deallocate (velvpamu)
-
-   end subroutine finish_nusDpa
-
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_fp_diffmatrix
 
       use stella_time, only: code_dt
@@ -323,6 +347,8 @@ contains
 
       integer, parameter :: ion_species = 1
       integer, parameter :: electron_species = 2
+
+      !-------------------------------------------------------------------------
 
       if (.not. allocated(aa_blcs)) allocate (aa_blcs(nvpa, nmu, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc, nspec))
       if (.not. allocated(bb_blcs)) allocate (bb_blcs(nvpa, nmu, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc, nspec))
@@ -1431,87 +1457,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine init_fp_diffmatrix
 
-   elemental function associated_laguerre(n, alpha, x)
-
-      integer, intent(in) :: n
-      real, intent(in) :: x
-      real, intent(in) :: alpha
-      integer :: k
-      real :: associated_laguerre, p, p1, p2
-
-      p1 = dble(1.0)
-      p2 = dble(1.0) + alpha - x
-
-      if (n == 0) then
-         associated_laguerre = p1
-         return
-      else if (n == 1) then
-         associated_laguerre = p2
-         return
-      end if
-
-      do k = 2, n
-         p = ((dble(2.0) * k - dble(1.0) + alpha - x) * p2 - (k - dble(1.0) + alpha) * p1) / k
-         p1 = p2
-         p2 = p
-      end do
-
-      associated_laguerre = p
-
-   end function associated_laguerre
-
-   elemental function associated_legendre(l, m, x)
-
-      integer, intent(in) :: l, m
-      double precision, intent(in) :: x
-      integer :: k
-      double precision :: associated_legendre, p, p1, p2, fac
-      double precision :: pi
-
-      pi = 3.14159265359
-
-      ! to start the recursion, use that P_l^m = 0 for l < abs(m)
-      ! and P_l^l = (-1)^l*(2l-1)!!(1-x^2)^(l/2)
-      ! where (2l-1)!! = 2**l * Gamma(l+0.5) / sqrt(pi)
-      p1 = 0.
-      p2 = (-1)**abs(m) * 2**abs(m) * gamma(abs(m) + 0.5) / sqrt(pi) * (1.-x**2)**(abs(m) / 2.)
-
-      if (abs(m) > l) then
-         associated_legendre = 0.
-         return
-      end if
-
-      if (l == 0) then
-         associated_legendre = 1.
-         return
-      end if
-
-      if (l == m) then
-         associated_legendre = p2
-         return
-      end if
-
-      if (l == -m) then
-         fac = (-1)**abs(m) * gamma(l - abs(m) + 1.) / gamma(l + abs(m) + 1.)
-         associated_legendre = p2 * fac
-         return
-      end if
-
-      do k = abs(m) + 1, l
-         p = ((dble(2.0) * k - dble(1.0)) * x * p2 - (k - dble(1.0) + abs(m)) * p1) / (k - abs(m))
-         p1 = p2
-         p2 = p
-      end do
-
-      if (m < 0) then
-         fac = (-1)**abs(m) * gamma(l - abs(m) + 1.) / gamma(l + abs(m) + 1.)
-         p = p * fac
-      end if
-
-      associated_legendre = p
-
-   end function associated_legendre
-
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_legendre
 
       use grids_velocity, only: mu, nmu, vpa, nvpa
@@ -1524,6 +1472,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       integer :: iv, imu, iz, ia, mm, ll
       double precision :: xi
+
+      !-------------------------------------------------------------------------
 
       allocate (legendre_vpamu(0:lmax, -lmax:lmax, nvpa, nmu, -nzgrid:nzgrid))
 
@@ -1549,6 +1499,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine init_legendre
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_bessel_fn
       use grids_z, only: nzgrid
       use grids_velocity, only: nmu, vperp2
@@ -1564,6 +1517,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       integer :: ikxkyz, iky, ikx, iz, is, ia, mm, imu
       real :: arg, aj1fac, aj1exp, aj0exp
+
+      !-------------------------------------------------------------------------
 
       allocate (jm(nmu, 0:lmax, naky, nakx, -nzgrid:nzgrid, nspec))
       allocate (jm0(nmu, naky, nakx, -nzgrid:nzgrid, nspec))
@@ -1613,6 +1568,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine init_bessel_fn
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_vgrid
 
       ! v grid used for writing various coll freqs to file for debugging
@@ -1622,6 +1580,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       integer :: ia, iv
       real :: delv, vmax, vmin
+
+      !-------------------------------------------------------------------------
 
       allocate (wgts_v(nvel_local)); wgts_v = 0.0
       allocate (vel(nvel_local)); vel = 0.0
@@ -1678,238 +1638,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine init_vgrid
 
-   recursive subroutine gamlow(a, x, gl)
-
-      ! recursive calculation of lower incomplete gamma function for half-integer a > 0
-
-      use constants, only: pi
-      use spfunc, only: erf => erf_ext
-
-      implicit none
-      real, intent(in) :: a
-      real, intent(in) :: x
-      real, intent(out) :: gl
-      real :: glm1
-
-      if (a == 0.5) then
-         gl = sqrt(pi) * erf(sqrt(x))
-      else
-         call gamlow(a - 1., x, glm1)
-         gl = (a - 1.) * glm1 - x**(a - 1.) * exp(-x)
-      end if
-
-   end subroutine gamlow
-
-   recursive subroutine gamup(a, x, gu)
-
-      ! recursive calculation of the upper incomplete gamma function for integer a > 0
-
-      use constants, only: pi
-      use spfunc, only: erf => erf_ext
-
-      implicit none
-      real, intent(in) :: a
-      real, intent(in) :: x
-      real, intent(out) :: gu
-      real :: gum1
-
-      if (a == 1.0) then
-         gu = exp(-x)
-      else
-         call gamup(a - 1., x, gum1)
-         gu = (a - 1.) * gum1 + x**(a - 1.) * exp(-x)
-      end if
-
-   end subroutine gamup
-
-   subroutine calc_delta0(xa, jj, ll, isa, isb, delt0)
-
-      ! calculate Delta0^{j,l,ab}(xa) (on xa grid)
-      ! j and l denote the degree and index of the associated laguerre polynomial
-
-      use grids_species, only: spec
-      use constants, only: pi
-
-      implicit none
-
-      integer, intent(in) :: jj, ll, isa, isb
-      real, intent(in) :: xa
-      real, intent(out) :: delt0
-
-      real :: massr, ckjl, xb, gaml1, gaml2, gamu1, gamu2
-      integer :: kk
-
-      massr = spec(isa)%mass / spec(isb)%mass
-      xb = xa / sqrt(massr)
-
-      delt0 = 0
-      do kk = 0, jj
-         ckjl = (-1)**kk * gamma(jj + ll + 0.5 + 1) / (gamma(jj - kk + 1.) * gamma(ll + kk + 0.5 + 1) * gamma(kk + 1.))
-         call gamlow(1.5 + ll + kk, xb**2, gaml1)
-         call gamlow(2.5 + ll + kk, xb**2, gaml2)
-         call gamup(1.+kk, xb**2, gamu1)
-         call gamup(2.+kk, xb**2, gamu2)
-         delt0 = delt0 + ckjl * ((2 * ll + 1.) * xb**(ll + 2.*kk) * exp(-xb**2) &
-                                 - xb * (1.-massr) * (-(ll + 1.) / xb**(ll + 2.) * gaml1 + ll * xb**(ll - 1.) * gamu1) &
-                                 - (1./xb**(ll + 1.) * gaml1 + xb**ll * gamu1) &
-                                 + massr * xb**2 * ((ll + 1.) * (ll + 2.) / (2 * ll + 3.) * (xb**(-ll - 3.) * gaml2 + xb**ll * gamu1) &
-                                                    - ll * (ll - 1.) / (2 * ll - 1.) * (xb**(-ll - 1.) * gaml1 + xb**(ll - 2.) * gamu2)))
-      end do
-      delt0 = delt0 * 4 * pi / (pi**1.5) * exp(-xa**2) * massr / (2 * ll + 1.)
-
-   end subroutine calc_delta0
-
-   recursive subroutine calc_deltaj_vmu(jj, nn, ll, isa, isb, deltj)
-
-      ! calculate Delta_j^{ab,l}[x_b^l L_n^{l+0.5}(x_b^2) exp(-x_b^2)](xa) (on x_a grid)
-      ! these are normalised, and calculated without the collision frequency
-      ! in contrast to Hirshman & Sigmar 1976
-
-      use grids_velocity, only: mu, nmu, vpa, nvpa
-      use grids_z, only: nzgrid
-      use geometry, only: bmag
-
-      implicit none
-
-      integer, intent(in) :: jj, nn, ll, isa, isb
-      real, dimension(nvpa, nmu, -nzgrid:nzgrid), intent(out) :: deltj
-      real, dimension(nvpa, nmu, -nzgrid:nzgrid) :: deltajm1_n, deltajm1_j
-      integer :: iv, imu, iz, ia
-      real :: v
-      real, dimension(-nzgrid:nzgrid) :: psijm1_n
-
-      ia = 1
-      if (jj == 0) then
-         do iv = 1, nvpa
-            do imu = 1, nmu
-               do iz = -nzgrid, nzgrid
-                  v = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mu(imu))
-                  call calc_delta0(v, nn, ll, isa, isb, deltj(iv, imu, iz))
-               end do
-            end do
-         end do
-      else
-         ! get Delta_[j-1]^{ab,l}[x_b^l L_n^{l+0.5}(x_b^2) exp(-x_b^2)](xa)
-         call calc_deltaj_vmu(jj - 1, nn, ll, isa, isb, deltajm1_n)
-         ! get Delta_[j-1]^{ab,l}[x_b^l L_[j-1]^{l+0.5}(x_b^2) exp(-x_b^2)](xa)
-         call calc_deltaj_vmu(jj - 1, jj - 1, ll, isa, isb, deltajm1_j)
-         ! get psi_[j-1]^{ab,l}[x_b^l L_n^{l+0.5}(x_b^2) exp(-x_b^2)](xa)
-         call calc_psi_vmu(jj - 1, nn, ll, isa, isb, psijm1_n)
-         deltj = deltajm1_n - spread(spread(psijm1_n, 1, nvpa), 2, nmu) * deltajm1_j
-      end if
-
-   end subroutine calc_deltaj_vmu
-
-   subroutine vLj_vmu(jj, ll, vLj)
-
-      use grids_velocity, only: mu, nmu, vpa, nvpa
-      use grids_z, only: nzgrid
-      use geometry, only: bmag
-
-      implicit none
-
-      integer, intent(in) :: jj, ll
-      real, dimension(nvpa, nmu, -nzgrid:nzgrid), intent(out) :: vLj
-      integer :: iv, imu, iz, ia
-      real :: v
-
-      ia = 1
-      do iv = 1, nvpa
-         do imu = 1, nmu
-            do iz = -nzgrid, nzgrid
-               v = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mu(imu))
-               vLj(iv, imu, iz) = v**ll * associated_laguerre(jj, ll + 1./2., v**2)
-            end do
-         end do
-      end do
-
-   end subroutine vLj_vmu
-
-   recursive subroutine calc_psi_vmu(jj, nn, ll, isa, isb, psij)
-
-      ! calculate psi_j^{ab,l}[x_b^l L_n^{l+0.5}(x_b^2) exp(-x_b^2)]
-
-      ! have defined deltaj without collision frequency
-      ! and normalised everthing to species thermal speeds
-
-      use grids_species, only: spec
-      use calculations_velocity_integrals, only: integrate_vmu
-      use grids_velocity, only: nmu, nvpa
-      use grids_z, only: nzgrid
-
-      implicit none
-
-      integer, intent(in) :: jj, nn, ll, isa, isb
-      real, dimension(nvpa, nmu, -nzgrid:nzgrid) :: deltj_j, vLj, vLn !deltj_n
-      real, dimension(-nzgrid:nzgrid), intent(out) :: psij
-      integer :: iz
-      real, dimension(-nzgrid:nzgrid) :: num, den
-
-      if (jj == 0) then
-         if ((ll == 0) .and. (nn == 0)) then ! never used
-            num = 1
-            den = 1
-         else
-            ! get delta_j^{ba}(x_a^l L_j^{l+0.5}(x_a^2) exp(-x_a^2)), on x_b grid
-            call calc_deltaj_vmu(jj, jj, ll, isb, isa, deltj_j)
-            ! multiply by x_b^l L_n(x_b^2) and integrate
-            call vLj_vmu(nn, ll, vLn)
-            do iz = -nzgrid, nzgrid
-               call integrate_vmu(vLn(:, :, iz) * deltj_j(:, :, iz), iz, num(iz)) ! numerator in psijl
-            end do
-
-            ! if mb / ma < 1 use self-adjointness to avoid resolution problems
-            if (spec(isb)%mass / spec(isa)%mass < 1.) then
-               call calc_deltaj_vmu(jj, jj, ll, isa, isb, deltj_j)
-               ! need to account for mass ratio normalisation
-               ! and collision frequency
-               ! \int x_a^l L_j^{l+1/2}(x_a^2) \Delta_j'^{ab}[\tilde{f}_b/F0b * F0b] x_a^2 dx_a
-               !   = ma^0.5/mb^0.5 * ma^3/mb^3 \int f_b/F0b \Delta_j^{ba}'[x_a^l L_j^{l+1/2}(x_a^2) \tilde{F0a}] x_b^2 dx_b
-               call vLj_vmu(jj, ll, vLj)
-               do iz = -nzgrid, nzgrid
-                  call integrate_vmu(spec(isb)%mass**3.5 / spec(isa)%mass**3.5 * vLj(:, :, iz) * deltj_j(:, :, iz), iz, den(iz)) ! denominator in psijl
-               end do
-            else
-               call vLj_vmu(jj, ll, vLj)
-               do iz = -nzgrid, nzgrid
-                  call integrate_vmu(vLj(:, :, iz) * deltj_j(:, :, iz), iz, den(iz)) ! denominator in psijl
-               end do
-            end if
-
-         end if
-      else
-         ! get delta_j^{ba}(x_a^l L_j^{l+0.5}(x_a^2) exp(-x_a^2)), on x_b grid
-         call calc_deltaj_vmu(jj, jj, ll, isb, isa, deltj_j)
-         ! multiply by x_b^l L_n(x_b^2) and integrate
-         call vLj_vmu(nn, ll, vLn)
-         do iz = -nzgrid, nzgrid
-            call integrate_vmu(vLn(:, :, iz) * deltj_j(:, :, iz), iz, num(iz)) ! numerator in psijl
-         end do
-
-         ! if mb / ma < 1 use self-adjointness to avoid resolution problems
-         if (spec(isb)%mass / spec(isa)%mass < 1.) then
-            call calc_deltaj_vmu(jj, jj, ll, isa, isb, deltj_j)
-            ! need to account for mass ratio normalisation
-            ! and collision frequency
-            ! \int x_a^l L_j^{l+1/2}(x_a^2) \Delta_j'^{ab}[\tilde{f}_b/F0b * F0b] x_a^2 dx_a
-            !   = ma^0.5/mb^0.5 * ma^3/mb^3 \int f_b/F0b \Delta_j^{ba}'[x_a^l L_j^{l+1/2}(x_a^2) \tilde{F0a}] x_b^2 dx_b
-            call vLj_vmu(jj, ll, vLj)
-            do iz = -nzgrid, nzgrid
-               call integrate_vmu(spec(isb)%mass**3.5 / spec(isa)%mass**3.5 * vLj(:, :, iz) * deltj_j(:, :, iz), iz, den(iz)) ! denominator in psijl
-            end do
-         else
-            call vLj_vmu(jj, ll, vLj)
-            do iz = -nzgrid, nzgrid
-               call integrate_vmu(vLj(:, :, iz) * deltj_j(:, :, iz), iz, den(iz)) ! denominator in psijl
-            end do
-         end if
-
-      end if
-
-      psij = num / den
-
-   end subroutine calc_psi_vmu
-
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_deltaj_vmu
 
       use grids_species, only: nspec, spec
@@ -1932,6 +1663,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       real, dimension(nvpa*nmu, nvpa*nmu) :: ident
 
       logical :: conservative_wgts
+
+      !-------------------------------------------------------------------------
 
       ia = 1
 
@@ -2415,99 +2148,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine init_deltaj_vmu
 
-   subroutine get_testpart_density(isa, isb, g, fld)
-
-      ! if isb==0:
-      ! get the field tp_den_isa(g_isa), store it in fld(:,:,:,:,isa)
-
-      ! if isa=0, fix the species indices of the operator tp_den, ie
-      ! get the fields tp_den_isb(g_a), tp_den_isb(g_b), tp_den_isb(g_c) ...
-
-      use mp, only: sum_allreduce
-      use grids_z, only: nzgrid
-      use calculations_velocity_integrals, only: integrate_vmu
-      use grids_velocity, only: set_vpa_weights, nvpa, nmu
-      use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use constants, only: pi
-      use file_utils, only: open_output_file, close_output_file
-      use stella_time, only: code_dt
-
-      implicit none
-
-      integer, intent(in) :: isa, isb
-      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: fld
-
-      integer :: ikxkyz, iky, ikx, iz, it, is, ia, iv, ikxkyz_isb, is_b, iky_b, ikx_b, iz_b, it_b
-      complex, dimension(:, :), allocatable :: g0
-      complex, dimension(:), allocatable :: ghrs
-
-      allocate (g0(nvpa, nmu))
-      allocate (ghrs(nmu * nvpa))
-
-      !conservative_wgts = .false.
-      !call set_vpa_weights (conservative_wgts)
-
-      ia = 1
-
-      fld = 0.
-
-      if (isb == 0) then
-         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            iky = iky_idx(kxkyz_lo, ikxkyz)
-            ikx = ikx_idx(kxkyz_lo, ikxkyz)
-            iz = iz_idx(kxkyz_lo, ikxkyz)
-            is = is_idx(kxkyz_lo, ikxkyz)
-            it = it_idx(kxkyz_lo, ikxkyz)
-            if (is /= isa) cycle
-            do iv = 1, nvpa
-               ghrs(nmu * (iv - 1) + 1:nmu * iv) = g(iv, :, ikxkyz)
-            end do
-            ! blockmatrix_sum contains sum of interspecies test particle operators
-            ghrs = matmul(-blockmatrix_sum(:, :, ikxkyz) / code_dt, ghrs)
-            do iv = 1, nvpa
-               g0(iv, :) = ghrs(nmu * (iv - 1) + 1:nmu * iv)
-            end do
-            call integrate_vmu(g0, iz, fld(iky, ikx, iz, it, is))
-         end do
-      else if (isa == isb) then
-         ! apply the operator tp_den_isb[] to every species index of g; only used in the calculation of the response matrix
-         ! where the species index, is, of g contains the response \delta h_a / \delta \psi^{a,is}; always given on an x_a grid
-         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-            iky = iky_idx(kxkyz_lo, ikxkyz)
-            ikx = ikx_idx(kxkyz_lo, ikxkyz)
-            iz = iz_idx(kxkyz_lo, ikxkyz)
-            is = is_idx(kxkyz_lo, ikxkyz)
-            it = it_idx(kxkyz_lo, ikxkyz)
-            ! AVB: to do - cumbersome below, fix
-            do iv = 1, nvpa
-               ghrs(nmu * (iv - 1) + 1:nmu * iv) = g(iv, :, ikxkyz)
-            end do
-            do ikxkyz_isb = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
-               is_b = is_idx(kxkyz_lo, ikxkyz_isb)
-               iky_b = iky_idx(kxkyz_lo, ikxkyz_isb)
-               ikx_b = ikx_idx(kxkyz_lo, ikxkyz_isb)
-               iz_b = iz_idx(kxkyz_lo, ikxkyz_isb)
-               it_b = it_idx(kxkyz_lo, ikxkyz_isb)
-               if ((is_b /= isb) .or. (iky_b /= iky) .or. (ikx_b /= ikx) .or. (iz_b /= iz) .or. (it_b /= it)) cycle
-               ghrs = matmul(-blockmatrix_sum(:, :, ikxkyz_isb) / code_dt, ghrs)
-            end do
-            do iv = 1, nvpa
-               g0(iv, :) = ghrs(nmu * (iv - 1) + 1:nmu * iv)
-            end do
-            call integrate_vmu(g0, iz, fld(iky, ikx, iz, it, is))
-         end do
-      else
-         fld = 0.
-      end if
-
-      deallocate (g0)
-      deallocate (ghrs)
-
-      call sum_allreduce(fld)
-
-   end subroutine get_testpart_density
-
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_fp_conserve
 
       use linear_solve, only: lu_decomposition
@@ -2538,6 +2181,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       complex, dimension(:, :), allocatable :: gvmutr
       complex, dimension(:), allocatable :: ghrs
       complex, dimension(:, :, :, :, :), allocatable :: response_vpamu
+
+      !-------------------------------------------------------------------------
 
       if (.not. allocated(fp_response)) then
          if (fieldpart) then
@@ -2846,6 +2491,95 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine init_fp_conserve
 
+
+!###############################################################################
+!############################ FINISH COLLISION MODEL ###########################
+!###############################################################################
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   subroutine finish_collisions_fp
+
+      implicit none
+
+      call finish_nusDpa
+      call finish_fp_diffmatrix
+      call finish_fp_response
+      call finish_deltaj
+
+      initialised_fokker_planck = .false.
+
+   end subroutine finish_collisions_fp
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   subroutine finish_deltaj
+
+      implicit none
+      if (allocated(deltaj)) deallocate (deltaj)
+      if (allocated(psijnorm)) deallocate (psijnorm)
+      if (allocated(mwnorm)) deallocate (mwnorm)
+
+   end subroutine finish_deltaj
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   subroutine finish_fp_diffmatrix
+
+      implicit none
+
+      if (allocated(aa_vpa)) deallocate (aa_vpa)
+      if (allocated(bb_vpa)) deallocate (bb_vpa)
+      if (allocated(cc_vpa)) deallocate (cc_vpa)
+      if (allocated(aa_blcs)) deallocate (aa_blcs)
+      if (allocated(bb_blcs)) deallocate (bb_blcs)
+      if (allocated(cc_blcs)) deallocate (cc_blcs)
+      if (allocated(cdiffmat_band)) deallocate (cdiffmat_band)
+      if (allocated(blockmatrix)) deallocate (blockmatrix)
+      if (allocated(blockmatrix_sum)) deallocate (blockmatrix_sum)
+
+   end subroutine finish_fp_diffmatrix
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   subroutine finish_fp_response
+
+      implicit none
+
+      if (allocated(fp_response)) deallocate (fp_response)
+      if (allocated(diff_idx)) deallocate (diff_idx)
+
+   end subroutine finish_fp_response
+   
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   subroutine finish_nusDpa
+
+      implicit none
+
+      if (allocated(nus)) deallocate (nus)
+      if (allocated(nuD)) deallocate (nuD)
+      if (allocated(nupa)) deallocate (nupa)
+      if (allocated(nux)) deallocate (nux)
+      if (allocated(mw)) deallocate (mw)
+      if (allocated(modmw)) deallocate (modmw)
+
+      if (allocated(velvpamu)) deallocate (velvpamu)
+
+   end subroutine finish_nusDpa
+   
+!###############################################################################
+!################################# CALCULATIONS ################################
+!###############################################################################
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_psi_response(ll, mm, jj, isa, response)
 
       ! solve for responses dh_a / dpsi^{aa}, dh_a / dpsi^{ab}, dh_a / dpsi^{ac} ... for all species b, c, ...
@@ -2871,6 +2605,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       complex, dimension(:), allocatable :: ghrs
       integer :: ikxkyz, iky, ikx, iz, is, ia, iv, imu
       real :: clm
+
+      !-------------------------------------------------------------------------
 
       allocate (ghrs(nmu * nvpa))
 
@@ -2941,6 +2677,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine get_psi_response
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_psi(g, fld, isa, isb, ll, mm, jj)
 
       ! if isb==0:
@@ -2969,6 +2708,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       complex, dimension(:), allocatable :: ghrs
       real :: clm
       logical :: conservative_wgts
+
+      !-------------------------------------------------------------------------
 
       allocate (g0(nvpa, nmu))
       allocate (ghrs(nmu * nvpa))
@@ -3200,53 +2941,470 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine get_psi
 
-   subroutine finish_collisions_fp
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   subroutine get_testpart_density(isa, isb, g, fld)
+
+      ! if isb==0:
+      ! get the field tp_den_isa(g_isa), store it in fld(:,:,:,:,isa)
+
+      ! if isa=0, fix the species indices of the operator tp_den, ie
+      ! get the fields tp_den_isb(g_a), tp_den_isb(g_b), tp_den_isb(g_c) ...
+
+      use mp, only: sum_allreduce
+      use grids_z, only: nzgrid
+      use calculations_velocity_integrals, only: integrate_vmu
+      use grids_velocity, only: set_vpa_weights, nvpa, nmu
+      use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use constants, only: pi
+      use file_utils, only: open_output_file, close_output_file
+      use stella_time, only: code_dt
 
       implicit none
 
-      call finish_nusDpa
-      call finish_fp_diffmatrix
-      call finish_fp_response
-      call finish_deltaj
+      integer, intent(in) :: isa, isb
+      complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: g
+      complex, dimension(:, :, -nzgrid:, :, :), intent(out) :: fld
 
-      fp_initialized = .false.
+      integer :: ikxkyz, iky, ikx, iz, it, is, ia, iv, ikxkyz_isb, is_b, iky_b, ikx_b, iz_b, it_b
+      complex, dimension(:, :), allocatable :: g0
+      complex, dimension(:), allocatable :: ghrs
 
-   end subroutine finish_collisions_fp
+      !-------------------------------------------------------------------------
 
-   subroutine finish_deltaj
+      allocate (g0(nvpa, nmu))
+      allocate (ghrs(nmu * nvpa))
+
+      !conservative_wgts = .false.
+      !call set_vpa_weights (conservative_wgts)
+
+      ia = 1
+
+      fld = 0.
+
+      if (isb == 0) then
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
+            it = it_idx(kxkyz_lo, ikxkyz)
+            if (is /= isa) cycle
+            do iv = 1, nvpa
+               ghrs(nmu * (iv - 1) + 1:nmu * iv) = g(iv, :, ikxkyz)
+            end do
+            ! blockmatrix_sum contains sum of interspecies test particle operators
+            ghrs = matmul(-blockmatrix_sum(:, :, ikxkyz) / code_dt, ghrs)
+            do iv = 1, nvpa
+               g0(iv, :) = ghrs(nmu * (iv - 1) + 1:nmu * iv)
+            end do
+            call integrate_vmu(g0, iz, fld(iky, ikx, iz, it, is))
+         end do
+      else if (isa == isb) then
+         ! apply the operator tp_den_isb[] to every species index of g; only used in the calculation of the response matrix
+         ! where the species index, is, of g contains the response \delta h_a / \delta \psi^{a,is}; always given on an x_a grid
+         do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+            iky = iky_idx(kxkyz_lo, ikxkyz)
+            ikx = ikx_idx(kxkyz_lo, ikxkyz)
+            iz = iz_idx(kxkyz_lo, ikxkyz)
+            is = is_idx(kxkyz_lo, ikxkyz)
+            it = it_idx(kxkyz_lo, ikxkyz)
+            ! AVB: to do - cumbersome below, fix
+            do iv = 1, nvpa
+               ghrs(nmu * (iv - 1) + 1:nmu * iv) = g(iv, :, ikxkyz)
+            end do
+            do ikxkyz_isb = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
+               is_b = is_idx(kxkyz_lo, ikxkyz_isb)
+               iky_b = iky_idx(kxkyz_lo, ikxkyz_isb)
+               ikx_b = ikx_idx(kxkyz_lo, ikxkyz_isb)
+               iz_b = iz_idx(kxkyz_lo, ikxkyz_isb)
+               it_b = it_idx(kxkyz_lo, ikxkyz_isb)
+               if ((is_b /= isb) .or. (iky_b /= iky) .or. (ikx_b /= ikx) .or. (iz_b /= iz) .or. (it_b /= it)) cycle
+               ghrs = matmul(-blockmatrix_sum(:, :, ikxkyz_isb) / code_dt, ghrs)
+            end do
+            do iv = 1, nvpa
+               g0(iv, :) = ghrs(nmu * (iv - 1) + 1:nmu * iv)
+            end do
+            call integrate_vmu(g0, iz, fld(iky, ikx, iz, it, is))
+         end do
+      else
+         fld = 0.
+      end if
+
+      deallocate (g0)
+      deallocate (ghrs)
+
+      call sum_allreduce(fld)
+
+   end subroutine get_testpart_density
+   
+   
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   recursive subroutine gamlow(a, x, gl)
+
+      ! recursive calculation of lower incomplete gamma function for half-integer a > 0
+
+      use constants, only: pi
+      use spfunc, only: erf => erf_ext
 
       implicit none
-      if (allocated(deltaj)) deallocate (deltaj)
-      if (allocated(psijnorm)) deallocate (psijnorm)
-      if (allocated(mwnorm)) deallocate (mwnorm)
+      
+      real, intent(in) :: a
+      real, intent(in) :: x
+      real, intent(out) :: gl
+      real :: glm1
 
-   end subroutine finish_deltaj
+      !-------------------------------------------------------------------------
 
-   subroutine finish_fp_diffmatrix
+      if (a == 0.5) then
+         gl = sqrt(pi) * erf(sqrt(x))
+      else
+         call gamlow(a - 1., x, glm1)
+         gl = (a - 1.) * glm1 - x**(a - 1.) * exp(-x)
+      end if
+
+   end subroutine gamlow
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   recursive subroutine gamup(a, x, gu)
+
+      ! recursive calculation of the upper incomplete gamma function for integer a > 0
+
+      use constants, only: pi
+      use spfunc, only: erf => erf_ext
+
+      implicit none
+      
+      real, intent(in) :: a
+      real, intent(in) :: x
+      real, intent(out) :: gu
+      real :: gum1
+
+      !-------------------------------------------------------------------------
+
+      if (a == 1.0) then
+         gu = exp(-x)
+      else
+         call gamup(a - 1., x, gum1)
+         gu = (a - 1.) * gum1 + x**(a - 1.) * exp(-x)
+      end if
+
+   end subroutine gamup
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   subroutine calc_delta0(xa, jj, ll, isa, isb, delt0)
+
+      ! calculate Delta0^{j,l,ab}(xa) (on xa grid)
+      ! j and l denote the degree and index of the associated laguerre polynomial
+
+      use grids_species, only: spec
+      use constants, only: pi
 
       implicit none
 
-      if (allocated(aa_vpa)) deallocate (aa_vpa)
-      if (allocated(bb_vpa)) deallocate (bb_vpa)
-      if (allocated(cc_vpa)) deallocate (cc_vpa)
-      if (allocated(aa_blcs)) deallocate (aa_blcs)
-      if (allocated(bb_blcs)) deallocate (bb_blcs)
-      if (allocated(cc_blcs)) deallocate (cc_blcs)
-      if (allocated(cdiffmat_band)) deallocate (cdiffmat_band)
-      if (allocated(blockmatrix)) deallocate (blockmatrix)
-      if (allocated(blockmatrix_sum)) deallocate (blockmatrix_sum)
+      integer, intent(in) :: jj, ll, isa, isb
+      real, intent(in) :: xa
+      real, intent(out) :: delt0
 
-   end subroutine finish_fp_diffmatrix
+      real :: massr, ckjl, xb, gaml1, gaml2, gamu1, gamu2
+      integer :: kk
 
-   subroutine finish_fp_response
+      !-------------------------------------------------------------------------
+
+      massr = spec(isa)%mass / spec(isb)%mass
+      xb = xa / sqrt(massr)
+
+      delt0 = 0
+      do kk = 0, jj
+         ckjl = (-1)**kk * gamma(jj + ll + 0.5 + 1) / (gamma(jj - kk + 1.) * gamma(ll + kk + 0.5 + 1) * gamma(kk + 1.))
+         call gamlow(1.5 + ll + kk, xb**2, gaml1)
+         call gamlow(2.5 + ll + kk, xb**2, gaml2)
+         call gamup(1.+kk, xb**2, gamu1)
+         call gamup(2.+kk, xb**2, gamu2)
+         delt0 = delt0 + ckjl * ((2 * ll + 1.) * xb**(ll + 2.*kk) * exp(-xb**2) &
+                                 - xb * (1.-massr) * (-(ll + 1.) / xb**(ll + 2.) * gaml1 + ll * xb**(ll - 1.) * gamu1) &
+                                 - (1./xb**(ll + 1.) * gaml1 + xb**ll * gamu1) &
+                                 + massr * xb**2 * ((ll + 1.) * (ll + 2.) / (2 * ll + 3.) * (xb**(-ll - 3.) * gaml2 + xb**ll * gamu1) &
+                                                    - ll * (ll - 1.) / (2 * ll - 1.) * (xb**(-ll - 1.) * gaml1 + xb**(ll - 2.) * gamu2)))
+      end do
+      delt0 = delt0 * 4 * pi / (pi**1.5) * exp(-xa**2) * massr / (2 * ll + 1.)
+
+   end subroutine calc_delta0
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   recursive subroutine calc_deltaj_vmu(jj, nn, ll, isa, isb, deltj)
+
+      ! calculate Delta_j^{ab,l}[x_b^l L_n^{l+0.5}(x_b^2) exp(-x_b^2)](xa) (on x_a grid)
+      ! these are normalised, and calculated without the collision frequency
+      ! in contrast to Hirshman & Sigmar 1976
+
+      use grids_velocity, only: mu, nmu, vpa, nvpa
+      use grids_z, only: nzgrid
+      use geometry, only: bmag
 
       implicit none
 
-      if (allocated(fp_response)) deallocate (fp_response)
-      if (allocated(diff_idx)) deallocate (diff_idx)
+      integer, intent(in) :: jj, nn, ll, isa, isb
+      real, dimension(nvpa, nmu, -nzgrid:nzgrid), intent(out) :: deltj
+      real, dimension(nvpa, nmu, -nzgrid:nzgrid) :: deltajm1_n, deltajm1_j
+      integer :: iv, imu, iz, ia
+      real :: v
+      real, dimension(-nzgrid:nzgrid) :: psijm1_n
 
-   end subroutine finish_fp_response
+      !-------------------------------------------------------------------------
 
+      ia = 1
+      if (jj == 0) then
+         do iv = 1, nvpa
+            do imu = 1, nmu
+               do iz = -nzgrid, nzgrid
+                  v = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mu(imu))
+                  call calc_delta0(v, nn, ll, isa, isb, deltj(iv, imu, iz))
+               end do
+            end do
+         end do
+      else
+         ! get Delta_[j-1]^{ab,l}[x_b^l L_n^{l+0.5}(x_b^2) exp(-x_b^2)](xa)
+         call calc_deltaj_vmu(jj - 1, nn, ll, isa, isb, deltajm1_n)
+         ! get Delta_[j-1]^{ab,l}[x_b^l L_[j-1]^{l+0.5}(x_b^2) exp(-x_b^2)](xa)
+         call calc_deltaj_vmu(jj - 1, jj - 1, ll, isa, isb, deltajm1_j)
+         ! get psi_[j-1]^{ab,l}[x_b^l L_n^{l+0.5}(x_b^2) exp(-x_b^2)](xa)
+         call calc_psi_vmu(jj - 1, nn, ll, isa, isb, psijm1_n)
+         deltj = deltajm1_n - spread(spread(psijm1_n, 1, nvpa), 2, nmu) * deltajm1_j
+      end if
+
+   end subroutine calc_deltaj_vmu
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   subroutine vLj_vmu(jj, ll, vLj)
+
+      use grids_velocity, only: mu, nmu, vpa, nvpa
+      use grids_z, only: nzgrid
+      use geometry, only: bmag
+
+      implicit none
+
+      integer, intent(in) :: jj, ll
+      real, dimension(nvpa, nmu, -nzgrid:nzgrid), intent(out) :: vLj
+      integer :: iv, imu, iz, ia
+      real :: v
+
+      !-------------------------------------------------------------------------
+
+      ia = 1
+      do iv = 1, nvpa
+         do imu = 1, nmu
+            do iz = -nzgrid, nzgrid
+               v = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mu(imu))
+               vLj(iv, imu, iz) = v**ll * associated_laguerre(jj, ll + 1./2., v**2)
+            end do
+         end do
+      end do
+
+   end subroutine vLj_vmu
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   recursive subroutine calc_psi_vmu(jj, nn, ll, isa, isb, psij)
+
+      ! calculate psi_j^{ab,l}[x_b^l L_n^{l+0.5}(x_b^2) exp(-x_b^2)]
+
+      ! have defined deltaj without collision frequency
+      ! and normalised everthing to species thermal speeds
+
+      use grids_species, only: spec
+      use calculations_velocity_integrals, only: integrate_vmu
+      use grids_velocity, only: nmu, nvpa
+      use grids_z, only: nzgrid
+
+      implicit none
+
+      integer, intent(in) :: jj, nn, ll, isa, isb
+      real, dimension(nvpa, nmu, -nzgrid:nzgrid) :: deltj_j, vLj, vLn !deltj_n
+      real, dimension(-nzgrid:nzgrid), intent(out) :: psij
+      integer :: iz
+      real, dimension(-nzgrid:nzgrid) :: num, den
+
+      !-------------------------------------------------------------------------
+
+      if (jj == 0) then
+         if ((ll == 0) .and. (nn == 0)) then ! never used
+            num = 1
+            den = 1
+         else
+            ! get delta_j^{ba}(x_a^l L_j^{l+0.5}(x_a^2) exp(-x_a^2)), on x_b grid
+            call calc_deltaj_vmu(jj, jj, ll, isb, isa, deltj_j)
+            ! multiply by x_b^l L_n(x_b^2) and integrate
+            call vLj_vmu(nn, ll, vLn)
+            do iz = -nzgrid, nzgrid
+               call integrate_vmu(vLn(:, :, iz) * deltj_j(:, :, iz), iz, num(iz)) ! numerator in psijl
+            end do
+
+            ! if mb / ma < 1 use self-adjointness to avoid resolution problems
+            if (spec(isb)%mass / spec(isa)%mass < 1.) then
+               call calc_deltaj_vmu(jj, jj, ll, isa, isb, deltj_j)
+               ! need to account for mass ratio normalisation
+               ! and collision frequency
+               ! \int x_a^l L_j^{l+1/2}(x_a^2) \Delta_j'^{ab}[\tilde{f}_b/F0b * F0b] x_a^2 dx_a
+               !   = ma^0.5/mb^0.5 * ma^3/mb^3 \int f_b/F0b \Delta_j^{ba}'[x_a^l L_j^{l+1/2}(x_a^2) \tilde{F0a}] x_b^2 dx_b
+               call vLj_vmu(jj, ll, vLj)
+               do iz = -nzgrid, nzgrid
+                  call integrate_vmu(spec(isb)%mass**3.5 / spec(isa)%mass**3.5 * vLj(:, :, iz) * deltj_j(:, :, iz), iz, den(iz)) ! denominator in psijl
+               end do
+            else
+               call vLj_vmu(jj, ll, vLj)
+               do iz = -nzgrid, nzgrid
+                  call integrate_vmu(vLj(:, :, iz) * deltj_j(:, :, iz), iz, den(iz)) ! denominator in psijl
+               end do
+            end if
+
+         end if
+      else
+         ! get delta_j^{ba}(x_a^l L_j^{l+0.5}(x_a^2) exp(-x_a^2)), on x_b grid
+         call calc_deltaj_vmu(jj, jj, ll, isb, isa, deltj_j)
+         ! multiply by x_b^l L_n(x_b^2) and integrate
+         call vLj_vmu(nn, ll, vLn)
+         do iz = -nzgrid, nzgrid
+            call integrate_vmu(vLn(:, :, iz) * deltj_j(:, :, iz), iz, num(iz)) ! numerator in psijl
+         end do
+
+         ! if mb / ma < 1 use self-adjointness to avoid resolution problems
+         if (spec(isb)%mass / spec(isa)%mass < 1.) then
+            call calc_deltaj_vmu(jj, jj, ll, isa, isb, deltj_j)
+            ! need to account for mass ratio normalisation
+            ! and collision frequency
+            ! \int x_a^l L_j^{l+1/2}(x_a^2) \Delta_j'^{ab}[\tilde{f}_b/F0b * F0b] x_a^2 dx_a
+            !   = ma^0.5/mb^0.5 * ma^3/mb^3 \int f_b/F0b \Delta_j^{ba}'[x_a^l L_j^{l+1/2}(x_a^2) \tilde{F0a}] x_b^2 dx_b
+            call vLj_vmu(jj, ll, vLj)
+            do iz = -nzgrid, nzgrid
+               call integrate_vmu(spec(isb)%mass**3.5 / spec(isa)%mass**3.5 * vLj(:, :, iz) * deltj_j(:, :, iz), iz, den(iz)) ! denominator in psijl
+            end do
+         else
+            call vLj_vmu(jj, ll, vLj)
+            do iz = -nzgrid, nzgrid
+               call integrate_vmu(vLj(:, :, iz) * deltj_j(:, :, iz), iz, den(iz)) ! denominator in psijl
+            end do
+         end if
+
+      end if
+
+      psij = num / den
+
+   end subroutine calc_psi_vmu
+   
+   
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   elemental function associated_laguerre(n, alpha, x)
+
+      integer, intent(in) :: n
+      real, intent(in) :: x
+      real, intent(in) :: alpha
+      integer :: k
+      real :: associated_laguerre, p, p1, p2
+
+      !-------------------------------------------------------------------------
+
+      p1 = dble(1.0)
+      p2 = dble(1.0) + alpha - x
+
+      if (n == 0) then
+         associated_laguerre = p1
+         return
+      else if (n == 1) then
+         associated_laguerre = p2
+         return
+      end if
+
+      do k = 2, n
+         p = ((dble(2.0) * k - dble(1.0) + alpha - x) * p2 - (k - dble(1.0) + alpha) * p1) / k
+         p1 = p2
+         p2 = p
+      end do
+
+      associated_laguerre = p
+
+   end function associated_laguerre
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   elemental function associated_legendre(l, m, x)
+
+      integer, intent(in) :: l, m
+      double precision, intent(in) :: x
+      integer :: k
+      double precision :: associated_legendre, p, p1, p2, fac
+      double precision :: pi
+
+      !-------------------------------------------------------------------------
+
+      pi = 3.14159265359
+
+      ! to start the recursion, use that P_l^m = 0 for l < abs(m)
+      ! and P_l^l = (-1)^l*(2l-1)!!(1-x^2)^(l/2)
+      ! where (2l-1)!! = 2**l * Gamma(l+0.5) / sqrt(pi)
+      p1 = 0.
+      p2 = (-1)**abs(m) * 2**abs(m) * gamma(abs(m) + 0.5) / sqrt(pi) * (1.-x**2)**(abs(m) / 2.)
+
+      if (abs(m) > l) then
+         associated_legendre = 0.
+         return
+      end if
+
+      if (l == 0) then
+         associated_legendre = 1.
+         return
+      end if
+
+      if (l == m) then
+         associated_legendre = p2
+         return
+      end if
+
+      if (l == -m) then
+         fac = (-1)**abs(m) * gamma(l - abs(m) + 1.) / gamma(l + abs(m) + 1.)
+         associated_legendre = p2 * fac
+         return
+      end if
+
+      do k = abs(m) + 1, l
+         p = ((dble(2.0) * k - dble(1.0)) * x * p2 - (k - dble(1.0) + abs(m)) * p1) / (k - abs(m))
+         p1 = p2
+         p2 = p
+      end do
+
+      if (m < 0) then
+         fac = (-1)**abs(m) * gamma(l - abs(m) + 1.) / gamma(l + abs(m) + 1.)
+         p = p * fac
+      end if
+
+      associated_legendre = p
+
+   end function associated_legendre
+   
+!###############################################################################
+!######################### ADVANCE COLLISIONS: EXPLICIT ########################
+!###############################################################################
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine advance_collisions_fp_explicit(g, phi, bpar, gke_rhs, time_collisions)
 
       use mp, only: proc0, mp_abort
@@ -3279,6 +3437,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       complex, dimension(:, :, :), allocatable :: mucoll_fp
       complex, dimension(:, :, :), allocatable :: coll_fp
+
+      !-------------------------------------------------------------------------
 
       ia = 1
 
@@ -3365,6 +3525,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine advance_collisions_fp_explicit
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine vpa_differential_operator_fp(h, Dh, imu, iz, is, ia)
 
       use grids_velocity, only: nvpa, vpa, dvpa, mu, dmu, nmu, maxwell_mu
@@ -3380,6 +3543,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       integer :: iv
       complex :: dmuhp, dmuhm, dvpahp, dvpahm
       real :: xp, xm, vpap, vpam, nupap, nupam, nuDp, nuDm, mwp, mwm
+
+      !-------------------------------------------------------------------------
 
       iv = 1
       vpap = 0.5 * (vpa(iv) + vpa(iv + 1))
@@ -3491,6 +3656,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine vpa_differential_operator_fp
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine mu_differential_operator_fp(h, Dh, iv, iz, is, ia, iky, ikx, cfac)
 
       use grids_velocity, only: nmu, mu, dmu, vpa, dvpa, nvpa, maxwell_vpa
@@ -3509,6 +3677,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       complex ::  Dvpah, Dvpah_p, Dvpah_m, Dmuh, Dmuh_m, Dmuh_p, Dmuh1, Dmuh2
       real :: nuDp, nuDm, nupap, nupam, mup, mum, xp, xm, mwm, mwp
       integer :: imu
+
+      !-------------------------------------------------------------------------
 
       imu = 1
       ! vpa-differential terms:
@@ -3645,6 +3815,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine mu_differential_operator_fp
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine vpa_differential_operator_fp_conservative(h, Dh, imu, iz, is, ia)
 
       use grids_velocity, only: nvpa, vpa, dvpa, mu, dmu, nmu, maxwell_mu
@@ -3660,6 +3833,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       integer :: iv
       complex :: dmuhp, dmuhm, dvpahp, dvpahm
       real :: xp, xm, vpap, vpam, nupap, nupam, nuDp, nuDm, mwp, mwm
+
+      !-------------------------------------------------------------------------
 
       iv = 1
       vpap = 0.5 * (vpa(iv) + vpa(iv + 1))
@@ -3787,6 +3962,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine vpa_differential_operator_fp_conservative
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine mu_differential_operator_fp_conservative(h, Dh, iv, iz, is, ia, iky, ikx, cfac)
 
       use grids_velocity, only: nmu, mu, dmu, vpa, dvpa, nvpa, maxwell_vpa
@@ -3805,6 +3983,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       complex ::  Dvpah, Dvpah_p, Dvpah_m, Dmuh, Dmuh_m, Dmuh_p, Dmuh1, Dmuh2
       real :: nuDp, nuDm, nupap, nupam, mup, mum, xp, xm, mwm, mwp
       integer :: imu
+
+      !-------------------------------------------------------------------------
 
       imu = 1
       ! vpa-differential terms:
@@ -3948,6 +4128,13 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine mu_differential_operator_fp_conservative
 
+!###############################################################################
+!######################### ADVANCE COLLISIONS: IMPLICIT ########################
+!###############################################################################
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine advance_collisions_fp_implicit(phi, apar, bpar)
 
       use grids_z, only: nzgrid
@@ -3959,6 +4146,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
 
       logical :: conservative_wgts
+
+      !-------------------------------------------------------------------------
 
       if (density_conservation) then
          conservative_wgts = .true.
@@ -3973,6 +4162,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine advance_collisions_fp_implicit
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine advance_implicit_fp(phi, apar, bpar, g)
 
       use mp, only: sum_allreduce
@@ -4012,6 +4204,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       real :: clm
 
       real :: spitzer_i1, spitzer_i2, applied_Epar, gradpar_lnp0, gradpar_lnT0
+
+      !-------------------------------------------------------------------------
 
       ! store input g for use later, as g will be overwritten below
       allocate (g_in(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
