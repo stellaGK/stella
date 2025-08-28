@@ -29,7 +29,7 @@ module calculations_velocity_integrals
 
    implicit none
    
-   ! Integrations
+   ! Make integrations available to other modules
    public :: integrate_vmu, integrate_vpa
    public :: integrate_mu, integrate_species
    public :: integrate_species_ffs, integrate_vmu_ffs

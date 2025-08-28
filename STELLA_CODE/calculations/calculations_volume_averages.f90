@@ -1,12 +1,15 @@
+!###############################################################################
+!                                                                               
+!###############################################################################
+! This module ...
+!###############################################################################
 module calculations_volume_averages
 
    public :: init_volume_averages, finish_volume_averages
    public :: fieldline_average
    public :: volume_average
    public :: flux_surface_average_ffs
-
    public :: mode_fac
-
    public :: jacobian_ky
 
    private
@@ -16,13 +19,24 @@ module calculations_volume_averages
       module procedure fieldline_average_complex
    end interface
 
+   ! In volume averages we count each ky-mode twice, since we only evolve
+   ! positive ky-values due to the reality condition: phi[ikx,iky] = conj(phi)[-ikx,-iky]
+   ! Only the ky=0 mode needs to be counted only once. <mode_fac> contains this factor
    real, dimension(:), allocatable :: mode_fac
-   !> Fourier coefficients in y of the Jacobian;
-   !> needed for full flux surface simulations
+   
+   ! Fourier coefficients in y of the Jacobian;
+   ! needed for full flux surface simulations
    complex, dimension(:, :), allocatable :: jacobian_ky
 
 contains
 
+!###############################################################################
+!######################### INITIALISE VOLUME AVERAGES ##########################
+!############################################################################### 
+
+   !****************************************************************************
+   !                         Initialise volume averages                         
+   !****************************************************************************
    subroutine init_volume_averages
 
       use grids_z, only: nzgrid, nztot, delzed
@@ -36,44 +50,86 @@ contains
 
       real :: dqdrho
 
+      !----------------------------------------------------------------------
+
+      ! In volume averages we count each ky-mode twice, since we only evolve
+      ! positive ky-values due to the reality condition: phi[ikx,iky] = conj(phi)[-ikx,-iky]
+      ! Only the ky=0 mode needs to be counted only once
       if (.not. allocated(mode_fac)) then
          allocate (mode_fac(naky)); mode_fac = 2.0
          if (aky(1) < epsilon(0.)) mode_fac(1) = 1.0
       end if
+      
+      ! Initialise full flux surface volume averages
       if (full_flux_surface) then
          call init_flux_surface_average_ffs
       end if
 
+      ! Factor in the Jacobian used if x = q
       dqdrho = geo_surf%shat * geo_surf%qinp / geo_surf%rhoc
+      
+      ! Allocate arrays
       if (.not. allocated(dVolume)) allocate (dVolume(nalpha, nakx, -nzgrid:nzgrid))
 
-      !dVolume contains the volume element jacob, which may vary with x or alpha
+      ! dVolume contains the volume element jacob, which may vary with x or alpha
       ! NB: dVolume does not contain the factor dx, as this should always be uniform
       dVolume = spread(jacob * spread(delzed, 1, nalpha), 2, nakx)
       if (q_as_x) then
          dVolume = dVolume / (dqdrho * drhodpsip)
       end if
 
+      ! Radial variation
       if (radial_variation) then
          if (q_as_x) then
             dVolume = dVolume * (1.+spread(spread(rho_d_clamped, 1, nalpha), 3, nztot) &
-                                 * (spread(djacdrho / jacob, 2, nakx) - geo_surf%d2qdr2 / dqdrho &
-                                    + geo_surf%d2psidr2 * drhodpsip))
+               * (spread(djacdrho / jacob, 2, nakx) - geo_surf%d2qdr2 / dqdrho &
+                  + geo_surf%d2psidr2 * drhodpsip))
          else
             dVolume = dVolume * (1.+spread(spread(rho_d_clamped, 1, nalpha), 3, nztot) &
-                                 * spread(djacdrho / jacob, 2, nakx))
+               * spread(djacdrho / jacob, 2, nakx))
          end if
       end if
 
-      if (full_flux_surface) then
-         !something should go here
-      end if
-
-      !avoid the double counting at the zed boundaries
+      ! Avoid double counting at the zed boundaries
       dVolume(:, :, -nzgrid) = 0.5 * dVolume(:, :, -nzgrid)
       dVolume(:, :, nzgrid) = 0.5 * dVolume(:, :, nzgrid)
 
    end subroutine init_volume_averages
+   
+   !****************************************************************************
+   !                Initialise full-flux-surface volume averages                
+   !****************************************************************************
+   subroutine init_flux_surface_average_ffs
+
+      use grids_z, only: nzgrid
+      use grids_kxky, only: naky
+      use grids_extended_zgrid, only: periodic
+      use geometry, only: jacob
+      use calculations_transforms, only: transform_alpha2kalpha
+
+      implicit none
+
+      integer :: iz
+
+      !----------------------------------------------------------------------
+
+      ! Allocate arrays
+      if (.not. allocated(jacobian_ky)) allocate (jacobian_ky(naky, -nzgrid:nzgrid))
+
+      ! Calculate the Fourier coefficients in y of the Jacobian
+      ! This is needed in the computation of the flux surface average of phi
+      do iz = -nzgrid, nzgrid
+         call transform_alpha2kalpha(jacob(:, iz), jacobian_ky(:, iz))
+      end do
+      where (periodic)
+         jacobian_ky(:, nzgrid) = 0.0
+      end where
+
+   end subroutine init_flux_surface_average_ffs
+
+!###############################################################################
+!########################### FINISH VOLUME AVERAGES ############################
+!############################################################################### 
 
    subroutine finish_volume_averages
 
@@ -81,6 +137,8 @@ contains
       use parameters_physics, only: full_flux_surface
 
       implicit none
+
+      !----------------------------------------------------------------------
 
       if (allocated(mode_fac)) deallocate (mode_fac)
       if (allocated(dVolume)) deallocate (dVolume)
@@ -90,9 +148,13 @@ contains
 
    end subroutine finish_volume_averages
 
-   !==============================================
-   !============ FIELD LINE AVERAGE ==============
-   !==============================================
+!###############################################################################
+!################################# CALCULATIONS ################################
+!############################################################################### 
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine fieldline_average_real(unavg, avg)
 
       use grids_z, only: nzgrid, ntubes
@@ -106,6 +168,8 @@ contains
 
       integer :: it, ia
 
+      !----------------------------------------------------------------------
+
       ia = 1
 
       avg = 0.0
@@ -116,6 +180,9 @@ contains
 
    end subroutine fieldline_average_real
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine fieldline_average_complex(unavg, avg)
 
       use grids_z, only: nzgrid, ntubes
@@ -129,6 +196,8 @@ contains
 
       integer :: it, ia
 
+      !----------------------------------------------------------------------
+
       ia = 1
 
       avg = 0.0
@@ -139,9 +208,9 @@ contains
 
    end subroutine fieldline_average_complex
 
-   !==============================================
-   !============== VOLUME AVERAGE ================
-   !==============================================
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine volume_average(unavg, avg)
 
       use grids_z, only: nzgrid, ntubes
@@ -154,6 +223,8 @@ contains
       real, intent(out) :: avg
 
       integer :: iky, ikx, iz, it, ia
+
+      !----------------------------------------------------------------------
 
       ia = 1
 
@@ -172,31 +243,9 @@ contains
 
    end subroutine volume_average
 
-   subroutine init_flux_surface_average_ffs
-
-      use grids_z, only: nzgrid
-      use grids_kxky, only: naky
-      use grids_extended_zgrid, only: periodic
-      use geometry, only: jacob
-      use calculations_transforms, only: transform_alpha2kalpha
-
-      implicit none
-
-      integer :: iz
-
-      if (.not. allocated(jacobian_ky)) allocate (jacobian_ky(naky, -nzgrid:nzgrid))
-
-      !> calculate the Fourier coefficients in y of the Jacobian
-      !> this is needed in the computation of the flux surface average of phi
-      do iz = -nzgrid, nzgrid
-         call transform_alpha2kalpha(jacob(:, iz), jacobian_ky(:, iz))
-      end do
-      where (periodic)
-         jacobian_ky(:, nzgrid) = 0.0
-      end where
-
-   end subroutine init_flux_surface_average_ffs
-
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine flux_surface_average_ffs(no_fsa, fsa)
 
       use grids_z, only: nzgrid, delzed 
@@ -210,11 +259,14 @@ contains
       integer :: iky, ikymod
       complex :: area
 
-      ! the normalising factor int dy dz Jacobian
+      !----------------------------------------------------------------------
+
+      ! The normalising factor int dy dz Jacobian
       area = 0.0
       fsa = 0.0
-      ! get contribution from negative ky values
-      ! for no_fsa, iky=1 corresponds to -kymax, and iky=naky-1 to -dky
+      
+      ! Get contribution from negative ky values
+      ! For no_fsa, iky=1 corresponds to -kymax, and iky=naky-1 to -dky
       do iky = 1, naky - 1
          ! jacobian_ky only defined for positive ky values
          ! use reality of the jacobian to fill in negative ky values
@@ -226,7 +278,8 @@ contains
          fsa = fsa + sum(delzed * no_fsa(iky, :) * jacobian_ky(ikymod, :))
          area = area + sum(delzed * jacobian_ky(ikymod, :))
       end do
-      ! get contribution from zero and positive ky values
+      
+      ! Get contribution from zero and positive ky values
       ! iky = naky correspond to ky=0 for no_fsa and iky=naky_all to ky=kymax
       do iky = naky, naky_all
          ! ikymod runs from 1 to naky
@@ -237,7 +290,8 @@ contains
          ! TODO-GA: WARNING: Possible change of value in conversion from COMPLEX(8) to REAL(8)
          area = area + sum(delzed * jacobian_ky(ikymod, :))
       end do
-      ! normalise by the flux surface area
+      
+      ! Normalise by the flux surface area
       fsa = fsa / area
 
    end subroutine flux_surface_average_ffs
