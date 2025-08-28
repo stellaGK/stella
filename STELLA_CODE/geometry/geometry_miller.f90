@@ -1,9 +1,16 @@
+!###############################################################################
+!                                                                               
+!###############################################################################
+! This module ...
+!###############################################################################
 module geometry_miller
 
+   use debug_flags, only: debug => geometry_debug
    use stella_common_types, only: flux_surface_type
 
    implicit none
 
+   ! Make routines available to other modules
    public :: read_local_parameters
    public :: communicate_parameters_multibox
    public :: get_local_geo
@@ -11,9 +18,6 @@ module geometry_miller
    public :: local
 
    private
-   
-   ! These routines are always called on the first processor only
-   logical :: debug = .false.
 
    integer :: nzed_local
    real :: rhoc, rmaj, shift
@@ -59,7 +63,7 @@ module geometry_miller
 
    type(flux_surface_type) :: local
 
-   logical :: defaults_initialized = .false.
+   logical :: initialised_miller = .false.
 
 contains
 
@@ -79,6 +83,8 @@ contains
 
       real :: dum
       integer :: np, j
+
+      !-------------------------------------------------------------------------
 
       call read_namelist_geometry_miller(rhoc, rmaj, shift, qinp, shat, &
             kappa, kapprim, tri, triprim, rgeo, betaprim, &
@@ -167,8 +173,8 @@ contains
 
          implicit none
 
-         if (defaults_initialized) return
-         defaults_initialized = .true.
+         if (initialised_miller) return
+         initialised_miller = .true.
          
          rhoc0 = 0.5
 
@@ -203,6 +209,8 @@ contains
       real :: rrhoc, rqinp, rshat, rkappa, rtri, rbetaprim
       real :: dqdr
       real :: rhoc_psi0, qinp_psi0, shat_psi0
+
+      !-------------------------------------------------------------------------
 
       !FLAG DSO -  I think d2psidrho2 needs to be communicated, but
       !            I'm unsure what quantity needs to be updated
@@ -386,6 +394,8 @@ contains
       real, allocatable, dimension(:) :: zed_arc
       character(len=512) :: filename
       integer :: n
+
+      !-------------------------------------------------------------------------
       
       ! Track code
       if (debug) write (*, *) 'geometry_miller::get_local_geo'
@@ -835,7 +845,7 @@ contains
       close (1001)
       if (debug) write (*, *) 'geometry_miller::write_geometry_miller_txt_files_finished'
 
-      defaults_initialized = .false.
+      initialised_miller = .false.
 
    end subroutine get_local_geo
 
@@ -847,6 +857,8 @@ contains
       implicit none
 
       integer, intent(in) :: nr, nz
+
+      !-------------------------------------------------------------------------
 
       ! periodic quantities can be computed on 2*pi grid and replicated
       allocate (grho(-nz:nz), bmag(-nz:nz), gradpar(-nz:nz)); grho = 0.0; bmag = 0.0; gradpar = 0.0
@@ -897,7 +909,6 @@ contains
       deallocate (grho)
       deallocate (bmag)
       deallocate (gradpar)
-
       deallocate (gds2)
       deallocate (gds21)
       deallocate (gds22)
@@ -937,9 +948,9 @@ contains
 
    end subroutine deallocate_arrays
 
-   !============================================================================
-   !================================== FINISH =================================
-   !============================================================================ 
+!===============================================================================
+!==================================== FINISH ===================================
+!===============================================================================
    subroutine finish_local_geo
 
       implicit none
@@ -949,10 +960,13 @@ contains
    end subroutine finish_local_geo
    
    
-   !============================================================================
-   !=============================== CALCULATIONS ===============================
-   !============================================================================ 
+!===============================================================================
+!================================ CALCULATIONS =================================
+!===============================================================================
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! takes in f(r), with r given at three radial locations
    ! and returns df = df/dr at the middle radius
    subroutine get_drho(f, df)
@@ -961,11 +975,16 @@ contains
 
       real, dimension(:, -nz:), intent(in) :: f
       real, dimension(-nz:), intent(out) :: df
+
+      !-------------------------------------------------------------------------
       
       df = 0.5 * (f(3, :) - f(1, :)) / local%dr
       
    end subroutine get_drho
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! given function f(theta), calculate second derivative
    ! of f with respect to theta
    ! second order accurate, with equal grid spacing assumed
@@ -975,6 +994,8 @@ contains
 
       real, dimension(-nz:), intent(in) :: f
       real, dimension(-nz:), intent(out) :: d2f
+
+      !-------------------------------------------------------------------------
       
       ! assuming equal grid spacing in theta here
       d2f(-nz + 1:nz - 1) = (f(:nz - 2) - 2.*f(-nz + 1:nz - 1) + f(-nz + 2:)) / delthet(-nz + 1:nz - 1)**2
@@ -985,6 +1006,9 @@ contains
       
    end subroutine get_d2dthet2
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! given function f(theta:-pi->pi), calculate theta derivative
    ! second order accurate, with equal grid spacing assumed
    ! assumes periodic in theta -- may need to change this in future
@@ -994,6 +1018,8 @@ contains
 
       real, dimension(-nz:), intent(in) :: f
       real, dimension(-nz:), intent(out) :: df
+
+      !-------------------------------------------------------------------------
       
       ! assuming equal grid spacing in theta here
       df(-nz + 1:nz - 1) = (f(-nz + 2:) - f(:nz - 2)) / (delthet(:nz - 2) + delthet(-nz + 1:))
@@ -1004,6 +1030,9 @@ contains
 
    end subroutine get_dthet
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_jacrho
 
       implicit none
@@ -1030,6 +1059,9 @@ contains
 
 !   end subroutine get_dpsipdrho
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_gradrho(dpsipdrho, grho)
 
       implicit none
@@ -1037,11 +1069,16 @@ contains
       real, intent(in) :: dpsipdrho
       real, dimension(-nz:), intent(out) :: grho
 
+      !-------------------------------------------------------------------------
+
       grho = Rr(2, :) * sqrt(dRdth**2 + dZdth**2) / jacrho
       gpsi = grho * dpsipdrho
 
    end subroutine get_gradrho
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dIdrho(dpsipdrho, grho, dIdrho)
 
       use constants, only: pi
@@ -1054,6 +1091,8 @@ contains
 
       real :: num1, num2, denom
       real, dimension(:), allocatable :: dum
+
+      !-------------------------------------------------------------------------
 
       allocate (dum(-nz:nz)); dum = 0.
 
@@ -1074,12 +1113,17 @@ contains
 
    end subroutine get_dIdrho
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_djacdrho(dpsipdrho, dIdrho, grho)
 
       implicit none
 
       real, intent(in) :: dpsipdrho, dIdrho
       real, dimension(-nz:), intent(in) :: grho
+
+      !-------------------------------------------------------------------------
 
       ! this is dpsi/dr * d/dr (jacobian)
       ! betaprim below is (4*pi*ptot/B0^2)*(-d ln ptot / drho)
@@ -1091,9 +1135,14 @@ contains
 
    end subroutine get_djacdrho
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_d2RZdr2
 
       implicit none
+
+      !-------------------------------------------------------------------------
 
       ! get factor common to both d2R/drho2 and d2Z/drho2
       d2Rdr2 = ((djacrdrho - jacrho * dRdrho / Rr(2, :)) / Rr(2, :) &
@@ -1104,12 +1153,17 @@ contains
 
    end subroutine get_d2RZdr2
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dgr2dr(dpsipdrho, grho)
 
       implicit none
 
       real, intent(in) :: dpsipdrho
       real, dimension(-nz:), intent(in) :: grho
+
+      !-------------------------------------------------------------------------
 
       dgr2dr = 2.*(grho**2 * (dRdrho / Rr(2, :) - djacrdrho / jacrho) &
                    + (Rr(2, :) / jacrho)**2 * (dRdth * d2Rdrdth + d2Zdrdth * dZdth))
@@ -1119,12 +1173,17 @@ contains
 
    end subroutine get_dgr2dr
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_graddotgrad(dpsipdrho, grho)
 
       implicit none
 
       real, intent(in) :: dpsipdrho
       real, dimension(-nz:), intent(in) :: grho
+
+      !-------------------------------------------------------------------------
 
       ! grad theta . grad theta
       gradthet2 = (Rr(2, :) / jacrho)**2 * (dRdrho**2 + dZdrho**2)
@@ -1144,11 +1203,16 @@ contains
 
    end subroutine get_graddotgrad
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_gds(gds2, gds21, gds22, gds23, gds24)
 
       implicit none
 
       real, dimension(-nz:), intent(out) :: gds2, gds21, gds22, gds23, gds24
+
+      !-------------------------------------------------------------------------
 
       ! |grad alpha|^2 * (dpsiN/drho)^2 (dpsiN/drho factor accounts for ky normalization)
       gds2 = gradalph2 * dpsipdrho_psi0**2
@@ -1167,6 +1231,9 @@ contains
 
    end subroutine get_gds
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dBdrho(bmag, dIdrho)
 
       implicit none
@@ -1174,12 +1241,17 @@ contains
       real, dimension(-nz:), intent(in) :: bmag
       real, intent(in) :: dIdrho
 
+      !-------------------------------------------------------------------------
+
       ! dB/drho
       dBdrho = (bi * dIdrho + 0.5 * dgpsi2dr) / (bmag * Rr(2, :)**2) &
                - bmag * dRdrho / Rr(2, :)
 
    end subroutine get_dBdrho
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_varthet(dpsipdrho)
 
       implicit none
@@ -1191,6 +1263,9 @@ contains
 
    end subroutine get_varthet
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dvarthdr(dpsipdrho, dIdrho)
 
       implicit none
@@ -1199,6 +1274,8 @@ contains
 
       real, dimension(-nz:nz) :: dum
 
+      !-------------------------------------------------------------------------
+
       dum = bi * jacrho * (dIdrho / bi - dqdr / local%qinp + djacdrho / jacrho &
                            - 2.*dRdrho / Rr(2, :)) / Rr(2, :)**2
       call theta_integrate_indef(dum, dvarthdr)
@@ -1206,6 +1283,9 @@ contains
 
    end subroutine get_dvarthdr
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_d2Idr2_d2jacdr2(grho, dIdrho)
 
       use constants, only: pi
@@ -1217,6 +1297,8 @@ contains
 
       real :: denom, num1, num2, num3, num4
       real, dimension(-nz:nz) :: tmp, tmp2
+
+      !-------------------------------------------------------------------------
 
       ! denom is the denominator in the expression for d^2 I / dr^2
       tmp = jacrho / Rr(2, :)**2 * (1.0 + (bi / gpsi)**2)
@@ -1261,6 +1343,9 @@ contains
 
    end subroutine get_d2Idr2_d2jacdr2
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_d2varthdr2(dpsipdrho, dIdrho)
 
       implicit none
@@ -1269,23 +1354,30 @@ contains
 
       real, dimension(-nz:nz) :: dum
 
+      !-------------------------------------------------------------------------
+
       dum = bi * jacrho / (local%qinp * dpsipdrho * Rr(2, :)**2) * ((dIdrho / bi - dqdr / local%qinp &
-                                                                    !    dum = bi*jacrho/(local%qinp*Rr(2,:)**2)*( (dIdrho/bi - dqdr/local%qinp &
-                                                                    + djacdrho / jacrho - 2.*dRdrho / Rr(2, :))**2 &
-                                                                   + d2Idr2 / bi - (dIdrho / bi)**2 - local%d2qdr2 / local%qinp &
-                                                                   + (dqdr / local%qinp)**2 + d2jacdr2 / jacrho - (djacdrho / jacrho)**2 &
-                                                                   - djacdrho * local%d2psidr2 / (dpsipdrho * jacrho) &
-                                                                   - 2.*d2Rdr2 / Rr(2, :) + 2.*(dRdrho / Rr(2, :))**2)
+        !    dum = bi*jacrho/(local%qinp*Rr(2,:)**2)*( (dIdrho/bi - dqdr/local%qinp &
+        + djacdrho / jacrho - 2.*dRdrho / Rr(2, :))**2 &
+       + d2Idr2 / bi - (dIdrho / bi)**2 - local%d2qdr2 / local%qinp &
+       + (dqdr / local%qinp)**2 + d2jacdr2 / jacrho - (djacdrho / jacrho)**2 &
+       - djacdrho * local%d2psidr2 / (dpsipdrho * jacrho) &
+       - 2.*d2Rdr2 / Rr(2, :) + 2.*(dRdrho / Rr(2, :))**2)
       call theta_integrate_indef(dum, d2varthdr2)
 
    end subroutine get_d2varthdr2
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_d2Bdr2(bmag, dIdrho)
 
       implicit none
 
       real, dimension(-nz:), intent(in) :: bmag
       real, intent(in) :: dIdrho
+
+      !-------------------------------------------------------------------------
 
       ! d2gpsidr2 = 2.*( dgr2dr*(dRdrho/Rr(2,:) - djacdrho/jacrho) &
       !      + grho**2*(d2Rdr2/Rr(2,:) - (dRdrho/Rr(2,:))**2 - d2jacdr2/jacrho &
@@ -1315,12 +1407,17 @@ contains
 
    end subroutine get_d2Bdr2
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dcrossdr(dpsipdrho, dIdrho, grho)
 
       implicit none
 
       real, intent(in) :: dpsipdrho, dIdrho
       real, dimension(-nz:), intent(in) :: grho
+
+      !-------------------------------------------------------------------------
 
       ! dgr2 = d/drho (|grad rho|^2)
       ! dgr2 = 2.*(Rr(2,:)/jacrho)**2*((dRdrho/Rr(2,:)-djacdrho/jacrho)*(dRdth**2+dZdth**2) &
@@ -1377,11 +1474,16 @@ contains
       real, dimension(-nz2pi:), intent(in) :: integrand
       real, intent(out) :: integral
 
+      !-------------------------------------------------------------------------
+
       ! use trapezoidal rule to integrate in theta
       integral = 0.5 * sum(delthet(-nz2pi:nz2pi - 1) * (integrand(-nz2pi:nz2pi - 1) + integrand(-nz2pi + 1:nz2pi)))
 
    end subroutine theta_integrate
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! get indefinite integral of integrand
    subroutine theta_integrate_indef(integrand, integral)
 
@@ -1391,6 +1493,8 @@ contains
       real, dimension(-nz:), intent(out) :: integral
 
       integer :: i
+
+      !-------------------------------------------------------------------------
       
       ! use trapezoidal rule to integrate in theta
       integral(0) = 0.0
@@ -1403,6 +1507,9 @@ contains
       
    end subroutine theta_integrate_indef
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    function Rpos(r, theta, j)
 
       use constants, only: pi
@@ -1412,6 +1519,8 @@ contains
       real :: Rpos
       real :: g, gp, dr
       integer :: i
+
+      !-------------------------------------------------------------------------
 
       dr = r - local%rhoc
 
@@ -1437,12 +1546,17 @@ contains
 
    end function Rpos
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    function Zpos(r, theta, j)
 
       integer, intent(in) :: j
       real, intent(in) :: r, theta
       real :: Zpos, dr
       integer :: i
+
+      !-------------------------------------------------------------------------
 
       ! allow for strange specification of Z_psi
       if (j == nz + 1) then
@@ -1458,12 +1572,17 @@ contains
 
    end function Zpos
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    function mod2pi(theta)
 
       real, intent(in) :: theta
       real :: pi, th, mod2pi
       real, parameter :: theta_tol = 1.e-6
       logical :: out
+
+      !-------------------------------------------------------------------------
 
       pi = 2.*acos(0.)
 
@@ -1493,18 +1612,26 @@ contains
 
    end function mod2pi
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    function round(val, n)
-     implicit none
-     real :: val, round
-     real :: scaled, remainder
-     integer :: n
-     integer :: sgn
+   
+      implicit none
 
-     scaled = val*10.0**n
-     sgn = sign(1.0, scaled)
-     remainder = modulo(abs(scaled), 10.0)
-     round = (scaled - sgn * remainder )/ 10.0**n
-     !aint(val*10.0**n)/10.0**n
+      real :: val, round
+      real :: scaled, remainder
+      integer :: n
+      integer :: sgn
+
+      !-------------------------------------------------------------------------
+
+      scaled = val*10.0**n
+      sgn = sign(1.0, scaled)
+      remainder = modulo(abs(scaled), 10.0)
+      round = (scaled - sgn * remainder )/ 10.0**n
+      !aint(val*10.0**n)/10.0**n
+      
    end function round
 
 end module geometry_miller

@@ -27,7 +27,6 @@ contains
 
    subroutine init_neoclassical_terms
 
-      use mp, only: proc0 
       use grids_z, only: nzgrid
       use grids_kxky, only: nalpha
       use grids_velocity, only: nvpa, nmu

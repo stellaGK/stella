@@ -196,7 +196,6 @@ contains
       integer :: iky, ikx, ikyp
       integer :: idx
       complex, dimension(:, :), allocatable :: field_kyall, gyro_field_kyall
-      integer :: ivmu
       
       !-------------------------------------------------------------------------
 

@@ -26,7 +26,6 @@
 ! Modified in 2018-2019 by Michael Barnes, and cleaned in 2024 by Hanne Thienpondt.
 ! 
 !###############################################################################
-
 module geometry_vmec_read_netCDF_file
 
    implicit none
@@ -2002,6 +2001,8 @@ contains
          real :: lmns_temp, lmnc_temp
          integer :: imn
 
+         !----------------------------------------------------------------------
+
          ! Initialize
          lambda = 0
 
@@ -2030,7 +2031,6 @@ contains
       !============================================================================
       !============ USE A ROOT SOLVER TO FIND THE theta THAT WORKS ===========
       !============================================================================ 
-
       subroutine get_root(a0, b0, root, converged)
 
          implicit none
@@ -2044,6 +2044,8 @@ contains
          real, parameter :: tol = 1.0e-10
          integer :: it
          real :: a, b, c, d, e, fa, fb, fc, p, q, r, s, tol1, xm, eps
+
+         !----------------------------------------------------------------------
 
          a = a0
          b = b0

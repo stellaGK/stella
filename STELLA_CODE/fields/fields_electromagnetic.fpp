@@ -139,8 +139,8 @@ contains
          
          ! For parallel Amperes Law, need to calculate parallel current rather than density,
          ! so multiply <g> by vpa before integrating. First get the vpa index, then multiply with vpa
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc¡
-            iv = iv_idx(vmu_lo, ivmu)¡
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            iv = iv_idx(vmu_lo, ivmu)
             g_scratch(:, :, :, :, ivmu) = g_scratch(:, :, :, :, ivmu) * vpa(iv)
          end do
          

@@ -1,4 +1,3 @@
-
 !###############################################################################
 !################################ VMEC GEOMETRY ################################
 !###############################################################################
@@ -30,12 +29,11 @@
 ! 07/2024 Changed <gradpar> to <b_dot_grad_z_averaged> and other sensible name changed
 ! 
 !###############################################################################
-
 module vmec_geometry
 
    implicit none
 
-	! Routines
+   ! Routines
    public :: read_vmec_parameters
    public :: get_vmec_geometry
 
@@ -46,6 +44,7 @@ module vmec_geometry
    public :: radial_coordinate_r
 
    private
+   
    integer :: radial_coordinate_switch
    integer, parameter :: radial_coordinate_sgnpsitpsit = 1
    integer, parameter :: radial_coordinate_minuspsit = 2
@@ -77,9 +76,9 @@ contains
       !---------------------------------------------------------------------- 
 
       call read_namelist_geometry_vmec(alpha0, zeta_center, rectangular_cross_section, & 
-                              nfield_periods, torflux, z_grid_refinement_factor, &
-                              surface_option, radial_coordinate_switch, verbose, &
-                              vmec_filename, n_tolerated_test_arrays_inconsistencies)
+         nfield_periods, torflux, z_grid_refinement_factor, &
+         surface_option, radial_coordinate_switch, verbose, &
+         vmec_filename, n_tolerated_test_arrays_inconsistencies)
 
       ! If we set <zed_equal_arc> = True, we also define <z_grid_refinement_factor>
       if (.not. zed_equal_arc) then
@@ -102,13 +101,13 @@ contains
    !==================== GET THE GEOMETRY VECTORS FROM VMEC ====================
    !============================================================================   
    subroutine get_vmec_geometry(nzgrid, nalpha, naky, surf, grho, bmag, &
-                     b_dot_grad_z_averaged, b_dot_grad_z, &
-                     grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, &
-                     gds23_psitalpha , gds24_psitalpha, gds25_psitalpha, gds26_psitalpha, &
-                     gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, &
-                     gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_grad_zeta_RR, &
-                     sign_torflux, theta_vmec, dzetadz, L_reference, B_reference, alpha, zeta, &
-                     field_period_ratio, psit_displacement_fac)
+      b_dot_grad_z_averaged, b_dot_grad_z, &
+      grad_alpha_grad_alpha, grad_alpha_grad_psit, grad_psit_grad_psit, &
+      gds23_psitalpha , gds24_psitalpha, gds25_psitalpha, gds26_psitalpha, &
+      gbdrift_alpha, gbdrift0_psi, cvdrift_alpha, cvdrift0_psi, &
+      gradzeta_gradpsit_R2overB2, gradzeta_gradalpha_R2overB2, b_dot_grad_zeta_RR, &
+      sign_torflux, theta_vmec, dzetadz, L_reference, B_reference, alpha, zeta, &
+      field_period_ratio, psit_displacement_fac)
 
       use constants, only: pi
       use stella_common_types, only: flux_surface_type
@@ -162,7 +161,6 @@ contains
       real, dimension(:, :), allocatable :: b_dot_grad_zeta_RR_vmec
       real, dimension(:, :), allocatable :: b_dot_grad_zeta, b_dot_grad_arclength
       real, dimension(:), allocatable :: b_dot_grad_zeta_averaged, b_dot_grad_arclength_averaged 
-
 
       !---------------------------------------------------------------------- 
 
@@ -239,7 +237,7 @@ contains
       !     int 1 / (b . ∇ζ) dζ = int 1 / (b . ∇l) dl
       if (zed_equal_arc) then
       
-			! If we choose z = arc length then the geometric coefficients from VMEC need to be interpolated to the arc length grid
+            ! If we choose z = arc length then the geometric coefficients from VMEC need to be interpolated to the arc length grid
          if (debug) write (*, *) 'get_vmec_geometry::zed_equal_arc'
 
          ! Index for the max zeta of the nominal zeta grid ranging from [-zetamax_idx, zetamax_idx]
@@ -278,7 +276,7 @@ contains
 
          ! Now that we have normalized arc-length(alpha,zeta), interpolate from the VMEC zeta grid (which is 
          ! irregular in l) to the normalized arc-length grid (which is irregular in zeta)
-			! In this case we have nzgrid_vmec > nzgrid so the resulting arrays will have less z-points
+            ! In this case we have nzgrid_vmec > nzgrid so the resulting arrays will have less z-points
          if (debug) write (*, *) 'get_vmec_geometry::geo_spline'
          do ia = 1, nalpha
             call geo_spline(arc_length(ia, :), zeta_vmec, zed, zeta(ia, :))
@@ -343,8 +341,8 @@ contains
       ! so no need to interpolate onto the stella grid, with <z_grid_refinement_factor> less points than the VMEC grid
       if (.not. zed_equal_arc) then
 
-			! If we choose z = zeta then the geometric coefficients from VMEC are already defined on the correct z-grid
-			! In this case we also have nzgrid_vmec = nzgrid so we have the correct number of z-points
+         ! If we choose z = zeta then the geometric coefficients from VMEC are already defined on the correct z-grid
+         ! In this case we also have nzgrid_vmec = nzgrid so we have the correct number of z-points
          if (debug) write (*, *) 'get_vmec_geometry::not_zed_equal_arc'
          zeta = spread(zeta_vmec, 1, nalpha)
          bmag = bmag_vmec
@@ -481,8 +479,9 @@ contains
 
       integer, intent(in) :: naky
       real, dimension(:), intent(in out) :: geocoef
-
       complex, dimension(:), allocatable :: fourier
+
+      !-------------------------------------------------------------------------
 
       ! Filtering and padding are built-in to the Fourier transform routines below
       allocate (fourier(naky))

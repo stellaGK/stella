@@ -1,3 +1,18 @@
+!###############################################################################
+!                                                                               
+!###############################################################################
+! 
+! Use Z-pinch equilibrium.
+! 
+! The parallel coordinate, z, is chosen to be the arc-length z=r0*theta,
+! i.e., the physical poloidal angle times the radius of the chosen magnetic field, r0.
+! the radial coordinate, x, is directed away from the middle of the circle
+! and is normalised by the local magnetic field gradient scale length, L_B = (d ln B / dr)^{-1}
+! the bi-normal coordinate, y, is chosen to form an orthogonal, right-handed coordinate
+! system with (y,x,z) and is also normalised by L_B.
+! in terms of cyclindrical coordinates (r, theta, Z), we have x = r, y = Z, z = r*theta
+! 
+!###############################################################################
 module zpinch
 
    implicit none
@@ -9,17 +24,13 @@ module zpinch
    real :: betaprim
    
 contains
-   ! use Z-pinch equilibrium.
-   ! the parallel coordinate, z, is chosen to be the arc-length z=r0*theta,
-   ! i.e., the physical poloidal angle times the radius of the chosen magnetic field, r0.
-   ! the radial coordinate, x, is directed away from the middle of the circle
-   ! and is normalised by the local magnetic field gradient scale length, L_B = (d ln B / dr)^{-1}
-   ! the bi-normal coordinate, y, is chosen to form an orthogonal, right-handed coordinate
-   ! system with (y,x,z) and is also normalised by L_B.
-   ! in terms of cyclindrical coordinates (r, theta, Z), we have x = r, y = Z, z = r*theta
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_zpinch_geometry_coefficients(nzgrid, bmag, gradpar, grad_rho, surf, &
-                                               grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, &
-                                               gbdrift0, gbdrift, cvdrift0, cvdrift, btor, rmajor)
+      grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, &
+      gbdrift0, gbdrift, cvdrift0, cvdrift, btor, rmajor)
 
       use stella_common_types, only: flux_surface_type
       use namelist_geometry, only: read_namelist_geometry_zpinch
@@ -28,34 +39,44 @@ contains
 
       integer, intent(in) :: nzgrid
       real, dimension(-nzgrid:), intent(out) :: bmag, gradpar, grad_rho, &
-                                                grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, &
-                                                gbdrift0, gbdrift, cvdrift0, cvdrift, btor, rmajor
+         grad_y_dot_grad_y, grad_x_dot_grad_y, grad_x_dot_grad_x, &
+         gbdrift0, gbdrift, cvdrift0, cvdrift, btor, rmajor
       type(flux_surface_type), intent(out) :: surf
-      
 
+      !-------------------------------------------------------------------------
+      
       call read_namelist_geometry_zpinch (betaprim)
 
       ! bmag = B(r0) / B_ref
       ! as B is constant along radius r0, choose B_ref = B(r0), so bmag = 1
       bmag = 1.0
+      
       ! gradpar = bhat . grad z = b . (r0*grad) theta = 1
       gradpar = 1.0
+      
       ! grad_rho = | L_B * grad (r / L_B) | = 1
       grad_rho = 1.0
+      
       ! grad_y_dot_grad_y = 1
       grad_y_dot_grad_y = 1.0
+      
       ! grad_x_dot_grad_y = 0 because (x,y) are orthogonal coordinates
       grad_x_dot_grad_y = 0.0
+      
       ! grad_x_dot_grad_x = 1
       grad_x_dot_grad_x = 1.0
+      
       ! the x-component of the grad-B drift is proportional to gbdrift0; zero in a z-pinch
       gbdrift0 = 0.0
+      
       ! the x-component of the curvature drift is proportional to cvdrift0; zero in a z-pinch
       cvdrift0 = 0.0
+      
       ! gbdrift = 2 * bhat / B_norm x (grad_norm B_norm / B_norm) . grad y
       ! = 2 * bhat / B_norm x (grad_norm x * d ln B_norm / dx) . grad y
       ! = -2 * d(ln B_norm) / dx_norm = 2 * r0 / L_B = 1 (from MHD equilibrium with beta=0)
       gbdrift = 2.0
+      
       ! cvdrift = 2 * bhat / B_norm x (bhat . grad_norm bhat) . grad y = 2
       cvdrift = gbdrift + 2.0 * betaprim
 

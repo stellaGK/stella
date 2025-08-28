@@ -285,6 +285,7 @@ $(OBJ_DIR)/diagnostics_distribution.o: \
 	 $(OBJ_DIR)/calculations_tofrom_ghf.o \
 	 $(OBJ_DIR)/calculations_velocity_integrals.o \
 	 $(OBJ_DIR)/calculations_volume_averages.o \
+	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/grids_species.o \
@@ -344,6 +345,7 @@ $(OBJ_DIR)/diagnostics_fluxes_fullfluxsurface.o: \
 	 $(OBJ_DIR)/calculations_velocity_integrals.o \
 	 $(OBJ_DIR)/calculations_volume_averages.o \
 	 $(OBJ_DIR)/constants.o \
+	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/grids_species.o \
@@ -360,6 +362,7 @@ $(OBJ_DIR)/diagnostics_fluxes_radialvariation.o: \
 	 $(OBJ_DIR)/calculations_velocity_integrals.o \
 	 $(OBJ_DIR)/calculations_volume_averages.o \
 	 $(OBJ_DIR)/constants.o \
+	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/grids_species.o \
@@ -380,6 +383,7 @@ $(OBJ_DIR)/diagnostics_moments.o: \
 	 $(OBJ_DIR)/calculations_kxky.o \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/calculations_velocity_integrals.o \
+	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/grids_species.o \
@@ -410,6 +414,7 @@ $(OBJ_DIR)/diagnostics_potential.o: \
 	 $(OBJ_DIR)/arrays_store_fields.o \
 	 $(OBJ_DIR)/arrays_store_useful.o \
 	 $(OBJ_DIR)/calculations_volume_averages.o \
+	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/fields.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/geometry.o \
@@ -546,6 +551,7 @@ $(OBJ_DIR)/fields_collisions.o: \
 	 $(OBJ_DIR)/arrays_store_useful.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_velocity_integrals.o \
+	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/grids_species.o \
@@ -621,6 +627,7 @@ $(OBJ_DIR)/fields_radialvariation.o: \
 	 $(OBJ_DIR)/calculations_kxky.o \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/calculations_velocity_integrals.o \
+	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
@@ -665,6 +672,7 @@ $(OBJ_DIR)/geometry_inputprofiles_interface.o: \
 	 $(OBJ_DIR)/stella_common_types.o 
 $(OBJ_DIR)/geometry_miller.o: \
 	 $(OBJ_DIR)/constants.o \
+	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/mp.o \

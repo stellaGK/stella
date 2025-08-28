@@ -471,7 +471,7 @@ contains
    subroutine init_fields_fluxtube
 
       ! Parallelisation
-      use mp, only: proc0, sum_allreduce
+      use mp, only: sum_allreduce
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       

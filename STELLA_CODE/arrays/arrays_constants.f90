@@ -34,7 +34,6 @@ contains
 !###############################################################################
    subroutine init_arrays_vperp_kperp
 
-      use mp, only: proc0
       use parameters_physics, only: radial_variation
 
       implicit none

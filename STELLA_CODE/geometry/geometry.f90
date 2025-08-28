@@ -1,4 +1,3 @@
-
 !###############################################################################
 !############################### STELLA GEOMETRY ###############################
 !###############################################################################
@@ -11,8 +10,6 @@
 ! <psi> as well as the factor <dxdpsi> and <dpsitdpsi>.
 ! 
 !###############################################################################
-
-
 module geometry
 
    use debug_flags, only: debug => geometry_debug
@@ -20,6 +17,7 @@ module geometry
 
    implicit none
 
+   ! Make routines available to other modules
    public :: init_geometry, finish_init_geometry, finish_geometry
    public :: communicate_geo_multibox, x_displacement_fac 
    
@@ -105,7 +103,7 @@ module geometry
    logical :: overwrite_cvdrift, overwrite_gbdrift0, q_as_x
    character(100) :: geometry_file
   
-   logical :: geoinit = .false.
+   logical :: initialised_geometry = .false.
    logical :: set_bmag_const
    
 
@@ -116,11 +114,10 @@ contains
    !============================================================================
    subroutine init_geometry(nalpha, naky)
 
-      use namelist_geometry, only: read_namelist_geometry_from_txt, read_namelist_geometry_options
       ! Zgrid
       use grids_z, only: nzgrid, zed, delzed, shat_zero, grad_x_grad_y_zero
       use grids_z, only: boundary_option_switch, boundary_option_self_periodic
-      use grids_z, only: boundary_option_linked, boundary_option_linked_stellarator 
+      use grids_z, only: boundary_option_linked, boundary_option_linked_stellarator
 
       ! VMEC equilibria
       use vmec_geometry, only: read_vmec_parameters, get_vmec_geometry 
@@ -129,6 +126,7 @@ contains
       use parameters_multibox, only: include_geometric_variation
 
       ! Routines
+      use namelist_geometry, only: read_namelist_geometry_from_txt, read_namelist_geometry_options
       use file_utils, only: get_unused_unit
       use mp, only: proc0
 
@@ -141,8 +139,8 @@ contains
       !---------------------------------------------------------------------- 
 
       ! Only initialize once
-      if (geoinit) return
-      geoinit = .true.
+      if (initialised_geometry) return
+      initialised_geometry = .true.
 
       ! Default is no re-scaling of zed
       dzetadz = 1.0
@@ -188,11 +186,11 @@ contains
          if (q_as_x) exb_nonlin_fac_p = geo_surf%d2qdr2 / dqdrho - geo_surf%d2psidr2 * drhodpsip
          
          ! In the diagnostics of final fields we want out extented z-grid in arc length units
-		   ! So here we calculate <zed_eqarc> which is z = arc length
+         ! So here we calculate <zed_eqarc> which is z = arc length
          call get_b_dot_grad_z_averaged_eqarc(b_dot_grad_z_averaged, zed, delzed, b_dot_grad_z_averaged_eqarc)
          call get_zed_eqarc(b_dot_grad_z_averaged, delzed, zed, b_dot_grad_z_averaged_eqarc, zed_eqarc)
-		   
-		   ! A lot of modules use <gradpar> even though <b_dot_grad_z_averaged> is a better name  
+         
+         ! A lot of modules use <gradpar> even though <b_dot_grad_z_averaged> is a better name  
          gradpar = b_dot_grad_z_averaged 
 
       end if
@@ -226,7 +224,7 @@ contains
       ! Warning <jacob> was not correct for <radial_variation>, nonetheless, it was only ever used 
       ! in both the numerator and denominator of averages -- and so any constant factors cancelled out 
       jacob = -clebsch_factor / (dydalpha * dxdpsi * b_dot_grad_z * bmag)
-	
+   
       ! <dl_over_b> = dl/J are the integration weights along the field line 
       ! For flux tube simulations with psi = psit and psi = psip it reduces to <dl_over_b> = dl/B (?)
       dl_over_b = spread(delzed, 1, nalpha) * jacob
@@ -347,7 +345,6 @@ contains
    !     <dydalpha> = (ρref/a)(dỹ/dα̃) = (ρref/a)(d(y/ρref)/dα) = (1/a) (dy/dα)  
    ! 
    !======================================================================
-
    subroutine get_geometry_arrays_from_VMEC(nalpha, naky) 
 
       use mp, only: mp_abort
@@ -508,7 +505,6 @@ contains
       !     dkpsi/dkalpha * jtwist = -2 (∇ψ . ∇α) / |∇ψ|^2   (at the last z-point)
       !     dkx/dky * jtwist = -2  * (dψ/dx) (dy/dα) * (∇ψ . ∇α) / |∇ψ|^2
       !**********************************************************************
-
       subroutine calculate_twist_and_shift_geo_fac()
   
          use grids_z, only: boundary_option_switch, boundary_option_linked_stellarator 
@@ -626,7 +622,6 @@ contains
    !     alpha =  zeta - q * theta
    !     B = - nabla psi x nabla alpha
    !======================================================================
-
    subroutine get_geometry_arrays_from_Miller(nalpha)
 
       use geometry_miller, only: read_local_parameters, get_local_geo
@@ -771,13 +766,13 @@ contains
 
       ! For the momentum flux we need (R^2/B^2) ∇ζ . ∇y and (R^2/B^2) ∇ζ . ∇x
       ! For Miller or axi-symmetric devices we have: ∇ζ . ∇ψp = 0 and ∇ζ . ∇α = ∇ζ . ∇ζ = (1/R^2) 
-      !		(R^2/B^2) * ∇ζ . ∇α * (dy/dα) = (R^2/B^2) (1/R^2) (dy/dα) = (1/B^2) (dy/dα) = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
+      !      (R^2/B^2) * ∇ζ . ∇α * (dy/dα) = (R^2/B^2) (1/R^2) (dy/dα) = (1/B^2) (dy/dα) = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
       gradzeta_grady_R2overB2 = geo_surf%rhoc / (geo_surf%qinp * bmag**2)
       gradzeta_gradx_R2overB2 = 0.0
 
       ! For the momentum flux we need R^2 * b . ∇ζ
       ! Note that in Miller z = theta, so b_dot_grad_z = b_dot_grad_theta
-      !		R^2 * b . ∇ζ = R^2 * (1/B) (∇ζ x ∇ψ + I ∇ζ) . ∇ζ =  R^2/B * I * ∇ζ . ∇ζ
+      !      R^2 * b . ∇ζ = R^2 * (1/B) (∇ζ x ∇ψ + I ∇ζ) . ∇ζ =  R^2/B * I * ∇ζ . ∇ζ
       !                  = R^2/B * I * (1/R^2) = I/B = (R/B) (I/R) = (R/B) * Btor
       b_dot_grad_zeta_RR = geo_surf%rmaj * spread(btor, 1, nalpha) / bmag 
       if (debug) write (*, *) 'geometry::Miller::get_geometry_arrays_from_Miller_finished'
@@ -787,46 +782,47 @@ contains
    !=========================================================================
    !========================== ZPINCH EQUILIBRIUM  ==========================
    !=========================================================================
-
    subroutine get_geometry_arrays_from_zpinch (nalpha)
 
-     use zpinch, only: get_zpinch_geometry_coefficients
-     use grids_z, only: nzgrid
-     implicit none
+      use zpinch, only: get_zpinch_geometry_coefficients
+      use grids_z, only: nzgrid
+      implicit none
 
-     integer, intent (in) :: nalpha
-     real :: dpsipdrho, dpsipdrho_psi0
-     
-     call allocate_arrays(nalpha, nzgrid)
+      integer, intent (in) :: nalpha
+      real :: dpsipdrho, dpsipdrho_psi0
 
-     ! Calculate the geometric coefficients for a z-pinch magnetic equilibrium
-     call get_zpinch_geometry_coefficients(nzgrid, bmag(1, :), gradpar, grho(1, :), geo_surf, &
+      !-------------------------------------------------------------------------
+
+      call allocate_arrays(nalpha, nzgrid)
+
+      ! Calculate the geometric coefficients for a z-pinch magnetic equilibrium
+      call get_zpinch_geometry_coefficients(nzgrid, bmag(1, :), gradpar, grho(1, :), geo_surf, &
           gds2(1, :), gds21(1, :), gds22(1, :), &
           gbdrift0(1, :), gbdrift(1, :), cvdrift0(1, :), cvdrift(1, :), btor, rmajor)
 
-     !> b_dot_grad_z is the alpha-dependent b . grad z,
-     !> and gradpar is the constant-in-alpha part of it.
-     !> for a z-pinch, b_dot_grad_z is independent of alpha.
-     b_dot_grad_z_averaged = gradpar
-     b_dot_grad_z(1, :) = gradpar
+      !> b_dot_grad_z is the alpha-dependent b . grad z,
+      !> and gradpar is the constant-in-alpha part of it.
+      !> for a z-pinch, b_dot_grad_z is independent of alpha.
+      b_dot_grad_z_averaged = gradpar
+      b_dot_grad_z(1, :) = gradpar
 
-     ! effectively choose psi = x * B * a_ref = x * B * L_B
-     dpsipdrho = 1.0; dpsipdrho_psi0 = 1.0
-     bmag_psi0 = bmag
-     ! note that psi here is meaningless
-     drhodpsi = 1./dpsipdrho
-     drhodpsip_psi0 = 1./dpsipdrho_psi0
-     
-     dxdpsi = 1.0 ; dydalpha = 1.0
-     sign_torflux = -1
-     clebsch_factor = sign_torflux
-     grad_x = sqrt(gds22)
-     ! there is no magnetic shear in the z-pinch and thus no need for twist-and-shift
-     twist_and_shift_geo_fac = 1.0
-     ! aref and bref should not be needed, so set to 1
-     aref = 1.0; bref = 1.0
-     ! zeta should not be needed
-     zeta(1, :) = 0.0
+      ! effectively choose psi = x * B * a_ref = x * B * L_B
+      dpsipdrho = 1.0; dpsipdrho_psi0 = 1.0
+      bmag_psi0 = bmag
+      ! note that psi here is meaningless
+      drhodpsi = 1./dpsipdrho
+      drhodpsip_psi0 = 1./dpsipdrho_psi0
+
+      dxdpsi = 1.0 ; dydalpha = 1.0
+      sign_torflux = -1
+      clebsch_factor = sign_torflux
+      grad_x = sqrt(gds22)
+      ! there is no magnetic shear in the z-pinch and thus no need for twist-and-shift
+      twist_and_shift_geo_fac = 1.0
+      ! aref and bref should not be needed, so set to 1
+      aref = 1.0; bref = 1.0
+      ! zeta should not be needed
+      zeta(1, :) = 0.0
      
    end subroutine get_geometry_arrays_from_zpinch
    
@@ -849,6 +845,8 @@ contains
       real :: bmag_file, b_dot_grad_zeta_file
       real :: gds2_file, gds21_file, gds22_file, gds23_file, gds24_file
       real :: gbdrift_file, cvdrift_file, gbdrift0_file
+
+      !-------------------------------------------------------------------------
 
       call get_unused_unit(geofile_unit)
       open (geofile_unit, file=trim(geometry_file), status='old', action='read')
@@ -892,6 +890,8 @@ contains
       implicit none
 
       integer, intent(in) :: nalpha
+
+      !-------------------------------------------------------------------------
 
       call set_coef_constant(gbdrift0, nalpha)
       call set_coef_constant(cvdrift0, nalpha)
@@ -940,6 +940,7 @@ contains
 
       integer, intent(in) :: nalpha, nzgrid
 
+      !-------------------------------------------------------------------------
 
       ! It is possible to call <init_geometry> multiple times so we do not want to 
       ! create more copies of the geometric arrays if they already exist, hence
@@ -1112,6 +1113,8 @@ contains
 
       real, intent(in) :: l_edge, r_edge
 
+      !-------------------------------------------------------------------------
+
       if (proc0) then
          call communicate_parameters_multibox(geo_surf, gfac * l_edge, gfac * r_edge)
       end if
@@ -1132,17 +1135,19 @@ contains
       real, dimension(-nz:), intent(in) :: dz, f
       real, dimension(-nz:), intent(out) :: df
 
+      !-------------------------------------------------------------------------
+
       df(-nz + 1:nz - 1) = (f(-nz + 2:) - f(:nz - 2)) / (dz(:nz - 2) + dz(-nz + 1:nz - 1))
 
       ! TODO-GA hack to avoid non-periodicity in full-flux-surface case
-		! if (full_flux_surface .and. .not. const_alpha_geo) then
+      ! if (full_flux_surface .and. .not. const_alpha_geo) then
       !   df(-nz) = (f(-nz + 1) - f(-nz)) / dz(-nz)
       !  df(nz) = (f(nz) - f(nz - 1)) / dz(nz - 1)
       !else
       ! assume periodicity in the B-field
       df(-nz) = (f(-nz + 1) - f(nz - 1)) / (dz(-nz) + dz(nz - 1))
       df(nz) = df(-nz)
-   	!end if
+      !end if
 
    end subroutine get_dzed
 
@@ -1159,8 +1164,11 @@ contains
       real, dimension(-nzgrid:), intent(in) :: gp, z, dz
       real, intent(out) :: gp_eqarc
 
+      !-------------------------------------------------------------------------
+
       ! first get int dz b . grad z
       call integrate_zed(dz, 1./gp, gp_eqarc)
+      
       ! then take (zmax-zmin)/int (dz b . gradz)
       ! to get b . grad z'
       gp_eqarc = (z(nzgrid) - z(-nzgrid)) / gp_eqarc
@@ -1181,6 +1189,8 @@ contains
       real, dimension(-nzgrid:), intent(out) :: z_eqarc
 
       integer :: iz
+
+      !-------------------------------------------------------------------------
 
       z_eqarc(-nzgrid) = z(-nzgrid)
       do iz = -nzgrid + 1, nzgrid
@@ -1206,6 +1216,8 @@ contains
 
       integer :: iz, iz_max
 
+      !-------------------------------------------------------------------------
+
       iz_max = -nzgrid + size(dz) - 1
 
       intf = 0.
@@ -1226,13 +1238,13 @@ contains
       implicit none
 
       integer, intent(in) :: llim
-
       real, dimension(:), intent(in) :: x_in
       real, dimension(:), intent(out) :: rho_out
-
+      
       integer :: ix, ulim
-
       real :: a, b, c
+
+      !-------------------------------------------------------------------------
 
       ulim = size(x_in) + llim - 1
 
@@ -1269,6 +1281,8 @@ contains
       integer, intent(in) :: nalpha
       integer :: geometry_unit
       integer :: ia, iz
+
+      !-------------------------------------------------------------------------
 
       call open_output_file(geometry_unit, '.geometry')
 
@@ -1364,10 +1378,8 @@ contains
       if (allocated(d2Bdrdth)) deallocate (d2Bdrdth)
       if (allocated(dgradpardrho)) deallocate (dgradpardrho)
       if (allocated(theta_vmec)) deallocate (theta_vmec)
-
       if (allocated(alpha)) deallocate (alpha)
       if (allocated(zeta)) deallocate (zeta)
-
       if (allocated(x_displacement_fac)) deallocate (x_displacement_fac)
       
       ! Arrays for the momentum flux 
@@ -1375,7 +1387,7 @@ contains
       if (allocated(gradzeta_grady_R2overB2)) deallocate (gradzeta_grady_R2overB2)
       if (allocated(b_dot_grad_zeta_RR)) deallocate (b_dot_grad_zeta_RR)
 
-      geoinit = .false.
+      initialised_geometry = .false.
 
    end subroutine finish_geometry
 

@@ -633,7 +633,7 @@ contains
    subroutine init_fields_radial_variation
    
       ! Parallelisation
-      use mp, only: proc0, job
+      use mp, only: job
       use mp, only: sum_allreduce
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t

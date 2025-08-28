@@ -470,7 +470,6 @@ contains
    !****************************************************************************
    subroutine init_fields_ffs
 
-      use mp, only: proc0 
       use grids_species, only: modified_adiabatic_electrons
 
       implicit none

@@ -1,7 +1,13 @@
+!###############################################################################
+!                                                                               
+!###############################################################################
+! This module ...
+!###############################################################################
 module geometry_inputprofiles_interface
 
    implicit none
 
+   ! Make routines available to other modules
    public :: read_inputprof_geo, read_inputprof_spec
 
    private
@@ -31,6 +37,9 @@ module geometry_inputprofiles_interface
 
 contains
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine read_inputprof_geo(surf)
 
       use constants, only: pi
@@ -54,6 +63,8 @@ contains
       real :: mu0
 
       integer :: ir
+
+      !-------------------------------------------------------------------------
 
       open (unit=in_unit, file='input.profiles', status='old', action='read')
 
@@ -195,6 +206,9 @@ contains
 
    end subroutine read_inputprof_geo
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine read_inputprof_spec(nspec, spec)
 
       use mp, only: mp_abort
@@ -223,6 +237,8 @@ contains
       real :: vtref, local_loglam
 
       integer :: ir, is
+
+      !-------------------------------------------------------------------------
 
       open (unit=in_unit, file='input.profiles', status='old', action='read')
 
@@ -406,6 +422,9 @@ contains
 
    end subroutine read_inputprof_spec
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine allocate_arrays_geo
 
       implicit none
@@ -439,6 +458,9 @@ contains
 
    end subroutine allocate_arrays_geo
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine allocate_arrays_spec
 
       implicit none
@@ -462,11 +484,12 @@ contains
       allocate (Tiprim(n_exp))
       allocate (Tidbprim(n_exp))
       allocate (loglam(n_exp))
-!    allocate (vnewki(n_exp))
-!    allocate (vnewke(n_exp))
 
    end subroutine allocate_arrays_spec
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine deallocate_arrays_geo
 
       implicit none
@@ -499,6 +522,9 @@ contains
 
    end subroutine deallocate_arrays_geo
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine deallocate_arrays_spec
 
       implicit none
@@ -522,8 +548,6 @@ contains
       deallocate (Tiprim)
       deallocate (Tidbprim)
       deallocate (loglam)
-!    deallocate (vnewki)
-!    deallocate (vnewke)
 
    end subroutine deallocate_arrays_spec
 

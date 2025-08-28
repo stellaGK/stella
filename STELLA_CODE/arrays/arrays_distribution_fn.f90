@@ -32,7 +32,6 @@ contains
    !****************************************************************************
    subroutine init_arrays_distribution_fn
 
-      use mp, only: proc0
       use stella_layouts, only: kxkyz_lo, vmu_lo, kymus_lo
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, nakx
