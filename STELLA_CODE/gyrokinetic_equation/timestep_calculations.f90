@@ -7,10 +7,12 @@
 !###############################################################################
 module timestep_calculations
 
+   ! Load debug flags
    use debug_flags, only: debug => time_advance_debug
 
    implicit none
 
+   ! Make routines accesible to other modules
    public :: init_cfl
    public :: reset_dt
 
@@ -18,7 +20,9 @@ module timestep_calculations
     
 contains
     
-
+!###############################################################################
+!############################ INITIALISE CFL CODITION ##########################
+!###############################################################################
    subroutine init_cfl
 
       use mp, only: proc0, nproc, max_allreduce, min_allreduce
@@ -43,28 +47,33 @@ contains
 
       implicit none
 
+      ! Local variables
       real :: cfl_dt_mirror, cfl_dt_stream, cfl_dt_shear
       real :: cfl_dt_wdriftx, cfl_dt_wdrifty
-      real :: zero
-      real :: wdriftx_max, wdrifty_max
+      real :: wdriftx_max, wdrifty_max, zero
+      
+      !-------------------------------------------------------------------------
 
       ! Avoid divide by zero in cfl_dt terms below
       zero = 100.*epsilon(0.)
 
       ! FLAG -- assuming equal spacing in zed!
-
+      
       if (cfl_dt_linear < 0) cfl_dt_linear = code_dt / cfl_cushion_upper
 
       if (.not. drifts_implicit) then
+      
          ! Get the local max value of wdriftx on each processor
          wdriftx_max = maxval(abs(wdriftx_g))
-         ! Xompare these max values across processors to get global max
+         ! Compare these max values across processors to get global max
          if (nproc > 1) then
             call max_allreduce(wdriftx_max)
          end if
+         
          ! NB: wdriftx_g has code_dt built-in, which accounts for code_dt factor here
          cfl_dt_wdriftx = abs(code_dt) / max(maxval(abs(akx)) * wdriftx_max, zero)
          cfl_dt_linear = cfl_dt_wdriftx
+         
       end if
 
       cfl_dt_shear = abs(code_dt) / max(maxval(abs(aky)) * maxval(abs(prl_shear)), zero)
@@ -75,13 +84,13 @@ contains
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_shear)
       end if
 
+      ! Sream has code_dt built-in, which accounts for code_dt factor here
       if (.not. stream_implicit) then
-         ! NB: stream has code_dt built-in, which accounts for code_dt factor here
          cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream)), zero)
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_stream)
       end if
 
-      ! TODO:GA- add correct CFL condition 
+      ! TODO:GA- add correct CFL condition
       ! if (driftkinetic_implicit) then
       !    cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream_correction)), zero)
       !    cfl_dt_linear = min(cfl_dt_linear, cfl_dt_stream)
@@ -93,9 +102,8 @@ contains
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_mirror)
       end if
 
+      ! While other quantities should go here, parallel streaming with electrons is what will limit us
       if (radial_variation) then
-         ! While other quantities should go here, parallel streaming with electrons
-         ! is what will limit us
          cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream_rad_var1)), zero)
          cfl_dt_stream = cfl_dt_stream / abs(rho(nx) + zero)
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_stream)
@@ -103,7 +111,6 @@ contains
          cfl_dt_stream = abs(code_dt) * delzed(0) / max(maxval(abs(stream_rad_var2)), zero)
          cfl_dt_stream = cfl_dt_stream / abs(rho(nx) + zero)
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_stream)
-
       end if
 
       if (include_collisions .and. .not. collisions_implicit) then
@@ -112,21 +119,27 @@ contains
       end if
 
       if (.not. drifts_implicit) then
+      
          ! Get the local max value of wdrifty on each processor
          wdrifty_max = maxval(abs(wdrifty_g))
+         
          ! Compare these max values across processors to get global max
          if (nproc > 1) then
             call max_allreduce(wdrifty_max)
          end if
-         ! NB: wdrifty_g has code_dt built-in, which accounts for code_dt factor here
+         
+         ! wdrifty_g has code_dt built-in, which accounts for code_dt factor here
          cfl_dt_wdrifty = abs(code_dt) / max(maxval(abs(aky)) * wdrifty_max, zero)
          cfl_dt_linear = min(cfl_dt_linear, cfl_dt_wdrifty)
+         
       end if
-
+   
+      ! Get the minimum value of <cfl_dt_linear> on all processors
       if (runtype_option_switch == runtype_multibox) call scope(allprocs)
       call min_allreduce(cfl_dt_linear)
       if (runtype_option_switch == runtype_multibox) call scope(subprocs)
 
+      ! Print the CFL condition to the command prompt
       if (proc0 .and. print_extra_info_to_terminal) then
          write (*, '(A)') "############################################################"
          write (*, '(A)') "                        CFL CONDITION"
@@ -140,6 +153,7 @@ contains
          write (*, *)
       end if
 
+      ! Reduce the time step if it's much larger than the CFL condition
       if (abs(code_dt) > cfl_dt_linear * cfl_cushion_upper) then
          if (proc0) then
             write (*, *) 'CHANGING TIME STEP:'
@@ -161,70 +175,84 @@ contains
 
     end subroutine init_cfl
 
-    subroutine reset_dt
+   !****************************************************************************
+   !                            Reset the time step                             
+   !****************************************************************************
+   subroutine reset_dt
 
-        use dissipation_and_collisions, only: init_collisions, initialised_collisions, include_collisions
-        use parameters_numerical, only: stream_implicit, driftkinetic_implicit
-        use parameters_physics, only: radial_variation
-        use response_matrix, only: response_matrix_initialized
-        use response_matrix, only: init_response_matrix
-        use gk_parallel_streaming, only: parallel_streaming_initialized
-        use gk_parallel_streaming, only: init_parallel_streaming
-        use gk_mirror, only: mirror_initialized
-        use gk_mirror, only: init_mirror
-        use gk_flow_shear, only: flow_shear_initialized
-        use gk_flow_shear, only: init_flow_shear
-        use gk_drive, only: init_wstar
-        use gk_magnetic_drift, only: init_wdrift
-        use gk_radial_variation, only: init_radial_variation
-        use gk_sources, only: init_source_timeaverage
-        use gk_sources, only: init_quasineutrality_source, qn_source_initialized
+      ! Physics flags
+      use dissipation_and_collisions, only: include_collisions
+      use parameters_numerical, only: stream_implicit, driftkinetic_implicit
+      use parameters_physics, only: radial_variation
+      
+      ! Routines
+      use gk_mirror, only: init_mirror
+      use gk_flow_shear, only: init_flow_shear
+      use gk_drive, only: init_wstar
+      use gk_magnetic_drift, only: init_wdrift
+      use gk_radial_variation, only: init_radial_variation
+      use gk_sources, only: init_source_timeaverage
+      use gk_sources, only: init_quasineutrality_source
+      use gk_parallel_streaming, only: init_parallel_streaming
+      use response_matrix, only: init_response_matrix
+      use dissipation_and_collisions, only: init_collisions
+      
+      ! Flags 
+      use arrays_store_useful, only: initialised_radial_variation, initialised_implicit_drifts
+      use arrays_store_useful, only: initialised_wdrift, initialised_wstar
+      use gk_parallel_streaming, only: initialised_parallel_streaming
+      use dissipation_and_collisions, only: initialised_collisions
+      use response_matrix, only: initialised_response_matrix
+      use gk_flow_shear, only: initialised_flow_shear
+      use gk_sources, only: initialised_qn_source
+      use gk_mirror, only: initialised_mirror
 
-        use arrays_store_useful, only: wdriftinit, wstarinit, &
-                        radialinit, driftimpinit
-            
+      implicit none
 
-        ! need to recompute mirror and streaming terms
-        ! to account for updated code_dt
-        wdriftinit = .false.
-        wstarinit = .false.
-        radialinit = .false.
-        driftimpinit = .false.
-        flow_shear_initialized = .false.
-        mirror_initialized = .false.
-        parallel_streaming_initialized = .false.
-        qn_source_initialized = .false.
+      !----------------------------------------------------------------------
+         
+      ! Need to recompute mirror and streaming terms to account for updated code_dt
+      initialised_wdrift = .false.
+      initialised_wstar = .false.
+      initialised_radial_variation = .false.
+      initialised_implicit_drifts = .false.
+      initialised_flow_shear = .false.
+      initialised_mirror = .false.
+      initialised_parallel_streaming = .false.
+      initialised_qn_source = .false.
 
-        if (debug) write (6, *) 'time_advance::reset_dt::init_wstar'
-        call init_wstar 
-        if (debug) write (6, *) 'time_advance::reset_dt::init_wdrift'
-        call init_wdrift 
-        if (debug) write (6, *) 'time_advance::reset_dt::init_mirror'
-        call init_mirror
-        if (debug) write (6, *) 'time_advance::reset_dt::init_parallel_streaming'
-        call init_parallel_streaming
-        if (debug) write (6, *) 'time_advance::reset_dt::init_flow_shear'
-        call init_flow_shear
-        if (debug) write (6, *) 'time_advance::reset_dt::init_source_timeaverage'
-        call init_source_timeaverage
-        if (debug) write (6, *) 'time_advance::reset_dt::init_quasineutrality_source'
-        call init_quasineutrality_source
-        if (radial_variation) then
-            if (debug) write (6, *) 'time_advance::reset_dt::init_radial_variation'
-            call init_radial_variation
-        end if
-        if (include_collisions) then
-            if (debug) write (6, *) 'time_advance::reset_dt::init_collisions'
-            initialised_collisions = .false.
-            call init_collisions
-        end if
-        ! do not try to re-init response matrix
-        ! before it has been initialized the first time
-        if ((stream_implicit .or. driftkinetic_implicit) .and. response_matrix_initialized) then
-            response_matrix_initialized = .false.
-            if (debug) write (6, *) 'time_advance::reset_dt::init_response_matrix'
-            call init_response_matrix
-        end if
+      ! Re-initialise all routines that depend on the time step
+      if (debug) write (6, *) 'time_advance::reset_dt::init_wstar'
+      call init_wstar 
+      if (debug) write (6, *) 'time_advance::reset_dt::init_wdrift'
+      call init_wdrift 
+      if (debug) write (6, *) 'time_advance::reset_dt::init_mirror'
+      call init_mirror
+      if (debug) write (6, *) 'time_advance::reset_dt::init_parallel_streaming'
+      call init_parallel_streaming
+      if (debug) write (6, *) 'time_advance::reset_dt::init_flow_shear'
+      call init_flow_shear
+      if (debug) write (6, *) 'time_advance::reset_dt::init_source_timeaverage'
+      call init_source_timeaverage
+      if (debug) write (6, *) 'time_advance::reset_dt::init_quasineutrality_source'
+      call init_quasineutrality_source
+      if (radial_variation) then
+         if (debug) write (6, *) 'time_advance::reset_dt::init_radial_variation'
+         call init_radial_variation
+      end if
+      if (include_collisions) then
+         if (debug) write (6, *) 'time_advance::reset_dt::init_collisions'
+         initialised_collisions = .false.
+         call init_collisions
+      end if
+      
+      ! Do not try to re-init response matrix
+      ! before it has been initialised the first time
+      if ((stream_implicit .or. driftkinetic_implicit) .and. initialised_response_matrix) then
+         initialised_response_matrix = .false.
+         if (debug) write (6, *) 'time_advance::reset_dt::init_response_matrix'
+         call init_response_matrix
+      end if
 
    end subroutine reset_dt
 

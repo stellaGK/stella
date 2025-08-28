@@ -9,7 +9,8 @@ module gk_flow_shear
 
    implicit none
 
-   public :: flow_shear_initialized
+   ! Make routines available to other modules
+   public :: initialised_flow_shear
    public :: init_flow_shear, finish_flow_shear
    public :: prl_shear, prl_shear_p, prp_shear
    public :: advance_parallel_flow_shear, advance_perp_flow_shear
@@ -18,19 +19,22 @@ module gk_flow_shear
 
    private
 
-   logical :: flow_shear_initialized = .false.
-
    complex, dimension(:, :), allocatable :: upwind_advect
    real, dimension(:, :, :), allocatable :: prl_shear, prl_shear_p
    real, dimension(:), allocatable :: prp_shear, shift_times
-
    integer :: shift_sign, shift_start
-
    real :: v_edge, v_shift = 0.
+
+   ! Only initialise once
+   logical :: initialised_flow_shear = .false.
 
 contains
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_flow_shear
+   
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_time, only: code_dt
@@ -56,8 +60,11 @@ contains
       integer :: is, imu, iv, ivmu, iz, ia
       real, dimension(:, :), allocatable :: energy
 
-      if (flow_shear_initialized) return
-      flow_shear_initialized = .true.
+      !-------------------------------------------------------------------------
+
+      ! Only initialise once
+      if (initialised_flow_shear) return
+      initialised_flow_shear = .true.
 
       if (abs(g_exb * g_exbfac) > epsilon(0.)) prp_shear_enabled = .true.
       if (runtype_option_switch == runtype_multibox .and. job == 1) then
@@ -100,22 +107,22 @@ contains
          imu = imu_idx(vmu_lo, ivmu)
          do iz = -nzgrid, nzgrid
             prl_shear(ia, iz, ivmu) = -omprimfac * g_exb * code_dt * vpa(iv) * spec(is)%stm_psi0 &
-                                      * dydalpha * drhodpsi &
-                                      * (geo_surf%qinp_psi0 / geo_surf%rhoc_psi0) &
-                                      * (btor(iz) * rmajor(iz) / bmag(ia, iz)) * (spec(is)%mass / spec(is)%temp)
+              * dydalpha * drhodpsi &
+              * (geo_surf%qinp_psi0 / geo_surf%rhoc_psi0) &
+              * (btor(iz) * rmajor(iz) / bmag(ia, iz)) * (spec(is)%mass / spec(is)%temp)
          end do
          if (.not. maxwellian_normalization) then
             do iz = -nzgrid, nzgrid
                prl_shear(ia, iz, ivmu) = prl_shear(ia, iz, ivmu) &
-                                         * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
+                   * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
             end do
          end if
          if (radial_variation) then
             energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
             prl_shear_p(:, :, ivmu) = prl_shear(:, :, ivmu) * (dIdrho / spread(rmajor * btor, 1, nalpha) &
-                                                               - spread(dBdrho, 1, nalpha) / bmag &
-                                                               - spec(is)%fprim - spec(is)%tprim * (energy - 2.5) &
-                                                               - 2.*mu(imu) * spread(dBdrho, 1, nalpha))
+                  - spread(dBdrho, 1, nalpha) / bmag &
+                  - spec(is)%fprim - spec(is)%tprim * (energy - 2.5) &
+                  - 2.*mu(imu) * spread(dBdrho, 1, nalpha))
          end if
       end do
 
@@ -150,6 +157,9 @@ contains
 
    end subroutine init_flow_shear
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine advance_parallel_flow_shear(gout)
 
       use mp, only: proc0, mp_abort
@@ -165,8 +175,9 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
 
       complex, dimension(:, :), allocatable :: g0k
-
       integer :: ivmu, iz, it, ia
+
+      !-------------------------------------------------------------------------
 
       ia = 1
 
@@ -191,6 +202,9 @@ contains
 
    end subroutine advance_parallel_flow_shear
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine advance_perp_flow_shear(g)
 
       use stella_layouts, only: vmu_lo
@@ -207,11 +221,12 @@ contains
       implicit none
 
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+      
       complex, dimension(:, :), allocatable :: g0k, g0x
-
       real :: shift_fac
-
       integer :: ivmu, iz, it, iky
+
+      !-------------------------------------------------------------------------
 
       if (.not. prp_shear_enabled) return
 
@@ -297,7 +312,11 @@ contains
 
    end subroutine advance_perp_flow_shear
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine finish_flow_shear
+   
       use arrays_store_useful, only: shift_state
 
       implicit none
@@ -308,7 +327,7 @@ contains
       if (allocated(shift_state)) deallocate (shift_state)
       if (allocated(upwind_advect)) deallocate (upwind_advect)
 
-      flow_shear_initialized = .false.
+      initialised_flow_shear = .false.
 
    end subroutine finish_flow_shear
 

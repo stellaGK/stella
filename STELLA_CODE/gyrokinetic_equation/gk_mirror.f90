@@ -8,10 +8,13 @@
 !###############################################################################
 module gk_mirror
 
-   use debug_flags, only: debug => mirror_terms_debug 
+   ! Load debug flags
+   use debug_flags, only: debug => mirror_terms_debug
+   
    implicit none
 
-   public :: mirror_initialized
+   ! Make routines available to other modules
+   public :: initialised_mirror
    public :: init_mirror, finish_mirror
    public :: mirror
    public :: advance_mirror_explicit, advance_mirror_implicit
@@ -20,9 +23,7 @@ module gk_mirror
 
    private
 
-   logical :: mirror_initialized = .false.
    real, dimension(2, 2) :: time_mirror = 0.
-
    integer, dimension(:, :), allocatable :: mirror_sign
    real, dimension(:, :, :, :), allocatable :: mirror
    real, dimension(:, :, :, :), allocatable :: mirror_rad_var
@@ -31,9 +32,15 @@ module gk_mirror
    real, dimension(:, :, :, :), allocatable :: mirror_interp_loc
    integer, dimension(:, :, :, :), allocatable :: mirror_interp_idx_shift
    complex, dimension(:, :, :, :), allocatable :: response_apar_denom
+   
+   ! Only initialise once
+   logical :: initialised_mirror = .false.
 
 contains
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
   subroutine init_mirror
     
       use stella_time, only: code_dt
@@ -55,8 +62,10 @@ contains
       integer :: iz, ia, imu
       real, dimension(:, :), allocatable :: neoclassical_term
 
-      if (mirror_initialized) return
-      mirror_initialized = .true.
+      !-------------------------------------------------------------------------
+
+      if (initialised_mirror) return
+      initialised_mirror = .true.
  
       if (debug) write(*,*) 'no debug messages for mirror_terms.f90 yet'
       
@@ -128,6 +137,9 @@ contains
 
    end subroutine init_mirror
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_mirror_semi_lagrange
 
       use grids_z, only: nzgrid
@@ -151,6 +163,9 @@ contains
 
    end subroutine init_mirror_semi_lagrange
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_invert_mirror_operator
 
       use mp, only: mp_abort
@@ -176,6 +191,8 @@ contains
       integer :: llim, ulim
       real :: tupwndfac, zero
       real, dimension(:, :), allocatable :: a, b, c
+
+      !-------------------------------------------------------------------------
 
       zero = 100.*epsilon(0.)
 
@@ -290,6 +307,9 @@ contains
 
    end subroutine init_invert_mirror_operator
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_mirror_response
 
       use stella_layouts, only: kxkyz_lo
@@ -305,6 +325,8 @@ contains
       complex, dimension(:), allocatable :: rhs
       complex, dimension(:, :, :), allocatable :: mirror_response_g
       character(5) :: dist
+
+      !-------------------------------------------------------------------------
 
       allocate (rhs(nvpa))
       allocate (mirror_response_g(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
@@ -338,8 +360,12 @@ contains
 
    end subroutine init_mirror_response
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! advance_mirror_explicit calculates the contribution to the RHS of the gyrokinetic equation
    ! due to the mirror force term; it treats all terms explicitly in time
+   !****************************************************************************
    subroutine advance_mirror_explicit(g, gout)
 
       use mp, only: proc0
@@ -367,9 +393,10 @@ contains
       complex, dimension(:, :, :), allocatable :: g0v
       complex, dimension(:, :, :, :, :), allocatable :: g0x
       complex, dimension(:, :), allocatable :: dgdv, g_swap
-
       integer :: ikxyz, iz, it
       integer :: ivmu, iv, is
+
+      !-------------------------------------------------------------------------
 
       ! start the timer for this subroutine
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
@@ -453,6 +480,9 @@ contains
 
    end subroutine advance_mirror_explicit
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine add_mirror_radial_variation(g, gout)
 
       use mp, only: proc0
@@ -473,8 +503,9 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
 
       complex, dimension(:, :, :), allocatable :: g0v
-
       integer :: iz, it, imu, is, ivmu, ia
+
+      !-------------------------------------------------------------------------
 
       allocate (g0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
 
@@ -518,6 +549,9 @@ contains
 
    end subroutine add_mirror_radial_variation
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dgdvpa_ffs(g, ikxyz)
 
       use calculations_finite_differences, only: third_order_upwind
@@ -532,6 +566,8 @@ contains
       integer :: imu, iz, iy, is
       complex, dimension(:), allocatable :: tmp
 
+      !-------------------------------------------------------------------------
+
       allocate (tmp(nvpa))
       iz = iz_idx(kxyz_lo, ikxyz)
       iy = iy_idx(kxyz_lo, ikxyz)
@@ -545,6 +581,9 @@ contains
 
    end subroutine get_dgdvpa_ffs
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dgdvpa_explicit(g)
 
       use calculations_finite_differences, only: third_order_upwind
@@ -557,6 +596,8 @@ contains
 
       integer :: ikxkyz, imu, iz, is
       complex, dimension(:), allocatable :: tmp
+
+      !-------------------------------------------------------------------------
 
       allocate (tmp(nvpa))
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -572,6 +613,9 @@ contains
 
    end subroutine get_dgdvpa_explicit
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine add_mirror_term(g, src)
 
       use stella_layouts, only: vmu_lo
@@ -586,6 +630,8 @@ contains
 
       integer :: imu, is, ivmu
       integer :: it, iz, ikx
+
+      !-------------------------------------------------------------------------
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          imu = imu_idx(vmu_lo, ivmu)
@@ -630,7 +676,11 @@ contains
 
    end subroutine add_mirror_term_ffs
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! advance mirror implicit solve dg/dt = mu/m * bhat . grad B (dg/dvpa + m*vpa/T * g)
+   !****************************************************************************
    subroutine advance_mirror_implicit(collisions_implicit, g, apar)
 
       use constants, only: zi
@@ -656,7 +706,6 @@ contains
       use fields_electromagnetic, only: advance_apar
       use fields, only: fields_updated
       use calculations_tofrom_ghf, only: gbar_to_g
-
       use parameters_numerical, only: time_upwind
       use grids_velocity, only: dvpa
       use stella_layouts, only: iy_idx
@@ -682,6 +731,8 @@ contains
       complex, dimension(:, :, :), allocatable :: dgdvpa
       integer :: iy
       complex, dimension(:, :), allocatable :: g_swap
+
+      !-------------------------------------------------------------------------
 
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
@@ -885,6 +936,9 @@ contains
 
    end subroutine advance_mirror_implicit
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_mirror_rhs_g_contribution(g_in, apar, imu, ikxkyz, rhs)
 
       use parameters_physics, only: include_apar
@@ -897,13 +951,17 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:), intent(in) :: g_in
       complex, intent(in) :: apar
       integer, intent(in) :: imu, ikxkyz
       complex, dimension(:), intent(out) :: rhs
 
+      ! Local variables
       integer :: iz, is
       complex, dimension(:), allocatable :: dgdv
+
+      !-------------------------------------------------------------------------
 
       iz = iz_idx(kxkyz_lo, ikxkyz)
       is = is_idx(kxkyz_lo, ikxkyz)
@@ -939,6 +997,9 @@ contains
 
    end subroutine get_mirror_rhs_g_contribution
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_mirror_rhs_apar_contribution(rhs, apar, imu, ikxkyz)
 
       use grids_species, only: spec
@@ -950,13 +1011,17 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:), intent(out) :: rhs
       complex, intent(in) :: apar
       integer, intent(in) :: imu, ikxkyz
 
+      ! Local variables
       integer :: ia, iz, is
       real :: pre_factor
       complex, dimension(:), allocatable :: vpa_scratch
+
+      !-------------------------------------------------------------------------
 
       allocate (vpa_scratch(nvpa))
 
@@ -976,6 +1041,9 @@ contains
 
    end subroutine get_mirror_rhs_apar_contribution
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine vpa_interpolation(grid, interp)
 
       use grids_velocity, only: nvpa, nmu
@@ -985,13 +1053,17 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(in) :: grid
       complex, dimension(:, :, kxkyz_lo%llim_proc:), intent(out) :: interp
 
+      ! Local variables
       integer :: ikxkyz, iz, is, iv, imu
       integer :: shift, sgn, llim, ulim
       real :: fac0, fac1, fac2, fac3
       real :: tmp0, tmp1, tmp2, tmp3
+
+      !-------------------------------------------------------------------------
 
       if (mirror_linear_interp) then
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -1113,6 +1185,9 @@ contains
 
    end subroutine vpa_interpolation
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine invert_mirror_operator(imu, ilo, g)
 
       use calculations_finite_differences, only: tridag
@@ -1122,15 +1197,26 @@ contains
       integer, intent(in) :: imu, ilo
       complex, dimension(:), intent(in out) :: g
 
+      !-------------------------------------------------------------------------
+
       call tridag(1, mirror_tri_a(:, imu, ilo), mirror_tri_b(:, imu, ilo), mirror_tri_c(:, imu, ilo), g)
 
    end subroutine invert_mirror_operator
+   
+!###############################################################################
+!################################# FINISH MIRROR ###############################
+!###############################################################################
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine finish_mirror
 
       use parameters_numerical, only: mirror_implicit, mirror_semi_lagrange
 
       implicit none
+
+      !-------------------------------------------------------------------------
 
       if (allocated(mirror)) deallocate (mirror)
       if (allocated(mirror_sign)) deallocate (mirror_sign)
@@ -1145,10 +1231,13 @@ contains
          end if
       end if
 
-      mirror_initialized = .false.
+      initialised_mirror = .false.
 
    end subroutine finish_mirror
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine finish_mirror_semi_lagrange
 
       implicit none
@@ -1158,6 +1247,9 @@ contains
 
    end subroutine finish_mirror_semi_lagrange
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine finish_invert_mirror_operator
 
       implicit none
@@ -1172,6 +1264,9 @@ contains
 
    end subroutine finish_invert_mirror_operator
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine finish_mirror_response
 
       implicit none

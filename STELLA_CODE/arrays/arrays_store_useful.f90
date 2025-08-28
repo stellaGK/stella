@@ -14,8 +14,9 @@ module arrays_store_useful
    public :: kperp2, dkperp2dr
    public :: time_gke
    public :: time_parallel_nl
-   public :: wdriftinit, wstarinit
-   public :: parnlinit,  radialinit, driftimpinit
+   public :: initialised_radial_variation
+   public :: initialised_wdrift, initialised_wstar
+   public :: initialised_parallel_streaming, initialised_implicit_drifts
    public :: wstar, wstarp
    public :: wdriftx_g, wdrifty_g
    public :: wdriftx_phi, wdrifty_phi
@@ -60,7 +61,11 @@ module arrays_store_useful
    real, dimension(2, 10) :: time_gke = 0.
    real, dimension(2, 2) :: time_parallel_nl = 0.
 
-   logical :: wdriftinit, wstarinit, parnlinit, radialinit, driftimpinit
+   logical :: initialised_wdrift
+   logical :: initialised_wstar
+   logical :: initialised_parallel_streaming
+   logical :: initialised_radial_variation
+   logical :: initialised_implicit_drifts
 
    !----------------------------------------------------------------------------
    ! For field solves

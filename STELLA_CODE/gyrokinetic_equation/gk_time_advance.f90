@@ -7,46 +7,58 @@
 !###############################################################################
 module gk_time_advance
 
+   ! Load debug flags
    use debug_flags, only: debug => time_advance_debug
 
-   implicit none 
+   implicit none
    
+   ! Make routines available to other modules
    public :: init_time_advance, finish_time_advance
    public :: advance_stella
 
    private
 
-   logical :: time_advance_initialized = .false.
+   ! Only initialise once
+   logical :: initialised_time_advance = .false.
    logical :: readinit = .false.
 
 contains
 
+!###############################################################################
+!############################ INITIALISE TIME ADVANCE ##########################
+!###############################################################################
+
    !****************************************************************************
    !                          INITIALISE TIME ADVANCE                          !
    !****************************************************************************
-
    subroutine init_time_advance
 
+      ! Flags
+      use dissipation_and_collisions, only: include_collisions
       use parameters_physics, only: radial_variation
       use parameters_physics, only: include_parallel_nonlinearity
+      
+      ! Initialise the following modules
+      use dissipation_and_collisions, only: init_collisions
+      use timestep_calculations, only: init_cfl
       use gk_drive, only: init_wstar
       use gk_magnetic_drift, only: init_wdrift
       use gk_parallel_streaming, only: init_parallel_streaming
       use gk_mirror, only: init_mirror
       use gk_flow_shear, only: init_flow_shear
-      use gk_sources, only: init_quasineutrality_source, init_source_timeaverage
+      use gk_sources, only: init_quasineutrality_source
+      use gk_sources, only: init_source_timeaverage
       use gk_radial_variation, only: init_radial_variation
       use gk_nonlinearity, only: init_parallel_nonlinearity
-
       use neoclassical_terms, only: init_neoclassical_terms
-      use dissipation_and_collisions, only: init_collisions, include_collisions
-
-      use timestep_calculations, only: init_cfl
 
       implicit none
 
-      if (time_advance_initialized) return
-      time_advance_initialized = .true.
+      !-------------------------------------------------------------------------
+
+      ! Only initialise once
+      if (initialised_time_advance) return
+      initialised_time_advance = .true.
 
       ! Read time_advance_knobs namelist from the input file;
       ! sets the explicit time advance option, as well as allows for scaling of
@@ -54,81 +66,115 @@ contains
       ! allocate distribution function sized arrays needed, e.g., for Runge-Kutta time advance
       if (debug) write (6, *) 'time_advance::init_time_advance::allocate_arrays'
       call allocate_arrays
+      
       ! Set up neoclassical corrections to the equilibrium Maxwellian;
       ! only calculated/needed when simulating higher order terms in rhostar for intrinsic rotation
       if (debug) write (6, *) 'time_advance::init_time_advance::init_neoclassical_terms'
       call init_neoclassical_terms
+      
       ! Calculate the term multiplying dg/dvpa in the mirror term
       ! and set up either the semi-Lagrange machinery or the tridiagonal matrix to be inverted
       ! if solving implicitly
       if (debug) write (6, *) 'time_advance::init_time_advance::init_mirror'
       call init_mirror
+      
       ! Calculate the term multiplying dg/dz in the parallel streaming term
       ! and set up the tridiagonal matrix to be inverted if solving implicitly
       if (debug) write (6, *) 'time_advance::init_time_advance::init_parstream'
       call init_parallel_streaming
+      
       ! Allocate and calculate the factors multiplying dg/dx, dg/dy, dphi/dx and dphi/dy
       ! in the magnetic drift terms
       if (debug) write (6, *) 'time_advance::init_time_advance::init_wdrift'
-      call init_wdrift 
+      call init_wdrift
+      
       ! Allocate and calculate the factor multiplying dphi/dy in the gradient drive term
       if (debug) write (6, *) 'time_advance::init_time_advance::init_wstar'
-      call init_wstar 
+      call init_wstar
+      
+      ! ...
       if (debug) write (6, *) 'time_advance::init_time_advance::init_flow_shear'
       call init_flow_shear
+      
+      ! ...
       if (debug) write (6, *) 'time_advance::init_time_advance::init_parallel_nonlinearity'
       if (include_parallel_nonlinearity) call init_parallel_nonlinearity 
+      
+      ! ...
       if (debug) write (6, *) 'time_advance::init_time_advance::init_radial_variation'
       if (radial_variation) call init_radial_variation
+      
+      ! ...
       if (include_collisions) then
          if (debug) write (6, *) 'time_advance::init_time_advance::init_collisions'
          call init_collisions
       end if
+      
+      ! ...
       if (debug) write (6, *) 'time_advance::init_time_advance::init_cfl'
       call init_cfl
 
+      ! ...
       if (debug) write (6, *) 'time_advance::init_time_advance::init_source_timeaverage'
       call init_source_timeaverage
+      
+      ! ...
       if (debug) write (6, *) 'time_advance::init_time_advance::init_quasineutrality_source'
       call init_quasineutrality_source
 
    end subroutine init_time_advance
 
+   !****************************************************************************
+   !                              Allocate arrays
+   !****************************************************************************
    subroutine allocate_arrays
+      
+      ! Flags
+      use parameters_numerical, only: explicit_algorithm_switch
+      use parameters_numerical, only: explicit_algorithm_rk4
 
+      ! Grids
       use stella_layouts, only: vmu_lo
       use grids_kxky, only: naky, nakx
-      use parameters_numerical, only: explicit_algorithm_switch, explicit_algorithm_rk3, &
-           explicit_algorithm_rk2, explicit_algorithm_rk4, explicit_algorithm_euler
-      use arrays_store_distribution_fn, only: g0, g1, g2, g3
       use grids_z, only: nzgrid, ntubes
+      
+      ! Allocate the following arrays
+      use arrays_store_distribution_fn, only: g0, g1, g2, g3
 
       implicit none
 
-      if (.not. allocated(g0)) &
-         allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      g0 = 0.
-      if (.not. allocated(g1)) &
-         allocate (g1(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      g1 = 0.
-      if (.not. allocated(g2)) &
-         allocate (g2(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-      g2 = 0.
-      if (.not. allocated(g3) .and. explicit_algorithm_switch == explicit_algorithm_rk4) then
-         allocate (g3(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
-         g3 = 0.
-      else
-         allocate (g3(1, 1, 1, 1, 1))
+      !-------------------------------------------------------------------------
+
+      ! Initialise arrays used on the 
+      if (.not. allocated(g0)) allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      if (.not. allocated(g1)) allocate (g1(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      if (.not. allocated(g2)) allocate (g2(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      
+      ! Only allocate g3 if it is needed
+      if (.not. allocated(g3)) then
+         if (explicit_algorithm_switch == explicit_algorithm_rk4) then
+            allocate (g3(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         else
+            allocate (g3(1, 1, 1, 1, 1))
+         end if
       end if
+      
+      ! Initialise arrays to zero
+      g0 = 0.
+      g1 = 0.
+      g2 = 0.
+      g3 = 0.
 
    end subroutine allocate_arrays
 
-   !****************************************************************************
-   !****************************************************************************
-   !                        MAIN TIME ADVANCE OF STELLA                        !
-   !****************************************************************************
-   !****************************************************************************
 
+!###############################################################################
+!#################### TIME ADVANCE THE GYROKINETIC EQUATION ####################
+!###############################################################################
+
+   !****************************************************************************
+   !                      MAIN TIME ADVANCE OF STELLA
+   !****************************************************************************
    subroutine advance_stella(istep, stop_stella)
 
       use mp, only: proc0, broadcast
@@ -148,11 +194,15 @@ contains
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: istep
       logical, intent(in out) :: stop_stella
 
+      ! Local variables
       logical :: restart_time_step, time_advance_successful
       integer :: count_restarts
+
+      !-------------------------------------------------------------------------
 
       ! Unless running in multibox mode, no need to worry about
       ! mb_communicate calls as the subroutine is immediately exited
@@ -253,12 +303,13 @@ contains
 
    end subroutine advance_stella
 
-   !-------------------------------------------------------------------------------
+   !****************************************************************************
    !                       EXPLICIT TIME ADVANCE SUBROUTINES
-   !-------------------------------------------------------------------------------
-   !> advance_explicit takes as input the guiding centre distribution function
-   !> in k-space and updates it to account for all of the terms in the GKE that
-   !> are advanced explicitly in time
+   !****************************************************************************
+   ! advance_explicit takes as input the guiding centre distribution function
+   ! in k-space and updates it to account for all of the terms in the GKE that
+   ! are advanced explicitly in time
+   !****************************************************************************
    subroutine advance_explicit(g, restart_time_step, istep)
 
       use mp, only: proc0
@@ -270,19 +321,24 @@ contains
       use grids_extended_zgrid, only: periodic, phase_shift
       use grids_kxky, only: naky
       use parameters_physics, only: include_apar
-      use parameters_numerical, only: explicit_algorithm_switch, explicit_algorithm_rk3, &
-           explicit_algorithm_rk2, explicit_algorithm_rk4, explicit_algorithm_euler
+      use parameters_numerical, only: explicit_algorithm_switch, explicit_algorithm_rk3
+      use parameters_numerical, only: explicit_algorithm_rk2, explicit_algorithm_rk4
+      use parameters_numerical, only: explicit_algorithm_euler
       use gk_parallel_streaming, only: stream_sign
       use fields, only: advance_fields
       use calculations_tofrom_ghf, only: gbar_to_g
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
       logical, intent(in out) :: restart_time_step
       integer, intent(in) :: istep
 
+      ! Local variables
       integer :: ivmu, iv, sgn, iky
+
+      !-------------------------------------------------------------------------
 
       ! Start the timer for the explicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 8), ' explicit')
@@ -319,12 +375,12 @@ contains
          call gbar_to_g(g, apar, 1.0)
       end if
 
-      !> Enforce periodicity for periodic (including zonal) modes
+      ! Enforce periodicity for periodic (including zonal) modes
       do iky = 1, naky
          if (periodic(iky)) then
             do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
                iv = iv_idx(vmu_lo, ivmu)
-               !> stream_sign > 0 corresponds to dz/dt < 0
+               ! stream_sign > 0 corresponds to dz/dt < 0
                sgn = stream_sign(iv)
                g(iky, :, sgn * nzgrid, :, ivmu) = &
                   g(iky, :, -sgn * nzgrid, :, ivmu) * phase_shift(iky)**(-sgn)
@@ -337,10 +393,11 @@ contains
 
    end subroutine advance_explicit
 
-   !-------------------------------------------------------------------------------
+   !****************************************************************************
    !                        EXPLICIT EULER TIME ADVANCE SUBROUTINE
-   !-------------------------------------------------------------------------------
-   !> advance_explicit_euler uses forward Euler to advance one time step
+   !****************************************************************************
+   ! advance_explicit_euler uses forward Euler to advance one time step
+   !****************************************************************************
    subroutine advance_explicit_euler(g, restart_time_step, istep)
 
       use arrays_store_distribution_fn, only: g0
@@ -351,9 +408,12 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
       logical, intent(in out) :: restart_time_step
       integer, intent(in) :: istep
+
+      !-------------------------------------------------------------------------
 
       ! rk_step only true if running in multibox mode
       if (rk_step) call mb_communicate(g)
@@ -366,10 +426,11 @@ contains
 
    end subroutine advance_explicit_euler
 
-   !-------------------------------------------------------------------------------
+   !****************************************************************************
    !                         EXPLICIT RK2 TIME ADVANCE SUBROUTINE
-   !-------------------------------------------------------------------------------
-   !> advance_expliciit_rk2 uses strong stability-preserving rk2 to advance one time step
+   !****************************************************************************
+   ! advance_expliciit_rk2 uses strong stability-preserving rk2 to advance one time step
+   !****************************************************************************
    subroutine advance_explicit_rk2(g, restart_time_step, istep)
 
       use arrays_store_distribution_fn, only: g0, g1
@@ -380,11 +441,15 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
       logical, intent(in out) :: restart_time_step
       integer, intent(in) :: istep
 
+      ! Local variables
       integer :: icnt
+
+      !-------------------------------------------------------------------------
 
       ! rk_step only true if running in multibox mode
       if (rk_step) call mb_communicate(g)
@@ -417,10 +482,11 @@ contains
 
    end subroutine advance_explicit_rk2
 
-   !-------------------------------------------------------------------------------
+   !****************************************************************************
    !                         EXPLICIT RK3 TIME ADVANCE SUBROUTINE
-   !-------------------------------------------------------------------------------
-   !> advance_expliciit_rk3 uses strong stability-preserving rk3 to advance one time step
+   !****************************************************************************
+   ! advance_expliciit_rk3 uses strong stability-preserving rk3 to advance one time step
+   !****************************************************************************
    subroutine advance_explicit_rk3(g, restart_time_step, istep)
 
       use arrays_store_distribution_fn, only: g0, g1, g2
@@ -431,11 +497,15 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
       logical, intent(in out) :: restart_time_step
       integer, intent(in) :: istep
 
+      ! Local variables
       integer :: icnt
+
+      !-------------------------------------------------------------------------
 
       ! rk_STEP = false unless in multibox mode
       if (rk_step) call mb_communicate(g)
@@ -472,10 +542,11 @@ contains
 
    end subroutine advance_explicit_rk3
 
-   !-------------------------------------------------------------------------------
+   !****************************************************************************
    !                         EXPLICIT RK4 TIME ADVANCE SUBROUTINE
-   !-------------------------------------------------------------------------------
-   !> advance_expliciit_rk4 uses rk4 to advance one time step
+   !****************************************************************************
+   ! advance_expliciit_rk4 uses rk4 to advance one time step
+   !****************************************************************************
    subroutine advance_explicit_rk4(g, restart_time_step, istep)
 
       use arrays_store_distribution_fn, only: g0, g1, g2, g3
@@ -486,11 +557,15 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
       logical, intent(in out) :: restart_time_step
       integer, intent(in) :: istep
 
+      ! Local variables
       integer :: icnt
+
+      !-------------------------------------------------------------------------
 
       ! rk_step is false unless in multibox mode
       if (rk_step) call mb_communicate(g)
@@ -537,13 +612,14 @@ contains
 
    end subroutine advance_explicit_rk4
 
-   !-------------------------------------------------------------------------------
-   !                  NEEDED FOR ALL EXPLICIT TIME ADVANCE SUBROUTINES
-   !-------------------------------------------------------------------------------
-   !> solve_gke accepts as argument pdf, the guiding centre distribution function in k-space,
-   !> and returns rhs_ky, the right-hand side of the gyrokinetic equation in k-space;
-   !> i.e., if dg/dt = r, then rhs_ky = r*dt;
-   !> note that if include_apar = T, then the input pdf is actually gbar = g + (Ze/T)*(vpa/c)*<Apar>*F0
+   !****************************************************************************
+   !                NEEDED FOR ALL EXPLICIT TIME ADVANCE SUBROUTINES
+   !****************************************************************************
+   ! solve_gke accepts as argument pdf, the guiding centre distribution function in k-space,
+   ! and returns rhs_ky, the right-hand side of the gyrokinetic equation in k-space;
+   ! i.e., if dg/dt = r, then rhs_ky = r*dt;
+   ! note that if include_apar = T, then the input pdf is actually gbar = g + (Ze/T)*(vpa/c)*<Apar>*F0
+   !****************************************************************************
    subroutine solve_gke(pdf, rhs_ky, restart_time_step, istep)
 
       use job_manage, only: time_message
@@ -592,16 +668,19 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: pdf
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(out), target :: rhs_ky
       logical, intent(out) :: restart_time_step
       integer, intent(in) :: istep
 
+      ! Local variables
       complex, dimension(:, :, :, :, :), allocatable, target :: rhs_y
       complex, dimension(:, :, :, :, :), pointer :: rhs
       complex, dimension(:, :), allocatable :: rhs_ky_swap
-
       integer :: iz, it, ivmu
+
+      !-------------------------------------------------------------------------
 
       rhs_ky = 0.
 
@@ -742,6 +821,9 @@ contains
 
    end subroutine solve_gke
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine advance_hyper_explicit(gin, gout)
 
       use stella_layouts, only: vmu_lo
@@ -752,10 +834,14 @@ contains
 
       implicit none
       
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gin
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
 
+      ! Local variables
       complex, dimension(:, :, :, :, :), allocatable :: dg
+
+      !-------------------------------------------------------------------------
 
       allocate (dg(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); dg = 0.0
 
@@ -770,15 +856,14 @@ contains
       
    end subroutine advance_hyper_explicit
 
-   !-------------------------------------------------------------------------------
+   !****************************************************************************
    !                           IMPLICIT TIME ADVANCE SUBROUTINE
-   !-------------------------------------------------------------------------------
-
+   !****************************************************************************
    subroutine advance_implicit(istep, phi, apar, bpar, g)
 
+      ! Parallelisation
       use mp, only: proc0
       use job_manage, only: time_message
-
       use stella_layouts, only: vmu_lo
 
       use grids_z, only: nzgrid
@@ -803,9 +888,12 @@ contains
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: istep
       complex, dimension(:, :, -nzgrid:, :), intent(in out) :: phi, apar, bpar
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g
+      
+      !-------------------------------------------------------------------------
 
       ! Start the timer for the implicit part of the solve
       if (proc0) call time_message(.false., time_gke(:, 9), ' implicit')
@@ -898,9 +986,11 @@ contains
    end subroutine advance_implicit
 
    
-   !******************************************************************************
-   !                           FINISH TIME ADVANCE SUBROUTINE
-   !******************************************************************************
+!###############################################################################
+!####################### FINISH TIME ADVANCE SUBROUTINE ########################
+!###############################################################################
+
+   !----------------------------------------------------------------------------
    subroutine finish_time_advance
 
       use calculations_transforms, only: finish_transforms
@@ -930,11 +1020,12 @@ contains
       call finish_neoclassical_terms
       call deallocate_arrays
 
-      time_advance_initialized = .false.
+      initialised_time_advance = .false.
       readinit = .false.
 
    end subroutine finish_time_advance
 
+   !----------------------------------------------------------------------------
    subroutine deallocate_arrays
 
       use arrays_store_distribution_fn, only: g0, g1, g2, g3

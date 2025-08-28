@@ -11,22 +11,34 @@ module gk_sources
    use mpi
 #endif
 
+   ! Load debug flags
+   use debug_flags, only: debug => time_advance_debug
+   
+   ! Read the parameters for <source_option_switch> from namelist_sources.f90
+   use namelist_sources, only: source_option_none
+   use namelist_sources, only: source_option_krook
+   use namelist_sources, only: source_option_projection
+
    implicit none
 
+   ! Make routines available to other modules
    public :: init_sources, finish_sources
    public :: init_quasineutrality_source
    public :: init_source_timeaverage
    public :: update_quasineutrality_source
-   public :: source_option_switch, source_option_none
-   public :: source_option_krook, source_option_projection
    public :: include_qn_source
    public :: update_tcorr_krook
    public :: project_out_zero
    public :: add_krook_operator
    public :: tcorr_source, exclude_boundary_regions, exp_fac
    public :: int_krook, int_proj
-   public :: qn_source_initialized
+   public :: initialised_qn_source
    public :: time_sources
+   
+   ! Although the parameters are available through namelist_sources,
+   ! make them available through gk_sources as well
+   public :: source_option_switch, source_option_none
+   public :: source_option_krook, source_option_projection
 
    private
 
@@ -36,20 +48,17 @@ module gk_sources
    integer:: ikxmax_source
    real :: nu_krook, tcorr_source, int_krook, int_proj
    real :: exp_fac
-
-   logical :: qn_source_initialized, include_qn_source
-
-   logical :: debug = .false.
-
+   logical :: initialised_qn_source, include_qn_source
    real, dimension(2, 2) :: time_sources = 0.
 
+   ! Switch
    integer :: source_option_switch
-   integer, parameter :: source_option_none = 1, &
-                         source_option_krook = 2, &
-                         source_option_projection = 3
 
 contains
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_sources
 
       use mp, only: job
@@ -75,35 +84,40 @@ contains
       logical :: has_elec, adia_elec
       real :: fac
 
-      call read_namelist_sources(source_option_switch, nu_krook, tcorr_source, &
-                              ikxmax_source, krook_odd, exclude_boundary_regions, &
-                              tcorr_source_qn, exclude_boundary_regions_qn, from_zero, &
-                              conserve_momentum, conserve_density)
+      !-------------------------------------------------------------------------
 
+      ! Read the "sources" namelist from the input file
+      call read_namelist_sources(source_option_switch, nu_krook, tcorr_source, &
+         ikxmax_source, krook_odd, exclude_boundary_regions, &
+         tcorr_source_qn, exclude_boundary_regions_qn, from_zero, &
+         conserve_momentum, conserve_density)
       ikxmax_source = min(ikxmax_source, ikx_max)
+
+      ! Broadcast the input parameters to all processors
+      call broadcast_parameters
 
       int_proj = -1.
       int_krook = -1.
 
-      call broadcast_arrays
+      ! Allocate arrays
+      if (.not. allocated(phi_proj)) then
+         allocate (phi_proj(nakx, -nzgrid:nzgrid, ntubes))
+         phi_proj = 0.
+      end if
+      if (.not. allocated(phi_proj_stage)) then
+         allocate (phi_proj_stage(nakx, -nzgrid:nzgrid, ntubes))
+         phi_proj_stage = 0.
+      end if
 
+      ! Allocate arrays only if they're needed
       if (source_option_switch == source_option_krook .and. .not. allocated(g_krook)) then
          allocate (g_krook(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          g_krook = 0.
       end if
-
       if (source_option_switch == source_option_projection .and. .not. allocated(g_proj)) then
          allocate (g_proj(nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          g_proj = 0.
       end if
-
-      if (.not. allocated(phi_proj)) then
-         allocate (phi_proj(nakx, -nzgrid:nzgrid, ntubes)); phi_proj = 0.
-      end if
-      if (.not. allocated(phi_proj_stage)) then
-         allocate (phi_proj_stage(nakx, -nzgrid:nzgrid, ntubes)); phi_proj_stage = 0.
-      end if
-
       if ((conserve_momentum .or. conserve_density) .and. .not. allocated(g_symm)) then
          allocate (g_symm(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       end if
@@ -128,7 +142,8 @@ contains
 
    contains
 
-      subroutine broadcast_arrays
+      !-------------------------- Broadcast parameters -------------------------
+      subroutine broadcast_parameters
 
          implicit none
 
@@ -144,16 +159,21 @@ contains
          call broadcast(conserve_momentum)
          call broadcast(conserve_density)
 
-      end subroutine broadcast_arrays
+      end subroutine broadcast_parameters
 
    end subroutine init_sources
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_source_timeaverage
 
       use stella_time, only: code_dt
       use arrays_store_useful, only: tcorr_source_qn, exp_fac_qn
 
       implicit none
+
+      !-------------------------------------------------------------------------
 
       if (tcorr_source > 0.0) then
          exp_fac = exp(-code_dt / tcorr_source)
@@ -169,6 +189,9 @@ contains
 
    end subroutine init_source_timeaverage
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine finish_sources
 
       use arrays_store_distribution_fn, only: g_krook, g_proj, g_symm
@@ -182,6 +205,8 @@ contains
       implicit none
 
       integer :: ierr
+
+      !-------------------------------------------------------------------------
 
       if (allocated(g_krook)) deallocate (g_krook)
       if (allocated(g_proj)) deallocate (g_proj)
@@ -201,6 +226,9 @@ contains
 
    end subroutine finish_sources
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine add_krook_operator(g, gke_rhs)
 
       use mp, only: proc0
@@ -227,6 +255,8 @@ contains
 
       complex, dimension(:, :), allocatable :: g0k, g0x, g1x
       real, dimension(:), allocatable :: basis_func
+
+      !-------------------------------------------------------------------------
 
       ia = 1
       if (.not. zonal_mode(1)) return
@@ -309,6 +339,9 @@ contains
 
    end subroutine add_krook_operator
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine update_tcorr_krook(g)
 
       use mp, only: proc0
@@ -333,6 +366,8 @@ contains
       integer :: ivmu, iz, it, ikx, jkx, ia, npts
       real :: int_krook_old
       complex :: tmp
+
+      !-------------------------------------------------------------------------
 
       if (.not. zonal_mode(1)) return
 
@@ -398,6 +433,9 @@ contains
 
    end subroutine update_tcorr_krook
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine enforce_momentum_conservation(g_work)
 
       use mp, only: proc0
@@ -416,6 +454,8 @@ contains
 
       integer :: ikxkyz, imu, iv, iv2
       complex :: tmp
+
+      !-------------------------------------------------------------------------
 
       if (proc0) call time_message(.false., time_sources(:, 2), ' source_redist')
       call scatter(kxkyz2vmu, g_work, gvmu)
@@ -438,6 +478,9 @@ contains
 
    end subroutine enforce_momentum_conservation
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine enforce_density_conservation(g_work)
 
       use mp, only: sum_allreduce
@@ -464,6 +507,8 @@ contains
       complex, dimension(:, :), allocatable :: gyro_g, g0k, g0x
       complex, dimension(:), allocatable :: g_fsa
       real :: energy
+
+      !-------------------------------------------------------------------------
 
       ia = 1
 
@@ -530,6 +575,9 @@ contains
 
    end subroutine enforce_density_conservation
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine project_out_zero(gold, gnew)
 
       use mp, only: proc0
@@ -554,6 +602,8 @@ contains
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: gold
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(inout) :: gnew
       complex, allocatable, dimension(:, :, :, :) :: g
+
+      !-------------------------------------------------------------------------
 
       ia = 1
       if (.not. zonal_mode(1)) return
@@ -656,6 +706,9 @@ contains
 
    end subroutine project_out_zero
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_quasineutrality_source
 
 #ifdef ISO_C_BINDING
@@ -691,10 +744,12 @@ contains
 #endif
       complex, dimension(:, :), allocatable :: g0k, g0x, g1k
 
+      !-------------------------------------------------------------------------
+
       ia = 1
 
-      if (qn_source_initialized) return
-      qn_source_initialized = .true.
+      if (initialised_qn_source) return
+      initialised_qn_source = .true.
 
       if (include_qn_source) then
          nmat_zf = nakx * (nztot - 1)
@@ -855,12 +910,17 @@ contains
       end if
    end subroutine init_quasineutrality_source
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine update_quasineutrality_source
 
       use arrays_store_fields, only: phi_proj, phi_proj_stage
       use arrays_store_useful, only: tcorr_source_qn, exp_fac_qn
 
       implicit none
+
+      !-------------------------------------------------------------------------
 
       if (tcorr_source_qn < epsilon(0.)) then
          phi_proj = phi_proj_stage

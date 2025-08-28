@@ -55,6 +55,7 @@
 !###############################################################################
 module gk_drive
 
+   ! Load debug flags
    use debug_flags, only: debug => time_advance_debug
 
    implicit none
@@ -73,13 +74,14 @@ contains
    !****************************************************************************
    subroutine init_wstar
 
+      ! Parallelisation
       use mp, only: mp_abort
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use stella_time, only: code_dt
       use geometry, only: dydalpha, drhodpsi, clebsch_factor
       use neoclassical_terms, only: include_neoclassical_terms, dfneo_drho
       use parameters_numerical, only: maxwellian_normalization
-      use arrays_store_useful, only: wstar, wstarinit
+      use arrays_store_useful, only: wstar, initialised_wstar
       
       ! Grids
       use grids_kxky, only: nalpha
@@ -103,8 +105,8 @@ contains
       !-------------------------------------------------------------------------
 
       ! Only intialise omega_{*,k,s} once
-      if (wstarinit) return
-      wstarinit = .true.
+      if (initialised_wstar) return
+      initialised_wstar = .true.
 
       ! Allocate omega_{*,k,s} = wstar[ialpha, iz, i[mu,vpa,s]]
       if (.not. allocated(wstar)) then
@@ -165,6 +167,8 @@ contains
    
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phi
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
+
+      !-------------------------------------------------------------------------
    
       if (full_flux_surface) then
          call advance_wstar_explicit_ffs(gout)
@@ -303,12 +307,12 @@ contains
    !*****************************************************************************
    subroutine finish_wstar
 
-      use arrays_store_useful, only: wstar, wstarinit
+      use arrays_store_useful, only: wstar, initialised_wstar
 
       implicit none
 
       if (allocated(wstar)) deallocate (wstar)
-      wstarinit = .false.
+      initialised_wstar = .false.
 
    end subroutine finish_wstar
    

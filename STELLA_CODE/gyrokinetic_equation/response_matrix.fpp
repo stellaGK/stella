@@ -12,17 +12,19 @@ module response_matrix
 #ifdef ISO_C_BINDING
    use, intrinsic :: iso_c_binding, only: c_intptr_t
 #endif
+
+   ! Load debug flags
    use debug_flags, only: debug => response_matrix_debug
 
    implicit none
 
+   ! Make routines available to other modules
    public :: init_response_matrix, finish_response_matrix
    public :: read_response_matrix
-   public :: response_matrix_initialized
+   public :: initialised_response_matrix
 
    private
 
-   logical :: response_matrix_initialized = .false.
    integer, parameter :: mat_unit = 70
 #ifdef ISO_C_BINDING
    integer(c_intptr_t) :: cur_pos
@@ -31,9 +33,19 @@ module response_matrix
    real, dimension(2) :: time_dgdphi
    real, dimension(2) :: time_QN
    real, dimension(2) :: time_lu
+   
+   ! Only initialise once
+   logical :: initialised_response_matrix = .false.
 
 contains
 
+!###############################################################################
+!########################## INITIALISE RESPONSE MATRIX #########################
+!###############################################################################
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_response_matrix
 
       use linear_solve, only: lu_decomposition
@@ -48,18 +60,23 @@ contains
 
       implicit none
 
+      ! Local variables
 #ifdef ISO_C_BINDING
       integer :: ierr
 #endif
-      debug = (debug .and. proc0)
 
+      !-------------------------------------------------------------------------
+
+      ! Set up response matrix utils
       if (debug) call write_response_matrix_message
       call setup_response_matrix_timings
       call setup_response_matrix_file_io
 
-      if (response_matrix_initialized) return
-      response_matrix_initialized = .true.
+      ! Only initialise once
+      if (initialised_response_matrix) return
+      initialised_response_matrix = .true.
 
+      ! Allocate arrays
       if (.not. allocated(response_matrix)) allocate (response_matrix(naky))
 
 #ifdef ISO_C_BINDING
@@ -72,10 +89,12 @@ contains
       call mpi_win_fence(0, response_window, ierr)
 #endif
 
+      ! Write the response matrix to an output file
       if (proc0 .and. mat_gen) then
          close (unit=mat_unit)
       end if
 
+      ! End the reponse matrix message
       if (debug) then
          write (*, '(A)') "    ############################################################"
          write (*, '(A)') " "
@@ -92,6 +111,9 @@ contains
 
    end subroutine write_response_matrix_message
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine setup_response_matrix_timings
 
       implicit none
@@ -105,6 +127,9 @@ contains
 
    end subroutine setup_response_matrix_timings
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine setup_response_matrix_file_io
 
       use mp, only: proc0, job
@@ -114,17 +139,18 @@ contains
 
       implicit none
 
+      ! Local variables
       character(len=15) :: job_str
       character(len=100) :: file_name
+
+      !-------------------------------------------------------------------------
 
       ! All matrices handled by processor i_proc and job are stored
       ! on a single file named: response_mat_job.iproc
       if (proc0 .and. mat_gen) then
          call systemf('mkdir -p mat')
-
          write (job_str, '(I1.1)') job
          file_name = './mat/response_mat_'//trim(job_str)
-
          open (unit=mat_unit, status='replace', file=file_name, &
                position='rewind', action='write', form='unformatted')
          write (unit=mat_unit) naky
@@ -132,6 +158,13 @@ contains
 
    end subroutine setup_response_matrix_file_io
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   ! Create a single shared memory window for all the response matrices and
+   ! permutation arrays. Creating a window for each matrix/array would lead 
+   ! to performance degradation on some clusters
+   !****************************************************************************
 #ifdef ISO_C_BINDING
    subroutine setup_shared_memory_window
 
@@ -147,14 +180,13 @@ contains
 
       implicit none
 
+      ! Local variables
       integer(kind=MPI_ADDRESS_KIND) :: win_size
       integer :: iky, ie
       integer :: nresponse
 
-      ! Create a single shared memory window for all the response matrices and
-      ! permutation arrays.
-      ! Creating a window for each matrix/array would lead to performance
-      ! degradation on some clusters
+      !-------------------------------------------------------------------------
+
       if (response_window == MPI_WIN_NULL) then
          win_size = 0
          if (sgproc0) then
@@ -165,9 +197,8 @@ contains
                   else
                      nresponse = (nsegments(ie, iky) * nzed_segment + 1) * nfields
                   end if
-                  win_size = win_size &
-                             + int(nresponse, MPI_ADDRESS_KIND) * 4_MPI_ADDRESS_KIND &
-                             + int(nresponse**2, MPI_ADDRESS_KIND) * 2 * real_size
+                  win_size = win_size + int(nresponse, MPI_ADDRESS_KIND) * 4_MPI_ADDRESS_KIND &
+                      + int(nresponse**2, MPI_ADDRESS_KIND) * 2 * real_size
                end do
             end do
          end if
@@ -178,6 +209,14 @@ contains
    end subroutine setup_shared_memory_window
 #endif
 
+
+!###############################################################################
+!########################## CONSTRUCT RESPONSE MATRIX ##########################
+!###############################################################################
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine construct_response_matrix
 
       use mp, only: proc0
@@ -192,10 +231,13 @@ contains
 
       implicit none
 
+      ! Local variables
       integer :: iky, ie
 #ifdef ISO_C_BINDING
       integer :: ierr
 #endif
+
+      !-------------------------------------------------------------------------
 
       ! for a given ky and set of connected kx values
       ! give a unit impulse to phi at each zed location
@@ -265,6 +307,9 @@ contains
 
    end subroutine construct_response_matrix
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine calculate_vspace_integrated_response(iky)
 
       use mp, only: proc0
@@ -279,13 +324,17 @@ contains
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: iky
 
+      ! Local variables
       integer :: ie, idx, ikx, iseg
       integer :: iz, izl_offset, izup
       integer :: nz_ext, nresponse, nresponse_per_field
       complex, dimension(:, :), allocatable :: gext
       complex, dimension(:), allocatable :: phi_ext, apar_ext, bpar_ext
+
+      !-------------------------------------------------------------------------
 
       ! loop over the sets of connected kx values
       do ie = 1, neigen(iky)
@@ -359,6 +408,9 @@ contains
 
    end subroutine calculate_vspace_integrated_response
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine setup_response_matrix_zloc_idx(iky, ie, nresponse)
 
 #ifdef ISO_C_BINDING
@@ -369,13 +421,16 @@ contains
 
       implicit none
 
+      ! Local variables
       integer, intent(in) :: iky, ie, nresponse
 
 #ifdef ISO_C_BINDING
       type(c_ptr) :: cptr
 
+      !-------------------------------------------------------------------------
+
       !exploit MPIs shared memory framework to reduce memory consumption of
-      !response matrices
+      ! Response matrices
 
       if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) then
          cptr = transfer(cur_pos, cptr)
@@ -404,6 +459,9 @@ contains
 
    end subroutine setup_response_matrix_zloc_idx
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine apply_field_solve_to_finish_response_matrix(iky)
 
 #ifdef ISO_C_BINDING
@@ -417,27 +475,31 @@ contains
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: iky
 
+      ! Local variables
       integer :: ie, idx, offset_apar, offset_bpar
       integer :: nz_ext, nresponse
       character(5) :: dist
       complex, dimension(:), allocatable :: phi_ext, apar_ext, bpar_ext
 
-      ! solve quasineutrality
-      ! for local stella, this is a diagonal process, but global stella
-      ! may require something more sophisticated
+      !-------------------------------------------------------------------------
+
+      ! Solve quasineutrality
+      ! For local stella, this is a diagonal process, but global stella
+      ! May require something more sophisticated
       dist = 'g'
 
-      ! loop over the sets of connected kx values
+      ! Loop over the sets of connected kx values
       do ie = 1, neigen(iky)
 #ifdef ISO_C_BINDING
          if (sgproc0) then
 #endif
-            ! number of zeds x number of segments
+            ! Number of zeds x number of segments
             nz_ext = nsegments(ie, iky) * nzed_segment + 1
 
-            ! treat zonal mode specially to avoid double counting
+            ! Treat zonal mode specially to avoid double counting
             ! as it is periodic
             if (periodic(iky)) then
                nresponse = nz_ext - 1
@@ -448,9 +510,10 @@ contains
             allocate (phi_ext(nz_ext))
             allocate (apar_ext(nz_ext))
             allocate (bpar_ext(nz_ext))
-            !> set up offset_apar and offset_bpar consistently
-            !> so that the array slices below are consistent with
-            !> the size of the response matrix
+            
+            ! Set up offset_apar and offset_bpar consistently
+            ! so that the array slices below are consistent with
+            ! the size of the response matrix
             if (include_apar) then
                offset_apar = nresponse
             else
@@ -461,7 +524,8 @@ contains
             else
                offset_bpar = 0
             end if
-            ! obtain the response matrix entries due to unit impulses in phi;
+            
+            ! Obtain the response matrix entries due to unit impulses in phi;
             ! this accounts for terms appearing both in quasineutrality and parallel ampere
             do idx = 1, nresponse
                phi_ext(nz_ext) = 0.0
@@ -476,7 +540,7 @@ contains
                end if
                call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, dist)
 
-               ! next need to create column in response matrix from phi_ext and apar_ext
+               ! Next need to create column in response matrix from phi_ext and apar_ext
                ! negative sign because matrix to be inverted in streaming equation
                ! is identity matrix - response matrix
                ! add in contribution from identity matrix
@@ -486,9 +550,9 @@ contains
                if (include_bpar) response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx) = -bpar_ext(:nresponse)
             end do
 
+            ! Obtain the response matrix entries due to unit impulses in apar;
+            ! this accounts for terms appearing both in quasineutrality and parallel ampere
             if (include_apar) then
-               ! obtain the response matrix entries due to unit impulses in apar;
-               ! this accounts for terms appearing both in quasineutrality and parallel ampere
                do idx = 1, nresponse
                   phi_ext(nz_ext) = 0.0
                   phi_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx + offset_apar)
@@ -500,7 +564,7 @@ contains
                   end if
                   call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, dist)
 
-                  ! next need to create column in response matrix from phi_ext and apar_ext
+                  ! Next need to create column in response matrix from phi_ext and apar_ext
                   ! negative sign because matrix to be inverted in streaming equation
                   ! is identity matrix - response matrix
                   ! add in contribution from identity matrix for diagonal entries
@@ -511,9 +575,9 @@ contains
                end do
             end if
             
+            ! Obtain the response matrix entries due to unit impulses in bpar;
+            ! this accounts for terms appearing both in quasineutrality and parallel ampere
             if (include_bpar) then
-               ! obtain the response matrix entries due to unit impulses in bpar;
-               ! this accounts for terms appearing both in quasineutrality and parallel ampere
                do idx = 1, nresponse
                   phi_ext(nz_ext) = 0.0
                   phi_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(:nresponse, idx + offset_bpar)
@@ -525,7 +589,7 @@ contains
                   bpar_ext(:nresponse) = response_matrix(iky)%eigen(ie)%zloc(offset_bpar + 1:nresponse + offset_bpar, idx + offset_bpar)
                   call get_fields_for_response_matrix(phi_ext, apar_ext, bpar_ext, iky, ie, dist)
 
-                  ! next need to create column in response matrix from phi_ext and apar_ext
+                  ! Next need to create column in response matrix from phi_ext and apar_ext
                   ! negative sign because matrix to be inverted in streaming equation
                   ! is identity matrix - response matrix
                   ! add in contribution from identity matrix for diagonal entries
@@ -544,6 +608,9 @@ contains
 
    end subroutine apply_field_solve_to_finish_response_matrix
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine lu_decompose_response_matrix(iky)
 
 #ifdef ISO_C_BINDING
@@ -558,10 +625,14 @@ contains
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: iky
 
+      ! Local variables
       integer :: ie
       real :: dum
+
+      !-------------------------------------------------------------------------
 
       ! now we have the full response matrix. Finally, perform its LU decomposition
       select case (lu_option_switch)
@@ -591,6 +662,9 @@ contains
 
    end subroutine lu_decompose_response_matrix
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine read_response_matrix
 
       use arrays_store_useful, only: response_matrix
@@ -605,6 +679,7 @@ contains
 
       implicit none
 
+      ! Local variables
       integer :: iky, ie, nz_ext
       integer :: iky_dump, neigen_dump, naky_dump, nresponse_dump
       integer :: nresponse, nresponse_per_field
@@ -613,10 +688,11 @@ contains
       integer :: ie_dump, istat
       logical, parameter :: debug = .false.
 
-!   All matrices handled for the job i_job are read
-!   from a single file named: responst_mat.ijob by that
-!   jobs root process
+      !-------------------------------------------------------------------------
 
+      ! All matrices handled for the job i_job are read
+      ! from a single file named: responst_mat.ijob by that
+      ! jobs root process
       if (proc0) then
          write (job_str, '(I1.1)') job
          file_name = './mat/response_mat.'//trim(job_str)
@@ -643,13 +719,13 @@ contains
          if (.not. associated(response_matrix(iky)%eigen)) &
             allocate (response_matrix(iky)%eigen(neigen(iky)))
 
-         ! loop over the sets of connected kx values
+         ! Loop over the sets of connected kx values
          do ie = 1, neigen(iky)
-            ! number of zeds x number of segments
+         
+            ! Number of zeds x number of segments
             nz_ext = nsegments(ie, iky) * nzed_segment + 1
 
-            ! treat zonal mode specially to avoid double counting
-            ! as it is periodic
+            ! Treat zonal mode specially to avoid double counting as it is periodic
             if (periodic(iky)) then
                nresponse_per_field = nz_ext - 1
             else
@@ -663,7 +739,7 @@ contains
                   call mp_abort('mismatch in ie/nresponse_dump')
             end if
 
-            ! for each ky and set of connected kx values,
+            ! For each ky and set of connected kx values,
             ! must have a response matrix that is N x N
             ! with N = number of zeds per 2pi segment x number of 2pi segments
             if (.not. associated(response_matrix(iky)%eigen(ie)%zloc)) &
@@ -692,7 +768,14 @@ contains
       end if
    end subroutine read_response_matrix
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dpdf_dphi_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
+   
+#ifdef ISO_C_BINDING
+      use mp, only: sgproc0
+#endif
 
       use stella_layouts, only: vmu_lo
       use parameters_numerical, only: time_upwind_plus
@@ -700,21 +783,22 @@ contains
       use gk_implicit_solve, only: get_gke_rhs, sweep_g_zext
       use arrays_store_useful, only: response_matrix
       use grids_extended_zgrid, only: periodic, phase_shift
-#ifdef ISO_C_BINDING
-      use mp, only: sgproc0
-#endif
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: iky, ie, idx, nz_ext, nresponse
       complex, dimension(:), intent(out) :: phi_ext, apar_ext, bpar_ext
       complex, dimension(:, vmu_lo%llim_proc:), intent(out) :: pdf_ext
 
+      ! Local variables
       complex, dimension(:), allocatable :: dum
       integer :: ivmu, it
       integer :: offset_apar, offset_bpar
 
-      ! provide a unit impulse to phi^{n+1} (or Delta phi^{n+1}) at the location
+      !-------------------------------------------------------------------------
+
+      ! Provide a unit impulse to phi^{n+1} (or Delta phi^{n+1}) at the location
       ! in the extended zed domain corresponding to index 'idx'
       ! note that it is sufficient to give a unit real impulse (as opposed to
       ! separately giving real and imaginary impulse) for the following reason:
@@ -723,12 +807,13 @@ contains
       ! however, we see that if phir = phii = 1, L[f1] = R[1] = L[-i*f2],
       ! and thus f2 = i * f1.  This gives phi = df1/dphir * (phir + i * phii) = df1/dphir * phi
       phi_ext = 0.0
-      ! how phi^{n+1} enters the GKE depends on whether we are solving for the
+      
+      ! How phi^{n+1} enters the GKE depends on whether we are solving for the
       ! non-Boltzmann pdf, h, or the guiding centre pdf, 'g'
       phi_ext(idx) = time_upwind_plus
       
-      !> TOGO-GA: check division rather than multiplication -- kept division for now to be consistent with 
-      !> parallel_streaming phase shift 
+      ! TOGO-GA: check division rather than multiplication -- kept division for now to be consistent with 
+      ! parallel_streaming phase shift 
       if (periodic(iky) .and. idx == 1) phi_ext(nz_ext) = phi_ext(1) / phase_shift(iky)
 
       ! dum is a scratch array that takes the place of the pdf and phi
@@ -736,24 +821,27 @@ contains
       ! which is set to zero for the response matrix approach
       allocate (dum(nz_ext)); dum = 0.0
 
-      ! set the flux tube index to one
+      ! Set the flux tube index to one
       ! need to check, but think this is okay as the homogeneous equation solved here for the
       ! response matrix construction is the same for all flux tubes in the flux tube train
       it = 1
 
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc         
-         ! calculate the RHS of the GK equation (using dum=0 as the pdf at the previous time level,
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+      
+         ! Calculate the RHS of the GK equation (using dum=0 as the pdf at the previous time level,
          ! and phi_ext as the potential) and store it in pdf_ext
          call get_gke_rhs(ivmu, iky, ie, dum, phi_ext, dum, dum, dum, dum, pdf_ext(:, ivmu))
-         ! given the RHS of the GK equation (pdf_ext), solve for the pdf at the
+         
+         ! Given the RHS of the GK equation (pdf_ext), solve for the pdf at the
          ! new time level by sweeping in zed on the extended domain;
          ! the rhs is input as 'pdf_ext' and over-written with the updated solution for the pdf
          call sweep_g_zext(iky, ie, it, ivmu, pdf_ext(:, ivmu))
+         
       end do
 
       deallocate (dum)
 
-      ! we now have the pdf on the extended zed domain at this ky and set of connected kx values
+      ! We now have the pdf on the extended zed domain at this ky and set of connected kx values
       ! corresponding to a unit impulse in phi at this location
       ! now integrate over velocities to get a square response matrix
       ! (this ends the parallelization over velocity space, so every core should have a
@@ -779,6 +867,9 @@ contains
 
    end subroutine get_dpdf_dphi_matrix_column
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
 
       use stella_layouts, only: vmu_lo
@@ -793,15 +884,19 @@ contains
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: iky, ie, idx, nz_ext, nresponse
       complex, dimension(:), intent(out) :: phi_ext, apar_ext, bpar_ext
       complex, dimension(:, vmu_lo%llim_proc:), intent(out) :: pdf_ext
 
+      ! Local variables
       complex, dimension(:), allocatable :: dum
       integer :: ivmu, it
       integer :: offset_apar, offset_bpar
       
-      ! provide a unit impulse to apar^{n+1} (or Delta apar^{n+1}) at the location
+      !-------------------------------------------------------------------------
+      
+      ! Provide a unit impulse to apar^{n+1} (or Delta apar^{n+1}) at the location
       ! in the extended zed domain corresponding to index 'idx'
       ! note that it is sufficient to give a unit real impulse (as opposed to
       ! separately giving real and imaginary impulse) for the following reason:
@@ -819,7 +914,7 @@ contains
       ! which is set to zero for the response matrix approach
       allocate (dum(nz_ext)); dum = 0.0
 
-      ! set the flux tube index to one
+      ! Set the flux tube index to one
       ! need to check, but think this is okay as the homogeneous equation solved here for the
       ! response matrix construction is the same for all flux tubes in the flux tube train
       it = 1
@@ -835,7 +930,7 @@ contains
 
       deallocate (dum)
 
-      ! we now have the pdf on the extended zed domain at this ky and set of connected kx values
+      ! We now have the pdf on the extended zed domain at this ky and set of connected kx values
       ! corresponding to a unit impulse in phi at this location
       ! now integrate over velocities to get a square response matrix
       ! (this ends the parallelization over velocity space, so every core should have a
@@ -864,8 +959,15 @@ contains
 
    end subroutine get_dpdf_dapar_matrix_column
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! modelled on get_dpdf_dphi_matrix_column above
    subroutine get_dpdf_dbpar_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
+   
+#ifdef ISO_C_BINDING
+      use mp, only: sgproc0
+#endif
 
       use stella_layouts, only: vmu_lo
       use parameters_numerical, only: time_upwind_plus
@@ -873,19 +975,20 @@ contains
       use gk_implicit_solve, only: get_gke_rhs, sweep_g_zext
       use arrays_store_useful, only: response_matrix
       use grids_extended_zgrid, only: periodic
-#ifdef ISO_C_BINDING
-      use mp, only: sgproc0
-#endif
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: iky, ie, idx, nz_ext, nresponse
       complex, dimension(:), intent(out) :: phi_ext, apar_ext, bpar_ext
       complex, dimension(:, vmu_lo%llim_proc:), intent(out) :: pdf_ext
 
+      ! Local variables
       complex, dimension(:), allocatable :: dum
       integer :: ivmu, it
       integer :: offset_apar, offset_bpar
+
+      !-------------------------------------------------------------------------
 
       ! provide a unit impulse to phi^{n+1} (or Delta phi^{n+1}) at the location
       ! in the extended zed domain corresponding to index 'idx'
@@ -950,6 +1053,9 @@ contains
 
    end subroutine get_dpdf_dbpar_matrix_column
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine integrate_over_velocity(g, phi, apar, bpar, iky, ie)
 
       use stella_layouts, only: vmu_lo
@@ -957,18 +1063,25 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:), intent(out) :: phi, apar, bpar
       integer, intent(in) :: iky, ie
 
+      !-------------------------------------------------------------------------
+      
       call integrate_over_velocity_phi(g, phi, iky, ie)
       if (include_apar) call integrate_over_velocity_apar(g, apar, iky, ie)
       if (include_bpar) call integrate_over_velocity_bpar(g, bpar, iky, ie)
 
    end subroutine integrate_over_velocity
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine integrate_over_velocity_phi(g, phi, iky, ie)
 
+      use mp, only: sum_allreduce
       use stella_layouts, only: vmu_lo
       use grids_species, only: nspec, spec
       use grids_extended_zgrid, only: iz_low, iz_up
@@ -976,28 +1089,27 @@ contains
       use grids_extended_zgrid, only: nsegments
       use calculations_velocity_integrals, only: integrate_species
       use calculations_gyro_averages, only: gyro_average
-      use mp, only: sum_allreduce
-
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use parameters_numerical, only: driftkinetic_implicit
       use calculations_velocity_integrals, only: integrate_species_ffs_rm
-
       use parameters_physics, only: full_flux_surface
-
       use arrays_gyro_averages, only: j0_B_const
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:), intent(out) :: phi
       integer, intent(in) :: iky, ie
 
+      ! Local variables
       integer :: idx, iseg, ikx, iz, ia
       integer :: izl_offset
       real, dimension(nspec) :: wgt
       complex, dimension(:), allocatable :: g0
-
       integer :: ivmu, imu, iv, is
+
+      !-------------------------------------------------------------------------
 
       ia = 1
 
@@ -1052,6 +1164,9 @@ contains
 
    end subroutine integrate_over_velocity_phi
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine integrate_over_velocity_bpar(g, bpar, iky, ie)
 
       use stella_layouts, only: vmu_lo, imu_idx
@@ -1067,14 +1182,18 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:), intent(out) :: bpar
       integer, intent(in) :: iky, ie
 
+      ! Local variables
       integer :: idx, iseg, ikx, iz, ia, imu, ivmu
       integer :: izl_offset
       real, dimension(nspec) :: wgt
       complex, dimension(:), allocatable :: g0
+
+      !-------------------------------------------------------------------------
 
       ia = 1
 
@@ -1116,6 +1235,9 @@ contains
 
    end subroutine integrate_over_velocity_bpar
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine integrate_over_velocity_apar(g, apar, iky, ie)
 
       use stella_layouts, only: vmu_lo, iv_idx
@@ -1131,15 +1253,19 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:), intent(out) :: apar
       integer, intent(in) :: iky, ie
 
+      ! Local variables
       integer :: idx, iseg, ikx, iz, ia
       integer :: ivmu, iv
       integer :: izl_offset
       real, dimension(nspec) :: wgt
       complex, dimension(:), allocatable :: g0
+
+      !-------------------------------------------------------------------------
 
       ia = 1
 
@@ -1181,15 +1307,21 @@ contains
 
    end subroutine integrate_over_velocity_apar
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_fields_for_response_matrix(phi, apar, bpar, iky, ie, dist)
 
       use parameters_physics, only: include_apar, include_bpar
 
       implicit none
 
+      ! Arguments
       complex, dimension(:), intent(in out) :: phi, apar, bpar
       integer, intent(in) :: iky, ie
       character(*), intent(in) :: dist
+
+      !-------------------------------------------------------------------------
 
       if (include_bpar) then
          call get_phi_and_bpar_for_response_matrix(phi, bpar, iky, ie, dist)
@@ -1200,6 +1332,9 @@ contains
  
    end subroutine get_fields_for_response_matrix
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_phi_for_response_matrix(phi, iky, ie, dist)
 
       use grids_z, only: nzgrid
@@ -1217,14 +1352,18 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:), intent(inout) :: phi
       integer, intent(in) :: iky, ie
       character(*), intent(in) :: dist
 
+      ! Local variables
       integer :: idx, iseg, ikx, iz, ia
       integer :: izl_offset
       complex :: tmp
       real, dimension(:), allocatable :: gamma_fac
+
+      !-------------------------------------------------------------------------
 
       ia = 1
 
@@ -1263,10 +1402,10 @@ contains
          end do
       end if
 
-      if (.not. has_electron_species(spec) .and. &
-          adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+      if (.not. has_electron_species(spec) .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
+          
+         ! No connections for ky = 0
          if (zonal_mode(iky)) then
-            ! no connections for ky = 0
             iseg = 1
             tmp = sum(dl_over_b(ia, :) * phi)
             if (dist == 'h') then
@@ -1281,6 +1420,9 @@ contains
 
    end subroutine get_phi_for_response_matrix
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_phi_and_bpar_for_response_matrix(phi, bpar, iky, ie, dist)
 
       use grids_z, only: nzgrid
@@ -1298,14 +1440,18 @@ contains
       
       implicit none
 
+      ! Arguments
       complex, dimension(:), intent(inout) :: phi, bpar
       integer, intent(in) :: iky, ie
       character(*), intent(in) :: dist
 
+      ! Local variables
       integer :: idx, iseg, ikx, iz, ia
       integer :: izl_offset
       complex :: antot1, antot3
       real, dimension(:), allocatable :: gammainv11, gammainv13, gammainv31, gammainv33
+
+      !-------------------------------------------------------------------------
 
       ia = 1
 
@@ -1375,6 +1521,9 @@ contains
 
    end subroutine get_phi_and_bpar_for_response_matrix
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_apar_for_response_matrix(apar, iky, ie, dist)
 
       use grids_z, only: nzgrid
@@ -1387,13 +1536,17 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:), intent(in out) :: apar
       integer, intent(in) :: iky, ie
       character(*), intent(in) :: dist
 
+      ! Local variables
       integer :: idx, iseg, ikx, iz, ia
       integer :: izl_offset
       real, dimension(:), allocatable :: denominator
+
+      !-------------------------------------------------------------------------
 
       ia = 1
 
@@ -1436,6 +1589,13 @@ contains
 
    end subroutine get_apar_for_response_matrix
 
+!###############################################################################
+!############################# FINISH RESPONSE MATRIX ##########################
+!###############################################################################
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine finish_response_matrix
 
       use arrays_store_useful, only: response_matrix
@@ -1451,28 +1611,33 @@ contains
 
       integer :: ierr
 
+      !-------------------------------------------------------------------------
+
       if (response_window /= MPI_WIN_NULL) call mpi_win_free(response_window, ierr)
 #endif
 
       if (allocated(response_matrix)) deallocate (response_matrix)
-      response_matrix_initialized = .false.
+      initialised_response_matrix = .false.
 
    end subroutine finish_response_matrix
 
-!----------------------------------------------------------!
-! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! !
-! !!!!!!!!!!!!!!PARALLEL LU DECOMPOSITIONS!!!!!!!!!!!!!!!! !
-! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! !
-!----------------------------------------------------------!
+!###############################################################################
+!########################## PARALLEL LU DECOMPOSITIONS #########################
+!###############################################################################
 
 #ifdef ISO_C_BINDING
 
-   !this subroutine parallelizes the LU decomposition on a single
-   !node using MPIs shared memory interface
-   !It also splits up jtwist the independent matrices across nodes
-   !Ideal speed up: cores_per_node*min(jtwist,ncores)
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   ! This subroutine parallelizes the LU decomposition on a single
+   ! node using MPIs shared memory interface
+   ! It also splits up jtwist the independent matrices across nodes
+   ! Ideal speed up: cores_per_node*min(jtwist,ncores)
+   !****************************************************************************
    subroutine parallel_LU_decomposition_local(iky)
 
+      use mpi
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
       use arrays_store_useful, only: response_matrix
       use mp, only: barrier, broadcast, sum_allreduce
@@ -1482,28 +1647,27 @@ contains
       use mp_lu_decomposition, only: lu_decomposition_local
       use job_manage, only: njobs
       use grids_extended_zgrid, only: neigen
-      use mpi
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: iky
-
+      
+      ! Local variables
       integer, dimension(:, :), allocatable :: eig_limits
       integer, dimension(:), allocatable :: job_list
       logical, dimension(:, :), allocatable :: node_jobs
-
       complex, dimension(:, :), pointer :: lu
-
       type(c_ptr) :: bptr
-
       logical :: needs_send = .false.
-
       integer :: prior_focus, nodes_on_job
       integer :: ijob, j, ie, n, ediv, emod
       integer :: jroot, neig, ierr, win, nroot
       integer(kind=MPI_ADDRESS_KIND) :: win_size
       integer :: disp_unit = 1
       real :: dmax
+
+      !-------------------------------------------------------------------------
 
       prior_focus = curr_focus
 
@@ -1516,13 +1680,14 @@ contains
       job_list(iproc) = job
       call sum_allreduce(job_list)
 
+      ! Create a map of which nodes have which jobs
       if (proc0) then
          do j = 0, nproc - 1
-            node_jobs(inode, job_list(j)) = .true. !create a map of which nodes have which jobs
+            node_jobs(inode, job_list(j)) = .true. 
          end do
       end if
 
-      !make sure all processors have this map
+      ! Make sure all processors have this map
       call scope(allprocs)
       call mpi_allreduce &
          (MPI_IN_PLACE, node_jobs, size(node_jobs), MPI_LOGICAL, MPI_LOR, mp_comm, ierr)
@@ -1532,19 +1697,19 @@ contains
          jroot = -1
          do j = 0, nproc - 1
             if (job_list(j) == ijob) then
-               jroot = j !the first processor on this job will be the root process
+               jroot = j ! The first processor on this job will be the root process
                exit
             end if
          end do
 
-         if (jroot == -1) cycle !no processors on this node are on this job
+         if (jroot == -1) cycle ! No processors on this node are on this job
 
          if (iproc == jroot) neig = neigen(iky)
 
-         ! broadcast number of matrices
+         ! Broadcast number of matrices
          call broadcast(neig, jroot)
 
-         ! split up neig across nodes that have the current job
+         ! Split up neig across nodes that have the current job
          nodes_on_job = count(node_jobs(:, ijob))
          ediv = neig / nodes_on_job
          emod = mod(neig, nodes_on_job)
@@ -1570,24 +1735,24 @@ contains
                win_size = int(n * n, MPI_ADDRESS_KIND) * 2 * real_size !complex size
             end if
 
-            !broadcast size of matrix
+            ! Broadcast size of matrix
             call broadcast(n, jroot)
 
-            !allocate the window
+            ! Allocate the window
             call mpi_win_allocate_shared(win_size, disp_unit, MPI_INFO_NULL, mp_comm, bptr, win, ierr)
 
+            ! Make sure all the procs have the right memory address
             if (iproc /= jroot) then
-               !make sure all the procs have the right memory address
                call mpi_win_shared_query(win, jroot, win_size, disp_unit, bptr, ierr)
             end if
 
-            ! bind this c_ptr to our fortran matrix
+            ! Bind this c_ptr to our fortran matrix
             call c_f_pointer(bptr, lu, (/n, n/))
 
-            !load the matrix
+            ! Load the matrix
             if (iproc == jroot) lu = response_matrix(iky)%eigen(ie)%zloc
 
-            !syncronize the processors
+            ! Syncronize the processors
             call mpi_win_fence(0, win, ierr)
 
             ! All the processors have the matrix.
@@ -1595,7 +1760,7 @@ contains
             call lu_decomposition_local(mp_comm, jroot, win, lu, &
                                         response_matrix(iky)%eigen(ie)%idx, dmax)
 
-            !copy the decomposed matrix over
+            ! Copy the decomposed matrix over
             if (iproc == jroot) response_matrix(iky)%eigen(ie)%zloc = lu
 
             call mpi_win_free(win, ierr)
@@ -1604,15 +1769,17 @@ contains
 
       call scope(scrossdomprocs)
 
-      !copy all the matrices across all nodes
+      ! Copy all the matrices across all nodes
       if (sgproc0) then
          do ie = 1, neigen(iky)
             nroot = 0
             if (needs_send .and. &
                 (ie >= eig_limits(inode, job) .and. ie < eig_limits(inode + 1, job))) nroot = iproc
-            !first let processors know who is sending the data
+                
+            ! First let processors know who is sending the data
             call sum_allreduce(nroot)
-            !now send the data
+            
+            ! Now send the data
             call broadcast(response_matrix(iky)%eigen(ie)%zloc, nroot)
             call broadcast(response_matrix(iky)%eigen(ie)%idx, nroot)
          end do
@@ -1621,21 +1788,27 @@ contains
       call scope(prior_focus)
 
       deallocate (node_jobs, job_list, eig_limits)
+      
    end subroutine parallel_LU_decomposition_local
 
 #endif /* ISO_C_BINDING */
 
-   !this subroutine parallelizes the LU decomposition across
-   !all cores. Ideal speed up: ncores
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   ! This subroutine parallelizes the LU decomposition across
+   ! all cores. Ideal speed up: ncores
+   !****************************************************************************
    subroutine parallel_LU_decomposition_global(iky)
+
+#ifdef ISO_C_BINDING
+      use mp, only: sgproc0, scrossdomprocs
+#endif
 
       use arrays_store_useful, only: response_matrix
       use mp, only: barrier, broadcast, sum_allreduce
       use mp, only: mp_comm, scope, allprocs, sharedprocs, curr_focus
       use mp, only: job, iproc, proc0, nproc, mpicmplx
-#ifdef ISO_C_BINDING
-      use mp, only: sgproc0, scrossdomprocs
-#endif
       use job_manage, only: njobs
       use grids_extended_zgrid, only: neigen
       use mpi
@@ -1643,21 +1816,20 @@ contains
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: iky
 
+      ! Local variables
       integer, dimension(:), allocatable :: job_roots, eig_roots
       integer, dimension(:), allocatable :: row_limits, eig_limits
       integer, dimension(MPI_STATUS_SIZE) :: status
-
       real, parameter :: zero = 1.0e-20
       integer, dimension(:), allocatable :: idx
       complex, dimension(:, :), allocatable :: lu
       real, dimension(:), allocatable :: vv
       complex, dimension(:), allocatable :: dum
-
       integer :: sproc
       logical :: sproc0
-
       integer :: eig_comm, ceig_comm !c for 'cross'
       integer :: ieig_core, ceig_core, eig_cores
       integer :: ncomm
@@ -1668,8 +1840,9 @@ contains
       integer :: istage, nstage
       integer :: rdiv, rmod
       integer :: ediv, emod
-
       real :: dmax, tmp
+
+      !-------------------------------------------------------------------------
 
       prior_focus = curr_focus
 
@@ -1689,21 +1862,21 @@ contains
             neig = neigen(iky)
          end if
 
-         ! broadcast number of matrices for this job
+         ! Broadcast number of matrices for this job
          call broadcast(neig, job_roots(ijob))
 
-         !set up communicator for cores working on a single matrix
+         ! Set up communicator for cores working on a single matrix
          call mpi_comm_split(mp_comm, mod(iproc, neig), iproc, eig_comm, ierr)
          call mpi_comm_size(eig_comm, eig_cores, ierr)
          call mpi_comm_rank(eig_comm, ieig_core, ierr)
 
-         !set up a communicator that crosses the previous one
+         ! Set up a communicator that crosses the previous one
          call mpi_comm_split(mp_comm, ieig_core, iproc, ceig_comm, ierr)
          call mpi_comm_rank(ceig_comm, ceig_core, ierr)
 
          call mpi_bcast(ceig_core, 1, MPI_INT, 0, eig_comm, ierr)
 
-         ncomm = min(neig, nproc) !number of communicators
+         ncomm = min(neig, nproc) ! Number of communicators
 
          allocate (eig_roots(0:ncomm - 1)); eig_roots = 0
          allocate (eig_limits(0:ncomm))
@@ -1713,15 +1886,15 @@ contains
 
          call sum_allreduce(eig_roots)
 
-         ! split up neigen across cores
+         ! Split up neigen across cores
          ediv = neig / ncomm
          emod = mod(neig, ncomm)
 
-         !how many stages will the LU decomposition take?
+         ! How many stages will the LU decomposition take?
          nstage = ediv
          if (emod > 0) nstage = nstage + 1
 
-         !determine which parts of neigen this communicator processes
+         ! Determine which parts of neigen this communicator processes
          eig_limits(0) = 1
          do j = 1, ncomm
             eig_limits(j) = eig_limits(j - 1) + ediv
@@ -1730,36 +1903,36 @@ contains
             end if
          end do
 
+         ! Transfer the data from job root to root of subcommunicator
          do istage = 0, nstage - 1
-            !transfer the data from job root to root of subcommunicator
             do j = 0, ncomm - 1
                ie = eig_limits(j) + istage
                ie_hi = eig_limits(j + 1) - 1
                if (ie > ie_hi) cycle
 
-               if (iproc == job_roots(ijob) .and. iproc == eig_roots(j)) then !no need for data transfer
+               if (iproc == job_roots(ijob) .and. iproc == eig_roots(j)) then ! No need for data transfer
                   n = size(response_matrix(iky)%eigen(ie)%idx)
                   allocate (lu(n, n))
                   lu = response_matrix(iky)%eigen(ie)%zloc
-               else if (iproc == job_roots(ijob)) then !send data to subroots
-                  !send size of matrix
+               else if (iproc == job_roots(ijob)) then ! Send data to subroots
+                  ! Send size of matrix
                   n_send = size(response_matrix(iky)%eigen(ie)%idx)
                   call mpi_send(n_send, 1, MPI_INT, eig_roots(j), j, mp_comm, ierr)
-                  !send matrix
+                  ! Send matrix
                   call mpi_send(response_matrix(iky)%eigen(ie)%zloc, &
                                 n_send * n_send, mpicmplx, eig_roots(j), nproc + j, mp_comm, ierr)
-               else if (iproc == eig_roots(j)) then !subroot gets the data
-                  !receive size of matrix
+               else if (iproc == eig_roots(j)) then ! Subroot gets the data
+                  ! Receive size of matrix
                   call mpi_recv(n, 1, MPI_INT, job_roots(ijob), j, mp_comm, status, ierr)
                   allocate (lu(n, n))
-                  !receive matrix
+                  ! Receive matrix
                   call mpi_recv(lu, n * n, mpicmplx, job_roots(ijob), nproc + j, mp_comm, status, ierr)
                end if
             end do
 
-            if (istage >= (eig_limits(ceig_core + 1) - eig_limits(ceig_core))) cycle !nothing for this communicator to do
+            if (istage >= (eig_limits(ceig_core + 1) - eig_limits(ceig_core))) cycle ! Nothing for this communicator to do
 
-            !broadcast matrix and its size across the communicator
+            ! Broadcast matrix and its size across the communicator
             call mpi_bcast(n, 1, MPI_INT, 0, eig_comm, ierr)
             if (.not. allocated(lu)) allocate (lu(n, n))
             if (.not. allocated(vv)) allocate (vv(n))
@@ -1776,7 +1949,8 @@ contains
                write (*, *) 'singular matrix in lu_decomposition on job ', job, ', process ', iproc
             vv = 1.0 / vv
             do j = 1, n
-               !divide up the work using row_limits
+            
+               ! Divide up the work using row_limits
                rdiv = (n - j) / eig_cores
                rmod = mod(n - j, eig_cores)
                row_limits(0) = j + 1
@@ -1792,7 +1966,7 @@ contains
                   end do
                end if
 
-               !pivot if needed
+               ! Pivot if needed
                dmax = -1.0
                do k = j, n
                   tmp = vv(k) * abs(lu(k, j))
@@ -1801,7 +1975,7 @@ contains
                      imax = k
                   end if
                end do
-!         imax = (j-1) + imaxloc(vv(j:n)*cabs(lu(j:n,j)))
+
                if (j /= imax) then
                   dum = lu(imax, :)
                   lu(imax, :) = lu(j, :)
@@ -1810,7 +1984,7 @@ contains
                end if
                if (ieig_core == 0) idx(j) = imax
 
-               !get the lead multiplier
+               ! Get the lead multiplier
                if (lu(j, j) == 0.0) lu(j, j) = zero
                do i = j + 1, n
                   lu(i, j) = lu(i, j) / lu(j, j)
@@ -1836,28 +2010,31 @@ contains
                   end do
                end do
             end do
-            !LU decomposition ends here
+            
+            !-------------------------------------------------------------------
+            ! LU decomposition ends here
+            !-------------------------------------------------------------------
 
-            !copy the decomposed matrix over
+            ! Copy the decomposed matrix over
             do j = 0, ncomm - 1
 
                ie = eig_limits(j) + istage
                ie_hi = eig_limits(j + 1) - 1
                if (ie > ie_hi) cycle
 
-               if (iproc == job_roots(ijob) .and. iproc == eig_roots(j)) then !no need for data transfer
+               if (iproc == job_roots(ijob) .and. iproc == eig_roots(j)) then ! No need for data transfer
                   response_matrix(iky)%eigen(ie)%zloc = lu
                   response_matrix(iky)%eigen(ie)%idx = idx
-               else if (iproc == eig_roots(j)) then !subroot sends the data
-                  !send indices
+               else if (iproc == eig_roots(j)) then ! Subroot sends the data
+                  ! Send indices
                   call mpi_send(idx, n, MPI_INT, job_roots(ijob), j, mp_comm, ierr)
-                  !send matrix
+                  ! Send matrix
                   call mpi_send(lu, n * n, mpicmplx, job_roots(ijob), nproc + j, mp_comm, ierr)
-               else if (iproc == job_roots(ijob)) then !receive data from subroot
-                  !receive indices
+               else if (iproc == job_roots(ijob)) then ! Receive data from subroot
+                  ! Receive indices
                   call mpi_recv(response_matrix(iky)%eigen(ie)%idx, &
                                 n, MPI_INT, eig_roots(j), j, mp_comm, status, ierr)
-                  !receive matrix
+                  ! Receive matrix
                   call mpi_recv(response_matrix(iky)%eigen(ie)%zloc, &
                                 n * n, mpicmplx, eig_roots(j), nproc + j, mp_comm, status, ierr)
                end if
@@ -1868,9 +2045,9 @@ contains
       end do
 
 #ifdef ISO_C_BINDING
+      ! Copy all the matrices across all nodes
       if (sgproc0) then
          call scope(scrossdomprocs)
-         !copy all the matrices across all nodes
          do ie = 1, neigen(iky)
             call broadcast(response_matrix(iky)%eigen(ie)%zloc)
             call broadcast(response_matrix(iky)%eigen(ie)%idx)
@@ -1881,7 +2058,7 @@ contains
 #else
       call scope(prior_focus)
 
-      !copy all the matrices across all nodes
+      ! Copy all the matrices across all nodes
       do ie = 1, neigen(iky)
          call broadcast(response_matrix(iky)%eigen(ie)%zloc)
          call broadcast(response_matrix(iky)%eigen(ie)%idx)

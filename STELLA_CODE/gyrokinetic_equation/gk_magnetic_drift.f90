@@ -35,6 +35,7 @@
 !###############################################################################
 module gk_magnetic_drift
 
+   ! Load debug flags
    use debug_flags, only: debug => time_advance_debug
 
    implicit none
@@ -52,16 +53,18 @@ contains
    !****************************************************************************
    !                           Initialise explicit drifts
    !****************************************************************************
-   
    subroutine init_wdrift
 
       use neoclassical_terms, only: include_neoclassical_terms
-      use arrays_store_useful, only: wdriftinit
+      use arrays_store_useful, only: initialised_wdrift
       
       implicit none
 
-      if (wdriftinit) return
-      wdriftinit = .true.
+      !-------------------------------------------------------------------------
+
+      ! Only initialise once
+      if (initialised_wdrift) return
+      initialised_wdrift = .true.
       
       ! Allocate arrays that will be used thoughout the time advance
       call allocate_arrays_wdrift
@@ -78,7 +81,6 @@ contains
    
    !------------------------- Without neoclassical terms -----------------------
    subroutine init_wdrift_without_neoclassical_terms
-
       
       ! Parallelisation
       use mp, only: mp_abort
@@ -447,6 +449,8 @@ contains
       complex, dimension(:, :, :, :, :), allocatable :: g0k, g0y
       complex, dimension(:, :), allocatable :: g0k_swap
 
+      !-------------------------------------------------------------------------
+
       ! start the timing of the y component of the magnetic drift advance
       if (proc0) call time_message(.false., time_gke(:, 4), ' dgdy advance')
 
@@ -526,8 +530,12 @@ contains
 
    end subroutine advance_wdrifty_explicit
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! advance_wdriftx_explicit subroutine calculates and adds the x-component of the
    ! magnetic drift term to the RHS of the GK equation
+   !****************************************************************************
    subroutine advance_wdriftx_explicit(g, phi, bpar, gout)
 
       use mp, only: proc0
@@ -556,6 +564,8 @@ contains
       complex, dimension(:, :, :, :), allocatable :: dphidx, dbpardx
       complex, dimension(:, :, :, :, :), allocatable :: g0k, g0y
       complex, dimension(:, :), allocatable :: g0k_swap
+
+      !-------------------------------------------------------------------------
 
       ! start the timing of the x component of the magnetic drift advance
       if (proc0) call time_message(.false., time_gke(:, 5), ' dgdx advance')
@@ -641,7 +651,7 @@ contains
 
       use arrays_store_useful, only: wdriftx_g, wdrifty_g
       use arrays_store_useful, only: wdriftx_phi, wdrifty_phi
-      use arrays_store_useful, only: wdriftinit
+      use arrays_store_useful, only: initialised_wdrift
 
       implicit none
 
@@ -650,7 +660,7 @@ contains
       if (allocated(wdriftx_phi)) deallocate (wdriftx_phi)
       if (allocated(wdrifty_phi)) deallocate (wdrifty_phi)
 
-      wdriftinit = .false.
+      initialised_wdrift = .false.
 
    end subroutine finish_wdrift
    

@@ -8,22 +8,23 @@
 !###############################################################################
 module gk_parallel_streaming
 
+   ! Load the debug flags
    use debug_flags, only: debug => parallel_streaming_debug 
    
    implicit none
 
+   ! Make routines available to other modules
    public :: init_parallel_streaming, finish_parallel_streaming
    public :: advance_parallel_streaming_explicit
    public :: add_parallel_streaming_radial_variation
    public :: stream_tridiagonal_solve
-   public :: parallel_streaming_initialized
+   public :: initialised_parallel_streaming
    public :: stream, stream_c, stream_sign, gradpar_c
    public :: time_parallel_streaming
    public :: stream_rad_var1
    public :: stream_rad_var2
    public :: center_zed, get_dzed
    public :: get_zed_derivative_extended_domain
-
    public :: stream_correction
    public :: stream_correction_sign
    public :: stream_store_full, stream_full_sign
@@ -36,8 +37,6 @@ module gk_parallel_streaming
       module procedure center_zed_segment_complex
       module procedure center_zed_extended
    end interface center_zed
-
-   logical :: parallel_streaming_initialized = .false.
 
    integer, dimension(:), allocatable :: stream_sign
    real, dimension(:, :, :, :), allocatable :: stream
@@ -53,9 +52,14 @@ module gk_parallel_streaming
    integer, dimension(:,:), allocatable :: stream_correction_sign, stream_full_sign
    real, dimension(:, :, :, :), allocatable :: stream_correction, stream_store_full
 
+   logical :: initialised_parallel_streaming = .false.
+
 contains
 
-  subroutine init_parallel_streaming
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   subroutine init_parallel_streaming
 
       use calculations_finite_differences, only: fd3pt
       use stella_time, only: code_dt
@@ -80,10 +84,12 @@ contains
       real, dimension(:), allocatable :: energy
       real, dimension(:, :, :), allocatable :: stream_store
 
+      !-------------------------------------------------------------------------
+
       if(debug) write (*,*) 'No debug messages for parallel_streaming.f90 yet'
       
-      if (parallel_streaming_initialized) return
-      parallel_streaming_initialized = .true.
+      if (initialised_parallel_streaming) return
+      initialised_parallel_streaming = .true.
 
       if (debug) write (6, *) 'parallel_streaming::init_parallel_streaming'
       if (.not. allocated(stream)) allocate (stream(nalpha, -nzgrid:nzgrid, nvpa, nspec)); stream = 0.
@@ -154,10 +160,10 @@ contains
          deallocate (energy)
       end if
 
-      !> stream_sign set to +/- 1 depending on the sign of the parallel streaming term.
-      !> NB: stream_sign = -1 corresponds to positive advection velocity
-      !> only need to consider ia=1, iz=0 and is=1 because alpha, z and species dependences
-      !> do not lead to change in sign of the streaming pre-factor
+      ! stream_sign set to +/- 1 depending on the sign of the parallel streaming term.
+      ! NB: stream_sign = -1 corresponds to positive advection velocity
+      ! only need to consider ia=1, iz=0 and is=1 because alpha, z and species dependences
+      ! do not lead to change in sign of the streaming pre-factor
       do iv = 1, nvpa
          stream_sign(iv) = int(sign(1.0, stream(1, 0, iv, 1)))
          if(full_flux_surface) then 
@@ -181,15 +187,18 @@ contains
          end do
          if (.not. allocated(gradpar_c)) allocate (gradpar_c(-nzgrid:nzgrid, -1:1))
          gradpar_c = spread(gradpar, 2, 3)
-         !> get gradpar centred in zed for negative vpa (affects upwinding) 
+         ! get gradpar centred in zed for negative vpa (affects upwinding) 
          call center_zed(1, gradpar_c(:, -stream_sign(1)), -nzgrid)
-         !> get gradpar centred in zed for positive vpa (affects upwinding)
+         ! get gradpar centred in zed for positive vpa (affects upwinding)
          call center_zed(nvpa, gradpar_c(:, -stream_sign(nvpa)), -nzgrid)
          stream = spread(stream_c, 1, nalpha)
       end if
 
    end subroutine init_parallel_streaming
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_invert_stream_operator
 
       use grids_z, only: delzed
@@ -200,8 +209,9 @@ contains
       implicit none
 
       integer :: nz, nseg_max
- 
-        
+
+      !-------------------------------------------------------------------------
+      
       ! <iz_up> and <iz_low> are not defined when we dont have any connections  
       if (neigen_max>0) then 
           nz = maxval(iz_up - iz_low)
@@ -240,6 +250,9 @@ contains
 
    end subroutine init_invert_stream_operator
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine advance_parallel_streaming_explicit(g, phi, bpar, gout)
 
       use mp, only: proc0
@@ -271,18 +284,20 @@ contains
       complex, dimension(:, :, :, :), allocatable :: g0y, g1y
       complex, dimension(:, :), allocatable :: g0_swap
 
-      !> if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
-      !> if full flux surface (flux annulus), will need to calculate in y space
+      !-------------------------------------------------------------------------
 
-      !> start the timer for the parallel streaming part of the time advance
+      ! if flux tube simulation parallel streaming stays in ky,kx,z space with ky,kx,z local
+      ! if full flux surface (flux annulus), will need to calculate in y space
+
+      ! start the timer for the parallel streaming part of the time advance
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
-      !> allocate arrays needed for intermmediate calculations
+      ! allocate arrays needed for intermmediate calculations
       allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (dgphi_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (dgbpar_dz(naky, nakx, -nzgrid:nzgrid, ntubes))
-      !> if simulating a full flux surface, will also need version of the above arrays
-      !> that is Fourier transformed to y-space
+      ! if simulating a full flux surface, will also need version of the above arrays
+      ! that is Fourier transformed to y-space
       if (full_flux_surface) then
          allocate (g0_swap(naky_all, ikx_max))
          allocate (g0y(ny, ikx_max, -nzgrid:nzgrid, ntubes))
@@ -290,22 +305,22 @@ contains
       end if
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         !> get (iv,imu,is) indices corresponding to ivmu super-index
+         ! get (iv,imu,is) indices corresponding to ivmu super-index
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
 
-         !> obtain <phi> 
+         ! obtain <phi> 
          if (full_flux_surface) then
             call gyro_average(phi, g0(:, :, :, :), j0_ffs(:, :, :, ivmu))
          else
             call gyro_average(phi, ivmu, g0(:, :, :, :))
          end if
 
-         !> get d<phi>/dz, with z the parallel coordinate and store in dgphi_dz
-         !> note that this should be a centered difference to avoid numerical
-         !> unpleasantness to do with inexact cancellations in later velocity integration
-         !> see appendix of the stella JCP 2019 for details
+         ! get d<phi>/dz, with z the parallel coordinate and store in dgphi_dz
+         ! note that this should be a centered difference to avoid numerical
+         ! unpleasantness to do with inexact cancellations in later velocity integration
+         ! see appendix of the stella JCP 2019 for details
          call get_dgdz_centered(g0, ivmu, dgphi_dz)
          
          if (include_bpar) then
@@ -315,19 +330,19 @@ contains
             dgbpar_dz = 0.
          end if
 
-         !> compute dg/dz in k-space and store in g0
+         ! compute dg/dz in k-space and store in g0
          call get_dgdz(g(:, :, :, :, ivmu), ivmu, g0)
 
-         !> if simulating a full flux surface, need to obtain the contribution from parallel streaming
-         !> in y-space, so FFT d(g/F)/dz from ky to y
+         ! if simulating a full flux surface, need to obtain the contribution from parallel streaming
+         ! in y-space, so FFT d(g/F)/dz from ky to y
          if (full_flux_surface) then
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
-                  !> get dg/dz in real space
+                  ! get dg/dz in real space
                   call swap_kxky(g0(:, :, iz, it), g0_swap)
                   call transform_ky2y(g0_swap, g0y(:, :, iz, it))
 
-                  !> get d<phi>/dz in real space
+                  ! get d<phi>/dz in real space
                   call swap_kxky(dgphi_dz(:, :, iz, it), g0_swap)
                   call transform_ky2y(g0_swap, g1y(:, :, iz, it))
                end do
@@ -336,10 +351,10 @@ contains
             g0y(:, :, :, :) = g0y(:, :, :, :) + g1y(:, :, :, :) * spec(is)%zt * maxwell_fac(is) &
                  * maxwell_vpa(iv, is) * spread(spread(maxwell_mu(:, :, imu, is), 2, ikx_max), 4, ntubes) * maxwell_fac(is)
                
-            !> multiply d(g/F)/dz and d<phi>/dz terms with vpa*(b . grad z) and add to source (RHS of GK equation)
+            ! multiply d(g/F)/dz and d<phi>/dz terms with vpa*(b . grad z) and add to source (RHS of GK equation)
             call add_stream_term_full_ffs(g0y, ivmu, gout(:, :, :, :, ivmu))
          else
-            !> bpar term is zero unless include_bpar = T, see if statement above.
+            ! bpar term is zero unless include_bpar = T, see if statement above.
             ia = 1
             if (maxwellian_normalization) then
                g0(:, :, :, :) = g0(:, :, :, :) + dgphi_dz(:, :, :, :) * spec(is)%zt & 
@@ -357,15 +372,18 @@ contains
 
       end do
 
-      !> deallocate intermediate arrays used in this subroutine
+      ! deallocate intermediate arrays used in this subroutine
       deallocate (g0, dgphi_dz, dgbpar_dz)
       if (full_flux_surface) deallocate (g0y, g1y, g0_swap)
 
-      !> finish timing the subroutine
+      ! finish timing the subroutine
       if (proc0) call time_message(.false., time_parallel_streaming(:, 1), ' Stream advance')
 
    end subroutine advance_parallel_streaming_explicit
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine add_parallel_streaming_radial_variation(g, gout, rhs)
 
       use stella_layouts, only: vmu_lo
@@ -391,6 +409,8 @@ contains
 
       complex, dimension(:, :, :, :), allocatable :: g0, g1, g2, g3
       complex, dimension(:, :), allocatable :: g0k
+
+      !-------------------------------------------------------------------------
 
       allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate (g1(naky, nakx, -nzgrid:nzgrid, ntubes))
@@ -448,6 +468,9 @@ contains
 
    end subroutine add_parallel_streaming_radial_variation
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dgdz(g, ivmu, dgdz)
 
       use calculations_finite_differences, only: third_order_upwind_zed
@@ -470,6 +493,8 @@ contains
       integer :: iseg, ie, it, iky, iv
       complex, dimension(2) :: gleft, gright
 
+      !-------------------------------------------------------------------------
+
       ! FLAG -- assuming delta zed is equally spaced below!
       iv = iv_idx(vmu_lo, ivmu)
       do iky = 1, naky
@@ -490,6 +515,9 @@ contains
 
    end subroutine get_dgdz
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dgdz_centered(g, ivmu, dgdz)
 
       use calculations_finite_differences, only: second_order_centered_zed
@@ -511,6 +539,9 @@ contains
 
       integer :: iseg, ie, iky, iv, it
       complex, dimension(2) :: gleft, gright
+
+      !-------------------------------------------------------------------------
+      
       ! FLAG -- assuming delta zed is equally spaced below!
       iv = iv_idx(vmu_lo, ivmu)
       do iky = 1, naky
@@ -572,6 +603,9 @@ contains
 !     end do
 ! end subroutine get_dgdz_variable
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine add_stream_term(g, ivmu, src)
 
       use stella_layouts, only: vmu_lo
@@ -586,6 +620,8 @@ contains
 
       integer :: iz, iv, is
 
+      !-------------------------------------------------------------------------
+
       iv = iv_idx(vmu_lo, ivmu)
       is = is_idx(vmu_lo, ivmu)
       do iz = -nzgrid, nzgrid
@@ -594,6 +630,9 @@ contains
 
    end subroutine add_stream_term
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine add_stream_term_full_ffs(g, ivmu, src)
 
       use stella_layouts, only: vmu_lo
@@ -609,6 +648,8 @@ contains
 
       integer :: iz, iy, iv, is
 
+      !-------------------------------------------------------------------------
+
       iv = iv_idx(vmu_lo, ivmu)
       is = is_idx(vmu_lo, ivmu)
       do iz = -nzgrid, nzgrid
@@ -619,6 +660,9 @@ contains
 
    end subroutine add_stream_term_full_ffs
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine stream_tridiagonal_solve(iky, ie, iv, is, g)
 
       use calculations_finite_differences, only: tridag
@@ -635,6 +679,8 @@ contains
       integer :: nz, nseg_max, sgn, n_ext
       integer :: ia
       real, dimension(:), allocatable :: a, b, c
+
+      !-------------------------------------------------------------------------
 
       ia = 1
 
@@ -679,6 +725,9 @@ contains
 
    end subroutine stream_tridiagonal_solve
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_dzed(iv, g, dgdz)
 
       use calculations_finite_differences, only: fd_cell_centres_zed
@@ -697,6 +746,8 @@ contains
 
       integer :: iky, ie, iseg, it
       complex, dimension(2) :: gleft, gright
+
+      !-------------------------------------------------------------------------
 
       do it = 1, ntubes
          do iky = 1, naky
@@ -717,6 +768,9 @@ contains
 
    end subroutine get_dzed
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine get_zed_derivative_extended_domain(iv, f, f_left, f_right, df_dz)
 
       use grids_z, only: delzed
@@ -729,10 +783,15 @@ contains
       complex, intent(in) :: f_left, f_right
       complex, dimension(:), intent(out) :: df_dz
 
+      !-------------------------------------------------------------------------
+
       call fd_cell_centres_zed(1, f, delzed(0), stream_sign(iv), f_left, f_right, df_dz)
 
    end subroutine get_zed_derivative_extended_domain
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine center_zed_extended(iv, g)
 
       use calculations_finite_differences, only: cell_centres_zed
@@ -752,6 +811,8 @@ contains
       integer :: iky, ie, iseg, it
       complex, dimension(2) :: gleft, gright
       complex, dimension(:, :, :), allocatable :: gc
+
+      !-------------------------------------------------------------------------
 
       allocate (gc(nakx, -nzgrid:nzgrid, ntubes))
 
@@ -776,10 +837,14 @@ contains
 
    end subroutine center_zed_extended
 
-   !> center_zed_segment_real takes as arguments the vpa index (iv)
-   !> the z-depenendent real function f, and the starting iz index for the array f (llim),
-   !> and overwrites f with the cell-centered version
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   ! center_zed_segment_real takes as arguments the vpa index (iv)
+   ! the z-depenendent real function f, and the starting iz index for the array f (llim),
+   ! and overwrites f with the cell-centered version
    ! it is assumed that any function passed to this subroutine is periodic
+   !****************************************************************************
    subroutine center_zed_segment_real(iv, f, llim)
 
       use parameters_numerical, only: zed_upwind_plus, zed_upwind_minus
@@ -788,6 +853,8 @@ contains
       real, dimension(llim:), intent(in out) :: f
 
       integer :: ulim
+
+      !-------------------------------------------------------------------------
 
       ulim = llim + size(f) - 1
 
@@ -801,9 +868,13 @@ contains
 
    end subroutine center_zed_segment_real
 
-   !> center_zed_segment_complex takes as arguments the vpa index (iv)
-   !> the z-depenendent conplex function f, and the starting iz index for the array f (llim),
-   !> and overwrites f with the cell-centered version;
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   ! center_zed_segment_complex takes as arguments the vpa index (iv)
+   ! the z-depenendent conplex function f, and the starting iz index for the array f (llim),
+   ! and overwrites f with the cell-centered version;
+   !****************************************************************************
    subroutine center_zed_segment_complex(iv, f, llim, periodic)
 
       use parameters_numerical, only: zupwnd_p => zed_upwind_plus
@@ -814,6 +885,8 @@ contains
       logical, intent(in) :: periodic
 
       integer :: ulim
+
+      !-------------------------------------------------------------------------
 
       ulim = llim + size(f) - 1
 
@@ -836,11 +909,17 @@ contains
 
    end subroutine center_zed_segment_complex
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine finish_parallel_streaming
 
       use parameters_numerical, only: stream_implicit, driftkinetic_implicit
       use parameters_physics, only: full_flux_surface
+      
       implicit none
+
+      !-------------------------------------------------------------------------
 
       if (allocated(stream)) deallocate (stream)
       if (allocated(stream_c)) deallocate (stream_c)
@@ -859,10 +938,13 @@ contains
          end if
       end if
 
-      parallel_streaming_initialized = .false.
+      initialised_parallel_streaming = .false.
 
    end subroutine finish_parallel_streaming
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine finish_invert_stream_operator
 
       implicit none

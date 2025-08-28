@@ -21,6 +21,9 @@ module add_explicit_terms
 
 contains
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine add_explicit_term(g, pre_factor, src)
 
       use stella_layouts, only: vmu_lo
@@ -29,27 +32,34 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       real, dimension(-nzgrid:, vmu_lo%llim_proc:), intent(in) :: pre_factor
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: src
 
+      ! Local variables
       integer :: ivmu
       integer :: iky, ikx, iz, it
+      
+      !-------------------------------------------------------------------------
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
+            do iz = -nzgrid, nzgrid
                do ikx = 1, nakx
                   do iky = 1, naky
                      src(iky, ikx, iz, it, ivmu) = src(iky, ikx, iz, it, ivmu) + pre_factor(iz, ivmu) * g(iky, ikx, iz, it, ivmu)
                   end do
                end do
-               end do
+            end do
          end do
       end do
 
    end subroutine add_explicit_term
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    ! add vM . grad y d<phi>/dy or vM . grad x d<phi>/dx (or equivalents with g) or omega_* * d<phi>/dy term to RHS of GK equation
    subroutine add_explicit_term_ffs(g, pre_factor, src)
 
@@ -59,22 +69,26 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       real, dimension(:, -nzgrid:, vmu_lo%llim_proc:), intent(in) :: pre_factor
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: src
 
+      ! Local variables
       integer :: ivmu
       integer :: ia, ikx, iz, it
+      
+      !-------------------------------------------------------------------------
 
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
+            do iz = -nzgrid, nzgrid
                do ikx = 1, ikx_max
                   do ia = 1, nalpha
                      src(ia, ikx, iz, it, ivmu) = src(ia, ikx, iz, it, ivmu) + pre_factor(ia, iz, ivmu) * g(ia, ikx, iz, it, ivmu)
                   end do
                end do
-               end do
+            end do
          end do
       end do
 

@@ -7,10 +7,12 @@
 !###############################################################################
 module gk_radial_variation
 
+   ! Load the debug flags
    use debug_flags, only: debug => parallel_streaming_debug 
 
    implicit none
 
+   ! Make routines available to other modules
    public :: init_radial_variation
    public :: advance_radial_variation
    public :: finish_radial_variation
@@ -26,47 +28,56 @@ contains
 
    subroutine init_radial_variation
 
+      ! Parallelisation
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use stella_time, only: code_dt
 
+      ! Grids
       use grids_species, only: spec, pfac
       use grids_z, only: nzgrid
-
       use grids_kxky, only: nalpha
+      use grids_velocity, only: vperp2, vpa, mu
+      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
+      
+      ! Rescale drifts
       use parameters_physics, only: xdriftknob, ydriftknob, wstarknob
 
+      ! Geometry
       use geometry, only: drhodpsi, dydalpha, gfac
       use geometry, only: dBdrho, geo_surf, q_as_x
       use geometry, only: dcvdriftdrho, dcvdrift0drho
       use geometry, only: dgbdriftdrho, dgbdrift0drho
 
-      use grids_velocity, only: vperp2, vpa, mu
-      use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-
+      ! Arrays
       use arrays_store_useful, only: wstarp
       use arrays_store_useful, only: wdriftx_phi, wdrifty_phi
       use arrays_store_useful, only: wdriftpx_g, wdriftpy_g
       use arrays_store_useful, only: wdriftpx_phi, wdriftpy_phi
-      use arrays_store_useful, only: radialinit
+      use arrays_store_useful, only: initialised_radial_variation
    
       implicit none
 
+      ! Local variables
       integer :: is, imu, iv, ivmu
       real :: fac
       real, dimension(:, :), allocatable :: energy
-
       real, dimension(:, :), allocatable :: wcvdrifty, wgbdrifty
       real, dimension(:, :), allocatable :: wcvdriftx, wgbdriftx
 
-      if (radialinit) return
-      radialinit = .true.
+      !-------------------------------------------------------------------------
 
+      ! Only initialise once
+      if (initialised_radial_variation) return
+      initialised_radial_variation = .true.
+
+      ! Allocate arrays
       allocate (wcvdrifty(nalpha, -nzgrid:nzgrid))
       allocate (wgbdrifty(nalpha, -nzgrid:nzgrid))
       allocate (wcvdriftx(nalpha, -nzgrid:nzgrid))
       allocate (wgbdriftx(nalpha, -nzgrid:nzgrid))
 
+      ! Allocate arrays
       if (.not. allocated(wstarp)) &
          allocate (wstarp(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc)); wstarp = 0.0
       if (.not. allocated(wdriftpx_phi)) &
@@ -151,6 +162,7 @@ contains
 
       end do
 
+      ! Deallocate temporary arrays
       deallocate (energy, wcvdriftx, wgbdriftx, wcvdrifty, wgbdrifty)
 
    end subroutine init_radial_variation
@@ -194,16 +206,19 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
 
+      ! Local variables
       integer :: ia, ivmu, iv, imu, is, iz, it
-
       complex, dimension(:, :), allocatable :: g0k, g1k, g0a
       complex, dimension(:, :, :, :, :), allocatable :: g_corr
 
-      allocate (g0k(naky, nakx))
+      !-------------------------------------------------------------------------
 
+      ! Allocate arrays
+      allocate (g0k(naky, nakx))
       allocate (g1k(naky, nakx))
       allocate (g0a(naky, nakx))
 
@@ -297,9 +312,11 @@ contains
          end do
       end do
 
+      ! Deallocate temporary arrays
       deallocate (g0k, g1k, g0a)
       if (allocated(g_corr)) deallocate (g_corr)
 
+      ! Stop timer
       if (proc0) call time_message(.false., time_gke(:, 10), ' radial variation advance')
 
    end subroutine advance_radial_variation
@@ -307,7 +324,6 @@ contains
    !******************************************************************************
    !                           MULTIBOX COMMUNICATION SUBROUTINE
    !******************************************************************************
-
    subroutine mb_communicate(g_in)
 
       use mp, only: job
@@ -321,7 +337,10 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: g_in
+
+      !-------------------------------------------------------------------------
 
       if (runtype_option_switch == runtype_multibox) then
          if (job /= 1) then
@@ -342,14 +361,19 @@ contains
 
    end subroutine mb_communicate
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine finish_radial_variation
 
-      use arrays_store_useful, only: radialinit
+      use arrays_store_useful, only: initialised_radial_variation
       use arrays_store_useful, only: wdriftpx_g, wdriftpy_g
       use arrays_store_useful, only: wdriftpx_phi, wdriftpy_phi
       use arrays_store_useful, only: wstarp
 
       implicit none
+
+      !-------------------------------------------------------------------------
 
       if (allocated(wstarp)) deallocate (wstarp)
       if (allocated(wdriftpx_g)) deallocate (wdriftpx_g)
@@ -357,7 +381,7 @@ contains
       if (allocated(wdriftpx_phi)) deallocate (wdriftpx_phi)
       if (allocated(wdriftpy_phi)) deallocate (wdriftpy_phi)
 
-      radialinit = .false.
+      initialised_radial_variation = .false.
 
    end subroutine finish_radial_variation
 
