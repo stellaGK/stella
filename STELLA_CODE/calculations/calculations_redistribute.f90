@@ -1,11 +1,19 @@
+!###############################################################################
+!                                 REDISTRIBUTE                                  
+!###############################################################################
+! This module ...
+!###############################################################################
 module calculations_redistribute
 
    use redistribute, only: redist_type
 
    implicit none
 
+   ! Make routines available to other modules
    public :: init_redistribute, finish_redistribute
    public :: test_kymus_to_vmus_redistribute
+   
+   ! Make parameters available to other modules
    public :: kxkyz2vmu
    public :: kxyz2vmu
    public :: xyz2vmu
@@ -16,14 +24,27 @@ module calculations_redistribute
    type(redist_type) :: kxkyz2vmu
    type(redist_type) :: kxyz2vmu
    type(redist_type) :: xyz2vmu
+   
    ! this is a redist_type where we got from a layout with ky, mu and species parallelised
    ! and redistribute so that vpa, mu and species are parallelised
    type(redist_type) :: kymus2vmus
    
-   logical :: redistribute_initialized = .false.
+   ! Only initialise once
+   logical :: initialised_redistribute = .false.
+   logical :: initialized_kxkyz_to_vmu_redistribute = .false.
+   logical :: initialized_kxyz_to_vmu_redistribute = .false.
+   logical :: initialized_xyz_to_vmu_redistribute = .false.
+   logical :: initialized_kymus_to_vmus_redistribute = .false.
 
 contains
 
+!###############################################################################
+!########################### INITIALISE REDISTRIBUTE ###########################
+!###############################################################################
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_redistribute
 
       use parameters_physics, only: full_flux_surface
@@ -32,9 +53,13 @@ contains
 
       implicit none
 
-      if (redistribute_initialized) return
-      redistribute_initialized = .true.
+      !----------------------------------------------------------------------
 
+      ! Only initialise once
+      if (initialised_redistribute) return
+      initialised_redistribute = .true.
+
+      ! Initialise the redistribute schemes
       call init_kxkyz_to_vmu_redistribute
       if (full_flux_surface) call init_kxyz_to_vmu_redistribute
       if (include_parallel_nonlinearity) call init_xyz_to_vmu_redistribute
@@ -42,6 +67,9 @@ contains
 
    end subroutine init_redistribute
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_kxkyz_to_vmu_redistribute
 
       use mp, only: nproc
@@ -62,12 +90,14 @@ contains
       integer :: ikxkyz, ivmu
       integer :: iv, imu, iky, ikx, iz, it
       integer :: ip, n
-      logical :: initialized = .false.
 
-      if (initialized) return
-      initialized = .true.
+      !----------------------------------------------------------------------
 
-      ! count number of elements to be redistributed to/from each processor
+      ! Only initialise once
+      if (initialized_kxkyz_to_vmu_redistribute) return
+      initialized_kxkyz_to_vmu_redistribute = .true.
+
+      ! Count number of elements to be redistributed to/from each processor
       nn_to = 0
       nn_from = 0
       do ikxkyz = kxkyz_lo%llim_world, kxkyz_lo%ulim_world
@@ -97,16 +127,18 @@ contains
          end if
       end do
 
-      ! get local indices of elements distributed to/from other processors
+      ! Get local indices of elements distributed to/from other processors
       nn_to = 0
       nn_from = 0
 
-      ! loop over all vmu indices, find corresponding y indices
+      ! Loop over all vmu indices, find corresponding y indices
       do ikxkyz = kxkyz_lo%llim_world, kxkyz_lo%ulim_world
          do imu = 1, nmu
             do iv = 1, nvpa
-               ! obtain corresponding y indices
+            
+               ! Obtain corresponding y indices
                call kxkyzidx2vmuidx(iv, imu, ikxkyz, kxkyz_lo, vmu_lo, iky, ikx, iz, it, ivmu)
+               
                ! if vmu index local, set:
                ! ip = corresponding y processor
                ! from_list%first-third arrays = iv,imu,ikxkyz  (ie vmu indices)
@@ -119,6 +151,7 @@ contains
                   from_list(ip)%second(n) = imu
                   from_list(ip)%third(n) = ikxkyz
                end if
+               
                ! if y index local, set ip to corresponding vmu processor
                ! set to_list%first,second arrays = iky,iy  (ie y indices)
                ! will receive to_list from ip
@@ -132,6 +165,7 @@ contains
                   to_list(ip)%fourth(n) = it
                   to_list(ip)%fifth(n) = ivmu
                end if
+               
             end do
          end do
       end do
@@ -157,15 +191,15 @@ contains
       to_high(5) = vmu_lo%ulim_alloc
 
       call set_redist_character_type(kxkyz2vmu, 'kxkyz2vmu')
-
-      call init_redist(kxkyz2vmu, 'c', to_low, to_high, to_list, &
-                       from_low, from_high, from_list)
-
+      call init_redist(kxkyz2vmu, 'c', to_low, to_high, to_list, from_low, from_high, from_list)
       call delete_list(to_list)
       call delete_list(from_list)
 
    end subroutine init_kxkyz_to_vmu_redistribute
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_kxyz_to_vmu_redistribute
 
       use mp, only: nproc
@@ -186,12 +220,14 @@ contains
       integer :: ikxyz, ivmu
       integer :: iv, imu, iy, ikx, iz, it
       integer :: ip, n
-      logical :: initialized = .false.
 
-      if (initialized) return
-      initialized = .true.
+      !----------------------------------------------------------------------
 
-      ! count number of elements to be redistributed to/from each processor
+      ! Only initialise once
+      if (initialized_kxyz_to_vmu_redistribute) return
+      initialized_kxyz_to_vmu_redistribute = .true.
+
+      ! Count number of elements to be redistributed to/from each processor
       nn_to = 0
       nn_from = 0
       do ikxyz = kxyz_lo%llim_world, kxyz_lo%ulim_world
@@ -221,16 +257,18 @@ contains
          end if
       end do
 
-      ! get local indices of elements distributed to/from other processors
+      ! Get local indices of elements distributed to/from other processors
       nn_to = 0
       nn_from = 0
 
-      ! loop over all vmu indices, find corresponding y indices
+      ! Loop over all vmu indices, find corresponding y indices
       do ikxyz = kxyz_lo%llim_world, kxyz_lo%ulim_world
          do imu = 1, nmu
             do iv = 1, nvpa
-               ! obtain corresponding y indices
+            
+               ! Obtain corresponding y indices
                call kxyzidx2vmuidx(iv, imu, ikxyz, kxyz_lo, vmu_lo, iy, ikx, iz, it, ivmu)
+               
                ! if vmu index local, set:
                ! ip = corresponding y processor
                ! from_list%first-third arrays = iv,imu,ikxyz  (ie vmu indices)
@@ -243,6 +281,7 @@ contains
                   from_list(ip)%second(n) = imu
                   from_list(ip)%third(n) = ikxyz
                end if
+               
                ! if y index local, set ip to corresponding vmu processor
                ! set to_list%first,second arrays = iy,iy  (ie y indices)
                ! will receive to_list from ip
@@ -256,6 +295,7 @@ contains
                   to_list(ip)%fourth(n) = it
                   to_list(ip)%fifth(n) = ivmu
                end if
+               
             end do
          end do
       end do
@@ -281,15 +321,15 @@ contains
       to_high(5) = vmu_lo%ulim_alloc
 
       call set_redist_character_type(kxyz2vmu, 'kxyz2vmu')
-
-      call init_redist(kxyz2vmu, 'c', to_low, to_high, to_list, &
-                       from_low, from_high, from_list)
-
+      call init_redist(kxyz2vmu, 'c', to_low, to_high, to_list, from_low, from_high, from_list)
       call delete_list(to_list)
       call delete_list(from_list)
 
    end subroutine init_kxyz_to_vmu_redistribute
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_xyz_to_vmu_redistribute
 
       use mp, only: nproc
@@ -310,12 +350,14 @@ contains
       integer :: ixyz, ivmu
       integer :: iv, imu, iy, ix, iz, it
       integer :: ip, n
-      logical :: initialized = .false.
 
-      if (initialized) return
-      initialized = .true.
+      !----------------------------------------------------------------------
 
-      ! count number of elements to be redistributed to/from each processor
+      ! Only initialise once
+      if (initialized_xyz_to_vmu_redistribute) return
+      initialized_xyz_to_vmu_redistribute = .true.
+
+      ! Count number of elements to be redistributed to/from each processor
       nn_to = 0
       nn_from = 0
       do ixyz = xyz_lo%llim_world, xyz_lo%ulim_world
@@ -345,16 +387,18 @@ contains
          end if
       end do
 
-      ! get local indices of elements distributed to/from other processors
+      ! Get local indices of elements distributed to/from other processors
       nn_to = 0
       nn_from = 0
 
-      ! loop over all vmu indices, find corresponding y indices
+      ! Loop over all vmu indices, find corresponding y indices
       do ixyz = xyz_lo%llim_world, xyz_lo%ulim_world
          do imu = 1, nmu
             do iv = 1, nvpa
-               ! obtain corresponding y indices
+            
+               ! Obtain corresponding y indices
                call xyzidx2vmuidx(iv, imu, ixyz, xyz_lo, vmu_lo, iy, ix, iz, it, ivmu)
+               
                ! if vmu index local, set:
                ! ip = corresponding y processor
                ! from_list%first-third arrays = iv,imu,ixyz  (ie vmu indices)
@@ -367,6 +411,7 @@ contains
                   from_list(ip)%second(n) = imu
                   from_list(ip)%third(n) = ixyz
                end if
+               
                ! if y index local, set ip to corresponding vmu processor
                ! set to_list%first,second arrays = iy,iy  (ie y indices)
                ! will receive to_list from ip
@@ -380,6 +425,7 @@ contains
                   to_list(ip)%fourth(n) = it
                   to_list(ip)%fifth(n) = ivmu
                end if
+               
             end do
          end do
       end do
@@ -405,15 +451,15 @@ contains
       to_high(5) = vmu_lo%ulim_alloc
 
       call set_redist_character_type(xyz2vmu, 'xyz2vmu')
-
-      call init_redist(xyz2vmu, 'r', to_low, to_high, to_list, &
-                       from_low, from_high, from_list)
-
+      call init_redist(xyz2vmu, 'r', to_low, to_high, to_list, from_low, from_high, from_list)
       call delete_list(to_list)
       call delete_list(from_list)
 
    end subroutine init_xyz_to_vmu_redistribute
 
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
    subroutine init_kymus_to_vmus_redistribute
 
       use mp, only: nproc
@@ -435,12 +481,14 @@ contains
       integer :: ikymus, ivmu
       integer :: iv, iky, ikx, iz, it
       integer :: ip, n
-      logical :: initialized = .false.
 
-      if (initialized) return
-      initialized = .true.
+      !----------------------------------------------------------------------
 
-      ! count number of elements to be redistributed to/from each processor
+      ! Only initialise once
+      if (initialized_kymus_to_vmus_redistribute) return
+      initialized_kymus_to_vmus_redistribute = .true.
+
+      ! Count number of elements to be redistributed to/from each processor
       nn_to = 0
       nn_from = 0
       do ikymus = kymus_lo%llim_world, kymus_lo%ulim_world
@@ -476,18 +524,20 @@ contains
          end if
       end do
 
-      ! get local indices of elements distributed to/from other processors
+      ! Get local indices of elements distributed to/from other processors
       nn_to = 0
       nn_from = 0
 
-      ! loop over all indices in the kymus layout and find the corresponding indices for iky and ivmu
+      ! Loop over all indices in the kymus layout and find the corresponding indices for iky and ivmu
       do ikymus = kymus_lo%llim_world, kymus_lo%ulim_world
          do iv = 1, nvpa
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
                   do ikx = 1, nakx
-                     ! obtain corresponding ky indices
+                  
+                     ! Obtain corresponding ky indices
                      call kymusidx2vmuidx(iv, ikymus, kymus_lo, vmu_lo, iky, ivmu)
+                     
                      ! if kymus index local, set:
                      ! ip = corresponding y processor
                      ! from_list%first-third arrays = ikx,iz,it,iv,ikymus
@@ -512,6 +562,7 @@ contains
                         to_list(ip)%fourth(n) = it
                         to_list(ip)%fifth(n) = ivmu
                      end if
+                     
                   end do
                end do
             end do
@@ -543,14 +594,28 @@ contains
       to_high(5) = vmu_lo%ulim_alloc
 
       call set_redist_character_type(kymus2vmus, 'kymus2vmus')
-
-      call init_redist(kymus2vmus, 'c', to_low, to_high, to_list, &
-                       from_low, from_high, from_list)
-
+      call init_redist(kymus2vmus, 'c', to_low, to_high, to_list, from_low, from_high, from_list)
       call delete_list(to_list)
       call delete_list(from_list)
 
    end subroutine init_kymus_to_vmus_redistribute
+
+   
+!###############################################################################
+!############################ FINISH REDISTRIBUTE ##############################
+!###############################################################################
+
+   subroutine finish_redistribute
+
+      implicit none
+
+      initialised_redistribute = .false.
+
+   end subroutine finish_redistribute
+   
+!###############################################################################
+!############################## TESTS - DEBUGGING ##############################
+!###############################################################################
 
    subroutine test_kymus_to_vmus_redistribute
 
@@ -568,11 +633,16 @@ contains
       complex, dimension (:, :, :, :), allocatable :: gtmp
       integer :: ikymus, ivmu, iv, imu, is, it, iz, ikx, iky, izmod
 
+      !----------------------------------------------------------------------
+
+      ! Allocate temporary arrays
       allocate (gtmp(naky, nakx, 2*nzgrid+1, ntubes))
+      
       do ivmu = vmu_lo%llim_world, vmu_lo%ulim_world
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
          is = is_idx(vmu_lo, ivmu)
+         
          if (idx_local(vmu_lo, iv, imu, is)) then
             do iz = -nzgrid, nzgrid
                izmod = iz + nzgrid + 1
@@ -584,6 +654,7 @@ contains
          else if (proc0) then
             call receive (gtmp, proc_id(vmu_lo, ivmu))
          end if
+         
          if (proc0) then
             do it = 1, ntubes
                do iz = 1, 2*nzgrid+1
@@ -595,11 +666,16 @@ contains
                end do
             end do
          end if
+         
       end do
+      
+      ! Deallocate temporary arrays
       deallocate (gtmp)
 
+      ! Test scatter
       call scatter(kymus2vmus, gnew, g_kymus)
       
+      ! Allocate temporary arrays
       allocate (gtmp(nakx, 2*nzgrid+1, ntubes, nvpa))
       do ikymus = kymus_lo%llim_world, kymus_lo%ulim_world
          iky = iky_idx(kymus_lo, ikymus)
@@ -628,11 +704,16 @@ contains
             end do
          end if
       end do
+      
+      ! Deallocate temporary arrays
       deallocate (gtmp)
 
+      ! Test Gather
       call gather(kymus2vmus, g_kymus, gnew)
       
+      ! Allocate temporary arrays
       allocate (gtmp(naky, nakx, 2*nzgrid+1, ntubes))
+      
       do ivmu = vmu_lo%llim_world, vmu_lo%ulim_world
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
@@ -660,16 +741,10 @@ contains
             end do
          end if
       end do
+      
+      ! Deallocate temporary arrays
       deallocate (gtmp)
      
    end subroutine test_kymus_to_vmus_redistribute
-   
-   subroutine finish_redistribute
-
-      implicit none
-
-      redistribute_initialized = .false.
-
-   end subroutine finish_redistribute
 
 end module calculations_redistribute

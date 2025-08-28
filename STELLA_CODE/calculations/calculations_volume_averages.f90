@@ -5,7 +5,10 @@
 !###############################################################################
 module calculations_volume_averages
 
+   ! Make routines available to other modules
    public :: init_volume_averages, finish_volume_averages
+   
+   ! Make parameters available to other modules
    public :: fieldline_average
    public :: volume_average
    public :: flux_surface_average_ffs
