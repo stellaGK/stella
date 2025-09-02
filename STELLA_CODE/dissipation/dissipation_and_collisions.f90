@@ -116,7 +116,9 @@ contains
                   write (*, *) 'Coll. algorithm: explicit'
                end if
             else if (collision_model == "fokker-planck") then
-               write (*, *) 'Coll. model:     Fokker-Planck'
+               write (*, *) 'Coll. model:     Fokker-Planck'; write (*,*) ''
+               write (*, *) 'WARNING: Collisions have only been implemented for kinetic ions and electrons.'
+               write (*, *) 'It is important that ions are the first species and electrons the second species.'; write (*,*) ''
                if (collisions_implicit) then
                   write (*, *) 'Coll. algorithm: implicit'
                else

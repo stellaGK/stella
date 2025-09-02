@@ -4,7 +4,15 @@
 ! 
 ! This module ...
 ! 
+! See [2024 - Von Boetticher - Linearised Fokker–Planck collision model for gyrokinetic simulations]
+! 
 ! TODO - Write docs and split up in smaller modules
+! 
+! TODO - stella changed a lot since collisions have been implemented
+!        compare the collisions with an older stella version!
+! 
+! TODO - Abort stella if electrons aren't the second species
+!        since the collision routines assume this!
 ! 
 !###############################################################################
 module dissipation_coll_fokkerplanck
@@ -19,22 +27,43 @@ module dissipation_coll_fokkerplanck
 
    private
 
-   logical :: vpa_operator, mu_operator
+   !----------------------------- input parameters -----------------------------
+   
+   ! Enable inter-species and intra-species collisio0ns
+   logical :: interspec, intraspec
+   
+   ! Rescale the collision frequencies nu^ab = <spec(isa)%vnew(isb)> by
+   real :: iiknob, ieknob, eeknob, eiknob
+   
+   ! Rescale the velocity-dependent collision frequency nu_D^{ab} = <nud> by
+   real :: deflknob
+   
+   ! Approximation of Lorentz operator using mass-ratio expansion
+   logical :: eimassr_approx
+   
+   logical :: advfield_coll
+   logical :: spitzer_problem, no_j1l1, no_j1l2, no_j0l2
    logical :: density_conservation, density_conservation_field, density_conservation_tp
    logical ::exact_conservation_tp, exact_conservation
-   logical :: spitzer_problem, no_j1l1, no_j1l2, no_j0l2
+   logical :: vpa_operator, mu_operator
    logical :: fieldpart, testpart
-   logical :: interspec, intraspec
-   logical :: advfield_coll
-
-   integer :: nresponse = 1
-   real :: cfac, cfac2
-   real :: nuxfac
-   real :: iiknob, ieknob, eeknob, eiknob, eiediffknob, eideflknob, deflknob
-   logical :: eimassr_approx
+   
    integer :: jmax = 1
    integer :: lmax = 1
    integer :: nvel_local
+   
+   real :: eiediffknob, eideflknob
+   real :: cfac, cfac2
+   real :: nuxfac
+   real :: i1fac, i2fac
+   
+   !--------------------------------- unsorted ---------------------------------
+
+   
+   ! <velvpamu> = x_s = v_SI / v_{th,s} = |v| = sqrt(v_parallel**2 + v_perp**2)
+   real, dimension(:, :, :), allocatable :: velvpamu
+
+   integer :: nresponse = 1
 
    real, dimension(:, :), allocatable :: aa_vpa, bb_vpa, cc_vpa
    complex, dimension(:, :, :), allocatable :: fp_response
@@ -48,7 +77,6 @@ module dissipation_coll_fokkerplanck
    integer, dimension(:, :, :, :, :), allocatable :: ipiv
    real, dimension(:, :, :, :, :), allocatable :: nus, nuD, nupa, nux
    real, dimension(:, :, :, :), allocatable :: mw, modmw
-   real, dimension(:, :, :), allocatable :: velvpamu
    integer :: info
 
    real, dimension(:), allocatable :: wgts_v
@@ -62,7 +90,6 @@ module dissipation_coll_fokkerplanck
    real, dimension(:, :, :, :, :), allocatable :: jm0
    real, dimension(:), allocatable :: mwnorm
    real, dimension(:), allocatable :: modmwnorm
-   real :: i1fac, i2fac
 
    ! Only initialise once
    logical :: initialised_fokker_planck = .false.
@@ -74,7 +101,7 @@ contains
 !###############################################################################
 
    !****************************************************************************
-   !                                      Title
+   !                Read the input parameters from the input file               
    !****************************************************************************
    subroutine read_parameters_fp
 
@@ -136,34 +163,40 @@ contains
 !###############################################################################
 
    !****************************************************************************
-   !                                      Title
+   !                Initialise the Fokker-Planck collision model                
    !****************************************************************************
    subroutine init_collisions_fp(collisions_implicit, cfl_dt_vpadiff, cfl_dt_mudiff)
 
+      ! Flags
+      use parameters_numerical, only: fully_explicit
+      
+      ! Geometry
+      use geometry, only: bmag
+      
+      ! Grids
       use grids_species, only: spec, nspec
       use grids_velocity, only: dvpa, dmu, mu, nmu
-      use geometry, only: bmag
-      use stella_layouts
-      use parameters_numerical, only: fully_explicit
-      use stella_common_types, only: spec_type
 
       implicit none
 
+      ! Arguments
       logical, intent(in) :: collisions_implicit
       real, intent(out) :: cfl_dt_vpadiff, cfl_dt_mudiff
 
+      ! Local variables
       integer :: is, is2
       integer, parameter :: ion_species = 1
       integer, parameter :: electron_species = 2
-      integer, parameter :: impurity_species = 3 ! AVB: clear up difference between slowing down species ('3' in species.f90) and impurity species
       real :: vnew_max
 
       !-------------------------------------------------------------------------
 
+      ! Only initialise once
       if (initialised_fokker_planck) return
       initialised_fokker_planck = .true.
 
-      ! disable inter-species collisions if interspec==false
+      ! Disable inter-species collisions if <interspec> = False
+      ! Disable it by setting the collision frequency to 0 if s != s'
       if (.not. interspec) then
          do is = 1, nspec
             do is2 = 1, nspec
@@ -174,7 +207,8 @@ contains
          end do
       end if
 
-      ! disable intra-species collisions if intraspec==false
+      ! Disable intra-species collisions if <intraspec> = False
+      ! Disable it by setting the collision frequency to 0 if s == s'
       if (.not. intraspec) then
          do is = 1, nspec
             do is2 = 1, nspec
@@ -185,7 +219,8 @@ contains
          end do
       end if
 
-      ! control inter-species collisions
+      ! Control inter-species and intra-species collisions
+      ! Rescale the collisions by <iiknob>, <ieknob>, <eeknob> and <eiknob>
       do is = 1, nspec
          do is2 = 1, nspec
             if ((spec(is)%type == ion_species) .and. (spec(is2)%type == ion_species)) then
@@ -200,95 +235,156 @@ contains
                spec(is)%vnew(is2) = spec(is)%vnew(is2)
             end if
             ! AVB: to do - add impurity collision control
+            ! Note that <impurity_species> has been removed from stella
          end do
       end do
 
-      ! initialise speed dependent collision frequencies
+      ! Initialise speed-dependent collision frequencies
       call init_nusDpa
 
+      ! Initialise the implicit collision algorithms
       if (collisions_implicit) then
-         write (*, *) 'Coll. algorithm: implicit'
+      
+         ! Remember the option
+         write (*, *) 'Collision algorithm: implicit'
          fully_explicit = .false.
 
+         ! Initialise the routines needed for the implicit collision algorithms
          call init_legendre
          call init_vgrid
          call init_bessel_fn
          call init_fp_diffmatrix
          call init_deltaj_vmu
          call init_fp_conserve
+         
+      ! Initialise the explicit collision algorithms
       else
+      
+         ! Find the largest collision frequency
          vnew_max = 0.0
          do is = 1, nspec
             vnew_max = max(vnew_max, maxval(spec(is)%vnew))
          end do
+         
+         ! Set the CFL condition for the explicit algorithms
          cfl_dt_vpadiff = 2.0 * dvpa**2 / vnew_max
          cfl_dt_mudiff = minval(bmag) / (vnew_max * maxval(mu(2:) / dmu(:nmu - 1)**2))
+         
       end if
 
    end subroutine init_collisions_fp
 
    !****************************************************************************
-   !                                      Title
+   !             Compute the collision frequencies nuD, nus and nupa            
+   !****************************************************************************
+   ! Compute the velocity-dependent collision frequencies nuD, nus and nupa.
+   ! See equations (9), (10) and (11) in [2024 - Von Boetticher]
+   !     x_s = v_SI / v_{th,s}
+   !     G(x) =  [erf(x) - x*erf'(x)]/(2*x**2)
+   !     nu^ab = <spec(isa)%vnew(isb)>
+   !     nu_D^{ab} = nu^ab * [ erf(x_b) - G(x_b) ] / x^3_a = <nud>
+   !     nu_S^{ab} = nu^ab * 4 * G(x_b) / x_a = <nus>
+   !     nu_parallel^{ab} = nu_ab * (1/2) * 1 / x^2_a = <nupa>
    !****************************************************************************
    subroutine init_nusDpa
 
-      ! AVB: compute the collision frequencies nuD, nus and nupa
-
-      use grids_z, only: nzgrid
-      use calculations_velocity_integrals, only: integrate_vmu
-      use grids_velocity, only: nmu, mu, vpa, nvpa
-      use geometry, only: bmag
-      use grids_species, only: spec, nspec
-      use spfunc, only: erf => erf_ext
+      ! Calculations
       use calculations_finite_differences, only: fd3pt
-      use grids_velocity, only: maxwell_mu, maxwell_vpa
+      use calculations_velocity_integrals, only: integrate_vmu
+      use spfunc, only: erf => erf_ext
       use constants, only: pi
+      
+      ! Grids
+      use grids_z, only: nzgrid
+      use grids_species, only: spec, nspec
+      use grids_velocity, only: nmu, mu, vpa, nvpa
+      use grids_velocity, only: maxwell_mu, maxwell_vpa
+      
+      ! Geometry
+      use geometry, only: bmag
 
       implicit none
 
+      ! Local variables
       real, dimension(-nzgrid:nzgrid) :: v2mwint, v4mwint
       integer :: ia, imu, iv, iz, is, isb
-      real :: x, Gf, massr
+      real :: x_a, G_xb, massr, x_b
 
       !-------------------------------------------------------------------------
 
+      ! Allocate the velocity-dependent collision frequencies vs (vpa, mu, z, s, s')
       if (.not. allocated(nus)) allocate (nus(nvpa, nmu, -nzgrid:nzgrid, nspec, nspec))
       if (.not. allocated(nuD)) allocate (nuD(nvpa, nmu, -nzgrid:nzgrid, nspec, nspec))
       if (.not. allocated(nupa)) allocate (nupa(nvpa, nmu, -nzgrid:nzgrid, nspec, nspec))
       if (.not. allocated(nux)) allocate (nux(nvpa, nmu, -nzgrid:nzgrid, nspec, nspec))
+      
+      ! Allocate <mw> = exp(v**2) and <velvpamu> = |v_ref|
       if (.not. allocated(mw)) allocate (mw(nvpa, nmu, -nzgrid:nzgrid, nspec))
-      if (.not. allocated(modmw)) allocate (modmw(nvpa, nmu, -nzgrid:nzgrid, nspec))
       if (.not. allocated(velvpamu)) allocate (velvpamu(nvpa, nmu, -nzgrid:nzgrid))
+      
+      ! Allocate function <modmw> with vanishing energy moment
+      if (.not. allocated(modmw)) allocate (modmw(nvpa, nmu, -nzgrid:nzgrid, nspec))
 
+      ! Assume we only have a single field line
       ia = 1
 
+      ! Iterate over species-a and species-b
       do is = 1, nspec
          do isb = 1, nspec
 
+            ! Mass ratio between species-a and species-b
+            ! Used to switch between |v_ref| and |v_s|
             massr = spec(is)%mass / spec(isb)%mass
 
+            ! Iterate over the (z, vpa, mu) points
             do iz = -nzgrid, nzgrid
                do iv = 1, nvpa
                   do imu = 1, nmu
-                     x = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mu(imu))
-                     Gf = (erf(x / sqrt(massr)) - x / sqrt(massr) * (2 / sqrt(pi)) * exp(-x**2 / massr)) / (2 * x**2 / massr)
-                     nuD(iv, imu, iz, is, isb) = deflknob * spec(is)%vnew(isb) * (erf(x / sqrt(massr)) - Gf) / x**3
-                     nus(iv, imu, iz, is, isb) = spec(is)%vnew(isb) * 2 * (1 + 1./massr) * Gf / x ! nus is never used; note - have assumed T_a = T_b here
-                     nupa(iv, imu, iz, is, isb) = spec(is)%vnew(isb) * 2 * Gf / x**3
-                     velvpamu(iv, imu, iz) = x
+                  
+                     ! Calculate x_a = v_{SI,a} / v_{th,a} = |v_a| = sqrt(v_parallel**2 + v_perp**2)
+                     ! TODO - This calculation is only correct for is = 1 ?
+                     ! What this calculates is x_ref = |v_ref|?
+                     x_a = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mu(imu))
+                     velvpamu(iv, imu, iz) = x_a
+                     
+                     ! Convert <x> = |v_ref| to |v_b|
+                     x_b = x_a / sqrt(massr)
+                     
+                     ! Calculate the maxwellian factor: exp(v**2) = exp(v_parallel**2) * exp(v_perp**2)
                      mw(iv, imu, iz, is) = maxwell_vpa(iv, is) * maxwell_mu(1, iz, imu, is)
+                     
+                     ! Calculate the Chandrasekhar function G(x) = [erf(x) - x*erf'(x)]/(2*x**2)
+                     ! Note that we only need G(x_b) in the equations for <nud> and <nus>
+                     ! TODO - write equation for erf'(x)
+                     G_xb = (erf(x_b) - x_b * (2 / sqrt(pi)) * exp(-x_b**2)) / (2 * x_b**2)
+                     
+                     ! Calculate <nud> = nu_D^{ab} = nu^ab * [ erf(x_b) - G(x_b) ] / x^3_a
+                     ! TODO - equation doesn't match?
+                     nuD(iv, imu, iz, is, isb) = deflknob * spec(is)%vnew(isb) * (erf(x_b) - G_xb) / x_a**3
+                     
+                     ! Calculate <nus> = nu_S^{ab} = nu^ab * 4 * G(x_b) / x_a
+                     ! TODO - equation doesn't match?
+                     ! Note that <nus> is never used
+                     ! Note that we have assumed T_a = T_b here
+                     nus(iv, imu, iz, is, isb) = spec(is)%vnew(isb) * 2 * (1 + 1./massr) * G_xb / x_a
+                     
+                     ! Calculate <nupa> = nu_parallel^{ab} = nu_ab * (1/2) * 1 / x^2_a
+                     nupa(iv, imu, iz, is, isb) = spec(is)%vnew(isb) * 2 * G_xb / x_a**3
+                     
                   end do
                end do
             end do
 
             ! electron-ion collisions
             ! approximation of Lorentz operator using mass-ratio expansion
+            ! NOTE - electrons are assumed to be the second species
+            ! Calculate <nud> = nu_D^{ie} = nu^ie * ???
             if ((is == 2) .and. (isb == 1) .and. (eimassr_approx)) then
                do iz = -nzgrid, nzgrid
                   do iv = 1, nvpa
                      do imu = 1, nmu
-                        x = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mu(imu))
-                        nuD(iv, imu, iz, is, isb) = deflknob * spec(is)%vnew(isb) * 1./x**3
+                        x_a = sqrt(vpa(iv)**2 + 2 * bmag(ia, iz) * mu(imu))
+                        nuD(iv, imu, iz, is, isb) = deflknob * spec(is)%vnew(isb) * 1./x_a**3
                      end do
                   end do
                end do
@@ -297,7 +393,7 @@ contains
          end do
       end do
 
-      ! get a function with vanishing energy moment, modmw
+      ! Get a function <modmw> with vanishing energy moment
       do is = 1, nspec
          do iz = -nzgrid, nzgrid
             call integrate_vmu(velvpamu(:, :, iz)**2 * mw(:, :, iz, is), iz, v2mwint(iz))
