@@ -103,6 +103,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/gyrokinetic_equation/timestep_calculations.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
   ../STELLA_CODE/parameters/debug_flags.f90
+  ../STELLA_CODE/parameters/file_units.f90
   ../STELLA_CODE/parameters/interface_random_number_generator.f90
   ../STELLA_CODE/parameters/parameters_diagnostics.f90
   ../STELLA_CODE/parameters/parameters_multibox.f90
