@@ -4,7 +4,13 @@
 ! 
 ! This module ...
 ! 
-! See [2024 - Von Boetticher - Linearised Fokker–Planck collision model for gyrokinetic simulations]
+! See [2024 - Von Boetticher - Linearised Fokker–Planck collision model for gyrokinetic simulations]ç
+! 
+! Collisions have only been implemented for kinetic ions and electrons. It is
+! important that ions are the first species, and electrons the second species.
+! 
+! The basic Spitzer collision frequency nu^ab is given by equation (12) in [2024 - Von Boetticher]:
+!     nu^ab = n_b * e_a^2 * e_b^2 * ln Lambda / (4 * pi * varepsilon_0^2 * m_a^2 * v_{th,a}^3)
 ! 
 ! TODO - Write docs and split up in smaller modules
 ! 
@@ -35,8 +41,17 @@ module dissipation_coll_fokkerplanck
    ! Rescale the collision frequencies nu^ab = <spec(isa)%vnew(isb)> by
    real :: iiknob, ieknob, eeknob, eiknob
    
-   ! Rescale the velocity-dependent collision frequency nu_D^{ab} = <nud> by
+   ! Rescale the velocity-dependent collision frequencies
+   !     nu_D^{ab} = <deflknob> * nu^ab * [ erf(x_b) - G(x_b) ] / x^3_a = <nud>
+   !     nu_x^{ab} = <nuxfac> * (nu_parallel^{ab} - nu_D^{ab}) = <nux> 
    real :: deflknob
+   real :: nuxfac
+   
+   ! Rescale the electron-ion collisios, i.e., <eiediffknob> controls e-i energy diffusion
+   !     nu_D^{ei} = <eideflknob> * nu_D^{ei}
+   !     nu_x^{ei} = <nuxfac> * (<eiediffknob> * nu_parallel^{ei} - <eideflknob> * nu_D^{ei})
+   real :: eiediffknob
+   real :: eideflknob
    
    ! Approximation of Lorentz operator using mass-ratio expansion
    logical :: eimassr_approx
@@ -52,10 +67,9 @@ module dissipation_coll_fokkerplanck
    integer :: lmax = 1
    integer :: nvel_local
    
-   real :: eiediffknob, eideflknob
    real :: cfac, cfac2
-   real :: nuxfac
    real :: i1fac, i2fac
+  
    
    !--------------------------------- unsorted ---------------------------------
 
@@ -69,8 +83,6 @@ module dissipation_coll_fokkerplanck
    complex, dimension(:, :, :), allocatable :: fp_response
    integer, dimension(:, :), allocatable :: diff_idx
 
-   complex, dimension(:, :, :, :, :), allocatable :: aa_blcs, cc_blcs
-   complex, dimension(:, :, :, :, :), allocatable :: bb_blcs
    complex, dimension(:, :, :, :, :, :), allocatable :: cdiffmat_band
    complex, dimension(:, :, :, :), allocatable :: blockmatrix
    complex, dimension(:, :, :), allocatable :: blockmatrix_sum
@@ -90,6 +102,15 @@ module dissipation_coll_fokkerplanck
    real, dimension(:, :, :, :, :), allocatable :: jm0
    real, dimension(:), allocatable :: mwnorm
    real, dimension(:), allocatable :: modmwnorm
+   
+   ! The discretisation matrix [ <code_dt> * C_test^{ab} ] is block tri-diagonal.
+   !     - aa_blcs stores subdiagonal blocks
+   !     - bb_blcs diagonal blocks 
+   !     - cc_blcs superdiagonal blocks
+   ! The blocks have dimensions (nvpa, nmu, nmu, ikxkyz, is).
+   complex, dimension(:, :, :, :, :), allocatable :: aa_blcs
+   complex, dimension(:, :, :, :, :), allocatable :: bb_blcs
+   complex, dimension(:, :, :, :, :), allocatable :: cc_blcs
 
    ! Only initialise once
    logical :: initialised_fokker_planck = .false.
@@ -285,6 +306,7 @@ contains
    !     nu_D^{ab} = nu^ab * [ erf(x_b) - G(x_b) ] / x^3_a = <nud>
    !     nu_S^{ab} = nu^ab * 4 * G(x_b) / x_a = <nus>
    !     nu_parallel^{ab} = nu_ab * (1/2) * 1 / x^2_a = <nupa>
+   !     nu_x^ab = nu_parallel^ab - nu_D^ab = <nux> 
    !****************************************************************************
    subroutine init_nusDpa
 
@@ -333,7 +355,7 @@ contains
          do isb = 1, nspec
 
             ! Mass ratio between species-a and species-b
-            ! Used to switch between |v_ref| and |v_s|
+            ! Is used to switch between |v_ref| and |v_s|
             massr = spec(is)%mass / spec(isb)%mass
 
             ! Iterate over the (z, vpa, mu) points
@@ -375,8 +397,8 @@ contains
                end do
             end do
 
-            ! electron-ion collisions
-            ! approximation of Lorentz operator using mass-ratio expansion
+            ! Take care of electron-ion collisions
+            ! Approximation of Lorentz operator using mass-ratio expansion
             ! NOTE - electrons are assumed to be the second species
             ! Calculate <nud> = nu_D^{ie} = nu^ie * ???
             if ((is == 2) .and. (isb == 1) .and. (eimassr_approx)) then
@@ -402,10 +424,15 @@ contains
          end do
       end do
 
+      ! Define nu_x^ab = <nux> = nu_parallel^ab - nu_D^ab = <nupa> - <nuD>
+      ! Here <nuxfac> is an input parameter used to rescale <nux>
+      ! ERROR - <deflknob> is repeated here, it's already present in the definition of <nuD>
       nux = nuxfac * (nupa - deflknob * nuD)
 
+      ! Take care of kinetic electrons
+      ! <eiediffknob> controls e-i energy diffusion, note that it is also used in blockmatrix
+      ! ERROR - <deflknob> is repeated here, it's already present in the definition of <nuD>
       if (nspec > 1) then
-         ! eiediffknob controls e-i energy diffusion, note that it is also used in blockmatrix
          nux(:, :, :, 2, 1) = nuxfac * (eiediffknob * nupa(:, :, :, 2, 1) - eideflknob * deflknob * nuD(:, :, :, 2, 1))
          nuD(:, :, :, 2, 1) = eideflknob * nuD(:, :, :, 2, 1)
       end if
@@ -415,59 +442,79 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
+   ! Calculate the discretisation matrix - <code_dt> * C_test^{ab}
+   ! 
+   ! Because of mixed vpa-mu derivatives in the test particle operator,
+   ! this matrix is block tri-diagonal, with dimension nmu*nvpa x nmu*nvpa.
+   ! Therefore, we store and operate on the matrix in band format.
+   !     - aa_blcs stores subdiagonal blocks
+   !     - bb_blcs diagonal blocks 
+   !     - cc_blcs superdiagonal blocks
+   ! 
+   ! Note that aa_blcs(1,:,:) and cc_blcs(nvpa,:,:) are never used.
+   ! 
+   ! The mu-derivatives are contained within blocks, thus the blocks have
+   ! dimension nmu x nmu. The blocks have dimensions (nvpa, nmu, nmu, ikxkyz, is).
+   !****************************************************************************
    subroutine init_fp_diffmatrix
-
-      use stella_time, only: code_dt
-      use grids_species, only: nspec, spec
-      use grids_velocity, only: dvpa, vpa, nvpa, mu, nmu, maxwell_mu, maxwell_vpa, dmu
-      use grids_z, only: nzgrid
+      
+      ! Parallelisation
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+      use file_utils, only: open_output_file, close_output_file
+
+      ! Grids
+      use grids_z, only: nzgrid
+      use stella_time, only: code_dt
+      use grids_kxky, only: naky, nakx
+      use grids_species, only: nspec, spec
+      use grids_velocity, only: dvpa, vpa, nvpa
+      use grids_velocity, only: dmu, mu, nm
+      use grids_velocity, only: maxwell_mu, maxwell_vpa
+      use stella_common_types, only: spec_type
+      
+      ! Geometry
       use geometry, only: bmag
       use arrays_store_useful, only: kperp2
+      
+      ! Calculations
       use constants, only: pi
-      use stella_common_types, only: spec_type
-      use grids_kxky, only: naky, nakx
       use spfunc, only: erf => erf_ext
-      use file_utils, only: open_output_file, close_output_file
 
       implicit none
 
+      ! Local variables
       integer :: ikxkyz, iky, ikx, iz, is, isb
       integer :: imu, ia, iv, ivv, imm, imu2
       integer :: nc, nb, lldab, bm_colind, bm_rowind
       real :: vpap, vpam, vfac, mum, mup
       real :: xpv, xmv, nupapv, nupamv, nuDpv, nuDmv, mwpv, mwmv, gam_mu, gam_mum, gam_mup
       real :: mwm, mwp, nuDm, nuDp, nupam, nupap, xm, xp
-      real :: nuDfac, massr, eiediff, eidefl
-
-      integer, parameter :: ion_species = 1
-      integer, parameter :: electron_species = 2
+      real :: massr, eiediff, eidefl
 
       !-------------------------------------------------------------------------
 
+      ! Allocate blocks of the discretisation matrix [ <code_dt> * C_test^{ab} ]
       if (.not. allocated(aa_blcs)) allocate (aa_blcs(nvpa, nmu, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc, nspec))
       if (.not. allocated(bb_blcs)) allocate (bb_blcs(nvpa, nmu, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc, nspec))
       if (.not. allocated(cc_blcs)) allocate (cc_blcs(nvpa, nmu, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc, nspec))
+      
+      ! Allocate ??
       if (.not. allocated(cdiffmat_band)) allocate (cdiffmat_band(3 * (nmu + 1) + 1, nmu * nvpa, naky, nakx, -nzgrid:nzgrid, nspec))
       if (.not. allocated(ipiv)) allocate (ipiv(nvpa * nmu, naky, nakx, -nzgrid:nzgrid, nspec))
 
-      ! AVB: calculate the discretisation matrix -\Delta t C_test^{ab}
-      ! because of mixed vpa-mu derivatives in the test particle operator
-      ! this matrix is block tri-diagonal, with dimension nmu*nvpa x nmu*nvpa
-      ! store and operate with the matrix in band format
-
-      ! aa_blcs stores subdiagonal blocks, bb_blcs diagonal blocks and cc_blcs superdiagonal blocks
-      ! aa_blcs(1,:,:) and cc_blcs(nvpa,:,:) are never used
-      ! mu-derivatives are contained within blocks, thus blocks have dimension nmu x nmu
-
+      ! Assume we only have a single field line
       ia = 1
-      vfac = 1 ! zero vpa-operator, in beta
-      nuDfac = 1.
+      
+      ! zero vpa-operator, in beta (??)
+      vfac = 1 
+      
+      ! Initialise the blocks of the discretisation matrix to zero
       aa_blcs = 0.
       bb_blcs = 0.
       cc_blcs = 0.
 
+      ! Iterate over (kx,ky,z,mu,vpa,s)
       do imu = 1, nmu
          do iv = 1, nvpa
             do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -476,12 +523,17 @@ contains
                iz = iz_idx(kxkyz_lo, ikxkyz)
                is = is_idx(kxkyz_lo, ikxkyz)
 
+                ! Add eon-eon and eon-ion collisions only for Spitzer problem
                if (spitzer_problem) then
-                  if (.not. (spec(is)%type == electron_species)) cycle ! add eon-eon and eon-ion collisions only for Spitzer problem
+                  if (.not. (spec(is)%type == electron_species)) cycle 
                end if
 
+               ! We are already iterating over <is> = species-a
+               ! Start iterating over <isb> = species-b
                do isb = 1, nspec
-                  ! for Spitzer problem, disable e-i energy diffusion if eiediffknob = 0.
+               
+                  ! For Spitzer problem, disable e-i energy diffusion if eiediffknob = 0.
+                  ! TODO - the if-else loop has the same code in it?
                   if (spitzer_problem) then
                      if ((is == 2) .and. (isb == 1)) then
                         eiediff = eiediffknob
@@ -500,6 +552,8 @@ contains
                      end if
                   end if
 
+                  ! Mass ratio between species-a and species-b
+                  ! Is used to switch between |v_ref| and |v_s|
                   massr = spec(is)%mass / spec(isb)%mass
 
                   if (iv == 1) then
