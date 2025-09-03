@@ -88,6 +88,7 @@ contains
       call read_input_file_z_grid
       call check_inputs_z_grid
       call calculate_z_grid_parameters
+      call write_parameters_to_input_file
 
    contains
    
@@ -152,6 +153,25 @@ contains
          if (full_flux_surface) zed_equal_arc = .true.
       
       end subroutine check_inputs_z_grid
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+            
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&z_grid'
+         write (unit, '(A, I0)') '  nzed = ', nzed
+         write (unit, '(A, I0)') '  nperiod = ', nperiod
+         write (unit, '(A, I0)') '  ntubes = ', ntubes
+         write (unit, '(A, L0)') '  zed_equal_arc = ', zed_equal_arc
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_z_grid
 
@@ -177,6 +197,7 @@ contains
       if (.not. proc0) return
       call set_default_z_boundary_condition
       call read_input_file_z_boundary_condition
+      call write_parameters_to_input_file
 
    contains
    
@@ -202,13 +223,11 @@ contains
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_z_boundary_condition
       
-         use file_utils, only: input_unit_exist, error_unit
+         use file_utils, only: input_unit_exist
+         use file_units, only: unit_error_file
          use text_options, only: text_option, get_option_value
 
          implicit none 
-
-         ! Variables needed to read the input file
-         integer :: ierr
          
          ! Link text options for <boundary_option> to an integer value
          type(text_option), dimension(7), parameter :: boundaryopts = &
@@ -231,11 +250,29 @@ contains
          if (dexist) read (unit=in_file, nml=z_boundary_condition)
 
          ! Read the text option in <boundary_option> and store it in <boundary_option_switch>
-         ierr = error_unit()
          call get_option_value(boundary_option, boundaryopts, boundary_option_switch, &
-            ierr, 'boundary_option in namelist_z_grid')
+            unit_error_file, 'boundary_option in namelist_z_grid')
 
       end subroutine read_input_file_z_boundary_condition
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&z_boundary_condition'
+         write (unit, '(A, A, A)') '  boundary_option = "', trim(boundary_option),'"'
+         write (unit, '(A, ES0.2)') '  shat_zero = ', shat_zero
+         write (unit, '(A, ES0.2)') '  grad_x_grad_y_zero = ', grad_x_grad_y_zero
+         write (unit, '(A, ES0.2)') '  dkx_over_dky = ', dkx_over_dky
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_z_boundary_condition
 

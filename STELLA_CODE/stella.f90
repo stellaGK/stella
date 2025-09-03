@@ -75,7 +75,6 @@ contains
       implicit none
 
       logical :: stop_stella = .false.
-      integer :: ierr
       
       !-------------------------------------------------------------------------
 
@@ -125,8 +124,7 @@ contains
          call time_message(.false., time_diagnose_stella, ' diagnostics')
          
          ! Make sure the error file is written
-         ierr = error_unit()
-         call flush_output_file(ierr)
+         call flush_output_file(error_unit())
          
          ! Increase the time step counter
          istep = istep + 1
@@ -153,6 +151,8 @@ contains
       ! Files
       use file_utils, only: flush_output_file
       use file_utils, only: error_unit
+      use file_units, only: close_input_file_with_defaults
+      use file_units, only: unit_input_file_with_defaults
       
       ! Init modules
       use stella_layouts, only: init_dist_fn_layouts
@@ -175,7 +175,6 @@ contains
       integer, intent(out) :: istep0
 
       logical :: restarted, fourier_transformations_are_needed
-      integer :: ierr
 
       !-------------------------------------------------------------------------
       
@@ -238,9 +237,10 @@ contains
       if (debug) write (6, *) 'stella::init_stella::init_tstart'
       call init_tstart(tstart)
 
-      ! Make sure the error file is written
-      ierr = error_unit()
-      if (proc0) call flush_output_file(ierr)
+      ! Make sure the error file and default input file are written
+      if (proc0) call flush_output_file(error_unit())
+      if (proc0) call flush_output_file(unit_input_file_with_defaults)
+      if (proc0) call close_input_file_with_defaults()
 
       ! Add a header to the output file
       call print_header
@@ -265,6 +265,8 @@ contains
 
       ! Initialise file utils
       use file_utils, only: init_file_utils
+      use file_units, only: init_file_units
+      use file_units, only: open_input_file_with_defaults
       
       ! Read debug flags
       use debug_flags, only: read_debug_flags
@@ -304,6 +306,10 @@ contains
       if (proc0) then 
          if (debug) write (*, *) 'stella::init_stella::init_file_utils'
          call init_file_utils(list)
+         if (debug) write (*, *) 'stella::init_stella::init_file_units'
+         call init_file_units
+         if (debug) write (*, *) 'stella::init_stella::open_input_file_with_default'
+         call open_input_file_with_defaults
       end if
 
       ! Read the debug flags, since the input file is now available

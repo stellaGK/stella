@@ -18,6 +18,8 @@ contains
       use parameters_physics, only: rhostar
       use geometry, only: geo_surf, aref, bref
       use namelist_species, only: read_namelist_euterpe_parameters
+      use file_units, only: unit_euterpe_output
+      use file_units, only: unit_euterpe_input
 
       implicit none
 
@@ -33,7 +35,6 @@ contains
 
       ! Local variables
       integer, parameter :: electron_species = 2
-      integer :: euterpe_unit = 1099, out_unit = 1098
       integer :: nradii_euterpe
       integer :: is, irad
       character(1000) :: euterpe_infile
@@ -58,7 +59,8 @@ contains
 
       call read_namelist_euterpe_parameters(nradii_euterpe, euterpe_infile)
 
-      open (unit=euterpe_unit, file=trim(euterpe_infile), status='old', action='read')
+      ! Read euterpe values from an input file
+      open (unit=unit_euterpe_input, file=trim(euterpe_infile), status='old', action='read')
 
       allocate (dr(nradii_euterpe))
       allocate (psitor(nradii_euterpe))
@@ -84,11 +86,11 @@ contains
       ! column 1 is s=psitor/psitor_LCFS, 2 is dlog(Ti)/ds, 3 is Ti in eV, 4 is dlog(Te)/ds, 5 is Te in eV
       ! 6 is dlog(ni)/ds, 7 is ni in 1/m^3, 8 is dlog(ne)/ds, 9 is ne in 1/m^3
       do irad = 1, nradii_euterpe
-         read (euterpe_unit, *) psitor(irad), dlnTids(irad), Ti(irad), dlnTeds(irad), &
+         read (unit_euterpe_input, *) psitor(irad), dlnTids(irad), Ti(irad), dlnTeds(irad), &
             Te(irad), dlnnids(irad), ni(irad), dlnneds(irad), ne(irad)
       end do
 
-      close (euterpe_unit)
+      close (unit_euterpe_input)
 
       rhotor = sqrt(psitor)
       dr = rhotor(2:) - rhotor(:nradii_euterpe - 1)
@@ -196,16 +198,15 @@ contains
       if (rhostar < 0.0) rhostar = rhostar_euterpe
       if (vnew_ref < 0.0) vnew_ref = vnew_ref_euterpe
 
-      open (unit=out_unit, file='euterpe.input', status='replace', action='write')
-
-      write (out_unit, *) 'aref: ', aref, 'mref: ', mref, 'nref: ', nref, 'tref: ', tref
-      write (out_unit, *) 'loglam: ', local_loglam, 'vnew_ref_euterpe: ', vnew_ref_euterpe, 'vnew_ref: ', vnew_ref
-      write (out_unit, *) 'omega_ref: ', omega_ref, 'rho_ref: ', rho_ref
-      write (out_unit, *) 'rhostar_euterpe: ', rhostar_euterpe, 'rhostar: ', rhostar
-      write (out_unit, *) 'nine: ', nine, 'tite: ', tite, 'fprim: ', spec(1)%fprim, 'tprim: ', spec(1)%tprim
-      write (out_unit, *) 'd2ndr2: ', spec(1)%d2ndr2, 'd2Tdr2: ', spec(1)%d2Tdr2
-
-      close (out_unit)
+      ! Write euterpe values to an output file
+      open (unit=unit_euterpe_output, file='euterpe.input', status='replace', action='write')
+      write (unit_euterpe_output, *) 'aref: ', aref, 'mref: ', mref, 'nref: ', nref, 'tref: ', tref
+      write (unit_euterpe_output, *) 'loglam: ', local_loglam, 'vnew_ref_euterpe: ', vnew_ref_euterpe, 'vnew_ref: ', vnew_ref
+      write (unit_euterpe_output, *) 'omega_ref: ', omega_ref, 'rho_ref: ', rho_ref
+      write (unit_euterpe_output, *) 'rhostar_euterpe: ', rhostar_euterpe, 'rhostar: ', rhostar
+      write (unit_euterpe_output, *) 'nine: ', nine, 'tite: ', tite, 'fprim: ', spec(1)%fprim, 'tprim: ', spec(1)%tprim
+      write (unit_euterpe_output, *) 'd2ndr2: ', spec(1)%d2ndr2, 'd2Tdr2: ', spec(1)%d2Tdr2
+      close (unit_euterpe_output)
 
       deallocate (dr, rhotor, psitor)
       deallocate (ni, ne, Ti, Te)

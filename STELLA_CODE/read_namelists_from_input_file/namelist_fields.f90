@@ -126,6 +126,7 @@ contains
       if (.not. proc0) return
       call set_default_parameters_initialise_distribution
       call read_input_file_initialise_distribution
+      call write_parameters_to_input_file
 
    contains
       
@@ -146,13 +147,11 @@ contains
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_initialise_distribution
 
-         use file_utils, only: input_unit_exist, error_unit
+         use file_utils, only: input_unit_exist
+         use file_units, only: unit_error_file
          use text_options, only: text_option, get_option_value
 
          implicit none
-
-         ! Variables needed to read the input file
-         integer :: ierr
          
          ! Link text options for <initialise_distribution_option> to an integer value
          type(text_option), dimension(7), parameter :: init_distribution_options = &
@@ -174,11 +173,28 @@ contains
          if (dexist) read (unit=in_file, nml=initialise_distribution)
          
          ! Read the text option in <initialise_distribution> and store it in <init_distribution_switch>
-         ierr = error_unit()
          call get_option_value(initialise_distribution_option, init_distribution_options, init_distribution_switch, &
-            ierr, 'initialise_distribution_option in initialise_distribution')
+            unit_error_file, 'initialise_distribution_option in initialise_distribution')
 
       end subroutine read_input_file_initialise_distribution
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&initialise_distribution'
+         write (unit, '(A, A, A)') '  initialise_distribution_option = "', trim(initialise_distribution_option),'"'
+         write (unit, '(A, ES0.4)') '  phiinit = ', phiinit
+         write (unit, '(A, L0)') '  scale_to_phiinit = ', scale_to_phiinit
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+      
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_initialise_distribution
    
@@ -202,6 +218,7 @@ contains
       if (.not. proc0) return
       call set_default_parameters_initialise_distribution_maxwellian
       call read_input_file_initialise_distribution_maxwellian
+      call write_parameters_to_input_file
 
    contains
       
@@ -231,6 +248,27 @@ contains
          if (dexist) read (unit=in_file, nml=initialise_distribution_maxwellian) 
 
       end subroutine read_input_file_initialise_distribution_maxwellian
+     
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&initialise_distribution_maxwellian'
+         write (unit, '(A, ES0.4)') '  width0 = ', width0
+         write (unit, '(A, ES0.4)') '  den0 = ', den0
+         write (unit, '(A, ES0.4)') '  upar0 = ', upar0
+         write (unit, '(A, L0)') '  oddparity = ', oddparity
+         write (unit, '(A, L0)') '  left = ', left
+         write (unit, '(A, L0)') '  chop_side = ', chop_side
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+      
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_initialise_distribution_maxwellian
    
@@ -257,6 +295,7 @@ contains
       if (.not. proc0) return
       call set_default_parameters_initialise_distribution_noise
       call read_input_file_initialise_distribution_noise
+      call write_parameters_to_input_file
 
    contains
       
@@ -283,6 +322,25 @@ contains
          if (dexist) read (unit=in_file, nml=initialise_distribution_noise) 
 
       end subroutine read_input_file_initialise_distribution_noise
+     
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&initialise_distribution_noise'
+         write (unit, '(A, ES0.4)') '  zf_init = ', zf_init
+         write (unit, '(A, I0)') '  rng_seed = ', rng_seed
+         write (unit, '(A, L0)') '  left = ', left
+         write (unit, '(A, L0)') '  chop_side = ', chop_side
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+      
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_initialise_distribution_noise
    
@@ -310,6 +368,7 @@ contains
       if (.not. proc0) return
       call set_default_parameters_initialise_distribution_kpar
       call read_input_file_initialise_distribution_kpar
+      call write_parameters_to_input_file
 
    contains
       
@@ -350,6 +409,38 @@ contains
          if (dexist) read (unit=in_file, nml=initialise_distribution_kpar) 
 
       end subroutine read_input_file_initialise_distribution_kpar
+     
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&initialise_distribution_kpar'
+         write (unit, '(A, ES0.4)') '  width0 = ', width0
+         write (unit, '(A, ES0.4)') '  imfac = ', imfac
+         write (unit, '(A, ES0.4)') '  refac = ', refac
+         write (unit, '(A, ES0.4)') '  den0 = ', den0
+         write (unit, '(A, ES0.4)') '  upar0 = ', upar0
+         write (unit, '(A, ES0.4)') '  tpar0 = ', tpar0
+         write (unit, '(A, ES0.4)') '  tperp0 = ', tperp0
+         write (unit, '(A, ES0.4)') '  den1 = ', den1
+         write (unit, '(A, ES0.4)') '  upar1 = ', upar1
+         write (unit, '(A, ES0.4)') '  tpar1 = ', tpar1
+         write (unit, '(A, ES0.4)') '  tperp1 = ', tperp1
+         write (unit, '(A, ES0.4)') '  den2 = ', den2
+         write (unit, '(A, ES0.4)') '  upar2 = ', upar2
+         write (unit, '(A, ES0.4)') '  tpar2 = ', tpar2
+         write (unit, '(A, ES0.4)') '  tperp2 = ', tperp2
+         write (unit, '(A, L0)') '  left = ', left
+         write (unit, '(A, L0)') '  chop_side = ', chop_side
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+      
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_initialise_distribution_kpar
    
@@ -371,6 +462,7 @@ contains
       if (.not. proc0) return
       call set_default_parameters_initialise_distribution_rh
       call read_input_file_initialise_distribution_rh
+      call write_parameters_to_input_file
 
    contains
       
@@ -397,6 +489,25 @@ contains
          if (dexist) read (unit=in_file, nml=initialise_distribution_rh) 
 
       end subroutine read_input_file_initialise_distribution_rh
+     
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&initialise_distribution_rh'
+         write (unit, '(A, ES0.4)') '  kxmin = ', kxmin
+         write (unit, '(A, ES0.4)') '  kxmax = ', kxmax
+         write (unit, '(A, ES0.4)') '  imfac = ', imfac
+         write (unit, '(A, ES0.4)') '  refac = ', refac
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+      
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_initialise_distribution_rh
    
@@ -420,6 +531,7 @@ contains
       if (.not. proc0) return
       call set_default_parameters_restart_options
       call read_input_file_restart_options
+      call write_parameters_to_input_file
 
    contains
       
@@ -452,6 +564,26 @@ contains
          if (dexist) read (unit=in_file, nml=restart_options) 
 
       end subroutine read_input_file_restart_options
+     
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&restart_options'
+         write (unit, '(A, A, A)') '  restart_file = "', trim(restart_file),'"'
+         write (unit, '(A, A, A)') '  restart_dir = "', trim(restart_dir),'"'
+         write (unit, '(A, ES0.4)') '  tstart = ', tstart
+         write (unit, '(A, ES0.4)') '  scale = ', scale
+         write (unit, '(A, L0)') '  read_many = ', read_many
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+        
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_restart_options
 

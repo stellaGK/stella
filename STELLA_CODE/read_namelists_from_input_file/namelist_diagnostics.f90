@@ -120,6 +120,7 @@ contains
       call set_default_parameters_diagnostics
       call read_input_file_diagnostics
       call check_inputs_diagnostics
+      call write_parameters_to_input_file
 
    contains
 
@@ -158,7 +159,7 @@ contains
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_diagnostics
 
-         use file_utils, only: input_unit_exist, error_unit
+         use file_utils, only: input_unit_exist
 
          implicit none
 
@@ -198,6 +199,37 @@ contains
          end if
 
       end subroutine check_inputs_diagnostics
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&diagnostics'
+         write (unit, '(A, I0)') '  nwrite = ', nwrite
+         write (unit, '(A, I0)') '  navg = ', navg
+         write (unit, '(A, I0)') '  nsave = ', nsave
+         write (unit, '(A, I0)') '  nwrite = ', nwrite
+         write (unit, '(A, I0)') '  nc_mult = ', nc_mult
+         write (unit, '(A, L0)') '  save_for_restart = ', save_for_restart
+         write (unit, '(A, L0)') '  write_all = ', write_all
+         write (unit, '(A, L0)') '  write_all_time_traces = ', write_all_time_traces
+         write (unit, '(A, L0)') '  write_all_spectra_kxkyz = ', write_all_spectra_kxkyz
+         write (unit, '(A, L0)') '  write_all_spectra_kxky = ', write_all_spectra_kxky
+         write (unit, '(A, L0)') '  write_all_velocity_space = ', write_all_velocity_space
+         write (unit, '(A, L0)') '  write_all_potential = ', write_all_potential
+         write (unit, '(A, L0)') '  write_all_omega = ', write_all_omega
+         write (unit, '(A, L0)') '  write_all_distribution = ', write_all_distribution
+         write (unit, '(A, L0)') '  write_all_fluxes = ', write_all_fluxes
+         write (unit, '(A, L0)') '  write_all_moments = ', write_all_moments
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_diagnostics
 
@@ -257,7 +289,7 @@ contains
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_diagnostics_potential
 
-         use file_utils, only: input_unit_exist, error_unit
+         use file_utils, only: input_unit_exist
 
          implicit none
 
@@ -277,8 +309,6 @@ contains
 
       !---------------------------- Check variables ----------------------------
       subroutine check_inputs_diagnostics_potential
-
-         use file_utils, only: error_unit
 
          implicit none
 
@@ -360,7 +390,7 @@ contains
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_diagnostics_omega
 
-         use file_utils, only: input_unit_exist, error_unit
+         use file_utils, only: input_unit_exist
 
          implicit none
 
@@ -373,7 +403,6 @@ contains
 
       subroutine check_inputs_diagnostics_omega
 
-         use file_utils, only: error_unit
          use parameters_physics, only: include_nonlinear
 
          implicit none
@@ -445,7 +474,7 @@ contains
      !---------------------------- Read input file ----------------------------
      subroutine read_input_file_diagnostics_distribution
 
-         use file_utils, only: input_unit_exist, error_unit
+         use file_utils, only: input_unit_exist
 
          implicit none
 
@@ -464,8 +493,6 @@ contains
 
       !---------------------------- Check variables ----------------------------
       subroutine check_inputs_diagnostics_distribution
-
-         use file_utils, only: error_unit
 
          implicit none
 
@@ -555,7 +582,7 @@ contains
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_diagnostics_fluxes
 
-      use file_utils, only: input_unit_exist, error_unit
+      use file_utils, only: input_unit_exist
 
          implicit none
 
@@ -573,8 +600,6 @@ contains
 
       !---------------------------- Check variables ----------------------------
       subroutine check_inputs_diagnostics_fluxes
-
-         use file_utils, only: error_unit
 
          implicit none
 
@@ -648,7 +673,7 @@ contains
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_diagnostics_moments
 
-      use file_utils, only: input_unit_exist, error_unit
+      use file_utils, only: input_unit_exist
 
          implicit none
 
@@ -660,8 +685,6 @@ contains
 
       !---------------------------- Check variables ----------------------------
       subroutine check_inputs_diagnostics_moments
-
-         use file_utils, only: error_unit
 
          implicit none
 

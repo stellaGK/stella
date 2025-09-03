@@ -97,6 +97,7 @@ contains
       if (.not. proc0) return
       call read_default_kxky_grid_option
       call read_input_file_kxky_grid_option
+      call write_parameters_to_input_file
 
    contains
    
@@ -143,6 +144,22 @@ contains
             ierr, 'grid_option in namelist_kxky_grid', .true.)
 
       end subroutine read_input_file_kxky_grid_option
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&kxky_grid_option'
+         write (unit, '(A, A, A)') '  grid_option = "', trim(grid_option),'"'
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_kxky_grid_option
 
@@ -181,6 +198,7 @@ contains
       call read_default_kxky_grid_box
       call read_input_file_kxky_grid_box
       call calculate_kxky_grid_box_parameters
+      call write_parameters_to_input_file
 
    contains
 
@@ -265,6 +283,42 @@ contains
          naky_all = 2 * naky - 1
 
       end subroutine calculate_kxky_grid_box_parameters
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&kxky_grid_box'
+         write (unit, '(A, I0)') '  nx = ', nx
+         write (unit, '(A, I0)') '  ny = ', ny
+         write (unit, '(A, F0.4)') '  x0 = ', x0
+         write (unit, '(A, F0.4)') '  y0 = ', y0
+         write (unit, '(A, I0)') '  jtwist = ', jtwist
+         write (unit, '(A, ES0.4)') '  jtwistfac = ', jtwistfac
+         write (unit, '(A, ES0.4)') '  phase_shift_angle = ', phase_shift_angle
+         write (unit, '(A, L0)') '  centered_in_rho = ', centered_in_rho
+         write (unit, '(A, L0)') '  periodic_variation = ', periodic_variation
+         write (unit, '(A, L0)') '  randomize_phase_shift = ', randomize_phase_shift
+         write (unit, '(A, L0)') '  periodic_variation = ', periodic_variation
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+         
+         write (unit, '(A)') '&kxky_grid_box_set_internally'
+         write (unit, '(A, I0)') '  nakx = ', nakx
+         write (unit, '(A, I0)') '  naky = ', naky
+         write (unit, '(A, I0)') '  ikx_max = ', ikx_max
+         write (unit, '(A, I0)') '  naky_all = ', naky_all
+         write (unit, '(A, L0)') '  reality = ', reality
+         write (unit, '(A, I0)') '  nalpha = ', nalpha
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_kxky_grid_box
 
@@ -310,6 +364,7 @@ contains
       call read_default_kxky_grid_range
       call read_input_file_kxky_grid_range
       call calculate_kxky_grid_range_parameters
+      call write_parameters_to_input_file
 
    contains
    
@@ -320,7 +375,6 @@ contains
 
          ! Default input parameters for the (kx,ky) grids
          kyspacing_option = 'default'
-         nalpha = 1
          naky = 1
          nakx = 1
          aky_min = 0.0
@@ -329,7 +383,10 @@ contains
          akx_max = -1.0
          theta0_min = 0.0
          theta0_max = -1.0
+         
+         ! The following variable is not set through the input file
          phase_shift_angle = 0.0
+         nalpha = 1
          
          ! The following variables are calculated based on (nakx, naky)
          ikx_max = -1
@@ -348,13 +405,11 @@ contains
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_kxky_grid_range
 
-         use file_utils, only: input_unit_exist, error_unit
+         use file_utils, only: input_unit_exist
+         use file_units, only: unit_error_file
          use text_options, only: text_option, get_option_value
 
          implicit none
-
-         ! Variables needed to read the input file
-         integer :: ierr
 
          ! Link text options for <kyspacing_option> to an integer value
          type(text_option), dimension(3), parameter :: kyspacingopts = &
@@ -373,9 +428,8 @@ contains
          if (dexist) read (unit=in_file, nml=kxky_grid_range)
 
          ! Read the text option in <kyspacing_option> and store it in <kyspacing_option_switch>
-         ierr = error_unit()
          call get_option_value(kyspacing_option, kyspacingopts, kyspacing_option_switch, &
-             ierr, 'kyspacing_option in kxky_grid_range', .true.)
+             unit_error_file, 'kyspacing_option in kxky_grid_range', .true.)
          
       end subroutine read_input_file_kxky_grid_range
 
@@ -388,6 +442,30 @@ contains
          ikx_max = nakx
 
       end subroutine calculate_kxky_grid_range_parameters
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&kxky_grid_range'
+         write (unit, '(A, I0)') '  nakx = ', nakx
+         write (unit, '(A, I0)') '  naky = ', naky
+         write (unit, '(A, F0.4)') '  akx_min = ', akx_min
+         write (unit, '(A, F0.4)') '  akx_max = ', akx_max
+         write (unit, '(A, F0.4)') '  aky_min = ', aky_min
+         write (unit, '(A, F0.4)') '  aky_max = ', aky_max
+         write (unit, '(A, F0.4)') '  theta0_min = ', theta0_min
+         write (unit, '(A, F0.4)') '  theta0_max = ', theta0_max
+         write (unit, '(A, A, A)') '  kyspacing_option = "', trim(kyspacing_option),'"'
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_kxky_grid_range
 

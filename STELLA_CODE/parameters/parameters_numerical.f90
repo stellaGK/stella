@@ -112,7 +112,7 @@ contains
 
       use mp, only: proc0, mp_abort
       use text_options, only: text_option, get_option_value
-      use file_utils, only: input_unit, error_unit, input_unit_exist
+      use file_utils, only: input_unit, input_unit_exist
       use namelist_parameters_numerical, only: read_namelist_time_trace_options
       use namelist_parameters_numerical, only: read_namelist_time_step
       use namelist_parameters_numerical, only: read_namelist_numerical_algorithms
@@ -169,19 +169,17 @@ contains
          use parameters_physics, only: include_nonlinear
          use parameters_physics, only: rhostar
          use stella_layouts, only: fields_kxkyz
+         use file_units, only: unit_error_file
          
          implicit none
-
-         integer :: ierr
 
          !----------------------------------------------------------------------
 
          ! Abort if neither tend nor nstep are set
          if (tend < 0 .and. nstep < 0) then
-            ierr = error_unit()
-            write (ierr, *) ''
-            write (ierr, *) 'Please specify either <nstep> or <tend> in the <parameters_numerical> namelist.'
-            write (ierr, *) 'Aborting.'
+            write (unit_error_file, *) ''
+            write (unit_error_file, *) 'Please specify either <nstep> or <tend> in the <parameters_numerical> namelist.'
+            write (unit_error_file, *) 'Aborting.'
             write (*, *) ''
             write (*, *) 'Please specify either <nstep> or <tend> in the <parameters_numerical> namelist.'
             write (*, *) 'Aborting.'
@@ -192,11 +190,10 @@ contains
          if ((cfl_cushion_lower > cfl_cushion_upper - 0.001) &
             .or. (cfl_cushion_middle > cfl_cushion_upper - 0.001) &
             .or. (cfl_cushion_middle < cfl_cushion_lower + 0.001)) then
-            ierr = error_unit()
-            write (ierr, *) ''
-            write (ierr, *) 'Please make sure that <cfl_cushion_upper> is bigger than <cfl_cushion_lower>,'
-            write (ierr, *) 'and that <cfl_cushion_middle> lies in between <cfl_cushion_upper> and <cfl_cushion_lower>.'
-            write (ierr, *) 'Aborting.'
+            write (unit_error_file, *) ''
+            write (unit_error_file, *) 'Please make sure that <cfl_cushion_upper> is bigger than <cfl_cushion_lower>,'
+            write (unit_error_file, *) 'and that <cfl_cushion_middle> lies in between <cfl_cushion_upper> and <cfl_cushion_lower>.'
+            write (unit_error_file, *) 'Aborting.'
             write (*, *) ''
             write (*, *) 'Please make sure that <cfl_cushion_upper> is bigger than <cfl_cushion_lower>,'
             write (*, *) 'and that <cfl_cushion_middle> lies in between <cfl_cushion_upper> and <cfl_cushion_lower>.'

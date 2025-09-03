@@ -154,6 +154,7 @@ contains
       call set_default_species_options
       call read_input_file_species_options
       call check_inputs_species_options
+      call write_parameters_to_input_file
    
    contains
    
@@ -172,13 +173,11 @@ contains
       !------------------------ Read input file species options ----------------
       subroutine read_input_file_species_options
 
-         use file_utils, only: input_unit_exist, error_unit
+         use file_utils, only: input_unit_exist
+         use file_units, only: unit_error_file
          use text_options, only: text_option, get_option_value
 
          implicit none
-
-         ! Variables needed to read the input file
-         integer :: ierr
 
          ! Link text options for <species_option> to an integer value
          type(text_option), dimension(4), parameter :: species_opts = (/ &
@@ -198,9 +197,8 @@ contains
          if (dexist) read (unit=in_file, nml=species_options)
          
          ! Read the text option in <species_option> and store it in <species_option_switch>
-         ierr = error_unit()
          call get_option_value(species_option, species_opts, species_option_switch, &
-               ierr, 'species_option in namelist_species_options')
+               unit_error_file, 'species_option in namelist_species_options')
 
       end subroutine read_input_file_species_options
 
@@ -223,6 +221,25 @@ contains
          end if
 
       end subroutine check_inputs_species_options
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&species_options'
+         write (unit, '(A, I0)') '  nspec = ', nspec
+         write (unit, '(A, A, A)') '  species_option = "', trim(species_option), '"'
+         write (unit, '(A, L0)') '  read_profile_variation = ', read_profile_variation
+         write (unit, '(A, L0)') '  write_profile_variation = ', write_profile_variation
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_species_options
    
@@ -248,6 +265,7 @@ contains
       call set_default_parameters_adiabatic_electron_response
       call read_input_file_adiabatic_electron_response
       call check_adiabatic_electron_response
+      call write_parameters_to_input_file
 
    contains
       
@@ -268,7 +286,8 @@ contains
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_adiabatic_electron_response
 
-         use file_utils, only: input_unit_exist, error_unit
+         use file_utils, only: input_unit_exist
+         use file_units, only: unit_error_file
          use text_options, only: text_option, get_option_value
 
          implicit none
@@ -295,9 +314,8 @@ contains
          if (dexist) read (unit=in_file, nml=adiabatic_electron_response)
 
          ! Read the text option in <adiabatic_option> and store it in <adiabatic_option_switch>
-         ierr = error_unit()
          call get_option_value(adiabatic_option, adiabaticopts, adiabatic_option_switch, &
-            ierr, 'adiabatic_option in namelist_parameters.f90')
+            unit_error_file, 'adiabatic_option in namelist_parameters.f90')
 
       end subroutine read_input_file_adiabatic_electron_response
       
@@ -309,15 +327,34 @@ contains
       
          implicit none
          
-         if (adiabatic_option_switch /= adiabatic_option_periodic) then
+         if (adiabatic_option_switch /= adiabatic_option_fieldlineavg) then
             if (print_extra_info_to_terminal) then
                write(*,*) 'WARNING: If the adiabatic electron namelist is read, it means that no kinetic ion '
                write(*,*) 'species have been specified. Therefore, adiabatic electrons are added which are best'
                write(*,*) 'modeled with a modified Boltzmann response instead of a periodic Boltzmann reponse.'
+               write(*,*) ''
             end if
          end if
             
       end subroutine check_adiabatic_electron_response
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&adiabatic_electron_response'
+         write (unit, '(A, A, A)') '  adiabatic_option = "', trim(adiabatic_option), '"'
+         write (unit, '(A, F0.2)') '  tite = ', tite
+         write (unit, '(A, F0.2)') '  nine = ', nine
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_adiabatic_electron_response
    
@@ -343,6 +380,7 @@ contains
       call set_default_parameters_adiabatic_ion_response
       call read_input_file_adiabatic_ion_response
       call check_adiabatic_ion_response
+      call write_parameters_to_input_file
       
    contains
       
@@ -409,10 +447,29 @@ contains
                write(*,*) 'WARNING: If the adiabatic ion namelist is read, it means that no kinetic electron '
                write(*,*) 'species have been specified. Therefore, adiabatic ions are added which are best'
                write(*,*) 'modeled with a periodic Boltzmann response instead of a modifified Boltzmann reponse.'
+               write(*,*) ''
             end if
          end if
             
       end subroutine check_adiabatic_ion_response
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&adiabatic_ion_response'
+         write (unit, '(A, A, A)') '  adiabatic_option = "', trim(adiabatic_option), '"'
+         write (unit, '(A, F0.2)') '  tite = ', tite
+         write (unit, '(A, F0.2)') '  nine = ', nine
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_adiabatic_ion_response
 
@@ -440,6 +497,7 @@ contains
       
       if (.not. proc0) return
       call read_input_file_species_stella
+      call write_parameters_to_input_file
 
    contains
       
@@ -520,6 +578,37 @@ contains
          end do
 
       end subroutine read_input_file_species_stella
+      
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+         
+         ! Species counter
+         integer :: is
+
+         !----------------------------------------------------------------------
+
+         do is = 1, nspec
+            write (unit, '(A, I0)') '&species_parameters_', is
+            write (unit, '(A, F0.2)') '  z = ', z
+            write (unit, '(A, ES0.4)') '  mass = ', mass
+            write (unit, '(A, F0.2)') '  dens = ', dens
+            write (unit, '(A, F0.2)') '  temp = ', temp
+            write (unit, '(A, F0.2)') '  tprim = ', tprim
+            write (unit, '(A, F0.2)') '  fprim = ', fprim
+            write (unit, '(A, F0.2)') '  d2ndr2 = ', d2ndr2
+            write (unit, '(A, F0.2)') '  d2Tdr2 = ', d2Tdr2
+            write (unit, '(A, F0.2)') '  bess_fac = ', bess_fac
+            write (unit, '(A, A, A)')'  type = "', trim(type), '"'
+            write (unit, '(A)') '/'
+            write (unit, '(A)') ''
+        end do
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_species_stella
 

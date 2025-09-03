@@ -143,6 +143,7 @@ contains
       call set_default_geometry_options
       call read_input_file_geometry_options
       call check_namelist_geometry_options
+      call write_parameters_to_input_file
 
    contains
 
@@ -162,13 +163,11 @@ contains
       !------------------------ Read input file parameters -----------------------
       subroutine read_input_file_geometry_options
 
-         use file_utils, only: input_unit_exist, error_unit
+         use file_utils, only: input_unit_exist
+         use file_units, only: unit_error_file
          use text_options, only: text_option, get_option_value
 
          implicit none
-
-         ! Variables needed to read the input file
-         integer :: ierr
          
          ! Link text options for <geometry_option> to an integer value
          type(text_option), dimension(6), parameter :: geoopts = (/ &
@@ -189,9 +188,8 @@ contains
          if (dexist) read (unit=in_file, nml=geometry_options)
 
          ! Read the text option in <geometry_option> and store it in <geometry_option_switch>
-         ierr = error_unit()
          call get_option_value(geometry_option, geoopts, geometry_option_switch, &
-             ierr, 'geometry_option in namelist_geometry_options.f90')
+             unit_error_file, 'geometry_option in namelist_geometry_options.f90')
 
       end subroutine read_input_file_geometry_options
 
@@ -210,6 +208,23 @@ contains
          end if
 
       end subroutine check_namelist_geometry_options
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&geometry_options'
+         write (unit, '(A, A, A)') '  geometry_option = "', trim(geometry_option),'"'
+         write (unit, '(A, L0)') '  q_as_x = ', q_as_x
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
      
    end subroutine read_namelist_geometry_options
 
@@ -240,6 +255,7 @@ contains
       call set_default_geometry_from_txt
       call read_input_file_geometry_from_txt
       call check_namelist_geometry_from_txt 
+      call write_parameters_to_input_file
 
    contains
 
@@ -297,6 +313,33 @@ contains
              .or. overwrite_cvdrift .or. overwrite_gbdrift .or. overwrite_gbdrift0
 
      end subroutine check_namelist_geometry_from_txt
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&geometry_from_txt'
+         write (unit, '(A, A, A)') '  geometry_file = "', trim(geometry_file),'"'
+         write (unit, '(A, L0)') '  overwrite_bmag = ', overwrite_bmag
+         write (unit, '(A, L0)') '  overwrite_b_dot_grad_zeta = ', overwrite_b_dot_grad_zeta
+         write (unit, '(A, L0)') '  overwrite_gds2 = ', overwrite_gds2
+         write (unit, '(A, L0)') '  overwrite_gds21 = ', overwrite_gds21
+         write (unit, '(A, L0)') '  overwrite_gds22 = ', overwrite_gds22
+         write (unit, '(A, L0)') '  overwrite_gds23 = ', overwrite_gds23
+         write (unit, '(A, L0)') '  overwrite_gds24 = ', overwrite_gds24
+         write (unit, '(A, L0)') '  overwrite_cvdrift = ', overwrite_cvdrift
+         write (unit, '(A, L0)') '  overwrite_gbdrift = ', overwrite_gbdrift
+         write (unit, '(A, L0)') '  overwrite_gbdrift0 = ', overwrite_gbdrift0
+         write (unit, '(A, L0)') '  set_bmag_const = ', set_bmag_const
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_geometry_from_txt
 
@@ -325,7 +368,8 @@ contains
       if (.not. proc0) return
       call set_default_geometry_miller
       call read_input_file_geometry_miller
-
+      call write_parameters_to_input_file
+      
    contains
 
      !------------------------ Default input parameters -----------------------
@@ -372,6 +416,38 @@ contains
          if (dexist) read (unit=in_file, nml=geometry_miller)
 
      end subroutine read_input_file_geometry_miller
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&geometry_miller'
+         write (unit, '(A, ES0.4)') '  rhoc = ', rhoc
+         write (unit, '(A, ES0.4)') '  rmaj = ', rmaj
+         write (unit, '(A, ES0.4)') '  shift = ', shift
+         write (unit, '(A, ES0.4)') '  qinp = ', qinp
+         write (unit, '(A, ES0.4)') '  shat = ', shat
+         write (unit, '(A, ES0.4)') '  kappa = ', kappa
+         write (unit, '(A, ES0.4)') '  kapprim = ', kapprim
+         write (unit, '(A, ES0.4)') '  tri = ', tri
+         write (unit, '(A, ES0.4)') '  triprim = ', triprim
+         write (unit, '(A, ES0.4)') '  rgeo = ', rgeo
+         write (unit, '(A, ES0.4)') '  betaprim = ', betaprim
+         write (unit, '(A, ES0.4)') '  betadbprim = ', betadbprim
+         write (unit, '(A, ES0.4)') '  d2qdr2 = ', d2qdr2
+         write (unit, '(A, ES0.4)') '  d2psidr2 = ', d2psidr2
+         write (unit, '(A, I0)') '  nzed_local = ', nzed_local
+         write (unit, '(A, L0)') '  read_profile_variation = ', read_profile_variation
+         write (unit, '(A, L0)') '  write_profile_variation = ', write_profile_variation
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+      
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_geometry_miller
 
@@ -412,6 +488,7 @@ contains
       if (.not. proc0) return
       call set_default_geometry_vmec
       call read_input_file_geometry_vmec
+      call write_parameters_to_input_file
 
    contains
    
@@ -487,6 +564,32 @@ contains
             radial_coordinate_switch, ierr, 'radial_coordinate in namelist_geometry.f90')
 
      end subroutine read_input_file_geometry_vmec
+     
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&geometry_vmec'
+         write (unit, '(A, A, A)') '  vmec_filename = "', trim(vmec_filename),'"'
+         write (unit, '(A, ES0.4)') '  alpha0 = ', alpha0
+         write (unit, '(A, ES0.4)') '  zeta_center = ', zeta_center
+         write (unit, '(A, ES0.8)') '  nfield_periods = ', nfield_periods
+         write (unit, '(A, ES0.4)') '  torflux = ', torflux
+         write (unit, '(A, I0)') '  z_grid_refinement_factor = ', z_grid_refinement_factor 
+         write (unit, '(A, I0)') '  surface_option = ', surface_option 
+         write (unit, '(A, I0)') '  n_tolerated_test_arrays_inconsistencies = ', n_tolerated_test_arrays_inconsistencies
+         write (unit, '(A, L0)') '  verbose = ', verbose
+         write (unit, '(A, L0)') '  rectangular_cross_section = ', rectangular_cross_section
+         write (unit, '(A, A, A)') '  radial_coordinate = "', trim(radial_coordinate),'"'
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+      
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_geometry_vmec
 
@@ -507,6 +610,7 @@ contains
       if (.not. proc0) return
       call set_default_geometry_zpinch
       call read_input_file_geometry_zpinch
+      call write_parameters_to_input_file
 
    contains
 
@@ -531,6 +635,22 @@ contains
          if (dexist) read (unit=in_file, nml=geometry_zpinch)
 
       end subroutine read_input_file_geometry_zpinch
+     
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&geometry_zpinch'
+         write (unit, '(A, ES0.4)') '  betaprim = ', betaprim
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+      
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_geometry_zpinch
 

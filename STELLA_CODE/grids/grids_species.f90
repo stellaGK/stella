@@ -167,23 +167,6 @@ contains
          adiabatic_option_switch = -1
          tite = -1.0
          nine = -1.0
-            
-         ! Read the namelist for adiabatic electrons in the input file
-         if (.not. has_electron_species(spec)) then
-            call read_namelist_adiabatic_electron_response(adiabatic_option_switch, tite, nine)
-         end if
-         
-         ! Read the namelist for adiabatic ions in the input file
-         if (.not. has_ion_species(spec)) then
-            call read_namelist_adiabatic_ion_response(adiabatic_option_switch, tite, nine)
-         end if
-         
-         ! The namelists are only read on the first processor, so broadcast the results
-         if ((.not. has_electron_species(spec)) .or. (.not. has_electron_species(spec))) then
-            call broadcast(adiabatic_option_switch)
-            call broadcast(tite)
-            call broadcast(nine)
-         end if
          
          ! Print info to the command prompt
          if (proc0 .and. print_extra_info_to_terminal) then
@@ -202,6 +185,23 @@ contains
                   write (*, *)
                end if
             end if
+         end if
+            
+         ! Read the namelist for adiabatic electrons in the input file
+         if (.not. has_electron_species(spec)) then
+            call read_namelist_adiabatic_electron_response(adiabatic_option_switch, tite, nine)
+         end if
+         
+         ! Read the namelist for adiabatic ions in the input file
+         if (.not. has_ion_species(spec)) then
+            call read_namelist_adiabatic_ion_response(adiabatic_option_switch, tite, nine)
+         end if
+         
+         ! The namelists are only read on the first processor, so broadcast the results
+         if ((.not. has_electron_species(spec)) .or. (.not. has_electron_species(spec))) then
+            call broadcast(adiabatic_option_switch)
+            call broadcast(tite)
+            call broadcast(nine)
          end if
          
          ! The adiabatic ion response is assuming the first species are electrons

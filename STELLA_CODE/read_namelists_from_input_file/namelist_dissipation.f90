@@ -115,6 +115,7 @@ contains
       call set_default_parameters_dissipation_and_collisions_options
       call read_input_file_dissipation_and_collisions_options
       call check_inputs_dissipation_and_collisions_options
+      call write_parameters_to_input_file
 
    contains 
       
@@ -157,6 +158,28 @@ contains
          if (.not. include_collisions) collisions_implicit = .false.
 
       end subroutine check_inputs_dissipation_and_collisions_options
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&dissipation_and_collisions_options'
+         write (unit, '(A, L0)') '  hyper_dissipation = ', hyper_dissipation
+         write (unit, '(A, L0)') '  include_collisions = ', include_collisions
+         write (unit, '(A, A, A)') '  collision_model = "', trim(collision_model),'"'
+         write (unit, '(A, L0)') '  collisions_implicit = ', collisions_implicit
+         write (unit, '(A, L0)') '  ecoll_zeff = ', ecoll_zeff
+         write (unit, '(A, ES0.4)') '  zeff = ', zeff
+         write (unit, '(A, ES0.4)') '  vnew_ref = ', vnew_ref
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_dissipation_and_collisions_options
 
@@ -178,6 +201,7 @@ contains
       if (.not. proc0) return
       call set_default_parameters_collisions_dougherty
       call read_input_file_collisions_dougherty
+      call write_parameters_to_input_file
       
    contains
       
@@ -205,6 +229,25 @@ contains
          if (dexist) read (unit=in_file, nml=collisions_dougherty)
 
       end subroutine read_input_file_collisions_dougherty
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&collisions_dougherty'
+         write (unit, '(A, L0)') '  momentum_conservation = ', momentum_conservation
+         write (unit, '(A, L0)') '  energy_conservation = ', energy_conservation
+         write (unit, '(A, L0)') '  vpa_operator = ', vpa_operator
+         write (unit, '(A, L0)') '  mu_operator = ', mu_operator
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+         
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_collisions_dougherty
 
@@ -238,6 +281,7 @@ contains
       if (.not. proc0) return
       call set_default_parameters_collisions_fokker_planck
       call read_input_file_collisions_fokker_planck
+      call write_parameters_to_input_file
 
    contains 
       
@@ -304,6 +348,53 @@ contains
          if (dexist) read (unit=in_file, nml=collisions_fokker_planck)
 
       end subroutine read_input_file_collisions_fokker_planck
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&collisions_fokker_planck'
+         write (unit, '(A, L0)') '  fieldpart = ', fieldpart
+         write (unit, '(A, L0)') '  testpart = ', testpart
+         write (unit, '(A, L0)') '  interspec = ', interspec
+         write (unit, '(A, L0)') '  intraspec = ', intraspec
+         write (unit, '(A, L0)') '  eimassr_approx = ', eimassr_approx
+         write (unit, '(A, L0)') '  advfield_coll = ', advfield_coll
+         write (unit, '(A, L0)') '  spitzer_problem = ', spitzer_problem
+         write (unit, '(A, L0)') '  density_conservation = ', density_conservation
+         write (unit, '(A, L0)') '  density_conservation_field = ', density_conservation_field
+         write (unit, '(A, L0)') '  density_conservation_tp = ', density_conservation_tp
+         write (unit, '(A, L0)') '  exact_conservation_tp = ', exact_conservation_tp
+         write (unit, '(A, L0)') '  exact_conservation = ', exact_conservation
+         write (unit, '(A, L0)') '  vpa_operator = ', vpa_operator
+         write (unit, '(A, L0)') '  mu_operator = ', mu_operator
+         write (unit, '(A, L0)') '  no_j1l1 = ', no_j1l1
+         write (unit, '(A, L0)') '  no_j1l2 = ', no_j1l2
+         write (unit, '(A, L0)') '  no_j0l2 = ', no_j0l2
+         write (unit, '(A, I0)') '  jmax = ', jmax
+         write (unit, '(A, I0)') '  lmax = ', lmax
+         write (unit, '(A, I0)') '  nvel_local = ', nvel_local
+         write (unit, '(A, SE0.4)') '  iiknob = ', iiknob
+         write (unit, '(A, SE0.4)') '  ieknob = ', ieknob
+         write (unit, '(A, SE0.4)') '  eeknob = ', eeknob
+         write (unit, '(A, SE0.4)') '  eiknob = ', eiknob
+         write (unit, '(A, SE0.4)') '  eiediffknob = ', eiediffknob
+         write (unit, '(A, SE0.4)') '  eideflknob = ', eideflknob
+         write (unit, '(A, SE0.4)') '  deflknob = ', deflknob
+         write (unit, '(A, SE0.4)') '  cfac = ', cfac
+         write (unit, '(A, SE0.4)') '  cfac2 = ', cfac2
+         write (unit, '(A, SE0.4)') '  nuxfac = ', nuxfac
+         write (unit, '(A, SE0.4)') '  i1fac = ', i1fac
+         write (unit, '(A, SE0.4)') '  i2fac = ', i2fac
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+         
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_collisions_fokker_planck
 
@@ -373,6 +464,29 @@ contains
          if (dexist) read (unit=in_file, nml=hyper_dissipation)
 
       end subroutine read_input_file_hyper_dissipation
+      
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&hyper_dissipation'
+         write (unit, '(A, L0)') '  use_physical_ksqr = ', use_physical_ksqr
+         write (unit, '(A, L0)') '  scale_to_outboard = ', scale_to_outboard
+         write (unit, '(A, L0)') '  hyp_vpa = ', hyp_vpa
+         write (unit, '(A, L0)') '  hyp_zed = ', hyp_zed
+         write (unit, '(A, SE0.4)') '  D_hyper = ', D_hyper
+         write (unit, '(A, SE0.4)') '  D_zed = ', D_zed
+         write (unit, '(A, SE0.4)') '  D_vpa = ', D_vpa
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_hyper_dissipation
 

@@ -65,6 +65,7 @@ contains
       call set_default_parameters_neoclassical_input
       call read_input_file_neoclassical_input
       call check_inputs_neoclassical_input
+      call write_parameters_to_input_file
 
    contains
 
@@ -83,13 +84,11 @@ contains
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_neoclassical_input
 
-         use file_utils, only: input_unit_exist, error_unit
+         use file_utils, only: input_unit_exist
+         use file_units, only: unit_error_file
          use text_options, only: text_option, get_option_value
 
          implicit none
-
-         ! Variables needed to read the input file
-         integer :: ierr
          
          ! Link text options for <neo_option> to an integer value
          type(text_option), dimension(2), parameter :: neoopts = (/ &
@@ -106,9 +105,8 @@ contains
          if (dexist) read (unit=in_file, nml=neoclassical_input)
 
          ! Read the text option in <neo_option> and store it in <neo_option_switch>
-         ierr = error_unit()
          call get_option_value(neo_option, neoopts, neo_option_switch, &
-             ierr, 'neo_option in neoclassical_input')
+             unit_error_file, 'neo_option in neoclassical_input')
 
       end subroutine read_input_file_neoclassical_input
 
@@ -124,6 +122,25 @@ contains
          end if
 
       end subroutine check_inputs_neoclassical_input
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&neoclassical_input'
+         write (unit, '(A, A, A)') '  neo_option = "', trim(neo_option),'"'
+         write (unit, '(A, L0)') '  include_neoclassical_terms = ', include_neoclassical_terms
+         write (unit, '(A, I0)') '  nradii = ', nradii
+         write (unit, '(A, ES0.4)') '  drho = ', drho
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_neoclassical_input
 

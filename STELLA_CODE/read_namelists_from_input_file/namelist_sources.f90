@@ -91,6 +91,7 @@ contains
       call set_default_parameters_sources
       call read_input_file_sources
       call check_inputs_sources
+      call write_parameters_to_input_file
 
    contains
    
@@ -124,13 +125,11 @@ contains
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_sources
 
-         use file_utils, only: input_unit_exist, error_unit
+         use file_utils, only: input_unit_exist
+         use file_units, only: unit_error_file
          use text_options, only: text_option, get_option_value
 
          implicit none
-
-         ! Variables needed to read the input file
-         integer :: ierr
          
          ! Link text options for <source_option> to an integer value
          type(text_option), dimension(4), parameter :: sourceopts = &
@@ -152,12 +151,12 @@ contains
          if (dexist) read (unit=in_file, nml=sources)
 
          ! Read the text option in <source_option> and store it in <source_option_switch>
-         ierr = error_unit()
          call get_option_value(source_option, sourceopts, source_option_switch, &
-            ierr, 'source_option in sources')
+            unit_error_file, 'source_option in sources')
 
       end subroutine read_input_file_sources
 
+      !------------------------- Check input parameters ------------------------
       subroutine check_inputs_sources
 
          implicit none
@@ -165,6 +164,36 @@ contains
          if (tcorr_source_qn < 0) tcorr_source_qn = tcorr_source
 
       end subroutine check_inputs_sources
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+         
+         ! Don't print values if no sources are selected
+         if (source_option_switch == source_option_none) return
+
+         ! Print input parameters
+         write (unit, '(A)') '&sources'
+         write (unit, '(A, A, A)') '  source_option = "', trim(source_option), '"'
+         write (unit, '(A, ES0.4)') '  nu_krook = ', nu_krook
+         write (unit, '(A, ES0.4)') '  tcorr_source = ', tcorr_source
+         write (unit, '(A, I0)') '  ikxmax_source = ', ikxmax_source
+         write (unit, '(A, L0)') '  krook_odd = ', krook_odd
+         write (unit, '(A, L0)') '  exclude_boundary_regions = ', exclude_boundary_regions
+         write (unit, '(A, ES0.4)') '  tcorr_source_qn = ', tcorr_source_qn
+         write (unit, '(A, L0)') '  exclude_boundary_regions_qn = ', exclude_boundary_regions_qn
+         write (unit, '(A, L0)') '  from_zero = ', from_zero
+         write (unit, '(A, L0)') '  conserve_momentum = ', conserve_momentum
+         write (unit, '(A, L0)') '  conserve_density = ', conserve_density
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_sources
 

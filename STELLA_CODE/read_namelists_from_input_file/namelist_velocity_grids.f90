@@ -57,6 +57,7 @@ contains
       if (.not. proc0) return
       call set_default_velocity_grids
       call read_input_file_velocity_grids
+      call write_parameters_to_input_file
 
    contains
       !------------------------ Default input parameters -----------------------
@@ -91,6 +92,27 @@ contains
          if (dexist) read (unit=in_file, nml=velocity_grids)
 
       end subroutine read_input_file_velocity_grids
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&velocity_grids'
+         write (unit, '(A, I0)') '  nvgrid = ', nvgrid
+         write (unit, '(A, I0)') '  nmu = ', nmu
+         write (unit, '(A, F0.2)') '  vpa_max = ', vpa_max
+         write (unit, '(A, F0.2)') '  vperp_max = ', vperp_max
+         write (unit, '(A, L0)') '  equally_spaced_mu_grid = ', equally_spaced_mu_grid
+         write (unit, '(A, L0)') '  conservative_wgts_vpa = ', conservative_wgts_vpa
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_velocity_grids
 

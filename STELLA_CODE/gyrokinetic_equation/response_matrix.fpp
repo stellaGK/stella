@@ -25,7 +25,6 @@ module response_matrix
 
    private
 
-   integer, parameter :: mat_unit = 70
 #ifdef ISO_C_BINDING
    integer(c_intptr_t) :: cur_pos
 #endif
@@ -54,6 +53,7 @@ contains
       use grids_kxky, only: naky
       use mp, only: proc0
       use stella_layouts, only: mat_gen
+      use file_units, only: unit_response_matrix
 #ifdef ISO_C_BINDING
       use arrays_store_useful, only: response_window
 #endif
@@ -91,7 +91,7 @@ contains
 
       ! Write the response matrix to an output file
       if (proc0 .and. mat_gen) then
-         close (unit=mat_unit)
+         close (unit=unit_response_matrix)
       end if
 
       ! End the reponse matrix message
@@ -136,6 +136,7 @@ contains
       use stella_layouts, only: mat_gen
       use system_fortran, only: systemf
       use grids_kxky, only: naky
+      use file_units, only: unit_response_matrix
 
       implicit none
 
@@ -151,9 +152,9 @@ contains
          call systemf('mkdir -p mat')
          write (job_str, '(I1.1)') job
          file_name = './mat/response_mat_'//trim(job_str)
-         open (unit=mat_unit, status='replace', file=file_name, &
+         open (unit=unit_response_matrix, status='replace', file=file_name, &
                position='rewind', action='write', form='unformatted')
-         write (unit=mat_unit) naky
+         write (unit=unit_response_matrix) naky
       end if
 
    end subroutine setup_response_matrix_file_io
@@ -225,6 +226,7 @@ contains
       use arrays_store_useful, only: response_matrix
       use grids_kxky, only: naky
       use grids_extended_zgrid, only: neigen
+      use file_units, only: unit_response_matrix
 #ifdef ISO_C_BINDING
       use arrays_store_useful, only: response_window
 #endif
@@ -246,7 +248,7 @@ contains
       do iky = 1, naky
 
          if (proc0 .and. mat_gen) then
-            write (unit=mat_unit) iky, neigen(iky)
+            write (unit=unit_response_matrix) iky, neigen(iky)
          end if
 
          ! the response matrix for each ky has neigen(ky)
@@ -298,8 +300,8 @@ contains
 
          do ie = 1, neigen(iky)
             if (proc0 .and. mat_gen) then
-               write (unit=mat_unit) response_matrix(iky)%eigen(ie)%idx
-               write (unit=mat_unit) response_matrix(iky)%eigen(ie)%zloc
+               write (unit=unit_response_matrix) response_matrix(iky)%eigen(ie)%idx
+               write (unit=unit_response_matrix) response_matrix(iky)%eigen(ie)%zloc
             end if
          end do
 
@@ -321,6 +323,7 @@ contains
       use grids_extended_zgrid, only: iz_low, iz_up
       use stella_layouts, only: vmu_lo
       use fields, only: nfields
+      use file_units, only: unit_response_matrix
 
       implicit none
 
@@ -352,7 +355,7 @@ contains
          nresponse = nresponse_per_field * nfields
 
          if (proc0 .and. mat_gen) then
-            write (unit=mat_unit) ie, nresponse
+            write (unit=unit_response_matrix) ie, nresponse
          end if
 
          call setup_response_matrix_zloc_idx(iky, ie, nresponse)
@@ -676,6 +679,7 @@ contains
       use grids_extended_zgrid, only: periodic
       use mp, only: proc0, job, broadcast, mp_abort
       use fields, only: nfields
+      use file_units, only: unit_response_matrix
 
       implicit none
 
@@ -697,13 +701,13 @@ contains
          write (job_str, '(I1.1)') job
          file_name = './mat/response_mat.'//trim(job_str)
 
-         open (unit=mat_unit, status='old', file=file_name, &
+         open (unit=unit_response_matrix, status='old', file=file_name, &
                action='read', form='unformatted', iostat=istat)
          if (istat /= 0) then
             print *, 'Error opening response_matrix by root processor for job ', job_str
          end if
 
-         read (unit=mat_unit) naky_dump
+         read (unit=unit_response_matrix) naky_dump
          if (naky /= naky_dump) call mp_abort('mismatch in naky and naky_dump')
       end if
 
@@ -711,7 +715,7 @@ contains
 
       do iky = 1, naky
          if (proc0) then
-            read (unit=mat_unit) iky_dump, neigen_dump
+            read (unit=unit_response_matrix) iky_dump, neigen_dump
             if (iky_dump /= iky .or. neigen_dump /= neigen(iky)) &
                call mp_abort('mismatch in iky_dump/neigen_dump')
          end if
@@ -734,7 +738,7 @@ contains
             nresponse = nresponse_per_field * nfields
 
             if (proc0) then
-               read (unit=mat_unit) ie_dump, nresponse_dump
+               read (unit=unit_response_matrix) ie_dump, nresponse_dump
                if (ie_dump /= ie .or. nresponse /= nresponse_dump) &
                   call mp_abort('mismatch in ie/nresponse_dump')
             end if
@@ -751,8 +755,8 @@ contains
             if (.not. associated(response_matrix(iky)%eigen(ie)%idx)) &
                allocate (response_matrix(iky)%eigen(ie)%idx(nresponse))
             if (proc0) then
-               read (unit=mat_unit) response_matrix(iky)%eigen(ie)%idx
-               read (unit=mat_unit) response_matrix(iky)%eigen(ie)%zloc
+               read (unit=unit_response_matrix) response_matrix(iky)%eigen(ie)%idx
+               read (unit=unit_response_matrix) response_matrix(iky)%eigen(ie)%zloc
             end if
 
             call broadcast(response_matrix(iky)%eigen(ie)%idx)
@@ -761,7 +765,7 @@ contains
          end do
       end do
 
-      if (proc0) close (mat_unit)
+      if (proc0) close (unit_response_matrix)
 
       if (debug) then
          print *, 'File', file_name, ' successfully read by root proc for job: ', job_str

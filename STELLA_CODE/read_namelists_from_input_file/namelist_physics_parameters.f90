@@ -110,6 +110,7 @@ contains
       call set_default_parameters_gyrokinetic_terms
       call read_input_file_gyrokinetic_terms
       call check_inputs_gyrokinetic_terms
+      call write_parameters_to_input_file
 
    contains
       
@@ -188,6 +189,33 @@ contains
          if (.not. include_nonlinear) include_parallel_nonlinearity = .false.
 
       end subroutine check_inputs_gyrokinetic_terms
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&gyrokinetic_terms'
+         write (unit, '(A, A, A)') '  simulation_domain = "', trim(simulation_domain), '"'
+         write (unit, '(A, L0)') '  include_parallel_streaming = ', include_parallel_streaming
+         write (unit, '(A, L0)') '  include_mirror = ', include_mirror
+         write (unit, '(A, L0)') '  include_xdrift = ', include_xdrift
+         write (unit, '(A, L0)') '  include_ydrift = ', include_ydrift
+         write (unit, '(A, L0)') '  include_drive = ', include_drive
+         write (unit, '(A, L0)') '  include_nonlinear = ', include_nonlinear
+         write (unit, '(A, L0)') '  include_parallel_nonlinearity = ', include_parallel_nonlinearity
+         write (unit, '(A, L0)') '  include_electromagnetic = ', include_electromagnetic
+         write (unit, '(A, L0)') '  include_flow_shear = ', include_flow_shear
+         write (unit, '(A, L0)') '  include_full_flux_annulus = ', include_full_flux_annulus
+         write (unit, '(A, L0)') '  include_radial_variation = ', include_radial_variation
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_gyrokinetic_terms
 
@@ -213,6 +241,7 @@ contains
       call set_default_parameters_scale_gyrokinetic_terms
       call read_input_file_scale_gyrokinetic_terms
       call check_inputs_scale_gyrokinetic_terms
+      call write_parameters_to_input_file
 
    contains
       
@@ -260,6 +289,26 @@ contains
          if (.not. include_drive) wstarknob = 0.0
 
       end subroutine check_inputs_scale_gyrokinetic_terms
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&scale_gyrokinetic_terms'
+         write (unit, '(A, L0)') '  suppress_zonal_interaction = ', suppress_zonal_interaction
+         write (unit, '(A, F0.2)') '  xdriftknob = ', xdriftknob
+         write (unit, '(A, F0.2)') '  ydriftknob = ', ydriftknob
+         write (unit, '(A, F0.2)') '  wstarknob = ', wstarknob
+         write (unit, '(A, F0.2)') '  fphi = ', fphi
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_scale_gyrokinetic_terms
 
@@ -283,6 +332,7 @@ contains
       call set_default_parameters_electromagnetic
       call read_input_file_electromagnetic
       call check_inputs_electromagnetic
+      call write_parameters_to_input_file
 
    contains
       
@@ -329,7 +379,24 @@ contains
          end if 
          
       end subroutine check_inputs_electromagnetic
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
 
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&electromagnetic'
+         write (unit, '(A, L0)') '  include_apar = ', include_apar
+         write (unit, '(A, L0)') '  include_bpar = ', include_bpar
+         write (unit, '(A, ES0.4)') '  beta = ', beta
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_electromagnetic
 
@@ -352,6 +419,7 @@ contains
       if (.not. proc0) return
       call set_default_parameters_flow_shear
       call read_input_file_flow_shear
+      call write_parameters_to_input_file
 
    contains
       
@@ -379,6 +447,26 @@ contains
          if (dexist) read (unit=in_file, nml=flow_shear)
 
       end subroutine read_input_file_flow_shear
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&flow_shear'
+         write (unit, '(A, L0)') '  prp_shear_enabled = ', prp_shear_enabled
+         write (unit, '(A, L0)') '  hammett_flow_shear = ', hammett_flow_shear
+         write (unit, '(A, ES0.4)') '  g_exb = ', g_exb
+         write (unit, '(A, ES0.4)') '  g_exbfac = ', g_exbfac
+         write (unit, '(A, ES0.4)') '  omprimfac = ', omprimfac
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_flow_shear
 
@@ -399,6 +487,7 @@ contains
       if (.not. proc0) return
       call set_default_parameters_physics_inputs
       call read_input_file_physics_inputs
+      call write_parameters_to_input_file
 
    contains
       
@@ -422,6 +511,22 @@ contains
          if (dexist) read (unit=in_file, nml=physics_inputs)
 
       end subroutine read_input_file_physics_inputs
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&physics_inputs'
+         write (unit, '(A, ES0.4)') '  rhostar = ', rhostar
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_physics_inputs
 

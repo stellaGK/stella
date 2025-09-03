@@ -650,11 +650,11 @@ contains
       use arrays_store_distribution_fn, only: gvmu
       use stella_save, only: stella_restore
       use mp, only: proc0
-      use file_utils, only: error_unit
-
+      use file_units, only: unit_error_file
+      
       implicit none
 
-      integer :: istatus, ierr
+      integer :: istatus
 
       !-------------------------------------------------------------------------
 
@@ -663,8 +663,7 @@ contains
       call stella_restore(gvmu, scale, istatus)
 
       if (istatus /= 0) then
-         ierr = error_unit()
-         if (proc0) write (ierr, *) "Error reading file: ", trim(restart_file)
+         if (proc0) write (unit_error_file, *) "Error reading file: ", trim(restart_file)
          gvmu = 0.
       end if
 

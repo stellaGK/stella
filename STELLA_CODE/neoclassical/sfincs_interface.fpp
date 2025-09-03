@@ -1580,12 +1580,14 @@ contains
       use globalVariables, only: Phi1Hat
       use export_f, only: export_f_zeta, export_f_theta
       use export_f, only: delta_f
+      use file_units, only: unit => unit_sfincs_file
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: irad, nrad_max
 
-      integer :: unit = 999
+      ! Local variables
       integer :: izeta, itheta, is, i, j
       character(1) :: irad_str
 
@@ -1630,12 +1632,14 @@ contains
       use globalVariables, only: Phi1Hat
       use export_f, only: export_f_zeta, export_f_theta
       use export_f, only: delta_f
+      use file_units, only: unit => unit_sfincs_file
 
       implicit none
 
+      ! Arguments
       integer, intent(in) :: irad, nrad_max
 
-      integer :: unit = 999
+      ! Local variables
       integer :: izeta, itheta, is, i, j
       character(8) :: dum
       character(1) :: irad_str

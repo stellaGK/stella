@@ -71,6 +71,7 @@ contains
       call set_default_parameters_parallelisation
       call read_input_file_parallelisation
       call check_inputs_parallelisation
+      call write_parameters_to_input_file
 
    contains
    
@@ -92,13 +93,11 @@ contains
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_parallelisation
 
-         use file_utils, only: input_unit_exist, error_unit
+         use file_utils, only: input_unit_exist
+         use file_units, only: unit_error_file
          use text_options, only: text_option, get_option_value
 
          implicit none
-
-         ! Variables needed to read the input file
-         integer :: ierr
          
          ! Link text options for <lu_option> to an integer value
          type(text_option), dimension(3), parameter :: luopts = &
@@ -117,9 +116,8 @@ contains
          if (dexist) read (unit=in_file, nml=parallelisation)
 
          ! Read the text option in <lu_option> and store it in <lu_option_switch>
-         ierr = error_unit()
          call get_option_value(lu_option, luopts, lu_option_switch, &
-             ierr, 'lu_option in parameters_numerical')
+             unit_error_file, 'lu_option in parameters_numerical')
 
       end subroutine read_input_file_parallelisation
 
@@ -148,6 +146,29 @@ contains
          end if
 
       end subroutine check_inputs_parallelisation
+      
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&parallelisation'
+         write (unit, '(A, A, A)') '  lu_option = "', trim(lu_option), '"'
+         write (unit, '(A, A, A)') '  xyzs_layout = "', trim(xyzs_layout), '"'
+         write (unit, '(A, A, A)') '  vms_layout = "', trim(vms_layout), '"'
+         write (unit, '(A, A, A)') '  kymus_layout = "', trim(kymus_layout), '"'
+         write (unit, '(A, L0)') '  fields_kxkyz = ', fields_kxkyz
+         write (unit, '(A, L0)') '  mat_gen = ', mat_gen
+         write (unit, '(A, L0)') '  mat_read = ', mat_read
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_parallelisation
 

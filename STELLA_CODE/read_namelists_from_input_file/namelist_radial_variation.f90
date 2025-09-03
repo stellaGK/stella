@@ -149,13 +149,11 @@ contains
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_radial_variation
 
-         use file_utils, only: input_unit_exist, error_unit
+         use file_units, only: unit_error_file
+         use file_utils, only: input_unit_exist
          use text_options, only: text_option, get_option_value
 
          implicit none
-
-         ! Variables needed to read the input file
-         integer :: ierr
          
          ! Link text options for <krook_option> to an integer value
          type(text_option), dimension(5), parameter :: krook_opts = &
@@ -193,13 +191,12 @@ contains
          if (dexist) read (unit=in_file, nml=multibox_parameters)
 
          ! Read the text option and store it the corresponding switch
-         ierr = error_unit()
          call get_option_value(krook_option, krook_opts, krook_option_switch, &
-            ierr, 'krook_option in multibox_parameters')
+            unit_error_file, 'krook_option in multibox_parameters')
          call get_option_value(zf_option, mb_zf_opts, mb_zf_option_switch, &
-            ierr, 'zf_option in multibox_parameters')
+            unit_error_file, 'zf_option in multibox_parameters')
          call get_option_value(lr_debug_option, lr_db_opts, lr_debug_switch, &
-            ierr, 'lr_debug_option in multibox_parameters')
+            unit_error_file, 'lr_debug_option in multibox_parameters')
 
       end subroutine read_input_file_radial_variation
 
@@ -211,6 +208,39 @@ contains
          if (krook_size > boundary_size) krook_size = boundary_size
 
       end subroutine check_namelist_radial_variation
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&multibox_parameters'
+         write (unit, '(A, A, A)') '  lr_debug_option = "', lr_debug_option, '"'
+         write (unit, '(A, A, A)') '  krook_option = "', krook_option, '"'
+         write (unit, '(A, A, A)') '  zf_option = "', zf_option, '"'
+         write (unit, '(A, L0)') '  ky_solve_real = ', ky_solve_real
+         write (unit, '(A, I0)') '  ky_solve_radial = ', ky_solve_radial
+         write (unit, '(A, L0)') '  include_pressure_variation = ', include_pressure_variation
+         write (unit, '(A, L0)') '  include_geometric_variation = ', include_geometric_variation
+         write (unit, '(A, L0)') '  smooth_zf = ', smooth_zf
+         write (unit, '(A, L0)') '  rk_step = ', rk_step
+         write (unit, '(A, ES0.4)') '  nu_krook_mb = ', nu_krook_mb
+         write (unit, '(A, I0)') '  mb_debug_step = ', mb_debug_step
+         write (unit, '(A, ES0.4)') '  krook_exponent = ', krook_exponent
+         write (unit, '(A, ES0.4)') '  krook_efold = ', krook_efold
+         write (unit, '(A, ES0.4)') '  phi_bound = ', phi_bound
+         write (unit, '(A, ES0.4)') '  phi_pow = ', phi_pow
+         write (unit, '(A, L0)') '  use_dirichlet_bc = ', use_dirichlet_bc
+         write (unit, '(A, I0)') '  boundary_size = ', boundary_size
+         write (unit, '(A, I0)') '  krook_size = ', krook_size
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+      
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_radial_variation
 

@@ -104,6 +104,7 @@ contains
       use gk_sources, only: source_option_krook, source_option_projection
       use gk_sources, only: source_option_switch, int_krook, int_proj
       use gk_sources, only: include_qn_source
+      use file_units, only: unit_error_file
 
       implicit none
 
@@ -116,7 +117,7 @@ contains
 # ifdef NETCDF
       character(306) :: file_proc
       character(10) :: suffix
-      integer :: i, n_elements, nvmulo_elements, ierr
+      integer :: i, n_elements, nvmulo_elements
       integer :: total_elements, total_vmulo_elements
       logical :: has_vmulo
 # ifdef NETCDF_PARALLEL
@@ -196,8 +197,7 @@ contains
 # endif
 
          if (istatus /= NF90_NOERR) then
-            ierr = error_unit()
-            write (ierr, *) "nf90_create error: ", nf90_strerror(istatus)
+            write (unit_error_file, *) "nf90_create error: ", nf90_strerror(istatus)
             goto 1
          end if
 
@@ -205,14 +205,12 @@ contains
          if (.not. save_many) then
             istatus = nf90_put_att(ncid, NF90_GLOBAL, 'xyzs_layout', xyzs_layout)
             if (istatus /= NF90_NOERR) then
-               ierr = error_unit()
-               write (ierr, *) "nf90_put_attr error: ", nf90_strerror(istatus)
+               write (unit_error_file, *) "nf90_put_attr error: ", nf90_strerror(istatus)
                goto 1
             end if
             istatus = nf90_put_att(ncid, NF90_GLOBAL, 'vms_layout', vms_layout)
             if (istatus /= NF90_NOERR) then
-               ierr = error_unit()
-               write (ierr, *) "nf90_put_attr error: ", nf90_strerror(istatus)
+               write (unit_error_file, *) "nf90_put_attr error: ", nf90_strerror(istatus)
                goto 1
             end if
          end if
@@ -221,29 +219,25 @@ contains
          if (n_elements > 0) then
             istatus = nf90_def_dim(ncid, "tube", ntubes, tubeid)
             if (istatus /= NF90_NOERR) then
-               ierr = error_unit()
-               write (ierr, *) "nf90_def_dim zed error: ", nf90_strerror(istatus)
+               write (unit_error_file, *) "nf90_def_dim zed error: ", nf90_strerror(istatus)
                goto 1
             end if
 
             istatus = nf90_def_dim(ncid, "zed", 2 * nzgrid + 1, zedid)
             if (istatus /= NF90_NOERR) then
-               ierr = error_unit()
-               write (ierr, *) "nf90_def_dim zed error: ", nf90_strerror(istatus)
+               write (unit_error_file, *) "nf90_def_dim zed error: ", nf90_strerror(istatus)
                goto 1
             end if
 
             istatus = nf90_def_dim(ncid, "vpa", nvpa, vpaid)
             if (istatus /= NF90_NOERR) then
-               ierr = error_unit()
-               write (ierr, *) "nf90_def_dim vpa error: ", nf90_strerror(istatus)
+               write (unit_error_file, *) "nf90_def_dim vpa error: ", nf90_strerror(istatus)
                goto 1
             end if
 
             istatus = nf90_def_dim(ncid, "mu", nmu, muid)
             if (istatus /= NF90_NOERR) then
-               ierr = error_unit()
-               write (ierr, *) "nf90_def_dim mu error: ", nf90_strerror(istatus)
+               write (unit_error_file, *) "nf90_def_dim mu error: ", nf90_strerror(istatus)
                goto 1
             end if
 
@@ -257,8 +251,7 @@ contains
             end if
 # endif
             if (istatus /= NF90_NOERR) then
-               ierr = error_unit()
-               write (ierr, *) "nf90_def_dim glo error: ", nf90_strerror(istatus)
+               write (unit_error_file, *) "nf90_def_dim glo error: ", nf90_strerror(istatus)
                goto 1
             end if
 
@@ -268,8 +261,7 @@ contains
                if (nvmulo_elements > 0) then
                   istatus = nf90_def_dim(ncid, "gvmulo", nvmulo_elements, gvmuloid)
                   if (istatus /= NF90_NOERR) then
-                     ierr = error_unit()
-                     write (ierr, *) "nf90_def_dim gvmulo error: ", nf90_strerror(istatus)
+                     write (unit_error_file, *) "nf90_def_dim gvmulo error: ", nf90_strerror(istatus)
                      goto 1
                   end if
                end if
@@ -277,8 +269,7 @@ contains
             else
                istatus = nf90_def_dim(ncid, "gvmulo", total_vmulo_elements, gvmuloid)
                if (istatus /= NF90_NOERR) then
-                  ierr = error_unit()
-                  write (ierr, *) "nf90_def_dim gvmulo error: ", nf90_strerror(istatus)
+                  write (unit_error_file, *) "nf90_def_dim gvmulo error: ", nf90_strerror(istatus)
                   goto 1
                end if
             end if
@@ -286,15 +277,13 @@ contains
 
             istatus = nf90_def_dim(ncid, "aky", naky, kyid)
             if (istatus /= NF90_NOERR) then
-               ierr = error_unit()
-               write (ierr, *) "nf90_def_dim aky error: ", nf90_strerror(istatus)
+               write (unit_error_file, *) "nf90_def_dim aky error: ", nf90_strerror(istatus)
                goto 1
             end if
 
             istatus = nf90_def_dim(ncid, "akx", nakx, kxid)
             if (istatus /= NF90_NOERR) then
-               ierr = error_unit()
-               write (ierr, *) "nf90_def_dim akx error: ", nf90_strerror(istatus)
+               write (unit_error_file, *) "nf90_def_dim akx error: ", nf90_strerror(istatus)
                goto 1
             end if
          end if
@@ -303,22 +292,19 @@ contains
 
          istatus = nf90_def_var(ncid, "t0", netcdf_real, t0id)
          if (istatus /= NF90_NOERR) then
-            ierr = error_unit()
-            write (ierr, *) "nf90_def_var t0 error: ", nf90_strerror(istatus)
+            write (unit_error_file, *) "nf90_def_var t0 error: ", nf90_strerror(istatus)
             goto 1
          end if
 
          istatus = nf90_def_var(ncid, "istep0", nf90_int, istep0id)
          if (istatus /= NF90_NOERR) then
-            ierr = error_unit()
-            write (ierr, *) "nf90_def_var istep0 error: ", nf90_strerror(istatus)
+            write (unit_error_file, *) "nf90_def_var istep0 error: ", nf90_strerror(istatus)
             goto 1
          end if
 
          istatus = nf90_def_var(ncid, "delt0", netcdf_real, delt0id)
          if (istatus /= NF90_NOERR) then
-            ierr = error_unit()
-            write (ierr, *) "nf90_def_var delt0 error: ", nf90_strerror(istatus)
+            write (unit_error_file, *) "nf90_def_var delt0 error: ", nf90_strerror(istatus)
             goto 1
          end if
 
@@ -326,40 +312,35 @@ contains
             istatus = nf90_def_var(ncid, "gr", netcdf_real, &
                                    (/vpaid, muid, gloid/), gr_id)
             if (istatus /= NF90_NOERR) then
-               ierr = error_unit()
-               write (ierr, *) "nf90_def_var g error: ", nf90_strerror(istatus)
+               write (unit_error_file, *) "nf90_def_var g error: ", nf90_strerror(istatus)
                goto 1
             end if
 
             istatus = nf90_def_var(ncid, "gi", netcdf_real, &
                                    (/vpaid, muid, gloid/), gi_id)
             if (istatus /= NF90_NOERR) then
-               ierr = error_unit()
-               write (ierr, *) "nf90_def_var g error: ", nf90_strerror(istatus)
+               write (unit_error_file, *) "nf90_def_var g error: ", nf90_strerror(istatus)
                goto 1
             end if
 
             if (source_option_switch == source_option_krook .and. has_vmulo) then
                istatus = nf90_def_var(ncid, "intkrook", netcdf_real, intkrook_id)
                if (istatus /= NF90_NOERR) then
-                  ierr = error_unit()
-                  write (ierr, *) "nf90_def_var intkrook error: ", nf90_strerror(istatus)
+                  write (unit_error_file, *) "nf90_def_var intkrook error: ", nf90_strerror(istatus)
                   goto 1
                end if
 
                istatus = nf90_def_var(ncid, "krookr", netcdf_real, &
                                       (/kxid, zedid, tubeid, gvmuloid/), krookr_id)
                if (istatus /= NF90_NOERR) then
-                  ierr = error_unit()
-                  write (ierr, *) "nf90_def_var apar error: ", nf90_strerror(istatus)
+                  write (unit_error_file, *) "nf90_def_var apar error: ", nf90_strerror(istatus)
                   goto 1
                end if
 
                istatus = nf90_def_var(ncid, "krooki", netcdf_real, &
                                       (/kxid, zedid, tubeid, gvmuloid/), krooki_id)
                if (istatus /= NF90_NOERR) then
-                  ierr = error_unit()
-                  write (ierr, *) "nf90_def_var krooki error: ", nf90_strerror(istatus)
+                  write (unit_error_file, *) "nf90_def_var krooki error: ", nf90_strerror(istatus)
                   goto 1
                end if
 
@@ -369,16 +350,14 @@ contains
                istatus = nf90_def_var(ncid, "phiprojr", netcdf_real, &
                                       (/kxid, zedid, tubeid/), phiprojr_id)
                if (istatus /= NF90_NOERR) then
-                  ierr = error_unit()
-                  write (ierr, *) "nf90_def_var phiprojr error: ", nf90_strerror(istatus)
+                  write (unit_error_file, *) "nf90_def_var phiprojr error: ", nf90_strerror(istatus)
                   goto 1
                end if
 
                istatus = nf90_def_var(ncid, "phiproji", netcdf_real, &
                                       (/kxid, zedid, tubeid/), phiproji_id)
                if (istatus /= NF90_NOERR) then
-                  ierr = error_unit()
-                  write (ierr, *) "nf90_def_var phiproji error: ", nf90_strerror(istatus)
+                  write (unit_error_file, *) "nf90_def_var phiproji error: ", nf90_strerror(istatus)
                   goto 1
                end if
             end if
@@ -386,24 +365,21 @@ contains
             if (source_option_switch == source_option_projection .and. has_vmulo) then
                istatus = nf90_def_var(ncid, "intproj", netcdf_real, intproj_id)
                if (istatus /= NF90_NOERR) then
-                  ierr = error_unit()
-                  write (ierr, *) "nf90_def_var intproj error: ", nf90_strerror(istatus)
+                  write (unit_error_file, *) "nf90_def_var intproj error: ", nf90_strerror(istatus)
                   goto 1
                end if
 
                istatus = nf90_def_var(ncid, "projr", netcdf_real, &
                                       (/kxid, zedid, tubeid, gvmuloid/), projr_id)
                if (istatus /= NF90_NOERR) then
-                  ierr = error_unit()
-                  write (ierr, *) "nf90_def_var projr error: ", nf90_strerror(istatus)
+                  write (unit_error_file, *) "nf90_def_var projr error: ", nf90_strerror(istatus)
                   goto 1
                end if
 
                istatus = nf90_def_var(ncid, "proji", netcdf_real, &
                                       (/kxid, zedid, tubeid, gvmuloid/), proji_id)
                if (istatus /= NF90_NOERR) then
-                  ierr = error_unit()
-                  write (ierr, *) "nf90_def_var proji error: ", nf90_strerror(istatus)
+                  write (unit_error_file, *) "nf90_def_var proji error: ", nf90_strerror(istatus)
                   goto 1
                end if
 
@@ -414,8 +390,7 @@ contains
             istatus = nf90_def_var(ncid, "shiftstate", netcdf_real, &
                                    (/kyid/), shift_id)
             if (istatus /= NF90_NOERR) then
-               ierr = error_unit()
-               write (ierr, *) "nf90_def_var shiftstate error: ", nf90_strerror(istatus)
+               write (unit_error_file, *) "nf90_def_var shiftstate error: ", nf90_strerror(istatus)
                goto 1
             end if
 
@@ -447,8 +422,7 @@ contains
 
          istatus = nf90_enddef(ncid)
          if (istatus /= NF90_NOERR) then
-            ierr = error_unit()
-            write (ierr, *) "nf90_enddef error: ", nf90_strerror(istatus)
+            write (unit_error_file, *) "nf90_enddef error: ", nf90_strerror(istatus)
             goto 1
          end if
       end if
@@ -463,22 +437,19 @@ contains
 
          istatus = nf90_put_var(ncid, delt0id, delt0)
          if (istatus /= NF90_NOERR) then
-            ierr = error_unit()
-            write (ierr, *) "nf90_put_var delt0 error: ", nf90_strerror(istatus)
+            write (unit_error_file, *) "nf90_put_var delt0 error: ", nf90_strerror(istatus)
             goto 1
          end if
 
          istatus = nf90_put_var(ncid, t0id, t0)
          if (istatus /= NF90_NOERR) then
-            ierr = error_unit()
-            write (ierr, *) "nf90_put_var t0 error: ", nf90_strerror(istatus)
+            write (unit_error_file, *) "nf90_put_var t0 error: ", nf90_strerror(istatus)
             goto 1
          end if
 
          istatus = nf90_put_var(ncid, istep0id, istep0)
          if (istatus /= NF90_NOERR) then
-            ierr = error_unit()
-            write (ierr, *) "nf90_put_var istep0 error: ", nf90_strerror(istatus)
+            write (unit_error_file, *) "nf90_put_var istep0 error: ", nf90_strerror(istatus)
             goto 1
          end if
 
@@ -543,8 +514,7 @@ contains
 
                istatus = nf90_put_var(ncid, intkrook_id, int_krook)
                if (istatus /= NF90_NOERR) then
-                  ierr = error_unit()
-                  write (ierr, *) "nf90_put_var int_krook error: ", nf90_strerror(istatus)
+                  write (unit_error_file, *) "nf90_put_var int_krook error: ", nf90_strerror(istatus)
                   goto 1
                end if
 
@@ -597,8 +567,7 @@ contains
 
                istatus = nf90_put_var(ncid, intproj_id, int_proj)
                if (istatus /= NF90_NOERR) then
-                  ierr = error_unit()
-                  write (ierr, *) "nf90_put_var int_proj error: ", nf90_strerror(istatus)
+                  write (unit_error_file, *) "nf90_put_var int_proj error: ", nf90_strerror(istatus)
                   goto 1
                end if
 
@@ -737,6 +706,7 @@ contains
       use gk_sources, only: source_option_krook, source_option_projection
       use gk_sources, only: source_option_switch, int_krook, int_proj
       use gk_sources, only: include_qn_source
+      use file_units, only: unit_error_file
 
       implicit none
 
@@ -749,7 +719,7 @@ contains
 # endif
       character(306) :: file_proc
       character(10) :: suffix
-      integer :: i, n_elements, nvmulo_elements, ierr
+      integer :: i, n_elements, nvmulo_elements
       logical :: has_vmulo
 
       n_elements = kxkyz_lo%ulim_proc - kxkyz_lo%llim_proc + 1
@@ -1062,8 +1032,7 @@ contains
       ! RN 2008/05/23: this was commented out. why? HJL 2013/05/15 Because it stops future writing to the file
 !    istatus = nf90_close (ncid)
       if (istatus /= NF90_NOERR) then
-         ierr = error_unit()
-         write (ierr, *) "nf90_close error: ", nf90_strerror(istatus), ' ', iproc
+         write (unit_error_file, *) "nf90_close error: ", nf90_strerror(istatus), ' ', iproc
       end if
 
 # else

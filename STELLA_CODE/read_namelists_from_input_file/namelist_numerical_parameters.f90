@@ -120,6 +120,7 @@ contains
       if (.not. proc0) return
       call set_default_parameters_time_trace_options
       call read_input_file_time_trace_options
+      call write_parameters_to_input_file
 
    contains
 
@@ -146,6 +147,25 @@ contains
          if (dexist) read (unit=in_file, nml=time_trace_options)
 
       end subroutine read_input_file_time_trace_options
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&time_trace_options'
+         write (unit, '(A, I0)') '  nstep = ', nstep
+         write (unit, '(A, F0.4)') '  tend = ', tend
+         write (unit, '(A, L0)') '  autostop = ', autostop
+         write (unit, '(A, ES0.4)') '  avail_cpu_time = ', avail_cpu_time
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_time_trace_options
 
@@ -173,6 +193,7 @@ contains
       if (.not. proc0) return
       call set_default_parameters_time_step
       call read_input_file_time_step
+      call write_parameters_to_input_file
 
    contains
 
@@ -194,13 +215,11 @@ contains
       !---------------------------- Read input file ----------------------------
       subroutine read_input_file_time_step
 
-         use file_utils, only: input_unit_exist, error_unit
+         use file_utils, only: input_unit_exist
+         use file_units, only: unit_error_file
          use text_options, only: text_option, get_option_value
 
          implicit none
-
-         ! Variables needed to read the input file
-         integer :: ierr
 
          ! Link text options for <delt_option> to an integer value
          type(text_option), dimension(3), parameter :: deltopts = &
@@ -219,11 +238,32 @@ contains
          if (dexist) read (unit=in_file, nml=time_step)
 
          ! Read the text option in <delt_option> and store it in <delt_option_switch>
-         ierr = error_unit()
          call get_option_value(delt_option, deltopts, delt_option_switch, &
-             ierr, 'delt_option in namelist_parameters_numerical.f90')
+             unit_error_file, 'delt_option in namelist_parameters_numerical.f90')
 
       end subroutine read_input_file_time_step
+      
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&time_step'
+         write (unit, '(A, ES0.4)') '  delt = ', delt
+         write (unit, '(A, A, A)') '  delt_option = "', trim(delt_option), '"'
+         write (unit, '(A, ES0.4)') '  delt_max = ', delt_max
+         write (unit, '(A, ES0.4)') '  delt_min = ', delt_min
+         write (unit, '(A, ES0.4)') '  cfl_cushion_upper = ', cfl_cushion_upper
+         write (unit, '(A, ES0.4)') '  cfl_cushion_middle = ', cfl_cushion_middle
+         write (unit, '(A, ES0.4)') '  cfl_cushion_lower = ', cfl_cushion_lower
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_time_step
 
@@ -256,6 +296,7 @@ contains
       if (.not. proc0) return
       call set_default_parameters_numerical_algorithms
       call read_input_file_numerical_algorithms
+      call write_parameters_to_input_file
 
    contains
 
@@ -321,6 +362,37 @@ contains
 
      end subroutine read_input_file_numerical_algorithms
 
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&numerical_algorithms'
+         write (unit, '(A, A, A)') '  explicit_algorithm = "', trim(explicit_algorithm), '"'
+         write (unit, '(A, L0)') '  flip_flop = ', flip_flop
+         write (unit, '(A, L0)') '  stream_implicit = ', stream_implicit
+         write (unit, '(A, L0)') '  stream_iterative_implicit = ', stream_iterative_implicit
+         write (unit, '(A, L0)') '  stream_matrix_inversion = ', stream_matrix_inversion
+         write (unit, '(A, L0)') '  driftkinetic_implicit = ', driftkinetic_implicit
+         write (unit, '(A, L0)') '  mirror_implicit = ', mirror_implicit
+         write (unit, '(A, L0)') '  mirror_semi_lagrange = ', mirror_semi_lagrange
+         write (unit, '(A, L0)') '  mirror_linear_interp = ', mirror_linear_interp
+         write (unit, '(A, L0)') '  drifts_implicit = ', drifts_implicit
+         write (unit, '(A, L0)') '  fully_implicit = ', fully_implicit
+         write (unit, '(A, L0)') '  fully_explicit = ', fully_explicit
+         write (unit, '(A, L0)') '  maxwellian_inside_zed_derivative = ', maxwellian_inside_zed_derivative
+         write (unit, '(A, L0)') '  use_deltaphi_for_response_matrix = ', use_deltaphi_for_response_matrix
+         write (unit, '(A, L0)') '  split_parallel_dynamics = ', split_parallel_dynamics
+         write (unit, '(A, L0)') '  maxwellian_normalization = ', maxwellian_normalization
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
+
    end subroutine read_namelist_numerical_algorithms
 
    !****************************************************************************
@@ -340,6 +412,7 @@ contains
       if (.not. proc0) return
       call set_default_parameters_numerical_upwinding_for_derivatives
       call read_input_file_numerical_upwinding_for_derivatives
+      call write_parameters_to_input_file
 
    contains
         
@@ -366,6 +439,24 @@ contains
 
       end subroutine read_input_file_numerical_upwinding_for_derivatives
 
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&numerical_upwinding_for_derivatives'
+         write (unit, '(A, F0.4)') '  time_upwind = ', time_upwind
+         write (unit, '(A, F0.4)') '  zed_upwind = ', zed_upwind
+         write (unit, '(A, F0.4)') '  vpa_upwind = ', vpa_upwind
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
+
    end subroutine read_namelist_numerical_upwinding_for_derivatives
 
    !****************************************************************************
@@ -385,6 +476,7 @@ contains
       if (.not. proc0) return
       call set_default_parameters_flux_annulus
       call read_input_file_flux_annulus
+      call write_parameters_to_input_file
 
    contains
 
@@ -409,6 +501,22 @@ contains
          if (dexist) read (unit=in_file, nml=flux_annulus)
 
       end subroutine read_input_file_flux_annulus
+
+      !------------------------- Write input parameters ------------------------
+      subroutine write_parameters_to_input_file
+
+         use file_units, only: unit => unit_input_file_with_defaults
+
+         implicit none
+
+         !-------------------------------------------------------------------------
+
+         write (unit, '(A)') '&flux_annulus'
+         write (unit, '(A, I0)') '  nitt = ', nitt
+         write (unit, '(A)') '/'
+         write (unit, '(A)') ''
+
+      end subroutine write_parameters_to_input_file
 
    end subroutine read_namelist_flux_annulus
 

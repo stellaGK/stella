@@ -130,7 +130,6 @@ contains
 
       ! Routines
       use namelist_geometry, only: read_namelist_geometry_from_txt, read_namelist_geometry_options
-      use file_utils, only: get_unused_unit
       use mp, only: proc0
 
       implicit none
