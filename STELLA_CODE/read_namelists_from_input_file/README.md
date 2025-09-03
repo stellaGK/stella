@@ -12,6 +12,15 @@ First we will set the default input parameters, and then we will overwrite
 any default options with those specified in the input file. Optionally
 we can check if any input variables are clashing with each other.
 
+### Convert old input files to the latest stella version.
+
+In order to convert input files from an older stella version to the newest
+stella version, one can use the following command in a folder with input files:
+   alias convert_stella_input_files='python3 $STELLA/AUTOMATIC_TESTS/convert_input_files/convert_inputFile.py'
+   
+It is recommended to check the conversion afterwards. The script can also downgrade
+input files from the latest stella version to stella release 0.5.
+
 ### Namelists
 
 An overview of all default input parameters of stella can be found in:
