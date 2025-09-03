@@ -31,8 +31,6 @@
 /
 &physics_inputs
   rhostar = 0.0
-  zeff = 1.0
-  vnew_ref = 0.01
 /
 
 !===============================================================================
@@ -133,5 +131,7 @@
 
 &dissipation_and_collisions_options
   hyper_dissipation = .true.
+  zeff = 1.0
+  vnew_ref = 0.01
 /
 

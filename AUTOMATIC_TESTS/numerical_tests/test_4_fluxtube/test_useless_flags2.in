@@ -30,9 +30,7 @@
   beta = 999
 /
 &physics_inputs
-  rhostar = 999 
-  zeff = 999
-  vnew_ref = 999
+  rhostar = 999
 /
 
 !===============================================================================
@@ -132,6 +130,8 @@
 
 &dissipation_and_collisions_options
   hyper_dissipation = .true.
+  zeff = 999
+  vnew_ref = 999
 /
 
 
