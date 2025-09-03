@@ -319,7 +319,15 @@ contains
          
          ! If both include_apar and include_bpar are false, then include_electromagnetic is set to false
          if (.not. (include_apar .and. include_bpar)) include_electromagnetic = .false.
-
+         
+         ! Warn users if <include_apar> or <include_bpar> are True but <include_electromagnetic> is False
+         if ((.not. include_electromagnetic) .and. (include_apar .or. include_bpar)) then
+            if (include_apar) write(*,*) 'WARNING: include_apar = True but include_electromagnetic = False, so we set include_apar = False.'
+            if (include_bpar) write(*,*) 'WARNING: include_bpar = True but include_electromagnetic = False, so we set include_bpar = False.'
+            include_bpar = .false.
+            include_apar = .false.
+         end if 
+         
       end subroutine check_inputs_electromagnetic
 
 
