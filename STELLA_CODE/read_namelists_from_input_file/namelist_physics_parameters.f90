@@ -318,7 +318,7 @@ contains
          implicit none
          
          ! If both include_apar and include_bpar are false, then include_electromagnetic is set to false
-         if (.not. (include_apar .and. include_bpar)) include_electromagnetic = .false.
+         if (.not. (include_apar .or. include_bpar)) include_electromagnetic = .false.
          
          ! Warn users if <include_apar> or <include_bpar> are True but <include_electromagnetic> is False
          if ((.not. include_electromagnetic) .and. (include_apar .or. include_bpar)) then

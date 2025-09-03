@@ -39,6 +39,7 @@
 
 &gyrokinetic_terms
   include_nonlinear = .true.
+  include_electromagnetic = .true.
 /
 
 !===============================================================================
