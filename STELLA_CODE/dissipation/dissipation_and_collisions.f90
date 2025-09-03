@@ -62,8 +62,8 @@ contains
       use namelist_dissipation, only: read_namelist_dissipation_and_collisions_options
       
       ! Read other input parameters related to specific collision models
-      use dissipation_coll_dougherty, only: read_parameters_dougherty
-      use dissipation_coll_fokkerplanck, only: read_parameters_fp
+      use collisions_dougherty, only: read_parameters_dougherty
+      use collisions_fokkerplanck, only: read_parameters_fp
       use dissipation_hyper, only: read_parameters_hyper
       use parameters_numerical, only: fully_explicit
 
@@ -160,8 +160,8 @@ contains
    !--------------------------- Initialise collisions --------------------------
    subroutine init_collisions
 
-      use dissipation_coll_dougherty, only: init_collisions_dougherty
-      use dissipation_coll_fokkerplanck, only: init_collisions_fp
+      use collisions_dougherty, only: init_collisions_dougherty
+      use collisions_fokkerplanck, only: init_collisions_fp
 
       implicit none
       
@@ -196,8 +196,8 @@ contains
    !---------------------------- Finalise collisions ---------------------------
    subroutine finish_collisions
 
-      use dissipation_coll_dougherty, only: finish_collisions_dougherty
-      use dissipation_coll_fokkerplanck, only: finish_collisions_fp
+      use collisions_dougherty, only: finish_collisions_dougherty
+      use collisions_fokkerplanck, only: finish_collisions_fp
 
       implicit none
 
@@ -229,8 +229,8 @@ contains
       use parameters_physics, only: full_flux_surface
       
       ! Collision models
-      use dissipation_coll_dougherty, only: advance_collisions_dougherty_explicit
-      use dissipation_coll_fokkerplanck, only: advance_collisions_fp_explicit
+      use collisions_dougherty, only: advance_collisions_dougherty_explicit
+      use collisions_fokkerplanck, only: advance_collisions_fp_explicit
 
       implicit none
 
@@ -273,8 +273,8 @@ contains
       use arrays_store_distribution_fn, only: gvmu
       
       ! Collision models
-      use dissipation_coll_dougherty, only: advance_collisions_dougherty_implicit
-      use dissipation_coll_fokkerplanck, only: advance_collisions_fp_implicit
+      use collisions_dougherty, only: advance_collisions_dougherty_implicit
+      use collisions_fokkerplanck, only: advance_collisions_fp_implicit
 
       implicit none
 

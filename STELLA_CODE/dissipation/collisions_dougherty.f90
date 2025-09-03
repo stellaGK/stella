@@ -7,7 +7,7 @@
 ! TODO - Write docs and split up in smaller modules
 ! 
 !###############################################################################
-module dissipation_coll_dougherty
+module collisions_dougherty
 
    implicit none
 
@@ -2063,4 +2063,4 @@ contains
 
    end subroutine advance_mudiff_implicit
 
-end module dissipation_coll_dougherty
+end module collisions_dougherty

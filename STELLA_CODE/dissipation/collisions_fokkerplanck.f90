@@ -7,7 +7,7 @@
 ! TODO - Write docs and split up in smaller modules
 ! 
 !###############################################################################
-module dissipation_coll_fokkerplanck
+module collisions_fokkerplanck
 
    implicit none
 
@@ -4402,4 +4402,4 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
    end subroutine advance_implicit_fp
 
-end module dissipation_coll_fokkerplanck
+end module collisions_fokkerplanck

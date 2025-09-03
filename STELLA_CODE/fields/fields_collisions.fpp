@@ -30,7 +30,7 @@ contains
    !============================================================================
    !========================= ADVANCE FIELDS BY SPEC ===========================
    !============================================================================
-   ! This is used in dissipation_coll_dougherty.f90
+   ! This is used in collisions_dougherty.f90
    !============================================================================
    subroutine get_fields_by_spec(g, fld, skip_fsa)
 
@@ -120,7 +120,7 @@ contains
    !============================================================================
    !========================= ADVANCE FIELDS BY SPEC ===========================
    !============================================================================
-   ! This is used in dissipation_coll_fokkerplanck.f90
+   ! This is used in collisions_fokkerplanck.f90
    ! Note that is looks identical to the routine above - we don't know why they
    ! are separated
    ! 
