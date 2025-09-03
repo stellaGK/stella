@@ -426,6 +426,7 @@ contains
       if (.not. proc0) return
       call set_default_parameters_hyper_dissipation
       call read_input_file_hyper_dissipation
+      call write_parameters_to_input_file
       
    contains
       

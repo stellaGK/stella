@@ -85,21 +85,19 @@ contains
       use file_utils, only: runtype_option_switch, runtype_multibox
       use job_manage, only: njobs
       use parameters_physics, only: rhostar
-      use mp, only: scope, crossdomprocs, subprocs, &
-                    send, receive, job
+      use mp, only: scope, crossdomprocs, subprocs
+      use mp, only: send, receive, job
 
-      use parameters_multibox, only: lr_debug_switch, lr_debug_option_default, & 
-                                     lr_debug_option_L, lr_debug_option_R
-
-      use parameters_multibox, only: krook_option_switch, &
-                                     krook_option_flat, krook_option_linear, &
-                                     krook_option_exp, krook_option_exp_rev
-
+      use parameters_multibox, only: lr_debug_switch, lr_debug_option_default
+      use parameters_multibox, only: lr_debug_option_L, lr_debug_option_R
+      use parameters_multibox, only: krook_option_switch
+      use parameters_multibox, only: krook_option_flat, krook_option_linear
+      use parameters_multibox, only: krook_option_exp, krook_option_exp_rev
       use parameters_multibox, only: krook_efold, krook_exponent
       use parameters_multibox, only: use_dirichlet_bc
       use parameters_multibox, only: include_multibox_krook
-      use parameters_multibox, only: mb_zf_option_switch, mb_zf_option_skip_ky0, &
-                                     mb_zf_option_zero_ky0, mb_zf_option_zero_fsa
+      use parameters_multibox, only: mb_zf_option_switch, mb_zf_option_skip_ky0
+      use parameters_multibox, only: mb_zf_option_zero_ky0, mb_zf_option_zero_fsa
       use parameters_multibox, only: nu_krook_mb
 
       implicit none
@@ -393,31 +391,43 @@ contains
    !                                      Title
    !****************************************************************************
    subroutine multibox_communicate(gin)
+   
+      ! Parallelisation
+      use mp, only: job, scope, mp_abort
+      use mp, only: crossdomprocs, subprocs, allprocs
+      use mp, only: ssend, receive, proc0
+      use stella_layouts, only: vmu_lo
+      use job_manage, only: njobs, time_message
+      use file_utils, only: get_unused_unit
 
+      ! Grids
       use constants, only: zi
       use grids_kxky, only: nakx, naky, naky_all, nx, ny
       use grids_kxky, only: akx, aky, dx, dy, zonal_mode
       use grids_kxky, only: periodic_variation
-      use file_utils, only: runtype_option_switch, runtype_multibox
-      use file_utils, only: get_unused_unit
-      use arrays_store_fields, only: phi, phi_corr_QN
-      use arrays_store_useful, only: shift_state
-      use job_manage, only: njobs, time_message
-      use parameters_physics, only: radial_variation, prp_shear_enabled, hammett_flow_shear
-      use parameters_physics, only: g_exb, g_exbfac
-      use stella_layouts, only: vmu_lo
-      use geometry, only: dl_over_b
       use grids_z, only: nzgrid
-      use mp, only: job, scope, mp_abort, &
-                    crossdomprocs, subprocs, allprocs, &
-                    ssend, receive, proc0
-      use parameters_multibox, only: lr_debug_switch, lr_debug_option_default, & 
-                                     lr_debug_option_L, lr_debug_option_R
+      
+      ! Geometry
+      use geometry, only: dl_over_b
+      
+      ! Fields
+      use arrays_store_fields, only: phi, phi_corr_QN
+      
+      ! Radial variation
+      use parameters_physics, only: radial_variation
+      use parameters_multibox, only: lr_debug_switch, lr_debug_option_default
+      use parameters_multibox, only: lr_debug_option_L, lr_debug_option_R
       use parameters_multibox, only: mb_debug_step
       use parameters_multibox, only: phi_pow
       use parameters_multibox, only: boundary_size
-      use parameters_multibox, only: mb_zf_option_switch, mb_zf_option_skip_ky0, &
-                                     mb_zf_option_zero_ky0, mb_zf_option_zero_fsa
+      use parameters_multibox, only: mb_zf_option_switch, mb_zf_option_skip_ky0
+      use parameters_multibox, only: mb_zf_option_zero_ky0, mb_zf_option_zero_fsa
+      use file_utils, only: runtype_option_switch, runtype_multibox
+      
+      ! Radial variation - flow shear
+      use gk_flow_shear, only: prp_shear_enabled, hammett_flow_shear
+      use gk_flow_shear, only: g_exb, g_exbfac
+      use arrays_store_useful, only: shift_state
 
       implicit none
 
@@ -429,6 +439,8 @@ contains
 
       complex, dimension(:, :), allocatable :: prefac
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(inout) :: gin
+            
+      !-------------------------------------------------------------------------
 
       if (runtype_option_switch /= runtype_multibox) return
       if (lr_debug_switch /= lr_debug_option_default) return

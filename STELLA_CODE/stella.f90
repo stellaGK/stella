@@ -361,6 +361,7 @@ contains
       use initialise_distribution_fn, only: read_parameters_init_distribution
       use stella_layouts, only: read_parameters_parallelisation_layouts
       use dissipation_and_collisions, only: read_parameters_dissipation_and_collisions
+      use gk_flow_shear, only: read_parameters_flow_shear
       
       ! Parse collision variables to read_parameters_species to avoid circular dependencies
       use dissipation_and_collisions, only: vnew_ref
@@ -392,6 +393,8 @@ contains
       call read_parameters_velocity_grids
       
       ! Read remaining parameters
+      if (debug) write (6, *) "stella::init_stella::read_parameters_flow_shear"
+      call read_parameters_flow_shear
       if (debug) write (6, *) "stella::init_stella::read_parameters_multibox"
       call read_parameters_multibox
       if (debug) write (6, *) "stella::init_stella::read_parameters_diagnostics"
@@ -716,8 +719,8 @@ contains
       use file_utils, only: runtype_option_switch, runtype_multibox
       use parameters_physics, only: include_nonlinear, include_parallel_nonlinearity
       use parameters_physics, only: radial_variation, full_flux_surface
-      use parameters_physics, only: hammett_flow_shear
-      use parameters_physics, only: g_exb, g_exbfac
+      use gk_flow_shear, only: hammett_flow_shear
+      use gk_flow_shear, only: g_exb, g_exbfac
       use parameters_diagnostics, only: write_radial_moments, write_radial_fluxes
 
       implicit none

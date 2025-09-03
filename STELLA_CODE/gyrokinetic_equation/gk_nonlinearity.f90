@@ -128,12 +128,13 @@ contains
       use arrays_store_useful, only: time_gke
       
       use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
-      use parameters_physics, only: g_exb, g_exbfac, fphi
+      use parameters_physics, only: fphi
       use parameters_physics, only: full_flux_surface, radial_variation
-      use parameters_physics, only: prp_shear_enabled, hammett_flow_shear
       use parameters_physics, only: include_apar, include_bpar
       use parameters_physics, only: suppress_zonal_interaction
       use grids_kxky, only: nakx, ikx_max, naky, naky_all, nx, ny
+      use gk_flow_shear, only: prp_shear_enabled, hammett_flow_shear
+      use gk_flow_shear, only: g_exb, g_exbfac
 
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: akx, aky, rho_clamped

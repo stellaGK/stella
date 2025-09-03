@@ -4,6 +4,10 @@
 ! 
 ! This module ...
 ! 
+! Note that the sources are sinks have been implemented for the radially
+! global version of stella, discussed in  [2022 - St-Onge - A novel approach to 
+! radially global gyrokinetic simulation using the flux-tube code stella]
+! 
 !###############################################################################
 module gk_sources
 
@@ -14,10 +18,10 @@ module gk_sources
    ! Load debug flags
    use debug_flags, only: debug => time_advance_debug
    
-   ! Read the parameters for <source_option_switch> from namelist_sources.f90
-   use namelist_sources, only: source_option_none
-   use namelist_sources, only: source_option_krook
-   use namelist_sources, only: source_option_projection
+   ! Read the parameters for <source_option_switch> from namelist_radial_variation.f90
+   use namelist_radial_variation, only: source_option_none
+   use namelist_radial_variation, only: source_option_krook
+   use namelist_radial_variation, only: source_option_projection
 
    implicit none
 
@@ -35,7 +39,7 @@ module gk_sources
    public :: initialised_qn_source
    public :: time_sources
    
-   ! Although the parameters are available through namelist_sources,
+   ! Although the parameters are available through namelist_radial_variation,
    ! make them available through gk_sources as well
    public :: source_option_switch, source_option_none
    public :: source_option_krook, source_option_projection
@@ -61,34 +65,44 @@ contains
    !****************************************************************************
    subroutine init_sources
 
+      ! Parallelisation
       use mp, only: job
-      use parameters_physics, only: fphi
-      use parameters_multibox, only: ky_solve_radial, ky_solve_real
+      use mp, only: broadcast
+      use stella_layouts, only: vmu_lo
+      
+      ! Grids
+      use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, nakx
       use grids_kxky, only: zonal_mode
-      use grids_z, only: nzgrid, ntubes
-      use stella_layouts, only: vmu_lo
-      use arrays_store_distribution_fn, only: g_krook, g_proj, g_symm
-      use arrays_store_fields, only: phi_proj, phi_proj_stage
-      use parameters_physics, only: radial_variation
+      use grids_kxky, only: ikx_max
+      use grids_kxky, only: periodic_variation
       use grids_species, only: spec, has_electron_species
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
+      
+      ! Physics parameters
+      use parameters_physics, only: fphi
+      
+      ! Radial variation
+      use parameters_physics, only: radial_variation
+      use parameters_multibox, only: ky_solve_radial, ky_solve_real
       use file_utils, only: runtype_option_switch, runtype_multibox
-      use grids_kxky, only: ikx_max
-      use namelist_sources, only: read_namelist_sources
+      use namelist_radial_variation, only: read_namelist_sources
+      use arrays_store_fields, only: phi_proj, phi_proj_stage
       use arrays_store_useful, only: tcorr_source_qn, exclude_boundary_regions_qn
-      use mp, only: broadcast
+      use arrays_store_distribution_fn, only: g_krook, g_proj, g_symm
+      
       implicit none
 
+      ! Local variables
       logical :: has_elec, adia_elec
       real :: fac
 
       !-------------------------------------------------------------------------
 
       ! Read the "sources" namelist from the input file
-      call read_namelist_sources(source_option_switch, nu_krook, tcorr_source, &
-         ikxmax_source, krook_odd, exclude_boundary_regions, &
+      call read_namelist_sources(periodic_variation, source_option_switch, nu_krook, &
+         tcorr_source, ikxmax_source, krook_odd, exclude_boundary_regions, &
          tcorr_source_qn, exclude_boundary_regions_qn, from_zero, &
          conserve_momentum, conserve_density)
       ikxmax_source = min(ikxmax_source, ikx_max)

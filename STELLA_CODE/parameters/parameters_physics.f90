@@ -45,11 +45,6 @@ module parameters_physics
    ! Scaling options
    public :: xdriftknob, ydriftknob, wstarknob
    public :: fphi, suppress_zonal_interaction
-
-   ! Flow shear physics effects
-   public :: prp_shear_enabled
-   public :: hammett_flow_shear
-   public :: g_exb, g_exbfac, omprimfac 
    
    ! Electromagnetic effects
    public :: include_apar
@@ -82,11 +77,6 @@ module parameters_physics
    real :: xdriftknob, ydriftknob, wstarknob
    real :: fphi
    logical :: suppress_zonal_interaction
-   
-   ! Flow shear physics effects
-   logical :: prp_shear_enabled
-   logical :: hammett_flow_shear 
-   real :: g_exb, g_exbfac, omprimfac
 
    ! Electromagnetic effects
    logical :: include_apar
@@ -109,7 +99,6 @@ contains
       use namelist_parameters_physics, only: read_namelist_gyrokinetic_terms
       use namelist_parameters_physics, only: read_namelist_scale_gyrokinetic_terms
       use namelist_parameters_physics, only: read_namelist_electromagnetic
-      use namelist_parameters_physics, only: read_namelist_flow_shear
       use namelist_parameters_physics, only: read_namelist_physics_inputs
 
       implicit none
@@ -128,7 +117,6 @@ contains
          full_flux_surface, radial_variation)
       call read_namelist_scale_gyrokinetic_terms(include_xdrift, include_ydrift, include_drive, & 
          xdriftknob, ydriftknob, wstarknob, fphi, suppress_zonal_interaction)
-      call read_namelist_flow_shear(prp_shear_enabled, hammett_flow_shear, g_exb, g_exbfac, omprimfac)
       call read_namelist_electromagnetic(include_electromagnetic, include_apar, include_bpar, beta) 
       call read_namelist_physics_inputs(rhostar)
 
@@ -186,13 +174,6 @@ contains
          call broadcast(wstarknob)
          call broadcast(fphi)
          call broadcast(suppress_zonal_interaction)
-
-         ! Flow shear physics effects
-         call broadcast(prp_shear_enabled)
-         call broadcast(hammett_flow_shear) 
-         call broadcast(g_exb)
-         call broadcast(g_exbfac)
-         call broadcast(omprimfac)
 
          ! Electromagnetic effects
          call broadcast(include_apar)

@@ -25,25 +25,42 @@ contains
 !###############################################################################
    subroutine init_cfl
 
+      ! Parallelisation
       use mp, only: proc0, nproc, max_allreduce, min_allreduce
       use mp, only: scope, allprocs, subprocs
-      use file_utils, only: runtype_option_switch, runtype_multibox
-      use arrays_store_useful, only: wdriftx_g, wdrifty_g
-      use stella_time, only: code_dt, write_dt, cfl_dt_linear
-      use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
-      use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
-      use parameters_physics, only: radial_variation, prp_shear_enabled
+      use debug_flags, only: print_extra_info_to_terminal
+      
+      ! Grids
       use grids_kxky, only: nx
       use grids_z, only: delzed
       use grids_velocity, only: dvpa
       use grids_kxky, only: akx, aky, rho
+      
+      ! CFL parameters
+      use stella_time, only: code_dt, write_dt, cfl_dt_linear
+      use parameters_numerical, only: cfl_cushion_upper
+      use parameters_numerical, only: cfl_cushion_middle
+      use parameters_numerical, only: cfl_cushion_lower
+            
+      ! Gyrokinetic equation 
+      use parameters_numerical, only: stream_implicit
+      use parameters_numerical, only: mirror_implicit
+      use parameters_numerical, only: drifts_implicit
       use gk_parallel_streaming, only: stream
-      use gk_parallel_streaming, only: stream_rad_var1, stream_rad_var2
+      use gk_parallel_streaming, only: stream_rad_var1
+      use gk_parallel_streaming, only: stream_rad_var2
       use gk_mirror, only: mirror
-      use gk_flow_shear, only: prl_shear, shift_times
+      use arrays_store_useful, only: wdriftx_g, wdrifty_g
+      
+      ! Collisions
       use dissipation_and_collisions, only: include_collisions, collisions_implicit
       use dissipation_and_collisions, only: cfl_dt_vpadiff, cfl_dt_mudiff
-      use debug_flags, only: print_extra_info_to_terminal
+      
+      ! Radial variation - multibox - flow shear
+      use parameters_physics, only: radial_variation
+      use gk_flow_shear, only: prl_shear, shift_times
+      use gk_flow_shear, only: prp_shear_enabled
+      use file_utils, only: runtype_option_switch, runtype_multibox
 
       implicit none
 

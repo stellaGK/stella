@@ -74,20 +74,25 @@ contains
    !****************************************************************************
    subroutine read_parameters_multibox
 
+      ! Parallelisation
       use mp, only: broadcast
-      use namelist_radial_variation, only: read_namelist_radial_variation
+      
+      ! Read namelists from input file
+      use namelist_radial_variation, only: read_namelist_multibox
 
       implicit none
 
       !-------------------------------------------------------------------------
 
-      call read_namelist_radial_variation(ky_solve_real, ky_solve_radial, &
+      ! Read the "multibox_parameters" namelist in the input file
+      call read_namelist_multibox(ky_solve_real, ky_solve_radial, &
          include_pressure_variation, include_geometric_variation, &
          smooth_zf, lr_debug_switch, krook_option_switch, mb_zf_option_switch, &
          rk_step, nu_krook_mb, mb_debug_step, &
          krook_exponent, krook_efold, phi_bound, phi_pow, &
          use_dirichlet_bc, boundary_size, krook_size)
 
+      ! Broadcast the input parameters
       call broadcast(boundary_size)
       call broadcast(krook_size)
       call broadcast(nu_krook_mb)

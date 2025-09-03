@@ -60,21 +60,17 @@ contains
       if (initialised_time_advance) return
       initialised_time_advance = .true.
 
-      ! Read time_advance_knobs namelist from the input file;
-      ! sets the explicit time advance option, as well as allows for scaling of
-      ! the x and y components of the magnetic drifts and of the drive term
-      ! allocate distribution function sized arrays needed, e.g., for Runge-Kutta time advance
+      ! Allocate distribution function sized arrays needed, e.g., for Runge-Kutta time advance
       if (debug) write (6, *) 'time_advance::init_time_advance::allocate_arrays'
       call allocate_arrays
       
-      ! Set up neoclassical corrections to the equilibrium Maxwellian;
-      ! only calculated/needed when simulating higher order terms in rhostar for intrinsic rotation
+      ! Set up neoclassical corrections to the equilibrium Maxwellian. This is only
+      ! calculated/needed when simulating higher order terms in rhostar for intrinsic rotation
       if (debug) write (6, *) 'time_advance::init_time_advance::init_neoclassical_terms'
       call init_neoclassical_terms
       
-      ! Calculate the term multiplying dg/dvpa in the mirror term
-      ! and set up either the semi-Lagrange machinery or the tridiagonal matrix to be inverted
-      ! if solving implicitly
+      ! Calculate the term multiplying dg/dvpa in the mirror term and set up either the
+      ! semi-Lagrange machinery or the tridiagonal matrix to be inverted if solving implicitly
       if (debug) write (6, *) 'time_advance::init_time_advance::init_mirror'
       call init_mirror
       
@@ -83,8 +79,8 @@ contains
       if (debug) write (6, *) 'time_advance::init_time_advance::init_parstream'
       call init_parallel_streaming
       
-      ! Allocate and calculate the factors multiplying dg/dx, dg/dy, dphi/dx and dphi/dy
-      ! in the magnetic drift terms
+      ! Allocate and calculate the factors multiplying dg/dx, dg/dy, dphi/dx 
+      ! and dphi/dy in the magnetic drift terms
       if (debug) write (6, *) 'time_advance::init_time_advance::init_wdrift'
       call init_wdrift
       
@@ -642,7 +638,7 @@ contains
       use parameters_physics, only: include_nonlinear
       use parameters_physics, only: full_flux_surface, radial_variation
       use parameters_physics, only: xdriftknob, ydriftknob
-      use parameters_physics, only: g_exb
+      use gk_flow_shear, only: g_exb
       use grids_kxky, only: ikx_max, ny, naky_all
       use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
       use parameters_multibox, only: include_multibox_krook
@@ -871,10 +867,11 @@ contains
 
       use parameters_physics, only: include_parallel_streaming
       use parameters_physics, only: radial_variation, full_flux_surface
-      use parameters_physics, only: include_mirror, prp_shear_enabled
+      use parameters_physics, only: include_mirror
       use parameters_numerical, only: stream_implicit, mirror_implicit
       use parameters_multibox, only: rk_step
       use parameters_numerical, only: flip_flop
+      use gk_flow_shear, only: prp_shear_enabled
 
       use fields, only: advance_fields, fields_updated
       use dissipation_and_collisions, only: hyper_dissipation

@@ -292,9 +292,6 @@ contains
 
          implicit none
 
-         ! Variables needed to read the input file
-         integer :: ierr
-
          ! Link text options for <adiabatic_option> to an integer value
          type(text_option), dimension(6), parameter :: adiabaticopts = &
             (/text_option('default', adiabatic_option_fieldlineavg), &

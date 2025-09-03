@@ -2,8 +2,14 @@
 !###############################################################################
 !###############################################################################
 ! 
-! This module ...
+! This module implements perpendicular and parallel flow shear, related to a 
+! mean toroidal flow R*Omega_zeta.
 ! 
+! For notes on the mathematics see [2022 - St-Onge - A novel approach to radially 
+! global gyrokinetic simulation using the flux-tube code stella]
+! 
+! omega_{zeta,k,s} = -k_y * sqrt(m_s/T_s) * q*a/r * I/B * exp(-v²) * gamma_E
+! gamma_E = (r/q) (dOmega_zeta(dr) (a/v_{th,ref})
 !###############################################################################
 module gk_flow_shear
 
@@ -12,51 +18,101 @@ module gk_flow_shear
    ! Make routines available to other modules
    public :: initialised_flow_shear
    public :: init_flow_shear, finish_flow_shear
+   public :: read_parameters_flow_shear
    public :: prl_shear, prl_shear_p, prp_shear
    public :: advance_parallel_flow_shear, advance_perp_flow_shear
    public :: v_edge, v_shift
    public :: shift_times
 
+   ! Input parameters
+   public :: prp_shear_enabled
+   public :: hammett_flow_shear
+   public :: g_exb, g_exbfac, omprimfac 
+
    private
 
    complex, dimension(:, :), allocatable :: upwind_advect
-   real, dimension(:, :, :), allocatable :: prl_shear, prl_shear_p
    real, dimension(:), allocatable :: prp_shear, shift_times
    integer :: shift_sign, shift_start
    real :: v_edge, v_shift = 0.
+   
+   ! Input parameters
+   logical :: prp_shear_enabled
+   logical :: hammett_flow_shear 
+   real :: g_exb, g_exbfac, omprimfac
+   
+   ! Parallel flow shear
+   real, dimension(:, :, :), allocatable :: prl_shear, prl_shear_p
 
    ! Only initialise once
    logical :: initialised_flow_shear = .false.
 
 contains
 
+
+   !****************************************************************************
+   !                                      Title
+   !****************************************************************************
+   subroutine read_parameters_flow_shear
+
+      ! Parallelisation
+      use mp, only: broadcast
+      
+      ! Read namelists from input file
+      use namelist_radial_variation, only: read_namelist_flow_shear
+
+      implicit none
+
+      !-------------------------------------------------------------------------
+      
+      ! Read the "flow_shear" namelist in the input file
+      call read_namelist_flow_shear(prp_shear_enabled, hammett_flow_shear, g_exb, g_exbfac, omprimfac)
+      
+      ! Broadcast the input parameters
+      call broadcast(prp_shear_enabled)
+      call broadcast(hammett_flow_shear) 
+      call broadcast(g_exb)
+      call broadcast(g_exbfac)
+      call broadcast(omprimfac)
+
+   end subroutine read_parameters_flow_shear
+
    !****************************************************************************
    !                                      Title
    !****************************************************************************
    subroutine init_flow_shear
    
+      ! Parallelisation
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use mp, only: job, send, receive, crossdomprocs, subprocs, scope
+      use file_utils, only: runtype_option_switch, runtype_multibox
+      use job_manage, only: njobs
+      
+      ! Grids
       use stella_time, only: code_dt
       use grids_species, only: spec
-      use constants, only: zi, pi
       use grids_z, only: nzgrid
       use grids_kxky, only: x, x_d, akx, aky, zonal_mode, box
       use grids_kxky, only: nalpha, nx, nakx, naky, ikx_max
-      use arrays_store_useful, only: shift_state
-      use geometry, only: q_as_x, geo_surf, bmag, btor, rmajor, dBdrho, dIdrho
-      use geometry, only: dydalpha, drhodpsi
-      use parameters_physics, only: g_exb, g_exbfac, omprimfac
       use grids_velocity, only: vperp2, vpa, mu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use parameters_physics, only: radial_variation, prp_shear_enabled, hammett_flow_shear
-      use file_utils, only: runtype_option_switch, runtype_multibox
-      use job_manage, only: njobs
-      use mp, only: job, send, receive, crossdomprocs, subprocs, scope
+      
+      ! Geometry
+      use geometry, only: q_as_x, geo_surf, bmag, btor, rmajor, dBdrho, dIdrho
+      use geometry, only: dydalpha, drhodpsi
+      
+      ! Calculations and flags
+      use constants, only: zi, pi
       use parameters_numerical, only: maxwellian_normalization
+      
+      ! Flow shear parameters
+      use parameters_physics, only: radial_variation
+      use arrays_store_useful, only: shift_state
 
       implicit none
 
+      ! Local variables
       integer :: is, imu, iv, ivmu, iz, ia
       real, dimension(:, :), allocatable :: energy
 
@@ -87,36 +143,52 @@ contains
          call scope(subprocs)
       end if
 
+      ! Assume we only have a single field line
       ia = 1
 
-      !parallel flow shear
-
+      !---------------------------- Allocate arrays ----------------------------
+      
+      ! Allocate temporary array
       allocate (energy(nalpha, -nzgrid:nzgrid))
 
+      ! Allocate the parallel flow shear
       if (.not. allocated(prl_shear)) then
          allocate (prl_shear(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
          prl_shear = 0.0
       end if
 
-      if (radial_variation .and. .not. allocated(prl_shear_p)) &
-         allocate (prl_shear_p(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      ! Allocate the parallel flow shear for radial variation / multi box runs
+      if (radial_variation) then
+         if (.not. allocated(prl_shear_p)) then
+            allocate (prl_shear_p(nalpha, -nzgrid:nzgrid, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         end if
+      end if 
+      
+      !--------------------- Calculate parallel flow shear ---------------------
 
+      ! Iterate over the (z, mu,vpa,s) points
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          is = is_idx(vmu_lo, ivmu)
          iv = iv_idx(vmu_lo, ivmu)
          imu = imu_idx(vmu_lo, ivmu)
+         
+         ! Calculate parallel flow shear
+         ! TODO-
          do iz = -nzgrid, nzgrid
             prl_shear(ia, iz, ivmu) = -omprimfac * g_exb * code_dt * vpa(iv) * spec(is)%stm_psi0 &
               * dydalpha * drhodpsi &
               * (geo_surf%qinp_psi0 / geo_surf%rhoc_psi0) &
               * (btor(iz) * rmajor(iz) / bmag(ia, iz)) * (spec(is)%mass / spec(is)%temp)
          end do
+         
+         ! Add the Mawellian exp(v²)
          if (.not. maxwellian_normalization) then
             do iz = -nzgrid, nzgrid
                prl_shear(ia, iz, ivmu) = prl_shear(ia, iz, ivmu) &
                    * maxwell_vpa(iv, is) * maxwell_mu(ia, iz, imu, is) * maxwell_fac(is)
             end do
          end if
+         
          if (radial_variation) then
             energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
             prl_shear_p(:, :, ivmu) = prl_shear(:, :, ivmu) * (dIdrho / spread(rmajor * btor, 1, nalpha) &
@@ -209,7 +281,6 @@ contains
 
       use stella_layouts, only: vmu_lo
       use constants, only: zi
-      use parameters_physics, only: prp_shear_enabled, hammett_flow_shear
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
       use grids_z, only: nzgrid, ntubes
       use arrays_store_useful, only: shift_state
