@@ -110,7 +110,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/parameters/parameters_physics.f90
   ../STELLA_CODE/radial_variation/multibox.f90
   ../STELLA_CODE/radial_variation/gk_flow_shear.f90
-  ../STELLA_CODE/radial_variation/gk_sources.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_debug.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_diagnostics.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_dissipation.f90
@@ -142,7 +141,7 @@ set(STELLA_SOURCES_fpp
   ../STELLA_CODE/fields/fields_collisions.fpp
   ../STELLA_CODE/fields/fields_radialvariation.fpp
   ../STELLA_CODE/gyrokinetic_equation/response_matrix.fpp
-  ../STELLA_CODE/gyrokinetic_equation/gk_sources.fpp
+  ../STELLA_CODE/radial_variation/gk_sources.fpp
   ../STELLA_CODE/neoclassical/sfincs_interface.fpp
 )
 
