@@ -145,6 +145,7 @@ contains
       real, dimension(:), allocatable :: fluxnorm_vs_z
       integer :: ikxkyz, iky, ikx, iz, it, is, ia
       real :: one_over_nablarho
+      logical :: write_vs_kxkyz
 
       !-------------------------------------------------------------------------
 
@@ -165,6 +166,11 @@ contains
 
       ! We only have one flux tube since <radial_variation> = False
       ia = 1
+      
+      ! We need to calculate fluxes(kx,ky,z,s,t) both for <write_fluxes_kxkyz> and 
+      ! <write_fluxes_kxky> since the latter will field line average fluxes(kx,ky,z,s,t)
+      ! If both are false only fluxes(s,t) are calculated.
+      write_vs_kxkyz = write_fluxes_kxkyz .or. write_fluxes_kxky
 
       !===================================
       !           ELECTROSTATIC           
@@ -186,14 +192,14 @@ contains
             ! Add the contribution (-sgn(psi_t)*(k̃_y/2)*Im[conj(phi)*integrate_vmu(VELOCITY_INTEGRAND)]*NORM) to the particle flux 
             call gyro_average(df_vs_vpamuikxkyzs(:, :, ikxkyz), ikxkyz, velocityintegrand_vs_vpamu)
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, phi(iky, ikx, iz, it), pflux_vs_s(is))
-            if (write_fluxes_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
+            if (write_vs_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
                   phi(iky, ikx, iz, it), pflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
             ! For the heat flux we have <VELOCITY_INTEGRAND>(vpa,mu) = h(mu,vpa)*J0*v^2
             ! Add the contribution (-sgn(psi_t)*(k̃_y/2)*Im[conj(phi)*integrate_vmu(VELOCITY_INTEGRAND)]*NORM) to the heat flux 
             velocityintegrand_vs_vpamu = velocityintegrand_vs_vpamu * (spread(vpa**2, 2, nmu) + spread(vperp2(1, iz, :), 1, nvpa))
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, phi(iky, ikx, iz, it), qflux_vs_s(is))
-            if (write_fluxes_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, &
+            if (write_vs_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, &
                   phi(iky, ikx, iz, it), qflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
             ! For the parallel (first term) and perpendicular (second term) component of the momentum flux we have,
@@ -217,7 +223,8 @@ contains
 
             ! Add the contribution (-sgn(psi_t)*(k̃_y/2)*Im[conj(phi)*integrate_vmu(VELOCITY_INTEGRAND)]*NORM) to the momentum flux
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, phi(iky, ikx, iz, it), vflux_vs_s(is))
-            if (write_fluxes_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, phi(iky, ikx, iz, it), vflux_vs_kxkyzts(iky, ikx, iz, it, is))
+            if (write_vs_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, &
+               phi(iky, ikx, iz, it), vflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
          end do
       end if
@@ -238,13 +245,13 @@ contains
             temp1_vs_vpamu = -2.0*df_vs_vpamuikxkyzs(:, :, ikxkyz) * spec(is)%stm * spread(vpa, 2, nmu)
             call gyro_average(temp1_vs_vpamu, ikxkyz, velocityintegrand_vs_vpamu)
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, apar(iky, ikx, iz, it), pflux_vs_s(is))
-            if (write_fluxes_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
+            if (write_vs_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
                apar(iky, ikx, iz, it), pflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
             ! Apar contribution to heat flux
             velocityintegrand_vs_vpamu = velocityintegrand_vs_vpamu * (spread(vpa**2, 2, nmu) + spread(vperp2(ia, iz, :), 1, nvpa))
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, apar(iky, ikx, iz, it), qflux_vs_s(is))
-            if (write_fluxes_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
+            if (write_vs_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
                apar(iky, ikx, iz, it), qflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
             ! TODO -- NEED TO ADD IN CONTRIBUTION FROM BOLTZMANN PIECE !! Only valid for axis-symmetric devices now
@@ -259,7 +266,7 @@ contains
             call gyro_average_j1(velocityintegrand_vs_vpamu, ikxkyz, temp2_vs_vpamu)
             velocityintegrand_vs_vpamu = temp1_vs_vpamu + temp2_vs_vpamu
             call get_one_flux(iky, iz, fluxnorm_vs_z(iz), velocityintegrand_vs_vpamu, apar(iky, ikx, iz, it), vflux_vs_s(is))
-            if (write_fluxes_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
+            if (write_vs_kxkyz) call get_one_flux(iky, iz, one_over_nablarho, velocityintegrand_vs_vpamu, & 
                apar(iky, ikx, iz, it), vflux_vs_kxkyzts(iky, ikx, iz, it, is))
 
          end do
