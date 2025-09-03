@@ -18,10 +18,11 @@ module dissipation_and_collisions
    public :: init_collisions, initialised_collisions
    public :: advance_collisions_explicit, advance_collisions_implicit
    
-   ! Make parmeters available
+   ! Make parameters available
    public :: include_collisions, hyper_dissipation, ecoll_zeff
    public :: collisions_implicit, cfl_dt_mudiff, cfl_dt_vpadiff
    public :: time_collisions
+   public :: zeff, vnew_ref
 
    private
 
@@ -37,6 +38,7 @@ module dissipation_and_collisions
    ! Parameters
    real :: cfl_dt_mudiff = huge(0.0), cfl_dt_vpadiff = huge(0.0)
    real, dimension(2, 2) :: time_collisions = 0.
+   real :: zeff, vnew_ref
    
    ! Only initialise once
    logical :: initialised_read_dissipation_and_collisions = .false.
@@ -76,8 +78,8 @@ contains
       initialised_read_dissipation_and_collisions = .true.
       
       ! Read <dissipation> namelist in the input file
-      if (proc0) call read_namelist_dissipation_and_collisions_options(include_collisions, &
-         collisions_implicit, collision_model, hyper_dissipation, ecoll_zeff)
+      call read_namelist_dissipation_and_collisions_options(include_collisions, &
+         collisions_implicit, collision_model, hyper_dissipation, ecoll_zeff, zeff, vnew_ref)
 
       ! Broadcast to all processors
       call broadcast(include_collisions)
@@ -85,6 +87,8 @@ contains
       call broadcast(collision_model)
       call broadcast(hyper_dissipation)
       call broadcast(ecoll_zeff)
+      call broadcast(vnew_ref)
+      call broadcast(zeff)
 
       ! Read input parameters for the dougherty or fokker-planck collision model
       if (include_collisions) then

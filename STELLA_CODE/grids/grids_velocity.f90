@@ -171,12 +171,15 @@ contains
 !########################### INITIALISE VELOCITY GRIDS #########################
 !###############################################################################
 
-   subroutine init_velocity_grids
+   subroutine init_velocity_grids(vnew_ref)
 
       use grids_species, only: read_parameters_species
       use parameters_numerical, only: read_parameters_numerical
 
       implicit none
+      
+      ! Parse in the collisions variables to avoid circular dependencies
+      real, intent(in out) :: vnew_ref
       
       !-------------------------------------------------------------------------
 
@@ -186,7 +189,7 @@ contains
       
       ! Make sure the dependencies of the velocity grids are initialised
       call read_parameters_numerical
-      call read_parameters_species
+      call read_parameters_species(vnew_ref)
 
       ! Set up the vpa and mu grid points and integration weights
       call init_vpa_grid

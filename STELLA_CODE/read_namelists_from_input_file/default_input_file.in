@@ -105,8 +105,6 @@
 
 &physics_inputs
   rhostar = - 1.0
-  zeff = 1.0
-  vnew_ref = -1.0
 /
 
 !===============================================================================
@@ -409,6 +407,8 @@
   hyper_dissipation = .false.
   collision_model = 'dougherty'
   ecoll_zeff = .false.
+  zeff = 1.0
+  vnew_ref = -1.0
 /
 
 &collisions_dougherty

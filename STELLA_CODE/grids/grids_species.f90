@@ -81,7 +81,7 @@ contains
 !################################ READ NAMELIST ################################
 !###############################################################################
 
-   subroutine read_parameters_species
+   subroutine read_parameters_species(vnew_ref)
    
       use mp, only: proc0, broadcast, mp_abort
       use namelist_species, only: read_namelist_species_options
@@ -92,6 +92,8 @@ contains
       use geometry_inputprofiles_interface, only: read_inputprof_spec
 
       implicit none
+      
+      real, intent(in out) :: vnew_ref
       
       !-------------------------------------------------------------------------
       
@@ -119,10 +121,10 @@ contains
       ! Note that these will set their own <nine> and <tite> for adiabatic species
       if (proc0) then
          if (species_option_switch == species_option_inputprofs) then
-            call read_inputprof_spec(nspec, spec)
+            call read_inputprof_spec(nspec, spec, vnew_ref)
          end if
          if (species_option_switch == species_option_euterpe) then
-            call read_species_euterpe(nspec, spec, tite, nine)
+            call read_species_euterpe(nspec, spec, tite, nine, vnew_ref)
          end if
       end if
       
@@ -228,7 +230,7 @@ contains
    !****************************************************************************
    !                                INITIALISE SPECIES
    !****************************************************************************
-   subroutine init_species(ecoll_zeff)
+   subroutine init_species(ecoll_zeff, zeff, vnew_ref)
 
       use mp, only: broadcast, mp_abort
       use parameters_multibox, only: include_pressure_variation
@@ -236,9 +238,10 @@ contains
       
       implicit none
 
-      ! Mote that the dissipation module depends on the species module so we 
-      ! can not import <ecoll_zeff> and have to pass it through instead
+      ! Mote that the dissipation_and_collisions module depends on the species module 
+      ! so we can not import collision parameters and have to pass it through instead
       logical, intent (in) :: ecoll_zeff
+      real, intent(in) :: zeff, vnew_ref
 
       ! Local variables
       integer :: is, is2
@@ -250,7 +253,7 @@ contains
       initialised_init_species = .true.
       
       ! Based on <ecoll_zeff> set the collision frequencies
-      call init_collision_frequencies
+      call init_collision_frequencies(zeff, vnew_ref)
 
       ! Pressure variation
       pfac = 1.0
@@ -276,17 +279,16 @@ contains
    contains
      
       !-------------------- Initialise collision frequencies -------------------
-      subroutine init_collision_frequencies
+      subroutine init_collision_frequencies(zeff, vnew_ref)
       
          ! Parallelisation
          use mp, only: proc0
-          
-         ! Get the reference collisions frequency
-         ! and the effective charge of the plasma
-         use parameters_physics, only: vnew_ref
-         use parameters_physics, only: zeff
 
          implicit none
+         
+         ! Get the reference collisions frequency
+         ! and the effective charge of the plasma
+         real, intent(in) :: zeff, vnew_ref
          
          !-------------------------------------------------------------------------
  

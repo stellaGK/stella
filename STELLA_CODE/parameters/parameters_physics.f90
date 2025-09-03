@@ -59,12 +59,7 @@ module parameters_physics
    ! Full flux annulus effects
    public :: rhostar
 
-   !!!! NEED TO MOVE 
-   ! public :: include_pressure_variation 
-   ! public :: include_geometric_variation  
-   public :: zeff
-   public :: vnew_ref
-   
+   ! Only initialise once
    public :: initialised_parameters_physics
 
    private
@@ -99,134 +94,126 @@ module parameters_physics
    real :: beta
 
    ! Full flux annulus effects
-   real :: rhostar 
-
-   !!!! NEED TO MOVE ??
-   real :: zeff, vnew_ref
+   real :: rhostar
    
+   ! Only initialise once
    logical :: initialised_parameters_physics = .false.
 
 contains
 
-  !======================================================================
-  !====================== READ PHYSICS PARAMETERS =======================
-  !======================================================================
-  subroutine read_parameters_physics
+   !*************************************************************************
+   !                         Read physics parameters                         
+   !*************************************************************************
+   subroutine read_parameters_physics
 
-   use mp, only: proc0
-   use namelist_parameters_physics, only: read_namelist_gyrokinetic_terms
-   use namelist_parameters_physics, only: read_namelist_scale_gyrokinetic_terms
-   use namelist_parameters_physics, only: read_namelist_electromagnetic
-   use namelist_parameters_physics, only: read_namelist_flow_shear
-   use namelist_parameters_physics, only: read_namelist_physics_inputs
+      use namelist_parameters_physics, only: read_namelist_gyrokinetic_terms
+      use namelist_parameters_physics, only: read_namelist_scale_gyrokinetic_terms
+      use namelist_parameters_physics, only: read_namelist_electromagnetic
+      use namelist_parameters_physics, only: read_namelist_flow_shear
+      use namelist_parameters_physics, only: read_namelist_physics_inputs
 
-   implicit none
+      implicit none
+            
+      !-------------------------------------------------------------------------
 
-   if (initialised_parameters_physics) return
+      ! Only initialise once
+      if (initialised_parameters_physics) return
+      initialised_parameters_physics = .true.
 
-   if (proc0) call read_namelist_gyrokinetic_terms (simulation_domain_switch, & 
-      include_parallel_streaming, include_mirror, &
-      include_xdrift, include_ydrift, include_drive, include_nonlinear, &
-      include_parallel_nonlinearity, include_electromagnetic, include_flow_shear, &
-      full_flux_surface, radial_variation)
+      ! Read the physics namelists in the input file
+      call read_namelist_gyrokinetic_terms (simulation_domain_switch, & 
+         include_parallel_streaming, include_mirror, &
+         include_xdrift, include_ydrift, include_drive, include_nonlinear, &
+         include_parallel_nonlinearity, include_electromagnetic, include_flow_shear, &
+         full_flux_surface, radial_variation)
+      call read_namelist_scale_gyrokinetic_terms(include_xdrift, include_ydrift, include_drive, & 
+         xdriftknob, ydriftknob, wstarknob, fphi, suppress_zonal_interaction)
+      call read_namelist_flow_shear(prp_shear_enabled, hammett_flow_shear, g_exb, g_exbfac, omprimfac)
+      call read_namelist_electromagnetic(include_electromagnetic, include_apar, include_bpar, beta) 
+      call read_namelist_physics_inputs(rhostar)
 
-   if (proc0) call read_namelist_scale_gyrokinetic_terms(include_xdrift, include_ydrift, include_drive, & 
-      xdriftknob, ydriftknob, wstarknob, fphi, suppress_zonal_interaction)
+      ! Broadcast the input parameters from proc0 to all processors
+      call broadcast_parameters
 
-   if (proc0) call read_namelist_flow_shear(prp_shear_enabled, hammett_flow_shear, g_exb, g_exbfac, omprimfac)
+      ! Set the simulation domain
+      if (simulation_domain_switch == simulation_domain_fluxtube) then
+         full_flux_surface = .false.
+         radial_variation = .false.
+      else if (simulation_domain_switch == simulation_domain_multibox) then
+         full_flux_surface = .false.
+         radial_variation = .true. ! Full flux is not compatible with multibox
+      else if (simulation_domain_switch == simulation_domain_flux_annulus) then
+         full_flux_surface = .true.
+         radial_variation = .false.
+      else
+         write(*,*) "Error: simulation_domain must be 'fluxtube', 'multibox', or 'full_flux_surface'."
+         stop
+      end if
 
-   if (proc0) call read_namelist_electromagnetic(include_electromagnetic, include_apar, include_bpar, beta) 
-
-   if (proc0) call read_namelist_physics_inputs(rhostar, zeff, vnew_ref)
-
-   call broadcast_parameters
+   contains
    
-   if (simulation_domain_switch == simulation_domain_fluxtube) then
-      full_flux_surface = .false.
-      radial_variation = .false.
-   else if (simulation_domain_switch == simulation_domain_multibox) then
-      ! Full flux is not compatible with multibox
-      full_flux_surface = .false.  
-      radial_variation = .true.
-   else if (simulation_domain_switch == simulation_domain_flux_annulus) then
-      full_flux_surface = .true. 
-      radial_variation = .false.
-   else
-      write(*,*) "Error: simulation_domain must be 'fluxtube', 'multibox', or 'full_flux_surface'."
-      stop
-   end if
+      !*************************************************************************
+      !                           BROADCAST OPTIONS                            !
+      !*************************************************************************
+      ! Broadcast these parameters to all the processors - necessary because
+      ! the above was only done for the first processor (proc0).
+      !*************************************************************************
+      subroutine broadcast_parameters
 
-   initialised_parameters_physics = .true.
+         use mp, only: broadcast
 
- contains 
-   
-   !**********************************************************************
-   !                         BROADCAST OPTIONS                           !
-   !**********************************************************************
-   ! Broadcast these parameters to all the processors - necessary because
-   ! the above was only done for the first processor (proc0).
-   !**********************************************************************
-   subroutine broadcast_parameters
+         implicit none
+            
+         !----------------------------------------------------------------------
 
-      use mp, only: broadcast
+         ! Gyrokinetic terms
+         call broadcast(simulation_domain_switch)
+         call broadcast(include_parallel_streaming)
+         call broadcast(include_mirror)
+         call broadcast(include_nonlinear)
+         call broadcast(include_xdrift)
+         call broadcast(include_ydrift)
+         call broadcast(include_drive)
+         call broadcast(include_parallel_nonlinearity)
+         call broadcast(include_electromagnetic)
+         call broadcast(include_flow_shear)
+         call broadcast(full_flux_surface)
+         call broadcast(radial_variation)
 
-      implicit none 
+         ! Scaling options
+         call broadcast(xdriftknob)
+         call broadcast(ydriftknob)
+         call broadcast(wstarknob)
+         call broadcast(fphi)
+         call broadcast(suppress_zonal_interaction)
 
-      ! Gyrokinetic terms
-      call broadcast(simulation_domain_switch)
-      call broadcast(include_parallel_streaming)
-      call broadcast(include_mirror)
-      call broadcast(include_nonlinear)
-      call broadcast(include_xdrift)
-      call broadcast(include_ydrift)
-      call broadcast(include_drive)
-      call broadcast(include_parallel_nonlinearity)
-      call broadcast(include_electromagnetic)
-      call broadcast(include_flow_shear)
-      call broadcast(full_flux_surface)
-      call broadcast(radial_variation)
+         ! Flow shear physics effects
+         call broadcast(prp_shear_enabled)
+         call broadcast(hammett_flow_shear) 
+         call broadcast(g_exb)
+         call broadcast(g_exbfac)
+         call broadcast(omprimfac)
 
-      ! Scaling options
-      call broadcast(xdriftknob)
-      call broadcast(ydriftknob)
-      call broadcast(wstarknob)
-      call broadcast(fphi)
-      call broadcast(suppress_zonal_interaction)
+         ! Electromagnetic effects
+         call broadcast(include_apar)
+         call broadcast(include_bpar)
+         call broadcast(beta)
 
-      ! Flow shear physics effects
-      call broadcast(prp_shear_enabled)
-      call broadcast(hammett_flow_shear) 
-      call broadcast(g_exb)
-      call broadcast(g_exbfac)
-      call broadcast(omprimfac)
+         ! Full flux annulus effects
+         call broadcast(rhostar)
 
-      ! Electromagnetic effects
-      call broadcast(include_apar)
-      call broadcast(include_bpar)
-      call broadcast(beta)
+      end subroutine broadcast_parameters
 
-      ! Full flux annulus effects
-      call broadcast(rhostar)
+   end subroutine read_parameters_physics
 
-      ! EXTRA - NEED TO MOVE 
-      ! call broadcast(include_pressure_variation)
-      ! call broadcast(include_geometric_variation)
-      call broadcast(vnew_ref)
-      call broadcast(zeff)
-
-   end subroutine broadcast_parameters
-
- end subroutine read_parameters_physics
-
- !**********************************************************************
- !                      FINISH READ PARAMETERS                         !
- !**********************************************************************
- ! Set the initialised flag to be false such that we do not initialise
- ! twice.
- !**********************************************************************
- subroutine finish_read_parameters_physics
-   implicit none
-   initialised_parameters_physics = .false.
- end subroutine finish_read_parameters_physics
+   !****************************************************************************
+   !                          FINISH READ PARAMETERS                           !
+   !****************************************************************************
+   ! Set the initialised flag to be false such that we do not initialise twice.
+   !****************************************************************************
+   subroutine finish_read_parameters_physics
+      implicit none
+      initialised_parameters_physics = .false.
+   end subroutine finish_read_parameters_physics
 
 end module parameters_physics

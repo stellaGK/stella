@@ -20,6 +20,8 @@ stella_mod = \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/calculations_velocity_integrals.o \
 	 $(OBJ_DIR)/calculations_volume_averages.o \
+	 $(OBJ_DIR)/collisions_dougherty.o \
+	 $(OBJ_DIR)/collisions_fokkerplanck.o \
 	 $(OBJ_DIR)/command_line.o \
 	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/convert.o \
@@ -35,8 +37,6 @@ stella_mod = \
 	 $(OBJ_DIR)/diagnostics_potential.o \
 	 $(OBJ_DIR)/diagnostics_write_radial_grid.o \
 	 $(OBJ_DIR)/dissipation_and_collisions.o \
-	 $(OBJ_DIR)/dissipation_coll_dougherty.o \
-	 $(OBJ_DIR)/dissipation_coll_fokkerplanck.o \
 	 $(OBJ_DIR)/dissipation_hyper.o \
 	 $(OBJ_DIR)/fft_work.o \
 	 $(OBJ_DIR)/fields.o \
@@ -240,6 +240,61 @@ $(OBJ_DIR)/calculations_volume_averages.o: \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/parameters_physics.o 
+$(OBJ_DIR)/collisions_dougherty.o: \
+	 $(OBJ_DIR)/arrays_gyro_averages.o \
+	 $(OBJ_DIR)/arrays_store_distribution_fn.o \
+	 $(OBJ_DIR)/arrays_store_fields.o \
+	 $(OBJ_DIR)/arrays_store_useful.o \
+	 $(OBJ_DIR)/calculations_finite_differences.o \
+	 $(OBJ_DIR)/calculations_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_kxky.o \
+	 $(OBJ_DIR)/calculations_redistribute.o \
+	 $(OBJ_DIR)/calculations_tofrom_ghf.o \
+	 $(OBJ_DIR)/calculations_transforms.o \
+	 $(OBJ_DIR)/calculations_velocity_integrals.o \
+	 $(OBJ_DIR)/fields_collisions.o \
+	 $(OBJ_DIR)/fields_fluxtube.o \
+	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
+	 $(OBJ_DIR)/grids_velocity.o \
+	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/job_manage.o \
+	 $(OBJ_DIR)/linear_solve.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/namelist_dissipation.o \
+	 $(OBJ_DIR)/parameters_physics.o \
+	 $(OBJ_DIR)/redistribute.o \
+	 $(OBJ_DIR)/stella_layouts.o \
+	 $(OBJ_DIR)/stella_time.o 
+$(OBJ_DIR)/collisions_fokkerplanck.o: \
+	 $(OBJ_DIR)/arrays_gyro_averages.o \
+	 $(OBJ_DIR)/arrays_store_distribution_fn.o \
+	 $(OBJ_DIR)/arrays_store_useful.o \
+	 $(OBJ_DIR)/calculations_finite_differences.o \
+	 $(OBJ_DIR)/calculations_redistribute.o \
+	 $(OBJ_DIR)/calculations_tofrom_ghf.o \
+	 $(OBJ_DIR)/calculations_velocity_integrals.o \
+	 $(OBJ_DIR)/constants.o \
+	 $(OBJ_DIR)/fields_collisions.o \
+	 $(OBJ_DIR)/fields_fluxtube.o \
+	 $(OBJ_DIR)/file_utils.o \
+	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
+	 $(OBJ_DIR)/grids_velocity.o \
+	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/job_manage.o \
+	 $(OBJ_DIR)/linear_solve.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/namelist_dissipation.o \
+	 $(OBJ_DIR)/parameters_numerical.o \
+	 $(OBJ_DIR)/parameters_physics.o \
+	 $(OBJ_DIR)/redistribute.o \
+	 $(OBJ_DIR)/spfunc.o \
+	 $(OBJ_DIR)/stella_common_types.o \
+	 $(OBJ_DIR)/stella_layouts.o \
+	 $(OBJ_DIR)/stella_time.o 
 $(OBJ_DIR)/command_line.o: 
 $(OBJ_DIR)/constants.o: 
 $(OBJ_DIR)/convert.o: 
@@ -431,9 +486,9 @@ $(OBJ_DIR)/diagnostics_write_radial_grid.o: \
 $(OBJ_DIR)/dissipation_and_collisions.o: \
 	 $(OBJ_DIR)/arrays_store_distribution_fn.o \
 	 $(OBJ_DIR)/calculations_redistribute.o \
+	 $(OBJ_DIR)/collisions_dougherty.o \
+	 $(OBJ_DIR)/collisions_fokkerplanck.o \
 	 $(OBJ_DIR)/debug_flags.o \
-	 $(OBJ_DIR)/dissipation_coll_dougherty.o \
-	 $(OBJ_DIR)/dissipation_coll_fokkerplanck.o \
 	 $(OBJ_DIR)/dissipation_hyper.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/grids_velocity.o \
@@ -445,61 +500,6 @@ $(OBJ_DIR)/dissipation_and_collisions.o: \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/stella_layouts.o 
-$(OBJ_DIR)/dissipation_coll_dougherty.o: \
-	 $(OBJ_DIR)/arrays_gyro_averages.o \
-	 $(OBJ_DIR)/arrays_store_distribution_fn.o \
-	 $(OBJ_DIR)/arrays_store_fields.o \
-	 $(OBJ_DIR)/arrays_store_useful.o \
-	 $(OBJ_DIR)/calculations_finite_differences.o \
-	 $(OBJ_DIR)/calculations_gyro_averages.o \
-	 $(OBJ_DIR)/calculations_kxky.o \
-	 $(OBJ_DIR)/calculations_redistribute.o \
-	 $(OBJ_DIR)/calculations_tofrom_ghf.o \
-	 $(OBJ_DIR)/calculations_transforms.o \
-	 $(OBJ_DIR)/calculations_velocity_integrals.o \
-	 $(OBJ_DIR)/fields_collisions.o \
-	 $(OBJ_DIR)/fields_fluxtube.o \
-	 $(OBJ_DIR)/geometry.o \
-	 $(OBJ_DIR)/grids_kxky.o \
-	 $(OBJ_DIR)/grids_species.o \
-	 $(OBJ_DIR)/grids_velocity.o \
-	 $(OBJ_DIR)/grids_z.o \
-	 $(OBJ_DIR)/job_manage.o \
-	 $(OBJ_DIR)/linear_solve.o \
-	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/namelist_dissipation.o \
-	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/redistribute.o \
-	 $(OBJ_DIR)/stella_layouts.o \
-	 $(OBJ_DIR)/stella_time.o 
-$(OBJ_DIR)/dissipation_coll_fokkerplanck.o: \
-	 $(OBJ_DIR)/arrays_gyro_averages.o \
-	 $(OBJ_DIR)/arrays_store_distribution_fn.o \
-	 $(OBJ_DIR)/arrays_store_useful.o \
-	 $(OBJ_DIR)/calculations_finite_differences.o \
-	 $(OBJ_DIR)/calculations_redistribute.o \
-	 $(OBJ_DIR)/calculations_tofrom_ghf.o \
-	 $(OBJ_DIR)/calculations_velocity_integrals.o \
-	 $(OBJ_DIR)/constants.o \
-	 $(OBJ_DIR)/fields_collisions.o \
-	 $(OBJ_DIR)/fields_fluxtube.o \
-	 $(OBJ_DIR)/file_utils.o \
-	 $(OBJ_DIR)/geometry.o \
-	 $(OBJ_DIR)/grids_kxky.o \
-	 $(OBJ_DIR)/grids_species.o \
-	 $(OBJ_DIR)/grids_velocity.o \
-	 $(OBJ_DIR)/grids_z.o \
-	 $(OBJ_DIR)/job_manage.o \
-	 $(OBJ_DIR)/linear_solve.o \
-	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/namelist_dissipation.o \
-	 $(OBJ_DIR)/parameters_numerical.o \
-	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/redistribute.o \
-	 $(OBJ_DIR)/spfunc.o \
-	 $(OBJ_DIR)/stella_common_types.o \
-	 $(OBJ_DIR)/stella_layouts.o \
-	 $(OBJ_DIR)/stella_time.o 
 $(OBJ_DIR)/dissipation_hyper.o: \
 	 $(OBJ_DIR)/arrays_store_useful.o \
 	 $(OBJ_DIR)/calculations_finite_differences.o \
@@ -959,8 +959,7 @@ $(OBJ_DIR)/grids_extended_zgrid.o: \
 	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/grids_kxky.o \
-	 $(OBJ_DIR)/grids_z.o \
-	 $(OBJ_DIR)/mp.o 
+	 $(OBJ_DIR)/grids_z.o 
 $(OBJ_DIR)/grids_kxky.o: \
 	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/diagnostics_write_radial_grid.o \

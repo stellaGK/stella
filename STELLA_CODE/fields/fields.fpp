@@ -173,7 +173,6 @@ contains
    subroutine init_fields
 
       ! Parallelisation
-      use mp, only: proc0
       use linear_solve, only: lu_decomposition
 
       ! Parameters

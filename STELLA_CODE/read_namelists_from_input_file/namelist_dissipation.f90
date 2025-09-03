@@ -10,6 +10,8 @@
 !     hyper_dissipation = .false.
 !     collision_model = 'dougherty'
 !     ecoll_zeff = .false.
+!     zeff = 1.0
+!     vnew_ref = -1.0
 !   
 !   collisions_dougherty
 !     momentum_conservation = .true.
@@ -95,7 +97,7 @@ contains
    !                                DISSIPATION                                !
    !****************************************************************************
    subroutine read_namelist_dissipation_and_collisions_options(include_collisions, &
-      collisions_implicit, collision_model, hyper_dissipation, ecoll_zeff)
+      collisions_implicit, collision_model, hyper_dissipation, ecoll_zeff, zeff, vnew_ref)
 
       use mp, only: proc0
       
@@ -105,6 +107,7 @@ contains
       logical, intent(out) :: include_collisions, collisions_implicit, hyper_dissipation
       character(30), intent(out) :: collision_model
       logical, intent (out) :: ecoll_zeff
+      real, intent(out) :: zeff, vnew_ref
          
       !-------------------------------------------------------------------------
 
@@ -125,6 +128,8 @@ contains
          collisions_implicit = .true.
          hyper_dissipation = .false.
          ecoll_zeff = .false.
+         zeff = 1.0
+         vnew_ref = -1.0
          
          ! Text options: dougherty or fokker-planck
          collision_model = 'dougherty'
@@ -137,8 +142,8 @@ contains
          use file_utils, only: input_unit_exist
          implicit none
 
-         namelist /dissipation_and_collisions_options/ include_collisions, &
-            collisions_implicit, collision_model, hyper_dissipation, ecoll_zeff
+         namelist /dissipation_and_collisions_options/ include_collisions, collisions_implicit, &
+            collision_model, hyper_dissipation, ecoll_zeff, zeff, vnew_ref
          in_file = input_unit_exist('dissipation_and_collisions_options', dexist)
          if (dexist) read (unit=in_file, nml=dissipation_and_collisions_options)
 

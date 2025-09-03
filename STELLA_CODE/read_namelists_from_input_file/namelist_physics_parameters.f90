@@ -38,8 +38,6 @@
 !   
 !   physics_inputs
 !     rhostar = - 1.0
-!     zeff = 1.0
-!     vnew_ref = -1.0
 ! 
 ! Text options for <simulation_domain>:
 !    - Flux tube: {default, fluxtube, ft}
@@ -379,7 +377,7 @@ contains
    !****************************************************************************
    !                                PHYSICAL INPUTS                            !
    !****************************************************************************
-   subroutine read_namelist_physics_inputs(rhostar, zeff, vnew_ref)
+   subroutine read_namelist_physics_inputs(rhostar)
 
       use mp, only: proc0
 
@@ -387,7 +385,6 @@ contains
 
       ! Variables that are read from the input file
       real, intent (out) :: rhostar
-      real, intent(out) :: zeff, vnew_ref
       
       !-------------------------------------------------------------------------
       
@@ -402,9 +399,7 @@ contains
 
          implicit none
 
-         zeff = 1.0
-         rhostar = -1.0       ! = m_ref * vt_ref / (e * B_ref * a_ref), with refs in SI
-         vnew_ref = -1.0      ! various input options will override this value if it is negative
+         rhostar = -1.0
 
       end subroutine set_default_parameters_physics_inputs
 
@@ -414,7 +409,7 @@ contains
          use file_utils, only: input_unit_exist
          implicit none
 
-         namelist /physics_inputs/ rhostar, zeff, vnew_ref !, field_tol, itt_tol
+         namelist /physics_inputs/ rhostar
          in_file = input_unit_exist('physics_inputs', dexist)
          if (dexist) read (unit=in_file, nml=physics_inputs)
 

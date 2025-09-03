@@ -111,7 +111,6 @@ contains
       use grids_kxky, only: jtwist, ikx_twist_shift, phase_shift_angle
       use grids_kxky, only: aky
       use constants, only: zi
-      use mp, only: proc0
 
       implicit none
 

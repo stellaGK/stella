@@ -151,6 +151,8 @@ contains
       use diagnostics_fluxes, only: init_diagnostics_fluxes
       use diagnostics_potential, only: init_diagnostics_potential
       use dissipation_and_collisions, only: ecoll_zeff
+      use dissipation_and_collisions, only: vnew_ref
+      use dissipation_and_collisions, only: zeff
       
       ! Netcdf output file
       use git_version, only: get_git_version, get_git_date
@@ -184,12 +186,12 @@ contains
       call read_parameters_physics
       call read_parameters_numerical
       call read_parameters_z_grid
-      call read_parameters_species
+      call read_parameters_species(vnew_ref)
       call read_parameters_kxky_grids
       call read_parameters_diagnostics
       call init_z_grid
       call init_grids_kxky
-      call init_species(ecoll_zeff)
+      call init_species(ecoll_zeff, zeff, vnew_ref)
       call read_parameters_init_distribution
       call init_arrays_distribution_fn
       call init_arrays_vperp_kperp

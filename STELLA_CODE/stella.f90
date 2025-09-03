@@ -356,22 +356,30 @@ contains
       use stella_layouts, only: read_parameters_parallelisation_layouts
       use dissipation_and_collisions, only: read_parameters_dissipation_and_collisions
       
+      ! Parse collision variables to read_parameters_species to avoid circular dependencies
+      use dissipation_and_collisions, only: vnew_ref
+      
       implicit none
       
       !----------------------------------------------------------------------
    
-      ! Read the phsyics and numerical parameters from the input file
+      ! Read the physics and numerical parameters from the input file
       ! These namelists contain many variables used by other modules, so read it first
       if (debug) write (6, *) "stella::init_stella::read_parameters_physics"
       call read_parameters_physics
       if (debug) write (6, *) "stella::init_stella::read_parameters_numerical"
       call read_parameters_numerical
       
+      ! Read the dissipation and collision variables, since <vnew_ref> is needed
+      ! for the species parameters read from the EUTERPE code
+      if (debug) write (6, *) 'stella::init_stella::read_parameters_dissipation_and_collisions'
+      call read_parameters_dissipation_and_collisions
+      
       ! Read the namelists related to the (kx,ky,z,mu,vpa,species) grids
       if (debug) write (6, *) "stella::init_stella::read_parameters_z_grid"
       call read_parameters_z_grid
       if (debug) write (6, *) "stella::init_stella::read_species_options"
-      call read_parameters_species
+      call read_parameters_species(vnew_ref)
       if (debug) write (6, *) "stella::init_stella::read_parameters_kxky_grids"
       call read_parameters_kxky_grids
       if (debug) write (6, *) "stella::init_stella::read_velocity_grids_parameters"
@@ -386,8 +394,6 @@ contains
       call read_parameters_init_distribution
       if (debug) write (6, *) 'stella::init_stella::read_parameters_parallelisation_layouts'
       call read_parameters_parallelisation_layouts
-      if (debug) write (6, *) 'stella::init_stella::read_parameters_dissipation_and_collisions'
-      call read_parameters_dissipation_and_collisions
       
    end subroutine read_parameters_from_input_file
    
@@ -410,8 +416,10 @@ contains
       ! by read_parameters_kxky_grids() in read_parameters_from_input_file()
       use grids_kxky, only: naky, nalpha
       
-      ! Parse <ecoll_zeff> to init_species
+      ! Parse collision variables to init_species to avoid circular dependencies
       use dissipation_and_collisions, only: ecoll_zeff
+      use dissipation_and_collisions, only: zeff
+      use dissipation_and_collisions, only: vnew_ref
    
       implicit none
       
@@ -433,7 +441,7 @@ contains
       ! determine if a modified Boltzmann response is to be used
       ! Note that <ecoll_zeff> has already been read in read_parameters_dissipation_and_collisions()
       if (debug) write (6, *) 'stella::init_stella::init_species'
-      call init_species(ecoll_zeff)
+      call init_species(ecoll_zeff, zeff, vnew_ref)
       
       ! Setup the (kx,ky) grids and (x,y) grids, if applicable
       if (debug) write (6, *) 'stella::init_stella::init_multibox_subcalls'
@@ -441,7 +449,7 @@ contains
       
       ! Setup the (vpa,mu) grids and associated integration weights
       if (debug) write (6, *) 'stella::init_stella::init_velocity_grids'
-      call init_velocity_grids
+      call init_velocity_grids(vnew_ref)
       
       ! Set up all of the logic needed to do calculations on an extended grid in z.
       ! this extended grid could be due to use of a ballooning angle so that

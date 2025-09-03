@@ -432,7 +432,8 @@ contains
       use mp, only: nproc
       use file_utils, only: input_unit_exist
       use grids_species, only: nspec
-      use parameters_physics, only: rhostar, vnew_ref
+      use parameters_physics, only: rhostar
+      use dissipation_and_collisions, only: vnew_ref
       use geometry, only: geo_surf, aref, bref
 
       implicit none

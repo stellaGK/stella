@@ -9,13 +9,13 @@ module grids_species_from_euterpe
 
 contains
 
-   subroutine read_species_euterpe(nspec, spec, tite, nine)
+   subroutine read_species_euterpe(nspec, spec, tite, nine, vnew_ref)
 
       use mp, only: mp_abort
       use calculations_finite_differences, only: fd3pt, d2_3pt
       use stella_common_types, only: spec_type
       use splines, only: geo_spline
-      use parameters_physics, only: vnew_ref, rhostar
+      use parameters_physics, only: rhostar
       use geometry, only: geo_surf, aref, bref
       use namelist_species, only: read_namelist_euterpe_parameters
 
@@ -27,6 +27,9 @@ contains
       real, intent(out) :: nine
       integer, intent(in) :: nspec
       type(spec_type), dimension(:), intent(in out) :: spec
+      
+      ! Parse in the collisions variables to avoid circular dependencies
+      real, intent(in out) :: vnew_ref
 
       ! Local variables
       integer, parameter :: electron_species = 2

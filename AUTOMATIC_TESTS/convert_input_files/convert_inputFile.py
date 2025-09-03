@@ -146,8 +146,8 @@ def update_inputFile(path_input_file='', add_default_variables=False, downgrade=
         #------------------- parameters --> electromagnetic ------------------
         'parameters:beta:0.0'                       : 'electromagnetic:beta:0.0',
         #------------------- parameters --> physics_inputs ------------------
-        'parameters:vnew_ref:-1.0'                  : 'physics_inputs:vnew_ref:-1.0',
-        'parameters:zeff:1.0'                       : 'physics_inputs:zeff:1.0',
+        'parameters:vnew_ref:-1.0'                  : 'dissipation_and_collisions_options:vnew_ref:-1.0',
+        'parameters:zeff:1.0'                       : 'dissipation_and_collisions_options:zeff:1.0',
         'parameters:rhostar:-1.0'                   : 'physics_inputs:rhostar:-1.0',
         #------------------- parameters --> flow_shear ------------------
         'parameters:g_exb:0.0'                      : 'flow_shear:g_exb:0.0',
