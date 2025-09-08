@@ -2,14 +2,39 @@
 !###############################################################################
 !###############################################################################
 ! 
-! This module implements perpendicular and parallel flow shear, related to a 
-! mean toroidal flow R*Omega_zeta.
+! The local version of stella currently implements equilibrium ﬂow shear using 
+! the discrete wavenumber-shift method formulated by Hammett et al.
+!     - See [2006 - Hammett]
+!     - See section 3.5. Equilibrium ﬂow shear in [2022 - St-Onge]
+! 
+! Default parameters related to the shear flow
+! 
+!   flow_shear
+!     prp_shear_enabled = .false.
+!     hammett_flow_shear = .true.
+!     g_exb = 0.0
+!     g_exbfac = 1.0
+!     omprimfac = 1.0
+!   /
+! 
+! This module also implements perpendicular and parallel flow shear, related to 
+! a mean toroidal flow R*Omega_zeta, implemented for radial variation.
 ! 
 ! For notes on the mathematics see [2022 - St-Onge - A novel approach to radially 
-! global gyrokinetic simulation using the flux-tube code stella]
+! global gyrokinetic simulation using the flux-tube code stella]. E.g., equation 28c:
+!     omega_{zeta,k,s} = -k_y * sqrt(m_s/T_s) * q*a/r * I/B * exp(-v²) * gamma_E
 ! 
-! omega_{zeta,k,s} = -k_y * sqrt(m_s/T_s) * q*a/r * I/B * exp(-v²) * gamma_E
-! gamma_E = (r/q) (dOmega_zeta(dr) (a/v_{th,ref})
+! The shear rate is defined as
+!     gamma_E = (r/q) (dOmega_zeta(dr) (a/v_{th,ref})
+! 
+! The advance_parallel_flow_shear() routine add the following term to the gyrokinetic
+! equation, as can be seen the 6th term in equation (27) in [2022 - St-Onge]
+!     - i * omega_{zeta,k,s} * J0 * phi * code_dt
+! 
+! To calculate this term we have calculated:
+!     <prl_shear> = - sqrt(m_s/T_s) * q*a/r * I/B * exp(-v²) * gamma_E * code_dt (?)
+!                 = omega_{zeta,k,s} * code_dt / k_y
+! 
 !###############################################################################
 module gk_flow_shear
 
@@ -25,7 +50,7 @@ module gk_flow_shear
    public :: shift_times
 
    ! Input parameters
-   public :: prp_shear_enabled
+   public :: prp_shear_enabled               ! Enables perpendicular flow shear
    public :: hammett_flow_shear
    public :: g_exb, g_exbfac, omprimfac 
 
@@ -51,7 +76,7 @@ contains
 
 
    !****************************************************************************
-   !                                      Title
+   !                              Read input file                               
    !****************************************************************************
    subroutine read_parameters_flow_shear
 
@@ -59,7 +84,7 @@ contains
       use mp, only: broadcast
       
       ! Read namelists from input file
-      use namelist_radial_variation, only: read_namelist_flow_shear
+      use namelist_flow_shear, only: read_namelist_flow_shear
 
       implicit none
 
@@ -70,7 +95,7 @@ contains
       
       ! Broadcast the input parameters
       call broadcast(prp_shear_enabled)
-      call broadcast(hammett_flow_shear) 
+      call broadcast(hammett_flow_shear)
       call broadcast(g_exb)
       call broadcast(g_exbfac)
       call broadcast(omprimfac)
@@ -149,7 +174,7 @@ contains
       !---------------------------- Allocate arrays ----------------------------
       
       ! Allocate temporary array
-      allocate (energy(nalpha, -nzgrid:nzgrid))
+      if (radial_variation) allocate (energy(nalpha, -nzgrid:nzgrid))
 
       ! Allocate the parallel flow shear
       if (.not. allocated(prl_shear)) then
@@ -173,11 +198,12 @@ contains
          imu = imu_idx(vmu_lo, ivmu)
          
          ! Calculate parallel flow shear
-         ! TODO-
+         !     omega_{zeta,k,s} = -k_y * sqrt(m_s/T_s) * q*a/r * I/B * exp(-v²) * gamma_E
+         !     gamma_E = (r/q) (dOmega_zeta(dr) (a/v_{th,ref})
+         ! TODO - make formula match code
          do iz = -nzgrid, nzgrid
             prl_shear(ia, iz, ivmu) = -omprimfac * g_exb * code_dt * vpa(iv) * spec(is)%stm_psi0 &
-              * dydalpha * drhodpsi &
-              * (geo_surf%qinp_psi0 / geo_surf%rhoc_psi0) &
+              * dydalpha * drhodpsi * (geo_surf%qinp_psi0 / geo_surf%rhoc_psi0) &
               * (btor(iz) * rmajor(iz) / bmag(ia, iz)) * (spec(is)%mass / spec(is)%temp)
          end do
          
@@ -189,6 +215,7 @@ contains
             end do
          end if
          
+         ! Add correction due to radial variation
          if (radial_variation) then
             energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
             prl_shear_p(:, :, ivmu) = prl_shear(:, :, ivmu) * (dIdrho / spread(rmajor * btor, 1, nalpha) &
@@ -198,15 +225,19 @@ contains
          end if
       end do
 
+      ! The definition of parallel flow shear depends on the definition of psi (or x)
       if (q_as_x) prl_shear = prl_shear / geo_surf%shat_psi0
 
-      deallocate (energy)
+      ! Deallocate the temporary arrays
+      if (radial_variation) deallocate (energy)
 
-      !perpendicular flow shear
+      !------------------- Calculate perpendicular flow shear ------------------
 
+      ! Allocate module arrays
       if (.not. allocated(shift_times)) allocate (shift_times(naky))
       if (.not. allocated(upwind_advect)) allocate (upwind_advect(naky, nakx))
-
+      
+      ! Allocate arrays stored in arrays_store_useful.f90
       if (.not. allocated(shift_state)) then
          allocate (shift_state(naky))
          shift_state = 0.
@@ -215,6 +246,7 @@ contains
       if (nakx > 1 .and. abs(g_exb * g_exbfac) > 0) then
          shift_times = abs(akx(2) / (aky * g_exb * g_exbfac))
       end if
+      
       if (zonal_mode(1)) shift_times(1) = huge(0.)
 
       if (g_exb * g_exbfac > 0.) then
@@ -244,32 +276,45 @@ contains
 
       implicit none
 
+      ! Arguments
       complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
 
+      ! Local variables
       complex, dimension(:, :), allocatable :: g0k
       integer :: ivmu, iz, it, ia
 
       !-------------------------------------------------------------------------
 
+      ! Assume we only have a single field line
       ia = 1
 
+      ! Allocate temporary arrays
       allocate (g0k(naky, nakx))
 
+      ! Abort for full-flux-surface simulations
       if (full_flux_surface) then
          if (proc0) write (*, *) '!!!WARNING: flow shear not currently supported for full_flux_surface=T!!!'
          call mp_abort("flow shear not currently supported for full_flux_surface=T.")
       end if
+      
+      ! Iterate over the (z,mu,vpa,tubes) grid
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
+            
+               ! Take the derivate w.r.t. y in Fourier space
+               ! <g0k> = i ky J_0 ϕ_k = d<chi>_theta/dy = get_dchidy(iz, ivmu, phi, apar, bpar, g0)
                call get_dchidy(iz, ivmu, phi(:, :, iz, it), apar(:, :, iz, it), bpar(:, :, iz, it), g0k)
 
-               !parallel flow shear
+               ! Add, - omega_{zeta,k,s} * J0 * phi to the right-hand-side of the gyrokinetic equation
+               ! TODO - check the sign of this term?
                gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) + prl_shear(ia, iz, ivmu) * g0k
+               
             end do
          end do
       end do
 
+      ! Deallocate temporary arrays
       deallocate (g0k)
 
    end subroutine advance_parallel_flow_shear
@@ -299,14 +344,15 @@ contains
 
       !-------------------------------------------------------------------------
 
+      ! Add the perpendicular flow shear if it is enabled
       if (.not. prp_shear_enabled) return
 
+      ! Allocate temporary arrays
       allocate (g0k(naky, nakx))
       allocate (g0x(naky, nakx))
 
+      ! TODO (DSO) - This assumes the timestep is small enough so that a shift is never more than a single cell
       if (hammett_flow_shear) then
-         !TODO (DSO) - This assumes the timestep is small enough so that a shift is never
-         !             more than a single cell
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid

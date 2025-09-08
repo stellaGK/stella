@@ -93,6 +93,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/gyrokinetic_equation/gk_magnetic_drift.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_drive.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_ffs_solve.f90
+  ../STELLA_CODE/gyrokinetic_equation/gk_flow_shear.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_implicit_solve.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_mirror.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_nonlinearity.f90
@@ -109,7 +110,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/parameters/parameters_numerical.f90
   ../STELLA_CODE/parameters/parameters_physics.f90
   ../STELLA_CODE/radial_variation/multibox.f90
-  ../STELLA_CODE/radial_variation/gk_flow_shear.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_debug.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_diagnostics.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_dissipation.f90
