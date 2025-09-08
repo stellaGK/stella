@@ -33,7 +33,7 @@ contains
    !****************************************************************************
    subroutine init_time_advance
 
-      ! Flags
+      ! Physics flags
       use dissipation_and_collisions, only: include_collisions
       use parameters_physics, only: radial_variation
       use parameters_physics, only: include_parallel_nonlinearity
@@ -88,7 +88,10 @@ contains
       if (debug) write (6, *) 'time_advance::init_time_advance::init_wstar'
       call init_wstar
       
-      ! ...
+      ! Calculate the frequency omega_{zeta,k,s} associated with the parallel flow 
+      ! shear and save it as <prl_shear>. Calculate the arrays needed for the discrete 
+      ! wavenumber-shift method formulated by Hammett for the perpendicular flow shear.
+      ! TODO - check the explanation above.
       if (debug) write (6, *) 'time_advance::init_time_advance::init_flow_shear'
       call init_flow_shear
       
@@ -141,12 +144,12 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! Initialise arrays used on the 
+      ! Initialise arrays used inside the Runge-Kutta schemes
       if (.not. allocated(g0)) allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       if (.not. allocated(g1)) allocate (g1(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       if (.not. allocated(g2)) allocate (g2(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
       
-      ! Only allocate g3 if it is needed
+      ! Only allocate <g3> if the 4th order Runge-Kutta scheme is utilised
       if (.not. allocated(g3)) then
          if (explicit_algorithm_switch == explicit_algorithm_rk4) then
             allocate (g3(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
@@ -163,7 +166,6 @@ contains
 
    end subroutine allocate_arrays
 
-
 !###############################################################################
 !#################### TIME ADVANCE THE GYROKINETIC EQUATION ####################
 !###############################################################################
@@ -173,19 +175,37 @@ contains
    !****************************************************************************
    subroutine advance_stella(istep, stop_stella)
 
+      ! Parallelisation
       use mp, only: proc0, broadcast
-      use arrays_store_distribution_fn, only: gold, gnew
+      
+      ! Distribution function
+      use arrays_store_distribution_fn, only: gold
+      use arrays_store_distribution_fn, only: gnew
+      
+      ! Fields
       use arrays_store_fields, only: phi, apar, bpar
       use arrays_store_fields, only: phi_old, apar_old
-      use fields, only: advance_fields, fields_updated
+      use fields, only: advance_fields
+      use fields, only: fields_updated
+      
+      ! Physics flags
       use parameters_physics, only: include_apar
+      
+      ! Numerical schemes
       use parameters_numerical, only: flip_flop
-      use parameters_numerical, only: fully_explicit, fully_implicit
+      use parameters_numerical, only: fully_explicit
+      use parameters_numerical, only: fully_implicit
       use parameters_multibox, only: rk_step
-      use gk_sources, only: include_qn_source, update_quasineutrality_source
-      use gk_sources, only: source_option_switch, source_option_projection
+      
+      ! Sources and sinks used in radial variation
+      ! TODO - move radial variation stuff to a subroutine
+      use gk_sources, only: include_qn_source
+      use gk_sources, only: update_quasineutrality_source
+      use gk_sources, only: source_option_switch
+      use gk_sources, only: source_option_projection
       use gk_sources, only: source_option_krook
-      use gk_sources, only: update_tcorr_krook, project_out_zero
+      use gk_sources, only: update_tcorr_krook
+      use gk_sources, only: project_out_zero
       use gk_radial_variation, only: mb_communicate
 
       implicit none
@@ -208,8 +228,7 @@ contains
          call mb_communicate(gnew)
       end if
 
-      ! Save value of phi & apar
-      ! for use in diagnostics (to obtain frequency)
+      ! Save value of phi & apar for use in diagnostics (to obtain frequency)
       phi_old = phi
       if (include_apar) apar_old = apar
 
@@ -234,27 +253,27 @@ contains
          ! Keep track whether any routine wants to modify the time step
          restart_time_step = .false.
 
-         ! Reverse the order of operations every time step
-         ! as part of alternating direction operator splitting
-         ! this is needed to ensure 2nd order accuracy in time
+         ! We need to advance the explicit and implicit parts of the gyrokinetic
+         ! equation (GKE). We use operator splitting to separately evolve all terms 
+         ! treated implicitly. By default, <flip_flop> = True, and the order of 
+         ! operations is reversed every time step as part of alternating direction 
+         ! operator splitting. This is needed to ensure 2nd order accuracy in time. 
+         ! If <flip_flop> is False instead, we always advance the explicit terms first.
          if (mod(istep, 2) == 1 .or. .not. flip_flop) then
-            ! Advance the explicit parts of the GKE
             if (debug) write (*, *) 'time_advance::advance_explicit'
             if (.not. fully_implicit) call advance_explicit(gnew, restart_time_step, istep)
             if (debug) write (*, *) 'time_advance::advance_implicit'
-            ! Use operator splitting to separately evolve all terms treated implicitly
             if (.not. restart_time_step .and. .not. fully_explicit) call advance_implicit(istep, phi, apar, bpar, gnew)
          else
-            ! Advance the explicit parts of the GKE
             if (debug) write (*, *) 'time_advance::advance_implicit'
             if (.not. fully_explicit) call advance_implicit(istep, phi, apar, bpar, gnew)
             if (debug) write (*, *) 'time_advance::advance_explicit'
             if (.not. fully_implicit) call advance_explicit(gnew, restart_time_step, istep)
          end if
 
-         ! If the time step has not been restarted, the time advance was succesfull
-         ! Otherwise, discard changes to gnew and start the time step again, fields
-         ! will have to be recalculated
+         ! If the time step has not been restarted, the time advance was succesfull.
+         ! Otherwise, discard changes to <gnew> and start the time step again. 
+         ! In this case, the fields will have to be recalculated
          if (.not. restart_time_step) then
             time_advance_successful = .true.
          else
@@ -280,7 +299,7 @@ contains
       end do
 
       ! Presumably this is to do with the radially global version of the code?
-      ! perhaps it could be packaged together with thee update_delay_krook code
+      ! perhaps it could be packaged together with the update_delay_krook code
       ! below and made into a single call where all of this happens so that
       ! users of the flux tube version of the code need not worry about it.
       if (source_option_switch == source_option_projection) then
@@ -618,37 +637,56 @@ contains
    !****************************************************************************
    subroutine solve_gke(pdf, rhs_ky, restart_time_step, istep)
 
+      ! Parallelisation
       use job_manage, only: time_message
       use multibox, only: add_multibox_krook
-
       use stella_layouts, only: vmu_lo
       use calculations_transforms, only: transform_y2ky
 
+      ! Fields
       use arrays_store_fields, only: phi, apar, bpar
+      
+      ! Distribution function
       use arrays_store_distribution_fn, only: g_scratch
+      
+      ! Calculations
       use arrays_gyro_averages, only: j0_ffs
-
-      use calculations_kxky, only: swap_kxky_back
       use calculations_gyro_averages, only: gyro_average
+      use calculations_kxky, only: swap_kxky_back
       use calculations_tofrom_ghf, only: gbar_to_g 
 
+      ! Physics flags
       use parameters_physics, only: include_parallel_nonlinearity
       use parameters_physics, only: include_parallel_streaming
-      use parameters_physics, only: include_mirror, include_apar
+      use parameters_physics, only: include_mirror
+      use parameters_physics, only: include_apar
       use parameters_physics, only: include_nonlinear
-      use parameters_physics, only: full_flux_surface, radial_variation
+      use parameters_physics, only: full_flux_surface
+      use parameters_physics, only: radial_variation
       use parameters_physics, only: xdriftknob, ydriftknob
+      use dissipation_and_collisions, only: include_collisions
+      use dissipation_and_collisions, only: hyper_dissipation
       use gk_flow_shear, only: g_exb
-      use grids_kxky, only: ikx_max, ny, naky_all
-      use parameters_numerical, only: stream_implicit, mirror_implicit, drifts_implicit
+      
+      ! Krook source
       use parameters_multibox, only: include_multibox_krook
+      use gk_sources, only: source_option_switch
+      use gk_sources, only: source_option_krook
+      use gk_sources, only: add_krook_operator
+      
+      ! Numerical schemes
+      use parameters_numerical, only: stream_implicit
+      use parameters_numerical, only: mirror_implicit
+      use parameters_numerical, only: drifts_implicit
+      use dissipation_and_collisions, only: advance_collisions_explicit
+      use dissipation_and_collisions, only: collisions_implicit
 
+      ! Grids
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: zonal_mode, akx
+      use grids_kxky, only: ikx_max, ny, naky_all
       
-      use dissipation_and_collisions, only: include_collisions, advance_collisions_explicit, collisions_implicit
-      use gk_sources, only: source_option_switch, source_option_krook
-      use gk_sources, only: add_krook_operator
+      ! Routines to add terms to the gyrokinetic equation
       use gk_parallel_streaming, only: advance_parallel_streaming_explicit
       use gk_mirror, only: advance_mirror_explicit
       use gk_flow_shear, only: advance_parallel_flow_shear
@@ -657,10 +695,9 @@ contains
       use gk_nonlinearity, only: advance_parallel_nonlinearity
       use gk_radial_variation, only: advance_radial_variation
       use gk_nonlinearity, only: advance_ExB_nonlinearity
-      use dissipation_and_collisions, only: hyper_dissipation
-
-      use fields, only: fields_updated, advance_fields
       use fields_radial_variation, only: get_radial_correction
+      use fields, only: advance_fields
+      use fields, only: fields_updated
 
       implicit none
 
@@ -678,10 +715,11 @@ contains
 
       !-------------------------------------------------------------------------
 
+      ! Initialise the right-hand-side of the gyrokinetic equation to zero
       rhs_ky = 0.
 
       ! If full_flux_surface = .true., then initially obtain the RHS of the GKE in alpha-space;
-      ! will later inverse Fourier transform to get RHS in k_alpha-space
+      ! We will later inverse Fourier transform to get RHS in k_alpha-space
       if (full_flux_surface) then
          ! rhs_ky will always be needed as the array returned by the subroutine,
          ! but intermediate array rhs_y (RHS of gke in alpha-space) only needed for full_flux_surface = .true.
@@ -727,6 +765,7 @@ contains
       ! if estimated CFL condition for nonlinear terms is violated
       ! then restart_time_step will be set to .true.
       restart_time_step = .false.
+      
       ! Calculate and add ExB nonlinearity to RHS of GK eqn
       ! do this first, as the CFL condition may require a change in time step
       ! and thus recomputation of mirror, wdrift, wstar, and parstream

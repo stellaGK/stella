@@ -17,6 +17,10 @@
 !     omprimfac = 1.0
 !   /
 ! 
+! Note that while be default <hammett_flow_shear> = True, the advance_parallel_
+! flow_shear() routine will only be called if |<g_exb>| > 0. Therefore, parallel 
+! flow shear is not included in the simulations by default.
+! 
 ! This module also implements perpendicular and parallel flow shear, related to 
 ! a mean toroidal flow R*Omega_zeta, implemented for radial variation.
 ! 
@@ -130,9 +134,9 @@ contains
       ! Calculations and flags
       use constants, only: zi, pi
       use parameters_numerical, only: maxwellian_normalization
-      
-      ! Flow shear parameters
       use parameters_physics, only: radial_variation
+      
+      ! Flow shear arrays
       use arrays_store_useful, only: shift_state
 
       implicit none
@@ -262,17 +266,26 @@ contains
    end subroutine init_flow_shear
 
    !****************************************************************************
-   !                                      Title
+   !                        Advance parallel flow shear                        
    !****************************************************************************
    subroutine advance_parallel_flow_shear(gout)
 
+      ! Parallelisation
       use mp, only: proc0, mp_abort
-      use parameters_physics, only: full_flux_surface
       use stella_layouts, only: vmu_lo
+      
+      ! Fields
+      use arrays_store_fields, only: phi, apar, bpar
+      
+      ! Physics flags
+      use parameters_physics, only: full_flux_surface
+      
+      ! Calculations
+      use calculations_kxky_derivatives, only: get_dchidy
+      
+      ! Grids
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: nakx, naky
-      use calculations_kxky_derivatives, only: get_dchidy
-      use arrays_store_fields, only: phi, apar, bpar
 
       implicit none
 
@@ -297,7 +310,7 @@ contains
          call mp_abort("flow shear not currently supported for full_flux_surface=T.")
       end if
       
-      ! Iterate over the (z,mu,vpa,tubes) grid
+      ! Iterate over the (z,mu,vpa,tube,s) grid
       do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
          do it = 1, ntubes
             do iz = -nzgrid, nzgrid
@@ -320,19 +333,30 @@ contains
    end subroutine advance_parallel_flow_shear
 
    !****************************************************************************
-   !                                      Title
+   !                      Advance perpendicular flow shear                      
    !****************************************************************************
    subroutine advance_perp_flow_shear(g)
 
+      ! Parallelisation
       use stella_layouts, only: vmu_lo
+      
+      ! Calculations
       use constants, only: zi
-      use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
+      use calculations_transforms, only: transform_kx2x_unpadded
+      use calculations_transforms, only: transform_x2kx_unpadded
+      
+      ! Grids
       use grids_z, only: nzgrid, ntubes
-      use arrays_store_useful, only: shift_state
       use grids_kxky, only: aky, zonal_mode
       use grids_kxky, only: nakx, naky, ikx_max
-      use file_utils, only: runtype_option_switch, runtype_multibox
       use stella_time, only: code_dt
+      
+      ! Radial variation
+      use file_utils, only: runtype_option_switch
+      use file_utils, only: runtype_multibox
+      
+      ! Flow shear arrays
+      use arrays_store_useful, only: shift_state
 
       implicit none
 
@@ -357,25 +381,32 @@ contains
             do it = 1, ntubes
                do iz = -nzgrid, nzgrid
                   do iky = 1, naky
+                  
                      if (zonal_mode(iky)) cycle
+                     
                      if (shift_state(iky) > 0.5 * shift_times(iky)) then
+                        
+                        ! Shift everything left by one
                         if (shift_sign < 0) then
-                           !shift everything left by one
                            g(iky, (ikx_max + 1):(nakx - 1), iz, it, ivmu) = g(iky, ikx_max + 2:, iz, it, ivmu)
                            g(iky, nakx, iz, it, ivmu) = g(iky, 1, iz, it, ivmu)
                            g(iky, :ikx_max - 1, iz, it, ivmu) = g(iky, 2:ikx_max, iz, it, ivmu)
+                           
+                        ! Shift everything right by one
                         else
-                           !shift everything right by one
                            g(iky, 2:ikx_max, iz, it, ivmu) = g(iky, 1:(ikx_max - 1), iz, it, ivmu)
                            g(iky, 1, iz, it, ivmu) = g(iky, nakx, iz, it, ivmu)
                            g(iky, ikx_max + 2:, iz, it, ivmu) = g(iky, (ikx_max + 1):(nakx - 1), iz, it, ivmu)
                         end if
+                        
                         g(iky, shift_start, iz, it, ivmu) = 0.
+                        
                      end if
                   end do
                end do
             end do
          end do
+         
       else
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do it = 1, ntubes
@@ -416,13 +447,13 @@ contains
       if (zonal_mode(1)) shift_state(1) = 0.
 
       if (runtype_option_switch == runtype_multibox) then
-      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-         do it = 1, ntubes
-            do iz = -nzgrid, nzgrid
-               g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) * exp(-code_dt * zi * spread(aky, 2, nakx) * v_shift)
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            do it = 1, ntubes
+               do iz = -nzgrid, nzgrid
+                  g(:, :, iz, it, ivmu) = g(:, :, iz, it, ivmu) * exp(-code_dt * zi * spread(aky, 2, nakx) * v_shift)
+               end do
             end do
          end do
-      end do
       end if
 
       deallocate (g0k, g0x)
