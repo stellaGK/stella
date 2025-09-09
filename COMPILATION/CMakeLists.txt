@@ -114,6 +114,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_diagnostics.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_dissipation.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_fields.f90
+  ../STELLA_CODE/read_namelists_from_input_file/namelist_flow_shear.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_geometry.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_kxky_grid.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_neoclassical_input.f90
