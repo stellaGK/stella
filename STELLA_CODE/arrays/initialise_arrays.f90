@@ -8,7 +8,7 @@
 !        - vperp2(alpha, z, mu) = |v_perp|^2
 ! 
 !###############################################################################
-module arrays_constants
+module initialise_arrays
 
    ! Load debug flags
    use debug_flags, only: debug => dist_fn_debug
@@ -63,7 +63,7 @@ contains
    !****************************************************************************
    subroutine init_array_kperp2
 
-      use arrays_store_useful, only: kperp2
+      use arrays, only: kperp2
       use geometry, only: gds2, gds21, gds22
       use geometry, only: geo_surf, q_as_x
       use grids_z, only: nzgrid
@@ -127,7 +127,7 @@ contains
    !****************************************************************************
    subroutine init_array_dkperp2dr
 
-      use arrays_store_useful, only: kperp2, dkperp2dr
+      use arrays, only: kperp2, dkperp2dr
       use geometry, only: dgds2dr, dgds21dr, dgds22dr
       use geometry, only: geo_surf, q_as_x
       use grids_z, only: nzgrid
@@ -187,7 +187,7 @@ contains
    !****************************************************************************
    subroutine enforce_single_valued_kperp2
 
-      use arrays_store_useful, only: kperp2
+      use arrays, only: kperp2
       use grids_kxky, only: naky, nalpha
       use grids_z, only: nzgrid
       use grids_extended_zgrid, only: neigen, nsegments, ikxmod
@@ -267,7 +267,7 @@ contains
    !------------------------ Finish kperp2 and dkperp2dr -----------------------
    subroutine finish_kperp2
 
-      use arrays_store_useful, only: kperp2, dkperp2dr
+      use arrays, only: kperp2, dkperp2dr
 
       implicit none
 
@@ -290,4 +290,4 @@ contains
 
    end subroutine finish_vperp2
 
-end module arrays_constants
+end module initialise_arrays

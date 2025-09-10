@@ -48,14 +48,14 @@ contains
    subroutine init_response_matrix
 
       use linear_solve, only: lu_decomposition
-      use arrays_store_useful, only: response_matrix
+      use arrays, only: response_matrix
       use stella_layouts, only: iv_idx, is_idx
       use grids_kxky, only: naky
       use mp, only: proc0
       use stella_layouts, only: mat_gen
       use file_units, only: unit_response_matrix
 #ifdef ISO_C_BINDING
-      use arrays_store_useful, only: response_window
+      use arrays, only: response_window
 #endif
 
       implicit none
@@ -173,8 +173,8 @@ contains
       use, intrinsic :: iso_c_binding, only: c_intptr_t
       use mp, only: sgproc0, real_size
       use mp, only: create_shared_memory_window
-      use arrays_store_useful, only: response_window
-      use fields, only: nfields
+      use arrays, only: response_window
+      use quasineutrality_equation, only: nfields
       use grids_kxky, only: naky
       use grids_extended_zgrid, only: neigen, nsegments, nzed_segment
       use grids_extended_zgrid, only: periodic
@@ -223,12 +223,12 @@ contains
       use mp, only: proc0
       use job_manage, only: time_message
       use stella_layouts, only: mat_gen
-      use arrays_store_useful, only: response_matrix
+      use arrays, only: response_matrix
       use grids_kxky, only: naky
       use grids_extended_zgrid, only: neigen
       use file_units, only: unit_response_matrix
 #ifdef ISO_C_BINDING
-      use arrays_store_useful, only: response_window
+      use arrays, only: response_window
 #endif
 
       implicit none
@@ -322,7 +322,7 @@ contains
       use grids_extended_zgrid, only: periodic
       use grids_extended_zgrid, only: iz_low, iz_up
       use stella_layouts, only: vmu_lo
-      use fields, only: nfields
+      use quasineutrality_equation, only: nfields
       use file_units, only: unit_response_matrix
 
       implicit none
@@ -420,7 +420,7 @@ contains
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
       use mp, only: nbytes_real
 #endif
-      use arrays_store_useful, only: response_matrix
+      use arrays, only: response_matrix
 
       implicit none
 
@@ -474,7 +474,7 @@ contains
       use grids_extended_zgrid, only: neigen
       use grids_extended_zgrid, only: nsegments, nzed_segment
       use grids_extended_zgrid, only: periodic
-      use arrays_store_useful, only: response_matrix
+      use arrays, only: response_matrix
 
       implicit none
 
@@ -620,7 +620,7 @@ contains
       use mp, only: sgproc0
 #endif
       use mp, only: mp_abort
-      use arrays_store_useful, only: response_matrix
+      use arrays, only: response_matrix
       use stella_layouts, only: lu_option_switch
       use stella_layouts, only: lu_option_none, lu_option_local, lu_option_global
       use grids_extended_zgrid, only: neigen
@@ -670,7 +670,7 @@ contains
    !****************************************************************************
    subroutine read_response_matrix
 
-      use arrays_store_useful, only: response_matrix
+      use arrays, only: response_matrix
       use stella_common_types, only: response_matrix_type
       use grids_kxky, only: naky
       use grids_extended_zgrid, only: neigen
@@ -678,7 +678,7 @@ contains
       use grids_extended_zgrid, only: nzed_segment
       use grids_extended_zgrid, only: periodic
       use mp, only: proc0, job, broadcast, mp_abort
-      use fields, only: nfields
+      use quasineutrality_equation, only: nfields
       use file_units, only: unit_response_matrix
 
       implicit none
@@ -784,8 +784,8 @@ contains
       use stella_layouts, only: vmu_lo
       use parameters_numerical, only: time_upwind_plus
       use parameters_physics, only: include_apar, include_bpar
-      use gk_implicit_solve, only: get_gke_rhs, sweep_g_zext
-      use arrays_store_useful, only: response_matrix
+      use gk_implicit_terms, only: get_gke_rhs, sweep_g_zext
+      use arrays, only: response_matrix
       use grids_extended_zgrid, only: periodic, phase_shift
 
       implicit none
@@ -879,8 +879,8 @@ contains
       use stella_layouts, only: vmu_lo
       use parameters_numerical, only: time_upwind_plus
       use parameters_physics, only: include_apar, include_bpar
-      use gk_implicit_solve, only: get_gke_rhs, sweep_g_zext
-      use arrays_store_useful, only: response_matrix
+      use gk_implicit_terms, only: get_gke_rhs, sweep_g_zext
+      use arrays, only: response_matrix
       use grids_extended_zgrid, only: periodic
 #ifdef ISO_C_BINDING
       use mp, only: sgproc0
@@ -976,8 +976,8 @@ contains
       use stella_layouts, only: vmu_lo
       use parameters_numerical, only: time_upwind_plus
       use parameters_physics, only: include_apar, include_bpar
-      use gk_implicit_solve, only: get_gke_rhs, sweep_g_zext
-      use arrays_store_useful, only: response_matrix
+      use gk_implicit_terms, only: get_gke_rhs, sweep_g_zext
+      use arrays, only: response_matrix
       use grids_extended_zgrid, only: periodic
 
       implicit none
@@ -1328,9 +1328,9 @@ contains
       !-------------------------------------------------------------------------
 
       if (include_bpar) then
-         call get_phi_and_bpar_for_response_matrix(phi, bpar, iky, ie, dist)
+         call calculate_phi_and_bpar_for_response_matrix(phi, bpar, iky, ie, dist)
       else
-         call get_phi_for_response_matrix(phi, iky, ie, dist)
+         call calculate_phi_for_response_matrix(phi, iky, ie, dist)
       end if
       if (include_apar) call get_apar_for_response_matrix(apar, iky, ie, dist)
  
@@ -1339,7 +1339,7 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine get_phi_for_response_matrix(phi, iky, ie, dist)
+   subroutine calculate_phi_for_response_matrix(phi, iky, ie, dist)
 
       use grids_z, only: nzgrid
       use grids_species, only: spec
@@ -1349,8 +1349,8 @@ contains
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: nsegments
       use grids_kxky, only: zonal_mode, akx
-      use arrays_store_useful, only: gamtot, gamtot3
-      use arrays_store_useful, only: gamtot_h, gamtot3_h
+      use arrays, only: denominator_QN, denominator_QN_MBR
+      use arrays, only: denominator_QN_h, denominator_QN_MBR_h
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
 
@@ -1377,9 +1377,9 @@ contains
       iseg = 1
       ikx = ikxmod(iseg, ie, iky)
       if (dist == 'h') then
-         gamma_fac = gamtot_h
+         gamma_fac = denominator_QN_h
       else
-         gamma_fac = gamtot(iky, ikx, :)
+         gamma_fac = denominator_QN(iky, ikx, :)
       end if
       if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
          phi(:) = 0.0
@@ -1394,9 +1394,9 @@ contains
          do iseg = 2, nsegments(ie, iky)
             ikx = ikxmod(iseg, ie, iky)
             if (dist == 'h') then
-               gamma_fac = gamtot_h
+               gamma_fac = denominator_QN_h
             else
-               gamma_fac = gamtot(iky, ikx, :)
+               gamma_fac = denominator_QN(iky, ikx, :)
             end if
             do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                idx = idx + 1
@@ -1413,21 +1413,21 @@ contains
             iseg = 1
             tmp = sum(dl_over_b(ia, :) * phi)
             if (dist == 'h') then
-               phi = phi + tmp * gamtot3_h
+               phi = phi + tmp * denominator_QN_MBR_h
             else
-               phi = phi + tmp * gamtot3(ikxmod(1, ie, iky), :)
+               phi = phi + tmp * denominator_QN_MBR(ikxmod(1, ie, iky), :)
             end if
          end if
       end if
 
       deallocate (gamma_fac)
 
-   end subroutine get_phi_for_response_matrix
+   end subroutine calculate_phi_for_response_matrix
 
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine get_phi_and_bpar_for_response_matrix(phi, bpar, iky, ie, dist)
+   subroutine calculate_phi_and_bpar_for_response_matrix(phi, bpar, iky, ie, dist)
 
       use grids_z, only: nzgrid
       use grids_species, only: spec
@@ -1436,8 +1436,8 @@ contains
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: nsegments
       use grids_kxky, only: zonal_mode, akx
-      use arrays_store_useful, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
-      use arrays_store_useful, only: gamtot_h
+      use arrays, only: denominator_QNinv11, denominator_QNinv13, denominator_QNinv31, denominator_QNinv33
+      use arrays, only: denominator_QN_h
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
       use mp, only: mp_abort
@@ -1468,15 +1468,15 @@ contains
       iseg = 1
       ikx = ikxmod(iseg, ie, iky)
       if (dist == 'h') then
-         gammainv11 = 1.0/gamtot_h
+         gammainv11 = 1.0/denominator_QN_h
          gammainv13 = 0.0
          gammainv31 = 0.0
          gammainv33 = 1.0
       else
-         gammainv11 = gamtotinv11(iky, ikx, :)
-         gammainv13 = gamtotinv13(iky, ikx, :)
-         gammainv31 = gamtotinv31(iky, ikx, :)
-         gammainv33 = gamtotinv33(iky, ikx, :)
+         gammainv11 = denominator_QNinv11(iky, ikx, :)
+         gammainv13 = denominator_QNinv13(iky, ikx, :)
+         gammainv31 = denominator_QNinv31(iky, ikx, :)
+         gammainv33 = denominator_QNinv33(iky, ikx, :)
       end if
       if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
          phi(:) = 0.0
@@ -1495,15 +1495,15 @@ contains
          do iseg = 2, nsegments(ie, iky)
             ikx = ikxmod(iseg, ie, iky)
             if (dist == 'h') then
-               gammainv11 = 1.0/gamtot_h
+               gammainv11 = 1.0/denominator_QN_h
                gammainv13 = 0.0
                gammainv31 = 0.0
                gammainv33 = 1.0
             else
-               gammainv11 = gamtotinv11(iky, ikx, :)
-               gammainv13 = gamtotinv13(iky, ikx, :)
-               gammainv31 = gamtotinv31(iky, ikx, :)
-               gammainv33 = gamtotinv33(iky, ikx, :)
+               gammainv11 = denominator_QNinv11(iky, ikx, :)
+               gammainv13 = denominator_QNinv13(iky, ikx, :)
+               gammainv31 = denominator_QNinv31(iky, ikx, :)
+               gammainv33 = denominator_QNinv33(iky, ikx, :)
             end if
             do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                idx = idx + 1
@@ -1523,7 +1523,7 @@ contains
 
       deallocate (gammainv11, gammainv13, gammainv31, gammainv33)
 
-   end subroutine get_phi_and_bpar_for_response_matrix
+   end subroutine calculate_phi_and_bpar_for_response_matrix
 
    !****************************************************************************
    !                                      Title
@@ -1535,8 +1535,8 @@ contains
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: nsegments
       use grids_kxky, only: zonal_mode, akx
-      use arrays_store_useful, only: apar_denom
-      use arrays_store_useful, only: kperp2
+      use arrays, only: apar_denom
+      use arrays, only: kperp2
 
       implicit none
 
@@ -1602,13 +1602,13 @@ contains
    !****************************************************************************
    subroutine finish_response_matrix
 
-      use arrays_store_useful, only: response_matrix
+      use arrays, only: response_matrix
 #if !defined ISO_C_BINDING
 
       implicit none
 
 #else
-      use arrays_store_useful, only: response_window
+      use arrays, only: response_window
       use mpi
 
       implicit none
@@ -1643,7 +1643,7 @@ contains
 
       use mpi
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer
-      use arrays_store_useful, only: response_matrix
+      use arrays, only: response_matrix
       use mp, only: barrier, broadcast, sum_allreduce
       use mp, only: mp_comm, scope, allprocs, sharedprocs, curr_focus
       use mp, only: scrossdomprocs, sgproc0, mp_abort, real_size
@@ -1809,7 +1809,7 @@ contains
       use mp, only: sgproc0, scrossdomprocs
 #endif
 
-      use arrays_store_useful, only: response_matrix
+      use arrays, only: response_matrix
       use mp, only: barrier, broadcast, sum_allreduce
       use mp, only: mp_comm, scope, allprocs, sharedprocs, curr_focus
       use mp, only: job, iproc, proc0, nproc, mpicmplx

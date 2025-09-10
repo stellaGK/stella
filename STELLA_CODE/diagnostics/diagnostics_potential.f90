@@ -35,7 +35,7 @@ contains
    subroutine write_potential_to_netcdf_file(istep, nout, timer, write_to_netcdf_file)
 
       ! Data 
-      use arrays_store_fields, only: phi, apar, bpar, phi_corr_QN
+      use arrays_fields, only: phi, apar, bpar, phi_corr_QN
 
       ! Dimensions
       use grids_kxky, only: naky, nakx
@@ -47,7 +47,7 @@ contains
 
       ! Calculations 
       use calculations_volume_averages, only: volume_average, fieldline_average
-      use fields, only: advance_fields
+      use quasineutrality_equation, only: advance_fields_using_quasineutrality_equation
 
       ! Write to netcdf file 
       use stella_io, only: write_time_nc
@@ -252,11 +252,11 @@ contains
    subroutine write_potential_to_ascii_file_atfinaltimestep
 
       ! Data 
-      use arrays_store_fields, only: phi, apar, bpar
+      use arrays_fields, only: phi, apar, bpar
       use parameters_physics, only: include_apar, include_bpar
 
       ! Geometry 
-      USE arrays_store_useful, only: kperp2
+      USE arrays, only: kperp2
       use geometry, only: zed_eqarc
 
       ! Dimensions

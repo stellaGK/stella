@@ -1391,7 +1391,7 @@ contains
       use geometry, only: cvdrift, cvdrift0, gds2, gds21, gds22, grho, jacob
       use geometry, only: drhodpsi, djacdrho, b_dot_grad_z, geo_surf 
       use parameters_physics, only: beta
-      use arrays_store_useful, only: kperp2
+      use arrays, only: kperp2
       use grids_kxky, only: jtwist
 #endif
 

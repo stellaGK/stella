@@ -88,9 +88,9 @@ contains
       use parameters_multibox, only: ky_solve_radial, ky_solve_real
       use file_utils, only: runtype_option_switch, runtype_multibox
       use namelist_radial_variation, only: read_namelist_sources
-      use arrays_store_fields, only: phi_proj, phi_proj_stage
-      use arrays_store_useful, only: tcorr_source_qn, exclude_boundary_regions_qn
-      use arrays_store_distribution_fn, only: g_krook, g_proj, g_symm
+      use arrays_fields, only: phi_proj, phi_proj_stage
+      use arrays, only: tcorr_source_qn, exclude_boundary_regions_qn
+      use arrays_distribution_function, only: g_krook, g_proj, g_symm
       
       implicit none
 
@@ -183,7 +183,7 @@ contains
    subroutine init_source_timeaverage
 
       use stella_time, only: code_dt
-      use arrays_store_useful, only: tcorr_source_qn, exp_fac_qn
+      use arrays, only: tcorr_source_qn, exp_fac_qn
 
       implicit none
 
@@ -208,12 +208,12 @@ contains
    !****************************************************************************
    subroutine finish_sources
 
-      use arrays_store_distribution_fn, only: g_krook, g_proj, g_symm
-      use arrays_store_fields, only: phi_proj, phi_proj_stage
+      use arrays_distribution_function, only: g_krook, g_proj, g_symm
+      use arrays_fields, only: phi_proj, phi_proj_stage
 #ifdef ISO_C_BINDING
-      use arrays_store_useful, only: qn_zf_window
+      use arrays, only: qn_zf_window
 #else
-      use arrays_store_fields, only: phizf_solve, phi_ext
+      use arrays_fields, only: phizf_solve, phi_ext
 #endif
 
       implicit none
@@ -254,7 +254,7 @@ contains
       use grids_kxky, only: nakx
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
-      use arrays_store_distribution_fn, only: g_krook, g_symm
+      use arrays_distribution_function, only: g_krook, g_symm
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
@@ -361,7 +361,7 @@ contains
       use mp, only: proc0
       use job_manage, only: time_message
       use constants, only: pi, zi
-      use arrays_store_distribution_fn, only: g_krook, g_symm
+      use arrays_distribution_function, only: g_krook, g_symm
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: akx, zonal_mode
       use parameters_multibox, only: boundary_size
@@ -459,7 +459,7 @@ contains
       use stella_layouts, only: imu_idx, is_idx, iv_idx
       use grids_velocity, only: nvgrid, nvpa, nmu
       use calculations_redistribute, only: kxkyz2vmu
-      use arrays_store_distribution_fn, only: gvmu
+      use arrays_distribution_function, only: gvmu
       use grids_z, only: nzgrid
 
       implicit none
@@ -509,7 +509,7 @@ contains
       use geometry, only: bmag, dBdrho, dl_over_b, d_dl_over_b_drho
       use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: aj0x, aj1x
-      use arrays_store_useful, only: kperp2, dkperp2dr
+      use arrays, only: kperp2, dkperp2dr
       use grids_z, only: nzgrid, ntubes
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
@@ -603,7 +603,7 @@ contains
       use grids_kxky, only: nakx
       use stella_layouts, only: vmu_lo
       use stella_time, only: code_dt
-      use arrays_store_distribution_fn, only: g_proj, g_symm
+      use arrays_distribution_function, only: g_proj, g_symm
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
@@ -727,7 +727,7 @@ contains
 
 #ifdef ISO_C_BINDING
       use, intrinsic :: iso_c_binding, only: c_ptr, c_f_pointer, c_intptr_t
-      use arrays_store_useful, only: qn_zf_window
+      use arrays, only: qn_zf_window
       use mp, only: sgproc0, sharedsubprocs, comm_sgroup
       use mp, only: real_size, nbytes_real, create_shared_memory_window
       use mp_lu_decomposition, only: lu_decomposition_local, lu_inverse_local
@@ -740,9 +740,9 @@ contains
       use grids_kxky, only: rho_d_clamped
       use parameters_multibox, only: boundary_size
       use linear_solve, only: lu_decomposition
-      use arrays_store_fields, only: phizf_solve, phi_ext
-      use arrays_store_useful, only: c_mat, theta
-      use arrays_store_useful, only: tcorr_source_qn, exclude_boundary_regions_qn, exp_fac_qn
+      use arrays_fields, only: phizf_solve, phi_ext
+      use arrays, only: c_mat, theta
+      use arrays, only: tcorr_source_qn, exclude_boundary_regions_qn, exp_fac_qn
 
       implicit none
 
@@ -929,8 +929,8 @@ contains
    !****************************************************************************
    subroutine update_quasineutrality_source
 
-      use arrays_store_fields, only: phi_proj, phi_proj_stage
-      use arrays_store_useful, only: tcorr_source_qn, exp_fac_qn
+      use arrays_fields, only: phi_proj, phi_proj_stage
+      use arrays, only: tcorr_source_qn, exp_fac_qn
 
       implicit none
 

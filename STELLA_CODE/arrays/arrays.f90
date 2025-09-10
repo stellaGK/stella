@@ -1,9 +1,9 @@
 !###############################################################################
-!                                                                               
+!                                    ARRAYS                                    
 !###############################################################################
-! This module ...
+! This module stores any useful arrays which are used throughout the code.
 !###############################################################################
-module arrays_store_useful
+module arrays
 
    use mpi
    use stella_common_types, only: response_matrix_type
@@ -27,17 +27,17 @@ module arrays_store_useful
    ! Arrays without velocity dependence. Used mostly in field calculations.
    public :: response_matrix, response_window
    public :: shift_state
-   public :: gamtot, dgamtotdr
-   public :: gamtot13, gamtot31, gamtot33
-   public :: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
-   public :: gamtot3
+   public :: denominator_QN, ddenominator_QNdr
+   public :: denominator_QN13, denominator_QN_MBR1, denominator_QN_MBR3
+   public :: denominator_QNinv11, denominator_QNinv13, denominator_QNinv31, denominator_QNinv33
+   public :: denominator_QN_MBR
    public :: apar_denom
    public :: theta
    public :: c_mat
    public :: exclude_boundary_regions_qn
    public :: tcorr_source_qn, exp_fac_qn
    public :: qn_window, qn_zf_window
-   public :: gamtot_h, gamtot3_h, efac, efacp
+   public :: denominator_QN_h, denominator_QN_MBR_h, efac, efacp
    public :: time_field_solve
    
    !----------------------------------------------------------------------------
@@ -74,10 +74,17 @@ module arrays_store_useful
    type(response_matrix_type), dimension(:), allocatable :: response_matrix
    integer :: response_window = MPI_WIN_NULL
    real, dimension(:), allocatable :: shift_state
-   real, dimension(:, :, :), allocatable :: gamtot, dgamtotdr
-   real, dimension(:, :, :), allocatable :: gamtot13, gamtot31, gamtot33
-   real, dimension(:, :, :), allocatable :: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
-   real, dimension(:, :), allocatable :: gamtot3
+   
+   ! The electrostatic potential phi is calculated based on the quasi-neutrality condition
+   !     sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g + (Zs/Ts) (Gamma0 - 1) phi ] = 0
+   !     phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g ] / [ sum_s (Zs²ns/Ts) (1 - Gamma0) ]
+   !     denominator_QN[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
+   ! The denominators needed to calculate <phi> are initialised in 
+   !     - quasineutrality_equation_fluxtube::init_quasineutrality_equation_fluxtube
+   real, dimension(:, :, :), allocatable :: denominator_QN, ddenominator_QNdr
+   real, dimension(:, :, :), allocatable :: denominator_QN13, denominator_QN_MBR1, denominator_QN_MBR3
+   real, dimension(:, :, :), allocatable :: denominator_QNinv11, denominator_QNinv13, denominator_QNinv31, denominator_QNinv33
+   real, dimension(:, :), allocatable :: denominator_QN_MBR
    real, dimension(:, :, :), allocatable ::  apar_denom
    
    ! (nakx, nakx, -nzgrid:nzgrid)
@@ -90,7 +97,7 @@ module arrays_store_useful
    logical :: exclude_boundary_regions_qn
    real :: tcorr_source_qn, exp_fac_qn
    integer :: qn_window = MPI_WIN_NULL, qn_zf_window = MPI_WIN_NULL
-   real :: gamtot_h, gamtot3_h, efac, efacp
+   real :: denominator_QN_h, denominator_QN_MBR_h, efac, efacp
    real, dimension(2, 5) :: time_field_solve = 0.
 
-end module arrays_store_useful
+end module arrays

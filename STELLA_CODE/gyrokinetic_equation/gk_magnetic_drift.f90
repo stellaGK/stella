@@ -56,7 +56,7 @@ contains
    subroutine init_wdrift
 
       use neoclassical_terms, only: include_neoclassical_terms
-      use arrays_store_useful, only: initialised_wdrift
+      use arrays, only: initialised_wdrift
       
       implicit none
 
@@ -107,9 +107,9 @@ contains
       use parameters_physics, only: xdriftknob, ydriftknob
       
       ! This routine fills the following arrays, with dimensions [ialpha, iz, ivmu]
-      use arrays_store_useful, only: wdriftx_g, wdrifty_g
-      use arrays_store_useful, only: wdriftx_phi, wdrifty_phi
-      use arrays_store_useful, only: wdriftx_bpar, wdrifty_bpar
+      use arrays, only: wdriftx_g, wdrifty_g
+      use arrays, only: wdriftx_phi, wdrifty_phi
+      use arrays, only: wdriftx_bpar, wdrifty_bpar
       
       implicit none
       
@@ -234,9 +234,9 @@ contains
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       
       ! This routine fills the following arrays, with dimensions [ialpha, iz, ivmu]
-      use arrays_store_useful, only: wdriftx_g, wdrifty_g
-      use arrays_store_useful, only: wdriftx_phi, wdrifty_phi
-      use arrays_store_useful, only: wdriftx_bpar, wdrifty_bpar
+      use arrays, only: wdriftx_g, wdrifty_g
+      use arrays, only: wdriftx_phi, wdrifty_phi
+      use arrays, only: wdriftx_bpar, wdrifty_bpar
       
       implicit none
       
@@ -371,9 +371,9 @@ contains
       use stella_layouts, only: vmu_lo
     
       ! Allocate the following arrays with dimensions [ialpha, iz, ivmu]
-      use arrays_store_useful, only: wdriftx_g, wdrifty_g
-      use arrays_store_useful, only: wdriftx_phi, wdrifty_phi
-      use arrays_store_useful, only: wdriftx_bpar, wdrifty_bpar
+      use arrays, only: wdriftx_g, wdrifty_g
+      use arrays, only: wdriftx_phi, wdrifty_phi
+      use arrays, only: wdriftx_bpar, wdrifty_bpar
 
       implicit none
 
@@ -432,11 +432,11 @@ contains
       use calculations_kxky, only: swap_kxky
       use parameters_physics, only: full_flux_surface, include_bpar
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
-      use arrays_store_useful, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
-      use arrays_store_distribution_fn, only: g_scratch
+      use arrays, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
+      use arrays_distribution_function, only: g_scratch
       use add_explicit_terms, only: add_explicit_term, add_explicit_term_ffs
       use calculations_kxky_derivatives, only: get_dgdy
-      use arrays_store_useful, only: time_gke
+      use arrays, only: time_gke
 
       implicit none
 
@@ -548,11 +548,11 @@ contains
       use calculations_kxky, only: swap_kxky
       use parameters_physics, only: full_flux_surface, include_bpar
       use calculations_gyro_averages, only: gyro_average
-      use arrays_store_useful, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
-      use arrays_store_distribution_fn, only: g_scratch
+      use arrays, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
+      use arrays_distribution_function, only: g_scratch
       use calculations_kxky_derivatives, only: get_dgdx
       use add_explicit_terms, only: add_explicit_term, add_explicit_term_ffs
-      use arrays_store_useful, only: time_gke
+      use arrays, only: time_gke
 
       implicit none
 
@@ -649,9 +649,9 @@ contains
    !*****************************************************************************
    subroutine finish_wdrift
 
-      use arrays_store_useful, only: wdriftx_g, wdrifty_g
-      use arrays_store_useful, only: wdriftx_phi, wdrifty_phi
-      use arrays_store_useful, only: initialised_wdrift
+      use arrays, only: wdriftx_g, wdrifty_g
+      use arrays, only: wdriftx_phi, wdrifty_phi
+      use arrays, only: initialised_wdrift
 
       implicit none
 

@@ -316,7 +316,7 @@ contains
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nmu, nvpa
       use grids_kxky, only: naky, nakx
-      use fields_electromagnetic, only: advance_apar
+      use quasineutrality_equation_electromagnetic, only: advance_apar
 
       implicit none
 
@@ -370,7 +370,7 @@ contains
 
       use mp, only: proc0
       use redistribute, only: gather, scatter
-      use arrays_store_distribution_fn, only: gvmu
+      use arrays_distribution_function, only: gvmu
       use job_manage, only: time_message
       use stella_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
       use stella_layouts, only: iv_idx, is_idx
@@ -487,7 +487,7 @@ contains
 
       use mp, only: proc0
       use redistribute, only: gather, scatter
-      use arrays_store_distribution_fn, only: gvmu
+      use arrays_distribution_function, only: gvmu
       use job_manage, only: time_message
       use stella_layouts, only: kxkyz_lo, vmu_lo
       use stella_layouts, only: is_idx, imu_idx
@@ -693,7 +693,7 @@ contains
       use stella_layouts, only: iv_idx, imu_idx
       use calculations_transforms, only: transform_ky2y, transform_y2ky
       use grids_z, only: nzgrid, ntubes
-      use arrays_store_distribution_fn, only: gvmu
+      use arrays_distribution_function, only: gvmu
       use parameters_physics, only: full_flux_surface
       use grids_kxky, only: ny, nakx
       use grids_velocity, only: nvpa, nmu
@@ -703,8 +703,8 @@ contains
       use parameters_numerical, only: mirror_semi_lagrange, maxwellian_normalization
       use parameters_physics, only: include_apar
       use calculations_redistribute, only: kxkyz2vmu, kxyz2vmu
-      use fields_electromagnetic, only: advance_apar
-      use fields, only: fields_updated
+      use quasineutrality_equation_electromagnetic, only: advance_apar
+      use quasineutrality_equation, only: fields_updated
       use calculations_tofrom_ghf, only: gbar_to_g
       use parameters_numerical, only: time_upwind
       use grids_velocity, only: dvpa

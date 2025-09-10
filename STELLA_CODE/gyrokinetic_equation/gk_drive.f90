@@ -81,7 +81,7 @@ contains
       use geometry, only: dydalpha, drhodpsi, clebsch_factor
       use neoclassical_terms, only: include_neoclassical_terms, dfneo_drho
       use parameters_numerical, only: maxwellian_normalization
-      use arrays_store_useful, only: wstar, initialised_wstar
+      use arrays, only: wstar, initialised_wstar
       
       ! Grids
       use grids_kxky, only: nalpha
@@ -185,8 +185,8 @@ contains
       use mp, only: proc0
       
       ! Data arrays
-      use arrays_store_useful, only: wstar
-      use arrays_store_fields, only: apar, bpar
+      use arrays, only: wstar
+      use arrays_fields, only: apar, bpar
       
       ! Grids
       use stella_layouts, only: vmu_lo
@@ -198,7 +198,7 @@ contains
       use calculations_kxky_derivatives, only: get_dchidy
       
       ! Time this routine
-      use arrays_store_useful, only: time_gke
+      use arrays, only: time_gke
       use job_manage, only: time_message
 
       implicit none
@@ -251,12 +251,12 @@ contains
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, naky_all, nakx, ikx_max, ny
       use calculations_kxky, only: swap_kxky
-      use arrays_store_useful, only: wstar
-      use arrays_store_distribution_fn, only: g_scratch
+      use arrays, only: wstar
+      use arrays_distribution_function, only: g_scratch
       use calculations_gyro_averages, only: gyro_average
       use add_explicit_terms, only: add_explicit_term_ffs
       use calculations_kxky_derivatives, only: get_dgdy, get_dchidy
-      use arrays_store_useful, only: time_gke
+      use arrays, only: time_gke
 
       implicit none
 
@@ -307,7 +307,7 @@ contains
    !*****************************************************************************
    subroutine finish_wstar
 
-      use arrays_store_useful, only: wstar, initialised_wstar
+      use arrays, only: wstar, initialised_wstar
 
       implicit none
 

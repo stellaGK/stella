@@ -5,7 +5,7 @@
 ! Module for ...
 ! 
 !###############################################################################
-module fields_collisions
+module quasineutrality_equation_collisions
 
    ! Load debug flags
    use debug_flags, only: debug => fields_debug
@@ -48,7 +48,7 @@ contains
       use grids_species, only: spec, nspec, has_electron_species
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
-      use arrays_store_useful, only: gamtot3_h, gamtot_h
+      use arrays, only: denominator_QN_MBR_h, denominator_QN_h
 
       implicit none
 
@@ -94,7 +94,7 @@ contains
          end do
          call sum_allreduce(fld)
 
-         fld = fld / gamtot_h
+         fld = fld / denominator_QN_h
 
          if (.not. has_electron_species(spec) .and. (.not. skip_fsa_local) .and. &
              adiabatic_option_switch == adiabatic_option_fieldlineavg) then
@@ -103,7 +103,7 @@ contains
                   do it = 1, ntubes
                      do is = 1, nspec
                         tmp(is) = sum(dl_over_b(ia, :) * fld(1, ikx, :, it, is))
-                        fld(1, ikx, :, it, is) = fld(1, ikx, :, it, is) + tmp(is) * gamtot3_h
+                        fld(1, ikx, :, it, is) = fld(1, ikx, :, it, is) + tmp(is) * denominator_QN_MBR_h
                      end do
                   end do
                end do
@@ -143,9 +143,9 @@ contains
       use grids_species, only: spec, nspec, has_electron_species
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
-      use arrays_store_useful, only: kperp2
+      use arrays, only: kperp2
       use spfunc, only: j0
-      use arrays_store_useful, only: gamtot_h, gamtot3_h
+      use arrays, only: denominator_QN_h, denominator_QN_MBR_h
       
       implicit none
 
@@ -193,7 +193,7 @@ contains
          ! Sum the values on all processors and send them to <proc0>
          call sum_allreduce(fld)
 
-         fld = fld / gamtot_h
+         fld = fld / denominator_QN_h
 
          ! Add a Boltzmann response for adiabatic species
          if (.not. has_electron_species(spec) .and. &
@@ -203,7 +203,7 @@ contains
                   do it = 1, ntubes
                      do is = 1, nspec
                         tmp(is) = sum(dl_over_b(ia, :) * fld(1, ikx, :, it, is))
-                        fld(1, ikx, :, it, is) = fld(1, ikx, :, it, is) + tmp(is) * gamtot3_h
+                        fld(1, ikx, :, it, is) = fld(1, ikx, :, it, is) + tmp(is) * denominator_QN_MBR_h
                      end do
                   end do
                end do
@@ -216,4 +216,4 @@ contains
 
    end subroutine get_fields_by_spec_idx
 
-end module fields_collisions
+end module quasineutrality_equation_collisions

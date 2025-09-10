@@ -1,17 +1,47 @@
 !###############################################################################
-!                                                                               
+!                     INITIALISE THE DISTRIBUTION FUNCTION                      
 !###############################################################################
 ! 
-! This module contains the subroutines which set the initial value of the
-! fields and the distribution function.
+! The subroutine init_arrays_distribution_function() will allocate the following
+! arrays, and initialise their values to zero:
+!     - gnew(naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
+!     - gold(naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
+!     - g_scratch(naky, nakx, -nzgrid:nzgrid, ntubes, -vmu-layout-)
+!     - gvmu(nvpa, nmu, -kxkyz-layout-)
+! 
+! If <split_parallel_dynamics> = True the following array will be initialised:
+!     - g_kymus(nakx, -nzgrid:nzgrid, ntubes, vpa, -kymus-layout-)
+! 
+! The distribution function is initialised by initialising first the electrostatic
+! potential <phi> according to one of the following options:
+!     - Maxwellian distribution
+!     - Noise based on a Random Number Generator associated to <rng_seed>
+!     - Read the saved distribution function from an old simulation, so that
+!       we can restart the simulation and continue the time advance
+!     - kpar ...
+!     - rh ...
+!     - rmap ...
+! 
+! Once the electrostatic potential is initialised it is used to initialise 
+! <gvmu> = g(mu,vpa,ikxkys) in the init_distribution_function_vs_muvpa() routine.
+! 
+! Next the distribution function on the ikxkys-layout is scattered to the ivpamus-
+! layout to initialise <gold> and <gnew> defined as g(kx,ky,z,ivpamus) through the
+! init_distribution_function_vs_kxkyz() routine.
+! 
 !###############################################################################
-module initialise_distribution_fn
+module initialise_distribution_function
+
+   ! Load debug flags
+   use debug_flags, only: debug => dist_fn_debug
 
    implicit none
    
    ! Public routines
-   public :: initialise_distribution, reset_init
-   public :: read_parameters_init_distribution, finish_initialise_distribution
+   public :: read_parameters_distribution_function
+   public :: init_distribution_function
+   public :: finish_distribution_function
+   public :: reset_init
    
    ! The stella.f90 script will check if we want to call rescale_fields()
    public :: phiinit, scale_to_phiinit
@@ -33,9 +63,6 @@ module initialise_distribution_fn
    
    !----------------------------- module variables -----------------------------
 
-   ! Remember whether the module has already been initialised
-   logical :: initialised = .false.
-
    ! Choose the initalization option for the potential
    integer :: init_distribution_switch
    
@@ -47,12 +74,23 @@ module initialise_distribution_fn
    character(len=300) :: restart_file
    character(len=150) :: restart_dir
 
+   ! Remember whether the routines have already been initialised
+   logical :: initialised_read_parameters = .false.
+   logical :: initialised_arrays = .false.
+   logical :: initialised_distribution_function_vs_muvpa = .false.
+   logical :: initialised_distribution_function_vs_kxkyz = .false.
+
 contains
 
+
+!###############################################################################
+!############################### READ INPUT FILE ###############################
+!###############################################################################
+
    !****************************************************************************
-   !                          INITIALISE THIS MODULE                           !
+   !                              READ INPUT FILE                              !
    !****************************************************************************
-   subroutine read_parameters_init_distribution
+   subroutine read_parameters_distribution_function
 
       use mp, only: proc0, broadcast
       use stella_save, only: init_save, read_many
@@ -80,8 +118,8 @@ contains
       !-------------------------------------------------------------------------
 
       ! Only initialise once
-      if (initialised) return
-      initialised = .true.
+      if (initialised_read_parameters) return
+      initialised_read_parameters = .true.
    
       ! Make sure the parallelisation parameters are already read
       call read_parameters_parallelisation_layouts
@@ -114,22 +152,141 @@ contains
       ! Determine if restart file contains "/" if so split on this point to give DIR//FILE
       ! so restart files are created in DIR//restart_dir//FILE
       ind_slash = index(restart_file, "/", .true.)
-      if (ind_slash == 0) then !No slash present
+      if (ind_slash == 0) then ! No slash present
          restart_file = trim(restart_dir)//trim(restart_file)
-      else !Slash present
+      else ! Slash present
          restart_file = trim(restart_file(1:ind_slash))//trim(restart_dir)//trim(restart_file(ind_slash + 1:))
       end if 
       
       ! Initialize the netcdf saving
       call init_save(restart_file)
 
-   end subroutine read_parameters_init_distribution
+   end subroutine read_parameters_distribution_function
+   
+!###############################################################################
+!##################### INITIALISE THE DISTRIBUTION FUNCTION ####################
+!###############################################################################
 
    !****************************************************************************
    !                   INITIALISE THE DISTRIBUTION FUNCTION                    !
    !****************************************************************************
-   subroutine initialise_distribution(restarted, istep0)
+   subroutine init_distribution_function(restarted, istep0)
+      
+      implicit none
+      
+      ! Arguments
+      logical, intent(out) :: restarted
+      integer, intent(out) :: istep0
+      
+      !-------------------------------------------------------------------------
+      
+      ! Allocate the distribution-sized arrays and initialise them to zero
+      if (debug) write (6, *) "stella::init_stella::init_arrays_distribution_function"
+      call init_arrays_distribution_function
+      
+      ! Initialise the guiding-center distribution function <gvmu>(nvpa, nmu, -kxkyzs-layout-)
+      if (debug) write (6, *) "stella::init_stella::init_distribution_function_vs_muvpa"
+      call init_distribution_function_vs_muvpa(restarted, istep0)
+      
+      ! Initialise the guiding-center distribution function <gnew>(kx, ky, z, -vpamus-layout-)
+      ! Use mapping from kxkyz_lo to vmu_lo to get a copy of g that has ky, kx and z local to each core;
+      ! This distribution function is stored in <gnew> and copied to <gold>
+      if (debug) write (6, *) "stella::init_stella::init_distribution_function_vs_kxkyz"
+      call init_distribution_function_vs_kxkyz(restarted)
+      
+   end subroutine init_distribution_function
 
+   !****************************************************************************
+   !                              ALLOCATE ARRAYS                               
+   !****************************************************************************
+   ! This subroutine initialises the distribution function arrays used in the
+   ! STELLA code. It allocates the arrays and sets them to zero.
+   !****************************************************************************
+   subroutine init_arrays_distribution_function
+
+      ! Parallelisation
+      use stella_layouts, only: kxkyz_lo
+      use stella_layouts, only: vmu_lo
+      use stella_layouts, only: kymus_lo
+      
+      ! Distribution functions that are allocated here
+      use arrays_distribution_function, only: gnew, gold, g_scratch
+      use arrays_distribution_function, only: gvmu, g_kymus
+      use arrays_distribution_function, only: g0, g1, g2, g3
+      
+      ! Numerical flags
+      use parameters_numerical, only: split_parallel_dynamics
+      use parameters_numerical, only: explicit_algorithm_switch
+      use parameters_numerical, only: explicit_algorithm_rk4
+      
+      ! Grids
+      use grids_z, only: nzgrid, ntubes
+      use grids_kxky, only: naky, nakx
+      use grids_velocity, only: nvpa, nmu
+      
+      implicit none
+      
+      !-------------------------------------------------------------------------
+
+      ! Only initialise once
+      if (initialised_arrays) return
+      initialised_arrays = .true.
+
+      ! Allocate arrays
+      if (debug) write (*, *) 'dist_fn::init_arrays_distribution_function::allocate_arrays'
+      if (.not. allocated(gnew)) allocate (gnew(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      if (.not. allocated(gold)) allocate (gold(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      if (.not. allocated(g_scratch)) allocate (g_scratch(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      if (.not. allocated(gvmu)) allocate (gvmu(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+         
+      ! Initialise arrays to zero
+      gnew = 0.
+      gold = 0.
+      g_scratch = 0.
+      gvmu = 0.
+      
+      !-------------------------------------------------------------------------
+      
+      ! Only allocate <g_kymus> if <split_parallel_dynamics> = True
+      if (.not. allocated(g_kymus)) then
+            if (.not. split_parallel_dynamics) then
+               allocate (g_kymus(nakx, -nzgrid:nzgrid, ntubes, nvpa, kymus_lo%llim_proc:kymus_lo%ulim_alloc))
+            else
+               allocate (g_kymus(1, 1, 1, 1, 1))
+            end if
+            g_kymus = 0.
+      end if
+      
+      !-------------------------------------------------------------------------
+
+      ! Initialise dummy arrays used inside the Runge-Kutta schemes and diagnostics
+      if (.not. allocated(g0)) allocate (g0(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      if (.not. allocated(g1)) allocate (g1(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      if (.not. allocated(g2)) allocate (g2(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+      
+      ! Initialise arrays to zero
+      g0 = 0.
+      g1 = 0.
+      g2 = 0.
+      
+      ! Only allocate <g3> if the 4th order Runge-Kutta scheme is utilised
+      if (.not. allocated(g3)) then
+         if (explicit_algorithm_switch == explicit_algorithm_rk4) then
+            allocate (g3(naky, nakx, -nzgrid:nzgrid, ntubes, vmu_lo%llim_proc:vmu_lo%ulim_alloc))
+         else
+            allocate (g3(1, 1, 1, 1, 1))
+         end if
+         g3 = 0.
+      end if
+      
+   end subroutine init_arrays_distribution_function
+   
+   !****************************************************************************
+   !       INITIALISE THE DISTRIBUTION FUNCTION <GVMU> = G(MU,VPA,IKXKYZ)      !
+   !****************************************************************************
+   subroutine init_distribution_function_vs_muvpa(restarted, istep0)
+
+      ! Flags
       use stella_save, only: init_tstart
       use parameters_numerical, only: maxwellian_normalization
       
@@ -141,15 +298,27 @@ contains
       use namelist_fields, only: init_distribution_option_rh
       use namelist_fields, only: init_distribution_option_remap
 
+      ! Arguments
       logical, intent(out) :: restarted
       integer, intent(out) :: istep0
+      
+      ! Local variables
       integer :: istatus
 
       !-------------------------------------------------------------------------
 
+      ! Only initialise once
+      if (initialised_distribution_function_vs_kxkyz) return
+      initialised_distribution_function_vs_kxkyz = .false.
+
+      ! Assume this is a new simulation, starting from time step <istep0> = 0.
+      ! If <init_distribution_switch> = <init_distribution_option_restart_many>,
+      ! then we have restarted the simulation from <istep0> > 0.
       restarted = .false.
       istep0 = 0
       
+      ! Initialise the distribution function <gvmu> = g(mu,vpa,ikxkys) based on 
+      ! one of the following options, which has been selected in the input file
       select case (init_distribution_switch)
       case (init_distribution_option_maxwellian)
          call initialise_distribution_maxwellian
@@ -168,13 +337,142 @@ contains
          scale = 1.
       end select
 
-      ! if maxwwellian_normalization = .true., the pdf is normalized by F0 (which is not the case otherwise)
+      ! If <maxwwellian_normalization> = .true., the pdf is normalized by F0 (which is not the case otherwise)
       ! unless reading in g from a restart file, normalise g by F0 for a full flux surface simulation
       if (maxwellian_normalization .and. init_distribution_switch /= init_distribution_option_restart_many) then
          call normalize_by_maxwellian
       end if
 
-   end subroutine initialise_distribution
+   end subroutine init_distribution_function_vs_muvpa
+
+   !*****************************************************************************
+   ! INITIALISE THE DISTRIBUTION FUNCTIONS <GOLD> = <GNEW> = G(KX,KY,Z,IVPAMUS) !
+   !*****************************************************************************
+   ! This subroutine initialises the <gold> and <gnew> = g(kx,ky,z,ivpamus)
+   ! arrays, based on the previously initialised <gvmu> = g(mu,vpa,ikxkys) array.
+   !****************************************************************************
+   subroutine init_distribution_function_vs_kxkyz(restarted)
+   
+      ! Parallelisation
+      use redistribute, only: gather, scatter
+      use calculations_redistribute, only: kxkyz2vmu
+
+      ! Distribution function
+      use arrays_distribution_function, only: gvmu, gold, gnew
+      
+      ! Physics flags
+      use parameters_physics, only: radial_variation
+
+      implicit none
+
+      ! Arguments
+      logical, intent(in) :: restarted
+      
+      !-------------------------------------------------------------------------
+
+      ! Only initialise once
+      if (initialised_distribution_function_vs_kxkyz) return
+      initialised_distribution_function_vs_kxkyz = .false.
+
+      ! We have already initialised <gvmu> = g(mu,vpa,ikxkys) in the init_distribution_
+      ! function_vs_muvpa() routine. Now we get <gnew> = g(kx,ky,z,ivpamus).
+      call gather(kxkyz2vmu, gvmu, gnew)
+
+      ! Calculate radial corrections to F0 for use in the Krook operator.
+      ! Note that this routine will redefine <gnew>.
+      if (radial_variation) call add_corrections_to_g_for_radial_variation(restarted)
+
+      ! Initialise <gold> to be a copy of <gnew>
+      gold = gnew
+      
+   end subroutine init_distribution_function_vs_kxkyz
+   
+!###############################################################################
+!############################## RADIAL VARIATION ###############################
+!###############################################################################
+! Calculate the radial corrections to F0 for use in the Krook operator.
+! It also initialises the gold array with the values of gnew.
+! If the radial variation is not enabled, it simply copies gnew to gold.
+! The gxyz arrays are used in the Krook operator and projection method.
+!###############################################################################
+    
+   subroutine add_corrections_to_g_for_radial_variation(restarted)
+
+      ! Parallelisation
+      use redistribute, only: scatter
+      use calculations_redistribute, only: kxkyz2vmu
+      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      
+      ! Distribution function
+      use arrays_distribution_function, only: gvmu, gnew
+   
+      ! Calculations
+      use calculations_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
+      use calculations_kxky, only: multiply_by_rho
+      
+      ! Grids
+      use grids_kxky, only: nalpha, nakx, naky
+      use grids_velocity, only: mu, vpa, vperp2
+      use grids_z, only: nzgrid, ntubes
+      use grids_species, only: spec, pfac
+      
+      ! Geometry
+      use geometry, only: dBdrho, gfac
+
+      implicit none
+
+      ! Arguments
+      logical, intent(in) :: restarted
+   
+      ! Local variables
+      real :: corr
+      integer :: ivmu, is, imu, iv, it, iz, ia
+      real, dimension(:, :), allocatable :: energy
+      complex, dimension(:, :), allocatable :: g0k
+      
+      !----------------------------------------------------------------------
+
+      ! Assume we only have a single field line
+      ia = 1
+   
+      ! Allocate local arrays
+      allocate (energy(nalpha, -nzgrid:nzgrid))
+      allocate (g0k(naky, nakx))
+
+      ! Iterate over (mu,vpa,s)
+      do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+         is = is_idx(vmu_lo, ivmu)
+         imu = imu_idx(vmu_lo, ivmu)
+         iv = iv_idx(vmu_lo, ivmu)
+         energy = (vpa(iv)**2 + vperp2(:, :, imu)) * (spec(is)%temp_psi0 / spec(is)%temp)
+         
+         do it = 1, ntubes
+            do iz = -nzgrid, nzgrid
+
+               corr = -(pfac * (spec(is)%fprim + spec(is)%tprim * (energy(ia, iz) - 1.5)) &
+                        + 2 * gfac * mu(imu) * dBdrho(iz))
+
+               if (.not. restarted) then
+                  g0k = corr * gnew(:, :, iz, it, ivmu)
+                  call multiply_by_rho(g0k)
+                  gnew(:, :, iz, it, ivmu) = gnew(:, :, iz, it, ivmu) + g0k
+               end if
+               
+            end do
+         end do
+      end do
+      
+      ! Deallocate local arrays
+      deallocate (energy, g0k)
+
+      ! Recalculate <gvmu> based on the new <gnew>
+      if (.not. restarted) call scatter(kxkyz2vmu, gnew, gvmu)
+   
+   end subroutine add_corrections_to_g_for_radial_variation
+      
+!###############################################################################
+!############### OPTIONS TO INITIALISE <GVMU> = G(MU,VPA,IKXKYZ) ###############
+!###############################################################################
 
    !****************************************************************************
    !                     INITIALISE POTENTIAL: MAXWELLIAN                      !
@@ -191,7 +489,7 @@ contains
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use arrays_store_distribution_fn, only: gvmu
+      use arrays_distribution_function, only: gvmu
       use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
       use ran, only: ranf
       use namelist_fields, only: read_namelist_initialise_distribution_maxwellian
@@ -269,8 +567,8 @@ contains
          iky = iky_idx(kxkyz_lo, ikxkyz)
          is = is_idx(kxkyz_lo, ikxkyz)
          gvmu(:, :, ikxkyz) = phiinit * phi(iky, ikx, iz) / abs(spec(is)%z) &
-                              * (den0 + 2.0 * zi * spread(vpa, 2, nmu) * upar0) &
-                              * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is)
+            * (den0 + 2.0 * zi * spread(vpa, 2, nmu) * upar0) &
+            * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * spread(maxwell_vpa(:, is), 2, nmu) * maxwell_fac(is)
       end do
 
    end subroutine initialise_distribution_maxwellian
@@ -281,7 +579,7 @@ contains
    subroutine initialise_distribution_noise
 
       use mp, only: proc0, broadcast
-      use arrays_store_useful, only: kperp2
+      use arrays, only: kperp2
       use grids_species, only: spec
       use grids_z, only: nzgrid, ntubes
       use grids_extended_zgrid, only: ikxmod, nsegments, neigen
@@ -291,7 +589,7 @@ contains
       use grids_kxky, only: zonal_mode
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use arrays_store_distribution_fn, only: gvmu
+      use arrays_distribution_function, only: gvmu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use mp, only: proc0, broadcast, max_allreduce
@@ -448,7 +746,7 @@ contains
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use arrays_store_distribution_fn, only: gvmu
+      use arrays_distribution_function, only: gvmu
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx
       use namelist_fields, only: read_namelist_initialise_distribution_kpar
       use constants, only: zi
@@ -555,8 +853,8 @@ contains
 
       use mp, only: proc0, broadcast
       use grids_species, only: spec
-      use arrays_store_distribution_fn, only: gvmu
-      use arrays_store_useful, only: kperp2
+      use arrays_distribution_function, only: gvmu
+      use arrays, only: kperp2
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -610,7 +908,7 @@ contains
    subroutine initialise_distribution_remap
 
       use grids_species, only: spec
-      use arrays_store_distribution_fn, only: gvmu
+      use arrays_distribution_function, only: gvmu
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -647,7 +945,7 @@ contains
    !****************************************************************************
    subroutine initialise_distribution_restart_many
 
-      use arrays_store_distribution_fn, only: gvmu
+      use arrays_distribution_function, only: gvmu
       use stella_save, only: stella_restore
       use mp, only: proc0
       use file_units, only: unit_error_file
@@ -668,6 +966,11 @@ contains
       end if
 
    end subroutine initialise_distribution_restart_many
+  
+
+!###############################################################################
+!################################ CALCULATIONS #################################
+!###############################################################################
 
    !****************************************************************************
    !                        NORMALIZE BY MAXWELLIAN                            !
@@ -675,7 +978,7 @@ contains
    subroutine normalize_by_maxwellian
 
       use stella_layouts, only: kxkyz_lo, is_idx, iz_idx
-      use arrays_store_distribution_fn, only: gvmu
+      use arrays_distribution_function, only: gvmu
       use grids_velocity, only: nmu
       use grids_velocity, only: maxwell_mu, maxwell_vpa, maxwell_fac
 
@@ -713,19 +1016,38 @@ contains
 
    end subroutine reset_init
 
-   !****************************************************************************
-   !                                                                           !
-   !****************************************************************************
-   subroutine finish_initialise_distribution
+!###############################################################################
+!######################## FINISH DISTRIBUTION FUNCTION #########################
+!###############################################################################
+
+   subroutine finish_distribution_function
 
       use stella_save, only: finish_save
+      use arrays_distribution_function, only: gnew, gold, gvmu
+      use arrays_distribution_function, only: g_scratch, g_kymus
+      use arrays_distribution_function, only: g0, g1, g2, g3
 
       implicit none
 
-      initialised = .false.
+      ! Deallocate arrays
+      if (allocated(gnew)) deallocate (gnew)
+      if (allocated(gold)) deallocate (gold)
+      if (allocated(g_scratch)) deallocate (g_scratch)
+      if (allocated(gvmu)) deallocate (gvmu)
+      if (allocated(g_kymus)) deallocate (g_kymus)
+      if (allocated(g0)) deallocate (g0)
+      if (allocated(g1)) deallocate (g1)
+      if (allocated(g2)) deallocate (g2)
+      if (allocated(g3)) deallocate (g3)
 
+      ! Reset flags
+      initialised_read_parameters = .false.
+      initialised_arrays = .false.
+      initialised_distribution_function_vs_muvpa = .false.
+      initialised_distribution_function_vs_kxkyz = .false.
+   
       call finish_save
 
-   end subroutine finish_initialise_distribution
+   end subroutine finish_distribution_function
 
-end module initialise_distribution_fn
+end module initialise_distribution_function

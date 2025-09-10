@@ -274,7 +274,7 @@ contains
       use stella_layouts, only: vmu_lo
       
       ! Fields
-      use arrays_store_distribution_fn, only: gvmu
+      use arrays_distribution_function, only: gvmu
       
       ! Collision models
       use collisions_dougherty, only: advance_collisions_dougherty_implicit

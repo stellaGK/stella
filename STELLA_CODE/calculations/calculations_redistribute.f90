@@ -620,7 +620,7 @@ contains
    subroutine test_kymus_to_vmus_redistribute
 
       use redistribute, only: scatter, gather
-      use arrays_store_distribution_fn, only: g_kymus, gnew
+      use arrays_distribution_function, only: g_kymus, gnew
       use grids_velocity, only: nvpa
       use mp, only: proc0, send, receive
       use grids_z, only: nzgrid, ntubes

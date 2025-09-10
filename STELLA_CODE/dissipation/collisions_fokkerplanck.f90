@@ -328,7 +328,7 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use geometry, only: bmag
-      use arrays_store_useful, only: kperp2
+      use arrays, only: kperp2
       use constants, only: pi
       use stella_common_types, only: spec_type
       use grids_kxky, only: naky, nakx
@@ -1510,7 +1510,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_species, only: spec, nspec
       use geometry, only: bmag
       use grids_kxky, only: naky, nakx
-      use arrays_store_useful, only: kperp2
+      use arrays, only: kperp2
       use file_utils, only: open_output_file, close_output_file
 
       implicit none
@@ -2160,9 +2160,9 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_velocity, only: ztmax, maxwell_mu, nmu, nvpa, set_vpa_weights
       use grids_kxky, only: naky, nakx
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx, it_idx
-      use arrays_store_distribution_fn, only: gvmu
-      use fields_fluxtube, only: get_fields_fluxtube
-      use fields_collisions, only: get_fields_by_spec_idx
+      use arrays_distribution_function, only: gvmu
+      use quasineutrality_equation_fluxtube, only: advance_fields_using_quasineutrality_equation
+      use quasineutrality_equation_collisions, only: get_fields_by_spec_idx
       use job_manage, only: time_message, timer_local
       use file_utils, only: open_output_file, close_output_file
       use constants, only: pi
@@ -2229,7 +2229,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! gvmu contains dhs/dphi
       ! for phi equation, need 1-P[dhs/dphi]
-      call get_fields_fluxtube(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h') ! note that get_fields sums over species, as required in response matrix
+      ! note that get_fields sums over species, as required in response matrix
+      call advance_fields_using_quasineutrality_equation(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h') 
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -2592,8 +2593,6 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_velocity, only: set_vpa_weights
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
-      use fields_fluxtube, only: get_fields_fluxtube
-      use fields_collisions, only: get_fields_by_spec_idx
       use job_manage, only: time_message, timer_local
       use constants, only: pi
       use file_utils, only: open_output_file, close_output_file
@@ -3420,7 +3419,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use stella_layouts, only: vmu_lo, kxkyz_lo
       use stella_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
       use calculations_redistribute, only: kxkyz2vmu
-      use arrays_store_distribution_fn, only: gvmu
+      use arrays_distribution_function, only: gvmu
       use calculations_tofrom_ghf, only: g_to_h
 
       implicit none
@@ -3664,7 +3663,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_velocity, only: nmu, mu, dmu, vpa, dvpa, nvpa, maxwell_vpa
       use geometry, only: bmag
       use grids_species, only: spec
-      use arrays_store_useful, only: kperp2
+      use arrays, only: kperp2
       use constants, only: pi
       use job_manage, only: timer_local, time_message
 
@@ -3970,7 +3969,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_velocity, only: nmu, mu, dmu, vpa, dvpa, nvpa, maxwell_vpa
       use geometry, only: bmag
       use grids_species, only: spec
-      use arrays_store_useful, only: kperp2
+      use arrays, only: kperp2
       use constants, only: pi
       use job_manage, only: timer_local, time_message
 
@@ -4139,7 +4138,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       use grids_z, only: nzgrid
       use grids_velocity, only: set_vpa_weights
-      use arrays_store_distribution_fn, only: gvmu
+      use arrays_distribution_function, only: gvmu
 
       implicit none
 
@@ -4182,7 +4181,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
       use calculations_tofrom_ghf, only: g_to_h
-      use fields_fluxtube, only: get_fields_fluxtube
+      use quasineutrality_equation_fluxtube, only: advance_fields_using_quasineutrality_equation
       use constants, only: pi
       use stella_time, only: code_dt
 
@@ -4266,7 +4265,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       ! first get phi_inh^{n+1}
       if (advfield_coll) then
-         call get_fields_fluxtube(g, phi, apar, bpar, dist='h')
+         call advance_fields_using_quasineutrality_equation(g, phi, apar, bpar, dist='h')
          flds(:, :, :, :, 1) = phi
       end if
 

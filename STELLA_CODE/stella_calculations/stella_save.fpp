@@ -83,9 +83,9 @@ contains
       (g, istep0, t0, delt0, istatus, exit_in, fileopt)
 
 # ifdef NETCDF
-      use arrays_store_useful, only: shift_state
-      use arrays_store_fields, only: phi_proj
-      use arrays_store_distribution_fn, only: g_krook, g_proj
+      use arrays, only: shift_state
+      use arrays_fields, only: phi_proj
+      use arrays_distribution_function, only: g_krook, g_proj
       use grids_kxky, only: naky, nakx
 # else
       use mp, only: proc0
@@ -690,9 +690,9 @@ contains
    !****************************************************************************
    subroutine stella_restore_many(g, scale, istatus)
 # ifdef NETCDF
-      use arrays_store_useful, only: shift_state
-      use arrays_store_fields, only: phi_proj
-      use arrays_store_distribution_fn, only: g_krook, g_proj
+      use arrays, only: shift_state
+      use arrays_fields, only: phi_proj
+      use arrays_distribution_function, only: g_krook, g_proj
       use grids_kxky, only: naky, nakx
 # endif
 # ifdef NETCDF_PARALLEL

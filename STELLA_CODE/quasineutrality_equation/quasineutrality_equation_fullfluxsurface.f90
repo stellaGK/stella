@@ -5,7 +5,7 @@
 ! Module for advancing and initialising the fields when Full Flux Surface effects are included
 ! 
 !###############################################################################
-module fields_ffs
+module quasineutrality_equation_ffs
 
    ! Load debug flags
    use debug_flags, only: debug => fields_ffs_debug
@@ -14,10 +14,10 @@ module fields_ffs
    implicit none
 
    ! Make routines available to other modules
-   public :: init_fields_ffs
-   public :: get_fields_ffs
+   public :: init_quasineutrality_equation_ffs
+   public :: advance_fields_using_quasineutrality_equation_ffs
    public :: get_fields_source
-   public :: finish_fields_ffs
+   public :: finish_quasineutrality_equation_ffs
 
    private
 
@@ -38,10 +38,10 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   ! get_fields_ffs accepts as input the guiding centre distribution function g
+   ! advance_fields_using_quasineutrality_equation_ffs accepts as input the guiding centre distribution function g
    ! and calculates/returns the electronstatic potential phi for full_flux_surface simulations
    !****************************************************************************
-   subroutine get_fields_ffs(g, phi, apar, implicit_solve)
+   subroutine advance_fields_using_quasineutrality_equation_ffs(g, phi, apar, implicit_solve)
 
       ! Parallelisation
       use mp, only: mp_abort
@@ -52,8 +52,8 @@ contains
       use parameters_physics, only: fphi
       
       ! Arrays
-      use arrays_store_useful, only: gamtot
-      use arrays_store_useful, only: gamtot3
+      use arrays, only: denominator_QN
+      use arrays, only: denominator_QN_MBR
       
       ! Adiabatic species
       use grids_species, only: nine, tite
@@ -86,7 +86,7 @@ contains
       integer :: iz, ikx
       complex, dimension(:), allocatable :: phi_fsa
       complex, dimension(:, :, :), allocatable :: phi_swap, source
-      real, dimension(:, :, :, :), allocatable :: gamtot_t
+      real, dimension(:, :, :, :), allocatable :: denominator_QN_t
       complex, dimension(:, :), allocatable :: phi_fsa_spread, phi_source
       logical :: has_elec, adia_elec
       integer :: it, ia
@@ -103,24 +103,24 @@ contains
             has_elec = has_electron_species(spec)
             adia_elec = .not. has_elec &
                  .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
-            allocate (gamtot_t(naky, nakx, -nzgrid:nzgrid, ntubes))
-            gamtot_t = spread(gamtot, 4, ntubes)
+            allocate (denominator_QN_t(naky, nakx, -nzgrid:nzgrid, ntubes))
+            denominator_QN_t = spread(denominator_QN, 4, ntubes)
 
             call get_g_integral_contribution(g, source, implicit_solve=.true.)
-            where (gamtot_t < epsilon(0.0))
+            where (denominator_QN_t < epsilon(0.0))
                phi = 0.0
             elsewhere
-               phi = spread(source, 4, ntubes) / gamtot_t
+               phi = spread(source, 4, ntubes) / denominator_QN_t
             end where
-            if (any(gamtot(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
-            deallocate (gamtot_t)
+            if (any(denominator_QN(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
+            deallocate (denominator_QN_t)
 
             if (adia_elec .and. zonal_mode(1)) then
                ia = 1
                do ikx = 1, nakx
                   do it = 1, ntubes
                      tmp = sum(dl_over_b(ia, :) * phi(1, ikx, :, it))
-                     phi(1, ikx, :, it) = phi(1, ikx, :, it) + tmp * gamtot3(ikx, :)
+                     phi(1, ikx, :, it) = phi(1, ikx, :, it) + tmp * denominator_QN_MBR(ikx, :)
                   end do
                end do
             end if
@@ -134,13 +134,13 @@ contains
          ! the sign is consistent with phi appearing on the RHS of the eqn and int g appearing on the LHS.
          ! this is returned in source
          else
-            if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::get_g_integral_contribution'
+            if (debug) write (*, *) 'quasineutrality_equation::ffs::get_g_integral_contribution'
             call get_g_integral_contribution(g, source)
             
             ! Use sum_s int d3v <g> and QN to solve for phi
             ! NB: assuming here that ntubes = 1 for FFS sim
-            if (debug) write (*, *) 'fields::advance_fields::get_phi_ffs'
-            call get_phi_ffs(source, phi(:, :, :, 1))
+            if (debug) write (*, *) 'quasineutrality_equation::ffs::calculate_phi_ffs'
+            call calculate_phi_ffs(source, phi(:, :, :, 1))
             if (zonal_mode(1) .and. akx(1) < epsilon(0.)) then
                phi(1, 1, :, :) = 0.0
             end if
@@ -151,7 +151,7 @@ contains
             
                ! First must get phi on grid that includes positive and negative ky (but only positive kx)
                allocate (phi_swap(naky_all, ikx_max, -nzgrid:nzgrid))
-               if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::swap_kxky_ordered'
+               if (debug) write (*, *) 'quasineutrality_equation::ffs::swap_kxky_ordered'
                do iz = -nzgrid, nzgrid
                   call swap_kxky_ordered(phi(:, :, iz, 1), phi_swap(:, :, iz))
                end do
@@ -161,7 +161,7 @@ contains
                allocate (phi_fsa_spread(naky_all, ikx_max)); phi_fsa_spread = 0.0
                allocate (phi_source(naky, nakx)); phi_source = 0.0
 
-               if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::flux_surface_average_ffs'
+               if (debug) write (*, *) 'quasineutrality_equation::ffs::flux_surface_average_ffs'
                do ikx = 1, ikx_max
                   call flux_surface_average_ffs(phi_swap(:, ikx, :), phi_fsa(ikx))
                end do
@@ -189,8 +189,8 @@ contains
                   end do
                end if
 
-               if (debug) write (*, *) 'fields::advance_fields::get_fields_ffs::get_phi_ffs2s'
-               call get_phi_ffs(source, phi(:, :, :, 1))
+               if (debug) write (*, *) 'quasineutrality_equation::ffs::calculate_phi_ffs2s'
+               call calculate_phi_ffs(source, phi(:, :, :, 1))
 
                if (zonal_mode(1) .and. akx(1) < epsilon(0.)) then
                   phi(1, 1, :, :) = 0.0
@@ -288,12 +288,12 @@ contains
 
       end subroutine get_g_integral_contribution
 
-   end subroutine get_fields_ffs
+   end subroutine advance_fields_using_quasineutrality_equation_ffs
 
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine get_phi_ffs(rhs, phi)
+   subroutine calculate_phi_ffs(rhs, phi)
 
       use grids_z, only: nzgrid
       use calculations_kxky, only: swap_kxky_ordered, swap_kxky_back_ordered
@@ -333,7 +333,7 @@ contains
 
       deallocate (rhs_swap)
 
-   end subroutine get_phi_ffs
+   end subroutine calculate_phi_ffs
 
    !****************************************************************************
    !                     SOURCES FOR ITERATIVE IMPLICIT SCHEME
@@ -344,7 +344,7 @@ contains
       use stella_layouts, only: vmu_lo 
       
       ! Arrays
-      use arrays_store_useful, only: gamtot
+      use arrays, only: denominator_QN
       
       ! Grids
       use grids_kxky, only: naky, nakx
@@ -362,39 +362,39 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phiold
  
       ! Local variables
-      real, dimension(:, :, :, :), allocatable :: gamtot_t
+      real, dimension(:, :, :, :), allocatable :: denominator_QN_t
       complex, dimension(:, :, :, :), allocatable :: source2
       
       !-------------------------------------------------------------------------
       
       ! Allocate temporary arrays
-      allocate (gamtot_t(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (denominator_QN_t(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate(source2(naky, nakx, -nzgrid:nzgrid, ntubes)); 
       
       ! Initialise arrays and sum
-      gamtot_t = spread(gamtot, 4, ntubes)
+      denominator_QN_t = spread(denominator_QN, 4, ntubes)
       source2 = 0.0
       source = 0.0
  
       call get_g_integral_contribution_source(gold, source(:,:,:,1) )
       call gyro_average(phiold, source2, gam0_ffs)
  
-      source2 = source2 - gamtot_t * phiold
+      source2 = source2 - denominator_QN_t * phiold
       source = source - source2
  
-      where (gamtot_t < epsilon(0.0))
+      where (denominator_QN_t < epsilon(0.0))
          source= 0.0
       elsewhere
-         source = source / gamtot_t
+         source = source / denominator_QN_t
       end where
       
-      if (any(gamtot(1, 1, :) < epsilon(0.))) source(1, 1, :, :) = 0.0
+      if (any(denominator_QN(1, 1, :) < epsilon(0.))) source(1, 1, :, :) = 0.0
       if (akx(1) < epsilon(0.)) then
           source(1, 1, :, :) = 0.0
        end if
  
       ! Deallocate temporary arrays
-      deallocate(source2, gamtot_t)
+      deallocate(source2, denominator_QN_t)
       
    end subroutine get_fields_source
     
@@ -468,7 +468,7 @@ contains
    !****************************************************************************
    !**************************** INITALISE ARRAYS ******************************
    !****************************************************************************
-   subroutine init_fields_ffs
+   subroutine init_quasineutrality_equation_ffs
 
       use grids_species, only: modified_adiabatic_electrons
 
@@ -490,7 +490,7 @@ contains
          call init_adiabatic_response_factor
       end if
 
-   end subroutine init_fields_ffs
+   end subroutine init_quasineutrality_equation_ffs
 
    !****************************************************************************
    !                                      Title
@@ -506,9 +506,9 @@ contains
       use stella_layouts, only: iv_idx, imu_idx, is_idx
 
       ! Arrays
-      use arrays_store_useful, only: kperp2
-      use arrays_store_useful, only: gamtot, gamtot3
-      use arrays_store_useful, only: efac, gamtot_h
+      use arrays, only: kperp2
+      use arrays, only: denominator_QN, denominator_QN_MBR
+      use arrays, only: efac, denominator_QN_h
       use arrays_gyro_averages, only: find_max_required_kalpha_index
       
       ! Grids
@@ -545,7 +545,7 @@ contains
       real, dimension(:), allocatable :: wgts
       complex, dimension(:), allocatable :: gam0_kalpha
       complex, dimension(:, :, :), allocatable :: gam0_const
-      complex, dimension(:, :, :), allocatable :: gamtot_con
+      complex, dimension(:, :, :), allocatable :: denominator_QN_con
       real :: tmp
       
       !-------------------------------------------------------------------------
@@ -558,7 +558,7 @@ contains
       allocate (gam0_alpha(nalpha))
       allocate (gam0_kalpha(naky))
       allocate (gam0_const(naky_all, ikx_max, -nzgrid:nzgrid)); gam0_const = 0.0
-      allocate (gamtot_con(naky, nakx, -nzgrid:nzgrid)); gamtot_con = 0.0
+      allocate (denominator_QN_con(naky, nakx, -nzgrid:nzgrid)); denominator_QN_con = 0.0
 
       ! The weighst are species-dependent factors appearing in Gamma0 factor
       allocate (wgts(nspec))
@@ -571,12 +571,12 @@ contains
       end if
 
       ! Needed for adiabatic response
-      if (.not. allocated(gamtot3)) then
+      if (.not. allocated(denominator_QN_MBR)) then
          if (.not. has_electron_species(spec) &
              .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
-            allocate (gamtot3(nakx, -nzgrid:nzgrid)); gamtot3 = 0.
+            allocate (denominator_QN_MBR(nakx, -nzgrid:nzgrid)); denominator_QN_MBR = 0.
          else
-            allocate (gamtot3(1, 1)); gamtot3 = 0.
+            allocate (denominator_QN_MBR(1, 1)); denominator_QN_MBR = 0.
          end if
       end if
 
@@ -649,7 +649,7 @@ contains
                gam0_ffs(iky, ikx, iz)%fourier = gam0_kalpha(:gam0_ffs(iky, ikx, iz)%max_idx)
                !call test_ffs_bessel_coefs (gam0_ffs(iky,ikx,iz)%fourier, gam0_alpha, iky, ikx, iz, gam0_ffs_unit)
 
-               !! For gamtot for implicit solve
+               !! For denominator_QN for implicit solve
                gam0_const(iky, ikx, iz) = gam0_kalpha(1)
                
             end do
@@ -663,36 +663,36 @@ contains
       end if
 
       do iz = -nzgrid, nzgrid
-         call swap_kxky_back_ordered(gam0_const(:, :, iz), gamtot_con(:, :, iz))
+         call swap_kxky_back_ordered(gam0_const(:, :, iz), denominator_QN_con(:, :, iz))
       end do
 
-      if (.not. allocated(gamtot)) allocate (gamtot(naky, nakx, -nzgrid:nzgrid)); gamtot = 0.
-      gamtot = real(gamtot_con)
+      if (.not. allocated(denominator_QN)) allocate (denominator_QN(naky, nakx, -nzgrid:nzgrid)); denominator_QN = 0.
+      denominator_QN = real(denominator_QN_con)
       ! TODO-GA: move this to adiabatic response factor 
       if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then 
-         gamtot(1, 1, :) = 0.0
+         denominator_QN(1, 1, :) = 0.0
       end if
 
       if (.not. has_electron_species(spec)) then
          ia = 1
          efac = tite / nine * (spec(ion_species)%dens / spec(ion_species)%temp)
          ! Can probably delete -- need to check 
-         gamtot_h = 0.0
+         denominator_QN_h = 0.0
          if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
             if (zonal_mode(1)) then
                do ikx = 1, nakx
-                  tmp = 1./efac - sum(dl_over_b(ia, :) / gamtot(1, ikx, :))
-                  gamtot3(ikx, :) = 1./(gamtot(1, ikx, :) * tmp)
+                  tmp = 1./efac - sum(dl_over_b(ia, :) / denominator_QN(1, ikx, :))
+                  denominator_QN_MBR(ikx, :) = 1./(denominator_QN(1, ikx, :) * tmp)
                end do
                if (akx(1) < epsilon(0.)) then
-                  gamtot3(1, :) = 0.0
+                  denominator_QN_MBR(1, :) = 0.0
                end if
             end if
          end if
       end if
       
       ! Deallocate temporary arrays
-      deallocate (gamtot_con)
+      deallocate (denominator_QN_con)
       deallocate (gam0_const)
 
       ! LU factorise array of gam0, using the LAPACK zgbtrf routine for banded matrices
@@ -778,7 +778,7 @@ contains
    !****************************************************************************
    ! arrays only allocated/used if simulating a full flux surface
    !****************************************************************************
-   subroutine finish_fields_ffs
+   subroutine finish_quasineutrality_equation_ffs
 
       implicit none
 
@@ -786,6 +786,6 @@ contains
       if (allocated(lu_gam0_ffs)) deallocate (lu_gam0_ffs)
       if (allocated(adiabatic_response_factor)) deallocate (adiabatic_response_factor)
 
-   end subroutine finish_fields_ffs
+   end subroutine finish_quasineutrality_equation_ffs
 
-end module fields_ffs
+end module quasineutrality_equation_ffs

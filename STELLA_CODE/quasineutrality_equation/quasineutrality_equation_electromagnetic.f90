@@ -6,43 +6,47 @@
 ! effects are included, i.e., when evolving the apar and bpar fields.
 ! 
 !###############################################################################
-module fields_electromagnetic
+module quasineutrality_equation_electromagnetic
 
    ! Load debug flags
-   use debug_flags, only: debug => fields_electromagnetic_debug
+   use debug_flags, only: debug => fields_debug
 
    implicit none
 
    ! Make routines available to other modules
-   public :: init_fields_electromagnetic
-   public :: allocate_fields_electromagnetic
-   public :: finish_fields_electromagnetic
-   public :: get_fields_electromagnetic
+   public :: init_quasineutrality_equation_electromagnetic
+   public :: allocate_quasineutrality_equation_electromagnetic
+   public :: finish_quasineutrality_equation_electromagnetic
+   public :: advance_fields_using_QN_electromagnetic
    public :: advance_apar
    
    private
 
-   interface get_fields_electromagnetic
-      module procedure get_fields_electromagnetic_kxkyzlo
-      module procedure get_fields_electromagnetic_vmulo
+   interface advance_fields_using_QN_electromagnetic
+      module procedure advance_fields_using_QN_electromagnetic_kxkyzlo
+      module procedure advance_fields_using_QN_electromagnetic_vmulo
    end interface
 
 contains
 
 !###############################################################################
-!###################### ADVANCE ELECTROMAGNETIC FIELDS #########################
+!###### ADVANCE ELECTROMAGNETIC FIELDS USING THE QUASINEUTRALITY EQUATION ######
 !###############################################################################
 
    !****************************************************************************
-   !***************************** GET FIELDS VMULO *****************************
+   !     ADVANCE ELECTROMAGNETIC FIELDS USING THE QUASINEUTRALITY EQUATION      
    !****************************************************************************
+   ! The fields (electrostatic potential and electromagnetic fields) are evolved
+   ! in time though the quasi-neutrality equation.
+   ! 
    ! If we are parallelising over (vpa,mu) then this subroutine is called
    ! This is the more common version used compared with parallelising over 
    ! (kx,ky,z) and is the default for stella.
+   ! 
    ! This advances the fields when Electromagnetic effects are included, so 
    ! we advance <phi>, <B_parallel>, and <A_parallel>.
    !****************************************************************************
-   subroutine get_fields_electromagnetic_vmulo(g, phi, apar, bpar, dist)
+   subroutine advance_fields_using_QN_electromagnetic_vmulo(g, phi, apar, bpar, dist)
 
       ! Parallelisation
       use mp, only: proc0, mp_abort
@@ -50,8 +54,8 @@ contains
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx
       
       ! Arrays
-      use arrays_store_distribution_fn, only: g_scratch
-      use arrays_store_useful, only: time_field_solve
+      use arrays_distribution_function, only: g_scratch
+      use arrays, only: time_field_solve
       
       ! Parameters
       use parameters_physics, only: beta
@@ -61,15 +65,16 @@ contains
       
       ! Grids
       use grids_species, only: spec
-      use calculations_velocity_integrals, only: integrate_species
       use grids_velocity, only: vpa, mu
       use grids_z, only: nzgrid
       
       ! Calculations
-      use calculations_gyro_averages, only: gyro_average, gyro_average_j1
+      use calculations_velocity_integrals, only: integrate_species
+      use calculations_gyro_averages, only: gyro_average
+      use calculations_gyro_averages, only: gyro_average_j1
       
-      ! Routines from other fields modules
-      use fields_radial_variation, only: add_radial_correction_int_species
+      ! Routines from other quasi-neutrality modules
+      use quasineutrality_equation_radial_variation, only: add_radial_correction_int_species
 
       implicit none
 
@@ -87,7 +92,7 @@ contains
       if (fphi > epsilon(0.0) .and. include_bpar) then
       
          ! Start timer
-         if (debug) write (*, *) 'fields_electromagnetic::get_fields_electromagnetic_vmulo::include_bpar'
+         if (debug) write (*, *) 'quasineutrality_equation::electromagnetic::advance_fields::vmulo::include_bpar'
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
          
          ! Gyroaverage the distribution function g at each phase space location
@@ -98,7 +103,7 @@ contains
          
          ! Integrate <g> over velocity space and sum over species
          ! store result in phi, which will be further modified below to account for polarization term
-         if (debug) write (*, *) 'dist_fn::advance_stella::get_fields_vmulo::integrate_species_phi'
+         if (debug) write (*, *) 'quasineutrality_equation::electromagnetic::advance_fields::vmulo::integrate_species_phi'
          call integrate_species(g_scratch, spec%z * spec%dens_psi0, phi)
          
          ! Gyroaverage the distribution function g at each phase space location
@@ -113,14 +118,14 @@ contains
          ! <g> requires modification if radial profile variation is included; not supported for bpar MRH
          ! Integrate <g> over velocity space and sum over species
          ! store result in bpar, which will be further modified below to account for polarization term
-         if (debug) write (*, *) 'fields_electromagnetic::get_fields_electromagnetic_vmulo::integrate_species_bpar'
+         if (debug) write (*, *) 'quasineutrality_equation::electromagnetic::advance_fields::vmulo::integrate_species_bpar'
          call integrate_species(g_scratch, -2.0 * beta * spec%temp_psi0 * spec%dens_psi0, bpar)
          
          ! End timer
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
          
          ! Get phi and bpar
-         call get_phi_and_bpar(phi, bpar, dist)
+         call calculate_phi_and_bpar(phi, bpar, dist)
          
       end if
 
@@ -131,7 +136,7 @@ contains
       if (include_apar) then
       
          ! Start timer
-         if (debug) write (*, *) 'fields_electromagnetic::get_fields_electromagnetic_vmulo::include_apar'
+         if (debug) write (*, *) 'quasineutrality_equation::electromagnetic::advance_fields::vmulo::include_apar'
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
          
          ! If fphi > 0, then g_scratch = <g> already calculated above
@@ -146,7 +151,7 @@ contains
          
          ! Integrate vpa*<g> over velocity space and sum over species
          ! store result in apar, which will be further modified below to account for apar pre-factor
-         if (debug) write (*, *) 'fields_electromagnetic::get_fields_electromagnetic_vmulo::integrate_species_apar'
+         if (debug) write (*, *) 'quasineutrality_equation::electromagnetic::advance_fields::vmulo::integrate_species_apar'
          call integrate_species(g_scratch, spec%z * spec%dens_psi0 * spec%stm_psi0 * beta, apar)
          
          ! End timer
@@ -159,12 +164,12 @@ contains
          
       end if
 
-   end subroutine get_fields_electromagnetic_vmulo
+   end subroutine advance_fields_using_QN_electromagnetic_vmulo
 
    !****************************************************************************
    !**************************** GET FIELDS KXKYZLO ****************************
    !****************************************************************************
-   subroutine get_fields_electromagnetic_kxkyzlo(g, phi, apar, bpar, dist)
+   subroutine advance_fields_using_QN_electromagnetic_kxkyzlo(g, phi, apar, bpar, dist)
 
       ! Parallelisation
       use mp, only: proc0
@@ -174,8 +179,8 @@ contains
       use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       
       ! Arrays
-      use arrays_store_useful, only: kperp2 
-      use arrays_store_useful, only: apar_denom, time_field_solve
+      use arrays, only: kperp2 
+      use arrays, only: apar_denom, time_field_solve
       
       ! Parameters
       use parameters_physics, only: beta
@@ -214,7 +219,7 @@ contains
       if (fphi > epsilon(0.0) .and. include_bpar) then
       
          ! Start timer
-         if (debug) write (*, *) 'fields_electromagnetic::get_fields_electromagnetic_kxkyzlo::include_bpar'
+         if (debug) write (*, *) 'quasineutrality_equation::electromagnetic::advance_fields::kxkyzlo::include_bpar'
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
          
          ! Allocate temporary arrays
@@ -253,7 +258,7 @@ contains
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
 
          ! Get phi and bpar
-         call get_phi_and_bpar(phi, bpar, dist)
+         call calculate_phi_and_bpar(phi, bpar, dist)
          
       end if
 
@@ -264,7 +269,7 @@ contains
       if (include_apar) then
       
          ! Debug 
-         if (debug) write (*, *) 'fields_electromagnetic::get_fields_electromagnetic_kxkyzlo::include_apar'
+         if (debug) write (*, *) 'quasineutrality_equation::electromagnetic::advance_fields::kxkyzlo::include_apar'
          
          ! Allocate temporary arrays
          allocate (g0(nvpa, nmu))
@@ -304,20 +309,20 @@ contains
          
       end if
 
-   end subroutine get_fields_electromagnetic_kxkyzlo
+   end subroutine advance_fields_using_QN_electromagnetic_kxkyzlo
 
    !****************************************************************************
    !**************************** GET APAR AND BPAR *****************************
    !****************************************************************************
-   subroutine get_phi_and_bpar(phi, bpar, dist)
+   subroutine calculate_phi_and_bpar(phi, bpar, dist)
 
       ! Parallelisation
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
       
       ! Arrays
-      use arrays_store_useful, only: gamtotinv11, gamtotinv13, gamtotinv33, gamtotinv31
-      use arrays_store_useful, only: gamtot_h, time_field_solve
+      use arrays, only: denominator_QNinv11, denominator_QNinv13, denominator_QNinv33, denominator_QNinv31
+      use arrays, only: denominator_QN_h, time_field_solve
 
       ! Grids
       use grids_z, only: nzgrid, ntubes
@@ -336,8 +341,8 @@ contains
       !-------------------------------------------------------------------------
       
       ! Start timer
-      if (debug) write (*, *) 'fields_electromagnetic::get_phi_and_bpar'
-      if (proc0) call time_message(.false., time_field_solve(:, 4), ' get_phi_and_bpar')
+      if (debug) write (*, *) 'quasineutrality_equation::electromagnetic::calculate_phi_and_bpar'
+      if (proc0) call time_message(.false., time_field_solve(:, 4), ' calculate_phi_and_bpar')
 
       ! Assume we only have one field line
       ia = 1
@@ -349,8 +354,8 @@ contains
                   do iky = 1, naky
                      antot1 = phi(iky,ikx,iz,it)
                      antot3 = bpar(iky,ikx,iz,it)
-                     phi(iky,ikx,iz,it) = gamtotinv11(iky,ikx,iz)*antot1 + gamtotinv13(iky,ikx,iz)*antot3
-                     bpar(iky,ikx,iz,it) = gamtotinv31(iky,ikx,iz)*antot1 + gamtotinv33(iky,ikx,iz)*antot3
+                     phi(iky,ikx,iz,it) = denominator_QNinv11(iky,ikx,iz)*antot1 + denominator_QNinv13(iky,ikx,iz)*antot3
+                     bpar(iky,ikx,iz,it) = denominator_QNinv31(iky,ikx,iz)*antot1 + denominator_QNinv33(iky,ikx,iz)*antot3
                   end do
                end do
             end do
@@ -358,7 +363,7 @@ contains
          
       else if (dist == 'h') then
          ! divide sum ( Zs int J0 h d^3 v) by sum(Zs^2 ns / Ts)
-         phi = phi / gamtot_h
+         phi = phi / denominator_QN_h
          ! do nothing for bpar because
          ! bpar = - 2 * beta * sum(Ts ns int (J1/bs) mu h d^3 v)
          ! which is already stored in bpar when dist = 'h'.
@@ -370,7 +375,7 @@ contains
          
       end if
 
-   end subroutine get_phi_and_bpar
+   end subroutine calculate_phi_and_bpar
 
    !****************************************************************************
    !                                      Title
@@ -387,8 +392,8 @@ contains
       use mp, only: proc0, mp_abort
       
       ! Arrays
-      use arrays_store_useful, only: kperp2
-      use arrays_store_useful, only: apar_denom
+      use arrays, only: kperp2
+      use arrays, only: apar_denom
       
       ! Grids
       use grids_z, only: nzgrid, ntubes
@@ -494,7 +499,7 @@ contains
    !****************************************************************************
    ! Fill arrays needed for the electromagnetic calculations
    !****************************************************************************
-   subroutine init_fields_electromagnetic (nfields)
+   subroutine init_quasineutrality_equation_electromagnetic (nfields)
 
       ! Parallelisation
       use mp, only: sum_allreduce
@@ -502,11 +507,11 @@ contains
       use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       
       ! Arrays
-      use arrays_store_useful, only: kperp2
-      use arrays_store_useful, only: gamtot
-      use arrays_store_useful, only: gamtot13, gamtot31, gamtot33
-      use arrays_store_useful, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
-      use arrays_store_useful, only: apar_denom
+      use arrays, only: kperp2
+      use arrays, only: denominator_QN
+      use arrays, only: denominator_QN13, denominator_QN_MBR1, denominator_QN_MBR3
+      use arrays, only: denominator_QNinv11, denominator_QNinv13, denominator_QNinv31, denominator_QNinv33
+      use arrays, only: apar_denom
       
       ! Parameters
       use parameters_physics, only: include_apar, include_bpar
@@ -537,7 +542,7 @@ contains
       if (include_apar) nfields = nfields + 1
       if (include_bpar) nfields = nfields + 1
 
-      call allocate_fields_electromagnetic
+      call allocate_quasineutrality_equation_electromagnetic
 
       if (.not. (include_apar .or. include_bpar)) return
       
@@ -568,13 +573,13 @@ contains
       end if 
 
       if (include_bpar) then
-         ! gamtot33
+         ! denominator_QN_MBR3
          allocate (g0(nvpa, nmu))
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             it = it_idx(kxkyz_lo, ikxkyz)
-            ! gamtot33 does not depend on flux tube index,
+            ! denominator_QN_MBR3 does not depend on flux tube index,
             ! so only compute for one flux tube index
-            ! gamtot33 = 1 + 8 * beta * sum_s (n*T* integrate_vmu(mu*mu*exp(-v^2) *(J1/gamma)*(J1/gamma)))
+            ! denominator_QN_MBR3 = 1 + 8 * beta * sum_s (n*T* integrate_vmu(mu*mu*exp(-v^2) *(J1/gamma)*(J1/gamma)))
             if (it /= 1) cycle
             iky = iky_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -584,18 +589,18 @@ contains
                  * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
             wgt = 8.0 * spec(is)%temp * spec(is)%dens_psi0
             call integrate_vmu(g0, iz, tmp)
-            gamtot33(iky, ikx, iz) = gamtot33(iky, ikx, iz) + tmp * wgt
+            denominator_QN_MBR3(iky, ikx, iz) = denominator_QN_MBR3(iky, ikx, iz) + tmp * wgt
          end do
-         call sum_allreduce(gamtot33)
+         call sum_allreduce(denominator_QN_MBR3)
 
-         gamtot33 = 1.0 + beta * gamtot33
+         denominator_QN_MBR3 = 1.0 + beta * denominator_QN_MBR3
 
-         !gamtot13
+         !denominator_QN13
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             it = it_idx(kxkyz_lo, ikxkyz)
-            ! gamtot13 does not depend on flux tube index,
+            ! denominator_QN13 does not depend on flux tube index,
             ! so only compute for one flux tube index
-            ! gamtot13 = -4 * sum_s (Z*n* integrate_vmu(mu*exp(-v^2) * J0 *J1/gamma))
+            ! denominator_QN13 = -4 * sum_s (Z*n* integrate_vmu(mu*exp(-v^2) * J0 *J1/gamma))
             if (it /= 1) cycle
             iky = iky_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -605,10 +610,10 @@ contains
                  * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
             wgt = -4.0 * spec(is)%z * spec(is)%dens_psi0
             call integrate_vmu(g0, iz, tmp)
-            gamtot13(iky, ikx, iz) = gamtot13(iky, ikx, iz) + tmp * wgt
+            denominator_QN13(iky, ikx, iz) = denominator_QN13(iky, ikx, iz) + tmp * wgt
          end do
-         call sum_allreduce(gamtot13)
-         gamtot31 = -0.5 * beta * gamtot13 
+         call sum_allreduce(denominator_QN13)
+         denominator_QN_MBR1 = -0.5 * beta * denominator_QN13 
          deallocate (g0)
       end if
 
@@ -618,30 +623,30 @@ contains
          do iz = -nzgrid,nzgrid 
             do ikx = 1, nakx
                do iky = 1, naky 
-                  ! gamtotinv11
-                  denom_tmp = gamtot(iky,ikx,iz) - ((gamtot13(iky,ikx,iz)*gamtot31(iky,ikx,iz))/gamtot33(iky,ikx,iz))
+                  ! denominator_QNinv11
+                  denom_tmp = denominator_QN(iky,ikx,iz) - ((denominator_QN13(iky,ikx,iz)*denominator_QN_MBR1(iky,ikx,iz))/denominator_QN_MBR3(iky,ikx,iz))
                   if (denom_tmp < epsilon(0.0)) then
-                     gamtotinv11(iky,ikx,iz) = 0.0
+                     denominator_QNinv11(iky,ikx,iz) = 0.0
                   else
-                     gamtotinv11(iky,ikx,iz) = 1.0/denom_tmp
+                     denominator_QNinv11(iky,ikx,iz) = 1.0/denom_tmp
                   end if
-                  ! gamtotinv13, gamtotinv31, gamtotinv33
-                  denom_tmp = gamtot(iky,ikx,iz)*gamtot33(iky,ikx,iz) - gamtot13(iky,ikx,iz)*gamtot31(iky,ikx,iz)
+                  ! denominator_QNinv13, denominator_QNinv31, denominator_QNinv33
+                  denom_tmp = denominator_QN(iky,ikx,iz)*denominator_QN_MBR3(iky,ikx,iz) - denominator_QN13(iky,ikx,iz)*denominator_QN_MBR1(iky,ikx,iz)
                   if (denom_tmp < epsilon(0.0)) then
-                     gamtotinv13(iky,ikx,iz) = 0.0
-                     gamtotinv31(iky,ikx,iz) = 0.0
-                     gamtotinv33(iky,ikx,iz) = 0.0
+                     denominator_QNinv13(iky,ikx,iz) = 0.0
+                     denominator_QNinv31(iky,ikx,iz) = 0.0
+                     denominator_QNinv33(iky,ikx,iz) = 0.0
                   else
-                     gamtotinv13(iky,ikx,iz) = -gamtot13(iky,ikx,iz)/denom_tmp
-                     gamtotinv33(iky,ikx,iz) = gamtot(iky,ikx,iz)/denom_tmp
-                     gamtotinv31(iky,ikx,iz) = -gamtot31(iky,ikx,iz)/denom_tmp
+                     denominator_QNinv13(iky,ikx,iz) = -denominator_QN13(iky,ikx,iz)/denom_tmp
+                     denominator_QNinv33(iky,ikx,iz) = denominator_QN(iky,ikx,iz)/denom_tmp
+                     denominator_QNinv31(iky,ikx,iz) = -denominator_QN_MBR1(iky,ikx,iz)/denom_tmp
                   end if
                end do
             end do
          end do
       end if
       
-   end subroutine init_fields_electromagnetic
+   end subroutine init_quasineutrality_equation_electromagnetic
 
    !****************************************************************************
    !***************************** ALLOCATE ARRAYS ******************************
@@ -649,16 +654,16 @@ contains
    ! Allocate arrays needed for solving electromagnetic fields
    ! This includes Apar and Bpar
    !****************************************************************************
-   subroutine allocate_fields_electromagnetic
+   subroutine allocate_quasineutrality_equation_electromagnetic
 
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, nakx
       use parameters_physics, only: include_apar, include_bpar
-      use arrays_store_fields, only: apar, apar_old
-      use arrays_store_fields, only: bpar, bpar_old
-      use arrays_store_useful, only: gamtot13, gamtot31, gamtot33
-      use arrays_store_useful, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
-      use arrays_store_useful, only: apar_denom
+      use arrays_fields, only: apar, apar_old
+      use arrays_fields, only: bpar, bpar_old
+      use arrays, only: denominator_QN13, denominator_QN_MBR1, denominator_QN_MBR3
+      use arrays, only: denominator_QNinv11, denominator_QNinv13, denominator_QNinv31, denominator_QNinv33
+      use arrays, only: apar_denom
 
       implicit none
 
@@ -678,37 +683,37 @@ contains
       if (include_bpar) then
          if (.not. allocated(bpar)) then; allocate (bpar(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar = 0. ; end if
          if (.not. allocated(bpar_old)) then; allocate (bpar_old(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar_old = 0. ; end if
-         if (.not. allocated(gamtot33)) then; allocate (gamtot33(naky, nakx, -nzgrid:nzgrid)); gamtot33 = 0. ; end if
-         if (.not. allocated(gamtot13)) then; allocate (gamtot13(naky, nakx, -nzgrid:nzgrid)); gamtot13 = 0. ; end if
-         if (.not. allocated(gamtot31)) then; allocate (gamtot31(naky, nakx, -nzgrid:nzgrid)); gamtot31 = 0. ; end if
-         if (.not. allocated(gamtotinv11)) then; allocate (gamtotinv11(naky, nakx, -nzgrid:nzgrid)); gamtotinv11 = 0. ; end if
-         if (.not. allocated(gamtotinv31)) then; allocate (gamtotinv31(naky, nakx, -nzgrid:nzgrid)); gamtotinv31 = 0. ; end if
-         if (.not. allocated(gamtotinv13)) then; allocate (gamtotinv13(naky, nakx, -nzgrid:nzgrid)); gamtotinv13 = 0. ; end if
-         if (.not. allocated(gamtotinv33)) then; allocate (gamtotinv33(naky, nakx, -nzgrid:nzgrid)); gamtotinv33 = 0. ; end if
+         if (.not. allocated(denominator_QN_MBR3)) then; allocate (denominator_QN_MBR3(naky, nakx, -nzgrid:nzgrid)); denominator_QN_MBR3 = 0. ; end if
+         if (.not. allocated(denominator_QN13)) then; allocate (denominator_QN13(naky, nakx, -nzgrid:nzgrid)); denominator_QN13 = 0. ; end if
+         if (.not. allocated(denominator_QN_MBR1)) then; allocate (denominator_QN_MBR1(naky, nakx, -nzgrid:nzgrid)); denominator_QN_MBR1 = 0. ; end if
+         if (.not. allocated(denominator_QNinv11)) then; allocate (denominator_QNinv11(naky, nakx, -nzgrid:nzgrid)); denominator_QNinv11 = 0. ; end if
+         if (.not. allocated(denominator_QNinv31)) then; allocate (denominator_QNinv31(naky, nakx, -nzgrid:nzgrid)); denominator_QNinv31 = 0. ; end if
+         if (.not. allocated(denominator_QNinv13)) then; allocate (denominator_QNinv13(naky, nakx, -nzgrid:nzgrid)); denominator_QNinv13 = 0. ; end if
+         if (.not. allocated(denominator_QNinv33)) then; allocate (denominator_QNinv33(naky, nakx, -nzgrid:nzgrid)); denominator_QNinv33 = 0. ; end if
       else
          if (.not. allocated(bpar)) then; allocate (bpar(1, 1, 1, 1)); bpar = 0. ; end if
          if (.not. allocated(bpar_old)) then; allocate (bpar_old(1, 1, 1, 1)); bpar_old = 0. ; end if
-         if (.not. allocated(gamtot33)) then; allocate (gamtot33(1, 1, 1)); gamtot33 = 0. ; end if
-         if (.not. allocated(gamtot13)) then; allocate (gamtot13(1, 1, 1)); gamtot13 = 0. ; end if
-         if (.not. allocated(gamtot31)) then; allocate (gamtot31(1, 1, 1)); gamtot31 = 0. ; end if
-         if (.not. allocated(gamtotinv11)) then; allocate (gamtotinv11(1, 1, 1)); gamtotinv11 = 0. ; end if
-         if (.not. allocated(gamtotinv31)) then; allocate (gamtotinv31(1, 1, 1)); gamtotinv31 = 0. ; end if
-         if (.not. allocated(gamtotinv13)) then; allocate (gamtotinv13(1, 1, 1)); gamtotinv13 = 0. ; end if
-         if (.not. allocated(gamtotinv33)) then; allocate (gamtotinv33(1, 1, 1)); gamtotinv33 = 0. ; end if
+         if (.not. allocated(denominator_QN_MBR3)) then; allocate (denominator_QN_MBR3(1, 1, 1)); denominator_QN_MBR3 = 0. ; end if
+         if (.not. allocated(denominator_QN13)) then; allocate (denominator_QN13(1, 1, 1)); denominator_QN13 = 0. ; end if
+         if (.not. allocated(denominator_QN_MBR1)) then; allocate (denominator_QN_MBR1(1, 1, 1)); denominator_QN_MBR1 = 0. ; end if
+         if (.not. allocated(denominator_QNinv11)) then; allocate (denominator_QNinv11(1, 1, 1)); denominator_QNinv11 = 0. ; end if
+         if (.not. allocated(denominator_QNinv31)) then; allocate (denominator_QNinv31(1, 1, 1)); denominator_QNinv31 = 0. ; end if
+         if (.not. allocated(denominator_QNinv13)) then; allocate (denominator_QNinv13(1, 1, 1)); denominator_QNinv13 = 0. ; end if
+         if (.not. allocated(denominator_QNinv33)) then; allocate (denominator_QNinv33(1, 1, 1)); denominator_QNinv33 = 0. ; end if
       end if
 
-   end subroutine allocate_fields_electromagnetic
+   end subroutine allocate_quasineutrality_equation_electromagnetic
 
    !****************************************************************************
    !******************** FINISH THE ELECTROMAGNETIC FIELDS *********************
    !****************************************************************************
-   subroutine finish_fields_electromagnetic
+   subroutine finish_quasineutrality_equation_electromagnetic
 
-      use arrays_store_fields, only: apar
-      use arrays_store_fields, only: apar_old, bpar_old
-      use arrays_store_useful, only: gamtot13, gamtot31, gamtot33
-      use arrays_store_useful, only: gamtotinv11, gamtotinv13, gamtotinv31, gamtotinv33
-      use arrays_store_useful, only: apar_denom
+      use arrays_fields, only: apar
+      use arrays_fields, only: apar_old, bpar_old
+      use arrays, only: denominator_QN13, denominator_QN_MBR1, denominator_QN_MBR3
+      use arrays, only: denominator_QNinv11, denominator_QNinv13, denominator_QNinv31, denominator_QNinv33
+      use arrays, only: apar_denom
       
       implicit none
 
@@ -720,14 +725,14 @@ contains
       if (allocated(bpar_old)) deallocate(bpar_old)
       if (allocated(apar)) deallocate (apar)
       if (allocated(apar_denom)) deallocate (apar_denom)
-      if (allocated(gamtot33)) deallocate (gamtot33)
-      if (allocated(gamtot13)) deallocate (gamtot13)
-      if (allocated(gamtot31)) deallocate (gamtot31)
-      if (allocated(gamtotinv11)) deallocate(gamtotinv11)
-      if (allocated(gamtotinv31)) deallocate(gamtotinv31)
-      if (allocated(gamtotinv13)) deallocate(gamtotinv13)
-      if (allocated(gamtotinv33)) deallocate(gamtotinv33)
+      if (allocated(denominator_QN_MBR3)) deallocate (denominator_QN_MBR3)
+      if (allocated(denominator_QN13)) deallocate (denominator_QN13)
+      if (allocated(denominator_QN_MBR1)) deallocate (denominator_QN_MBR1)
+      if (allocated(denominator_QNinv11)) deallocate(denominator_QNinv11)
+      if (allocated(denominator_QNinv31)) deallocate(denominator_QNinv31)
+      if (allocated(denominator_QNinv13)) deallocate(denominator_QNinv13)
+      if (allocated(denominator_QNinv33)) deallocate(denominator_QNinv33)
       
-   end subroutine finish_fields_electromagnetic
+   end subroutine finish_quasineutrality_equation_electromagnetic
 
-end module fields_electromagnetic
+end module quasineutrality_equation_electromagnetic

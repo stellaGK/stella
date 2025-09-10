@@ -470,7 +470,7 @@ contains
       
       ! Geometry
       use geometry, only: bmag, dBdrho
-      use arrays_store_useful, only: kperp2, dkperp2dr
+      use arrays, only: kperp2, dkperp2dr
       
       ! Grids
       use grids_species, only: spec
@@ -690,7 +690,7 @@ contains
       
       ! Geometry
       use geometry, only: bmag, dBdrho
-      use arrays_store_useful, only: kperp2, dkperp2dr
+      use arrays, only: kperp2, dkperp2dr
       
       ! Grids
       use grids_species, only: spec

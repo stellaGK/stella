@@ -137,7 +137,7 @@ contains
       use parameters_physics, only: radial_variation
       
       ! Flow shear arrays
-      use arrays_store_useful, only: shift_state
+      use arrays, only: shift_state
 
       implicit none
 
@@ -241,7 +241,7 @@ contains
       if (.not. allocated(shift_times)) allocate (shift_times(naky))
       if (.not. allocated(upwind_advect)) allocate (upwind_advect(naky, nakx))
       
-      ! Allocate arrays stored in arrays_store_useful.f90
+      ! Allocate arrays stored in arrays.f90
       if (.not. allocated(shift_state)) then
          allocate (shift_state(naky))
          shift_state = 0.
@@ -275,7 +275,7 @@ contains
       use stella_layouts, only: vmu_lo
       
       ! Fields
-      use arrays_store_fields, only: phi, apar, bpar
+      use arrays_fields, only: phi, apar, bpar
       
       ! Physics flags
       use parameters_physics, only: full_flux_surface
@@ -356,7 +356,7 @@ contains
       use file_utils, only: runtype_multibox
       
       ! Flow shear arrays
-      use arrays_store_useful, only: shift_state
+      use arrays, only: shift_state
 
       implicit none
 
@@ -465,7 +465,7 @@ contains
    !****************************************************************************
    subroutine finish_flow_shear
    
-      use arrays_store_useful, only: shift_state
+      use arrays, only: shift_state
 
       implicit none
 

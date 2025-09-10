@@ -50,11 +50,11 @@ contains
       use geometry, only: dgbdriftdrho, dgbdrift0drho
 
       ! Arrays
-      use arrays_store_useful, only: wstarp
-      use arrays_store_useful, only: wdriftx_phi, wdrifty_phi
-      use arrays_store_useful, only: wdriftpx_g, wdriftpy_g
-      use arrays_store_useful, only: wdriftpx_phi, wdriftpy_phi
-      use arrays_store_useful, only: initialised_radial_variation
+      use arrays, only: wstarp
+      use arrays, only: wdriftx_phi, wdrifty_phi
+      use arrays, only: wdriftpx_g, wdriftpy_g
+      use arrays, only: wdriftpx_phi, wdriftpy_phi
+      use arrays, only: initialised_radial_variation
    
       implicit none
 
@@ -185,8 +185,8 @@ contains
       use calculations_kxky, only: multiply_by_rho
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
 
-      use arrays_store_fields, only: phi, apar, bpar
-      use arrays_store_fields, only: phi_corr_QN, phi_corr_GA
+      use arrays_fields, only: phi, apar, bpar
+      use arrays_fields, only: phi_corr_QN, phi_corr_GA
       
       use grids_z, only: nzgrid, ntubes
 
@@ -194,11 +194,11 @@ contains
       use parameters_physics, only: full_flux_surface, fphi
       use parameters_physics, only: include_parallel_streaming, include_mirror
 
-      use arrays_store_useful, only: wdriftx_phi, wdrifty_phi
-      use arrays_store_useful, only: wdriftpx_g, wdriftpy_g
-      use arrays_store_useful, only: wdriftpx_phi, wdriftpy_phi 
-      use arrays_store_useful, only: wstar, wstarp
-      use arrays_store_useful, only: time_gke
+      use arrays, only: wdriftx_phi, wdrifty_phi
+      use arrays, only: wdriftpx_g, wdriftpy_g
+      use arrays, only: wdriftpx_phi, wdriftpy_phi 
+      use arrays, only: wstar, wstarp
+      use arrays, only: time_gke
 
       use gk_mirror, only: add_mirror_radial_variation
       use gk_flow_shear, only: prl_shear, prl_shear_p
@@ -331,8 +331,9 @@ contains
       use grids_z, only: nzgrid
       use multibox, only: multibox_communicate, apply_radial_boundary_conditions
       use parameters_multibox, only: use_dirichlet_bc
-      use fields, only: fields_updated, advance_fields
-      use arrays_store_fields, only: phi, apar, bpar
+      use quasineutrality_equation, only: fields_updated
+      use quasineutrality_equation, only: advance_fields_using_quasineutrality_equation
+      use arrays_fields, only: phi, apar, bpar
       use file_utils, only: runtype_option_switch, runtype_multibox
 
       implicit none
@@ -344,19 +345,19 @@ contains
 
       if (runtype_option_switch == runtype_multibox) then
          if (job /= 1) then
-               call advance_fields(g_in, phi, apar, bpar, dist='g')
+               call advance_fields_using_quasineutrality_equation(g_in, phi, apar, bpar, dist='g')
          end if
 
          call multibox_communicate(g_in)
 
          if (job == 1) then
                fields_updated = .false.
-               call advance_fields(g_in, phi, apar, bpar, dist='g')
+               call advance_fields_using_quasineutrality_equation(g_in, phi, apar, bpar, dist='g')
          end if
       else if (use_dirichlet_BC) then
          call apply_radial_boundary_conditions(g_in)
          fields_updated = .false.
-         call advance_fields(g_in, phi, apar, bpar, dist='g')
+         call advance_fields_using_quasineutrality_equation(g_in, phi, apar, bpar, dist='g')
       end if
 
    end subroutine mb_communicate
@@ -366,10 +367,10 @@ contains
    !****************************************************************************
    subroutine finish_radial_variation
 
-      use arrays_store_useful, only: initialised_radial_variation
-      use arrays_store_useful, only: wdriftpx_g, wdriftpy_g
-      use arrays_store_useful, only: wdriftpx_phi, wdriftpy_phi
-      use arrays_store_useful, only: wstarp
+      use arrays, only: initialised_radial_variation
+      use arrays, only: wdriftpx_g, wdriftpy_g
+      use arrays, only: wdriftpx_phi, wdriftpy_phi
+      use arrays, only: wstarp
 
       implicit none
 

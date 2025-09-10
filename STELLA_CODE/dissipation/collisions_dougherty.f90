@@ -131,7 +131,7 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use geometry, only: bmag
-      use arrays_store_useful, only: kperp2
+      use arrays, only: kperp2
 
       implicit none
 
@@ -180,7 +180,7 @@ contains
       use grids_velocity, only: dmu_cell, mu_cell, wgts_mu_bare
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
-      use arrays_store_useful, only: kperp2
+      use arrays, only: kperp2
 
       implicit none
 
@@ -252,11 +252,11 @@ contains
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use geometry, only: dl_over_b
-      use arrays_store_distribution_fn, only: gvmu
+      use arrays_distribution_function, only: gvmu
       use arrays_gyro_averages, only: aj0v
-      use fields_fluxtube, only: get_fields_fluxtube
-      use fields_collisions, only: get_fields_by_spec
-      use arrays_store_useful, only: efac, gamtot_h
+      use quasineutrality_equation_fluxtube, only: advance_fields_using_quasineutrality_equation
+      use quasineutrality_equation_collisions, only: get_fields_by_spec
+      use arrays, only: efac, denominator_QN_h
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
 
@@ -320,7 +320,7 @@ contains
       ! for phi equation, need 1-P[dhs/dphi]
       ! for upar equations, need -Us[dhs/dphi]
       ! for energy conservation, need -Qs[dhs/dphi]
-      call get_fields_fluxtube(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h', skip_fsa=.true.)
+      call advance_fields_using_quasineutrality_equation(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h', skip_fsa=.true.)
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -472,7 +472,7 @@ contains
             ! Calculate -inv(vpadiff_response).Q, where Q has a single entry
             do idx = 1, nresponse_vpa
                vpadiff_zf_response(idx, 1, ikx) = vpadiff_zf_response(idx, 1, ikx) &
-                                                  - temp_mat(idx, 1) * (efac / gamtot_h) * dl_over_b(ia, iz)
+                                                  - temp_mat(idx, 1) * (efac / denominator_QN_h) * dl_over_b(ia, iz)
             end do
          end do
 
@@ -518,12 +518,12 @@ contains
       use geometry, only: dl_over_b, bmag
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use arrays_store_distribution_fn, only: gvmu
-      use arrays_store_useful, only: kperp2
+      use arrays_distribution_function, only: gvmu
+      use arrays, only: kperp2
       use arrays_gyro_averages, only: aj0v, aj1v
-      use fields_fluxtube, only: get_fields_fluxtube
-      use fields_collisions, only: get_fields_by_spec
-      use arrays_store_useful, only: efac, gamtot_h
+      use quasineutrality_equation_fluxtube, only: advance_fields_using_quasineutrality_equation
+      use quasineutrality_equation_collisions, only: get_fields_by_spec
+      use arrays, only: efac, denominator_QN_h
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
 
@@ -578,7 +578,7 @@ contains
       ! for phi equation, need 1-P[dhs/dphi]
       ! for uperp equations, need -Us[dhs/dphi]
       ! for energy conservation, need -Qs[dhs/dphi]
-      call get_fields_fluxtube(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h', skip_fsa=.true.)
+      call advance_fields_using_quasineutrality_equation(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h', skip_fsa=.true.)
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -734,7 +734,7 @@ contains
             ! Calculate -inv(mudiff_response).Q, where Q has a single entry
             do idx = 1, nresponse_mu
                mudiff_zf_response(idx, 1, ikx) = mudiff_zf_response(idx, 1, ikx) &
-                                                 - temp_mat(idx, 1) * (efac / gamtot_h) * dl_over_b(ia, iz)
+                                                 - temp_mat(idx, 1) * (efac / denominator_QN_h) * dl_over_b(ia, iz)
             end do
          end do
 
@@ -1051,9 +1051,9 @@ contains
       use stella_layouts, only: vmu_lo, kxkyz_lo
       use stella_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
       use calculations_redistribute, only: kxkyz2vmu
-      use arrays_store_distribution_fn, only: gvmu
-      use arrays_store_useful, only: kperp2, dkperp2dr
-      use arrays_store_fields, only: phi_corr_QN
+      use arrays_distribution_function, only: gvmu
+      use arrays, only: kperp2, dkperp2dr
+      use arrays_fields, only: phi_corr_QN
       use calculations_tofrom_ghf, only: g_to_h
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
@@ -1340,7 +1340,7 @@ contains
       use grids_velocity, only: vpa, nvpa, nmu, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu
       !use grids_velocity, only: int_vpa2
-      use arrays_store_useful, only: kperp2
+      use arrays, only: kperp2
       use arrays_gyro_averages, only: aj0v, aj1v
 
       implicit none
@@ -1446,7 +1446,7 @@ contains
       use calculations_velocity_integrals, only: integrate_species
       use grids_velocity, only: mu, vpa, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use arrays_store_useful, only: kperp2, dkperp2dr
+      use arrays, only: kperp2, dkperp2dr
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use arrays_gyro_averages, only: aj0x, aj1x
 
@@ -1590,7 +1590,7 @@ contains
       use calculations_velocity_integrals, only: integrate_species
       use grids_velocity, only: mu, vpa, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
-      use arrays_store_useful, only: kperp2, dkperp2dr
+      use arrays, only: kperp2, dkperp2dr
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use arrays_gyro_averages, only: aj0x, aj1x
 
@@ -1696,7 +1696,7 @@ contains
    subroutine advance_collisions_dougherty_implicit(phi, apar, bpar)
 
       use grids_z, only: nzgrid
-      use arrays_store_distribution_fn, only: gvmu
+      use arrays_distribution_function, only: gvmu
 
       implicit none
 
@@ -1732,8 +1732,8 @@ contains
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use calculations_tofrom_ghf, only: g_to_h
       use arrays_gyro_averages, only: aj0v
-      use fields_fluxtube, only: get_fields_fluxtube
-      use arrays_store_useful, only: efac, gamtot_h
+      use quasineutrality_equation_fluxtube, only: advance_fields_using_quasineutrality_equation
+      use arrays, only: efac, denominator_QN_h
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
 
@@ -1774,7 +1774,7 @@ contains
 
       ! Need to obtain phi^{n+1} and conservation terms using response matrix approach
       ! first get phi_inh^{n+1}
-      call get_fields_fluxtube(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
+      call advance_fields_using_quasineutrality_equation(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
       flds(:, :, :, :, 1) = phi
 
       idx = 2
@@ -1815,7 +1815,7 @@ contains
                call lu_back_substitution(vpadiff_zf_response(:, :, ikx), vpadiff_zf_idx(:, ikx), &
                                          flds_zf(ikx, it, :))
                ! Multiply by Q, which has a single non-zero component
-               flds_zf(ikx, it, 1) = (efac / gamtot_h) * flds_zf(ikx, it, 1)
+               flds_zf(ikx, it, 1) = (efac / denominator_QN_h) * flds_zf(ikx, it, 1)
                flds_zf(ikx, it, 2:) = 0.
             end do
          end do
@@ -1903,11 +1903,11 @@ contains
       use grids_kxky, only: zonal_mode
       use stella_layouts, only: kxkyz_lo
       use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use arrays_store_useful, only: kperp2
+      use arrays, only: kperp2
       use arrays_gyro_averages, only: aj0v, aj1v
       use calculations_tofrom_ghf, only: g_to_h
-      use fields_fluxtube, only: get_fields_fluxtube
-      use arrays_store_useful, only: efac, gamtot_h
+      use quasineutrality_equation_fluxtube, only: advance_fields_using_quasineutrality_equation
+      use arrays, only: efac, denominator_QN_h
       use geometry, only: bmag, dl_over_b
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
@@ -1950,7 +1950,7 @@ contains
 
       ! Need to obtain phi^{n+1} and conservation terms using response matrix approach
       ! first get phi_inh^{n+1}
-      call get_fields_fluxtube(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
+      call advance_fields_using_quasineutrality_equation(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
       flds(:, :, :, :, 1) = phi
 
       idx = 2
@@ -1990,7 +1990,7 @@ contains
             do ikx = 1, nakx
                call lu_back_substitution(mudiff_zf_response(:, :, ikx), mudiff_zf_idx(:, ikx), flds_zf(ikx, it, :))
                ! Multiply by Q, which has a single non-zero component
-               flds_zf(ikx, it, 1) = (efac / gamtot_h) * flds_zf(ikx, it, 1)
+               flds_zf(ikx, it, 1) = (efac / denominator_QN_h) * flds_zf(ikx, it, 1)
                flds_zf(ikx, it, 2:) = 0.
             end do
          end do

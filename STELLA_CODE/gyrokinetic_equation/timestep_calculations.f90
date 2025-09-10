@@ -50,7 +50,7 @@ contains
       use gk_parallel_streaming, only: stream_rad_var1
       use gk_parallel_streaming, only: stream_rad_var2
       use gk_mirror, only: mirror
-      use arrays_store_useful, only: wdriftx_g, wdrifty_g
+      use arrays, only: wdriftx_g, wdrifty_g
       
       ! Collisions
       use dissipation_and_collisions, only: include_collisions, collisions_implicit
@@ -215,8 +215,8 @@ contains
       use dissipation_and_collisions, only: init_collisions
       
       ! Flags 
-      use arrays_store_useful, only: initialised_radial_variation, initialised_implicit_drifts
-      use arrays_store_useful, only: initialised_wdrift, initialised_wstar
+      use arrays, only: initialised_radial_variation, initialised_implicit_drifts
+      use arrays, only: initialised_wdrift, initialised_wstar
       use gk_parallel_streaming, only: initialised_parallel_streaming
       use dissipation_and_collisions, only: initialised_collisions
       use response_matrix, only: initialised_response_matrix

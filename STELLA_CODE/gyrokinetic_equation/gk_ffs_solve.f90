@@ -62,7 +62,7 @@ module gk_ffs_solve
       use calculations_kxky, only: swap_kxky
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
       use grids_species, only: spec
-      use fields, only: advance_fields
+      use quasineutrality_equation, only: advance_fields_using_quasineutrality_equation
       use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: j0_ffs
       use calculations_kxky, only: swap_kxky_back
@@ -204,9 +204,9 @@ module gk_ffs_solve
       use calculations_kxky, only: swap_kxky, swap_kxky_back
       use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: j0_ffs
-      use arrays_store_useful, only: wdriftx_g, wdriftx_phi
-      use arrays_store_useful, only: wdrifty_g, wdrifty_phi
-      use arrays_store_useful, only: wstar
+      use arrays, only: wdriftx_g, wdriftx_phi
+      use arrays, only: wdrifty_g, wdrifty_phi
+      use arrays, only: wstar
 
       use gk_parallel_streaming, only: center_zed
 

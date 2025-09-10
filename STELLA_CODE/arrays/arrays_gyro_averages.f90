@@ -124,7 +124,7 @@ contains
       use geometry, only: bmag
       use grids_velocity, only: nmu
       use grids_velocity, only: vperp2
-      use arrays_store_useful, only: kperp2
+      use arrays, only: kperp2
       
       ! Species parameters
       use grids_species, only: spec
@@ -191,7 +191,7 @@ contains
       use grids_z, only: nzgrid
       use grids_kxky, only: naky, nakx
       use grids_velocity, only: vperp2
-      use arrays_store_useful, only: kperp2
+      use arrays, only: kperp2
       
       ! Species parameters
       use grids_species, only: spec
@@ -271,7 +271,7 @@ contains
       use grids_velocity, only: vperp2, maxwell_vpa, maxwell_mu
       use grids_kxky, only: nalpha, naky, naky_all, ikx_max
       use calculations_kxky, only: swap_kxky_ordered
-      use arrays_store_useful, only: kperp2
+      use arrays, only: kperp2
       use grids_kxky, only: nakx
       use calculations_kxky, only: swap_kxky_back_ordered
       use spfunc, only: j1

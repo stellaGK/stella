@@ -37,14 +37,14 @@ contains
    subroutine diagnostics_stella(istep)
 
       ! Data 
-      use arrays_store_fields, only: phi, apar, bpar
-      use arrays_store_distribution_fn, only: gnew 
-      use fields, only: advance_fields 
+      use arrays_fields, only: phi, apar, bpar
+      use arrays_distribution_function, only: gnew 
+      use quasineutrality_equation, only: advance_fields_using_quasineutrality_equation 
       use constants, only: zi 
 
       ! Flags  
       use parameters_physics, only: radial_variation
-      use fields, only: fields_updated    
+      use quasineutrality_equation, only: fields_updated
       use parameters_diagnostics, only: nc_mult, nwrite
 
       ! Write data 
@@ -89,7 +89,7 @@ contains
 
       ! Get the updated fields <phi>(ky,kx,z,tube) corresponding to <gnew>(ky,kx,z,tube,i[vpa,mu,s])
       if (radial_variation) fields_updated = .false. 
-      call advance_fields(gnew, phi, apar, bpar, dist='g')
+      call advance_fields_using_quasineutrality_equation(gnew, phi, apar, bpar, dist='g')
 
       ! First write data that also has ascii files (do potential first since it will update the fields)
       call write_potential_to_netcdf_file(istep, nout, time_diagnostics(:, 2), write_to_netcdf_file)
@@ -128,7 +128,7 @@ contains
    ! extension '.out.nc'. Open/append the ascii files ('.out'; '.fluxes'; '.omega').
    ! Gets called in the <init_stella> subroutine in the <stella> module. 
    !============================================================================
-   subroutine init_diagnostics(restart, tstart)
+   subroutine init_diagnostics(restart, tstart, istep0)
 
       ! Parallelisation
       use mp, only: broadcast, proc0
@@ -142,9 +142,9 @@ contains
       use grids_kxky, only: read_parameters_kxky_grids
       use grids_species, only: init_species
       use grids_species, only: read_parameters_species
-      use initialise_distribution_fn, only: read_parameters_init_distribution
-      use arrays_distribution_fn, only: init_arrays_distribution_fn
-      use arrays_constants, only: init_arrays_vperp_kperp
+      use initialise_distribution_function, only: read_parameters_distribution_function
+      use initialise_distribution_function, only: init_distribution_function
+      use initialise_arrays, only: init_arrays_vperp_kperp
       use arrays_gyro_averages, only: init_arrays_bessel_functions
       use parameters_diagnostics, only: read_parameters_diagnostics
       use diagnostics_omega, only: init_diagnostics_omega
@@ -162,10 +162,11 @@ contains
       implicit none
 
       ! Has this simulation been restarted?
-      logical, intent(in) :: restart
+      logical, intent(in out) :: restart
 
       ! Current simulation time (in case of a restart)
       real, intent(in) :: tstart
+      integer, intent(in out) :: istep0
 
       ! Stella version number and release date
       character(len=40) :: git_commit
@@ -192,8 +193,8 @@ contains
       call init_z_grid
       call init_grids_kxky
       call init_species(ecoll_zeff, zeff, vnew_ref)
-      call read_parameters_init_distribution
-      call init_arrays_distribution_fn
+      call read_parameters_distribution_function
+      call init_distribution_function(restart, istep0)
       call init_arrays_vperp_kperp
       call init_arrays_bessel_functions
 
@@ -221,7 +222,7 @@ contains
       use stella_time, only: code_dt, code_time
       use stella_save, only: stella_save_for_restart
       use calculations_redistribute, only: kxkyz2vmu
-      use arrays_store_distribution_fn, only: gnew, gvmu
+      use arrays_distribution_function, only: gnew, gvmu
       use diagnostics_omega, only: finish_diagnostics_omega
       use diagnostics_fluxes, only: finish_diagnostics_fluxes 
       use diagnostics_potential, only: finish_diagnostics_potential

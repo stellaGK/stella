@@ -13,8 +13,8 @@ module multibox
    public :: finish_multibox
    public :: multibox_communicate
    public :: apply_radial_boundary_conditions
-   public :: init_mb_get_phi
-   public :: mb_get_phi
+   public :: init_mb_calculate_phi
+   public :: mb_calculate_phi
    public :: communicate_multibox_parameters
    public :: add_multibox_krook
    public :: bs_fullgrid
@@ -50,7 +50,7 @@ module multibox
    real, dimension(:), allocatable :: fft_y_y
 
    logical :: mb_transforms_initialized = .false.
-   logical :: get_phi_initialized = .false.
+   logical :: calculate_phi_initialized = .false.
    logical :: use_multibox
    integer :: temp_ind = 0
    integer :: bs_fullgrid
@@ -411,7 +411,7 @@ contains
       use geometry, only: dl_over_b
       
       ! Fields
-      use arrays_store_fields, only: phi, phi_corr_QN
+      use arrays_fields, only: phi, phi_corr_QN
       
       ! Radial variation
       use parameters_physics, only: radial_variation
@@ -427,7 +427,7 @@ contains
       ! Radial variation - flow shear
       use gk_flow_shear, only: prp_shear_enabled, hammett_flow_shear
       use gk_flow_shear, only: g_exb, g_exbfac
-      use arrays_store_useful, only: shift_state
+      use arrays, only: shift_state
 
       implicit none
 
@@ -747,15 +747,15 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine init_mb_get_phi(has_elec, adiabatic_elec, efac, efacp)
+   subroutine init_mb_calculate_phi(has_elec, adiabatic_elec, efac, efacp)
       use grids_kxky, only: nakx, naky
       use parameters_multibox, only: boundary_size
       use grids_z, only: nzgrid
       use parameters_physics, only: radial_variation
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use parameters_multibox, only: ky_solve_radial
-      use arrays_store_fields, only: phi_solve, phizf_solve
-      use arrays_store_useful, only: gamtot, dgamtotdr
+      use arrays_fields, only: phi_solve, phizf_solve
+      use arrays, only: denominator_QN, ddenominator_QNdr
       use linear_solve, only: lu_decomposition, lu_inverse
 
       use parameters_multibox, only: phi_bound
@@ -770,9 +770,9 @@ contains
       if (.not. radial_variation) return
 
       !this does not depend on the timestep, so only do once
-      if (get_phi_initialized) return
+      if (calculate_phi_initialized) return
 
-      get_phi_initialized = .true.
+      calculate_phi_initialized = .true.
 
       !efac_l  = efac
       !efacp_l = efacp_l
@@ -800,13 +800,13 @@ contains
                g0x(1, ikx) = 1.0
                call transform_x2kx(g0x, g0k)
 
-               g1k(1, :) = g0k(1, :) * gamtot(iky, :, iz)
+               g1k(1, :) = g0k(1, :) * denominator_QN(iky, :, iz)
                call transform_kx2x(g1k, g0x)
 
                !row column
                phi_solve(iky, iz)%zloc(:, ikx - b_solve) = g0x(1, (1 + b_solve):(x_fft_size - b_solve))
 
-               g1k(1, :) = g0k(1, :) * dgamtotdr(iky, :, iz)
+               g1k(1, :) = g0k(1, :) * ddenominator_QNdr(iky, :, iz)
                call transform_kx2x(g1k, g0x)
                g0x(1, :) = rho_mb_clamped * g0x(1, :)
 
@@ -862,12 +862,12 @@ contains
       end if
 
       deallocate (g0k, g1k, g0x)
-   end subroutine init_mb_get_phi
+   end subroutine init_mb_calculate_phi
 
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine mb_get_phi(phi, has_elec, adiabatic_elec)
+   subroutine mb_calculate_phi(phi, has_elec, adiabatic_elec)
       use constants, only: zi
       use grids_kxky, only: nakx, naky
       use parameters_multibox, only: boundary_size
@@ -875,8 +875,8 @@ contains
       use grids_z, only: nzgrid, ntubes
       use geometry, only: dl_over_b, d_dl_over_b_drho
       use parameters_multibox, only: ky_solve_radial
-      use arrays_store_useful, only: gamtot, dgamtotdr
-      use arrays_store_fields, only: phi_solve, phizf_solve
+      use arrays, only: denominator_QN, ddenominator_QNdr
+      use arrays_fields, only: phi_solve, phizf_solve
       use linear_solve, only: lu_back_substitution
 
       use parameters_multibox, only: phi_pow, phi_bound
@@ -909,7 +909,7 @@ contains
          do iz = -nzgrid, nzgrid
             do iky = 1, naky
                if (iky > ky_solve_radial) then
-                  phi(iky, :, iz, it) = phi(iky, :, iz, it) / gamtot(iky, :, iz)
+                  phi(iky, :, iz, it) = phi(iky, :, iz, it) / denominator_QN(iky, :, iz)
                else
                   g0x = 0.0
                   tmp = 0
@@ -941,10 +941,10 @@ contains
                      end if
                   end if
 
-                  g1k(1, :) = g0k(1, :) * gamtot(iky, :, iz)
+                  g1k(1, :) = g0k(1, :) * denominator_QN(iky, :, iz)
                   call transform_kx2x(g1k, g1x)
                   g0x = g0x + g1x
-                  g1k(1, :) = g0k(1, :) * dgamtotdr(iky, :, iz)
+                  g1k(1, :) = g0k(1, :) * ddenominator_QNdr(iky, :, iz)
                   call transform_kx2x(g1k, g1x)
                   g1x(1, :) = rho_mb_clamped * g1x(1, :) + g0x(1, :)
 
@@ -987,7 +987,7 @@ contains
             end do
          end do
 
-         if (ky_solve_radial == 0 .and. any(gamtot(1, 1, :) < epsilon(0.))) phi(1, 1, :, it) = 0.0
+         if (ky_solve_radial == 0 .and. any(denominator_QN(1, 1, :) < epsilon(0.))) phi(1, 1, :, it) = 0.0
 
          if (adiabatic_elec .and. zonal_mode(1)) then
             !get A_p^-1.(g - A_b.phi_b) in real space
@@ -1034,7 +1034,7 @@ contains
       if (allocated(g_fsa)) deallocate (g_fsa)
       if (allocated(pb_fsa)) deallocate (pb_fsa)
 
-   end subroutine mb_get_phi
+   end subroutine mb_calculate_phi
 
    !****************************************************************************
    !                                      Title
