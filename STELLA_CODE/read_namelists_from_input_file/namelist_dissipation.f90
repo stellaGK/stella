@@ -379,18 +379,18 @@ contains
          write (unit, '(A, I0)') '  jmax = ', jmax
          write (unit, '(A, I0)') '  lmax = ', lmax
          write (unit, '(A, I0)') '  nvel_local = ', nvel_local
-         write (unit, '(A, SE0.4)') '  iiknob = ', iiknob
-         write (unit, '(A, SE0.4)') '  ieknob = ', ieknob
-         write (unit, '(A, SE0.4)') '  eeknob = ', eeknob
-         write (unit, '(A, SE0.4)') '  eiknob = ', eiknob
-         write (unit, '(A, SE0.4)') '  eiediffknob = ', eiediffknob
-         write (unit, '(A, SE0.4)') '  eideflknob = ', eideflknob
-         write (unit, '(A, SE0.4)') '  deflknob = ', deflknob
-         write (unit, '(A, SE0.4)') '  cfac = ', cfac
-         write (unit, '(A, SE0.4)') '  cfac2 = ', cfac2
-         write (unit, '(A, SE0.4)') '  nuxfac = ', nuxfac
-         write (unit, '(A, SE0.4)') '  i1fac = ', i1fac
-         write (unit, '(A, SE0.4)') '  i2fac = ', i2fac
+         write (unit, '(A, ES0.4)') '  iiknob = ', iiknob
+         write (unit, '(A, ES0.4)') '  ieknob = ', ieknob
+         write (unit, '(A, ES0.4)') '  eeknob = ', eeknob
+         write (unit, '(A, ES0.4)') '  eiknob = ', eiknob
+         write (unit, '(A, ES0.4)') '  eiediffknob = ', eiediffknob
+         write (unit, '(A, ES0.4)') '  eideflknob = ', eideflknob
+         write (unit, '(A, ES0.4)') '  deflknob = ', deflknob
+         write (unit, '(A, ES0.4)') '  cfac = ', cfac
+         write (unit, '(A, ES0.4)') '  cfac2 = ', cfac2
+         write (unit, '(A, ES0.4)') '  nuxfac = ', nuxfac
+         write (unit, '(A, ES0.4)') '  i1fac = ', i1fac
+         write (unit, '(A, ES0.4)') '  i2fac = ', i2fac
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
          
@@ -481,9 +481,9 @@ contains
          write (unit, '(A, L0)') '  scale_to_outboard = ', scale_to_outboard
          write (unit, '(A, L0)') '  hyp_vpa = ', hyp_vpa
          write (unit, '(A, L0)') '  hyp_zed = ', hyp_zed
-         write (unit, '(A, SE0.4)') '  D_hyper = ', D_hyper
-         write (unit, '(A, SE0.4)') '  D_zed = ', D_zed
-         write (unit, '(A, SE0.4)') '  D_vpa = ', D_vpa
+         write (unit, '(A, ES0.4)') '  D_hyper = ', D_hyper
+         write (unit, '(A, ES0.4)') '  D_zed = ', D_zed
+         write (unit, '(A, ES0.4)') '  D_vpa = ', D_vpa
          write (unit, '(A)') '/'
          write (unit, '(A)') ''
 
