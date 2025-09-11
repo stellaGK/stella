@@ -136,7 +136,7 @@ contains
       use parameters_diagnostics, only: navg
       
       ! Write to netCDF file
-      use stella_io, only: write_omega_nc
+      use write_diagnostics_to_netcdf, only: write_omega_nc
       
       ! Parallelisation
       use job_manage, only: time_message

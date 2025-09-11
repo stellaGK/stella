@@ -45,6 +45,7 @@ option(STELLA_UPDATE_GIT_SUBMODULES "Check submodules are up-to-date during buil
 
 # Sources that don't need preprocessing
 set(STELLA_SOURCES_f90
+  ../STELLA_CODE/init_stella.f90
   ../STELLA_CODE/arrays/arrays.f90
   ../STELLA_CODE/arrays/arrays_distribution_function.f90
   ../STELLA_CODE/arrays/arrays_fields.f90
@@ -102,6 +103,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/gyrokinetic_equation/gyrokinetic_equation_implicit.f90
   ../STELLA_CODE/gyrokinetic_equation/gyrokinetic_equation_initialisation.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
+  ../STELLA_CODE/parameters/common_types.f90
   ../STELLA_CODE/parameters/debug_flags.f90
   ../STELLA_CODE/parameters/file_units.f90
   ../STELLA_CODE/parameters/interface_random_number_generator.f90
@@ -109,6 +111,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/parameters/parameters_multibox.f90
   ../STELLA_CODE/parameters/parameters_numerical.f90
   ../STELLA_CODE/parameters/parameters_physics.f90
+  ../STELLA_CODE/parameters/parallelisation_layouts.f90
   ../STELLA_CODE/quasineutrality_equation/quasineutrality_equation.f90
   ../STELLA_CODE/quasineutrality_equation/quasineutrality_equation_collisions.f90
   ../STELLA_CODE/quasineutrality_equation/quasineutrality_equation_electromagnetic.f90
@@ -131,16 +134,13 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_species.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_velocity_grids.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_z_grid.f90
-  ../STELLA_CODE/stella_utils/init_stella.f90
-  ../STELLA_CODE/stella_utils/stella_common_types.f90
-  ../STELLA_CODE/stella_utils/stella_layouts.f90
   ../STELLA_CODE/utils/define.inc
 )
 
 # Sources that _do_ need preprocessing (because they have MPI flags, ...)
 set(STELLA_SOURCES_fpp
-  ../STELLA_CODE/stella_utils/stella_io.fpp
-  ../STELLA_CODE/stella_utils/stella_save.fpp
+  ../STELLA_CODE/diagnostics/write_diagnostics_to_netcdf.fpp
+  ../STELLA_CODE/diagnostics/save_stella_for_restart.fpp
   ../STELLA_CODE/quasineutrality_equation/quasineutrality_equation_radialvariation.fpp
   ../STELLA_CODE/gyrokinetic_equation/response_matrix.fpp
   ../STELLA_CODE/radial_variation/gk_sources.fpp

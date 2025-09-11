@@ -63,9 +63,9 @@ contains
       use mp, only: proc0
       
       ! Write to netCDF file 
-      use stella_io, only: write_fluxes_kxkyzs_nc
-      use stella_io, only: write_fluxes_kxkys_nc
-      use stella_io, only: write_fluxes_vs_time_nc
+      use write_diagnostics_to_netcdf, only: write_fluxes_kxkyzs_nc
+      use write_diagnostics_to_netcdf, only: write_fluxes_kxkys_nc
+      use write_diagnostics_to_netcdf, only: write_fluxes_vs_time_nc
 
       implicit none
 
@@ -251,8 +251,8 @@ contains
       use grids_species, only: nspec
    
       ! Write data
-      use stella_io, only: write_radial_fluxes_nc
-      use stella_io, only: write_radial_fluxes_nc
+      use write_diagnostics_to_netcdf, only: write_radial_fluxes_nc
+      use write_diagnostics_to_netcdf, only: write_radial_fluxes_nc
 
       ! Calculations
       use diagnostics_fluxes_radialvariation, only: calculate_fluxes_radialvariation

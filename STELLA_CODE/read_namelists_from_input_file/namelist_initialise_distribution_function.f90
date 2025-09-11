@@ -549,7 +549,7 @@ contains
          read_many = .true.
          
          ! Note that the <read_many> and <save_many> are initialised at the
-         ! start of this module so that they are accessible to stella_save.fpp
+         ! start of this module so that they are accessible to save_stella_for_restart.fpp
 
       end subroutine set_default_parameters_restart_options
 

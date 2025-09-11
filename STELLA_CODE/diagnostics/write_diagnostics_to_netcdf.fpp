@@ -9,7 +9,7 @@
 ! The variable <nout> keeps track of the current time step.
 ! 
 !###############################################################################
-module stella_io
+module write_diagnostics_to_netcdf
 
 #ifdef NETCDF
    use netcdf, only: nf90_noerr
@@ -20,7 +20,7 @@ module stella_io
 
    private
 
-   public :: init_stella_io, finish_stella_io
+   public :: init_write_diagnostics_to_netcdf, finish_write_diagnostics_to_netcdf
    
    ! Write time traces  
    public :: write_time_nc
@@ -91,7 +91,7 @@ contains
    !============================================================================
    !========================= INITIATE THE NETCDF FILE =========================
    !============================================================================
-   subroutine init_stella_io(restart, git_commit, git_date)
+   subroutine init_write_diagnostics_to_netcdf(restart, git_commit, git_date)
 
 #ifdef NETCDF
       use mp, only: proc0
@@ -143,7 +143,7 @@ contains
 
 #endif
 
-   end subroutine init_stella_io
+   end subroutine init_write_diagnostics_to_netcdf
 
    !============================================================================
    !======================== WRITE DIMENSIONS AND GRIDS ========================
@@ -248,7 +248,7 @@ contains
    !============================================================================
    !========================== FINISH THE NETCDF FILE ==========================
    !============================================================================
-   subroutine finish_stella_io
+   subroutine finish_write_diagnostics_to_netcdf
       use mp, only: proc0
 #ifdef NETCDF
       use neasyf, only: neasyf_close
@@ -257,7 +257,7 @@ contains
          call neasyf_close(ncid)
       end if
 #endif
-   end subroutine finish_stella_io
+   end subroutine finish_write_diagnostics_to_netcdf
 
    !============================================================================
    !=========================== SAVE THE INPUT FILE ============================
@@ -1582,4 +1582,4 @@ contains
       call neasyf_write(parent_id, name, real_values, dim_names=dim_names, units=units, long_name=long_name, start=start)
    end subroutine write_complex_rank5
 
-end module stella_io
+end module write_diagnostics_to_netcdf

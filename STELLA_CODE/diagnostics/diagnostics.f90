@@ -53,7 +53,7 @@ contains
       use diagnostics_fluxes, only: write_fluxes_to_netcdf_file
       use diagnostics_moments, only: write_moments_to_netcdf_file
       use diagnostics_distribution, only: write_distribution_to_netcdf_file
-      use stella_io, only: sync_nc
+      use write_diagnostics_to_netcdf, only: sync_nc
    
       ! Routines
       use job_manage, only: time_message
@@ -156,8 +156,8 @@ contains
       
       ! Netcdf output file
       use git_version, only: get_git_version, get_git_date
-      use stella_io, only: init_stella_io
-      use stella_io, only: get_nout
+      use write_diagnostics_to_netcdf, only: init_write_diagnostics_to_netcdf
+      use write_diagnostics_to_netcdf, only: get_nout
 
       implicit none
 
@@ -204,7 +204,7 @@ contains
       call init_diagnostics_potential(restart)
 
       ! Open the netcdf file with extension '.out.nc'
-      call init_stella_io(restart, git_commit, git_date)
+      call init_write_diagnostics_to_netcdf(restart, git_commit, git_date)
 
       ! Get the final position <nout> of the time axis in the netcdf file
       if (proc0) call get_nout(tstart, nout)
@@ -218,9 +218,9 @@ contains
    subroutine finish_diagnostics(istep)
  
       use redistribute, only: scatter
-      use stella_io, only: finish_stella_io
+      use write_diagnostics_to_netcdf, only: finish_write_diagnostics_to_netcdf
       use grids_time, only: code_dt, code_time
-      use stella_save, only: stella_save_for_restart
+      use save_stella_for_restart, only: save_stella_for_restart_for_restart
       use calculations_redistribute, only: kxkyz2vmu
       use arrays_distribution_function, only: gnew, gvmu
       use diagnostics_omega, only: finish_diagnostics_omega
@@ -238,11 +238,11 @@ contains
       ! Save stella to be restarted
       if (save_for_restart) then
          call scatter(kxkyz2vmu, gnew, gvmu)
-         call stella_save_for_restart(gvmu, istep, code_time, code_dt, istatus, .true.)
+         call save_stella_for_restart_for_restart(gvmu, istep, code_time, code_dt, istatus, .true.)
       end if
 
       ! Close the netcdf file
-      call finish_stella_io
+      call finish_write_diagnostics_to_netcdf
 
       ! Finish submodules
       call finish_diagnostics_omega

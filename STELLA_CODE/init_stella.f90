@@ -451,7 +451,7 @@ contains
       use parameters_numerical, only: delt_option_auto
       use parameters_numerical, only: delt, delt_max, delt_min
       use grids_time, only: init_delt
-      use stella_save, only: init_dt
+      use save_stella_for_restart, only: init_dt
       
       ! Initialise parts of the gyrokinetic equation
       use gyrokinetic_equation_initialisation, only: init_gyrokinetic_equation

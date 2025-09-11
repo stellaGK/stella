@@ -4,14 +4,16 @@
 !###############################################################################
 ! This module ...
 !###############################################################################
-module stella_save
+module save_stella_for_restart
 
-   use mp, only: mp_comm, mp_info
+   ! Import mpi
+   use mp, only: mp_comm
+   use mp, only: mp_info
 
+   ! Import netcdf
 # ifdef NETCDF
-!  use netcdf, only: NF90_FLOAT, NF90_DOUBLE
 # ifdef NETCDF_PARALLEL
-! If using netcdf version 4.1.2 or older delete NF90_MPIIO
+   ! If using netcdf version 4.1.2 or older delete NF90_MPIIO
    use netcdf, only: NF90_HDF5, NF90_MPIIO
    use netcdf, only: nf90_var_par_access, NF90_COLLECTIVE
    use netcdf, only: nf90_put_att, NF90_GLOBAL, nf90_get_att
@@ -23,7 +25,6 @@ module stella_save
    use netcdf, only: nf90_inq_dimid, nf90_inquire_dimension
    use netcdf, only: nf90_inq_varid, nf90_inquire_variable
    use netcdf, only: nf90_int
-
    use netcdf_utils, only: get_netcdf_code_precision
    use netcdf_utils, only: check_netcdf_file_precision
    use netcdf_utils, only: netcdf_error
@@ -32,13 +33,10 @@ module stella_save
 
    implicit none
 
-   public :: stella_restore, stella_save_for_restart
+   ! Make the routines available to other modules
+   public :: stella_restore, save_stella_for_restart_for_restart
    public :: read_many, save_many
    public :: init_save, init_dt, init_tstart, finish_save
-
-!# ifdef NETCDF
-!  public :: netcdf_real, kind_nf, get_netcdf_code_precision, netcdf_error
-!# endif
 
    interface stella_restore
       module procedure stella_restore_many
@@ -50,6 +48,7 @@ module stella_save
    logical :: read_many = .true., save_many = .true. 
 
    private
+   
    character(300), save :: restart_file
 
 # ifdef NETCDF
@@ -60,11 +59,9 @@ module stella_save
    integer(kind_nf) :: ncid, zedid, vpaid, gloid, gvmuloid, kyid, kxid, muid, tubeid
    integer(kind_nf) :: krookr_id, krooki_id, projr_id, proji_id
    integer(kind_nf) :: phiprojr_id, phiproji_id
-!  integer (kind_nf) :: bparr_id, bpari_id
    integer(kind_nf) :: t0id, gr_id, gi_id, delt0id, istep0id
    integer(kind_nf) :: intkrook_id, intproj_id; 
    integer(kind_nf) :: shift_id
-
    logical :: initialized = .false.
 # endif
 
@@ -79,8 +76,7 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine stella_save_for_restart &
-      (g, istep0, t0, delt0, istatus, exit_in, fileopt)
+   subroutine save_stella_for_restart_for_restart(g, istep0, t0, delt0, istatus, exit_in, fileopt)
 
 # ifdef NETCDF
       use arrays, only: shift_state
@@ -664,7 +660,7 @@ contains
 # else
 
       if (proc0) write (error_unit(), *) &
-         'WARNING: stella_save_for_restart is called without netcdf library'
+         'WARNING: save_stella_for_restart_for_restart is called without netcdf library'
 
 # endif
 
@@ -677,7 +673,7 @@ contains
       if (allocated(pptmpr)) deallocate (pptmpr)
       if (allocated(pptmpi)) deallocate (pptmpi)
 
-   end subroutine stella_save_for_restart
+   end subroutine save_stella_for_restart_for_restart
 
 !!----------------------------------------------------------------------!!
 !!----------------------------------------------------------------------!!
@@ -1192,4 +1188,4 @@ contains
 
    end subroutine finish_save
 
-end module stella_save
+end module save_stella_for_restart

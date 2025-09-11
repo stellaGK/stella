@@ -47,8 +47,8 @@ contains
       use parameters_physics, only: full_flux_surface
 
       ! Write to netcdf file 
-      use stella_io, only: write_radial_moments_nc
-      use stella_io, only: write_moments_nc
+      use write_diagnostics_to_netcdf, only: write_radial_moments_nc
+      use write_diagnostics_to_netcdf, only: write_moments_nc
 
       ! Routines
       use job_manage, only: time_message

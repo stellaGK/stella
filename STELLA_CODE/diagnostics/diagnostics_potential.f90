@@ -50,14 +50,14 @@ contains
       use quasineutrality_equation, only: advance_fields_using_quasineutrality_equation
 
       ! Write to netcdf file 
-      use stella_io, only: write_time_nc
-      use stella_io, only: write_phi2_nc
-      use stella_io, only: write_apar2_nc
-      use stella_io, only: write_bpar2_nc
-      use stella_io, only: write_phi_nc
-      use stella_io, only: write_apar_nc
-      use stella_io, only: write_bpar_nc
-      use stella_io, only: write_kspectra_nc
+      use write_diagnostics_to_netcdf, only: write_time_nc
+      use write_diagnostics_to_netcdf, only: write_phi2_nc
+      use write_diagnostics_to_netcdf, only: write_apar2_nc
+      use write_diagnostics_to_netcdf, only: write_bpar2_nc
+      use write_diagnostics_to_netcdf, only: write_phi_nc
+      use write_diagnostics_to_netcdf, only: write_apar_nc
+      use write_diagnostics_to_netcdf, only: write_bpar_nc
+      use write_diagnostics_to_netcdf, only: write_kspectra_nc
       use grids_time, only: code_dt, code_time
 
       ! Routines

@@ -70,7 +70,7 @@ module initialise_distribution_function
    real :: scale
    
    ! During the initialization of this module we set the restart path
-   ! and we will parse it to stella_save.fpp through save_init()
+   ! and we will parse it to save_stella_for_restart.fpp through save_init()
    character(len=300) :: restart_file
    character(len=150) :: restart_dir
 
@@ -94,10 +94,10 @@ contains
    subroutine read_parameters_distribution_function
 
       use mp, only: proc0, broadcast
-      use stella_save, only: init_save, read_many
+      use save_stella_for_restart, only: init_save, read_many
       use stella_layouts, only: read_parameters_parallelisation_layouts
       use system_fortran, only: systemf
-      use stella_save, only: read_many
+      use save_stella_for_restart, only: read_many
       
       ! Read namelist from input file
       use namelist_initialise_distribution_function, only: read_namelist_initialise_distribution
@@ -292,7 +292,7 @@ contains
    subroutine init_distribution_function_vs_muvpa(restarted, istep0)
 
       ! Flags
-      use stella_save, only: init_tstart
+      use save_stella_for_restart, only: init_tstart
       use parameters_numerical, only: maxwellian_normalization
       
       ! Load the <init_distribution_switch> parameters
@@ -951,7 +951,7 @@ contains
    subroutine initialise_distribution_restart_many
 
       use arrays_distribution_function, only: gvmu
-      use stella_save, only: stella_restore
+      use save_stella_for_restart, only: stella_restore
       use mp, only: proc0
       use file_units, only: unit_error_file
       
@@ -1027,7 +1027,7 @@ contains
 
    subroutine finish_distribution_function
 
-      use stella_save, only: finish_save
+      use save_stella_for_restart, only: finish_save
       use arrays_distribution_function, only: gnew, gold, gvmu
       use arrays_distribution_function, only: g_scratch, g_kymus
       use arrays_distribution_function, only: g0, g1, g2, g3
