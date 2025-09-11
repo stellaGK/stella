@@ -72,7 +72,7 @@
 ! checked whether any input variables are clashing with each other.
 ! 
 !###############################################################################
-module namelist_fields
+module namelist_initialise_distribution_function
 
    implicit none
 
@@ -587,6 +587,6 @@ contains
 
    end subroutine read_namelist_restart_options
 
-end module namelist_fields
+end module namelist_initialise_distribution_function
 
          

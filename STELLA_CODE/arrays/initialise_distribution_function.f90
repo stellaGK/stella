@@ -99,17 +99,17 @@ contains
       use stella_save, only: read_many
       
       ! Read namelist from input file
-      use namelist_fields, only: read_namelist_initialise_distribution
-      use namelist_fields, only: read_namelist_restart_options
-      use namelist_fields, only: read_namelist_initialise_distribution_noise
+      use namelist_initialise_distribution_function, only: read_namelist_initialise_distribution
+      use namelist_initialise_distribution_function, only: read_namelist_restart_options
+      use namelist_initialise_distribution_function, only: read_namelist_initialise_distribution_noise
 
       ! Load the <init_distribution_switch> parameters
-      use namelist_fields, only: init_distribution_option_maxwellian
-      use namelist_fields, only: init_distribution_option_noise
-      use namelist_fields, only: init_distribution_option_restart_many
-      use namelist_fields, only: init_distribution_option_kpar
-      use namelist_fields, only: init_distribution_option_rh
-      use namelist_fields, only: init_distribution_option_remap
+      use namelist_initialise_distribution_function, only: init_distribution_option_maxwellian
+      use namelist_initialise_distribution_function, only: init_distribution_option_noise
+      use namelist_initialise_distribution_function, only: init_distribution_option_restart_many
+      use namelist_initialise_distribution_function, only: init_distribution_option_kpar
+      use namelist_initialise_distribution_function, only: init_distribution_option_rh
+      use namelist_initialise_distribution_function, only: init_distribution_option_remap
 
       implicit none
 
@@ -291,12 +291,12 @@ contains
       use parameters_numerical, only: maxwellian_normalization
       
       ! Load the <init_distribution_switch> parameters
-      use namelist_fields, only: init_distribution_option_maxwellian
-      use namelist_fields, only: init_distribution_option_noise
-      use namelist_fields, only: init_distribution_option_restart_many
-      use namelist_fields, only: init_distribution_option_kpar
-      use namelist_fields, only: init_distribution_option_rh
-      use namelist_fields, only: init_distribution_option_remap
+      use namelist_initialise_distribution_function, only: init_distribution_option_maxwellian
+      use namelist_initialise_distribution_function, only: init_distribution_option_noise
+      use namelist_initialise_distribution_function, only: init_distribution_option_restart_many
+      use namelist_initialise_distribution_function, only: init_distribution_option_kpar
+      use namelist_initialise_distribution_function, only: init_distribution_option_rh
+      use namelist_initialise_distribution_function, only: init_distribution_option_remap
 
       ! Arguments
       logical, intent(out) :: restarted
@@ -308,8 +308,8 @@ contains
       !-------------------------------------------------------------------------
 
       ! Only initialise once
-      if (initialised_distribution_function_vs_kxkyz) return
-      initialised_distribution_function_vs_kxkyz = .false.
+      if (initialised_distribution_function_vs_muvpa) return
+      initialised_distribution_function_vs_muvpa = .false.
 
       ! Assume this is a new simulation, starting from time step <istep0> = 0.
       ! If <init_distribution_switch> = <init_distribution_option_restart_many>,
@@ -492,7 +492,7 @@ contains
       use arrays_distribution_function, only: gvmu
       use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
       use ran, only: ranf
-      use namelist_fields, only: read_namelist_initialise_distribution_maxwellian
+      use namelist_initialise_distribution_function, only: read_namelist_initialise_distribution_maxwellian
 
       implicit none
 
@@ -597,7 +597,7 @@ contains
       use file_utils, only: runtype_option_switch, runtype_multibox
       use parameters_physics, only: include_nonlinear
       use ran
-      use namelist_fields, only: read_namelist_initialise_distribution_noise
+      use namelist_initialise_distribution_function, only: read_namelist_initialise_distribution_noise
 
       implicit none
 
@@ -748,7 +748,7 @@ contains
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_distribution_function, only: gvmu
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx
-      use namelist_fields, only: read_namelist_initialise_distribution_kpar
+      use namelist_initialise_distribution_function, only: read_namelist_initialise_distribution_kpar
       use constants, only: zi
 
       implicit none
@@ -860,7 +860,7 @@ contains
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: nvpa, nmu
       use grids_kxky, only: akx
-      use namelist_fields, only: read_namelist_initialise_distribution_rh
+      use namelist_initialise_distribution_function, only: read_namelist_initialise_distribution_rh
 
       implicit none
 
@@ -1008,7 +1008,7 @@ contains
    !****************************************************************************
    subroutine reset_init
    
-      use namelist_fields, only: init_distribution_option_restart_many
+      use namelist_initialise_distribution_function, only: init_distribution_option_restart_many
       
       implicit none
 
