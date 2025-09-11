@@ -77,6 +77,7 @@ module initialise_distribution_function
    ! Remember whether the routines have already been initialised
    logical :: initialised_read_parameters = .false.
    logical :: initialised_arrays = .false.
+   logical :: initialised_distribution_function = .false.
    logical :: initialised_distribution_function_vs_muvpa = .false.
    logical :: initialised_distribution_function_vs_kxkyz = .false.
 
@@ -179,6 +180,10 @@ contains
       integer, intent(out) :: istep0
       
       !-------------------------------------------------------------------------
+      
+      ! Only initialise once
+      if (initialised_distribution_function) return
+      initialised_distribution_function = .true.
       
       ! Allocate the distribution-sized arrays and initialise them to zero
       if (debug) write (6, *) "stella::init_stella::init_arrays_distribution_function"
