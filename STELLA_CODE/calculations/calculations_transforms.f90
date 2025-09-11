@@ -134,7 +134,7 @@ contains
    subroutine init_transforms
 
       use parameters_physics, only: full_flux_surface
-      use stella_layouts, only: read_parameters_parallelisation_layouts
+      use parallelisation_layouts, only: read_parameters_parallelisation_layouts
 
       implicit none
 
@@ -162,7 +162,7 @@ contains
    !****************************************************************************
    subroutine init_y_fft
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use fft_work, only: init_ccfftw
 
       implicit none
@@ -193,7 +193,7 @@ contains
    !****************************************************************************
    subroutine init_x_fft
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use fft_work, only: init_crfftw, init_rcfftw
 
       implicit none
@@ -227,7 +227,7 @@ contains
    !****************************************************************************
    subroutine init_x_xfirst_fft
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use fft_work, only: init_ccfftw
 
       implicit none
@@ -258,7 +258,7 @@ contains
    !****************************************************************************
    subroutine init_y_xfirst_fft
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use fft_work, only: init_crfftw, init_rcfftw
 
       implicit none
@@ -291,7 +291,7 @@ contains
    !****************************************************************************
    subroutine init_unpadded_x_fft
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use fft_work, only: init_ccfftw, FFT_BACKWARD, FFT_FORWARD
 
       implicit none
@@ -319,7 +319,7 @@ contains
    !****************************************************************************
    subroutine init_unpadded_y_fft
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use fft_work, only: init_crfftw, init_rcfftw, FFT_BACKWARD, FFT_FORWARD
 
       implicit none
@@ -349,7 +349,7 @@ contains
 
       use fft_work, only: init_rcfftw, init_crfftw
       use fft_work, only: fft_backward, fft_forward
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 
@@ -382,7 +382,7 @@ contains
    !****************************************************************************
    subroutine transform_ky2y_5d(gky_unpad, gy)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 
@@ -432,7 +432,7 @@ contains
    !****************************************************************************
    subroutine transform_ky2y_2d(gky_unpad, gy)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 
@@ -476,7 +476,7 @@ contains
    !****************************************************************************
    subroutine transform_y2ky_5d(gy, gky)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 
@@ -522,7 +522,7 @@ contains
    !****************************************************************************
    subroutine transform_y2ky_2d(gy, gky)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 
@@ -562,7 +562,7 @@ contains
    !****************************************************************************
    subroutine transform_kx2x(gkx, gx)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 
@@ -596,7 +596,7 @@ contains
    !****************************************************************************
    subroutine transform_x2kx(gx, gkx)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 
@@ -628,7 +628,7 @@ contains
    !****************************************************************************
    subroutine transform_kx2x_xfirst(gkx, gx)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 
@@ -670,7 +670,7 @@ contains
    !****************************************************************************
    subroutine transform_x2kx_xfirst(gx, gkx)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 
@@ -709,7 +709,7 @@ contains
    !****************************************************************************
    subroutine transform_ky2y_xfirst(gky, gy)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 
@@ -743,7 +743,7 @@ contains
 
    subroutine transform_y2ky_xfirst(gy, gky)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 
@@ -883,7 +883,7 @@ contains
    !****************************************************************************
    subroutine transform_kalpha2alpha(gkalph, galph)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 
@@ -909,7 +909,7 @@ contains
    !> the highest 1/3 of the ky modes from the FFT have been discarded to avoid de-aliasing
    subroutine transform_alpha2kalpha(galph, gkalph)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 

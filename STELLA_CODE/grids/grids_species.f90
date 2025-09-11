@@ -5,7 +5,7 @@
 !###############################################################################
 module grids_species
 
-   use stella_common_types, only: spec_type
+   use common_types, only: spec_type
    
    ! Read the parameters for <species_option_switch> from namelist_species.f90
    use namelist_species, only: species_option_stella
@@ -405,7 +405,7 @@ contains
 !###############################################################################
 
    pure function has_electron_species(spec)
-      use stella_common_types, only: spec_type
+      use common_types, only: spec_type
       implicit none
       type(spec_type), dimension(:), intent(in) :: spec
       logical :: has_electron_species
@@ -413,7 +413,7 @@ contains
    end function has_electron_species
 
    pure function has_ion_species(spec)
-      use stella_common_types, only: spec_type
+      use common_types, only: spec_type
       implicit none
       type(spec_type), dimension(:), intent(in) :: spec
       logical :: has_ion_species

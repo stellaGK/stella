@@ -76,7 +76,7 @@ contains
 
       ! Parallelisation
       use mp, only: mp_abort
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use grids_time, only: code_dt
       use geometry, only: dydalpha, drhodpsi, clebsch_factor
       use neoclassical_terms, only: include_neoclassical_terms, dfneo_drho
@@ -158,7 +158,7 @@ contains
    
       ! Grids
       use grids_z, only: nzgrid
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       
       ! Physics
       use parameters_physics, only: full_flux_surface
@@ -189,7 +189,7 @@ contains
       use arrays_fields, only: apar, bpar
       
       ! Grids
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, nakx
       
@@ -246,7 +246,7 @@ contains
 
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use calculations_transforms, only: transform_ky2y
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, naky_all, nakx, ikx_max, ny

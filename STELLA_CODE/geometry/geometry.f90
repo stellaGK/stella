@@ -14,7 +14,7 @@ module geometry
 
    ! Load debug flags
    use debug_flags, only: debug => geometry_debug
-   use stella_common_types, only: flux_surface_type
+   use common_types, only: flux_surface_type
    
    ! Read the parameters for <geo_option_switch> from namelist_geometry.f90
    use namelist_geometry, only: geo_option_local

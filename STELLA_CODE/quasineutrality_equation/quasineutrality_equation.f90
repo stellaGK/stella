@@ -79,7 +79,7 @@ contains
       ! Parallelisation
       use mp, only: proc0
       use job_manage, only: time_message
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       ! Flags
       use parameters_physics, only: full_flux_surface

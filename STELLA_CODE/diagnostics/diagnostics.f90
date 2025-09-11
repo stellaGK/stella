@@ -35,19 +35,24 @@ contains
 
    ! Calculate and write diagnostics.
    subroutine diagnostics_stella(istep)
+   
+      ! Parallelisation
+      use mp, only: proc0
+      use job_manage, only: time_message
 
-      ! Data 
+      ! Fields and distribution function
       use arrays_fields, only: phi, apar, bpar
-      use arrays_distribution_function, only: gnew 
-      use quasineutrality_equation, only: advance_fields_using_quasineutrality_equation 
-      use constants, only: zi 
-
-      ! Flags  
-      use parameters_physics, only: radial_variation
+      use arrays_distribution_function, only: gnew
+      
+      ! If required, we will update the fields
+      use quasineutrality_equation, only: advance_fields_using_quasineutrality_equation
       use quasineutrality_equation, only: fields_updated
+
+      ! Flags
+      use parameters_physics, only: radial_variation
       use parameters_diagnostics, only: nc_mult, nwrite
 
-      ! Write data 
+      ! Write data
       use diagnostics_omega, only: write_omega_to_netcdf_file, calculate_omega
       use diagnostics_potential, only: write_potential_to_netcdf_file 
       use diagnostics_fluxes, only: write_fluxes_to_netcdf_file
@@ -55,9 +60,6 @@ contains
       use diagnostics_distribution, only: write_distribution_to_netcdf_file
       use write_diagnostics_to_netcdf, only: sync_nc
    
-      ! Routines
-      use job_manage, only: time_message
-      use mp, only: proc0
 
       implicit none
 
@@ -88,7 +90,7 @@ contains
       if (.not. write_to_ascii_files) return
 
       ! Get the updated fields <phi>(ky,kx,z,tube) corresponding to <gnew>(ky,kx,z,tube,i[vpa,mu,s])
-      if (radial_variation) fields_updated = .false. 
+      if (radial_variation) fields_updated = .false.
       call advance_fields_using_quasineutrality_equation(gnew, phi, apar, bpar, dist='g')
 
       ! First write data that also has ascii files (do potential first since it will update the fields)
@@ -131,7 +133,8 @@ contains
    subroutine init_diagnostics(restart, tstart, istep0)
 
       ! Parallelisation
-      use mp, only: broadcast, proc0
+      use mp, only: broadcast
+      use mp, only: proc0
 
       ! Make sure all grids have been initialised
       use parameters_physics, only: read_parameters_physics
@@ -217,16 +220,26 @@ contains
    !============================================================================ 
    subroutine finish_diagnostics(istep)
  
+      ! Parallelisation
       use redistribute, only: scatter
-      use write_diagnostics_to_netcdf, only: finish_write_diagnostics_to_netcdf
-      use grids_time, only: code_dt, code_time
-      use save_stella_for_restart, only: save_stella_for_restart_for_restart
       use calculations_redistribute, only: kxkyz2vmu
+      
+      ! Distribution function
       use arrays_distribution_function, only: gnew, gvmu
+      
+      ! Grids 
+      use grids_time, only: code_dt
+      use grids_time, only: code_time
+      
+      ! Finish modules
+      use write_diagnostics_to_netcdf, only: finish_write_diagnostics_to_netcdf
       use diagnostics_omega, only: finish_diagnostics_omega
-      use diagnostics_fluxes, only: finish_diagnostics_fluxes 
+      use diagnostics_fluxes, only: finish_diagnostics_fluxes
       use diagnostics_potential, only: finish_diagnostics_potential
-      use parameters_diagnostics, only: save_for_restart 
+      
+      ! Save the stella data so the simulation can be restarted
+      use save_stella_for_restart, only: save_stella_data_for_restart
+      use parameters_diagnostics, only: save_for_restart
 
       implicit none
 
@@ -238,7 +251,7 @@ contains
       ! Save stella to be restarted
       if (save_for_restart) then
          call scatter(kxkyz2vmu, gnew, gvmu)
-         call save_stella_for_restart_for_restart(gvmu, istep, code_time, code_dt, istatus, .true.)
+         call save_stella_data_for_restart(gvmu, istep, code_time, code_dt, istatus, .true.)
       end if
 
       ! Close the netcdf file

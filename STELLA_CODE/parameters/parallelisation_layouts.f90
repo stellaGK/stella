@@ -51,11 +51,11 @@
 !        <ivmu>   = point (iv,imu,is)
 ! As well as the corresponding values of (iv,imu,is,iy,ix,iky,ikx,iz,it).
 !###############################################################################
-module stella_layouts
+module parallelisation_layouts
 
-   use stella_common_types, only: vmu_layout_type
-   use stella_common_types, only: kxkyz_layout_type, kxyz_layout_type, xyz_layout_type
-   use stella_common_types, only: kymus_layout_type
+   use common_types, only: vmu_layout_type
+   use common_types, only: kxkyz_layout_type, kxyz_layout_type, xyz_layout_type
+   use common_types, only: kymus_layout_type
    
    implicit none
 
@@ -1505,4 +1505,4 @@ contains
 
    end subroutine finish_layouts
 
-end module stella_layouts
+end module parallelisation_layouts

@@ -185,7 +185,7 @@ contains
    subroutine init_grids_kxky
 
       use mp, only: mp_abort
-      use stella_common_types, only: flux_surface_type
+      use common_types, only: flux_surface_type
       use grids_z, only: read_parameters_z_grid
       
       implicit none
@@ -219,7 +219,7 @@ contains
 
       subroutine init_grids_kxky_range
 
-         use stella_common_types, only: flux_surface_type
+         use common_types, only: flux_surface_type
          use geometry, only: geo_surf, q_as_x
          use grids_z, only: shat_zero
            
@@ -335,7 +335,7 @@ contains
       subroutine init_grids_kxky_box
            
          use mp, only: mp_abort, proc0, broadcast
-         use stella_common_types, only: flux_surface_type
+         use common_types, only: flux_surface_type
          use constants, only: pi, zi
          use geometry, only: geo_surf, twist_and_shift_geo_fac, dydalpha
          use geometry, only: q_as_x, get_x_to_rho, dxdpsi, drhodpsi

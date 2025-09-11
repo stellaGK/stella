@@ -34,7 +34,7 @@ module save_stella_for_restart
    implicit none
 
    ! Make the routines available to other modules
-   public :: stella_restore, save_stella_for_restart_for_restart
+   public :: stella_restore, save_stella_data_for_restart
    public :: read_many, save_many
    public :: init_save, init_dt, init_tstart, finish_save
 
@@ -76,7 +76,7 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   subroutine save_stella_for_restart_for_restart(g, istep0, t0, delt0, istatus, exit_in, fileopt)
+   subroutine save_stella_data_for_restart(g, istep0, t0, delt0, istatus, exit_in, fileopt)
 
 # ifdef NETCDF
       use arrays, only: shift_state
@@ -93,8 +93,8 @@ contains
       use grids_z, only: nzgrid, ntubes
       ! Must include kxkyz_layout_type here to avoid obscure bomb while compiling
       ! diagnostics.f90 (which uses this module) with the Compaq F90 compiler:
-      use stella_layouts, only: kxkyz_lo, vmu_lo
-      use stella_common_types, only: kxkyz_layout_type
+      use parallelisation_layouts, only: kxkyz_lo, vmu_lo
+      use common_types, only: kxkyz_layout_type
       use file_utils, only: error_unit
       use grids_velocity, only: nvpa, nmu
       use gk_sources, only: source_option_krook, source_option_projection
@@ -660,7 +660,7 @@ contains
 # else
 
       if (proc0) write (error_unit(), *) &
-         'WARNING: save_stella_for_restart_for_restart is called without netcdf library'
+         'WARNING: save_stella_data_for_restart is called without netcdf library'
 
 # endif
 
@@ -673,7 +673,7 @@ contains
       if (allocated(pptmpr)) deallocate (pptmpr)
       if (allocated(pptmpi)) deallocate (pptmpi)
 
-   end subroutine save_stella_for_restart_for_restart
+   end subroutine save_stella_data_for_restart
 
 !!----------------------------------------------------------------------!!
 !!----------------------------------------------------------------------!!
@@ -697,7 +697,7 @@ contains
       use mp, only: iproc, broadcast
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nvpa, nmu
-      use stella_layouts, only: kxkyz_lo, vmu_lo
+      use parallelisation_layouts, only: kxkyz_lo, vmu_lo
       use file_utils, only: error_unit
       use gk_sources, only: source_option_krook, source_option_projection
       use gk_sources, only: source_option_switch, int_krook, int_proj

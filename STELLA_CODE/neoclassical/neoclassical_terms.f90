@@ -41,7 +41,7 @@ contains
       use grids_kxky, only: nalpha
       use grids_velocity, only: nvpa, nmu
       use grids_species, only: nspec
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use sfincs_interface, only: get_neo_from_sfincs
 
       use namelist_neoclassical_input, only: read_namelist_neoclassical_input
@@ -129,8 +129,8 @@ contains
    !****************************************************************************
    subroutine distribute_vmus_over_procs(local, distributed)
 
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
 
       implicit none
 
@@ -156,7 +156,7 @@ contains
    subroutine get_dfneo_dvpa(fneo, dfneo)
 
       use calculations_finite_differences, only: fd5pt
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_z, only: nzgrid
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: dvpa
@@ -210,7 +210,7 @@ contains
       use grids_z, only: nztot, nzgrid, delzed
       use grids_velocity, only: nvpa, nmu
       use grids_species, only: nspec
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_kxky, only: nalpha
 
       implicit none
@@ -260,7 +260,7 @@ contains
       use grids_z, only: nzgrid
       use grids_velocity, only: nvpa, nmu
       use grids_species, only: nspec
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_kxky, only: nalpha
 
       implicit none
@@ -387,9 +387,9 @@ contains
       use file_utils, only: open_output_file, close_output_file
       use grids_z, only: nzgrid, zed
       use grids_velocity, only: vpa, mu
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use stella_layouts, only: idx_local, proc_id
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: idx_local, proc_id
       use grids_kxky, only: nalpha
 
       implicit none

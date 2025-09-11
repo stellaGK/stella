@@ -127,7 +127,7 @@ contains
       use constants, only: zi
 
       ! Routines
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx, kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx, kxkyz_lo
       use mp, only: sum_reduce
 
       implicit none

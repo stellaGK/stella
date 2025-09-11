@@ -306,7 +306,6 @@ $(OBJ_DIR)/diagnostics.o: \
 	 $(OBJ_DIR)/arrays_fields.o \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_redistribute.o \
-	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/diagnostics_distribution.o \
 	 $(OBJ_DIR)/diagnostics_fluxes.o \

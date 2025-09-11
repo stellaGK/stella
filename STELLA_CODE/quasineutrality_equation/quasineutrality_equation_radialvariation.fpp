@@ -386,8 +386,8 @@ contains
    !****************************************************************************
    subroutine add_radial_correction_int_species(g_in)
 
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: imu_idx, is_idx
       use arrays_gyro_averages, only: aj0x, aj1x
       use geometry, only: dBdrho, bmag
       use arrays, only: kperp2, dkperp2dr
@@ -459,13 +459,13 @@ contains
    subroutine get_radial_correction(g, phi0, dist)
 
       use mp, only: proc0, mp_abort, sum_allreduce
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use arrays_gyro_averages, only: aj0x, aj1x
       use parameters_physics, only: fphi
       use parameters_multibox, only: ky_solve_radial
       use geometry, only: dl_over_b, d_dl_over_b_drho, bmag, dBdrho
-      use stella_layouts, only: imu_idx, is_idx
+      use parallelisation_layouts, only: imu_idx, is_idx
       use grids_z, only: nzgrid, ntubes
       use calculations_velocity_integrals, only: integrate_species
       use grids_velocity, only: vperp2
@@ -644,8 +644,8 @@ contains
       use mp, only: split_n_tasks, create_shared_memory_window
       use mpi
 #endif
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
 
       use parameters_multibox, only: ky_solve_radial, ky_solve_real
       use grids_species, only: spec, has_electron_species, ion_species
@@ -907,7 +907,7 @@ contains
       use arrays_fields, only: apar_corr_QN, apar_corr_GA
       use arrays, only: ddenominator_QNdr
       use grids_z, only: nzgrid, ntubes
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_kxky, only: naky, nakx
 
       implicit none

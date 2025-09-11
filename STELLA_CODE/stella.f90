@@ -75,7 +75,7 @@ contains
       use job_manage, only: checktime
       use file_utils, only: error_unit, flush_output_file
       use grids_time, only: update_time, code_time, code_dt, checkcodedt
-      use save_stella_for_restart, only: save_stella_for_restart_for_restart
+      use save_stella_for_restart, only: save_stella_data_for_restart
       use parameters_numerical, only: nstep, tend
       use parameters_numerical, only: avail_cpu_time
       use parameters_diagnostics, only: nsave
@@ -127,7 +127,7 @@ contains
          ! Every <nsave> time steps, save the data necessary to restart stella
          if (nsave > 0 .and. mod(istep, nsave) == 0) then
             call scatter(kxkyz2vmu, gnew, gvmu)
-            call save_stella_for_restart_for_restart(gvmu, istep, code_time, code_dt, istatus)
+            call save_stella_data_for_restart(gvmu, istep, code_time, code_dt, istatus)
          end if
          
          ! Calculate diagnostics, e.g., turbulent fluxes, growth rates, density fluctuations, ...

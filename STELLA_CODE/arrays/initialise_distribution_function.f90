@@ -95,7 +95,7 @@ contains
 
       use mp, only: proc0, broadcast
       use save_stella_for_restart, only: init_save, read_many
-      use stella_layouts, only: read_parameters_parallelisation_layouts
+      use parallelisation_layouts, only: read_parameters_parallelisation_layouts
       use system_fortran, only: systemf
       use save_stella_for_restart, only: read_many
       
@@ -210,9 +210,9 @@ contains
    subroutine init_arrays_distribution_function
 
       ! Parallelisation
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: kymus_lo
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: kymus_lo
       
       ! Distribution functions that are allocated here
       use arrays_distribution_function, only: gnew, gold, g_scratch
@@ -406,7 +406,7 @@ contains
       ! Parallelisation
       use redistribute, only: scatter
       use calculations_redistribute, only: kxkyz2vmu
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       
       ! Distribution function
       use arrays_distribution_function, only: gvmu, gnew
@@ -495,7 +495,7 @@ contains
       use grids_velocity, only: vpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_distribution_function, only: gvmu
-      use stella_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo, iz_idx, ikx_idx, iky_idx, is_idx
       use ran, only: ranf
       use namelist_initialise_distribution_function, only: read_namelist_initialise_distribution_maxwellian
 
@@ -595,8 +595,8 @@ contains
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_distribution_function, only: gvmu
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use mp, only: proc0, broadcast, max_allreduce
       use mp, only: scope, crossdomprocs, subprocs
       use file_utils, only: runtype_option_switch, runtype_multibox
@@ -752,7 +752,7 @@ contains
       use grids_velocity, only: vpa, vperp2
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use arrays_distribution_function, only: gvmu
-      use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx
       use namelist_initialise_distribution_function, only: read_namelist_initialise_distribution_kpar
       use constants, only: zi
 
@@ -860,8 +860,8 @@ contains
       use grids_species, only: spec
       use arrays_distribution_function, only: gvmu
       use arrays, only: kperp2
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: nvpa, nmu
       use grids_kxky, only: akx
@@ -914,8 +914,8 @@ contains
 
       use grids_species, only: spec
       use arrays_distribution_function, only: gvmu
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_velocity, only: nvpa, nmu
 
@@ -982,7 +982,7 @@ contains
    !****************************************************************************
    subroutine normalize_by_maxwellian
 
-      use stella_layouts, only: kxkyz_lo, is_idx, iz_idx
+      use parallelisation_layouts, only: kxkyz_lo, is_idx, iz_idx
       use arrays_distribution_function, only: gvmu
       use grids_velocity, only: nmu
       use grids_velocity, only: maxwell_mu, maxwell_vpa, maxwell_fac

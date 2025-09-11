@@ -1,8 +1,9 @@
 !###############################################################################
-!###############################################################################
+!################## EXPLICIT TERMS OF THE GYROKINETIC EQUATION #################
 !###############################################################################
 ! 
-! This module ...
+! This module adds the explicit gyrokinetic terms to the right-hand-side of the 
+! gyrokinetic equation, in order to advance the distribution function in time.
 ! 
 ! First advance the distribution function <g> in time using the gyrokinetic equation.
 ! Next, adance the fields (electrostatic potential <phi>, as well as the electromagnetic
@@ -35,7 +36,7 @@ contains
       ! Parallelisation
       use mp, only: proc0
       use job_manage, only: time_message
-      use stella_layouts, only: vmu_lo, iv_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx
       use arrays, only: time_gke
       
       ! Fields
@@ -142,7 +143,7 @@ contains
       ! Parallelisation
       use job_manage, only: time_message
       use multibox, only: add_multibox_krook
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use calculations_transforms, only: transform_y2ky
 
       ! Fields
@@ -363,7 +364,7 @@ contains
    !****************************************************************************
    subroutine advance_hyper_explicit(gin, gout)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, nakx
       use dissipation_hyper, only: advance_hyper_vpa, advance_hyper_zed
@@ -406,7 +407,7 @@ contains
    subroutine advance_explicit_euler(g, restart_time_step, istep)
    
       ! Parallelisation
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use gk_radial_variation, only: mb_communicate
       use parameters_multibox, only: rk_step
 
@@ -447,7 +448,7 @@ contains
    subroutine advance_explicit_rk2(g, restart_time_step, istep)
    
       ! Parallelisation
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use parameters_multibox, only: rk_step
       use gk_radial_variation, only: mb_communicate
       
@@ -516,7 +517,7 @@ contains
    subroutine advance_explicit_rk3(g, restart_time_step, istep)
    
       ! Parallelisation
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use parameters_multibox, only: rk_step
       use gk_radial_variation, only: mb_communicate
 
@@ -588,7 +589,7 @@ contains
    subroutine advance_explicit_rk4(g, restart_time_step, istep)
    
       ! Parallelisation
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use parameters_multibox, only: rk_step
       use gk_radial_variation, only: mb_communicate
 

@@ -32,7 +32,7 @@
 module calculations_gyro_averages
 
    ! Load debug flags
-   use stella_common_types, only: coupled_alpha_type
+   use common_types, only: coupled_alpha_type
    use debug_flags, only: debug => gyro_averages_debug
    
    ! Load the Bessel functions
@@ -155,7 +155,7 @@ contains
 
       use parameters_physics, only: full_flux_surface
       use grids_z, only: nzgrid
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 
@@ -275,8 +275,8 @@ contains
    !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_ffs_field(field, gyro_field, coefs)
 
-      use stella_common_types, only: coupled_alpha_type
-      use stella_layouts, only: vmu_lo
+      use common_types, only: coupled_alpha_type
+      use parallelisation_layouts, only: vmu_lo
       use grids_z, only: nzgrid
 
       implicit none
@@ -298,8 +298,8 @@ contains
    !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_ffs(dist, gyro_dist, coefs)
 
-      use stella_common_types, only: coupled_alpha_type
-      use stella_layouts, only: vmu_lo
+      use common_types, only: coupled_alpha_type
+      use parallelisation_layouts, only: vmu_lo
       use grids_z, only: nzgrid
 
       implicit none
@@ -353,7 +353,7 @@ contains
    !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_vmus_nonlocal(field, iky, ikx, iz, gyro_field)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 
@@ -370,7 +370,7 @@ contains
    !------------------------------- gyro-average -------------------------------
    subroutine gyro_average_j1_vmus_nonlocal(field, iky, ikx, iz, gyro_field)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 
@@ -473,7 +473,7 @@ contains
    subroutine gyro_average_j1_kxkyzv_local(field, gyro_field)
       use mp, only: proc0, mp_abort
       use grids_z, only: nzgrid
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use parameters_physics, only: full_flux_surface
       
       implicit none
@@ -502,7 +502,7 @@ contains
    !--------------------------------- band-lu ----------------------------------
    subroutine band_lu_solve_ffs(lu, solvec)
 
-      use stella_common_types, only: gam0_ffs_type
+      use common_types, only: gam0_ffs_type
       use grids_z, only: nzgrid
       use grids_kxky, only: ikx_max
 
@@ -526,7 +526,7 @@ contains
    !--------------------------------- band-lu ----------------------------------
    subroutine band_lu_solve_ffs_single(lu, solvec)
 
-      use stella_common_types, only: gam0_ffs_type
+      use common_types, only: gam0_ffs_type
       use grids_kxky, only: naky
 
       implicit none
@@ -561,7 +561,7 @@ contains
    !--------------------------------- band-lu ----------------------------------
    subroutine band_lu_factorisation_ffs(gam0, lu_gam0)
 
-      use stella_common_types, only: coupled_alpha_type, gam0_ffs_type
+      use common_types, only: coupled_alpha_type, gam0_ffs_type
       use grids_z, only: nzgrid
       use grids_kxky, only: ikx_max, naky_all, naky
 
@@ -595,7 +595,7 @@ contains
    !--------------------------------- band-lu ----------------------------------
    subroutine band_lu_factorisation_single(gam0, lu_gam0)
 
-      use stella_common_types, only: gam0_ffs_type
+      use common_types, only: gam0_ffs_type
       use grids_kxky, only: naky, naky_all
 
       implicit none
@@ -665,7 +665,7 @@ contains
     !     use calculations_kxky, only: swap_kxky, swap_kxky_back
     !     use calculations_transforms, only: transform_x2kx, transform_y2ky
     !     use calculations_transforms, only: transform_kx2x, transform_ky2y
-    !     use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+    !     use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
     !     use grids_velocity, only: nmu
     !     use grids_species, only: nspec, spec
     !     use geometry, only: alpha, bmag, x_displacement_fac
@@ -768,7 +768,7 @@ contains
 
    ! subroutine test_band_lu_factorisation (gam0, lu_gam0)
 
-   !   use stella_common_types, only: coupled_alpha_type, gam0_ffs_type
+   !   use common_types, only: coupled_alpha_type, gam0_ffs_type
    !   use grids_z, only: nzgrid
    !   use kt_grids, only: naky_all, naky
 
@@ -807,7 +807,7 @@ contains
         !> unfiltered version in alpha-space
         ! subroutine test_ffs_bessel_coefs (coefs, f_alpha, iky, ikx, iz, unit, ivmu)
 
-        !     use stella_layouts, only: vmu_lo, iv_idx, is_idx, imu_idx
+        !     use parallelisation_layouts, only: vmu_lo, iv_idx, is_idx, imu_idx
 
         !     implicit none
 

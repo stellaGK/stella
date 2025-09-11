@@ -134,15 +134,15 @@ contains
                xyzs_layout /= 'yzxs' .and. &
                xyzs_layout /= 'zxys' .and. &
                xyzs_layout /= 'zyxs') then
-               call mp_abort('stella_layouts: read_parameters finds illegal xyzs_layout. Aborting.')
+               call mp_abort('parallelisation_layouts: read_parameters finds illegal xyzs_layout. Aborting.')
          end if
          if (vms_layout /= 'vms' .and. &
                vms_layout /= 'mvs') then
-               call mp_abort('stella_layouts: read_parameters finds illegal vms_layout. Aborting.')
+               call mp_abort('parallelisation_layouts: read_parameters finds illegal vms_layout. Aborting.')
          end if
          if (kymus_layout /= 'kymus' .and. &
                kymus_layout /= 'mukys') then
-               call mp_abort('stella_layouts: read_parameters finds illegal kymus_layout. Aborting.')
+               call mp_abort('parallelisation_layouts: read_parameters finds illegal kymus_layout. Aborting.')
          end if
 
       end subroutine check_inputs_parallelisation

@@ -107,8 +107,8 @@ contains
    subroutine integrate_mu_nonlocal(iz, g, total)
 
       use mp, only: nproc, sum_reduce
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: is_idx, imu_idx, iv_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: is_idx, imu_idx, iv_idx
 
       implicit none
 
@@ -154,8 +154,8 @@ contains
    subroutine integrate_vpa_nonlocal(g_vs_ivmus, g_vs_mus)
 
       use mp, only: nproc, sum_reduce
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: is_idx, imu_idx, iv_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: is_idx, imu_idx, iv_idx
 
       implicit none
 
@@ -257,7 +257,7 @@ contains
    subroutine integrate_vmu_vmulo_complex(g, weights, total)
 
       use mp, only: sum_allreduce
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use grids_z, only: nzgrid
 
       implicit none
@@ -303,7 +303,7 @@ contains
    subroutine integrate_vmu_vmulo_ivmu_only_real(g, ia, iz, total)
 
       use mp, only: sum_allreduce
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
       implicit none
 
@@ -342,7 +342,7 @@ contains
    subroutine integrate_species_vmu(g, weights, total, ia_in)
 
       use mp, only: sum_allreduce
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use grids_z, only: nzgrid, ntubes
 
       implicit none
@@ -395,7 +395,7 @@ contains
    subroutine integrate_species_vmu_single(g, iz, weights, total, ia_in, reduce_in)
 
       use mp, only: sum_allreduce
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
       implicit none
 
@@ -452,7 +452,7 @@ contains
    subroutine integrate_species_vmu_single_real(g, iz, weights, total, ia_in, reduce_in)
 
       use mp, only: sum_allreduce
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
       implicit none
 
@@ -509,7 +509,7 @@ contains
    subroutine integrate_species_vmu_block_complex(g, iz, weights, pout, ia_in, reduce_in)
 
       use mp, only: sum_allreduce
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
       implicit none
 
@@ -566,7 +566,7 @@ contains
    subroutine integrate_species_vmu_block_real(g, iz, weights, pout, ia_in, reduce_in)
 
       use mp, only: sum_allreduce
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
       implicit none
 
@@ -623,7 +623,7 @@ contains
    subroutine integrate_species_ffs(g, weights, pout, reduce_in)
 
       use mp, only: sum_allreduce
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
       implicit none
 
@@ -670,7 +670,7 @@ contains
    !---------------- Each processor has a number of ivmu points ----------------
    subroutine integrate_species_ffs_rm(g, weights, pout, reduce_in)
       use mp, only: sum_allreduce
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
       implicit none
 
@@ -718,7 +718,7 @@ contains
    subroutine integrate_vmu_ffs(g, weights, ia, iz, pout, reduce_in)
 
       use mp, only: sum_allreduce
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
       implicit none
 

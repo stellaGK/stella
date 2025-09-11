@@ -113,7 +113,7 @@ contains
       field_period_ratio, psit_displacement_fac)
 
       use constants, only: pi
-      use stella_common_types, only: flux_surface_type
+      use common_types, only: flux_surface_type
       use splines, only: geo_spline
       use parameters_physics, only: full_flux_surface
       use debug_flags, only: const_alpha_geo 

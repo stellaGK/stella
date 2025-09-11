@@ -32,7 +32,7 @@ contains
 
       use mp, only: proc0
       use job_manage, only: time_message
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use parameters_physics, only: include_apar, include_bpar
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, nakx
@@ -47,7 +47,7 @@ contains
 
       use parameters_numerical, only: driftkinetic_implicit
       use calculations_gyro_averages, only: gyro_average
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
 
       use quasineutrality_equation_ffs, only: get_fields_source
       use parameters_numerical, only: nitt
@@ -433,7 +433,7 @@ contains
       use grids_velocity, only: vpa
       use parameters_numerical, only: driftkinetic_implicit, maxwellian_normalization
       use parameters_numerical, only: drifts_implicit
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_dvpa
 
@@ -594,7 +594,7 @@ contains
       use grids_velocity, only: vpa, mu
       use parameters_numerical, only: driftkinetic_implicit, maxwellian_normalization
       use parameters_numerical, only: drifts_implicit
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use neoclassical_terms, only: include_neoclassical_terms
       use neoclassical_terms, only: dfneo_dvpa
       use grids_extended_zgrid, only: map_to_iz_ikx_from_izext
@@ -749,7 +749,7 @@ contains
    subroutine get_contributions_from_apar(apar, aparnew, ivmu, iky, iz_from_izext, ikx_from_izext, scratch, rhs)
 
       use parameters_numerical, only: driftkinetic_implicit, drifts_implicit
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
 
       implicit none
 
@@ -888,7 +888,7 @@ contains
    subroutine gbar_to_g_zext(pdf, apar, facapar, iky, ivmu, ikx_from_izext, iz_from_izext)
 
       use grids_species, only: spec
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use parameters_numerical, only: maxwellian_normalization
       use grids_velocity, only: vpa, maxwell_vpa, maxwell_mu, maxwell_fac
 
@@ -1003,7 +1003,7 @@ contains
       use grids_z, only: nzgrid
       use grids_kxky, only: aky, akx
       use grids_velocity, only: vpa
-      use stella_layouts, only: vmu_lo, iv_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, is_idx
       use parameters_numerical, only: time_upwind_minus
       use parameters_numerical, only: drifts_implicit
       use gk_parallel_streaming, only: get_zed_derivative_extended_domain, center_zed
@@ -1120,7 +1120,7 @@ contains
       use grids_extended_zgrid, only: periodic, phase_shift
       use gk_parallel_streaming, only: stream_sign, stream_c
       use gk_parallel_streaming, only: center_zed
-      use stella_layouts, only: vmu_lo, iv_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, is_idx
 
       implicit none
 

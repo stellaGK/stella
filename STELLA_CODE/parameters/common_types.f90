@@ -3,7 +3,7 @@
 !###############################################################################
 ! This module ...
 !###############################################################################
-module stella_common_types
+module common_types
 
    implicit none
 
@@ -112,4 +112,4 @@ module stella_common_types
       complex, dimension(:, :), pointer :: matrix => null()
    end type gam0_ffs_type
 
-end module stella_common_types
+end module common_types

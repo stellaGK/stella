@@ -63,8 +63,8 @@ contains
 
       use calculations_finite_differences, only: fd3pt
       use grids_time, only: code_dt
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use grids_species, only: spec, nspec, pfac
       use grids_velocity, only: nvpa, nvpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -256,8 +256,8 @@ contains
    subroutine advance_parallel_streaming_explicit(g, phi, bpar, gout)
 
       use mp, only: proc0
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use job_manage, only: time_message
       use calculations_transforms, only: transform_ky2y
       use grids_z, only: nzgrid, ntubes
@@ -386,8 +386,8 @@ contains
    !****************************************************************************
    subroutine add_parallel_streaming_radial_variation(g, gout, rhs)
 
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use job_manage, only: time_message
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, nakx
@@ -474,8 +474,8 @@ contains
    subroutine get_dgdz(g, ivmu, dgdz)
 
       use calculations_finite_differences, only: third_order_upwind_zed
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx
       use grids_z, only: nzgrid, delzed, ntubes
       use grids_extended_zgrid, only: neigen, nsegments
       use grids_extended_zgrid, only: iz_low, iz_up
@@ -521,8 +521,8 @@ contains
    subroutine get_dgdz_centered(g, ivmu, dgdz)
 
       use calculations_finite_differences, only: second_order_centered_zed
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx
       use grids_z, only: nzgrid, delzed, ntubes
       use grids_extended_zgrid, only: neigen, nsegments
       use grids_extended_zgrid, only: iz_low, iz_up
@@ -565,8 +565,8 @@ contains
 ! subroutine get_dgdz_variable (g, ivmu, dgdz)
 
 !    use calculations_finite_differences, only: fd_variable_upwinding_zed
-!    use stella_layouts, only: vmu_lo
-!    use stella_layouts, only: iv_idx
+!    use parallelisation_layouts, only: vmu_lo
+!    use parallelisation_layouts, only: iv_idx
 !    use grids_z, only: nzgrid, delzed, ntubes
 !    use grids_extended_zgrid, only: neigen, nsegments
 !    use grids_extended_zgrid, only: iz_low, iz_up
@@ -608,8 +608,8 @@ contains
    !****************************************************************************
    subroutine add_stream_term(g, ivmu, src)
 
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, is_idx
       use grids_z, only: nzgrid
 
       implicit none
@@ -635,8 +635,8 @@ contains
    !****************************************************************************
    subroutine add_stream_term_full_ffs(g, ivmu, src)
 
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, is_idx
       use grids_z, only: nzgrid
       use grids_kxky, only: ny
 

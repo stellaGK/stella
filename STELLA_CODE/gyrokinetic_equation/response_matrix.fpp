@@ -49,10 +49,10 @@ contains
 
       use linear_solve, only: lu_decomposition
       use arrays, only: response_matrix
-      use stella_layouts, only: iv_idx, is_idx
+      use parallelisation_layouts, only: iv_idx, is_idx
       use grids_kxky, only: naky
       use mp, only: proc0
-      use stella_layouts, only: mat_gen
+      use parallelisation_layouts, only: mat_gen
       use file_units, only: unit_response_matrix
 #ifdef ISO_C_BINDING
       use arrays, only: response_window
@@ -133,7 +133,7 @@ contains
    subroutine setup_response_matrix_file_io
 
       use mp, only: proc0, job
-      use stella_layouts, only: mat_gen
+      use parallelisation_layouts, only: mat_gen
       use system_fortran, only: systemf
       use grids_kxky, only: naky
       use file_units, only: unit_response_matrix
@@ -222,7 +222,7 @@ contains
 
       use mp, only: proc0
       use job_manage, only: time_message
-      use stella_layouts, only: mat_gen
+      use parallelisation_layouts, only: mat_gen
       use arrays, only: response_matrix
       use grids_kxky, only: naky
       use grids_extended_zgrid, only: neigen
@@ -315,13 +315,13 @@ contains
    subroutine calculate_vspace_integrated_response(iky)
 
       use mp, only: proc0
-      use stella_layouts, only: mat_gen
+      use parallelisation_layouts, only: mat_gen
       use parameters_physics, only: include_apar, include_bpar
       use grids_extended_zgrid, only: neigen, ikxmod
       use grids_extended_zgrid, only: nsegments, nzed_segment
       use grids_extended_zgrid, only: periodic
       use grids_extended_zgrid, only: iz_low, iz_up
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use quasineutrality_equation, only: nfields
       use file_units, only: unit_response_matrix
 
@@ -621,8 +621,8 @@ contains
 #endif
       use mp, only: mp_abort
       use arrays, only: response_matrix
-      use stella_layouts, only: lu_option_switch
-      use stella_layouts, only: lu_option_none, lu_option_local, lu_option_global
+      use parallelisation_layouts, only: lu_option_switch
+      use parallelisation_layouts, only: lu_option_none, lu_option_local, lu_option_global
       use grids_extended_zgrid, only: neigen
       use linear_solve, only: lu_decomposition
 
@@ -671,7 +671,7 @@ contains
    subroutine read_response_matrix
 
       use arrays, only: response_matrix
-      use stella_common_types, only: response_matrix_type
+      use common_types, only: response_matrix_type
       use grids_kxky, only: naky
       use grids_extended_zgrid, only: neigen
       use grids_extended_zgrid, only: nsegments
@@ -781,7 +781,7 @@ contains
       use mp, only: sgproc0
 #endif
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use parameters_numerical, only: time_upwind_plus
       use parameters_physics, only: include_apar, include_bpar
       use gk_implicit_terms, only: get_gke_rhs, sweep_g_zext
@@ -876,7 +876,7 @@ contains
    !****************************************************************************
    subroutine get_dpdf_dapar_matrix_column(iky, ie, idx, nz_ext, nresponse, phi_ext, apar_ext, bpar_ext, pdf_ext)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use parameters_numerical, only: time_upwind_plus
       use parameters_physics, only: include_apar, include_bpar
       use gk_implicit_terms, only: get_gke_rhs, sweep_g_zext
@@ -973,7 +973,7 @@ contains
       use mp, only: sgproc0
 #endif
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use parameters_numerical, only: time_upwind_plus
       use parameters_physics, only: include_apar, include_bpar
       use gk_implicit_terms, only: get_gke_rhs, sweep_g_zext
@@ -1062,7 +1062,7 @@ contains
    !****************************************************************************
    subroutine integrate_over_velocity(g, phi, apar, bpar, iky, ie)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use parameters_physics, only: include_apar, include_bpar
 
       implicit none
@@ -1086,14 +1086,14 @@ contains
    subroutine integrate_over_velocity_phi(g, phi, iky, ie)
 
       use mp, only: sum_allreduce
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_species, only: nspec, spec
       use grids_extended_zgrid, only: iz_low, iz_up
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: nsegments
       use calculations_velocity_integrals, only: integrate_species
       use calculations_gyro_averages, only: gyro_average
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use parameters_numerical, only: driftkinetic_implicit
       use calculations_velocity_integrals, only: integrate_species_ffs_rm
       use parameters_physics, only: full_flux_surface
@@ -1173,7 +1173,7 @@ contains
    !****************************************************************************
    subroutine integrate_over_velocity_bpar(g, bpar, iky, ie)
 
-      use stella_layouts, only: vmu_lo, imu_idx
+      use parallelisation_layouts, only: vmu_lo, imu_idx
       use grids_species, only: nspec, spec
       use parameters_physics, only: beta
       use grids_extended_zgrid, only: iz_low, iz_up
@@ -1244,7 +1244,7 @@ contains
    !****************************************************************************
    subroutine integrate_over_velocity_apar(g, apar, iky, ie)
 
-      use stella_layouts, only: vmu_lo, iv_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx
       use parameters_physics, only: beta
       use grids_species, only: nspec, spec
       use grids_extended_zgrid, only: iz_low, iz_up

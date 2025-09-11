@@ -43,7 +43,7 @@ contains
    subroutine read_inputprof_geo(surf)
 
       use constants, only: pi
-      use stella_common_types, only: flux_surface_type
+      use common_types, only: flux_surface_type
       use calculations_finite_differences, only: fd3pt, d2_3pt
       use splines, only: geo_spline
       use geometry_miller, only: local
@@ -214,7 +214,7 @@ contains
       use mp, only: mp_abort
       use calculations_finite_differences, only: fd3pt, d2_3pt
       use splines, only: geo_spline
-      use stella_common_types, only: spec_type
+      use common_types, only: spec_type
       use geometry_miller, only: local
       use parameters_physics, only: rhostar
 

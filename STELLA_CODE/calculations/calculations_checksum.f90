@@ -77,7 +77,7 @@ contains
 
       use mp, only: sum_allreduce
       use grids_z, only: nzgrid, ntubes
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use grids_kxky, only: naky, nakx
       use grids_velocity, only: maxwell_vpa, maxwell_mu
 

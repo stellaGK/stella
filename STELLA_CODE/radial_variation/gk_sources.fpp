@@ -68,7 +68,7 @@ contains
       ! Parallelisation
       use mp, only: job
       use mp, only: broadcast
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       
       ! Grids
       use grids_z, only: nzgrid, ntubes
@@ -252,7 +252,7 @@ contains
       use grids_kxky, only: akx, zonal_mode 
       use parameters_multibox, only: boundary_size
       use grids_kxky, only: nakx
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_time, only: code_dt
       use arrays_distribution_function, only: g_krook, g_symm
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
@@ -366,7 +366,7 @@ contains
       use grids_kxky, only: akx, zonal_mode
       use parameters_multibox, only: boundary_size
       use grids_kxky, only: nakx
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_time, only: code_dt
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
@@ -455,8 +455,8 @@ contains
       use mp, only: proc0
       use job_manage, only: time_message
       use redistribute, only: scatter, gather
-      use stella_layouts, only: vmu_lo, kxkyz_lo
-      use stella_layouts, only: imu_idx, is_idx, iv_idx
+      use parallelisation_layouts, only: vmu_lo, kxkyz_lo
+      use parallelisation_layouts, only: imu_idx, is_idx, iv_idx
       use grids_velocity, only: nvgrid, nvpa, nmu
       use calculations_redistribute, only: kxkyz2vmu
       use arrays_distribution_function, only: gvmu
@@ -505,7 +505,7 @@ contains
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
       use grids_kxky, only: nakx
       use grids_kxky, only: rho_d_clamped
-      use stella_layouts, only: vmu_lo, imu_idx, is_idx, iv_idx
+      use parallelisation_layouts, only: vmu_lo, imu_idx, is_idx, iv_idx
       use geometry, only: bmag, dBdrho, dl_over_b, d_dl_over_b_drho
       use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: aj0x, aj1x
@@ -601,7 +601,7 @@ contains
       use grids_kxky, only: zonal_mode, akx
       use parameters_multibox, only: boundary_size
       use grids_kxky, only: nakx
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_time, only: code_dt
       use arrays_distribution_function, only: g_proj, g_symm
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded

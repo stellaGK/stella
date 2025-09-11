@@ -6,7 +6,7 @@
 module arrays
 
    use mpi
-   use stella_common_types, only: response_matrix_type
+   use common_types, only: response_matrix_type
 
    implicit none
    

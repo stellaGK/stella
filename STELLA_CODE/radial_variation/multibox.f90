@@ -71,7 +71,7 @@ contains
    subroutine init_multibox
 
       use constants, only: pi
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use geometry, only: geo_surf, q_as_x, get_x_to_rho
       use geometry, only: drhodpsi, dxdpsi
       use grids_z, only: nzgrid, ntubes
@@ -396,7 +396,7 @@ contains
       use mp, only: job, scope, mp_abort
       use mp, only: crossdomprocs, subprocs, allprocs
       use mp, only: ssend, receive, proc0
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use job_manage, only: njobs, time_message
       use file_utils, only: get_unused_unit
 
@@ -606,7 +606,7 @@ contains
       use grids_kxky, only: zonal_mode
       use parameters_multibox, only: boundary_size
       use grids_kxky, only: periodic_variation, naky
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_z, only: nzgrid
 
       use parameters_multibox, only: smooth_zf
@@ -674,7 +674,7 @@ contains
    subroutine add_multibox_krook(g, rhs)
 
       use grids_time, only: code_dt
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_kxky, only: nakx, naky, periodic_variation
       use parameters_multibox, only: boundary_size
       use grids_z, only: nzgrid, ntubes
@@ -1045,7 +1045,7 @@ contains
 ! domains (since we do not keep the checkboard mode)
    subroutine init_mb_transforms
 
-      use stella_layouts, only: read_parameters_parallelisation_layouts
+      use parallelisation_layouts, only: read_parameters_parallelisation_layouts
       use grids_kxky, only: nakx, naky, naky_all
 
       implicit none

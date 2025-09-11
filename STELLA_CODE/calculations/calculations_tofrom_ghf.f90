@@ -83,8 +83,8 @@ contains
    subroutine gbar_to_g_kxkyz(g, apar, facapar)
 
       ! Parallelisation
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       
       ! Calculations
       use calculations_gyro_averages, only: gyro_average
@@ -148,8 +148,8 @@ contains
    subroutine gbar_to_g_1d_vpa(g, apar, imu, ikxkyz, facapar)
 
       ! Parallelisation
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iz_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iz_idx, is_idx
       
       ! Calculations
       use calculations_gyro_averages, only: gyro_average
@@ -208,7 +208,7 @@ contains
    subroutine gbar_to_g_vmu(g, apar, facapar)
 
       use grids_z, only: nzgrid
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 
@@ -235,8 +235,8 @@ contains
    subroutine gbar_to_g_vmu_single(ivmu, g0, apar, facapar)
 
       ! Parallelisation
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       
       ! Calculations
       use calculations_kxky, only: multiply_by_rho
@@ -327,9 +327,9 @@ contains
    subroutine g_to_h_kxkyz(g, phi, bpar, facphi)
 
       ! Parallelisation
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx
-      use stella_layouts, only: iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx
+      use parallelisation_layouts, only: iz_idx, it_idx, is_idx
       
       ! Calculations
       use calculations_gyro_averages, only: gyro_average
@@ -427,7 +427,7 @@ contains
    subroutine g_to_h_vmu(g, phi, bpar, facphi, phi_corr)
 
       use grids_z, only: nzgrid
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 
@@ -455,8 +455,8 @@ contains
    subroutine g_to_h_vmu_single(ivmu, g0, phi, bpar, facphi, phi_corr)
 
       ! Parallelisation
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       
       ! Calculations
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
@@ -605,9 +605,9 @@ contains
    subroutine g_to_f_kxkyz(g, phi, facphi)
 
       ! Parallelisation
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx
-      use stella_layouts, only: iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx
+      use parallelisation_layouts, only: iz_idx, it_idx, is_idx
       
       ! Calculations
       use calculations_gyro_averages, only: gyro_average
@@ -674,8 +674,8 @@ contains
    subroutine g_to_f_vmu(g, phi, facphi, phi_corr)
 
       ! Parallelisation
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       
       ! Calculations
       use calculations_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst

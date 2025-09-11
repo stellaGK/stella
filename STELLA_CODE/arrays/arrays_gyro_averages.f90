@@ -32,7 +32,7 @@
 module arrays_gyro_averages
 
    ! Load debug flags
-   use stella_common_types, only: coupled_alpha_type
+   use common_types, only: coupled_alpha_type
    use debug_flags, only: debug => gyro_averages_debug
    use debug_flags, only: debug_test_gyro_average
 
@@ -117,8 +117,8 @@ contains
       use spfunc, only: j0, j1
       
       ! Parallelisation
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       
       ! Grids and geometry
       use geometry, only: bmag
@@ -183,8 +183,8 @@ contains
       use spfunc, only: j0, j1
       
       ! Parallelisation
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: is_idx, imu_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: is_idx, imu_idx
       
       ! Grids and geometry
       use geometry, only: bmag
@@ -261,8 +261,8 @@ contains
 
       use mp, only: sum_allreduce, proc0
       use spfunc, only: j0
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use calculations_transforms, only: transform_alpha2kalpha
       use grids_species, only: nspec, spec
       use geometry, only: bmag

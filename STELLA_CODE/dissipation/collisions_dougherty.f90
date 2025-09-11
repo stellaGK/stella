@@ -128,8 +128,8 @@ contains
       use grids_time, only: code_dt
       use grids_species, only: nspec, spec
       use grids_velocity, only: dvpa, vpa, nvpa
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use geometry, only: bmag
       use arrays, only: kperp2
 
@@ -178,8 +178,8 @@ contains
       use geometry, only: bmag
       use grids_velocity, only: dmu, nmu
       use grids_velocity, only: dmu_cell, mu_cell, wgts_mu_bare
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use arrays, only: kperp2
 
       implicit none
@@ -249,8 +249,8 @@ contains
       use grids_velocity, only: set_vpa_weights
       use grids_kxky, only: naky, nakx
       use grids_kxky, only: zonal_mode
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use geometry, only: dl_over_b
       use arrays_distribution_function, only: gvmu
       use arrays_gyro_averages, only: aj0v
@@ -516,8 +516,8 @@ contains
       use grids_kxky, only: naky, nakx
       use grids_kxky, only: zonal_mode
       use geometry, only: dl_over_b, bmag
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use arrays_distribution_function, only: gvmu
       use arrays, only: kperp2
       use arrays_gyro_averages, only: aj0v, aj1v
@@ -833,8 +833,8 @@ contains
       use calculations_velocity_integrals, only: integrate_vmu
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use arrays_gyro_averages, only: aj0v
 
       implicit none
@@ -883,8 +883,8 @@ contains
       use calculations_velocity_integrals, only: integrate_vmu
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vperp2
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use arrays_gyro_averages, only: aj1v
 
       implicit none
@@ -934,8 +934,8 @@ contains
       use calculations_velocity_integrals, only: integrate_vmu
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use arrays_gyro_averages, only: aj0v
 
       implicit none
@@ -984,8 +984,8 @@ contains
       use grids_z, only: nzgrid
       use calculations_velocity_integrals, only: integrate_vmu
       use grids_velocity, only: nvpa, nmu, vperp2
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use arrays_gyro_averages, only: aj0v
 
       implicit none
@@ -1048,8 +1048,8 @@ contains
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: set_vpa_weights
       use geometry, only: bmag, dBdrho
-      use stella_layouts, only: vmu_lo, kxkyz_lo
-      use stella_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
+      use parallelisation_layouts, only: vmu_lo, kxkyz_lo
+      use parallelisation_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
       use calculations_redistribute, only: kxkyz2vmu
       use arrays_distribution_function, only: gvmu
       use arrays, only: kperp2, dkperp2dr
@@ -1435,8 +1435,8 @@ contains
 
       use mp, only: sum_allreduce
       use grids_time, only: code_dt
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: imu_idx, iv_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: imu_idx, iv_idx, is_idx
       use grids_species, only: spec
       use parameters_physics, only: radial_variation
       use geometry, only: bmag, dBdrho
@@ -1579,8 +1579,8 @@ contains
 
       use mp, only: sum_allreduce
       use grids_time, only: code_dt
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: imu_idx, iv_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: imu_idx, iv_idx, is_idx
       use grids_species, only: spec
       use parameters_physics, only: radial_variation
       use geometry, only: bmag, dBdrho
@@ -1728,8 +1728,8 @@ contains
       use grids_kxky, only: naky, nakx
       use grids_kxky, only: zonal_mode
       use geometry, only: dl_over_b
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use calculations_tofrom_ghf, only: g_to_h
       use arrays_gyro_averages, only: aj0v
       use quasineutrality_equation_fluxtube, only: advance_fields_using_quasineutrality_equation
@@ -1901,8 +1901,8 @@ contains
       use grids_velocity, only: set_vpa_weights
       use grids_kxky, only: naky, nakx
       use grids_kxky, only: zonal_mode
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use arrays, only: kperp2
       use arrays_gyro_averages, only: aj0v, aj1v
       use calculations_tofrom_ghf, only: g_to_h

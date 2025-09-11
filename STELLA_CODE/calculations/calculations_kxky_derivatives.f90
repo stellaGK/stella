@@ -105,7 +105,7 @@ contains
    subroutine get_dgdy_4d(g, dgdy)
 
       use constants, only: zi
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: nakx
       use grids_kxky, only: aky
@@ -188,7 +188,7 @@ contains
    subroutine get_dgdx_4d(g, dgdx)
 
       use constants, only: zi
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: nakx
       use grids_kxky, only: akx
@@ -228,8 +228,8 @@ contains
       use constants, only: zi
       
       ! Parallelisation
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: is_idx, iv_idx, imu_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: is_idx, iv_idx, imu_idx
       
       ! Flags
       use parameters_physics, only: include_apar, include_bpar
@@ -310,8 +310,8 @@ contains
       use constants, only: zi
       
       ! Parallelisation
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: is_idx, iv_idx, imu_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: is_idx, iv_idx, imu_idx
       
       ! Calculations
       use calculations_gyro_averages, only: gyro_average
@@ -390,8 +390,8 @@ contains
       use constants, only: zi
       
       ! Parallelisation
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: is_idx, iv_idx, imu_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: is_idx, iv_idx, imu_idx
       
       ! Calculations
       use calculations_gyro_averages, only: gyro_average

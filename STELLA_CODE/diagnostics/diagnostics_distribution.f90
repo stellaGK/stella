@@ -242,8 +242,8 @@ contains
       use calculations_velocity_integrals, only: integrate_vpa, integrate_mu, integrate_vmu
 
       ! Routines
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx, kxkyz_lo
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx, kxkyz_lo
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use mp, only: nproc, sum_reduce
       
       ! Input file 

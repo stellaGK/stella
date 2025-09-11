@@ -1,8 +1,9 @@
 !###############################################################################
-!###############################################################################
+!################## IMPLICIT TERMS OF THE GYROKINETIC EQUATION #################
 !###############################################################################
 ! 
-! This module ...
+! This module adds the implicit gyrokinetic terms to the right-hand-side of the 
+! gyrokinetic equation, in order to advance the distribution function in time.
 ! 
 ! First advance the distribution function <g> in time using the gyrokinetic equation.
 ! Next, adance the fields (electrostatic potential <phi>, as well as the electromagnetic
@@ -31,7 +32,7 @@ contains
       ! Parallelisation
       use mp, only: proc0
       use job_manage, only: time_message
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use arrays, only: time_gke
       
       ! Fields

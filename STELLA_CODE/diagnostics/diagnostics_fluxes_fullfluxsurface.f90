@@ -213,7 +213,7 @@ contains
    !****************************************************************************
    subroutine calculate_moments_fullfluxsurface(g, dens, upar, pres)
 
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       use grids_species, only: spec, nspec
       use grids_z, only: nzgrid
       use calculations_velocity_integrals, only: integrate_vmu_ffs
@@ -382,7 +382,7 @@ contains
    !****************************************************************************
    subroutine g_to_f0(g, phi, f)
 
-      use stella_layouts, only: vmu_lo, is_idx
+      use parallelisation_layouts, only: vmu_lo, is_idx
       use grids_species, only: spec
       use grids_z, only: nzgrid, ntubes
       use calculations_gyro_averages, only: gyro_average
@@ -391,7 +391,7 @@ contains
       use calculations_kxky, only: swap_kxky, swap_kxky_back
       use grids_velocity, only: maxwell_vpa, maxwell_mu
       use grids_kxky, only: naky, naky_all, nakx, ikx_max, ny
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       
       implicit none
 
@@ -464,7 +464,7 @@ contains
    !****************************************************************************
    subroutine g_to_f1(g, phi, f)
 
-      use stella_layouts, only: vmu_lo, is_idx
+      use parallelisation_layouts, only: vmu_lo, is_idx
       use grids_species, only: spec
       use grids_z, only: nzgrid, ntubes
       use calculations_gyro_averages, only: gyro_average
@@ -473,7 +473,7 @@ contains
       use calculations_kxky, only: swap_kxky, swap_kxky_back
       use grids_velocity, only: maxwell_vpa, maxwell_mu
       use grids_kxky, only: naky, naky_all, nakx, ikx_max, ny
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       
       implicit none
 

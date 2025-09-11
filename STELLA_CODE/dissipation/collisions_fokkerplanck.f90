@@ -143,9 +143,9 @@ contains
       use grids_species, only: spec, nspec
       use grids_velocity, only: dvpa, dmu, mu, nmu
       use geometry, only: bmag
-      use stella_layouts
+      use parallelisation_layouts
       use parameters_numerical, only: fully_explicit
-      use stella_common_types, only: spec_type
+      use common_types, only: spec_type
 
       implicit none
 
@@ -325,12 +325,12 @@ contains
       use grids_species, only: nspec, spec
       use grids_velocity, only: dvpa, vpa, nvpa, mu, nmu, maxwell_mu, maxwell_vpa, dmu
       use grids_z, only: nzgrid
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use geometry, only: bmag
       use arrays, only: kperp2
       use constants, only: pi
-      use stella_common_types, only: spec_type
+      use common_types, only: spec_type
       use grids_kxky, only: naky, nakx
       use spfunc, only: erf => erf_ext
       use file_utils, only: open_output_file, close_output_file
@@ -1465,7 +1465,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_velocity, only: mu, nmu, vpa, nvpa
       use grids_z, only: nzgrid
       use geometry, only: bmag
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx
       use file_utils, only: open_output_file, close_output_file
 
       implicit none
@@ -1505,7 +1505,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
    subroutine init_bessel_fn
       use grids_z, only: nzgrid
       use grids_velocity, only: nmu, vperp2
-      use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use arrays_gyro_averages, only: aj0v
       use grids_species, only: spec, nspec
       use geometry, only: bmag
@@ -1650,7 +1650,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_velocity, only: mu, nmu, vpa, nvpa, set_vpa_weights
       use file_utils, only: open_output_file, close_output_file
       use constants, only: pi
-      use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx, it_idx
+      use parallelisation_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx, it_idx
       use grids_time, only: code_dt
       use grids_kxky, only: naky
 
@@ -2159,7 +2159,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: ztmax, maxwell_mu, nmu, nvpa, set_vpa_weights
       use grids_kxky, only: naky, nakx
-      use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx, it_idx
+      use parallelisation_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx, it_idx
       use arrays_distribution_function, only: gvmu
       use quasineutrality_equation_fluxtube, only: advance_fields_using_quasineutrality_equation
       use quasineutrality_equation_collisions, only: get_fields_by_spec_idx
@@ -2591,8 +2591,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_species, only: spec
       use grids_velocity, only: nmu, nvpa
       use grids_velocity, only: set_vpa_weights
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
       use job_manage, only: time_message, timer_local
       use constants, only: pi
       use file_utils, only: open_output_file, close_output_file
@@ -2690,7 +2690,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_z, only: nzgrid
       use calculations_velocity_integrals, only: integrate_vmu
       use grids_velocity, only: set_vpa_weights, nvpa, nmu, vpa
-      use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use constants, only: pi
       use grids_species, only: spec, nspec
       use file_utils, only: open_output_file, close_output_file
@@ -2955,7 +2955,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_z, only: nzgrid
       use calculations_velocity_integrals, only: integrate_vmu
       use grids_velocity, only: set_vpa_weights, nvpa, nmu
-      use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use constants, only: pi
       use file_utils, only: open_output_file, close_output_file
       use grids_time, only: code_dt
@@ -3416,8 +3416,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_kxky, only: naky, nakx
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: set_vpa_weights
-      use stella_layouts, only: vmu_lo, kxkyz_lo
-      use stella_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
+      use parallelisation_layouts, only: vmu_lo, kxkyz_lo
+      use parallelisation_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
       use calculations_redistribute, only: kxkyz2vmu
       use arrays_distribution_function, only: gvmu
       use calculations_tofrom_ghf, only: g_to_h
@@ -4178,8 +4178,8 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_velocity, only: vpa
       use grids_velocity, only: set_vpa_weights
       use grids_kxky, only: naky, nakx
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, is_idx, it_idx
       use calculations_tofrom_ghf, only: g_to_h
       use quasineutrality_equation_fluxtube, only: advance_fields_using_quasineutrality_equation
       use constants, only: pi

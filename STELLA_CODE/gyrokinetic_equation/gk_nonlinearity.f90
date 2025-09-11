@@ -113,7 +113,7 @@ contains
       use calculations_transforms, only: transform_y2ky, transform_x2kx
       use calculations_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
       use grids_time, only: cfl_dt_ExB, cfl_dt_linear, code_dt, code_dt_max
-      use stella_layouts, only: vmu_lo, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, imu_idx, is_idx
       
       use calculations_tofrom_ghf, only: g_to_h
       use calculations_gyro_averages, only: gyro_average
@@ -415,8 +415,8 @@ contains
       use constants, only: zi
       use mp, only: proc0, min_allreduce, mp_abort
       use mp, only: scope, allprocs, subprocs
-      use stella_layouts, only: vmu_lo, xyz_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo, xyz_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use job_manage, only: time_message
       use calculations_finite_differences, only: second_order_centered_zed
       use calculations_finite_differences, only: third_order_upwind

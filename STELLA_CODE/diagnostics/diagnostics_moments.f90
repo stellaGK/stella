@@ -138,8 +138,8 @@ contains
       use grids_velocity, only: maxwell_mu, ztmax, maxwell_fac, maxwell_vpa
       use grids_kxky, only: naky, nakx
       use calculations_kxky, only: multiply_by_rho
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use calculations_gyro_averages, only: gyro_average
       use arrays_gyro_averages, only: aj0x
       use arrays_fields, only: phi
@@ -265,8 +265,8 @@ contains
       use grids_kxky, only: naky, nakx
       use grids_kxky, only: rho_d_clamped
       use calculations_kxky, only: multiply_by_rho
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use arrays_distribution_function, only: g1, g2
       use arrays, only: kperp2, dkperp2dr
       use geometry, only: bmag, dBdrho

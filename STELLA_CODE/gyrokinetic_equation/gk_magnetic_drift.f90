@@ -94,8 +94,8 @@ contains
       use geometry, only: geo_surf, q_as_x
       
       ! Grids
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use grids_time, only: code_dt
       use grids_species, only: spec
       use grids_z, only: nzgrid
@@ -224,8 +224,8 @@ contains
       use parameters_physics, only: xdriftknob, ydriftknob
       
       ! Grids
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use grids_time, only: code_dt
       use grids_species, only: spec
       use grids_z, only: nzgrid
@@ -368,7 +368,7 @@ contains
       ! Grids
       use grids_z, only: nzgrid
       use grids_kxky, only: nalpha
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
     
       ! Allocate the following arrays with dimensions [ialpha, iz, ivmu]
       use arrays, only: wdriftx_g, wdrifty_g
@@ -424,7 +424,7 @@ contains
    subroutine advance_wdrifty_explicit(g, phi, bpar, gout)
 
       use mp, only: proc0
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use job_manage, only: time_message
       use calculations_transforms, only: transform_ky2y
       use grids_z, only: nzgrid, ntubes
@@ -539,7 +539,7 @@ contains
    subroutine advance_wdriftx_explicit(g, phi, bpar, gout)
 
       use mp, only: proc0
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use job_manage, only: time_message
       use calculations_transforms, only: transform_ky2y
       use grids_z, only: nzgrid, ntubes

@@ -51,7 +51,7 @@ contains
       ! Parallelisation
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx
       
       ! Arrays
       use arrays_distribution_function, only: g_scratch
@@ -175,8 +175,8 @@ contains
       use mp, only: proc0
       use mp, only: sum_allreduce, mp_abort
       use job_manage, only: time_message
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       
       ! Arrays
       use arrays, only: kperp2 
@@ -433,8 +433,8 @@ contains
 
       ! Parallelisation
       use mp, only: mp_abort, sum_allreduce
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       
       ! Parameters
       use parameters_physics, only: include_apar
@@ -503,8 +503,8 @@ contains
 
       ! Parallelisation
       use mp, only: sum_allreduce
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       
       ! Arrays
       use arrays, only: kperp2

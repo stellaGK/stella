@@ -112,8 +112,8 @@ contains
    subroutine init_flow_shear
    
       ! Parallelisation
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use mp, only: job, send, receive, crossdomprocs, subprocs, scope
       use file_utils, only: runtype_option_switch, runtype_multibox
       use job_manage, only: njobs
@@ -272,7 +272,7 @@ contains
 
       ! Parallelisation
       use mp, only: proc0, mp_abort
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       
       ! Fields
       use arrays_fields, only: phi, apar, bpar
@@ -338,7 +338,7 @@ contains
    subroutine advance_perp_flow_shear(g)
 
       ! Parallelisation
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       
       ! Calculations
       use constants, only: zi

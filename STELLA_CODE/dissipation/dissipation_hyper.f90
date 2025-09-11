@@ -131,7 +131,7 @@ contains
 
       use grids_time, only: code_dt
       use grids_z, only: nzgrid, ntubes, zed
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use arrays, only: kperp2
       use grids_kxky, only: naky
       use grids_kxky, only: aky, akx, theta0, zonal_mode
@@ -186,7 +186,7 @@ contains
    
       use grids_time, only: code_dt
       use grids_z, only: nzgrid
-      use stella_layouts, only: vmu_lo, kxkyz_lo
+      use parallelisation_layouts, only: vmu_lo, kxkyz_lo
       use redistribute, only: gather, scatter
       use calculations_redistribute, only: kxkyz2vmu
       use grids_velocity, only: nmu, nvpa, dvpa
@@ -223,7 +223,7 @@ contains
    ! dgdz multiplied by the z hyper diffusion coefficient
       use grids_time, only: code_dt
       use grids_z, only: nzgrid, delzed
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
 
       implicit none
 
@@ -248,7 +248,7 @@ contains
    subroutine get_dgdvpa_fourth_order(g, gout)
 
       use calculations_finite_differences, only: fourth_derivate_second_centered_vpa
-      use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo, iz_idx, is_idx
       use grids_velocity, only: nvpa, nmu, dvpa
 
       implicit none
@@ -284,8 +284,8 @@ contains
    subroutine get_dgdz_fourth_order(g, dgdz)
 
       use calculations_finite_differences, only: fourth_derivative_second_centered_zed
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx
       use grids_z, only: nzgrid, delzed, ntubes
       use grids_extended_zgrid, only: neigen, nsegments
       use grids_extended_zgrid, only: iz_low, iz_up
@@ -293,7 +293,7 @@ contains
       use grids_extended_zgrid, only: fill_zed_ghost_zones
       use grids_extended_zgrid, only: periodic
       use grids_kxky, only: naky
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
 
       implicit none
 

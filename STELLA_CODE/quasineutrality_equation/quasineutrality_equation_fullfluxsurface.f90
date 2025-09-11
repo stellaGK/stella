@@ -9,7 +9,7 @@ module quasineutrality_equation_ffs
 
    ! Load debug flags
    use debug_flags, only: debug => fields_ffs_debug
-   use stella_common_types, only: coupled_alpha_type, gam0_ffs_type
+   use common_types, only: coupled_alpha_type, gam0_ffs_type
 
    implicit none
 
@@ -45,7 +45,7 @@ contains
 
       ! Parallelisation
       use mp, only: mp_abort
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       
       ! Parameters
       use parameters_physics, only: include_apar
@@ -222,8 +222,8 @@ contains
 
          ! Parallelisation
          use mp, only: sum_allreduce
-         use stella_layouts, only: vmu_lo
-         use stella_layouts, only: iv_idx, imu_idx, is_idx
+         use parallelisation_layouts, only: vmu_lo
+         use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
          
          ! Parameters
          use grids_kxky, only: naky, nakx
@@ -341,7 +341,7 @@ contains
    subroutine get_fields_source(gold, phiold, source) 
 
       ! Parallelisation
-      use stella_layouts, only: vmu_lo 
+      use parallelisation_layouts, only: vmu_lo 
       
       ! Arrays
       use arrays, only: denominator_QN
@@ -405,8 +405,8 @@ contains
  
       ! Parallelisation
       use mp, only: sum_allreduce
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx 
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx 
 
       ! Grids
       use grids_kxky, only: naky, nakx
@@ -502,8 +502,8 @@ contains
 
       ! Parallelisation
       use mp, only: sum_allreduce, proc0
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
 
       ! Arrays
       use arrays, only: kperp2

@@ -69,7 +69,7 @@ contains
       ! Parallelisation
       use mp, only: proc0
       use job_manage, only: time_message
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use redistribute, only: scatter
       use calculations_redistribute, only: kxkyz2vmu
       
@@ -78,7 +78,7 @@ contains
       use arrays, only: time_field_solve
       
       ! Parameters
-      use stella_layouts, only: fields_kxkyz
+      use parallelisation_layouts, only: fields_kxkyz
       
       ! Grids
       use grids_z, only: nzgrid
@@ -138,7 +138,7 @@ contains
       ! Parallelisation
       use mp, only: mp_abort, proc0
       use job_manage, only: time_message
-      use stella_layouts, only: vmu_lo, iv_idx, imu_idx
+      use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx
       
       ! Arrays
       use arrays_distribution_function, only: g_scratch
@@ -249,8 +249,8 @@ contains
       use mp, only: proc0
       use mp, only: sum_allreduce, mp_abort
       use job_manage, only: time_message
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       
       ! Arrays
       use arrays, only: time_field_solve
@@ -529,8 +529,8 @@ contains
 
       ! Parallelisation
       use mp, only: sum_allreduce
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       
       ! Arrays
       use arrays, only: denominator_QN, denominator_QN_MBR

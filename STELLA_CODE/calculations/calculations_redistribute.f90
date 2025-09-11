@@ -73,9 +73,9 @@ contains
    subroutine init_kxkyz_to_vmu_redistribute
 
       use mp, only: nproc
-      use stella_layouts, only: kxkyz_lo, vmu_lo
-      use stella_layouts, only: kxkyzidx2vmuidx
-      use stella_layouts, only: idx_local, proc_id
+      use parallelisation_layouts, only: kxkyz_lo, vmu_lo
+      use parallelisation_layouts, only: kxkyzidx2vmuidx
+      use parallelisation_layouts, only: idx_local, proc_id
       use redistribute, only: index_list_type, init_redist
       use redistribute, only: delete_list, set_redist_character_type
       use grids_velocity, only: nvpa, nmu
@@ -203,9 +203,9 @@ contains
    subroutine init_kxyz_to_vmu_redistribute
 
       use mp, only: nproc
-      use stella_layouts, only: kxyz_lo, vmu_lo
-      use stella_layouts, only: kxyzidx2vmuidx
-      use stella_layouts, only: idx_local, proc_id
+      use parallelisation_layouts, only: kxyz_lo, vmu_lo
+      use parallelisation_layouts, only: kxyzidx2vmuidx
+      use parallelisation_layouts, only: idx_local, proc_id
       use redistribute, only: index_list_type, init_redist
       use redistribute, only: delete_list, set_redist_character_type
       use grids_velocity, only: nvpa, nmu
@@ -333,9 +333,9 @@ contains
    subroutine init_xyz_to_vmu_redistribute
 
       use mp, only: nproc
-      use stella_layouts, only: xyz_lo, vmu_lo
-      use stella_layouts, only: xyzidx2vmuidx
-      use stella_layouts, only: idx_local, proc_id
+      use parallelisation_layouts, only: xyz_lo, vmu_lo
+      use parallelisation_layouts, only: xyzidx2vmuidx
+      use parallelisation_layouts, only: idx_local, proc_id
       use redistribute, only: index_list_type, init_redist
       use redistribute, only: delete_list, set_redist_character_type
       use grids_velocity, only: nvpa, nmu
@@ -463,9 +463,9 @@ contains
    subroutine init_kymus_to_vmus_redistribute
 
       use mp, only: nproc
-      use stella_layouts, only: kymus_lo, vmu_lo
-      use stella_layouts, only: kymusidx2vmuidx
-      use stella_layouts, only: idx_local, proc_id
+      use parallelisation_layouts, only: kymus_lo, vmu_lo
+      use parallelisation_layouts, only: kymusidx2vmuidx
+      use parallelisation_layouts, only: idx_local, proc_id
       use redistribute, only: index_list_type, init_redist
       use redistribute, only: delete_list, set_redist_character_type
       use grids_velocity, only: nvpa
@@ -625,8 +625,8 @@ contains
       use mp, only: proc0, send, receive
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: nakx, naky
-      use stella_layouts, only: vmu_lo, kymus_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx, iky_idx, idx_local, proc_id
+      use parallelisation_layouts, only: vmu_lo, kymus_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx, iky_idx, idx_local, proc_id
 
       implicit none
 

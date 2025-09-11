@@ -6,7 +6,7 @@
 module geometry_miller
 
    use debug_flags, only: debug => geometry_debug
-   use stella_common_types, only: flux_surface_type
+   use common_types, only: flux_surface_type
 
    implicit none
 
@@ -73,7 +73,7 @@ contains
    subroutine read_local_parameters(nzed, nzgrid, local_out)
 
       use file_utils, only: input_unit_exist
-      use stella_common_types, only: flux_surface_type
+      use common_types, only: flux_surface_type
       use namelist_geometry, only: read_namelist_geometry_miller
 
       implicit none
@@ -198,7 +198,7 @@ contains
                     crossdomprocs, subprocs, &
                     send, receive
       use job_manage, only: njobs
-      use stella_common_types, only: flux_surface_type
+      use common_types, only: flux_surface_type
 
       implicit none
 

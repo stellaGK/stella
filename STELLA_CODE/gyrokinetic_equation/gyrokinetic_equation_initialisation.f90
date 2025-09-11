@@ -34,17 +34,19 @@ contains
       use parameters_physics, only: radial_variation
       use parameters_physics, only: include_parallel_nonlinearity
       
-      ! Initialise the following modules
-      use dissipation_and_collisions, only: init_collisions
+      ! Initialise the main terms of the gyrokinetic equation
       use calculations_timestep, only: init_cfl
       use gk_drive, only: init_wstar
       use gk_magnetic_drift, only: init_wdrift
       use gk_parallel_streaming, only: init_parallel_streaming
       use gk_mirror, only: init_mirror
+      
+      ! Initialise optional terms of the gyrokinetic equation
+      use dissipation_and_collisions, only: init_collisions
       use gk_flow_shear, only: init_flow_shear
+      use gk_radial_variation, only: init_radial_variation
       use gk_sources, only: init_quasineutrality_source
       use gk_sources, only: init_source_timeaverage
-      use gk_radial_variation, only: init_radial_variation
       use gk_nonlinearity, only: init_parallel_nonlinearity
       use neoclassical_terms, only: init_neoclassical_terms
 

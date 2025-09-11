@@ -29,8 +29,8 @@ contains
    subroutine init_radial_variation
 
       ! Parallelisation
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use grids_time, only: code_dt
 
       ! Grids
@@ -177,8 +177,8 @@ contains
 
       use calculations_transforms, only: transform_kx2x_xfirst, transform_x2kx_xfirst
 
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
 
       use calculations_kxky_derivatives, only: get_dgdy, get_dgdx
       use calculations_kxky_derivatives, only: get_dchidy
@@ -327,7 +327,7 @@ contains
    subroutine mb_communicate(g_in)
 
       use mp, only: job
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_z, only: nzgrid
       use multibox, only: multibox_communicate, apply_radial_boundary_conditions
       use parameters_multibox, only: use_dirichlet_bc

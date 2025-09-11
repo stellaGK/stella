@@ -37,8 +37,8 @@ contains
       use constants, only: zi
       use arrays_distribution_function, only: g1, g2
       use arrays, only: kperp2, dkperp2dr
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use grids_species, only: spec
       use geometry, only: grho_norm, bmag, btor
       use geometry, only: drhodpsi
@@ -345,7 +345,7 @@ contains
    subroutine get_one_flux_vmulo_int(weights, gin, fld, flxout)
 
       use calculations_velocity_integrals, only: integrate_vmu
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_kxky, only: aky
       use parameters_multibox, only: boundary_size
       use grids_kxky, only: nakx, naky
@@ -437,7 +437,7 @@ contains
    subroutine get_one_flux_vmulo_kxkyz(weights, gin, fld, flxout)
 
       use calculations_velocity_integrals, only: integrate_vmu
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_kxky, only: aky
       use grids_kxky, only: nakx, naky
       use grids_z, only: nzgrid, ntubes
@@ -489,7 +489,7 @@ contains
 
       use calculations_velocity_integrals, only: integrate_vmu
       use geometry, only: dVolume
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_kxky, only: aky
       use grids_kxky, only: nakx, naky
       use grids_z, only: nzgrid, ntubes

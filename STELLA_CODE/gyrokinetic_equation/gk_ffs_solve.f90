@@ -24,7 +24,7 @@ module gk_ffs_solve
 
    !     use grids_z, only: nzgrid, ntubes
    !     use grids_kxky, only: naky, nakx
-   !     use stella_layouts, only: vmu_lo
+   !     use parallelisation_layouts, only: vmu_lo
 
    !     implicit none 
       
@@ -54,8 +54,8 @@ module gk_ffs_solve
    !****************************************************************************
    subroutine get_source_ffs_itteration (phi, g, source) 
 
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use calculations_transforms, only: transform_ky2y
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, naky_all, nakx, ikx_max, ny
@@ -196,8 +196,8 @@ module gk_ffs_solve
    !****************************************************************************
    subroutine get_drifts_ffs_itteration (phi, g, source) 
 
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: iv_idx, imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use calculations_transforms, only: transform_ky2y,transform_y2ky
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, naky_all, nakx, ikx_max, ny

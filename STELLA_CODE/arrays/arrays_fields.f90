@@ -10,7 +10,7 @@
 module arrays_fields
 
    use mpi
-   use stella_common_types, only: eigen_type
+   use common_types, only: eigen_type
 
    implicit none
    

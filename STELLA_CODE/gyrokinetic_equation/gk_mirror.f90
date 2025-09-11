@@ -169,8 +169,8 @@ contains
    subroutine init_invert_mirror_operator
 
       use mp, only: mp_abort
-      use stella_layouts, only: kxkyz_lo, kxyz_lo, vmu_lo
-      use stella_layouts, only: iz_idx, is_idx, imu_idx, iv_idx, iy_idx
+      use parallelisation_layouts, only: kxkyz_lo, kxyz_lo, vmu_lo
+      use parallelisation_layouts, only: iz_idx, is_idx, imu_idx, iv_idx, iy_idx
       use grids_z, only: nzgrid
       use grids_velocity, only: dvpa, vpa, mu
       use grids_velocity, only: nvpa, nmu
@@ -312,7 +312,7 @@ contains
    !****************************************************************************
    subroutine init_mirror_response
 
-      use stella_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: kxkyz_lo
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nmu, nvpa
       use grids_kxky, only: naky, nakx
@@ -372,8 +372,8 @@ contains
       use redistribute, only: gather, scatter
       use arrays_distribution_function, only: gvmu
       use job_manage, only: time_message
-      use stella_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
-      use stella_layouts, only: iv_idx, is_idx
+      use parallelisation_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
+      use parallelisation_layouts, only: iv_idx, is_idx
       use calculations_transforms, only: transform_ky2y
       use grids_z, only: nzgrid, ntubes
       use parameters_physics, only: full_flux_surface
@@ -381,7 +381,7 @@ contains
       use calculations_kxky, only: swap_kxky
       use grids_velocity, only: nvpa, nmu
       use grids_velocity, only: vpa, maxwell_vpa
-      use stella_layouts, only: fields_kxkyz
+      use parallelisation_layouts, only: fields_kxkyz
       use parameters_numerical, only: maxwellian_normalization
       use calculations_redistribute, only: kxkyz2vmu, kxyz2vmu
 
@@ -489,12 +489,12 @@ contains
       use redistribute, only: gather, scatter
       use arrays_distribution_function, only: gvmu
       use job_manage, only: time_message
-      use stella_layouts, only: kxkyz_lo, vmu_lo
-      use stella_layouts, only: is_idx, imu_idx
+      use parallelisation_layouts, only: kxkyz_lo, vmu_lo
+      use parallelisation_layouts, only: is_idx, imu_idx
       use grids_z, only: nzgrid, ntubes
       use parameters_physics, only: full_flux_surface
       use grids_velocity, only: nvpa, nmu
-      use stella_layouts, only: fields_kxkyz
+      use parallelisation_layouts, only: fields_kxkyz
       use calculations_redistribute, only: kxkyz2vmu
 
       implicit none
@@ -555,7 +555,7 @@ contains
    subroutine get_dgdvpa_ffs(g, ikxyz)
 
       use calculations_finite_differences, only: third_order_upwind
-      use stella_layouts, only: kxyz_lo, iz_idx, iy_idx, is_idx
+      use parallelisation_layouts, only: kxyz_lo, iz_idx, iy_idx, is_idx
       use grids_velocity, only: nvpa, nmu, dvpa
 
       implicit none
@@ -587,7 +587,7 @@ contains
    subroutine get_dgdvpa_explicit(g)
 
       use calculations_finite_differences, only: third_order_upwind
-      use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo, iz_idx, is_idx
       use grids_velocity, only: nvpa, nmu, dvpa
 
       implicit none
@@ -618,8 +618,8 @@ contains
    !****************************************************************************
    subroutine add_mirror_term(g, src)
 
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: imu_idx, is_idx
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: nakx
 
@@ -649,8 +649,8 @@ contains
 
    subroutine add_mirror_term_ffs(g, src)
 
-      use stella_layouts, only: vmu_lo
-      use stella_layouts, only: imu_idx, is_idx
+      use parallelisation_layouts, only: vmu_lo
+      use parallelisation_layouts, only: imu_idx, is_idx
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: ikx_max
 
@@ -688,9 +688,9 @@ contains
       use job_manage, only: time_message
       use redistribute, only: gather, scatter
       use calculations_finite_differences, only: fd_variable_upwinding_vpa
-      use stella_layouts, only: vmu_lo, kxyz_lo, kxkyz_lo
-      use stella_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
-      use stella_layouts, only: iv_idx, imu_idx
+      use parallelisation_layouts, only: vmu_lo, kxyz_lo, kxkyz_lo
+      use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
+      use parallelisation_layouts, only: iv_idx, imu_idx
       use calculations_transforms, only: transform_ky2y, transform_y2ky
       use grids_z, only: nzgrid, ntubes
       use arrays_distribution_function, only: gvmu
@@ -708,7 +708,7 @@ contains
       use calculations_tofrom_ghf, only: gbar_to_g
       use parameters_numerical, only: time_upwind
       use grids_velocity, only: dvpa
-      use stella_layouts, only: iy_idx
+      use parallelisation_layouts, only: iy_idx
       use calculations_kxky, only: swap_kxky, swap_kxky_back
       use grids_kxky, only: naky_all, ikx_max
       
@@ -945,7 +945,7 @@ contains
       use parameters_numerical, only: vpa_upwind, time_upwind_minus
       use parameters_numerical, only: maxwellian_normalization
       use calculations_tofrom_ghf, only: gbar_to_g
-      use stella_layouts, only: kxkyz_lo, iz_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo, iz_idx, is_idx
       use calculations_finite_differences, only: fd_variable_upwinding_vpa
       use grids_velocity, only: dvpa, vpa, nvpa
 
@@ -1006,7 +1006,7 @@ contains
       use grids_velocity, only: nvpa
       use grids_velocity, only: maxwell_vpa, maxwell_mu, vpa
       use parameters_numerical, only: maxwellian_normalization
-      use stella_layouts, only: kxkyz_lo, is_idx, iz_idx
+      use parallelisation_layouts, only: kxkyz_lo, is_idx, iz_idx
       use calculations_gyro_averages, only: gyro_average
 
       implicit none
@@ -1047,8 +1047,8 @@ contains
    subroutine vpa_interpolation(grid, interp)
 
       use grids_velocity, only: nvpa, nmu
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iz_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iz_idx, is_idx
       use parameters_numerical, only: mirror_linear_interp
 
       implicit none

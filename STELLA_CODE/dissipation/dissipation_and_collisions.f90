@@ -227,7 +227,7 @@ contains
       
       ! Grids
       use grids_z, only: nzgrid
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       
       ! Flags
       use parameters_physics, only: full_flux_surface
@@ -271,7 +271,7 @@ contains
       ! Grids
       use grids_z, only: nzgrid
       use grids_velocity, only: set_vpa_weights
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       
       ! Fields
       use arrays_distribution_function, only: gvmu

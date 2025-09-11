@@ -13,7 +13,7 @@ contains
 
       use mp, only: mp_abort
       use calculations_finite_differences, only: fd3pt, d2_3pt
-      use stella_common_types, only: spec_type
+      use common_types, only: spec_type
       use splines, only: geo_spline
       use parameters_physics, only: rhostar
       use geometry, only: geo_surf, aref, bref

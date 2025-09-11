@@ -35,8 +35,8 @@ contains
    subroutine get_fields_by_spec(g, fld, skip_fsa)
 
       use mp, only: sum_allreduce
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use calculations_gyro_averages, only: gyro_average
       use parameters_physics, only: fphi
       use geometry, only: dl_over_b
@@ -130,8 +130,8 @@ contains
    subroutine get_fields_by_spec_idx(isa, g, fld)
 
       use mp, only: sum_allreduce
-      use stella_layouts, only: kxkyz_lo
-      use stella_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
+      use parallelisation_layouts, only: kxkyz_lo
+      use parallelisation_layouts, only: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       use calculations_gyro_averages, only: gyro_average
       use parameters_physics, only: fphi
       use geometry, only: dl_over_b, bmag

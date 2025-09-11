@@ -53,7 +53,7 @@ contains
       use file_units, only: unit_input_file_with_defaults
       
       ! Init modules
-      use stella_layouts, only: init_dist_fn_layouts
+      use parallelisation_layouts, only: init_dist_fn_layouts
       use diagnostics, only: init_diagnostics
       
       ! Calculations
@@ -267,7 +267,7 @@ contains
       
       ! Other parameters
       use initialise_distribution_function, only: read_parameters_distribution_function
-      use stella_layouts, only: read_parameters_parallelisation_layouts
+      use parallelisation_layouts, only: read_parameters_parallelisation_layouts
       use dissipation_and_collisions, only: read_parameters_dissipation_and_collisions
       use gk_flow_shear, only: read_parameters_flow_shear
       
@@ -461,7 +461,7 @@ contains
       ! Flags related to the gyrokinetic equation
       use parameters_numerical, only: stream_implicit
       use parameters_numerical, only: driftkinetic_implicit
-      use stella_layouts, only: mat_read
+      use parallelisation_layouts, only: mat_read
       
       implicit none
       
@@ -773,7 +773,7 @@ contains
       use mp, only: proc0
       use file_utils, only: finish_file_utils, runtype_option_switch, runtype_multibox
       use job_manage, only: time_message
-      use stella_layouts, only: fields_kxkyz
+      use parallelisation_layouts, only: fields_kxkyz
       use parameters_physics, only: finish_read_parameters_physics
       use parameters_physics, only: include_parallel_nonlinearity, radial_variation
       use parameters_numerical, only: finish_read_parameters_numerical

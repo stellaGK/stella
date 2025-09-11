@@ -168,7 +168,7 @@ contains
          use parameters_physics, only: include_mirror
          use parameters_physics, only: include_nonlinear
          use parameters_physics, only: rhostar
-         use stella_layouts, only: fields_kxkyz
+         use parallelisation_layouts, only: fields_kxkyz
          use file_units, only: unit_error_file
          
          implicit none

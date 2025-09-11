@@ -26,7 +26,7 @@ contains
    !****************************************************************************
    subroutine add_explicit_term(g, pre_factor, src)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, nakx
 
@@ -63,7 +63,7 @@ contains
    ! add vM . grad y d<phi>/dy or vM . grad x d<phi>/dx (or equivalents with g) or omega_* * d<phi>/dy term to RHS of GK equation
    subroutine add_explicit_term_ffs(g, pre_factor, src)
 
-      use stella_layouts, only: vmu_lo
+      use parallelisation_layouts, only: vmu_lo
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: ikx_max, nalpha
 

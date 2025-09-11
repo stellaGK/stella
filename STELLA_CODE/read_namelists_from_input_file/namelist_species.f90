@@ -80,7 +80,7 @@
 !###############################################################################
 module namelist_species
    
-   use stella_common_types, only: spec_type
+   use common_types, only: spec_type
 
    implicit none
 
