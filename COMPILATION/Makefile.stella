@@ -49,7 +49,7 @@ export EXTERNALS_DIR
 export CALCULATIONS=$(STELLA_DIR)/calculations
 export DIAGNOSTICS=$(STELLA_DIR)/diagnostics
 export COLLISIONS=$(STELLA_DIR)/dissipation
-export STELLA_CALCULATIONS=$(STELLA_DIR)/stella_calculations
+export STELLA_UTILS=$(STELLA_DIR)/stella_utils
 export GEOMETRY=$(STELLA_DIR)/geometry
 export GRIDS=$(STELLA_DIR)/grids
 export ARRAYS=$(STELLA_DIR)/arrays
@@ -60,10 +60,10 @@ export PARAMETERS=$(STELLA_DIR)/parameters
 export INPUT_PARAMETERS=$(STELLA_DIR)/read_namelists_from_input_file
 export RADIAL_VARIATION=$(STELLA_DIR)/radial_variation
 SUBFOLDERS := $(CALCULATIONS) $(DIAGNOSTICS) $(COLLISIONS)
-SUBFOLDERS := $(SUBFOLDERS) $(QUASINEUTRALITY_EQUATION) $(STELLA_CALCULATIONS) $(GRIDS) $(ARRAYS)
+SUBFOLDERS := $(SUBFOLDERS) $(QUASINEUTRALITY_EQUATION) $(STELLA_UTILS) $(GRIDS) $(ARRAYS)
 SUBFOLDERS := $(SUBFOLDERS) $(GYROKINETIC_EQUATION) $(NEOCLASSICAL) $(PARAMETERS) $(INPUT_PARAMETERS) $(RADIAL_VARIATION) $(GEOMETRY)
 VPATH_SUBFOLDERS := :$(CALCULATIONS):$(DIAGNOSTICS):$(COLLISIONS)
-VPATH_SUBFOLDERS := :$(VPATH_SUBFOLDERS):$(QUASINEUTRALITY_EQUATION):$(STELLA_CALCULATIONS):$(GEOMETRY):$(GRIDS):$(ARRAYS)
+VPATH_SUBFOLDERS := :$(VPATH_SUBFOLDERS):$(QUASINEUTRALITY_EQUATION):$(STELLA_UTILS):$(GEOMETRY):$(GRIDS):$(ARRAYS)
 VPATH_SUBFOLDERS := :$(VPATH_SUBFOLDERS):$(GYROKINETIC_EQUATION):$(NEOCLASSICAL):$(PARAMETERS):$(INPUT_PARAMETERS):$(RADIAL_VARIATION):
 
 # Check directories
@@ -253,7 +253,7 @@ $(OBJ)/%.o: $(DIAGNOSTICS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 $(OBJ)/%.o: $(COLLISIONS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
-$(OBJ)/%.o: $(STELLA_CALCULATIONS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
+$(OBJ)/%.o: $(STELLA_UTILS)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 	@echo "   (stella) *.f90 to *.o: $(notdir $<)" 
 	@$(FC) $(F90FLAGS) $(INC_FLAGS) $(MOD_FLAGS_STELLA) -o $@ -c $< 
 $(OBJ)/%.o: $(GEOMETRY)/%.f90 $(external_modules) | $(OBJ) $(MOD)
@@ -291,7 +291,7 @@ $(OBJ)/%.o: $(RADIAL_VARIATION)/%.f90 $(external_modules) | $(OBJ) $(MOD)
 # In STELLA_CODE/* and EXTERNALS/utils/*, we have *.fpp files, that need to be preprocessed into *.f90 files
 # We will use a pattern rule to create symbolic links of these *.fpp files in the $(FPP) directory
 # And we define the *.f90 file paths inside $(FPP), since we will preprocess $(FPP)/*.fpp to $(FPP)/*.f90
-existing_fpp_files := $(wildcard $(STELLA_CALCULATIONS)/*.fpp) $(wildcard $(QUASINEUTRALITY_EQUATION)/*.fpp) $(wildcard $(DIAGNOSTICS)/*.fpp) $(wildcard $(GYROKINETIC_EQUATION)/*.fpp) $(wildcard $(RADIAL_VARIATION)/*.fpp)
+existing_fpp_files := $(wildcard $(STELLA_UTILS)/*.fpp) $(wildcard $(QUASINEUTRALITY_EQUATION)/*.fpp) $(wildcard $(DIAGNOSTICS)/*.fpp) $(wildcard $(GYROKINETIC_EQUATION)/*.fpp) $(wildcard $(RADIAL_VARIATION)/*.fpp)
 existing_fpp_files := $(existing_fpp_files) $(wildcard $(NEOCLASSICAL)/*.fpp) $(UTILS_DIR)/define.inc
 existing_fpp_file_names := $(notdir $(existing_fpp_files))
 fpp_files_in_build_directory := $(addprefix $(FPP)/, $(existing_fpp_file_names)) 
@@ -321,7 +321,7 @@ $(FPP)/%.f90: $(FPP)/%.fpp $(FPP)/define.inc | $(FPP)
 $(FPP)/%.fpp: $(QUASINEUTRALITY_EQUATION)/%.fpp | $(FPP)
 	@echo "       (stella) ln -s STELLA_CODE/$(notdir $<) COMPILATION/$(FPP_NAME)/$(notdir $<)"	
 	@ln -sf $< $(FPP)
-$(FPP)/%.fpp: $(STELLA_CALCULATIONS)/%.fpp | $(FPP)
+$(FPP)/%.fpp: $(STELLA_UTILS)/%.fpp | $(FPP)
 	@echo "       (stella) ln -s STELLA_CODE/$(notdir $<) COMPILATION/$(FPP_NAME)/$(notdir $<)"	
 	@ln -sf $< $(FPP)
 $(FPP)/%.fpp: $(DIAGNOSTICS)/%.fpp | $(FPP)
@@ -430,7 +430,7 @@ remove-stella-files:
 remove-temp-files:
 	@echo "   - remove temp files" 
 	@-rm -f $(UTILS)/*~ $(CALCULATIONS)/*~ $(DIAGNOSTICS)/*~ $(COLLISIONS)/*~ 
-	@-rm -f $(GEOMETRY)/*~ $(GRIDS)/*~ $(ARRAYS)/*~ $(GYROKINETIC_EQUATION)/*~ $(STELLA_CALCULATIONS)/*~ 
+	@-rm -f $(GEOMETRY)/*~ $(GRIDS)/*~ $(ARRAYS)/*~ $(GYROKINETIC_EQUATION)/*~ $(STELLA_UTILS)/*~ 
 	@-rm -f $(NEOCLASSICAL)/*~ $(PARAMETERS)/*~ $(RADIAL_VARIATION)/*~ $(QUASINEUTRALITY_EQUATION)/*~ 
 
 # In case cmake was used, clean it up as well

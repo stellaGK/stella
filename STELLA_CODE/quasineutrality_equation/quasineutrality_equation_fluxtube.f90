@@ -43,12 +43,11 @@ module quasineutrality_equation_fluxtube
 
    private
 
+   ! Advance fields for g(kx,ky,z,ivpamus) and g(vpa,mu,ikxkyzs)
    interface advance_fields_using_quasineutrality_equation
       module procedure advance_fields_using_quasineutrality_equation_vmlo
       module procedure advance_fields_using_quasineutrality_equation_kxkyzlo
    end interface
-
-   integer :: zm
 
 contains
 
@@ -571,9 +570,8 @@ contains
       
       !-------------------------------------------------------------------------
 
-      ! Initialise
+      ! Assume we only have a single field line
       ia = 1
-      zm = 0
 
       ! Calculate the denominators needed for electrostatic simulations
       if (fphi > epsilon(0.0)) then
@@ -623,7 +621,6 @@ contains
          ! Avoid divide by zero when kx=ky=0; We do not evolve this mode, so the value is irrelevant
          if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then
             denominator_QN(1, 1, :) = 0.0
-            zm = 1
          end if
 
 

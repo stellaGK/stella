@@ -131,16 +131,16 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_species.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_velocity_grids.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_z_grid.f90
-  ../STELLA_CODE/stella_calculations/stella_common_types.f90
-  ../STELLA_CODE/stella_calculations/stella_layouts.f90
-  ../STELLA_CODE/stella_calculations/stella_time.f90
+  ../STELLA_CODE/stella_utils/stella_common_types.f90
+  ../STELLA_CODE/stella_utils/stella_layouts.f90
+  ../STELLA_CODE/stella_utils/stella_time.f90
   ../STELLA_CODE/utils/define.inc
 )
 
 # Sources that _do_ need preprocessing (because they have MPI flags, ...)
 set(STELLA_SOURCES_fpp
-  ../STELLA_CODE/stella_calculations/stella_io.fpp
-  ../STELLA_CODE/stella_calculations/stella_save.fpp
+  ../STELLA_CODE/stella_utils/stella_io.fpp
+  ../STELLA_CODE/stella_utils/stella_save.fpp
   ../STELLA_CODE/quasineutrality_equation/quasineutrality_equation_radialvariation.fpp
   ../STELLA_CODE/gyrokinetic_equation/response_matrix.fpp
   ../STELLA_CODE/radial_variation/gk_sources.fpp

@@ -2,7 +2,7 @@
 !############## ADVANCE FIELDS USING THE QUASINEUTRALITY EQUATION ##############
 !###############################################################################
 ! 
-! Evolve the fields in time using the quasi-neutrality condition
+! Evolve the fields in time using the quasi-neutrality condition:
 !     sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g + (Zs/Ts) (Gamma0 - 1) phi ] = 0
 !     sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * h - (Zs/Ts) phi ] = 0
 ! 
@@ -53,7 +53,8 @@ module quasineutrality_equation
    ! 2 or 3 for electromagnetic, i.e., apar and bpar
    integer :: nfields
 
-   ! Logicals
+   ! Every time the distribution function is updated
+   ! we want to update the fields as well
    logical :: fields_updated = .false.
    
    ! Only initialise once
@@ -111,7 +112,7 @@ contains
       ! Advance the fields in time using the quasi-neutrality equation for a flux-tube simulation
       ! This will include electrostatic and electromagnetic effects, as well as any radial variation effects
       if (.not. full_flux_surface) then 
-         if (debug) write (*, *) 'fields::advance_fields_using_quasineutrality_equation_vmulo::get_fields_fluxtube'
+         if (debug) write (*, *) 'quasineutrality_equation::advance_fields_using_quasineutrality_equation_fluxtube'
          call advance_fields_using_quasineutrality_equation_fluxtube(g, phi, apar, bpar, dist)
          
       ! Include Full-Flux-Surface effects 
@@ -119,12 +120,12 @@ contains
       
          ! This routine is only needed in the 'implicit_solve' algorithm
          if (present(implicit_solve)) then
-            if (debug) write (*, *) 'fields::advance_fields_using_quasineutrality_equation_vmulo::get_fields_ffs_const_in_alpha'
+            if (debug) write (*, *) 'quasineutrality_equation::advance_fields_using_quasineutrality_equation_ffs::implicit'
             call advance_fields_using_quasineutrality_equation_ffs(g, phi, apar, implicit_solve=.true.)
             
          ! This routine is for advancing the full <phi> field in the code with FFS effects
          else
-            if (debug) write (*, *) 'fields::advance_fields_using_quasineutrality_equation_vmulo::get_fields_ffs'
+            if (debug) write (*, *) 'quasineutrality_equation::advance_fields_using_quasineutrality_equation_ffs'
             call advance_fields_using_quasineutrality_equation_ffs(g, phi, apar)
          end if
          

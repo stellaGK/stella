@@ -30,7 +30,7 @@ contains
 !###############################################################################
 !############################## INTIALISE STELLA ###############################
 !###############################################################################
-   ! Calls the initialisation routines for all the modules
+! Calls the initialisation routines for all the modules.
 !###############################################################################
 
    !****************************************************************************
@@ -73,7 +73,9 @@ contains
       integer, intent(out) :: istep0
       integer, intent(in out) :: istatus
 
-      logical :: restarted, fourier_transformations_are_needed
+      ! Local variables
+      logical :: restarted
+      logical :: fourier_transformations_are_needed
 
       !-------------------------------------------------------------------------
       
@@ -86,6 +88,7 @@ contains
       ! of jobs (or input files) over the number of processors using job_fork().
       ! Finally, we start more internal timers, get the <run_name> and initialise
       ! the random nunmber generator based on <rng_seed> in the input file
+      if (debug) write (*, *) 'stella::init_stella::init_mpi_files_utils_and_timers'
       call init_mpi_files_utils_and_timers
 
       ! Write message to command prompt with useful info regarding at the start of the simulation
@@ -104,13 +107,14 @@ contains
       
       ! Check whether Fourier transformations are needed (e.g., the nonlinear term
       ! requires it, radial variation requires it, ...) and if so, set up the FFTW plans
+      if (debug) write (*, *) "stella::init_stella::init_transforms"
       call are_fourier_transformations_needed(fourier_transformations_are_needed)
       if (fourier_transformations_are_needed) then
-         if (debug) write (*, *) "stella::init_stella::init_transforms"
          call init_transforms
       end if
       
       ! Initialise the (kx,ky,z,mu,vpa,species) grids as well as the magnetic geometry
+      if (debug) write (*, *) "stella::init_stella::init_grids_and_geometry"
       call init_grids_and_geometry
       
       ! Initialise the arrays for the distribution function g(kx,ky,z,i[mu,vpa,species])
@@ -118,14 +122,17 @@ contains
       ! arrays for vperp2 and kperp2 and arrays needed for gyro-averaging (j0 and j1).
       ! Moreover, initialise the redistribute, dissipation, soueces, fields, 
       ! distribution and volume_averaged modules
+      if (debug) write (*, *) "stella::init_stella::init_arrays_and_stella_modules"
       call init_arrays_and_stella_modules(restarted, istep0)
       
       ! Initialise <delt>m the time advance module, and the response matrix
-      call init_time_step_and_time_advance(restarted, istatus)
+      if (debug) write (*, *) "stella::init_stella::init_time_step_and_gyrokinetic_equation"
+      call init_time_step_and_gyrokinetic_equation(restarted, istatus)
      
       ! The distribution function g(kx,ky,z,mu,vpa,species) has been initialised
       ! in initialise_distribution(). Use the quasineutrality condition to initialise
       ! the electrostatic and electromagnetic fields (phi, apar, bpar).
+      if (debug) write (*, *) "stella::init_stella::init_electrostatic_and_magnetic_potential"
       call init_electrostatic_and_magnetic_potential(restarted)
 
       ! Open ascii output files and initialise the netcdf file with extension .out.nc
@@ -137,11 +144,13 @@ contains
       call init_tstart(tstart)
 
       ! Make sure the error file and default input file are written
+      if (debug) write (6, *) 'stella::init_stella::write_error_file'
       if (proc0) call flush_output_file(error_unit())
       if (proc0) call flush_output_file(unit_input_file_with_defaults)
       if (proc0) call close_input_file_with_defaults()
 
       ! Add a header to the output file
+      if (debug) write (6, *) 'stella::init_stella::print_header'
       call print_header
       
       ! Stop the timing of the initialization
@@ -435,7 +444,7 @@ contains
    !****************************************************************************
    !                    Initialise time step and time advance                   
    !****************************************************************************
-   subroutine init_time_step_and_time_advance(restarted, istatus)
+   subroutine init_time_step_and_gyrokinetic_equation(restarted, istatus)
       
       ! Set the time step
       use parameters_numerical, only: delt_option_switch
@@ -491,7 +500,7 @@ contains
          end if
       end if
       
-   end subroutine init_time_step_and_time_advance
+   end subroutine init_time_step_and_gyrokinetic_equation
    
    !****************************************************************************
    !                        Initialise phi, apar and bpar                       
