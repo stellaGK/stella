@@ -45,7 +45,6 @@ option(STELLA_UPDATE_GIT_SUBMODULES "Check submodules are up-to-date during buil
 
 # Sources that don't need preprocessing
 set(STELLA_SOURCES_f90
-  ../STELLA_CODE/init_stella.f90
   ../STELLA_CODE/arrays/arrays.f90
   ../STELLA_CODE/arrays/arrays_distribution_function.f90
   ../STELLA_CODE/arrays/arrays_fields.f90
@@ -88,7 +87,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/grids/grids_species.f90
   ../STELLA_CODE/grids/grids_velocity.f90
   ../STELLA_CODE/grids/grids_z.f90
-  ../STELLA_CODE/gyrokinetic_equation/add_explicit_terms.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_drive.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_ffs_solve.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_flow_shear.f90
@@ -131,6 +129,8 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_species.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_velocity_grids.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_z_grid.f90
+  ../STELLA_CODE/stella_utils/add_explicit_terms.f90
+  ../STELLA_CODE/stella_utils/init_stella.f90
   ../STELLA_CODE/stella_utils/stella_common_types.f90
   ../STELLA_CODE/stella_utils/stella_layouts.f90
   ../STELLA_CODE/stella_utils/stella_time.f90
