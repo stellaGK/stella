@@ -51,6 +51,7 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/arrays/arrays_gyro_averages.f90
   ../STELLA_CODE/arrays/initialise_arrays.f90
   ../STELLA_CODE/arrays/initialise_distribution_function.f90
+  ../STELLA_CODE/calculations/calculations_add_explicit_terms.f90
   ../STELLA_CODE/calculations/calculations_checksum.f90
   ../STELLA_CODE/calculations/calculations_finite_differences.f90
   ../STELLA_CODE/calculations/calculations_gyro_averages.f90
@@ -130,7 +131,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_species.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_velocity_grids.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_z_grid.f90
-  ../STELLA_CODE/stella_utils/add_explicit_terms.f90
   ../STELLA_CODE/stella_utils/init_stella.f90
   ../STELLA_CODE/stella_utils/stella_common_types.f90
   ../STELLA_CODE/stella_utils/stella_layouts.f90

@@ -9,7 +9,7 @@
 !     - advance_wstar_explicit
 ! 
 !###############################################################################
-module add_explicit_terms
+module calculations_add_explicit_terms
 
    implicit none
    
@@ -94,4 +94,4 @@ contains
 
    end subroutine add_explicit_term_ffs
 
-end module add_explicit_terms
+end module calculations_add_explicit_terms

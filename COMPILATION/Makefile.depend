@@ -4,11 +4,11 @@
 # >> make depend
 #
 stella_mod = \
-	 $(OBJ_DIR)/add_explicit_terms.o \
 	 $(OBJ_DIR)/arrays.o \
 	 $(OBJ_DIR)/arrays_distribution_function.o \
 	 $(OBJ_DIR)/arrays_fields.o \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_add_explicit_terms.o \
 	 $(OBJ_DIR)/calculations_finite_differences.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_kxky.o \
@@ -119,10 +119,6 @@ stella_mod = \
 	 $(OBJ_DIR)/system_fortran.o \
 	 $(OBJ_DIR)/text_options.o 
 
-$(OBJ_DIR)/add_explicit_terms.o: \
-	 $(OBJ_DIR)/grids_kxky.o \
-	 $(OBJ_DIR)/grids_z.o \
-	 $(OBJ_DIR)/stella_layouts.o 
 $(OBJ_DIR)/arrays.o: \
 	 $(OBJ_DIR)/stella_common_types.o 
 $(OBJ_DIR)/arrays_distribution_function.o: 
@@ -142,6 +138,10 @@ $(OBJ_DIR)/arrays_gyro_averages.o: \
 	 $(OBJ_DIR)/parameters_physics.o \
 	 $(OBJ_DIR)/spfunc.o \
 	 $(OBJ_DIR)/stella_common_types.o \
+	 $(OBJ_DIR)/stella_layouts.o 
+$(OBJ_DIR)/calculations_add_explicit_terms.o: \
+	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_z.o \
 	 $(OBJ_DIR)/stella_layouts.o 
 $(OBJ_DIR)/calculations_checksum.o: \
 	 $(OBJ_DIR)/debug_flags.o \
@@ -582,10 +582,10 @@ $(OBJ_DIR)/geometry_zpinch.o: \
 	 $(OBJ_DIR)/stella_common_types.o 
 $(OBJ_DIR)/git_version.o: 
 $(OBJ_DIR)/gk_drive.o: \
-	 $(OBJ_DIR)/add_explicit_terms.o \
 	 $(OBJ_DIR)/arrays.o \
 	 $(OBJ_DIR)/arrays_distribution_function.o \
 	 $(OBJ_DIR)/arrays_fields.o \
+	 $(OBJ_DIR)/calculations_add_explicit_terms.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_kxky.o \
 	 $(OBJ_DIR)/calculations_kxky_derivatives.o \
@@ -660,9 +660,9 @@ $(OBJ_DIR)/gk_implicit_terms.o: \
 	 $(OBJ_DIR)/quasineutrality_equation_fullfluxsurface.o \
 	 $(OBJ_DIR)/stella_layouts.o 
 $(OBJ_DIR)/gk_magnetic_drift.o: \
-	 $(OBJ_DIR)/add_explicit_terms.o \
 	 $(OBJ_DIR)/arrays.o \
 	 $(OBJ_DIR)/arrays_distribution_function.o \
+	 $(OBJ_DIR)/calculations_add_explicit_terms.o \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/calculations_kxky.o \
 	 $(OBJ_DIR)/calculations_kxky_derivatives.o \

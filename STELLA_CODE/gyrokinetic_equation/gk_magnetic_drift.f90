@@ -434,7 +434,7 @@ contains
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       use arrays, only: wdrifty_g, wdrifty_phi, wdrifty_bpar
       use arrays_distribution_function, only: g_scratch
-      use add_explicit_terms, only: add_explicit_term, add_explicit_term_ffs
+      use calculations_add_explicit_terms, only: add_explicit_term, add_explicit_term_ffs
       use calculations_kxky_derivatives, only: get_dgdy
       use arrays, only: time_gke
 
@@ -551,7 +551,7 @@ contains
       use arrays, only: wdriftx_g, wdriftx_phi, wdriftx_bpar
       use arrays_distribution_function, only: g_scratch
       use calculations_kxky_derivatives, only: get_dgdx
-      use add_explicit_terms, only: add_explicit_term, add_explicit_term_ffs
+      use calculations_add_explicit_terms, only: add_explicit_term, add_explicit_term_ffs
       use arrays, only: time_gke
 
       implicit none

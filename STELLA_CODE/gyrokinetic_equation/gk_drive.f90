@@ -194,7 +194,7 @@ contains
       use grids_kxky, only: naky, nakx
       
       ! Calculations
-      use add_explicit_terms, only: add_explicit_term
+      use calculations_add_explicit_terms, only: add_explicit_term
       use calculations_kxky_derivatives, only: get_dchidy
       
       ! Time this routine
@@ -254,7 +254,7 @@ contains
       use arrays, only: wstar
       use arrays_distribution_function, only: g_scratch
       use calculations_gyro_averages, only: gyro_average
-      use add_explicit_terms, only: add_explicit_term_ffs
+      use calculations_add_explicit_terms, only: add_explicit_term_ffs
       use calculations_kxky_derivatives, only: get_dgdy, get_dchidy
       use arrays, only: time_gke
 
