@@ -5,7 +5,7 @@
 ! This module ...
 ! 
 !###############################################################################
-module timestep_calculations
+module calculations_timestep
 
    ! Load debug flags
    use debug_flags, only: debug => time_advance_debug
@@ -37,7 +37,7 @@ contains
       use grids_kxky, only: akx, aky, rho
       
       ! CFL parameters
-      use stella_time, only: code_dt, write_dt, cfl_dt_linear
+      use grids_time, only: code_dt, write_dt, cfl_dt_linear
       use parameters_numerical, only: cfl_cushion_upper
       use parameters_numerical, only: cfl_cushion_middle
       use parameters_numerical, only: cfl_cushion_lower
@@ -273,4 +273,4 @@ contains
 
    end subroutine reset_dt
 
-end module timestep_calculations
+end module calculations_timestep

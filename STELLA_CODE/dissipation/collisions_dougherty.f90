@@ -125,7 +125,7 @@ contains
    !****************************************************************************
    subroutine init_vpadiff_matrix
 
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use grids_species, only: nspec, spec
       use grids_velocity, only: dvpa, vpa, nvpa
       use stella_layouts, only: kxkyz_lo
@@ -172,7 +172,7 @@ contains
    !****************************************************************************
    subroutine init_mudiff_matrix
 
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use grids_species, only: nspec, spec
       use grids_z, only: nzgrid
       use geometry, only: bmag
@@ -241,7 +241,7 @@ contains
       use mp, only: sum_allreduce
       use calculations_finite_differences, only: tridag
       use linear_solve, only: lu_decomposition, lu_inverse
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use grids_species, only: nspec, spec, has_electron_species
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: ztmax, maxwell_vpa, maxwell_mu
@@ -508,7 +508,7 @@ contains
       use mp, only: sum_allreduce
       use calculations_finite_differences, only: tridag
       use linear_solve, only: lu_decomposition, lu_inverse
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use grids_species, only: nspec, spec, has_electron_species
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: ztmax, maxwell_vpa, maxwell_mu
@@ -1037,7 +1037,7 @@ contains
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
       use redistribute, only: scatter, gather
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use grids_z, only: nzgrid, ntubes
       use grids_species, only: spec
       use parameters_physics, only: fphi
@@ -1434,7 +1434,7 @@ contains
    subroutine conserve_momentum_vmulo(h, gke_rhs)
 
       use mp, only: sum_allreduce
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, iv_idx, is_idx
       use grids_species, only: spec
@@ -1578,7 +1578,7 @@ contains
    subroutine conserve_energy_vmulo(h, gke_rhs)
 
       use mp, only: sum_allreduce
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: imu_idx, iv_idx, is_idx
       use grids_species, only: spec
@@ -1718,7 +1718,7 @@ contains
       use mp, only: sum_allreduce
       use calculations_finite_differences, only: tridag
       use linear_solve, only: lu_back_substitution
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use parameters_physics, only: fphi
       use grids_species, only: nspec, spec, has_electron_species
       use grids_z, only: nzgrid, ntubes
@@ -1892,7 +1892,7 @@ contains
       use mp, only: sum_allreduce
       use calculations_finite_differences, only: tridag
       use linear_solve, only: lu_back_substitution
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use parameters_physics, only: fphi
       use grids_species, only: nspec, spec, has_electron_species
       use grids_z, only: nzgrid, ntubes

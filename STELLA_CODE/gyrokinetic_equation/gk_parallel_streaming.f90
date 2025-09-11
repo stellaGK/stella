@@ -62,7 +62,7 @@ contains
    subroutine init_parallel_streaming
 
       use calculations_finite_differences, only: fd3pt
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
       use grids_species, only: spec, nspec, pfac

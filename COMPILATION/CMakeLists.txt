@@ -54,9 +54,10 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/calculations/calculations_checksum.f90
   ../STELLA_CODE/calculations/calculations_finite_differences.f90
   ../STELLA_CODE/calculations/calculations_gyro_averages.f90
-  ../STELLA_CODE/calculations/calculations_kxky_derivatives.f90  
+  ../STELLA_CODE/calculations/calculations_kxky_derivatives.f90
   ../STELLA_CODE/calculations/calculations_kxky.f90
   ../STELLA_CODE/calculations/calculations_redistribute.f90
+  ../STELLA_CODE/calculations/calculations_timestep.f90
   ../STELLA_CODE/calculations/calculations_tofrom_ghf.f90
   ../STELLA_CODE/calculations/calculations_transforms.f90
   ../STELLA_CODE/calculations/calculations_velocity_integrals.f90
@@ -77,14 +78,15 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/dissipation/dissipation_hyper.f90
   ../STELLA_CODE/geometry/geometry_inputprofiles_interface.f90
   ../STELLA_CODE/geometry/geometry_miller.f90
-  ../STELLA_CODE/geometry/geometry_vmec_read_netCDF_file.f90 
+  ../STELLA_CODE/geometry/geometry_vmec_read_netCDF_file.f90
   ../STELLA_CODE/geometry/geometry_vmec.f90
   ../STELLA_CODE/geometry/geometry_zpinch.f90
   ../STELLA_CODE/geometry/geometry.f90
-  ../STELLA_CODE/grids/grids_species_from_euterpe.f90
   ../STELLA_CODE/grids/grids_extended_zgrid.f90
   ../STELLA_CODE/grids/grids_kxky.f90
   ../STELLA_CODE/grids/grids_species.f90
+  ../STELLA_CODE/grids/grids_species_from_euterpe.f90
+  ../STELLA_CODE/grids/grids_time.f90
   ../STELLA_CODE/grids/grids_velocity.f90
   ../STELLA_CODE/grids/grids_z.f90
   ../STELLA_CODE/gyrokinetic_equation/gk_drive.f90
@@ -98,7 +100,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/gyrokinetic_equation/gyrokinetic_equation_explicit.f90
   ../STELLA_CODE/gyrokinetic_equation/gyrokinetic_equation_implicit.f90
   ../STELLA_CODE/gyrokinetic_equation/gyrokinetic_equation_initialisation.f90
-  ../STELLA_CODE/gyrokinetic_equation/timestep_calculations.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
   ../STELLA_CODE/parameters/debug_flags.f90
   ../STELLA_CODE/parameters/file_units.f90
@@ -133,7 +134,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/stella_utils/init_stella.f90
   ../STELLA_CODE/stella_utils/stella_common_types.f90
   ../STELLA_CODE/stella_utils/stella_layouts.f90
-  ../STELLA_CODE/stella_utils/stella_time.f90
   ../STELLA_CODE/utils/define.inc
 )
 

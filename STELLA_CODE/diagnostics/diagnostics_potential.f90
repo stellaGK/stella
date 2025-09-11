@@ -58,7 +58,7 @@ contains
       use stella_io, only: write_apar_nc
       use stella_io, only: write_bpar_nc
       use stella_io, only: write_kspectra_nc
-      use stella_time, only: code_dt, code_time
+      use grids_time, only: code_dt, code_time
 
       ! Routines
       use job_manage, only: time_message
@@ -234,7 +234,7 @@ contains
    !=========================================================================  
    subroutine write_potential_to_ascii_file(istep, phi2, apar2, bpar2)
 
-      use stella_time, only: code_time 
+      use grids_time, only: code_time 
 
       implicit none
 

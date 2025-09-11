@@ -43,7 +43,7 @@ contains
       use job_manage, only: time_message
       
       ! Time trace
-      use stella_time, only: init_tstart
+      use grids_time, only: init_tstart
       use initialise_distribution_function, only: tstart
       
       ! Files
@@ -450,7 +450,7 @@ contains
       use parameters_numerical, only: delt_option_switch
       use parameters_numerical, only: delt_option_auto
       use parameters_numerical, only: delt, delt_max, delt_min
-      use stella_time, only: init_delt
+      use grids_time, only: init_delt
       use stella_save, only: init_dt
       
       ! Initialise parts of the gyrokinetic equation

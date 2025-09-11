@@ -182,7 +182,7 @@ contains
    !****************************************************************************
    subroutine init_source_timeaverage
 
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use arrays, only: tcorr_source_qn, exp_fac_qn
 
       implicit none
@@ -253,7 +253,7 @@ contains
       use parameters_multibox, only: boundary_size
       use grids_kxky, only: nakx
       use stella_layouts, only: vmu_lo
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use arrays_distribution_function, only: g_krook, g_symm
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
@@ -367,7 +367,7 @@ contains
       use parameters_multibox, only: boundary_size
       use grids_kxky, only: nakx
       use stella_layouts, only: vmu_lo
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 
       implicit none
@@ -602,7 +602,7 @@ contains
       use parameters_multibox, only: boundary_size
       use grids_kxky, only: nakx
       use stella_layouts, only: vmu_lo
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use arrays_distribution_function, only: g_proj, g_symm
       use calculations_transforms, only: transform_kx2x_unpadded, transform_x2kx_unpadded
 

@@ -31,7 +31,7 @@ contains
       ! Parallelisation
       use stella_layouts, only: vmu_lo
       use stella_layouts, only: iv_idx, imu_idx, is_idx
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
 
       ! Grids
       use grids_species, only: spec, pfac

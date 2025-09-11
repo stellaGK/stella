@@ -219,7 +219,7 @@ contains
  
       use redistribute, only: scatter
       use stella_io, only: finish_stella_io
-      use stella_time, only: code_dt, code_time
+      use grids_time, only: code_dt, code_time
       use stella_save, only: stella_save_for_restart
       use calculations_redistribute, only: kxkyz2vmu
       use arrays_distribution_function, only: gnew, gvmu

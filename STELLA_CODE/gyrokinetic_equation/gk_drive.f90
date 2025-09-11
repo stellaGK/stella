@@ -77,7 +77,7 @@ contains
       ! Parallelisation
       use mp, only: mp_abort
       use stella_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use geometry, only: dydalpha, drhodpsi, clebsch_factor
       use neoclassical_terms, only: include_neoclassical_terms, dfneo_drho
       use parameters_numerical, only: maxwellian_normalization

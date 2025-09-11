@@ -359,7 +359,7 @@ contains
    !============================================================================
    subroutine write_fluxes_to_ascii_file(pflux_vs_s, vflux_vs_s, qflux_vs_s)
 
-      use stella_time, only: code_time
+      use grids_time, only: code_time
       use grids_species, only: nspec
       use mp, only: proc0
 

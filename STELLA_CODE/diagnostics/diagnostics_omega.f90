@@ -58,7 +58,7 @@ contains
       
       ! Grids
       use grids_kxky, only: nakx, naky 
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use constants, only: zi
       
       ! Calculations 
@@ -340,7 +340,7 @@ contains
  
       use parameters_diagnostics, only: write_omega_avg_vs_kxky
       use parameters_diagnostics, only: write_omega_vs_kxky
-      use stella_time, only: code_time 
+      use grids_time, only: code_time 
       use grids_kxky, only: naky, nakx
       use grids_kxky, only: aky, akx 
 

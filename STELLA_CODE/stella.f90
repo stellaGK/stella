@@ -74,7 +74,7 @@ contains
       use job_manage, only: time_message, checkstop
       use job_manage, only: checktime
       use file_utils, only: error_unit, flush_output_file
-      use stella_time, only: update_time, code_time, code_dt, checkcodedt
+      use grids_time, only: update_time, code_time, code_dt, checkcodedt
       use stella_save, only: stella_save_for_restart
       use parameters_numerical, only: nstep, tend
       use parameters_numerical, only: avail_cpu_time

@@ -36,7 +36,7 @@ contains
       
       ! Initialise the following modules
       use dissipation_and_collisions, only: init_collisions
-      use timestep_calculations, only: init_cfl
+      use calculations_timestep, only: init_cfl
       use gk_drive, only: init_wstar
       use gk_magnetic_drift, only: init_wdrift
       use gk_parallel_streaming, only: init_parallel_streaming

@@ -3,7 +3,7 @@
 !###############################################################################
 ! This module ...
 !###############################################################################m
-module stella_time
+module grids_time
 
    implicit none
 
@@ -103,4 +103,4 @@ contains
 
    end subroutine checkcodedt
 
-end module stella_time
+end module grids_time

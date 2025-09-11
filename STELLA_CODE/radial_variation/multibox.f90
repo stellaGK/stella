@@ -673,7 +673,7 @@ contains
    !****************************************************************************
    subroutine add_multibox_krook(g, rhs)
 
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use stella_layouts, only: vmu_lo
       use grids_kxky, only: nakx, naky, periodic_variation
       use parameters_multibox, only: boundary_size

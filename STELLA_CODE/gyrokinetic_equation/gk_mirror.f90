@@ -43,7 +43,7 @@ contains
    !****************************************************************************
   subroutine init_mirror
     
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use grids_species, only: spec, nspec
       use grids_velocity, only: nmu
       use grids_velocity, only: mu

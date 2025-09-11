@@ -129,7 +129,7 @@ contains
    !****************************************************************************
    subroutine advance_hyper_dissipation(g)
 
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use grids_z, only: nzgrid, ntubes, zed
       use stella_layouts, only: vmu_lo
       use arrays, only: kperp2
@@ -184,7 +184,7 @@ contains
    !****************************************************************************
    subroutine advance_hyper_vpa(g, dgdvpa)
    
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use grids_z, only: nzgrid
       use stella_layouts, only: vmu_lo, kxkyz_lo
       use redistribute, only: gather, scatter
@@ -221,7 +221,7 @@ contains
    subroutine advance_hyper_zed(g, dgdz)
    ! computes the fourth derivative of g in z and returns this in
    ! dgdz multiplied by the z hyper diffusion coefficient
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use grids_z, only: nzgrid, delzed
       use stella_layouts, only: vmu_lo
 

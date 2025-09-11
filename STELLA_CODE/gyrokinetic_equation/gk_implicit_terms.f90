@@ -426,7 +426,7 @@ contains
    !****************************************************************************
    subroutine get_contributions_from_phi(phi, ivmu, iky, iz_from_izext, ikx_from_izext, scratch, rhs)
 
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use grids_species, only: spec
       use grids_z, only: nzgrid
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac, maxwell_mu_avg
@@ -587,7 +587,7 @@ contains
    !****************************************************************************
    subroutine get_contributions_from_bpar(bpar, ivmu, iky, iz_from_izext, ikx_from_izext, scratch, rhs)
 
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use grids_species, only: spec
       use grids_z, only: nzgrid
       use grids_velocity, only: maxwell_vpa, maxwell_mu, maxwell_fac
@@ -997,7 +997,7 @@ contains
    subroutine get_contributions_from_pdf(pdf, apar, ivmu, iky, ie, rhs, source_ffs)
 
       use constants, only: zi
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use parameters_physics, only: include_apar
       use grids_species, only: spec
       use grids_z, only: nzgrid

@@ -321,7 +321,7 @@ contains
    !****************************************************************************
    subroutine init_fp_diffmatrix
 
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use grids_species, only: nspec, spec
       use grids_velocity, only: dvpa, vpa, nvpa, mu, nmu, maxwell_mu, maxwell_vpa, dmu
       use grids_z, only: nzgrid
@@ -1651,7 +1651,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use file_utils, only: open_output_file, close_output_file
       use constants, only: pi
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, is_idx, it_idx
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use grids_kxky, only: naky
 
       implicit none
@@ -2154,7 +2154,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
    subroutine init_fp_conserve
 
       use linear_solve, only: lu_decomposition
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use grids_species, only: nspec
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: ztmax, maxwell_mu, nmu, nvpa, set_vpa_weights
@@ -2587,7 +2587,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       use calculations_finite_differences, only: tridag
       use linear_solve, only: lu_decomposition
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use grids_species, only: spec
       use grids_velocity, only: nmu, nvpa
       use grids_velocity, only: set_vpa_weights
@@ -2694,7 +2694,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use constants, only: pi
       use grids_species, only: spec, nspec
       use file_utils, only: open_output_file, close_output_file
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
 
       implicit none
 
@@ -2958,7 +2958,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use stella_layouts, only: kxkyz_lo, iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use constants, only: pi
       use file_utils, only: open_output_file, close_output_file
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
 
       implicit none
 
@@ -3409,7 +3409,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
       use redistribute, only: scatter, gather
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use grids_z, only: nzgrid, ntubes
       use parameters_physics, only: fphi
       use parameters_physics, only: full_flux_surface
@@ -4169,7 +4169,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use mp, only: sum_allreduce
       use calculations_finite_differences, only: tridag
       use linear_solve, only: lu_back_substitution
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use parameters_physics, only: fphi
       use grids_species, only: nspec, spec
       use grids_z, only: nzgrid, ntubes
@@ -4183,7 +4183,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use calculations_tofrom_ghf, only: g_to_h
       use quasineutrality_equation_fluxtube, only: advance_fields_using_quasineutrality_equation
       use constants, only: pi
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
 
       implicit none
 

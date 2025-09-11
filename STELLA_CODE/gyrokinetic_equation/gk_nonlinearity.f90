@@ -112,7 +112,7 @@ contains
 
       use calculations_transforms, only: transform_y2ky, transform_x2kx
       use calculations_transforms, only: transform_y2ky_xfirst, transform_x2kx_xfirst
-      use stella_time, only: cfl_dt_ExB, cfl_dt_linear, code_dt, code_dt_max
+      use grids_time, only: cfl_dt_ExB, cfl_dt_linear, code_dt, code_dt_max
       use stella_layouts, only: vmu_lo, imu_idx, is_idx
       
       use calculations_tofrom_ghf, only: g_to_h
@@ -141,7 +141,7 @@ contains
       use grids_kxky, only: x
       use geometry, only: exb_nonlin_fac, exb_nonlin_fac_p, gfac
 
-      use timestep_calculations, only: reset_dt
+      use calculations_timestep, only: reset_dt
 
       implicit none
 
@@ -424,7 +424,7 @@ contains
       use arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
       use calculations_transforms, only: transform_ky2y, transform_y2ky
       use calculations_transforms, only: transform_kx2x, transform_x2kx
-      use stella_time, only: cfl_dt_parallel, cfl_dt_linear, code_dt, code_dt_max
+      use grids_time, only: cfl_dt_parallel, cfl_dt_linear, code_dt, code_dt_max
       use parameters_numerical, only: cfl_cushion_upper, cfl_cushion_middle, cfl_cushion_lower
       use grids_z, only: nzgrid, delzed, ntubes
       use grids_extended_zgrid, only: neigen, nsegments, ikxmod
@@ -442,7 +442,7 @@ contains
       use file_utils, only: runtype_option_switch, runtype_multibox
       use grids_extended_zgrid, only: fill_zed_ghost_zones
       use arrays, only: time_parallel_nl
-      use timestep_calculations, only: reset_dt
+      use calculations_timestep, only: reset_dt
 
       implicit none
 

@@ -119,7 +119,7 @@ contains
       use job_manage, only: njobs
       
       ! Grids
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       use grids_species, only: spec
       use grids_z, only: nzgrid
       use grids_kxky, only: x, x_d, akx, aky, zonal_mode, box
@@ -349,7 +349,7 @@ contains
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: aky, zonal_mode
       use grids_kxky, only: nakx, naky, ikx_max
-      use stella_time, only: code_dt
+      use grids_time, only: code_dt
       
       ! Radial variation
       use file_utils, only: runtype_option_switch
