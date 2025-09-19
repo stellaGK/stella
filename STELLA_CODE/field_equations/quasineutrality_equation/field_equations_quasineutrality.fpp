@@ -29,7 +29,7 @@
 !     phi = integrate_species( J0 * h ) / denominator_QN_h
 ! 
 !###############################################################################
-module quasineutrality_equation
+module field_equations_quasineutrality
 
    ! Load the debug flags
    use debug_flags, only: debug => fields_debug
@@ -37,9 +37,9 @@ module quasineutrality_equation
    implicit none
 
    ! Make routines available to other modules
-   public :: init_quasineutrality_equation
-   public :: finish_quasineutrality_equation
-   public :: advance_fields_using_quasineutrality_equation
+   public :: init_field_equations_quasineutrality
+   public :: finish_field_equations_quasineutrality
+   public :: advance_fields_using_field_equations_quasineutrality
    public :: rescale_fields
 
    ! Make parameters available to other modules
@@ -74,7 +74,7 @@ contains
    ! included in the simulation (e.g. Electrostatic, Full Flux surface effects
    ! or Radiatl Variation effects).
    !============================================================================
-   subroutine advance_fields_using_quasineutrality_equation(g, phi, apar, bpar, dist, implicit_solve)
+   subroutine advance_fields_using_field_equations_quasineutrality(g, phi, apar, bpar, dist, implicit_solve)
 
       ! Parallelisation
       use mp, only: proc0
@@ -89,8 +89,8 @@ contains
       use arrays, only: time_field_solve
       
       ! Routines from other field modules
-      use quasineutrality_equation_fluxtube, only: advance_fields_using_quasineutrality_equation_fluxtube
-      use quasineutrality_equation_ffs, only: advance_fields_using_quasineutrality_equation_ffs
+      use field_equations_fluxtube, only: advance_fields_using_field_equations_fluxtube
+      use field_equations_quasineutrality_ffs, only: advance_fields_using_field_equations_quasineutrality_ffs
 
       implicit none
 
@@ -112,21 +112,21 @@ contains
       ! Advance the fields in time using the quasi-neutrality equation for a flux-tube simulation
       ! This will include electrostatic and electromagnetic effects, as well as any radial variation effects
       if (.not. full_flux_surface) then 
-         if (debug) write (*, *) 'quasineutrality_equation::advance_fields_using_quasineutrality_equation_fluxtube'
-         call advance_fields_using_quasineutrality_equation_fluxtube(g, phi, apar, bpar, dist)
+         if (debug) write (*, *) 'field_equations_quasineutrality::advance_fields_using_field_equations_fluxtube'
+         call advance_fields_using_field_equations_fluxtube(g, phi, apar, bpar, dist)
          
       ! Include Full-Flux-Surface effects 
       else 
       
          ! This routine is only needed in the 'implicit_solve' algorithm
          if (present(implicit_solve)) then
-            if (debug) write (*, *) 'quasineutrality_equation::advance_fields_using_quasineutrality_equation_ffs::implicit'
-            call advance_fields_using_quasineutrality_equation_ffs(g, phi, apar, implicit_solve=.true.)
+            if (debug) write (*, *) 'field_equations_quasineutrality::advance_fields_using_field_equations_quasineutrality_ffs::implicit'
+            call advance_fields_using_field_equations_quasineutrality_ffs(g, phi, apar, implicit_solve=.true.)
             
          ! This routine is for advancing the full <phi> field in the code with FFS effects
          else
-            if (debug) write (*, *) 'quasineutrality_equation::advance_fields_using_quasineutrality_equation_ffs'
-            call advance_fields_using_quasineutrality_equation_ffs(g, phi, apar)
+            if (debug) write (*, *) 'field_equations_quasineutrality::advance_fields_using_field_equations_quasineutrality_ffs'
+            call advance_fields_using_field_equations_quasineutrality_ffs(g, phi, apar)
          end if
          
       end if
@@ -138,7 +138,7 @@ contains
       ! Time the communications + field solve
       if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
 
-   end subroutine advance_fields_using_quasineutrality_equation
+   end subroutine advance_fields_using_field_equations_quasineutrality
 
 !###############################################################################
 !############################ INITALIZE & FINALIZE #############################
@@ -147,7 +147,7 @@ contains
    !============================================================================
    !=========================== INITALIZE THE FIELDS ===========================
    !============================================================================
-   subroutine init_quasineutrality_equation
+   subroutine init_field_equations_quasineutrality
 
       ! Parallelisation
       use linear_solve, only: lu_decomposition
@@ -156,10 +156,10 @@ contains
       use parameters_physics, only: full_flux_surface, radial_variation
 
       ! Routines needed to initialise the different field arrays depending on the physics being simulated
-      use quasineutrality_equation_radial_variation, only: init_quasineutrality_equation_radial_variation
-      use quasineutrality_equation_electromagnetic, only: init_quasineutrality_equation_electromagnetic
-      use quasineutrality_equation_fluxtube, only: init_quasineutrality_equation_fluxtube
-      use quasineutrality_equation_ffs, only: init_quasineutrality_equation_ffs
+      use field_equations_quasineutrality_radial_variation, only: init_field_equations_quasineutrality_radial_variation
+      use field_equations_electromagnetic, only: init_field_equations_electromagnetic
+      use field_equations_fluxtube, only: init_field_equations_fluxtube
+      use field_equations_quasineutrality_ffs, only: init_field_equations_quasineutrality_ffs
 
       implicit none
       
@@ -170,34 +170,34 @@ contains
       initialised_fields = .true.
 
       ! Allocate arrays such as phi that are needed throughout the simulation
-      if (debug) write (*, *) 'quasineutrality_equation::init::allocate_arrays'
+      if (debug) write (*, *) 'field_equations_quasineutrality::init::allocate_arrays'
       call allocate_arrays
 
       ! Full-flux-surface simulations
       if (full_flux_surface) then
       
-         if (debug) write (*, *) 'quasineutrality_equation::init::ffs'
+         if (debug) write (*, *) 'field_equations_quasineutrality::init::ffs'
          nfields = 1
-         call init_quasineutrality_equation_ffs
+         call init_field_equations_quasineutrality_ffs
          
       ! Flux-tube simulations
       else
       
-         if (debug) write (*, *) 'quasineutrality_equation::init::fluxtube'
+         if (debug) write (*, *) 'field_equations_quasineutrality::init::fluxtube'
          nfields = 1
-         call init_quasineutrality_equation_fluxtube
+         call init_field_equations_fluxtube
 
-         if (debug) write (*, *) 'quasineutrality_equation::init::electromagnetic'
-         call init_quasineutrality_equation_electromagnetic(nfields)
+         if (debug) write (*, *) 'field_equations_quasineutrality::init::electromagnetic'
+         call init_field_equations_electromagnetic(nfields)
 
          if (radial_variation) then
-            if (debug) write (*, *) 'quasineutrality_equation::init::radial_variation'
-            call init_quasineutrality_equation_radial_variation
+            if (debug) write (*, *) 'field_equations_quasineutrality::init::radial_variation'
+            call init_field_equations_quasineutrality_radial_variation
          end if
          
       end if
 
-   end subroutine init_quasineutrality_equation
+   end subroutine init_field_equations_quasineutrality
 
    !============================================================================
    !============================= ALLOCATE ARRAYS ==============================
@@ -248,7 +248,7 @@ contains
    !============================================================================
    !============================ FINISH THE FIELDS =============================
    !============================================================================
-   subroutine finish_quasineutrality_equation
+   subroutine finish_field_equations_quasineutrality
 
       ! Parameters
       use parameters_physics, only: full_flux_surface, radial_variation
@@ -258,9 +258,9 @@ contains
       use arrays, only: denominator_QN, denominator_QN_MBR
       
       ! Routines for deallocating arrays fields depending on the physics being simulated
-      use quasineutrality_equation_ffs, only: finish_quasineutrality_equation_ffs
-      use quasineutrality_equation_radial_variation, only: finish_quasineutrality_equation_radial_variation
-      use quasineutrality_equation_electromagnetic, only: finish_quasineutrality_equation_electromagnetic
+      use field_equations_quasineutrality_ffs, only: finish_field_equations_quasineutrality_ffs
+      use field_equations_quasineutrality_radial_variation, only: finish_field_equations_quasineutrality_radial_variation
+      use field_equations_electromagnetic, only: finish_field_equations_electromagnetic
       
       implicit none
       
@@ -273,14 +273,14 @@ contains
       if (allocated(denominator_QN_MBR)) deallocate (denominator_QN_MBR)
 
       ! Deallocate arrays from other field routines
-      call finish_quasineutrality_equation_electromagnetic
-      if (full_flux_surface) call finish_quasineutrality_equation_ffs
-      if (radial_variation) call finish_quasineutrality_equation_radial_variation
+      call finish_field_equations_electromagnetic
+      if (full_flux_surface) call finish_field_equations_quasineutrality_ffs
+      if (radial_variation) call finish_field_equations_quasineutrality_radial_variation
 
       ! The fields are no longer initialised
       initialised_fields = .false.
 
-   end subroutine finish_quasineutrality_equation
+   end subroutine finish_field_equations_quasineutrality
    
 
 !###############################################################################
@@ -333,4 +333,4 @@ contains
 
    end subroutine rescale_fields
 
-end module quasineutrality_equation
+end module field_equations_quasineutrality

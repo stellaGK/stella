@@ -5,7 +5,7 @@
 ! Module for advancing and initialising the fields when Full Flux Surface effects are included
 ! 
 !###############################################################################
-module quasineutrality_equation_ffs
+module field_equations_quasineutrality_ffs
 
    ! Load debug flags
    use debug_flags, only: debug => fields_ffs_debug
@@ -14,10 +14,10 @@ module quasineutrality_equation_ffs
    implicit none
 
    ! Make routines available to other modules
-   public :: init_quasineutrality_equation_ffs
-   public :: advance_fields_using_quasineutrality_equation_ffs
+   public :: init_field_equations_quasineutrality_ffs
+   public :: advance_fields_using_field_equations_quasineutrality_ffs
    public :: get_fields_source
-   public :: finish_quasineutrality_equation_ffs
+   public :: finish_field_equations_quasineutrality_ffs
 
    private
 
@@ -38,10 +38,10 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   ! advance_fields_using_quasineutrality_equation_ffs accepts as input the guiding centre distribution function g
+   ! advance_fields_using_field_equations_quasineutrality_ffs accepts as input the guiding centre distribution function g
    ! and calculates/returns the electronstatic potential phi for full_flux_surface simulations
    !****************************************************************************
-   subroutine advance_fields_using_quasineutrality_equation_ffs(g, phi, apar, implicit_solve)
+   subroutine advance_fields_using_field_equations_quasineutrality_ffs(g, phi, apar, implicit_solve)
 
       ! Parallelisation
       use mp, only: mp_abort
@@ -134,12 +134,12 @@ contains
          ! the sign is consistent with phi appearing on the RHS of the eqn and int g appearing on the LHS.
          ! this is returned in source
          else
-            if (debug) write (*, *) 'quasineutrality_equation::ffs::get_g_integral_contribution'
+            if (debug) write (*, *) 'field_equations_quasineutrality::ffs::get_g_integral_contribution'
             call get_g_integral_contribution(g, source)
             
             ! Use sum_s int d3v <g> and QN to solve for phi
             ! NB: assuming here that ntubes = 1 for FFS sim
-            if (debug) write (*, *) 'quasineutrality_equation::ffs::calculate_phi_ffs'
+            if (debug) write (*, *) 'field_equations_quasineutrality::ffs::calculate_phi_ffs'
             call calculate_phi_ffs(source, phi(:, :, :, 1))
             if (zonal_mode(1) .and. akx(1) < epsilon(0.)) then
                phi(1, 1, :, :) = 0.0
@@ -151,7 +151,7 @@ contains
             
                ! First must get phi on grid that includes positive and negative ky (but only positive kx)
                allocate (phi_swap(naky_all, ikx_max, -nzgrid:nzgrid))
-               if (debug) write (*, *) 'quasineutrality_equation::ffs::swap_kxky_ordered'
+               if (debug) write (*, *) 'field_equations_quasineutrality::ffs::swap_kxky_ordered'
                do iz = -nzgrid, nzgrid
                   call swap_kxky_ordered(phi(:, :, iz, 1), phi_swap(:, :, iz))
                end do
@@ -161,7 +161,7 @@ contains
                allocate (phi_fsa_spread(naky_all, ikx_max)); phi_fsa_spread = 0.0
                allocate (phi_source(naky, nakx)); phi_source = 0.0
 
-               if (debug) write (*, *) 'quasineutrality_equation::ffs::flux_surface_average_ffs'
+               if (debug) write (*, *) 'field_equations_quasineutrality::ffs::flux_surface_average_ffs'
                do ikx = 1, ikx_max
                   call flux_surface_average_ffs(phi_swap(:, ikx, :), phi_fsa(ikx))
                end do
@@ -189,7 +189,7 @@ contains
                   end do
                end if
 
-               if (debug) write (*, *) 'quasineutrality_equation::ffs::calculate_phi_ffs2s'
+               if (debug) write (*, *) 'field_equations_quasineutrality::ffs::calculate_phi_ffs2s'
                call calculate_phi_ffs(source, phi(:, :, :, 1))
 
                if (zonal_mode(1) .and. akx(1) < epsilon(0.)) then
@@ -288,7 +288,7 @@ contains
 
       end subroutine get_g_integral_contribution
 
-   end subroutine advance_fields_using_quasineutrality_equation_ffs
+   end subroutine advance_fields_using_field_equations_quasineutrality_ffs
 
    !****************************************************************************
    !                                      Title
@@ -468,7 +468,7 @@ contains
    !****************************************************************************
    !**************************** INITALISE ARRAYS ******************************
    !****************************************************************************
-   subroutine init_quasineutrality_equation_ffs
+   subroutine init_field_equations_quasineutrality_ffs
 
       use grids_species, only: modified_adiabatic_electrons
 
@@ -490,7 +490,7 @@ contains
          call init_adiabatic_response_factor
       end if
 
-   end subroutine init_quasineutrality_equation_ffs
+   end subroutine init_field_equations_quasineutrality_ffs
 
    !****************************************************************************
    !                                      Title
@@ -778,7 +778,7 @@ contains
    !****************************************************************************
    ! arrays only allocated/used if simulating a full flux surface
    !****************************************************************************
-   subroutine finish_quasineutrality_equation_ffs
+   subroutine finish_field_equations_quasineutrality_ffs
 
       implicit none
 
@@ -786,6 +786,6 @@ contains
       if (allocated(lu_gam0_ffs)) deallocate (lu_gam0_ffs)
       if (allocated(adiabatic_response_factor)) deallocate (adiabatic_response_factor)
 
-   end subroutine finish_quasineutrality_equation_ffs
+   end subroutine finish_field_equations_quasineutrality_ffs
 
-end module quasineutrality_equation_ffs
+end module field_equations_quasineutrality_ffs

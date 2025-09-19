@@ -80,7 +80,7 @@ module arrays
    !     phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g ] / [ sum_s (Zs²ns/Ts) (1 - Gamma0) ]
    !     denominator_QN[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
    ! The denominators needed to calculate <phi> are initialised in 
-   !     - quasineutrality_equation_fluxtube::init_quasineutrality_equation_fluxtube
+   !     - field_equations_fluxtube::init_field_equations_fluxtube
    real, dimension(:, :, :), allocatable :: denominator_QN, ddenominator_QNdr
    real, dimension(:, :, :), allocatable :: denominator_QN13, denominator_QN_MBR1, denominator_QN_MBR3
    real, dimension(:, :, :), allocatable :: denominator_QNinv11, denominator_QNinv13, denominator_QNinv31, denominator_QNinv33

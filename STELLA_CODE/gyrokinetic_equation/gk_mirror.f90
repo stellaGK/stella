@@ -316,7 +316,7 @@ contains
       use grids_z, only: nzgrid, ntubes
       use grids_velocity, only: nmu, nvpa
       use grids_kxky, only: naky, nakx
-      use quasineutrality_equation_electromagnetic, only: advance_apar
+      use field_equations_electromagnetic, only: advance_apar
 
       implicit none
 
@@ -703,8 +703,8 @@ contains
       use parameters_numerical, only: mirror_semi_lagrange, maxwellian_normalization
       use parameters_physics, only: include_apar
       use calculations_redistribute, only: kxkyz2vmu, kxyz2vmu
-      use quasineutrality_equation_electromagnetic, only: advance_apar
-      use quasineutrality_equation, only: fields_updated
+      use field_equations_electromagnetic, only: advance_apar
+      use field_equations_quasineutrality, only: fields_updated
       use calculations_tofrom_ghf, only: gbar_to_g
       use parameters_numerical, only: time_upwind
       use grids_velocity, only: dvpa

@@ -5,7 +5,7 @@
 ! Module for ...
 ! 
 !###############################################################################
-module quasineutrality_equation_collisions
+module field_equations_collisions
 
    ! Load debug flags
    use debug_flags, only: debug => fields_debug
@@ -216,4 +216,4 @@ contains
 
    end subroutine get_fields_by_spec_idx
 
-end module quasineutrality_equation_collisions
+end module field_equations_collisions

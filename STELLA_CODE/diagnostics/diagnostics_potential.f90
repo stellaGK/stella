@@ -47,7 +47,7 @@ contains
 
       ! Calculations 
       use calculations_volume_averages, only: volume_average, fieldline_average
-      use quasineutrality_equation, only: advance_fields_using_quasineutrality_equation
+      use field_equations_quasineutrality, only: advance_fields_using_field_equations_quasineutrality
 
       ! Write to netcdf file 
       use write_diagnostics_to_netcdf, only: write_time_nc

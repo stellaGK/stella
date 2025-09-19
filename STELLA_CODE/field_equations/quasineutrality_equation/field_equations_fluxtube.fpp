@@ -29,7 +29,7 @@
 !     phi = integrate_species( J0 * h ) / denominator_QN_h
 ! 
 !###############################################################################
-module quasineutrality_equation_fluxtube
+module field_equations_fluxtube
 
    ! Load debug flags
    use debug_flags, only: debug => fields_fluxtube_debug
@@ -37,16 +37,16 @@ module quasineutrality_equation_fluxtube
    implicit none
 
    ! Make routines available to other modules
-   public :: advance_fields_using_quasineutrality_equation_fluxtube
-   public :: advance_fields_using_quasineutrality_equation
-   public :: init_quasineutrality_equation_fluxtube
+   public :: advance_fields_using_field_equations_fluxtube
+   public :: advance_fields_using_field_equations_quasineutrality
+   public :: init_field_equations_fluxtube
 
    private
 
    ! Advance fields for g(kx,ky,z,ivpamus) and g(vpa,mu,ikxkyzs)
-   interface advance_fields_using_quasineutrality_equation
-      module procedure advance_fields_using_quasineutrality_equation_vmlo
-      module procedure advance_fields_using_quasineutrality_equation_kxkyzlo
+   interface advance_fields_using_field_equations_quasineutrality
+      module procedure advance_fields_using_field_equations_quasineutrality_vmlo
+      module procedure advance_fields_using_field_equations_quasineutrality_kxkyzlo
    end interface
 
 contains
@@ -62,9 +62,9 @@ contains
    ! in time though the quasi-neutrality equation.
    ! 
    ! Note that Apar and Bpar are only advanced when using electromagnetic stella, 
-   ! so these are in quasineutrality_equation_electromagnetic.fpp
+   ! so these are in field_equations_electromagnetic.fpp
    !****************************************************************************
-   subroutine advance_fields_using_quasineutrality_equation_fluxtube(g, phi, apar, bpar, dist, skip_fsa)
+   subroutine advance_fields_using_field_equations_fluxtube(g, phi, apar, bpar, dist, skip_fsa)
 
       ! Parallelisation
       use mp, only: proc0
@@ -96,9 +96,9 @@ contains
       ! Note that fields_kxkyz = F is the default
       if (.not. fields_kxkyz) then
      
-         ! This will call advance_fields_using_quasineutrality_equation_vmlo
-         if (debug) write (*, *) 'quasineutrality_equation::fluxtube::advance_fields::vmlo'
-         call advance_fields_using_quasineutrality_equation(g, phi, apar, bpar, dist, skip_fsa)
+         ! This will call advance_fields_using_field_equations_quasineutrality_vmlo
+         if (debug) write (*, *) 'field_equations_quasineutrality::fluxtube::advance_fields::vmlo'
+         call advance_fields_using_field_equations_quasineutrality(g, phi, apar, bpar, dist, skip_fsa)
          
       ! Note that to use this option it has to be specified by the user
       ! First gather (vpa,mu) onto processor for v-space operations
@@ -106,19 +106,19 @@ contains
       else if (fields_kxkyz) then 
       
          ! Scatter and time it
-         if (debug) write (*, *) 'quasineutrality_equation::fluxtube::advance_fields::scatter'
-         if (proc0) call time_message(.false., time_field_solve(:, 2), ' quasineutrality_equation_redist')
+         if (debug) write (*, *) 'field_equations_quasineutrality::fluxtube::advance_fields::scatter'
+         if (proc0) call time_message(.false., time_field_solve(:, 2), ' field_equations_quasineutrality_redist')
          call scatter(kxkyz2vmu, g, gvmu)
-         if (proc0) call time_message(.false., time_field_solve(:, 2), ' quasineutrality_equation_redist')
+         if (proc0) call time_message(.false., time_field_solve(:, 2), ' field_equations_quasineutrality_redist')
          
          ! Given gvmu with vpa and mu local, calculate the corresponding fields
-         ! This will call advance_fields_using_quasineutrality_equation_kxkyzlo
-         if (debug) write (*, *) 'quasineutrality_equation::fluxtube::advance_fields::kxkyzlo'
-         call advance_fields_using_quasineutrality_equation(gvmu, phi, apar, bpar, dist, skip_fsa)
+         ! This will call advance_fields_using_field_equations_quasineutrality_kxkyzlo
+         if (debug) write (*, *) 'field_equations_quasineutrality::fluxtube::advance_fields::kxkyzlo'
+         call advance_fields_using_field_equations_quasineutrality(gvmu, phi, apar, bpar, dist, skip_fsa)
          
       end if
 
-   end subroutine advance_fields_using_quasineutrality_equation_fluxtube
+   end subroutine advance_fields_using_field_equations_fluxtube
 
    !****************************************************************************
    !  ADVANCE FIELDS USING THE QUASINEUTRALITY EQUATION AND G(KX,KY,Z,IVPAMUS)  
@@ -133,7 +133,7 @@ contains
    ! 
    ! TODO-GA: remove apar from this and make it only needed for EM stella
    !****************************************************************************
-   subroutine advance_fields_using_quasineutrality_equation_vmlo(g, phi, apar, bpar, dist, skip_fsa)
+   subroutine advance_fields_using_field_equations_quasineutrality_vmlo(g, phi, apar, bpar, dist, skip_fsa)
 
       ! Parallelisation
       use mp, only: mp_abort, proc0
@@ -158,9 +158,9 @@ contains
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       
       ! Routines from other field modules
-      use quasineutrality_equation_electromagnetic, only: advance_fields_using_QN_electromagnetic
-      use quasineutrality_equation_radial_variation, only: add_radial_correction_int_species
-      use quasineutrality_equation_radial_variation, only: calculate_phi_for_radial_variation
+      use field_equations_electromagnetic, only: advance_fields_using_QN_electromagnetic
+      use field_equations_quasineutrality_radial_variation, only: add_radial_correction_int_species
+      use field_equations_quasineutrality_radial_variation, only: calculate_phi_for_radial_variation
       
       implicit none
 
@@ -176,7 +176,7 @@ contains
       !-------------------------------------------------------------------------
       
       ! Debug message
-      if (debug) write (*, *) 'quasineutrality_equation::fluxtube::advance_fields::vmlo'
+      if (debug) write (*, *) 'field_equations_quasineutrality::fluxtube::advance_fields::vmlo'
       
       ! Used for the Dougherty collision operator
       skip_fsa_local = .false.
@@ -197,12 +197,12 @@ contains
          call gyro_average(g, g_scratch)
          
          ! If we are allowing for radial variation then we must modify <g>.
-         ! This is done in the quasineutrality_equation_radialvariation module, but 
+         ! This is done in the field_equations_radialvariation module, but 
          ! is not needed for standard stella (as these are false by default).
          if (radial_variation) call add_radial_correction_int_species(g_scratch)
          
          ! Calculate phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g ] = integrate_species( J0 * g )
-         if (debug) write (*, *) 'quasineutrality_equation::fluxtube::vmulo::integrate_species_phi'
+         if (debug) write (*, *) 'field_equations_quasineutrality::fluxtube::vmulo::integrate_species_phi'
          call integrate_species(g_scratch, spec%z * spec%dens_psi0, phi)
          
          ! Stop timer
@@ -211,12 +211,12 @@ contains
          ! Calculate phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g ] / [ sum_s (Zs²ns/Ts) (1 - Gamma0) ]
          ! by dividing with denominator_QN[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0) in the calculate_phi() routine
          if (.not. radial_variation) then
-            if (debug) write (*, *) 'quasineutrality_equation::fluxtube::vmulo::calculate_phi'
+            if (debug) write (*, *) 'field_equations_quasineutrality::fluxtube::vmulo::calculate_phi'
             call calculate_phi(phi, dist, skip_fsa_local)
             
          ! The denominator_QN[iky,ikz,iz] factor is modified by radial varation effects
          else if (radial_variation) then
-            if (debug) write (*, *) 'quasineutrality_equation::fluxtube::vmulo::calculate_phi_for_radial_variation'
+            if (debug) write (*, *) 'field_equations_quasineutrality::fluxtube::vmulo::calculate_phi_for_radial_variation'
             call calculate_phi_for_radial_variation(phi, dist , skip_fsa)
             
          end if
@@ -225,12 +225,12 @@ contains
 
       ! If we have electromagnetic effects we need to calculate the fields A_parallel and B_parallel
       if (include_apar .or. include_bpar) then
-         if (debug) write (*, *) 'quasineutrality_equation::fluxtube::vmulo::advance_fields::electromagnetic'
+         if (debug) write (*, *) 'field_equations_quasineutrality::fluxtube::vmulo::advance_fields::electromagnetic'
          apar = 0.; bpar = 0.
          call advance_fields_using_QN_electromagnetic(g, phi, apar, bpar, dist)
       end if
 
-   end subroutine advance_fields_using_quasineutrality_equation_vmlo
+   end subroutine advance_fields_using_field_equations_quasineutrality_vmlo
 
    !****************************************************************************
    !  ADVANCE FIELDS USING THE QUASINEUTRALITY EQUATION AND G(MU,VPA,IKXKYZS)  
@@ -243,7 +243,7 @@ contains
    ! 
    ! TODO-GA: remove apar from this and make it only needed for EM stella
    !****************************************************************************
-   subroutine advance_fields_using_quasineutrality_equation_kxkyzlo(g, phi, apar, bpar, dist, skip_fsa)
+   subroutine advance_fields_using_field_equations_quasineutrality_kxkyzlo(g, phi, apar, bpar, dist, skip_fsa)
 
       ! Parallelisation
       use mp, only: proc0
@@ -270,8 +270,8 @@ contains
       use calculations_gyro_averages, only: gyro_average, gyro_average_j1
       
       ! Routines from other field modules
-      use quasineutrality_equation_electromagnetic, only: advance_fields_using_QN_electromagnetic
-      use quasineutrality_equation_radial_variation, only: calculate_phi_for_radial_variation
+      use field_equations_electromagnetic, only: advance_fields_using_QN_electromagnetic
+      use field_equations_quasineutrality_radial_variation, only: calculate_phi_for_radial_variation
 
       implicit none
 
@@ -291,7 +291,7 @@ contains
       !-------------------------------------------------------------------------
       
       ! Debug message
-      if (debug) write (*, *) 'quasineutrality_equation::fluxtube::kxkyzlo'
+      if (debug) write (*, *) 'field_equations_quasineutrality::fluxtube::kxkyzlo'
       
       ! Used for the Dougherty collision operator
       skip_fsa_local = .false.
@@ -309,7 +309,7 @@ contains
       
          ! Start timer
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
-         if (debug) write (*, *) 'fields::get_quasineutrality_equation_fluxtube_kxkyzlo_int_dv_g'
+         if (debug) write (*, *) 'fields::get_field_equations_fluxtube_kxkyzlo_int_dv_g'
          
          ! Allocate temporary arrays
          allocate (g0(nvpa, nmu))
@@ -342,12 +342,12 @@ contains
          ! Calculate phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g ] / [ sum_s (Zs²ns/Ts) (1 - Gamma0) ]
          ! by dividing with denominator_QN[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0) in the calculate_phi() routine
          if (.not. radial_variation) then 
-            if (debug) write (*, *) 'quasineutrality_equation::fluxtube::kxkyzlo::calculate_phi'
+            if (debug) write (*, *) 'field_equations_quasineutrality::fluxtube::kxkyzlo::calculate_phi'
             call calculate_phi(phi, dist, skip_fsa_local)
 
          ! The denominator_QN[iky,ikz,iz] factor is modified by radial varation effects
          else if (radial_variation) then
-            if (debug) write (*, *) 'quasineutrality_equation::fluxtube::kxkyzlo::calculate_phi_for_radial_variation'
+            if (debug) write (*, *) 'field_equations_quasineutrality::fluxtube::kxkyzlo::calculate_phi_for_radial_variation'
             call calculate_phi_for_radial_variation (phi, dist , skip_fsa)
          end if
          
@@ -355,12 +355,12 @@ contains
 
       ! If we have electromagnetic effects we need to calculate the fields A_parallel and B_parallel
       if (include_apar .or. include_bpar) then 
-         if (debug) write (*, *) 'quasineutrality_equation::fluxtube::kxkyzlo::advance_fields_electromagnetic'
+         if (debug) write (*, *) 'field_equations_quasineutrality::fluxtube::kxkyzlo::advance_fields_electromagnetic'
          bpar = 0.; apar = 0.
          call advance_fields_using_QN_electromagnetic(g, phi, apar, bpar, dist)
       end if
 
-   end subroutine advance_fields_using_quasineutrality_equation_kxkyzlo
+   end subroutine advance_fields_using_field_equations_quasineutrality_kxkyzlo
 
    !****************************************************************************
    !******************************* CALCULATE PHI ******************************
@@ -421,7 +421,7 @@ contains
       !-------------------------------------------------------------------------
       
       ! Debug message
-      if (debug) write (*, *) 'quasineutrality_equation_fluxtube::calculate_phi'
+      if (debug) write (*, *) 'field_equations_fluxtube::calculate_phi'
       
       ! Used for the Dougherty collision operator
       skip_fsa_local = .false.
@@ -442,7 +442,7 @@ contains
       ! phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * h ] / [ sum_s (Zs²ns/Ts) ]
       ! denominator_QN_h = sum_s (Zs²ns/Ts)
       if (dist == 'h') then
-         if (debug) write(*, *) 'quasineutrality_equation::fluxtube::calculate_phi::dist==h'
+         if (debug) write(*, *) 'field_equations_quasineutrality::fluxtube::calculate_phi::dist==h'
          phi = phi / denominator_QN_h
          
       ! If we are using the guiding-center distribution function g then
@@ -450,7 +450,7 @@ contains
       ! phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g ] / [ sum_s (Zs²ns/Ts) (1 - Gamma0) ]
       ! denominator_QN[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
       else if (dist == 'g' .or. dist == 'gbar') then
-         if (debug) write(*, *) 'quasineutrality_equation::fluxtube::calculate_phi::dist==gbar'
+         if (debug) write(*, *) 'field_equations_quasineutrality::fluxtube::calculate_phi::dist==gbar'
          allocate (denominator_QN_t(naky, nakx, -nzgrid:nzgrid, ntubes))
          denominator_QN_t = spread(denominator_QN, 4, ntubes)
          where (denominator_QN_t < epsilon(0.0))
@@ -468,7 +468,7 @@ contains
       end if
 
       ! The kx = ky = 0.0 mode is not evolved by stella so make sure this term is set to zero.
-      if (debug) write(*, *) 'quasineutrality_equation::fluxtube::calculate_phi::set kxky=0.0 to zero'
+      if (debug) write(*, *) 'field_equations_quasineutrality::fluxtube::calculate_phi::set kxky=0.0 to zero'
       if (any(denominator_QN(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
       if (proc0) call time_message(.false., time_field_solve(:, 4), ' calculate_phi')
 
@@ -477,7 +477,7 @@ contains
       if (proc0) call time_message(.false., time_field_solve(:, 5), 'calculate_phi_adia_elec')
       if (adia_elec .and. zonal_mode(1) .and. .not. skip_fsa_local) then
          if (dist == 'h') then
-            if (debug) write(*, *) 'quasineutrality_equation::fluxtube::calculate_phi::adiabatic_electrons::dist==h'
+            if (debug) write(*, *) 'field_equations_quasineutrality::fluxtube::calculate_phi::adiabatic_electrons::dist==h'
             do it = 1, ntubes
                do ikx = 1, nakx
                   tmp = sum(dl_over_b(ia, :) * phi(1, ikx, :, it))
@@ -485,7 +485,7 @@ contains
                end do
             end do
          else if (dist == 'g' .or. dist == 'gbar') then
-            if (debug) write(*, *) 'quasineutrality_equation::fluxtube::calculate_phi::adiabatic_electrons::dist==gbar'
+            if (debug) write(*, *) 'field_equations_quasineutrality::fluxtube::calculate_phi::adiabatic_electrons::dist==gbar'
             do ikx = 1, nakx
                do it = 1, ntubes
                   tmp = sum(dl_over_b(ia, :) * phi(1, ikx, :, it))
@@ -525,7 +525,7 @@ contains
    !      b_k = k²_perp*rho²_s/2
    !      a_k = k_perp*rho_s
    !****************************************************************************
-   subroutine init_quasineutrality_equation_fluxtube
+   subroutine init_field_equations_fluxtube
 
       ! Parallelisation
       use mp, only: sum_allreduce
@@ -577,7 +577,7 @@ contains
       if (fphi > epsilon(0.0)) then
       
          ! Allocate temporary arrays
-         if (debug) write(*, *) 'quasineutrality_equation_fluxtube::init_quasineutrality_equation_fluxtube::init_denominator_QN'
+         if (debug) write(*, *) 'field_equations_fluxtube::init_field_equations_fluxtube::init_denominator_QN'
          allocate (g0(nvpa, nmu))
 
 
@@ -649,7 +649,7 @@ contains
          !     efac = n_e/T_e = (Ti/Te)/Ti / [ (ni/ne)/ni ] = <tite> / <nine> * ni / Ti
          !----------------------------------------------------------------------
          if (.not. has_electron_species(spec)) then
-            if (debug) write(*, *) 'quasineutrality_equation::fluxtube::init::init_denominator_QN_MBR'
+            if (debug) write(*, *) 'field_equations_quasineutrality::fluxtube::init::init_denominator_QN_MBR'
             
             ! Calculate <efac> = n_e/T_e = <tite> / <nine> * ni / Ti
             efac = tite / nine * (spec(ion_species)%dens / spec(ion_species)%temp)
@@ -692,6 +692,6 @@ contains
 
       end if
 
-   end subroutine init_quasineutrality_equation_fluxtube
+   end subroutine init_field_equations_fluxtube
 
-end module quasineutrality_equation_fluxtube
+end module field_equations_fluxtube

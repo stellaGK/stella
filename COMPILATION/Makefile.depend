@@ -39,6 +39,12 @@ stella_mod = \
 	 $(OBJ_DIR)/dissipation_and_collisions.o \
 	 $(OBJ_DIR)/dissipation_hyper.o \
 	 $(OBJ_DIR)/fft_work.o \
+	 $(OBJ_DIR)/field_equations_collisions.o \
+	 $(OBJ_DIR)/field_equations_electromagnetic.o \
+	 $(OBJ_DIR)/field_equations_fluxtube.o \
+	 $(OBJ_DIR)/field_equations_fullfluxsurface.o \
+	 $(OBJ_DIR)/field_equations_quasineutrality.o \
+	 $(OBJ_DIR)/field_equations_radialvariation.o \
 	 $(OBJ_DIR)/file_units.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/gauss_quad.o \
@@ -101,12 +107,6 @@ stella_mod = \
 	 $(OBJ_DIR)/parameters_multibox.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/quasineutrality_equation.o \
-	 $(OBJ_DIR)/quasineutrality_equation_collisions.o \
-	 $(OBJ_DIR)/quasineutrality_equation_electromagnetic.o \
-	 $(OBJ_DIR)/quasineutrality_equation_fluxtube.o \
-	 $(OBJ_DIR)/quasineutrality_equation_fullfluxsurface.o \
-	 $(OBJ_DIR)/quasineutrality_equation_radialvariation.o \
 	 $(OBJ_DIR)/ran.o \
 	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/response_matrix.o \
@@ -251,6 +251,8 @@ $(OBJ_DIR)/collisions_dougherty.o: \
 	 $(OBJ_DIR)/calculations_tofrom_ghf.o \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/calculations_velocity_integrals.o \
+	 $(OBJ_DIR)/field_equations_collisions.o \
+	 $(OBJ_DIR)/field_equations_fluxtube.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/grids_species.o \
@@ -263,8 +265,6 @@ $(OBJ_DIR)/collisions_dougherty.o: \
 	 $(OBJ_DIR)/namelist_dissipation.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/quasineutrality_equation_collisions.o \
-	 $(OBJ_DIR)/quasineutrality_equation_fluxtube.o \
 	 $(OBJ_DIR)/redistribute.o 
 $(OBJ_DIR)/collisions_fokkerplanck.o: \
 	 $(OBJ_DIR)/arrays.o \
@@ -276,6 +276,8 @@ $(OBJ_DIR)/collisions_fokkerplanck.o: \
 	 $(OBJ_DIR)/calculations_velocity_integrals.o \
 	 $(OBJ_DIR)/common_types.o \
 	 $(OBJ_DIR)/constants.o \
+	 $(OBJ_DIR)/field_equations_collisions.o \
+	 $(OBJ_DIR)/field_equations_fluxtube.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
@@ -290,8 +292,6 @@ $(OBJ_DIR)/collisions_fokkerplanck.o: \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/quasineutrality_equation_collisions.o \
-	 $(OBJ_DIR)/quasineutrality_equation_fluxtube.o \
 	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/spfunc.o 
 $(OBJ_DIR)/command_line.o: 
@@ -313,6 +313,7 @@ $(OBJ_DIR)/diagnostics.o: \
 	 $(OBJ_DIR)/diagnostics_omega.o \
 	 $(OBJ_DIR)/diagnostics_potential.o \
 	 $(OBJ_DIR)/dissipation_and_collisions.o \
+	 $(OBJ_DIR)/field_equations_quasineutrality.o \
 	 $(OBJ_DIR)/git_version.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/grids_species.o \
@@ -325,7 +326,6 @@ $(OBJ_DIR)/diagnostics.o: \
 	 $(OBJ_DIR)/parameters_diagnostics.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/quasineutrality_equation.o \
 	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/save_stella_for_restart.o \
 	 $(OBJ_DIR)/write_diagnostics_to_netcdf.o 
@@ -466,6 +466,7 @@ $(OBJ_DIR)/diagnostics_potential.o: \
 	 $(OBJ_DIR)/arrays_fields.o \
 	 $(OBJ_DIR)/calculations_volume_averages.o \
 	 $(OBJ_DIR)/debug_flags.o \
+	 $(OBJ_DIR)/field_equations_quasineutrality.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
@@ -475,7 +476,6 @@ $(OBJ_DIR)/diagnostics_potential.o: \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/parameters_diagnostics.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/quasineutrality_equation.o \
 	 $(OBJ_DIR)/write_diagnostics_to_netcdf.o 
 $(OBJ_DIR)/diagnostics_write_radial_grid.o: \
 	 $(OBJ_DIR)/file_utils.o \
@@ -523,6 +523,120 @@ $(OBJ_DIR)/ezcdf_opncls.o:
 $(OBJ_DIR)/fft_work.o: \
 	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/mp.o 
+$(OBJ_DIR)/field_equations_collisions.o: \
+	 $(OBJ_DIR)/arrays.o \
+	 $(OBJ_DIR)/calculations_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_velocity_integrals.o \
+	 $(OBJ_DIR)/debug_flags.o \
+	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
+	 $(OBJ_DIR)/grids_velocity.o \
+	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/parallelisation_layouts.o \
+	 $(OBJ_DIR)/parameters_physics.o \
+	 $(OBJ_DIR)/spfunc.o 
+$(OBJ_DIR)/field_equations_electromagnetic.o: \
+	 $(OBJ_DIR)/arrays.o \
+	 $(OBJ_DIR)/arrays_distribution_function.o \
+	 $(OBJ_DIR)/arrays_fields.o \
+	 $(OBJ_DIR)/arrays_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_velocity_integrals.o \
+	 $(OBJ_DIR)/debug_flags.o \
+	 $(OBJ_DIR)/field_equations_radialvariation.o \
+	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
+	 $(OBJ_DIR)/grids_velocity.o \
+	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/job_manage.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/parallelisation_layouts.o \
+	 $(OBJ_DIR)/parameters_physics.o 
+$(OBJ_DIR)/field_equations_fluxtube.o: \
+	 $(OBJ_DIR)/arrays.o \
+	 $(OBJ_DIR)/arrays_distribution_function.o \
+	 $(OBJ_DIR)/arrays_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_redistribute.o \
+	 $(OBJ_DIR)/calculations_velocity_integrals.o \
+	 $(OBJ_DIR)/debug_flags.o \
+	 $(OBJ_DIR)/field_equations_electromagnetic.o \
+	 $(OBJ_DIR)/field_equations_radialvariation.o \
+	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
+	 $(OBJ_DIR)/grids_velocity.o \
+	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/job_manage.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/multibox.o \
+	 $(OBJ_DIR)/parallelisation_layouts.o \
+	 $(OBJ_DIR)/parameters_numerical.o \
+	 $(OBJ_DIR)/parameters_physics.o \
+	 $(OBJ_DIR)/redistribute.o 
+$(OBJ_DIR)/field_equations_fullfluxsurface.o: \
+	 $(OBJ_DIR)/arrays.o \
+	 $(OBJ_DIR)/arrays_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_kxky.o \
+	 $(OBJ_DIR)/calculations_transforms.o \
+	 $(OBJ_DIR)/calculations_velocity_integrals.o \
+	 $(OBJ_DIR)/calculations_volume_averages.o \
+	 $(OBJ_DIR)/common_types.o \
+	 $(OBJ_DIR)/debug_flags.o \
+	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
+	 $(OBJ_DIR)/grids_velocity.o \
+	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/parallelisation_layouts.o \
+	 $(OBJ_DIR)/parameters_physics.o \
+	 $(OBJ_DIR)/spfunc.o 
+$(OBJ_DIR)/field_equations_quasineutrality.o: \
+	 $(OBJ_DIR)/arrays.o \
+	 $(OBJ_DIR)/arrays_distribution_function.o \
+	 $(OBJ_DIR)/arrays_fields.o \
+	 $(OBJ_DIR)/calculations_volume_averages.o \
+	 $(OBJ_DIR)/debug_flags.o \
+	 $(OBJ_DIR)/field_equations_electromagnetic.o \
+	 $(OBJ_DIR)/field_equations_fluxtube.o \
+	 $(OBJ_DIR)/field_equations_fullfluxsurface.o \
+	 $(OBJ_DIR)/field_equations_radialvariation.o \
+	 $(OBJ_DIR)/file_utils.o \
+	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
+	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/job_manage.o \
+	 $(OBJ_DIR)/linear_solve.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/parallelisation_layouts.o \
+	 $(OBJ_DIR)/parameters_physics.o 
+$(OBJ_DIR)/field_equations_radialvariation.o: \
+	 $(OBJ_DIR)/arrays.o \
+	 $(OBJ_DIR)/arrays_fields.o \
+	 $(OBJ_DIR)/arrays_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_gyro_averages.o \
+	 $(OBJ_DIR)/calculations_kxky.o \
+	 $(OBJ_DIR)/calculations_transforms.o \
+	 $(OBJ_DIR)/calculations_velocity_integrals.o \
+	 $(OBJ_DIR)/debug_flags.o \
+	 $(OBJ_DIR)/file_utils.o \
+	 $(OBJ_DIR)/geometry.o \
+	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_species.o \
+	 $(OBJ_DIR)/grids_velocity.o \
+	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/job_manage.o \
+	 $(OBJ_DIR)/linear_solve.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/mp_lu_decomposition.o \
+	 $(OBJ_DIR)/multibox.o \
+	 $(OBJ_DIR)/parallelisation_layouts.o \
+	 $(OBJ_DIR)/parameters_multibox.o \
+	 $(OBJ_DIR)/parameters_physics.o 
 $(OBJ_DIR)/file_units.o: \
 	 $(OBJ_DIR)/file_utils.o 
 $(OBJ_DIR)/file_utils.o: \
@@ -610,13 +724,13 @@ $(OBJ_DIR)/gk_ffs_solve.o: \
 	 $(OBJ_DIR)/calculations_kxky.o \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/constants.o \
+	 $(OBJ_DIR)/field_equations_quasineutrality.o \
 	 $(OBJ_DIR)/gk_parallel_streaming.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/grids_species.o \
 	 $(OBJ_DIR)/grids_velocity.o \
 	 $(OBJ_DIR)/grids_z.o \
-	 $(OBJ_DIR)/parallelisation_layouts.o \
-	 $(OBJ_DIR)/quasineutrality_equation.o 
+	 $(OBJ_DIR)/parallelisation_layouts.o 
 $(OBJ_DIR)/gk_flow_shear.o: \
 	 $(OBJ_DIR)/arrays.o \
 	 $(OBJ_DIR)/arrays_fields.o \
@@ -642,6 +756,8 @@ $(OBJ_DIR)/gk_implicit_terms.o: \
 	 $(OBJ_DIR)/calculations_gyro_averages.o \
 	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/debug_flags.o \
+	 $(OBJ_DIR)/field_equations_fullfluxsurface.o \
+	 $(OBJ_DIR)/field_equations_quasineutrality.o \
 	 $(OBJ_DIR)/gk_ffs_solve.o \
 	 $(OBJ_DIR)/gk_parallel_streaming.o \
 	 $(OBJ_DIR)/grids_extended_zgrid.o \
@@ -656,9 +772,7 @@ $(OBJ_DIR)/gk_implicit_terms.o: \
 	 $(OBJ_DIR)/neoclassical_terms.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
-	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/quasineutrality_equation.o \
-	 $(OBJ_DIR)/quasineutrality_equation_fullfluxsurface.o 
+	 $(OBJ_DIR)/parameters_physics.o 
 $(OBJ_DIR)/gk_magnetic_drift.o: \
 	 $(OBJ_DIR)/arrays.o \
 	 $(OBJ_DIR)/arrays_distribution_function.o \
@@ -690,6 +804,8 @@ $(OBJ_DIR)/gk_mirror.o: \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/constants.o \
 	 $(OBJ_DIR)/debug_flags.o \
+	 $(OBJ_DIR)/field_equations_electromagnetic.o \
+	 $(OBJ_DIR)/field_equations_quasineutrality.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/grids_kxky.o \
 	 $(OBJ_DIR)/grids_species.o \
@@ -702,8 +818,6 @@ $(OBJ_DIR)/gk_mirror.o: \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/quasineutrality_equation.o \
-	 $(OBJ_DIR)/quasineutrality_equation_electromagnetic.o \
 	 $(OBJ_DIR)/redistribute.o 
 $(OBJ_DIR)/gk_nonlinearity.o: \
 	 $(OBJ_DIR)/arrays.o \
@@ -763,6 +877,7 @@ $(OBJ_DIR)/gk_radial_variation.o: \
 	 $(OBJ_DIR)/calculations_kxky_derivatives.o \
 	 $(OBJ_DIR)/calculations_transforms.o \
 	 $(OBJ_DIR)/debug_flags.o \
+	 $(OBJ_DIR)/field_equations_quasineutrality.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/gk_flow_shear.o \
@@ -778,8 +893,7 @@ $(OBJ_DIR)/gk_radial_variation.o: \
 	 $(OBJ_DIR)/multibox.o \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_multibox.o \
-	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/quasineutrality_equation.o 
+	 $(OBJ_DIR)/parameters_physics.o 
 $(OBJ_DIR)/gk_sources.o: \
 	 $(OBJ_DIR)/arrays.o \
 	 $(OBJ_DIR)/arrays_distribution_function.o \
@@ -872,6 +986,8 @@ $(OBJ_DIR)/gyrokinetic_equation_explicit.o: \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/dissipation_and_collisions.o \
 	 $(OBJ_DIR)/dissipation_hyper.o \
+	 $(OBJ_DIR)/field_equations_quasineutrality.o \
+	 $(OBJ_DIR)/field_equations_radialvariation.o \
 	 $(OBJ_DIR)/gk_drive.o \
 	 $(OBJ_DIR)/gk_flow_shear.o \
 	 $(OBJ_DIR)/gk_magnetic_drift.o \
@@ -889,14 +1005,13 @@ $(OBJ_DIR)/gyrokinetic_equation_explicit.o: \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_multibox.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
-	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/quasineutrality_equation.o \
-	 $(OBJ_DIR)/quasineutrality_equation_radialvariation.o 
+	 $(OBJ_DIR)/parameters_physics.o 
 $(OBJ_DIR)/gyrokinetic_equation_implicit.o: \
 	 $(OBJ_DIR)/arrays.o \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/dissipation_and_collisions.o \
 	 $(OBJ_DIR)/dissipation_hyper.o \
+	 $(OBJ_DIR)/field_equations_quasineutrality.o \
 	 $(OBJ_DIR)/gk_flow_shear.o \
 	 $(OBJ_DIR)/gk_implicit_terms.o \
 	 $(OBJ_DIR)/gk_mirror.o \
@@ -907,8 +1022,7 @@ $(OBJ_DIR)/gyrokinetic_equation_implicit.o: \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_multibox.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
-	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/quasineutrality_equation.o 
+	 $(OBJ_DIR)/parameters_physics.o 
 $(OBJ_DIR)/gyrokinetic_equation_initialisation.o: \
 	 $(OBJ_DIR)/calculations_timestep.o \
 	 $(OBJ_DIR)/calculations_transforms.o \
@@ -937,6 +1051,8 @@ $(OBJ_DIR)/init_stella.o: \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/diagnostics.o \
 	 $(OBJ_DIR)/dissipation_and_collisions.o \
+	 $(OBJ_DIR)/field_equations_quasineutrality.o \
+	 $(OBJ_DIR)/field_equations_radialvariation.o \
 	 $(OBJ_DIR)/file_units.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/geometry.o \
@@ -964,8 +1080,6 @@ $(OBJ_DIR)/init_stella.o: \
 	 $(OBJ_DIR)/parameters_multibox.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/quasineutrality_equation.o \
-	 $(OBJ_DIR)/quasineutrality_equation_radialvariation.o \
 	 $(OBJ_DIR)/response_matrix.o \
 	 $(OBJ_DIR)/save_stella_for_restart.o 
 $(OBJ_DIR)/initialise_arrays.o: \
@@ -1151,120 +1265,6 @@ $(OBJ_DIR)/parameters_numerical.o: \
 $(OBJ_DIR)/parameters_physics.o: \
 	 $(OBJ_DIR)/mp.o \
 	 $(OBJ_DIR)/namelist_physics_parameters.o 
-$(OBJ_DIR)/quasineutrality_equation.o: \
-	 $(OBJ_DIR)/arrays.o \
-	 $(OBJ_DIR)/arrays_distribution_function.o \
-	 $(OBJ_DIR)/arrays_fields.o \
-	 $(OBJ_DIR)/calculations_volume_averages.o \
-	 $(OBJ_DIR)/debug_flags.o \
-	 $(OBJ_DIR)/file_utils.o \
-	 $(OBJ_DIR)/grids_kxky.o \
-	 $(OBJ_DIR)/grids_species.o \
-	 $(OBJ_DIR)/grids_z.o \
-	 $(OBJ_DIR)/job_manage.o \
-	 $(OBJ_DIR)/linear_solve.o \
-	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/parallelisation_layouts.o \
-	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/quasineutrality_equation_electromagnetic.o \
-	 $(OBJ_DIR)/quasineutrality_equation_fluxtube.o \
-	 $(OBJ_DIR)/quasineutrality_equation_fullfluxsurface.o \
-	 $(OBJ_DIR)/quasineutrality_equation_radialvariation.o 
-$(OBJ_DIR)/quasineutrality_equation_collisions.o: \
-	 $(OBJ_DIR)/arrays.o \
-	 $(OBJ_DIR)/calculations_gyro_averages.o \
-	 $(OBJ_DIR)/calculations_velocity_integrals.o \
-	 $(OBJ_DIR)/debug_flags.o \
-	 $(OBJ_DIR)/geometry.o \
-	 $(OBJ_DIR)/grids_kxky.o \
-	 $(OBJ_DIR)/grids_species.o \
-	 $(OBJ_DIR)/grids_velocity.o \
-	 $(OBJ_DIR)/grids_z.o \
-	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/parallelisation_layouts.o \
-	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/spfunc.o 
-$(OBJ_DIR)/quasineutrality_equation_electromagnetic.o: \
-	 $(OBJ_DIR)/arrays.o \
-	 $(OBJ_DIR)/arrays_distribution_function.o \
-	 $(OBJ_DIR)/arrays_fields.o \
-	 $(OBJ_DIR)/arrays_gyro_averages.o \
-	 $(OBJ_DIR)/calculations_gyro_averages.o \
-	 $(OBJ_DIR)/calculations_velocity_integrals.o \
-	 $(OBJ_DIR)/debug_flags.o \
-	 $(OBJ_DIR)/grids_kxky.o \
-	 $(OBJ_DIR)/grids_species.o \
-	 $(OBJ_DIR)/grids_velocity.o \
-	 $(OBJ_DIR)/grids_z.o \
-	 $(OBJ_DIR)/job_manage.o \
-	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/parallelisation_layouts.o \
-	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/quasineutrality_equation_radialvariation.o 
-$(OBJ_DIR)/quasineutrality_equation_fluxtube.o: \
-	 $(OBJ_DIR)/arrays.o \
-	 $(OBJ_DIR)/arrays_distribution_function.o \
-	 $(OBJ_DIR)/arrays_gyro_averages.o \
-	 $(OBJ_DIR)/calculations_gyro_averages.o \
-	 $(OBJ_DIR)/calculations_redistribute.o \
-	 $(OBJ_DIR)/calculations_velocity_integrals.o \
-	 $(OBJ_DIR)/debug_flags.o \
-	 $(OBJ_DIR)/geometry.o \
-	 $(OBJ_DIR)/grids_kxky.o \
-	 $(OBJ_DIR)/grids_species.o \
-	 $(OBJ_DIR)/grids_velocity.o \
-	 $(OBJ_DIR)/grids_z.o \
-	 $(OBJ_DIR)/job_manage.o \
-	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/multibox.o \
-	 $(OBJ_DIR)/parallelisation_layouts.o \
-	 $(OBJ_DIR)/parameters_numerical.o \
-	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/quasineutrality_equation_electromagnetic.o \
-	 $(OBJ_DIR)/quasineutrality_equation_radialvariation.o \
-	 $(OBJ_DIR)/redistribute.o 
-$(OBJ_DIR)/quasineutrality_equation_fullfluxsurface.o: \
-	 $(OBJ_DIR)/arrays.o \
-	 $(OBJ_DIR)/arrays_gyro_averages.o \
-	 $(OBJ_DIR)/calculations_gyro_averages.o \
-	 $(OBJ_DIR)/calculations_kxky.o \
-	 $(OBJ_DIR)/calculations_transforms.o \
-	 $(OBJ_DIR)/calculations_velocity_integrals.o \
-	 $(OBJ_DIR)/calculations_volume_averages.o \
-	 $(OBJ_DIR)/common_types.o \
-	 $(OBJ_DIR)/debug_flags.o \
-	 $(OBJ_DIR)/geometry.o \
-	 $(OBJ_DIR)/grids_kxky.o \
-	 $(OBJ_DIR)/grids_species.o \
-	 $(OBJ_DIR)/grids_velocity.o \
-	 $(OBJ_DIR)/grids_z.o \
-	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/parallelisation_layouts.o \
-	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/spfunc.o 
-$(OBJ_DIR)/quasineutrality_equation_radialvariation.o: \
-	 $(OBJ_DIR)/arrays.o \
-	 $(OBJ_DIR)/arrays_fields.o \
-	 $(OBJ_DIR)/arrays_gyro_averages.o \
-	 $(OBJ_DIR)/calculations_gyro_averages.o \
-	 $(OBJ_DIR)/calculations_kxky.o \
-	 $(OBJ_DIR)/calculations_transforms.o \
-	 $(OBJ_DIR)/calculations_velocity_integrals.o \
-	 $(OBJ_DIR)/debug_flags.o \
-	 $(OBJ_DIR)/file_utils.o \
-	 $(OBJ_DIR)/geometry.o \
-	 $(OBJ_DIR)/grids_kxky.o \
-	 $(OBJ_DIR)/grids_species.o \
-	 $(OBJ_DIR)/grids_velocity.o \
-	 $(OBJ_DIR)/grids_z.o \
-	 $(OBJ_DIR)/job_manage.o \
-	 $(OBJ_DIR)/linear_solve.o \
-	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/mp_lu_decomposition.o \
-	 $(OBJ_DIR)/multibox.o \
-	 $(OBJ_DIR)/parallelisation_layouts.o \
-	 $(OBJ_DIR)/parameters_multibox.o \
-	 $(OBJ_DIR)/parameters_physics.o 
 $(OBJ_DIR)/ran.o: 
 $(OBJ_DIR)/redistribute.o: \
 	 $(OBJ_DIR)/job_manage.o \
@@ -1276,6 +1276,7 @@ $(OBJ_DIR)/response_matrix.o: \
 	 $(OBJ_DIR)/calculations_velocity_integrals.o \
 	 $(OBJ_DIR)/common_types.o \
 	 $(OBJ_DIR)/debug_flags.o \
+	 $(OBJ_DIR)/field_equations_quasineutrality.o \
 	 $(OBJ_DIR)/file_units.o \
 	 $(OBJ_DIR)/geometry.o \
 	 $(OBJ_DIR)/gk_implicit_terms.o \
@@ -1291,7 +1292,6 @@ $(OBJ_DIR)/response_matrix.o: \
 	 $(OBJ_DIR)/parallelisation_layouts.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/quasineutrality_equation.o \
 	 $(OBJ_DIR)/system_fortran.o 
 $(OBJ_DIR)/save_stella_for_restart.o: \
 	 $(OBJ_DIR)/arrays.o \
@@ -1321,6 +1321,7 @@ $(OBJ_DIR)/stella.o: \
 	 $(OBJ_DIR)/debug_flags.o \
 	 $(OBJ_DIR)/diagnostics.o \
 	 $(OBJ_DIR)/diagnostics_omega.o \
+	 $(OBJ_DIR)/field_equations_quasineutrality.o \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/git_version.o \
 	 $(OBJ_DIR)/gk_radial_variation.o \
@@ -1335,7 +1336,6 @@ $(OBJ_DIR)/stella.o: \
 	 $(OBJ_DIR)/parameters_multibox.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/quasineutrality_equation.o \
 	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/save_stella_for_restart.o 
 $(OBJ_DIR)/system_fortran.o: 

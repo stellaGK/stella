@@ -40,8 +40,8 @@ contains
       use parameters_numerical, only: use_deltaphi_for_response_matrix
       use parameters_numerical, only: tupwnd_p => time_upwind_plus
       use parameters_numerical, only: tupwnd_m => time_upwind_minus
-      use quasineutrality_equation, only: advance_fields_using_quasineutrality_equation
-      use quasineutrality_equation, only: fields_updated
+      use field_equations_quasineutrality, only: advance_fields_using_field_equations_quasineutrality
+      use field_equations_quasineutrality, only: fields_updated
       use grids_extended_zgrid, only: map_to_extended_zgrid, map_from_extended_zgrid
       use grids_extended_zgrid, only: nsegments, nzed_segment
 
@@ -49,7 +49,7 @@ contains
       use calculations_gyro_averages, only: gyro_average
       use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
 
-      use quasineutrality_equation_ffs, only: get_fields_source
+      use field_equations_quasineutrality_ffs, only: get_fields_source
       use parameters_numerical, only: nitt
 
       use gk_ffs_solve, only: get_source_ffs_itteration, get_drifts_ffs_itteration
@@ -106,7 +106,7 @@ contains
       g1 = g
       g2 = g
 
-      call advance_fields_using_quasineutrality_equation(g2, phi, apar, bpar, dist=trim(dist_choice))
+      call advance_fields_using_field_equations_quasineutrality(g2, phi, apar, bpar, dist=trim(dist_choice))
       phi_old = phi
 
       ! if using delphi formulation for response matrix, then phi = phi^n replaces
@@ -127,7 +127,7 @@ contains
          ! save the incoming pdf and phi, as they will be needed later
          ! this will become g^{n+1, i} -- the g from the previous iteration         
          if (driftkinetic_implicit .and. (itt .NE. 1)) then
-            call advance_fields_using_quasineutrality_equation(g2, phi, apar, bpar, dist=trim(dist_choice))
+            call advance_fields_using_field_equations_quasineutrality(g2, phi, apar, bpar, dist=trim(dist_choice))
             phi_old = phi
          end if 
 
@@ -163,13 +163,13 @@ contains
          if (driftkinetic_implicit) then
             ! For FFS we want to re-solve for bar{phi}
             ! NB the 'g' here is g_inh^{n+1, i+1}
-            call advance_fields_using_quasineutrality_equation(g, phi, apar, bpar, dist=trim(dist_choice), implicit_solve=.true.) 
+            call advance_fields_using_field_equations_quasineutrality(g, phi, apar, bpar, dist=trim(dist_choice), implicit_solve=.true.) 
             ! g2 = g^{n+1, i}
             ! phi_old = phi^{n+1, i} 
             call get_fields_source(g2, phi_old, fields_source_ffs) 
             phi = phi + fields_source_ffs
          else
-            call advance_fields_using_quasineutrality_equation(g, phi, apar, bpar, dist=trim(dist_choice)) 
+            call advance_fields_using_field_equations_quasineutrality(g, phi, apar, bpar, dist=trim(dist_choice)) 
          end if
 
          ! solve response_matrix*(phi^{n+1}-phi^{n*}) = phi_{inh}^{n+1}-phi^{n*}
@@ -1334,7 +1334,7 @@ contains
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: periodic, phase_shift
       use grids_kxky, only: naky
-      use quasineutrality_equation, only: nfields
+      use field_equations_quasineutrality, only: nfields
       use arrays, only: response_matrix
 
       implicit none

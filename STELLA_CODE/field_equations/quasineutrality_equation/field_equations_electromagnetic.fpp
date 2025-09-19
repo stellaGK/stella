@@ -6,7 +6,7 @@
 ! effects are included, i.e., when evolving the apar and bpar fields.
 ! 
 !###############################################################################
-module quasineutrality_equation_electromagnetic
+module field_equations_electromagnetic
 
    ! Load debug flags
    use debug_flags, only: debug => fields_debug
@@ -14,9 +14,9 @@ module quasineutrality_equation_electromagnetic
    implicit none
 
    ! Make routines available to other modules
-   public :: init_quasineutrality_equation_electromagnetic
-   public :: allocate_quasineutrality_equation_electromagnetic
-   public :: finish_quasineutrality_equation_electromagnetic
+   public :: init_field_equations_electromagnetic
+   public :: allocate_field_equations_electromagnetic
+   public :: finish_field_equations_electromagnetic
    public :: advance_fields_using_QN_electromagnetic
    public :: advance_apar
    
@@ -74,7 +74,7 @@ contains
       use calculations_gyro_averages, only: gyro_average_j1
       
       ! Routines from other quasi-neutrality modules
-      use quasineutrality_equation_radial_variation, only: add_radial_correction_int_species
+      use field_equations_quasineutrality_radial_variation, only: add_radial_correction_int_species
 
       implicit none
 
@@ -92,7 +92,7 @@ contains
       if (fphi > epsilon(0.0) .and. include_bpar) then
       
          ! Start timer
-         if (debug) write (*, *) 'quasineutrality_equation::electromagnetic::advance_fields::vmulo::include_bpar'
+         if (debug) write (*, *) 'field_equations_quasineutrality::electromagnetic::advance_fields::vmulo::include_bpar'
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
          
          ! Gyroaverage the distribution function g at each phase space location
@@ -103,7 +103,7 @@ contains
          
          ! Integrate <g> over velocity space and sum over species
          ! store result in phi, which will be further modified below to account for polarization term
-         if (debug) write (*, *) 'quasineutrality_equation::electromagnetic::advance_fields::vmulo::integrate_species_phi'
+         if (debug) write (*, *) 'field_equations_quasineutrality::electromagnetic::advance_fields::vmulo::integrate_species_phi'
          call integrate_species(g_scratch, spec%z * spec%dens_psi0, phi)
          
          ! Gyroaverage the distribution function g at each phase space location
@@ -118,7 +118,7 @@ contains
          ! <g> requires modification if radial profile variation is included; not supported for bpar MRH
          ! Integrate <g> over velocity space and sum over species
          ! store result in bpar, which will be further modified below to account for polarization term
-         if (debug) write (*, *) 'quasineutrality_equation::electromagnetic::advance_fields::vmulo::integrate_species_bpar'
+         if (debug) write (*, *) 'field_equations_quasineutrality::electromagnetic::advance_fields::vmulo::integrate_species_bpar'
          call integrate_species(g_scratch, -2.0 * beta * spec%temp_psi0 * spec%dens_psi0, bpar)
          
          ! End timer
@@ -136,7 +136,7 @@ contains
       if (include_apar) then
       
          ! Start timer
-         if (debug) write (*, *) 'quasineutrality_equation::electromagnetic::advance_fields::vmulo::include_apar'
+         if (debug) write (*, *) 'field_equations_quasineutrality::electromagnetic::advance_fields::vmulo::include_apar'
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
          
          ! If fphi > 0, then g_scratch = <g> already calculated above
@@ -151,7 +151,7 @@ contains
          
          ! Integrate vpa*<g> over velocity space and sum over species
          ! store result in apar, which will be further modified below to account for apar pre-factor
-         if (debug) write (*, *) 'quasineutrality_equation::electromagnetic::advance_fields::vmulo::integrate_species_apar'
+         if (debug) write (*, *) 'field_equations_quasineutrality::electromagnetic::advance_fields::vmulo::integrate_species_apar'
          call integrate_species(g_scratch, spec%z * spec%dens_psi0 * spec%stm_psi0 * beta, apar)
          
          ! End timer
@@ -219,7 +219,7 @@ contains
       if (fphi > epsilon(0.0) .and. include_bpar) then
       
          ! Start timer
-         if (debug) write (*, *) 'quasineutrality_equation::electromagnetic::advance_fields::kxkyzlo::include_bpar'
+         if (debug) write (*, *) 'field_equations_quasineutrality::electromagnetic::advance_fields::kxkyzlo::include_bpar'
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
          
          ! Allocate temporary arrays
@@ -269,7 +269,7 @@ contains
       if (include_apar) then
       
          ! Debug 
-         if (debug) write (*, *) 'quasineutrality_equation::electromagnetic::advance_fields::kxkyzlo::include_apar'
+         if (debug) write (*, *) 'field_equations_quasineutrality::electromagnetic::advance_fields::kxkyzlo::include_apar'
          
          ! Allocate temporary arrays
          allocate (g0(nvpa, nmu))
@@ -341,7 +341,7 @@ contains
       !-------------------------------------------------------------------------
       
       ! Start timer
-      if (debug) write (*, *) 'quasineutrality_equation::electromagnetic::calculate_phi_and_bpar'
+      if (debug) write (*, *) 'field_equations_quasineutrality::electromagnetic::calculate_phi_and_bpar'
       if (proc0) call time_message(.false., time_field_solve(:, 4), ' calculate_phi_and_bpar')
 
       ! Assume we only have one field line
@@ -499,7 +499,7 @@ contains
    !****************************************************************************
    ! Fill arrays needed for the electromagnetic calculations
    !****************************************************************************
-   subroutine init_quasineutrality_equation_electromagnetic (nfields)
+   subroutine init_field_equations_electromagnetic (nfields)
 
       ! Parallelisation
       use mp, only: sum_allreduce
@@ -542,7 +542,7 @@ contains
       if (include_apar) nfields = nfields + 1
       if (include_bpar) nfields = nfields + 1
 
-      call allocate_quasineutrality_equation_electromagnetic
+      call allocate_field_equations_electromagnetic
 
       if (.not. (include_apar .or. include_bpar)) return
       
@@ -646,7 +646,7 @@ contains
          end do
       end if
       
-   end subroutine init_quasineutrality_equation_electromagnetic
+   end subroutine init_field_equations_electromagnetic
 
    !****************************************************************************
    !***************************** ALLOCATE ARRAYS ******************************
@@ -654,7 +654,7 @@ contains
    ! Allocate arrays needed for solving electromagnetic fields
    ! This includes Apar and Bpar
    !****************************************************************************
-   subroutine allocate_quasineutrality_equation_electromagnetic
+   subroutine allocate_field_equations_electromagnetic
 
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, nakx
@@ -702,12 +702,12 @@ contains
          if (.not. allocated(denominator_QNinv33)) then; allocate (denominator_QNinv33(1, 1, 1)); denominator_QNinv33 = 0. ; end if
       end if
 
-   end subroutine allocate_quasineutrality_equation_electromagnetic
+   end subroutine allocate_field_equations_electromagnetic
 
    !****************************************************************************
    !******************** FINISH THE ELECTROMAGNETIC FIELDS *********************
    !****************************************************************************
-   subroutine finish_quasineutrality_equation_electromagnetic
+   subroutine finish_field_equations_electromagnetic
 
       use arrays_fields, only: apar
       use arrays_fields, only: apar_old, bpar_old
@@ -733,6 +733,6 @@ contains
       if (allocated(denominator_QNinv13)) deallocate(denominator_QNinv13)
       if (allocated(denominator_QNinv33)) deallocate(denominator_QNinv33)
       
-   end subroutine finish_quasineutrality_equation_electromagnetic
+   end subroutine finish_field_equations_electromagnetic
 
-end module quasineutrality_equation_electromagnetic
+end module field_equations_electromagnetic

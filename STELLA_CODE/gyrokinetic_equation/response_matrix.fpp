@@ -174,7 +174,7 @@ contains
       use mp, only: sgproc0, real_size
       use mp, only: create_shared_memory_window
       use arrays, only: response_window
-      use quasineutrality_equation, only: nfields
+      use field_equations_quasineutrality, only: nfields
       use grids_kxky, only: naky
       use grids_extended_zgrid, only: neigen, nsegments, nzed_segment
       use grids_extended_zgrid, only: periodic
@@ -322,7 +322,7 @@ contains
       use grids_extended_zgrid, only: periodic
       use grids_extended_zgrid, only: iz_low, iz_up
       use parallelisation_layouts, only: vmu_lo
-      use quasineutrality_equation, only: nfields
+      use field_equations_quasineutrality, only: nfields
       use file_units, only: unit_response_matrix
 
       implicit none
@@ -678,7 +678,7 @@ contains
       use grids_extended_zgrid, only: nzed_segment
       use grids_extended_zgrid, only: periodic
       use mp, only: proc0, job, broadcast, mp_abort
-      use quasineutrality_equation, only: nfields
+      use field_equations_quasineutrality, only: nfields
       use file_units, only: unit_response_matrix
 
       implicit none

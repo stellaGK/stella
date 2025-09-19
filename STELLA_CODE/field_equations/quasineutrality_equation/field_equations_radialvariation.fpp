@@ -5,7 +5,7 @@
 ! Module for advancing and initialising the fields when Radial Variation effects are included
 ! 
 !###############################################################################
-module quasineutrality_equation_radial_variation
+module field_equations_quasineutrality_radial_variation
 
    use mpi
    use debug_flags, only: debug => fields_debug
@@ -19,8 +19,8 @@ module quasineutrality_equation_radial_variation
    
    ! Initialise and Finalise Routines
    ! TODO-GA: probably can make private -- need to do!
-   public :: init_quasineutrality_equation_radial_variation
-   public :: finish_quasineutrality_equation_radial_variation
+   public :: init_field_equations_quasineutrality_radial_variation
+   public :: finish_field_equations_quasineutrality_radial_variation
 
    private
 
@@ -630,7 +630,7 @@ contains
    !****************************************************************************
    !              INITALISE THE FIELDS FOR RADIALLY GLOBAL STELLA
    !****************************************************************************
-   subroutine init_quasineutrality_equation_radial_variation
+   subroutine init_field_equations_quasineutrality_radial_variation
    
       ! Parallelisation
       use mp, only: job
@@ -778,7 +778,7 @@ contains
             call mpi_win_fence(0, phi_shared_window, ierr)
          end if
 
-         if (debug) write (*, *) 'fields::init_quasineutrality_equation::qn_window_init'
+         if (debug) write (*, *) 'fields::init_field_equations_quasineutrality::qn_window_init'
          if (qn_window == MPI_WIN_NULL) then
             win_size = 0
             if (sgproc0) then
@@ -895,7 +895,7 @@ contains
          deallocate (g0k, g0x)
       end if
 
-   end subroutine init_quasineutrality_equation_radial_variation
+   end subroutine init_field_equations_quasineutrality_radial_variation
 
    !****************************************************************************
    !                        ALLOCATE ARRAYS FOR EM FIELDS
@@ -941,7 +941,7 @@ contains
    !****************************************************************************
    !                     FINISH THE RADIALLY GLOBAL FIELDS
    !****************************************************************************
-   subroutine finish_quasineutrality_equation_radial_variation
+   subroutine finish_field_equations_quasineutrality_radial_variation
 
       use arrays_fields, only: phi_corr_QN, phi_corr_GA
       use arrays_fields, only: apar_corr_QN, apar_corr_GA
@@ -975,6 +975,6 @@ contains
       if (allocated(apar_corr_GA)) deallocate (apar_corr_GA)
       if (allocated(ddenominator_QNdr)) deallocate (ddenominator_QNdr)
 
-   end subroutine finish_quasineutrality_equation_radial_variation
+   end subroutine finish_field_equations_quasineutrality_radial_variation
 
-end module quasineutrality_equation_radial_variation
+end module field_equations_quasineutrality_radial_variation

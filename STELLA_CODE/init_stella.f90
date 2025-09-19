@@ -392,7 +392,7 @@ contains
       use calculations_redistribute, only: init_redistribute
       use dissipation_and_collisions, only: init_dissipation
       use gk_sources, only: init_sources
-      use quasineutrality_equation, only: init_quasineutrality_equation
+      use field_equations_quasineutrality, only: init_field_equations_quasineutrality
       
       implicit none
       
@@ -431,8 +431,8 @@ contains
       
       ! Allocate and initialise time-independent arrays needed to
       ! solve the field equations; e.g., sum_s (Z_s^2 n_s / T_s)*(1-Gamma0_s)
-      if (debug) write (6, *) 'stella::init_stella::init_quasineutrality_equation'
-      call init_quasineutrality_equation
+      if (debug) write (6, *) 'stella::init_stella::init_field_equations_quasineutrality'
+      call init_field_equations_quasineutrality
       
       ! Initialise the guiding-center distribution functions <gvmu>(nvpa, nmu, -kxkyzs-layout-)
       ! <gnew>(kx, ky, z, -vpamus-layout-) and <old>(kx, ky, z, -vpamus-layout-)
@@ -508,9 +508,9 @@ contains
    subroutine init_electrostatic_and_magnetic_potential(restarted)
       
       ! The fields are phi(kx,ky,z), apar(kx,ky,z) and bpar(kx,ky,z)
-      use quasineutrality_equation, only: advance_fields_using_quasineutrality_equation
-      use quasineutrality_equation, only: fields_updated
-      use quasineutrality_equation, only: rescale_fields
+      use field_equations_quasineutrality, only: advance_fields_using_field_equations_quasineutrality
+      use field_equations_quasineutrality, only: fields_updated
+      use field_equations_quasineutrality, only: rescale_fields
       use initialise_distribution_function, only: phiinit
       use initialise_distribution_function, only: scale_to_phiinit
       
@@ -525,7 +525,7 @@ contains
       use parameters_multibox, only: use_dirichlet_BC
       use multibox, only: apply_radial_boundary_conditions
       use multibox, only: multibox_communicate
-      use quasineutrality_equation_radial_variation, only: get_radial_correction
+      use field_equations_quasineutrality_radial_variation, only: get_radial_correction
       
       ! Parallelisation
       use mp, only: job
@@ -540,8 +540,8 @@ contains
       ! The distribution function g(kx,ky,z,mu,vpa,species) has been initialised
       ! in initialise_distribution(). Use the quasineutrality condition to initialise 
       ! the electrostatic and electromagnetic fields (phi, apar, bpar).
-      if (debug) write (6, *) 'stella::init_stella::advance_fields_using_quasineutrality_equation'
-      call advance_fields_using_quasineutrality_equation(gnew, phi, apar, bpar, dist='g')
+      if (debug) write (6, *) 'stella::init_stella::advance_fields_using_field_equations_quasineutrality'
+      call advance_fields_using_field_equations_quasineutrality(gnew, phi, apar, bpar, dist='g')
       
       ! Add the radial variation correction to the fields
       if (radial_variation) then
@@ -556,13 +556,13 @@ contains
          call multibox_communicate(gnew)
          if (job == 1) then
             fields_updated = .false.
-            call advance_fields_using_quasineutrality_equation(gnew, phi, apar, bpar, dist='g')
+            call advance_fields_using_field_equations_quasineutrality(gnew, phi, apar, bpar, dist='g')
          end if
       else if (use_dirichlet_BC) then
          if (debug) write (6, *) 'stella::init_stella:multibox_radial_BC'
          call apply_radial_boundary_conditions(gnew)
          fields_updated = .false.
-         call advance_fields_using_quasineutrality_equation(gnew, phi, apar, bpar, dist='g')
+         call advance_fields_using_field_equations_quasineutrality(gnew, phi, apar, bpar, dist='g')
       end if
 
       ! Rescale to phiinit if just beginning a new run
@@ -788,7 +788,7 @@ contains
       use arrays, only: time_field_solve
       use arrays, only: time_gke, time_parallel_nl
       use initialise_distribution_function, only: finish_distribution_function
-      use quasineutrality_equation, only: finish_quasineutrality_equation
+      use field_equations_quasineutrality, only: finish_field_equations_quasineutrality
       use gyrokinetic_equation_initialisation, only: finish_gyrokinetic_equation
       use gk_parallel_streaming, only: time_parallel_streaming
       use gk_mirror, only: time_mirror
@@ -817,8 +817,8 @@ contains
       call finish_diagnostics(istep)
       if (debug) write (*, *) 'stella::finish_stella::finish_response_matrix'
       call finish_response_matrix
-      if (debug) write (*, *) 'stella::finish_stella::finish_quasineutrality_equation'
-      call finish_quasineutrality_equation
+      if (debug) write (*, *) 'stella::finish_stella::finish_field_equations_quasineutrality'
+      call finish_field_equations_quasineutrality
       if (debug) write (*, *) 'stella::finish_stella::finish_gyrokinetic_equation'
       call finish_gyrokinetic_equation
       if (debug) write (*, *) 'stella::finish_stella::finish_sources'

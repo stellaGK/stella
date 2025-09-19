@@ -172,8 +172,8 @@ contains
       ! Fields
       use arrays_fields, only: phi, apar, bpar
       use arrays_fields, only: phi_old, apar_old
-      use quasineutrality_equation, only: advance_fields_using_quasineutrality_equation
-      use quasineutrality_equation, only: fields_updated
+      use field_equations_quasineutrality, only: advance_fields_using_field_equations_quasineutrality
+      use field_equations_quasineutrality, only: fields_updated
       
       ! Physics flags
       use parameters_physics, only: include_apar
@@ -235,7 +235,7 @@ contains
 
          ! Ensure fields are consistent with gnew.
          ! Use the quasi-neutrality equation to advance the fields in time
-         call advance_fields_using_quasineutrality_equation(gnew, phi, apar, bpar, dist='g')
+         call advance_fields_using_field_equations_quasineutrality(gnew, phi, apar, bpar, dist='g')
 
          ! Keep track whether any routine wants to modify the time step
          restart_time_step = .false.
@@ -306,7 +306,7 @@ contains
       gold = gnew
 
       ! Ensure fields are updated so that omega calculation is correct.
-      call advance_fields_using_quasineutrality_equation(gnew, phi, apar, bpar, dist='g')
+      call advance_fields_using_field_equations_quasineutrality(gnew, phi, apar, bpar, dist='g')
 
       ! Update the delay parameters for the Krook operator
       if (source_option_switch == source_option_krook) call update_tcorr_krook(gnew)

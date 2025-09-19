@@ -112,11 +112,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/parameters/parameters_numerical.f90
   ../STELLA_CODE/parameters/parameters_physics.f90
   ../STELLA_CODE/parameters/parallelisation_layouts.f90
-  ../STELLA_CODE/quasineutrality_equation/quasineutrality_equation.f90
-  ../STELLA_CODE/quasineutrality_equation/quasineutrality_equation_collisions.f90
-  ../STELLA_CODE/quasineutrality_equation/quasineutrality_equation_electromagnetic.f90
-  ../STELLA_CODE/quasineutrality_equation/quasineutrality_equation_fluxtube.f90
-  ../STELLA_CODE/quasineutrality_equation/quasineutrality_equation_fullfluxsurface.f90
   ../STELLA_CODE/radial_variation/multibox.f90
   ../STELLA_CODE/radial_variation/gk_radial_variation.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_debug.f90
@@ -141,7 +136,12 @@ set(STELLA_SOURCES_f90
 set(STELLA_SOURCES_fpp
   ../STELLA_CODE/diagnostics/write_diagnostics_to_netcdf.fpp
   ../STELLA_CODE/diagnostics/save_stella_for_restart.fpp
-  ../STELLA_CODE/quasineutrality_equation/quasineutrality_equation_radialvariation.fpp
+  ../STELLA_CODE/field_equations/field_equations_radialvariation.fpp
+  ../STELLA_CODE/field_equations/field_equations_quasineutrality.fpp
+  ../STELLA_CODE/field_equations/field_equations_collisions.fpp
+  ../STELLA_CODE/field_equations/field_equations_electromagnetic.fpp
+  ../STELLA_CODE/field_equations/field_equations_fluxtube.fpp
+  ../STELLA_CODE/field_equations/field_equations_fullfluxsurface.fpp
   ../STELLA_CODE/gyrokinetic_equation/response_matrix.fpp
   ../STELLA_CODE/radial_variation/gk_sources.fpp
   ../STELLA_CODE/neoclassical/sfincs_interface.fpp
