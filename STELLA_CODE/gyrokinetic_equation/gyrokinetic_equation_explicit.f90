@@ -198,7 +198,7 @@ contains
       use gk_nonlinearity, only: advance_parallel_nonlinearity
       use gk_radial_variation, only: advance_radial_variation
       use gk_nonlinearity, only: advance_ExB_nonlinearity
-      use field_equations_quasineutrality_radial_variation, only: get_radial_correction
+      use field_equations_radialvariation, only: get_radial_correction
       use field_equations_quasineutrality, only: advance_fields_using_field_equations_quasineutrality
       use field_equations_quasineutrality, only: fields_updated
 

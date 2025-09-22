@@ -13,10 +13,11 @@ stellarators.
 ## Table of contents 
   * [Code](#code)
     + [stella.f90](#stellaf90)
+    + [arrays](#arrays)
     + [Calculations](#calculations)
     + [Diagnostics](#diagnostics)
     + [Dissipation](#dissipation)
-    + [Fields](#fields)
+    + [Field_equations](#field_equations)
     + [Geometry](#geometry)
     + [Grids](#grids)
     + [Gyrokinetic_terms](#gyrokinetic-terms)
@@ -29,10 +30,11 @@ stellarators.
 ## Code
 
 The code is organized in the following folders:
+- arrays
 - calculations 
 - diagnostics  
 - dissipation  
-- fields  
+- field_equations
 - geometry  
 - grids  
 - gyrokinetic_terms  
@@ -49,17 +51,35 @@ This is the main script.
 
 <br>
 
+### Arrays
+
+The `arrays` folder contains the following scripts:
+
+- arrays_distribution_function.f90
+- arrays_fields.f90 
+- arrays_gyro_averages.f90 
+- arrays.f90 
+- initialise_arrays.f90 
+- initialise_distribution_function.f90 
+
+<br>
+
 ### Calculations
 
 The `calculations` folder contains the following scripts:
 
-- calculations_kxky.f90  
-- calculations_redistribute.f90  
-- calculations_finite_differences.f90  
-- calculations_tofrom_ghf.f90  
-- gyro_averages.f90  
-- calculations_transforms.f90  
-- volume_averages.f90
+- calculations_add_explicit_terms.f90
+- calculations_checksum.f90
+- calculations_finite_differences.f90 
+- calculations_gyro_averages.f90 
+- calculations_kxky_derivatives.f90
+- calculations_kxky.f90 
+- calculations_redistribute.f90 
+- calculations_timestep.f90 
+- calculations_tofrom_ghf.f90
+- calculations_transforms.f90 
+- calculations_velocity_integrals.f90
+- calculations_volume_averages.f90 
 
 <br>
 
@@ -88,24 +108,22 @@ The `dissipation` folder contains the following scripts:
 
 - collisions_dougherty.f90
 - collisions_fokkerplanck.f90
-- dissipation.f90
-- hyper.f90
+- dissipation_and_collisions.f90
+- dissipation_hyper.f90
 
 <br>
 
 
-### Fields  
+### Field_equations
 
-The `fields` folder contains the following scripts:
+The `field_equations` folder contains the following scripts:
 
-- dist_fn.f90
-- fields.fpp
-- fields_collisions
-- fields_electromagnetic.fpp
-- fields_fluxtube.fpp
-- fields_fullfluxsurface.fpp
-- fields_radialvariation.fpp
-- init_g.f90
+- field_equations_collisions.fpp
+- field_equations_electromagnetic.fpp
+- field_equations_fluxtube.fpp
+- field_equations_fullfluxsurface.fpp
+- field_equations_quasineutrality.fpp
+- field_equations_radialvariation.fpp
 
 <br>
 
@@ -129,17 +147,13 @@ The `geometry` folder contains the following scripts:
 
 The `grids` folder contains the following scripts:
 
-- arrays_store_distribution_fn.f90
-- arrays_fields.f90
-- stella_common_types.f90
-- extended_zgrid.f90
+- grids_extended_zgrid.f90
 - grids_kxky.f90
-- species.f90
-- stella_layouts.f90
-- stella_time.f90
-- velocity_grids.f90
-- write_radial_grid.f90
-- z_grid.f90
+- grids_species_from_euterpe.f90
+- grids_species.f90
+- grids_time.f90
+- grids_velocity.f90 
+- grids_z.f90 
 
 <br>
 
@@ -148,14 +162,18 @@ The `grids` folder contains the following scripts:
 
 The `gyrokinetic_terms` folder contains the following scripts:
 
-- ffs_solve.f90
-- flow_shear.f90
-- implicit_solve.f90
-- mirror_terms.f90
-- parallel_streaming.f90
+- gk_drive.f90
+- gk_ffs_solve.f90
+- gk_flow_shear.f90
+- gk_implicit_terms.f90
+- gk_magnetic_drift.f90
+- gk_mirror.f90
+- gk_nonlinearity.f90
+- gk_parallel_streaming.f90
+- gyrokinetic_equation_explicit.f90
+- gyrokinetic_equation_implicit.f90
+- gyrokinetic_equation_initialisation.f90
 - response_matrix.fpp
-- sources.fpp
-- time_advance.f90
 
 <br>
 
@@ -164,7 +182,6 @@ The `gyrokinetic_terms` folder contains the following scripts:
 
 The `neoclassical` folder contains the following scripts:
 
-- grids_species_from_euterpe.f90
 - neoclassical_terms.f90
 - sfincs_interface.fpp
 
@@ -175,10 +192,15 @@ The `neoclassical` folder contains the following scripts:
 
 The `parameters` folder contains the following scripts:
 
+- common_type.f90
 - debug_flags.f90
-- parameters_diagnostics.f90
+- file_units.f90 
+- interface_random_number_generator.f90 
+- parallelisation_layouts.f90 
+- parameters_diagnostics.f90 
+- parameters_multibox.f90 
 - parameters_numerical.f90
-- parameters_physics.f90
+- parameters_physics.f90 
 
 <br>
 
@@ -186,6 +208,8 @@ The `parameters` folder contains the following scripts:
 
 The `radial_variation` folder contains the following scripts:
 
+- gk_radial_variation.f90 
+- gk_sources.fpp
 - multibox.f90
 
 <br>

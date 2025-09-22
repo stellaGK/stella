@@ -159,8 +159,8 @@ contains
       
       ! Routines from other field modules
       use field_equations_electromagnetic, only: advance_fields_using_QN_electromagnetic
-      use field_equations_quasineutrality_radial_variation, only: add_radial_correction_int_species
-      use field_equations_quasineutrality_radial_variation, only: calculate_phi_for_radial_variation
+      use field_equations_radialvariation, only: add_radial_correction_int_species
+      use field_equations_radialvariation, only: calculate_phi_for_radial_variation
       
       implicit none
 
@@ -271,7 +271,7 @@ contains
       
       ! Routines from other field modules
       use field_equations_electromagnetic, only: advance_fields_using_QN_electromagnetic
-      use field_equations_quasineutrality_radial_variation, only: calculate_phi_for_radial_variation
+      use field_equations_radialvariation, only: calculate_phi_for_radial_variation
 
       implicit none
 

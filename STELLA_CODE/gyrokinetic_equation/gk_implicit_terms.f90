@@ -76,7 +76,7 @@ contains
       use parameters_numerical, only: nitt
       use calculations_gyro_averages, only: gyro_average
       use field_equations_quasineutrality, only: advance_fields_using_field_equations_quasineutrality
-      use field_equations_quasineutrality_ffs, only: get_fields_source
+      use field_equations_fullfluxsurface, only: get_fields_source
       use field_equations_quasineutrality, only: fields_updated
       use gk_ffs_solve, only: get_source_ffs_itteration, get_drifts_ffs_itteration
       

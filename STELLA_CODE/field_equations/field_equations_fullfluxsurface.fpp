@@ -5,7 +5,7 @@
 ! Module for advancing and initialising the fields when Full Flux Surface effects are included
 ! 
 !###############################################################################
-module field_equations_quasineutrality_ffs
+module field_equations_fullfluxsurface
 
    ! Load debug flags
    use debug_flags, only: debug => fields_ffs_debug
@@ -14,10 +14,10 @@ module field_equations_quasineutrality_ffs
    implicit none
 
    ! Make routines available to other modules
-   public :: init_field_equations_quasineutrality_ffs
-   public :: advance_fields_using_field_equations_quasineutrality_ffs
+   public :: init_field_equations_fullfluxsurface
+   public :: advance_fields_using_field_equations_fullfluxsurface
    public :: get_fields_source
-   public :: finish_field_equations_quasineutrality_ffs
+   public :: finish_field_equations_fullfluxsurface
 
    private
 
@@ -38,10 +38,10 @@ contains
    !****************************************************************************
    !                                      Title
    !****************************************************************************
-   ! advance_fields_using_field_equations_quasineutrality_ffs accepts as input the guiding centre distribution function g
+   ! advance_fields_using_field_equations_fullfluxsurface accepts as input the guiding centre distribution function g
    ! and calculates/returns the electronstatic potential phi for full_flux_surface simulations
    !****************************************************************************
-   subroutine advance_fields_using_field_equations_quasineutrality_ffs(g, phi, apar, implicit_solve)
+   subroutine advance_fields_using_field_equations_fullfluxsurface(g, phi, apar, implicit_solve)
 
       ! Parallelisation
       use mp, only: mp_abort
@@ -288,7 +288,7 @@ contains
 
       end subroutine get_g_integral_contribution
 
-   end subroutine advance_fields_using_field_equations_quasineutrality_ffs
+   end subroutine advance_fields_using_field_equations_fullfluxsurface
 
    !****************************************************************************
    !                                      Title
@@ -468,7 +468,7 @@ contains
    !****************************************************************************
    !**************************** INITALISE ARRAYS ******************************
    !****************************************************************************
-   subroutine init_field_equations_quasineutrality_ffs
+   subroutine init_field_equations_fullfluxsurface
 
       use grids_species, only: modified_adiabatic_electrons
 
@@ -490,7 +490,7 @@ contains
          call init_adiabatic_response_factor
       end if
 
-   end subroutine init_field_equations_quasineutrality_ffs
+   end subroutine init_field_equations_fullfluxsurface
 
    !****************************************************************************
    !                                      Title
@@ -778,7 +778,7 @@ contains
    !****************************************************************************
    ! arrays only allocated/used if simulating a full flux surface
    !****************************************************************************
-   subroutine finish_field_equations_quasineutrality_ffs
+   subroutine finish_field_equations_fullfluxsurface
 
       implicit none
 
@@ -786,6 +786,6 @@ contains
       if (allocated(lu_gam0_ffs)) deallocate (lu_gam0_ffs)
       if (allocated(adiabatic_response_factor)) deallocate (adiabatic_response_factor)
 
-   end subroutine finish_field_equations_quasineutrality_ffs
+   end subroutine finish_field_equations_fullfluxsurface
 
-end module field_equations_quasineutrality_ffs
+end module field_equations_fullfluxsurface

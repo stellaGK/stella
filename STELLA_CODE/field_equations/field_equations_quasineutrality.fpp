@@ -90,7 +90,7 @@ contains
       
       ! Routines from other field modules
       use field_equations_fluxtube, only: advance_fields_using_field_equations_fluxtube
-      use field_equations_quasineutrality_ffs, only: advance_fields_using_field_equations_quasineutrality_ffs
+      use field_equations_fullfluxsurface, only: advance_fields_using_field_equations_fullfluxsurface
 
       implicit none
 
@@ -120,13 +120,13 @@ contains
       
          ! This routine is only needed in the 'implicit_solve' algorithm
          if (present(implicit_solve)) then
-            if (debug) write (*, *) 'field_equations_quasineutrality::advance_fields_using_field_equations_quasineutrality_ffs::implicit'
-            call advance_fields_using_field_equations_quasineutrality_ffs(g, phi, apar, implicit_solve=.true.)
+            if (debug) write (*, *) 'field_equations_quasineutrality::advance_fields_using_field_equations_fullfluxsurface::implicit'
+            call advance_fields_using_field_equations_fullfluxsurface(g, phi, apar, implicit_solve=.true.)
             
          ! This routine is for advancing the full <phi> field in the code with FFS effects
          else
-            if (debug) write (*, *) 'field_equations_quasineutrality::advance_fields_using_field_equations_quasineutrality_ffs'
-            call advance_fields_using_field_equations_quasineutrality_ffs(g, phi, apar)
+            if (debug) write (*, *) 'field_equations_quasineutrality::advance_fields_using_field_equations_fullfluxsurface'
+            call advance_fields_using_field_equations_fullfluxsurface(g, phi, apar)
          end if
          
       end if
@@ -156,10 +156,10 @@ contains
       use parameters_physics, only: full_flux_surface, radial_variation
 
       ! Routines needed to initialise the different field arrays depending on the physics being simulated
-      use field_equations_quasineutrality_radial_variation, only: init_field_equations_quasineutrality_radial_variation
+      use field_equations_radialvariation, only: init_field_equations_radialvariation
       use field_equations_electromagnetic, only: init_field_equations_electromagnetic
       use field_equations_fluxtube, only: init_field_equations_fluxtube
-      use field_equations_quasineutrality_ffs, only: init_field_equations_quasineutrality_ffs
+      use field_equations_fullfluxsurface, only: init_field_equations_fullfluxsurface
 
       implicit none
       
@@ -178,7 +178,7 @@ contains
       
          if (debug) write (*, *) 'field_equations_quasineutrality::init::ffs'
          nfields = 1
-         call init_field_equations_quasineutrality_ffs
+         call init_field_equations_fullfluxsurface
          
       ! Flux-tube simulations
       else
@@ -192,7 +192,7 @@ contains
 
          if (radial_variation) then
             if (debug) write (*, *) 'field_equations_quasineutrality::init::radial_variation'
-            call init_field_equations_quasineutrality_radial_variation
+            call init_field_equations_radialvariation
          end if
          
       end if
@@ -258,8 +258,8 @@ contains
       use arrays, only: denominator_fields, denominator_fields_MBR
       
       ! Routines for deallocating arrays fields depending on the physics being simulated
-      use field_equations_quasineutrality_ffs, only: finish_field_equations_quasineutrality_ffs
-      use field_equations_quasineutrality_radial_variation, only: finish_field_equations_quasineutrality_radial_variation
+      use field_equations_fullfluxsurface, only: finish_field_equations_fullfluxsurface
+      use field_equations_radialvariation, only: finish_field_equations_radialvariation
       use field_equations_electromagnetic, only: finish_field_equations_electromagnetic
       
       implicit none
@@ -274,8 +274,8 @@ contains
 
       ! Deallocate arrays from other field routines
       call finish_field_equations_electromagnetic
-      if (full_flux_surface) call finish_field_equations_quasineutrality_ffs
-      if (radial_variation) call finish_field_equations_quasineutrality_radial_variation
+      if (full_flux_surface) call finish_field_equations_fullfluxsurface
+      if (radial_variation) call finish_field_equations_radialvariation
 
       ! The fields are no longer initialised
       initialised_fields = .false.

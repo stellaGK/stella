@@ -74,7 +74,7 @@ contains
       use calculations_gyro_averages, only: gyro_average_j1
       
       ! Routines from other quasi-neutrality modules
-      use field_equations_quasineutrality_radial_variation, only: add_radial_correction_int_species
+      use field_equations_radialvariation, only: add_radial_correction_int_species
 
       implicit none
 

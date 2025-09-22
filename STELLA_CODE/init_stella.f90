@@ -525,7 +525,7 @@ contains
       use parameters_multibox, only: use_dirichlet_BC
       use multibox, only: apply_radial_boundary_conditions
       use multibox, only: multibox_communicate
-      use field_equations_quasineutrality_radial_variation, only: get_radial_correction
+      use field_equations_radialvariation, only: get_radial_correction
       
       ! Parallelisation
       use mp, only: job
