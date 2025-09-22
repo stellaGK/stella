@@ -8,9 +8,10 @@ gyro-averages, and volume averages.
 
 This module adds explicit terms in the time advance routine. It is used frequently 
 so this calculation is written once and called upon for (e.g.)
-    - advance_wdriftx_explicit
-    - advance_wdrifty_explicit
-    - advance_wstar_explicit
+
+    advance_wdriftx_explicit
+    advance_wdrifty_explicit
+    advance_wstar_explicit
 
 ## calculations_checksum
 
@@ -22,7 +23,7 @@ that the arrays are being correctly updated.
 
 This module is used for computing derivatives using finite difference schemes.
 There are different schemes available, including upwind schemes of various 
-!orders.
+orders.
 
 ## calculations_gyro_averages
 
@@ -37,8 +38,8 @@ This module computes spectral derivatives in kx, ky.
 This module swaps between different orderings of the (kx, ky) grids
 
 Use reality to swap between arrays with:
-    - ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
-    - kx >= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)
+    ky >= 0 and all kx (ordered like 0, ..., kxmax, -kxmax, ..., -dkx)
+    kx >= 0 and all ky (ordered like 0, ..., kymax, -kymax, ..., -dky)
 
 This is needed becuase Fourier transforms may need one or the other grid.
 If transforming from ky->y then we need all ky, and if transforming from 
@@ -48,20 +49,20 @@ kx->x then we need all kx.
 
 This module swaps between different distributions:
 
-    - kxkyz2vmu - swap between (ky, kx, z) local with (vpa, mu, species) parallelised 
-                  and (vpa, mu) local with (ky, kx, z, species) parallelised.
-                  This is also used for the reverse swap (i.e. velocity local to spatial
-                  coordinate local)
-    - kxyz2vmu - swap between (y, kx, z) local with (vpa, mu, species) parallelised 
-                 and (vpa, mu) local with (y, kx, z, species) parallelised.
-                 This is also used for the reverse swap (i.e. velocity local to spatial
-                 coordinate local). Note, this is needed for full flux annulus as y often 
-                 needs to be held in real space. 
-    - xyz2vmu - swap between (x, y, z) local with (vpa, mu, species) parallelised and 
+    kxkyz2vmu - swap between (ky, kx, z) local with (vpa, mu, species) parallelised 
+                and (vpa, mu) local with (ky, kx, z, species) parallelised.
+                This is also used for the reverse swap (i.e. velocity local to spatial
+                coordinate local)
+    kxyz2vmu -  swap between (y, kx, z) local with (vpa, mu, species) parallelised 
+                and (vpa, mu) local with (y, kx, z, species) parallelised.
+                This is also used for the reverse swap (i.e. velocity local to spatial
+                coordinate local). Note, this is needed for full flux annulus as y often 
+                needs to be held in real space. 
+    xyz2vmu -   swap between (x, y, z) local with (vpa, mu, species) parallelised and 
                 (vpa, mu) local with (x, y, z) parallised. This is also used for the reverse swap.
-    - kymus2vmus - swap between (kx, z, vpa) local with (ky, mu, species) parallelised and 
-                   (ky, kx, z) local with (vpa, mu, species) parallised. This is also used for 
-                   the reverse swap.
+    kymus2vmus -swap between (kx, z, vpa) local with (ky, mu, species) parallelised and 
+                (ky, kx, z) local with (vpa, mu, species) parallised. This is also used for 
+                the reverse swap.
 
 ## calculations_timestep
 
@@ -71,15 +72,15 @@ This module computes CFL conditions on the time step size, and resets it when ne
 
 This module swaps between different forms of the distribution funciton. 
 
-f - this is the distribution funciton evaluated at particle position. 
-h - this is the non-adiabatic part of the distribution function. This is evaluated at gyro-center position.
-g - this is the gyroaveraged distribution funciton, evaluated at gyro-center position.
+    f - this is the distribution funciton evaluated at particle position. 
+    h - this is the non-adiabatic part of the distribution function. This is evaluated at gyro-center position.
+    g - this is the gyroaveraged distribution funciton, evaluated at gyro-center position.
 
 Take r to be particle position, and R to be the gyro-center position. Then, for the electrostatic case:
 
-    - g(R) = <f(r)>_R, where <.>_R defines the gyro-average at fixed gyro-center
-    - f(r) = h(R) - Z_s/T_s * phi(r) * F_0 
-    - g(R) = h(R) - Z_s/T_s * <phi(r)>_R * F_0 = f(r) + Z_s/T_s * [phi(r) - <phi(r)>_R] * F_0 
+    g(R) = <f(r)>_R, where <.>_R defines the gyro-average at fixed gyro-center
+    f(r) = h(R) - Z_s/T_s * phi(r) * F_0 
+    g(R) = h(R) - Z_s/T_s * <phi(r)>_R * F_0 = f(r) + Z_s/T_s * [phi(r) - <phi(r)>_R] * F_0 
 
 We need these, because although stella mostly works with g(R), some calclations require h or f.
 
