@@ -24,6 +24,7 @@ stellarators.
     + [Neoclassical](#neoclassical)
     + [Parameters](#parameters)
     + [Radial_variation](#radial-variation)
+    + [Read_namelists_from_input_file](#read-namelists-from-input-file)
 
 <br>
 
@@ -214,4 +215,20 @@ The `radial_variation` folder contains the following scripts:
 
 <br>
 
+### Read Namelists
 
+- namelist_debug.f90
+- namelist_diagnostics.f90
+- namelist_dissipation.f90
+- namelist_flow_shear.f90 
+- namelist_geometry.f90 
+- namelist_initialise_distribution_function.f90
+- namelist_kxky_grid.f90
+- namelist_neoclassical_input.f90
+- namelist_parameters_numerical.f90
+- namelist_parallelisation.f90
+- namelist_parameters_physics.f90
+- namelist_radial_variation.f90
+- namelist_species.f90
+- namelist_velocity_grids.f90
+- namelist_z_grid.f90
