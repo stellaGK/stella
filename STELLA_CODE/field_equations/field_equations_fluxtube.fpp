@@ -18,15 +18,15 @@
 !     phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * h ] / [ sum_s (Zs²ns/Ts) ]
 ! 
 ! The denominators are constants and are calculated when initialising stella
-!     denominator_QN[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
-!     denominator_QN_h = sum_s (Zs²ns/Ts)
+!     denominator_fields[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
+!     denominator_fields_h = sum_s (Zs²ns/Ts)
 ! 
 ! The integral over velocity space and species is calculated in stella as
 !     integrate_species( . ) = sum_s (2B/sqrt(pi)) int dvpa int dmu ( . )
 ! 
 ! To summarize, the fields (= electrostatic potential) can be calculated as
-!     phi = integrate_species( J0 * g ) / denominator_QN
-!     phi = integrate_species( J0 * h ) / denominator_QN_h
+!     phi = integrate_species( J0 * g ) / denominator_fields
+!     phi = integrate_species( J0 * h ) / denominator_fields_h
 ! 
 !###############################################################################
 module field_equations_fluxtube
@@ -129,7 +129,7 @@ contains
    ! 
    ! Here we calculate the electrostatic potential based on the quasi-neutrality equation:
    !     phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g ] / [ sum_s (Zs²ns/Ts) (1 - Gamma0) ]
-   !     phi = integrate_species( J0 * g ) / denominator_QN
+   !     phi = integrate_species( J0 * g ) / denominator_fields
    ! 
    ! TODO-GA: remove apar from this and make it only needed for EM stella
    !****************************************************************************
@@ -209,12 +209,12 @@ contains
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
          
          ! Calculate phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g ] / [ sum_s (Zs²ns/Ts) (1 - Gamma0) ]
-         ! by dividing with denominator_QN[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0) in the calculate_phi() routine
+         ! by dividing with denominator_fields[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0) in the calculate_phi() routine
          if (.not. radial_variation) then
             if (debug) write (*, *) 'field_equations_quasineutrality::fluxtube::vmulo::calculate_phi'
             call calculate_phi(phi, dist, skip_fsa_local)
             
-         ! The denominator_QN[iky,ikz,iz] factor is modified by radial varation effects
+         ! The denominator_fields[iky,ikz,iz] factor is modified by radial varation effects
          else if (radial_variation) then
             if (debug) write (*, *) 'field_equations_quasineutrality::fluxtube::vmulo::calculate_phi_for_radial_variation'
             call calculate_phi_for_radial_variation(phi, dist , skip_fsa)
@@ -239,7 +239,7 @@ contains
    ! 
    ! Here we calculate the electrostatic potential based on the quasi-neutrality equation:
    !     phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g ] / [ sum_s (Zs²ns/Ts) (1 - Gamma0) ]
-   !     phi = integrate_species( J0 * g ) / denominator_QN
+   !     phi = integrate_species( J0 * g ) / denominator_fields
    ! 
    ! TODO-GA: remove apar from this and make it only needed for EM stella
    !****************************************************************************
@@ -340,12 +340,12 @@ contains
          call sum_allreduce(phi)
 
          ! Calculate phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g ] / [ sum_s (Zs²ns/Ts) (1 - Gamma0) ]
-         ! by dividing with denominator_QN[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0) in the calculate_phi() routine
+         ! by dividing with denominator_fields[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0) in the calculate_phi() routine
          if (.not. radial_variation) then 
             if (debug) write (*, *) 'field_equations_quasineutrality::fluxtube::kxkyzlo::calculate_phi'
             call calculate_phi(phi, dist, skip_fsa_local)
 
-         ! The denominator_QN[iky,ikz,iz] factor is modified by radial varation effects
+         ! The denominator_fields[iky,ikz,iz] factor is modified by radial varation effects
          else if (radial_variation) then
             if (debug) write (*, *) 'field_equations_quasineutrality::fluxtube::kxkyzlo::calculate_phi_for_radial_variation'
             call calculate_phi_for_radial_variation (phi, dist , skip_fsa)
@@ -367,12 +367,12 @@ contains
    !****************************************************************************
    ! Here we calculate the electrostatic potential based on the quasi-neutrality equation:
    !     phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g ] / [ sum_s (Zs²ns/Ts) (1 - Gamma0) ]
-   !     phi = integrate_species( J0 * g ) / denominator_QN
+   !     phi = integrate_species( J0 * g ) / denominator_fields
    ! 
    ! Note that the 'phi' variable passed in is:
    !    integrate_species( J0 * g ) = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g ]
    ! 
-   ! This routine divides by the appropriate <denominator_QN> factor depending on if we
+   ! This routine divides by the appropriate <denominator_fields> factor depending on if we
    ! have kinetic or adiabatic electrons, and also on whether we are using 'g'
    ! or 'h' as our distribution function that we are evolving.
    !****************************************************************************
@@ -384,10 +384,10 @@ contains
       use multibox, only: mb_calculate_phi
       
       ! Arrays
-      use arrays, only: denominator_QN
-      use arrays, only: denominator_QN_MBR
-      use arrays, only: denominator_QN_h
-      use arrays, only: denominator_QN_MBR_h
+      use arrays, only: denominator_fields
+      use arrays, only: denominator_fields_MBR
+      use arrays, only: denominator_fields_h
+      use arrays, only: denominator_fields_MBR_h
       use arrays, only: time_field_solve
       
       ! Grids
@@ -412,7 +412,7 @@ contains
       logical, optional, intent(in) :: skip_fsa
       
       ! Local variables
-      real, dimension(:, :, :, :), allocatable :: denominator_QN_t
+      real, dimension(:, :, :, :), allocatable :: denominator_fields_t
       integer :: ia, it, ikx
       complex :: tmp
       logical :: skip_fsa_local
@@ -440,25 +440,25 @@ contains
       ! If we are using the non-adiabatic part h of the distribution function then
       ! sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * h - (Zs/Ts) phi ] = 0
       ! phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * h ] / [ sum_s (Zs²ns/Ts) ]
-      ! denominator_QN_h = sum_s (Zs²ns/Ts)
+      ! denominator_fields_h = sum_s (Zs²ns/Ts)
       if (dist == 'h') then
          if (debug) write(*, *) 'field_equations_quasineutrality::fluxtube::calculate_phi::dist==h'
-         phi = phi / denominator_QN_h
+         phi = phi / denominator_fields_h
          
       ! If we are using the guiding-center distribution function g then
       ! sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g + (Zs/Ts) (Gamma0 - 1) phi ] = 0
       ! phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g ] / [ sum_s (Zs²ns/Ts) (1 - Gamma0) ]
-      ! denominator_QN[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
+      ! denominator_fields[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
       else if (dist == 'g' .or. dist == 'gbar') then
          if (debug) write(*, *) 'field_equations_quasineutrality::fluxtube::calculate_phi::dist==gbar'
-         allocate (denominator_QN_t(naky, nakx, -nzgrid:nzgrid, ntubes))
-         denominator_QN_t = spread(denominator_QN, 4, ntubes)
-         where (denominator_QN_t < epsilon(0.0))
+         allocate (denominator_fields_t(naky, nakx, -nzgrid:nzgrid, ntubes))
+         denominator_fields_t = spread(denominator_fields, 4, ntubes)
+         where (denominator_fields_t < epsilon(0.0))
             phi = 0.0
          elsewhere
-            phi = phi / denominator_QN_t
+            phi = phi / denominator_fields_t
          end where
-         deallocate (denominator_QN_t)
+         deallocate (denominator_fields_t)
          
       ! Abort if <dist> is not recognized.
       else
@@ -469,7 +469,7 @@ contains
 
       ! The kx = ky = 0.0 mode is not evolved by stella so make sure this term is set to zero.
       if (debug) write(*, *) 'field_equations_quasineutrality::fluxtube::calculate_phi::set kxky=0.0 to zero'
-      if (any(denominator_QN(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
+      if (any(denominator_fields(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
       if (proc0) call time_message(.false., time_field_solve(:, 4), ' calculate_phi')
 
       ! Handle adiabatic electrons only if needed.
@@ -481,7 +481,7 @@ contains
             do it = 1, ntubes
                do ikx = 1, nakx
                   tmp = sum(dl_over_b(ia, :) * phi(1, ikx, :, it))
-                  phi(1, ikx, :, it) = phi(1, ikx, :, it) + tmp * denominator_QN_MBR_h
+                  phi(1, ikx, :, it) = phi(1, ikx, :, it) + tmp * denominator_fields_MBR_h
                end do
             end do
          else if (dist == 'g' .or. dist == 'gbar') then
@@ -489,7 +489,7 @@ contains
             do ikx = 1, nakx
                do it = 1, ntubes
                   tmp = sum(dl_over_b(ia, :) * phi(1, ikx, :, it))
-                  phi(1, ikx, :, it) = phi(1, ikx, :, it) + tmp * denominator_QN_MBR(ikx, :)
+                  phi(1, ikx, :, it) = phi(1, ikx, :, it) + tmp * denominator_fields_MBR(ikx, :)
                end do
             end do
          else
@@ -513,11 +513,11 @@ contains
    ! The electrostatic potential phi is calculated based on the quasi-neutrality condition
    !     sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g + (Zs/Ts) (Gamma0 - 1) phi ] = 0
    !     phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g ] / [ sum_s (Zs²ns/Ts) (1 - Gamma0) ]
-   !     denominator_QN[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
+   !     denominator_fields[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
    ! The denominators needed to calculate <phi> are initialised in this routine.
    ! 
    ! If adiabatic electrons are used then this factor is modified and we use 
-   ! <denominator_QN_MBR> which includes the Modified Boltmann Response.
+   ! <denominator_fields_MBR> which includes the Modified Boltmann Response.
    ! 
    ! Use the following calculations:
    !      (1 - Gamma0(b_k) = (2B/sqrt(pi)) int dvpa int dmu (1 - J0(a_k)²) exp(v²)
@@ -533,8 +533,8 @@ contains
       use parallelisation_layouts, onlY: iz_idx, it_idx, ikx_idx, iky_idx, is_idx
       
       ! Arrays
-      use arrays, only: denominator_QN, denominator_QN_MBR
-      use arrays, only: denominator_QN_h, denominator_QN_MBR_h, efac, efacp
+      use arrays, only: denominator_fields, denominator_fields_MBR
+      use arrays, only: denominator_fields_h, denominator_fields_MBR_h, efac, efacp
       
       ! Parameters
       use parameters_physics, only: fphi
@@ -577,7 +577,7 @@ contains
       if (fphi > epsilon(0.0)) then
       
          ! Allocate temporary arrays
-         if (debug) write(*, *) 'field_equations_fluxtube::init_field_equations_fluxtube::init_denominator_QN'
+         if (debug) write(*, *) 'field_equations_fluxtube::init_field_equations_fluxtube::init_denominator_fields'
          allocate (g0(nvpa, nmu))
 
 
@@ -587,12 +587,12 @@ contains
          ! If we use the guiding-center distribution function g then
          !     sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g + (Zs/Ts) (Gamma0 - 1) phi ] = 0
          !     phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g ] / [ sum_s (Zs²ns/Ts) (1 - Gamma0) ]
-         !     denominator_QN[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
+         !     denominator_fields[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
          !     (1 - Gamma0(b_k) = (2B/sqrt(pi)) int dvpa int dmu (1 - J0(a_k)²) exp(v²)
          !----------------------------------------------------------------------
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             
-            ! <denominator_QN> does not depend on flux tube index, so only compute for one flux tube index
+            ! <denominator_fields> does not depend on flux tube index, so only compute for one flux tube index
             it = it_idx(kxkyz_lo, ikxkyz)
             if (it /= 1) cycle
             iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -607,20 +607,20 @@ contains
                g0 = g0 * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
             end if
 
-            ! Calculate denominator_QN[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
+            ! Calculate denominator_fields[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
             ! with (1 - Gamma0(b_k) = (2B/sqrt(pi)) int dvpa int dmu (1 - J0(a_k)²) exp(v²)
             wgt = spec(is)%z * spec(is)%z * spec(is)%dens_psi0 / spec(is)%temp
             call integrate_vmu(g0, iz, tmp)
-            denominator_QN(iky, ikx, iz) = denominator_QN(iky, ikx, iz) + tmp * wgt
+            denominator_fields(iky, ikx, iz) = denominator_fields(iky, ikx, iz) + tmp * wgt
             
          end do
          
          ! Sum the values on all processors and send them to <proc0>
-         call sum_allreduce(denominator_QN)
+         call sum_allreduce(denominator_fields)
          
          ! Avoid divide by zero when kx=ky=0; We do not evolve this mode, so the value is irrelevant
          if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then
-            denominator_QN(1, 1, :) = 0.0
+            denominator_fields(1, 1, :) = 0.0
          end if
 
 
@@ -630,9 +630,9 @@ contains
          ! If we are using the non-adiabatic part h of the distribution function then
          !     sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * h - (Zs/Ts) phi ] = 0
          !     phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * h ] / [ sum_s (Zs²ns/Ts) ]
-         !     denominator_QN_h = sum_s (Zs²ns/Ts)
+         !     denominator_fields_h = sum_s (Zs²ns/Ts)
          !----------------------------------------------------------------------
-         denominator_QN_h = sum(spec%z * spec%z * spec%dens / spec%temp)
+         denominator_fields_h = sum(spec%z * spec%z * spec%dens / spec%temp)
 
 
          !----------------------------------------------------------------------
@@ -645,42 +645,42 @@ contains
          ! If we are using the non-adiabatic part h of the distribution function then
          !     sum_i Z_i n_i [ (2B/sqrt(pi)) int dvpa int dmu J0 * hi - (Zi/Ti) phi ] - (n_e/T_e) phi = 0
          !     phi = sum_i Z_i n_i [ (2B/sqrt(pi)) int dvpa int dmu J0 * hi ] / [ sum_i (Zi²ni/Ti) + (n_e/T_e) ]
-         !     denominator_QN_h = sum_i (Zi²ni/Ti) + (n_e/T_e)
+         !     denominator_fields_h = sum_i (Zi²ni/Ti) + (n_e/T_e)
          !     efac = n_e/T_e = (Ti/Te)/Ti / [ (ni/ne)/ni ] = <tite> / <nine> * ni / Ti
          !----------------------------------------------------------------------
          if (.not. has_electron_species(spec)) then
-            if (debug) write(*, *) 'field_equations_quasineutrality::fluxtube::init::init_denominator_QN_MBR'
+            if (debug) write(*, *) 'field_equations_quasineutrality::fluxtube::init::init_denominator_fields_MBR'
             
             ! Calculate <efac> = n_e/T_e = <tite> / <nine> * ni / Ti
             efac = tite / nine * (spec(ion_species)%dens / spec(ion_species)%temp)
             efacp = efac * (spec(ion_species)%tprim - spec(ion_species)%fprim)
             
-            ! Add the contribution of adiabatic electrons to <denominator_QN>
-            ! Calculate denominator_QN = sum_i (Zi²ni/Ti) (1 - Gamma0) + (n_e/T_e)
-            denominator_QN = denominator_QN + efac
+            ! Add the contribution of adiabatic electrons to <denominator_fields>
+            ! Calculate denominator_fields = sum_i (Zi²ni/Ti) (1 - Gamma0) + (n_e/T_e)
+            denominator_fields = denominator_fields + efac
             
-            ! Add the contribution of adiabatic electrons to <denominator_QN_h>
-            ! Calculate denominator_QN_h = sum_i (Zi²ni/Ti) + (n_e/T_e)
-            denominator_QN_h = denominator_QN_h + efac
+            ! Add the contribution of adiabatic electrons to <denominator_fields_h>
+            ! Calculate denominator_fields_h = sum_i (Zi²ni/Ti) + (n_e/T_e)
+            denominator_fields_h = denominator_fields_h + efac
             
             ! For the Modified Boltzmann Response (MBR) we replace the perturbed electron density by
             !     delta n_e = (n_e/T_e) ( phi - <phi>_FSA) = (n_e/T_e) ( phi - int dell/B phi)
             ! With < . >_FSA the flux-surface-average, which reduces to a field-line average in the flux-tube approximation.
             ! If we are using the non-adiabatic part h of the distribution function then ... TODO - write notes!
-            !     phi = integrate_species(J0 * hi) / denominator_QN_h + (n_e/T_e) / sum_i (Zi²ni/Ti) * int dell/B phi
-            !     denominator_QN_MBR_h = (n_e/T_e) / sum_i (Zi²ni/Ti)
-            !     denominator_QN_MBR = ??? ... TODO - write notes!
+            !     phi = integrate_species(J0 * hi) / denominator_fields_h + (n_e/T_e) / sum_i (Zi²ni/Ti) * int dell/B phi
+            !     denominator_fields_MBR_h = (n_e/T_e) / sum_i (Zi²ni/Ti)
+            !     denominator_fields_MBR = ??? ... TODO - write notes!
             if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
                if (zonal_mode(1)) then
-                  denominator_QN_MBR_h = efac / (sum(spec%zt * spec%z * spec%dens))
+                  denominator_fields_MBR_h = efac / (sum(spec%zt * spec%z * spec%dens))
                   do ikx = 1, nakx
-                     tmp = 1./efac - sum(dl_over_b(ia, :) / denominator_QN(1, ikx, :))
-                     denominator_QN_MBR(ikx, :) = 1./(denominator_QN(1, ikx, :) * tmp)
+                     tmp = 1./efac - sum(dl_over_b(ia, :) / denominator_fields(1, ikx, :))
+                     denominator_fields_MBR(ikx, :) = 1./(denominator_fields(1, ikx, :) * tmp)
                   end do
                   
                   ! Avoid dividing by zero for kx=ky=0 mode, which we do not need anyway
                   if (akx(1) < epsilon(0.)) then
-                     denominator_QN_MBR(1, :) = 0.0
+                     denominator_fields_MBR(1, :) = 0.0
                   end if
                end if
             end if

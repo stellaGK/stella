@@ -1349,8 +1349,8 @@ contains
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: nsegments
       use grids_kxky, only: zonal_mode, akx
-      use arrays, only: denominator_QN, denominator_QN_MBR
-      use arrays, only: denominator_QN_h, denominator_QN_MBR_h
+      use arrays, only: denominator_fields, denominator_fields_MBR
+      use arrays, only: denominator_fields_h, denominator_fields_MBR_h
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
 
@@ -1377,9 +1377,9 @@ contains
       iseg = 1
       ikx = ikxmod(iseg, ie, iky)
       if (dist == 'h') then
-         gamma_fac = denominator_QN_h
+         gamma_fac = denominator_fields_h
       else
-         gamma_fac = denominator_QN(iky, ikx, :)
+         gamma_fac = denominator_fields(iky, ikx, :)
       end if
       if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
          phi(:) = 0.0
@@ -1394,9 +1394,9 @@ contains
          do iseg = 2, nsegments(ie, iky)
             ikx = ikxmod(iseg, ie, iky)
             if (dist == 'h') then
-               gamma_fac = denominator_QN_h
+               gamma_fac = denominator_fields_h
             else
-               gamma_fac = denominator_QN(iky, ikx, :)
+               gamma_fac = denominator_fields(iky, ikx, :)
             end if
             do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                idx = idx + 1
@@ -1413,9 +1413,9 @@ contains
             iseg = 1
             tmp = sum(dl_over_b(ia, :) * phi)
             if (dist == 'h') then
-               phi = phi + tmp * denominator_QN_MBR_h
+               phi = phi + tmp * denominator_fields_MBR_h
             else
-               phi = phi + tmp * denominator_QN_MBR(ikxmod(1, ie, iky), :)
+               phi = phi + tmp * denominator_fields_MBR(ikxmod(1, ie, iky), :)
             end if
          end if
       end if
@@ -1436,8 +1436,8 @@ contains
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: nsegments
       use grids_kxky, only: zonal_mode, akx
-      use arrays, only: denominator_QNinv11, denominator_QNinv13, denominator_QNinv31, denominator_QNinv33
-      use arrays, only: denominator_QN_h
+      use arrays, only: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
+      use arrays, only: denominator_fields_h
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
       use mp, only: mp_abort
@@ -1468,15 +1468,15 @@ contains
       iseg = 1
       ikx = ikxmod(iseg, ie, iky)
       if (dist == 'h') then
-         gammainv11 = 1.0/denominator_QN_h
+         gammainv11 = 1.0/denominator_fields_h
          gammainv13 = 0.0
          gammainv31 = 0.0
          gammainv33 = 1.0
       else
-         gammainv11 = denominator_QNinv11(iky, ikx, :)
-         gammainv13 = denominator_QNinv13(iky, ikx, :)
-         gammainv31 = denominator_QNinv31(iky, ikx, :)
-         gammainv33 = denominator_QNinv33(iky, ikx, :)
+         gammainv11 = denominator_fields_inv11(iky, ikx, :)
+         gammainv13 = denominator_fields_inv13(iky, ikx, :)
+         gammainv31 = denominator_fields_inv31(iky, ikx, :)
+         gammainv33 = denominator_fields_inv33(iky, ikx, :)
       end if
       if (zonal_mode(iky) .and. abs(akx(ikx)) < epsilon(0.)) then
          phi(:) = 0.0
@@ -1495,15 +1495,15 @@ contains
          do iseg = 2, nsegments(ie, iky)
             ikx = ikxmod(iseg, ie, iky)
             if (dist == 'h') then
-               gammainv11 = 1.0/denominator_QN_h
+               gammainv11 = 1.0/denominator_fields_h
                gammainv13 = 0.0
                gammainv31 = 0.0
                gammainv33 = 1.0
             else
-               gammainv11 = denominator_QNinv11(iky, ikx, :)
-               gammainv13 = denominator_QNinv13(iky, ikx, :)
-               gammainv31 = denominator_QNinv31(iky, ikx, :)
-               gammainv33 = denominator_QNinv33(iky, ikx, :)
+               gammainv11 = denominator_fields_inv11(iky, ikx, :)
+               gammainv13 = denominator_fields_inv13(iky, ikx, :)
+               gammainv31 = denominator_fields_inv31(iky, ikx, :)
+               gammainv33 = denominator_fields_inv33(iky, ikx, :)
             end if
             do iz = iz_low(iseg) + izl_offset, iz_up(iseg)
                idx = idx + 1

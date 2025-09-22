@@ -1,7 +1,7 @@
 !###############################################################################
 !                            CALCULATE GYRO AVERAGES
 !###############################################################################
-! This module computes the gyro-average of the fields.
+! This module computes the gyro-average of the fields and distribution functions.
 ! 
 ! Gyro-averaging in real space is an integral over theta:
 !    < phi >_theta = 1/(2*pi) * int_0^(2*pi) phi dtheta

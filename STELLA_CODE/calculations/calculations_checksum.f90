@@ -1,7 +1,9 @@
 !###############################################################################
-!                                                                               
+!                                   CHECKSUM CALCULATIONS                                        
 !###############################################################################
-! This module ...
+! This module calculates the sum of the modulus squared of the field and 
+! distribution function arrays. This is helpful for debugging and ensuring
+! that the arrays are being correctly updated.
 !###############################################################################
 module calculations_checksum
 
@@ -27,7 +29,7 @@ contains
 !############################################################################### 
 
    !****************************************************************************
-   !                                      Title
+   !                               CHECKSUM FIELDS
    !****************************************************************************
    subroutine checksum_field(field, total)
 
@@ -71,7 +73,7 @@ contains
    end subroutine checksum_field
 
    !****************************************************************************
-   !                                      Title
+   !                           CHECKSUM DISTRIBUTION FUNCTION
    !****************************************************************************
    subroutine checksum_dist(dist, total, norm)
 

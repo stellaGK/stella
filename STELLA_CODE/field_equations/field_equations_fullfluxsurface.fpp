@@ -52,8 +52,8 @@ contains
       use parameters_physics, only: fphi
       
       ! Arrays
-      use arrays, only: denominator_QN
-      use arrays, only: denominator_QN_MBR
+      use arrays, only: denominator_fields
+      use arrays, only: denominator_fields_MBR
       
       ! Adiabatic species
       use grids_species, only: nine, tite
@@ -86,7 +86,7 @@ contains
       integer :: iz, ikx
       complex, dimension(:), allocatable :: phi_fsa
       complex, dimension(:, :, :), allocatable :: phi_swap, source
-      real, dimension(:, :, :, :), allocatable :: denominator_QN_t
+      real, dimension(:, :, :, :), allocatable :: denominator_fields_t
       complex, dimension(:, :), allocatable :: phi_fsa_spread, phi_source
       logical :: has_elec, adia_elec
       integer :: it, ia
@@ -103,24 +103,24 @@ contains
             has_elec = has_electron_species(spec)
             adia_elec = .not. has_elec &
                  .and. adiabatic_option_switch == adiabatic_option_fieldlineavg
-            allocate (denominator_QN_t(naky, nakx, -nzgrid:nzgrid, ntubes))
-            denominator_QN_t = spread(denominator_QN, 4, ntubes)
+            allocate (denominator_fields_t(naky, nakx, -nzgrid:nzgrid, ntubes))
+            denominator_fields_t = spread(denominator_fields, 4, ntubes)
 
             call get_g_integral_contribution(g, source, implicit_solve=.true.)
-            where (denominator_QN_t < epsilon(0.0))
+            where (denominator_fields_t < epsilon(0.0))
                phi = 0.0
             elsewhere
-               phi = spread(source, 4, ntubes) / denominator_QN_t
+               phi = spread(source, 4, ntubes) / denominator_fields_t
             end where
-            if (any(denominator_QN(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
-            deallocate (denominator_QN_t)
+            if (any(denominator_fields(1, 1, :) < epsilon(0.))) phi(1, 1, :, :) = 0.0
+            deallocate (denominator_fields_t)
 
             if (adia_elec .and. zonal_mode(1)) then
                ia = 1
                do ikx = 1, nakx
                   do it = 1, ntubes
                      tmp = sum(dl_over_b(ia, :) * phi(1, ikx, :, it))
-                     phi(1, ikx, :, it) = phi(1, ikx, :, it) + tmp * denominator_QN_MBR(ikx, :)
+                     phi(1, ikx, :, it) = phi(1, ikx, :, it) + tmp * denominator_fields_MBR(ikx, :)
                   end do
                end do
             end if
@@ -344,7 +344,7 @@ contains
       use parallelisation_layouts, only: vmu_lo 
       
       ! Arrays
-      use arrays, only: denominator_QN
+      use arrays, only: denominator_fields
       
       ! Grids
       use grids_kxky, only: naky, nakx
@@ -362,39 +362,39 @@ contains
       complex, dimension(:, :, -nzgrid:, :), intent(in) :: phiold
  
       ! Local variables
-      real, dimension(:, :, :, :), allocatable :: denominator_QN_t
+      real, dimension(:, :, :, :), allocatable :: denominator_fields_t
       complex, dimension(:, :, :, :), allocatable :: source2
       
       !-------------------------------------------------------------------------
       
       ! Allocate temporary arrays
-      allocate (denominator_QN_t(naky, nakx, -nzgrid:nzgrid, ntubes))
+      allocate (denominator_fields_t(naky, nakx, -nzgrid:nzgrid, ntubes))
       allocate(source2(naky, nakx, -nzgrid:nzgrid, ntubes)); 
       
       ! Initialise arrays and sum
-      denominator_QN_t = spread(denominator_QN, 4, ntubes)
+      denominator_fields_t = spread(denominator_fields, 4, ntubes)
       source2 = 0.0
       source = 0.0
  
       call get_g_integral_contribution_source(gold, source(:,:,:,1) )
       call gyro_average(phiold, source2, gam0_ffs)
  
-      source2 = source2 - denominator_QN_t * phiold
+      source2 = source2 - denominator_fields_t * phiold
       source = source - source2
  
-      where (denominator_QN_t < epsilon(0.0))
+      where (denominator_fields_t < epsilon(0.0))
          source= 0.0
       elsewhere
-         source = source / denominator_QN_t
+         source = source / denominator_fields_t
       end where
       
-      if (any(denominator_QN(1, 1, :) < epsilon(0.))) source(1, 1, :, :) = 0.0
+      if (any(denominator_fields(1, 1, :) < epsilon(0.))) source(1, 1, :, :) = 0.0
       if (akx(1) < epsilon(0.)) then
           source(1, 1, :, :) = 0.0
        end if
  
       ! Deallocate temporary arrays
-      deallocate(source2, denominator_QN_t)
+      deallocate(source2, denominator_fields_t)
       
    end subroutine get_fields_source
     
@@ -507,8 +507,8 @@ contains
 
       ! Arrays
       use arrays, only: kperp2
-      use arrays, only: denominator_QN, denominator_QN_MBR
-      use arrays, only: efac, denominator_QN_h
+      use arrays, only: denominator_fields, denominator_fields_MBR
+      use arrays, only: efac, denominator_fields_h
       use arrays_gyro_averages, only: find_max_required_kalpha_index
       
       ! Grids
@@ -545,7 +545,7 @@ contains
       real, dimension(:), allocatable :: wgts
       complex, dimension(:), allocatable :: gam0_kalpha
       complex, dimension(:, :, :), allocatable :: gam0_const
-      complex, dimension(:, :, :), allocatable :: denominator_QN_con
+      complex, dimension(:, :, :), allocatable :: denominator_fields_con
       real :: tmp
       
       !-------------------------------------------------------------------------
@@ -558,7 +558,7 @@ contains
       allocate (gam0_alpha(nalpha))
       allocate (gam0_kalpha(naky))
       allocate (gam0_const(naky_all, ikx_max, -nzgrid:nzgrid)); gam0_const = 0.0
-      allocate (denominator_QN_con(naky, nakx, -nzgrid:nzgrid)); denominator_QN_con = 0.0
+      allocate (denominator_fields_con(naky, nakx, -nzgrid:nzgrid)); denominator_fields_con = 0.0
 
       ! The weighst are species-dependent factors appearing in Gamma0 factor
       allocate (wgts(nspec))
@@ -571,12 +571,12 @@ contains
       end if
 
       ! Needed for adiabatic response
-      if (.not. allocated(denominator_QN_MBR)) then
+      if (.not. allocated(denominator_fields_MBR)) then
          if (.not. has_electron_species(spec) &
              .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
-            allocate (denominator_QN_MBR(nakx, -nzgrid:nzgrid)); denominator_QN_MBR = 0.
+            allocate (denominator_fields_MBR(nakx, -nzgrid:nzgrid)); denominator_fields_MBR = 0.
          else
-            allocate (denominator_QN_MBR(1, 1)); denominator_QN_MBR = 0.
+            allocate (denominator_fields_MBR(1, 1)); denominator_fields_MBR = 0.
          end if
       end if
 
@@ -649,7 +649,7 @@ contains
                gam0_ffs(iky, ikx, iz)%fourier = gam0_kalpha(:gam0_ffs(iky, ikx, iz)%max_idx)
                !call test_ffs_bessel_coefs (gam0_ffs(iky,ikx,iz)%fourier, gam0_alpha, iky, ikx, iz, gam0_ffs_unit)
 
-               !! For denominator_QN for implicit solve
+               !! For denominator_fields for implicit solve
                gam0_const(iky, ikx, iz) = gam0_kalpha(1)
                
             end do
@@ -663,36 +663,36 @@ contains
       end if
 
       do iz = -nzgrid, nzgrid
-         call swap_kxky_back_ordered(gam0_const(:, :, iz), denominator_QN_con(:, :, iz))
+         call swap_kxky_back_ordered(gam0_const(:, :, iz), denominator_fields_con(:, :, iz))
       end do
 
-      if (.not. allocated(denominator_QN)) allocate (denominator_QN(naky, nakx, -nzgrid:nzgrid)); denominator_QN = 0.
-      denominator_QN = real(denominator_QN_con)
+      if (.not. allocated(denominator_fields)) allocate (denominator_fields(naky, nakx, -nzgrid:nzgrid)); denominator_fields = 0.
+      denominator_fields = real(denominator_fields_con)
       ! TODO-GA: move this to adiabatic response factor 
       if (zonal_mode(1) .and. akx(1) < epsilon(0.) .and. has_electron_species(spec)) then 
-         denominator_QN(1, 1, :) = 0.0
+         denominator_fields(1, 1, :) = 0.0
       end if
 
       if (.not. has_electron_species(spec)) then
          ia = 1
          efac = tite / nine * (spec(ion_species)%dens / spec(ion_species)%temp)
          ! Can probably delete -- need to check 
-         denominator_QN_h = 0.0
+         denominator_fields_h = 0.0
          if (adiabatic_option_switch == adiabatic_option_fieldlineavg) then
             if (zonal_mode(1)) then
                do ikx = 1, nakx
-                  tmp = 1./efac - sum(dl_over_b(ia, :) / denominator_QN(1, ikx, :))
-                  denominator_QN_MBR(ikx, :) = 1./(denominator_QN(1, ikx, :) * tmp)
+                  tmp = 1./efac - sum(dl_over_b(ia, :) / denominator_fields(1, ikx, :))
+                  denominator_fields_MBR(ikx, :) = 1./(denominator_fields(1, ikx, :) * tmp)
                end do
                if (akx(1) < epsilon(0.)) then
-                  denominator_QN_MBR(1, :) = 0.0
+                  denominator_fields_MBR(1, :) = 0.0
                end if
             end if
          end if
       end if
       
       ! Deallocate temporary arrays
-      deallocate (denominator_QN_con)
+      deallocate (denominator_fields_con)
       deallocate (gam0_const)
 
       ! LU factorise array of gam0, using the LAPACK zgbtrf routine for banded matrices

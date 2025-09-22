@@ -256,7 +256,7 @@ contains
       use arrays_gyro_averages, only: aj0v
       use field_equations_fluxtube, only: advance_fields_using_field_equations_quasineutrality
       use field_equations_collisions, only: get_fields_by_spec
-      use arrays, only: efac, denominator_QN_h
+      use arrays, only: efac, denominator_fields_h
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
 
@@ -472,7 +472,7 @@ contains
             ! Calculate -inv(vpadiff_response).Q, where Q has a single entry
             do idx = 1, nresponse_vpa
                vpadiff_zf_response(idx, 1, ikx) = vpadiff_zf_response(idx, 1, ikx) &
-                                                  - temp_mat(idx, 1) * (efac / denominator_QN_h) * dl_over_b(ia, iz)
+                                                  - temp_mat(idx, 1) * (efac / denominator_fields_h) * dl_over_b(ia, iz)
             end do
          end do
 
@@ -523,7 +523,7 @@ contains
       use arrays_gyro_averages, only: aj0v, aj1v
       use field_equations_fluxtube, only: advance_fields_using_field_equations_quasineutrality
       use field_equations_collisions, only: get_fields_by_spec
-      use arrays, only: efac, denominator_QN_h
+      use arrays, only: efac, denominator_fields_h
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
 
@@ -734,7 +734,7 @@ contains
             ! Calculate -inv(mudiff_response).Q, where Q has a single entry
             do idx = 1, nresponse_mu
                mudiff_zf_response(idx, 1, ikx) = mudiff_zf_response(idx, 1, ikx) &
-                                                 - temp_mat(idx, 1) * (efac / denominator_QN_h) * dl_over_b(ia, iz)
+                                                 - temp_mat(idx, 1) * (efac / denominator_fields_h) * dl_over_b(ia, iz)
             end do
          end do
 
@@ -1733,7 +1733,7 @@ contains
       use calculations_tofrom_ghf, only: g_to_h
       use arrays_gyro_averages, only: aj0v
       use field_equations_fluxtube, only: advance_fields_using_field_equations_quasineutrality
-      use arrays, only: efac, denominator_QN_h
+      use arrays, only: efac, denominator_fields_h
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
 
@@ -1815,7 +1815,7 @@ contains
                call lu_back_substitution(vpadiff_zf_response(:, :, ikx), vpadiff_zf_idx(:, ikx), &
                                          flds_zf(ikx, it, :))
                ! Multiply by Q, which has a single non-zero component
-               flds_zf(ikx, it, 1) = (efac / denominator_QN_h) * flds_zf(ikx, it, 1)
+               flds_zf(ikx, it, 1) = (efac / denominator_fields_h) * flds_zf(ikx, it, 1)
                flds_zf(ikx, it, 2:) = 0.
             end do
          end do
@@ -1907,7 +1907,7 @@ contains
       use arrays_gyro_averages, only: aj0v, aj1v
       use calculations_tofrom_ghf, only: g_to_h
       use field_equations_fluxtube, only: advance_fields_using_field_equations_quasineutrality
-      use arrays, only: efac, denominator_QN_h
+      use arrays, only: efac, denominator_fields_h
       use geometry, only: bmag, dl_over_b
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
@@ -1990,7 +1990,7 @@ contains
             do ikx = 1, nakx
                call lu_back_substitution(mudiff_zf_response(:, :, ikx), mudiff_zf_idx(:, ikx), flds_zf(ikx, it, :))
                ! Multiply by Q, which has a single non-zero component
-               flds_zf(ikx, it, 1) = (efac / denominator_QN_h) * flds_zf(ikx, it, 1)
+               flds_zf(ikx, it, 1) = (efac / denominator_fields_h) * flds_zf(ikx, it, 1)
                flds_zf(ikx, it, 2:) = 0.
             end do
          end do

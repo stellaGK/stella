@@ -2,6 +2,8 @@
 !                                    ARRAYS                                    
 !###############################################################################
 ! This module stores any useful arrays which are used throughout the code.
+! These are often global arrays, or arrays that are used in multiple modules, so
+! they are stored here to make them easily accessible.
 !###############################################################################
 module arrays
 
@@ -27,17 +29,17 @@ module arrays
    ! Arrays without velocity dependence. Used mostly in field calculations.
    public :: response_matrix, response_window
    public :: shift_state
-   public :: denominator_QN, ddenominator_QNdr
-   public :: denominator_QN13, denominator_QN_MBR1, denominator_QN_MBR3
-   public :: denominator_QNinv11, denominator_QNinv13, denominator_QNinv31, denominator_QNinv33
-   public :: denominator_QN_MBR
+   public :: denominator_fields, ddenominator_fieldsdr
+   public :: denominator_fields13, denominator_fields_MBR1, denominator_fields_MBR3
+   public :: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
+   public :: denominator_fields_MBR
    public :: apar_denom
    public :: theta
    public :: c_mat
    public :: exclude_boundary_regions_qn
    public :: tcorr_source_qn, exp_fac_qn
    public :: qn_window, qn_zf_window
-   public :: denominator_QN_h, denominator_QN_MBR_h, efac, efacp
+   public :: denominator_fields_h, denominator_fields_MBR_h, efac, efacp
    public :: time_field_solve
    
    !----------------------------------------------------------------------------
@@ -78,13 +80,13 @@ module arrays
    ! The electrostatic potential phi is calculated based on the quasi-neutrality condition
    !     sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g + (Zs/Ts) (Gamma0 - 1) phi ] = 0
    !     phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g ] / [ sum_s (Zs²ns/Ts) (1 - Gamma0) ]
-   !     denominator_QN[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
+   !     denominator_fields[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
    ! The denominators needed to calculate <phi> are initialised in 
    !     - field_equations_fluxtube::init_field_equations_fluxtube
-   real, dimension(:, :, :), allocatable :: denominator_QN, ddenominator_QNdr
-   real, dimension(:, :, :), allocatable :: denominator_QN13, denominator_QN_MBR1, denominator_QN_MBR3
-   real, dimension(:, :, :), allocatable :: denominator_QNinv11, denominator_QNinv13, denominator_QNinv31, denominator_QNinv33
-   real, dimension(:, :), allocatable :: denominator_QN_MBR
+   real, dimension(:, :, :), allocatable :: denominator_fields, ddenominator_fieldsdr
+   real, dimension(:, :, :), allocatable :: denominator_fields13, denominator_fields_MBR1, denominator_fields_MBR3
+   real, dimension(:, :, :), allocatable :: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
+   real, dimension(:, :), allocatable :: denominator_fields_MBR
    real, dimension(:, :, :), allocatable ::  apar_denom
    
    ! (nakx, nakx, -nzgrid:nzgrid)
@@ -97,7 +99,7 @@ module arrays
    logical :: exclude_boundary_regions_qn
    real :: tcorr_source_qn, exp_fac_qn
    integer :: qn_window = MPI_WIN_NULL, qn_zf_window = MPI_WIN_NULL
-   real :: denominator_QN_h, denominator_QN_MBR_h, efac, efacp
+   real :: denominator_fields_h, denominator_fields_MBR_h, efac, efacp
    real, dimension(2, 5) :: time_field_solve = 0.
 
 end module arrays

@@ -18,15 +18,15 @@
 !     phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * h ] / [ sum_s (Zs²ns/Ts) ]
 ! 
 ! The denominators are constants and are calculated when initialising stella
-!     denominator_QN[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
-!     denominator_QN_h = sum_s (Zs²ns/Ts)
+!     denominator_fields[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
+!     denominator_fields_h = sum_s (Zs²ns/Ts)
 ! 
 ! The integral over velocity space and species is calculated in stella as
 !     integrate_species( . ) = sum_s (2B/sqrt(pi)) int dvpa int dmu ( . )
 ! 
 ! To summarize, the fields can be calculated as 
-!     phi = integrate_species( J0 * g ) / denominator_QN
-!     phi = integrate_species( J0 * h ) / denominator_QN_h
+!     phi = integrate_species( J0 * g ) / denominator_fields
+!     phi = integrate_species( J0 * h ) / denominator_fields_h
 ! 
 !###############################################################################
 module field_equations_quasineutrality
@@ -213,7 +213,7 @@ contains
       
       ! Arrays to allocate
       use arrays_fields, only: phi, phi_old
-      use arrays, only: denominator_QN, denominator_QN_MBR
+      use arrays, only: denominator_fields, denominator_fields_MBR
       
       ! Grids
       use grids_z, only: nzgrid, ntubes
@@ -232,14 +232,14 @@ contains
       ! Allocate electrostatic arrays on each processor
       if (.not. allocated(phi)) then; allocate (phi(naky, nakx, -nzgrid:nzgrid, ntubes)); phi = 0.; end if
       if (.not. allocated(phi_old)) then; allocate (phi_old(naky, nakx, -nzgrid:nzgrid, ntubes)); phi_old = 0.; end if
-      if (.not. allocated(denominator_QN)) then; allocate (denominator_QN(naky, nakx, -nzgrid:nzgrid)); denominator_QN = 0.; end if
+      if (.not. allocated(denominator_fields)) then; allocate (denominator_fields(naky, nakx, -nzgrid:nzgrid)); denominator_fields = 0.; end if
       
-      ! Allocate <denominator_QN_MBR> if we have adiabatic field-line-averaged electrons
-      if (.not. allocated(denominator_QN_MBR)) then
+      ! Allocate <denominator_fields_MBR> if we have adiabatic field-line-averaged electrons
+      if (.not. allocated(denominator_fields_MBR)) then
          if (.not. has_electron_species(spec) .and. adiabatic_option_switch == adiabatic_option_fieldlineavg) then
-            allocate (denominator_QN_MBR(nakx, -nzgrid:nzgrid)); denominator_QN_MBR = 0.
+            allocate (denominator_fields_MBR(nakx, -nzgrid:nzgrid)); denominator_fields_MBR = 0.
          else
-            allocate (denominator_QN_MBR(1, 1)); denominator_QN_MBR = 0.
+            allocate (denominator_fields_MBR(1, 1)); denominator_fields_MBR = 0.
          end if
       end if
 
@@ -255,7 +255,7 @@ contains
       
       ! Arrays
       use arrays_fields, only: phi, phi_old
-      use arrays, only: denominator_QN, denominator_QN_MBR
+      use arrays, only: denominator_fields, denominator_fields_MBR
       
       ! Routines for deallocating arrays fields depending on the physics being simulated
       use field_equations_quasineutrality_ffs, only: finish_field_equations_quasineutrality_ffs
@@ -269,8 +269,8 @@ contains
       ! Deallocate ararys
       if (allocated(phi)) deallocate (phi)
       if (allocated(phi_old)) deallocate (phi_old)
-      if (allocated(denominator_QN)) deallocate (denominator_QN)
-      if (allocated(denominator_QN_MBR)) deallocate (denominator_QN_MBR)
+      if (allocated(denominator_fields)) deallocate (denominator_fields)
+      if (allocated(denominator_fields_MBR)) deallocate (denominator_fields_MBR)
 
       ! Deallocate arrays from other field routines
       call finish_field_equations_electromagnetic

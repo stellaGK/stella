@@ -1,7 +1,11 @@
 !###############################################################################
-!                                                                               
+!                         FINITE DIFFERENCES CALCULATIONS                                                    
 !###############################################################################
-! This module ...
+! This module is used for computing derivatives using finite difference schemes.
+! There are different schemes available, including upwind schemes of various 
+! orders. These are used in the zed-derivatives for parallel streaming, the 
+! vpa-derivatives for mirror etc. These are not used for the kx, ky derivatives,
+! as these are computed spectrally. 
 !###############################################################################
 module calculations_finite_differences
 
@@ -88,7 +92,7 @@ contains
 !############################################################################### 
 
    !****************************************************************************
-   !                                      Title
+   !                   First order upwind scheme for real arrays
    !****************************************************************************
    subroutine first_order_upwind_real(llim, f, del, sgn, df)
 
@@ -123,7 +127,7 @@ contains
    end subroutine first_order_upwind_real
 
    !****************************************************************************
-   !                                      Title
+   !                     First order upwind scheme for complex arrays
    !****************************************************************************
    subroutine first_order_upwind_complex(llim, f, del, sgn, df)
 
@@ -158,7 +162,7 @@ contains
    end subroutine first_order_upwind_complex
 
    !****************************************************************************
-   !                                      Title
+   !                   Third order upwind scheme for complex arrays
    !****************************************************************************
    subroutine third_order_upwind_complex(llim, f, del, sgn, df)
 
@@ -201,7 +205,7 @@ contains
    end subroutine third_order_upwind_complex
 
    !****************************************************************************
-   !                                      Title
+   !                       Third order upwind scheme for real arrays
    !****************************************************************************
    subroutine third_order_upwind_real(llim, f, del, sgn, df)
 
@@ -245,7 +249,7 @@ contains
    end subroutine third_order_upwind_real
 
    !****************************************************************************
-   !                                      Title
+   !                    Fifth order upwind scheme for complex arrays
    !****************************************************************************
    subroutine fifth_order_upwind_complex(llim, f, del, sgn, df)
 
@@ -296,7 +300,7 @@ contains
    end subroutine fifth_order_upwind_complex
 
    !****************************************************************************
-   !                                      Title
+   !                  Fifth order upwind scheme for real arrays
    !****************************************************************************
    subroutine fifth_order_upwind_real(llim, f, del, sgn, df)
 
@@ -347,7 +351,24 @@ contains
    end subroutine fifth_order_upwind_real
 
    !****************************************************************************
-   !                                      Title
+   !                Third order upwind scheme for zed derivatives
+   !****************************************************************************
+   ! This is special because we need to consider the extended zed domain, and 
+   ! need to consider multiple segments, and also the boundary conditions (when 
+   ! linking different segments together).
+   !     - f is the incoming array to differentiate. This is complex.
+   !     - fl and fr are the cells to the left and right of the segment. These
+   !       are obtained by considering the neighbouring segments, with the appropriate
+   !       boundary condition applied. 
+   !     - sgn is the sign of the streaming term on the RHS of the GK equation 
+   !       (i.e. +1 or -1). If sgn > 0, then stream speed is negative. 
+   !     - llim is the lower limit of the segments - the upwinding depends on the 
+   !       sign of vpa, so we need to consider vpa > 0 and vpa < 0 separately. 
+   !     - iseg is the segment number we are working on, nseg is the total number of
+   !       segments. 
+   !     - del is the grid spacing in zed (assumed uniform)
+   !     - periodic is a logical variable that is true if the zed boundary conditions
+   !       are peridoic. 
    !****************************************************************************
    subroutine third_order_upwind_zed(llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
 
@@ -421,7 +442,24 @@ contains
    end subroutine third_order_upwind_zed
 
    !****************************************************************************
-   !                                      Title
+   !                First order upwind scheme for zed derivatives
+   !****************************************************************************
+   ! This is special because we need to consider the extended zed domain, and 
+   ! need to consider multiple segments, and also the boundary conditions (when 
+   ! linking different segments together).
+   !     - f is the incoming array to differentiate. This is complex.
+   !     - fl and fr are the cells to the left and right of the segment. These
+   !       are obtained by considering the neighbouring segments, with the appropriate
+   !       boundary condition applied. 
+   !     - sgn is the sign of the streaming term on the RHS of the GK equation 
+   !       (i.e. +1 or -1). If sgn > 0, then stream speed is negative. 
+   !     - llim is the lower limit of the segments - the upwinding depends on the 
+   !       sign of vpa, so we need to consider vpa > 0 and vpa < 0 separately. 
+   !     - iseg is the segment number we are working on, nseg is the total number of
+   !       segments. 
+   !     - del is the grid spacing in zed (assumed uniform)
+   !     - periodic is a logical variable that is true if the zed boundary conditions
+   !       are peridoic. 
    !****************************************************************************
    subroutine first_order_upwind_zed(llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
 
@@ -485,7 +523,7 @@ contains
    end subroutine first_order_upwind_zed
 
    !****************************************************************************
-   !                                      Title
+   !                 Second order centered scheme for real arrays
    !****************************************************************************
    subroutine second_order_centered_real(llim, f, del, df)
 
@@ -515,6 +553,9 @@ contains
 
    end subroutine second_order_centered_real
 
+   !****************************************************************************
+   !                Second order centered scheme for complex arrays
+   !****************************************************************************
    subroutine second_order_centered_complex(llim, f, del, df)
 
       implicit none
@@ -628,7 +669,7 @@ contains
    end subroutine four_point_triangle_complex
 
    !****************************************************************************
-   !                                      Title
+   !                   Fourth order centered scheme for real arrays
    !****************************************************************************
    subroutine fourth_order_centered_real(llim, f, del, df)
 
@@ -664,7 +705,7 @@ contains
    end subroutine fourth_order_centered_real
 
    !****************************************************************************
-   !                                      Title
+   !                 Fourth order centered scheme for complex arrays
    !****************************************************************************
    subroutine fourth_order_centered_complex(llim, f, del, df)
 
@@ -700,7 +741,24 @@ contains
    end subroutine fourth_order_centered_complex
 
    !****************************************************************************
-   !                                      Title
+   !          Second order centered scheme for zed derivatives - real
+   !****************************************************************************
+   ! This is special because we need to consider the extended zed domain, and 
+   ! need to consider multiple segments, and also the boundary conditions (when 
+   ! linking different segments together).
+   !     - f is the incoming array to differentiate. This is real.
+   !     - fl and fr are the cells to the left and right of the segment. These
+   !       are obtained by considering the neighbouring segments, with the appropriate
+   !       boundary condition applied. 
+   !     - sgn is the sign of the streaming term on the RHS of the GK equation 
+   !       (i.e. +1 or -1). If sgn > 0, then stream speed is negative. 
+   !     - llim is the lower limit of the segments - the upwinding depends on the 
+   !       sign of vpa, so we need to consider vpa > 0 and vpa < 0 separately. 
+   !     - iseg is the segment number we are working on, nseg is the total number of
+   !       segments. 
+   !     - del is the grid spacing in zed (assumed uniform)
+   !     - periodic is a logical variable that is true if the zed boundary conditions
+   !       are peridoic. 
    !****************************************************************************
    subroutine second_order_centered_zed_real(llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
 
@@ -745,7 +803,24 @@ contains
    end subroutine second_order_centered_zed_real
 
    !****************************************************************************
-   !                                      Title
+   !          Second order centered scheme for zed derivatives - complex
+   !****************************************************************************
+   ! This is special because we need to consider the extended zed domain, and 
+   ! need to consider multiple segments, and also the boundary conditions (when 
+   ! linking different segments together).
+   !     - f is the incoming array to differentiate. This is complex.
+   !     - fl and fr are the cells to the left and right of the segment. These
+   !       are obtained by considering the neighbouring segments, with the appropriate
+   !       boundary condition applied. 
+   !     - sgn is the sign of the streaming term on the RHS of the GK equation 
+   !       (i.e. +1 or -1). If sgn > 0, then stream speed is negative. 
+   !     - llim is the lower limit of the segments - the upwinding depends on the 
+   !       sign of vpa, so we need to consider vpa > 0 and vpa < 0 separately. 
+   !     - iseg is the segment number we are working on, nseg is the total number of
+   !       segments. 
+   !     - del is the grid spacing in zed (assumed uniform)
+   !     - periodic is a logical variable that is true if the zed boundary conditions
+   !       are peridoic. 
    !****************************************************************************
    subroutine second_order_centered_zed_complex(llim, iseg, nseg, f, del, sgn, fl, fr, periodic, df)
 
@@ -790,7 +865,7 @@ contains
    end subroutine second_order_centered_zed_complex
 
    !****************************************************************************
-   !                                      Title
+   !           Second order centered scheme for vpa derivatives - complex
    !****************************************************************************
    subroutine second_order_centered_vpa(llim, f, del, df)
 
@@ -820,7 +895,7 @@ contains
    end subroutine second_order_centered_vpa
 
    !****************************************************************************
-   !                                      Title
+   !                Cell centered finite difference scheme in zed
    !****************************************************************************
    subroutine fd_cell_centres_zed(llim, f, del, sgn, fl, fr, df)
 
@@ -840,7 +915,7 @@ contains
       ulim = size(f) + llim - 1
 
       if (sgn > 0) then
-         ! if sgn > 0, then stream speed is negative
+         ! Ifsgn > 0, then stream speed is negative
          ! so sweep from more positive to more negative zed
          i = ulim
          df(i) = (fr - f(i)) / del
@@ -848,7 +923,7 @@ contains
             df(i) = (f(i + 1) - f(i)) / del
          end do
       else
-         ! if sgn < 0, then stream speed is positive
+         ! Ifsgn < 0, then stream speed is positive
          ! so sweep from more negative to more positive zed
          i = llim
          df(i) = (f(i) - fl) / del
@@ -860,7 +935,7 @@ contains
    end subroutine fd_cell_centres_zed
 
    !****************************************************************************
-   !                                      Title
+   !                   Cell centered finite difference scheme in zed
    !****************************************************************************
    ! cell_centres_zed takes f at z grid locations
    ! and returns f at cell centres
@@ -883,7 +958,7 @@ contains
       ulim = size(f) + llim - 1
 
       if (sgn > 0) then
-         ! if sgn > 0, then stream speed is negative
+         ! Ifsgn > 0, then stream speed is negative
          ! so sweep from more positive to more negative zed
          i = ulim
          fc(i) = 0.5 * ((1.-upwnd) * fr + (1.+upwnd) * f(i))
@@ -891,7 +966,7 @@ contains
             fc(i) = 0.5 * ((1.-upwnd) * f(i + 1) + (1.+upwnd) * f(i))
          end do
       else
-         ! if sgn < 0, then stream speed is positive
+         ! Ifsgn < 0, then stream speed is positive
          ! so sweep from more negative to more positive zed
          i = llim
          fc(i) = 0.5 * ((1.+upwnd) * f(i) + (1.-upwnd) * fl)
@@ -903,7 +978,7 @@ contains
    end subroutine cell_centres_zed
 
    !****************************************************************************
-   !                                      Title
+   !                    Derivative with variable upwinding in zed
    !****************************************************************************
    subroutine fd_variable_upwinding_zed(llim, iseg, nseg, f, del, sgn, upwnd, fl, fr, periodic, df)
 
@@ -939,7 +1014,7 @@ contains
             end if
             if (iseg == 1 .and. .not. periodic) then
                i = llim
-               ! at left boundary, must upwind fully as no info for f(i-1)
+               ! At left boundary, must upwind fully as no info for f(i-1)
                df(i) = (f(i + 1) - f(i)) / del
             else
                i = llim
@@ -957,7 +1032,7 @@ contains
             end if
             if (iseg == nseg .and. .not. periodic) then
                i = ulim
-               ! if at rightmost zed, have no info for f(i+1) so must fully upwind
+               ! If at rightmost zed, have no info for f(i+1) so must fully upwind
                df(i) = (f(i) - f(i - 1)) / del
             else
                i = ulim
@@ -977,7 +1052,7 @@ contains
    end subroutine fd_variable_upwinding_zed
 
    !****************************************************************************
-   !                                      Title
+   !                      Derivative with variable upwinding in vpa
    !****************************************************************************
    subroutine fd_variable_upwinding_vpa(llim, f, del, sgn, upwnd, df)
 
@@ -1025,7 +1100,7 @@ contains
    end subroutine fd_variable_upwinding_vpa
 
    !****************************************************************************
-   !                                      Title
+   !                     3 point finite difference scheme - real 
    !****************************************************************************
    ! Only good for equally-spaced grid-pts
    !****************************************************************************
@@ -1062,7 +1137,9 @@ contains
    end subroutine fd3pt_real
 
    !****************************************************************************
-   !                                      Title
+   !                     3 point finite difference scheme - real 
+   !****************************************************************************
+   ! dr here is an array, so this allows for non-uniform grid spacing
    !****************************************************************************
    subroutine fd3pt_real_array(prof, profgrad, dr)
 
@@ -1096,7 +1173,7 @@ contains
    end subroutine fd3pt_real_array
 
    !****************************************************************************
-   !                                      Title
+   !                   3 point finite difference scheme - complex 
    !****************************************************************************
    subroutine fd3pt_complex_array(prof, profgrad, dr)
 
@@ -1132,11 +1209,13 @@ contains
    end subroutine fd3pt_complex_array
 
    !****************************************************************************
-   !                                      Title
+   !                     5 point finite difference scheme - real 
    !****************************************************************************
    ! boundary points are 2nd-order accurate (2-pt compact difference)
    ! next to boundary points are 4th-order accurate (2-pt centered compact difference)
    ! interior points are 6th-order accurate (4-pt centered compact difference)
+   ! Can only be used for equally spaced grids. 
+   !****************************************************************************
    subroutine fd5pt_real(prof, profgrad, dr)
 
       implicit none
@@ -1176,11 +1255,13 @@ contains
    end subroutine fd5pt_real
 
    !****************************************************************************
-   !                                      Title
+   !                   5 point finite difference scheme - real 
    !****************************************************************************
    ! boundary points are 2nd-order accurate (2-pt compact difference)
    ! next to boundary points are 4th-order accurate (2-pt centered compact difference)
    ! interior points are 6th-order accurate (4-pt centered compact difference)
+   ! dr is an array, so this allows for non-uniform grid spacing.
+   !****************************************************************************
    subroutine fd5pt_array(prof, profgrad, dr)
 
       implicit none
@@ -1219,10 +1300,11 @@ contains
    end subroutine fd5pt_array
 
    !****************************************************************************
-   !                                      Title
+   !       3 point finite difference scheme for second derivatives - real 
    !****************************************************************************
    ! second derivative using centered differences
    ! second order accurate
+   !****************************************************************************
    subroutine d2_3pt_real(f, d2f, dr)
 
       implicit none
@@ -1275,7 +1357,7 @@ contains
    end subroutine d2_3pt_real
 
    !****************************************************************************
-   !                                      Title
+   !      3 point finite difference scheme for second derivatives - complex
    !****************************************************************************
    subroutine d2_3pt_complex(f, d2f, dr)
 
@@ -1323,7 +1405,7 @@ contains
    end subroutine d2_3pt_complex
 
    !****************************************************************************
-   !                                      Title
+   !                          Tridiagonal matrix algorithm - real
    !****************************************************************************
    subroutine tridag_real(aa, bb, cc, sol)
 
@@ -1362,7 +1444,7 @@ contains
    end subroutine tridag_real
 
    !****************************************************************************
-   !                                      Title
+   !                    Tridiagonal matrix algorithm - complex
    !****************************************************************************
    subroutine tridag_complex(llim, aa, bb, cc, sol)
 
@@ -1402,7 +1484,7 @@ contains
    end subroutine tridag_complex
 
    !****************************************************************************
-   !                                      Title
+   !       Fourth derivative using second-order centered differences in vpa
    !****************************************************************************
    subroutine fourth_derivate_second_centered_vpa(llim, f, del, df)
 
@@ -1422,29 +1504,29 @@ contains
       i = llim
       df(i) = (6 * f(i) - 4 * f(i + 1) + f(i + 2)) / del**4
       df(i) = 0
-      !if (real(df(i)) > epsilon(0.)) write(*,*) 'i', i, 'del', del, 'f(i)', f(i), 'f(i+1)', f(i+1), 'f(i+2)', f(i+2), 'df(i)', df(i)
+      ! If (real(df(i)) > epsilon(0.)) write(*,*) 'i', i, 'del', del, 'f(i)', f(i), 'f(i+1)', f(i+1), 'f(i+2)', f(i+2), 'df(i)', df(i)
       i = llim + 1
       df(i) = (-4 * f(i - 1) + 6 * f(i) - 4 * f(i + 1) + f(i + 2)) / del**4
       df(i) = 0
-      !if (real(df(i)) > epsilon(0.)) write(*,*) 'i', i, 'df(i)', df(i)
+      ! If (real(df(i)) > epsilon(0.)) write(*,*) 'i', i, 'df(i)', df(i)
       i = ulim - 1
       df(i) = (f(i - 2) - 4 * f(i - 1) + 6 * f(i) - 4 * f(i + 1)) / del**4
       df(i) = 0
-      !if (real(df(i)) > epsilon(0.)) write(*,*) 'i', i, 'df(i)', df(i)
+      ! If (real(df(i)) > epsilon(0.)) write(*,*) 'i', i, 'df(i)', df(i)
       i = ulim
       df(i) = (f(i - 2) - 4 * f(i - 1) + 6 * f(i)) / del**4
       df(i) = 0
-      !if (real(df(i)) > epsilon(0.)) write(*,*) 'i', i, 'df(i)', df(i)
+      ! If (real(df(i)) > epsilon(0.)) write(*,*) 'i', i, 'df(i)', df(i)
 
       do i = llim + 2, ulim - 2
          df(i) = (f(i - 2) - 4 * f(i - 1) + 6 * f(i) - 4 * f(i + 1) + f(i + 2)) / del**4
-         !if (real(df(i)) > epsilon(0.)) write(*,*) 'i', i, 'df(i)', df(i)
+         ! If (real(df(i)) > epsilon(0.)) write(*,*) 'i', i, 'df(i)', df(i)
       end do
 
    end subroutine fourth_derivate_second_centered_vpa
 
    !****************************************************************************
-   !                                      Title
+   !      Fourth derivative using second-order centered differences in zed
    !****************************************************************************
    subroutine fourth_derivative_second_centered_zed(llim, iseg, nseg, f, del, fl, fr, periodic, df)
 

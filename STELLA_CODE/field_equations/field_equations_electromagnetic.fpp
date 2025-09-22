@@ -321,8 +321,8 @@ contains
       use job_manage, only: time_message
       
       ! Arrays
-      use arrays, only: denominator_QNinv11, denominator_QNinv13, denominator_QNinv33, denominator_QNinv31
-      use arrays, only: denominator_QN_h, time_field_solve
+      use arrays, only: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv33, denominator_fields_inv31
+      use arrays, only: denominator_fields_h, time_field_solve
 
       ! Grids
       use grids_z, only: nzgrid, ntubes
@@ -354,8 +354,8 @@ contains
                   do iky = 1, naky
                      antot1 = phi(iky,ikx,iz,it)
                      antot3 = bpar(iky,ikx,iz,it)
-                     phi(iky,ikx,iz,it) = denominator_QNinv11(iky,ikx,iz)*antot1 + denominator_QNinv13(iky,ikx,iz)*antot3
-                     bpar(iky,ikx,iz,it) = denominator_QNinv31(iky,ikx,iz)*antot1 + denominator_QNinv33(iky,ikx,iz)*antot3
+                     phi(iky,ikx,iz,it) = denominator_fields_inv11(iky,ikx,iz)*antot1 + denominator_fields_inv13(iky,ikx,iz)*antot3
+                     bpar(iky,ikx,iz,it) = denominator_fields_inv31(iky,ikx,iz)*antot1 + denominator_fields_inv33(iky,ikx,iz)*antot3
                   end do
                end do
             end do
@@ -363,7 +363,7 @@ contains
          
       else if (dist == 'h') then
          ! divide sum ( Zs int J0 h d^3 v) by sum(Zs^2 ns / Ts)
-         phi = phi / denominator_QN_h
+         phi = phi / denominator_fields_h
          ! do nothing for bpar because
          ! bpar = - 2 * beta * sum(Ts ns int (J1/bs) mu h d^3 v)
          ! which is already stored in bpar when dist = 'h'.
@@ -508,9 +508,9 @@ contains
       
       ! Arrays
       use arrays, only: kperp2
-      use arrays, only: denominator_QN
-      use arrays, only: denominator_QN13, denominator_QN_MBR1, denominator_QN_MBR3
-      use arrays, only: denominator_QNinv11, denominator_QNinv13, denominator_QNinv31, denominator_QNinv33
+      use arrays, only: denominator_fields
+      use arrays, only: denominator_fields13, denominator_fields_MBR1, denominator_fields_MBR3
+      use arrays, only: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
       use arrays, only: apar_denom
       
       ! Parameters
@@ -573,13 +573,13 @@ contains
       end if 
 
       if (include_bpar) then
-         ! denominator_QN_MBR3
+         ! denominator_fields_MBR3
          allocate (g0(nvpa, nmu))
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             it = it_idx(kxkyz_lo, ikxkyz)
-            ! denominator_QN_MBR3 does not depend on flux tube index,
+            ! denominator_fields_MBR3 does not depend on flux tube index,
             ! so only compute for one flux tube index
-            ! denominator_QN_MBR3 = 1 + 8 * beta * sum_s (n*T* integrate_vmu(mu*mu*exp(-v^2) *(J1/gamma)*(J1/gamma)))
+            ! denominator_fields_MBR3 = 1 + 8 * beta * sum_s (n*T* integrate_vmu(mu*mu*exp(-v^2) *(J1/gamma)*(J1/gamma)))
             if (it /= 1) cycle
             iky = iky_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -589,18 +589,18 @@ contains
                  * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
             wgt = 8.0 * spec(is)%temp * spec(is)%dens_psi0
             call integrate_vmu(g0, iz, tmp)
-            denominator_QN_MBR3(iky, ikx, iz) = denominator_QN_MBR3(iky, ikx, iz) + tmp * wgt
+            denominator_fields_MBR3(iky, ikx, iz) = denominator_fields_MBR3(iky, ikx, iz) + tmp * wgt
          end do
-         call sum_allreduce(denominator_QN_MBR3)
+         call sum_allreduce(denominator_fields_MBR3)
 
-         denominator_QN_MBR3 = 1.0 + beta * denominator_QN_MBR3
+         denominator_fields_MBR3 = 1.0 + beta * denominator_fields_MBR3
 
-         !denominator_QN13
+         !denominator_fields13
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             it = it_idx(kxkyz_lo, ikxkyz)
-            ! denominator_QN13 does not depend on flux tube index,
+            ! denominator_fields13 does not depend on flux tube index,
             ! so only compute for one flux tube index
-            ! denominator_QN13 = -4 * sum_s (Z*n* integrate_vmu(mu*exp(-v^2) * J0 *J1/gamma))
+            ! denominator_fields13 = -4 * sum_s (Z*n* integrate_vmu(mu*exp(-v^2) * J0 *J1/gamma))
             if (it /= 1) cycle
             iky = iky_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -610,10 +610,10 @@ contains
                  * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
             wgt = -4.0 * spec(is)%z * spec(is)%dens_psi0
             call integrate_vmu(g0, iz, tmp)
-            denominator_QN13(iky, ikx, iz) = denominator_QN13(iky, ikx, iz) + tmp * wgt
+            denominator_fields13(iky, ikx, iz) = denominator_fields13(iky, ikx, iz) + tmp * wgt
          end do
-         call sum_allreduce(denominator_QN13)
-         denominator_QN_MBR1 = -0.5 * beta * denominator_QN13 
+         call sum_allreduce(denominator_fields13)
+         denominator_fields_MBR1 = -0.5 * beta * denominator_fields13 
          deallocate (g0)
       end if
 
@@ -623,23 +623,23 @@ contains
          do iz = -nzgrid,nzgrid 
             do ikx = 1, nakx
                do iky = 1, naky 
-                  ! denominator_QNinv11
-                  denom_tmp = denominator_QN(iky,ikx,iz) - ((denominator_QN13(iky,ikx,iz)*denominator_QN_MBR1(iky,ikx,iz))/denominator_QN_MBR3(iky,ikx,iz))
+                  ! denominator_fields_inv11
+                  denom_tmp = denominator_fields(iky,ikx,iz) - ((denominator_fields13(iky,ikx,iz)*denominator_fields_MBR1(iky,ikx,iz))/denominator_fields_MBR3(iky,ikx,iz))
                   if (denom_tmp < epsilon(0.0)) then
-                     denominator_QNinv11(iky,ikx,iz) = 0.0
+                     denominator_fields_inv11(iky,ikx,iz) = 0.0
                   else
-                     denominator_QNinv11(iky,ikx,iz) = 1.0/denom_tmp
+                     denominator_fields_inv11(iky,ikx,iz) = 1.0/denom_tmp
                   end if
-                  ! denominator_QNinv13, denominator_QNinv31, denominator_QNinv33
-                  denom_tmp = denominator_QN(iky,ikx,iz)*denominator_QN_MBR3(iky,ikx,iz) - denominator_QN13(iky,ikx,iz)*denominator_QN_MBR1(iky,ikx,iz)
+                  ! denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
+                  denom_tmp = denominator_fields(iky,ikx,iz)*denominator_fields_MBR3(iky,ikx,iz) - denominator_fields13(iky,ikx,iz)*denominator_fields_MBR1(iky,ikx,iz)
                   if (denom_tmp < epsilon(0.0)) then
-                     denominator_QNinv13(iky,ikx,iz) = 0.0
-                     denominator_QNinv31(iky,ikx,iz) = 0.0
-                     denominator_QNinv33(iky,ikx,iz) = 0.0
+                     denominator_fields_inv13(iky,ikx,iz) = 0.0
+                     denominator_fields_inv31(iky,ikx,iz) = 0.0
+                     denominator_fields_inv33(iky,ikx,iz) = 0.0
                   else
-                     denominator_QNinv13(iky,ikx,iz) = -denominator_QN13(iky,ikx,iz)/denom_tmp
-                     denominator_QNinv33(iky,ikx,iz) = denominator_QN(iky,ikx,iz)/denom_tmp
-                     denominator_QNinv31(iky,ikx,iz) = -denominator_QN_MBR1(iky,ikx,iz)/denom_tmp
+                     denominator_fields_inv13(iky,ikx,iz) = -denominator_fields13(iky,ikx,iz)/denom_tmp
+                     denominator_fields_inv33(iky,ikx,iz) = denominator_fields(iky,ikx,iz)/denom_tmp
+                     denominator_fields_inv31(iky,ikx,iz) = -denominator_fields_MBR1(iky,ikx,iz)/denom_tmp
                   end if
                end do
             end do
@@ -661,8 +661,8 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       use arrays_fields, only: apar, apar_old
       use arrays_fields, only: bpar, bpar_old
-      use arrays, only: denominator_QN13, denominator_QN_MBR1, denominator_QN_MBR3
-      use arrays, only: denominator_QNinv11, denominator_QNinv13, denominator_QNinv31, denominator_QNinv33
+      use arrays, only: denominator_fields13, denominator_fields_MBR1, denominator_fields_MBR3
+      use arrays, only: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
       use arrays, only: apar_denom
 
       implicit none
@@ -683,23 +683,23 @@ contains
       if (include_bpar) then
          if (.not. allocated(bpar)) then; allocate (bpar(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar = 0. ; end if
          if (.not. allocated(bpar_old)) then; allocate (bpar_old(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar_old = 0. ; end if
-         if (.not. allocated(denominator_QN_MBR3)) then; allocate (denominator_QN_MBR3(naky, nakx, -nzgrid:nzgrid)); denominator_QN_MBR3 = 0. ; end if
-         if (.not. allocated(denominator_QN13)) then; allocate (denominator_QN13(naky, nakx, -nzgrid:nzgrid)); denominator_QN13 = 0. ; end if
-         if (.not. allocated(denominator_QN_MBR1)) then; allocate (denominator_QN_MBR1(naky, nakx, -nzgrid:nzgrid)); denominator_QN_MBR1 = 0. ; end if
-         if (.not. allocated(denominator_QNinv11)) then; allocate (denominator_QNinv11(naky, nakx, -nzgrid:nzgrid)); denominator_QNinv11 = 0. ; end if
-         if (.not. allocated(denominator_QNinv31)) then; allocate (denominator_QNinv31(naky, nakx, -nzgrid:nzgrid)); denominator_QNinv31 = 0. ; end if
-         if (.not. allocated(denominator_QNinv13)) then; allocate (denominator_QNinv13(naky, nakx, -nzgrid:nzgrid)); denominator_QNinv13 = 0. ; end if
-         if (.not. allocated(denominator_QNinv33)) then; allocate (denominator_QNinv33(naky, nakx, -nzgrid:nzgrid)); denominator_QNinv33 = 0. ; end if
+         if (.not. allocated(denominator_fields_MBR3)) then; allocate (denominator_fields_MBR3(naky, nakx, -nzgrid:nzgrid)); denominator_fields_MBR3 = 0. ; end if
+         if (.not. allocated(denominator_fields13)) then; allocate (denominator_fields13(naky, nakx, -nzgrid:nzgrid)); denominator_fields13 = 0. ; end if
+         if (.not. allocated(denominator_fields_MBR1)) then; allocate (denominator_fields_MBR1(naky, nakx, -nzgrid:nzgrid)); denominator_fields_MBR1 = 0. ; end if
+         if (.not. allocated(denominator_fields_inv11)) then; allocate (denominator_fields_inv11(naky, nakx, -nzgrid:nzgrid)); denominator_fields_inv11 = 0. ; end if
+         if (.not. allocated(denominator_fields_inv31)) then; allocate (denominator_fields_inv31(naky, nakx, -nzgrid:nzgrid)); denominator_fields_inv31 = 0. ; end if
+         if (.not. allocated(denominator_fields_inv13)) then; allocate (denominator_fields_inv13(naky, nakx, -nzgrid:nzgrid)); denominator_fields_inv13 = 0. ; end if
+         if (.not. allocated(denominator_fields_inv33)) then; allocate (denominator_fields_inv33(naky, nakx, -nzgrid:nzgrid)); denominator_fields_inv33 = 0. ; end if
       else
          if (.not. allocated(bpar)) then; allocate (bpar(1, 1, 1, 1)); bpar = 0. ; end if
          if (.not. allocated(bpar_old)) then; allocate (bpar_old(1, 1, 1, 1)); bpar_old = 0. ; end if
-         if (.not. allocated(denominator_QN_MBR3)) then; allocate (denominator_QN_MBR3(1, 1, 1)); denominator_QN_MBR3 = 0. ; end if
-         if (.not. allocated(denominator_QN13)) then; allocate (denominator_QN13(1, 1, 1)); denominator_QN13 = 0. ; end if
-         if (.not. allocated(denominator_QN_MBR1)) then; allocate (denominator_QN_MBR1(1, 1, 1)); denominator_QN_MBR1 = 0. ; end if
-         if (.not. allocated(denominator_QNinv11)) then; allocate (denominator_QNinv11(1, 1, 1)); denominator_QNinv11 = 0. ; end if
-         if (.not. allocated(denominator_QNinv31)) then; allocate (denominator_QNinv31(1, 1, 1)); denominator_QNinv31 = 0. ; end if
-         if (.not. allocated(denominator_QNinv13)) then; allocate (denominator_QNinv13(1, 1, 1)); denominator_QNinv13 = 0. ; end if
-         if (.not. allocated(denominator_QNinv33)) then; allocate (denominator_QNinv33(1, 1, 1)); denominator_QNinv33 = 0. ; end if
+         if (.not. allocated(denominator_fields_MBR3)) then; allocate (denominator_fields_MBR3(1, 1, 1)); denominator_fields_MBR3 = 0. ; end if
+         if (.not. allocated(denominator_fields13)) then; allocate (denominator_fields13(1, 1, 1)); denominator_fields13 = 0. ; end if
+         if (.not. allocated(denominator_fields_MBR1)) then; allocate (denominator_fields_MBR1(1, 1, 1)); denominator_fields_MBR1 = 0. ; end if
+         if (.not. allocated(denominator_fields_inv11)) then; allocate (denominator_fields_inv11(1, 1, 1)); denominator_fields_inv11 = 0. ; end if
+         if (.not. allocated(denominator_fields_inv31)) then; allocate (denominator_fields_inv31(1, 1, 1)); denominator_fields_inv31 = 0. ; end if
+         if (.not. allocated(denominator_fields_inv13)) then; allocate (denominator_fields_inv13(1, 1, 1)); denominator_fields_inv13 = 0. ; end if
+         if (.not. allocated(denominator_fields_inv33)) then; allocate (denominator_fields_inv33(1, 1, 1)); denominator_fields_inv33 = 0. ; end if
       end if
 
    end subroutine allocate_field_equations_electromagnetic
@@ -711,8 +711,8 @@ contains
 
       use arrays_fields, only: apar
       use arrays_fields, only: apar_old, bpar_old
-      use arrays, only: denominator_QN13, denominator_QN_MBR1, denominator_QN_MBR3
-      use arrays, only: denominator_QNinv11, denominator_QNinv13, denominator_QNinv31, denominator_QNinv33
+      use arrays, only: denominator_fields13, denominator_fields_MBR1, denominator_fields_MBR3
+      use arrays, only: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
       use arrays, only: apar_denom
       
       implicit none
@@ -725,13 +725,13 @@ contains
       if (allocated(bpar_old)) deallocate(bpar_old)
       if (allocated(apar)) deallocate (apar)
       if (allocated(apar_denom)) deallocate (apar_denom)
-      if (allocated(denominator_QN_MBR3)) deallocate (denominator_QN_MBR3)
-      if (allocated(denominator_QN13)) deallocate (denominator_QN13)
-      if (allocated(denominator_QN_MBR1)) deallocate (denominator_QN_MBR1)
-      if (allocated(denominator_QNinv11)) deallocate(denominator_QNinv11)
-      if (allocated(denominator_QNinv31)) deallocate(denominator_QNinv31)
-      if (allocated(denominator_QNinv13)) deallocate(denominator_QNinv13)
-      if (allocated(denominator_QNinv33)) deallocate(denominator_QNinv33)
+      if (allocated(denominator_fields_MBR3)) deallocate (denominator_fields_MBR3)
+      if (allocated(denominator_fields13)) deallocate (denominator_fields13)
+      if (allocated(denominator_fields_MBR1)) deallocate (denominator_fields_MBR1)
+      if (allocated(denominator_fields_inv11)) deallocate(denominator_fields_inv11)
+      if (allocated(denominator_fields_inv31)) deallocate(denominator_fields_inv31)
+      if (allocated(denominator_fields_inv13)) deallocate(denominator_fields_inv13)
+      if (allocated(denominator_fields_inv33)) deallocate(denominator_fields_inv33)
       
    end subroutine finish_field_equations_electromagnetic
 

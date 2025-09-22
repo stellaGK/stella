@@ -39,7 +39,7 @@ module gk_mirror
 contains
 
    !****************************************************************************
-   !                                      Title
+   !                              INITIALISE MIRROR
    !****************************************************************************
   subroutine init_mirror
     
@@ -79,7 +79,7 @@ contains
          neoclassical_term = 0.
       end if
 
-      ! mirror has sign consistent with being on RHS of GKE;
+      ! Mirror has sign consistent with being on RHS of GKE;
       ! it is the factor multiplying dg/dvpa in the mirror term
       if (include_mirror) then
          do imu = 1, nmu
@@ -114,7 +114,7 @@ contains
       end if
 
       do ia = 1, nalpha
-         ! mirror_sign set to +/- 1 depending on the sign of the mirror term.
+         ! Mirror_sign set to +/- 1 depending on the sign of the mirror term.
          ! NB: mirror_sign = -1 corresponds to positive advection velocity
          do iz = -nzgrid, nzgrid
             mirror_sign(ia, iz) = int(sign(1.0, mirror(ia, iz, 1, 1)))
@@ -125,11 +125,11 @@ contains
          if (mirror_semi_lagrange) then
             call init_mirror_semi_lagrange
          else
-            ! set up the tridiagonal matrix that must be inverted
+            ! Set up the tridiagonal matrix that must be inverted
             ! for the implicit treatment of the mirror operator
             call init_invert_mirror_operator
 
-            ! if advancing apar, need to get response of pdf to unit impulse in apar
+            ! If advancing apar, need to get response of pdf to unit impulse in apar
             if (include_apar) call init_mirror_response
          end if
 
@@ -138,7 +138,10 @@ contains
    end subroutine init_mirror
 
    !****************************************************************************
-   !                                      Title
+   !                       INITIALISE THE SEMI LAGRANGIAN ALGORITHM 
+   !****************************************************************************
+   ! If semi-lagrange is chosen as the mirror advance algorithm then this
+   ! is the initialisaiton for the mirror terms
    !****************************************************************************
    subroutine init_mirror_semi_lagrange
 
@@ -164,7 +167,13 @@ contains
    end subroutine init_mirror_semi_lagrange
 
    !****************************************************************************
-   !                                      Title
+   !                     INITIALISE IMPLICIT MIRROR MATRIX 
+   !****************************************************************************
+   ! If mirror advance option is implicit then we need to create the matrix that
+   ! is to be inverted.
+   ! This is a tri-diagonal matrix in vpa that is inverted. The tri-diagonal 
+   ! arises from the vpar derivative. 
+   ! Note that this is an option for FFS as well. 
    !****************************************************************************
    subroutine init_invert_mirror_operator
 
@@ -227,7 +236,7 @@ contains
       allocate (c(nvpa, -1:1)); c = 0.
 
       if (.not. allocated(mirror_tri_a)) then
-         ! if running in full-flux-surface mode, solve mirror advance
+         ! If running in full-flux-surface mode, solve mirror advance
          ! in y-space rather than ky-space due to alpha-dependence of coefficients
          if (full_flux_surface) then
             llim = kxyz_lo%llim_proc
@@ -242,21 +251,21 @@ contains
          allocate (mirror_tri_c(nvpa, nmu, llim:ulim)); mirror_tri_c = 0.
       end if
 
-      ! corresponds to sign of mirror term positive on RHS of equation
+      ! Corresponds to sign of mirror term positive on RHS of equation
       a(2:, 1) = -0.5 * (1.0 - 2.0 * vpa_upwind) / dvpa
       b(2:, 1) = -2.0 * vpa_upwind / dvpa
       c(2:nvpa - 1, 1) = 0.5 * (1.0 + 2.0 * vpa_upwind) / dvpa
-      ! must treat boundary carefully
-      ! assumes fully upwinded at outgoing boundary
+      ! We must treat boundary carefully
+      ! Assume fully upwinded at outgoing boundary
       b(1, 1) = -1.0 / dvpa
       c(1, 1) = 1.0 / dvpa
 
-      ! corresponds to sign of mirror term negative on RHS of equation
+      ! This corresponds to sign of mirror term negative on RHS of equation
       a(2:nvpa - 1, -1) = -0.5 * (1.0 + 2.0 * vpa_upwind) / dvpa
       b(:nvpa - 1, -1) = 2.0 * vpa_upwind / dvpa
       c(:nvpa - 1, -1) = 0.5 * (1.0 - 2.0 * vpa_upwind) / dvpa
-      ! must treat boundary carefully
-      ! assumes fully upwinded at outgoing boundary
+      ! We must treat boundary carefully
+      ! Assume fully upwinded at outgoing boundary
       a(nvpa, -1) = -1.0 / dvpa
       b(nvpa, -1) = 1.0 / dvpa
 
@@ -266,7 +275,7 @@ contains
       a = a * tupwndfac
       c = c * tupwndfac
       if (maxwellian_normalization) then
-         ! account for fact that we have expanded d(gnorm)/dvpa, where gnorm = g/exp(-v^s);
+         ! Account for fact that we have expanded d(gnorm)/dvpa, where gnorm = g/exp(-v^s);
          ! this gives rise to d(gnorm*exp(-vpa^2))/dvpa + 2*vpa*gnorm*exp(-vpa^2) term
          ! we solve for gnorm*exp(-vpa^2) and later multiply by exp(vpa^2) to get gnorm
          b = b + spread(2.0 * vpa, 2, 3)
@@ -287,7 +296,7 @@ contains
             end do
          end do
       else
-         ! multiply by mirror coefficient
+         ! Multiply by mirror coefficient
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             iy = 1
             iz = iz_idx(kxkyz_lo, ikxkyz)
@@ -308,7 +317,11 @@ contains
    end subroutine init_invert_mirror_operator
 
    !****************************************************************************
-   !                                      Title
+   !                           ELECTROMAGNETIC MIRROR RESPONSE
+   !****************************************************************************
+   ! If electromagnetic effects with apar are included then we need to get 
+   ! response of the distrubution function to a unit impulse in apar.
+   ! This is needed when the mirror terms are being treated implicitly. 
    !****************************************************************************
    subroutine init_mirror_response
 
@@ -334,20 +347,20 @@ contains
          allocate (response_apar_denom(naky, nakx, -nzgrid:nzgrid, ntubes))
       end if
 
-      ! give unit impulse to apar and solve for g (stored in mirror_response_g)
+      ! Give unit impulse to apar and solve for g (stored in mirror_response_g)
       apar = 1.0
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          do imu = 1, nmu
-            ! calculate the rhs of the 'homogeneous' mirror advance equation
+            ! Calculate the rhs of the 'homogeneous' mirror advance equation
             call get_mirror_rhs_apar_contribution(rhs, apar, imu, ikxkyz)
-            ! invert the mirror operator and replace rhs with the solution
+            ! Invert the mirror operator and replace rhs with the solution
             call invert_mirror_operator(imu, ikxkyz, rhs)
-            ! store the solution in mirror_response_g
+            ! Store the solution in mirror_response_g
             mirror_response_g(:, imu, ikxkyz) = rhs
          end do
       end do
 
-      ! calculate the contribution to apar from mirror_response_g
+      ! Calculate the contribution to apar from mirror_response_g
       dist = 'g'
       call advance_apar(mirror_response_g, dist, response_apar_denom)
 
@@ -361,10 +374,12 @@ contains
    end subroutine init_mirror_response
 
    !****************************************************************************
-   !                                      Title
+   !                           EXPLICIT MIRROR ADVANCE
    !****************************************************************************
-   ! advance_mirror_explicit calculates the contribution to the RHS of the gyrokinetic equation
-   ! due to the mirror force term; it treats all terms explicitly in time
+   ! advance_mirror_explicit calculates the contribution to the RHS of the 
+   ! gyrokinetic equation due to the mirror force term.
+   ! This treats all terms explicitly in time. This is fine for adiabatic/modified
+   ! boltzmann electrons. 
    !****************************************************************************
    subroutine advance_mirror_explicit(g, gout)
 
@@ -398,11 +413,11 @@ contains
 
       !-------------------------------------------------------------------------
 
-      ! start the timer for this subroutine
+      ! Start the timer for this subroutine
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
       if (full_flux_surface) then
-         ! assume we are simulating a single flux surface
+         ! Assume we are simulating a single flux train
          it = 1
 
          allocate (g0v(nvpa, nmu, kxyz_lo%llim_proc:kxyz_lo%ulim_alloc))
@@ -412,33 +427,33 @@ contains
 
          do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
             do iz = -nzgrid, nzgrid
-               ! swap from ky >= 0 and all kx to kx >= 0 and all ky
-               ! needed for ky2y transform below
+               ! Swap from ky >= 0 and all kx to kx >= 0 and all ky
+               ! This is needed for the ky2y transform below
                call swap_kxky(g(:, :, iz, it, ivmu), g_swap)
-               ! for upwinding of vpa, need to evaluate dg/dvpa in y-space
-               ! this is necessary because the advection speed contains dB/dz, which depends on y
-               ! first must take g(ky,kx) and transform to g(y,kx)
+               ! For upwinding of vpa, need to evaluate dg/dvpa in y-space.
+               ! This is necessary because the advection speed contains dB/dz, which depends on y.
+               ! We first must take g(ky,kx) and transform to g(y,kx)
                call transform_ky2y(g_swap, g0x(:, :, iz, it, ivmu))
             end do
          end do
-         ! remap g so velocities are local
+         ! Remap g so velocities are local
          call scatter(kxyz2vmu, g0x, g0v)
-         ! next, calculate dg/dvpa;
-         ! we enforce a boundary condition on <f>, but with full_flux_surface = T,
+         ! Next, calculate dg/dvpa;
+         ! We enforce a boundary condition on <f>, but with full_flux_surface = T,
          ! g = <f> / F, so we use the chain rule to get two terms:
-         ! one with exp(vpa^2)*d<f>/dvpa and another that is proportional to exp(vpa^2) * <f>/F * d ln F /dvpa
+         ! One with exp(vpa^2)*d<f>/dvpa and another that is proportional to exp(vpa^2) * <f>/F * d ln F /dvpa
          do ikxyz = kxyz_lo%llim_proc, kxyz_lo%ulim_proc
             is = is_idx(kxyz_lo, ikxyz)
-            ! remove exp(-vpa^2) normalisation from g before differentiating
+            ! Remove exp(-vpa^2) normalisation from g before differentiating
             dgdv(:, :) = g0v(:, :, ikxyz)
-            ! get d <f> / dvpa
+            ! Get d <f> / dvpa
             call get_dgdvpa_ffs(dgdv, ikxyz)
             g0v(:, :, ikxyz) = dgdv(:, :)
          end do
-         ! then take the results and remap again so y,kx,z local.
+         ! Then take the results and remap again so y,kx,z local.
          call gather(kxyz2vmu, g0v, g0x)
 
-         ! finally add the mirror term to the RHS of the GK eqn
+         ! Finally add the mirror term to the RHS of the GK eqn
          call add_mirror_term_ffs(g0x, gout)
          deallocate (dgdv, g_swap)
       else
@@ -451,11 +466,11 @@ contains
             if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          end if
 
-         ! incoming gvmu is g = <f>
-         ! get dg/dvpa and store in g0v
+         ! Incoming gvmu is g = <f>
+         ! Get dg/dvpa and store in g0v
          g0v = gvmu
 
-         ! remove exp(-vpa^2) normalization from pdf before differentiating
+         ! Remove exp(-vpa^2) normalization from pdf before differentiating
          if (maxwellian_normalization) then
             do iv = 1, nvpa
                g0v(iv, :, :) = g0v(iv, :, :) * maxwell_vpa(iv, 1)
@@ -467,11 +482,11 @@ contains
                g0v(iv, :, :) = g0v(iv, :, :) / maxwell_vpa(iv, 1) + 2.0 * vpa(iv) * gvmu(iv, :, :)
             end do
          end if
-         ! swap layouts so that (z,kx,ky) are local
+         ! Swap layouts so that (z,kx,ky) are local
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
          call gather(kxkyz2vmu, g0v, g0x)
          if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-         ! get mirror term and add to source
+         ! Get mirror term and add to source
          call add_mirror_term(g0x, gout)
       end if
       deallocate (g0x, g0v)
@@ -479,75 +494,6 @@ contains
       if (proc0) call time_message(.false., time_mirror(:, 1), ' Mirror advance')
 
    end subroutine advance_mirror_explicit
-
-   !****************************************************************************
-   !                                      Title
-   !****************************************************************************
-   subroutine add_mirror_radial_variation(g, gout)
-
-      use mp, only: proc0
-      use redistribute, only: gather, scatter
-      use arrays_distribution_function, only: gvmu
-      use job_manage, only: time_message
-      use parallelisation_layouts, only: kxkyz_lo, vmu_lo
-      use parallelisation_layouts, only: is_idx, imu_idx
-      use grids_z, only: nzgrid, ntubes
-      use parameters_physics, only: full_flux_surface
-      use grids_velocity, only: nvpa, nmu
-      use parallelisation_layouts, only: fields_kxkyz
-      use calculations_redistribute, only: kxkyz2vmu
-
-      implicit none
-
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
-      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
-
-      complex, dimension(:, :, :), allocatable :: g0v
-      integer :: iz, it, imu, is, ivmu, ia
-
-      !-------------------------------------------------------------------------
-
-      allocate (g0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
-
-      !if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror global variation advance')
-
-      ia = 1
-
-      ! the mirror term is most complicated of all when doing full flux surface
-      if (full_flux_surface) then
-         ! FLAG DSO - Someday one should be able to do full global
-      else
-         if (.not. fields_kxkyz) then
-            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-            call scatter(kxkyz2vmu, g, gvmu)
-            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-         end if
-         ! get dg/dvpa and store in g0v
-         g0v = gvmu
-         call get_dgdvpa_explicit(g0v)
-         ! swap layouts so that (z,kx,ky) are local
-         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-         call gather(kxkyz2vmu, g0v, gout)
-         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
-
-         ! get mirror term and add to source
-         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
-            is = is_idx(vmu_lo, ivmu)
-            imu = imu_idx(vmu_lo, ivmu)
-            do it = 1, ntubes
-               do iz = -nzgrid, nzgrid
-                  gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) &
-                                             * mirror_rad_var(ia, iz, imu, is)
-               end do
-            end do
-         end do
-      end if
-
-      deallocate (g0v)
-
-      !if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror global variation advance')
-
-   end subroutine add_mirror_radial_variation
 
    !****************************************************************************
    !                                      Title
@@ -582,8 +528,15 @@ contains
    end subroutine get_dgdvpa_ffs
 
    !****************************************************************************
-   !                                      Title
+   !                        ADVANCE MIRROR EXPLICIT
    !****************************************************************************
+   ! Solve mirror term using an explicit algorithm: 
+   !                 dg/dt = mu/m * hat{b} . grad B (dg/dvpa)
+   ! The g term on the RHS is treated at the previous time step {n} and we update
+   ! for g at the next intermediate time step:
+   !                       dg/dt = (g^{n+1} - g{n})/delta t  
+   ! RHS : mu/m * hat{b} . grad B * dg^{n}/dvpa )
+   ! Note that we allow for upwinding in vpar seperately. This is an independent toggle
    subroutine get_dgdvpa_explicit(g)
 
       use calculations_finite_differences, only: third_order_upwind
@@ -677,9 +630,10 @@ contains
    end subroutine add_mirror_term_ffs
 
    !****************************************************************************
-   !                                      Title
+   !                     ADVANE MIRROR IMPLICIT 
    !****************************************************************************
-   ! advance mirror implicit solve dg/dt = mu/m * bhat . grad B (dg/dvpa + m*vpa/T * g)
+   ! Advance mirror implicit solve dg/dt = mu/m * bhat . grad B (dg/dvpa + m*vpa/T * g)
+   ! 
    !****************************************************************************
    subroutine advance_mirror_implicit(collisions_implicit, g, apar)
 
@@ -937,7 +891,7 @@ contains
    end subroutine advance_mirror_implicit
 
    !****************************************************************************
-   !                                      Title
+   !                           ADD MIRROR RHS G CONTRIBUTION
    !****************************************************************************
    subroutine get_mirror_rhs_g_contribution(g_in, apar, imu, ikxkyz, rhs)
 
@@ -966,25 +920,25 @@ contains
       iz = iz_idx(kxkyz_lo, ikxkyz)
       is = is_idx(kxkyz_lo, ikxkyz)
 
-      ! the incoming pdf is g = <f>
+      ! The incoming pdf is g = <f>
       rhs = g_in
-      ! when advancing apar, need to compute g^{n+1} = gbar^{n} + dt * dg/dvpa * (...)
+      ! When advancing apar, need to compute g^{n+1} = gbar^{n} + dt * dg/dvpa * (...)
       ! the vpa derivative appearing on the RHS of the mirror equation
       ! should be operating on g, so need to have both gbar and g.
       ! NB: changes may need to be made to this call to gbar_to_g if using
       ! maxwellian_normalization; not worried aobut it too much yet, as not
       ! sure if it will ever be in use here
       if (include_apar) then
-         ! rhs is converted from g to gbar
+         ! RHS is converted from g to gbar
          call gbar_to_g(rhs, apar, imu, ikxkyz, -1.0)
       end if
 
-      ! calculate dg/dvpa
+      ! Calculate dg/dvpa
       allocate (dgdv(nvpa))
       call fd_variable_upwinding_vpa(1, g_in, dvpa, &
                                      mirror_sign(1, iz), vpa_upwind, dgdv)
 
-      ! construct RHS of GK equation for mirror advance;
+      ! Construct RHS of GK equation for mirror advance;
       ! i.e., (1-(1+alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n+1}
       ! = RHS = (1+(1-alph)/2*dt*mu/m*b.gradB*(d/dv+m*vpa/T))*g^{n}
       if (maxwellian_normalization) then
@@ -998,7 +952,7 @@ contains
    end subroutine get_mirror_rhs_g_contribution
 
    !****************************************************************************
-   !                                      Title
+   !                        ADD MIRROR CONTRBUTION FROM APAR
    !****************************************************************************
    subroutine get_mirror_rhs_apar_contribution(rhs, apar, imu, ikxkyz)
 
@@ -1042,7 +996,77 @@ contains
    end subroutine get_mirror_rhs_apar_contribution
 
    !****************************************************************************
-   !                                      Title
+   !                       ADD MIRROR TERM FOR RADIAL VARIATION
+   !****************************************************************************
+   subroutine add_mirror_radial_variation(g, gout)
+
+      use mp, only: proc0
+      use redistribute, only: gather, scatter
+      use arrays_distribution_function, only: gvmu
+      use job_manage, only: time_message
+      use parallelisation_layouts, only: kxkyz_lo, vmu_lo
+      use parallelisation_layouts, only: is_idx, imu_idx
+      use grids_z, only: nzgrid, ntubes
+      use parameters_physics, only: full_flux_surface
+      use grids_velocity, only: nvpa, nmu
+      use parallelisation_layouts, only: fields_kxkyz
+      use calculations_redistribute, only: kxkyz2vmu
+
+      implicit none
+
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in) :: g
+      complex, dimension(:, :, -nzgrid:, :, vmu_lo%llim_proc:), intent(in out) :: gout
+
+      complex, dimension(:, :, :), allocatable :: g0v
+      integer :: iz, it, imu, is, ivmu, ia
+
+      !-------------------------------------------------------------------------
+
+      allocate (g0v(nvpa, nmu, kxkyz_lo%llim_proc:kxkyz_lo%ulim_alloc))
+
+      !if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror global variation advance')
+
+      ia = 1
+
+      if (full_flux_surface) then
+         ! FLAG DSO - Someday one should be able to do full global
+      else
+         if (.not. fields_kxkyz) then
+            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+            call scatter(kxkyz2vmu, g, gvmu)
+            if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+         end if
+         ! get dg/dvpa and store in g0v
+         g0v = gvmu
+         call get_dgdvpa_explicit(g0v)
+         ! swap layouts so that (z,kx,ky) are local
+         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+         call gather(kxkyz2vmu, g0v, gout)
+         if (proc0) call time_message(.false., time_mirror(:, 2), ' mirror_redist')
+
+         ! get mirror term and add to source
+         do ivmu = vmu_lo%llim_proc, vmu_lo%ulim_proc
+            is = is_idx(vmu_lo, ivmu)
+            imu = imu_idx(vmu_lo, ivmu)
+            do it = 1, ntubes
+               do iz = -nzgrid, nzgrid
+                  gout(:, :, iz, it, ivmu) = gout(:, :, iz, it, ivmu) &
+                                             * mirror_rad_var(ia, iz, imu, is)
+               end do
+            end do
+         end do
+      end if
+
+      deallocate (g0v)
+
+      !if (proc0) call time_message(.false.,time_mirror(:,1),' Mirror global variation advance')
+
+   end subroutine add_mirror_radial_variation
+
+   !****************************************************************************
+   !                               VPA INTERPOLAITON
+   !****************************************************************************
+   ! This is needed if advancing mirror using semi-lagrange
    !****************************************************************************
    subroutine vpa_interpolation(grid, interp)
 
@@ -1186,7 +1210,10 @@ contains
    end subroutine vpa_interpolation
 
    !****************************************************************************
-   !                                      Title
+   !                         INVERT MIRROR OPERATOR 
+   !****************************************************************************
+   ! Use the Tridiagonal matrix algorithm to invert the mirror operator for 
+   ! implicit mirror advance
    !****************************************************************************
    subroutine invert_mirror_operator(imu, ilo, g)
 
@@ -1208,7 +1235,7 @@ contains
 !###############################################################################
 
    !****************************************************************************
-   !                                      Title
+   !                          FINISH MIRROR - DEALLOCATE
    !****************************************************************************
    subroutine finish_mirror
 
@@ -1236,7 +1263,7 @@ contains
    end subroutine finish_mirror
 
    !****************************************************************************
-   !                                      Title
+   !                        FINISH MIRROR: SEMI LAGRANGE
    !****************************************************************************
    subroutine finish_mirror_semi_lagrange
 
@@ -1248,7 +1275,7 @@ contains
    end subroutine finish_mirror_semi_lagrange
 
    !****************************************************************************
-   !                                      Title
+   !                       FINISH MIRROR: IMPLICIT
    !****************************************************************************
    subroutine finish_invert_mirror_operator
 
@@ -1265,7 +1292,7 @@ contains
    end subroutine finish_invert_mirror_operator
 
    !****************************************************************************
-   !                                      Title
+   !                    FINISH MIRROR: IMPLICIT ELECTROMAGNETIC
    !****************************************************************************
    subroutine finish_mirror_response
 
