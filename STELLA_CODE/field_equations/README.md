@@ -63,10 +63,10 @@ $$
 
 ### 2. Parallel Amperè's Law  
 
-Amperè's law is $\nable \cross \delta \mathbf{B} = \frac{4 \pi}{c} \delta \mathbf{J}$. We can take parallel and perpendicular components to get 
+Amperè's law is $\nabla \cross \delta \mathbf{B} = \frac{4 \pi}{c} \delta \mathbf{J}$. We can take parallel and perpendicular components to get 
 
 $$
-\nabla_{\perp}^2 A_{\parallel} = \frac{4 \pi}{c} \sum_{s} Z_{s}e \int d^3 v v_{\parallel} [\langle g_{s} \rangle_{r} + \frac{Z_{s} e}{T_{s} c} F_0 v_{\parallel} \langle \lange A_{\parallel} \rangle_{R} \rangle_{r} ] = 0.
+\nabla_{\perp}^2 A_{\parallel} = \frac{4 \pi}{c} \sum_{s} Z_{s}e \int d^3 v v_{\parallel} [\langle g_{s} \rangle_{r} + \frac{Z_{s} e}{T_{s} c} F_0 v_{\parallel} \langle \langle A_{\parallel} \rangle_{R} \rangle_{r} ] = 0.
 $$ 
 
 TO DO  
