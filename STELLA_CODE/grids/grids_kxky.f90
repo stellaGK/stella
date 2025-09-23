@@ -1,7 +1,35 @@
 !###############################################################################
-!                                                                               
+!                              KXKY GRIDS MODULE                                                      
 !###############################################################################
-! This module ...
+! This module initialises the kx and ky grids for stella. 
+! It reads the relevant namelists from namelist_kxky_grid.f90
+! and sets up the kx and ky arrays accordingly.
+! It also sets up the x and y arrays if running in box mode.
+
+!                                 RANGE
+!
+! Range mode is used when one wants to specify a range of kx and ky values
+! and the number of modes in each direction.
+! In this mode, ky is assumed to be positive and the user specifies
+! naky, aky_min and aky_max. The ky values are then spaced linearly or exponentially
+! between aky_min and aky_max depending on the value of kyspacing_option_switch.
+! The user also specifies nakx and either akx_min and akx_max or
+! theta0_min and theta0_max. If the latter are specified, then
+! akx_min and akx_max are determined from them using the relation
+! theta0 = kx/(ky*shat) (or theta0 = kx/ky if q_as_x = .true.).
+! This is typically used for linear simulations. 
+! 
+!                                  BOX
+!
+! Box mode is typically used for nonlinear simulations. 
+! In Box mode, the code sets up a two-dimensional grid in real space (x, y) and 
+! the corresponding Fourier space (kx, ky). This mode is typically used for 
+! nonlinear simulations. The user specifies the number of grid points (nx, ny), 
+! the box sizes (x0, y0), and other parameters such as jtwist and phase_shift_angle. 
+! The code then calculates the kx and ky arrays, as well as the real-space x and y 
+! arrays, ensuring consistency with the chosen boundary conditions (e.g., twist-and-shift, 
+! periodic, or linked). Additional arrays for radial coordinates (rho, rho_d) and 
+! their clamped versions are also set up if radial variation is enabled.
 !###############################################################################
 module grids_kxky
    

@@ -1,7 +1,7 @@
 !###############################################################################
 !                                MODULE SPECIES
 !###############################################################################
-! This module reads the number of species and the specifics of each specie.
+! This module reads the number of species and the specifics of each species.
 !###############################################################################
 module grids_species
 

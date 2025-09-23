@@ -1,7 +1,20 @@
 !###############################################################################
-!                                                                               
+!                          SPECIES GRID FROM EUTERPE MODULE                                                     
 !###############################################################################
-! This module ...
+! This module reads the number of species and the specifics of each species.
+!------------------------------------------------------------------------------
+! This module is responsible for reading species input data from EUTERPE
+! input files and initialising the species grid for stella simulations.
+!
+! The routines in this module parse the EUTERPE-formatted input files to
+! extract species parameters such as charge, mass, density, and temperature.
+! These parameters are then used to populate the species grid data structures
+! required by stella. The module ensures compatibility between
+! EUTERPE and stella species definitions and handles any necessary
+! conversions or checks.
+!
+! It also computes derived quantities needed for simulations, such as
+! collisionalities and normalised gradients.
 !###############################################################################
 module grids_species_from_euterpe
 

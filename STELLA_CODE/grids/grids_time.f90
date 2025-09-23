@@ -1,7 +1,7 @@
 !###############################################################################
-!                                                                               
+!                              TIME GRID MODULE                                                 
 !###############################################################################
-! This module ...
+! This module initilaises dt for stella. 
 !###############################################################################m
 module grids_time
 
@@ -29,7 +29,7 @@ module grids_time
 contains
 
    !****************************************************************************
-   !                                      Title
+   !                         Initialise start time
    !****************************************************************************
    subroutine init_tstart(tstart)
 
@@ -40,7 +40,7 @@ contains
    end subroutine init_tstart
 
    !****************************************************************************
-   !                                      Title
+   !                        Initialise time step size
    !****************************************************************************
    subroutine init_delt(delt, delt_max, delt_min)
       real, intent(in) :: delt, delt_max, delt_min
@@ -67,7 +67,7 @@ contains
    end subroutine update_time
 
    !****************************************************************************
-   !                                      Title
+   !                        Write time step information
    !****************************************************************************
    subroutine write_dt
 
@@ -79,7 +79,7 @@ contains
    end subroutine write_dt
 
    !****************************************************************************
-   !                                      Title
+   !                     Check that code_dt is not too small
    !****************************************************************************
    subroutine checkcodedt(stop_stella)
 

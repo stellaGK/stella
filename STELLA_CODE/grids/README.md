@@ -18,9 +18,8 @@ Both (ky, kx) are normalised by 1/ρ_r, where ρ_r is the reference gyroradius.
 There is some freedom in choosing x and y. The exact definitions of x and y depend 
 on the chosen magnetic geometry. For details, refer to the geometry directory.
 
-Regardless of the choice of geometry, (ky, kx) are chosen to be uniform grids in 
-Fourier space. How these are initialised depends on if we are considering 'box' or 
-'range' mode.  Typically, 'range' is used for linear simulations, and 'box' is 
+Regardless of the choice of geometry, (ky, kx) are chosen to be either a uniformly spaced,
+or exponentially spaced grid in Fourier space. How these are initialised depends on if considering we are 'box' or 'range' mode.  Typically, 'range' is used for linear simulations, and 'box' is 
 used for nonlinear simulations. 
 
 Range mode takes in minimum and maximum values of (ky, kx) and initalises a uniform
