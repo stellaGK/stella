@@ -55,7 +55,7 @@ Quasineturality is normalised by taking its product with the factor $\frac{L_r}{
 Any velocity integrals that are independent of $g_s$ can be evaluated, and the quasineutrality equation, in Fourier space, solved by **stella** is:
 
 $$
-\sum_s Z_s n_s \frac{2 B_0}{\sqrt{\pi}} \int d^3 v J_{0,s} \tilde{g}_s + \frac{Z_s^2 n_s}{T_s}(\Gamma_{0,s} - 1) \tilde{\phi} + \frac{1}{B_0} \Gamma_{1,s} \delta \tilde{B}_{\parallel} = 0
+\sum_s Z_s n_s \frac{2 B_0}{\sqrt{\pi}} \int d^3 v J_{0,s} \tilde{g}_s + \frac{Z_s^2 n_s}{T_s}(\Gamma_{0,s} - 1) \tilde{\phi} + \frac{Z_s n_s}{B_0} \Gamma_{1,s} \delta \tilde{B}_{\parallel} = 0
 $$
 
 ---
