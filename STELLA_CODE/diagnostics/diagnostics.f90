@@ -221,8 +221,8 @@ contains
    subroutine finish_diagnostics(istep)
  
       ! Parallelisation
-      use redistribute, only: scatter
-      use calculations_redistribute, only: kxkyz2vmu
+      use initialise_redistribute, only: scatter
+      use redistribute, only: kxkyz2vmu
       
       ! Distribution function
       use arrays_distribution_function, only: gnew, gvmu

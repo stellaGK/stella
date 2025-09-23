@@ -420,7 +420,7 @@ contains
       use job_manage, only: time_message
       use calculations_finite_differences, only: second_order_centered_zed
       use calculations_finite_differences, only: third_order_upwind
-      use redistribute, only: gather, scatter
+      use initialise_redistribute, only: gather, scatter
       use arrays_fields, only: phi, phi_corr_QN, phi_corr_GA
       use calculations_transforms, only: transform_ky2y, transform_y2ky
       use calculations_transforms, only: transform_kx2x, transform_x2kx
@@ -438,7 +438,7 @@ contains
       use grids_velocity, only: dvpa, vpa, mu
       use calculations_gyro_averages, only: gyro_average
       use gk_parallel_streaming, only: stream_sign
-      use calculations_redistribute, only: xyz2vmu
+      use redistribute, only: xyz2vmu
       use file_utils, only: runtype_option_switch, runtype_multibox
       use grids_extended_zgrid, only: fill_zed_ghost_zones
       use arrays, only: time_parallel_nl

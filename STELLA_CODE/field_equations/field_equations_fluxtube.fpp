@@ -70,8 +70,8 @@ contains
       use mp, only: proc0
       use job_manage, only: time_message
       use parallelisation_layouts, only: vmu_lo
-      use redistribute, only: scatter
-      use calculations_redistribute, only: kxkyz2vmu
+      use initialise_redistribute, only: scatter
+      use redistribute, only: kxkyz2vmu
       
       ! Arrays
       use arrays_distribution_function, only: gvmu

@@ -264,8 +264,8 @@ contains
 
       ! Parallelisation
       use mp, only: proc0
-      use redistribute, only: gather, scatter
-      use calculations_redistribute, only: kxkyz2vmu
+      use initialise_redistribute, only: gather, scatter
+      use redistribute, only: kxkyz2vmu
       use job_manage, only: time_message
       
       ! Grids

@@ -3408,7 +3408,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
 
       use mp, only: proc0, mp_abort
       use job_manage, only: time_message
-      use redistribute, only: scatter, gather
+      use initialise_redistribute, only: scatter, gather
       use grids_time, only: code_dt
       use grids_z, only: nzgrid, ntubes
       use parameters_physics, only: fphi
@@ -3418,7 +3418,7 @@ bb_blcs(iv,imu,imu-1,ikxkyz,isb)= bb_blcs(iv,imu,imu-1,ikxkyz,isb) - code_dt*((-
       use grids_velocity, only: set_vpa_weights
       use parallelisation_layouts, only: vmu_lo, kxkyz_lo
       use parallelisation_layouts, only: is_idx, iky_idx, ikx_idx, iz_idx
-      use calculations_redistribute, only: kxkyz2vmu
+      use redistribute, only: kxkyz2vmu
       use arrays_distribution_function, only: gvmu
       use calculations_tofrom_ghf, only: g_to_h
 

@@ -58,7 +58,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/calculations/calculations_gyro_averages.f90
   ../STELLA_CODE/calculations/calculations_kxky_derivatives.f90
   ../STELLA_CODE/calculations/calculations_kxky.f90
-  ../STELLA_CODE/calculations/calculations_redistribute.f90
   ../STELLA_CODE/calculations/calculations_timestep.f90
   ../STELLA_CODE/calculations/calculations_tofrom_ghf.f90
   ../STELLA_CODE/calculations/calculations_transforms.f90
@@ -103,15 +102,15 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/gyrokinetic_equation/gyrokinetic_equation_implicit.f90
   ../STELLA_CODE/gyrokinetic_equation/gyrokinetic_equation_initialisation.f90
   ../STELLA_CODE/neoclassical/neoclassical_terms.f90
-  ../STELLA_CODE/parameters/common_types.f90
   ../STELLA_CODE/parameters/debug_flags.f90
-  ../STELLA_CODE/parameters/file_units.f90
-  ../STELLA_CODE/parameters/interface_random_number_generator.f90
   ../STELLA_CODE/parameters/parameters_diagnostics.f90
   ../STELLA_CODE/parameters/parameters_multibox.f90
   ../STELLA_CODE/parameters/parameters_numerical.f90
   ../STELLA_CODE/parameters/parameters_physics.f90
-  ../STELLA_CODE/parameters/parallelisation_layouts.f90
+  ../STELLA_CODE/parallelisation/redistribute.f90
+  ../STELLA_CODE/parallelisation/initialise_redistribute.f90
+  ../STELLA_CODE/parallelisation/common_types.f90
+  ../STELLA_CODE/parallelisation/parallelisation_layouts.f90
   ../STELLA_CODE/radial_variation/multibox.f90
   ../STELLA_CODE/radial_variation/gk_radial_variation.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_debug.f90
@@ -129,6 +128,8 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_species.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_velocity_grids.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_z_grid.f90
+  ../STELLA_CODE/utils/file_units.f90
+  ../STELLA_CODE/calculations/interface_random_number_generator.f90
   ../STELLA_CODE/utils/define.inc
 )
 

@@ -187,8 +187,8 @@ contains
       use grids_time, only: code_dt
       use grids_z, only: nzgrid
       use parallelisation_layouts, only: vmu_lo, kxkyz_lo
-      use redistribute, only: gather, scatter
-      use calculations_redistribute, only: kxkyz2vmu
+      use initialise_redistribute, only: gather, scatter
+      use redistribute, only: kxkyz2vmu
       use grids_velocity, only: nmu, nvpa, dvpa
 
       implicit none

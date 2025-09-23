@@ -384,7 +384,7 @@ contains
    subroutine advance_mirror_explicit(g, gout)
 
       use mp, only: proc0
-      use redistribute, only: gather, scatter
+      use initialise_redistribute, only: gather, scatter
       use arrays_distribution_function, only: gvmu
       use job_manage, only: time_message
       use parallelisation_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
@@ -398,7 +398,7 @@ contains
       use grids_velocity, only: vpa, maxwell_vpa
       use parallelisation_layouts, only: fields_kxkyz
       use parameters_numerical, only: maxwellian_normalization
-      use calculations_redistribute, only: kxkyz2vmu, kxyz2vmu
+      use redistribute, only: kxkyz2vmu, kxyz2vmu
 
       implicit none
 
@@ -640,7 +640,7 @@ contains
       use constants, only: zi
       use mp, only: proc0
       use job_manage, only: time_message
-      use redistribute, only: gather, scatter
+      use initialise_redistribute, only: gather, scatter
       use calculations_finite_differences, only: fd_variable_upwinding_vpa
       use parallelisation_layouts, only: vmu_lo, kxyz_lo, kxkyz_lo
       use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
@@ -656,7 +656,7 @@ contains
       use parameters_numerical, only: vpa_upwind, time_upwind
       use parameters_numerical, only: mirror_semi_lagrange, maxwellian_normalization
       use parameters_physics, only: include_apar
-      use calculations_redistribute, only: kxkyz2vmu, kxyz2vmu
+      use redistribute, only: kxkyz2vmu, kxyz2vmu
       use field_equations_electromagnetic, only: advance_apar
       use field_equations_quasineutrality, only: fields_updated
       use calculations_tofrom_ghf, only: gbar_to_g
@@ -1001,7 +1001,7 @@ contains
    subroutine add_mirror_radial_variation(g, gout)
 
       use mp, only: proc0
-      use redistribute, only: gather, scatter
+      use initialise_redistribute, only: gather, scatter
       use arrays_distribution_function, only: gvmu
       use job_manage, only: time_message
       use parallelisation_layouts, only: kxkyz_lo, vmu_lo
@@ -1010,7 +1010,7 @@ contains
       use parameters_physics, only: full_flux_surface
       use grids_velocity, only: nvpa, nmu
       use parallelisation_layouts, only: fields_kxkyz
-      use calculations_redistribute, only: kxkyz2vmu
+      use redistribute, only: kxkyz2vmu
 
       implicit none
 

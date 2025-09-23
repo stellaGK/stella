@@ -70,7 +70,7 @@ contains
    subroutine run_stella
    
       use debug_flags, only: debug => stella_debug
-      use redistribute, only: scatter
+      use initialise_redistribute, only: scatter
       use job_manage, only: time_message, checkstop
       use job_manage, only: checktime
       use file_utils, only: error_unit, flush_output_file
@@ -79,7 +79,7 @@ contains
       use parameters_numerical, only: nstep, tend
       use parameters_numerical, only: avail_cpu_time
       use parameters_diagnostics, only: nsave
-      use calculations_redistribute, only: kxkyz2vmu
+      use redistribute, only: kxkyz2vmu
       use diagnostics_omega, only: checksaturation
       use arrays_distribution_function, only: gnew, gvmu
       

@@ -454,11 +454,11 @@ contains
 
       use mp, only: proc0
       use job_manage, only: time_message
-      use redistribute, only: scatter, gather
+      use initialise_redistribute, only: scatter, gather
       use parallelisation_layouts, only: vmu_lo, kxkyz_lo
       use parallelisation_layouts, only: imu_idx, is_idx, iv_idx
       use grids_velocity, only: nvgrid, nvpa, nmu
-      use calculations_redistribute, only: kxkyz2vmu
+      use redistribute, only: kxkyz2vmu
       use arrays_distribution_function, only: gvmu
       use grids_z, only: nzgrid
 

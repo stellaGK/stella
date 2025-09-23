@@ -2,7 +2,7 @@
 ! (and their inverse routines):
 ! (c) The Numerical Algorithms Group (NAG) Ltd, 2012
 ! on behalf of EPSRC for the HECToR project
-module redistribute
+module initialise_redistribute
 !
 ! Redistribute distributed (integer, real, complex or logical)
 ! (1, 2, 3, or 4) dimensional arrays into two dimensional arrays with
@@ -4987,4 +4987,4 @@ contains
 
    end subroutine measure_scatter_22
 
-end module redistribute
+end module initialise_redistribute

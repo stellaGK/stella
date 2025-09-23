@@ -3,9 +3,9 @@
 !###############################################################################
 ! This module ...
 !###############################################################################
-module calculations_redistribute
+module redistribute
 
-   use redistribute, only: redist_type
+   use initialise_redistribute, only: redist_type
 
    implicit none
 
@@ -76,8 +76,8 @@ contains
       use parallelisation_layouts, only: kxkyz_lo, vmu_lo
       use parallelisation_layouts, only: kxkyzidx2vmuidx
       use parallelisation_layouts, only: idx_local, proc_id
-      use redistribute, only: index_list_type, init_redist
-      use redistribute, only: delete_list, set_redist_character_type
+      use initialise_redistribute, only: index_list_type, init_redist
+      use initialise_redistribute, only: delete_list, set_redist_character_type
       use grids_velocity, only: nvpa, nmu
       use grids_z, only: nzgrid
 
@@ -206,8 +206,8 @@ contains
       use parallelisation_layouts, only: kxyz_lo, vmu_lo
       use parallelisation_layouts, only: kxyzidx2vmuidx
       use parallelisation_layouts, only: idx_local, proc_id
-      use redistribute, only: index_list_type, init_redist
-      use redistribute, only: delete_list, set_redist_character_type
+      use initialise_redistribute, only: index_list_type, init_redist
+      use initialise_redistribute, only: delete_list, set_redist_character_type
       use grids_velocity, only: nvpa, nmu
       use grids_z, only: nzgrid
 
@@ -336,8 +336,8 @@ contains
       use parallelisation_layouts, only: xyz_lo, vmu_lo
       use parallelisation_layouts, only: xyzidx2vmuidx
       use parallelisation_layouts, only: idx_local, proc_id
-      use redistribute, only: index_list_type, init_redist
-      use redistribute, only: delete_list, set_redist_character_type
+      use initialise_redistribute, only: index_list_type, init_redist
+      use initialise_redistribute, only: delete_list, set_redist_character_type
       use grids_velocity, only: nvpa, nmu
       use grids_z, only: nzgrid
 
@@ -466,8 +466,8 @@ contains
       use parallelisation_layouts, only: kymus_lo, vmu_lo
       use parallelisation_layouts, only: kymusidx2vmuidx
       use parallelisation_layouts, only: idx_local, proc_id
-      use redistribute, only: index_list_type, init_redist
-      use redistribute, only: delete_list, set_redist_character_type
+      use initialise_redistribute, only: index_list_type, init_redist
+      use initialise_redistribute, only: delete_list, set_redist_character_type
       use grids_velocity, only: nvpa
       use grids_kxky, only: nakx
       use grids_z, only: nzgrid, ntubes
@@ -619,7 +619,7 @@ contains
 
    subroutine test_kymus_to_vmus_redistribute
 
-      use redistribute, only: scatter, gather
+      use initialise_redistribute, only: scatter, gather
       use arrays_distribution_function, only: g_kymus, gnew
       use grids_velocity, only: nvpa
       use mp, only: proc0, send, receive
@@ -747,4 +747,4 @@ contains
      
    end subroutine test_kymus_to_vmus_redistribute
 
-end module calculations_redistribute
+end module redistribute

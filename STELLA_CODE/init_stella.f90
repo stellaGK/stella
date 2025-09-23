@@ -389,7 +389,7 @@ contains
       ! Initialise other modules
       use initialise_distribution_function, only: init_distribution_function
       use calculations_volume_averages, only: init_volume_averages
-      use calculations_redistribute, only: init_redistribute
+      use redistribute, only: init_redistribute
       use dissipation_and_collisions, only: init_dissipation
       use gk_sources, only: init_sources
       use field_equations_quasineutrality, only: init_field_equations_quasineutrality
@@ -796,7 +796,7 @@ contains
       use gk_implicit_terms, only: time_implicit_advance
       use response_matrix, only: finish_response_matrix
       use dissipation_and_collisions, only: time_collisions, include_collisions 
-      use calculations_redistribute, only: finish_redistribute
+      use redistribute, only: finish_redistribute
       use diagnostics, only: finish_diagnostics, time_diagnostics
       use geometry, only: finish_geometry
       use calculations_volume_averages, only: finish_volume_averages
