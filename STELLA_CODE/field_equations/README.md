@@ -70,9 +70,11 @@ $$
 $$ 
 
 Parallel Amperè's Law is normalised by taking its product with the factor $\frac{L_r}{B_r}$. The equation solved in Fourier space is:
+
 $$
 \frac{\beta_r}{(k_{\perp}\rho_r)^2} \sum_s Z_s n_s v_{th} \frac{2B_0}{\sqrt{\pi}} \int d^3v v_{\parallel} J_{0,s} g_{s} = \left[ 1+ \frac{\beta_r}{(k_{\perp}\rho_r)^2} \sum_s \frac{Z_s n_s}{m_s} \Gamma_{0,s} \right] A_{\parallel}
 $$
+
 ---
 
 ### 3. Parallel Magnetic Field Equation  
