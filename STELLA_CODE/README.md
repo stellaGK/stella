@@ -22,6 +22,7 @@ stellarators.
     + [Grids](#grids)
     + [Gyrokinetic_terms](#gyrokinetic-terms)
     + [Neoclassical](#neoclassical)
+    + [Parallelisation](#parallelisation)
     + [Parameters](#parameters)
     + [Radial_variation](#radial-variation)
     + [Read_namelists_from_input_file](#read-namelists-from-input-file)
@@ -75,12 +76,12 @@ The `calculations` folder contains the following scripts:
 - calculations_gyro_averages.f90 
 - calculations_kxky_derivatives.f90
 - calculations_kxky.f90 
-- calculations_redistribute.f90 
 - calculations_timestep.f90 
 - calculations_tofrom_ghf.f90
 - calculations_transforms.f90 
 - calculations_velocity_integrals.f90
 - calculations_volume_averages.f90 
+- interface_random_number_generator.f90 
 
 <br>
 
@@ -189,15 +190,23 @@ The `neoclassical` folder contains the following scripts:
 <br>
 
 
+ ### Parallelisation
+
+The `parallelisation` folder contains the following scripts:
+
+- common_type.f90
+- initialise_redistribute.f90
+- parallelisation_layouts.f90 
+- redistribute.f90 
+
+<br>
+
+
 ### Parameters  
 
 The `parameters` folder contains the following scripts:
 
-- common_type.f90
 - debug_flags.f90
-- file_units.f90 
-- interface_random_number_generator.f90 
-- parallelisation_layouts.f90 
 - parameters_diagnostics.f90 
 - parameters_multibox.f90 
 - parameters_numerical.f90
