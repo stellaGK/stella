@@ -63,20 +63,16 @@ $$
 
 ### 2. Parallel Amperè's Law  
 
-Amperè's law is $\nabla \cross \delta \mathbf{B} = \frac{4 \pi}{c} \delta \mathbf{J}$. We can take parallel and perpendicular components to get 
+Amperè's law is $\nabla \times \delta \mathbf{B} = \frac{4 \pi}{c} \delta \mathbf{J}$. We can take parallel and perpendicular components to get 
 
 $$
 \nabla_{\perp}^2 A_{\parallel} = \frac{4 \pi}{c} \sum_{s} Z_{s}e \int d^3 v v_{\parallel} [\langle g_{s} \rangle_{r} + \frac{Z_{s} e}{T_{s} c} F_0 v_{\parallel} \langle \langle A_{\parallel} \rangle_{R} \rangle_{r} ] = 0.
 $$ 
 
-TO DO  
-
+Parallel Amperè's Law is normalised by taking its product with the factor $\frac{L_r}{B_r}$. The equation solved in Fourier space is:
 $$
--\nabla_\perp^2 A_\parallel = \mu_0 \sum_s j_{\parallel, s}
+\frac{\beta_r}{(k_{\perp}\rho_r)^2} \sum_s Z_s n_s v_{th} \frac{2B_0}{\sqrt{\pi}} \int d^3v v_{\parallel} J_{0,s} g_{s} = \left[ 1+ \frac{\beta_r}{(k_{\perp}\rho_r)^2} \sum_s \frac{Z_s n_s}{m_s} \Gamma_{0,s} \right] A_{\parallel}
 $$
-
-where $A_\parallel$ is the parallel component of the vector potential and $j_{\parallel, s}$ is the parallel current.
-
 ---
 
 ### 3. Parallel Magnetic Field Equation  
