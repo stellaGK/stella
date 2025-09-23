@@ -128,8 +128,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_species.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_velocity_grids.f90
   ../STELLA_CODE/read_namelists_from_input_file/namelist_z_grid.f90
-  ../STELLA_CODE/utils/file_units.f90
-  ../STELLA_CODE/calculations/interface_random_number_generator.f90
   ../STELLA_CODE/utils/define.inc
 )
 
