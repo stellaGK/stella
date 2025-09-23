@@ -19,7 +19,7 @@ where $Z_s$ is the charge and $n_s$ is the density of species $s$.
 In terms of the distribution function this is:
 
 $$
-\sum_s Z_s \int \delta f_s \, d^3v = 0
+\sum_s Z_s \int \delta f_s d^3v = 0
 $$
 
 where $\delta f_s$ is the perturbed distribution function for species $s$, and the integral is performed at fixed particle position, $r$.
@@ -27,8 +27,7 @@ where $\delta f_s$ is the perturbed distribution function for species $s$, and t
 In the electromagnetic case, quasineutrality becomes
 
 $$
-\sum_s Z_s \int \langle g_s \rangle_{\mathbf{r}} 
-+ \frac{Z_s e}{T_s} F_0 \left( \langle \langle \chi \rangle_{R} \rangle_{r} - \phi \right) \, d^3v = 0
+\sum_s Z_s \int \langle g_s \rangle_{\mathbf{r}} + \frac{Z_s e}{T_s} F_0 \left( \langle \langle \chi \rangle_{R} \rangle_{r} - \phi \right) d^3v = 0
 $$
 
 where the angle brackets indicate the gyroaverage at fixed particle position, $r$, or gyrocenter position, $R$.  
