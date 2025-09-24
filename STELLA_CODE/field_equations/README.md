@@ -53,11 +53,13 @@ where the angle brackets indicate the gyroaverage at fixed particle position, $r
 Here $\chi = \phi - \mathbf{v} \cdot \mathbf{A}$ is the generalised potential, with $\phi$ the electrostatic potential, and $\mathbf{A}$ the magnetic vector potential. 
 
 Quasineturality is normalised by taking its product with the factor $\frac{L_r}{\rho_r e n_r}$.  
-Any velocity integrals that are independent of $g_s$ can be evaluated, and the quasineutrality equation, in Fourier space, solved by **stella** is:
+Any velocity integrals that are independent of $g_s$ can be evaluated, and the quasineutrality equation, in Fourier space, solved by stella is:
 
 $$
-\sum_s Z_s n_s \frac{2 B_0}{\sqrt{\pi}} \int d v_{\parallel} \int d \mu_s J_{0,s} \tilde{g}_s + \frac{Z_s^2 n_s}{T_s}(\Gamma_{0,s} - 1) \tilde{\phi} + \frac{Z_s n_s}{B_0} \Gamma_{1,s} \delta \tilde{B}_{\parallel} = 0
+\sum_s Z_s n_s \frac{2 B_0}{\sqrt{\pi}} \int d v_{\parallel} \int d \mu_s J_{0,s} g_s + \frac{Z_s^2 n_s}{T_s}(\Gamma_{0,s} - 1) \phi + \frac{Z_s n_s}{B_0} \Gamma_{1,s} \delta B_{\parallel} = 0
 $$
+
+(where everything is writen in terms of normalised quantities, and titles have been ignored).
 
 ---
 
@@ -75,6 +77,7 @@ $$
 \frac{\beta_r}{(k_{\perp}\rho_r)^2} \sum_s Z_s n_s v_{th} \frac{2B_0}{\sqrt{\pi}} \int d v_{\parallel} \int d \mu_s v_{\parallel} J_{0,s} g_{s} = \left[ 1+ \frac{\beta_r}{(k_{\perp}\rho_r)^2} \sum_s \frac{Z_s n_s}{m_s} \Gamma_{0,s} \right] A_{\parallel}
 $$
 
+(where everything is writen in terms of normalised quantities, and titles have been ignored).
 ---
 
 ### 3. Perpendicular Amperè's Law
@@ -88,5 +91,7 @@ $$
 This is normalised by taking its product with the factor $\frac{L_r \rho_r}{B_r}$, to give:
 
 $$
-\nabla_{\perp}^2 \delta B_{\parallel} = \frac{2B_0 \beta_r}{\sqrt{\pi}} \sum_s Z_s n_s \int d v_{\parallel} \int d \mu_s \nabla \cdot \left\langle (g_{s} + \frac{Z_s}{T_{s}} \left\langle \chi_{s} \right\rangle_{r} e^{-v^2})(\hat{\mathbf{b}} \times \mathbf{v}_{\perp}) \right\rangle_{r} .
+\nabla_{\perp}^2 \delta B_{\parallel} = \frac{2B_0 \beta_r}{\sqrt{\pi}} \sum_s Z_s n_s \int d v_{\parallel} \int d \mu_s \nabla \cdot \left\langle (g_{s} + \frac{Z_s}{T_{s}} \left\langle \chi_{s} \right\rangle_{r} e^{-v^2})(\hat{\mathbf{b}} \times \mathbf{v}_{\perp}) \right\rangle_{r} 
 $$
+
+(where everything is writen in terms of normalised quantities, and titles have been ignored).
