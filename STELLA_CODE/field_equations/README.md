@@ -79,6 +79,7 @@ $$
 $$
 
 (where everything is writen in terms of normalised quantities, and titles have been ignored).
+
 ---
 
 ### 3. Perpendicular Amperè's Law
