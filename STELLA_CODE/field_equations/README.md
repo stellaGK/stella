@@ -29,6 +29,7 @@ $$
 ### 1. Quasineutrality Equation  
 
 Quasineutrality is defined as: 
+
 $$
 \sum_s Z_s \delta n_s = 0
 $$
