@@ -88,5 +88,5 @@ $$
 This is normalised by taking its product with the factor $\frac{L_r \rho_r}{B_r}$, to give:
 
 $$
-\grad_{\perp}^2 \delta B_{\parallel} = \frac{2B_0 \beta_r}{\sqrt{\pi}} \sum_s Z_s n_s \int d v_{\parallel} \int d \mu_s \nabla \cdot \left\langle (g_{s} + \frac{Z_s}{T_{s}} \left\langle \chi_{s} \right\rangle_{r} e^{-v^2})(\hat{\mathbf{b}} \times \mathbf{v}_{\perp}) \right\rangle_{r} .
+\nabla_{\perp}^2 \delta B_{\parallel} = \frac{2B_0 \beta_r}{\sqrt{\pi}} \sum_s Z_s n_s \int d v_{\parallel} \int d \mu_s \nabla \cdot \left\langle (g_{s} + \frac{Z_s}{T_{s}} \left\langle \chi_{s} \right\rangle_{r} e^{-v^2})(\hat{\mathbf{b}} \times \mathbf{v}_{\perp}) \right\rangle_{r} .
 $$
