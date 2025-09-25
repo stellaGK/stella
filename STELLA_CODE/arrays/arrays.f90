@@ -30,7 +30,6 @@ module arrays
    public :: response_matrix, response_window
    public :: shift_state
    public :: denominator_fields, ddenominator_fieldsdr
-   public :: denominator_fields13, denominator_fields_MBR1, denominator_fields_MBR3
    public :: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
    public :: denominator_fields_MBR
    public :: apar_denom
