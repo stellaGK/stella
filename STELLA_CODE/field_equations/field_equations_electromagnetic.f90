@@ -29,6 +29,7 @@ module field_equations_electromagnetic
       module procedure advance_fields_electromagnetic_vmulo
    end interface
 
+   real, dimension(:, :, :), allocatable :: denominator_fields13, denominator_fields31, denominator_fields33
 contains
 
 !###############################################################################

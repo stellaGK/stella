@@ -84,7 +84,6 @@ module arrays
    ! The denominators needed to calculate <phi> are initialised in 
    !     - field_equations_fluxtube::init_field_equations_fluxtube
    real, dimension(:, :, :), allocatable :: denominator_fields, ddenominator_fieldsdr
-   real, dimension(:, :, :), allocatable :: denominator_fields13, denominator_fields_MBR1, denominator_fields_MBR3
    real, dimension(:, :, :), allocatable :: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
    real, dimension(:, :), allocatable :: denominator_fields_MBR
    real, dimension(:, :, :), allocatable ::  apar_denom
