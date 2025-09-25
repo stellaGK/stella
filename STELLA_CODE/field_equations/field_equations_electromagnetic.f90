@@ -1,10 +1,12 @@
 !###############################################################################
-!                                                                               
+!###################### ADVANCE ELECTROMAGNETIC FIELDS #########################
 !###############################################################################
 ! 
 ! Module for advancing and initialising the fields when electromagnetic 
 ! effects are included, i.e., when evolving the apar and bpar fields.
 ! 
+! Here, the addition to QN is solved for, when bpar is included.
+! Parallel and perpendicular Ampere's Law are also solved.
 !###############################################################################
 module field_equations_electromagnetic
 
@@ -17,27 +19,27 @@ module field_equations_electromagnetic
    public :: init_field_equations_electromagnetic
    public :: allocate_field_equations_electromagnetic
    public :: finish_field_equations_electromagnetic
-   public :: advance_fields_using_fields_electromagnetic
+   public :: advance_fields_electromagnetic
    public :: advance_apar
    
    private
 
-   interface advance_fields_using_fields_electromagnetic
-      module procedure advance_fields_using_fields_electromagnetic_kxkyzlo
-      module procedure advance_fields_using_fields_electromagnetic_vmulo
+   interface advance_fields_electromagnetic
+      module procedure advance_fields_electromagnetic_kxkyzlo
+      module procedure advance_fields_electromagnetic_vmulo
    end interface
 
 contains
 
 !###############################################################################
-!###### ADVANCE ELECTROMAGNETIC FIELDS USING THE QUASINEUTRALITY EQUATION ######
+!####################### ADVANCE ELECTROMAGNETIC FIELDS ########################
 !###############################################################################
 
    !****************************************************************************
-   !     ADVANCE ELECTROMAGNETIC FIELDS USING THE QUASINEUTRALITY EQUATION      
+   !                       ADVANCE ELECTROMAGNETIC FIELDS    
    !****************************************************************************
    ! The fields (electrostatic potential and electromagnetic fields) are evolved
-   ! in time though the quasi-neutrality equation.
+   ! in time though the quasineutrality equation and Ampere's law.
    ! 
    ! If we are parallelising over (vpa,mu) then this subroutine is called
    ! This is the more common version used compared with parallelising over 
@@ -45,8 +47,12 @@ contains
    ! 
    ! This advances the fields when Electromagnetic effects are included, so 
    ! we advance <phi>, <B_parallel>, and <A_parallel>.
+   !
+   ! Currently, stella only supports electromagnetic effects when simulating
+   ! a flux-tube. This module is therefore limited to flux-tube electromagnetic
+   ! effects. 
    !****************************************************************************
-   subroutine advance_fields_using_fields_electromagnetic_vmulo(g, phi, apar, bpar, dist)
+   subroutine advance_fields_electromagnetic_vmulo(g, phi, apar, bpar, dist)
 
       ! Parallelisation
       use mp, only: proc0, mp_abort
@@ -73,7 +79,7 @@ contains
       use calculations_gyro_averages, only: gyro_average
       use calculations_gyro_averages, only: gyro_average_j1
       
-      ! Routines from other quasi-neutrality modules
+      ! Routines from other quasineutrality modules
       use field_equations_radialvariation, only: add_radial_correction_int_species
 
       implicit none
@@ -92,7 +98,7 @@ contains
       if (fphi > epsilon(0.0) .and. include_bpar) then
       
          ! Start timer
-         if (debug) write (*, *) 'field_equations_quasineutrality::electromagnetic::advance_fields::vmulo::include_bpar'
+         if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::vmulo::include_bpar'
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
          
          ! Gyroaverage the distribution function g at each phase space location
@@ -103,7 +109,7 @@ contains
          
          ! Integrate <g> over velocity space and sum over species
          ! store result in phi, which will be further modified below to account for polarization term
-         if (debug) write (*, *) 'field_equations_quasineutrality::electromagnetic::advance_fields::vmulo::integrate_species_phi'
+         if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::vmulo::integrate_species_phi'
          call integrate_species(g_scratch, spec%z * spec%dens_psi0, phi)
          
          ! Gyroaverage the distribution function g at each phase space location
@@ -118,7 +124,7 @@ contains
          ! <g> requires modification if radial profile variation is included; not supported for bpar MRH
          ! Integrate <g> over velocity space and sum over species
          ! store result in bpar, which will be further modified below to account for polarization term
-         if (debug) write (*, *) 'field_equations_quasineutrality::electromagnetic::advance_fields::vmulo::integrate_species_bpar'
+         if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::vmulo::integrate_species_bpar'
          call integrate_species(g_scratch, -2.0 * beta * spec%temp_psi0 * spec%dens_psi0, bpar)
          
          ! End timer
@@ -136,7 +142,7 @@ contains
       if (include_apar) then
       
          ! Start timer
-         if (debug) write (*, *) 'field_equations_quasineutrality::electromagnetic::advance_fields::vmulo::include_apar'
+         if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::vmulo::include_apar'
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g')
          
          ! If fphi > 0, then g_scratch = <g> already calculated above
@@ -151,7 +157,7 @@ contains
          
          ! Integrate vpa*<g> over velocity space and sum over species
          ! store result in apar, which will be further modified below to account for apar pre-factor
-         if (debug) write (*, *) 'field_equations_quasineutrality::electromagnetic::advance_fields::vmulo::integrate_species_apar'
+         if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::vmulo::integrate_species_apar'
          call integrate_species(g_scratch, spec%z * spec%dens_psi0 * spec%stm_psi0 * beta, apar)
          
          ! End timer
@@ -164,12 +170,12 @@ contains
          
       end if
 
-   end subroutine advance_fields_using_fields_electromagnetic_vmulo
+   end subroutine advance_fields_electromagnetic_vmulo
 
    !****************************************************************************
    !**************************** GET FIELDS KXKYZLO ****************************
    !****************************************************************************
-   subroutine advance_fields_using_fields_electromagnetic_kxkyzlo(g, phi, apar, bpar, dist)
+   subroutine advance_fields_electromagnetic_kxkyzlo(g, phi, apar, bpar, dist)
 
       ! Parallelisation
       use mp, only: proc0
@@ -219,7 +225,7 @@ contains
       if (fphi > epsilon(0.0) .and. include_bpar) then
       
          ! Start timer
-         if (debug) write (*, *) 'field_equations_quasineutrality::electromagnetic::advance_fields::kxkyzlo::include_bpar'
+         if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::kxkyzlo::include_bpar'
          if (proc0) call time_message(.false., time_field_solve(:, 3), ' int_dv_g int_dv_g_vperp2')
          
          ! Allocate temporary arrays
@@ -269,7 +275,7 @@ contains
       if (include_apar) then
       
          ! Debug 
-         if (debug) write (*, *) 'field_equations_quasineutrality::electromagnetic::advance_fields::kxkyzlo::include_apar'
+         if (debug) write (*, *) 'field_equations_electromagnetic::advance_fields::kxkyzlo::include_apar'
          
          ! Allocate temporary arrays
          allocate (g0(nvpa, nmu))
@@ -309,7 +315,7 @@ contains
          
       end if
 
-   end subroutine advance_fields_using_fields_electromagnetic_kxkyzlo
+   end subroutine advance_fields_electromagnetic_kxkyzlo
 
    !****************************************************************************
    !**************************** GET APAR AND BPAR *****************************
@@ -341,7 +347,7 @@ contains
       !-------------------------------------------------------------------------
       
       ! Start timer
-      if (debug) write (*, *) 'field_equations_quasineutrality::electromagnetic::calculate_phi_and_bpar'
+      if (debug) write (*, *) 'field_equations_electromagnetic::calculate_phi_and_bpar'
       if (proc0) call time_message(.false., time_field_solve(:, 4), ' calculate_phi_and_bpar')
 
       ! Assume we only have one field line
@@ -378,7 +384,7 @@ contains
    end subroutine calculate_phi_and_bpar
 
    !****************************************************************************
-   !                                      Title
+   !                                    GET APAR
    !****************************************************************************
    ! Get_apar solves pre-factor * Apar = beta_ref * sum_s Z_s n_s vth_s int d3v vpa * J0 * pdf
    ! for apar, with pdf being either g or gbar (specified by dist input).
@@ -427,7 +433,11 @@ contains
    end subroutine get_apar
 
    !****************************************************************************
-   !                                      Title
+   !                                 Advance Apar
+   !****************************************************************************
+   ! Advance the apar field when electromagnetic effects are included.
+   ! This has its own subroutine because Apar is solved using parallel Ampere's Law
+   ! which does not involve phi or bpar.
    !****************************************************************************
    subroutine advance_apar(g, dist, apar)
 
@@ -491,7 +501,7 @@ contains
    end subroutine advance_apar
 
 !###############################################################################
-!############################ INITALISE & FINALIZE #############################
+!############################ INITALISE & FINALISE #############################
 !###############################################################################
 
    !****************************************************************************
@@ -616,7 +626,7 @@ contains
          denominator_fields_MBR1 = -0.5 * beta * denominator_fields13 
          deallocate (g0)
       end if
-
+      
             
       ! Compute coefficients for even part of field solve (phi, bpar)
       if (fphi > epsilon(0.0) .and. include_bpar) then

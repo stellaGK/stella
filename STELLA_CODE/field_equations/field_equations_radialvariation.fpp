@@ -2,7 +2,8 @@
 !                                                                               
 !###############################################################################
 ! 
-! Module for advancing and initialising the fields when Radial Variation effects are included
+! Module for advancing and initialising the fields when Radial Variation 
+! effects are included. Author: D. St-Onge
 ! 
 !###############################################################################
 module field_equations_radialvariation

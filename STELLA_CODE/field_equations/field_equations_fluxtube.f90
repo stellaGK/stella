@@ -168,7 +168,7 @@ contains
       use calculations_velocity_integrals, only: integrate_species
       
       ! Routines from other field modules
-      use field_equations_electromagnetic, only: advance_fields_using_fields_electromagnetic
+      use field_equations_electromagnetic, only: advance_fields_electromagnetic
       use field_equations_radialvariation, only: add_radial_correction_int_species
       use field_equations_radialvariation, only: calculate_phi_for_radial_variation
       
@@ -238,7 +238,7 @@ contains
       if (include_apar .or. include_bpar) then
          if (debug) write (*, *) 'field_equations_fluxtube::vmulo::electromagnetic'
          apar = 0.; bpar = 0.
-         call advance_fields_using_fields_electromagnetic(g, phi, apar, bpar, dist)
+         call advance_fields_electromagnetic(g, phi, apar, bpar, dist)
       end if
 
    end subroutine advance_fields_fluxtube_using_field_equations_vmulo
@@ -281,7 +281,7 @@ contains
       use calculations_velocity_integrals, only: integrate_vmu
       
       ! Routines from other field modules
-      use field_equations_electromagnetic, only: advance_fields_using_fields_electromagnetic
+      use field_equations_electromagnetic, only: advance_fields_electromagnetic
       use field_equations_radialvariation, only: calculate_phi_for_radial_variation
 
       implicit none
@@ -369,7 +369,7 @@ contains
       if (include_apar .or. include_bpar) then 
          if (debug) write (*, *) 'field_equations_fluxtube::kxkyzlo::electromagnetic'
          bpar = 0.; apar = 0.
-         call advance_fields_using_fields_electromagnetic(g, phi, apar, bpar, dist)
+         call advance_fields_electromagnetic(g, phi, apar, bpar, dist)
       end if
 
    end subroutine advance_fields_fluxtube_using_field_equations_kxkyzlo

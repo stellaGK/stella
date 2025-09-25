@@ -8,9 +8,9 @@
 !        - Electrostatic
 !        - Electromagnetic
 ! Simulation domains:
-!        - Flux tube. -> Supports electrostatic and electromagnetic
+!        - Flux tube -> Supports electrostatic and electromagnetic
 !        - Full flux annulus -> Supports only electrostatic
-!        - Radially global -> Supports only electrostatic
+!        - Radially global (extension of flux tube) -> Supports only electrostatic
 !
 !###############################################################################
 module field_equations
@@ -156,28 +156,35 @@ contains
       initialised_fields = .true.
 
       ! Allocate arrays such as phi that are needed throughout the simulation
-      if (debug) write (*, *) 'field_equations_quasineutrality::init::allocate_arrays'
+      if (debug) write (*, *) 'field_equations::init::allocate_arrays'
       call allocate_arrays
 
-      ! Full-flux-surface simulations
+      !-------------------------------------------------------------------------
+      !                        Full Flux Surface simulation
+      !-------------------------------------------------------------------------
       if (full_flux_surface) then
       
-         if (debug) write (*, *) 'field_equations_quasineutrality::init::ffs'
+         if (debug) write (*, *) 'field_equations::init::ffs'
          nfields = 1
          call init_field_equations_fullfluxsurface
          
-      ! Flux-tube simulations
+      !-------------------------------------------------------------------------
+      !                            Flux Tube simulation
+      !-------------------------------------------------------------------------
       else
       
-         if (debug) write (*, *) 'field_equations_quasineutrality::init::fluxtube'
+         ! Electrostatic flux tube 
+         if (debug) write (*, *) 'field_equations::init::fluxtube'
          nfields = 1
          call init_field_equations_fluxtube
 
-         if (debug) write (*, *) 'field_equations_quasineutrality::init::electromagnetic'
+         ! Electromagnetic flux tube
+         if (debug) write (*, *) 'field_equations::init::electromagnetic'
          call init_field_equations_electromagnetic(nfields)
 
+         ! Radial Variation effects
          if (radial_variation) then
-            if (debug) write (*, *) 'field_equations_quasineutrality::init::radial_variation'
+            if (debug) write (*, *) 'field_equations::init::radial_variation'
             call init_field_equations_radialvariation
          end if
          
