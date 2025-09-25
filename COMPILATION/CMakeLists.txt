@@ -136,7 +136,7 @@ set(STELLA_SOURCES_fpp
   ../STELLA_CODE/diagnostics/write_diagnostics_to_netcdf.fpp
   ../STELLA_CODE/diagnostics/save_stella_for_restart.fpp
   ../STELLA_CODE/field_equations/field_equations_radialvariation.fpp
-  ../STELLA_CODE/field_equations/field_equations_quasineutrality.fpp
+  ../STELLA_CODE/field_equations/field_equations.fpp
   ../STELLA_CODE/field_equations/field_equations_collisions.fpp
   ../STELLA_CODE/field_equations/field_equations_electromagnetic.fpp
   ../STELLA_CODE/field_equations/field_equations_fluxtube.fpp
