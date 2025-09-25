@@ -90,7 +90,6 @@ set(STELLA_SOURCES_f90
   ../STELLA_CODE/grids/grids_time.f90
   ../STELLA_CODE/grids/grids_velocity.f90
   ../STELLA_CODE/grids/grids_z.f90
-  ../STELLA_CODE/field_equations/field_equations_radialvariation.f90
   ../STELLA_CODE/field_equations/field_equations.f90
   ../STELLA_CODE/field_equations/field_equations_collisions.f90
   ../STELLA_CODE/field_equations/field_equations_electromagnetic.f90
@@ -142,6 +141,7 @@ set(STELLA_SOURCES_fpp
   ../STELLA_CODE/diagnostics/write_diagnostics_to_netcdf.fpp
   ../STELLA_CODE/diagnostics/save_stella_for_restart.fpp
   ../STELLA_CODE/gyrokinetic_equation/response_matrix.fpp
+  ../STELLA_CODE/field_equations/field_equations_radialvariation.fpp
   ../STELLA_CODE/radial_variation/gk_sources.fpp
   ../STELLA_CODE/neoclassical/sfincs_interface.fpp
 )
