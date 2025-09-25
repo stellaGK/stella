@@ -778,7 +778,7 @@ contains
             call mpi_win_fence(0, phi_shared_window, ierr)
          end if
 
-         if (debug) write (*, *) 'fields::init_field_equations_quasineutrality::qn_window_init'
+         if (debug) write (*, *) 'fields::init_field_equations::qn_window_init'
          if (qn_window == MPI_WIN_NULL) then
             win_size = 0
             if (sgproc0) then

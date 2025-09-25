@@ -3,6 +3,7 @@
 !###############################################################################
 ! 
 ! Module for advancing and initialising the fields when Full Flux Surface effects are included
+! The commenting will be improved when FFS is correctly implemented - to come shortly.
 ! 
 !###############################################################################
 module field_equations_fullfluxsurface

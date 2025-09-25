@@ -331,8 +331,8 @@ contains
       use grids_z, only: nzgrid
       use multibox, only: multibox_communicate, apply_radial_boundary_conditions
       use parameters_multibox, only: use_dirichlet_bc
-      use field_equations_quasineutrality, only: fields_updated
-      use field_equations_quasineutrality, only: advance_fields_using_field_equations_quasineutrality
+      use field_equations, only: fields_updated
+      use field_equations, only: advance_fields
       use arrays_fields, only: phi, apar, bpar
       use file_utils, only: runtype_option_switch, runtype_multibox
 
@@ -345,19 +345,19 @@ contains
 
       if (runtype_option_switch == runtype_multibox) then
          if (job /= 1) then
-               call advance_fields_using_field_equations_quasineutrality(g_in, phi, apar, bpar, dist='g')
+               call advance_fields(g_in, phi, apar, bpar, dist='g')
          end if
 
          call multibox_communicate(g_in)
 
          if (job == 1) then
                fields_updated = .false.
-               call advance_fields_using_field_equations_quasineutrality(g_in, phi, apar, bpar, dist='g')
+               call advance_fields(g_in, phi, apar, bpar, dist='g')
          end if
       else if (use_dirichlet_BC) then
          call apply_radial_boundary_conditions(g_in)
          fields_updated = .false.
-         call advance_fields_using_field_equations_quasineutrality(g_in, phi, apar, bpar, dist='g')
+         call advance_fields(g_in, phi, apar, bpar, dist='g')
       end if
 
    end subroutine mb_communicate

@@ -17,14 +17,14 @@ module field_equations_electromagnetic
    public :: init_field_equations_electromagnetic
    public :: allocate_field_equations_electromagnetic
    public :: finish_field_equations_electromagnetic
-   public :: advance_fields_using_QN_electromagnetic
+   public :: advance_fields_using_fields_electromagnetic
    public :: advance_apar
    
    private
 
-   interface advance_fields_using_QN_electromagnetic
-      module procedure advance_fields_using_QN_electromagnetic_kxkyzlo
-      module procedure advance_fields_using_QN_electromagnetic_vmulo
+   interface advance_fields_using_fields_electromagnetic
+      module procedure advance_fields_using_fields_electromagnetic_kxkyzlo
+      module procedure advance_fields_using_fields_electromagnetic_vmulo
    end interface
 
 contains
@@ -46,7 +46,7 @@ contains
    ! This advances the fields when Electromagnetic effects are included, so 
    ! we advance <phi>, <B_parallel>, and <A_parallel>.
    !****************************************************************************
-   subroutine advance_fields_using_QN_electromagnetic_vmulo(g, phi, apar, bpar, dist)
+   subroutine advance_fields_using_fields_electromagnetic_vmulo(g, phi, apar, bpar, dist)
 
       ! Parallelisation
       use mp, only: proc0, mp_abort
@@ -164,12 +164,12 @@ contains
          
       end if
 
-   end subroutine advance_fields_using_QN_electromagnetic_vmulo
+   end subroutine advance_fields_using_fields_electromagnetic_vmulo
 
    !****************************************************************************
    !**************************** GET FIELDS KXKYZLO ****************************
    !****************************************************************************
-   subroutine advance_fields_using_QN_electromagnetic_kxkyzlo(g, phi, apar, bpar, dist)
+   subroutine advance_fields_using_fields_electromagnetic_kxkyzlo(g, phi, apar, bpar, dist)
 
       ! Parallelisation
       use mp, only: proc0
@@ -309,7 +309,7 @@ contains
          
       end if
 
-   end subroutine advance_fields_using_QN_electromagnetic_kxkyzlo
+   end subroutine advance_fields_using_fields_electromagnetic_kxkyzlo
 
    !****************************************************************************
    !**************************** GET APAR AND BPAR *****************************

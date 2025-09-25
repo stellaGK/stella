@@ -45,8 +45,8 @@ contains
       use arrays_distribution_function, only: gnew
       
       ! If required, we will update the fields
-      use field_equations_quasineutrality, only: advance_fields_using_field_equations_quasineutrality
-      use field_equations_quasineutrality, only: fields_updated
+      use field_equations, only: advance_fields
+      use field_equations, only: fields_updated
 
       ! Flags
       use parameters_physics, only: radial_variation
@@ -91,7 +91,7 @@ contains
 
       ! Get the updated fields <phi>(ky,kx,z,tube) corresponding to <gnew>(ky,kx,z,tube,i[vpa,mu,s])
       if (radial_variation) fields_updated = .false.
-      call advance_fields_using_field_equations_quasineutrality(gnew, phi, apar, bpar, dist='g')
+      call advance_fields(gnew, phi, apar, bpar, dist='g')
 
       ! First write data that also has ascii files (do potential first since it will update the fields)
       call write_potential_to_netcdf_file(istep, nout, time_diagnostics(:, 2), write_to_netcdf_file)

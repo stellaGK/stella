@@ -254,7 +254,7 @@ contains
       use geometry, only: dl_over_b
       use arrays_distribution_function, only: gvmu
       use arrays_gyro_averages, only: aj0v
-      use field_equations_fluxtube, only: advance_fields_using_field_equations_quasineutrality
+      use field_equations_fluxtube, only: advance_fields_fluxtube_using_field_equations
       use field_equations_collisions, only: get_fields_by_spec
       use arrays, only: efac, denominator_fields_h
       use grids_species, only: adiabatic_option_switch
@@ -320,7 +320,7 @@ contains
       ! for phi equation, need 1-P[dhs/dphi]
       ! for upar equations, need -Us[dhs/dphi]
       ! for energy conservation, need -Qs[dhs/dphi]
-      call advance_fields_using_field_equations_quasineutrality(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h', skip_fsa=.true.)
+      call advance_fields_fluxtube_using_field_equations(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h', skip_fsa=.true.)
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -521,7 +521,7 @@ contains
       use arrays_distribution_function, only: gvmu
       use arrays, only: kperp2
       use arrays_gyro_averages, only: aj0v, aj1v
-      use field_equations_fluxtube, only: advance_fields_using_field_equations_quasineutrality
+      use field_equations_fluxtube, only: advance_fields_fluxtube_using_field_equations
       use field_equations_collisions, only: get_fields_by_spec
       use arrays, only: efac, denominator_fields_h
       use grids_species, only: adiabatic_option_switch
@@ -578,7 +578,7 @@ contains
       ! for phi equation, need 1-P[dhs/dphi]
       ! for uperp equations, need -Us[dhs/dphi]
       ! for energy conservation, need -Qs[dhs/dphi]
-      call advance_fields_using_field_equations_quasineutrality(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h', skip_fsa=.true.)
+      call advance_fields_fluxtube_using_field_equations(gvmu, field(:, :, :, :, 1), dum1, dum3, dist='h', skip_fsa=.true.)
 
       do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
          iky = iky_idx(kxkyz_lo, ikxkyz)
@@ -1732,7 +1732,7 @@ contains
       use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
       use calculations_tofrom_ghf, only: g_to_h
       use arrays_gyro_averages, only: aj0v
-      use field_equations_fluxtube, only: advance_fields_using_field_equations_quasineutrality
+      use field_equations_fluxtube, only: advance_fields_fluxtube_using_field_equations
       use arrays, only: efac, denominator_fields_h
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
@@ -1774,7 +1774,7 @@ contains
 
       ! Need to obtain phi^{n+1} and conservation terms using response matrix approach
       ! first get phi_inh^{n+1}
-      call advance_fields_using_field_equations_quasineutrality(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
+      call advance_fields_fluxtube_using_field_equations(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
       flds(:, :, :, :, 1) = phi
 
       idx = 2
@@ -1906,7 +1906,7 @@ contains
       use arrays, only: kperp2
       use arrays_gyro_averages, only: aj0v, aj1v
       use calculations_tofrom_ghf, only: g_to_h
-      use field_equations_fluxtube, only: advance_fields_using_field_equations_quasineutrality
+      use field_equations_fluxtube, only: advance_fields_fluxtube_using_field_equations
       use arrays, only: efac, denominator_fields_h
       use geometry, only: bmag, dl_over_b
       use grids_species, only: adiabatic_option_switch
@@ -1950,7 +1950,7 @@ contains
 
       ! Need to obtain phi^{n+1} and conservation terms using response matrix approach
       ! first get phi_inh^{n+1}
-      call advance_fields_using_field_equations_quasineutrality(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
+      call advance_fields_fluxtube_using_field_equations(g, phi, apar, bpar, dist='h', skip_fsa=.true.)
       flds(:, :, :, :, 1) = phi
 
       idx = 2

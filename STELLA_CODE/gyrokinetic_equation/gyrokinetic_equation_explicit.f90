@@ -42,7 +42,7 @@ contains
       ! Fields
       use parameters_physics, only: include_apar
       use arrays_fields, only: phi, apar, bpar
-      use field_equations_quasineutrality, only: advance_fields_using_field_equations_quasineutrality
+      use field_equations, only: advance_fields
       
       ! Grids
       use grids_z, only: nzgrid
@@ -78,7 +78,7 @@ contains
       
       ! If the fields are not already updated, then update them
       if (include_apar) then
-         call advance_fields_using_field_equations_quasineutrality(g, phi, apar, bpar, dist='g')
+         call advance_fields(g, phi, apar, bpar, dist='g')
       end if
 
       ! Incoming distribution function is g = h - (Z F0/T) (J0 phi + 4 mu (T/Z) (J1/gamma) bpar)
@@ -104,7 +104,7 @@ contains
 
       ! If the fields are not already updated, then update them
       if (include_apar) then
-         call advance_fields_using_field_equations_quasineutrality(g, phi, apar, bpar, dist='gbar')
+         call advance_fields(g, phi, apar, bpar, dist='gbar')
       end if
       
       ! Later, the implicit solve will use <g> rather than <gbar> to advance the 
@@ -199,8 +199,8 @@ contains
       use gk_radial_variation, only: advance_radial_variation
       use gk_nonlinearity, only: advance_ExB_nonlinearity
       use field_equations_radialvariation, only: get_radial_correction
-      use field_equations_quasineutrality, only: advance_fields_using_field_equations_quasineutrality
-      use field_equations_quasineutrality, only: fields_updated
+      use field_equations, only: advance_fields
+      use field_equations, only: fields_updated
 
       implicit none
 
@@ -239,17 +239,17 @@ contains
 
       ! Start with g in k-space and (ky,kx,z) local
       ! obtain fields corresponding to g
-      if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gyrokinetic_equation_explicit::advance_fields_using_field_equations_quasineutrality'
+      if (debug) write (*, *) 'time_advance::advance_stella::advance_explicit::solve_gyrokinetic_equation_explicit::advance_fields'
 
       ! If advancing apar, then gbar is evolved in time rather than g
       if (include_apar) then
-         call advance_fields_using_field_equations_quasineutrality(pdf, phi, apar, bpar, dist='gbar')
+         call advance_fields(pdf, phi, apar, bpar, dist='gbar')
 
          ! Convert from gbar to g = h - (Z F0/T)( J0 phi + 4 mu (T/Z) (J1/gamma) bpar),
          ! as all terms on RHS of GKE use g rather than gbar
          call gbar_to_g(pdf, apar, 1.0)
       else
-         call advance_fields_using_field_equations_quasineutrality(pdf, phi, apar, bpar, dist='g')
+         call advance_fields(pdf, phi, apar, bpar, dist='g')
       end if
 
       if (radial_variation) call get_radial_correction(pdf, phi, dist='gbar')

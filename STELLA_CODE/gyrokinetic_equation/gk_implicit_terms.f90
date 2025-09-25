@@ -75,9 +75,9 @@ contains
       use parameters_numerical, only: driftkinetic_implicit
       use parameters_numerical, only: nitt
       use calculations_gyro_averages, only: gyro_average
-      use field_equations_quasineutrality, only: advance_fields_using_field_equations_quasineutrality
+      use field_equations, only: advance_fields
       use field_equations_fullfluxsurface, only: get_fields_source
-      use field_equations_quasineutrality, only: fields_updated
+      use field_equations, only: fields_updated
       use gk_ffs_solve, only: get_source_ffs_itteration, get_drifts_ffs_itteration
       
       implicit none
@@ -135,7 +135,7 @@ contains
       g1 = g
       g2 = g
 
-      call advance_fields_using_field_equations_quasineutrality(g2, phi, apar, bpar, dist=trim(dist_choice))
+      call advance_fields(g2, phi, apar, bpar, dist=trim(dist_choice))
       phi_old = phi
 
       ! If using delphi formulation for response matrix, then phi = phi^n replaces
@@ -157,7 +157,7 @@ contains
 
          ! Full flux routine:
          if (driftkinetic_implicit .and. (itt .NE. 1)) then
-            call advance_fields_using_field_equations_quasineutrality(g2, phi, apar, bpar, dist=trim(dist_choice))
+            call advance_fields(g2, phi, apar, bpar, dist=trim(dist_choice))
             phi_old = phi
          end if 
 
@@ -197,14 +197,14 @@ contains
             ! Full flux routine:
             ! For FFS we want to re-solve for bar{phi}
             ! NB the 'g' here is g_inh^{n+1, i+1}
-            call advance_fields_using_field_equations_quasineutrality(g, phi, apar, bpar, dist=trim(dist_choice), implicit_solve=.true.) 
+            call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice), implicit_solve=.true.) 
             ! g2 = g^{n+1, i}
             ! phi_old = phi^{n+1, i} 
             call get_fields_source(g2, phi_old, fields_source_ffs) 
             phi = phi + fields_source_ffs
          else
             ! Flux tube routine:
-            call advance_fields_using_field_equations_quasineutrality(g, phi, apar, bpar, dist=trim(dist_choice)) 
+            call advance_fields(g, phi, apar, bpar, dist=trim(dist_choice)) 
          end if
 
          ! solve response_matrix*(phi^{n+1}-phi^{n*}) = phi_{inh}^{n+1}-phi^{n*}
@@ -1453,7 +1453,7 @@ contains
       use grids_extended_zgrid, only: ikxmod
       use grids_extended_zgrid, only: periodic, phase_shift
       use grids_kxky, only: naky
-      use field_equations_quasineutrality, only: nfields
+      use field_equations, only: nfields
       use arrays, only: response_matrix
 
       implicit none

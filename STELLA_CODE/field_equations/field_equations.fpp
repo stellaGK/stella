@@ -1,35 +1,19 @@
 !###############################################################################
-!############## ADVANCE FIELDS USING THE QUASINEUTRALITY EQUATION ##############
+!################################ ADVANCE FIELDS ###############################
 !###############################################################################
 ! 
-! Evolve the fields in time using the quasi-neutrality condition:
-!     sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g + (Zs/Ts) (Gamma0 - 1) phi ] = 0
-!     sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * h - (Zs/Ts) phi ] = 0
-! 
-! Here we used the guiding-center disitribution function g and the non-adiabatic part h
-!     g = <delta f>_theta = h_s - Zs/Ts <phi>_theta F0
-! 
-! The arguments of the Bessel functions are
-!     J0(a_k) = J0(k_perp * rho_s)
-!     Gamma0(b_k) = Gamma0(k_perp**2 * rho_s**2 / 2)
-! 
-! This equation can be rewritten in order to obtain the electrostatic potential:
-!     phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * g ] / [ sum_s (Zs²ns/Ts) (1 - Gamma0) ]
-!     phi = sum_s Z_s n_s [ (2B/sqrt(pi)) int dvpa int dmu J0 * h ] / [ sum_s (Zs²ns/Ts) ]
-! 
-! The denominators are constants and are calculated when initialising stella
-!     denominator_fields[iky,ikz,iz] = sum_s (Zs²ns/Ts) (1 - Gamma0)
-!     denominator_fields_h = sum_s (Zs²ns/Ts)
-! 
-! The integral over velocity space and species is calculated in stella as
-!     integrate_species( . ) = sum_s (2B/sqrt(pi)) int dvpa int dmu ( . )
-! 
-! To summarize, the fields can be calculated as 
-!     phi = integrate_species( J0 * g ) / denominator_fields
-!     phi = integrate_species( J0 * h ) / denominator_fields_h
-! 
+! This module is used to advance the fields. It calls the appropriate routines
+! depending on the physics included, and the simulation domain. 
+! Physics options:
+!        - Electrostatic
+!        - Electromagnetic
+! Simulation domains:
+!        - Flux tube. -> Supports electrostatic and electromagnetic
+!        - Full flux annulus -> Supports only electrostatic
+!        - Radially global -> Supports only electrostatic
+!
 !###############################################################################
-module field_equations_quasineutrality
+module field_equations
 
    ! Load the debug flags
    use debug_flags, only: debug => fields_debug
@@ -37,9 +21,9 @@ module field_equations_quasineutrality
    implicit none
 
    ! Make routines available to other modules
-   public :: init_field_equations_quasineutrality
-   public :: finish_field_equations_quasineutrality
-   public :: advance_fields_using_field_equations_quasineutrality
+   public :: init_field_equations
+   public :: finish_field_equations
+   public :: advance_fields
    public :: rescale_fields
 
    ! Make parameters available to other modules
@@ -63,33 +47,28 @@ module field_equations_quasineutrality
 contains
 
 !###############################################################################
-!############## ADVANCE FIELDS USING THE QUASINEUTRALITY EQUATION ##############
+!############################## ADVANCE ALL FIELDS #############################
 !###############################################################################
 
    !============================================================================
-   !============ ADVANCE FIELDS USING THE QUASINEUTRALITY EQUATION =============
+   !============== ADVANCE ALL FIELDS USING THE FIELD EQUATIONS ================
    !============================================================================
    ! This calls the appropriate routines needed to all fields in the main code.
    ! This routine calls the appropriate update depending on the effects
    ! included in the simulation (e.g. Electrostatic, Full Flux surface effects
    ! or Radiatl Variation effects).
    !============================================================================
-   subroutine advance_fields_using_field_equations_quasineutrality(g, phi, apar, bpar, dist, implicit_solve)
+   subroutine advance_fields(g, phi, apar, bpar, dist, implicit_solve)
 
-      ! Parallelisation
       use mp, only: proc0
       use job_manage, only: time_message
       use parallelisation_layouts, only: vmu_lo
-
-      ! Flags
       use parameters_physics, only: full_flux_surface
-      
-      ! Grids
       use grids_z, only: nzgrid
       use arrays, only: time_field_solve
       
       ! Routines from other field modules
-      use field_equations_fluxtube, only: advance_fields_using_field_equations_fluxtube
+      use field_equations_fluxtube, only: advance_fields_fluxtube
       use field_equations_fullfluxsurface, only: advance_fields_using_field_equations_fullfluxsurface
 
       implicit none
@@ -109,28 +88,38 @@ contains
       ! Time the communications + field solve
       if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
 
-      ! Advance the fields in time using the quasi-neutrality equation for a flux-tube simulation
-      ! This will include electrostatic and electromagnetic effects, as well as any radial variation effects
+      !-------------------------------------------------------------------------
+      !                    Fluxtube simulation (+ Radial Variation)
+      !-------------------------------------------------------------------------
+      ! Advance the fields for a flux-tube simulation
+      ! This will include electrostatic and electromagnetic effects, as well as
+      ! any radial variation effects if included.
+      !-------------------------------------------------------------------------
       if (.not. full_flux_surface) then 
-         if (debug) write (*, *) 'field_equations_quasineutrality::advance_fields_using_field_equations_fluxtube'
-         call advance_fields_using_field_equations_fluxtube(g, phi, apar, bpar, dist)
-         
-      ! Include Full-Flux-Surface effects 
+         if (debug) write (*, *) 'field_equations::advance_fields_fluxtube'
+         call advance_fields_fluxtube(g, phi, apar, bpar, dist)
+
+      !-------------------------------------------------------------------------
+      !                        Full Flux Surface simulation
+      !-------------------------------------------------------------------------
+      ! The below routines are only for full-flux-surface simulations
+      !-------------------------------------------------------------------------
       else 
       
          ! This routine is only needed in the 'implicit_solve' algorithm
          if (present(implicit_solve)) then
-            if (debug) write (*, *) 'field_equations_quasineutrality::advance_fields_using_field_equations_fullfluxsurface::implicit'
+            if (debug) write (*, *) 'field_equations::advance_fields_using_field_equations_fullfluxsurface::implicit'
             call advance_fields_using_field_equations_fullfluxsurface(g, phi, apar, implicit_solve=.true.)
             
          ! This routine is for advancing the full <phi> field in the code with FFS effects
          else
-            if (debug) write (*, *) 'field_equations_quasineutrality::advance_fields_using_field_equations_fullfluxsurface'
+            if (debug) write (*, *) 'field_equations::advance_fields_using_field_equations_fullfluxsurface'
             call advance_fields_using_field_equations_fullfluxsurface(g, phi, apar)
          end if
          
       end if
-
+      !-------------------------------------------------------------------------
+      
       ! Set a flag to indicate that the fields have been updated
       ! This helps avoid unnecessary field solves
       fields_updated = .true.
@@ -138,21 +127,18 @@ contains
       ! Time the communications + field solve
       if (proc0) call time_message(.false., time_field_solve(:, 1), ' fields')
 
-   end subroutine advance_fields_using_field_equations_quasineutrality
+   end subroutine advance_fields
 
 !###############################################################################
-!############################ INITALIZE & FINALIZE #############################
+!############################ INITALISE & FINALISE #############################
 !###############################################################################
 
    !============================================================================
-   !=========================== INITALIZE THE FIELDS ===========================
+   !=========================== INITALISE THE FIELDS ===========================
    !============================================================================
-   subroutine init_field_equations_quasineutrality
+   subroutine init_field_equations
 
-      ! Parallelisation
       use linear_solve, only: lu_decomposition
-
-      ! Parameters
       use parameters_physics, only: full_flux_surface, radial_variation
 
       ! Routines needed to initialise the different field arrays depending on the physics being simulated
@@ -197,7 +183,7 @@ contains
          
       end if
 
-   end subroutine init_field_equations_quasineutrality
+   end subroutine init_field_equations
 
    !============================================================================
    !============================= ALLOCATE ARRAYS ==============================
@@ -205,17 +191,12 @@ contains
    ! Allocate arrays needed for solving fields for all versions of stella
    !============================================================================
    subroutine allocate_arrays
-       
-      ! Parameters
+
+      use arrays_fields, only: phi, phi_old
+      use arrays, only: denominator_fields, denominator_fields_MBR
       use grids_species, only: adiabatic_option_switch
       use grids_species, only: adiabatic_option_fieldlineavg
       use grids_species, only: spec, has_electron_species
-      
-      ! Arrays to allocate
-      use arrays_fields, only: phi, phi_old
-      use arrays, only: denominator_fields, denominator_fields_MBR
-      
-      ! Grids
       use grids_z, only: nzgrid, ntubes
       use grids_kxky, only: naky, nakx
       
@@ -248,12 +229,9 @@ contains
    !============================================================================
    !============================ FINISH THE FIELDS =============================
    !============================================================================
-   subroutine finish_field_equations_quasineutrality
+   subroutine finish_field_equations
 
-      ! Parameters
       use parameters_physics, only: full_flux_surface, radial_variation
-      
-      ! Arrays
       use arrays_fields, only: phi, phi_old
       use arrays, only: denominator_fields, denominator_fields_MBR
       
@@ -280,7 +258,7 @@ contains
       ! The fields are no longer initialised
       initialised_fields = .false.
 
-   end subroutine finish_field_equations_quasineutrality
+   end subroutine finish_field_equations
    
 
 !###############################################################################
@@ -292,17 +270,12 @@ contains
    !============================================================================
    subroutine rescale_fields(target_amplitude)
   
-      ! Parallelisation
       use mp, only: scope, subprocs
       use mp, only: crossdomprocs, sum_allreduce
       use job_manage, only: njobs
       use file_utils, only: runtype_option_switch, runtype_multibox
-      
-      ! Fields and distribution functions
       use arrays_fields, only: phi, apar
       use arrays_distribution_function, only: gnew, gvmu
-      
-      ! Calculations
       use calculations_volume_averages, only: volume_average
 
       implicit none
@@ -333,4 +306,4 @@ contains
 
    end subroutine rescale_fields
 
-end module field_equations_quasineutrality
+end module field_equations

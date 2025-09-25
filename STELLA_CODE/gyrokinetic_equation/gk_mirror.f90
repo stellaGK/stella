@@ -658,7 +658,7 @@ contains
       use parameters_physics, only: include_apar
       use redistribute, only: kxkyz2vmu, kxyz2vmu
       use field_equations_electromagnetic, only: advance_apar
-      use field_equations_quasineutrality, only: fields_updated
+      use field_equations, only: fields_updated
       use calculations_tofrom_ghf, only: gbar_to_g
       use parameters_numerical, only: time_upwind
       use grids_velocity, only: dvpa

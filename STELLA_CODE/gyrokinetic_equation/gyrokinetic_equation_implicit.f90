@@ -36,8 +36,8 @@ contains
       use arrays, only: time_gke
       
       ! Fields
-      use field_equations_quasineutrality, only: advance_fields_using_field_equations_quasineutrality
-      use field_equations_quasineutrality, only: fields_updated
+      use field_equations, only: advance_fields
+      use field_equations, only: fields_updated
 
       ! Grids
       use grids_z, only: nzgrid
@@ -104,7 +104,7 @@ contains
          end if
 
          if (collisions_implicit .and. include_collisions) then
-            call advance_fields_using_field_equations_quasineutrality(g, phi, apar, bpar, dist='g')
+            call advance_fields(g, phi, apar, bpar, dist='g')
             call advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
             fields_updated = .false.
          end if
@@ -117,7 +117,7 @@ contains
          ! If the distribution function has been updated due to the addition
          ! of any implicit terms of the gyrokinetic equation, we need to use the 
          ! quasi-neutrality condition to update the fields <phi>, <apar> and <bpar>
-         call advance_fields_using_field_equations_quasineutrality(g, phi, apar, bpar, dist='g')
+         call advance_fields(g, phi, apar, bpar, dist='g')
          fields_updated = .true. 
          
          ! g^{**} is input
@@ -128,7 +128,7 @@ contains
          end if
 
          ! Update the fields if not already updated
-         call advance_fields_using_field_equations_quasineutrality(g, phi, apar, bpar, dist='g')
+         call advance_fields(g, phi, apar, bpar, dist='g')
          fields_updated = .true. 
          
       else
@@ -136,7 +136,7 @@ contains
          ! Get updated fields corresponding to advanced g
          ! note that hyper-dissipation and mirror advances
          ! depended only on g and so did not need field update
-         call advance_fields_using_field_equations_quasineutrality(g, phi, apar, bpar, dist='g')
+         call advance_fields(g, phi, apar, bpar, dist='g')
          fields_updated = .true. 
 
          ! g^{**} is input
@@ -152,7 +152,7 @@ contains
          end if
 
          if (collisions_implicit .and. include_collisions) then
-            call advance_fields_using_field_equations_quasineutrality(g, phi, apar, bpar, dist='g')
+            call advance_fields(g, phi, apar, bpar, dist='g')
             call advance_collisions_implicit(mirror_implicit, phi, apar, bpar, g)
             fields_updated = .false.
          end if
