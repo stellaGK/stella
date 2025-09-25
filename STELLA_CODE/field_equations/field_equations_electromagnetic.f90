@@ -508,6 +508,37 @@ contains
    !*************************** INITALISE THE FIELDS ***************************
    !****************************************************************************
    ! Fill arrays needed for the electromagnetic calculations
+   !
+   !                                    Definitions
+   ! ---------------------------------------------------------------------------
+   ! (formally gamtot - computed in field_equations_fluxtube):
+   ! denominator_fields = sum_s (Z_s^2 n_s / T_s) int d^3v J0^2 F_0s
+   ! 
+   ! ---------------------------------------------------------------------------
+   !           These are temporary arrays needed to get the full matricies
+   ! ---------------------------------------------------------------------------
+   ! (formally gamtot13):
+   ! denominator_fields13 = - 4 * beta * sum_s (Z_s n_s) int d^3v mu (J0 J1/gamma) F_0s
+   !
+   ! apar_denom = k_perp^2 + 2 beta sum_s (Z_s^2 n_s / T_s) int d^3v (v_perp^2/2) J0^2 F_0s
+   !            = k_perp^2 + sum_s (Z_s^2 n_s / T_s) Gamma_1s
+   !
+   ! (formally gamtot31):
+   ! denominator_fields31 = - 4 * beta * sum_s (Z_s n_s) int d^3v (v_perp^2) (J0 J1/gamma) F_0s
+   !
+   ! (formally gamtot33):
+   ! denominator_fields33 = 1.0 + 8 * beta * sum_s (n_s T_s) int d^3v (mu^2) (J1/gamma)^2 F_0s
+   !
+   ! ---------------------------------------------------------------------------
+   ! These are the elements of the matrix inverse needed to solve for phi and bpar
+   ! ---------------------------------------------------------------------------
+   ! denominator_fields_inv11 = 1/((denominator_fields13*denominator_fields31)/denominator_fields33)
+   ! 
+   ! denominator_fields_inv13 = - denominator_fields13 /(denominator_fields*denominator_fields33 - denominator_fields13*denominator_fields31)
+   !
+   ! denominator_fields_inv33 = denominator_fields/(denominator_fields*denominator_fields33 - denominator_fields13*denominator_fields31)
+   !
+   ! denominator_fields_inv31 = - denominator_fields31/(denominator_fields*denominator_fields33 - denominator_fields13*denominator_fields31)
    !****************************************************************************
    subroutine init_field_equations_electromagnetic (nfields)
 
@@ -519,7 +550,7 @@ contains
       ! Arrays
       use arrays, only: kperp2
       use arrays, only: denominator_fields
-      use arrays, only: denominator_fields13, denominator_fields_MBR1, denominator_fields_MBR3
+      use arrays, only: denominator_fields13, denominator_fields31, denominator_fields33
       use arrays, only: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
       use arrays, only: apar_denom
       
@@ -549,16 +580,20 @@ contains
 
       !-------------------------------------------------------------------------
       
+      ! Tally the number of fields to be solved -> phi, apar, bpar
       if (include_apar) nfields = nfields + 1
       if (include_bpar) nfields = nfields + 1
 
+      ! Allocate arrays needed for electromagnetic calculations
       call allocate_field_equations_electromagnetic
 
       if (.not. (include_apar .or. include_bpar)) return
       
-      ! Assume we only have one field line
+      ! Assume we only have one field line -> not set up for full flux annulus yet
       ia = 1
       
+      ! Paralel Ampere's Law apar_denom
+      !
       if (include_apar) then
          allocate (g0(nvpa, nmu))
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -582,14 +617,15 @@ contains
          deallocate (g0)
       end if 
 
+      ! 
       if (include_bpar) then
-         ! denominator_fields_MBR3
+         ! denominator_fields33
          allocate (g0(nvpa, nmu))
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
             it = it_idx(kxkyz_lo, ikxkyz)
-            ! denominator_fields_MBR3 does not depend on flux tube index,
+            ! denominator_fields33 does not depend on flux tube index,
             ! so only compute for one flux tube index
-            ! denominator_fields_MBR3 = 1 + 8 * beta * sum_s (n*T* integrate_vmu(mu*mu*exp(-v^2) *(J1/gamma)*(J1/gamma)))
+            ! denominator_fields33 = 1 + 8 * beta * sum_s (n*T* integrate_vmu(mu*mu*exp(-v^2) *(J1/gamma)*(J1/gamma)))
             if (it /= 1) cycle
             iky = iky_idx(kxkyz_lo, ikxkyz)
             ikx = ikx_idx(kxkyz_lo, ikxkyz)
@@ -599,11 +635,11 @@ contains
                  * spread(maxwell_vpa(:, is), 2, nmu) * spread(maxwell_mu(ia, iz, :, is), 1, nvpa) * maxwell_fac(is)
             wgt = 8.0 * spec(is)%temp * spec(is)%dens_psi0
             call integrate_vmu(g0, iz, tmp)
-            denominator_fields_MBR3(iky, ikx, iz) = denominator_fields_MBR3(iky, ikx, iz) + tmp * wgt
+            denominator_fields33(iky, ikx, iz) = denominator_fields33(iky, ikx, iz) + tmp * wgt
          end do
-         call sum_allreduce(denominator_fields_MBR3)
+         call sum_allreduce(denominator_fields33)
 
-         denominator_fields_MBR3 = 1.0 + beta * denominator_fields_MBR3
+         denominator_fields33 = 1.0 + beta * denominator_fields33
 
          !denominator_fields13
          do ikxkyz = kxkyz_lo%llim_proc, kxkyz_lo%ulim_proc
@@ -623,10 +659,10 @@ contains
             denominator_fields13(iky, ikx, iz) = denominator_fields13(iky, ikx, iz) + tmp * wgt
          end do
          call sum_allreduce(denominator_fields13)
-         denominator_fields_MBR1 = -0.5 * beta * denominator_fields13 
+         denominator_fields31 = -0.5 * beta * denominator_fields13 
          deallocate (g0)
       end if
-      
+
             
       ! Compute coefficients for even part of field solve (phi, bpar)
       if (fphi > epsilon(0.0) .and. include_bpar) then
@@ -634,14 +670,14 @@ contains
             do ikx = 1, nakx
                do iky = 1, naky 
                   ! denominator_fields_inv11
-                  denom_tmp = denominator_fields(iky,ikx,iz) - ((denominator_fields13(iky,ikx,iz)*denominator_fields_MBR1(iky,ikx,iz))/denominator_fields_MBR3(iky,ikx,iz))
+                  denom_tmp = denominator_fields(iky,ikx,iz) - ((denominator_fields13(iky,ikx,iz)*denominator_fields31(iky,ikx,iz))/denominator_fields33(iky,ikx,iz))
                   if (denom_tmp < epsilon(0.0)) then
                      denominator_fields_inv11(iky,ikx,iz) = 0.0
                   else
                      denominator_fields_inv11(iky,ikx,iz) = 1.0/denom_tmp
                   end if
                   ! denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
-                  denom_tmp = denominator_fields(iky,ikx,iz)*denominator_fields_MBR3(iky,ikx,iz) - denominator_fields13(iky,ikx,iz)*denominator_fields_MBR1(iky,ikx,iz)
+                  denom_tmp = denominator_fields(iky,ikx,iz)*denominator_fields33(iky,ikx,iz) - denominator_fields13(iky,ikx,iz)*denominator_fields31(iky,ikx,iz)
                   if (denom_tmp < epsilon(0.0)) then
                      denominator_fields_inv13(iky,ikx,iz) = 0.0
                      denominator_fields_inv31(iky,ikx,iz) = 0.0
@@ -649,12 +685,15 @@ contains
                   else
                      denominator_fields_inv13(iky,ikx,iz) = -denominator_fields13(iky,ikx,iz)/denom_tmp
                      denominator_fields_inv33(iky,ikx,iz) = denominator_fields(iky,ikx,iz)/denom_tmp
-                     denominator_fields_inv31(iky,ikx,iz) = -denominator_fields_MBR1(iky,ikx,iz)/denom_tmp
+                     denominator_fields_inv31(iky,ikx,iz) = -denominator_fields31(iky,ikx,iz)/denom_tmp
                   end if
                end do
             end do
          end do
       end if
+
+      ! Deallocate any arrays that were only needed for the initialisation
+      call deallocate_field_equations_electromagnetic_temporary
       
    end subroutine init_field_equations_electromagnetic
 
@@ -663,6 +702,9 @@ contains
    !****************************************************************************
    ! Allocate arrays needed for solving electromagnetic fields
    ! This includes Apar and Bpar
+   ! If include_apar or include_bpar is false, allocate a dummy array of size (1,1,1,1)
+   ! This is because these arrays are passed as arguments in many places, so need to 
+   ! be allocated, but we don't want to allocate large arrays if they are not needed
    !****************************************************************************
    subroutine allocate_field_equations_electromagnetic
 
@@ -671,15 +713,13 @@ contains
       use parameters_physics, only: include_apar, include_bpar
       use arrays_fields, only: apar, apar_old
       use arrays_fields, only: bpar, bpar_old
-      use arrays, only: denominator_fields13, denominator_fields_MBR1, denominator_fields_MBR3
+      use arrays, only: denominator_fields13, denominator_fields31, denominator_fields33
       use arrays, only: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
       use arrays, only: apar_denom
 
       implicit none
 
       !----------------------------------------------------------------------
-      
-      ! Allocate electromagnetic arrays on each processor
       if (include_apar) then
          if (.not. allocated(apar)) then; allocate (apar(naky, nakx, -nzgrid:nzgrid, ntubes)); apar = 0. ; end if
          if (.not. allocated(apar_old)) then; allocate (apar_old(naky, nakx, -nzgrid:nzgrid, ntubes)); apar_old = 0. ; end if
@@ -693,9 +733,9 @@ contains
       if (include_bpar) then
          if (.not. allocated(bpar)) then; allocate (bpar(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar = 0. ; end if
          if (.not. allocated(bpar_old)) then; allocate (bpar_old(naky, nakx, -nzgrid:nzgrid, ntubes)); bpar_old = 0. ; end if
-         if (.not. allocated(denominator_fields_MBR3)) then; allocate (denominator_fields_MBR3(naky, nakx, -nzgrid:nzgrid)); denominator_fields_MBR3 = 0. ; end if
+         if (.not. allocated(denominator_fields33)) then; allocate (denominator_fields33(naky, nakx, -nzgrid:nzgrid)); denominator_fields33 = 0. ; end if
          if (.not. allocated(denominator_fields13)) then; allocate (denominator_fields13(naky, nakx, -nzgrid:nzgrid)); denominator_fields13 = 0. ; end if
-         if (.not. allocated(denominator_fields_MBR1)) then; allocate (denominator_fields_MBR1(naky, nakx, -nzgrid:nzgrid)); denominator_fields_MBR1 = 0. ; end if
+         if (.not. allocated(denominator_fields31)) then; allocate (denominator_fields31(naky, nakx, -nzgrid:nzgrid)); denominator_fields31 = 0. ; end if
          if (.not. allocated(denominator_fields_inv11)) then; allocate (denominator_fields_inv11(naky, nakx, -nzgrid:nzgrid)); denominator_fields_inv11 = 0. ; end if
          if (.not. allocated(denominator_fields_inv31)) then; allocate (denominator_fields_inv31(naky, nakx, -nzgrid:nzgrid)); denominator_fields_inv31 = 0. ; end if
          if (.not. allocated(denominator_fields_inv13)) then; allocate (denominator_fields_inv13(naky, nakx, -nzgrid:nzgrid)); denominator_fields_inv13 = 0. ; end if
@@ -703,9 +743,9 @@ contains
       else
          if (.not. allocated(bpar)) then; allocate (bpar(1, 1, 1, 1)); bpar = 0. ; end if
          if (.not. allocated(bpar_old)) then; allocate (bpar_old(1, 1, 1, 1)); bpar_old = 0. ; end if
-         if (.not. allocated(denominator_fields_MBR3)) then; allocate (denominator_fields_MBR3(1, 1, 1)); denominator_fields_MBR3 = 0. ; end if
+         if (.not. allocated(denominator_fields33)) then; allocate (denominator_fields33(1, 1, 1)); denominator_fields33 = 0. ; end if
          if (.not. allocated(denominator_fields13)) then; allocate (denominator_fields13(1, 1, 1)); denominator_fields13 = 0. ; end if
-         if (.not. allocated(denominator_fields_MBR1)) then; allocate (denominator_fields_MBR1(1, 1, 1)); denominator_fields_MBR1 = 0. ; end if
+         if (.not. allocated(denominator_fields31)) then; allocate (denominator_fields31(1, 1, 1)); denominator_fields31 = 0. ; end if
          if (.not. allocated(denominator_fields_inv11)) then; allocate (denominator_fields_inv11(1, 1, 1)); denominator_fields_inv11 = 0. ; end if
          if (.not. allocated(denominator_fields_inv31)) then; allocate (denominator_fields_inv31(1, 1, 1)); denominator_fields_inv31 = 0. ; end if
          if (.not. allocated(denominator_fields_inv13)) then; allocate (denominator_fields_inv13(1, 1, 1)); denominator_fields_inv13 = 0. ; end if
@@ -721,7 +761,6 @@ contains
 
       use arrays_fields, only: apar
       use arrays_fields, only: apar_old, bpar_old
-      use arrays, only: denominator_fields13, denominator_fields_MBR1, denominator_fields_MBR3
       use arrays, only: denominator_fields_inv11, denominator_fields_inv13, denominator_fields_inv31, denominator_fields_inv33
       use arrays, only: apar_denom
       
@@ -729,20 +768,29 @@ contains
 
       !----------------------------------------------------------------------
 
-      !TODO-GA:
-      !if (allocated(apar)) deallocate (apar)
+      ! Deallocate electromagnetic arrays
+      if (allocated(apar)) deallocate (apar)
+      if (allocated(bpar)) deallocate (bpar)
       if (allocated(apar_old)) deallocate(apar_old)
       if (allocated(bpar_old)) deallocate(bpar_old)
-      if (allocated(apar)) deallocate (apar)
       if (allocated(apar_denom)) deallocate (apar_denom)
-      if (allocated(denominator_fields_MBR3)) deallocate (denominator_fields_MBR3)
-      if (allocated(denominator_fields13)) deallocate (denominator_fields13)
-      if (allocated(denominator_fields_MBR1)) deallocate (denominator_fields_MBR1)
       if (allocated(denominator_fields_inv11)) deallocate(denominator_fields_inv11)
       if (allocated(denominator_fields_inv31)) deallocate(denominator_fields_inv31)
       if (allocated(denominator_fields_inv13)) deallocate(denominator_fields_inv13)
       if (allocated(denominator_fields_inv33)) deallocate(denominator_fields_inv33)
       
    end subroutine finish_field_equations_electromagnetic
+
+   subroutine deallocate_field_equations_electromagnetic_temporary
+
+      use arrays, only: denominator_fields13, denominator_fields31, denominator_fields33
+
+      implicit none 
+
+      if (allocated(denominator_fields33)) deallocate (denominator_fields33)
+      if (allocated(denominator_fields13)) deallocate (denominator_fields13)
+      if (allocated(denominator_fields31)) deallocate (denominator_fields31)
+
+   end subroutine deallocate_field_equations_electromagnetic_temporary
 
 end module field_equations_electromagnetic
