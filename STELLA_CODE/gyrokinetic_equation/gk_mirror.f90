@@ -393,8 +393,8 @@ contains
       ! Parallelisation
       use mp, only: proc0
       use job_manage, only: time_message
-      use redistribute, only: kxkyz2vmu, kxyz2vmu
-      use initialise_redistribute, only: gather, scatter
+      use initialise_redistribute, only: kxkyz2vmu, kxyz2vmu
+      use redistribute, only: gather, scatter
       use parallelisation_layouts, only: fields_kxkyz
       use parallelisation_layouts, only: iv_idx, is_idx
       use parallelisation_layouts, only: kxyz_lo, kxkyz_lo, vmu_lo
@@ -658,8 +658,8 @@ contains
       use constants, only: zi
       use mp, only: proc0
       use job_manage, only: time_message
-      use redistribute, only: kxkyz2vmu, kxyz2vmu
-      use initialise_redistribute, only: gather, scatter
+      use initialise_redistribute, only: kxkyz2vmu, kxyz2vmu
+      use redistribute, only: gather, scatter
       use parallelisation_layouts, only: iy_idx
       use parallelisation_layouts, only: vmu_lo, kxyz_lo, kxkyz_lo
       use parallelisation_layouts, only: iky_idx, ikx_idx, iz_idx, it_idx, is_idx
@@ -1025,9 +1025,9 @@ contains
 
       ! Parallelisation
       use mp, only: proc0
-      use redistribute, only: kxkyz2vmu
+      use initialise_redistribute, only: kxkyz2vmu
       use job_manage, only: time_message
-      use initialise_redistribute, only: gather, scatter
+      use redistribute, only: gather, scatter
       use parallelisation_layouts, only: kxkyz_lo, vmu_lo
       use parallelisation_layouts, only: is_idx, imu_idx
       use parallelisation_layouts, only: fields_kxkyz

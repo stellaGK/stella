@@ -1060,6 +1060,7 @@ $(OBJ_DIR)/init_stella.o: \
 	 $(OBJ_DIR)/gyrokinetic_equation_initialisation.o \
 	 $(OBJ_DIR)/initialise_arrays.o \
 	 $(OBJ_DIR)/initialise_distribution_function.o \
+	 $(OBJ_DIR)/initialise_redistribute.o \
 	 $(OBJ_DIR)/interface_random_number_generator.o \
 	 $(OBJ_DIR)/job_manage.o \
 	 $(OBJ_DIR)/mp.o \
@@ -1069,7 +1070,6 @@ $(OBJ_DIR)/init_stella.o: \
 	 $(OBJ_DIR)/parameters_multibox.o \
 	 $(OBJ_DIR)/parameters_numerical.o \
 	 $(OBJ_DIR)/parameters_physics.o \
-	 $(OBJ_DIR)/redistribute.o \
 	 $(OBJ_DIR)/response_matrix.o \
 	 $(OBJ_DIR)/save_stella_for_restart.o 
 $(OBJ_DIR)/initialise_arrays.o: \
@@ -1107,8 +1107,15 @@ $(OBJ_DIR)/initialise_distribution_function.o: \
 	 $(OBJ_DIR)/save_stella_for_restart.o \
 	 $(OBJ_DIR)/system_fortran.o 
 $(OBJ_DIR)/initialise_redistribute.o: \
-	 $(OBJ_DIR)/job_manage.o \
-	 $(OBJ_DIR)/mp.o 
+	 $(OBJ_DIR)/arrays_distribution_function.o \
+	 $(OBJ_DIR)/grids_kxky.o \
+	 $(OBJ_DIR)/grids_velocity.o \
+	 $(OBJ_DIR)/grids_z.o \
+	 $(OBJ_DIR)/mp.o \
+	 $(OBJ_DIR)/parallelisation_layouts.o \
+	 $(OBJ_DIR)/parameters_numerical.o \
+	 $(OBJ_DIR)/parameters_physics.o \
+	 $(OBJ_DIR)/redistribute.o 
 $(OBJ_DIR)/interface_random_number_generator.o: \
 	 $(OBJ_DIR)/file_utils.o \
 	 $(OBJ_DIR)/mp.o \
@@ -1260,15 +1267,8 @@ $(OBJ_DIR)/parameters_physics.o: \
 	 $(OBJ_DIR)/namelist_physics_parameters.o 
 $(OBJ_DIR)/ran.o: 
 $(OBJ_DIR)/redistribute.o: \
-	 $(OBJ_DIR)/arrays_distribution_function.o \
-	 $(OBJ_DIR)/grids_kxky.o \
-	 $(OBJ_DIR)/grids_velocity.o \
-	 $(OBJ_DIR)/grids_z.o \
-	 $(OBJ_DIR)/initialise_redistribute.o \
-	 $(OBJ_DIR)/mp.o \
-	 $(OBJ_DIR)/parallelisation_layouts.o \
-	 $(OBJ_DIR)/parameters_numerical.o \
-	 $(OBJ_DIR)/parameters_physics.o 
+	 $(OBJ_DIR)/job_manage.o \
+	 $(OBJ_DIR)/mp.o 
 $(OBJ_DIR)/response_matrix.o: \
 	 $(OBJ_DIR)/arrays.o \
 	 $(OBJ_DIR)/arrays_gyro_averages.o \

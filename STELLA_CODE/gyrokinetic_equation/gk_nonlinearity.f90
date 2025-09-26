@@ -417,11 +417,11 @@ contains
 
       ! Constants + Paralellisation
       use constants, only: zi
-      use redistribute, only: xyz2vmu
+      use initialise_redistribute, only: xyz2vmu
       use job_manage, only: time_message
       use mp, only: scope, allprocs, subprocs
       use mp, only: proc0, min_allreduce, mp_abort
-      use initialise_redistribute, only: gather, scatter
+      use redistribute, only: gather, scatter
       use parallelisation_layouts, only: vmu_lo, xyz_lo
       use parallelisation_layouts, only: iv_idx, imu_idx, is_idx
       use file_utils, only: runtype_option_switch, runtype_multibox

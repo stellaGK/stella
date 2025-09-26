@@ -359,8 +359,8 @@ contains
    subroutine init_distribution_function_vs_kxkyz(restarted)
    
       ! Parallelisation
-      use initialise_redistribute, only: gather, scatter
-      use redistribute, only: kxkyz2vmu
+      use redistribute, only: gather, scatter
+      use initialise_redistribute, only: kxkyz2vmu
 
       ! Distribution function
       use arrays_distribution_function, only: gvmu, gold, gnew
@@ -404,8 +404,8 @@ contains
    subroutine add_corrections_to_g_for_radial_variation(restarted)
 
       ! Parallelisation
-      use initialise_redistribute, only: scatter
-      use redistribute, only: kxkyz2vmu
+      use redistribute, only: scatter
+      use initialise_redistribute, only: kxkyz2vmu
       use parallelisation_layouts, only: vmu_lo, iv_idx, imu_idx, is_idx
       
       ! Distribution function

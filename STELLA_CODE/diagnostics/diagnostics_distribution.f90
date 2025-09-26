@@ -36,8 +36,8 @@ contains
       use parameters_physics, only: fphi
 
       ! Redistribute data from  i[vpa,mu,s] to i[kx,ky,z,s]
-      use initialise_redistribute, only: scatter
-      use redistribute, only: kxkyz2vmu
+      use redistribute, only: scatter
+      use initialise_redistribute, only: kxkyz2vmu
 
       ! Dimensions
       use grids_kxky, only: nakx, naky
